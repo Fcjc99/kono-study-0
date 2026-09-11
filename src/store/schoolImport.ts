@@ -13,7 +13,7 @@ export function suggestSchoolDates(text:string,start:string,end:string):(SchoolE
   return {id:uid('school-date'),include:false,start:from,end:to,kind,label:source.trim().slice(0,200),audience:/senior/i.test(source)?'seniors':'all',source}
  })
 }
-export type RotatingImportRow={id:string;include:boolean;day:string;label:string;slot:string;start:string;end:string;dateStart:string;dateEnd:string;kind:'study'|'break'|'routine'|'hobby'}
+export type RotatingImportRow={id:string;include:boolean;day:string;label:string;slot:string;start:string;end:string;dateStart:string;dateEnd:string;kind:'study'|'break'|'routine'|'hobby';location?:string}
 
 const ndaRows=[
  ['07:30','07:50','7:30 AM'],['07:50','08:50','7:50 - 8:50 AM'],['08:53','09:53','8:53 - 9:53 AM'],
@@ -101,6 +101,56 @@ export function suggestRotatingClasses(text:string,cycle:string[],start:string,e
  }
  return rows
 }
+
+const weekdayAliases:Record<string,string>={
+ monday:'Monday',mon:'Monday',m:'Monday',
+ tuesday:'Tuesday',tue:'Tuesday',tues:'Tuesday',tu:'Tuesday',
+ wednesday:'Wednesday',wed:'Wednesday',w:'Wednesday',
+ thursday:'Thursday',thu:'Thursday',thur:'Thursday',thurs:'Thursday',th:'Thursday',
+ friday:'Friday',fri:'Friday',f:'Friday',
+ saturday:'Saturday',sat:'Saturday',
+ sunday:'Sunday',sun:'Sunday'
+}
+const toTime=(hour:string,minute:string,ampm:string)=>{let h=Number(hour);if(h<1||h>12||Number(minute)>59)return '';h=h%12+(ampm.toLowerCase()==='pm'?12:0);return String(h).padStart(2,'0')+':'+minute}
+const weekdaysFrom=(value:string,cycle:string[])=>{
+ const wanted=new Set(cycle),found:string[]=[]
+ for(const raw of value.replace(/\b(and|&|\+|\/)\b/gi,',').replace(/[&/+]/g,',').split(/[,;]/).map(x=>x.trim()).filter(Boolean)){
+  const key=raw.toLowerCase().replace(/\.$/,'')
+  const day=weekdayAliases[key]??weekdayAliases[key.slice(0,3)]
+  if(day&&wanted.has(day)&&!found.includes(day))found.push(day)
+ }
+ return found
+}
+/** Parse simple college/work weekly tables: course, class name, weekdays, time and building/room. */
+export function parseWeeklyCollegeSchedule(text:string,start:string,end:string,cycle:string[]):RotatingImportRow[]{
+ const rows:RotatingImportRow[]=[]
+ const lines=text.split(/\r?\n/).map(line=>line.trim()).filter(Boolean)
+ for(const line of lines){
+  if(/^weekly class schedule|^day, time|^course\s*\|/i.test(line))continue
+  const cells=line.split(/\t+|\s*\|\s*/).map(x=>x.trim()).filter(Boolean)
+  if(cells.length>=5){
+   const timeCellIndex=cells.findIndex(cell=>/\b\d{1,2}:\d{2}\s*(?:AM|PM)\s*[-–—]\s*\d{1,2}:\d{2}\s*(?:AM|PM)\b/i.test(cell))
+   if(timeCellIndex>=0){
+    const time=cells[timeCellIndex].match(/\b(\d{1,2}):(\d{2})\s*(AM|PM)\s*[-–—]\s*(\d{1,2}):(\d{2})\s*(AM|PM)\b/i)
+    const dayIndex=timeCellIndex-1,days=dayIndex>=0?weekdaysFrom(cells[dayIndex],cycle):[]
+    if(time&&days.length){
+     const course=cells[0]??'',name=cells[1]??'',building=cells[timeCellIndex+1]??'',room=cells[timeCellIndex+2]??''
+     const label=[course,name].filter(Boolean).join(' · ').slice(0,200)
+     const location=[building,room].filter(Boolean).join(' ').slice(0,160)
+     for(const day of days)rows.push({id:uid('import-block'),include:true,day,label,slot:course,start:toTime(time[1],time[2],time[3]),end:toTime(time[4],time[5],time[6]),dateStart:start,dateEnd:end,kind:'study',location})
+     continue
+    }
+   }
+  }
+  const free=line.match(/^([A-Z]{2,5}\s*\d{3}[A-Z0-9 -]*)\s+(.+?)\s+((?:Mon|Tue|Tues|Wed|Thu|Thur|Thurs|Fri|Sat|Sun|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)(?:\s*(?:,|&|and|\/|\+)\s*(?:Mon|Tue|Tues|Wed|Thu|Thur|Thurs|Fri|Sat|Sun|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday))*)\s+(\d{1,2}:\d{2}\s*(?:AM|PM)\s*[-–—]\s*\d{1,2}:\d{2}\s*(?:AM|PM))\s+(.+)$/i)
+  if(!free)continue
+  const time=free[4].match(/(\d{1,2}):(\d{2})\s*(AM|PM)\s*[-–—]\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i),days=weekdaysFrom(free[3],cycle)
+  if(!time||!days.length)continue
+  const label=[free[1].trim(),free[2].trim()].join(' · ').slice(0,200)
+  for(const day of days)rows.push({id:uid('import-block'),include:true,day,label,slot:free[1].trim(),start:toTime(time[1],time[2],time[3]),end:toTime(time[4],time[5],time[6]),dateStart:start,dateEnd:end,kind:'study',location:free[5].trim().slice(0,160)})
+ }
+ return rows
+}
 /** Apply reviewed rows to a copy; never partially mutate a draft on invalid input. */
 export function addTimetableRows(season:StudySeason,rows:RotatingImportRow[]):StudySeason{
  const selected=rows.filter(r=>r.include)
@@ -111,7 +161,7 @@ export function addTimetableRows(season:StudySeason,rows:RotatingImportRow[]):St
   const blocks=next.week[r.day]
   if(blocks.some(b=>b.label.trim().toLowerCase()===r.label.trim().toLowerCase()&&b.start===r.start&&b.end===r.end&&(b.dateStart??season.start)===r.dateStart&&(b.dateEnd??season.end)===r.dateEnd))continue
   if(blocks.some(b=>b.start<r.end&&b.end>r.start&&(b.dateStart??season.start)<=r.dateEnd&&(b.dateEnd??season.end)>=r.dateStart))throw Error('An existing class overlaps '+r.label+' on '+r.day+'. Edit the conflicting entry before importing.')
-  blocks.push({id:uid('block'),label:r.label.trim(),slot:r.slot,start:r.start,end:r.end,dateStart:r.dateStart,dateEnd:r.dateEnd,kind:r.kind})
+  blocks.push({id:uid('block'),label:r.label.trim(),slot:r.slot,start:r.start,end:r.end,dateStart:r.dateStart,dateEnd:r.dateEnd,kind:r.kind,location:r.location?.trim()||undefined})
  }
  return next
 }

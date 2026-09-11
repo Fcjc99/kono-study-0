@@ -1,7 +1,7 @@
 {
   "name": "kono-identity-edition-sprint-1",
   "private": true,
-  "version": "0.99.98-production-22.8.20",
+  "version": "0.99.99-production-22.8.21",
   "type": "module",
   "overrides": {
     "@esbuild-kit/core-utils": {
