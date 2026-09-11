@@ -1,7 +1,8 @@
-KONO Release Candidate 22.8.16 — Cozy, Simplified, Office and Recurring Classes
+KONO Release Candidate 22.8.18 — Planner Priority Rings and Class-Attached Work
 Three complete interface experiences share the same assignments, notes and saved data.
 Cozy reuses original notebook navigation and pinned-paper components from the reference design.
 Office uses document lists, a structured calendar and side-sheet editors. Simplified keeps the compact workspace.
-Weekly classes support date ranges, individual-date notes and next-class in-app reminders.
+Weekly classes support date ranges, individual-date notes, next-class in-app reminders, and class-attached assignments.
 Data format 6 preserves earlier saves. No paid AI or background phone notification service.
 School calendars support A/E and six-day rotations, reviewed PDF/photo imports, holidays, snow closures, special bells and semester/full-year classes.
+Planner dates show gold rings for important exams/projects, and dated notes appear on the calendar.

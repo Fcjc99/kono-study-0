@@ -39,6 +39,41 @@
 .wb-class-more>div{position:absolute;z-index:8;right:0;top:calc(100% + 7px);display:grid;gap:7px;min-width:145px;padding:9px;border:1px solid var(--wb-line);border-radius:15px;background:var(--wb-surface);box-shadow:0 10px 24px #54322a22}
 .wb-class-more>div button{white-space:nowrap}
 .wb-class-compact>.wb-class-note,.wb-class-compact>.wb-class-editor,.wb-class-compact>p[role="status"]{margin-left:152px}
+.countdown-chip{display:inline-flex;align-items:center;margin-left:6px;padding:3px 8px;border-radius:999px;background:#e9f3dc;color:#47602f;font-size:.72rem;font-weight:800;white-space:nowrap}
+.countdown-chip.is-overdue{background:#ffe1e5;color:#a12e48}
+.priority-record{position:relative;padding-top:27px}
+.priority-flag{position:absolute;z-index:2;top:0;left:12px;padding:5px 10px;border-radius:0 0 10px 10px;background:#c94061;color:#fff;font-size:.68rem;font-weight:900;letter-spacing:.06em}
+.wb-class-add,.planner-add-menu{position:relative}
+.wb-class-add>summary,.planner-add-menu>summary{list-style:none;display:grid;place-items:center;min-height:38px;padding:6px 12px;border:1px solid var(--wb-line);border-radius:13px;background:var(--wb-surface);cursor:pointer;font-weight:800}
+.wb-class-add>summary::-webkit-details-marker,.planner-add-menu>summary::-webkit-details-marker{display:none}
+.wb-class-add>div,.planner-add-menu>div{position:absolute;z-index:20;right:0;top:calc(100% + 7px);display:grid;gap:6px;min-width:190px;padding:9px;border:1px solid var(--wb-line);border-radius:15px;background:var(--wb-surface);box-shadow:0 12px 28px #54322a2b}
+.wb-class-add>div button,.planner-add-menu>div button{text-align:left;white-space:nowrap}
+.wb-class-add .is-priority,.planner-add-menu .is-priority{color:#aa2949;background:#fff0f3}
+.planner-date-tools{display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.planner-date-tools label{display:grid;gap:5px}
+.wb-class-due{display:grid;gap:5px;margin:9px 4px 3px 152px;padding:8px 10px;border-radius:12px;background:#fffdf8;border:1px dashed color-mix(in srgb,var(--class-accent) 40%,#ddd)}
+.wb-class-due>strong{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#76626b}
+.wb-class-due-item{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:6px;align-items:center;font-size:.8rem}
+.wb-class-due-item>b{color:var(--class-accent)}
+.wb-class-due-item>small{font-weight:800;color:#72545f}
+.wb-class-due-item.kind-exam{color:#9f2947;font-weight:750}
+.calendar-date-row{display:flex;width:100%;align-items:center;justify-content:space-between}
+.calendar-date-row>b{padding:2px 5px;border-radius:999px;background:#c94061;color:#fff;font-size:.62rem}
+.calendar-entry-preview{display:grid;gap:2px;width:100%;font-size:.68rem;font-weight:650}
+.calendar-entry-preview>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;padding-left:5px;border-left:3px solid #d9a1b4}
+.calendar-entry-preview>.is-priority{border-color:#c94061;color:#a92c4a;font-weight:850}
+.workbench[data-experience="cozy"] .wb-calendar>button.has-priority{border-color:#d7a62f;background:linear-gradient(145deg,#fffaf7,#fff7d8);box-shadow:0 0 0 3px rgba(218,171,55,.32),inset 0 0 0 1px rgba(255,246,194,.9)}
+.workbench[data-experience="cozy"] .wb-calendar>button.has-priority[aria-pressed="true"]{border-color:#d36291;outline:2px solid #d36291;outline-offset:-3px;box-shadow:0 0 0 4px rgba(218,171,55,.45),0 0 0 7px rgba(211,98,145,.18),inset 0 0 0 1px #fff3b5}
+.wb-class-due-item.kind-note{color:#7353a2;font-weight:750}
+.wb-class-due-item.kind-reminder{color:#9a6530;font-weight:750}
+.tomorrow-extra-list{display:grid;gap:8px;padding:10px 12px;border-top:1px dashed #dfc6c1;background:#fffaf7}
+.tomorrow-extra-list>strong{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:#76626b}
+.planner-day-board{margin-top:14px;padding:12px;border:1px dashed #e0c7bc;border-radius:14px;background:#fffaf7}
+.planner-day-list{display:grid;gap:8px}
+.planner-due-panel{margin-top:10px;padding-top:8px;border-top:1px dashed #ead6cf}
+.planner-due-panel ul{display:grid;gap:6px;margin:0;padding-left:18px}
+.tomorrow-schedule{border-style:dashed!important}
+.due-tomorrow-panel>.wb-section-head small,.tomorrow-schedule>.wb-section-head small{font-weight:850;letter-spacing:.08em;color:var(--wb-accent)}
 @media(max-width:700px){
  .workbench[data-experience="cozy"] .cozy-calendar-shell{padding:12px}
  .workbench[data-experience="cozy"] .wb-calendar{gap:3px}
@@ -63,10 +98,19 @@
  .workbench .wb-class-quick>button{min-height:38px;padding:6px 10px;font-size:.78rem}
  .wb-class-more>summary{min-height:38px;width:38px}
  .wb-class-compact>.wb-class-note,.wb-class-compact>.wb-class-editor,.wb-class-compact>p[role="status"]{margin-left:128px}
+ .wb-class-due{margin-left:128px}
+ .planner-date-tools{align-items:stretch}
+ .planner-date-tools>label,.planner-add-menu{width:100%}
+ .planner-add-menu>summary{min-height:44px}
+ .planner-add-menu>div{position:static;margin-top:7px;width:100%}
+ .calendar-entry-preview{display:none}
 }
 @media(max-width:390px){
  .wb-class-compact-row{grid-template-columns:112px minmax(0,1fr);column-gap:8px}
  .wb-class-compact>.wb-class-note,.wb-class-compact>.wb-class-editor,.wb-class-compact>p[role="status"]{margin-left:120px}
+ .wb-class-due{margin:7px 2px 2px;padding:7px}
+ .wb-class-due-item{grid-template-columns:16px minmax(0,1fr)}
+ .wb-class-due-item>small{grid-column:2}
 }
 
 /* Cozy, subject-colored daily agenda with a dense phone layout. */
@@ -97,4 +141,5 @@
  .workbench .wb-class-quick>button:nth-child(2):after{content:"✎";font-size:1rem}
  .wb-class-more>summary{width:34px;min-height:34px;border-radius:10px}
  .wb-class-compact>.wb-class-note,.wb-class-compact>.wb-class-editor,.wb-class-compact>p[role="status"]{margin:8px 4px 0}
+ .wb-class-due{margin:7px 3px 2px}
 }
