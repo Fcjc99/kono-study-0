@@ -1,0 +1,82 @@
+KONO Production Build 20.9 Validation
+Generated: 2026-08-09 UTC
+
+== npm run validate ==
+
+> kono-identity-edition-sprint-1@0.99.22-production-20.9 validate
+> npm run validate:syntax && npm run validate:environment && npm run validate:foundation && npm run validate:tree && npm run validate:pond && npm run validate:garden-critters && npm run validate:home && npm run validate:20.9
+
+
+> kono-identity-edition-sprint-1@0.99.22-production-20.9 validate:syntax
+> node tools/validate_typescript_syntax.cjs
+
+validated 43 TypeScript/TSX files
+
+> kono-identity-edition-sprint-1@0.99.22-production-20.9 validate:environment
+> python tools/validate_production_environment.py
+
+validated 192 runtime fluid frames and 4 source scenes
+validation report: /mnt/data/KONO-PRODUCTION-BUILD-20.9-HOME-FULL-SPRITE-INTEGRATION/BUILD-VALIDATION-PRODUCTION-11.json
+
+> kono-identity-edition-sprint-1@0.99.22-production-20.9 validate:foundation
+> python tools/validate_foundation_lock.py
+
+foundation lock validation passed
+profiles: isolated progression saves
+stage thresholds: 0, 3, 8, 15, 25, 40
+weather cache/fallback hooks: present
+Stage0Scene localStorage polling: removed
+
+> kono-identity-edition-sprint-1@0.99.22-production-20.9 validate:tree
+> python tools/validate_tree_sprite_integration.py
+
+validated locked tree art, 6 approved sources, and 24 runtime textures
+scene-derived phase grading, feathered mound edges, and phase registration passed
+
+> kono-identity-edition-sprint-1@0.99.22-production-20.9 validate:pond
+> python tools/validate_pond_evolution.py
+
+pond evolution validation passed
+science thresholds: 0, 1, 2, 3, 5, 8
+pixel koi frames: 48 (3 variants x 8 directions x 2 tail frames)
+visual stages: natural, ripples, lilies, first koi, koi garden, sanctuary pond
+
+> kono-identity-edition-sprint-1@0.99.22-production-20.9 validate:garden-critters
+> python tools/validate_garden_critter_foundations.py
+
+garden and critter foundation validation passed
+garden thresholds: 0, 4, 10, 18, 30, 45 task credits
+garden anchors: house, tree, pond, terrace, bridge, coastline
+critters: butterfly, dragonfly, frog, bird, moth
+weather, reduced-motion, density, and quality safeguards: present
+
+> kono-identity-edition-sprint-1@0.99.22-production-20.9 validate:home
+> python tools/validate_home_evolution.py
+
+home evolution validation passed
+24 phase/stage PNG overlays validated at 500x450
+20.7.1 transparency lock passed: isolated Home silhouettes, no crop-edge rectangles
+
+> kono-identity-edition-sprint-1@0.99.22-production-20.9 validate:20.9
+> python tools/validate_build_20_9.py
+
+PASS: 24 home textures
+PASS: transparent full-house sprites (no rectangular terrain patches)
+PASS: 100% Stage 0 house/steps coverage for stages 1-5 in all phases
+PASS: stages 3-5 have distinct, progressively larger footprints
+areas: [41681, 47388, 59585, 74690, 82231]
+validate exit: 0
+
+== npm run build ==
+
+> kono-identity-edition-sprint-1@0.99.22-production-20.9 build
+> tsc -b && vite build
+
+error TS2688: Cannot find type definition file for 'vite/client'.
+  The file is in the program because:
+    Entry point of type library 'vite/client' specified in compilerOptions
+error TS2688: Cannot find type definition file for 'node'.
+  The file is in the program because:
+    Entry point of type library 'node' specified in compilerOptions
+build exit: 1
+Build compiler note: uploaded project does not contain vite/client or @types/node in node_modules, so full tsc/vite compilation cannot run in this sandbox copy.

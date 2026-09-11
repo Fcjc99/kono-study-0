@@ -1,0 +1,11 @@
+KONO Production Build 06 validation
+
+- TypeScript/TSX isolated transpilation: PASS (30 files, erasableSyntaxOnly)
+- Strict unused declaration scan: PASS (no TS6133 / TS6192 / TS6196 / TS1294 diagnostics)
+- Daylight profile boundary test: PASS
+- New local source imports: PASS
+- Production documentation: PASS
+- ZIP integrity: pending final archive creation
+
+A dependency-backed Vite build was not completed in the sandbox because npm dependency installation timed out.
+Run locally: npm install && npm run build

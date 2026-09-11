@@ -1,0 +1,15 @@
+KONO Production Build 15.1 — Validation
+
+PASS — 40 TypeScript/TSX files passed isolated syntax validation.
+PASS — 192 runtime fluid frames and 4 source scenes validated.
+PASS — Foundation progression, profile isolation, weather cache, and save hooks validated.
+PASS — 6 approved cherry-tree source PNGs validated at 1536×1024 RGBA.
+PASS — 24 phase-specific tree stage textures and 4 transparent compatibility bases validated at 420×460 RGBA.
+PASS — Time-of-day tree silhouettes remain registered across morning, afternoon, evening, and night.
+PASS — Stage 0 is visible and all six evolution stages are non-empty.
+PASS — Continuous whole-landmark rotation, breathing, and bounce deformation removed.
+PASS — Pond, Home, and Lantern progression validators remain intact.
+PASS — Evolution Art Lock and manifest included.
+
+FULL VITE BUILD
+Not completed in this environment. The dependency installation attempt timed out, so Vite/React/Phaser type packages were unavailable to `tsc -b`. Run `npm install`, then `npm run build` locally.

@@ -1,0 +1,17 @@
+KONO Production Build 16 — Validation
+
+PASS — 42 TypeScript/TSX files passed isolated syntax validation.
+PASS — Foundation progression, profile isolation, and weather-cache hooks passed.
+PASS — 192 runtime water frames and four painted phase scenes passed.
+PASS — Six approved tree sources and 24 phase-specific runtime textures passed.
+PASS — Pond progression and subject mapping passed.
+PASS — Home and lantern progression safeguards passed.
+PASS — Garden thresholds, fixed anchors, and phase-aware rendering passed.
+PASS — Eight transparent critter sprites passed asset validation.
+PASS — Butterfly, dragonfly, frog, bird, and moth behavior hooks passed.
+PASS — Weather, Reduced Motion, density, and performance safeguards passed.
+
+Garden thresholds: 0, 4, 10, 18, 30, 45 permanent task credits.
+Progress schema: version 5 with automatic migration.
+
+The full Vite/TypeScript project build requires locally installed dependencies. The container did not contain the Vite and Node type packages needed for `tsc -b`.

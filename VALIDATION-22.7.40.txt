@@ -1,0 +1,29 @@
+KONO Production Build 22.7.40 — Pond + Sanctuary UI Stability
+
+PASS — npm run validate
+- TypeScript/TSX syntax: 47 files PASS
+- Build 22.7.40 validator: PASS
+
+PASS — protected art
+- 4 user-restored Stage 0 terrace phase maps byte-identical
+- Home + Cherry Tree protected art unchanged
+- 20 legacy Terrace Stage 1–5 runtime maps unchanged / still unapproved
+
+PASS — pond alignment
+- production-water generator reads exact runtime Stage 0 maps
+- 48 pond animation frames regenerated (4 phases × 12)
+- 515×285 RGBA crop geometry retained
+
+PASS — koi
+- Stage 3/4/5 fish counts = 1/2/3
+- Stage 5 koi stay evenly spaced on one safe-water circuit
+- visibility resync runs even when stage number is unchanged
+
+PASS — Sanctuary interaction layout
+- frame capped to 920 px wide / 4:3
+- phase toolbar aligned to frame width
+- landmark popup vertically centered
+- interaction HUD moved to visible center band
+
+NOTE — full npm build
+- supplied dependency installation cannot resolve vite/client and @types/node in this sandbox.

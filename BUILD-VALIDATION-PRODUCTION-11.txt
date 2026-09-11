@@ -1,0 +1,16 @@
+KONO Production Build 11 validation
+
+PASS: 34 TypeScript/TSX files passed isolated TypeScript syntax validation.
+PASS: New liveWeather.ts and useLiveSanctuaryWeather.ts passed strict TypeScript validation with no unused declarations and erasableSyntaxOnly enabled.
+PASS: ZIP normalization and five-digit validation tested.
+PASS: Mocked live weather requests mapped clear, cloudy, wind, rain, and snow correctly.
+PASS: 192 production fluid frames and four source scenes passed environment validation.
+PASS: Per-profile ZIP storage migration and cached weather fallback are included.
+
+NOT COMPLETED IN SANDBOX:
+A dependency-backed `npm run build` could not run because the npm registry was unavailable and the archived node_modules directory did not contain installed packages.
+
+Run locally:
+  npm install
+  npm run build
+  npm run dev

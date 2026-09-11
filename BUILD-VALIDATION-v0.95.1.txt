@@ -1,0 +1,6 @@
+KONO v0.95.1 validation
+
+- 19 TypeScript/TSX source files passed TypeScript syntax transpilation.
+- Weather density now rebuilds Cloudy, Rain, Breezy, and Snow fields immediately.
+- ZIP archive integrity verified.
+- Full tsc/Vite build not completed in the sandbox because vite/client and Node type definitions were unavailable locally.

@@ -1,0 +1,2 @@
+TypeScript syntax validation: PASS (transpileModule, zero diagnostics)
+Full npm build: blocked in sandbox because vite/client and node type packages are not installed in uploaded node_modules.

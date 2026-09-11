@@ -1,0 +1,121 @@
+{
+  "build": "22.8.0",
+  "target_dimensions": [
+    1448,
+    1086
+  ],
+  "stage0_unchanged": true,
+  "stage0_sha256": {
+    "morning": "dac4fccc1488a44c7c55396aec2651e277ba776992a05e3941b1cbe9866bf501",
+    "afternoon": "ab728ec5ece0f11f7b7dda4588015dd6c02e9fb9b7034ef7d5bd25d5460b165e",
+    "evening": "ccfd370f19da3b65cb9fe625e8eb29204c9dc074a7aa58839630f0f22d7a2c4a",
+    "night": "1de3073f70e2c6eaf5d68344012bb308afab0b6fc62f0fbe1649a1405f609f88"
+  },
+  "stages": {
+    "1": {
+      "master": "stage-1.png",
+      "phases": {
+        "morning": {
+          "path": "public\\garden\\islands\\terrace-evolution\\morning\\stage-1.png",
+          "sha256": "7055fe4be31d88e3c8c034b5cc31b5bfd0185e204025f004e4cf0c04f89d25af"
+        },
+        "afternoon": {
+          "path": "public\\garden\\islands\\terrace-evolution\\afternoon\\stage-1.png",
+          "sha256": "bc0fa21d99fc8b9e8df3620c8f69f1fd2d1dde8e7b6d0a54829e432ae65e8f4e"
+        },
+        "evening": {
+          "path": "public\\garden\\islands\\terrace-evolution\\evening\\stage-1.png",
+          "sha256": "59e73350c787c1870275ca61c6aa97500b72e38ab47bec51b7a1aeb1efac67b0"
+        },
+        "night": {
+          "path": "public\\garden\\islands\\terrace-evolution\\night\\stage-1.png",
+          "sha256": "927e5440d5cd9ebde6d63dbf26644ca8a03260c047ff1d6d12f8cb18f9141770"
+        }
+      }
+    },
+    "2": {
+      "master": "stage-2.png",
+      "phases": {
+        "morning": {
+          "path": "public\\garden\\islands\\terrace-evolution\\morning\\stage-2.png",
+          "sha256": "b9f3a41a722c374b71fa63ec5b508773316b670f5a211f4231fcaef396ce7f05"
+        },
+        "afternoon": {
+          "path": "public\\garden\\islands\\terrace-evolution\\afternoon\\stage-2.png",
+          "sha256": "e9d0ce6812641933404cb0b189689c13978517d7734516092e853341b7c13d95"
+        },
+        "evening": {
+          "path": "public\\garden\\islands\\terrace-evolution\\evening\\stage-2.png",
+          "sha256": "ac0b3947386935d63bdd4c048c99760a7239b9bee3f4ed4385ec7c9dd3ecb680"
+        },
+        "night": {
+          "path": "public\\garden\\islands\\terrace-evolution\\night\\stage-2.png",
+          "sha256": "28c18a12600653efc98d6db307930c5e28010688370970ea8a702d3f48cdeeca"
+        }
+      }
+    },
+    "3": {
+      "master": "stage-3.png",
+      "phases": {
+        "morning": {
+          "path": "public\\garden\\islands\\terrace-evolution\\morning\\stage-3.png",
+          "sha256": "0666b39706f113e39d16ad603704f5fb8b37c78560417708ab077c23ef608e43"
+        },
+        "afternoon": {
+          "path": "public\\garden\\islands\\terrace-evolution\\afternoon\\stage-3.png",
+          "sha256": "4b22771a4aee7ecc37446654026aed82a0260c2d55a9f0fa18d4bf51b4429e79"
+        },
+        "evening": {
+          "path": "public\\garden\\islands\\terrace-evolution\\evening\\stage-3.png",
+          "sha256": "028468107d8b012d46597c2100d53fcc87f2a9bb7b6b748e6863f19eaae708fc"
+        },
+        "night": {
+          "path": "public\\garden\\islands\\terrace-evolution\\night\\stage-3.png",
+          "sha256": "495c2df017282271ffc6dbf9089f3594bc8c8ce41a065bd2dddbe8a6fdfe66c9"
+        }
+      }
+    },
+    "4": {
+      "master": "stage-4.png",
+      "phases": {
+        "morning": {
+          "path": "public\\garden\\islands\\terrace-evolution\\morning\\stage-4.png",
+          "sha256": "64ae3e4e465ec7fa2c748cf50547582310e0194b3aeabdf03711892e651af463"
+        },
+        "afternoon": {
+          "path": "public\\garden\\islands\\terrace-evolution\\afternoon\\stage-4.png",
+          "sha256": "dbd2fb24632b797200cf03be85c29ac735004785be21649afee30ff0e969aead"
+        },
+        "evening": {
+          "path": "public\\garden\\islands\\terrace-evolution\\evening\\stage-4.png",
+          "sha256": "b1e3afa6665b8ae274aa00d7f5989af2e8592a2c39d6cda87d7e546d77df9c22"
+        },
+        "night": {
+          "path": "public\\garden\\islands\\terrace-evolution\\night\\stage-4.png",
+          "sha256": "615f1595dd185e85c08ad966c80a8461e832a17deaf24629fd11c8b6b50da338"
+        }
+      }
+    },
+    "5": {
+      "master": "stage-5.png",
+      "phases": {
+        "morning": {
+          "path": "public\\garden\\islands\\terrace-evolution\\morning\\stage-5.png",
+          "sha256": "ebe0038a1934329a15df55eca3d984198edc1fb23ac4dae4f254fd5b13a13639"
+        },
+        "afternoon": {
+          "path": "public\\garden\\islands\\terrace-evolution\\afternoon\\stage-5.png",
+          "sha256": "0628cf5c9823f5d44c3195c41d9e3d94ea5206ffacc816eaddebaae9b5100c3b"
+        },
+        "evening": {
+          "path": "public\\garden\\islands\\terrace-evolution\\evening\\stage-5.png",
+          "sha256": "b9125b07dd7065104f00566e3d3a9bf4caa941af6f3f2898d52070639a582057"
+        },
+        "night": {
+          "path": "public\\garden\\islands\\terrace-evolution\\night\\stage-5.png",
+          "sha256": "e930ed506b4062592724b6d9ad4e80eb2d649cf31890c84ecfd91ce077dad3de"
+        }
+      }
+    }
+  }
+}

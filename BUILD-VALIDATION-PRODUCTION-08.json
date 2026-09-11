@@ -1,0 +1,97 @@
+{
+  "sources": {
+    "morning": {
+      "exists": true,
+      "size": [
+        1448,
+        1086
+      ]
+    },
+    "afternoon": {
+      "exists": true,
+      "size": [
+        1448,
+        1086
+      ]
+    },
+    "evening": {
+      "exists": true,
+      "size": [
+        1448,
+        1086
+      ]
+    },
+    "night": {
+      "exists": true,
+      "size": [
+        1448,
+        1086
+      ]
+    }
+  },
+  "runtime": {
+    "afternoon": {
+      "ocean": {
+        "frames": 12,
+        "meanFrameDelta": 1.9547,
+        "alphaBounds": [
+          0,
+          0,
+          1448,
+          666
+        ]
+      },
+      "pond": {
+        "frames": 12,
+        "meanFrameDelta": 2.1186,
+        "alphaBounds": [
+          96,
+          104,
+          355,
+          125
+        ]
+      },
+      "waterfall": {
+        "frames": 12,
+        "meanFrameDelta": 4.2397,
+        "alphaBounds": [
+          45,
+          102,
+          43,
+          76
+        ]
+      },
+      "foam": {
+        "frames": 12,
+        "meanFrameDelta": 6.8912,
+        "alphaBounds": [
+          26,
+          12,
+          129,
+          62
+        ]
+      }
+    }
+  },
+  "summary": {
+    "expectedFrames": 48,
+    "actualFrames": 192,
+    "runtimePhase": "afternoon",
+    "errors": [
+      "afternoon-ocean-0.png: expected 1448x586, found 1448x666",
+      "afternoon-ocean-1.png: expected 1448x586, found 1448x666",
+      "afternoon-ocean-2.png: expected 1448x586, found 1448x666",
+      "afternoon-ocean-3.png: expected 1448x586, found 1448x666",
+      "afternoon-ocean-4.png: expected 1448x586, found 1448x666",
+      "afternoon-ocean-5.png: expected 1448x586, found 1448x666",
+      "afternoon-ocean-6.png: expected 1448x586, found 1448x666",
+      "afternoon-ocean-7.png: expected 1448x586, found 1448x666",
+      "afternoon-ocean-8.png: expected 1448x586, found 1448x666",
+      "afternoon-ocean-9.png: expected 1448x586, found 1448x666",
+      "afternoon-ocean-10.png: expected 1448x586, found 1448x666",
+      "afternoon-ocean-11.png: expected 1448x586, found 1448x666",
+      "expected 48 runtime fluid PNGs, found 192"
+    ],
+    "status": "failed"
+  }
+}

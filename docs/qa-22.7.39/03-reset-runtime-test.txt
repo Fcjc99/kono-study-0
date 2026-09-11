@@ -1,0 +1,7 @@
+KONO 22.7.39 reset QA
+
+PASS: Completing 3 test assignments produces 3 credits.
+PASS: Reopening the final completed assignment returns totalCredits to 0.
+PASS: All featureStages return to 0.
+PASS: unlockedStage returns to 0.
+PASS: A stale saved Stage 5 state with a populated task list and zero completed assignments migrates to a fresh Stage 0 state.

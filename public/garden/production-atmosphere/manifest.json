@@ -1,0 +1,28 @@
+{
+  "version": "production-05",
+  "clouds": [
+    "cloud-01.png",
+    "cloud-02.png",
+    "cloud-03.png",
+    "cloud-04.png",
+    "cloud-05.png"
+  ],
+  "vegetation": [
+    "grass-01.png",
+    "grass-02.png",
+    "grass-03.png",
+    "grass-04.png",
+    "grass-05.png",
+    "flower-grass-01.png",
+    "flower-grass-02.png",
+    "flower-grass-03.png",
+    "flower-grass-04.png",
+    "flower-grass-05.png"
+  ],
+  "mist": [
+    "mist-01.png",
+    "mist-02.png",
+    "mist-03.png"
+  ],
+  "notes": "All assets are derived from approved KONO Sanctuary artwork."
+}

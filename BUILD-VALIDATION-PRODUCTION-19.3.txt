@@ -1,0 +1,88 @@
+
+> kono-identity-edition-sprint-1@0.99.9-production-19.3 validate
+> npm run validate:syntax && npm run validate:environment && npm run validate:foundation && npm run validate:tree && npm run validate:pond && npm run validate:home-lantern && npm run validate:garden-critters && npm run validate:bamboo && npm run validate:evolution-qa && npm run validate:evolution-transitions && npm run validate:19.3
+
+
+> kono-identity-edition-sprint-1@0.99.9-production-19.3 validate:syntax
+> node tools/validate_typescript_syntax.cjs
+
+validated 44 TypeScript/TSX files
+
+> kono-identity-edition-sprint-1@0.99.9-production-19.3 validate:environment
+> python tools/validate_production_environment.py
+
+validated 192 runtime fluid frames and 4 source scenes
+validation report: /mnt/data/work_pb193/KONO-PRODUCTION-BUILD-19.3-HOME-EVOLUTION-GLITCH-REPAIR/BUILD-VALIDATION-PRODUCTION-11.json
+
+> kono-identity-edition-sprint-1@0.99.9-production-19.3 validate:foundation
+> python tools/validate_foundation_lock.py
+
+foundation lock validation passed
+profiles: isolated progression saves
+stage thresholds: 0, 3, 8, 15, 25, 40
+weather cache/fallback hooks: present
+Stage0Scene localStorage polling: removed
+
+> kono-identity-edition-sprint-1@0.99.9-production-19.3 validate:tree
+> python tools/validate_tree_sprite_integration.py
+
+validated locked tree art, 6 approved sources, and 24 runtime textures
+scene-derived phase grading, feathered mound edges, and phase registration passed
+
+> kono-identity-edition-sprint-1@0.99.9-production-19.3 validate:pond
+> python tools/validate_pond_evolution.py
+
+pond evolution validation passed
+science thresholds: 0, 1, 2, 3, 5, 8
+visual states: still water, ripples, shimmer, first koi, koi pair, living pond
+
+> kono-identity-edition-sprint-1@0.99.9-production-19.3 validate:home-lantern
+> python tools/validate_home_lantern_evolution.py
+
+home/lantern evolution validation passed
+home: original phase-painted cottage preserved with additive architectural stages
+home thresholds: 0, 10, 20, 35, 55, 80 task credits
+lantern thresholds: 0, 1, 3, 5, 7, 14 productive days
+
+> kono-identity-edition-sprint-1@0.99.9-production-19.3 validate:garden-critters
+> python tools/validate_garden_critter_foundations.py
+
+garden and critter foundation validation passed
+garden thresholds: 0, 4, 10, 18, 30, 45 task credits
+garden anchors: house, tree, pond, terrace, bridge, coastline
+critters: butterfly, dragonfly, frog, bird, moth
+weather, reduced-motion, density, and quality safeguards: present
+
+> kono-identity-edition-sprint-1@0.99.9-production-19.3 validate:bamboo
+> python tools/validate_bamboo_evolution.py
+
+bamboo grove evolution validation passed
+bamboo thresholds: 0, 1, 2, 3, 5, 8 Spanish/language credits
+assets: 6 authored stages × 4 time-of-day variants
+habitat: mature bamboo enables occasional bird visits
+
+> kono-identity-edition-sprint-1@0.99.9-production-19.3 validate:evolution-qa
+> python tools/validate_evolution_qa.py
+
+production 19 evolution QA validation passed
+subject controls: complete all / reopen all
+home: original cottage with phase-registered additive architectural stages
+bamboo: terrain-integrated phase assets preserved
+
+> kono-identity-edition-sprint-1@0.99.9-production-19.3 validate:evolution-transitions
+> python tools/validate_evolution_transitions.py
+
+validated sequenced evolution transitions, milestone events, and UI notice
+
+> kono-identity-edition-sprint-1@0.99.9-production-19.3 validate:19.3
+> python tools/validate_build_19_3.py
+
+production 19.3 home evolution glitch validation passed
+home: stage 0 uses the painted cottage; stages 1-5 are transparent additive overlays
+assets: no opaque crop background, green rectangles, or full-width posterized blocks
+popup: compact explicit-X landmark card preserved
+
+Full Vite build note:
+- TypeScript/Vite compile was attempted.
+- It could not run because this packaged workspace does not contain vite/client or @types/node in node_modules.
+- Project-specific validation and TypeScript syntax validation passed.

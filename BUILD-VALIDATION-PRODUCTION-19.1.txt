@@ -1,0 +1,8 @@
+Production Build 19.1 validation
+- 44 TypeScript/TSX files passed syntax validation
+- All existing environment and progression validators passed
+- Home stages 1–5 contain one connected cottage silhouette each
+- Legacy multi-building generator layout removed
+- Compact popup width capped at 350px
+- Explicit X close and rapid-click guard verified
+- ZIP integrity passed

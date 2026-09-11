@@ -1,0 +1,16 @@
+KONO v0.95 — Living Sanctuary Foundation
+
+Completed checks:
+- Source ZIP extraction: passed
+- All TypeScript and TSX files passed TypeScript syntax transpilation
+- Time-engine transition windows tested at dawn, midday, dusk, and night boundaries
+- Shared application storage key connected to Sanctuary growth hooks
+- Mobile particle-density and Reduced Motion paths implemented
+- Hidden Sanctuary debug mode documented
+- ZIP archive integrity: run during packaging
+
+Full `npm run build` could not be executed in this sandbox because the uploaded ZIP does not include installed React, Phaser, Vite, or Node type packages and network package installation timed out.
+
+On the destination computer run:
+  npm install
+  npm run build

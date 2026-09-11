@@ -1,0 +1,13 @@
+import { useEffect, useState } from 'react'
+import {useDraftState} from '../hooks/useDraftState'
+import type { Note, Task } from '../store/model'
+export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey='kono-focus-draft'}:{draftKey?:string;tasks:Task[];notes:Note[];onComplete:(id:string)=>void;onSaveNote:(body:string)=>void|Promise<boolean>}){
+ const [taskId,setTaskId]=useState(''),[draft,setDraft]=useDraftState(draftKey,''),[remaining,setRemaining]=useState(25*60),[until,setUntil]=useState<number|null>(null),[now,setNow]=useState(0)
+ const task=tasks.find(t=>t.id===taskId&&!t.done)??tasks.filter(t=>!t.done).sort((a,b)=>a.due.localeCompare(b.due))[0]
+ useEffect(()=>{if(until===null)return;const tick=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(tick)},[until])
+ const seconds=until===null?remaining:Math.max(0,Math.ceil((until-now)/1000)),finished=until!==null&&seconds===0
+ const start=()=>{const timestamp=Date.now();setNow(timestamp);setUntil(timestamp+remaining*1000)}
+ const pause=()=>{setRemaining(Math.max(0,Math.ceil(((until??Date.now())-Date.now())/1000)));setUntil(null)}
+ const reset=()=>{setUntil(null);setRemaining(25*60)}
+ return <details className="card focus-session"><summary>Focus session · one task at a time</summary><p>A quiet task-and-notes space. The optional timer stays on this device and stops when you leave the Sanctuary. It never completes assignments for you.</p><div className="focus-session-grid"><div><label>Assignment<select value={task?.id??''} onChange={e=>setTaskId(e.target.value)}>{!task&&<option value="">No unfinished assignments</option>}{tasks.filter(t=>!t.done).map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select></label>{task&&<><h3>{task.title}</h3><p>{task.notes||'Take the next small step.'}</p><button onClick={()=>onComplete(task.id)}>Complete this assignment</button></>}<div className="focus-timer"><span role="timer" aria-label="Focus time remaining">{String(Math.floor(seconds/60)).padStart(2,'0')}:{String(seconds%60).padStart(2,'0')}</span>{until===null?<button onClick={start} disabled={remaining===0}>Start timer</button>:!finished?<button onClick={pause}>Pause</button>:<p role="status">Session complete. Take a short break.</p>}<button onClick={reset}>Reset timer</button></div></div><div><label>Quick study note<textarea value={draft} onChange={e=>setDraft(e.target.value)} maxLength={100000}/></label><button disabled={!draft.trim()} onClick={async()=>{const saved=await onSaveNote(draft.trim());if(saved===true)setDraft('')}}>Save study note</button>{notes.slice(0,2).map(note=><article key={note.id}><strong>{note.title}</strong><p>{note.body.replace(/<[^>]*>/g,'').slice(0,250)}</p></article>)}</div></div></details>
+}

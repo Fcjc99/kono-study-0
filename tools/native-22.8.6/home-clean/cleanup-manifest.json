@@ -1,0 +1,463 @@
+{
+  "description": "Targeted opaque roof-remnant alpha cleanup. Retained RGB is unchanged. All phases share the same removal mask.",
+  "stages": {
+    "1": {
+      "removedOpaquePixels": 1364,
+      "faintAlphaPixels": 0,
+      "roofEdge": [
+        [
+          160,
+          57
+        ],
+        [
+          166,
+          58
+        ],
+        [
+          176,
+          61
+        ],
+        [
+          183,
+          65
+        ],
+        [
+          192,
+          67
+        ],
+        [
+          200,
+          70
+        ],
+        [
+          207,
+          73
+        ],
+        [
+          216,
+          76
+        ],
+        [
+          222,
+          80
+        ],
+        [
+          232,
+          82
+        ],
+        [
+          240,
+          85
+        ],
+        [
+          247,
+          88
+        ],
+        [
+          254,
+          91
+        ],
+        [
+          258,
+          93
+        ]
+      ],
+      "extraEdge": null,
+      "assets": [
+        {
+          "path": "morning-stage-1.png",
+          "sourceSha256": "da12e0fbcc20031e48213927b238baba4b3e7db94f10f845c9a8d1ca777a0374",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "ca6eea61c85c8d6dd4f30906bd12ee4cbe166ca196a7793656377e4caad38983"
+        },
+        {
+          "path": "afternoon-stage-1.png",
+          "sourceSha256": "68e0b4be319ca90e85357a10fe4842a08f610a81696eb9387f29396f8c5b408b",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "ca6eea61c85c8d6dd4f30906bd12ee4cbe166ca196a7793656377e4caad38983"
+        },
+        {
+          "path": "evening-stage-1.png",
+          "sourceSha256": "1c21795909b6eb385006f9f0ad18ca77a19ec43f3aad605e9cdac827b8346f4b",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "ca6eea61c85c8d6dd4f30906bd12ee4cbe166ca196a7793656377e4caad38983"
+        },
+        {
+          "path": "night-stage-1.png",
+          "sourceSha256": "a87c9f253707d3ea2ed631b651c8bebd2f2032aa6b7d659db586b97923165d42",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "ca6eea61c85c8d6dd4f30906bd12ee4cbe166ca196a7793656377e4caad38983"
+        }
+      ]
+    },
+    "2": {
+      "removedOpaquePixels": 381,
+      "faintAlphaPixels": 0,
+      "roofEdge": [
+        [
+          186,
+          52
+        ],
+        [
+          193,
+          54
+        ],
+        [
+          200,
+          58
+        ],
+        [
+          208,
+          62
+        ],
+        [
+          218,
+          67
+        ],
+        [
+          225,
+          70
+        ],
+        [
+          234,
+          74
+        ],
+        [
+          242,
+          78
+        ],
+        [
+          253,
+          81
+        ],
+        [
+          259,
+          83
+        ],
+        [
+          265,
+          86
+        ]
+      ],
+      "extraEdge": null,
+      "assets": [
+        {
+          "path": "morning-stage-2.png",
+          "sourceSha256": "f26ac06480707ece29b589793fee7e53bcde83682548b35e824ab6c916ec7f39",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "c24b5b10d2046797b1dc647a14b0a5b71dd5fbbc4dd9b930061d2f68f141eeac"
+        },
+        {
+          "path": "afternoon-stage-2.png",
+          "sourceSha256": "6c88f7cfd2654e59691c2e1ca73806ee0d101b56ff1f70bcf11fdfd7e1101dff",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "c24b5b10d2046797b1dc647a14b0a5b71dd5fbbc4dd9b930061d2f68f141eeac"
+        },
+        {
+          "path": "evening-stage-2.png",
+          "sourceSha256": "1b784d9f1ae836d1373588d71a26b197bc97cef3d484afbda973832819cbd846",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "c24b5b10d2046797b1dc647a14b0a5b71dd5fbbc4dd9b930061d2f68f141eeac"
+        },
+        {
+          "path": "night-stage-2.png",
+          "sourceSha256": "f673a8b8a73717d7d5571ac1421c19947e706e1ef333c04d3ea6a19f365636ce",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "c24b5b10d2046797b1dc647a14b0a5b71dd5fbbc4dd9b930061d2f68f141eeac"
+        }
+      ]
+    },
+    "3": {
+      "removedOpaquePixels": 2948,
+      "faintAlphaPixels": 0,
+      "roofEdge": [
+        [
+          108,
+          144
+        ],
+        [
+          115,
+          133
+        ],
+        [
+          121,
+          122
+        ],
+        [
+          128,
+          113
+        ],
+        [
+          135,
+          104
+        ],
+        [
+          141,
+          94
+        ],
+        [
+          148,
+          85
+        ],
+        [
+          153,
+          76
+        ],
+        [
+          159,
+          66
+        ],
+        [
+          166,
+          61
+        ],
+        [
+          174,
+          64
+        ],
+        [
+          183,
+          67
+        ],
+        [
+          191,
+          71
+        ],
+        [
+          199,
+          75
+        ],
+        [
+          207,
+          79
+        ],
+        [
+          216,
+          83
+        ],
+        [
+          224,
+          87
+        ],
+        [
+          232,
+          91
+        ],
+        [
+          241,
+          95
+        ],
+        [
+          249,
+          99
+        ],
+        [
+          258,
+          103
+        ],
+        [
+          267,
+          107
+        ],
+        [
+          272,
+          109
+        ]
+      ],
+      "extraEdge": null,
+      "assets": [
+        {
+          "path": "morning-stage-3.png",
+          "sourceSha256": "2537335eda1e1be5e4873ba188c628f341334996324faa9efcbb7eea0ba5fcbf",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "330a819ac0ef6ab03e4970ac1c629ddae40fd18df717ccb61db676288effbe3e"
+        },
+        {
+          "path": "afternoon-stage-3.png",
+          "sourceSha256": "af25925159addd632dc53ee8dc7a67c3d0af06699350d7100c4cb3c120955891",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "330a819ac0ef6ab03e4970ac1c629ddae40fd18df717ccb61db676288effbe3e"
+        },
+        {
+          "path": "evening-stage-3.png",
+          "sourceSha256": "b42f91019afb51296d0a35f7512f6e11044d7967abf1d982fcd1ad47efa86ca0",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "330a819ac0ef6ab03e4970ac1c629ddae40fd18df717ccb61db676288effbe3e"
+        },
+        {
+          "path": "night-stage-3.png",
+          "sourceSha256": "e686913226d6e4083ae4a8ab29c63a9f271018ba06cf4d149b7f86e33f2344e2",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "330a819ac0ef6ab03e4970ac1c629ddae40fd18df717ccb61db676288effbe3e"
+        }
+      ]
+    },
+    "4": {
+      "removedOpaquePixels": 1247,
+      "faintAlphaPixels": 0,
+      "roofEdge": [
+        [
+          158,
+          47
+        ],
+        [
+          165,
+          50
+        ],
+        [
+          174,
+          53
+        ],
+        [
+          183,
+          57
+        ],
+        [
+          192,
+          60
+        ],
+        [
+          201,
+          65
+        ],
+        [
+          209,
+          68
+        ],
+        [
+          217,
+          72
+        ],
+        [
+          226,
+          76
+        ],
+        [
+          234,
+          80
+        ],
+        [
+          244,
+          83
+        ],
+        [
+          253,
+          87
+        ],
+        [
+          258,
+          89
+        ]
+      ],
+      "extraEdge": null,
+      "assets": [
+        {
+          "path": "morning-stage-4.png",
+          "sourceSha256": "1af0cb92c4b966febd13e78cc2525e8cda0bdbe44b4f2344047ed672a20030b9",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "a444147db1f6afd91cd511a074cc36f4f5d898c3d0e64a193b7b9740fdead82b"
+        },
+        {
+          "path": "afternoon-stage-4.png",
+          "sourceSha256": "8319d969edd450550e9365a6044156a47fb6adc62dd94c50e64d9d71e61a1be3",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "a444147db1f6afd91cd511a074cc36f4f5d898c3d0e64a193b7b9740fdead82b"
+        },
+        {
+          "path": "evening-stage-4.png",
+          "sourceSha256": "69fae51893fe5853176778fb4d0bae1f89c9fa156fafcc9130d62a2b32bc4f34",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "a444147db1f6afd91cd511a074cc36f4f5d898c3d0e64a193b7b9740fdead82b"
+        },
+        {
+          "path": "night-stage-4.png",
+          "sourceSha256": "68999ca752d150334772ac7c1dd2560fcc3b247c52409e6597fe45eee10a37b5",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "a444147db1f6afd91cd511a074cc36f4f5d898c3d0e64a193b7b9740fdead82b"
+        }
+      ]
+    },
+    "5": {
+      "removedOpaquePixels": 454,
+      "faintAlphaPixels": 0,
+      "roofEdge": [
+        [
+          121,
+          53
+        ],
+        [
+          127,
+          45
+        ],
+        [
+          134,
+          35
+        ],
+        [
+          139,
+          26
+        ],
+        [
+          144,
+          17
+        ],
+        [
+          149,
+          10
+        ]
+      ],
+      "extraEdge": [
+        [
+          164,
+          9
+        ],
+        [
+          170,
+          12
+        ],
+        [
+          176,
+          15
+        ],
+        [
+          182,
+          16
+        ],
+        [
+          188,
+          18
+        ],
+        [
+          194,
+          20
+        ]
+      ],
+      "assets": [
+        {
+          "path": "morning-stage-5.png",
+          "sourceSha256": "dbeff9ae5b1e04eeb3c9eb59aab8490066c939da4666f5798f1bd9c68b8a2329",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "62706f545b7a876a19fbbbfe536d5a57524622672e2cc1cbd764462b0c81c68b"
+        },
+        {
+          "path": "afternoon-stage-5.png",
+          "sourceSha256": "38ded309444321581aece984341514747f605189c0b047025389aaa2a4508ff4",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "62706f545b7a876a19fbbbfe536d5a57524622672e2cc1cbd764462b0c81c68b"
+        },
+        {
+          "path": "evening-stage-5.png",
+          "sourceSha256": "3d1f49864000f5d456e7e5f824b2121efc730aa891ac2a2c7bff2a3ccac2e0ff",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "62706f545b7a876a19fbbbfe536d5a57524622672e2cc1cbd764462b0c81c68b"
+        },
+        {
+          "path": "night-stage-5.png",
+          "sourceSha256": "69c5643100fcbdaa3c375d16413a9bbf630a4851cdb3d4edf655693154ca7197",
+          "retainedPixelsUnchanged": true,
+          "alphaSha256": "62706f545b7a876a19fbbbfe536d5a57524622672e2cc1cbd764462b0c81c68b"
+        }
+      ]
+    }
+  }
+}

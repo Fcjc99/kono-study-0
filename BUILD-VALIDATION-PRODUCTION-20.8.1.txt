@@ -1,0 +1,16 @@
+KONO Production Build 20.8.1 validation
+Version: 0.99.20-production-20.8.1
+
+PASS: Build 20.8.1 roofline validator
+PASS: Home evolution validator (24 PNG overlays)
+PASS: Tree sprite integration validator
+PASS: Pond evolution validator (48 koi frames)
+PASS: Garden/critter foundation validator
+PASS: Foundation lock validator
+PASS: TypeScript/TSX syntax validator (43 files)
+PASS: Home Stages 0-4 byte-identical to Build 20.8
+PASS: Stage 5 phase alpha geometry aligned at y=48 and identical across all four phases
+
+Fix: Stage 5 was 48 px too low inside its transparent 500x450 canvas, allowing the map-painted Stage 0 roof to show above it. The Stage 5 artwork is now raised 48 px within the same transparent canvas, covering the old roofline without adding an opaque background patch.
+
+Full Vite bundle not run in this packaged sandbox because the dependency tree is not included; focused syntax and production asset validators pass.

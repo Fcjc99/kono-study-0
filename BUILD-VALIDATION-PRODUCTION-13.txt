@@ -1,0 +1,12 @@
+KONO Production Build 13 validation
+
+- TypeScript/TSX isolated transpilation with erasableSyntaxOnly: PASS (37 files)
+- Progression threshold tests at 3, 8, 15, 25, and 40 task credits: PASS
+- Duplicate-credit protection: PASS
+- Schema v1 to v2 migration and profile tree-stage restoration: PASS
+- Six tree-stage assets: PASS
+- Asset dimensions and transparency: PASS
+- ZIP integrity: pending archive creation
+
+A dependency-backed Vite build was not completed because npm install timed out in the sandbox.
+Run locally: npm install && npm run build

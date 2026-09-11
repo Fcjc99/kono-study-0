@@ -1,0 +1,216 @@
+{
+  "sources": {
+    "morning": {
+      "exists": true,
+      "size": [
+        1448,
+        1086
+      ]
+    },
+    "afternoon": {
+      "exists": true,
+      "size": [
+        1448,
+        1086
+      ]
+    },
+    "evening": {
+      "exists": true,
+      "size": [
+        1448,
+        1086
+      ]
+    },
+    "night": {
+      "exists": true,
+      "size": [
+        1448,
+        1086
+      ]
+    }
+  },
+  "runtime": {
+    "morning": {
+      "ocean": {
+        "frames": 12,
+        "meanFrameDelta": 1.7132,
+        "alphaBounds": [
+          0,
+          0,
+          1448,
+          666
+        ]
+      },
+      "pond": {
+        "frames": 12,
+        "meanFrameDelta": 1.6368,
+        "alphaBounds": [
+          95,
+          101,
+          357,
+          128
+        ]
+      },
+      "waterfall": {
+        "frames": 12,
+        "meanFrameDelta": 3.7305,
+        "alphaBounds": [
+          45,
+          102,
+          43,
+          76
+        ]
+      },
+      "foam": {
+        "frames": 12,
+        "meanFrameDelta": 10.4128,
+        "alphaBounds": [
+          29,
+          12,
+          126,
+          62
+        ]
+      }
+    },
+    "afternoon": {
+      "ocean": {
+        "frames": 12,
+        "meanFrameDelta": 1.9547,
+        "alphaBounds": [
+          0,
+          0,
+          1448,
+          666
+        ]
+      },
+      "pond": {
+        "frames": 12,
+        "meanFrameDelta": 2.1186,
+        "alphaBounds": [
+          96,
+          104,
+          355,
+          125
+        ]
+      },
+      "waterfall": {
+        "frames": 12,
+        "meanFrameDelta": 4.2397,
+        "alphaBounds": [
+          45,
+          102,
+          43,
+          76
+        ]
+      },
+      "foam": {
+        "frames": 12,
+        "meanFrameDelta": 10.3538,
+        "alphaBounds": [
+          26,
+          12,
+          129,
+          62
+        ]
+      }
+    },
+    "evening": {
+      "ocean": {
+        "frames": 12,
+        "meanFrameDelta": 1.7524,
+        "alphaBounds": [
+          0,
+          0,
+          1448,
+          666
+        ]
+      },
+      "pond": {
+        "frames": 12,
+        "meanFrameDelta": 1.5207,
+        "alphaBounds": [
+          108,
+          111,
+          342,
+          118
+        ]
+      },
+      "waterfall": {
+        "frames": 12,
+        "meanFrameDelta": 6.0501,
+        "alphaBounds": [
+          45,
+          102,
+          43,
+          76
+        ]
+      },
+      "foam": {
+        "frames": 12,
+        "meanFrameDelta": 13.5295,
+        "alphaBounds": [
+          39,
+          12,
+          114,
+          62
+        ]
+      }
+    },
+    "night": {
+      "ocean": {
+        "frames": 12,
+        "meanFrameDelta": 1.7774,
+        "alphaBounds": [
+          0,
+          0,
+          1448,
+          666
+        ]
+      },
+      "pond": {
+        "frames": 12,
+        "meanFrameDelta": 2.1583,
+        "alphaBounds": [
+          53,
+          47,
+          401,
+          182
+        ]
+      },
+      "waterfall": {
+        "frames": 12,
+        "meanFrameDelta": 5.8687,
+        "alphaBounds": [
+          45,
+          102,
+          43,
+          76
+        ]
+      },
+      "foam": {
+        "frames": 12,
+        "meanFrameDelta": 8.3793,
+        "alphaBounds": [
+          31,
+          12,
+          124,
+          62
+        ]
+      }
+    }
+  },
+  "summary": {
+    "expectedFrames": 192,
+    "actualFrames": 192,
+    "runtimePhases": [
+      "morning",
+      "afternoon",
+      "evening",
+      "night"
+    ],
+    "errors": [
+      "evening foam: frame delta 13.530 is outside breathing range"
+    ],
+    "status": "failed"
+  }
+}

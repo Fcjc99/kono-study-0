@@ -1,0 +1,146 @@
+{
+  "build": "22.8.1",
+  "method": "registered legacy terrace region on exact locked full-island phase bases",
+  "results": [
+    {
+      "phase": "morning",
+      "stage": 1,
+      "changed": 74511,
+      "outsideTerraceChanged": 0,
+      "sha256": "3a3f8bc584fb2b833d82f6ff6e248e6b14796141f3979946b0e6373c69d126d5"
+    },
+    {
+      "phase": "morning",
+      "stage": 2,
+      "changed": 74513,
+      "outsideTerraceChanged": 0,
+      "sha256": "0f7c4fcf52c0d3aebdb0e7aefb44a1e98b4481e53268e3551658af2fbe51d967"
+    },
+    {
+      "phase": "morning",
+      "stage": 3,
+      "changed": 74530,
+      "outsideTerraceChanged": 0,
+      "sha256": "46dca57e451ed21d88fe39e5c0427b84c1b15a7c6e42fb7515c624f55c762b2b"
+    },
+    {
+      "phase": "morning",
+      "stage": 4,
+      "changed": 74557,
+      "outsideTerraceChanged": 0,
+      "sha256": "41a43481b7300ba01456667031fe27df69e51c762c47a344c8b23238e64fce80"
+    },
+    {
+      "phase": "morning",
+      "stage": 5,
+      "changed": 74584,
+      "outsideTerraceChanged": 0,
+      "sha256": "591c4e28eb5c1d1b1bf624997910807f8583ca43c002956e6fe5b56c5457c510"
+    },
+    {
+      "phase": "afternoon",
+      "stage": 1,
+      "changed": 39251,
+      "outsideTerraceChanged": 0,
+      "sha256": "243d4aba85fd9cf0c97c5a50e8738feeeb14cae6d40341b05e4ad97e4db01c1f"
+    },
+    {
+      "phase": "afternoon",
+      "stage": 2,
+      "changed": 40323,
+      "outsideTerraceChanged": 0,
+      "sha256": "6505e8dbbd4000eea89cc1482fe64783b9a1e8505800496bf425acbef1cb4884"
+    },
+    {
+      "phase": "afternoon",
+      "stage": 3,
+      "changed": 49607,
+      "outsideTerraceChanged": 0,
+      "sha256": "1ca9084a92f1b0011fa11730402e91f38e65a451cef2448dc29b8bd0bf416a6a"
+    },
+    {
+      "phase": "afternoon",
+      "stage": 4,
+      "changed": 57530,
+      "outsideTerraceChanged": 0,
+      "sha256": "445b23d27b8c727242bf07bfc0eb11829934dbe8539dc9e5ef0e35e1c02f537c"
+    },
+    {
+      "phase": "afternoon",
+      "stage": 5,
+      "changed": 65377,
+      "outsideTerraceChanged": 0,
+      "sha256": "c7a75be80506c76072c48b7c37bb65aa0598edbe1150b2e61c4f346df05a80bf"
+    },
+    {
+      "phase": "evening",
+      "stage": 1,
+      "changed": 74550,
+      "outsideTerraceChanged": 0,
+      "sha256": "b1c128c47016ad750a0f09ce2307a72e8917681b9010fc50741af8de7d2a36e2"
+    },
+    {
+      "phase": "evening",
+      "stage": 2,
+      "changed": 74551,
+      "outsideTerraceChanged": 0,
+      "sha256": "04fc76bc5754b26bf8e9a468b3bf9f99f1257e542f4d0e089bb5bd8979b3e171"
+    },
+    {
+      "phase": "evening",
+      "stage": 3,
+      "changed": 74569,
+      "outsideTerraceChanged": 0,
+      "sha256": "781ed66fcdd19baf1eda45d9e32162727bd75d8b4b11071abfa3954aa8f9d428"
+    },
+    {
+      "phase": "evening",
+      "stage": 4,
+      "changed": 74583,
+      "outsideTerraceChanged": 0,
+      "sha256": "46dedebf9d013296a95c27bd92dc7189ec28672cada2af17b91036850cb7c88d"
+    },
+    {
+      "phase": "evening",
+      "stage": 5,
+      "changed": 74595,
+      "outsideTerraceChanged": 0,
+      "sha256": "92f418a49f919dae5b336d1527092c924423ce798658178191893d5a958f636a"
+    },
+    {
+      "phase": "night",
+      "stage": 1,
+      "changed": 74601,
+      "outsideTerraceChanged": 0,
+      "sha256": "672ec312df7408827c83a59dfa0fcfc93e4c4ac61ea8591a674e975e2c7a799e"
+    },
+    {
+      "phase": "night",
+      "stage": 2,
+      "changed": 74602,
+      "outsideTerraceChanged": 0,
+      "sha256": "0e68a479d1f5878d5dacc2df118bac9546ba806ce864e1a00a2fb7228890d86c"
+    },
+    {
+      "phase": "night",
+      "stage": 3,
+      "changed": 74603,
+      "outsideTerraceChanged": 0,
+      "sha256": "3aa6150048e70d20aa8eb37198d4a1a4a6f4372a9c3472879dc1e9d349eeda5d"
+    },
+    {
+      "phase": "night",
+      "stage": 4,
+      "changed": 74605,
+      "outsideTerraceChanged": 0,
+      "sha256": "ebc2d4b7ca6a312d38d25653f53a0fb34ebe94650f4e0fc65539b03d6863ca31"
+    },
+    {
+      "phase": "night",
+      "stage": 5,
+      "changed": 74609,
+      "outsideTerraceChanged": 0,
+      "sha256": "032860414a0b2665b7f0b42056bf1ae2b96c2bab279b75b239e84a7656fce3f7"
+    }
+  ]
+}

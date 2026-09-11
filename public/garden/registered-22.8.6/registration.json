@@ -1,0 +1,2399 @@
+{
+  "build": "22.8.6",
+  "palette": "original-stage0-22.7.28",
+  "assets": [
+    {
+      "path": "islands/terrace-evolution/morning/stage-0.png",
+      "sha256": "b5be6dc19202105519cea25f6f0f746d426f6ba892b7230646e04cc2474d5f5d",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/morning/stage-1.png",
+      "sha256": "c8646a9d9eae0f277ddfa332de36c55df9fa70d5feb750d3ef20f35e966463d4",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/morning/stage-2.png",
+      "sha256": "640844b388872d09d4d282909d7419ca40105b749067101b286f47b9dc0659ce",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/morning/stage-3.png",
+      "sha256": "8b8aec05f4c2e5a5b115df894673e1b4d4ad3da7cb88fb2a4e177f5a970cd3d6",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/morning/stage-4.png",
+      "sha256": "e8c03f6a030fcfe5e0176a5c6df4f84902fea108935f7cd91ba1d141a0fd0580",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/morning/stage-5.png",
+      "sha256": "4fc80d3b8c061f1b3afb859febdd0c19ec462e5a586fa4fdc87cd35e2604cab2",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/afternoon/stage-0.png",
+      "sha256": "88147a6a9656d7cc57d607dfd0c062139e173d7f9388cfa09e350e705891920e",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/afternoon/stage-1.png",
+      "sha256": "2e1c69633c89797a3e9aa0169ffccbaad2e1668dd9fe0e90202924667fabb55a",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/afternoon/stage-2.png",
+      "sha256": "5cf1d977ff0920cda1e85d75946aa6b4e0a4fee0c3432f434553718133b31cb5",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/afternoon/stage-3.png",
+      "sha256": "4a052d25f4fbfdbad62b3ebe3e89fa9e5ef2db9691f03ee8d9b480c51cd67844",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/afternoon/stage-4.png",
+      "sha256": "ff6ce9a52deed11f25e18c6dfd87bd829a9f04dce2b95d106cfcc6af6a0f5e66",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/afternoon/stage-5.png",
+      "sha256": "ee39a0b23cc7ade9daaabc38a366afcad20a3f761bd41b0aab13810c364b0534",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/evening/stage-0.png",
+      "sha256": "d57c05b703acea40bd94869b95f6ca642970f22b61511b6275d2cb1bb4892faa",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/evening/stage-1.png",
+      "sha256": "5d389f01ec8f7440bee99d6c3ef89473a55ccce049144a341402b5c04d3a77a3",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/evening/stage-2.png",
+      "sha256": "1a00e2eb001ace2804c29a48590102380fe6a0a45902d9f76332bdd415464f4e",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/evening/stage-3.png",
+      "sha256": "e5c10d83bb9143b23cf893e7cfcf89e922c6eee1d8e71d8f94cfd93b7b9bd8eb",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/evening/stage-4.png",
+      "sha256": "0723c6ed336252a59b2ac2b2e724e4f2768e82e816f4206036716a3af6a375ff",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/evening/stage-5.png",
+      "sha256": "d50fff4eb365c85dd642efdc272f7956fb3b2072b2a5dbc3cc865f4538c11603",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/night/stage-0.png",
+      "sha256": "3156333d51ff880c34e877adf8fb18da43a201490bf399d0ebebf17ff86423d5",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/night/stage-1.png",
+      "sha256": "a7d0b26251ba0bc3264a11b73f3f4e4ec01129e1bb0d642e82c392f7339b7613",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/night/stage-2.png",
+      "sha256": "0e52a6ecf400f1dc9a76b6403b957a3480f1c9c5dfd54d8b8fb0f5ce10db22f1",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/night/stage-3.png",
+      "sha256": "dc7d0063cb82d424a11b7ee46f2ac8eac025cc2e6764d0779c76c94be3d4c340",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/night/stage-4.png",
+      "sha256": "293f2ab90f71bb5263261eb5204ab1a7375b003fc4d7de9c67f31de09d59db03",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "islands/terrace-evolution/night/stage-5.png",
+      "sha256": "e0fa062477cd0a39339990e7c182b6ebfdb22778a5d724fa4d2cc1ceb09b04c4",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "evolution/home/morning-stage-0.png",
+      "sha256": "e2136e79dabd909fc2cf87e3a1a6b850aafc354373a6aa95371212024bbd5917",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/morning-stage-1.png",
+      "sha256": "88bab37456cd60391d8b03ab58f5ba955e9f02b53fb0d79e68b42b3bf6ab1b31",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/morning-stage-2.png",
+      "sha256": "5b0e872126c5df889afeea67dc3d57c45c718a00eab1d4b4e71387c5abdeaf5e",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/morning-stage-3.png",
+      "sha256": "e96da2e5af124cf727746b87e1e5845aa93b0a86f83a55f67fbb51925fb134a9",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/morning-stage-4.png",
+      "sha256": "7412be2c41c82eb7f5f1dff64a4e4c95080d45ef6dc8c9519d620b2550be1a2f",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/morning-stage-5.png",
+      "sha256": "a51991f589c895b6a159102007ee1381a9ab2f145ba1f7db47fbd6de4d663de7",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/cherry-tree/morning-stage-0.png",
+      "sha256": "d56f4ec1fb751813b094e100f4a2bb98c930df10fc9a75081f794690eaec8c89",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/morning-stage-1.png",
+      "sha256": "0ef0554eeb776ce7bb5f82023ec342b594d1bd28f2e0c47f85f963d91eec2984",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/morning-stage-2.png",
+      "sha256": "3e0dc0d9334717b241dba144365594c29f0bb057e3ff18b55bcfb6be8f8be803",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/morning-stage-3.png",
+      "sha256": "daec691e398ecc2f5519c688b703952b1af1ec289c65f201e64861a4f48923d8",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/morning-stage-4.png",
+      "sha256": "41c8323608406b25de45b11cc1467430e69c26a46a14231c14cd6efe1385e237",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/morning-stage-5.png",
+      "sha256": "ec31e0efd1fc4ac99408e693f5c36e079a84554a3214a29c74069be67a97d883",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/home/decor/vegetable-garden-stage5-morning.png",
+      "sha256": "e086f2c59b60113d5a282a9e0d52d8d816afb9e4a2ddd8025c84a40a774128cc",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/bridge-fishing/phases/morning/bridge-fishing-idle.png",
+      "sha256": "70848e55e1dabbf075cdc191dfa43284d395cdf6c0c836f7d60b5b307f504c4d",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "evolution/bridge-fishing/phases/morning/bridge-fishing-cast.png",
+      "sha256": "ee15e8440f8f8b32912f60c39968e55efa9b0cf4648976622ff0451656d9bcb5",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "evolution/home/afternoon-stage-0.png",
+      "sha256": "e2136e79dabd909fc2cf87e3a1a6b850aafc354373a6aa95371212024bbd5917",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/afternoon-stage-1.png",
+      "sha256": "872ec6cab4ed1850355e490afbced0b6285f8d5319d4f4d9c7d4dee09ea256d9",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/afternoon-stage-2.png",
+      "sha256": "f6518a3a7fbf4ab7f4f6ce527f4a2288c3655afbf07df46899510638448d98f4",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/afternoon-stage-3.png",
+      "sha256": "05a6b54a00202b59fb012ee331bfa43f2ec7e63bbb6afb3752246e510ce91f07",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/afternoon-stage-4.png",
+      "sha256": "2990527f40841167a795a01e6f5ff4f0245872bd9e4c099506ebcb652bc4815d",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/afternoon-stage-5.png",
+      "sha256": "129e481ccde4e605e97f57915d16060992b18369fbfc0517634bd0bcf5372c1c",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/cherry-tree/afternoon-stage-0.png",
+      "sha256": "812fe932488ccb1f21472c8cc3c596b675556bd3c99fe4468a7744354f7750d5",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/afternoon-stage-1.png",
+      "sha256": "df3986d3c3e2480417080bbcc80d467d7bacad920f88e32e0e12be921c8d9593",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/afternoon-stage-2.png",
+      "sha256": "2fec8f48e1e2bdcf02a25f4d28db6b2f492cc3e43ee87f05bfa2c5d19dc29ca2",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/afternoon-stage-3.png",
+      "sha256": "8574395cc0edcbd9e35ee0d48bb85ddebc82376356ac1f7e6d8e4397afb517e7",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/afternoon-stage-4.png",
+      "sha256": "49a9c33e3e5e32a6c2d27d62a0746d680577673d4e726a8011c3780d3adc8320",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/afternoon-stage-5.png",
+      "sha256": "eb3481967705fa4746e8d48e26460159f4fc2434f9ad07bfd1d6815f06a27f1b",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/home/decor/vegetable-garden-stage5-afternoon.png",
+      "sha256": "240dff7da2989889b2fa9b71ad45028a647c87f24696521b659c268254e03068",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/bridge-fishing/phases/afternoon/bridge-fishing-idle.png",
+      "sha256": "963b168ea1652392c88d802c25fc2890b37b5ea4ed1a84f989333556ef31d03e",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "evolution/bridge-fishing/phases/afternoon/bridge-fishing-cast.png",
+      "sha256": "7ff821079fe36d493036e50fdfdd8a24799d1b000926cde74570312abae71a2a",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "evolution/home/evening-stage-0.png",
+      "sha256": "e2136e79dabd909fc2cf87e3a1a6b850aafc354373a6aa95371212024bbd5917",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/evening-stage-1.png",
+      "sha256": "bf3e1ffa016b90eb0d45f0ab04592d671b892fc2192d7c5123b646611fcb8941",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/evening-stage-2.png",
+      "sha256": "fcdd1f8b2f8fc90a47a5bd58e6471380d49053c6adc3869e3135400128f0e35f",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/evening-stage-3.png",
+      "sha256": "3638c7d92e3ec59b631db2b1253a876de067a2704a4b80cb17821642256a0422",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/evening-stage-4.png",
+      "sha256": "721590409186d715c0ea4ea71d545975ef0c8c06b10c08280c0f887b1aadd921",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/evening-stage-5.png",
+      "sha256": "101b10e92d3f36c8dea2ef4d1dd6d3e93bf6da5472da7fad4f82bfd551b15fa9",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/cherry-tree/evening-stage-0.png",
+      "sha256": "4d5f6b5bdbb466229f6a7a588c8e67693423af2500df5e3a0d7348a6b1e945a1",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/evening-stage-1.png",
+      "sha256": "a1401e31059f9f3b4c134f2697a2faec85ca24588329a5e4b7fa483e536d394f",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/evening-stage-2.png",
+      "sha256": "919a4ad5288c43cc0633c9f323def0127f2fa8c12d3b312c8dfc9e1b3fa253bc",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/evening-stage-3.png",
+      "sha256": "7eafe998d5e70c62ec720e7ea04ea9928c2850b17974149aa1f3292e67c667ed",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/evening-stage-4.png",
+      "sha256": "8a32ad1f892fbeebbb4eea606713dbfdd58eda93927c53fbb449bb5082ebf4df",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/evening-stage-5.png",
+      "sha256": "96f4968fe80789a4a682c8c2032aef62efdfc686a356d9969d695b1842367b86",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/home/decor/vegetable-garden-stage5-evening.png",
+      "sha256": "7e694e5fc39455b73ad06501fa2658aa46f80545b64e834450d517cea6421a7e",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/bridge-fishing/phases/evening/bridge-fishing-idle.png",
+      "sha256": "0cf62536b777979352b922f23bdd29cf4dc2ef127b1a873c13899c85eeb00fd1",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "evolution/bridge-fishing/phases/evening/bridge-fishing-cast.png",
+      "sha256": "ec13ce5ff3222c33a05e39d80c3077a3f03a7ef686a8f16e75b75467724db1f5",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "evolution/home/night-stage-0.png",
+      "sha256": "e2136e79dabd909fc2cf87e3a1a6b850aafc354373a6aa95371212024bbd5917",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/night-stage-1.png",
+      "sha256": "af3e6d8b02222ad07d24d1878bfaa3cde3f515d1315aaaa1e56cac4c33b2da9a",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/night-stage-2.png",
+      "sha256": "8b65f310e0b4b1dfa58f012b9f8c359c53b426706a9320c93e18b9b69138ad68",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/night-stage-3.png",
+      "sha256": "f489fc424f34dec47c3bb629ed5300dd40df56bfa250b4a083f90dfd461efa11",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/night-stage-4.png",
+      "sha256": "7050de808001a8e912e068170d552115f846a359118ea5cde2af03f0e8f72b71",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/night-stage-5.png",
+      "sha256": "fc08c4cd14428e15da51568501db2e68cf145050bbb18609c547e49eadd469ff",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/cherry-tree/night-stage-0.png",
+      "sha256": "1d5a69a1c052250bf2ef65e80e49430fbb03ce2894a3c0730d3b007c40c74a7f",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/night-stage-1.png",
+      "sha256": "c0a19995536bd7e8d86c5bce70f1bfe12fd560b6e20f649a1fb0a62ee148d6ce",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/night-stage-2.png",
+      "sha256": "727f64d73e1cde151df3316d650a5e95459ab232e19144e2913d8c2d71fac976",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/night-stage-3.png",
+      "sha256": "0fd3222f04e3b70c256ec2fbc210b0cf15cf606407af88273eff7db838aff0da",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/night-stage-4.png",
+      "sha256": "711d8140b4b4c0c4f69d935b5b8e594d659c0132c5defa85d8013159cf2e8ba4",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/cherry-tree/night-stage-5.png",
+      "sha256": "7118214a47deea06555e23f2ee6d6f4faed1aac102e3681c45905cb7ef4b3dbb",
+      "width": 620,
+      "height": 650
+    },
+    {
+      "path": "evolution/home/decor/vegetable-garden-stage5-night.png",
+      "sha256": "a578f573e32be31f08048288e19c52f06ad4e93db4e57dcd7be4aad07ba2c722",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/bridge-fishing/phases/night/bridge-fishing-idle.png",
+      "sha256": "92564f66883ced3c4b6d9834d77f3372cf296ece90a53a60390c007ba02229ab",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "evolution/bridge-fishing/phases/night/bridge-fishing-cast.png",
+      "sha256": "c8c3b3cac99395a90ef1fcba858e913c0b5e081c654924b403a79fb54bca2705",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "path": "evolution/home/morning-roof-underlay.png",
+      "sha256": "002f73b987f5f208623073a913a33b300d5599fcc2a01f54e9c216c637af7edc",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/afternoon-roof-underlay.png",
+      "sha256": "f192bfcffc08f6165e36a3c5700214598fedd106ba0f98942133d3cc6670da42",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/evening-roof-underlay.png",
+      "sha256": "4ac452f67b8b5bb65e429100ed81b2e5ceb4b894a35e5164ff4b77fd6284751b",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "evolution/home/night-roof-underlay.png",
+      "sha256": "50e2bc4aaba8b5bfff2c82aa5998d6e9d80771524679423a00855314b4990c9a",
+      "width": 500,
+      "height": 450
+    },
+    {
+      "path": "production-water/morning-ocean-0.png",
+      "sha256": "96e639208e467f100d028b5d8fe5498e9536129b1aefc8dfd9058b7eaf19acd4",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/afternoon-ocean-0.png",
+      "sha256": "5ac4c0539a1e473f6b3127c48f7db9c54a77ea8918e9e0e440c6210096eb4117",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/evening-ocean-0.png",
+      "sha256": "ef86a8d629b1d06b0555cced4430b62b57981ea6f957f713fa5704def37ede35",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/night-ocean-0.png",
+      "sha256": "bced028e395b1f386919e3d1f476757c81714ba74dc88ec4b224a001bf2cae1a",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/morning-ocean-1.png",
+      "sha256": "0f2a517e0a33c94e69859de6b4dbea19fc697c842d5e31c96c6bc7adef7c3288",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/afternoon-ocean-1.png",
+      "sha256": "b8e093ed3d0c872cabfc9fddaf7c8efa672ddcf515658ee45f624e0a2e1da704",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/evening-ocean-1.png",
+      "sha256": "e9aaaecb87cffea7405131fa0c2e88d75ae5109bbb025518060d8536c38b2dd4",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/night-ocean-1.png",
+      "sha256": "fa4df91fd8a40fafa4a1ce6e983e4dc1d246c3cf9431eb54fc635f06c05b0561",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/morning-ocean-2.png",
+      "sha256": "88f9d121b88ee27da9f80a31a55444f86e81624fb0b9b2845d0b79ac748e87d4",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/afternoon-ocean-2.png",
+      "sha256": "55e4117c731d9b478a4be3e068bf7909ac4edf55b9aa41fcde214bf31c7a1ded",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/evening-ocean-2.png",
+      "sha256": "912db1a9acc865d21fdafa8aea24d86edeab39a654ad35455b74c1203d5dd5a2",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/night-ocean-2.png",
+      "sha256": "1f82d01472ad1e45671df8b1d1791ab3833eb5d8deed99d205d49e11003789af",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/morning-ocean-3.png",
+      "sha256": "e70a9f3168bf1bf1fb41a8c86db71691625c5900b211c7b34ce4f0cc53eea412",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/afternoon-ocean-3.png",
+      "sha256": "559335038203b5f8868dfe07237d564a5b82c0ace9dd83ed77ea6f313f1d9553",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/evening-ocean-3.png",
+      "sha256": "bd77a6d8d59cf55124cf7fd459afbda0ba368bef98421871ae34fbb3d3a6e8de",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/night-ocean-3.png",
+      "sha256": "f44e5a9f815e80c0652b60a9dcfeb21dc34ddf10b60884d35d13969e48b3bde5",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/morning-ocean-4.png",
+      "sha256": "94da0b1f2ffdcd0470b3d196c80e5fa579bb194983a19d9e2b32b3af28c5050d",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/afternoon-ocean-4.png",
+      "sha256": "024e5e717c5ec50fcd6a0402b48d888e119c7c9eda5ab051f649264c21d1ae9a",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/evening-ocean-4.png",
+      "sha256": "64029d012b7d4a00c8ec7aab941ba666de952605a87aec93ad23c8a8b53fdf39",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/night-ocean-4.png",
+      "sha256": "68cdb7a90c4830fd5d6595880484ca9d53f8207cdff423a1d48c17c431774ff8",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/morning-ocean-5.png",
+      "sha256": "193eca1e03d5655b22d0c66501c4881bdf5c52852f9be0d3872e63cd2edd43a3",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/afternoon-ocean-5.png",
+      "sha256": "ba258b16db3d11386ec6988005bb1318cef9c78108d4b830e0700dd4f5a5112b",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/evening-ocean-5.png",
+      "sha256": "13cf1a883397997a722e8d77bf776430670a72d8b90e9111723c557a8cea4a3f",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/night-ocean-5.png",
+      "sha256": "25f5717605fcd479e8f4d4173e6adf8d8781978c7e658aba3566a87b11cba058",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/morning-ocean-6.png",
+      "sha256": "afd5b783e00c2a85c86607f56e1155aa4b920dafaf6ad6a1751c52992848871b",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/afternoon-ocean-6.png",
+      "sha256": "ede7eb5e4262dab829dd846e8826ec7635beb5e547760d72023b125158be6751",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/evening-ocean-6.png",
+      "sha256": "755d41a93d661f4e7c537c7f049950c0749c02770158a2a5404f446c0fb53728",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/night-ocean-6.png",
+      "sha256": "2b6ef193b9e608e1149e548c48dba0091a8a4192c17b128477371c92dd3bd088",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/morning-ocean-7.png",
+      "sha256": "7acf5a1c14376995c335f52be0b15803a09d9b1c69440425b8264145216a24c4",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/afternoon-ocean-7.png",
+      "sha256": "15c9a81c18f9598be8a87ee72fcf5bedf15a3bff3e08839bc05949320cb7019b",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/evening-ocean-7.png",
+      "sha256": "e8bdf1f3e1fefac08ce8d2f48fbc4947a192869789d0113468f42f8f5faed24f",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/night-ocean-7.png",
+      "sha256": "7f6031d2592fecb86e9776ac695e0448ab3dec5ca303df8f2fdbd0c5f3b0efae",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/morning-ocean-8.png",
+      "sha256": "53ebfb705bf0cedf475c355043a2405aa302d2d094514581805888682f9fd0d2",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/afternoon-ocean-8.png",
+      "sha256": "0919c32d22c67d66f65633169ebba292ea371d673127adb238ec70c1d2bf43d2",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/evening-ocean-8.png",
+      "sha256": "560acfe607e5417555ce8ad7e29f01eadf658c450e0f0013b1cbb0bd24976c46",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/night-ocean-8.png",
+      "sha256": "4ba666da0d7f8bdf53da6b827131f465b9cc60b6f8a2ba431ca04216d6516a2d",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/morning-ocean-9.png",
+      "sha256": "b3685b725566f34e76420c206926dd47a0ce21631e32c3a3c4bca966ea812b05",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/afternoon-ocean-9.png",
+      "sha256": "22dc65cc5792cc39650a3f5c11948063593ab2e4c5fb1d4375c32ac31e9054bf",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/evening-ocean-9.png",
+      "sha256": "33fdb2499d80a79a6d7a7d23242efd28558c69037a381989341057e362fba56a",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/night-ocean-9.png",
+      "sha256": "8b2268043fa56c090f8786d4655fcd6bdd95366a2968b6798f96174e7f2038f9",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/morning-ocean-10.png",
+      "sha256": "5bc7849de7c9af2965544c8b263f230b24f425e72dc9bd77b81412722a9e8e49",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/afternoon-ocean-10.png",
+      "sha256": "4d0ebd76491e56e84661ba12e87043a9e6c63c5ec5c4a43fb713528a6826f932",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/evening-ocean-10.png",
+      "sha256": "48974e83e27595f0689ab098170959853831bc902bfd2784288ba806930d62ce",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/night-ocean-10.png",
+      "sha256": "40eefa76a2b3301e3765b19ca007aa53cb14534de71314769176f6f237332187",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/morning-ocean-11.png",
+      "sha256": "9829c6d0d39e90b348d2e9e1b54946c112935aed4ff9778979b8417931cbb372",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/afternoon-ocean-11.png",
+      "sha256": "8c575bb2e8cf450715c715476e6e236e606e85248bed1a851171e678d6170952",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/evening-ocean-11.png",
+      "sha256": "748b4a11d0b7e3cf269f2c152c5a5606428be4b98059df255e29b6f322ec51eb",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/night-ocean-11.png",
+      "sha256": "52569d766a19db37c687243af2a87f5519f4a18678ecdbd5da6419f183819086",
+      "width": 1448,
+      "height": 666
+    },
+    {
+      "path": "production-water/morning-pond-0.png",
+      "sha256": "79dccdb2c71b640deaf4735494084d3fa3264c8967cff9697502dd128a8c5f6c",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/afternoon-pond-0.png",
+      "sha256": "ccac72d6c0b58c76603eb48867068cf053d2e9d38353cb451f4a1fc3a91abd53",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/evening-pond-0.png",
+      "sha256": "6f3a9656bad245ae330a02bf1c34c8ea49c9c65b5021e1692c5f16aaf1bebc47",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/night-pond-0.png",
+      "sha256": "105cd454d5d160291ad8eb210fc007ef703f0f2c37db3f04c22e567594d3aa90",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/morning-pond-1.png",
+      "sha256": "862e92bd6edc98f0d916a4c6709c1ff81c4bb1e8163346e8a6b87324f59a81aa",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/afternoon-pond-1.png",
+      "sha256": "e49f0a8cb4b82acefde87e73bc6420fbe13db0a0c38ded46d0b7487e137f20fe",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/evening-pond-1.png",
+      "sha256": "bf2192de9fc78032f1f7d24908249abf52268ed471e2cc0e69be5e43d9413543",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/night-pond-1.png",
+      "sha256": "1991c38543feb1875d36ba3a507f1c6bed4455c577c7a6c9c8f5f6b034ff2394",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/morning-pond-2.png",
+      "sha256": "2c3f507221bb944b43a570326829fc29344393a4ab47669c63b0d1e750bc0482",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/afternoon-pond-2.png",
+      "sha256": "334febc2113e932a76c6afa846814c84d3fdeb488dba80f6dacc490d3be3265d",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/evening-pond-2.png",
+      "sha256": "fdc5a7e6ced8a2090f14d299fe9f60a9fec27ad6f63555c72a751ed00ae684de",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/night-pond-2.png",
+      "sha256": "f35ae85d0209c4c58c5277cedb6cf6e250b0ae8bae3b5774d3a0470d2055afaa",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/morning-pond-3.png",
+      "sha256": "fa2f1430fdebb076a9eff774e322d1f1185cfc1ec91abb17f93e4cdbdb444570",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/afternoon-pond-3.png",
+      "sha256": "24b63e15172cb5c22fd2e97c7b99646ff1c44663bcdc311131ac4f68c84770b6",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/evening-pond-3.png",
+      "sha256": "bdffd2b9912aaf59a1527e73676312493f2d9b38f92bb12bd94514278eb1177d",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/night-pond-3.png",
+      "sha256": "c7544c788c5d19287a5627eb7e23a144c3226c1344cd9d1c9180fea9f2300a71",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/morning-pond-4.png",
+      "sha256": "ccb136009396b8b5aa3da07bf173bdacc869bbf833b516bb01c3ef62337d7756",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/afternoon-pond-4.png",
+      "sha256": "f57bb2bcedd6b8d4c1e7d054a0cecd6d90f33592da5c3a5f2e89133d2d184838",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/evening-pond-4.png",
+      "sha256": "783097b7150386fc33dc179cc695388accdd30a451dae28f2265c68cd503bdc1",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/night-pond-4.png",
+      "sha256": "4520bdc4e5410bc36db2b3fbb493573d0cf3f3f909dd089bfd184f6de0efc1c8",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/morning-pond-5.png",
+      "sha256": "aaef86d0d147005bbecc2ff0808354a25078d7a59873818851067ce21774ff19",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/afternoon-pond-5.png",
+      "sha256": "75487c2664a03723ecef8133fe75db1eeaaaf38c303d82bbb0815f300ec6ee06",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/evening-pond-5.png",
+      "sha256": "b7d1a969722610fe0a419dc012590bcb2aea2c670354db2deed3fada92117dbe",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/night-pond-5.png",
+      "sha256": "3d83e6dbda34d269bb69b97a77d810e92aa88424ae82f441978b75e5be81045b",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/morning-pond-6.png",
+      "sha256": "904cb93c06170129c50f8b1df29676b040903c6a1631e5595f0449e7a12843cd",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/afternoon-pond-6.png",
+      "sha256": "5378f90452ce905c07aec59befe841b404eb4ce9611945db886b5b58ac13d5a4",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/evening-pond-6.png",
+      "sha256": "e57ab346f481a0e020518379623f9f823e9a2542943c0da53f55d476997d4716",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/night-pond-6.png",
+      "sha256": "30dddcf6cff8d93fa93b70b3919e26faa4d8064d10c2159c918ec87b2ddc3eba",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/morning-pond-7.png",
+      "sha256": "1cdab8fa235ba6a8fef9aea26605787f62800132168728dcc5378591b3addfb9",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/afternoon-pond-7.png",
+      "sha256": "0e142368b81f4c20cb101490c9679584e4d8f58cec41ce8bae7663ce82a379b9",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/evening-pond-7.png",
+      "sha256": "1e716f8366d6a32de1705b9ed094decc6316324d7442d793e2cf338e13c13503",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/night-pond-7.png",
+      "sha256": "97f5ffdaac959064421f795e5cd078e84432bbea02a78adfcec053f6f2931fb1",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/morning-pond-8.png",
+      "sha256": "80370ae8bd6bac4220314b6218885337095a514d0d8c9334d1814955a168b273",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/afternoon-pond-8.png",
+      "sha256": "c5753360d2698fea453cbd5651be514be5ac9282b8c89ddbc74196edf82ce891",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/evening-pond-8.png",
+      "sha256": "1a1a4bb7636215c7e931740eb52c4199e0039c49508cfdd369c97c251f94fd13",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/night-pond-8.png",
+      "sha256": "c6e4cae87748aadcc2f4e8c0edd77265f544c6cf888d91d5b5671a3887082838",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/morning-pond-9.png",
+      "sha256": "dd635a10da8484b4fe6dacc02aee22e06aad11a54da605b2f595be324058fdd9",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/afternoon-pond-9.png",
+      "sha256": "b42d7a95216a5663a1cde9c6ae079c0dfb103a973ffdcaa14c700b9307e421b4",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/evening-pond-9.png",
+      "sha256": "cfa150cbf8f3adf5d167854ba03d63c3241b49dfd26688ef9f83fac2e902db03",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/night-pond-9.png",
+      "sha256": "b0a7665868b9046e26d45f27221f32ee3e723c84ef19c702d63a25648f80cde8",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/morning-pond-10.png",
+      "sha256": "9e872947d3edd2c7e57af590393eb98d943c1b7124541e7ccefcaaaa5335f1aa",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/afternoon-pond-10.png",
+      "sha256": "6dbca59a81352103d3024a75a5d04ac4811240b53d456ff1796c17cf81be801e",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/evening-pond-10.png",
+      "sha256": "9566547c937013ca24a11eacadba022703e1e378d67d1d933042427936ddaf29",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/night-pond-10.png",
+      "sha256": "7b718a67c650e29a9cec0f642dc725d3940a42535efc904fc9d64226963e4783",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/morning-pond-11.png",
+      "sha256": "df31956703a56e722ee512be135216fbf0d240f2c46f64a3ebc430454439fc52",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/afternoon-pond-11.png",
+      "sha256": "4c0ddc537e761e40635ce96805bc830dd4729fe0d0644d1f3b11e478f2ccb2ff",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/evening-pond-11.png",
+      "sha256": "d9c91fab7684b025362aef9318724af79e684e716987f18c3f7b6e1331537150",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/night-pond-11.png",
+      "sha256": "9502ad08a728ef1ec4cc95eed57cfdecd18a5cc3db322d7732ece5b3bb26f9cd",
+      "width": 515,
+      "height": 285
+    },
+    {
+      "path": "production-water/morning-waterfall-0.png",
+      "sha256": "7350104ef46695d87ccf2d37bf29a4c7371831a1d9d9cd1252495b20f19554d0",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/afternoon-waterfall-0.png",
+      "sha256": "84231efa43cf1c1345991ec2698e58e898f54adcd9c745e882495e6bf6f2228b",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/evening-waterfall-0.png",
+      "sha256": "63d48d1c96a3128561567943eaf3eed44041d54484886da09d2191b61fe5f4fd",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/night-waterfall-0.png",
+      "sha256": "8cebc24a73a8923aab86a7c6ef020f90ab3c4e3050d2312d8f92e6a306ef9f92",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/morning-waterfall-1.png",
+      "sha256": "7ce427dd3059ed80e66bba0a79e2f6b59c515688f8023cbc9022a671febd0079",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/afternoon-waterfall-1.png",
+      "sha256": "4b061e7df5c1661f853e006a7ca02fceea20ae1a0c3078a9fb0198850287a15d",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/evening-waterfall-1.png",
+      "sha256": "7e70756cf6bc30e0e4e0bebbb4e3de9c163bacb7b34c9e5125c714f462f50fcd",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/night-waterfall-1.png",
+      "sha256": "65c53ce9545cf72431383eed6467dd0732b23f004263b380f6efc9bef85734b8",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/morning-waterfall-2.png",
+      "sha256": "c7c4262cf857cd98c8ab317b28b43b540b487d70b797e9eab97b939bb4731b68",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/afternoon-waterfall-2.png",
+      "sha256": "c4f84dc894eaea2d5fbd404c6f2b4f04f24735bc9c4ea86c1e29db4e4d377098",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/evening-waterfall-2.png",
+      "sha256": "6aed05f750a3b1682ff54652416cccf935e5ca85766ca79f5947f42fe7a79857",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/night-waterfall-2.png",
+      "sha256": "4746bcfa39c9b231e31778ee70e7f1753a5b10264547b1c307cac39660c9ae14",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/morning-waterfall-3.png",
+      "sha256": "5d07a04aed30202e1b05678e0a043722db829ae0eae84121edf28fd4457fa2c7",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/afternoon-waterfall-3.png",
+      "sha256": "f4fff95cbfffc6dfb41615bb8f32dda47a179c61b067228f19eb7765d62c0ff5",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/evening-waterfall-3.png",
+      "sha256": "0dd4eb2c74a6eda960840c9d69580858c4de37e6ca7a1c9ef811462dfc23b56d",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/night-waterfall-3.png",
+      "sha256": "071121355bf79a384c2ddc979d725ae569d832906c4e577772ce661fb0abaaaf",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/morning-waterfall-4.png",
+      "sha256": "b9d4c19ca60d1b6b77819f068e55f83992b1455b47b3a2b4123d122cdbcc2f57",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/afternoon-waterfall-4.png",
+      "sha256": "0069a81640e6080ec35100959b9aff02e3cce4daf2c92f5740222785603d4fdb",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/evening-waterfall-4.png",
+      "sha256": "ed7c08f8dfe5a6bcfdffc8e038618e8c91fd618a31c71d9dd9b82a2dc6169dbd",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/night-waterfall-4.png",
+      "sha256": "6de97e20932efcd4600066f60f1b26a974a5eade36d38e2652ccf0a25874e38a",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/morning-waterfall-5.png",
+      "sha256": "414a16c05ecccad87968e3ea48c21cfa98c0a6baaf7547ae2d68cd2727766a87",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/afternoon-waterfall-5.png",
+      "sha256": "03104051c6ae97f074d6926ac5f767ffa844dd11be7e48d670b1d150a775352f",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/evening-waterfall-5.png",
+      "sha256": "fd8222c9f120ec5b63dc307b7d3ab77f019b4feffb290c3df2b029dff0997c1c",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/night-waterfall-5.png",
+      "sha256": "3f7bf607161ddadb895969c0f2b97859e989a6a5493cdb7a45e9ce16f66fb15d",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/morning-waterfall-6.png",
+      "sha256": "5b41ef7310a2463cd61c73ad22064bcf80c55a440ba1991679996b410347b286",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/afternoon-waterfall-6.png",
+      "sha256": "1660b4d9b27d80ec4f8044ff866d16f32e6d07b6ecbe2272e03161aa9da4f87a",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/evening-waterfall-6.png",
+      "sha256": "5b1062092dcca84d59d64e16c919c6d2c0485c2843e85efed690791036348852",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/night-waterfall-6.png",
+      "sha256": "6cb1b9e799cbb26c392dc9a501f9066fc1fe647af58240faea1124ec10a55b9e",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/morning-waterfall-7.png",
+      "sha256": "e7fa346755c9972d7c69ead4e7a3390b00b7996f487a9ec91e4fcc6372f13c93",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/afternoon-waterfall-7.png",
+      "sha256": "4720ad7ef16dd748be42606972236140074b26f1396dc7b82ab468e40eb14668",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/evening-waterfall-7.png",
+      "sha256": "40a86e5646b8d47a40aa62be4b72078b5af63a61510b871920cbbe0332fac88e",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/night-waterfall-7.png",
+      "sha256": "de6e37cf9e4a2e5a9479b3840963c355526d9f75f880ff49a8c284c96ef08935",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/morning-waterfall-8.png",
+      "sha256": "d09d304e7dd11693b1d3d4ba28d762761948f1506088415397ba137c77bd6f6b",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/afternoon-waterfall-8.png",
+      "sha256": "4dee5d9d2238e37d9457586c3341717907117e144fba7515d78f46342708a142",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/evening-waterfall-8.png",
+      "sha256": "82229f7be7398129b8893f0eac4917e6d46d5731827dc4c52887df01dec440ba",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/night-waterfall-8.png",
+      "sha256": "4fef2aedaaec3f57db9f235fa296233a037746314de2b034e448f2cba71d5d57",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/morning-waterfall-9.png",
+      "sha256": "7045ea6dd0e0325c9698e0dac96ad2b3c4b60a231cea197099af15a19c15b608",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/afternoon-waterfall-9.png",
+      "sha256": "d9b74e75e9fc2fceb3d920501e7ce1bbd6145c905f8ccf67764391fa0d1ff3c6",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/evening-waterfall-9.png",
+      "sha256": "a649e75efdb1518b9a8a9e92cadf895245698d65d91cbd7f531749a32aaa1fba",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/night-waterfall-9.png",
+      "sha256": "26f9624220f5abeeb6b641f24770f18226534088260cb8c81f299fe7024d623b",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/morning-waterfall-10.png",
+      "sha256": "9dc116104cf26442a0a4ea2e84fdf8698c3cb366316fe11a641f2a0db0346d33",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/afternoon-waterfall-10.png",
+      "sha256": "553d17f700091adb5d2bd77c1412e39c0d70c4de70a14c310eac4b337325fa80",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/evening-waterfall-10.png",
+      "sha256": "05b0e13cb0fe01c5ae2b83b69599d9da070bcb64e7fa6eb50d8e2e996fa1c5bb",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/night-waterfall-10.png",
+      "sha256": "9084e48ab17b15b9fd79d5b4d43b4866c72d9bf28b77d32ed82514389f75107a",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/morning-waterfall-11.png",
+      "sha256": "4638d8bb7bbb6474f2b03f7fbe8fda57357ac34927a835da1e3e86fffb2faf69",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/afternoon-waterfall-11.png",
+      "sha256": "113ed9babafed19799e1de6ec2ff92fdd7b7b1b6c17622e6767e1a34d42e45f5",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/evening-waterfall-11.png",
+      "sha256": "ce54db33f7ca919905de3958ee664560a5caab4a8640e7d3e3d9f45032a45261",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/night-waterfall-11.png",
+      "sha256": "38b1e4908a3413e35a86b40e595c04fbc9bfabb6132c3b4bc297ffe22f414f1e",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "path": "production-water/morning-foam-0.png",
+      "sha256": "91285455b7217a7293a7a4446e48d63d1a760e733014cdf7ead4fb595d805cbb",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/afternoon-foam-0.png",
+      "sha256": "d927e09014cf57b1fb39da12cf16fa05d09229f05893204bb6296a2ed0743cb5",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/evening-foam-0.png",
+      "sha256": "1b74311848dec18ea821117fd186e612e8db537f892af1306a13973bdf653a2a",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/night-foam-0.png",
+      "sha256": "244363ac265d9c64757a462a9a498183d65f27cf2161f80b1f4ee97d64fbffac",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/morning-foam-1.png",
+      "sha256": "1d71325012a87734b629bcc2794672274426444f10cd612a349faa13f5b23d03",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/afternoon-foam-1.png",
+      "sha256": "b9f2bb9f4247defa79bd3fafdec91a1554d14309c17704d89568b4abf5ac873b",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/evening-foam-1.png",
+      "sha256": "a94bfbbd7ccc35a3e1a3ec56455be67928ab1d9fbd16c4a7dd403bd534fe262d",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/night-foam-1.png",
+      "sha256": "c6b97b2317fbe5e587184cef69711540f87fa5d57f3d05025ef0f14977abd917",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/morning-foam-2.png",
+      "sha256": "62100f6d4e1a199f06dc908aca9d0d4145382cbb522406623ab3a4a9a718210b",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/afternoon-foam-2.png",
+      "sha256": "30553b6c6f4d132b3b329ed3b90c23ab1e46af8e2124ed3e891ff2e8b611c38e",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/evening-foam-2.png",
+      "sha256": "e55e339bcb55896d9adaff00939acb17bea009416a09eca68c6fc85c5cffdf48",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/night-foam-2.png",
+      "sha256": "27ea413427d62d8dc6d57962337f5e3f2c147c9786306d0d4ea948fff6f9880e",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/morning-foam-3.png",
+      "sha256": "fd8fda039648d7db7b27ab9dd159a038e78d8918b7e74792640296ed9f56a1f8",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/afternoon-foam-3.png",
+      "sha256": "a4ccf527d3bf71d1952b959b64306e6c900e94d8a32161af505d471d49b65fc9",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/evening-foam-3.png",
+      "sha256": "c42895ad40d2592680225a0e85d086f3409d6f9b41e843e7fbfe1c593e289259",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/night-foam-3.png",
+      "sha256": "95d5d7e00b3a383c06c4e9f41afc2e57e181cfdbad03db996899e6fd3251d29f",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/morning-foam-4.png",
+      "sha256": "145b3cff3bab8d1ea7dcc52b0e5739d0d166364adaa729f2ec64dcdbe7388f45",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/afternoon-foam-4.png",
+      "sha256": "ea9766de8e939708419a16d283cf337cb9386527191865a2cff134c59e119bce",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/evening-foam-4.png",
+      "sha256": "c831e6c1d68c6c1eb4a471451e1667d2b95ac5c77f22ae6e708466c272f6d67b",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/night-foam-4.png",
+      "sha256": "ec6de0949c1d4ba31eb977e15177de7ee1b6b74c27a633f75fc441fa6a1110aa",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/morning-foam-5.png",
+      "sha256": "2047fed03b5824d276da23e7d360189824ddc84a7dfea32936fa454429584648",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/afternoon-foam-5.png",
+      "sha256": "05d9f6ebe72b103283b364e5f8cabe0247e93e49a81998459970c90dabd39639",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/evening-foam-5.png",
+      "sha256": "bdaa555d160bfaf2d05c842199aea3e3460f7ae92d93c93bddc2bbe4bde92798",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/night-foam-5.png",
+      "sha256": "cd1c21e49fd43147961f6a8136e76eb5a034546a3f1ad4b452668b9d92830722",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/morning-foam-6.png",
+      "sha256": "acfac78f883a1e38c3567de5f5778798bb5027b16c4c9449c9d0fcf5f34fcd8d",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/afternoon-foam-6.png",
+      "sha256": "534dddddb0b90d974b885e68fa0aea4950ee915ed16337ef1374890bbfc03c0b",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/evening-foam-6.png",
+      "sha256": "5a76d230c2e555f55878a96737abea0a7578207d33d599651f15feffc94cfc5d",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/night-foam-6.png",
+      "sha256": "47c08cc24b9622a9b311ccad4cbe67df008ea561cfc2ba4d1c1741656e2d35f0",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/morning-foam-7.png",
+      "sha256": "9fd120077d370639a505b76b5869b478d80a2970eb234604b55a4d04212a468b",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/afternoon-foam-7.png",
+      "sha256": "b80223cecbba0f86630f9a8dad69076bfb5baad625d9939abfba5cb9a3da3845",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/evening-foam-7.png",
+      "sha256": "083cc3d054c29d7ad826ae826503be82f336cde746ee9e4da792de1854cc2c83",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/night-foam-7.png",
+      "sha256": "bf01f8f08710c8557cbf976961200e5f42dbc52f0c18ed0f0566247be3f3a4d6",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/morning-foam-8.png",
+      "sha256": "c3ee5160d519728ea00d61c2fc590f21b0a0072a1d7c78175163bda589705416",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/afternoon-foam-8.png",
+      "sha256": "571c964b82a5f43c5bfe45a59dd072f100a69de01c99ceb20d9f69cf5bbcf2c4",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/evening-foam-8.png",
+      "sha256": "7bef356b30c2fd24539a32369890013abe6ba841ef20ef49ed4914c21e437a65",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/night-foam-8.png",
+      "sha256": "01e48e3f8244ace7f8a27e3dc93c5a541f21f7d0a3e6ed7552b32703019ae0c6",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/morning-foam-9.png",
+      "sha256": "7a020debab7eb9347213dd96833808f6e1e1b798c50bb2df40fef89c8418518f",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/afternoon-foam-9.png",
+      "sha256": "e35983d5459c4dbcb6b2f6859b2c9782408051380fb3b795aff9ad244378e405",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/evening-foam-9.png",
+      "sha256": "e987786a1a9cbf847c178d1ab0d9c8117d7def8676e16f564e60fc51ec8e8ed2",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/night-foam-9.png",
+      "sha256": "fba86eab5c7feddb498bccb9764b6a6cae5c523163e50287ed2c7d3cce9f1a2d",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/morning-foam-10.png",
+      "sha256": "d2c45f81e812e1e1b15639a5eb8dcb82db621ac8d0138481e040277cdf1e7d16",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/afternoon-foam-10.png",
+      "sha256": "742e054e99ca239a78149cdc94b5242e429039cd95774ae1b9a181682d411222",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/evening-foam-10.png",
+      "sha256": "e2c95ef301820c34d1c59225ff450dee70817af636480449a67a31bc8b6b56e2",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/night-foam-10.png",
+      "sha256": "50f2f4b45573c3832b878c79907e70ba02580ad538f0b0a9d7a71acad7bcc60e",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/morning-foam-11.png",
+      "sha256": "0fc2fbc40c6315643c711d8d6f031fc48f8c0c93005b087f2fb8ff5395b044f5",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/afternoon-foam-11.png",
+      "sha256": "eb2888a102ffc3a8f339a1d4b1469cc70ea7432961b21ee27dc357dedb2b012d",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/evening-foam-11.png",
+      "sha256": "b65198f71a89524b39fe238c39c2beef2e3a2f0982450c985f9c3dfaa42bbed1",
+      "width": 195,
+      "height": 100
+    },
+    {
+      "path": "production-water/night-foam-11.png",
+      "sha256": "a65344cebde81cc9ae7b1a7633eed4276ba11ce6f95ea188a88371cfa3bf0dbd",
+      "width": 195,
+      "height": 100
+    }
+  ],
+  "sources": {
+    "public/garden/islands/stage-0/stage0-morning.png": "dc85162f501882d1e32320ae3fe76ef76cc7ec71b9090ebc77b0f79ea7281316",
+    "public/garden/islands/stage-0/stage0-afternoon.png": "a510511d3e58e64726ab80e9e69a4a8a078ba5e4392d182f065b5b81071317f8",
+    "public/garden/islands/stage-0/stage0-evening.png": "e7d2a055c9437ca8315b9157b175ca0c374c2e4f35ec02fc31317c205c3dfa21",
+    "public/garden/islands/stage-0/stage0-night.png": "80d071be6e695401bcf12affc11de0aa10432f6412cf1d91026f3043f5ea0bfe",
+    "tools/terrace-22.8.3/inputs/ground-afternoon.png": "6c82aedb6079da827666846e8f7918ca6efbb044032aaad10cf92ba89b2a9ac7",
+    "tools/terrace-22.8.3/inputs/stage-1.png": "62a317a29ac3f62d1a094c2f41c1dd3a5200f5e54e0eeb921c169eec6281a4a6",
+    "tools/terrace-22.8.3/inputs/stage-2.png": "98ef70a38fc6e06cd4027cd19da1965aaf2c2acfa5fb0ca331fc74d76fa585a4",
+    "tools/terrace-22.8.3/inputs/stage-3.png": "0fcb85e483beab298ed443006418085adf18476a2afd9f62d678db79de4997b0",
+    "tools/terrace-22.8.3/inputs/stage-4.png": "e8dacbc6554d06c232ddaca6425ba63c12355c41bfb67b5985d18ae8db5b96e9",
+    "tools/terrace-22.8.3/inputs/stage-5.png": "723b1c8adbfa28d04e956d74f0b300d6c61c0f4fe323e0204c15ffc775a5313d",
+    "public/garden/evolution/home/morning-stage-0.png": "de801097903e5569a66537062fcb4125006ff69adef4009e705af1bcf69f1938",
+    "public/garden/evolution/home/morning-stage-1.png": "da12e0fbcc20031e48213927b238baba4b3e7db94f10f845c9a8d1ca777a0374",
+    "public/garden/evolution/home/morning-stage-2.png": "f26ac06480707ece29b589793fee7e53bcde83682548b35e824ab6c916ec7f39",
+    "public/garden/evolution/home/morning-stage-3.png": "2537335eda1e1be5e4873ba188c628f341334996324faa9efcbb7eea0ba5fcbf",
+    "public/garden/evolution/home/morning-stage-4.png": "1af0cb92c4b966febd13e78cc2525e8cda0bdbe44b4f2344047ed672a20030b9",
+    "public/garden/evolution/home/morning-stage-5.png": "dbeff9ae5b1e04eeb3c9eb59aab8490066c939da4666f5798f1bd9c68b8a2329",
+    "public/garden/evolution/cherry-tree/morning-stage-0.png": "16304798e9f66ae11d6b8a46d5527acf4137bbbe166c9af51caaa04e048fa7c2",
+    "public/garden/evolution/cherry-tree/morning-stage-1.png": "5b448bb0bca7505be66b7ae3249495a2bb1c249d7dc42b870d08a55eb351eec0",
+    "public/garden/evolution/cherry-tree/morning-stage-2.png": "ca2d45a12b270a1a6bbaf2d31c004eb05c4205cc442206fab153772cd674bb93",
+    "public/garden/evolution/cherry-tree/morning-stage-3.png": "f19dc81333ede1a2493e16dcc44262e5266c2064083753e081a1d4156e033e12",
+    "public/garden/evolution/cherry-tree/morning-stage-4.png": "1d0855b46a68e54af4a18d9e2cac62a1191d6c2e05e7888434cea832e578d5d9",
+    "public/garden/evolution/cherry-tree/morning-stage-5.png": "ce19c86e029899662bdd05a186bdafee1b283a8faa9e92ee49b5b9359ba6b875",
+    "public/garden/evolution/home/decor/vegetable-garden-stage5-morning.png": "75297f3b4f5b2a584129aedeb4d8502e005ef51ea629e772a8bb1a6f538daa89",
+    "public/garden/evolution/bridge-fishing/phases/morning/bridge-fishing-idle.png": "eca5d6cd4c39bf082f6daeff3d6ae128da1ed51aad189445883cce58c0830780",
+    "public/garden/evolution/bridge-fishing/phases/morning/bridge-fishing-cast.png": "835efc69f8f61171cc4c638c8c03e402caae90ee046884b553693cdc5cfe7739",
+    "public/garden/evolution/home/afternoon-stage-0.png": "de801097903e5569a66537062fcb4125006ff69adef4009e705af1bcf69f1938",
+    "public/garden/evolution/home/afternoon-stage-1.png": "68e0b4be319ca90e85357a10fe4842a08f610a81696eb9387f29396f8c5b408b",
+    "public/garden/evolution/home/afternoon-stage-2.png": "6c88f7cfd2654e59691c2e1ca73806ee0d101b56ff1f70bcf11fdfd7e1101dff",
+    "public/garden/evolution/home/afternoon-stage-3.png": "af25925159addd632dc53ee8dc7a67c3d0af06699350d7100c4cb3c120955891",
+    "public/garden/evolution/home/afternoon-stage-4.png": "8319d969edd450550e9365a6044156a47fb6adc62dd94c50e64d9d71e61a1be3",
+    "public/garden/evolution/home/afternoon-stage-5.png": "38ded309444321581aece984341514747f605189c0b047025389aaa2a4508ff4",
+    "public/garden/evolution/cherry-tree/afternoon-stage-0.png": "5efad7501179736ede7fae5e51617139444779ed3806d0a871987782058586f6",
+    "public/garden/evolution/cherry-tree/afternoon-stage-1.png": "4b70931036ea183d2384890af0bdfef67bb75bb8e6d9c4192a89f9b564a5924a",
+    "public/garden/evolution/cherry-tree/afternoon-stage-2.png": "c24691d7aa275419c373b04c06a34d2ea4751c8e8f846d39c160727077b3d2b4",
+    "public/garden/evolution/cherry-tree/afternoon-stage-3.png": "876231a4e903c6dd266d0f51be204005840cad8b50b5a5207a7d2d4f00a15b56",
+    "public/garden/evolution/cherry-tree/afternoon-stage-4.png": "1460b3d63e6ea17d385650ffc1caaeab9c14687d80f43d26835d907dcad0eb48",
+    "public/garden/evolution/cherry-tree/afternoon-stage-5.png": "a4e1603c97e4cc82dd4e84b36b372d9a7f4e5cc83447d0d68fc87c035b10e2d4",
+    "public/garden/evolution/home/decor/vegetable-garden-stage5-afternoon.png": "cf9e03cdc844606c00d903d77c8e423d5dffdecaa2f932c5ea66f89fdfeb6e1c",
+    "public/garden/evolution/bridge-fishing/phases/afternoon/bridge-fishing-idle.png": "19e84c2fa6c14ea1a4e63fc8737b2c742ba77d6d3400f8a5bba95baa0383aeaf",
+    "public/garden/evolution/bridge-fishing/phases/afternoon/bridge-fishing-cast.png": "8332cd9b6ea9aa5eb1ba96e96128a544fe9d9b3d8377505cb3e837bedfffce2e",
+    "public/garden/evolution/home/evening-stage-0.png": "bb74ba9a6b053813a68bc4cf6d4fdcd8d61ce6792750988ea9000e34a267d419",
+    "public/garden/evolution/home/evening-stage-1.png": "1c21795909b6eb385006f9f0ad18ca77a19ec43f3aad605e9cdac827b8346f4b",
+    "public/garden/evolution/home/evening-stage-2.png": "1b784d9f1ae836d1373588d71a26b197bc97cef3d484afbda973832819cbd846",
+    "public/garden/evolution/home/evening-stage-3.png": "b42f91019afb51296d0a35f7512f6e11044d7967abf1d982fcd1ad47efa86ca0",
+    "public/garden/evolution/home/evening-stage-4.png": "69fae51893fe5853176778fb4d0bae1f89c9fa156fafcc9130d62a2b32bc4f34",
+    "public/garden/evolution/home/evening-stage-5.png": "3d1f49864000f5d456e7e5f824b2121efc730aa891ac2a2c7bff2a3ccac2e0ff",
+    "public/garden/evolution/cherry-tree/evening-stage-0.png": "8dd544182ea39dd0acb6fece7ab0ab20e4b1216cf58c2deab7ceb41f38282224",
+    "public/garden/evolution/cherry-tree/evening-stage-1.png": "a8b14638bb95820e2738725f807fdcc2f05a0b9d723c568269119395adae0045",
+    "public/garden/evolution/cherry-tree/evening-stage-2.png": "fd7e5c0e86e604cee70f68a62799c1af50539b5bab60622cba95b30fb29a05c8",
+    "public/garden/evolution/cherry-tree/evening-stage-3.png": "db1fc12cab91d08d5a7c954dab8311196adcb36e454a6c657e86fe1d515124cf",
+    "public/garden/evolution/cherry-tree/evening-stage-4.png": "83c62dd0a15b8778bef8771eb4afbbc933939773edb0883ffd9580a67e4f9222",
+    "public/garden/evolution/cherry-tree/evening-stage-5.png": "6e8bb5e788cd966fc0f30c69e390eb6c5f6435722b801cfb2dc29be1118cf1f5",
+    "public/garden/evolution/home/decor/vegetable-garden-stage5-evening.png": "42ba16d782b36e46c38750787ef16d3cd338e7738faa202d25d3cda6f6a2a84e",
+    "public/garden/evolution/bridge-fishing/phases/evening/bridge-fishing-idle.png": "0a41a6542e636f8480e99a1cf3d6f2d9afb62f271aa85cb2c7fec764bd4e15d2",
+    "public/garden/evolution/bridge-fishing/phases/evening/bridge-fishing-cast.png": "8e23ed36889d029acce8d3e031bac96e8df55ca82c7d97d5ca72e0b15180de14",
+    "public/garden/evolution/home/night-stage-0.png": "9c2d1eb394992cd14eeb10b56b97afd1c8f52d0d95a9aab8525e31f689d4e3b1",
+    "public/garden/evolution/home/night-stage-1.png": "a87c9f253707d3ea2ed631b651c8bebd2f2032aa6b7d659db586b97923165d42",
+    "public/garden/evolution/home/night-stage-2.png": "f673a8b8a73717d7d5571ac1421c19947e706e1ef333c04d3ea6a19f365636ce",
+    "public/garden/evolution/home/night-stage-3.png": "e686913226d6e4083ae4a8ab29c63a9f271018ba06cf4d149b7f86e33f2344e2",
+    "public/garden/evolution/home/night-stage-4.png": "68999ca752d150334772ac7c1dd2560fcc3b247c52409e6597fe45eee10a37b5",
+    "public/garden/evolution/home/night-stage-5.png": "69c5643100fcbdaa3c375d16413a9bbf630a4851cdb3d4edf655693154ca7197",
+    "public/garden/evolution/cherry-tree/night-stage-0.png": "8415cabd225ff3af61ab31b998f9db9c00100a0e3106096849acb060c0923d11",
+    "public/garden/evolution/cherry-tree/night-stage-1.png": "1e69d172052054bf1aed6584959c6362f00c59434be5d9d8672c93a51ab62c21",
+    "public/garden/evolution/cherry-tree/night-stage-2.png": "91c46da8be630c1f61431f01bbd2d8ddf5e5e2ead123632ec5330a301ce35dc6",
+    "public/garden/evolution/cherry-tree/night-stage-3.png": "55df8adbf4afff6b833e37504c7fb02924fd854e39efa691237d476eeea9371c",
+    "public/garden/evolution/cherry-tree/night-stage-4.png": "b7712659b602c2a27457e2ec348ea9e539eaac7ce052fb2dc5e12f4b3b22fb8c",
+    "public/garden/evolution/cherry-tree/night-stage-5.png": "4b4dec072d463a16f747674d9cb90d97c89769678c597fc75a081faf6762f78d",
+    "public/garden/evolution/home/decor/vegetable-garden-stage5-night.png": "ab4100fb58715b8022860bcbe9a7ec4b1a8207e2e5c62860a63c7f95b0c0b274",
+    "public/garden/evolution/bridge-fishing/phases/night/bridge-fishing-idle.png": "8440875bf1b770a35848e696ef42af50f7a12ac167fa28a05bdfa06d1d26a262",
+    "public/garden/evolution/bridge-fishing/phases/night/bridge-fishing-cast.png": "e4e64e9a64e4def101fe14a72e0b21ee9a5ed53f7c3a8c527faf72dc4644b73e",
+    "public/garden/evolution/home/source/stage0-house-coverage-mask.png": "3785c15d6d29db66026d373ac6b29dec0cb2f7c39526c7aae0baa14d98c3d882",
+    "public/garden/registered-22.8.4/islands/terrace-evolution/afternoon/stage-0.png": "2a650b1f6a0c9c2d1508e78f3c4718c3804370dd6d3a528fe1e979b7e7aa3d54",
+    "public/garden/production-water/afternoon-ocean-0.png": "02415a3b872890a7df87a58590860b726a0b64c6b925770ad07275141735699b",
+    "public/garden/production-water/afternoon-ocean-1.png": "9d2b69875e525f8fc118ab6fe202100c2eb928f2fb58e671c4922add5719f757",
+    "public/garden/production-water/afternoon-ocean-2.png": "c80021631cde618d2f8e8703eb91419c4e710c90abe1165191c50dc5a62f5d98",
+    "public/garden/production-water/afternoon-ocean-3.png": "3d271de269f3c05fad9736591469b733cd3b3a1bef2fca689fc7b262e33661ee",
+    "public/garden/production-water/afternoon-ocean-4.png": "4cfd8be5b9a57bf859b2e5711f4a33b6b9e6c9b3c684bfd2983ef70b294db0a1",
+    "public/garden/production-water/afternoon-ocean-5.png": "664953bbf57ddbe94c63a21b2aded6a1cb944c56c66f09cf5b02dcfb2a2c41c4",
+    "public/garden/production-water/afternoon-ocean-6.png": "4bce5eb54e43ad2e54ed7329a9affe078bd9a5035326c8ae622afea65d1dfe52",
+    "public/garden/production-water/afternoon-ocean-7.png": "d2435bf514d805af021f26b7f10231ae6ed969f85b8664a6c501738948852f9a",
+    "public/garden/production-water/afternoon-ocean-8.png": "5820cfbb1b7daa4e91fc946bb99ce94b2c6119e7f2ed650cb08f7166649ca8bc",
+    "public/garden/production-water/afternoon-ocean-9.png": "0d5a2fc3b05e5d0e20c5612c9ca874d4a073ef401fbfa6ef0ee13fe2ef9b7a84",
+    "public/garden/production-water/afternoon-ocean-10.png": "55f49c97b058f53d5177722057fec7afec2a7c87ff43b8c9c5970cc91224f541",
+    "public/garden/production-water/afternoon-ocean-11.png": "f1b1185ca7278497c112bb6a66d5944d3908a5b4694e87daa7d2730127c69751",
+    "public/garden/production-water/afternoon-pond-0.png": "2b22da8ffb694aab6232e96d0ca0ec857827ceb975c4448abc778cf658f97f89",
+    "public/garden/production-water/afternoon-pond-1.png": "73f5617a10ee8232bb2fd3dd3c5825846ead71d6d7882ac742ab6eebd15c72fd",
+    "public/garden/production-water/afternoon-pond-2.png": "ac71b449c3acd38f442abd7185d2ab19dda3b4f73311870513e1f74bd1a880ef",
+    "public/garden/production-water/afternoon-pond-3.png": "c3819f686533336faf6dd5416acbc7a6abfbde1fb2dc3763577e14cd0d3e1932",
+    "public/garden/production-water/afternoon-pond-4.png": "41bf4e8f79518ff0a8eca55d2f684040567838864165a4e87f3a6863873be6fa",
+    "public/garden/production-water/afternoon-pond-5.png": "bcef67d2c6d01860c8d6e907f0f302aacf25701b46c9ec8dccde8b9ce195c0d2",
+    "public/garden/production-water/afternoon-pond-6.png": "60e8dbf9707681cbadb7f8902416ed5a582b9b64362eca8e85349286d12aa562",
+    "public/garden/production-water/afternoon-pond-7.png": "2b652c358b5a904990af3321775627df1ac345d89a4c3030826a547090db0249",
+    "public/garden/production-water/afternoon-pond-8.png": "77e16af181d0eefae8451eac227b4e5283c97f0ecb7a105e951a881407ce9757",
+    "public/garden/production-water/afternoon-pond-9.png": "4b95f57bf4a343def725000470d0d4209ba0a28e70a8c65a324ebe0ba85504c7",
+    "public/garden/production-water/afternoon-pond-10.png": "e715a12033758f91594369ecb0488bb6661b145993f916ad8d9a77015aa18355",
+    "public/garden/production-water/afternoon-pond-11.png": "368e4323468bf531780b5fa9e1066cdad146cfd7a936859ff25be0aa3f281f19",
+    "public/garden/production-water/afternoon-waterfall-0.png": "4d48c5ff1a0d033dd432573ac1fc92597041c214aa48c0ea74c40924183a9d01",
+    "public/garden/production-water/afternoon-waterfall-1.png": "19ec041119ce3d9618349ae9143883526cc2715193d4d1e9025a84d2a7da74da",
+    "public/garden/production-water/afternoon-waterfall-2.png": "004dc5c2af192b5fca501f76a5a18987e19997550b756889ac4e6452f1007f76",
+    "public/garden/production-water/afternoon-waterfall-3.png": "264dc7bc6a346e9983185302a519593c90d3f620bfb7408007f9abf6f382a9b1",
+    "public/garden/production-water/afternoon-waterfall-4.png": "2bc18ba22ffbda74f20220812628770c97426b63b636badea9dc7dc20efc7aea",
+    "public/garden/production-water/afternoon-waterfall-5.png": "e8cb3928544f7912ce74ec3c2db8639d9f2b1cf2014a14eb06b9722be5ffcbfa",
+    "public/garden/production-water/afternoon-waterfall-6.png": "1d427b50ce60869f7ebb1a142cd53896aaa5d50ca4393528975382f3cd63c369",
+    "public/garden/production-water/afternoon-waterfall-7.png": "41b204e47712924cee63d9ce4d58cbc1605bbaedda51f19ad72482b0f8848b06",
+    "public/garden/production-water/afternoon-waterfall-8.png": "629efaa4d1b70772b8b84f2256fcbb16c52d82d1816327e9cd1fc3e19ed06ae9",
+    "public/garden/production-water/afternoon-waterfall-9.png": "4195f68b0a17e59887eb5fc14d8e4d0b6ed12159f511fe909d50c3595af2d9c8",
+    "public/garden/production-water/afternoon-waterfall-10.png": "7acca0c134dc28cac9e1e311602f6bce71a557b62f449e0dcca571a57a6a02db",
+    "public/garden/production-water/afternoon-waterfall-11.png": "6eb634bf3f1c75d2edd29417e2808793710e0bad476477b456d73a2b72eaf165",
+    "public/garden/production-water/afternoon-foam-0.png": "7cac3ef83ae6f2a0fcead10e6e93cad455316424244085de654fd2898678d9ab",
+    "public/garden/production-water/afternoon-foam-1.png": "96722929ba912191de84bea27797f4b0727516074b3c32f95fe9b20d208a7998",
+    "public/garden/production-water/afternoon-foam-2.png": "a16c73c8d6599cd6e061a9ec283606d47c5bb7518a5c65878f2dead84f726d75",
+    "public/garden/production-water/afternoon-foam-3.png": "d4e251d2c0918a93a0f2c6d3ef3a05a7edea721d69ca79757b1dd2e3c8d2f9c0",
+    "public/garden/production-water/afternoon-foam-4.png": "f8928b6eccd23a0361c71d94b6861c57c3c8ac03f9778d8fdb361f34c0bc316d",
+    "public/garden/production-water/afternoon-foam-5.png": "5572127b1e9ae569594643ca9437b839db4b208bd275d0ad6f20411ba57fed59",
+    "public/garden/production-water/afternoon-foam-6.png": "9682dfd3d2ec02d1746c55ea2ec87dde05aad789328658e4feab50f412715913",
+    "public/garden/production-water/afternoon-foam-7.png": "05c54c7dc04fa243b661978feb295d5973f4aab787766e5a6df90c33e9d611ad",
+    "public/garden/production-water/afternoon-foam-8.png": "450757ae2f2ea1fabf48190a5ee9c821f7c72745c94acf1276c01a231dfb2c4f",
+    "public/garden/production-water/afternoon-foam-9.png": "8a0a4c74427faaa31aa34a9afbfa6385c20a5a3c2a362ce19602727a2377aa04",
+    "public/garden/production-water/afternoon-foam-10.png": "f3565acdc44dcf69e8c3328c83da874787fa176476943e311cd75fb75fb23503",
+    "public/garden/production-water/afternoon-foam-11.png": "5be880acd747caffd15b1dd8583340f515078941d90e18c4293c7d6ebd1394a0"
+  },
+  "terrace": {
+    "left": 960,
+    "bottom": 552,
+    "clear": [
+      940,
+      350,
+      1270,
+      565
+    ]
+  },
+  "registration": {
+    "landmarks": {
+      "morning": {
+        "plateauStep": {
+          "canonicalCenter": [
+            685,
+            334
+          ],
+          "nativeMinusAfternoon": [
+            -2,
+            -10
+          ],
+          "correlation": 0.8527031540870667
+        },
+        "house": {
+          "canonicalCenter": [
+            330,
+            455
+          ],
+          "nativeMinusAfternoon": [
+            -8,
+            -6
+          ],
+          "correlation": 0.7813555002212524
+        },
+        "pondLeft": {
+          "canonicalCenter": [
+            644,
+            677
+          ],
+          "nativeMinusAfternoon": [
+            -2,
+            -2
+          ],
+          "correlation": 0.8297820687294006
+        },
+        "pondRight": {
+          "canonicalCenter": [
+            940,
+            653
+          ],
+          "nativeMinusAfternoon": [
+            4,
+            -2
+          ],
+          "correlation": 0.6829585433006287
+        },
+        "bridge": {
+          "canonicalCenter": [
+            692,
+            830
+          ],
+          "nativeMinusAfternoon": [
+            -2,
+            0
+          ],
+          "correlation": 0.758793294429779
+        },
+        "rightCliff": {
+          "canonicalCenter": [
+            1279,
+            883
+          ],
+          "nativeMinusAfternoon": [
+            10,
+            2
+          ],
+          "correlation": 0.7882446646690369
+        },
+        "leftCliff": {
+          "canonicalCenter": [
+            296,
+            906
+          ],
+          "nativeMinusAfternoon": [
+            -8,
+            2
+          ],
+          "correlation": 0.6551876068115234
+        },
+        "waterfall": {
+          "canonicalCenter": [
+            551,
+            932
+          ],
+          "nativeMinusAfternoon": [
+            -4,
+            4
+          ],
+          "correlation": 0.8004094362258911
+        }
+      },
+      "evening": {
+        "plateauStep": {
+          "canonicalCenter": [
+            685,
+            334
+          ],
+          "nativeMinusAfternoon": [
+            10,
+            -8
+          ],
+          "correlation": 0.6913745999336243
+        },
+        "house": {
+          "canonicalCenter": [
+            330,
+            455
+          ],
+          "nativeMinusAfternoon": [
+            10,
+            -6
+          ],
+          "correlation": 0.42137572169303894
+        },
+        "pondLeft": {
+          "canonicalCenter": [
+            644,
+            677
+          ],
+          "nativeMinusAfternoon": [
+            10,
+            6
+          ],
+          "correlation": 0.666466236114502
+        },
+        "pondRight": {
+          "canonicalCenter": [
+            940,
+            653
+          ],
+          "nativeMinusAfternoon": [
+            18,
+            4
+          ],
+          "correlation": 0.6210082769393921
+        },
+        "bridge": {
+          "canonicalCenter": [
+            692,
+            830
+          ],
+          "nativeMinusAfternoon": [
+            10,
+            10
+          ],
+          "correlation": 0.6344252824783325
+        },
+        "rightCliff": {
+          "canonicalCenter": [
+            1279,
+            883
+          ],
+          "nativeMinusAfternoon": [
+            28,
+            14
+          ],
+          "correlation": 0.624208927154541
+        },
+        "leftCliff": {
+          "canonicalCenter": [
+            296,
+            906
+          ],
+          "nativeMinusAfternoon": [
+            0,
+            14
+          ],
+          "correlation": 0.700161874294281
+        },
+        "waterfall": {
+          "canonicalCenter": [
+            551,
+            932
+          ],
+          "nativeMinusAfternoon": [
+            6,
+            14
+          ],
+          "correlation": 0.6427129507064819
+        }
+      },
+      "night": {
+        "plateauStep": {
+          "canonicalCenter": [
+            685,
+            334
+          ],
+          "nativeMinusAfternoon": [
+            4,
+            -18
+          ],
+          "correlation": 0.7192285060882568
+        },
+        "house": {
+          "canonicalCenter": [
+            330,
+            455
+          ],
+          "nativeMinusAfternoon": [
+            10,
+            -6
+          ],
+          "correlation": 0.4150788187980652
+        },
+        "pondLeft": {
+          "canonicalCenter": [
+            644,
+            677
+          ],
+          "nativeMinusAfternoon": [
+            2,
+            -2
+          ],
+          "correlation": 0.6222372055053711
+        },
+        "pondRight": {
+          "canonicalCenter": [
+            940,
+            653
+          ],
+          "nativeMinusAfternoon": [
+            14,
+            -4
+          ],
+          "correlation": 0.5933573842048645
+        },
+        "bridge": {
+          "canonicalCenter": [
+            692,
+            830
+          ],
+          "nativeMinusAfternoon": [
+            2,
+            2
+          ],
+          "correlation": 0.47861209511756897
+        },
+        "rightCliff": {
+          "canonicalCenter": [
+            1279,
+            883
+          ],
+          "nativeMinusAfternoon": [
+            26,
+            6
+          ],
+          "correlation": 0.6300873160362244
+        },
+        "leftCliff": {
+          "canonicalCenter": [
+            296,
+            906
+          ],
+          "nativeMinusAfternoon": [
+            -12,
+            8
+          ],
+          "correlation": 0.47663700580596924
+        },
+        "waterfall": {
+          "canonicalCenter": [
+            551,
+            932
+          ],
+          "nativeMinusAfternoon": [
+            -4,
+            8
+          ],
+          "correlation": 0.5919162034988403
+        }
+      }
+    },
+    "overlays": {
+      "morning": {
+        "treePlateau": {
+          "center": [
+            704,
+            261
+          ],
+          "offset": [
+            -2,
+            -10
+          ],
+          "correlation": 0.815
+        },
+        "homeRoof": {
+          "center": [
+            328,
+            399
+          ],
+          "offset": [
+            -8,
+            -8
+          ],
+          "correlation": 0.876
+        },
+        "homeDoorSteps": {
+          "center": [
+            383,
+            519
+          ],
+          "offset": [
+            -6,
+            -6
+          ],
+          "correlation": 0.8
+        },
+        "homeRoofLeft": {
+          "center": [
+            253,
+            420
+          ],
+          "offset": [
+            -10,
+            -8
+          ],
+          "correlation": 0.729
+        },
+        "terraceDeck": {
+          "center": [
+            1098,
+            485
+          ],
+          "offset": [
+            6,
+            -6
+          ],
+          "correlation": 0.749
+        },
+        "terraceRightPost": {
+          "center": [
+            1175,
+            423
+          ],
+          "offset": [
+            8,
+            -8
+          ],
+          "correlation": 0.849
+        },
+        "terraceLeftPost": {
+          "center": [
+            1004,
+            418
+          ],
+          "offset": [
+            4,
+            -8
+          ],
+          "correlation": 0.838
+        },
+        "pondBench": {
+          "center": [
+            1107,
+            719
+          ],
+          "offset": [
+            6,
+            -2
+          ],
+          "correlation": 0.817
+        },
+        "pondTop": {
+          "center": [
+            783,
+            633
+          ],
+          "offset": [
+            0,
+            -4
+          ],
+          "correlation": 0.683
+        }
+      },
+      "evening": {
+        "treePlateau": {
+          "center": [
+            704,
+            261
+          ],
+          "offset": [
+            10,
+            -8
+          ],
+          "correlation": 0.668
+        },
+        "homeRoof": {
+          "center": [
+            328,
+            399
+          ],
+          "offset": [
+            6,
+            -10
+          ],
+          "correlation": 0.42
+        },
+        "homeDoorSteps": {
+          "center": [
+            383,
+            519
+          ],
+          "offset": [
+            10,
+            2
+          ],
+          "correlation": 0.378
+        },
+        "homeRoofLeft": {
+          "center": [
+            253,
+            420
+          ],
+          "offset": [
+            0,
+            -10
+          ],
+          "correlation": 0.265
+        },
+        "terraceDeck": {
+          "center": [
+            1098,
+            485
+          ],
+          "offset": [
+            24,
+            0
+          ],
+          "correlation": 0.531
+        },
+        "terraceRightPost": {
+          "center": [
+            1175,
+            423
+          ],
+          "offset": [
+            24,
+            -4
+          ],
+          "correlation": 0.726
+        },
+        "terraceLeftPost": {
+          "center": [
+            1004,
+            418
+          ],
+          "offset": [
+            20,
+            -4
+          ],
+          "correlation": 0.729
+        },
+        "pondBench": {
+          "center": [
+            1107,
+            719
+          ],
+          "offset": [
+            22,
+            8
+          ],
+          "correlation": 0.328
+        },
+        "pondTop": {
+          "center": [
+            783,
+            633
+          ],
+          "offset": [
+            12,
+            4
+          ],
+          "correlation": 0.64
+        }
+      },
+      "night": {
+        "treePlateau": {
+          "center": [
+            704,
+            261
+          ],
+          "offset": [
+            4,
+            -20
+          ],
+          "correlation": 0.627
+        },
+        "homeRoof": {
+          "center": [
+            328,
+            399
+          ],
+          "offset": [
+            6,
+            -12
+          ],
+          "correlation": 0.396
+        },
+        "homeDoorSteps": {
+          "center": [
+            383,
+            519
+          ],
+          "offset": [
+            10,
+            2
+          ],
+          "correlation": 0.277
+        },
+        "homeRoofLeft": {
+          "center": [
+            253,
+            420
+          ],
+          "offset": [
+            -16,
+            -12
+          ],
+          "correlation": 0.265
+        },
+        "terraceDeck": {
+          "center": [
+            1098,
+            485
+          ],
+          "offset": [
+            0,
+            0
+          ],
+          "correlation": 0.725
+        },
+        "terraceRightPost": {
+          "center": [
+            1175,
+            423
+          ],
+          "offset": [
+            0,
+            0
+          ],
+          "correlation": 0.734
+        },
+        "terraceLeftPost": {
+          "center": [
+            1004,
+            418
+          ],
+          "offset": [
+            0,
+            0
+          ],
+          "correlation": 0.585
+        },
+        "pondBench": {
+          "center": [
+            1107,
+            719
+          ],
+          "offset": [
+            20,
+            -2
+          ],
+          "correlation": 0.684
+        },
+        "pondTop": {
+          "center": [
+            783,
+            633
+          ],
+          "offset": [
+            6,
+            -4
+          ],
+          "correlation": 0.432
+        }
+      }
+    },
+    "sampling": "nearest",
+    "protectedSkyRows": 145
+  }
+}

@@ -1,0 +1,1 @@
+raise SystemExit('Retired: 22.8.0 replaced full island maps with unregistered close-ups. Use registered terrace-only compositing and validate_sanctuary_registration.py. Do not regenerate these maps from the close-up masters.')

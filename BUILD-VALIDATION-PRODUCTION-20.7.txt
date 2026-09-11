@@ -1,0 +1,26 @@
+KONO Production Build 20.7 Validation
+UTC 2026-08-07T20:09:57Z
+validated 43 TypeScript/TSX files
+validated 192 runtime fluid frames and 4 source scenes
+validation report: /mnt/data/work_pb207/KONO-PRODUCTION-BUILD-20.6-TREE-HEIGHT-PIXEL-POND/BUILD-VALIDATION-PRODUCTION-11.json
+foundation lock validation passed
+profiles: isolated progression saves
+stage thresholds: 0, 3, 8, 15, 25, 40
+weather cache/fallback hooks: present
+Stage0Scene localStorage polling: removed
+validated locked tree art, 6 approved sources, and 24 runtime textures
+scene-derived phase grading, feathered mound edges, and phase registration passed
+pond evolution validation passed
+science thresholds: 0, 1, 2, 3, 5, 8
+pixel koi frames: 48 (3 variants x 8 directions x 2 tail frames)
+visual stages: natural, ripples, lilies, first koi, koi garden, sanctuary pond
+garden and critter foundation validation passed
+garden thresholds: 0, 4, 10, 18, 30, 45 task credits
+garden anchors: house, tree, pond, terrace, bridge, coastline
+critters: butterfly, dragonfly, frog, bird, moth
+weather, reduced-motion, density, and quality safeguards: present
+home evolution validation passed
+24 phase/stage PNG overlays validated at 500x450
+production build 20.7 validation passed
+home: six-stage full PNG replacement evolution active
+bamboo: remains removed

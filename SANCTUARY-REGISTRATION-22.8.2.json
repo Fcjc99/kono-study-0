@@ -1,0 +1,272 @@
+{
+  "build": "22.8.2",
+  "method": "transparent terrace sprites on locally cleared ground; exact locked island outside terrace",
+  "zone": {
+    "left": 940,
+    "top": 280,
+    "width": 380,
+    "height": 335
+  },
+  "results": [
+    {
+      "phase": "morning",
+      "stage": 1,
+      "changed": 60745,
+      "outsideTerraceChanged": 0,
+      "sha256": "af4998692d496c383da13a1026fa3ea1c8bde592d7c8dda12f7da9e3665c85d3",
+      "sprite": {
+        "left": 990,
+        "top": 344,
+        "width": 290,
+        "height": 194
+      }
+    },
+    {
+      "phase": "morning",
+      "stage": 2,
+      "changed": 60745,
+      "outsideTerraceChanged": 0,
+      "sha256": "f05e72df9c5338b9a98a0440e414d9aa7c93c1a356653c013017b6cf400c517c",
+      "sprite": {
+        "left": 990,
+        "top": 345,
+        "width": 290,
+        "height": 193
+      }
+    },
+    {
+      "phase": "morning",
+      "stage": 3,
+      "changed": 60757,
+      "outsideTerraceChanged": 0,
+      "sha256": "1035e5635c5a8f0ffbc8b19aacea89c714e8b8ad94cc694094d1bc5ea4832b38",
+      "sprite": {
+        "left": 990,
+        "top": 342,
+        "width": 290,
+        "height": 196
+      }
+    },
+    {
+      "phase": "morning",
+      "stage": 4,
+      "changed": 61734,
+      "outsideTerraceChanged": 0,
+      "sha256": "6bb66d2c11d4e019935c5ff79f6bf54c0dd3c536a62b489cf45d6b955cbe0340",
+      "sprite": {
+        "left": 990,
+        "top": 330,
+        "width": 290,
+        "height": 208
+      }
+    },
+    {
+      "phase": "morning",
+      "stage": 5,
+      "changed": 60910,
+      "outsideTerraceChanged": 0,
+      "sha256": "311de93d4d708f222604aff6e2a1f19f7f01f1141f98c74e59bb23b739d00705",
+      "sprite": {
+        "left": 990,
+        "top": 339,
+        "width": 290,
+        "height": 199
+      }
+    },
+    {
+      "phase": "afternoon",
+      "stage": 1,
+      "changed": 57564,
+      "outsideTerraceChanged": 0,
+      "sha256": "87577f9677ae83abed79fe5e92dcfa6bc5a94bee76013c23d9836d5812aa7026",
+      "sprite": {
+        "left": 960,
+        "top": 358,
+        "width": 290,
+        "height": 194
+      }
+    },
+    {
+      "phase": "afternoon",
+      "stage": 2,
+      "changed": 57591,
+      "outsideTerraceChanged": 0,
+      "sha256": "5ddcde3e47bbc9349ed260de9679ed6c02d588214ddc53364ff0fcd0e93282db",
+      "sprite": {
+        "left": 960,
+        "top": 359,
+        "width": 290,
+        "height": 193
+      }
+    },
+    {
+      "phase": "afternoon",
+      "stage": 3,
+      "changed": 57639,
+      "outsideTerraceChanged": 0,
+      "sha256": "4cafb154260ed382059acaef2d80a4c793b4166d9b8d964faa18bf2c8619ce65",
+      "sprite": {
+        "left": 960,
+        "top": 356,
+        "width": 290,
+        "height": 196
+      }
+    },
+    {
+      "phase": "afternoon",
+      "stage": 4,
+      "changed": 59669,
+      "outsideTerraceChanged": 0,
+      "sha256": "2fdba67b3e0c2ee1e42c829eee8d04f94120d028dc59fcaaaa89180704e7ea50",
+      "sprite": {
+        "left": 960,
+        "top": 344,
+        "width": 290,
+        "height": 208
+      }
+    },
+    {
+      "phase": "afternoon",
+      "stage": 5,
+      "changed": 58478,
+      "outsideTerraceChanged": 0,
+      "sha256": "26f5b9f7a56dca679b0d7b6d4602945bbc384a3c745a80145ae78b59d80f5ba2",
+      "sprite": {
+        "left": 960,
+        "top": 353,
+        "width": 290,
+        "height": 199
+      }
+    },
+    {
+      "phase": "evening",
+      "stage": 1,
+      "changed": 63849,
+      "outsideTerraceChanged": 0,
+      "sha256": "a451183eea2daa78f293e9992385e2dfd3f955111afe6df06119f380d34d2cb3",
+      "sprite": {
+        "left": 982,
+        "top": 374,
+        "width": 290,
+        "height": 194
+      }
+    },
+    {
+      "phase": "evening",
+      "stage": 2,
+      "changed": 63845,
+      "outsideTerraceChanged": 0,
+      "sha256": "2406da7effb13ad6bbad27b9621a1636f0f867b7f4d700a68b9b52eb8d21ebd3",
+      "sprite": {
+        "left": 982,
+        "top": 375,
+        "width": 290,
+        "height": 193
+      }
+    },
+    {
+      "phase": "evening",
+      "stage": 3,
+      "changed": 63853,
+      "outsideTerraceChanged": 0,
+      "sha256": "7187a5365730b687cbe5f5ac39a313c0a82f29ece48e7fb66f9630ec52cac466",
+      "sprite": {
+        "left": 982,
+        "top": 372,
+        "width": 290,
+        "height": 196
+      }
+    },
+    {
+      "phase": "evening",
+      "stage": 4,
+      "changed": 64635,
+      "outsideTerraceChanged": 0,
+      "sha256": "88c02d87e21a937078a387ac7c780a9a34a9dc59127d8b8606ef198fd2f95f3b",
+      "sprite": {
+        "left": 982,
+        "top": 360,
+        "width": 290,
+        "height": 208
+      }
+    },
+    {
+      "phase": "evening",
+      "stage": 5,
+      "changed": 63924,
+      "outsideTerraceChanged": 0,
+      "sha256": "83c9a78210072e58f2994bbc681270b961c8929601dff057957e96d656cb6149",
+      "sprite": {
+        "left": 982,
+        "top": 369,
+        "width": 290,
+        "height": 199
+      }
+    },
+    {
+      "phase": "night",
+      "stage": 1,
+      "changed": 66705,
+      "outsideTerraceChanged": 0,
+      "sha256": "49912eea3eb0cbf967722d64fa6aed1a4b03113b88b212c5bbcb7ba1050daebd",
+      "sprite": {
+        "left": 982,
+        "top": 404,
+        "width": 290,
+        "height": 194
+      }
+    },
+    {
+      "phase": "night",
+      "stage": 2,
+      "changed": 66705,
+      "outsideTerraceChanged": 0,
+      "sha256": "ea89c1c6e70421f5e92754dce80924ca21d28bacb89eec8d65b77883b187f1b9",
+      "sprite": {
+        "left": 982,
+        "top": 405,
+        "width": 290,
+        "height": 193
+      }
+    },
+    {
+      "phase": "night",
+      "stage": 3,
+      "changed": 66704,
+      "outsideTerraceChanged": 0,
+      "sha256": "8c8fae127a4a314951d1ec6eed160cda41e9e0e7901907a23756c77648ed4afa",
+      "sprite": {
+        "left": 982,
+        "top": 402,
+        "width": 290,
+        "height": 196
+      }
+    },
+    {
+      "phase": "night",
+      "stage": 4,
+      "changed": 67246,
+      "outsideTerraceChanged": 0,
+      "sha256": "a1b760696db5d85ef066774b65efd531249c3e8028b87a7325cdb55da6aef19c",
+      "sprite": {
+        "left": 982,
+        "top": 390,
+        "width": 290,
+        "height": 208
+      }
+    },
+    {
+      "phase": "night",
+      "stage": 5,
+      "changed": 66706,
+      "outsideTerraceChanged": 0,
+      "sha256": "4ee575981fb36a0cbfb87bb7a408abcc755052c5885c0005fd93af99ef433fa2",
+      "sprite": {
+        "left": 982,
+        "top": 399,
+        "width": 290,
+        "height": 199
+      }
+    }
+  ]
+}

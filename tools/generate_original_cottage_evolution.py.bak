@@ -1,0 +1,153 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import numpy as np
+from PIL import Image, ImageDraw, ImageFilter
+
+ROOT = Path(__file__).resolve().parents[1]
+MAP_ROOT = ROOT / 'public/garden/islands/stage-0'
+OUT_ROOT = ROOT / 'public/garden/evolution/home'
+SOURCE_ROOT = OUT_ROOT / 'source'
+PHASES = ('morning', 'afternoon', 'evening', 'night')
+CROP = (100, 300, 600, 750)
+
+OUT_ROOT.mkdir(parents=True, exist_ok=True)
+SOURCE_ROOT.mkdir(parents=True, exist_ok=True)
+
+
+def median_colour(image: Image.Image, box: tuple[int, int, int, int]) -> tuple[int, int, int]:
+    array = np.asarray(image.crop(box).convert('RGB')).reshape(-1, 3)
+    return tuple(np.median(array, axis=0).astype(int))
+
+
+def adjust(colour: tuple[int, int, int], factor: float) -> tuple[int, int, int]:
+    return tuple(max(0, min(255, int(value * factor))) for value in colour)
+
+
+def rgba(colour: tuple[int, int, int], alpha: int = 255) -> tuple[int, int, int, int]:
+    return (*colour, alpha)
+
+
+def tiled_texture(source: Image.Image, size: tuple[int, int], opacity: int) -> Image.Image:
+    result = Image.new('RGBA', size, (0, 0, 0, 0))
+    tile = source.convert('RGBA')
+    for y in range(0, size[1], tile.height):
+        for x in range(0, size[0], tile.width):
+            result.alpha_composite(tile, (x, y))
+    if opacity < 255:
+        result.putalpha(result.getchannel('A').point(lambda value: value * opacity // 255))
+    return result
+
+
+def textured_polygon(
+    layer: Image.Image,
+    points: list[tuple[int, int]],
+    texture: Image.Image,
+    edge: tuple[int, int, int],
+    opacity: int = 224,
+) -> None:
+    shadow = Image.new('RGBA', layer.size, (0, 0, 0, 0))
+    shadow_draw = ImageDraw.Draw(shadow, 'RGBA')
+    shadow_draw.polygon([(x + 2, y + 2) for x, y in points], fill=(28, 23, 22, 34))
+    layer.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(1.1)))
+
+    mask = Image.new('L', layer.size, 0)
+    ImageDraw.Draw(mask).polygon(points, fill=255)
+    texture_layer = tiled_texture(texture, layer.size, opacity)
+    texture_layer.putalpha(Image.composite(texture_layer.getchannel('A'), Image.new('L', layer.size, 0), mask))
+    layer.alpha_composite(texture_layer)
+    ImageDraw.Draw(layer, 'RGBA').line(points + [points[0]], fill=rgba(edge, 112), width=1, joint='curve')
+
+
+def draw_window(
+    layer: Image.Image,
+    box: tuple[int, int, int, int],
+    frame: tuple[int, int, int],
+    glow: tuple[int, int, int],
+) -> None:
+    draw = ImageDraw.Draw(layer, 'RGBA')
+    x0, y0, x1, y1 = box
+    draw.rounded_rectangle(box, radius=2, fill=rgba(frame, 216), outline=rgba(adjust(frame, 0.68), 154), width=1)
+    draw.rectangle((x0 + 4, y0 + 4, x1 - 4, y1 - 4), fill=rgba(glow, 195))
+    mid_x = x0 + (x1 - x0) // 2
+    mid_y = y0 + (y1 - y0) // 2
+    draw.line((mid_x, y0 + 4, mid_x, y1 - 4), fill=rgba(adjust(frame, 0.68), 154), width=1)
+    draw.line((x0 + 4, mid_y, x1 - 4, mid_y), fill=rgba(adjust(frame, 0.68), 154), width=1)
+
+
+def render_stage(base: Image.Image, stage: int, phase: str) -> Image.Image:
+    image = base.convert('RGBA')
+    layer = Image.new('RGBA', image.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer, 'RGBA')
+
+    roof_texture = base.crop((160, 78, 310, 170)).resize((75, 46), Image.Resampling.LANCZOS)
+    wall_texture = base.crop((285, 175, 335, 255)).resize((38, 60), Image.Resampling.LANCZOS)
+    wood_texture = base.crop((210, 205, 285, 285)).resize((42, 50), Image.Resampling.LANCZOS)
+    stone_texture = base.crop((160, 280, 340, 330)).resize((90, 25), Image.Resampling.LANCZOS)
+
+    wood = median_colour(base, (205, 190, 320, 285))
+    stone = median_colour(base, (160, 280, 340, 330))
+    edge = adjust(wood, 0.62)
+    glow = (255, 207, 110) if phase != 'night' else (255, 187, 85)
+
+    if stage >= 1:
+        # Same cottage, now with a deeper covered entrance and proper landing.
+        textured_polygon(layer, [(264, 183), (329, 185), (349, 201), (277, 201)], roof_texture, edge)
+        textured_polygon(layer, [(263, 273), (349, 274), (367, 291), (279, 293)], wood_texture, edge, 216)
+        for x in (276, 340):
+            draw.rounded_rectangle((x, 200, x + 5, 282), radius=2, fill=rgba(adjust(wood, 0.76), 218))
+        draw.rounded_rectangle((379, 210, 403, 234), radius=3, fill=rgba(wood, 210), outline=rgba(edge, 120), width=1)
+        draw.rectangle((388, 234, 392, 274), fill=rgba(adjust(wood, 0.76), 210))
+
+    if stage >= 2:
+        # A connected lean-to porch extends the original roofline.
+        textured_polygon(layer, [(314, 162), (392, 176), (416, 197), (337, 188)], roof_texture, edge)
+        textured_polygon(layer, [(330, 271), (405, 276), (418, 293), (342, 294)], wood_texture, edge, 212)
+        for x in (336, 398):
+            draw.rounded_rectangle((x, 189, x + 5, 282), radius=2, fill=rgba(adjust(wood, 0.76), 214))
+        draw.line((340, 252, 404, 257), fill=rgba(adjust(wood, 0.70), 192), width=3)
+        for x in (345, 365, 385, 402):
+            draw.rectangle((x, 251, x + 3, 280), fill=rgba(adjust(wood, 0.73), 188))
+
+    if stage >= 3:
+        # The same home gains a chimney and a compact finished veranda.
+        textured_polygon(layer, [(183, 84), (210, 87), (209, 140), (183, 136)], stone_texture, edge, 228)
+        draw.rounded_rectangle((179, 79, 214, 90), radius=2, fill=rgba(adjust(stone, 1.08), 218), outline=rgba(edge, 110), width=1)
+        textured_polygon(layer, [(177, 286), (374, 286), (392, 304), (193, 307)], wood_texture, edge, 210)
+        draw.line((187, 272, 374, 275), fill=rgba(adjust(wood, 0.70), 190), width=3)
+        for x in range(190, 375, 30):
+            draw.rectangle((x, 270, x + 3, 300), fill=rgba(adjust(wood, 0.74), 184))
+
+    if stage >= 4:
+        # A dormer changes the roof silhouette while preserving the starter cottage below.
+        textured_polygon(layer, [(220, 120), (248, 92), (279, 123), (273, 156), (226, 152)], wall_texture, edge)
+        textured_polygon(layer, [(212, 121), (248, 85), (287, 124), (278, 132), (248, 102), (221, 132)], roof_texture, edge)
+        draw_window(layer, (236, 118, 261, 144), adjust(wood, 0.70), glow)
+        draw.line((184, 267, 379, 271), fill=rgba(adjust(wood, 0.66), 196), width=4)
+        for x in range(190, 377, 28):
+            draw.rectangle((x, 267, x + 3, 302), fill=rgba(adjust(wood, 0.72), 184))
+
+    if stage >= 5:
+        # One connected side room completes the cottage without becoming a separate building.
+        textured_polygon(layer, [(329, 184), (403, 194), (403, 273), (337, 269)], wall_texture, edge, 230)
+        textured_polygon(layer, [(319, 185), (359, 151), (416, 188), (403, 201), (359, 173), (335, 195)], roof_texture, edge, 232)
+        draw_window(layer, (351, 208, 385, 243), adjust(wood, 0.70), glow)
+        footing_mask = Image.new('L', layer.size, 0)
+        ImageDraw.Draw(footing_mask).polygon([(336, 267), (407, 273), (408, 287), (339, 284)], fill=220)
+        footing = tiled_texture(stone_texture, layer.size, 206)
+        footing.putalpha(Image.composite(footing.getchannel('A'), Image.new('L', layer.size, 0), footing_mask))
+        layer.alpha_composite(footing)
+
+    image.alpha_composite(layer.filter(ImageFilter.GaussianBlur(0.20)))
+    return image
+
+
+for phase in PHASES:
+    map_path = MAP_ROOT / f'stage0-{phase}.png'
+    base = Image.open(map_path).convert('RGB').crop(CROP)
+    base.save(SOURCE_ROOT / f'original-cottage-{phase}.png')
+    for stage in range(6):
+        render_stage(base, stage, phase).save(OUT_ROOT / f'{phase}-stage-{stage}.png')
+
+print('generated original-cottage evolution assets: 4 phases × 6 stages')

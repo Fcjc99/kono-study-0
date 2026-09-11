@@ -1,0 +1,22 @@
+KONO Production Build 20.8.2 — Home Orientation + Footprint Lock
+Version: 0.99.21-production-20.8.2
+
+PASS — npm run validate
+PASS — TypeScript/TSX syntax validation (43 files)
+PASS — production environment validation (192 fluid frames / 4 source scenes)
+PASS — foundation lock validation
+PASS — tree sprite integration validation
+PASS — pond evolution validation
+PASS — garden + critter validation
+PASS — home evolution transparency validation
+PASS — Build 20.8.2 orientation/footprint validator
+
+Home Stage 5 assertions:
+- Stage 5 preserves 100% of Stage 4 alpha coverage.
+- Stage 5 keeps the same left, top, and ground/bottom anchors as Stage 4.
+- Stage 5 expands outward more than 15% in silhouette width.
+- Stage 5 uses a 500x450 transparent pixel-PNG canvas.
+- Stage 0 remains the map-painted original cottage.
+- No differently oriented grand-house reference is active.
+
+Full npm build: NOT VERIFIED in this packaged sandbox because the existing node_modules copy is incomplete and is missing vite/client and @types/node type definitions. This is a dependency packaging limitation, not a TypeScript syntax failure.

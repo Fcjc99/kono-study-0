@@ -1,0 +1,24 @@
+{
+  "build": "22.7.14",
+  "world_size": [
+    1448,
+    1086
+  ],
+  "construction_zone_mask_bbox": [
+    885,
+    325,
+    1326,
+    581
+  ],
+  "native_patch_box": [
+    861,
+    301,
+    1350,
+    605
+  ],
+  "native_patch_size": [
+    489,
+    304
+  ],
+  "runtime": "full map textures only; no terrace sprite overlay"
+}

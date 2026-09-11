@@ -1,0 +1,9 @@
+KONO Production Build 13.1 validation
+
+- Missing RenderLayers.evolutionGround constant: FIXED
+- Missing RenderLayers.evolutionFront constant: FIXED
+- All RenderLayers property references resolve: PASS
+- TypeScript/TSX isolated syntax validation: PASS (38 files)
+- npm install/full dependency-backed Vite build: NOT COMPLETED (installation timed out in sandbox)
+
+Run locally: npm install && npm run build

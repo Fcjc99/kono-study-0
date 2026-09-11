@@ -1,0 +1,257 @@
+{
+  "method": "native-boundary Poisson (red-black SOR), immutable native phase outside local repair and sprite",
+  "zone": [
+    940,
+    340,
+    1280,
+    560
+  ],
+  "phases": {
+    "morning": {
+      "iterations": 815,
+      "last_update": 0.0049883030449177565,
+      "source_gradient_gain": [
+        0.9683257918552036,
+        0.9320388349514563,
+        1.074468085106383
+      ]
+    },
+    "afternoon": {
+      "iterations": 856,
+      "last_update": 0.004982314701992436,
+      "source_gradient_gain": [
+        0.995475113122172,
+        1.0097087378640777,
+        1.053191489361702
+      ]
+    },
+    "evening": {
+      "iterations": 811,
+      "last_update": 0.004981583528491455,
+      "source_gradient_gain": [
+        0.6470588235294118,
+        0.529126213592233,
+        0.6702127659574468
+      ]
+    },
+    "night": {
+      "iterations": 952,
+      "last_update": 0.004985359348415272,
+      "source_gradient_gain": [
+        0.2171945701357466,
+        0.33495145631067963,
+        0.9148936170212766
+      ]
+    }
+  },
+  "checks": [
+    {
+      "phase": "morning",
+      "stage": 0,
+      "changed_pixels": 0,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0,
+      "repair_boundary_mean_rgb_step": 4.1033182503770735,
+      "native_same_boundary_mean_rgb_step": 4.1033182503770735
+    },
+    {
+      "phase": "morning",
+      "stage": 1,
+      "changed_pixels": 42103,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "morning",
+      "stage": 2,
+      "changed_pixels": 42528,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "morning",
+      "stage": 3,
+      "changed_pixels": 42997,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "morning",
+      "stage": 4,
+      "changed_pixels": 47176,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "morning",
+      "stage": 5,
+      "changed_pixels": 45383,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0,
+      "repair_boundary_mean_rgb_step": 7.0542986425339365,
+      "native_same_boundary_mean_rgb_step": 4.1033182503770735
+    },
+    {
+      "phase": "afternoon",
+      "stage": 0,
+      "changed_pixels": 0,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0,
+      "repair_boundary_mean_rgb_step": 5.34841628959276,
+      "native_same_boundary_mean_rgb_step": 5.34841628959276
+    },
+    {
+      "phase": "afternoon",
+      "stage": 1,
+      "changed_pixels": 42094,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "afternoon",
+      "stage": 2,
+      "changed_pixels": 42518,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "afternoon",
+      "stage": 3,
+      "changed_pixels": 42990,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "afternoon",
+      "stage": 4,
+      "changed_pixels": 47167,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "afternoon",
+      "stage": 5,
+      "changed_pixels": 45374,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0,
+      "repair_boundary_mean_rgb_step": 7.1500754147812975,
+      "native_same_boundary_mean_rgb_step": 5.34841628959276
+    },
+    {
+      "phase": "evening",
+      "stage": 0,
+      "changed_pixels": 0,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0,
+      "repair_boundary_mean_rgb_step": 4.5610859728506785,
+      "native_same_boundary_mean_rgb_step": 4.5610859728506785
+    },
+    {
+      "phase": "evening",
+      "stage": 1,
+      "changed_pixels": 42099,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "evening",
+      "stage": 2,
+      "changed_pixels": 42523,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "evening",
+      "stage": 3,
+      "changed_pixels": 42994,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "evening",
+      "stage": 4,
+      "changed_pixels": 47167,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "evening",
+      "stage": 5,
+      "changed_pixels": 45377,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0,
+      "repair_boundary_mean_rgb_step": 5.641025641025641,
+      "native_same_boundary_mean_rgb_step": 4.5610859728506785
+    },
+    {
+      "phase": "night",
+      "stage": 0,
+      "changed_pixels": 47359,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0,
+      "repair_boundary_mean_rgb_step": 3.436936936936937,
+      "native_same_boundary_mean_rgb_step": 3.238095238095238
+    },
+    {
+      "phase": "night",
+      "stage": 1,
+      "changed_pixels": 48745,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "night",
+      "stage": 2,
+      "changed_pixels": 49194,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "night",
+      "stage": 3,
+      "changed_pixels": 49340,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "night",
+      "stage": 4,
+      "changed_pixels": 49948,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0
+    },
+    {
+      "phase": "night",
+      "stage": 5,
+      "changed_pixels": 49287,
+      "outside_allowed_mask_changed_pixels": 0,
+      "outside_terrace_zone_changed_pixels": 0,
+      "protected_sky_changed_pixels": 0,
+      "repair_boundary_mean_rgb_step": 3.83976833976834,
+      "native_same_boundary_mean_rgb_step": 3.238095238095238
+    }
+  ]
+}

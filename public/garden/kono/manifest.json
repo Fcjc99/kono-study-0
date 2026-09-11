@@ -1,0 +1,97 @@
+{
+  "excited": {
+    "file": "excited.png",
+    "width": 238,
+    "height": 226
+  },
+  "happy": {
+    "file": "happy.png",
+    "width": 237,
+    "height": 219
+  },
+  "idle": {
+    "file": "idle.png",
+    "width": 234,
+    "height": 226
+  },
+  "question": {
+    "file": "question.png",
+    "width": 213,
+    "height": 195
+  },
+  "read": {
+    "file": "read.png",
+    "width": 271,
+    "height": 277
+  },
+  "sit": {
+    "file": "sit.png",
+    "width": 299,
+    "height": 269
+  },
+  "sleep": {
+    "file": "sleep.png",
+    "width": 240,
+    "height": 172
+  },
+  "tea": {
+    "file": "tea.png",
+    "width": 299,
+    "height": 269
+  },
+  "walk-down-01": {
+    "file": "walk-down-01.png",
+    "width": 224,
+    "height": 220
+  },
+  "walk-down-02": {
+    "file": "walk-down-02.png",
+    "width": 224,
+    "height": 222
+  },
+  "walk-down-03": {
+    "file": "walk-down-03.png",
+    "width": 224,
+    "height": 220
+  },
+  "walk-left-01": {
+    "file": "walk-left-01.png",
+    "width": 209,
+    "height": 215
+  },
+  "walk-left-02": {
+    "file": "walk-left-02.png",
+    "width": 211,
+    "height": 217
+  },
+  "walk-right-01": {
+    "file": "walk-right-01.png",
+    "width": 204,
+    "height": 205
+  },
+  "walk-right-02": {
+    "file": "walk-right-02.png",
+    "width": 207,
+    "height": 205
+  },
+  "walk-up-01": {
+    "file": "walk-up-01.png",
+    "width": 225,
+    "height": 199
+  },
+  "walk-up-02": {
+    "file": "walk-up-02.png",
+    "width": 218,
+    "height": 197
+  },
+  "walk-up-03": {
+    "file": "walk-up-03.png",
+    "width": 225,
+    "height": 199
+  },
+  "shadow": {
+    "file": "shadow.png",
+    "width": 64,
+    "height": 24
+  }
+}

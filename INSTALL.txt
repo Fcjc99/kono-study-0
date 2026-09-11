@@ -1,0 +1,30 @@
+KONO v0.95 INSTALLATION
+
+1. Extract the ZIP to a new folder.
+2. Open Command Prompt or PowerShell in the extracted project folder.
+3. Install dependencies:
+
+   npm install
+
+4. Start KONO:
+
+   npm run dev
+
+5. Open the local address shown by Vite.
+
+Production check:
+
+   npm run build
+
+Living Sanctuary test controls:
+
+   Add ?sanctuaryDebug=1 to the local URL.
+
+Example:
+
+   http://localhost:5173/?sanctuaryDebug=1
+
+If PowerShell blocks npm.ps1, use Command Prompt or run:
+
+   npm.cmd install
+   npm.cmd run dev

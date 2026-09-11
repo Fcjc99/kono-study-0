@@ -1,0 +1,24 @@
+KONO Production Build 20.8 Validation
+
+PASS: TypeScript/TSX syntax validator — 43 files
+PASS: production environment validator — 192 fluid frames + 4 source scenes
+PASS: foundation lock validator
+PASS: locked tree integration — 6 approved sources + 24 runtime textures
+PASS: pixel pond evolution — 48 koi frames, 6 visual stages
+PASS: garden/critter foundations
+PASS: Home evolution — 24 phase/stage PNG overlays at 500x450
+PASS: Home transparency lock — isolated silhouettes, no crop-edge rectangles
+PASS: Build 20.8 focused validator
+
+Build 20.8 Home lock:
+- Stage 0 map-painted original cottage preserved.
+- Stages 1–4 preserved from Build 20.7.1.
+- Stage 5 replaced by approved Grand sanctuary home pixel PNG.
+- Stage 5 visible width: 350 px vs Stage 4: 271 px (~29% wider).
+- Stage 5 alpha: binary 0/255 and identical across all 4 phases.
+- Morning / afternoon / evening / night phase variants generated from the locked Home lighting reference.
+- Evening/night windows retain warm interior lighting.
+
+Full Vite bundle status:
+- `npm run build` reached TypeScript build but could not complete in this packaged sandbox because node_modules does not contain `vite/client` or `@types/node`.
+- The focused source/asset validators above pass. In a normal registry environment, run `npm install` and then `npm run build`.

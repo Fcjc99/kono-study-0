@@ -1,0 +1,67 @@
+/* KONO Identity Edition — Sprint 1. Loaded last to retire legacy visual conflicts. */
+:root{
+ --kono-ivory:#fbf6ec;--kono-paper:#fffdf8;--kono-paper-2:#fff8f2;--kono-ink:#40353d;--kono-muted:#806f75;
+ --kono-sakura:#d96f98;--kono-sakura-soft:#f7dce8;--kono-sage:#9cac8d;--kono-walnut:#6d4637;--kono-walnut-dark:#4d3028;--kono-brass:#b9924f;
+ --kono-line:#ead9d2;--kono-radius:22px;--kono-shadow:0 14px 34px rgba(76,49,43,.10),0 2px 6px rgba(76,49,43,.06);
+ --kono-font:Nunito,"Segoe UI",system-ui,sans-serif;--kono-display:Newsreader,Georgia,serif;
+}
+*{box-sizing:border-box} body{background:var(--kono-ivory);color:var(--kono-ink)}
+html[data-theme='sakura'] .app-shell{grid-template-columns:252px minmax(0,1fr);background:var(--kono-ivory)}
+html[data-theme='sakura'] .sidebar{width:252px;padding:22px 16px 18px;background:linear-gradient(100deg,rgba(255,255,255,.08),transparent 20%),linear-gradient(180deg,#755040,#5b392f);border-right:1px solid #43271f;box-shadow:inset -8px 0 22px rgba(44,24,20,.18);color:#fff9f2}
+html[data-theme='sakura'] .brand{padding:0 6px 20px;border-bottom:1px solid rgba(255,255,255,.14)}
+html[data-theme='sakura'] .brand h1{letter-spacing:.16em;color:#fffaf5} html[data-theme='sakura'] .brand p{color:#eedfd5}
+html[data-theme='sakura'] .brand-mark{background:linear-gradient(145deg,#fff5eb,#e7cbb8);color:var(--kono-walnut-dark);border:2px solid #caa98f;box-shadow:0 4px 0 #3f2720}
+html[data-theme='sakura'] .sidebar-section-label{margin:18px 10px 8px;color:#dbc9bf;font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+html[data-theme='sakura'] .nav-list{gap:5px}
+html[data-theme='sakura'] .nav-button{min-height:45px;padding:9px 12px;border:1px solid transparent;border-radius:13px;color:#f6ebe5;background:transparent}
+html[data-theme='sakura'] .nav-button:hover{background:rgba(255,255,255,.08)}
+html[data-theme='sakura'] .nav-button.active{color:#51352d;background:linear-gradient(180deg,#fffaf3,#f5dfd1);border-color:#d7bba7;box-shadow:0 4px 0 #3f2922,0 8px 16px rgba(33,17,14,.18)}
+html[data-theme='sakura'] .nav-icon{width:29px;height:29px;border-radius:9px;background:rgba(255,255,255,.10)} html[data-theme='sakura'] .nav-button.active .nav-icon{background:#f4cbdc;color:#a34f72}
+html[data-theme='sakura'] .sidebar-player-slot{padding-top:18px}
+html[data-theme='sakura'] .kono-radio{background:linear-gradient(180deg,#e8b6c7,#cc879f)!important;border-color:#3f2922!important;box-shadow:inset 0 0 0 3px rgba(255,255,255,.28),0 4px 0 #342019,0 10px 18px rgba(26,13,10,.24)!important}
+html[data-theme='sakura'] .season-card.profile-dock{display:grid!important;grid-template-columns:42px minmax(0,1fr)!important;gap:10px!important;padding:12px!important;background:linear-gradient(180deg,#fff8ef,#efd9c9)!important;border:1px solid #cda98e!important;box-shadow:0 4px 0 #3f2922,0 10px 18px rgba(30,16,12,.18)!important;color:#4e362f!important}
+.profile-dock-copy{min-width:0;display:grid}.profile-dock-copy span{font-weight:900}.profile-dock-copy strong,.profile-dock-copy small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.profile-dock select{grid-column:1/-1;width:100%;height:32px;border:1px solid #cfb09a;border-radius:9px;background:#fffaf5;color:#523a32;padding:0 8px;font-weight:700}
+html[data-theme='sakura'] .main-content{padding:0 32px 56px;background:radial-gradient(circle at 10% 0,rgba(255,255,255,.8),transparent 28%),linear-gradient(180deg,#f9f3e9,#fbf8f2)}
+html[data-theme='sakura'] .topbar{position:sticky;top:0;z-index:40;min-height:82px;margin:0 -32px 24px;padding:17px 32px;background:rgba(251,246,236,.88);border-bottom:1px solid rgba(126,91,76,.12);backdrop-filter:blur(16px)}
+html[data-theme='sakura'] .topbar h2{font:700 25px/1.1 var(--kono-display);letter-spacing:-.015em} html[data-theme='sakura'] .topbar .eyebrow{font-size:9px;color:#a06a7d}
+html[data-theme='sakura'] .search{width:min(320px,38vw);height:40px;border:1px solid var(--kono-line);border-radius:13px;background:rgba(255,253,248,.9);box-shadow:0 4px 14px rgba(65,42,36,.04)}
+html[data-theme='sakura'] .page-stack{gap:22px;max-width:1380px;margin:0 auto}
+html[data-theme='sakura'] .sanctuary-banner{display:none!important}
+html[data-theme='sakura'] .phase-toolbar{margin-top:2px;border:1px solid var(--kono-line);border-radius:16px;background:rgba(255,253,248,.82);box-shadow:0 7px 18px rgba(71,46,38,.05)}
+html[data-theme='sakura'] .sanctuary-full{border:8px solid #7b5140!important;border-radius:24px!important;box-shadow:inset 0 0 0 2px #b88668,var(--kono-shadow)!important;overflow:hidden}
+html[data-theme='sakura'] .foundation-sanctuary-overlay{background:linear-gradient(180deg,transparent,rgba(43,27,25,.56));padding:24px 26px}.foundation-sanctuary-overlay strong{font-family:var(--kono-display);font-size:22px}
+html[data-theme='sakura'] .card{background:linear-gradient(180deg,var(--kono-paper),var(--kono-paper-2));border:1px solid var(--kono-line);border-radius:var(--kono-radius);box-shadow:var(--kono-shadow)}
+html[data-theme='sakura'] .card-head{padding-bottom:14px;border-bottom:1px dashed #e4cdc4} html[data-theme='sakura'] .card-head h3{font:700 22px/1.2 var(--kono-display);color:#493941}
+html[data-theme='sakura'] .count-label{background:#f7e3eb;color:#92536d;border:1px solid #e8bfd0;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:900}
+html[data-theme='sakura'] .task-list{display:grid;gap:9px;padding-top:14px}
+html[data-theme='sakura'] .task-row-v2{position:relative!important;border:1px solid #eadbd3!important;border-radius:15px!important;background:linear-gradient(180deg,#fffefb,#fff9f3)!important;box-shadow:0 5px 12px rgba(72,49,43,.05)!important;transition:transform .18s ease,box-shadow .18s ease!important}
+html[data-theme='sakura'] .task-row-v2:hover{transform:translateY(-1px);box-shadow:0 9px 18px rgba(72,49,43,.08)!important}
+html[data-theme='sakura'] .task-title-v2{font-size:15px!important;line-height:1.25!important;color:#43363d!important} html[data-theme='sakura'] .task-meta-v2{margin-top:4px!important;font-size:11px!important;color:#88767c!important}
+html[data-theme='sakura'] .bubble-check{background:radial-gradient(circle at 35% 25%,#fff 0 8%,#f8ddea 10% 58%,#d993b0 100%)!important;border:2px solid #fff!important;box-shadow:0 0 0 1px #d8a8bb,0 4px 8px rgba(121,69,91,.18)!important}
+html[data-theme='sakura'] .task.done{opacity:.66}.task.done .task-title-v2{text-decoration:line-through}
+html[data-theme='sakura'] .planner-day-sheet{background:repeating-linear-gradient(180deg,#fffdf8 0,#fffdf8 31px,#eadde0 32px)!important;border:1px solid #ddc9be!important;border-radius:20px!important;box-shadow:var(--kono-shadow)!important}
+html[data-theme='sakura'] .subject-workspace{background:linear-gradient(90deg,#f1d9cc 0 28px,#fffdf8 28px)!important;border:1px solid #d9c0b3!important;border-radius:20px!important;box-shadow:var(--kono-shadow)!important}
+html[data-theme='sakura'] .subject-tabs button{border-radius:12px 12px 5px 5px!important;box-shadow:0 3px 0 rgba(89,56,45,.18)}
+html[data-theme='sakura'] .sakura-memory-board{margin-top:2px}.memory-board-frame{border-width:10px!important;border-color:#714838!important;border-radius:20px!important;box-shadow:inset 0 0 0 2px #a97759,var(--kono-shadow)!important;overflow:hidden!important}
+.memory-board-header{position:relative!important;min-height:82px!important;padding:15px 18px!important;background:linear-gradient(180deg,#fffaf3,#f2dfd2)!important;border-bottom:1px solid #cda991!important;z-index:4!important}.board-ribbon{position:static!important;transform:none!important;max-width:70%;min-width:0}.board-ribbon strong{white-space:normal!important;line-height:1.05!important}.memory-board-canvas{padding-top:28px!important;background-color:#b9825c!important;background-image:radial-gradient(rgba(255,255,255,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(101,61,40,.08) 1px,transparent 1px)!important;background-size:8px 8px,34px 34px!important}.memory-note,.memory-exam{box-shadow:0 11px 18px rgba(73,43,31,.18)!important}.board-tray{background:linear-gradient(180deg,#8b5b44,#6a4233)!important;color:#fff7ee!important}
+html[data-theme='sakura'] .page-hero{display:none!important}
+html[data-theme='sakura'] .colorful-compose,html[data-theme='sakura'] .exam-compose{background:linear-gradient(180deg,#fffdf8,#f9eee6)!important;border-color:#ddc8bb!important}
+html[data-theme='sakura'] input,html[data-theme='sakura'] select,html[data-theme='sakura'] textarea{border:1px solid #dfcec5;border-radius:12px;background:#fffefb;color:#44363d;box-shadow:inset 0 1px 2px rgba(76,50,42,.04)}
+html[data-theme='sakura'] .primary{background:linear-gradient(180deg,#df7fa3,#c85f89)!important;border:1px solid #ad5073!important;box-shadow:0 3px 0 #8e405e!important;color:white!important}.secondary{border-radius:11px!important}
+html[data-theme='sakura'] .deluxe-notes-board,html[data-theme='sakura'] .deluxe-exam-board{border:10px solid #714838!important;border-radius:22px!important;background-color:#b9825c!important;background-image:radial-gradient(rgba(255,255,255,.16) 1px,transparent 1px)!important;background-size:8px 8px!important;box-shadow:inset 0 0 0 2px #a97759,var(--kono-shadow)!important;padding-top:34px!important}
+@media(max-width:900px){html[data-theme='sakura'] .app-shell{display:block}.sidebar{display:none!important}.main-content{padding:0 18px 92px!important}.topbar{margin:0 -18px 18px!important;padding:14px 18px!important}.mobile-nav{display:flex!important}.search{width:42vw!important}.memory-board-header{min-height:74px!important}.board-ribbon{max-width:75%}}
+@media(max-width:620px){html[data-theme='sakura'] .topbar h2{font-size:21px}.topbar .eyebrow{display:none}.search{width:55vw!important}.phase-toolbar{overflow:auto;justify-content:flex-start!important}.memory-board-header{align-items:flex-start!important}.board-ribbon{max-width:68%}.board-ribbon strong{font-size:17px!important}.board-link,.board-status{font-size:10px!important}.dashboard-grid{gap:16px!important}.card{border-radius:17px!important}.main-content{padding-left:12px!important;padding-right:12px!important}.topbar{margin-left:-12px!important;margin-right:-12px!important}}
+
+/* v0.8.3: unambiguous note/exam color controls */
+.customizer-group>strong{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.customizer-group>strong em{font-style:normal;font-size:11px;font-weight:800;color:#a64f55;background:#fff7f2;border:1px solid #efc0b3;border-radius:999px;padding:4px 8px}
+.color-swatch-row.labeled-swatches{display:grid;grid-template-columns:repeat(3,minmax(118px,1fr));gap:9px}
+.color-swatch-row.labeled-swatches button{position:relative;width:auto;height:46px;border-radius:12px;padding:5px 28px 5px 6px;display:grid;grid-template-columns:30px minmax(0,1fr);align-items:center;gap:7px;background:#fffaf6!important;border:1px solid #e9b9aa;box-shadow:0 4px 10px rgba(119,62,52,.09);color:#69413d;text-align:left;transform:none}
+.color-swatch-row.labeled-swatches button i{display:block;width:30px;height:30px;border-radius:8px;border:2px solid #fff;box-shadow:0 0 0 1px rgba(89,47,42,.26),inset 0 0 0 1px rgba(255,255,255,.35)}
+.color-swatch-row.labeled-swatches button span{font-size:11px;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.color-swatch-row.labeled-swatches button b{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#d95f62;color:white;font-size:11px}
+.color-swatch-row.labeled-swatches button.active{border-color:#c94f55;box-shadow:0 0 0 2px #ffd7cc,0 6px 13px rgba(169,65,71,.18);transform:none}
+.transparent-swatch{background:repeating-linear-gradient(135deg,#fff 0 6px,#ece8e4 6px 12px)!important;position:relative}
+.transparent-swatch:after{content:'';position:absolute;left:3px;right:3px;top:13px;height:3px;background:#d85c62;transform:rotate(-35deg);border-radius:3px}
+.text-color-control span{font-size:11px;color:#8d5850;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+@media(max-width:720px){.color-swatch-row.labeled-swatches{grid-template-columns:repeat(2,minmax(0,1fr))}}

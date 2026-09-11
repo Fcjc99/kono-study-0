@@ -1,0 +1,10 @@
+.school-setup { overflow-wrap:anywhere; }
+.school-setup fieldset { min-width:0; border:0; padding:0; margin:1rem 0 0; }
+.school-setup input,.school-setup select,.school-setup textarea { max-width:100%; min-width:0; }
+.school-setup .wb-toolbar button { white-space:normal; }
+.school-setup details { margin:1rem 0; }
+.school-rule-list { max-height:34rem; overflow-y:auto; padding:.25rem; }
+.school-preview p { display:flex; flex-wrap:wrap; gap:.5rem 1rem; margin:.35rem 0; padding:.5rem; background:var(--surface-soft,#f8f0e5); border-radius:.5rem; }
+.school-day-label { font-weight:600; overflow-wrap:anywhere; }
+.wb-calendar button .school-day-mini { font-size:.65rem; line-height:1.15; overflow:hidden; display:block; max-width:100%; }
+@media(max-width:600px){.school-setup .wb-form-grid{grid-template-columns:minmax(0,1fr)}.school-setup button{min-height:44px}.school-setup input[type=date],.school-setup input[type=time]{width:100%;box-sizing:border-box}.school-setup .wb-toolbar{gap:.5rem}.school-rule-list{max-height:none}}

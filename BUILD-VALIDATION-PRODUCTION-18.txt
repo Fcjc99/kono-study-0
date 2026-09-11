@@ -1,0 +1,37 @@
+KONO Production Build 18 — Structural Home Evolution
+Validation date: 2026-08-01
+
+validated 43 TypeScript/TSX files
+validated 192 runtime fluid frames and 4 source scenes
+validation report: /mnt/data/work_pb18/KONO-PRODUCTION-BUILD-18-STRUCTURAL-HOME-EVOLUTION/BUILD-VALIDATION-PRODUCTION-11.json
+foundation lock validation passed
+profiles: isolated progression saves
+stage thresholds: 0, 3, 8, 15, 25, 40
+weather cache/fallback hooks: present
+Stage0Scene localStorage polling: removed
+validated locked tree art, 6 approved sources, and 24 runtime textures
+scene-derived phase grading, feathered mound edges, and phase registration passed
+pond evolution validation passed
+science thresholds: 0, 1, 2, 3, 5, 8
+visual states: still water, ripples, shimmer, first koi, koi pair, living pond
+home/lantern evolution validation passed
+home thresholds: 0, 10, 20, 35, 55, 80 task credits
+home: 6 structural source stages + 24 phase-integrated runtime textures
+lantern thresholds: 0, 1, 3, 5, 7, 14 productive days
+garden and critter foundation validation passed
+garden thresholds: 0, 4, 10, 18, 30, 45 task credits
+garden anchors: house, tree, pond, terrace, bridge, coastline
+critters: butterfly, dragonfly, frog, bird, moth
+weather, reduced-motion, density, and quality safeguards: present
+bamboo grove evolution validation passed
+bamboo thresholds: 0, 1, 2, 3, 5, 8 Spanish/language credits
+assets: 6 authored stages × 4 time-of-day variants
+habitat: mature bamboo enables occasional bird visits
+production 18 evolution QA validation passed
+subject controls: complete all / reopen all
+home: structural stage sprites with phase-integrated crossfades
+bamboo: terrain-integrated phase assets preserved
+
+home runtime textures: 24
+home source stages: 6
+home canvas/transparency registration: passed

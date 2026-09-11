@@ -1,0 +1,272 @@
+{
+  "morning": {
+    "plateauStep": {
+      "canonicalCenter": [
+        685,
+        334
+      ],
+      "nativeMinusAfternoon": [
+        -2,
+        -10
+      ],
+      "correlation": 0.8527031540870667
+    },
+    "house": {
+      "canonicalCenter": [
+        330,
+        455
+      ],
+      "nativeMinusAfternoon": [
+        -8,
+        -6
+      ],
+      "correlation": 0.7813555002212524
+    },
+    "pondLeft": {
+      "canonicalCenter": [
+        644,
+        677
+      ],
+      "nativeMinusAfternoon": [
+        -2,
+        -2
+      ],
+      "correlation": 0.8297820687294006
+    },
+    "pondRight": {
+      "canonicalCenter": [
+        940,
+        653
+      ],
+      "nativeMinusAfternoon": [
+        4,
+        -2
+      ],
+      "correlation": 0.6829585433006287
+    },
+    "bridge": {
+      "canonicalCenter": [
+        692,
+        830
+      ],
+      "nativeMinusAfternoon": [
+        -2,
+        0
+      ],
+      "correlation": 0.758793294429779
+    },
+    "rightCliff": {
+      "canonicalCenter": [
+        1279,
+        883
+      ],
+      "nativeMinusAfternoon": [
+        10,
+        2
+      ],
+      "correlation": 0.7882446646690369
+    },
+    "leftCliff": {
+      "canonicalCenter": [
+        296,
+        906
+      ],
+      "nativeMinusAfternoon": [
+        -8,
+        2
+      ],
+      "correlation": 0.6551876068115234
+    },
+    "waterfall": {
+      "canonicalCenter": [
+        551,
+        932
+      ],
+      "nativeMinusAfternoon": [
+        -4,
+        4
+      ],
+      "correlation": 0.8004094362258911
+    }
+  },
+  "evening": {
+    "plateauStep": {
+      "canonicalCenter": [
+        685,
+        334
+      ],
+      "nativeMinusAfternoon": [
+        10,
+        -8
+      ],
+      "correlation": 0.6913745999336243
+    },
+    "house": {
+      "canonicalCenter": [
+        330,
+        455
+      ],
+      "nativeMinusAfternoon": [
+        10,
+        -6
+      ],
+      "correlation": 0.42137572169303894
+    },
+    "pondLeft": {
+      "canonicalCenter": [
+        644,
+        677
+      ],
+      "nativeMinusAfternoon": [
+        10,
+        6
+      ],
+      "correlation": 0.666466236114502
+    },
+    "pondRight": {
+      "canonicalCenter": [
+        940,
+        653
+      ],
+      "nativeMinusAfternoon": [
+        18,
+        4
+      ],
+      "correlation": 0.6210082769393921
+    },
+    "bridge": {
+      "canonicalCenter": [
+        692,
+        830
+      ],
+      "nativeMinusAfternoon": [
+        10,
+        10
+      ],
+      "correlation": 0.6344252824783325
+    },
+    "rightCliff": {
+      "canonicalCenter": [
+        1279,
+        883
+      ],
+      "nativeMinusAfternoon": [
+        28,
+        14
+      ],
+      "correlation": 0.624208927154541
+    },
+    "leftCliff": {
+      "canonicalCenter": [
+        296,
+        906
+      ],
+      "nativeMinusAfternoon": [
+        0,
+        14
+      ],
+      "correlation": 0.700161874294281
+    },
+    "waterfall": {
+      "canonicalCenter": [
+        551,
+        932
+      ],
+      "nativeMinusAfternoon": [
+        6,
+        14
+      ],
+      "correlation": 0.6427129507064819
+    }
+  },
+  "night": {
+    "plateauStep": {
+      "canonicalCenter": [
+        685,
+        334
+      ],
+      "nativeMinusAfternoon": [
+        4,
+        -18
+      ],
+      "correlation": 0.7192285060882568
+    },
+    "house": {
+      "canonicalCenter": [
+        330,
+        455
+      ],
+      "nativeMinusAfternoon": [
+        10,
+        -6
+      ],
+      "correlation": 0.4150788187980652
+    },
+    "pondLeft": {
+      "canonicalCenter": [
+        644,
+        677
+      ],
+      "nativeMinusAfternoon": [
+        2,
+        -2
+      ],
+      "correlation": 0.6222372055053711
+    },
+    "pondRight": {
+      "canonicalCenter": [
+        940,
+        653
+      ],
+      "nativeMinusAfternoon": [
+        14,
+        -4
+      ],
+      "correlation": 0.5933573842048645
+    },
+    "bridge": {
+      "canonicalCenter": [
+        692,
+        830
+      ],
+      "nativeMinusAfternoon": [
+        2,
+        2
+      ],
+      "correlation": 0.47861209511756897
+    },
+    "rightCliff": {
+      "canonicalCenter": [
+        1279,
+        883
+      ],
+      "nativeMinusAfternoon": [
+        26,
+        6
+      ],
+      "correlation": 0.6300873160362244
+    },
+    "leftCliff": {
+      "canonicalCenter": [
+        296,
+        906
+      ],
+      "nativeMinusAfternoon": [
+        -12,
+        8
+      ],
+      "correlation": 0.47663700580596924
+    },
+    "waterfall": {
+      "canonicalCenter": [
+        551,
+        932
+      ],
+      "nativeMinusAfternoon": [
+        -4,
+        8
+      ],
+      "correlation": 0.5919162034988403
+    }
+  }
+}

@@ -1,0 +1,14 @@
+KONO Production Build 13.2 — Approved Tree Sprite Integration
+
+PASS — 37 TypeScript/TSX files passed isolated syntax validation.
+PASS — Foundation progression thresholds remain 0, 3, 8, 15, 25, 40.
+PASS — Profile-scoped progression and live-weather safeguards remain present.
+PASS — Stage0Scene now uses TreeEvolutionSystem exclusively.
+PASS — All 28 phase-specific tree/base sprite files are present, RGBA, and 420×460.
+PASS — Morning, afternoon, evening, and night tree phase switching is connected.
+PASS — Generic placeholder EvolutionSystem and placeholder assets were removed.
+PASS — 192 production fluid frames and four source scenes validated.
+PASS — ZIP integrity verified after packaging.
+
+Full Vite compilation was not run in this environment because npm dependency installation timed out.
+Run locally: npm install && npm run validate && npm run build && npm run dev

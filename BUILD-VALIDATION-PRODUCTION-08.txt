@@ -1,0 +1,11 @@
+KONO Production Build 08 validation
+
+PASS — 32 TypeScript/TSX files passed erasable syntax transpilation.
+PASS — zero filtered TS6133, TS6196, or TS1294 diagnostics.
+PASS — four 1448×1086 source Sanctuary scenes verified.
+PASS — 48 runtime fluid frames verified.
+PASS — fluid dimensions, transparency, alpha footprints, and motion deltas verified.
+PASS — waterfall mask remains inside the water-only safe area.
+PASS — ZIP source tree contains no node_modules, dist, or cache directories.
+
+Full fluid report: BUILD-VALIDATION-PRODUCTION-08.json

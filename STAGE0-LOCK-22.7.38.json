@@ -1,0 +1,55 @@
+{
+  "build": "22.7.38",
+  "name": "Stage 0 Original Lock Restore",
+  "rule": "These four user-supplied Stage 0 phase maps are the permanent source of truth. Do not redraw, recolor, resize, recenter, tint, overlay, or replace them unless the user explicitly unlocks Stage 0.",
+  "world_size": [
+    1448,
+    1086
+  ],
+  "phases": {
+    "morning": {
+      "runtime_path": "public/garden/islands/terrace-evolution/morning/stage-0.png",
+      "locked_source_path": "public/garden/evolution/lanterns/source/locked-stage0-22.7.38/morning.png",
+      "sha256": "dac4fccc1488a44c7c55396aec2651e277ba776992a05e3941b1cbe9866bf501",
+      "bytes": 3166403,
+      "mode": "RGBA",
+      "size": [
+        1448,
+        1086
+      ]
+    },
+    "afternoon": {
+      "runtime_path": "public/garden/islands/terrace-evolution/afternoon/stage-0.png",
+      "locked_source_path": "public/garden/evolution/lanterns/source/locked-stage0-22.7.38/afternoon.png",
+      "sha256": "ab728ec5ece0f11f7b7dda4588015dd6c02e9fb9b7034ef7d5bd25d5460b165e",
+      "bytes": 3163581,
+      "mode": "RGBA",
+      "size": [
+        1448,
+        1086
+      ]
+    },
+    "evening": {
+      "runtime_path": "public/garden/islands/terrace-evolution/evening/stage-0.png",
+      "locked_source_path": "public/garden/evolution/lanterns/source/locked-stage0-22.7.38/evening.png",
+      "sha256": "ccfd370f19da3b65cb9fe625e8eb29204c9dc074a7aa58839630f0f22d7a2c4a",
+      "bytes": 3334473,
+      "mode": "RGBA",
+      "size": [
+        1448,
+        1086
+      ]
+    },
+    "night": {
+      "runtime_path": "public/garden/islands/terrace-evolution/night/stage-0.png",
+      "locked_source_path": "public/garden/evolution/lanterns/source/locked-stage0-22.7.38/night.png",
+      "sha256": "1de3073f70e2c6eaf5d68344012bb308afab0b6fc62f0fbe1649a1405f609f88",
+      "bytes": 3180879,
+      "mode": "RGBA",
+      "size": [
+        1448,
+        1086
+      ]
+    }
+  }
+}

@@ -1,0 +1,305 @@
+{
+  "morning": {
+    "treePlateau": {
+      "center": [
+        704,
+        261
+      ],
+      "offset": [
+        -2,
+        -10
+      ],
+      "correlation": 0.815
+    },
+    "homeRoof": {
+      "center": [
+        328,
+        399
+      ],
+      "offset": [
+        -8,
+        -8
+      ],
+      "correlation": 0.876
+    },
+    "homeDoorSteps": {
+      "center": [
+        383,
+        519
+      ],
+      "offset": [
+        -6,
+        -6
+      ],
+      "correlation": 0.8
+    },
+    "homeRoofLeft": {
+      "center": [
+        253,
+        420
+      ],
+      "offset": [
+        -10,
+        -8
+      ],
+      "correlation": 0.729
+    },
+    "terraceDeck": {
+      "center": [
+        1098,
+        485
+      ],
+      "offset": [
+        6,
+        -6
+      ],
+      "correlation": 0.749
+    },
+    "terraceRightPost": {
+      "center": [
+        1175,
+        423
+      ],
+      "offset": [
+        8,
+        -8
+      ],
+      "correlation": 0.849
+    },
+    "terraceLeftPost": {
+      "center": [
+        1004,
+        418
+      ],
+      "offset": [
+        4,
+        -8
+      ],
+      "correlation": 0.838
+    },
+    "pondBench": {
+      "center": [
+        1107,
+        719
+      ],
+      "offset": [
+        6,
+        -2
+      ],
+      "correlation": 0.817
+    },
+    "pondTop": {
+      "center": [
+        783,
+        633
+      ],
+      "offset": [
+        0,
+        -4
+      ],
+      "correlation": 0.683
+    }
+  },
+  "evening": {
+    "treePlateau": {
+      "center": [
+        704,
+        261
+      ],
+      "offset": [
+        10,
+        -8
+      ],
+      "correlation": 0.668
+    },
+    "homeRoof": {
+      "center": [
+        328,
+        399
+      ],
+      "offset": [
+        6,
+        -10
+      ],
+      "correlation": 0.42
+    },
+    "homeDoorSteps": {
+      "center": [
+        383,
+        519
+      ],
+      "offset": [
+        10,
+        2
+      ],
+      "correlation": 0.378
+    },
+    "homeRoofLeft": {
+      "center": [
+        253,
+        420
+      ],
+      "offset": [
+        0,
+        -10
+      ],
+      "correlation": 0.265
+    },
+    "terraceDeck": {
+      "center": [
+        1098,
+        485
+      ],
+      "offset": [
+        24,
+        0
+      ],
+      "correlation": 0.531
+    },
+    "terraceRightPost": {
+      "center": [
+        1175,
+        423
+      ],
+      "offset": [
+        24,
+        -4
+      ],
+      "correlation": 0.726
+    },
+    "terraceLeftPost": {
+      "center": [
+        1004,
+        418
+      ],
+      "offset": [
+        20,
+        -4
+      ],
+      "correlation": 0.729
+    },
+    "pondBench": {
+      "center": [
+        1107,
+        719
+      ],
+      "offset": [
+        22,
+        8
+      ],
+      "correlation": 0.328
+    },
+    "pondTop": {
+      "center": [
+        783,
+        633
+      ],
+      "offset": [
+        12,
+        4
+      ],
+      "correlation": 0.64
+    }
+  },
+  "night": {
+    "treePlateau": {
+      "center": [
+        704,
+        261
+      ],
+      "offset": [
+        4,
+        -20
+      ],
+      "correlation": 0.627
+    },
+    "homeRoof": {
+      "center": [
+        328,
+        399
+      ],
+      "offset": [
+        6,
+        -12
+      ],
+      "correlation": 0.396
+    },
+    "homeDoorSteps": {
+      "center": [
+        383,
+        519
+      ],
+      "offset": [
+        10,
+        2
+      ],
+      "correlation": 0.277
+    },
+    "homeRoofLeft": {
+      "center": [
+        253,
+        420
+      ],
+      "offset": [
+        -16,
+        -12
+      ],
+      "correlation": 0.265
+    },
+    "terraceDeck": {
+      "center": [
+        1098,
+        485
+      ],
+      "offset": [
+        0,
+        0
+      ],
+      "correlation": 0.725
+    },
+    "terraceRightPost": {
+      "center": [
+        1175,
+        423
+      ],
+      "offset": [
+        0,
+        0
+      ],
+      "correlation": 0.734
+    },
+    "terraceLeftPost": {
+      "center": [
+        1004,
+        418
+      ],
+      "offset": [
+        0,
+        0
+      ],
+      "correlation": 0.585
+    },
+    "pondBench": {
+      "center": [
+        1107,
+        719
+      ],
+      "offset": [
+        20,
+        -2
+      ],
+      "correlation": 0.684
+    },
+    "pondTop": {
+      "center": [
+        783,
+        633
+      ],
+      "offset": [
+        6,
+        -4
+      ],
+      "correlation": 0.432
+    }
+  }
+}

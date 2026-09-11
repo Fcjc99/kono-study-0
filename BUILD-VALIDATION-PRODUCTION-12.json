@@ -1,0 +1,13 @@
+{
+  "build": "Production Build 12 \u2014 Foundation Lock & Evolution Hooks",
+  "version": "0.98.1-production-12",
+  "typescriptSyntaxFiles": 36,
+  "progressionTests": "pass",
+  "strictUnusedScan": "pass",
+  "fluidFrames": 192,
+  "sourceScenes": 4,
+  "weatherSafeguards": "pass",
+  "localStoragePollingRemoved": true,
+  "profileIsolation": "pass",
+  "fullViteBuild": "not-run: npm install timed out"
+}

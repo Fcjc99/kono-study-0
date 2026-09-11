@@ -1,0 +1,3 @@
+Validation suite passed.
+A full Vite/TypeScript build was attempted in the packaging environment but could not start because node_modules does not contain vite/client or @types/node.
+Run npm install, then npm run build locally.

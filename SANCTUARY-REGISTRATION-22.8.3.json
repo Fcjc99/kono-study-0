@@ -1,0 +1,320 @@
+{
+  "build": "22.8.3",
+  "method": "native pixel-grid terrace with cottage palette; user-requested road seed removal only",
+  "zone": {
+    "left": 940,
+    "top": 280,
+    "width": 380,
+    "height": 335
+  },
+  "roadZones": {
+    "morning": {
+      "cx": 698,
+      "cy": 477,
+      "rx": 70,
+      "ry": 44
+    },
+    "afternoon": {
+      "cx": 662,
+      "cy": 494,
+      "rx": 66,
+      "ry": 43
+    },
+    "evening": {
+      "cx": 681,
+      "cy": 504,
+      "rx": 67,
+      "ry": 42
+    },
+    "night": {
+      "cx": 673,
+      "cy": 533,
+      "rx": 67,
+      "ry": 42
+    }
+  },
+  "stage0": [
+    {
+      "phase": "morning",
+      "sha256": "d9ce4b9ec35e48a72fe05d2d27e3d88825f6fd87c258776f4984d1cec0189e98",
+      "originalSourceSha256": "dac4fccc1488a44c7c55396aec2651e277ba776992a05e3941b1cbe9866bf501"
+    },
+    {
+      "phase": "afternoon",
+      "sha256": "2a650b1f6a0c9c2d1508e78f3c4718c3804370dd6d3a528fe1e979b7e7aa3d54",
+      "originalSourceSha256": "ab728ec5ece0f11f7b7dda4588015dd6c02e9fb9b7034ef7d5bd25d5460b165e"
+    },
+    {
+      "phase": "evening",
+      "sha256": "eb0fc3ee742eaba6188ca64bde45b9a8e10d288a296e2e3d0c1100aa77160014",
+      "originalSourceSha256": "ccfd370f19da3b65cb9fe625e8eb29204c9dc074a7aa58839630f0f22d7a2c4a"
+    },
+    {
+      "phase": "night",
+      "sha256": "fe9f898317604e0d2b10865555a1ed18ac73c703b49efa0a908024f46dba18cf",
+      "originalSourceSha256": "1de3073f70e2c6eaf5d68344012bb308afab0b6fc62f0fbe1649a1405f609f88"
+    }
+  ],
+  "results": [
+    {
+      "phase": "morning",
+      "stage": 1,
+      "changed": 60745,
+      "outsideTerraceChanged": 0,
+      "sha256": "7515c73a22b7df132d08f0420084f0b04dca3285c1b0d51f347640b7f5d7d28c",
+      "sprite": {
+        "left": 990,
+        "top": 344,
+        "width": 290,
+        "height": 194
+      }
+    },
+    {
+      "phase": "morning",
+      "stage": 2,
+      "changed": 60745,
+      "outsideTerraceChanged": 0,
+      "sha256": "9a050fb7c3d034a0d865af7099c64ac4d00e7e7e1b2d633c31b30fdf65b7342b",
+      "sprite": {
+        "left": 990,
+        "top": 344,
+        "width": 290,
+        "height": 194
+      }
+    },
+    {
+      "phase": "morning",
+      "stage": 3,
+      "changed": 60753,
+      "outsideTerraceChanged": 0,
+      "sha256": "6d8ffd6bfc5a69b737d24912931c08dca797a0164685e223503e3a597ec64a8c",
+      "sprite": {
+        "left": 990,
+        "top": 342,
+        "width": 290,
+        "height": 196
+      }
+    },
+    {
+      "phase": "morning",
+      "stage": 4,
+      "changed": 61535,
+      "outsideTerraceChanged": 0,
+      "sha256": "65e8b61c45cb96f561a7f8ef59e5a93fd739e67a754e6e549dc7007f7be4ba0f",
+      "sprite": {
+        "left": 990,
+        "top": 330,
+        "width": 290,
+        "height": 208
+      }
+    },
+    {
+      "phase": "morning",
+      "stage": 5,
+      "changed": 60814,
+      "outsideTerraceChanged": 0,
+      "sha256": "1f18bf07830951284e49c25175455339eea0d6c520636129e3726d13095dd2b6",
+      "sprite": {
+        "left": 990,
+        "top": 340,
+        "width": 290,
+        "height": 198
+      }
+    },
+    {
+      "phase": "afternoon",
+      "stage": 1,
+      "changed": 57541,
+      "outsideTerraceChanged": 0,
+      "sha256": "c5ed7dcd3afcb6d9793fd277bcbe3bc1ecb8d94c7afc687ad2dd0ddfd868ff94",
+      "sprite": {
+        "left": 960,
+        "top": 358,
+        "width": 290,
+        "height": 194
+      }
+    },
+    {
+      "phase": "afternoon",
+      "stage": 2,
+      "changed": 57536,
+      "outsideTerraceChanged": 0,
+      "sha256": "63919e89d927bac6298a6a267179f47f16aedcf5bfc4588bebf99a53c1dbc6fb",
+      "sprite": {
+        "left": 960,
+        "top": 358,
+        "width": 290,
+        "height": 194
+      }
+    },
+    {
+      "phase": "afternoon",
+      "stage": 3,
+      "changed": 57569,
+      "outsideTerraceChanged": 0,
+      "sha256": "3c0cf5d1294291e731168027a32a72e7eb017bfb81f6ae990331635d74e1d041",
+      "sprite": {
+        "left": 960,
+        "top": 356,
+        "width": 290,
+        "height": 196
+      }
+    },
+    {
+      "phase": "afternoon",
+      "stage": 4,
+      "changed": 59368,
+      "outsideTerraceChanged": 0,
+      "sha256": "b9c2a1b7a40a3d3294b0617231a9b1fac835eaa7005568f8dac74ecdba2155b7",
+      "sprite": {
+        "left": 960,
+        "top": 344,
+        "width": 290,
+        "height": 208
+      }
+    },
+    {
+      "phase": "afternoon",
+      "stage": 5,
+      "changed": 58154,
+      "outsideTerraceChanged": 0,
+      "sha256": "269819ee2d577883fcfd455ca2e7ca237ed17fdf64927c44c2b5e3fcd854fd30",
+      "sprite": {
+        "left": 960,
+        "top": 354,
+        "width": 290,
+        "height": 198
+      }
+    },
+    {
+      "phase": "evening",
+      "stage": 1,
+      "changed": 63847,
+      "outsideTerraceChanged": 0,
+      "sha256": "efffdefb1f63954e11c3d5f2f54cb5734ef9af9001f825db4130e45db83bb460",
+      "sprite": {
+        "left": 982,
+        "top": 374,
+        "width": 290,
+        "height": 194
+      }
+    },
+    {
+      "phase": "evening",
+      "stage": 2,
+      "changed": 63847,
+      "outsideTerraceChanged": 0,
+      "sha256": "d398654ff444f0c369105e4e0875d65b528e38abccf1468c0459222f2f8d7b42",
+      "sprite": {
+        "left": 982,
+        "top": 374,
+        "width": 290,
+        "height": 194
+      }
+    },
+    {
+      "phase": "evening",
+      "stage": 3,
+      "changed": 63852,
+      "outsideTerraceChanged": 0,
+      "sha256": "f171cbea737f2beaa12731f4a7d608a708ee68c925f2ff9c17d0e87234cb0e06",
+      "sprite": {
+        "left": 982,
+        "top": 372,
+        "width": 290,
+        "height": 196
+      }
+    },
+    {
+      "phase": "evening",
+      "stage": 4,
+      "changed": 64455,
+      "outsideTerraceChanged": 0,
+      "sha256": "521a359652526f5fd50f0cb355484b26fb36bfacc12475fd97472f3c06781b98",
+      "sprite": {
+        "left": 982,
+        "top": 360,
+        "width": 290,
+        "height": 208
+      }
+    },
+    {
+      "phase": "evening",
+      "stage": 5,
+      "changed": 63873,
+      "outsideTerraceChanged": 0,
+      "sha256": "3b676d74716ee4d34c506b620501f693c8f95b74f5da531cf037fb1d8b5695ad",
+      "sprite": {
+        "left": 982,
+        "top": 370,
+        "width": 290,
+        "height": 198
+      }
+    },
+    {
+      "phase": "night",
+      "stage": 1,
+      "changed": 66705,
+      "outsideTerraceChanged": 0,
+      "sha256": "3b8474f66865aa81d5c245a2c79697724a2e149cb7e4d19ae96013f8642f3972",
+      "sprite": {
+        "left": 982,
+        "top": 404,
+        "width": 290,
+        "height": 194
+      }
+    },
+    {
+      "phase": "night",
+      "stage": 2,
+      "changed": 66705,
+      "outsideTerraceChanged": 0,
+      "sha256": "e922d3fc44233004c1e1ba5a6bb03e3d41280d1b8efff0207235f28208b70549",
+      "sprite": {
+        "left": 982,
+        "top": 404,
+        "width": 290,
+        "height": 194
+      }
+    },
+    {
+      "phase": "night",
+      "stage": 3,
+      "changed": 66705,
+      "outsideTerraceChanged": 0,
+      "sha256": "1d9ed0c2b23c39eb232014217ea901070edbb89cc8029406f8f287a0758ad77d",
+      "sprite": {
+        "left": 982,
+        "top": 402,
+        "width": 290,
+        "height": 196
+      }
+    },
+    {
+      "phase": "night",
+      "stage": 4,
+      "changed": 67096,
+      "outsideTerraceChanged": 0,
+      "sha256": "5453b3808bc8792ea910f354ceca3de70a551336a09f7f029b4e1f32aafc7116",
+      "sprite": {
+        "left": 982,
+        "top": 390,
+        "width": 290,
+        "height": 208
+      }
+    },
+    {
+      "phase": "night",
+      "stage": 5,
+      "changed": 66705,
+      "outsideTerraceChanged": 0,
+      "sha256": "9036dd3d3111f00ef7a1831f1bec24e4af70a9bbdc070226612ec5748f5e287e",
+      "sprite": {
+        "left": 982,
+        "top": 400,
+        "width": 290,
+        "height": 198
+      }
+    }
+  ]
+}

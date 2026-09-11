@@ -1,0 +1,16 @@
+KONO Production Build 20.6 validation
+
+PASS: TypeScript/TSX syntax validation (42 files)
+PASS: production environment validation (192 fluid frames / 4 source scenes)
+PASS: foundation lock validation
+PASS: cherry-tree integration validation (24 runtime textures)
+PASS: pond evolution validation
+PASS: 48 real koi pixel PNG frames (3 variants x 8 directions x 2 tail frames)
+PASS: garden/critter foundation validation
+PASS: build 20.6 release validation
+
+Tree placement: X 704, Y 272.
+Pond final art: PNG based; no procedurally generated pond/koi geometry.
+Bamboo remains removed.
+
+Full `npm run build` was not executable in the artifact sandbox because the uploaded package did not contain installed dependencies and the sandbox package mirror does not currently provide @eslint/js ^10.0.1. Run `npm install` in the normal development environment, then `npm run build`.

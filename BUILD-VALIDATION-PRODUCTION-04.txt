@@ -1,0 +1,11 @@
+KONO Production Build 04 — Validation
+
+- 27 TypeScript/TSX files passed isolated TypeScript transpilation with erasableSyntaxOnly.
+- 192 production fluid PNG frames validated.
+- All fluid frame dimensions matched the runtime crop manifest.
+- All fluid frames contained non-empty transparency.
+- Frame-to-frame masks retained at least 90% geometry overlap.
+- Waterfall uses one fixed solid geometry mask across morning, afternoon, evening, and night.
+- ZIP archive integrity verified after packaging.
+
+A dependency-backed Vite build requires npm install in the local project environment.

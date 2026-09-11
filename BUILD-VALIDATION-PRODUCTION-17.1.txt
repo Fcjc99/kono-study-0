@@ -1,0 +1,14 @@
+KONO Production Build 17.1 — Bamboo Grove Art Replacement
+
+Validation completed:
+- 43 TypeScript/TSX files passed syntax validation.
+- 192 runtime fluid frames and four source scenes passed environment validation.
+- Foundation/profile isolation and live-weather safeguards passed.
+- Six locked cherry-tree sources and 24 phase textures passed.
+- Pond, home, lantern, garden, and critter progression validators passed.
+- Bamboo thresholds remain 0, 1, 2, 3, 5, and 8 Spanish/language credits.
+- 24 replacement bamboo runtime assets passed canvas and transparency checks.
+- Bamboo moved to the terrace hillside with smaller display bounds and updated bird landing point.
+- Circular bamboo dirt base removed; muted stalk/grass integration used instead.
+
+Full Vite compilation requires locally installed npm dependencies.

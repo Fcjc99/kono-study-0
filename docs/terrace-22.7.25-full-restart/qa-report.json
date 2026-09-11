@@ -1,0 +1,149 @@
+{
+  "dimensions": {
+    "morning-0": [
+      1448,
+      1086
+    ],
+    "morning-1": [
+      1448,
+      1086
+    ],
+    "morning-2": [
+      1448,
+      1086
+    ],
+    "morning-3": [
+      1448,
+      1086
+    ],
+    "morning-4": [
+      1448,
+      1086
+    ],
+    "morning-5": [
+      1448,
+      1086
+    ],
+    "afternoon-0": [
+      1448,
+      1086
+    ],
+    "afternoon-1": [
+      1448,
+      1086
+    ],
+    "afternoon-2": [
+      1448,
+      1086
+    ],
+    "afternoon-3": [
+      1448,
+      1086
+    ],
+    "afternoon-4": [
+      1448,
+      1086
+    ],
+    "afternoon-5": [
+      1448,
+      1086
+    ],
+    "evening-0": [
+      1448,
+      1086
+    ],
+    "evening-1": [
+      1448,
+      1086
+    ],
+    "evening-2": [
+      1448,
+      1086
+    ],
+    "evening-3": [
+      1448,
+      1086
+    ],
+    "evening-4": [
+      1448,
+      1086
+    ],
+    "evening-5": [
+      1448,
+      1086
+    ],
+    "night-0": [
+      1448,
+      1086
+    ],
+    "night-1": [
+      1448,
+      1086
+    ],
+    "night-2": [
+      1448,
+      1086
+    ],
+    "night-3": [
+      1448,
+      1086
+    ],
+    "night-4": [
+      1448,
+      1086
+    ],
+    "night-5": [
+      1448,
+      1086
+    ]
+  },
+  "outside_changed_pixels": {
+    "morning-1": 0,
+    "morning-2": 0,
+    "morning-3": 0,
+    "morning-4": 0,
+    "morning-5": 0,
+    "afternoon-1": 0,
+    "afternoon-2": 0,
+    "afternoon-3": 0,
+    "afternoon-4": 0,
+    "afternoon-5": 0,
+    "evening-1": 0,
+    "evening-2": 0,
+    "evening-3": 0,
+    "evening-4": 0,
+    "evening-5": 0,
+    "night-1": 0,
+    "night-2": 0,
+    "night-3": 0,
+    "night-4": 0,
+    "night-5": 0
+  },
+  "alpha_nonopaque_pixels": {
+    "morning-0": 0,
+    "morning-1": 0,
+    "morning-2": 0,
+    "morning-3": 0,
+    "morning-4": 0,
+    "morning-5": 0,
+    "afternoon-0": 0,
+    "afternoon-1": 0,
+    "afternoon-2": 0,
+    "afternoon-3": 0,
+    "afternoon-4": 0,
+    "afternoon-5": 0,
+    "evening-0": 0,
+    "evening-1": 0,
+    "evening-2": 0,
+    "evening-3": 0,
+    "evening-4": 0,
+    "evening-5": 0,
+    "night-0": 0,
+    "night-1": 0,
+    "night-2": 0,
+    "night-3": 0,
+    "night-4": 0,
+    "night-5": 0
+  },
+  "stage_file_count": 24
+}

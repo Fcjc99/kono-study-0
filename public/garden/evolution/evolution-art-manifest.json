@@ -1,0 +1,27 @@
+{
+  "styleVersion": 1,
+  "referenceFeature": "cherry-tree",
+  "stageCount": 6,
+  "sourceCanvas": [
+    1536,
+    1024
+  ],
+  "runtimeCanvas": [
+    420,
+    460
+  ],
+  "rules": {
+    "transparentPng": true,
+    "fixedAnchor": true,
+    "authoredStages": true,
+    "continuousLandmarkDeformation": false,
+    "runtimeVectorReplacement": false,
+    "phaseSpecificPregrading": true
+  },
+  "features": {
+    "cherryTree": "approved-and-integrated",
+    "home": "awaiting-approved-stage-sprites",
+    "lantern": "awaiting-approved-stage-sprites",
+    "bamboo": "awaiting-approved-stage-sprites"
+  }
+}

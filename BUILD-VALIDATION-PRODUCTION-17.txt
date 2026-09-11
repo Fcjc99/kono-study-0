@@ -1,0 +1,11 @@
+KONO Production Build 17 — Validation
+
+PASS: 43 TypeScript/TSX files passed isolated syntax validation.
+PASS: 192 runtime fluid frames and four painted source scenes validated.
+PASS: foundation, tree, pond, home, lantern, garden, critter, and bamboo validators passed.
+PASS: six bamboo stages and 24 phase-specific bamboo textures validated.
+PASS: Spanish thresholds 0, 1, 2, 3, 5, and 8 validated.
+PASS: schema version 6 and profile-safe migration hooks validated.
+PASS: bamboo habitat bird integration and Reduced Motion safeguards validated.
+
+FULL VITE BUILD: not completed in the packaging environment because the internal npm registry returned 404 for @eslint/js. Run npm install and npm run build locally.
