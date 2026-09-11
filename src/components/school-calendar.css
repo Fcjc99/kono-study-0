@@ -7,4 +7,8 @@
 .school-preview p { display:flex; flex-wrap:wrap; gap:.5rem 1rem; margin:.35rem 0; padding:.5rem; background:var(--surface-soft,#f8f0e5); border-radius:.5rem; }
 .school-day-label { font-weight:600; overflow-wrap:anywhere; }
 .wb-calendar button .school-day-mini { font-size:.65rem; line-height:1.15; overflow:hidden; display:block; max-width:100%; }
+.school-flow-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 16px}
+.school-flow-steps span{display:grid;place-items:center;min-height:44px;padding:8px;border-radius:14px;background:#fff8ec;border:1px solid #efd9b8;color:#755540;font-size:.78rem;font-weight:800;text-align:center}
+.elevator-course-card h3{font-size:1rem}
+@media(max-width:700px){.school-flow-steps{grid-template-columns:1fr 1fr}.school-flow-steps span{min-height:38px;font-size:.72rem}.elevator-course-card .wb-form-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.school-setup .wb-form-grid{grid-template-columns:minmax(0,1fr)}.school-setup button{min-height:44px}.school-setup input[type=date],.school-setup input[type=time]{width:100%;box-sizing:border-box}.school-setup .wb-toolbar{gap:.5rem}.school-rule-list{max-height:none}}

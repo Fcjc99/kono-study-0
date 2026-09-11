@@ -4,6 +4,13 @@ export const hanoverElevatorCycle=['1A','2B','3A','4B','5A','6B','7A','1B','2A',
 export const hanoverBellTimes=[['07:55','08:47'],['08:52','09:39'],['09:44','10:31'],['10:36','11:23'],['11:23','12:47'],['12:52','13:39'],['13:44','14:30']] as const
 export const hanoverLunchTimes={1:['11:23','11:52'],2:['11:55','12:19'],3:['12:22','12:47']} as const
 export type ElevatorCourse={label:string;location:string;lunchWave:1|2|3;subjectId?:string}
+const cleanCourse=(course:Partial<ElevatorCourse>|undefined,index:number):ElevatorCourse=>{
+ if(!course||typeof course!=='object')throw Error(`Course ${index+1} is missing. Enter all seven Hanover courses before building.`)
+ const label=String(course.label??'').trim()
+ if(!label)throw Error(`Course ${index+1} needs a class name before building.`)
+ const lunchWave=course.lunchWave===2||course.lunchWave===3?course.lunchWave:1
+ return {label,location:String(course.location??'').trim(),lunchWave,subjectId:course.subjectId||undefined}
+}
 
 /** Read the seven-row Course Key used by Hanover's elevator schedule export. */
 export function parseHanoverElevatorCourses(text:string):ElevatorCourse[]{
@@ -39,11 +46,12 @@ export function parseHanoverElevatorCourses(text:string):ElevatorCourse[]{
 
 const firstOrder=[0,1,2,6,4,5,3]
 export function buildElevatorWeek(courses:ElevatorCourse[]):WeekSchedule{
- if(courses.length!==7||courses.some(c=>!c.label.trim()))throw Error('Enter all seven Hanover classes before building the elevator schedule.')
+ if(courses.length!==7)throw Error(`Enter all seven Hanover classes before building. KONO currently has ${courses.length}.`)
+ const clean=courses.map(cleanCourse)
  return Object.fromEntries(hanoverElevatorCycle.map(label=>{
   const number=Number(label[0]),order=firstOrder.map((_,i)=>firstOrder[(i+number-1)%7])
-  const blocks:ScheduleBlock[]=order.map((courseIndex,slot)=>({id:uid('elevator'),label:courses[courseIndex].label.trim(),location:courses[courseIndex].location.trim()||undefined,subjectId:courses[courseIndex].subjectId,slot:String(slot+1),start:hanoverBellTimes[slot][0],end:hanoverBellTimes[slot][1],kind:'study',fullYear:true,occurrenceNotes:{},completedDates:[],skippedDates:[]}))
-  const fifth=courses[order[4]],lunch=hanoverLunchTimes[fifth.lunchWave]
+  const blocks:ScheduleBlock[]=order.map((courseIndex,slot)=>({id:uid('elevator'),label:clean[courseIndex].label,location:clean[courseIndex].location||undefined,subjectId:clean[courseIndex].subjectId,slot:String(slot+1),start:hanoverBellTimes[slot][0],end:hanoverBellTimes[slot][1],kind:'study',fullYear:true,occurrenceNotes:{},completedDates:[],skippedDates:[]}))
+  const fifth=clean[order[4]],lunch=hanoverLunchTimes[fifth.lunchWave]
   blocks.push({id:uid('lunch'),label:`Lunch ${fifth.lunchWave}`,slot:'Lunch',start:lunch[0],end:lunch[1],kind:'break',fullYear:true,occurrenceNotes:{},completedDates:[],skippedDates:[]})
   return [label,blocks.sort((a,b)=>a.start.localeCompare(b.start))]
  }))

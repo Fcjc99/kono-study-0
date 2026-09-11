@@ -1,4 +1,4 @@
-KONO Release Candidate 22.8.18 — Planner Priority Rings and Class-Attached Work
+KONO Release Candidate 22.8.19 — Hanover Elevator Builder Stability
 Three complete interface experiences share the same assignments, notes and saved data.
 Cozy reuses original notebook navigation and pinned-paper components from the reference design.
 Office uses document lists, a structured calendar and side-sheet editors. Simplified keeps the compact workspace.
@@ -6,3 +6,4 @@ Weekly classes support date ranges, individual-date notes, next-class in-app rem
 Data format 6 preserves earlier saves. No paid AI or background phone notification service.
 School calendars support A/E and six-day rotations, reviewed PDF/photo imports, holidays, snow closures, special bells and semester/full-year classes.
 Planner dates show gold rings for important exams/projects, and dated notes appear on the calendar.
+Hanover Elevator setup now validates missing scanned course rows and shows a clearer four-step build flow.
