@@ -38,7 +38,7 @@ export function parseNdaSixDaySchedule(text:string,start:string,end:string):Rota
   ndaRows.forEach(([startTime,endTime],rowIndex)=>{
    for(let day=1;day<=6;day++){
     if(rowIndex===0){rows.push({id:uid('import-block'),include:true,day:'Day '+day,label:'WIN Time',slot:'WIN',start:startTime,end:endTime,dateStart:start,dateEnd:end,kind:'routine'});continue}
-    let value=cells[rowIndex][day-1].replace(/\b\d{1,2}:\d{2}\s*(?:AM|PM)?\s*[-–—]\s*\d{1,2}:\d{2}\s*(?:AM|PM)?\b/ig,'').replace(/\s+/g,' ').trim()
+    const value=cells[rowIndex][day-1].replace(/\b\d{1,2}:\d{2}\s*(?:AM|PM)?\s*[-–—]\s*\d{1,2}:\d{2}\s*(?:AM|PM)?\b/ig,'').replace(/\s+/g,' ').trim()
     if(!value)continue
     const block=value.match(/\bBlock\s+([A-Z])\b/i),slot=block?.[1].toUpperCase()??''
     let label=value.replace(/\bBlock\s+[A-Z]\b.*$/i,'').trim()||'Unscheduled'
