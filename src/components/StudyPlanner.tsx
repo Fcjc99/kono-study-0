@@ -3,6 +3,7 @@ import {completeTask} from '../store/workspace'
 import {useDraftState} from '../hooks/useDraftState'
 import { uid, type AppData, type StudyPlan, type Subject, type Task } from '../store/model'
 import { addDays, buildStudyTasks, calendarTask, cancelStudyPlan, dateInZone, defaultStudyZone, distributeUnits, rescheduleStudyPlan, studyDates, studyTemplates, studyUnits, unitRange } from '../store/studyScheduler'
+import VoiceInputButton from './VoiceInputButton'
 import './StudyPlanner.css'
 
 type Save = (action: SetStateAction<AppData>) => Promise<boolean>
@@ -69,7 +70,7 @@ export default function StudyPlanner({ profileId, plans, tasks, subjects, setDat
           <label>Start date<input required type="date" min={dateInZone(zone)} value={start} onChange={e => setStart(e.target.value)} /></label>
           <label>Finish by (including this day)<input required type="date" min={start} value={end} onChange={e => setEnd(e.target.value)} /></label>
         </div>
-        {unit === 'step' && <div className="study-steps"><div className="study-actions"><span>Start with a template:</span><button type="button" className="secondary" onClick={() => setSteps(studyTemplates.essay.join('\n'))}>Essay</button><button type="button" className="secondary" onClick={() => setSteps(studyTemplates.exam.join('\n'))}>Exam preparation</button></div><label>Your steps, in order (one per line)<textarea required rows={7} maxLength={20000} value={steps} onChange={e => setSteps(e.target.value)} placeholder={'Choose a topic\nGather sources\nWrite an outline\nWrite a draft\nRevise and submit'} /></label></div>}
+        {unit === 'step' && <div className="study-steps"><div className="study-actions"><span>Start with a template:</span><button type="button" className="secondary" onClick={() => setSteps(studyTemplates.essay.join('\n'))}>Essay</button><button type="button" className="secondary" onClick={() => setSteps(studyTemplates.exam.join('\n'))}>Exam preparation</button></div><label>Your steps, in order (one per line)<textarea required rows={7} maxLength={20000} value={steps} onChange={e => setSteps(e.target.value)} placeholder={'Choose a topic\nGather sources\nWrite an outline\nWrite a draft\nRevise and submit'} /></label><VoiceInputButton label="a step" onText={text => setSteps(steps.trim() ? steps + '\n' + text : text)} /></div>}
         <div className="study-actions"><span>Quick date range:</span><button type="button" className="secondary" onClick={() => { try { setEnd(addDays(start, 6)) } catch { setMessage('Choose a start date first.') } }}>1 week</button><button type="button" className="secondary" onClick={() => { try { setEnd(addDays(start, 13)) } catch { setMessage('Choose a start date first.') } }}>2 weeks</button></div>
         <fieldset className="study-weekdays"><legend>Study days</legend>{weekdayLabels.map((day, n) => <label key={day}><input type="checkbox" checked={weekdays.includes(n)} onChange={e => setWeekdays(e.target.checked ? [...weekdays, n].sort() : weekdays.filter(d => d !== n))} />{day}</label>)}</fieldset>
         <p className="study-help">Dates use {zone.replaceAll('_', ' ')} on every device. This uses simple scheduling, not AI, and adds no AI fees or paywall.</p>
