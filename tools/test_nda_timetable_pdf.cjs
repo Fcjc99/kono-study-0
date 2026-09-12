@@ -4,7 +4,7 @@ const root=path.resolve(__dirname,'..'),cache=new Map(),{randomUUID}=require('no
 function load(relative){
  const file=path.resolve(root,relative);if(cache.has(file))return cache.get(file).exports
  const module={exports:{}};cache.set(file,module)
- const requireLocal=name=>name.startsWith('.')?load(path.resolve(path.dirname(file),name+(path.extname(name)?'':'.ts'))):require(name)
+ const requireLocal=name=>name.startsWith('.')?load(path.resolve(path.dirname(file),name+(path.extname(name)?'':fs.existsSync(path.resolve(path.dirname(file),name+'.ts'))?'.ts':'.tsx'))):require(name)
  vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module,exports:module.exports,require:requireLocal,Date,Intl,Set,Map,Math,structuredClone,crypto:{randomUUID},console})
  return module.exports
 }

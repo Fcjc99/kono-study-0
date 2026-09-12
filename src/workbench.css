@@ -96,6 +96,17 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .wb-multidate-calendar .wb-section-head{padding-bottom:8px;border-bottom:0;justify-content:center;gap:14px}
 .workbench .wb-calendar-mini button{min-height:40px;padding:0;display:grid;place-items:center;font-weight:600}
 .wb-calendar-mini .is-primary{background:var(--wb-line);opacity:.7;cursor:default}
+.wb-repeat-weekly{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--wb-line)}
+.wb-repeat-weekly label{flex:1;min-width:160px}
+.wb-subtasks{margin:4px 0 8px;padding:12px;border:1px solid var(--wb-line);border-radius:12px}
+.wb-subtasks ul{list-style:none;margin:8px 0;padding:0;display:grid;gap:6px}
+.wb-subtasks li{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.wb-subtasks li .is-done{text-decoration:line-through;opacity:.6}
+.wb-subtask-add{display:flex;gap:8px;margin-top:6px}
+.wb-subtask-add input{flex:1}
+.subtask-chip{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--wb-line);font-size:.75rem}
+.schedule-share-export{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.schedule-share-import{padding-top:12px;border-top:1px solid var(--wb-line)}
 .wb-dialog{position:fixed;inset:0;margin:auto;width:min(640px,calc(100% - 24px));max-height:calc(100dvh - 32px);overflow:auto;padding:24px;border:1px solid var(--wb-line);border-radius:20px;background:var(--wb-surface);color:var(--wb-ink);box-shadow:0 20px 80px #0005;font:1rem/1.5 system-ui}
 .wb-dialog::backdrop{background:#17213299;backdrop-filter:blur(3px)}
 .wb-dialog>header{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:20px}
