@@ -1,4 +1,4 @@
-KONO Release Candidate 22.8.21 — College Weekly Schedule Import
+KONO Release Candidate 22.8.22 — Blank Stage 0 Sanctuary Maps
 Three complete interface experiences share the same assignments, notes and saved data.
 Cozy reuses original notebook navigation and pinned-paper components from the reference design.
 Office uses document lists, a structured calendar and side-sheet editors. Simplified keeps the compact workspace.
