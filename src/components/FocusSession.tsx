@@ -14,7 +14,6 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey
  const wakeLockRef=useRef<WakeLockSentinelLike|null>(null)
  const rootRef=useRef<HTMLDetailsElement>(null)
  const task=tasks.find(t=>t.id===taskId&&!t.done)??tasks.filter(t=>!t.done).sort((a,b)=>a.due.localeCompare(b.due))[0]
- useEffect(()=>{if(until===null)return;const tick=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(tick)},[until])
  const seconds=until===null?remaining:Math.max(0,Math.ceil((until-now)/1000)),finished=until!==null&&seconds===0
  const releaseLock=()=>{
   setLocked(false)
@@ -22,6 +21,7 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey
   wakeLockRef.current=null
   if(document.fullscreenElement&&document.fullscreenElement===rootRef.current)void document.exitFullscreen().catch(()=>undefined)
  }
+ useEffect(()=>{if(until===null)return;const tick=window.setInterval(()=>{const timestamp=Date.now();setNow(timestamp);if(timestamp>=until)releaseLock()},1000);return()=>window.clearInterval(tick)},[until])
  const engageLock=async()=>{
   if(!lockPreferred)return
   try{await rootRef.current?.requestFullscreen?.()}catch{/* Fullscreen can be blocked by browser policy; the timer still runs without it. */}
@@ -31,7 +31,6 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey
  }
  useEffect(()=>{const onChange=()=>{if(!document.fullscreenElement&&locked)setLocked(false)};document.addEventListener('fullscreenchange',onChange);return()=>document.removeEventListener('fullscreenchange',onChange)},[locked])
  useEffect(()=>{if(!locked)return;const onVisibility=()=>{if(document.hidden)setInterruptions(n=>n+1)};document.addEventListener('visibilitychange',onVisibility);return()=>document.removeEventListener('visibilitychange',onVisibility)},[locked])
- useEffect(()=>{if(finished)releaseLock()},[finished])
  useEffect(()=>()=>releaseLock(),[])
  const start=()=>{const timestamp=Date.now();setNow(timestamp);setUntil(timestamp+remaining*1000);void engageLock()}
  const pause=()=>{setRemaining(Math.max(0,Math.ceil(((until??Date.now())-Date.now())/1000)));setUntil(null);releaseLock()}

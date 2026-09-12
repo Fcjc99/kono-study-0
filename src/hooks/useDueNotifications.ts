@@ -14,7 +14,7 @@ export function useDueNotifications(enabled: boolean, items: NotifiableItem[], t
     if (!enabled || !notificationsSupported() || Notification.permission !== 'granted') return
     const check = () => {
       let lastDigestDay = ''
-      try { lastDigestDay = localStorage.getItem(lastDigestKey) ?? '' } catch { lastDigestDay = '' }
+      try { lastDigestDay = localStorage.getItem(lastDigestKey) ?? '' } catch { /* Storage can be blocked; treat as no prior digest today. */ }
       if (lastDigestDay === today) return
       const due = items.filter(item => !item.done && item.due === today)
       if (!due.length) return
