@@ -5,6 +5,7 @@ export const academicCatalog=[
  {id:'marshfield-2026',label:'Marshfield · 2026–27',kind:'school',revision:'2026-09-09',source:'School calendar supplied for 2026–27',url:''},
  {id:'nda-2026',label:'NDA · 2026–27',kind:'school',revision:'2026-09-09',source:'School calendar supplied for 2026–27',url:''},
  {id:'hanover-2026',label:'Hanover High · Elevator 2026–27',kind:'school',revision:'2026-09-10',source:'Hanover calendar and elevator schedule supplied for 2026–27',url:''},
+ {id:'silverlake-2026',label:'Silver Lake Regional · 2026–27',kind:'school',revision:'2026-09-12',source:'District-issued 2026-2027 School Calendar PDF (Silver Lake Regional School District & Superintendency Union #31)',url:''},
  {id:'mcgill-fall-2026',label:'McGill · Fall 2026',kind:'college',revision:'2026-09-09',source:'McGill official key academic dates',url:'https://www.mcgill.ca/importantdates/key-dates'},
  {id:'mcgill-winter-2027',label:'McGill · Winter 2027',kind:'college',revision:'2026-09-09',source:'McGill official key academic dates',url:'https://www.mcgill.ca/importantdates/key-dates'}
 ] as const
@@ -12,7 +13,8 @@ export function academicTemplate(profileId:string,id:string):StudySeason{
  const record=academicCatalog.find(r=>r.id===id)
  if(!record)throw Error('Unknown academic calendar.')
  if(record.kind==='school'){
-  const s=schoolPreset(profileId,id==='marshfield-2026'?'marshfield':id==='hanover-2026'?'hanover':'nda')
+  const preset=id==='marshfield-2026'?'marshfield':id==='hanover-2026'?'hanover':id==='silverlake-2026'?'silverlake':'nda'
+  const s=schoolPreset(profileId,preset)
   return {...s,school:{...s.school!,catalogId:record.id,catalogRevision:record.revision}}
  }
  const winter=id==='mcgill-winter-2027',start=winter?'2027-01-05':'2026-08-31',end=winter?'2027-04-30':'2026-12-22'
