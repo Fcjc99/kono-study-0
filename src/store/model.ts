@@ -11,7 +11,7 @@ export type ProfileKind='summer'|'school'|'college'|'custom'
 export type Profile={id:string;name:string;label:string;kind:ProfileKind;start:string;end:string;progressEpoch?:string}
 export type Subject={id:string;profileId:string;name:string;color:string;teacher?:string;room?:string;resources:string[]}
 export type Subtask={id:string;title:string;done:boolean}
-export type Task={id:string;profileId:string;subjectId:string;title:string;due:string;done:boolean;notes:string;completedAt?:string;studyPlanId?:string;unitNumber?:number;subtasks?:Subtask[]}
+export type Task={id:string;profileId:string;subjectId:string;title:string;due:string;done:boolean;notes:string;completedAt?:string;studyPlanId?:string;unitNumber?:number;subtasks?:Subtask[];recurringId?:string}
 export type StudyPlan={id:string;profileId:string;subjectId:string;title:string;unit:'chapter'|'page'|'problem'|'step';total:number;start:string;end:string;weekdays:number[];timeZone:string}
 export type Exam={id:string;profileId:string;subjectId:string;title:string;due:string;notes:string;done:boolean;color?:string;font?:string;highlight?:string;textColor?:string}
 export type Note={id:string;profileId:string;subjectId:string;title:string;body:string;created:string;source?:string;pinned?:boolean;completed?:boolean;color?:string;font?:string;highlight?:string;textColor?:string;size?:'small'|'medium'|'large';position?:number}
@@ -94,7 +94,7 @@ export function normalizeData(raw:unknown):AppData {
  })
  const studyById=new Map(studyPlans.map(p=>[p.id,p])),seenUnits=new Map<string,Set<number>>()
  const subtasks=(v:unknown):Subtask[]|undefined=>{if(v===undefined)return undefined;return list(v,'subtasks',50).map(s=>({id:id(s.id,'subtask ID'),title:str(s.title,'subtask title',300),done:bool(s.done)}))}
- const tasks:Task[]=taskInput.map(t=>{const profileId=owner(t.profileId);const result:Task={id:id(t.id,'task ID'),profileId,subjectId:subject(t.subjectId,profileId),title:str(t.title,'task title',1000),due:date(t.due,'task date'),done:bool(t.done),notes:str(t.notes??'','task notes',100000),completedAt:optional(t.completedAt,'completion timestamp',40),subtasks:subtasks(t.subtasks)}
+ const tasks:Task[]=taskInput.map(t=>{const profileId=owner(t.profileId);const result:Task={id:id(t.id,'task ID'),profileId,subjectId:subject(t.subjectId,profileId),title:str(t.title,'task title',1000),due:date(t.due,'task date'),done:bool(t.done),notes:str(t.notes??'','task notes',100000),completedAt:optional(t.completedAt,'completion timestamp',40),subtasks:subtasks(t.subtasks),recurringId:optional(t.recurringId,'recurring series ID',150)}
   if(t.studyPlanId!==undefined){
    const plan=studyById.get(id(t.studyPlanId,'study reference'));if(!plan||plan.profileId!==profileId)return fail('study task ownership')
    const unitNumber=integer(t.unitNumber,'study unit',plan.total),seen=seenUnits.get(plan.id)??new Set<number>();if(seen.has(unitNumber))return fail('duplicate study unit');seen.add(unitNumber);seenUnits.set(plan.id,seen)

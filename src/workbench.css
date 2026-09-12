@@ -107,6 +107,13 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .subtask-chip{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--wb-line);font-size:.75rem}
 .schedule-share-export{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .schedule-share-import{padding-top:12px;border-top:1px solid var(--wb-line)}
+.focus-lock-overlay{display:grid;place-items:center;justify-items:center;gap:14px;min-height:70vh;padding:32px;text-align:center;background:var(--wb-bg);color:var(--wb-ink)}
+.focus-lock-overlay .eyebrow{letter-spacing:.12em;text-transform:uppercase;color:var(--wb-muted);font-size:.8125rem}
+.focus-lock-overlay h2{margin:0;font-size:1.6rem}
+.focus-lock-timer{font-size:4rem;font-variant-numeric:tabular-nums;font-weight:700}
+.focus-lock-overlay button{min-height:48px;padding:10px 22px}
+.focus-session:fullscreen,.focus-session:-webkit-full-screen{width:100vw;height:100vh;max-width:none;border:0;border-radius:0;box-shadow:none;background:var(--wb-bg);display:flex;flex-direction:column}
+.focus-session:fullscreen .focus-lock-overlay,.focus-session:-webkit-full-screen .focus-lock-overlay{min-height:100vh;flex:1}
 .wb-dialog{position:fixed;inset:0;margin:auto;width:min(640px,calc(100% - 24px));max-height:calc(100dvh - 32px);overflow:auto;padding:24px;border:1px solid var(--wb-line);border-radius:20px;background:var(--wb-surface);color:var(--wb-ink);box-shadow:0 20px 80px #0005;font:1rem/1.5 system-ui}
 .wb-dialog::backdrop{background:#17213299;backdrop-filter:blur(3px)}
 .wb-dialog>header{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:20px}
