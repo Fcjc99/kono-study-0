@@ -1,0 +1,12 @@
+.peer-connections{display:grid;gap:14px}
+.peer-form{display:flex;flex-wrap:wrap;align-items:end;gap:10px}
+.peer-form label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;min-width:160px;flex:1}
+.peer-group{display:grid;gap:6px}
+.peer-group h3{margin:0;font-size:.95rem}
+.peer-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.peer-list li{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--wb-line);border-radius:10px;background:var(--wb-surface)}
+.peer-list li>button{margin-left:auto}
+.peer-friend-view{border-top:1px dashed var(--wb-line);padding-top:10px}
+.peer-friend-schedule{display:grid;gap:8px;margin-top:8px}
+.peer-friend-day{padding:8px 10px;border:1px solid var(--wb-line);border-radius:10px;background:var(--wb-bg)}
+.peer-friend-day ul{margin:4px 0 0;padding-left:18px}
