@@ -107,6 +107,10 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .subtask-chip{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--wb-line);font-size:.75rem}
 .schedule-share-export{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .schedule-share-import{padding-top:12px;border-top:1px solid var(--wb-line)}
+.wb-draggable{cursor:grab}
+.wb-draggable:active{cursor:grabbing}
+.workbench .wb-calendar button.drop-target{outline:3px dashed var(--wb-accent);outline-offset:-3px;background:color-mix(in srgb,var(--wb-accent) 12%,transparent)}
+.wb-agenda-day.drop-target,.planner-day-board.drop-target{outline:3px dashed var(--wb-accent);outline-offset:-3px;border-radius:12px}
 .focus-lock-overlay{display:grid;place-items:center;justify-items:center;gap:14px;min-height:70vh;padding:32px;text-align:center;background:var(--wb-bg);color:var(--wb-ink)}
 .focus-lock-overlay .eyebrow{letter-spacing:.12em;text-transform:uppercase;color:var(--wb-muted);font-size:.8125rem}
 .focus-lock-overlay h2{margin:0;font-size:1.6rem}
