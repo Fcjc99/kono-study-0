@@ -1,4 +1,4 @@
-import {blankWeek,dayNames,normalizeData,uid,type AppData} from './model'
+import {blankWeek,dayNames,normalizeData,uid,type AppData,type CalendarEventKind,type ScheduleBlock,type StudySeason} from './model'
 
 export type ImportRow={id:string;include:boolean;kind:'class'|'exam'|'task'|'event'|'subject';title:string;subject:string;date:string;weekdays:number[];start:string;end:string;source:string}
 export const validDate=(s:string)=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s
@@ -36,11 +36,12 @@ export function suggestSchedule(text:string,start:string,end:string,order:'mdy'|
  }
  return rows
 }
-export function applyScheduleImport(data:AppData,profileId:string,rows:ImportRow[],start:string,end:string){
+export type ScheduleImportOptions={eventKind?:CalendarEventKind;seasonName?:string;category?:StudySeason['category'];blockKind?:ScheduleBlock['kind']}
+export function applyScheduleImport(data:AppData,profileId:string,rows:ImportRow[],start:string,end:string,options:ScheduleImportOptions={}){
  if(data.activeProfileId!==profileId)throw Error('Your profile changed. Reopen the importer.')
  const selected=rows.filter(r=>r.include);if(!selected.length||selected.length>100)throw Error('Select between 1 and 100 reviewed items.')
  const next=structuredClone(data);let added=0,skipped=0
- const season={id:uid('season'),profileId,name:'Imported schedule',start,end,active:true,week:blankWeek()}
+ const season={id:uid('season'),profileId,name:options.seasonName??'Imported schedule',start,end,active:true,week:blankWeek(),category:options.category}
  const subjectFor=(name:string)=>{if(!name.trim())return '';const known=next.subjects.find(s=>s.profileId===profileId&&clean(s.name)===clean(name));if(known)return known.id;const id=uid('subject');next.subjects.push({id,profileId,name:name.trim(),color:'#4169a8',resources:[]});added++;return id}
  for(const row of selected){
   if(!row.title.trim()||row.title.length>200||row.subject.length>200)throw Error('Every selected item needs a title of at most 200 characters.')
@@ -54,13 +55,13 @@ export function applyScheduleImport(data:AppData,profileId:string,rows:ImportRow
   if(row.kind==='class'){
    for(const d of new Set(row.weekdays)){
     const day=dayNames[d],duplicate=[...next.studySeasons,season].some(s=>s.profileId===profileId&&(s.week[day]??[]).some(b=>clean(b.label)===clean(row.title)&&b.subjectId===subjectId&&b.start===row.start&&b.end===row.end&&(b.dateStart??s.start)===start&&(b.dateEnd??s.end)===end))
-    if(duplicate){skipped++;continue}season.week[day].push({id:uid('block'),label:row.title.trim(),subjectId,start:row.start,end:row.end,dateStart:start,dateEnd:end,kind:'study',occurrenceNotes:{}});added++
+    if(duplicate){skipped++;continue}season.week[day].push({id:uid('block'),label:row.title.trim(),subjectId,start:row.start,end:row.end,dateStart:start,dateEnd:end,kind:options.blockKind??'study',occurrenceNotes:{}});added++
    }
   }else{
    const key=row.kind==='exam'?'exams':row.kind==='task'?'tasks':'calendarEvents'
    if(next[key].some(item=>item.profileId===profileId&&clean(item.title)===clean(row.title)&&item.subjectId===subjectId&&('due' in item?item.due:item.date)===row.date)){skipped++;continue}
    const item={id:uid(row.kind),profileId,subjectId,title:row.title.trim(),done:false,notes:''}
-   if(key==='calendarEvents')next.calendarEvents.push({...item,date:row.date,kind:'other'})
+   if(key==='calendarEvents')next.calendarEvents.push({...item,date:row.date,kind:options.eventKind??'other'})
    else next[key].push({...item,due:row.date})
    added++
   }
