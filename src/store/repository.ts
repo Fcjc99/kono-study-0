@@ -4,6 +4,7 @@ import { commitCache, decodeData, deleteCache, downloadData, exportData, readCac
 import { captureDeletions } from './workspace'
 import { mergeData, type MergeConflict } from './merge'
 import type {SupabaseRemote} from './supabaseRemote'
+import { buildSharedSnapshot } from './peerShare'
 type User={id:string;email:string;name:string}
 type Remote={revision:number;data:AppData|null}
 export type RepositoryState={data:AppData;ready:boolean;status:string;error:string;user:User|null;recovery:RecoveryFile[];needsMigration:boolean;conflicts:MergeConflict[];savedAt:string|null}
@@ -164,6 +165,7 @@ export class PlannerRepository {
  private async syncNow(generation:number){
   if(!this.state.user||this.blocked||this.state.needsMigration||this.state.conflicts.length||this.unsaved)return
   if(!navigator.onLine){this.notify({status:'Offline — changes kept on this device'});return}
+  if(this.cloud)this.cloud.publishSharedSnapshot(buildSharedSnapshot(this.state.data)).catch(()=>undefined)
   await this.reloadOtherTab(generation)
   const response=await this.api('plan');if(!response.ok)throw new Error('Cloud sync unavailable. Your device copy is preserved.')
   const remote=remoteValue(await response.json());if(!this.valid(generation))return
@@ -186,6 +188,22 @@ export class PlannerRepository {
  downloadRecovery=(file:RecoveryFile)=>downloadData(file.raw,file.name.replace(/[^a-z0-9-]/gi,'-')+'-recovery.json')
  fetchSchoolCatalog=()=>{if(!this.cloud)throw new Error('The shared catalog needs a KONO deployment with cloud storage configured.');return this.cloud.fetchSchoolCatalog()}
  submitSchoolCatalogEntry=(entry:Parameters<SupabaseRemote['submitSchoolCatalogEntry']>[0])=>{if(!this.cloud)throw new Error('The shared catalog needs a KONO deployment with cloud storage configured.');return this.cloud.submitSchoolCatalogEntry(entry)}
+ private requireCloud(){if(!this.cloud)throw new Error('Friends need a KONO deployment with cloud storage configured.');return this.cloud}
+ myUsername=()=>this.cloud?this.cloud.myUsername():Promise.resolve(null)
+ setUsername=(username:string,displayName:string)=>this.requireCloud().setUsername(username,displayName)
+ findClassmates=(query:string)=>this.requireCloud().findClassmates(query)
+ sendConnectionRequest=(recipientId:string)=>this.requireCloud().sendConnectionRequest(recipientId)
+ respondToConnection=(id:string,accept:boolean)=>this.requireCloud().respondToConnection(id,accept)
+ removeConnection=(id:string)=>this.requireCloud().removeConnection(id)
+ listConnections=async()=>{
+  if(!this.cloud)return {rows:[],profiles:{}}
+  const rows=await this.cloud.listConnections()
+  const myId=this.state.user?.id??''
+  const ids=[...new Set(rows.flatMap(r=>[r.requesterId,r.recipientId]))].filter(id=>id!==myId)
+  const profiles=await this.cloud.profilesFor(ids)
+  return {rows,profiles}
+ }
+ fetchFriendSnapshot=(ownerId:string)=>this.requireCloud().fetchSharedSnapshot(ownerId)
  importPreview=(raw:string)=>decodeData(raw)
  replace=(data:AppData)=>{if(this.blocked){this.notify({error:'The cache could not be read. Export your recovery data and reopen KONO before replacing it.'});return}this.notify({needsMigration:false,conflicts:[]});this.update(data)}
  importLegacy=()=>{if(this.migration)this.replace(this.migration)}

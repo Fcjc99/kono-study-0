@@ -2,6 +2,9 @@ import {createClient,type AuthChangeEvent,type Session,type SupabaseClient} from
 
 export type CloudUser={id:string;email:string;name:string}
 export type SharedCatalogRow={id:string;label:string;kind:'school'|'college';town?:string|null;data:unknown;source?:string|null;url?:string|null;created_at?:string}
+export type ClassmateProfile={userId:string;username:string;displayName:string}
+export type ConnectionStatus='pending'|'accepted'|'declined'
+export type ConnectionRow={id:string;requesterId:string;recipientId:string;status:ConnectionStatus;createdAt:string}
 
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}})
 const failure=(message='Cloud storage is temporarily unavailable.')=>json({error:message},503)
@@ -37,6 +40,83 @@ export class SupabaseRemote{
   if(!session?.user)throw new Error('Sign in to contribute to the shared catalog.')
   const {error}=await this.client.from('kono_school_catalog').insert({...entry,submitted_by:session.user.id})
   if(error)throw new Error(error.message)
+ }
+ private async requireUser(message='Sign in to use this feature.'){
+  const {data:{session},error}=await this.client.auth.getSession()
+  if(error)throw new Error('Could not verify your session. Try again.')
+  if(!session?.user)throw new Error(message)
+  return session.user
+ }
+ async myUsername():Promise<{username:string;displayName:string}|null>{
+  const {data:{session},error:sessionError}=await this.client.auth.getSession()
+  if(sessionError)throw new Error('Could not verify your session. Try again.')
+  if(!session?.user)return null
+  const {data,error}=await this.client.from('kono_profiles').select('username,display_name').eq('user_id',session.user.id).maybeSingle()
+  if(error)throw new Error(error.message)
+  return data?{username:data.username,displayName:data.display_name??''}:null
+ }
+ async setUsername(username:string,displayName:string):Promise<void>{
+  const user=await this.requireUser('Sign in to set a username.')
+  const clean=username.trim().toLowerCase()
+  if(!/^[a-z0-9_.]{3,32}$/.test(clean))throw new Error('Usernames are 3-32 characters: lowercase letters, numbers, "_" or "."')
+  const {error}=await this.client.from('kono_profiles').upsert({user_id:user.id,username:clean,display_name:displayName.trim().slice(0,80)||null})
+  if(error)throw new Error(error.message.toLowerCase().includes('duplicate')?'That username is taken.':error.message)
+ }
+ async findClassmates(query:string):Promise<ClassmateProfile[]>{
+  const user=await this.requireUser('Sign in to search for classmates.')
+  const clean=query.trim().toLowerCase().replace(/[%_]/g,'')
+  if(clean.length<2)return []
+  const {data,error}=await this.client.from('kono_profiles').select('user_id,username,display_name').ilike('username','%'+clean+'%').neq('user_id',user.id).limit(10)
+  if(error)throw new Error(error.message)
+  return (data??[]).map(r=>({userId:r.user_id,username:r.username,displayName:r.display_name??''}))
+ }
+ async profilesFor(userIds:string[]):Promise<Record<string,ClassmateProfile>>{
+  if(!userIds.length)return {}
+  const {data,error}=await this.client.from('kono_profiles').select('user_id,username,display_name').in('user_id',userIds)
+  if(error)throw new Error(error.message)
+  const out:Record<string,ClassmateProfile>={}
+  for(const r of data??[])out[r.user_id]={userId:r.user_id,username:r.username,displayName:r.display_name??''}
+  return out
+ }
+ async sendConnectionRequest(recipientId:string):Promise<void>{
+  const user=await this.requireUser('Sign in to connect with classmates.')
+  if(user.id===recipientId)throw new Error('You cannot connect with yourself.')
+  const {error}=await this.client.from('kono_connections').insert({requester_id:user.id,recipient_id:recipientId})
+  if(error)throw new Error(error.message.toLowerCase().includes('duplicate')||error.message.includes('kono_connections_pair_key')?'You already have a connection or pending request with this person.':error.message)
+ }
+ async respondToConnection(id:string,accept:boolean):Promise<void>{
+  await this.requireUser()
+  if(accept){
+   const {error}=await this.client.from('kono_connections').update({status:'accepted',responded_at:new Date().toISOString()}).eq('id',id)
+   if(error)throw new Error(error.message)
+   return
+  }
+  /** Delete rather than mark declined, so either person can send a fresh request later. */
+  const {error}=await this.client.from('kono_connections').delete().eq('id',id)
+  if(error)throw new Error(error.message)
+ }
+ async removeConnection(id:string):Promise<void>{
+  await this.requireUser()
+  const {error}=await this.client.from('kono_connections').delete().eq('id',id)
+  if(error)throw new Error(error.message)
+ }
+ async listConnections():Promise<ConnectionRow[]>{
+  const user=await this.requireUser()
+  const {data,error}=await this.client.from('kono_connections').select('id,requester_id,recipient_id,status,created_at').or('requester_id.eq.'+user.id+',recipient_id.eq.'+user.id)
+  if(error)throw new Error(error.message)
+  return (data??[]).map(r=>({id:r.id,requesterId:r.requester_id,recipientId:r.recipient_id,status:r.status as ConnectionStatus,createdAt:r.created_at}))
+ }
+ /** Best-effort: never the full plan, only a pruned school-related snapshot (see src/store/peerShare.ts). */
+ async publishSharedSnapshot(snapshot:unknown):Promise<void>{
+  const {data:{session},error:sessionError}=await this.client.auth.getSession()
+  if(sessionError||!session?.user)return
+  await this.client.from('kono_shared_snapshots').upsert({owner:session.user.id,data:snapshot,updated_at:new Date().toISOString()})
+ }
+ async fetchSharedSnapshot(ownerId:string):Promise<unknown|null>{
+  await this.requireUser('Sign in to view a friend’s shared classes.')
+  const {data,error}=await this.client.from('kono_shared_snapshots').select('data').eq('owner',ownerId).maybeSingle()
+  if(error)throw new Error(error.message)
+  return data?.data??null
  }
  async request(path:string,init:RequestInit|undefined,accountId:string):Promise<Response>{
   const {data:{session},error:sessionError}=await this.client.auth.getSession()
