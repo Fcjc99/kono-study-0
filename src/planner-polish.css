@@ -20,10 +20,10 @@
 .workbench[data-experience="cozy"] .wb-calendar>button>small{font-size:.75rem;color:#856f78}
 .workbench[data-experience="cozy"] .school-day-mini{font-size:.8rem;color:#765b64}
 .workbench[data-experience="cozy"] .planner-day-paper{padding:28px 28px 28px 48px;background:linear-gradient(90deg,transparent 28px,#efcfd4 29px,transparent 30px),repeating-linear-gradient(#fffdf9 0px,#fffdf9 31px,#f2e4df 32px);box-shadow:0 6px 20px #7043370a}
-.workbench[data-experience="cozy"] .wb-class{border:1px solid #edddd5;border-left:5px solid #c987a2;border-radius:18px;background:linear-gradient(105deg,#fffaf6,#fff2f8);padding:18px 20px;box-shadow:0 4px 12px #71473809}
+.workbench[data-experience="cozy"] .wb-class{border:1px solid #edddd5;border-left:5px solid #c987a2;border-radius:14px;background:linear-gradient(105deg,#fffaf6,#fff2f8);padding:12px 14px;box-shadow:0 4px 12px #71473809}
 .workbench[data-experience="cozy"] .wb-class:nth-of-type(3n+2){background:linear-gradient(105deg,#fffaf6,#f4f1fc);border-left-color:#8d8aba}
 .workbench[data-experience="cozy"] .wb-class:nth-of-type(3n){background:linear-gradient(105deg,#fffaf6,#f3f7ec);border-left-color:#8fa47b}
-.workbench[data-experience="cozy"] .wb-class h3{font-family:Georgia,serif;font-size:1.35rem;margin:8px 0}
+.workbench[data-experience="cozy"] .wb-class h3{font-family:Georgia,serif;font-size:1.08rem;margin:5px 0}
 .today-schedule-list{display:grid}
 .workbench[data-experience="cozy"] .wb-class-compact{margin:0;border:0!important;border-bottom:1px dashed #e7d4cc!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;padding:12px 4px!important}
 .wb-class-compact-row{display:grid;grid-template-columns:minmax(112px,138px) minmax(150px,1fr) auto;gap:14px;align-items:center}
@@ -51,7 +51,8 @@
 .wb-class-add .is-priority,.planner-add-menu .is-priority{color:#aa2949;background:#fff0f3}
 .planner-date-tools{display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
 .planner-date-tools label{display:grid;gap:5px}
-.wb-class-due{display:grid;gap:5px;margin:9px 4px 3px 152px;padding:8px 10px;border-radius:12px;background:#fffdf8;border:1px dashed color-mix(in srgb,var(--class-accent) 40%,#ddd)}
+.wb-class-due{display:grid;gap:5px;margin:8px 0 2px;padding:7px 9px;border-radius:12px;background:#fffdf8;border:1px dashed color-mix(in srgb,var(--class-accent) 40%,#ddd)}
+.wb-class-compact .wb-class-due{margin:9px 4px 3px 152px;padding:8px 10px}
 .wb-class-due>strong{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#76626b}
 .wb-class-due-item{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:6px;align-items:center;font-size:.8rem}
 .wb-class-due-item>b{color:var(--class-accent)}
@@ -72,6 +73,13 @@
 .planner-day-list{display:grid;gap:8px}
 .planner-due-panel{margin-top:10px;padding-top:8px;border-top:1px dashed #ead6cf}
 .planner-due-panel ul{display:grid;gap:6px;margin:0;padding-left:18px}
+.wb-agenda-day>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:2px 0}
+.wb-agenda-day>summary::-webkit-details-marker{display:none}
+.wb-agenda-day>summary::before{content:'▸';margin-right:8px;color:var(--wb-muted);font-size:.75rem}
+.wb-agenda-day[open]>summary::before{content:'▾'}
+.wb-agenda-day>summary h3{margin:0;flex:1;min-width:0}
+.wb-agenda-day>summary small{color:var(--wb-muted);white-space:nowrap}
+.wb-agenda-day[open]>summary{margin-bottom:10px;border-bottom:1px dashed var(--wb-line);padding-bottom:8px}
 .tomorrow-schedule{border-style:dashed!important}
 .due-tomorrow-panel>.wb-section-head small,.tomorrow-schedule>.wb-section-head small{font-weight:850;letter-spacing:.08em;color:var(--wb-accent)}
 @media(max-width:700px){
@@ -98,7 +106,7 @@
  .workbench .wb-class-quick>button{min-height:38px;padding:6px 10px;font-size:.78rem}
  .wb-class-more>summary{min-height:38px;width:38px}
  .wb-class-compact>.wb-class-note,.wb-class-compact>.wb-class-editor,.wb-class-compact>p[role="status"]{margin-left:128px}
- .wb-class-due{margin-left:128px}
+ .wb-class-compact .wb-class-due{margin-left:128px}
  .planner-date-tools{align-items:stretch}
  .planner-date-tools>label,.planner-add-menu{width:100%}
  .planner-add-menu>summary{min-height:44px}
