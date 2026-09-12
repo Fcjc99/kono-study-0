@@ -96,8 +96,8 @@ test('normalization retains timestamps and does not synthesize wall-clock drift'
  const d=make(),pid=d.profiles[0].id;d.sanctuaryProgress[pid].updatedAt='2020-01-01T00:00:00.000Z';const normalized=model.normalizeData(d);assert.equal(normalized.sanctuaryProgress[pid].updatedAt,'2020-01-01T00:00:00.000Z');same(model.normalizeData(normalized),normalized);
 });
 test('profile guard blocks other-profile records, progress, navigation, and settings',()=>{
- const d=make(),a=d.profiles[0].id,b='profile-B';d.profiles.push({...d.profiles[0],id:b});d.sanctuaryProgress[b]=progress.createSanctuaryProgress(b);
- for(const change of [x=>x.profiles[1].name='Changed',x=>x.sanctuaryProgress[b].totalCredits=999,x=>x.settings.sound=false,x=>x.activeProfileId=b,x=>x.tasks.push({id:'B-task',profileId:b,subjectId:'',title:'B',due:'2026-09-09',done:false,notes:''})]){const after=clone(d);change(after);assert.throws(()=>model.assertProfileWrite(d,after,a))}
+ const d=make(),a=d.profiles[0].id,b='profile-B';d.profiles.push({...d.profiles[0],id:b});d.sanctuaryProgress[b]=progress.createSanctuaryProgress(b);d.sanctuaryDecor[b]={profileId:b,exteriorDecor:[],pondItems:[],terraceItems:[]};
+ for(const change of [x=>x.profiles[1].name='Changed',x=>x.sanctuaryProgress[b].totalCredits=999,x=>x.sanctuaryDecor[b].tree='oak',x=>x.settings.sound=false,x=>x.activeProfileId=b,x=>x.tasks.push({id:'B-task',profileId:b,subjectId:'',title:'B',due:'2026-09-09',done:false,notes:''})]){const after=clone(d);change(after);assert.throws(()=>model.assertProfileWrite(d,after,a))}
  assert.equal(model.assertProfileWrite(d,note(d,'own-note'),a).notes.length,1);
 });
 function resetFixture(){

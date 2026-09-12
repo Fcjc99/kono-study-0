@@ -3,11 +3,14 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import SanctuaryQA from './SanctuaryQA'
+import SanctuaryBuildStudio from './components/SanctuaryBuildStudio'
 import ErrorBoundary from './components/ErrorBoundary'
+
+const params = new URLSearchParams(window.location.search)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ErrorBoundary>{import.meta.env.DEV && new URLSearchParams(window.location.search).has('sanctuaryQA') ? <SanctuaryQA /> : <App />}</ErrorBoundary>
+    <ErrorBoundary>{params.get('page') === 'build' ? <SanctuaryBuildStudio /> : import.meta.env.DEV && params.has('sanctuaryQA') ? <SanctuaryQA /> : <App />}</ErrorBoundary>
   </StrictMode>,
 )
 

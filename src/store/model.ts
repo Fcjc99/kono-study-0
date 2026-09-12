@@ -22,7 +22,9 @@ export type ScheduleBlock={fullYear?:boolean;slot?:string;dateStart?:string;date
 export type WeekSchedule=Record<string,ScheduleBlock[]>
 export type StudySeason={school?:SchoolCalendar;category?:'academic'|'sports';id:string;profileId:string;name:string;start:string;end:string;active:boolean;week:WeekSchedule}
 export type TrashEntry={id:string;profileId:string;collection:string;title:string;payload:string;deletedAt:string}
-export type AppData={schemaVersion:6;trash:TrashEntry[];profiles:Profile[];activeProfileId:string;subjects:Subject[];tasks:Task[];exams:Exam[];notes:Note[];calendarEvents:CalendarEvent[];studySeasons:StudySeason[];studyPlans:StudyPlan[];flashcardDecks:FlashcardDeck[];settings:SettingsData;sanctuaryProgress:Record<string,SanctuaryProgressState>;onboardingComplete?:boolean}
+/** Player-chosen island cosmetics — independent of SanctuaryProgressState, which is an earned/derived credit ledger. Asset IDs are free-form strings until a real catalog ships; unrecognized IDs are simply not found by the renderer, never a validation failure. */
+export type SanctuaryDecorState={profileId:string;houseStyle?:string;door?:string;window?:string;chimney?:string;exteriorDecor:string[];tree?:string;pondItems:string[];terraceItems:string[]}
+export type AppData={schemaVersion:6;trash:TrashEntry[];profiles:Profile[];activeProfileId:string;subjects:Subject[];tasks:Task[];exams:Exam[];notes:Note[];calendarEvents:CalendarEvent[];studySeasons:StudySeason[];studyPlans:StudyPlan[];flashcardDecks:FlashcardDeck[];settings:SettingsData;sanctuaryProgress:Record<string,SanctuaryProgressState>;sanctuaryDecor:Record<string,SanctuaryDecorState>;onboardingComplete?:boolean}
 
 export const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as const
 export const blankWeek=():WeekSchedule=>Object.fromEntries(dayNames.map(day=>[day,[]]))
@@ -41,7 +43,7 @@ export const localDate=(date=new Date())=>`${date.getFullYear()}-${String(date.g
 export const defaultSettings:SettingsData={experience:'cozy',textSize:'normal',density:'comfortable',decoration:true,boardStyle:'paper',theme:'coral',themeVersion:4,sound:true,ambient:true,reminders:false,browserNotifications:false,loginDigest:true,scheduleView:'all',reducedMotion:false,motionPreference:'system',sanctuaryWeather:'clear',sanctuaryWeatherMode:'clear',sanctuaryZipCodes:{},sanctuaryWeatherLocations:{}}
 export function createFreshData():AppData {
  const id=uid('profile'),start=localDate(),end=localDate(new Date(Date.now()+180*86400000))
- return {schemaVersion:6,trash:[],profiles:[{id,name:'Learner',label:'My study plan',kind:'custom',start,end,progressEpoch:uid('epoch')}],activeProfileId:id,subjects:[],tasks:[],exams:[],notes:[],calendarEvents:[],studyPlans:[],flashcardDecks:[],studySeasons:[{id:uid('season'),profileId:id,name:'My schedule',start,end,active:true,week:blankWeek()}],settings:{...defaultSettings},sanctuaryProgress:{[id]:createSanctuaryProgress(id)},onboardingComplete:false}
+ return {schemaVersion:6,trash:[],profiles:[{id,name:'Learner',label:'My study plan',kind:'custom',start,end,progressEpoch:uid('epoch')}],activeProfileId:id,subjects:[],tasks:[],exams:[],notes:[],calendarEvents:[],studyPlans:[],flashcardDecks:[],studySeasons:[{id:uid('season'),profileId:id,name:'My schedule',start,end,active:true,week:blankWeek()}],settings:{...defaultSettings},sanctuaryProgress:{[id]:createSanctuaryProgress(id)},sanctuaryDecor:{[id]:{profileId:id,exteriorDecor:[],pondItems:[],terraceItems:[]}},onboardingComplete:false}
 }
 
 type Obj=Record<string,unknown>
@@ -63,6 +65,7 @@ const clockTime=(v:unknown)=>{const s=str(v,'schedule time',5);return /^([01]\d|
 const color=(v:unknown,fallback:string)=>v===undefined?fallback:typeof v==='string'&&(/^(#[0-9a-f]{3,8}|transparent)$/i.test(v))?v:fail('color')
 const occurrenceNotes=(value:unknown):Record<string,string>=>{if(value===undefined)return {};if(!object(value)||Object.keys(value).length>2000)return fail('class notes');return Object.fromEntries(Object.entries(value).map(([key,text])=>[date(key,'class note date'),str(text,'class note',10000)]))}
 const stringMap=(v:unknown):Record<string,string>=>{if(v===undefined)return {};if(!object(v))return fail('settings locations');return Object.fromEntries(Object.entries(v).map(([k,x])=>[id(k,'location profile'),str(x,'location',300)]))}
+const idList=(v:unknown,path:string,limit=50):string[]=>{if(v===undefined)return [];if(!Array.isArray(v)||v.length>limit)return fail(path);return v.map(x=>str(x,path,100))}
 
 /** Validate unknown input before migration. Never turn malformed records into a demo. */
 export function normalizeData(raw:unknown):AppData {
@@ -130,15 +133,18 @@ export function normalizeData(raw:unknown):AppData {
   for(const k of ['creditsBySubjectId','creditsBySubjectKey','completionDates'])if(value[k]!==undefined&&(!object(value[k])||Object.values(value[k]).some(n=>typeof n!=='number'||!Number.isFinite(n)||n<0)))fail(`progress ${k}`)
  }
  const sanctuaryProgress=Object.fromEntries(profiles.map(p=>{const saved=progress[p.id];const timestamp=object(saved)&&typeof saved.updatedAt==='string'&&Number.isFinite(Date.parse(saved.updatedAt))?saved.updatedAt:'1970-01-01T00:00:00.000Z';return [p.id,migrateSanctuaryProgress(saved,p.id,tasks.map(t=>({...t,subjectKey:subjects.find(x=>x.id===t.subjectId)?.name??t.subjectId})),timestamp)]}))
+ const decor=object(raw.sanctuaryDecor)?raw.sanctuaryDecor:{}
+ const sanctuaryDecor:Record<string,SanctuaryDecorState>=Object.fromEntries(profiles.map(p=>{const d=object(decor[p.id])?decor[p.id] as Obj:{};return [p.id,{profileId:p.id,houseStyle:optional(d.houseStyle,'house style',100),door:optional(d.door,'door style',100),window:optional(d.window,'window style',100),chimney:optional(d.chimney,'chimney style',100),exteriorDecor:idList(d.exteriorDecor,'exterior decor'),tree:optional(d.tree,'tree style',100),pondItems:idList(d.pondItems,'pond items'),terraceItems:idList(d.terraceItems,'terrace items')}]}))
  const activeProfileId=typeof raw.activeProfileId==='string'&&pids.has(raw.activeProfileId)?raw.activeProfileId:profiles[0].id
  const trash:TrashEntry[]=list(raw.trash??[],'trash',2000).map(t=>({id:id(t.id,'trash ID'),profileId:owner(t.profileId),collection:choice(t.collection,['tasks','notes','exams','calendarEvents','subjects','studyPlans','flashcardDecks','studySeasons','scheduleBlocks'],'notes'),title:str(t.title,'trash title',1000),payload:str(t.payload,'trash payload',1000000),deletedAt:str(t.deletedAt,'deleted at',40)}))
- return {schemaVersion:6,trash,profiles,activeProfileId,subjects,tasks,exams,notes,calendarEvents,studySeasons,studyPlans,flashcardDecks,settings,sanctuaryProgress,onboardingComplete:bool(raw.onboardingComplete,true)}
+ return {schemaVersion:6,trash,profiles,activeProfileId,subjects,tasks,exams,notes,calendarEvents,studySeasons,studyPlans,flashcardDecks,settings,sanctuaryProgress,sanctuaryDecor,onboardingComplete:bool(raw.onboardingComplete,true)}
 }
 
 export function assertProfileWrite(before:AppData,after:AppData,profileId:string):AppData {
  if(before.activeProfileId!==profileId)return before
  if(JSON.stringify(before.profiles)!==JSON.stringify(after.profiles)||JSON.stringify(before.settings)!==JSON.stringify(after.settings)||after.activeProfileId!==before.activeProfileId)throw new Error('This editor cannot change account settings or another plan.')
  for(const profile of before.profiles)if(profile.id!==profileId&&JSON.stringify(before.sanctuaryProgress[profile.id])!==JSON.stringify(after.sanctuaryProgress[profile.id]))throw new Error('This edit belongs to another plan.')
+ for(const profile of before.profiles)if(profile.id!==profileId&&JSON.stringify(before.sanctuaryDecor[profile.id])!==JSON.stringify(after.sanctuaryDecor[profile.id]))throw new Error('This edit belongs to another plan.')
  for(const key of ['subjects','tasks','notes','exams','calendarEvents','studySeasons','studyPlans','flashcardDecks','trash'] as const){
   const oldOther=before[key].filter(r=>r.profileId!==profileId)
   const newOther=after[key].filter(r=>r.profileId!==profileId)
