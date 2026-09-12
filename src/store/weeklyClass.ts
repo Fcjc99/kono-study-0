@@ -1,7 +1,7 @@
-import {blankWeek,dayNames,uid,normalizeData,type AppData} from './model'
+import {blankWeek,dayNames,uid,normalizeData,type AppData,type ScheduleBlock,type StudySeason} from './model'
 import {addDays,dateNumber} from './studyScheduler'
 import {classOccurrences} from './classSchedule'
-export type WeeklyClassInput={title:string;subjectId:string;weekdays:number[];start:string;end:string;first:string;last:string;location:string;activity?:boolean}
+export type WeeklyClassInput={title:string;subjectId:string;weekdays:number[];start:string;end:string;first:string;last:string;location:string;activity?:boolean;blockKind?:ScheduleBlock['kind'];category?:StudySeason['category']}
 export function weeklyClassDates(input:WeeklyClassInput){
  if(!input.title.trim()||input.title.length>200||input.location.length>200)throw Error('Enter a name of up to 200 characters.')
  const first=dateNumber(input.first),last=dateNumber(input.last)
@@ -25,7 +25,7 @@ export function addWeeklyClass(data:AppData,profileId:string,input:WeeklyClassIn
  const next=structuredClone(data);let subjectId=input.subjectId
  if(!subjectId&&!input.activity){const known=next.subjects.find(s=>s.profileId===profileId&&s.name.trim().toLowerCase()===input.title.trim().toLowerCase());subjectId=known?.id??uid('subject');if(!known)next.subjects.push({id:subjectId,profileId,name:input.title.trim(),color:'#4169a8',resources:[]})}
  const week=blankWeek()
- for(const index of new Set(input.weekdays))week[dayNames[index]].push({id:uid('block'),label:input.title.trim(),subjectId:subjectId||undefined,location:input.location,start:input.start,end:input.end,kind:input.activity?'routine':'study',dateStart:input.first,dateEnd:input.last})
- next.studySeasons.push({id:uid('weekly'),profileId,name:input.title.trim()+' · weekly',start:input.first,end:input.last,active:true,week})
+ for(const index of new Set(input.weekdays))week[dayNames[index]].push({id:uid('block'),label:input.title.trim(),subjectId:subjectId||undefined,location:input.location,start:input.start,end:input.end,kind:input.blockKind??(input.activity?'routine':'study'),dateStart:input.first,dateEnd:input.last})
+ next.studySeasons.push({id:uid('weekly'),profileId,name:input.title.trim()+' · weekly',start:input.first,end:input.last,active:true,week,category:input.category})
  return normalizeData(next)
 }
