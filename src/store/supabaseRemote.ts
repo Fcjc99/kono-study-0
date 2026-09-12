@@ -1,6 +1,7 @@
 import {createClient,type AuthChangeEvent,type Session,type SupabaseClient} from '@supabase/supabase-js'
 
 export type CloudUser={id:string;email:string;name:string}
+export type SharedCatalogRow={id:string;label:string;kind:'school'|'college';town?:string|null;data:unknown;source?:string|null;url?:string|null;created_at?:string}
 
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}})
 const failure=(message='Cloud storage is temporarily unavailable.')=>json({error:message},503)
@@ -24,6 +25,19 @@ export class SupabaseRemote{
   if(error)throw error
  }
  async signOut(){const {error}=await this.client.auth.signOut();if(error)throw error}
+ /** Public read: works even for signed-out/local-only devices, since the catalog is shared community data, not a private plan. */
+ async fetchSchoolCatalog():Promise<SharedCatalogRow[]>{
+  const {data,error}=await this.client.from('kono_school_catalog').select('id,label,kind,town,data,source,url,created_at').order('created_at',{ascending:false}).limit(500)
+  if(error)throw new Error(error.message)
+  return (data??[]) as SharedCatalogRow[]
+ }
+ async submitSchoolCatalogEntry(entry:Omit<SharedCatalogRow,'created_at'>):Promise<void>{
+  const {data:{session},error:sessionError}=await this.client.auth.getSession()
+  if(sessionError)throw new Error('Could not verify your session. Try again.')
+  if(!session?.user)throw new Error('Sign in to contribute to the shared catalog.')
+  const {error}=await this.client.from('kono_school_catalog').insert({...entry,submitted_by:session.user.id})
+  if(error)throw new Error(error.message)
+ }
  async request(path:string,init:RequestInit|undefined,accountId:string):Promise<Response>{
   const {data:{session},error:sessionError}=await this.client.auth.getSession()
   if(sessionError)return failure('Could not verify your session. Try again.')
