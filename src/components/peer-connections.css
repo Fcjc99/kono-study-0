@@ -10,3 +10,4 @@
 .peer-friend-schedule{display:grid;gap:8px;margin-top:8px}
 .peer-friend-day{padding:8px 10px;border:1px solid var(--wb-line);border-radius:10px;background:var(--wb-bg)}
 .peer-friend-day ul{margin:4px 0 0;padding-left:18px}
+.peer-friend-island{max-width:420px;margin:0 0 14px}

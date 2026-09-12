@@ -1,12 +1,13 @@
 import {useEffect, useState, type FormEvent} from 'react'
 import type {PlannerRepository} from '../store/repository'
 import type {ClassmateProfile, ConnectionRow} from '../store/supabaseRemote'
-import {isSharedSnapshot, type SharedSchoolSnapshot} from '../store/peerShare'
+import {isSharedSnapshot, sharedSanctuaryProgress, type SharedSchoolSnapshot} from '../store/peerShare'
+import GardenCard from './GardenCard'
 import './peer-connections.css'
 
 const errorText=(e:unknown,fallback:string)=>e instanceof Error?e.message:fallback
 
-export default function PeerConnections({repository,myUserId}:{repository:PlannerRepository;myUserId:string}){
+export default function PeerConnections({repository,myUserId,reducedMotion}:{repository:PlannerRepository;myUserId:string;reducedMotion:boolean}){
  const [username,setUsernameField]=useState(''),[displayName,setDisplayName]=useState('')
  const [myName,setMyName]=useState<{username:string;displayName:string}|null>(null)
  const [query,setQuery]=useState(''),[results,setResults]=useState<ClassmateProfile[]>([])
@@ -92,7 +93,7 @@ export default function PeerConnections({repository,myUserId}:{repository:Planne
  }
 
  return <section className="wb-panel peer-connections">
-  <p>Connect with a classmate to see their classes, assignments and exams. Reminders, notes and personal items are never shared either way, and a friend can never edit your plan.</p>
+  <p>Connect with a classmate to see their classes, assignments, exams and Sanctuary island. Reminders, notes and personal items are never shared either way, and a friend can never edit your plan or visit your island as anything but a visitor.</p>
 
   {myName?<p>Your username: <strong>@{myName.username}</strong></p>:
    <form onSubmit={saveUsername} className="peer-form">
@@ -123,7 +124,8 @@ export default function PeerConnections({repository,myUserId}:{repository:Planne
     {accepted.map(r=>{const id=otherOf(r);return <option key={id} value={id}>@{nameOf(id)}</option>})}
    </select></label>
    {friendId&&friendSnapshot&&<div className="peer-friend-schedule">
-    <p className="wb-muted">Read-only — from @{nameOf(friendId)}'s {friendSnapshot.profileLabel||'classes'}. This never changes your own plan.</p>
+    <p className="wb-muted">Read-only — from @{nameOf(friendId)}'s {friendSnapshot.profileLabel||'classes'}. This never changes your own plan, and they can't see or edit yours either.</p>
+    {friendSnapshot.sanctuary&&<div className="wb-island peer-friend-island"><GardenCard phase="auto" weather="clear" reducedMotion={reducedMotion} progress={sharedSanctuaryProgress(friendSnapshot.sanctuary,friendId)}/></div>}
     {agenda(friendSnapshot).length?agenda(friendSnapshot).map(([date,items])=><div key={date} className="peer-friend-day"><strong>{date}</strong><ul>{items.map((it,i)=><li key={i}>{it.title} <small>· {it.kind}</small></li>)}</ul></div>)
      :<p>Nothing upcoming shared yet.</p>}
    </div>}
