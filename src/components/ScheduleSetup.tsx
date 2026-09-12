@@ -4,14 +4,16 @@ import {dayNames,localDate,type AppData} from '../store/model'
 import {addWeeklyClass,weeklyClassDates,weeklyConflicts,type WeeklyClassInput} from '../store/weeklyClass'
 import type {PlannerRepository} from '../store/repository'
 import SchoolCalendarPanel from './SchoolCalendarPanel'
-export default function ScheduleSetup({data,save,draftKey}:{data:AppData;save:PlannerRepository['update'];draftKey:string}){
+type CatalogAccess={fetchCatalog:PlannerRepository['fetchSchoolCatalog'];submitCatalogEntry:PlannerRepository['submitSchoolCatalogEntry']}
+export default function ScheduleSetup({data,save,draftKey,fetchCatalog,submitCatalogEntry}:{data:AppData;save:PlannerRepository['update'];draftKey:string}&CatalogAccess){
  const [flow,setFlow]=useDraftState(draftKey+':flow','manual')
  return <section className="schedule-setup"><div className="wb-panel"><h2>Set up my schedule</h2><div className="experience-choices" aria-label="Schedule setup options">{[['manual','Work & weekly activities','Name your schedule and set repeating days and hours.'],['college','College semester','Weekly classes with term dates, breaks and makeup schedules.'],['school','Rotating school','A/E or Day 1–6, with the school calendar.']].map(([id,title,description])=><button key={id} aria-pressed={flow===id} onClick={()=>setFlow(id)} className="experience-choice"><strong>{title}</strong><span>{description}</span></button>)}</div></div>
  <div hidden={flow!=='manual'}><ManualWeekly data={data} save={save} draftKey={draftKey+':manual'}/></div>
- <div hidden={flow!=='college'}><SchoolCalendarPanel data={data} save={save} draftKey={draftKey+':college'} flow="college"/></div>
- <div hidden={flow!=='school'}><SchoolCalendarPanel data={data} save={save} draftKey={draftKey+':school'} flow="school"/></div>
+ <div hidden={flow!=='college'}><SchoolCalendarPanel data={data} save={save} draftKey={draftKey+':college'} flow="college" fetchCatalog={fetchCatalog} submitCatalogEntry={submitCatalogEntry}/></div>
+ <div hidden={flow!=='school'}><SchoolCalendarPanel data={data} save={save} draftKey={draftKey+':school'} flow="school" fetchCatalog={fetchCatalog} submitCatalogEntry={submitCatalogEntry}/></div>
  </section>
 }
+export type {CatalogAccess}
 function ManualWeekly({data,save,draftKey}:{data:AppData;save:PlannerRepository['update'];draftKey:string}){
  const profile=data.profiles.find(p=>p.id===data.activeProfileId)!
  const initial:WeeklyClassInput={title:'',subjectId:'',activity:true,location:'',weekdays:[],start:'10:00',end:'11:00',first:localDate(),last:profile.end<localDate()?localDate():profile.end}

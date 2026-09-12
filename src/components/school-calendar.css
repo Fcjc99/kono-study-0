@@ -8,6 +8,9 @@
 .school-day-label { font-weight:600; overflow-wrap:anywhere; }
 .wb-calendar button .school-day-mini { font-size:.65rem; line-height:1.15; overflow:hidden; display:block; max-width:100%; }
 .school-flow-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 16px}
+.community-catalog{margin:16px 0;padding:14px;border:1px solid var(--wb-line);border-radius:12px}
+.share-calendar-form{margin-top:12px;padding:12px;border:1px dashed var(--wb-line);border-radius:10px}
+.share-calendar-form label{display:grid;gap:4px;margin:8px 0}
 .school-flow-steps span{display:grid;place-items:center;min-height:44px;padding:8px;border-radius:14px;background:#fff8ec;border:1px solid #efd9b8;color:#755540;font-size:.78rem;font-weight:800;text-align:center}
 .elevator-course-card h3{font-size:1rem}
 @media(max-width:700px){.school-flow-steps{grid-template-columns:1fr 1fr}.school-flow-steps span{min-height:38px;font-size:.72rem}.elevator-course-card .wb-form-grid{grid-template-columns:1fr}}
