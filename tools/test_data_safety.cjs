@@ -224,6 +224,16 @@ same(model.normalizeData(normalized),normalized);
 d.sanctuaryDecor[pid].homeStyle='x'.repeat(101);
 assert.throws(()=>model.normalizeData(d));
 });
+test('pondStyle defaults to null, round-trips as a string, and an oversized value fails rather than silently truncating',()=>{
+const d=make(),pid=d.activeProfileId;
+assert.equal(model.normalizeData(d).sanctuaryDecor[pid].pondStyle,null);
+d.sanctuaryDecor[pid].pondStyle='round-stone-pond';
+const normalized=model.normalizeData(d);
+assert.equal(normalized.sanctuaryDecor[pid].pondStyle,'round-stone-pond');
+same(model.normalizeData(normalized),normalized);
+d.sanctuaryDecor[pid].pondStyle='x'.repeat(101);
+assert.throws(()=>model.normalizeData(d));
+});
 test('all cozy color palettes survive save normalization',()=>{
  for(const theme of ['coral','sakura','lavender','mint','honey']){const d=make();d.settings.theme=theme;assert.equal(model.normalizeData(d).settings.theme,theme)}
 });

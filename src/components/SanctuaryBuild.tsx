@@ -3,6 +3,7 @@ import type {AppData, BuildPlacement} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
 import {BUILD_ASSETS, BUILD_ASSET_BY_ID, BUILD_CATEGORIES, BUILD_CATEGORY_LABELS, type BuildCategory} from '../game/data/buildAssets'
 import {HOME_STYLES, homeStyleTexturePath} from '../game/data/homeStyles'
+import {POND_STYLES, pondStyleThumbnailPath} from '../game/data/pondStyles'
 import './sanctuary-build.css'
 
 const nextRotation=(r:0|90|180|270):0|90|180|270=>r===0?90:r===90?180:r===180?270:0
@@ -23,13 +24,19 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
 
  const commit=async(placements:BuildPlacement[])=>{
   if(busy)return;setBusy(true);setMessage('')
-  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');return {...d,sanctuaryDecor:{...d.sanctuaryDecor,[profileId]:{profileId,placements,homeStyle:d.sanctuaryDecor[profileId]?.homeStyle??null}}}});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
+  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');const current=d.sanctuaryDecor[profileId];return {...d,sanctuaryDecor:{...d.sanctuaryDecor,[profileId]:{profileId,placements,homeStyle:current?.homeStyle??null,pondStyle:current?.pondStyle??null}}}});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
   catch(e){setMessage(e instanceof Error?e.message:'Could not save.')}
   finally{setBusy(false)}
  }
  const setHomeStyle=async(homeStyle:string|null)=>{
   if(busy)return;setBusy(true);setMessage('')
-  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');return {...d,sanctuaryDecor:{...d.sanctuaryDecor,[profileId]:{profileId,placements:d.sanctuaryDecor[profileId]?.placements??[],homeStyle}}}});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
+  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');const current=d.sanctuaryDecor[profileId];return {...d,sanctuaryDecor:{...d.sanctuaryDecor,[profileId]:{profileId,placements:current?.placements??[],homeStyle,pondStyle:current?.pondStyle??null}}}});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
+  catch(e){setMessage(e instanceof Error?e.message:'Could not save.')}
+  finally{setBusy(false)}
+ }
+ const setPondStyle=async(pondStyle:string|null)=>{
+  if(busy)return;setBusy(true);setMessage('')
+  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');const current=d.sanctuaryDecor[profileId];return {...d,sanctuaryDecor:{...d.sanctuaryDecor,[profileId]:{profileId,placements:current?.placements??[],homeStyle:current?.homeStyle??null,pondStyle}}}});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
   catch(e){setMessage(e instanceof Error?e.message:'Could not save.')}
   finally{setBusy(false)}
  }
@@ -105,6 +112,11 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
    <div className="build-home-styles" role="group" aria-label="Home style">
     <button type="button" aria-pressed={!decor.homeStyle} onClick={()=>setHomeStyle(null)} className="build-home-style-item"><span className="build-home-style-thumb build-home-style-thumb-default">🏠</span><small>Default cottage</small></button>
     {HOME_STYLES.map(style=><button type="button" key={style.id} aria-pressed={decor.homeStyle===style.id} onClick={()=>setHomeStyle(style.id)} className="build-home-style-item"><span className="build-home-style-thumb"><img src={homeStyleTexturePath(style.id,'afternoon')} alt=""/></span><small>{style.label}</small></button>)}
+   </div>
+   <p className="wb-muted">Pond style</p>
+   <div className="build-home-styles" role="group" aria-label="Pond style">
+    <button type="button" aria-pressed={!decor.pondStyle} onClick={()=>setPondStyle(null)} className="build-home-style-item"><span className="build-home-style-thumb build-home-style-thumb-default">💧</span><small>No pond (empty)</small></button>
+    {POND_STYLES.map(style=><button type="button" key={style.id} aria-pressed={decor.pondStyle===style.id} onClick={()=>setPondStyle(style.id)} className="build-home-style-item"><span className="build-home-style-thumb"><img src={pondStyleThumbnailPath(style.id)} alt=""/></span><small>{style.label}</small></button>)}
    </div>
    {BUILD_CATEGORIES.length>0?<><p className="wb-muted">Drag an item onto your island, or tap it then tap a spot. Drag a placed item anywhere to move it, or tap it once to resize, skew, rotate, or remove it.</p>
     <nav className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}</nav>
