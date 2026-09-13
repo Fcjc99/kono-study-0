@@ -17,10 +17,35 @@ export function dateFrom(line:string,start:string,end:string,order:'mdy'|'dmy'){
  const candidates=[...new Set([start.slice(0,4),end.slice(0,4)])].map(build).filter(d=>validDate(d)&&d>=start&&d<=end)
  return candidates.length===1?candidates[0]:''
 }
+const WEEKDAY_PATTERN='\\b(?:Sun(?:day)?|Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|MWF|TTh)\\b'
+const startsRecord=(line:string,start:string,end:string,order:'mdy'|'dmy')=>new RegExp(WEEKDAY_PATTERN,'i').test(line)||!!dateFrom(line,start,end,order)
+/** Table-style exports (a sports schedule copied from a scheduling site, or its screenshot/PDF read
+ * through OCR) put one field per line: a date line, then a time line, then an opponent/description
+ * line, sometimes a home/away line. Each of those on its own carries no date or weekday marker, so the
+ * per-line loop below would silently drop them. Fold every such line into the most recent line that DID
+ * start a record, so the loop sees one combined line per schedule entry instead of losing the rest. */
+const mergeRecordLines=(lines:string[],start:string,end:string,order:'mdy'|'dmy'):string[]=>{
+ const merged:string[]=[]
+ for(const line of lines){
+  if(!startsRecord(line,start,end,order)&&merged.length)merged[merged.length-1]+=' '+line
+  else merged.push(line)
+ }
+ return merged
+}
+/** Strips the weekday/date/time tokens a record-starting line matched on, leaving the descriptive text
+ * (e.g. an opponent name) as the title instead of the whole raw line. Only strips a time when it carries
+ * an am/pm marker, so an unrelated bare number (a room, a score) is never mistaken for a time and cut. */
+const cleanTitle=(source:string):string=>source
+ .replace(new RegExp(WEEKDAY_PATTERN,'gi'),'')
+ .replace(/\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?\b/gi,'')
+ .replace(/\b\d{1,2}[/.]\d{1,2}(?:[/.]\d{2,4})?\b/g,'')
+ .replace(/\b\d{1,2}(?::\d{2})?\s*(am|pm)\b(?:\s*[-–—]\s*\d{1,2}(?::\d{2})?\s*(am|pm)?\b)?/gi,'')
+ .replace(/[|,;:]+/g,' ').replace(/\s+/g,' ').trim()
 /** Conservative suggestions only. Unmatched source text remains visible for manual review. */
 export function suggestSchedule(text:string,start:string,end:string,order:'mdy'|'dmy'):ImportRow[]{
  const rows:ImportRow[]=[]
- for(const source of text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).slice(0,2000)){
+ const lines=mergeRecordLines(text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).slice(0,2000),start,end,order)
+ for(const source of lines){
   const weekdays=dayNames.flatMap((d,i)=>new RegExp('\\b'+d.slice(0,3)+'(?:'+d.slice(3)+')?\\b','i').test(source)?[i]:[])
   if(/\bMWF\b/.test(source))weekdays.push(1,3,5)
   if(/\bTTh\b/i.test(source))weekdays.push(2,4)
@@ -28,10 +53,13 @@ export function suggestSchedule(text:string,start:string,end:string,order:'mdy'|
   const dated=dateFrom(source,start,end,order)
   const isExam=/\b(exam|midterm|final|quiz|test)\b/i.test(source),isTask=/\b(due|assignment|homework|submit|read|chapter|project)\b/i.test(source)
   if(!weekdays.length&&!dated&&!isExam&&!isTask)continue
-  const kind=weekdays.length?'class':isExam?'exam':isTask?'task':'event'
-  const label=source.split(/\b(?:Sun(?:day)?|Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|MWF|TTh)\b/i)[0].replace(/[|,;:\s-]+$/,'').trim()
+  // A specific date (not just a bare weekday name) always means a one-time occurrence, even when the
+  // date itself is written with a leading weekday label ("Tue, 9/8") — that weekday is part of the date,
+  // not a recurrence rule, so it must not be classified as a weekly class.
+  const kind=!dated&&weekdays.length?'class':isExam?'exam':isTask?'task':'event'
+  const label=cleanTitle(source)
   const explicit=clock&&((clock[3]&&clock[6])||(!clock[3]&&!clock[6]&&(Number(clock[1])>12||Number(clock[4])>12)))
-  rows.push({id:uid('import-row'),include:false,kind,title:(kind==='class'?label||'Class':source).slice(0,200),subject:kind==='class'?label.slice(0,200):'',date:dated,weekdays:[...new Set(weekdays)],start:explicit?time(clock[1],clock[2],clock[3]):'',end:explicit?time(clock[4],clock[5],clock[6]):'',source:source.slice(0,1000)})
+  rows.push({id:uid('import-row'),include:false,kind,title:(label||source).slice(0,200),subject:kind==='class'?label.slice(0,200):'',date:dated,weekdays:[...new Set(weekdays)],start:explicit?time(clock[1],clock[2],clock[3]):'',end:explicit?time(clock[4],clock[5],clock[6]):'',source:source.slice(0,1000)})
   if(rows.length===100)break
  }
  return rows

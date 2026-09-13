@@ -18,6 +18,15 @@ assert.equal(suggestSchedule('Biology Tue 10-12',start,end,'mdy')[0].start,'')
 assert.equal(suggestSchedule('Exam 09/10',start,end,'dmy')[0].date,'2026-10-09')
 assert.equal(suggestSchedule('Exam 09/10','2026-01-01','2027-12-31','mdy')[0].date,'')
 assert.equal(validDate('2026-02-30'),false)
+
+// A sports schedule copied from a scheduling site (or read from its screenshot/PDF via OCR) puts one
+// field per line — this used to both misclassify every game as a recurring weekly class (a specific
+// date like "Tue, 9/8" still matched the bare weekday regex) and drop the opponent name, time and
+// home/away entirely, since none of those continuation lines carry a date or weekday on their own.
+const tableExport=suggestSchedule('TEAM GAME SCHEDULE\nDATE\nTIME\nTEAM / OPPONENT\nHOME / AWAY\nTue, 9/8\n4:00 PM\nSilver Lake Regional HS\nAWAY\nThu, 9/10\n4:00 PM\nNorth Quincy High School\nHOME',start,end,'mdy')
+assert.equal(tableExport.length,2)
+assert.equal(tableExport[0].kind,'event');assert.equal(tableExport[0].date,'2026-09-08');assert.equal(tableExport[0].title,'Silver Lake Regional HS AWAY')
+assert.equal(tableExport[1].kind,'event');assert.equal(tableExport[1].date,'2026-09-10');assert.equal(tableExport[1].title,'North Quincy High School HOME')
 const base=model.createFreshData(),id=base.activeProfileId,rows=suggested.map(r=>({...r,include:true,subject:'Biology'}))
 const imported=applyScheduleImport(base,id,rows,start,end)
 assert.equal(base.subjects.length,0);assert.equal(imported.data.subjects.length,1);assert.equal(imported.data.exams.length,1);assert.equal(imported.data.tasks.length,1)
