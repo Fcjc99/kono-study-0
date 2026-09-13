@@ -25,8 +25,9 @@ export type TrashEntry={id:string;profileId:string;collection:string;title:strin
 /** Player-chosen island decoration — independent of SanctuaryProgressState, which is an earned/derived credit ledger.
  * Each placement drops one build asset freely on the island; x/y are 0-1 fractions of the canvas (matching the
  * SANCTUARY_LANDMARKS anchor convention), not a grid cell. assetId is a free-form string, so an unrecognized ID
- * is simply not found by the renderer, never a validation failure. */
-export type BuildPlacement={id:string;assetId:string;x:number;y:number;rotation:0|90|180|270}
+ * is simply not found by the renderer, never a validation failure. scale resizes the asset (1 = its defaultScale);
+ * skewX tilts it to sit correctly on the island's isometric ground plane. */
+export type BuildPlacement={id:string;assetId:string;x:number;y:number;rotation:0|90|180|270;scale:number;skewX:number}
 export type SanctuaryDecorState={profileId:string;placements:BuildPlacement[]}
 export type AppData={schemaVersion:6;trash:TrashEntry[];profiles:Profile[];activeProfileId:string;subjects:Subject[];tasks:Task[];exams:Exam[];notes:Note[];calendarEvents:CalendarEvent[];studySeasons:StudySeason[];studyPlans:StudyPlan[];flashcardDecks:FlashcardDeck[];settings:SettingsData;sanctuaryProgress:Record<string,SanctuaryProgressState>;sanctuaryDecor:Record<string,SanctuaryDecorState>;onboardingComplete?:boolean}
 
@@ -74,6 +75,10 @@ const stringMap=(v:unknown):Record<string,string>=>{if(v===undefined)return {};i
  * A missing/non-numeric value (e.g. a placement saved by the earlier grid-based {col,row} editor, which
  * had no x/y at all) defaults to the center rather than failing the entire save. */
 const fraction=(v:unknown):number=>{const n=typeof v==='number'&&Number.isFinite(v)?v:0.5;return Math.min(1,Math.max(0,n))}
+/** Placement scale/skew are cosmetic and always clamped rather than failed — a missing value (e.g. from a save
+ * made before these fields existed) defaults to no resize/no skew instead of rejecting the whole save. */
+const placementScale=(v:unknown):number=>{const n=typeof v==='number'&&Number.isFinite(v)?v:1;return Math.min(3,Math.max(0.3,n))}
+const placementSkew=(v:unknown):number=>{const n=typeof v==='number'&&Number.isFinite(v)?v:0;return Math.min(60,Math.max(-60,n))}
 
 /** Validate unknown input before migration. Never turn malformed records into a demo. */
 export function normalizeData(raw:unknown):AppData {
@@ -142,7 +147,7 @@ export function normalizeData(raw:unknown):AppData {
  }
  const sanctuaryProgress=Object.fromEntries(profiles.map(p=>{const saved=progress[p.id];const timestamp=object(saved)&&typeof saved.updatedAt==='string'&&Number.isFinite(Date.parse(saved.updatedAt))?saved.updatedAt:'1970-01-01T00:00:00.000Z';return [p.id,migrateSanctuaryProgress(saved,p.id,tasks.map(t=>({...t,subjectKey:subjects.find(x=>x.id===t.subjectId)?.name??t.subjectId})),timestamp)]}))
  const decor=object(raw.sanctuaryDecor)?raw.sanctuaryDecor:{}
- const placement=(v:Obj):BuildPlacement=>({id:id(v.id,'placement ID'),assetId:str(v.assetId,'placement asset',100),x:fraction(v.x),y:fraction(v.y),rotation:([0,90,180,270] as const).includes(v.rotation as 0)?v.rotation as 0|90|180|270:0})
+ const placement=(v:Obj):BuildPlacement=>({id:id(v.id,'placement ID'),assetId:str(v.assetId,'placement asset',100),x:fraction(v.x),y:fraction(v.y),rotation:([0,90,180,270] as const).includes(v.rotation as 0)?v.rotation as 0|90|180|270:0,scale:placementScale(v.scale),skewX:placementSkew(v.skewX)})
  const sanctuaryDecor:Record<string,SanctuaryDecorState>=Object.fromEntries(profiles.map(p=>{const d=object(decor[p.id])?decor[p.id] as Obj:{};return [p.id,{profileId:p.id,placements:list(d.placements??[],'placements',300).map(placement)}]}))
  const activeProfileId=typeof raw.activeProfileId==='string'&&pids.has(raw.activeProfileId)?raw.activeProfileId:profiles[0].id
  const trash:TrashEntry[]=list(raw.trash??[],'trash',2000).map(t=>({id:id(t.id,'trash ID'),profileId:owner(t.profileId),collection:choice(t.collection,['tasks','notes','exams','calendarEvents','subjects','studyPlans','flashcardDecks','studySeasons','scheduleBlocks'],'notes'),title:str(t.title,'trash title',1000),payload:str(t.payload,'trash payload',1000000),deletedAt:str(t.deletedAt,'deleted at',40)}))

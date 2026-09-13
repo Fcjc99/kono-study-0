@@ -165,6 +165,13 @@ test('a pre-free-placement grid decor (col/row, no x/y) survives normalization i
 const d=make(),pid=d.activeProfileId;d.sanctuaryDecor[pid].placements=[{id:'p1',assetId:'mailbox',col:2,row:3,rotation:90}];
 const normalized=model.normalizeData(d);const placement=normalized.sanctuaryDecor[pid].placements[0];
 assert.equal(placement.id,'p1');assert.equal(placement.assetId,'mailbox');assert.equal(placement.x,0.5);assert.equal(placement.y,0.5);assert.equal(placement.rotation,90);
+assert.equal(placement.scale,1);assert.equal(placement.skewX,0);
+same(model.normalizeData(normalized),normalized);
+});
+test('placement scale/skewX round-trip and clamp to their safe ranges',()=>{
+const d=make(),pid=d.activeProfileId;d.sanctuaryDecor[pid].placements=[{id:'p1',assetId:'mailbox',x:0.3,y:0.4,rotation:0,scale:1.6,skewX:-20},{id:'p2',assetId:'bench',x:0.6,y:0.6,rotation:0,scale:99,skewX:9999}];
+const normalized=model.normalizeData(d);const [a,b]=normalized.sanctuaryDecor[pid].placements;
+assert.equal(a.scale,1.6);assert.equal(a.skewX,-20);assert.equal(b.scale,3);assert.equal(b.skewX,60);
 same(model.normalizeData(normalized),normalized);
 });
 test('all cozy color palettes survive save normalization',()=>{
