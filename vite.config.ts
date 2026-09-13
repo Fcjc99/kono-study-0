@@ -49,7 +49,10 @@ self.addEventListener('fetch',event=>{
   if(cached){event.waitUntil(fetch(request).then(response=>{if(response.ok)caches.open(RUNTIME_NAME).then(cache=>cache.put(request,response))}).catch(()=>{}));return cached}
   try{
    const response=await fetch(request)
-   if(response.ok)caches.open(RUNTIME_NAME).then(cache=>cache.put(request,response.clone()))
+   if(response.ok){
+    const copy=response.clone()
+    caches.open(RUNTIME_NAME).then(cache=>cache.put(request,copy)).catch(()=>{})
+   }
    return response
   }catch(error){
    const fallback=await caches.match(request,{cacheName:RUNTIME_NAME})
