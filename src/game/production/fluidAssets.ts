@@ -24,9 +24,14 @@ export const fluidTextureKey = (
   frame: number,
 ): string => `production-water-${phase}-${layer}-${frame}`
 
+// The folder is versioned (production-water-2, not production-water) so that
+// regenerating these PNGs — same phase/layer/frame names, new pixel content —
+// forces a real cache-bust. Without a path change, the service worker's runtime
+// cache, the browser HTTP cache, and the CDN all key on this URL and would keep
+// serving the old bytes to returning visitors indefinitely.
 export const fluidTexturePath = (
   phase: DayPhase,
   layer: keyof typeof FLUID_CROPS,
   frame: number,
-): string => `/garden/registered-22.8.6/production-water/${phase}-${layer}-${frame}.png`
+): string => `/garden/registered-22.8.6/production-water-2/${phase}-${layer}-${frame}.png`
 

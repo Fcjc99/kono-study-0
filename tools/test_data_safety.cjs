@@ -161,6 +161,12 @@ const w=load('src/store/workspace.ts'),d=make();d.studySeasons[0].week.Monday=[{
 test('new appearance and board settings survive a legacy upgrade',()=>{
 const d=note(make(),'styled');d.schemaVersion=2;delete d.trash;d.settings.theme='midnight';d.settings.textSize='large';d.notes[0].size='large';d.notes[0].position=42;const normalized=model.normalizeData(d);assert.equal(normalized.schemaVersion,6);assert.equal(normalized.settings.theme,'midnight');assert.equal(normalized.notes[0].position,42);assert.equal(normalized.trash.length,0);
 });
+test('a pre-free-placement grid decor (col/row, no x/y) survives normalization instead of rejecting the save',()=>{
+const d=make(),pid=d.activeProfileId;d.sanctuaryDecor[pid].placements=[{id:'p1',assetId:'mailbox',col:2,row:3,rotation:90}];
+const normalized=model.normalizeData(d);const placement=normalized.sanctuaryDecor[pid].placements[0];
+assert.equal(placement.id,'p1');assert.equal(placement.assetId,'mailbox');assert.equal(placement.x,0.5);assert.equal(placement.y,0.5);assert.equal(placement.rotation,90);
+same(model.normalizeData(normalized),normalized);
+});
 test('all cozy color palettes survive save normalization',()=>{
  for(const theme of ['coral','sakura','lavender','mint','honey']){const d=make();d.settings.theme=theme;assert.equal(model.normalizeData(d).settings.theme,theme)}
 });
