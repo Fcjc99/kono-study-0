@@ -5,14 +5,12 @@ import {BUILD_ASSETS, BUILD_ASSET_BY_ID, BUILD_CATEGORIES, BUILD_CATEGORY_LABELS
 import './sanctuary-build.css'
 
 const nextRotation=(r:0|90|180|270):0|90|180|270=>r===0?90:r===90?180:r===180?270:0
-const ISLAND_PHASES=['morning','afternoon','evening','night'] as const
-type IslandPhase=typeof ISLAND_PHASES[number]
 const DRAG_THRESHOLD=5
+const MIN_SCALE=0.3,MAX_SCALE=3,MIN_SKEW=-45,MAX_SKEW=45
 
 export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRepository['update']}){
  const profileId=data.activeProfileId
  const decor=data.sanctuaryDecor[profileId]??{profileId,placements:[]}
- const [phase,setPhase]=useState<IslandPhase>('afternoon')
  const [category,setCategory]=useState<BuildCategory>(BUILD_CATEGORIES[0])
  const [armed,setArmed]=useState<string|null>(null)
  const [selected,setSelected]=useState<string|null>(null)
@@ -36,7 +34,8 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
  }
 
  const place=(assetId:string,x:number,y:number)=>{
-  const placement:BuildPlacement={id:'placement-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),assetId,x,y,rotation:0}
+  const asset=BUILD_ASSET_BY_ID[assetId]
+  const placement:BuildPlacement={id:'placement-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),assetId,x,y,rotation:0,scale:asset?.defaultScale??1,skewX:0}
   void commit([...decor.placements,placement])
   setArmed(null);setSelected(placement.id)
  }
@@ -54,6 +53,8 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
  }
  const rotateSelected=()=>{if(selected)void commit(decor.placements.map(p=>p.id===selected?{...p,rotation:nextRotation(p.rotation)}:p))}
  const removeSelected=()=>{if(selected){void commit(decor.placements.filter(p=>p.id!==selected));setSelected(null)}}
+ const setSelectedScale=(scale:number)=>{if(selected)void commit(decor.placements.map(p=>p.id===selected?{...p,scale}:p))}
+ const setSelectedSkew=(skewX:number)=>{if(selected)void commit(decor.placements.map(p=>p.id===selected?{...p,skewX}:p))}
 
  const itemPointerDown=(e:ReactPointerEvent<HTMLButtonElement>,placement:BuildPlacement)=>{
   e.stopPropagation()
@@ -74,26 +75,32 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
   else setSelected(sel=>sel===placement.id?null:placement.id)
  }
 
- return <section className="sanctuary-build">
-  <div className="build-toolbar"><p className="wb-muted">Drag an item onto your island, or tap it then tap a spot. Drag a placed item anywhere to move it, or tap it once to rotate or remove it.</p><label>Time of day<select value={phase} onChange={e=>setPhase(e.target.value as IslandPhase)}>{ISLAND_PHASES.map(p=><option key={p} value={p}>{p[0].toUpperCase()+p.slice(1)}</option>)}</select></label></div>
-  <div ref={canvasRef} className="build-canvas" style={{backgroundImage:'url(/garden/build/island/'+phase+'.png)'}} onPointerDown={placeArmedAt} onDragOver={e=>e.preventDefault()} onDrop={onCanvasDrop}>
+ const selectedPlacement=decor.placements.find(p=>p.id===selected)??null
+
+ return <>
+  <div ref={canvasRef} className="build-hotspot-layer" onPointerDown={placeArmedAt} onDragOver={e=>e.preventDefault()} onDrop={onCanvasDrop}>
    {decor.placements.map(p=>{
     const asset=BUILD_ASSET_BY_ID[p.assetId]
     if(!asset)return null
     const pos=dragId===p.id&&dragPos?dragPos:p
-    return <button type="button" key={p.id} className={'build-item'+(selected===p.id?' is-selected':'')+(dragId===p.id?' is-dragging':'')} style={{left:(pos.x*100)+'%',top:(pos.y*100)+'%'}} onPointerDown={e=>itemPointerDown(e,p)} onPointerMove={itemPointerMove} onPointerUp={e=>itemPointerUp(e,p)} aria-label={asset.label}>
-     <img src={asset.src} alt="" style={{transform:'rotate('+p.rotation+'deg)'}}/>
+    return <button type="button" key={p.id} className={'build-item'+(selected===p.id?' is-selected':'')+(dragId===p.id?' is-dragging':'')} style={{left:(pos.x*100)+'%',top:(pos.y*100)+'%',width:(asset.width/1448*100)+'%',transform:`translate(-50%,-${asset.anchor.y*100}%) rotate(${p.rotation}deg) skewX(${p.skewX}deg) scale(${p.scale})`}} onPointerDown={e=>itemPointerDown(e,p)} onPointerMove={itemPointerMove} onPointerUp={e=>itemPointerUp(e,p)} aria-label={asset.label}>
+     <img src={asset.src} alt=""/>
     </button>
    })}
-   {selected&&<div className="build-item-toolbar"><button type="button" onClick={rotateSelected} aria-label="Rotate">⟳</button><button type="button" onClick={removeSelected} aria-label="Remove">🗑</button><button type="button" onClick={()=>setSelected(null)} aria-label="Done">✕</button></div>}
+   {selectedPlacement&&<div className="build-item-panel">
+    <label>Size<input type="range" min={MIN_SCALE} max={MAX_SCALE} step={0.05} value={selectedPlacement.scale} onChange={e=>setSelectedScale(Number(e.target.value))}/></label>
+    <label>Skew<input type="range" min={MIN_SKEW} max={MAX_SKEW} step={1} value={selectedPlacement.skewX} onChange={e=>setSelectedSkew(Number(e.target.value))}/></label>
+    <div className="build-item-actions"><button type="button" onClick={rotateSelected} aria-label="Rotate">⟳</button><button type="button" onClick={removeSelected} aria-label="Remove">🗑</button><button type="button" onClick={()=>setSelected(null)} aria-label="Done">✕</button></div>
+   </div>}
   </div>
-  <div className="build-tray">
+  <section className="sanctuary-build">
+   <p className="wb-muted">Drag an item onto your island, or tap it then tap a spot. Drag a placed item anywhere to move it, or tap it once to resize, skew, rotate, or remove it.</p>
    <nav className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}</nav>
    <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=>{
     const arm=()=>{setArmed(armed===a.id?null:a.id);setSelected(null)}
     return <div role="button" tabIndex={0} draggable key={a.id} className={'build-palette-item'+(armed===a.id?' is-armed':'')} onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={arm} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();arm()}}} aria-pressed={armed===a.id} aria-label={a.label}><span className="build-palette-thumb"><img src={a.src} alt="" draggable={false}/></span><small>{a.label}</small></div>
    })}</div>
-  </div>
+  </section>
   {message&&<p role="status">{message}</p>}
- </section>
+ </>
 }

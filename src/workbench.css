@@ -64,6 +64,9 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .workbench .sanctuary-card{width:100%;border-radius:var(--wb-radius);min-height:0!important}
 .workbench .sanctuary-card canvas{max-width:100%;touch-action:pan-y}
 .workbench .wb-island .sanctuary-stage{min-height:0!important}
+.wb-sanctuary-stage{display:grid}
+.wb-sanctuary-backdrop{grid-area:1/1}
+.wb-sanctuary-backdrop.is-decorating{pointer-events:none}
 .wb-weather{display:block;margin:6px 0;color:var(--wb-muted)}
 .wb-island.is-expanded{position:fixed;inset:0;z-index:80;background:var(--wb-bg);padding:16px;overflow:auto;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
 .wb-record{border:1px solid var(--wb-line);border-radius:12px;padding:16px;margin:12px 0;background:var(--wb-surface);min-width:0;overflow-wrap:anywhere}
