@@ -1,5 +1,5 @@
 import {useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent} from 'react'
-import type {AppData, BuildPlacement} from '../store/model'
+import {uid, type AppData, type BuildPlacement} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
 import {BUILD_ASSETS, BUILD_ASSET_BY_ID, BUILD_CATEGORIES, BUILD_CATEGORY_LABELS, type BuildCategory} from '../game/data/buildAssets'
 import {HOME_STYLES, homeStyleTexturePath} from '../game/data/homeStyles'
@@ -79,7 +79,7 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
 
  const place=(assetId:string,x:number,y:number)=>{
   const asset=BUILD_ASSET_BY_ID[assetId]
-  const placement:BuildPlacement={id:'placement-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),assetId,x,y,rotation:0,scale:asset?.defaultScale??1,skewX:0}
+  const placement:BuildPlacement={id:uid('placement'),assetId,x,y,rotation:0,scale:asset?.defaultScale??1,skewX:0}
   void commit([...decor.placements,placement])
   setArmed(null);setSelected(placement.id)
  }
