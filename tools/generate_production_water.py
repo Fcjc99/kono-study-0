@@ -41,6 +41,19 @@ def clean(mask: np.ndarray, close: tuple[int, int] = (7, 7), open_size: tuple[in
     return mask
 
 
+def fill_holes(mask: np.ndarray) -> np.ndarray:
+    """Fill enclosed gaps inside the mask (e.g. lily pads/rocks the color heuristic
+    excludes from "water"). Flood-filling the background from a corner and inverting
+    leaves only regions unreachable from outside the mask — those are interior holes."""
+    h, w = mask.shape
+    flood = cv2.copyMakeBorder(mask, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=0)
+    flood_fill_mask = np.zeros((h + 4, w + 4), np.uint8)
+    cv2.floodFill(flood, flood_fill_mask, (0, 0), 255)
+    flood = flood[1:-1, 1:-1]
+    holes = cv2.bitwise_not(flood)
+    return cv2.bitwise_or(mask, holes)
+
+
 def largest_components(mask: np.ndarray, keep: int) -> np.ndarray:
     count, labels, stats, _ = cv2.connectedComponentsWithStats((mask > 0).astype(np.uint8), 8)
     if count <= 1:
@@ -108,6 +121,10 @@ def build_masks(phase: str) -> dict[str, np.ndarray]:
     wx0, wy0, wx1, wy1 = WATERFALL_BOX
     cv2.rectangle(ocean, (wx0 - x0 - 14, wy0 - y0 - 14), (wx1 - x0 + 14, wy1 - y0 + 14), 0, -1)
     ocean = clean(ocean, (9, 9), (3, 3))
+    # Rocks poking out of the ocean are not "water" colored, so they leave enclosed
+    # holes in an otherwise solid sea — fill those so the animated overlay doesn't
+    # show flat un-animated patches around them.
+    ocean = fill_holes(ocean)
     ocean = cv2.erode(ocean, np.ones((3, 3), np.uint8), iterations=1)
 
     x0, y0, x1, y1 = POND_BOX
@@ -118,6 +135,12 @@ def build_masks(phase: str) -> dict[str, np.ndarray]:
     cv2.fillPoly(poly, [pts], 255)
     pond = clean(cv2.bitwise_and(pond, poly), (7, 7), (3, 3))
     pond = largest_components(pond, 1)
+    # Lily pads and rocks inside the pond are not "water" colored, so the heuristic
+    # above bites deep notches out of the mask right where they sit. A much larger
+    # close bridges those notches so the animated overlay covers the whole pond
+    # basin instead of leaving jagged holes that reveal the flat map underneath.
+    pond = cv2.morphologyEx(pond, cv2.MORPH_CLOSE, np.ones((33, 33), np.uint8), iterations=2)
+    pond = fill_holes(pond)
     pond = cv2.erode(pond, np.ones((5, 5), np.uint8), iterations=1)
 
     x0, y0, x1, y1 = WATERFALL_BOX
@@ -136,6 +159,7 @@ def build_masks(phase: str) -> dict[str, np.ndarray]:
     cv2.ellipse(reg, (90, 42), (64, 30), 0, 0, 360, 255, -1)
     foam = clean(cv2.bitwise_and(foam, reg), (5, 5), (3, 3))
     foam = largest_components(foam, 3)
+    foam = fill_holes(foam)
 
     return {'ocean': ocean, 'pond': pond, 'waterfall': waterfall, 'foam': foam}
 
