@@ -89,7 +89,10 @@ export class PlannerRepository {
     if(typeof user.id!=='string'||!user.id||user.id.length>200||typeof user.email!=='string')throw new Error('Invalid account response.')
     await this.openAccount(user,generation)
    }
-  }catch(e){if(this.valid(generation)&&this.state.user)this.notify({status:'Offline or sync unavailable',error:message(e)})}
+  }catch(e){
+   console.error('KONO cloud startup failed — falling back to local-only/ChatGPT sign-in:',e)
+   if(this.valid(generation)&&this.state.user)this.notify({status:'Offline or sync unavailable',error:message(e)})
+  }
   if(!this.valid(generation))return
   this.notify({ready:true})
   if(typeof BroadcastChannel!=='undefined'){this.channel=new BroadcastChannel('kono-plan-changes');this.channel.onmessage=()=>{void this.enqueue(g=>this.reloadOtherTab(g)).catch(()=>undefined)}}
