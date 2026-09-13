@@ -89,7 +89,10 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
   </div>
   <div className="build-tray">
    <nav className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}</nav>
-   <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=><button type="button" draggable key={a.id} className={'build-palette-item'+(armed===a.id?' is-armed':'')} onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={()=>{setArmed(armed===a.id?null:a.id);setSelected(null)}}><span className="build-palette-thumb"><img src={a.src} alt="" draggable={false}/></span><small>{a.label}</small></button>)}</div>
+   <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=>{
+    const arm=()=>{setArmed(armed===a.id?null:a.id);setSelected(null)}
+    return <div role="button" tabIndex={0} draggable key={a.id} className={'build-palette-item'+(armed===a.id?' is-armed':'')} onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={arm} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();arm()}}} aria-pressed={armed===a.id} aria-label={a.label}><span className="build-palette-thumb"><img src={a.src} alt="" draggable={false}/></span><small>{a.label}</small></div>
+   })}</div>
   </div>
   {message&&<p role="status">{message}</p>}
  </section>
