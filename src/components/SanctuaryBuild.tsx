@@ -1,13 +1,13 @@
-import {useState} from 'react'
+import {useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent} from 'react'
 import type {AppData, BuildPlacement} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
 import {BUILD_ASSETS, BUILD_ASSET_BY_ID, BUILD_CATEGORIES, BUILD_CATEGORY_LABELS, type BuildCategory} from '../game/data/buildAssets'
 import './sanctuary-build.css'
 
-const GRID_COLS=14,GRID_ROWS=9
 const nextRotation=(r:0|90|180|270):0|90|180|270=>r===0?90:r===90?180:r===180?270:0
 const ISLAND_PHASES=['morning','afternoon','evening','night'] as const
 type IslandPhase=typeof ISLAND_PHASES[number]
+const DRAG_THRESHOLD=5
 
 export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRepository['update']}){
  const profileId=data.activeProfileId
@@ -17,6 +17,10 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
  const [armed,setArmed]=useState<string|null>(null)
  const [selected,setSelected]=useState<string|null>(null)
  const [busy,setBusy]=useState(false),[message,setMessage]=useState('')
+ const canvasRef=useRef<HTMLDivElement|null>(null)
+ const [dragId,setDragId]=useState<string|null>(null)
+ const [dragPos,setDragPos]=useState<{x:number;y:number}|null>(null)
+ const dragStart=useRef<{x:number;y:number;moved:boolean}|null>(null)
 
  const commit=async(placements:BuildPlacement[])=>{
   if(busy)return;setBusy(true);setMessage('')
@@ -25,38 +29,67 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
   finally{setBusy(false)}
  }
 
- const cellOccupant=(col:number,row:number)=>decor.placements.find(p=>p.col===col&&p.row===row)
+ const fractionFromEvent=(e:{clientX:number;clientY:number}):{x:number;y:number}=>{
+  const rect=canvasRef.current?.getBoundingClientRect()
+  if(!rect||!rect.width||!rect.height)return {x:.5,y:.5}
+  return {x:Math.min(1,Math.max(0,(e.clientX-rect.left)/rect.width)),y:Math.min(1,Math.max(0,(e.clientY-rect.top)/rect.height))}
+ }
 
- const placeAt=(col:number,row:number)=>{
-  const existing=cellOccupant(col,row)
-  if(existing){setSelected(existing.id);setArmed(null);return}
-  if(!armed)return
-  const placement:BuildPlacement={id:'placement-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),assetId:armed,col,row,rotation:0}
+ const place=(assetId:string,x:number,y:number)=>{
+  const placement:BuildPlacement={id:'placement-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),assetId,x,y,rotation:0}
   void commit([...decor.placements,placement])
   setArmed(null);setSelected(placement.id)
+ }
+ const placeArmedAt=(e:ReactPointerEvent)=>{
+  if(!armed)return
+  const {x,y}=fractionFromEvent(e)
+  place(armed,x,y)
+ }
+ const onCanvasDrop=(e:DragEvent<HTMLDivElement>)=>{
+  e.preventDefault()
+  const assetId=e.dataTransfer.getData('text/plain')
+  if(!assetId)return
+  const {x,y}=fractionFromEvent(e)
+  place(assetId,x,y)
  }
  const rotateSelected=()=>{if(selected)void commit(decor.placements.map(p=>p.id===selected?{...p,rotation:nextRotation(p.rotation)}:p))}
  const removeSelected=()=>{if(selected){void commit(decor.placements.filter(p=>p.id!==selected));setSelected(null)}}
 
- const cells=Array.from({length:GRID_ROWS*GRID_COLS},(_,i)=>({col:(i%GRID_COLS)+1,row:Math.floor(i/GRID_COLS)+1}))
+ const itemPointerDown=(e:ReactPointerEvent<HTMLButtonElement>,placement:BuildPlacement)=>{
+  e.stopPropagation()
+  e.currentTarget.setPointerCapture(e.pointerId)
+  dragStart.current={x:e.clientX,y:e.clientY,moved:false}
+  setDragId(placement.id);setDragPos({x:placement.x,y:placement.y})
+ }
+ const itemPointerMove=(e:ReactPointerEvent<HTMLButtonElement>)=>{
+  if(!dragId)return
+  if(dragStart.current&&(Math.abs(e.clientX-dragStart.current.x)>DRAG_THRESHOLD||Math.abs(e.clientY-dragStart.current.y)>DRAG_THRESHOLD))dragStart.current.moved=true
+  setDragPos(fractionFromEvent(e))
+ }
+ const itemPointerUp=(e:ReactPointerEvent<HTMLButtonElement>,placement:BuildPlacement)=>{
+  e.stopPropagation()
+  const moved=dragStart.current?.moved??false,finalPos=dragPos
+  dragStart.current=null;setDragId(null);setDragPos(null)
+  if(moved&&finalPos){void commit(decor.placements.map(p=>p.id===placement.id?{...p,x:finalPos.x,y:finalPos.y}:p));setSelected(placement.id)}
+  else setSelected(sel=>sel===placement.id?null:placement.id)
+ }
 
  return <section className="sanctuary-build">
-  <div className="build-toolbar"><p className="wb-muted">Tap an item below, then tap a spot on your island to place it. Tap a placed item to rotate or remove it.</p><label>Time of day<select value={phase} onChange={e=>setPhase(e.target.value as IslandPhase)}>{ISLAND_PHASES.map(p=><option key={p} value={p}>{p[0].toUpperCase()+p.slice(1)}</option>)}</select></label></div>
-  <div className="build-canvas" style={{backgroundImage:'url(/garden/build/island/'+phase+'.png)'}}>
-   <div className="build-grid" style={{gridTemplateColumns:'repeat('+GRID_COLS+',1fr)'}}>
-    {cells.map(({col,row})=>{
-     const occupant=cellOccupant(col,row)
-     const asset=occupant?BUILD_ASSET_BY_ID[occupant.assetId]:undefined
-     return <button type="button" key={col+':'+row} className={'build-cell'+(occupant?' has-item':'')+(selected&&occupant?.id===selected?' is-selected':'')} onClick={()=>placeAt(col,row)} aria-label={occupant?(asset?.label??'Placed item'):'Empty spot, column '+col+' row '+row}>
-      {asset&&<img src={asset.src} alt="" style={{transform:'rotate('+(occupant?.rotation??0)+'deg)'}}/>}
-     </button>
-    })}
-   </div>
+  <div className="build-toolbar"><p className="wb-muted">Drag an item onto your island, or tap it then tap a spot. Drag a placed item anywhere to move it, or tap it once to rotate or remove it.</p><label>Time of day<select value={phase} onChange={e=>setPhase(e.target.value as IslandPhase)}>{ISLAND_PHASES.map(p=><option key={p} value={p}>{p[0].toUpperCase()+p.slice(1)}</option>)}</select></label></div>
+  <div ref={canvasRef} className="build-canvas" style={{backgroundImage:'url(/garden/build/island/'+phase+'.png)'}} onPointerDown={placeArmedAt} onDragOver={e=>e.preventDefault()} onDrop={onCanvasDrop}>
+   {decor.placements.map(p=>{
+    const asset=BUILD_ASSET_BY_ID[p.assetId]
+    if(!asset)return null
+    const pos=dragId===p.id&&dragPos?dragPos:p
+    return <button type="button" key={p.id} className={'build-item'+(selected===p.id?' is-selected':'')+(dragId===p.id?' is-dragging':'')} style={{left:(pos.x*100)+'%',top:(pos.y*100)+'%'}} onPointerDown={e=>itemPointerDown(e,p)} onPointerMove={itemPointerMove} onPointerUp={e=>itemPointerUp(e,p)} aria-label={asset.label}>
+     <img src={asset.src} alt="" style={{transform:'rotate('+p.rotation+'deg)'}}/>
+    </button>
+   })}
    {selected&&<div className="build-item-toolbar"><button type="button" onClick={rotateSelected} aria-label="Rotate">⟳</button><button type="button" onClick={removeSelected} aria-label="Remove">🗑</button><button type="button" onClick={()=>setSelected(null)} aria-label="Done">✕</button></div>}
   </div>
   <div className="build-tray">
    <nav className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}</nav>
-   <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=><button type="button" key={a.id} className={'build-palette-item'+(armed===a.id?' is-armed':'')} onClick={()=>{setArmed(armed===a.id?null:a.id);setSelected(null)}}><img src={a.src} alt=""/><small>{a.label}</small></button>)}</div>
+   <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=><button type="button" draggable key={a.id} className={'build-palette-item'+(armed===a.id?' is-armed':'')} onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={()=>{setArmed(armed===a.id?null:a.id);setSelected(null)}}><span className="build-palette-thumb"><img src={a.src} alt="" draggable={false}/></span><small>{a.label}</small></button>)}</div>
   </div>
   {message&&<p role="status">{message}</p>}
  </section>
