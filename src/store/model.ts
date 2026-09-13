@@ -70,8 +70,10 @@ const color=(v:unknown,fallback:string)=>v===undefined?fallback:typeof v==='stri
 const occurrenceNotes=(value:unknown):Record<string,string>=>{if(value===undefined)return {};if(!object(value)||Object.keys(value).length>2000)return fail('class notes');return Object.fromEntries(Object.entries(value).map(([key,text])=>[date(key,'class note date'),str(text,'class note',10000)]))}
 const stringMap=(v:unknown):Record<string,string>=>{if(v===undefined)return {};if(!object(v))return fail('settings locations');return Object.fromEntries(Object.entries(v).map(([k,x])=>[id(k,'location profile'),str(x,'location',300)]))}
 /** A placement's x/y are 0-1 fractions of the build canvas — clamped rather than failed, since a stray
- * out-of-range value is a harmless cosmetic drift (the item renders near an edge), never data corruption. */
-const fraction=(v:unknown,path:string):number=>{const n=typeof v==='number'&&Number.isFinite(v)?v:fail(path);return Math.min(1,Math.max(0,n))}
+ * out-of-range value is a harmless cosmetic drift (the item renders near an edge), never data corruption.
+ * A missing/non-numeric value (e.g. a placement saved by the earlier grid-based {col,row} editor, which
+ * had no x/y at all) defaults to the center rather than failing the entire save. */
+const fraction=(v:unknown):number=>{const n=typeof v==='number'&&Number.isFinite(v)?v:0.5;return Math.min(1,Math.max(0,n))}
 
 /** Validate unknown input before migration. Never turn malformed records into a demo. */
 export function normalizeData(raw:unknown):AppData {
@@ -140,7 +142,7 @@ export function normalizeData(raw:unknown):AppData {
  }
  const sanctuaryProgress=Object.fromEntries(profiles.map(p=>{const saved=progress[p.id];const timestamp=object(saved)&&typeof saved.updatedAt==='string'&&Number.isFinite(Date.parse(saved.updatedAt))?saved.updatedAt:'1970-01-01T00:00:00.000Z';return [p.id,migrateSanctuaryProgress(saved,p.id,tasks.map(t=>({...t,subjectKey:subjects.find(x=>x.id===t.subjectId)?.name??t.subjectId})),timestamp)]}))
  const decor=object(raw.sanctuaryDecor)?raw.sanctuaryDecor:{}
- const placement=(v:Obj):BuildPlacement=>({id:id(v.id,'placement ID'),assetId:str(v.assetId,'placement asset',100),x:fraction(v.x,'placement x'),y:fraction(v.y,'placement y'),rotation:([0,90,180,270] as const).includes(v.rotation as 0)?v.rotation as 0|90|180|270:0})
+ const placement=(v:Obj):BuildPlacement=>({id:id(v.id,'placement ID'),assetId:str(v.assetId,'placement asset',100),x:fraction(v.x),y:fraction(v.y),rotation:([0,90,180,270] as const).includes(v.rotation as 0)?v.rotation as 0|90|180|270:0})
  const sanctuaryDecor:Record<string,SanctuaryDecorState>=Object.fromEntries(profiles.map(p=>{const d=object(decor[p.id])?decor[p.id] as Obj:{};return [p.id,{profileId:p.id,placements:list(d.placements??[],'placements',300).map(placement)}]}))
  const activeProfileId=typeof raw.activeProfileId==='string'&&pids.has(raw.activeProfileId)?raw.activeProfileId:profiles[0].id
  const trash:TrashEntry[]=list(raw.trash??[],'trash',2000).map(t=>({id:id(t.id,'trash ID'),profileId:owner(t.profileId),collection:choice(t.collection,['tasks','notes','exams','calendarEvents','subjects','studyPlans','flashcardDecks','studySeasons','scheduleBlocks'],'notes'),title:str(t.title,'trash title',1000),payload:str(t.payload,'trash payload',1000000),deletedAt:str(t.deletedAt,'deleted at',40)}))
