@@ -17,7 +17,7 @@ export function buildSharedSnapshot(data:AppData):SharedSchoolSnapshot{
  const profileId=data.activeProfileId
  const profile=data.profiles.find(p=>p.id===profileId)
  const progress=data.sanctuaryProgress[profileId]??createSanctuaryProgress(profileId)
- const decor=data.sanctuaryDecor[profileId]??{profileId,exteriorDecor:[],pondItems:[],terraceItems:[]}
+ const decor=data.sanctuaryDecor[profileId]??{profileId,placements:[]}
  return {
   updatedAt:new Date().toISOString(),
   profileLabel:profile?.label??profile?.name??'',
