@@ -151,6 +151,8 @@ export class PondEvolutionSystem {
   private sceneTop = 0
   private styleId: PondStyleId | null = null
   private styleImage?: Phaser.GameObjects.Image
+  private styleScale = 1
+  private styleFlipX = false
   private styleFrame = 0
   private styleFrameEvent?: Phaser.Time.TimerEvent
   private sceneBounds = new Phaser.Geom.Rectangle()
@@ -167,6 +169,13 @@ export class PondEvolutionSystem {
 
   static isStyleLoaded(scene: Phaser.Scene, styleId: PondStyleId): boolean {
     return scene.textures.exists(pondStyleTextureKey(styleId, 0))
+  }
+
+  /** True once a pond style image is on screen — callers use this to suppress the plain-water
+   * ambient effects (ripple sprites) that were designed for the default painted pond and would
+   * otherwise float visibly over the style artwork. */
+  hasStyle(): boolean {
+    return this.styleId !== null
   }
 
   static preload(scene: Phaser.Scene): void {
@@ -186,9 +195,11 @@ export class PondEvolutionSystem {
     uniqueAssets.forEach((file, key) => scene.load.image(key, `${ASSET_ROOT}/${file}`))
   }
 
-  create(stage: number, reducedMotion: boolean, styleId: string | null = null): void {
+  create(stage: number, reducedMotion: boolean, styleId: string | null = null, styleScale = 1, styleFlipX = false): void {
     this.stage = Phaser.Math.Clamp(Math.round(stage), 0, POND_STAGE_NAMES.length - 1)
     this.reducedMotion = reducedMotion
+    this.styleScale = Phaser.Math.Clamp(Number.isFinite(styleScale) ? styleScale : 1, 0.3, 3)
+    this.styleFlipX = styleFlipX
     // Build 22.9: the koi/lily/reed stage-growth visuals below are retired in favor of the pond-style
     // system (setStyle) — progression still tracks and scores pond stage under the hood, it just no
     // longer draws anything for it. With no style chosen the pond is the plain painted water already
@@ -248,6 +259,11 @@ export class PondEvolutionSystem {
       const alpha = Phaser.Math.Clamp(spec.alpha * decorationPhaseFactor * weatherFade * pulse * nightBoost, 0.18, 1)
       image.setTint(decorationTint).setAlpha(alpha)
     })
+
+    // Style art has no per-phase source images (unlike home styles), so morning/evening/night are
+    // remapped onto the one illustration with a color tint — same convention as the koi/decorations
+    // above — rather than fading it out, which would just make the pond look faded rather than lit.
+    this.styleImage?.setTint(decorationTint)
   }
 
   resize(sceneBounds: Phaser.Geom.Rectangle): void {
@@ -290,6 +306,14 @@ export class PondEvolutionSystem {
     this.applyStyle(nextId)
   }
 
+  /** User-controlled resize/mirror on top of the auto-computed contain-fit sizing — independent of
+   * which style is chosen, so switching styles doesn't reset a player's preferred look. */
+  setStyleTransform(scale: number, flipX: boolean): void {
+    this.styleScale = Phaser.Math.Clamp(Number.isFinite(scale) ? scale : 1, 0.3, 3)
+    this.styleFlipX = flipX
+    if (this.styleId) this.layoutStyleImage()
+  }
+
   private applyStyle(id: PondStyleId): void {
     this.styleId = id
     this.styleFrame = 0
@@ -321,13 +345,14 @@ export class PondEvolutionSystem {
   private layoutStyleImage(): void {
     if (!this.styleImage || !this.styleId) return
     const style = POND_STYLE_BY_ID[this.styleId]
-    const contentScale = Math.min(POND_STYLE_BOX_WIDTH / style.contentWidth, POND_STYLE_BOX_HEIGHT / style.contentHeight) * this.scaleX
+    const contentScale = Math.min(POND_STYLE_BOX_WIDTH / style.contentWidth, POND_STYLE_BOX_HEIGHT / style.contentHeight) * this.scaleX * this.styleScale
     const groundX = this.sceneLeft + POND_STYLE_GROUND_X * this.scaleX
     const groundY = this.sceneTop + POND_STYLE_GROUND_Y * this.scaleY
     this.styleImage
       .setOrigin(style.anchorX, style.anchorY)
       .setPosition(groundX, groundY)
       .setDisplaySize(style.width * contentScale, style.height * contentScale)
+      .setFlipX(this.styleFlipX)
   }
 
   setStage(stage: number, animate = true): void {
