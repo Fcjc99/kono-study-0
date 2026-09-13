@@ -27,6 +27,12 @@ const tableExport=suggestSchedule('TEAM GAME SCHEDULE\nDATE\nTIME\nTEAM / OPPONE
 assert.equal(tableExport.length,2)
 assert.equal(tableExport[0].kind,'event');assert.equal(tableExport[0].date,'2026-09-08');assert.equal(tableExport[0].title,'Silver Lake Regional HS AWAY')
 assert.equal(tableExport[1].kind,'event');assert.equal(tableExport[1].date,'2026-09-10');assert.equal(tableExport[1].title,'North Quincy High School HOME')
+
+// A trailing "Home = vs. ... | Away = @ ..." legend line (common on real exports, e.g. an Arbiter PDF)
+// has no date/weekday of its own and used to glue onto the LAST game's title instead of being dropped
+// like the header lines above it.
+const withLegend=suggestSchedule('Tue, 9/8\n4:00 PM\nSilver Lake Regional HS\nAWAY\nHome = listed as vs. on the source schedule | Away = listed as @ on the source schedule',start,end,'mdy')
+assert.equal(withLegend.length,1);assert.equal(withLegend[0].title,'Silver Lake Regional HS AWAY')
 const base=model.createFreshData(),id=base.activeProfileId,rows=suggested.map(r=>({...r,include:true,subject:'Biology'}))
 const imported=applyScheduleImport(base,id,rows,start,end)
 assert.equal(base.subjects.length,0);assert.equal(imported.data.subjects.length,1);assert.equal(imported.data.exams.length,1);assert.equal(imported.data.tasks.length,1)

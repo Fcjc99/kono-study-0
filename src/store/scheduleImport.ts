@@ -24,10 +24,13 @@ const startsRecord=(line:string,start:string,end:string,order:'mdy'|'dmy')=>new 
  * line, sometimes a home/away line. Each of those on its own carries no date or weekday marker, so the
  * per-line loop below would silently drop them. Fold every such line into the most recent line that DID
  * start a record, so the loop sees one combined line per schedule entry instead of losing the rest. */
+// A trailing "Home = vs. | Away = @" style legend line carries no date/weekday either, but it is not a
+// continuation of the last game — without this it silently glues onto and pollutes the final row's title.
+const isLegend=(line:string)=>line.includes('=')
 const mergeRecordLines=(lines:string[],start:string,end:string,order:'mdy'|'dmy'):string[]=>{
  const merged:string[]=[]
  for(const line of lines){
-  if(!startsRecord(line,start,end,order)&&merged.length)merged[merged.length-1]+=' '+line
+  if(!startsRecord(line,start,end,order)&&!isLegend(line)&&merged.length)merged[merged.length-1]+=' '+line
   else merged.push(line)
  }
  return merged
