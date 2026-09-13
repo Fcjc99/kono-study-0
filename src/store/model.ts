@@ -28,7 +28,10 @@ export type TrashEntry={id:string;profileId:string;collection:string;title:strin
  * is simply not found by the renderer, never a validation failure. scale resizes the asset (1 = its defaultScale);
  * skewX tilts it to sit correctly on the island's isometric ground plane. */
 export type BuildPlacement={id:string;assetId:string;x:number;y:number;rotation:0|90|180|270;scale:number;skewX:number}
-export type SanctuaryDecorState={profileId:string;placements:BuildPlacement[]}
+/** homeStyle is a free-form string, not validated against the game's known style list here (mirroring
+ * assetId above) — an unrecognized or since-removed ID just falls back to the default cottage at render
+ * time instead of failing the save. null/undefined means the default evolving cottage. */
+export type SanctuaryDecorState={profileId:string;placements:BuildPlacement[];homeStyle?:string|null}
 export type AppData={schemaVersion:6;trash:TrashEntry[];profiles:Profile[];activeProfileId:string;subjects:Subject[];tasks:Task[];exams:Exam[];notes:Note[];calendarEvents:CalendarEvent[];studySeasons:StudySeason[];studyPlans:StudyPlan[];flashcardDecks:FlashcardDeck[];settings:SettingsData;sanctuaryProgress:Record<string,SanctuaryProgressState>;sanctuaryDecor:Record<string,SanctuaryDecorState>;onboardingComplete?:boolean}
 
 export const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as const
@@ -48,7 +51,7 @@ export const localDate=(date=new Date())=>`${date.getFullYear()}-${String(date.g
 export const defaultSettings:SettingsData={experience:'cozy',textSize:'normal',density:'comfortable',decoration:true,boardStyle:'paper',theme:'coral',themeVersion:4,sound:true,ambient:true,reminders:false,browserNotifications:false,loginDigest:true,scheduleView:'all',reducedMotion:false,motionPreference:'system',sanctuaryWeather:'clear',sanctuaryWeatherMode:'clear',sanctuaryZipCodes:{},sanctuaryWeatherLocations:{}}
 export function createFreshData():AppData {
  const id=uid('profile'),start=localDate(),end=localDate(new Date(Date.now()+180*86400000))
- return {schemaVersion:6,trash:[],profiles:[{id,name:'Learner',label:'My study plan',kind:'custom',start,end,progressEpoch:uid('epoch')}],activeProfileId:id,subjects:[],tasks:[],exams:[],notes:[],calendarEvents:[],studyPlans:[],flashcardDecks:[],studySeasons:[{id:uid('season'),profileId:id,name:'My schedule',start,end,active:true,week:blankWeek()}],settings:{...defaultSettings},sanctuaryProgress:{[id]:createSanctuaryProgress(id)},sanctuaryDecor:{[id]:{profileId:id,placements:[]}},onboardingComplete:false}
+ return {schemaVersion:6,trash:[],profiles:[{id,name:'Learner',label:'My study plan',kind:'custom',start,end,progressEpoch:uid('epoch')}],activeProfileId:id,subjects:[],tasks:[],exams:[],notes:[],calendarEvents:[],studyPlans:[],flashcardDecks:[],studySeasons:[{id:uid('season'),profileId:id,name:'My schedule',start,end,active:true,week:blankWeek()}],settings:{...defaultSettings},sanctuaryProgress:{[id]:createSanctuaryProgress(id)},sanctuaryDecor:{[id]:{profileId:id,placements:[],homeStyle:null}},onboardingComplete:false}
 }
 
 type Obj=Record<string,unknown>
@@ -148,7 +151,7 @@ export function normalizeData(raw:unknown):AppData {
  const sanctuaryProgress=Object.fromEntries(profiles.map(p=>{const saved=progress[p.id];const timestamp=object(saved)&&typeof saved.updatedAt==='string'&&Number.isFinite(Date.parse(saved.updatedAt))?saved.updatedAt:'1970-01-01T00:00:00.000Z';return [p.id,migrateSanctuaryProgress(saved,p.id,tasks.map(t=>({...t,subjectKey:subjects.find(x=>x.id===t.subjectId)?.name??t.subjectId})),timestamp)]}))
  const decor=object(raw.sanctuaryDecor)?raw.sanctuaryDecor:{}
  const placement=(v:Obj):BuildPlacement=>({id:id(v.id,'placement ID'),assetId:str(v.assetId,'placement asset',100),x:fraction(v.x),y:fraction(v.y),rotation:([0,90,180,270] as const).includes(v.rotation as 0)?v.rotation as 0|90|180|270:0,scale:placementScale(v.scale),skewX:placementSkew(v.skewX)})
- const sanctuaryDecor:Record<string,SanctuaryDecorState>=Object.fromEntries(profiles.map(p=>{const d=object(decor[p.id])?decor[p.id] as Obj:{};return [p.id,{profileId:p.id,placements:list(d.placements??[],'placements',300).map(placement)}]}))
+ const sanctuaryDecor:Record<string,SanctuaryDecorState>=Object.fromEntries(profiles.map(p=>{const d=object(decor[p.id])?decor[p.id] as Obj:{};return [p.id,{profileId:p.id,placements:list(d.placements??[],'placements',300).map(placement),homeStyle:d.homeStyle==null?null:str(d.homeStyle,'home style',100)}]}))
  const activeProfileId=typeof raw.activeProfileId==='string'&&pids.has(raw.activeProfileId)?raw.activeProfileId:profiles[0].id
  const trash:TrashEntry[]=list(raw.trash??[],'trash',2000).map(t=>({id:id(t.id,'trash ID'),profileId:owner(t.profileId),collection:choice(t.collection,['tasks','notes','exams','calendarEvents','subjects','studyPlans','flashcardDecks','studySeasons','scheduleBlocks'],'notes'),title:str(t.title,'trash title',1000),payload:str(t.payload,'trash payload',1000000),deletedAt:str(t.deletedAt,'deleted at',40)}))
  return {schemaVersion:6,trash,profiles,activeProfileId,subjects,tasks,exams,notes,calendarEvents,studySeasons,studyPlans,flashcardDecks,settings,sanctuaryProgress,sanctuaryDecor,onboardingComplete:bool(raw.onboardingComplete,true)}

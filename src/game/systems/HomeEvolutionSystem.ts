@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { RenderLayers } from '../engine/RenderLayers'
 import { LIGHTING_FOUNDATION } from '../sanctuary/lightingFoundation'
 import type { DayPhase } from '../sanctuary/types'
+import { HOME_STYLE_BY_ID, homeStyleTextureKey, homeStyleTexturePath, isHomeStyleId, type HomeStyleId } from '../data/homeStyles'
 
 export const HOME_STAGE_NAMES = [
   'Original cottage',
@@ -71,6 +72,8 @@ export class HomeEvolutionSystem {
   private displayHeight = CROP_HEIGHT
   private transitionToken = 0
   private smokeFrame = 1
+  private styleId: HomeStyleId | null = null
+  private styleImage?: Phaser.GameObjects.Image
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
@@ -94,7 +97,17 @@ export class HomeEvolutionSystem {
     })
   }
 
-  create(stage: number, phase: DayPhase, reducedMotion: boolean): void {
+  /** A chosen home style's 4 phase renders load as one batch, independent of the default cottage's
+   * always-loaded evolution art — students who never touch this feature pay nothing extra for it. */
+  static preloadStyle(scene: Phaser.Scene, styleId: HomeStyleId, phases: readonly DayPhase[] = PHASES): void {
+    phases.forEach((phase) => scene.load.image(homeStyleTextureKey(styleId, phase), homeStyleTexturePath(styleId, phase)))
+  }
+
+  static isStyleLoaded(scene: Phaser.Scene, styleId: HomeStyleId): boolean {
+    return scene.textures.exists(homeStyleTextureKey(styleId, 'afternoon'))
+  }
+
+  create(stage: number, phase: DayPhase, reducedMotion: boolean, styleId: string | null = null): void {
     this.stage = Phaser.Math.Clamp(Math.round(stage), 0, STAGE_COUNT - 1)
     this.phase = phase
     this.reducedMotion = reducedMotion
@@ -138,6 +151,7 @@ export class HomeEvolutionSystem {
       callback: () => this.advanceSmoke(),
     })
     this.refreshDecor()
+    if (isHomeStyleId(styleId)) this.applyStyle(styleId)
   }
 
   resize(sceneBounds: Phaser.Geom.Rectangle): void {
@@ -153,6 +167,7 @@ export class HomeEvolutionSystem {
       .setPosition(x + VEGETABLE_GARDEN_OFFSET_X * scaleX, y + VEGETABLE_GARDEN_OFFSET_Y * scaleY)
       .setDisplaySize(this.displayWidth, this.displayHeight)
     this.positionSmoke(scaleX, scaleY)
+    if (this.styleId) this.layoutStyleImage()
   }
 
   setStage(stage: number, animate = true): void {
@@ -178,11 +193,22 @@ export class HomeEvolutionSystem {
     this.swapTo(textureKey(phase, this.stage), visibleAlpha(this.stage), 0)
     this.vegetableGarden.setTexture(vegetableGardenKey(phase)).setAlpha(this.stage === 5 ? 1 : 0)
     this.refreshDecor()
+    if (this.styleId) this.styleImage?.setTexture(homeStyleTextureKey(this.styleId, phase))
   }
 
   setReducedMotion(reducedMotion: boolean): void {
     this.reducedMotion = reducedMotion
     this.refreshDecor()
+  }
+
+  /** Swaps in a chosen home style in place of the default cottage's stage evolution, or (passing
+   * null/unknown) clears it back to the default. Caller must have already preloaded the style's
+   * textures (see preloadStyle/isStyleLoaded) — this never triggers a load itself. */
+  setStyle(styleId: string | null): void {
+    const nextId = isHomeStyleId(styleId) ? styleId : null
+    if (nextId === this.styleId) return
+    if (!nextId) { this.clearStyle(); return }
+    this.applyStyle(nextId)
   }
 
   destroy(): void {
@@ -194,6 +220,49 @@ export class HomeEvolutionSystem {
     this.smoke.destroy()
     this.homeA.destroy()
     this.homeB.destroy()
+    this.styleImage?.destroy()
+  }
+
+  private applyStyle(id: HomeStyleId): void {
+    this.styleId = id
+    this.groundShadow.setVisible(false)
+    this.roofUnderlay.setVisible(false)
+    this.homeA.setVisible(false)
+    this.homeB.setVisible(false)
+    this.vegetableGarden.setVisible(false)
+    this.smoke.setVisible(false)
+    const key = homeStyleTextureKey(id, this.phase)
+    if (!this.styleImage) this.styleImage = this.scene.add.image(0, 0, key).setDepth(RenderLayers.evolution - 0.2)
+    else this.styleImage.setTexture(key).setVisible(true)
+    if (this.sceneBounds.width) this.layoutStyleImage()
+  }
+
+  private clearStyle(): void {
+    this.styleId = null
+    this.styleImage?.setVisible(false)
+    this.groundShadow.setVisible(true)
+    this.roofUnderlay.setVisible(true)
+    this.homeA.setVisible(true)
+    this.homeB.setVisible(true)
+    this.vegetableGarden.setVisible(true)
+    this.refreshDecor()
+  }
+
+  private layoutStyleImage(): void {
+    if (!this.styleImage || !this.styleId) return
+    const style = HOME_STYLE_BY_ID[this.styleId]
+    const scaleX = this.sceneBounds.width / SOURCE_WIDTH
+    const scaleY = this.sceneBounds.height / SOURCE_HEIGHT
+    // A single uniform scale (not scaleX/scaleY independently) keeps this pre-rendered art's own
+    // aspect ratio intact — unlike the default cottage's per-phase art, it was never painted to
+    // tolerate a non-uniform stretch.
+    const contentScale = Math.min(CROP_WIDTH / style.contentWidth, CROP_HEIGHT / style.contentHeight) * scaleX
+    const groundX = this.sceneBounds.left + (CROP_X + CROP_WIDTH / 2) * scaleX
+    const groundY = this.sceneBounds.top + (CROP_Y + CROP_HEIGHT) * scaleY
+    this.styleImage
+      .setOrigin(style.anchorX, style.anchorY)
+      .setPosition(groundX, groundY)
+      .setDisplaySize(style.width * contentScale, style.height * contentScale)
   }
 
   private swapTo(nextTexture: string, nextAlpha: number, duration: number): void {
@@ -235,7 +304,7 @@ export class HomeEvolutionSystem {
   }
 
   private refreshDecor(): void {
-    const hasSmoke = this.stage >= 4
+    const hasSmoke = this.stage >= 4 && !this.styleId
     this.smoke.setVisible(hasSmoke)
     if (!hasSmoke) {
       this.smoke.setAlpha(0)

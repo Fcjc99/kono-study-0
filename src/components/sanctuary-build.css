@@ -12,6 +12,13 @@
 .build-item-actions{display:flex;gap:8px;justify-content:center;margin-top:2px}
 .build-item-actions button{width:36px;height:36px;border-radius:50%;border:0;background:#fff;font-size:1.05rem;cursor:pointer;display:grid;place-items:center}
 .sanctuary-build{display:grid;gap:10px;margin-top:12px}
+.build-home-styles{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 10px}
+.build-home-style-item{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border:1px solid var(--wb-line);border-radius:14px;background:var(--wb-surface);cursor:pointer;width:96px}
+.build-home-style-item[aria-pressed="true"]{outline:2px solid var(--wb-accent);outline-offset:-1px}
+.build-home-style-thumb{display:flex;align-items:center;justify-content:center;height:64px;width:100%}
+.build-home-style-thumb img{display:block;height:100%;width:auto;max-width:100%;object-fit:contain}
+.build-home-style-thumb-default{font-size:2rem}
+.build-home-style-item small{font-size:.68rem;text-align:center;line-height:1.15}
 .build-category-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
 .build-category-tabs button{white-space:nowrap;padding:8px 14px;border-radius:999px;border:1px solid var(--wb-line);background:var(--wb-surface);cursor:pointer;font-weight:700;font-size:.85rem}
 .build-category-tabs button[aria-current]{background:var(--wb-accent);color:#fff;border-color:var(--wb-accent)}
