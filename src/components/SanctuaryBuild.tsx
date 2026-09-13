@@ -11,7 +11,7 @@ const MIN_SCALE=0.3,MAX_SCALE=3,MIN_SKEW=-45,MAX_SKEW=45
 export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRepository['update']}){
  const profileId=data.activeProfileId
  const decor=data.sanctuaryDecor[profileId]??{profileId,placements:[]}
- const [category,setCategory]=useState<BuildCategory>(BUILD_CATEGORIES[0])
+ const [category,setCategory]=useState<BuildCategory|null>(BUILD_CATEGORIES[0]??null)
  const [armed,setArmed]=useState<string|null>(null)
  const [selected,setSelected]=useState<string|null>(null)
  const [busy,setBusy]=useState(false),[message,setMessage]=useState('')
@@ -94,12 +94,13 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
    </div>}
   </div>
   <section className="sanctuary-build">
-   <p className="wb-muted">Drag an item onto your island, or tap it then tap a spot. Drag a placed item anywhere to move it, or tap it once to resize, skew, rotate, or remove it.</p>
-   <nav className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}</nav>
-   <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=>{
-    const arm=()=>{setArmed(armed===a.id?null:a.id);setSelected(null)}
-    return <div role="button" tabIndex={0} draggable key={a.id} className={'build-palette-item'+(armed===a.id?' is-armed':'')} onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={arm} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();arm()}}} aria-pressed={armed===a.id} aria-label={a.label}><span className="build-palette-thumb"><img src={a.src} alt="" draggable={false}/></span><small>{a.label}</small></div>
-   })}</div>
+   {BUILD_CATEGORIES.length>0?<><p className="wb-muted">Drag an item onto your island, or tap it then tap a spot. Drag a placed item anywhere to move it, or tap it once to resize, skew, rotate, or remove it.</p>
+    <nav className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}</nav>
+    <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=>{
+     const arm=()=>{setArmed(armed===a.id?null:a.id);setSelected(null)}
+     return <div role="button" tabIndex={0} draggable key={a.id} className={'build-palette-item'+(armed===a.id?' is-armed':'')} onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={arm} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();arm()}}} aria-pressed={armed===a.id} aria-label={a.label}><span className="build-palette-thumb"><img src={a.src} alt="" draggable={false}/></span><small>{a.label}</small></div>
+    })}</div>
+   </>:<p className="wb-muted">No decorations available yet — check back soon.</p>}
   </section>
   {message&&<p role="status">{message}</p>}
  </>
