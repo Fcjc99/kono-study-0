@@ -59,6 +59,10 @@ interface GardenCardProps {
   progress: SanctuaryProgressState
   homeStyle?: string | null
   pondStyle?: string | null
+  homeStyleScale?: number
+  homeStyleFlipX?: boolean
+  pondStyleScale?: number
+  pondStyleFlipX?: boolean
 }
 
 const initialState: SanctuaryState = {
@@ -91,14 +95,14 @@ const formatDebugTime = (minutes: number) => {
 const debugFromUrl = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sanctuaryDebug') === '1'
 
-export default function GardenCard({ phase, weather, reducedMotion, progress, homeStyle = null, pondStyle = null }: GardenCardProps) {
+export default function GardenCard({ phase, weather, reducedMotion, progress, homeStyle = null, pondStyle = null, homeStyleScale = 1, homeStyleFlipX = false, pondStyleScale = 1, pondStyleFlipX = false }: GardenCardProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const gameRef = useRef<PhaserGameHandle | null>(null)
   const visibleRef = useRef(true)
   const debugEnabledRef = useRef(debugFromUrl())
   const lastCanvasSizeRef = useRef({ width: 0, height: 0 })
-  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, homeStyle, pondStyle })
-  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,homeStyle,pondStyle}},[phase,weather,reducedMotion,progress,homeStyle,pondStyle])
+  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, homeStyle, pondStyle, homeStyleScale, homeStyleFlipX, pondStyleScale, pondStyleFlipX })
+  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,homeStyle,pondStyle,homeStyleScale,homeStyleFlipX,pondStyleScale,pondStyleFlipX}},[phase,weather,reducedMotion,progress,homeStyle,pondStyle,homeStyleScale,homeStyleFlipX,pondStyleScale,pondStyleFlipX])
 
   const [state, setState] = useState<SanctuaryState>(initialState)
   const [debugEnabled, setDebugEnabled] = useState(debugFromUrl)
@@ -185,6 +189,10 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, ho
             bootingGame.registry.set('sanctuaryProgress', current.progress)
             bootingGame.registry.set('sanctuaryHomeStyle', current.homeStyle)
             bootingGame.registry.set('sanctuaryPondStyle', current.pondStyle)
+            bootingGame.registry.set('sanctuaryHomeStyleScale', current.homeStyleScale)
+            bootingGame.registry.set('sanctuaryHomeStyleFlipX', current.homeStyleFlipX)
+            bootingGame.registry.set('sanctuaryPondStyleScale', current.pondStyleScale)
+            bootingGame.registry.set('sanctuaryPondStyleFlipX', current.pondStyleFlipX)
           },
         },
       }) as unknown as PhaserGameHandle
@@ -329,6 +337,18 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, ho
     gameRef.current?.registry.set('sanctuaryPondStyle', pondStyle)
     gameRef.current?.events.emit(SANCTUARY_EVENTS.pondStyle, pondStyle)
   }, [pondStyle])
+
+  useEffect(() => {
+    gameRef.current?.registry.set('sanctuaryHomeStyleScale', homeStyleScale)
+    gameRef.current?.registry.set('sanctuaryHomeStyleFlipX', homeStyleFlipX)
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.homeStyleTransform, { scale: homeStyleScale, flipX: homeStyleFlipX })
+  }, [homeStyleScale, homeStyleFlipX])
+
+  useEffect(() => {
+    gameRef.current?.registry.set('sanctuaryPondStyleScale', pondStyleScale)
+    gameRef.current?.registry.set('sanctuaryPondStyleFlipX', pondStyleFlipX)
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.pondStyleTransform, { scale: pondStyleScale, flipX: pondStyleFlipX })
+  }, [pondStyleScale, pondStyleFlipX])
 
   const updateDebugTime = (minutes: number) => {
     setDebugMinutes(minutes)

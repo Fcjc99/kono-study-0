@@ -234,6 +234,18 @@ same(model.normalizeData(normalized),normalized);
 d.sanctuaryDecor[pid].pondStyle='x'.repeat(101);
 assert.throws(()=>model.normalizeData(d));
 });
+test('home/pond style scale and mirror default sensibly, round-trip, and clamp out-of-range scale',()=>{
+const d=make(),pid=d.activeProfileId;
+const fresh=model.normalizeData(d).sanctuaryDecor[pid];
+assert.equal(fresh.homeStyleScale,1);assert.equal(fresh.homeStyleFlipX,false);
+assert.equal(fresh.pondStyleScale,1);assert.equal(fresh.pondStyleFlipX,false);
+d.sanctuaryDecor[pid].homeStyleScale=1.6;d.sanctuaryDecor[pid].homeStyleFlipX=true;
+d.sanctuaryDecor[pid].pondStyleScale=99;d.sanctuaryDecor[pid].pondStyleFlipX=true;
+const normalized=model.normalizeData(d);const decor=normalized.sanctuaryDecor[pid];
+assert.equal(decor.homeStyleScale,1.6);assert.equal(decor.homeStyleFlipX,true);
+assert.equal(decor.pondStyleScale,3);assert.equal(decor.pondStyleFlipX,true);
+same(model.normalizeData(normalized),normalized);
+});
 test('all cozy color palettes survive save normalization',()=>{
  for(const theme of ['coral','sakura','lavender','mint','honey']){const d=make();d.settings.theme=theme;assert.equal(model.normalizeData(d).settings.theme,theme)}
 });
