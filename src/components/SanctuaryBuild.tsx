@@ -9,10 +9,12 @@ import './sanctuary-build.css'
 const nextRotation=(r:0|90|180|270):0|90|180|270=>r===0?90:r===90?180:r===180?270:0
 const DRAG_THRESHOLD=5
 const MIN_SCALE=0.3,MAX_SCALE=3,MIN_SKEW=-45,MAX_SKEW=45
+const MIN_STYLE_SCALE=0.5,MAX_STYLE_SCALE=2
 
 export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRepository['update']}){
  const profileId=data.activeProfileId
- const decor=data.sanctuaryDecor[profileId]??{profileId,placements:[]}
+ const decorFor=(d:AppData)=>d.sanctuaryDecor[profileId]??{profileId,placements:[],homeStyle:null,pondStyle:null,homeStyleScale:1,homeStyleFlipX:false,pondStyleScale:1,pondStyleFlipX:false}
+ const decor=decorFor(data)
  const [category,setCategory]=useState<BuildCategory|null>(BUILD_CATEGORIES[0]??null)
  const [armed,setArmed]=useState<string|null>(null)
  const [selected,setSelected]=useState<string|null>(null)
@@ -22,21 +24,49 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
  const [dragPos,setDragPos]=useState<{x:number;y:number}|null>(null)
  const dragStart=useRef<{x:number;y:number;moved:boolean}|null>(null)
 
+ const withCurrent=(d:AppData,patch:Partial<ReturnType<typeof decorFor>>)=>{
+  const current=decorFor(d)
+  return {...d,sanctuaryDecor:{...d.sanctuaryDecor,[profileId]:{profileId,placements:current.placements,homeStyle:current.homeStyle,pondStyle:current.pondStyle,homeStyleScale:current.homeStyleScale,homeStyleFlipX:current.homeStyleFlipX,pondStyleScale:current.pondStyleScale,pondStyleFlipX:current.pondStyleFlipX,...patch}}}
+ }
  const commit=async(placements:BuildPlacement[])=>{
   if(busy)return;setBusy(true);setMessage('')
-  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');const current=d.sanctuaryDecor[profileId];return {...d,sanctuaryDecor:{...d.sanctuaryDecor,[profileId]:{profileId,placements,homeStyle:current?.homeStyle??null,pondStyle:current?.pondStyle??null}}}});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
+  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');return withCurrent(d,{placements})});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
   catch(e){setMessage(e instanceof Error?e.message:'Could not save.')}
   finally{setBusy(false)}
  }
  const setHomeStyle=async(homeStyle:string|null)=>{
   if(busy)return;setBusy(true);setMessage('')
-  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');const current=d.sanctuaryDecor[profileId];return {...d,sanctuaryDecor:{...d.sanctuaryDecor,[profileId]:{profileId,placements:current?.placements??[],homeStyle,pondStyle:current?.pondStyle??null}}}});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
+  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');return withCurrent(d,{homeStyle})});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
   catch(e){setMessage(e instanceof Error?e.message:'Could not save.')}
   finally{setBusy(false)}
  }
  const setPondStyle=async(pondStyle:string|null)=>{
   if(busy)return;setBusy(true);setMessage('')
-  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');const current=d.sanctuaryDecor[profileId];return {...d,sanctuaryDecor:{...d.sanctuaryDecor,[profileId]:{profileId,placements:current?.placements??[],homeStyle:current?.homeStyle??null,pondStyle}}}});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
+  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');return withCurrent(d,{pondStyle})});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
+  catch(e){setMessage(e instanceof Error?e.message:'Could not save.')}
+  finally{setBusy(false)}
+ }
+ const setHomeStyleScale=async(homeStyleScale:number)=>{
+  if(busy)return;setBusy(true);setMessage('')
+  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');return withCurrent(d,{homeStyleScale})});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
+  catch(e){setMessage(e instanceof Error?e.message:'Could not save.')}
+  finally{setBusy(false)}
+ }
+ const setHomeStyleFlipX=async(homeStyleFlipX:boolean)=>{
+  if(busy)return;setBusy(true);setMessage('')
+  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');return withCurrent(d,{homeStyleFlipX})});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
+  catch(e){setMessage(e instanceof Error?e.message:'Could not save.')}
+  finally{setBusy(false)}
+ }
+ const setPondStyleScale=async(pondStyleScale:number)=>{
+  if(busy)return;setBusy(true);setMessage('')
+  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');return withCurrent(d,{pondStyleScale})});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
+  catch(e){setMessage(e instanceof Error?e.message:'Could not save.')}
+  finally{setBusy(false)}
+ }
+ const setPondStyleFlipX=async(pondStyleFlipX:boolean)=>{
+  if(busy)return;setBusy(true);setMessage('')
+  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');return withCurrent(d,{pondStyleFlipX})});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
   catch(e){setMessage(e instanceof Error?e.message:'Could not save.')}
   finally{setBusy(false)}
  }
@@ -113,11 +143,19 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
     <button type="button" aria-pressed={!decor.homeStyle} onClick={()=>setHomeStyle(null)} className="build-home-style-item"><span className="build-home-style-thumb build-home-style-thumb-default">🏠</span><small>Default cottage</small></button>
     {HOME_STYLES.map(style=><button type="button" key={style.id} aria-pressed={decor.homeStyle===style.id} onClick={()=>setHomeStyle(style.id)} className="build-home-style-item"><span className="build-home-style-thumb"><img src={homeStyleTexturePath(style.id,'afternoon')} alt=""/></span><small>{style.label}</small></button>)}
    </div>
+   {decor.homeStyle&&<div className="build-style-transform" aria-label="Home style size and mirror">
+    <label>Size<input type="range" min={MIN_STYLE_SCALE} max={MAX_STYLE_SCALE} step={0.05} value={decor.homeStyleScale??1} onChange={e=>setHomeStyleScale(Number(e.target.value))}/></label>
+    <button type="button" aria-pressed={!!decor.homeStyleFlipX} onClick={()=>setHomeStyleFlipX(!decor.homeStyleFlipX)}>Mirror</button>
+   </div>}
    <p className="wb-muted">Pond style</p>
    <div className="build-home-styles" role="group" aria-label="Pond style">
     <button type="button" aria-pressed={!decor.pondStyle} onClick={()=>setPondStyle(null)} className="build-home-style-item"><span className="build-home-style-thumb build-home-style-thumb-default">💧</span><small>No pond (empty)</small></button>
     {POND_STYLES.map(style=><button type="button" key={style.id} aria-pressed={decor.pondStyle===style.id} onClick={()=>setPondStyle(style.id)} className="build-home-style-item"><span className="build-home-style-thumb"><img src={pondStyleThumbnailPath(style.id)} alt=""/></span><small>{style.label}</small></button>)}
    </div>
+   {decor.pondStyle&&<div className="build-style-transform" aria-label="Pond style size and mirror">
+    <label>Size<input type="range" min={MIN_STYLE_SCALE} max={MAX_STYLE_SCALE} step={0.05} value={decor.pondStyleScale??1} onChange={e=>setPondStyleScale(Number(e.target.value))}/></label>
+    <button type="button" aria-pressed={!!decor.pondStyleFlipX} onClick={()=>setPondStyleFlipX(!decor.pondStyleFlipX)}>Mirror</button>
+   </div>}
    {BUILD_CATEGORIES.length>0?<><p className="wb-muted">Drag an item onto your island, or tap it then tap a spot. Drag a placed item anywhere to move it, or tap it once to resize, skew, rotate, or remove it.</p>
     <nav className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}</nav>
     <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=>{

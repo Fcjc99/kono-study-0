@@ -110,6 +110,10 @@ export default class Stage0Scene extends Phaser.Scene {
   private progress: SanctuaryProgressState = createSanctuaryProgress('unassigned')
   private homeStyle: string | null = null
   private pondStyle: string | null = null
+  private homeStyleScale = 1
+  private homeStyleFlipX = false
+  private pondStyleScale = 1
+  private pondStyleFlipX = false
   private world = new WorldEngine()
   private stateEmitClock = 0
   private readyPhases = new Set<DayPhase>()
@@ -186,13 +190,13 @@ export default class Stage0Scene extends Phaser.Scene {
     this.gardenEvolution = new GardenEvolutionSystem(this)
     this.gardenEvolution.create(this.progress.featureStages.garden ?? 0, this.settings.reducedMotion)
     this.homeEvolution = new HomeEvolutionSystem(this)
-    this.homeEvolution.create(this.progress.featureStages.home ?? 0, this.blend.dominant, this.settings.reducedMotion, this.homeStyle)
+    this.homeEvolution.create(this.progress.featureStages.home ?? 0, this.blend.dominant, this.settings.reducedMotion, this.homeStyle, this.homeStyleScale, this.homeStyleFlipX)
     this.lanternEvolution = new LanternEvolutionSystem(this)
     this.lanternEvolution.create(this.progress.featureStages.lanterns ?? 0, this.settings.reducedMotion)
     this.fluid = new FluidSystem(this)
     this.fluid.create(this.blend.dominant, this.settings.reducedMotion)
     this.pondEvolution = new PondEvolutionSystem(this)
-    this.pondEvolution.create(this.progress.featureStages.pond ?? 0, this.settings.reducedMotion, this.pondStyle)
+    this.pondEvolution.create(this.progress.featureStages.pond ?? 0, this.settings.reducedMotion, this.pondStyle, this.pondStyleScale, this.pondStyleFlipX)
     this.clouds = new CloudSystem(this)
     this.clouds.create(this.blend.dominant, this.settings.reducedMotion)
     this.atmosphere = new AtmosphereSystem(this)
@@ -250,6 +254,10 @@ export default class Stage0Scene extends Phaser.Scene {
     const progress = this.registry.get('sanctuaryProgress')
     const homeStyle = this.registry.get('sanctuaryHomeStyle')
     const pondStyle = this.registry.get('sanctuaryPondStyle')
+    const homeStyleScale = this.registry.get('sanctuaryHomeStyleScale')
+    const homeStyleFlipX = this.registry.get('sanctuaryHomeStyleFlipX')
+    const pondStyleScale = this.registry.get('sanctuaryPondStyleScale')
+    const pondStyleFlipX = this.registry.get('sanctuaryPondStyleFlipX')
 
     if (isPhaseMode(phaseMode)) this.settings.phaseMode = phaseMode
     if (isSanctuaryWeather(weather)) this.settings.weather = weather
@@ -265,6 +273,10 @@ export default class Stage0Scene extends Phaser.Scene {
     }
     if (homeStyle === null || typeof homeStyle === 'string') this.homeStyle = homeStyle
     if (pondStyle === null || typeof pondStyle === 'string') this.pondStyle = pondStyle
+    if (typeof homeStyleScale === 'number' && Number.isFinite(homeStyleScale)) this.homeStyleScale = Phaser.Math.Clamp(homeStyleScale, 0.3, 3)
+    if (typeof homeStyleFlipX === 'boolean') this.homeStyleFlipX = homeStyleFlipX
+    if (typeof pondStyleScale === 'number' && Number.isFinite(pondStyleScale)) this.pondStyleScale = Phaser.Math.Clamp(pondStyleScale, 0.3, 3)
+    if (typeof pondStyleFlipX === 'boolean') this.pondStyleFlipX = pondStyleFlipX
   }
 
   private bindRuntimeEvents(): void {
@@ -280,6 +292,8 @@ export default class Stage0Scene extends Phaser.Scene {
     this.game.events.on(SANCTUARY_EVENTS.progress, this.handleProgressEvent, this)
     this.game.events.on(SANCTUARY_EVENTS.homeStyle, this.handleHomeStyleEvent, this)
     this.game.events.on(SANCTUARY_EVENTS.pondStyle, this.handlePondStyleEvent, this)
+    this.game.events.on(SANCTUARY_EVENTS.homeStyleTransform, this.handleHomeStyleTransformEvent, this)
+    this.game.events.on(SANCTUARY_EVENTS.pondStyleTransform, this.handlePondStyleTransformEvent, this)
   }
 
   private handleProgressEvent(progress: unknown): void {
@@ -338,6 +352,22 @@ export default class Stage0Scene extends Phaser.Scene {
     PondEvolutionSystem.preloadStyle(this, nextId)
     this.load.once(Phaser.Loader.Events.COMPLETE, () => { if (this.pondStyle === nextId) this.pondEvolution?.setStyle(nextId) })
     this.load.start()
+  }
+
+  private handleHomeStyleTransformEvent(payload: unknown): void {
+    const scale = payload && typeof payload === 'object' && typeof (payload as { scale?: unknown }).scale === 'number' ? (payload as { scale: number }).scale : 1
+    const flipX = !!(payload && typeof payload === 'object' && (payload as { flipX?: unknown }).flipX)
+    this.homeStyleScale = Phaser.Math.Clamp(Number.isFinite(scale) ? scale : 1, 0.3, 3)
+    this.homeStyleFlipX = flipX
+    this.homeEvolution?.setStyleTransform(this.homeStyleScale, this.homeStyleFlipX)
+  }
+
+  private handlePondStyleTransformEvent(payload: unknown): void {
+    const scale = payload && typeof payload === 'object' && typeof (payload as { scale?: unknown }).scale === 'number' ? (payload as { scale: number }).scale : 1
+    const flipX = !!(payload && typeof payload === 'object' && (payload as { flipX?: unknown }).flipX)
+    this.pondStyleScale = Phaser.Math.Clamp(Number.isFinite(scale) ? scale : 1, 0.3, 3)
+    this.pondStyleFlipX = flipX
+    this.pondEvolution?.setStyleTransform(this.pondStyleScale, this.pondStyleFlipX)
   }
 
   private buildEvolutionChanges(previous: SanctuaryProgressState, next: SanctuaryProgressState): EvolutionStageChange[] {
@@ -651,7 +681,7 @@ export default class Stage0Scene extends Phaser.Scene {
   }
 
   private spawnPondRipple(): void {
-    if (!this.baseA?.active || this.popupObjects.length) return
+    if (!this.baseA?.active || this.popupObjects.length || this.pondEvolution.hasStyle()) return
     const environment = this.world.environment.snapshot()
     const rainIntensity = Phaser.Math.Clamp(environment.rainIntensity, 0, 1)
     const anchor = Phaser.Utils.Array.GetRandom(POND_RIPPLE_ANCHORS)
@@ -1114,6 +1144,8 @@ export default class Stage0Scene extends Phaser.Scene {
     this.game.events.off(SANCTUARY_EVENTS.progress, this.handleProgressEvent, this)
     this.game.events.off(SANCTUARY_EVENTS.homeStyle, this.handleHomeStyleEvent, this)
     this.game.events.off(SANCTUARY_EVENTS.pondStyle, this.handlePondStyleEvent, this)
+    this.game.events.off(SANCTUARY_EVENTS.homeStyleTransform, this.handleHomeStyleTransformEvent, this)
+    this.game.events.off(SANCTUARY_EVENTS.pondStyleTransform, this.handlePondStyleTransformEvent, this)
     this.scale.off('resize', this.handleResize, this)
     this.tweens.killAll()
     this.ambientSprites.forEach((sprite) => sprite.destroy())

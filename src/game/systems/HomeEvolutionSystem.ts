@@ -74,6 +74,8 @@ export class HomeEvolutionSystem {
   private smokeFrame = 1
   private styleId: HomeStyleId | null = null
   private styleImage?: Phaser.GameObjects.Image
+  private styleScale = 1
+  private styleFlipX = false
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
@@ -107,10 +109,12 @@ export class HomeEvolutionSystem {
     return scene.textures.exists(homeStyleTextureKey(styleId, 'afternoon'))
   }
 
-  create(stage: number, phase: DayPhase, reducedMotion: boolean, styleId: string | null = null): void {
+  create(stage: number, phase: DayPhase, reducedMotion: boolean, styleId: string | null = null, styleScale = 1, styleFlipX = false): void {
     this.stage = Phaser.Math.Clamp(Math.round(stage), 0, STAGE_COUNT - 1)
     this.phase = phase
     this.reducedMotion = reducedMotion
+    this.styleScale = Phaser.Math.Clamp(Number.isFinite(styleScale) ? styleScale : 1, 0.3, 3)
+    this.styleFlipX = styleFlipX
 
     this.groundShadow = this.scene.add.image(0, 0, shadowKey(Math.max(1, this.stage)))
       .setOrigin(0)
@@ -211,6 +215,14 @@ export class HomeEvolutionSystem {
     this.applyStyle(nextId)
   }
 
+  /** User-controlled resize/mirror on top of the auto-computed contain-fit sizing — independent of
+   * which style is chosen, so switching styles doesn't reset a player's preferred look. */
+  setStyleTransform(scale: number, flipX: boolean): void {
+    this.styleScale = Phaser.Math.Clamp(Number.isFinite(scale) ? scale : 1, 0.3, 3)
+    this.styleFlipX = flipX
+    if (this.styleId) this.layoutStyleImage()
+  }
+
   destroy(): void {
     this.scene.tweens.killTweensOf([this.homeA, this.homeB, this.smoke, this.vegetableGarden])
     this.smokeEvent?.destroy()
@@ -256,13 +268,14 @@ export class HomeEvolutionSystem {
     // A single uniform scale (not scaleX/scaleY independently) keeps this pre-rendered art's own
     // aspect ratio intact — unlike the default cottage's per-phase art, it was never painted to
     // tolerate a non-uniform stretch.
-    const contentScale = Math.min(CROP_WIDTH / style.contentWidth, CROP_HEIGHT / style.contentHeight) * scaleX
+    const contentScale = Math.min(CROP_WIDTH / style.contentWidth, CROP_HEIGHT / style.contentHeight) * scaleX * this.styleScale
     const groundX = this.sceneBounds.left + (CROP_X + CROP_WIDTH / 2) * scaleX
     const groundY = this.sceneBounds.top + (CROP_Y + CROP_HEIGHT) * scaleY
     this.styleImage
       .setOrigin(style.anchorX, style.anchorY)
       .setPosition(groundX, groundY)
       .setDisplaySize(style.width * contentScale, style.height * contentScale)
+      .setFlipX(this.styleFlipX)
   }
 
   private swapTo(nextTexture: string, nextAlpha: number, duration: number): void {
