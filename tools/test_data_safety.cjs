@@ -181,6 +181,26 @@ for(const kind of ['exam','test','quiz','assignment','study','activity'])assert.
 assert.equal(model.eventCategory('sports'),'sports');
 for(const kind of ['personal','appointment','other'])assert.equal(model.eventCategory(kind),'appointments');
 });
+test('an appointment calendar event kind round-trips through normalization instead of being coerced to other',()=>{
+const d=make(),pid=d.activeProfileId;d.calendarEvents=[{id:'evt1',profileId:pid,date:'2026-09-20',title:'Dentist',kind:'appointment',notes:''}];
+assert.equal(model.normalizeData(d).calendarEvents[0].kind,'appointment');
+});
+test('a sports match result is clamped, derives the right outcome, and a malformed one is dropped rather than failing the save',()=>{
+const d=make(),pid=d.activeProfileId;
+d.calendarEvents=[
+ {id:'win',profileId:pid,date:'2026-09-20',title:'Home game',kind:'sports',notes:'',result:{ourScore:3,opponentScore:1}},
+ {id:'clamped',profileId:pid,date:'2026-09-21',title:'Blowout',kind:'sports',notes:'',result:{ourScore:9999,opponentScore:-5}},
+ {id:'malformed',profileId:pid,date:'2026-09-22',title:'Bad data',kind:'sports',notes:'',result:{ourScore:'nope',opponentScore:2}},
+];
+const normalized=model.normalizeData(d)
+const [win,clamped,malformed]=normalized.calendarEvents
+same(win.result,{ourScore:3,opponentScore:1});assert.equal(model.matchOutcome(win.result),'win')
+same(clamped.result,{ourScore:999,opponentScore:0});
+assert.equal(malformed.result,undefined)
+assert.equal(model.matchOutcome({ourScore:1,opponentScore:1}),'tie')
+assert.equal(model.matchOutcome({ourScore:0,opponentScore:2}),'loss')
+same(model.normalizeData(normalized),normalized)
+});
 test('a pre-free-placement grid decor (col/row, no x/y) survives normalization instead of rejecting the save',()=>{
 const d=make(),pid=d.activeProfileId;d.sanctuaryDecor[pid].placements=[{id:'p1',assetId:'mailbox',col:2,row:3,rotation:90}];
 const normalized=model.normalizeData(d);const placement=normalized.sanctuaryDecor[pid].placements[0];

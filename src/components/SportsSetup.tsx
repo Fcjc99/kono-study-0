@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react'
 import {useDraftState} from '../hooks/useDraftState'
-import {dayNames,localDate,uid,type AppData} from '../store/model'
+import {dayNames,localDate,uid,matchOutcome,type AppData,type MatchResult} from '../store/model'
 import {addWeeklyClass,weeklyClassDates,weeklyConflicts,type WeeklyClassInput} from '../store/weeklyClass'
 import {applyScheduleImport,suggestSchedule,type ImportRow} from '../store/scheduleImport'
 import {addDays} from '../store/studyScheduler'
@@ -72,7 +72,19 @@ function SportsGames({data,save,draftKey,sport}:{data:AppData;save:PlannerReposi
   if(busy||!reviewed)return;setBusy(true);setError('')
   try{const seasonName=(sport.trim()||'Sports')+' season';const saved=await save(current=>applyScheduleImport(current,profile.id,rows,start,end,{eventKind:'sports',category:'sports',blockKind:'hobby',seasonName}).data);if(saved){setStatus('Games added. Find them in your Calendar and Planner, tagged as sports.');setRows([]);setReviewed(false);setText('');setFile(null)}else setError('Not saved yet. Your reviewed items remain here; check the save status before retrying.')}catch(e){setError(e instanceof Error?e.message:'Could not import.')}finally{setBusy(false)}
  }
+ const seasonGames=data.calendarEvents.filter(e=>e.profileId===profile.id&&e.kind==='sports'&&e.date>=start&&e.date<=end).sort((a,b)=>a.date.localeCompare(b.date))
+ const record=seasonGames.reduce((tally,g)=>{if(!g.result)return tally;const outcome=matchOutcome(g.result);return {...tally,[outcome]:tally[outcome]+1}},{win:0,loss:0,tie:0})
+ const played=record.win+record.loss+record.tie
+ const setResult=(id:string,result:MatchResult|undefined)=>void save(d=>({...d,calendarEvents:d.calendarEvents.map(e=>e.id===id?{...e,result}:e)}))
  return <div className="wb-panel school-setup"><h3>Games & matches</h3><p>Upload a photo or PDF of your games/matches schedule, or paste the text below. Review every suggestion before it's added — nothing is saved automatically.</p>
+ {seasonGames.length>0&&<section className="season-record">
+  <div className="season-record-head"><h4>Season record</h4><span className="season-record-tally">{record.win}-{record.loss}{record.tie?'-'+record.tie:''} · {played} of {seasonGames.length} played</span></div>
+  <ul className="season-record-list">{seasonGames.map(g=>{const outcome=g.result?matchOutcome(g.result):null;const badge=homeAwayOf(g.title)
+   return <li key={g.id} className={outcome?'is-'+outcome:''}>
+    <div className="season-record-row-head"><strong>{g.title.replace(/\s*(HOME|AWAY)$/,'')}</strong>{badge&&<span className={'home-away-badge is-'+badge.toLowerCase()}>{badge}</span>}<small>{g.date}</small></div>
+    <div className="season-record-score"><label>Us<input type="number" min={0} max={999} value={g.result?.ourScore??''} onChange={e=>setResult(g.id,{ourScore:Number(e.target.value),opponentScore:g.result?.opponentScore??0})}/></label><label>Opp<input type="number" min={0} max={999} value={g.result?.opponentScore??''} onChange={e=>setResult(g.id,{ourScore:g.result?.ourScore??0,opponentScore:Number(e.target.value)})}/></label>{outcome&&<span className={'match-outcome-chip is-'+outcome}>{outcome==='win'?'W':outcome==='loss'?'L':'T'}</span>}{g.result&&<button type="button" onClick={()=>setResult(g.id,undefined)}>Clear</button>}</div>
+   </li>})}</ul>
+ </section>}
  <fieldset disabled={busy}><label>Choose a photo or PDF (up to 20 MB)<input type="file" accept="application/pdf,.pdf,image/jpeg,image/png,image/webp" onChange={e=>{setFile(e.target.files?.[0]??null);setError('');e.target.value=''}}/></label>{file&&<p>{file.name}</p>}<button disabled={!file} onClick={()=>void read()}>Read selected file</button></fieldset>
  {reading&&<button onClick={()=>active.current?.abort()}>Cancel reading</button>}
  <fieldset disabled={busy}><div className="import-fields"><label>Season starts<input type="date" value={start} onInput={e=>{setStart(e.currentTarget.value);setReviewed(false)}}/></label><label>Season ends<input type="date" value={end} onInput={e=>{setEnd(e.currentTarget.value);setReviewed(false)}}/></label><label>Dates in this document<select value={order} onChange={e=>{setOrder(e.target.value as typeof order);setReviewed(false)}}><option value="mdy">Month / day / year</option><option value="dmy">Day / month / year</option></select></label></div>
