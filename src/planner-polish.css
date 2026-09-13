@@ -63,9 +63,11 @@
 .wb-class-due{display:grid;gap:5px;margin:8px 0 2px;padding:7px 9px;border-radius:12px;background:#fffdf8;border:1px dashed color-mix(in srgb,var(--class-accent) 40%,#ddd)}
 .wb-class-compact .wb-class-due{margin:9px 4px 3px 152px;padding:8px 10px}
 .wb-class-due>strong{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#76626b}
-.wb-class-due-item{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:6px;align-items:center;font-size:.8rem}
+.wb-class-due-item{display:grid;grid-template-columns:18px minmax(0,1fr) auto auto;gap:6px;align-items:center;font-size:.8rem}
 .wb-class-due-item>b{color:var(--class-accent)}
 .wb-class-due-item>small{font-weight:800;color:#72545f}
+.wb-class-due-remove{border:0;background:transparent;color:#8a7480;font-size:.85rem;line-height:1;padding:2px 4px;cursor:pointer;border-radius:6px}
+.wb-class-due-remove:hover{background:#f1e3e8;color:#9f2947}
 .wb-class-due-item.kind-exam{color:#9f2947;font-weight:750}
 .calendar-date-row{display:flex;width:100%;align-items:center;justify-content:space-between}
 .calendar-date-row>b{padding:2px 5px;border-radius:999px;background:#c94061;color:#fff;font-size:.62rem}
@@ -82,6 +84,11 @@
 .planner-day-list{display:grid;gap:8px}
 .planner-due-panel{margin-top:10px;padding-top:8px;border-top:1px dashed #ead6cf}
 .planner-due-panel ul{display:grid;gap:6px;margin:0;padding-left:18px}
+.planner-due-panel li{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.planner-due-remove{border:0;background:transparent;color:#8a7480;font-size:.8rem;line-height:1;padding:2px 5px;cursor:pointer;border-radius:6px;margin-left:auto}
+.planner-due-remove:hover{background:#f1e3e8;color:#9f2947}
+.schedule-view-picker{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:.82rem;font-weight:600}
+.schedule-view-picker label{display:flex;align-items:center;gap:5px;font-weight:inherit}
 .wb-agenda-day>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:2px 0}
 .wb-agenda-day>summary::-webkit-details-marker{display:none}
 .wb-agenda-day>summary::before{content:'▸';margin-right:8px;color:var(--wb-muted);font-size:.75rem}
@@ -133,6 +140,7 @@
  .wb-class-due{margin:7px 2px 2px;padding:7px}
  .wb-class-due-item{grid-template-columns:16px minmax(0,1fr)}
  .wb-class-due-item>small{grid-column:2}
+ .wb-class-due-remove{grid-column:2;justify-self:start}
 }
 
 /* Cozy, subject-colored daily agenda with a dense phone layout. */

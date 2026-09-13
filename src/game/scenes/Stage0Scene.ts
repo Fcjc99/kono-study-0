@@ -23,6 +23,7 @@ import { WeatherSystem } from '../systems/WeatherSystem'
 import { TREE_STAGE_NAMES, TreeEvolutionSystem } from '../systems/TreeEvolutionSystem'
 import { POND_STAGE_NAMES, PondEvolutionSystem } from '../systems/PondEvolutionSystem'
 import { HOME_STAGE_NAMES, HomeEvolutionSystem } from '../systems/HomeEvolutionSystem'
+import { isHomeStyleId } from '../data/homeStyles'
 import { LANTERN_STAGE_INTERACTIONS, LANTERN_STAGE_NAMES, LanternEvolutionSystem } from '../systems/LanternEvolutionSystem'
 import { GARDEN_STAGE_NAMES, GardenEvolutionSystem } from '../systems/GardenEvolutionSystem'
 import { CritterSystem } from '../systems/CritterSystem'
@@ -106,6 +107,7 @@ export default class Stage0Scene extends Phaser.Scene {
   private blend: PhaseBlend = stable('afternoon')
   private settings: SanctuaryRuntimeSettings = { ...DEFAULT_SANCTUARY_SETTINGS }
   private progress: SanctuaryProgressState = createSanctuaryProgress('unassigned')
+  private homeStyle: string | null = null
   private world = new WorldEngine()
   private stateEmitClock = 0
   private readyPhases = new Set<DayPhase>()
@@ -143,6 +145,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.DESTROY,()=>{this.phaseGateDisposed=true;this.pendingBlend=null})
     this.bootImageKeys=this.collectQueuedImages(()=>{
     this.enqueuePhaseAssets(this.paintedPhase)
+    if(isHomeStyleId(this.homeStyle))HomeEvolutionSystem.preloadStyle(this,this.homeStyle)
     RIPPLE_VARIANTS.forEach((id) => this.load.image(`ripple-${id}`, `/garden/processed/ripples/ripple-${id}.png`))
     PHASE_VARIANTS.forEach((id) => {
       this.load.image(`leaf-${id}`, `/garden/processed/leaves/leaf-${id}.png`)
@@ -180,7 +183,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.gardenEvolution = new GardenEvolutionSystem(this)
     this.gardenEvolution.create(this.progress.featureStages.garden ?? 0, this.settings.reducedMotion)
     this.homeEvolution = new HomeEvolutionSystem(this)
-    this.homeEvolution.create(this.progress.featureStages.home ?? 0, this.blend.dominant, this.settings.reducedMotion)
+    this.homeEvolution.create(this.progress.featureStages.home ?? 0, this.blend.dominant, this.settings.reducedMotion, this.homeStyle)
     this.lanternEvolution = new LanternEvolutionSystem(this)
     this.lanternEvolution.create(this.progress.featureStages.lanterns ?? 0, this.settings.reducedMotion)
     this.fluid = new FluidSystem(this)
@@ -242,6 +245,7 @@ export default class Stage0Scene extends Phaser.Scene {
     const debugMinutes = this.registry.get('sanctuaryDebugMinutes')
     const quality = this.registry.get('sanctuaryQuality')
     const progress = this.registry.get('sanctuaryProgress')
+    const homeStyle = this.registry.get('sanctuaryHomeStyle')
 
     if (isPhaseMode(phaseMode)) this.settings.phaseMode = phaseMode
     if (isSanctuaryWeather(weather)) this.settings.weather = weather
@@ -255,6 +259,7 @@ export default class Stage0Scene extends Phaser.Scene {
         : 'unassigned'
       this.progress = migrateSanctuaryProgress(progress, profileId)
     }
+    if (homeStyle === null || typeof homeStyle === 'string') this.homeStyle = homeStyle
   }
 
   private bindRuntimeEvents(): void {
@@ -268,6 +273,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.game.events.on(SANCTUARY_EVENTS.fluidSpeed, this.handleFluidSpeedEvent, this)
     this.game.events.on(SANCTUARY_EVENTS.fluidEnabled, this.handleFluidEnabledEvent, this)
     this.game.events.on(SANCTUARY_EVENTS.progress, this.handleProgressEvent, this)
+    this.game.events.on(SANCTUARY_EVENTS.homeStyle, this.handleHomeStyleEvent, this)
   }
 
   private handleProgressEvent(progress: unknown): void {
@@ -301,6 +307,20 @@ export default class Stage0Scene extends Phaser.Scene {
       this.konoInteractions?.setProfile(this.progress.profileId)
     }
     if (changes.some((change) => change.feature === 'pond')) this.scheduleNextRipple(260)
+  }
+
+  /** A style not preloaded at boot (the student just picked a new one this session) loads its 4
+   * phase images on demand — deferred a beat if a phase transition is already mid-load, rather than
+   * racing this scene's own loader. */
+  private handleHomeStyleEvent(styleId: unknown): void {
+    const nextId = isHomeStyleId(styleId) ? styleId : null
+    this.homeStyle = nextId
+    if (!nextId) { this.homeEvolution?.setStyle(null); return }
+    if (HomeEvolutionSystem.isStyleLoaded(this, nextId)) { this.homeEvolution?.setStyle(nextId); return }
+    if (this.load.isLoading()) { this.time.delayedCall(80, () => this.handleHomeStyleEvent(styleId)); return }
+    HomeEvolutionSystem.preloadStyle(this, nextId)
+    this.load.once(Phaser.Loader.Events.COMPLETE, () => { if (this.homeStyle === nextId) this.homeEvolution?.setStyle(nextId) })
+    this.load.start()
   }
 
   private buildEvolutionChanges(previous: SanctuaryProgressState, next: SanctuaryProgressState): EvolutionStageChange[] {
@@ -1075,6 +1095,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.game.events.off(SANCTUARY_EVENTS.fluidSpeed, this.handleFluidSpeedEvent, this)
     this.game.events.off(SANCTUARY_EVENTS.fluidEnabled, this.handleFluidEnabledEvent, this)
     this.game.events.off(SANCTUARY_EVENTS.progress, this.handleProgressEvent, this)
+    this.game.events.off(SANCTUARY_EVENTS.homeStyle, this.handleHomeStyleEvent, this)
     this.scale.off('resize', this.handleResize, this)
     this.tweens.killAll()
     this.ambientSprites.forEach((sprite) => sprite.destroy())

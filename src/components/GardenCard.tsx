@@ -57,6 +57,7 @@ interface GardenCardProps {
   weather: SanctuaryWeather
   reducedMotion: boolean
   progress: SanctuaryProgressState
+  homeStyle?: string | null
 }
 
 const initialState: SanctuaryState = {
@@ -89,14 +90,14 @@ const formatDebugTime = (minutes: number) => {
 const debugFromUrl = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sanctuaryDebug') === '1'
 
-export default function GardenCard({ phase, weather, reducedMotion, progress }: GardenCardProps) {
+export default function GardenCard({ phase, weather, reducedMotion, progress, homeStyle = null }: GardenCardProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const gameRef = useRef<PhaserGameHandle | null>(null)
   const visibleRef = useRef(true)
   const debugEnabledRef = useRef(debugFromUrl())
   const lastCanvasSizeRef = useRef({ width: 0, height: 0 })
-  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress })
-  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress}},[phase,weather,reducedMotion,progress])
+  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, homeStyle })
+  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,homeStyle}},[phase,weather,reducedMotion,progress,homeStyle])
 
   const [state, setState] = useState<SanctuaryState>(initialState)
   const [debugEnabled, setDebugEnabled] = useState(debugFromUrl)
@@ -181,6 +182,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress }: 
             bootingGame.registry.set('sanctuaryDebugMinutes', null)
             bootingGame.registry.set('sanctuaryQuality', 'auto')
             bootingGame.registry.set('sanctuaryProgress', current.progress)
+            bootingGame.registry.set('sanctuaryHomeStyle', current.homeStyle)
           },
         },
       }) as unknown as PhaserGameHandle
@@ -315,6 +317,11 @@ export default function GardenCard({ phase, weather, reducedMotion, progress }: 
     gameRef.current?.registry.set('sanctuaryProgress', progress)
     gameRef.current?.events.emit(SANCTUARY_EVENTS.progress, progress)
   }, [progress])
+
+  useEffect(() => {
+    gameRef.current?.registry.set('sanctuaryHomeStyle', homeStyle)
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.homeStyle, homeStyle)
+  }, [homeStyle])
 
   const updateDebugTime = (minutes: number) => {
     setDebugMinutes(minutes)

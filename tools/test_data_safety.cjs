@@ -96,7 +96,7 @@ test('normalization retains timestamps and does not synthesize wall-clock drift'
  const d=make(),pid=d.profiles[0].id;d.sanctuaryProgress[pid].updatedAt='2020-01-01T00:00:00.000Z';const normalized=model.normalizeData(d);assert.equal(normalized.sanctuaryProgress[pid].updatedAt,'2020-01-01T00:00:00.000Z');same(model.normalizeData(normalized),normalized);
 });
 test('profile guard blocks other-profile records, progress, navigation, and settings',()=>{
- const d=make(),a=d.profiles[0].id,b='profile-B';d.profiles.push({...d.profiles[0],id:b});d.sanctuaryProgress[b]=progress.createSanctuaryProgress(b);d.sanctuaryDecor[b]={profileId:b,placements:[]};
+ let d=make();const a=d.profiles[0].id,b='profile-B';d.profiles.push({...d.profiles[0],id:b});d.sanctuaryProgress[b]=progress.createSanctuaryProgress(b);d.sanctuaryDecor[b]={profileId:b,placements:[]};d=model.normalizeData(d);
  for(const change of [x=>x.profiles[1].name='Changed',x=>x.sanctuaryProgress[b].totalCredits=999,x=>x.sanctuaryDecor[b].placements.push({id:'p1',assetId:'mailbox',x:0.5,y:0.5,rotation:0}),x=>x.settings.sound=false,x=>x.activeProfileId=b,x=>x.tasks.push({id:'B-task',profileId:b,subjectId:'',title:'B',due:'2026-09-09',done:false,notes:''})]){const after=clone(d);change(after);assert.throws(()=>model.assertProfileWrite(d,after,a))}
  assert.equal(model.assertProfileWrite(d,note(d,'own-note'),a).notes.length,1);
 });
@@ -161,6 +161,26 @@ const w=load('src/store/workspace.ts'),d=make();d.studySeasons[0].week.Monday=[{
 test('new appearance and board settings survive a legacy upgrade',()=>{
 const d=note(make(),'styled');d.schemaVersion=2;delete d.trash;d.settings.theme='midnight';d.settings.textSize='large';d.notes[0].size='large';d.notes[0].position=42;const normalized=model.normalizeData(d);assert.equal(normalized.schemaVersion,6);assert.equal(normalized.settings.theme,'midnight');assert.equal(normalized.notes[0].position,42);assert.equal(normalized.trash.length,0);
 });
+test('legacy single-choice scheduleView migrates into the three schedule-show checkboxes',()=>{
+const all=make();assert.deepEqual([all.settings.scheduleShowAcademic,all.settings.scheduleShowSports,all.settings.scheduleShowAppointments],[true,true,true]);
+// A real legacy document predates the three boolean fields entirely — only its old scheduleView
+// string exists — so the fixture must delete them, not just set scheduleView on an already-migrated one.
+const legacyShaped=(view)=>{const d=make();delete d.settings.scheduleShowAcademic;delete d.settings.scheduleShowSports;delete d.settings.scheduleShowAppointments;d.settings.scheduleView=view;return d}
+const migratedAcademic=model.normalizeData(legacyShaped('academic'));
+assert.deepEqual([migratedAcademic.settings.scheduleShowAcademic,migratedAcademic.settings.scheduleShowSports,migratedAcademic.settings.scheduleShowAppointments],[true,false,true]);
+const migratedSports=model.normalizeData(legacyShaped('sports'));
+assert.deepEqual([migratedSports.settings.scheduleShowAcademic,migratedSports.settings.scheduleShowSports,migratedSports.settings.scheduleShowAppointments],[false,true,true]);
+const migratedAll=model.normalizeData(legacyShaped('all'));
+assert.deepEqual([migratedAll.settings.scheduleShowAcademic,migratedAll.settings.scheduleShowSports,migratedAll.settings.scheduleShowAppointments],[true,true,true]);
+const explicit=legacyShaped('sports');explicit.settings.scheduleShowAcademic=true;explicit.settings.scheduleShowSports=false;explicit.settings.scheduleShowAppointments=false;
+const normalizedExplicit=model.normalizeData(explicit);
+assert.deepEqual([normalizedExplicit.settings.scheduleShowAcademic,normalizedExplicit.settings.scheduleShowSports,normalizedExplicit.settings.scheduleShowAppointments],[true,false,false]);
+});
+test('eventCategory buckets calendar event kinds into academic, sports or appointments',()=>{
+for(const kind of ['exam','test','quiz','assignment','study','activity'])assert.equal(model.eventCategory(kind),'academic');
+assert.equal(model.eventCategory('sports'),'sports');
+for(const kind of ['personal','appointment','other'])assert.equal(model.eventCategory(kind),'appointments');
+});
 test('a pre-free-placement grid decor (col/row, no x/y) survives normalization instead of rejecting the save',()=>{
 const d=make(),pid=d.activeProfileId;d.sanctuaryDecor[pid].placements=[{id:'p1',assetId:'mailbox',col:2,row:3,rotation:90}];
 const normalized=model.normalizeData(d);const placement=normalized.sanctuaryDecor[pid].placements[0];
@@ -173,6 +193,16 @@ const d=make(),pid=d.activeProfileId;d.sanctuaryDecor[pid].placements=[{id:'p1',
 const normalized=model.normalizeData(d);const [a,b]=normalized.sanctuaryDecor[pid].placements;
 assert.equal(a.scale,1.6);assert.equal(a.skewX,-20);assert.equal(b.scale,3);assert.equal(b.skewX,60);
 same(model.normalizeData(normalized),normalized);
+});
+test('homeStyle defaults to null, round-trips as a string, and an oversized value fails rather than silently truncating',()=>{
+const d=make(),pid=d.activeProfileId;
+assert.equal(model.normalizeData(d).sanctuaryDecor[pid].homeStyle,null);
+d.sanctuaryDecor[pid].homeStyle='treehouse';
+const normalized=model.normalizeData(d);
+assert.equal(normalized.sanctuaryDecor[pid].homeStyle,'treehouse');
+same(model.normalizeData(normalized),normalized);
+d.sanctuaryDecor[pid].homeStyle='x'.repeat(101);
+assert.throws(()=>model.normalizeData(d));
 });
 test('all cozy color palettes survive save normalization',()=>{
  for(const theme of ['coral','sakura','lavender','mint','honey']){const d=make();d.settings.theme=theme;assert.equal(model.normalizeData(d).settings.theme,theme)}
