@@ -72,6 +72,7 @@ export class PlannerRepository {
   try{
    const supabaseUrl=typeof __KONO_SUPABASE_URL__==='string'?__KONO_SUPABASE_URL__:''
    const supabaseKey=typeof __KONO_SUPABASE_ANON_KEY__==='string'?__KONO_SUPABASE_ANON_KEY__:''
+   if(!supabaseUrl||!supabaseKey)console.warn('KONO: this build has no Supabase URL/key baked in (urlPresent='+Boolean(supabaseUrl)+', keyPresent='+Boolean(supabaseKey)+') — falling back to ChatGPT sign-in.')
    let user:User|null=null
    if(supabaseUrl&&supabaseKey){
     const {SupabaseRemote}=await import('./supabaseRemote')

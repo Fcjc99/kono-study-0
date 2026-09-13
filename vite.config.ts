@@ -67,8 +67,10 @@ self.addEventListener('fetch',event=>{
 
 export default defineConfig(({isSsrBuild,command})=>({
   define:{
-    __KONO_SUPABASE_URL__:JSON.stringify(process.env.VITE_SUPABASE_URL??'https://ooavktekwoguhttauvte.supabase.co'),
-    __KONO_SUPABASE_ANON_KEY__:JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY??'sb_publishable_5GOB_LMND1W2NSNmXwQLBA_RTFVemNR'),
+    // trim+|| (not ??) so an env var present but blank/whitespace-only still falls back, instead of
+    // silently disabling cloud sign-in the way an unset var would not.
+    __KONO_SUPABASE_URL__:JSON.stringify(process.env.VITE_SUPABASE_URL?.trim()||'https://ooavktekwoguhttauvte.supabase.co'),
+    __KONO_SUPABASE_ANON_KEY__:JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY?.trim()||'sb_publishable_5GOB_LMND1W2NSNmXwQLBA_RTFVemNR'),
   },
   publicDir:command==='serve'?(process.env.KONO_ASSET_SOURCE??'public'):false,
   plugins: [react(),sites(),ocrAssets(Boolean(isSsrBuild)),...(command==='serve'?[localApi()]:[]),{
