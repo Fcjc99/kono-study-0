@@ -186,15 +186,17 @@ export class PlannerRepository {
  cloudHistory=async()=>{const generation=this.generation,response=await this.api('history');if(!response.ok||!this.valid(generation))throw new Error('History unavailable.');const result=await response.json() as {history:{revision:number;created_at:string}[]};if(!this.valid(generation))throw new Error('Account changed.');return result.history}
  downloadCloudBackup=async(revision:number)=>{const generation=this.generation,response=await this.api('history/'+revision);if(!response.ok)throw new Error('Backup unavailable.');const data=decodeData(await response.text());if(this.valid(generation))exportData(data)}
  downloadRecovery=(file:RecoveryFile)=>downloadData(file.raw,file.name.replace(/[^a-z0-9-]/gi,'-')+'-recovery.json')
- fetchSchoolCatalog=()=>{if(!this.cloud)throw new Error('The shared catalog needs a KONO deployment with cloud storage configured.');return this.cloud.fetchSchoolCatalog()}
- submitSchoolCatalogEntry=(entry:Parameters<SupabaseRemote['submitSchoolCatalogEntry']>[0])=>{if(!this.cloud)throw new Error('The shared catalog needs a KONO deployment with cloud storage configured.');return this.cloud.submitSchoolCatalogEntry(entry)}
+ /** async: a guard that fails must reject its promise, never throw synchronously — callers
+  * chain .then/.catch on these rather than always awaiting inside a try/catch. */
+ fetchSchoolCatalog=async()=>{if(!this.cloud)throw new Error('The shared catalog needs a KONO deployment with cloud storage configured.');return this.cloud.fetchSchoolCatalog()}
+ submitSchoolCatalogEntry=async(entry:Parameters<SupabaseRemote['submitSchoolCatalogEntry']>[0])=>{if(!this.cloud)throw new Error('The shared catalog needs a KONO deployment with cloud storage configured.');return this.cloud.submitSchoolCatalogEntry(entry)}
  private requireCloud(){if(!this.cloud)throw new Error('Friends need a KONO deployment with cloud storage configured.');return this.cloud}
  myUsername=()=>this.cloud?this.cloud.myUsername():Promise.resolve(null)
- setUsername=(username:string,displayName:string)=>this.requireCloud().setUsername(username,displayName)
- findClassmates=(query:string)=>this.requireCloud().findClassmates(query)
- sendConnectionRequest=(recipientId:string)=>this.requireCloud().sendConnectionRequest(recipientId)
- respondToConnection=(id:string,accept:boolean)=>this.requireCloud().respondToConnection(id,accept)
- removeConnection=(id:string)=>this.requireCloud().removeConnection(id)
+ setUsername=async(username:string,displayName:string)=>this.requireCloud().setUsername(username,displayName)
+ findClassmates=async(query:string)=>this.requireCloud().findClassmates(query)
+ sendConnectionRequest=async(recipientId:string)=>this.requireCloud().sendConnectionRequest(recipientId)
+ respondToConnection=async(id:string,accept:boolean)=>this.requireCloud().respondToConnection(id,accept)
+ removeConnection=async(id:string)=>this.requireCloud().removeConnection(id)
  listConnections=async()=>{
   if(!this.cloud)return {rows:[],profiles:{}}
   const rows=await this.cloud.listConnections()
@@ -203,7 +205,7 @@ export class PlannerRepository {
   const profiles=await this.cloud.profilesFor(ids)
   return {rows,profiles}
  }
- fetchFriendSnapshot=(ownerId:string)=>this.requireCloud().fetchSharedSnapshot(ownerId)
+ fetchFriendSnapshot=async(ownerId:string)=>this.requireCloud().fetchSharedSnapshot(ownerId)
  importPreview=(raw:string)=>decodeData(raw)
  replace=(data:AppData)=>{if(this.blocked){this.notify({error:'The cache could not be read. Export your recovery data and reopen KONO before replacing it.'});return}this.notify({needsMigration:false,conflicts:[]});this.update(data)}
  importLegacy=()=>{if(this.migration)this.replace(this.migration)}
