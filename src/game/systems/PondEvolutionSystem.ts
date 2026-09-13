@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import type { EnvironmentSnapshot } from '../sanctuary/environmentManager'
 import { RenderLayers } from '../engine/RenderLayers'
+import { POND_STYLE_BY_ID, POND_STYLE_FRAME_COUNT, isPondStyleId, pondStyleFramePath, pondStyleTextureKey, type PondStyleId } from '../data/pondStyles'
 
 export const POND_STAGE_NAMES = [
   'Natural pond',
@@ -23,6 +24,14 @@ const MAX_FISH = 3
 const KOI_DIRECTIONS = 8
 const KOI_FRAMES = 2
 const ASSET_ROOT = '/garden/evolution/pond'
+// A chosen pond style is a complete standalone illustration (its own shoreline/rocks/grass, not
+// just open water) sized to fully cover the painted pond+rocks on the terrace map, not just the
+// safe-swimming water box above. Measured against the actual painted map, not the swim-path box.
+const POND_STYLE_BOX_WIDTH = 400
+const POND_STYLE_BOX_HEIGHT = 260
+const POND_STYLE_GROUND_X = 735
+const POND_STYLE_GROUND_Y = 800
+const POND_STYLE_FRAME_DELAY_MS = 650
 
 /**
  * Build 21.5 koi routes.
@@ -140,9 +149,24 @@ export class PondEvolutionSystem {
   private scaleY = 1
   private sceneLeft = 0
   private sceneTop = 0
+  private styleId: PondStyleId | null = null
+  private styleImage?: Phaser.GameObjects.Image
+  private styleFrame = 0
+  private styleFrameEvent?: Phaser.Time.TimerEvent
+  private sceneBounds = new Phaser.Geom.Rectangle()
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
+  }
+
+  /** A chosen style's 4 ripple frames load as their own batch, independent of the (now visually
+   * inert) default koi/decoration assets — students who never pick a pond style pay nothing extra. */
+  static preloadStyle(scene: Phaser.Scene, styleId: PondStyleId): void {
+    for (let frame = 0; frame < POND_STYLE_FRAME_COUNT; frame += 1) scene.load.image(pondStyleTextureKey(styleId, frame), pondStyleFramePath(styleId, frame))
+  }
+
+  static isStyleLoaded(scene: Phaser.Scene, styleId: PondStyleId): boolean {
+    return scene.textures.exists(pondStyleTextureKey(styleId, 0))
   }
 
   static preload(scene: Phaser.Scene): void {
@@ -162,40 +186,15 @@ export class PondEvolutionSystem {
     uniqueAssets.forEach((file, key) => scene.load.image(key, `${ASSET_ROOT}/${file}`))
   }
 
-  create(stage: number, reducedMotion: boolean): void {
+  create(stage: number, reducedMotion: boolean, styleId: string | null = null): void {
     this.stage = Phaser.Math.Clamp(Math.round(stage), 0, POND_STAGE_NAMES.length - 1)
     this.reducedMotion = reducedMotion
-
-    KOI_VARIANTS.forEach((variant, index) => {
-      const sprite = this.scene.add.image(0, 0, koiTextureKey(variant, 0, 0))
-        // Keep koi above the painted water/lily detail so Stage 5 fish remain
-        // readable on the restored original maps, while sparkles can still pass over them.
-        .setDepth(RenderLayers.pondGlint + 0.075 + index * 0.002)
-        .setAlpha(0)
-        .setVisible(false)
-      this.fish.push({
-        sprite,
-        variant,
-        // Keep all Stage 5 koi evenly spaced on the same verified safe-water circuit so none overlap/disappear.
-        phase: [0.05, 0.38, 0.71][index] ?? 0,
-        // One calm shared speed preserves that spacing for the entire loop (~59 s).
-        speed: 0.000017,
-        direction: 1,
-        pathIndex: 0,
-      })
-    })
-
-    DECORATIONS.forEach((spec) => {
-      const image = this.scene.add.image(0, 0, spec.key)
-        .setDepth(spec.depth)
-        .setAlpha(0)
-        .setVisible(false)
-        .setData('pondDecorationSpec', spec)
-      if (spec.flipX) image.setFlipX(true)
-      this.decorations.push(image)
-    })
-
-    this.syncStageVisuals(false)
+    // Build 22.9: the koi/lily/reed stage-growth visuals below are retired in favor of the pond-style
+    // system (setStyle) — progression still tracks and scores pond stage under the hood, it just no
+    // longer draws anything for it. With no style chosen the pond is the plain painted water already
+    // baked into the terrace map, nothing drawn on top of it; this.fish/this.decorations intentionally
+    // stay empty so every method below that iterates them is already a no-op.
+    if (isPondStyleId(styleId)) this.applyStyle(styleId)
   }
 
   update(timeMs: number, environment: EnvironmentSnapshot): void {
@@ -252,6 +251,7 @@ export class PondEvolutionSystem {
   }
 
   resize(sceneBounds: Phaser.Geom.Rectangle): void {
+    this.sceneBounds = new Phaser.Geom.Rectangle(sceneBounds.x, sceneBounds.y, sceneBounds.width, sceneBounds.height)
     this.scaleX = sceneBounds.width / SOURCE_WIDTH
     this.scaleY = sceneBounds.height / SOURCE_HEIGHT
     this.sceneLeft = sceneBounds.left
@@ -276,6 +276,58 @@ export class PondEvolutionSystem {
         .setPosition(Math.round(x), Math.round(y))
         .setScale(spec.scale * this.sceneScale)
     })
+
+    if (this.styleId) this.layoutStyleImage()
+  }
+
+  /** Swaps in a chosen pond style, or (passing null/unknown) clears back to plain painted water.
+   * Caller must have already preloaded the style's frames (see preloadStyle/isStyleLoaded) — this
+   * never triggers a load itself. */
+  setStyle(styleId: string | null): void {
+    const nextId = isPondStyleId(styleId) ? styleId : null
+    if (nextId === this.styleId) return
+    if (!nextId) { this.clearStyle(); return }
+    this.applyStyle(nextId)
+  }
+
+  private applyStyle(id: PondStyleId): void {
+    this.styleId = id
+    this.styleFrame = 0
+    const key = pondStyleTextureKey(id, 0)
+    if (!this.styleImage) this.styleImage = this.scene.add.image(0, 0, key).setDepth(RenderLayers.pondGlint + 0.09)
+    else this.styleImage.setTexture(key).setVisible(true)
+    if (this.sceneBounds.width) this.layoutStyleImage()
+    this.styleFrameEvent?.destroy()
+    this.styleFrameEvent = this.scene.time.addEvent({
+      delay: POND_STYLE_FRAME_DELAY_MS,
+      loop: true,
+      callback: () => this.advanceStyleFrame(),
+    })
+  }
+
+  private clearStyle(): void {
+    this.styleId = null
+    this.styleImage?.setVisible(false)
+    this.styleFrameEvent?.destroy()
+    this.styleFrameEvent = undefined
+  }
+
+  private advanceStyleFrame(): void {
+    if (!this.styleId || this.reducedMotion) return
+    this.styleFrame = (this.styleFrame + 1) % POND_STYLE_FRAME_COUNT
+    this.styleImage?.setTexture(pondStyleTextureKey(this.styleId, this.styleFrame))
+  }
+
+  private layoutStyleImage(): void {
+    if (!this.styleImage || !this.styleId) return
+    const style = POND_STYLE_BY_ID[this.styleId]
+    const contentScale = Math.min(POND_STYLE_BOX_WIDTH / style.contentWidth, POND_STYLE_BOX_HEIGHT / style.contentHeight) * this.scaleX
+    const groundX = this.sceneLeft + POND_STYLE_GROUND_X * this.scaleX
+    const groundY = this.sceneTop + POND_STYLE_GROUND_Y * this.scaleY
+    this.styleImage
+      .setOrigin(style.anchorX, style.anchorY)
+      .setPosition(groundX, groundY)
+      .setDisplaySize(style.width * contentScale, style.height * contentScale)
   }
 
   setStage(stage: number, animate = true): void {
@@ -316,6 +368,8 @@ export class PondEvolutionSystem {
     })
     this.fish.length = 0
     this.decorations.length = 0
+    this.styleFrameEvent?.destroy()
+    this.styleImage?.destroy()
   }
 
 

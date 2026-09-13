@@ -58,6 +58,7 @@ interface GardenCardProps {
   reducedMotion: boolean
   progress: SanctuaryProgressState
   homeStyle?: string | null
+  pondStyle?: string | null
 }
 
 const initialState: SanctuaryState = {
@@ -90,14 +91,14 @@ const formatDebugTime = (minutes: number) => {
 const debugFromUrl = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sanctuaryDebug') === '1'
 
-export default function GardenCard({ phase, weather, reducedMotion, progress, homeStyle = null }: GardenCardProps) {
+export default function GardenCard({ phase, weather, reducedMotion, progress, homeStyle = null, pondStyle = null }: GardenCardProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const gameRef = useRef<PhaserGameHandle | null>(null)
   const visibleRef = useRef(true)
   const debugEnabledRef = useRef(debugFromUrl())
   const lastCanvasSizeRef = useRef({ width: 0, height: 0 })
-  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, homeStyle })
-  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,homeStyle}},[phase,weather,reducedMotion,progress,homeStyle])
+  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, homeStyle, pondStyle })
+  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,homeStyle,pondStyle}},[phase,weather,reducedMotion,progress,homeStyle,pondStyle])
 
   const [state, setState] = useState<SanctuaryState>(initialState)
   const [debugEnabled, setDebugEnabled] = useState(debugFromUrl)
@@ -183,6 +184,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, ho
             bootingGame.registry.set('sanctuaryQuality', 'auto')
             bootingGame.registry.set('sanctuaryProgress', current.progress)
             bootingGame.registry.set('sanctuaryHomeStyle', current.homeStyle)
+            bootingGame.registry.set('sanctuaryPondStyle', current.pondStyle)
           },
         },
       }) as unknown as PhaserGameHandle
@@ -322,6 +324,11 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, ho
     gameRef.current?.registry.set('sanctuaryHomeStyle', homeStyle)
     gameRef.current?.events.emit(SANCTUARY_EVENTS.homeStyle, homeStyle)
   }, [homeStyle])
+
+  useEffect(() => {
+    gameRef.current?.registry.set('sanctuaryPondStyle', pondStyle)
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.pondStyle, pondStyle)
+  }, [pondStyle])
 
   const updateDebugTime = (minutes: number) => {
     setDebugMinutes(minutes)
