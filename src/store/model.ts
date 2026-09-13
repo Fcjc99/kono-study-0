@@ -22,8 +22,11 @@ export type ScheduleBlock={fullYear?:boolean;slot?:string;dateStart?:string;date
 export type WeekSchedule=Record<string,ScheduleBlock[]>
 export type StudySeason={school?:SchoolCalendar;category?:'academic'|'sports';id:string;profileId:string;name:string;start:string;end:string;active:boolean;week:WeekSchedule}
 export type TrashEntry={id:string;profileId:string;collection:string;title:string;payload:string;deletedAt:string}
-/** Player-chosen island cosmetics — independent of SanctuaryProgressState, which is an earned/derived credit ledger. Asset IDs are free-form strings until a real catalog ships; unrecognized IDs are simply not found by the renderer, never a validation failure. */
-export type SanctuaryDecorState={profileId:string;houseStyle?:string;door?:string;window?:string;chimney?:string;exteriorDecor:string[];tree?:string;pondItems:string[];terraceItems:string[]}
+/** Player-chosen island decoration — independent of SanctuaryProgressState, which is an earned/derived credit ledger.
+ * Each placement drops one build asset into a grid cell; assetId is a free-form string, so an unrecognized ID is
+ * simply not found by the renderer, never a validation failure. */
+export type BuildPlacement={id:string;assetId:string;col:number;row:number;rotation:0|90|180|270}
+export type SanctuaryDecorState={profileId:string;placements:BuildPlacement[]}
 export type AppData={schemaVersion:6;trash:TrashEntry[];profiles:Profile[];activeProfileId:string;subjects:Subject[];tasks:Task[];exams:Exam[];notes:Note[];calendarEvents:CalendarEvent[];studySeasons:StudySeason[];studyPlans:StudyPlan[];flashcardDecks:FlashcardDeck[];settings:SettingsData;sanctuaryProgress:Record<string,SanctuaryProgressState>;sanctuaryDecor:Record<string,SanctuaryDecorState>;onboardingComplete?:boolean}
 
 export const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as const
@@ -43,7 +46,7 @@ export const localDate=(date=new Date())=>`${date.getFullYear()}-${String(date.g
 export const defaultSettings:SettingsData={experience:'cozy',textSize:'normal',density:'comfortable',decoration:true,boardStyle:'paper',theme:'coral',themeVersion:4,sound:true,ambient:true,reminders:false,browserNotifications:false,loginDigest:true,scheduleView:'all',reducedMotion:false,motionPreference:'system',sanctuaryWeather:'clear',sanctuaryWeatherMode:'clear',sanctuaryZipCodes:{},sanctuaryWeatherLocations:{}}
 export function createFreshData():AppData {
  const id=uid('profile'),start=localDate(),end=localDate(new Date(Date.now()+180*86400000))
- return {schemaVersion:6,trash:[],profiles:[{id,name:'Learner',label:'My study plan',kind:'custom',start,end,progressEpoch:uid('epoch')}],activeProfileId:id,subjects:[],tasks:[],exams:[],notes:[],calendarEvents:[],studyPlans:[],flashcardDecks:[],studySeasons:[{id:uid('season'),profileId:id,name:'My schedule',start,end,active:true,week:blankWeek()}],settings:{...defaultSettings},sanctuaryProgress:{[id]:createSanctuaryProgress(id)},sanctuaryDecor:{[id]:{profileId:id,exteriorDecor:[],pondItems:[],terraceItems:[]}},onboardingComplete:false}
+ return {schemaVersion:6,trash:[],profiles:[{id,name:'Learner',label:'My study plan',kind:'custom',start,end,progressEpoch:uid('epoch')}],activeProfileId:id,subjects:[],tasks:[],exams:[],notes:[],calendarEvents:[],studyPlans:[],flashcardDecks:[],studySeasons:[{id:uid('season'),profileId:id,name:'My schedule',start,end,active:true,week:blankWeek()}],settings:{...defaultSettings},sanctuaryProgress:{[id]:createSanctuaryProgress(id)},sanctuaryDecor:{[id]:{profileId:id,placements:[]}},onboardingComplete:false}
 }
 
 type Obj=Record<string,unknown>
@@ -65,7 +68,9 @@ const clockTime=(v:unknown)=>{const s=str(v,'schedule time',5);return /^([01]\d|
 const color=(v:unknown,fallback:string)=>v===undefined?fallback:typeof v==='string'&&(/^(#[0-9a-f]{3,8}|transparent)$/i.test(v))?v:fail('color')
 const occurrenceNotes=(value:unknown):Record<string,string>=>{if(value===undefined)return {};if(!object(value)||Object.keys(value).length>2000)return fail('class notes');return Object.fromEntries(Object.entries(value).map(([key,text])=>[date(key,'class note date'),str(text,'class note',10000)]))}
 const stringMap=(v:unknown):Record<string,string>=>{if(v===undefined)return {};if(!object(v))return fail('settings locations');return Object.fromEntries(Object.entries(v).map(([k,x])=>[id(k,'location profile'),str(x,'location',300)]))}
-const idList=(v:unknown,path:string,limit=50):string[]=>{if(v===undefined)return [];if(!Array.isArray(v)||v.length>limit)return fail(path);return v.map(x=>str(x,path,100))}
+/** Generous upper bound for a placement's grid column/row — well above any planned build-grid size, so a
+ * larger grid can ship later without a data migration; the UI simply never renders an out-of-view placement. */
+const BUILD_GRID_MAX=64
 
 /** Validate unknown input before migration. Never turn malformed records into a demo. */
 export function normalizeData(raw:unknown):AppData {
@@ -134,7 +139,8 @@ export function normalizeData(raw:unknown):AppData {
  }
  const sanctuaryProgress=Object.fromEntries(profiles.map(p=>{const saved=progress[p.id];const timestamp=object(saved)&&typeof saved.updatedAt==='string'&&Number.isFinite(Date.parse(saved.updatedAt))?saved.updatedAt:'1970-01-01T00:00:00.000Z';return [p.id,migrateSanctuaryProgress(saved,p.id,tasks.map(t=>({...t,subjectKey:subjects.find(x=>x.id===t.subjectId)?.name??t.subjectId})),timestamp)]}))
  const decor=object(raw.sanctuaryDecor)?raw.sanctuaryDecor:{}
- const sanctuaryDecor:Record<string,SanctuaryDecorState>=Object.fromEntries(profiles.map(p=>{const d=object(decor[p.id])?decor[p.id] as Obj:{};return [p.id,{profileId:p.id,houseStyle:optional(d.houseStyle,'house style',100),door:optional(d.door,'door style',100),window:optional(d.window,'window style',100),chimney:optional(d.chimney,'chimney style',100),exteriorDecor:idList(d.exteriorDecor,'exterior decor'),tree:optional(d.tree,'tree style',100),pondItems:idList(d.pondItems,'pond items'),terraceItems:idList(d.terraceItems,'terrace items')}]}))
+ const placement=(v:Obj):BuildPlacement=>({id:id(v.id,'placement ID'),assetId:str(v.assetId,'placement asset',100),col:integer(v.col,'placement column',BUILD_GRID_MAX),row:integer(v.row,'placement row',BUILD_GRID_MAX),rotation:([0,90,180,270] as const).includes(v.rotation as 0)?v.rotation as 0|90|180|270:0})
+ const sanctuaryDecor:Record<string,SanctuaryDecorState>=Object.fromEntries(profiles.map(p=>{const d=object(decor[p.id])?decor[p.id] as Obj:{};return [p.id,{profileId:p.id,placements:list(d.placements??[],'placements',300).map(placement)}]}))
  const activeProfileId=typeof raw.activeProfileId==='string'&&pids.has(raw.activeProfileId)?raw.activeProfileId:profiles[0].id
  const trash:TrashEntry[]=list(raw.trash??[],'trash',2000).map(t=>({id:id(t.id,'trash ID'),profileId:owner(t.profileId),collection:choice(t.collection,['tasks','notes','exams','calendarEvents','subjects','studyPlans','flashcardDecks','studySeasons','scheduleBlocks'],'notes'),title:str(t.title,'trash title',1000),payload:str(t.payload,'trash payload',1000000),deletedAt:str(t.deletedAt,'deleted at',40)}))
  return {schemaVersion:6,trash,profiles,activeProfileId,subjects,tasks,exams,notes,calendarEvents,studySeasons,studyPlans,flashcardDecks,settings,sanctuaryProgress,sanctuaryDecor,onboardingComplete:bool(raw.onboardingComplete,true)}
