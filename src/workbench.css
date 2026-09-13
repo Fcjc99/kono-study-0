@@ -51,6 +51,11 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .workbench #workspace-main{min-width:0;padding:22px clamp(16px,3vw,48px) 60px;max-width:1500px;width:100%;margin:0 auto}
 .wb-header,.wb-section-head,.wb-status,.wb-scene-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .wb-header{margin-bottom:10px}.wb-header small{color:var(--wb-muted)}
+.voice-add-button{display:flex;align-items:center;gap:6px;border-radius:999px}
+.voice-add-button.is-listening{background:#d9464f;color:#fff;border-color:#d9464f;animation:voice-pulse 1.2s ease-in-out infinite}
+@keyframes voice-pulse{0%,100%{box-shadow:0 0 0 0 rgba(217,70,79,.45)}50%{box-shadow:0 0 0 8px rgba(217,70,79,0)}}
+.voice-add-error{width:100%;color:#b3273a;font-size:.82rem;margin:4px 0 0}
+@media (prefers-reduced-motion:reduce){.voice-add-button.is-listening{animation:none}}
 .wb-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .wb-status{margin-bottom:18px;font-size:.8rem;color:var(--wb-muted)}
 .workbench .save-status{margin:0;padding:0;border:0;background:none;color:inherit;flex:1}

@@ -4,6 +4,8 @@ import {usePlannerRepository} from './store/repository'
 import {uid,localDate,dayNames,eventCategory,type AppData,type SettingsData,type Task,type Subtask,type CalendarEventKind} from './store/model'
 import {collections,records,titleOf,equal,removeEntry,restoreEntry,completeTask,type Collection,type Entry} from './store/workspace'
 import {calendarTasks,addDays} from './store/studyScheduler'
+import {classifyVoiceInput} from './store/voiceIntake'
+import {useSpeechToText} from './hooks/useSpeechToText'
 import {syncCurrentTaskCompletion,createSanctuaryProgress} from './game/progression/progressionEngine'
 import {useReducedMotion,useMusicController} from './hooks/useComfort'
 import {useDueNotifications} from './hooks/useDueNotifications'
@@ -109,10 +111,14 @@ function Workspace({store}:{store:Store}){
   const entry:Entry={id:uid(key),profileId:profile.id,title:'',subjectId:subjectId||'',notes:'',done:false,...seed}
   if(key==='tasks'||key==='exams')entry.due=date
   if(key==='notes')Object.assign(entry,{body:'',date,kind:'note',created:new Date().toISOString(),pinned:true,completed:false,color:'#fff2b4',textColor:'#2f2942',font:'rounded',size:'medium',position:Math.max(0,...notes.map(n=>n.position??0))+1})
-  if(key==='calendarEvents')Object.assign(entry,{date,kind:'personal'})
+  if(key==='calendarEvents')Object.assign(entry,{date,kind:entry.kind??'personal'})
   if(key==='subjects')Object.assign(entry,{name:'',resources:[],color:'#4169a8'})
   openEditor({key,entry})
  }
+ const {listening:voiceListening,error:voiceError,toggle:toggleVoiceAdd,supported:voiceSupported}=useSpeechToText(text=>{
+  const guess=classifyVoiceInput(text,subjects,today,addDays)
+  create(guess.key,guess.date,guess.subjectId,guess.kind?{title:guess.title,kind:guess.kind}:{title:guess.title})
+ })
  const edit=(key:Collection,entry:Entry)=>{const original=records(data,key).find(r=>r.id===entry.id)??entry;openEditor({key,entry:original,original})}
  const patch=(key:Collection,entry:Entry,changes:Partial<Entry>)=>run(()=>save(d=>({...d,[key]:records(d,key).map(r=>r.id===entry.id?{...r,...changes}:r)})),'Changes saved.')
  const reschedule=(key:Collection,entry:Entry,date:string)=>void patch(key,entry,{['due' in entry?'due':'date']:date})
@@ -178,7 +184,7 @@ function Workspace({store}:{store:Store}){
  return <div className={'workbench density-'+(data.settings.density??'comfortable')+' text-'+(data.settings.textSize??'normal')} data-page={page.toLowerCase()} data-experience={experience} data-decoration={data.settings.decoration!==false}>
   <a className="skip-link" href="#workspace-main">Skip to content</a>
   {experience==='cozy'?<div className="cozy-navigation"><Sidebar view={page==='Trash'?'Notes':page} onView={navigate} profile={profile.name} schoolYear={profile.label} profiles={data.profiles} activeProfileId={profile.id} onProfileChange={id=>void save(d=>({...d,activeProfileId:id}))} musicPlayer={<MusicPlayer controller={music}/>}/></div>:<aside className="wb-sidebar"><a className="wb-brand" href="?page=sanctuary" onClick={e=>{e.preventDefault();navigate('Sanctuary')}}><span className="brand-mark" aria-hidden="true"><span>K</span><i>✿</i></span><strong>KONO<small>Study Sanctuary</small></strong></a><div className="wb-tabs-label">Notebook tabs</div><nav aria-label="Main navigation">{pages.map(p=><button key={p} aria-current={page===p?'page':undefined} onClick={()=>navigate(p)}><span className="wb-nav-icon">{p==='Trash'?<span aria-hidden="true">↶</span>:<NavIcon name={p}/>}</span><span>{p}</span></button>)}</nav><details className="wb-music" open={experience!=='office'}><summary>Music</summary><MusicPlayer controller={music}/></details><label className="wb-profile"><span className="wb-profile-title">{profile.label}</span>Study profile<select value={profile.id} onChange={e=>void save(d=>({...d,activeProfileId:e.target.value}))}>{data.profiles.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}</select></label></aside>}
-  <main id="workspace-main"><header className="wb-header"><div><small>{profile.label}</small><h1>{page}{experience==='cozy'&&<span className="cozy-heading-flower" aria-hidden="true">❀</span>}</h1></div><div className="wb-toolbar"><button onClick={()=>setSearch(true)}>{experience==='cozy'&&<ActionIcon name="search"/>}Search</button>{experience==='cozy'&&<button onClick={()=>navigate('Trash')}><ActionIcon name="trash"/>Trash</button>}<button className="primary" onClick={()=>setAdding(true)}>＋ Add</button></div></header>
+  <main id="workspace-main"><header className="wb-header"><div><small>{profile.label}</small><h1>{page}{experience==='cozy'&&<span className="cozy-heading-flower" aria-hidden="true">❀</span>}</h1></div><div className="wb-toolbar"><button onClick={()=>setSearch(true)}>{experience==='cozy'&&<ActionIcon name="search"/>}Search</button>{experience==='cozy'&&<button onClick={()=>navigate('Trash')}><ActionIcon name="trash"/>Trash</button>}<button className="primary" onClick={()=>setAdding(true)}>＋ Add</button>{voiceSupported&&<button className={'voice-add-button'+(voiceListening?' is-listening':'')} onClick={toggleVoiceAdd} aria-pressed={voiceListening} aria-label={voiceListening?'Stop voice input':'Add by voice'} title="Speak an assignment, exam, note or appointment — it opens in the right editor to review"><ActionIcon name="mic"/>{voiceListening?'Listening…':''}</button>}</div>{voiceError&&<p role="alert" className="voice-add-error">{voiceError}</p>}</header>
    <div className="wb-status"><SaveStatus store={store}/><div className="wb-toolbar"><button disabled={!repository.canUndo} onClick={()=>void run(repository.undo,'Undone. Earned progress is kept.')}>Undo</button><button disabled={!repository.canRedo} onClick={()=>void run(repository.redo,'Redone.')}>Redo</button></div></div>
    {message&&<p role="status" className="wb-notice">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></p>}
    {showDigest&&<div className="wb-notice login-digest" role="status"><div><strong>{dueSoon.length} thing{dueSoon.length===1?'':'s'} due in the next 3 days</strong><ul>{dueSoon.slice(0,5).map(t=><li key={t.id}>{t.title} · {dateLabel(t.due)}</li>)}</ul>{dueSoon.length>5&&<small>+{dueSoon.length-5} more</small>}</div><button onClick={dismissDigest}>Got it</button></div>}
