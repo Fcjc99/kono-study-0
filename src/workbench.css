@@ -135,6 +135,11 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .wb-dialog>button{display:block;width:100%;margin:8px 0;text-align:left}
 .wb-dialog h2{margin:0;color:inherit;font-size:1.4rem}.wb-dialog form{display:grid;gap:16px}
 .wb-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:18px 0}
+.wb-match-result{margin:10px 0}
+.wb-match-outcome{font-weight:800;padding:4px 12px;border-radius:999px;display:inline-block;margin-top:4px}
+.wb-match-outcome.is-win{background:#dcf0e1;color:#1d6b3a}
+.wb-match-outcome.is-loss{background:#fde2d4;color:#a2481a}
+.wb-match-outcome.is-tie{background:#eee3ca;color:#7a6420}
 .wb-check{display:flex!important;gap:10px;align-items:center;min-height:44px}
 .wb-themes{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:10px;margin:20px 0}
 .wb-themes button{display:grid;gap:8px;text-align:left}.wb-themes span{height:32px;width:100%;border-radius:5px;background:#b15363}

@@ -1,3 +1,20 @@
 .home-away-badge{display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;margin-top:22px;padding:4px 12px;border-radius:999px;font-size:.72rem;font-weight:800;letter-spacing:.04em}
 .home-away-badge.is-home{background:#dcf0e1;color:#1d6b3a}
 .home-away-badge.is-away{background:#fde2d4;color:#a2481a}
+.season-record{border:1px solid var(--wb-line);border-radius:14px;padding:14px 16px;margin:14px 0;background:var(--wb-surface)}
+.season-record-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.season-record-head h4{margin:0}
+.season-record-tally{font-weight:800;font-size:.9rem}
+.season-record-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}
+.season-record-list li{border:1px solid var(--wb-line);border-radius:10px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.season-record-list li.is-win{border-color:#1d6b3a55}
+.season-record-list li.is-loss{border-color:#a2481a55}
+.season-record-row-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.season-record-row-head small{color:var(--wb-muted)}
+.season-record-score{display:flex;align-items:center;gap:8px}
+.season-record-score label{display:flex;align-items:center;gap:4px;font-size:.75rem;font-weight:700}
+.season-record-score input{width:52px}
+.match-outcome-chip{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.75rem}
+.match-outcome-chip.is-win{background:#dcf0e1;color:#1d6b3a}
+.match-outcome-chip.is-loss{background:#fde2d4;color:#a2481a}
+.match-outcome-chip.is-tie{background:#eee3ca;color:#7a6420}

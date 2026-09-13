@@ -16,7 +16,12 @@ export type StudyPlan={id:string;profileId:string;subjectId:string;title:string;
 export type Exam={id:string;profileId:string;subjectId:string;title:string;due:string;notes:string;done:boolean;color?:string;font?:string;highlight?:string;textColor?:string}
 export type Note={id:string;profileId:string;subjectId:string;title:string;body:string;created:string;source?:string;pinned?:boolean;completed?:boolean;color?:string;font?:string;highlight?:string;textColor?:string;size?:'small'|'medium'|'large';position?:number}
 export type CalendarEventKind='exam'|'test'|'quiz'|'assignment'|'study'|'activity'|'personal'|'sports'|'appointment'|'other'
-export type CalendarEvent={id:string;profileId:string;date:string;title:string;kind:CalendarEventKind;done?:boolean;subjectId?:string;notes:string;time?:string}
+/** A recorded final score for a sports calendar event. Outcome (win/loss/tie) is always derived by
+ * comparing ourScore/opponentScore rather than stored, so it can never disagree with the score. */
+export type MatchResult={ourScore:number;opponentScore:number}
+export type MatchOutcome='win'|'loss'|'tie'
+export const matchOutcome=(result:MatchResult):MatchOutcome=>result.ourScore>result.opponentScore?'win':result.ourScore<result.opponentScore?'loss':'tie'
+export type CalendarEvent={id:string;profileId:string;date:string;title:string;kind:CalendarEventKind;done?:boolean;subjectId?:string;notes:string;time?:string;result?:MatchResult}
 /** Which of the three schedule categories (academic, sports, appointments) a calendar event's kind
  * belongs to for the schedule-view checkboxes below — 'sports' is its own category, everything
  * exam/assignment-shaped is academic, and the rest (personal/appointment/other) are appointments. */
@@ -78,6 +83,15 @@ const clockTime=(v:unknown)=>{const s=str(v,'schedule time',5);return /^([01]\d|
 const color=(v:unknown,fallback:string)=>v===undefined?fallback:typeof v==='string'&&(/^(#[0-9a-f]{3,8}|transparent)$/i.test(v))?v:fail('color')
 const occurrenceNotes=(value:unknown):Record<string,string>=>{if(value===undefined)return {};if(!object(value)||Object.keys(value).length>2000)return fail('class notes');return Object.fromEntries(Object.entries(value).map(([key,text])=>[date(key,'class note date'),str(text,'class note',10000)]))}
 const stringMap=(v:unknown):Record<string,string>=>{if(v===undefined)return {};if(!object(v))return fail('settings locations');return Object.fromEntries(Object.entries(v).map(([k,x])=>[id(k,'location profile'),str(x,'location',300)]))}
+/** A match score is cosmetic, recorded well after the fact — malformed input (e.g. from a future
+ * schema change) is just dropped rather than failing the whole save. */
+const matchResult=(v:unknown):MatchResult|undefined=>{
+ if(v===undefined||v===null)return undefined
+ if(!object(v))return undefined
+ const clampScore=(n:unknown):number|null=>typeof n==='number'&&Number.isFinite(n)?Math.max(0,Math.min(999,Math.round(n))):null
+ const ourScore=clampScore(v.ourScore),opponentScore=clampScore(v.opponentScore)
+ return ourScore===null||opponentScore===null?undefined:{ourScore,opponentScore}
+}
 /** A placement's x/y are 0-1 fractions of the build canvas — clamped rather than failed, since a stray
  * out-of-range value is a harmless cosmetic drift (the item renders near an edge), never data corruption.
  * A missing/non-numeric value (e.g. a placement saved by the earlier grid-based {col,row} editor, which
@@ -132,7 +146,7 @@ export function normalizeData(raw:unknown):AppData {
  const style=(s:Obj)=>({color:color(s.color,'#ffd2dd'),textColor:color(s.textColor,'#2f2942'),highlight:color(s.highlight,'transparent'),font:choice(s.font,['rounded','handwritten','serif','mono'],'rounded')})
  const exams:Exam[]=examInput.map(e=>{const profileId=owner(e.profileId);return {id:id(e.id,'exam ID'),profileId,subjectId:subject(e.subjectId,profileId),title:str(e.title,'exam title',1000),due:date(e.due,'exam date'),notes:str(e.notes??'','exam notes',100000),done:bool(e.done),...style(e)}})
  const notes:Note[]=noteInput.map(n=>{const profileId=owner(n.profileId);return {id:id(n.id,'note ID'),profileId,subjectId:subject(n.subjectId,profileId),title:str(n.title,'note title',1000),body:str(n.body??'','note body',100000),created:str(n.created,'note date',40),size:choice(n.size,['small','medium','large'],'medium'),position:typeof n.position==='number'&&Number.isFinite(n.position)?n.position:0,source:optional(n.source,'source',1000),pinned:bool(n.pinned),completed:bool(n.completed),...style(n)}})
- const calendarEvents:CalendarEvent[]=eventInput.map(e=>{const profileId=owner(e.profileId);return {id:id(e.id,'event ID'),profileId,done:bool(e.done),subjectId:subject(e.subjectId,profileId),title:str(e.title,'event title',1000),date:date(e.date,'event date'),notes:str(e.notes??'','event notes',100000),kind:choice(e.kind,['exam','test','quiz','assignment','study','activity','personal','sports','other'],'other'),time:e.time===undefined?undefined:clockTime(e.time)}})
+ const calendarEvents:CalendarEvent[]=eventInput.map(e=>{const profileId=owner(e.profileId);return {id:id(e.id,'event ID'),profileId,done:bool(e.done),subjectId:subject(e.subjectId,profileId),title:str(e.title,'event title',1000),date:date(e.date,'event date'),notes:str(e.notes??'','event notes',100000),kind:choice(e.kind,['exam','test','quiz','assignment','study','activity','personal','sports','appointment','other'],'other'),time:e.time===undefined?undefined:clockTime(e.time),result:matchResult(e.result)}})
  const studySeasons:StudySeason[]=list(raw.studySeasons??[],'schedules',500).map(s=>{
   const profileId=owner(s.profileId);if(!object(s.week))return fail('schedule week')
   const school=s.school===undefined?undefined:structuredClone(s.school) as SchoolCalendar
