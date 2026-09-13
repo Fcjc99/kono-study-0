@@ -161,6 +161,26 @@ const w=load('src/store/workspace.ts'),d=make();d.studySeasons[0].week.Monday=[{
 test('new appearance and board settings survive a legacy upgrade',()=>{
 const d=note(make(),'styled');d.schemaVersion=2;delete d.trash;d.settings.theme='midnight';d.settings.textSize='large';d.notes[0].size='large';d.notes[0].position=42;const normalized=model.normalizeData(d);assert.equal(normalized.schemaVersion,6);assert.equal(normalized.settings.theme,'midnight');assert.equal(normalized.notes[0].position,42);assert.equal(normalized.trash.length,0);
 });
+test('legacy single-choice scheduleView migrates into the three schedule-show checkboxes',()=>{
+const all=make();assert.deepEqual([all.settings.scheduleShowAcademic,all.settings.scheduleShowSports,all.settings.scheduleShowAppointments],[true,true,true]);
+// A real legacy document predates the three boolean fields entirely — only its old scheduleView
+// string exists — so the fixture must delete them, not just set scheduleView on an already-migrated one.
+const legacyShaped=(view)=>{const d=make();delete d.settings.scheduleShowAcademic;delete d.settings.scheduleShowSports;delete d.settings.scheduleShowAppointments;d.settings.scheduleView=view;return d}
+const migratedAcademic=model.normalizeData(legacyShaped('academic'));
+assert.deepEqual([migratedAcademic.settings.scheduleShowAcademic,migratedAcademic.settings.scheduleShowSports,migratedAcademic.settings.scheduleShowAppointments],[true,false,true]);
+const migratedSports=model.normalizeData(legacyShaped('sports'));
+assert.deepEqual([migratedSports.settings.scheduleShowAcademic,migratedSports.settings.scheduleShowSports,migratedSports.settings.scheduleShowAppointments],[false,true,true]);
+const migratedAll=model.normalizeData(legacyShaped('all'));
+assert.deepEqual([migratedAll.settings.scheduleShowAcademic,migratedAll.settings.scheduleShowSports,migratedAll.settings.scheduleShowAppointments],[true,true,true]);
+const explicit=legacyShaped('sports');explicit.settings.scheduleShowAcademic=true;explicit.settings.scheduleShowSports=false;explicit.settings.scheduleShowAppointments=false;
+const normalizedExplicit=model.normalizeData(explicit);
+assert.deepEqual([normalizedExplicit.settings.scheduleShowAcademic,normalizedExplicit.settings.scheduleShowSports,normalizedExplicit.settings.scheduleShowAppointments],[true,false,false]);
+});
+test('eventCategory buckets calendar event kinds into academic, sports or appointments',()=>{
+for(const kind of ['exam','test','quiz','assignment','study','activity'])assert.equal(model.eventCategory(kind),'academic');
+assert.equal(model.eventCategory('sports'),'sports');
+for(const kind of ['personal','appointment','other'])assert.equal(model.eventCategory(kind),'appointments');
+});
 test('a pre-free-placement grid decor (col/row, no x/y) survives normalization instead of rejecting the save',()=>{
 const d=make(),pid=d.activeProfileId;d.sanctuaryDecor[pid].placements=[{id:'p1',assetId:'mailbox',col:2,row:3,rotation:90}];
 const normalized=model.normalizeData(d);const placement=normalized.sanctuaryDecor[pid].placements[0];
