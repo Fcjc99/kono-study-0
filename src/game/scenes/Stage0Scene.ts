@@ -1,11 +1,17 @@
 import Phaser from 'phaser'
 import { SANCTUARY_LANDMARKS } from '../data/sanctuaryLandmarks'
 import type { SanctuaryLandmark } from '../types/SanctuaryLandmark'
-import { createSanctuaryProgress, migrateSanctuaryProgress } from '../progression/progressionEngine'
+import {
+  createSanctuaryProgress,
+  migrateSanctuaryProgress,
+  HOME_STAGE_NAMES,
+  POND_STAGE_NAMES,
+  TREE_STAGE_NAMES,
+  LANTERN_STAGE_NAMES,
+} from '../progression/progressionEngine'
 import type { SanctuaryProgressState } from '../progression/types'
 import {
   PHASE_LABELS,
-  POND_RIPPLE_ANCHORS,
   WEATHER_LABELS,
 } from '../sanctuary/config'
 import { DEFAULT_SANCTUARY_SETTINGS, SANCTUARY_EVENTS, isPhaseMode, isSanctuaryQuality, isSanctuaryWeather } from '../sanctuary/runtime'
@@ -20,13 +26,6 @@ import { AtmosphereSystem } from '../systems/AtmosphereSystem'
 import { VegetationSystem } from '../systems/VegetationSystem'
 import { LightingSystem } from '../systems/LightingSystem'
 import { WeatherSystem } from '../systems/WeatherSystem'
-import { TREE_STAGE_NAMES, TreeEvolutionSystem } from '../systems/TreeEvolutionSystem'
-import { POND_STAGE_NAMES, PondEvolutionSystem } from '../systems/PondEvolutionSystem'
-import { HOME_STAGE_NAMES, HomeEvolutionSystem } from '../systems/HomeEvolutionSystem'
-import { isHomeStyleId } from '../data/homeStyles'
-import { isPondStyleId } from '../data/pondStyles'
-import { isTreeStyleId } from '../data/treeStyles'
-import { LANTERN_STAGE_NAMES } from '../progression/progressionEngine'
 import { GARDEN_STAGE_NAMES, GardenEvolutionSystem } from '../systems/GardenEvolutionSystem'
 import { CritterSystem } from '../systems/CritterSystem'
 import { KonoInteractionSystem, type KonoLandmarkId } from '../systems/KonoInteractionSystem'
@@ -61,7 +60,6 @@ interface SanctuaryStatePayload {
 }
 
 const PHASE_VARIANTS = ['01', '02', '03', '04']
-const RIPPLE_VARIANTS = ['01', '02', '03', '06']
 
 const terraceMapTextureKey = (phase: DayPhase): string => `stage0-${phase}-terrace`
 
@@ -83,33 +81,14 @@ export default class Stage0Scene extends Phaser.Scene {
   private vegetation!: VegetationSystem
   private lighting!: LightingSystem
   private weatherSystem!: WeatherSystem
-  private evolution!: TreeEvolutionSystem
-  private pondEvolution!: PondEvolutionSystem
-  private homeEvolution!: HomeEvolutionSystem
   private evolutionCoordinator!: EvolutionCoordinator
   private paintedPhase: DayPhase = 'afternoon'
   private ambientSprites = new Set<Phaser.GameObjects.Image>()
   private clockEvent?: Phaser.Time.TimerEvent
-  private rippleEvent?: Phaser.Time.TimerEvent
   private ambientEvent?: Phaser.Time.TimerEvent
   private blend: PhaseBlend = stable('afternoon')
   private settings: SanctuaryRuntimeSettings = { ...DEFAULT_SANCTUARY_SETTINGS }
   private progress: SanctuaryProgressState = createSanctuaryProgress('unassigned')
-  private homeStyle: string | null = null
-  private pondStyle: string | null = null
-  private treeStyle: string | null = null
-  private homeStyleScale = 1
-  private homeStyleFlipX = false
-  private homeStyleX: number | null = null
-  private homeStyleY: number | null = null
-  private pondStyleScale = 1
-  private pondStyleFlipX = false
-  private pondStyleX: number | null = null
-  private pondStyleY: number | null = null
-  private treeStyleScale = 1
-  private treeStyleFlipX = false
-  private treeStyleX: number | null = null
-  private treeStyleY: number | null = null
   private world = new WorldEngine()
   private stateEmitClock = 0
   private readyPhases = new Set<DayPhase>()
@@ -131,7 +110,6 @@ export default class Stage0Scene extends Phaser.Scene {
   }
   private enqueuePhaseAssets(phase:DayPhase):void{
     this.load.image(terraceMapTextureKey(phase),`/garden/terrace-23.0/${phase}.png`)
-    TreeEvolutionSystem.preload(this,[phase]);HomeEvolutionSystem.preload(this,[phase])
   }
 
   constructor() {
@@ -147,10 +125,6 @@ export default class Stage0Scene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.DESTROY,()=>{this.phaseGateDisposed=true;this.pendingBlend=null})
     this.bootImageKeys=this.collectQueuedImages(()=>{
     this.enqueuePhaseAssets(this.paintedPhase)
-    if(isHomeStyleId(this.homeStyle))HomeEvolutionSystem.preloadStyle(this,this.homeStyle)
-    if(isPondStyleId(this.pondStyle))PondEvolutionSystem.preloadStyle(this,this.pondStyle)
-    if(isTreeStyleId(this.treeStyle))TreeEvolutionSystem.preloadStyle(this,this.treeStyle)
-    RIPPLE_VARIANTS.forEach((id) => this.load.image(`ripple-${id}`, `/garden/processed/ripples/ripple-${id}.png`))
     PHASE_VARIANTS.forEach((id) => {
       this.load.image(`leaf-${id}`, `/garden/processed/leaves/leaf-${id}.png`)
       this.load.image(`petal-${id}`, `/garden/processed/petals/cherry-petal-${id}.png`)
@@ -158,7 +132,6 @@ export default class Stage0Scene extends Phaser.Scene {
     CloudSystem.preload(this)
     AtmosphereSystem.preload(this)
     VegetationSystem.preload(this)
-    PondEvolutionSystem.preload(this)
     LightingSystem.preload(this)
     GardenEvolutionSystem.preload(this)
     CritterSystem.preload(this)
@@ -185,24 +158,18 @@ export default class Stage0Scene extends Phaser.Scene {
 
     this.gardenEvolution = new GardenEvolutionSystem(this)
     this.gardenEvolution.create(this.progress.featureStages.garden ?? 0, this.settings.reducedMotion)
-    this.homeEvolution = new HomeEvolutionSystem(this)
-    this.homeEvolution.create(this.progress.featureStages.home ?? 0, this.blend.dominant, this.settings.reducedMotion, this.homeStyle, this.homeStyleScale, this.homeStyleFlipX, this.homeStyleX, this.homeStyleY)
     // Build 23.0: the animated ocean/waterfall/foam/pond shimmer crops were tuned to fixed pixel
     // positions on the old terrace map and no longer line up with the new blank island's coastline
     // and waterfall — never created, rather than shown misplaced. New crops fitted to the new island's
     // art (and its own per-phase variants) will replace this later; the class stays wired (every other
     // call site below is a safe no-op against its empty layer map) so re-enabling it is a one-line change.
     this.fluid = new FluidSystem(this)
-    this.pondEvolution = new PondEvolutionSystem(this)
-    this.pondEvolution.create(this.progress.featureStages.pond ?? 0, this.settings.reducedMotion, this.pondStyle, this.pondStyleScale, this.pondStyleFlipX, this.pondStyleX, this.pondStyleY)
     this.clouds = new CloudSystem(this)
     this.clouds.create(this.blend.dominant, this.settings.reducedMotion)
     this.atmosphere = new AtmosphereSystem(this)
     this.atmosphere.create(this.blend.dominant, this.settings.reducedMotion)
     this.vegetation = new VegetationSystem(this)
     this.vegetation.create(this.blend.dominant, this.settings.reducedMotion)
-    this.evolution = new TreeEvolutionSystem(this)
-    this.evolution.create(this.progress.featureStages.tree ?? this.progress.unlockedStage, this.blend.dominant, this.settings.reducedMotion, this.treeStyle, this.treeStyleScale, this.treeStyleFlipX, this.treeStyleX, this.treeStyleY)
     this.critters = new CritterSystem(this)
     this.critters.create(
       this.blend.dominant,
@@ -232,7 +199,6 @@ export default class Stage0Scene extends Phaser.Scene {
     this.bindRuntimeEvents()
 
     this.clockEvent = this.time.addEvent({ delay: 5_000, loop: true, callback: () => this.applyCurrentTime(false) })
-    this.scheduleNextRipple(900)
     this.scheduleNextAmbient(1_600)
 
     this.scale.on('resize', this.handleResize, this)
@@ -247,21 +213,6 @@ export default class Stage0Scene extends Phaser.Scene {
     const debugMinutes = this.registry.get('sanctuaryDebugMinutes')
     const quality = this.registry.get('sanctuaryQuality')
     const progress = this.registry.get('sanctuaryProgress')
-    const homeStyle = this.registry.get('sanctuaryHomeStyle')
-    const pondStyle = this.registry.get('sanctuaryPondStyle')
-    const homeStyleScale = this.registry.get('sanctuaryHomeStyleScale')
-    const homeStyleFlipX = this.registry.get('sanctuaryHomeStyleFlipX')
-    const homeStyleX = this.registry.get('sanctuaryHomeStyleX')
-    const homeStyleY = this.registry.get('sanctuaryHomeStyleY')
-    const pondStyleScale = this.registry.get('sanctuaryPondStyleScale')
-    const pondStyleFlipX = this.registry.get('sanctuaryPondStyleFlipX')
-    const pondStyleX = this.registry.get('sanctuaryPondStyleX')
-    const pondStyleY = this.registry.get('sanctuaryPondStyleY')
-    const treeStyle = this.registry.get('sanctuaryTreeStyle')
-    const treeStyleScale = this.registry.get('sanctuaryTreeStyleScale')
-    const treeStyleFlipX = this.registry.get('sanctuaryTreeStyleFlipX')
-    const treeStyleX = this.registry.get('sanctuaryTreeStyleX')
-    const treeStyleY = this.registry.get('sanctuaryTreeStyleY')
 
     if (isPhaseMode(phaseMode)) this.settings.phaseMode = phaseMode
     if (isSanctuaryWeather(weather)) this.settings.weather = weather
@@ -275,21 +226,6 @@ export default class Stage0Scene extends Phaser.Scene {
         : 'unassigned'
       this.progress = migrateSanctuaryProgress(progress, profileId)
     }
-    if (homeStyle === null || typeof homeStyle === 'string') this.homeStyle = homeStyle
-    if (pondStyle === null || typeof pondStyle === 'string') this.pondStyle = pondStyle
-    if (typeof homeStyleScale === 'number' && Number.isFinite(homeStyleScale)) this.homeStyleScale = Phaser.Math.Clamp(homeStyleScale, 0.3, 3)
-    if (typeof homeStyleFlipX === 'boolean') this.homeStyleFlipX = homeStyleFlipX
-    if (homeStyleX === null || (typeof homeStyleX === 'number' && Number.isFinite(homeStyleX))) this.homeStyleX = homeStyleX
-    if (homeStyleY === null || (typeof homeStyleY === 'number' && Number.isFinite(homeStyleY))) this.homeStyleY = homeStyleY
-    if (typeof pondStyleScale === 'number' && Number.isFinite(pondStyleScale)) this.pondStyleScale = Phaser.Math.Clamp(pondStyleScale, 0.3, 3)
-    if (typeof pondStyleFlipX === 'boolean') this.pondStyleFlipX = pondStyleFlipX
-    if (pondStyleX === null || (typeof pondStyleX === 'number' && Number.isFinite(pondStyleX))) this.pondStyleX = pondStyleX
-    if (pondStyleY === null || (typeof pondStyleY === 'number' && Number.isFinite(pondStyleY))) this.pondStyleY = pondStyleY
-    if (treeStyle === null || typeof treeStyle === 'string') this.treeStyle = treeStyle
-    if (typeof treeStyleScale === 'number' && Number.isFinite(treeStyleScale)) this.treeStyleScale = Phaser.Math.Clamp(treeStyleScale, 0.3, 3)
-    if (typeof treeStyleFlipX === 'boolean') this.treeStyleFlipX = treeStyleFlipX
-    if (treeStyleX === null || (typeof treeStyleX === 'number' && Number.isFinite(treeStyleX))) this.treeStyleX = treeStyleX
-    if (treeStyleY === null || (typeof treeStyleY === 'number' && Number.isFinite(treeStyleY))) this.treeStyleY = treeStyleY
   }
 
   private bindRuntimeEvents(): void {
@@ -303,12 +239,6 @@ export default class Stage0Scene extends Phaser.Scene {
     this.game.events.on(SANCTUARY_EVENTS.fluidSpeed, this.handleFluidSpeedEvent, this)
     this.game.events.on(SANCTUARY_EVENTS.fluidEnabled, this.handleFluidEnabledEvent, this)
     this.game.events.on(SANCTUARY_EVENTS.progress, this.handleProgressEvent, this)
-    this.game.events.on(SANCTUARY_EVENTS.homeStyle, this.handleHomeStyleEvent, this)
-    this.game.events.on(SANCTUARY_EVENTS.pondStyle, this.handlePondStyleEvent, this)
-    this.game.events.on(SANCTUARY_EVENTS.treeStyle, this.handleTreeStyleEvent, this)
-    this.game.events.on(SANCTUARY_EVENTS.homeStyleTransform, this.handleHomeStyleTransformEvent, this)
-    this.game.events.on(SANCTUARY_EVENTS.pondStyleTransform, this.handlePondStyleTransformEvent, this)
-    this.game.events.on(SANCTUARY_EVENTS.treeStyleTransform, this.handleTreeStyleTransformEvent, this)
   }
 
   private handleProgressEvent(progress: unknown): void {
@@ -340,86 +270,6 @@ export default class Stage0Scene extends Phaser.Scene {
     if (profileChanged) {
       this.konoInteractions?.setProfile(this.progress.profileId)
     }
-    if (changes.some((change) => change.feature === 'pond')) this.scheduleNextRipple(260)
-  }
-
-  /** A style not preloaded at boot (the student just picked a new one this session) loads its 4
-   * phase images on demand — deferred a beat if a phase transition is already mid-load, rather than
-   * racing this scene's own loader. */
-  private handleHomeStyleEvent(styleId: unknown): void {
-    const nextId = isHomeStyleId(styleId) ? styleId : null
-    this.homeStyle = nextId
-    if (!nextId) { this.homeEvolution?.setStyle(null); return }
-    if (HomeEvolutionSystem.isStyleLoaded(this, nextId)) { this.homeEvolution?.setStyle(nextId); return }
-    if (this.load.isLoading()) { this.time.delayedCall(80, () => this.handleHomeStyleEvent(styleId)); return }
-    HomeEvolutionSystem.preloadStyle(this, nextId)
-    this.load.once(Phaser.Loader.Events.COMPLETE, () => { if (this.homeStyle === nextId) this.homeEvolution?.setStyle(nextId) })
-    this.load.start()
-  }
-
-  private handlePondStyleEvent(styleId: unknown): void {
-    const nextId = isPondStyleId(styleId) ? styleId : null
-    this.pondStyle = nextId
-    this.fluid?.setPondLayerVisible(!nextId)
-    if (!nextId) { this.pondEvolution?.setStyle(null); return }
-    if (PondEvolutionSystem.isStyleLoaded(this, nextId)) { this.pondEvolution?.setStyle(nextId); return }
-    if (this.load.isLoading()) { this.time.delayedCall(80, () => this.handlePondStyleEvent(styleId)); return }
-    PondEvolutionSystem.preloadStyle(this, nextId)
-    this.load.once(Phaser.Loader.Events.COMPLETE, () => { if (this.pondStyle === nextId) this.pondEvolution?.setStyle(nextId) })
-    this.load.start()
-  }
-
-  private handleHomeStyleTransformEvent(payload: unknown): void {
-    const p = payload && typeof payload === 'object' ? payload as { scale?: unknown; flipX?: unknown; x?: unknown; y?: unknown } : {}
-    const scale = typeof p.scale === 'number' ? p.scale : 1
-    const flipX = !!p.flipX
-    const x = p.x === null ? null : typeof p.x === 'number' && Number.isFinite(p.x) ? p.x : this.homeStyleX
-    const y = p.y === null ? null : typeof p.y === 'number' && Number.isFinite(p.y) ? p.y : this.homeStyleY
-    this.homeStyleScale = Phaser.Math.Clamp(Number.isFinite(scale) ? scale : 1, 0.3, 3)
-    this.homeStyleFlipX = flipX
-    this.homeStyleX = x
-    this.homeStyleY = y
-    this.homeEvolution?.setStyleTransform(this.homeStyleScale, this.homeStyleFlipX)
-    this.homeEvolution?.setStylePosition(this.homeStyleX, this.homeStyleY)
-  }
-
-  private handlePondStyleTransformEvent(payload: unknown): void {
-    const p = payload && typeof payload === 'object' ? payload as { scale?: unknown; flipX?: unknown; x?: unknown; y?: unknown } : {}
-    const scale = typeof p.scale === 'number' ? p.scale : 1
-    const flipX = !!p.flipX
-    const x = p.x === null ? null : typeof p.x === 'number' && Number.isFinite(p.x) ? p.x : this.pondStyleX
-    const y = p.y === null ? null : typeof p.y === 'number' && Number.isFinite(p.y) ? p.y : this.pondStyleY
-    this.pondStyleScale = Phaser.Math.Clamp(Number.isFinite(scale) ? scale : 1, 0.3, 3)
-    this.pondStyleFlipX = flipX
-    this.pondStyleX = x
-    this.pondStyleY = y
-    this.pondEvolution?.setStyleTransform(this.pondStyleScale, this.pondStyleFlipX)
-    this.pondEvolution?.setStylePosition(this.pondStyleX, this.pondStyleY)
-  }
-
-  private handleTreeStyleEvent(styleId: unknown): void {
-    const nextId = isTreeStyleId(styleId) ? styleId : null
-    this.treeStyle = nextId
-    if (!nextId) { this.evolution?.setStyle(null); return }
-    if (TreeEvolutionSystem.isStyleLoaded(this, nextId)) { this.evolution?.setStyle(nextId); return }
-    if (this.load.isLoading()) { this.time.delayedCall(80, () => this.handleTreeStyleEvent(styleId)); return }
-    TreeEvolutionSystem.preloadStyle(this, nextId)
-    this.load.once(Phaser.Loader.Events.COMPLETE, () => { if (this.treeStyle === nextId) this.evolution?.setStyle(nextId) })
-    this.load.start()
-  }
-
-  private handleTreeStyleTransformEvent(payload: unknown): void {
-    const p = payload && typeof payload === 'object' ? payload as { scale?: unknown; flipX?: unknown; x?: unknown; y?: unknown } : {}
-    const scale = typeof p.scale === 'number' ? p.scale : 1
-    const flipX = !!p.flipX
-    const x = p.x === null ? null : typeof p.x === 'number' && Number.isFinite(p.x) ? p.x : this.treeStyleX
-    const y = p.y === null ? null : typeof p.y === 'number' && Number.isFinite(p.y) ? p.y : this.treeStyleY
-    this.treeStyleScale = Phaser.Math.Clamp(Number.isFinite(scale) ? scale : 1, 0.3, 3)
-    this.treeStyleFlipX = flipX
-    this.treeStyleX = x
-    this.treeStyleY = y
-    this.evolution?.setStyleTransform(this.treeStyleScale, this.treeStyleFlipX)
-    this.evolution?.setStylePosition(this.treeStyleX, this.treeStyleY)
   }
 
   private buildEvolutionChanges(previous: SanctuaryProgressState, next: SanctuaryProgressState): EvolutionStageChange[] {
@@ -445,12 +295,10 @@ export default class Stage0Scene extends Phaser.Scene {
   }
 
   private applyEvolutionChange(change: EvolutionStageChange, animate: boolean): void {
-    if (change.feature === 'tree') this.evolution?.setStage(change.nextStage, animate)
-    else if (change.feature === 'home') this.homeEvolution?.setStage(change.nextStage, animate)
-    else if (change.feature === 'pond') this.pondEvolution?.setStage(change.nextStage, animate)
-    else if (change.feature === 'garden') this.gardenEvolution?.setStage(change.nextStage, animate)
-    // 'lanterns' progress still tracks and fires its own evolution-milestone notice — the terrace
-    // background is now a single blank-canvas image with no stage art of its own to swap in.
+    if (change.feature === 'garden') this.gardenEvolution?.setStage(change.nextStage, animate)
+    // 'tree'/'home'/'pond'/'lanterns' progress still track and fire their own evolution-milestone
+    // notice — the growing pixel-art stages these once animated are retired in favor of the
+    // duplicable Home/Pond/Tree decorations; there's no single instance left to grow.
   }
 
   private handlePhaseEvent(mode: unknown): void {
@@ -484,13 +332,10 @@ export default class Stage0Scene extends Phaser.Scene {
     this.vegetation.setReducedMotion(reducedMotion)
     this.lighting.setReducedMotion(reducedMotion)
     this.weatherSystem.setReducedMotion(reducedMotion)
-    this.pondEvolution.setReducedMotion(reducedMotion)
-    this.homeEvolution.setReducedMotion(reducedMotion)
     this.gardenEvolution.setReducedMotion(reducedMotion)
     this.critters.setReducedMotion(reducedMotion)
     this.konoInteractions.setReducedMotion(reducedMotion)
     this.konoMascot.setReducedMotion(reducedMotion)
-    this.evolution.setReducedMotion(reducedMotion)
     this.evolutionCoordinator.setReducedMotion(reducedMotion)
     this.rescheduleAmbientSystems()
   }
@@ -553,7 +398,7 @@ export default class Stage0Scene extends Phaser.Scene {
     const request=this.pendingBlend
     if(this.phaseGateDisposed||!request)return
     const phase=request.blend.dominant
-    if(this.readyPhases.has(phase)){this.pendingBlend=null;this.commitBlend(request.blend,request.daylight,request.initial);this.game.events.emit(SANCTUARY_EVENTS.load,{status:'ready',phase});return}
+    if(this.readyPhases.has(phase)){this.pendingBlend=null;this.commitBlend(request.blend,request.daylight);this.game.events.emit(SANCTUARY_EVENTS.load,{status:'ready',phase});return}
     if(this.failedPhases.has(phase)){this.game.events.emit(SANCTUARY_EVENTS.load,{status:'error',phase});return}
     this.game.events.emit(SANCTUARY_EVENTS.load,{status:'loading',phase})
     if(this.loadingPhase)return
@@ -581,11 +426,11 @@ export default class Stage0Scene extends Phaser.Scene {
     const phase=this.pendingBlend?.blend.dominant
     if(phase){this.failedPhases.delete(phase);this.pumpPhaseRequest()}
   }
-  private commitBlend(nextBlend: PhaseBlend, daylight: ReturnType<typeof daylightForMinutes>, initial: boolean): void {
+  private commitBlend(nextBlend: PhaseBlend, daylight: ReturnType<typeof daylightForMinutes>): void {
     this.blend = nextBlend
     this.world.setPhase(nextBlend.dominant)
     this.world.setDaylight(daylight)
-    this.swapPaintedPhase(nextBlend.dominant, initial)
+    this.swapPaintedPhase(nextBlend.dominant)
     this.fluid.setPhase(nextBlend.dominant)
     this.clouds.setPhase(nextBlend.dominant)
     this.atmosphere.setPhase(nextBlend.dominant)
@@ -595,41 +440,15 @@ export default class Stage0Scene extends Phaser.Scene {
     this.emitState()
   }
 
-  private swapPaintedPhase(phase: DayPhase, immediate: boolean): void {
-    if (phase === this.paintedPhase) {
-      if (immediate) this.syncRegisteredPhaseArt(phase)
-      return
-    }
-    const applyTexture = () => {
-      this.paintedPhase = phase
-      this.baseA.setTexture(terraceMapTextureKey(phase)).setAlpha(1)
-      this.syncRegisteredPhaseArt(phase)
-      this.fitBackgrounds()
-      this.positionWorldEffects()
-    }
-
+  private swapPaintedPhase(phase: DayPhase): void {
+    if (phase === this.paintedPhase) return
     // Production 22.7.25: direct FULL-MAP texture swap only; every terrace stage is rebuilt independently from its phase Stage 0 map and the locked native structure anchor. The terrace is already
     // baked into each stage/phase Sanctuary PNG. No separate terrace sprite, alpha patch,
     // phase veil, tint, recolor, glow, or other lighting overlay is rendered at runtime.
-    applyTexture()
-  }
-
-  private syncRegisteredPhaseArt(phase: DayPhase): void {
-    // Build 22.1: these full-map/crop-registered assets must change on the exact
-    // same frame as the painted Sanctuary map. This prevents a transient old
-    // roofline, clipped rock, terrace mismatch, or fishing-kit color shift.
-    this.homeEvolution?.setPhase(phase)
-    // Tree phase PNG must change on this exact frame too; crossfading two
-    // differently painted trees caused transient old/new phase mismatch.
-    this.evolution?.setPhase(phase, false)
-  }
-
-  private phaseWeight(phase: DayPhase): number {
-    if (this.blend.from === this.blend.to) return this.blend.from === phase ? 1 : 0
-    let weight = 0
-    if (this.blend.from === phase) weight += 1 - this.blend.amount
-    if (this.blend.to === phase) weight += this.blend.amount
-    return weight
+    this.paintedPhase = phase
+    this.baseA.setTexture(terraceMapTextureKey(phase)).setAlpha(1)
+    this.fitBackgrounds()
+    this.positionWorldEffects()
   }
 
   private createGeneratedTextures(): void {
@@ -649,9 +468,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.atmosphere.update(timeMs, dt, environment)
     this.vegetation.update(timeMs, environment)
     this.weatherSystem.update(timeMs, dt, environment)
-    this.pondEvolution.update(timeMs, environment)
     this.gardenEvolution.update(timeMs, environment)
-    this.evolution.update(timeMs, environment)
     this.konoMascot.update(timeMs, dt, environment)
     this.critters.setKonoPosition(this.konoMascot.getNormalizedPosition())
     this.critters.update(timeMs, environment)
@@ -668,26 +485,6 @@ export default class Stage0Scene extends Phaser.Scene {
     this.world.setQuality(this.settings.quality, this.scale.width)
     this.world.update(0)
     this.emitState()
-  }
-
-  private scheduleNextRipple(delay?: number): void {
-    this.rippleEvent?.remove(false)
-    const environment = this.world.environment.snapshot()
-    const rainIntensity = Phaser.Math.Clamp(environment.rainIntensity, 0, 1)
-    const density = Phaser.Math.Clamp(this.settings.ambientDensity, 0.25, 2)
-    const calmDelay = Phaser.Math.Between(8_000, 17_000) / Math.sqrt(density)
-    const rainDelay = Phaser.Math.Between(380, 980) / density
-    const baseDelay = Phaser.Math.Linear(calmDelay, rainDelay, rainIntensity)
-    const evolvedDelay = baseDelay * this.pondEvolution.rippleDelayMultiplier()
-    const motionDelay = this.settings.reducedMotion ? evolvedDelay * 2.2 : evolvedDelay
-    this.rippleEvent = this.time.delayedCall(delay ?? motionDelay, () => {
-      this.spawnPondRipple()
-      const currentRain = this.world.environment.snapshot().rainIntensity
-      if (currentRain > 0.45 && !this.settings.reducedMotion && Math.random() < currentRain * 0.45) {
-        this.time.delayedCall(Phaser.Math.Between(90, 240), () => this.spawnPondRipple())
-      }
-      this.scheduleNextRipple()
-    })
   }
 
   private scheduleNextAmbient(delay?: number): void {
@@ -710,33 +507,7 @@ export default class Stage0Scene extends Phaser.Scene {
   }
 
   private rescheduleAmbientSystems(): void {
-    this.scheduleNextRipple(350)
     this.scheduleNextAmbient(700)
-  }
-
-  private spawnPondRipple(): void {
-    if (!this.baseA?.active || this.popupObjects.length || this.pondEvolution.hasStyle()) return
-    const environment = this.world.environment.snapshot()
-    const rainIntensity = Phaser.Math.Clamp(environment.rainIntensity, 0, 1)
-    const anchor = Phaser.Utils.Array.GetRandom(POND_RIPPLE_ANCHORS)
-    const x = this.sceneBounds.left + this.sceneBounds.width * anchor.x
-    const y = this.sceneBounds.top + this.sceneBounds.height * anchor.y
-    const ripple = this.add.image(x, y, `ripple-${Phaser.Utils.Array.GetRandom(RIPPLE_VARIANTS)}`)
-      .setDepth(RenderLayers.atmosphereBack)
-      .setAlpha((this.phaseWeight('night') > 0.5 ? 0.26 : Phaser.Math.Linear(0.42, 0.34, rainIntensity)) + this.pondEvolution.rippleAlphaBonus())
-      .setScale(Math.max(0.055, this.sceneBounds.width / 3_300) * this.pondEvolution.rippleScaleMultiplier())
-
-    this.ambientSprites.add(ripple)
-    const expansion = Phaser.Math.Linear(1.58, 1.34, rainIntensity)
-    this.tweens.add({
-      targets: ripple,
-      scaleX: ripple.scaleX * expansion,
-      scaleY: ripple.scaleY * expansion,
-      alpha: 0,
-      duration: this.settings.reducedMotion ? 1_250 : Phaser.Math.Linear(2_300, 1_550, rainIntensity),
-      ease: 'Sine.Out',
-      onComplete: () => this.destroyAmbientSprite(ripple),
-    })
   }
 
   private spawnAmbientAccent(): void {
@@ -866,7 +637,12 @@ export default class Stage0Scene extends Phaser.Scene {
   }
 
   private createLandmarks(): void {
+    // These landmarks have no info popup left (per explicit request) — the hover highlight and
+    // hitbox that used to lead into it are retired along with it, not just the click action, so
+    // there's no dead "hover box that does nothing" left over.
+    const retiredLandmarkIds = new Set(['cherry', 'lanterns', 'house', 'pond', 'bridge'])
     SANCTUARY_LANDMARKS.forEach((landmark) => {
+      if (retiredLandmarkIds.has(landmark.id)) return
       const outline = this.add.rectangle(0, 0, 1, 1, 0xfff5c9, 0).setStrokeStyle(3, 0xfff2b5, 0).setDepth(RenderLayers.landmarkOutline)
       const hitbox = this.add.rectangle(0, 0, 1, 1, 0xffffff, 0.001).setDepth(RenderLayers.landmarkHitbox).setInteractive({ useHandCursor: true })
 
@@ -880,10 +656,7 @@ export default class Stage0Scene extends Phaser.Scene {
         this.tweens.killTweensOf(outline)
         this.tweens.add({ targets: outline, scaleX: 1, scaleY: 1, duration: 180, ease: 'Sine.Out' })
       })
-      hitbox.on('pointerdown', () => {
-        if (landmark.id === 'cherry' || landmark.id === 'lanterns' || landmark.id === 'pond' || landmark.id === 'house') return
-        this.openLandmarkPopup(landmark)
-      })
+      hitbox.on('pointerdown', () => this.openLandmarkPopup(landmark))
       this.landmarks.push({ data: landmark, hitbox, outline })
     })
   }
@@ -910,13 +683,10 @@ export default class Stage0Scene extends Phaser.Scene {
     this.atmosphere.resize(this.sceneBounds)
     this.vegetation.resize(this.sceneBounds)
     this.weatherSystem.resize(this.sceneBounds)
-    this.pondEvolution.resize(this.sceneBounds)
-    this.homeEvolution.resize(this.sceneBounds)
     this.gardenEvolution.resize(this.sceneBounds)
     this.critters.resize(this.sceneBounds)
     this.konoInteractions.resize(this.sceneBounds)
     this.konoMascot.resize(this.sceneBounds)
-    this.evolution.resize(this.sceneBounds)
     this.evolutionCoordinator.resize(this.sceneBounds)
   }
 
@@ -1100,7 +870,6 @@ export default class Stage0Scene extends Phaser.Scene {
     this.game.events.off(SANCTUARY_EVENTS.retry,this.handlePhaseRetry,this)
     this.game.events.off(SANCTUARY_EVENTS.action,this.handleAccessibleAction,this)
     this.clockEvent?.remove(false)
-    this.rippleEvent?.remove(false)
     this.ambientEvent?.remove(false)
     this.game.events.off(SANCTUARY_EVENTS.phase, this.handlePhaseEvent, this)
     this.game.events.off(SANCTUARY_EVENTS.weather, this.handleWeatherEvent, this)
@@ -1112,12 +881,6 @@ export default class Stage0Scene extends Phaser.Scene {
     this.game.events.off(SANCTUARY_EVENTS.fluidSpeed, this.handleFluidSpeedEvent, this)
     this.game.events.off(SANCTUARY_EVENTS.fluidEnabled, this.handleFluidEnabledEvent, this)
     this.game.events.off(SANCTUARY_EVENTS.progress, this.handleProgressEvent, this)
-    this.game.events.off(SANCTUARY_EVENTS.homeStyle, this.handleHomeStyleEvent, this)
-    this.game.events.off(SANCTUARY_EVENTS.pondStyle, this.handlePondStyleEvent, this)
-    this.game.events.off(SANCTUARY_EVENTS.treeStyle, this.handleTreeStyleEvent, this)
-    this.game.events.off(SANCTUARY_EVENTS.homeStyleTransform, this.handleHomeStyleTransformEvent, this)
-    this.game.events.off(SANCTUARY_EVENTS.pondStyleTransform, this.handlePondStyleTransformEvent, this)
-    this.game.events.off(SANCTUARY_EVENTS.treeStyleTransform, this.handleTreeStyleTransformEvent, this)
     this.scale.off('resize', this.handleResize, this)
     this.tweens.killAll()
     this.ambientSprites.forEach((sprite) => sprite.destroy())
@@ -1130,12 +893,9 @@ export default class Stage0Scene extends Phaser.Scene {
     this.vegetation.destroy()
     this.lighting.destroy()
     this.weatherSystem.destroy()
-    this.pondEvolution.destroy()
-    this.homeEvolution.destroy()
     this.gardenEvolution.destroy()
     this.critters.destroy()
     this.evolutionCoordinator.destroy()
-    this.evolution.destroy()
     this.closePopup()
   }
 }

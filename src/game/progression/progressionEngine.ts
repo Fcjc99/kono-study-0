@@ -24,6 +24,37 @@ export const LANTERN_STAGE_NAMES = [
   'Grand sanctuary terrace',
 ] as const
 
+/** Home/pond/tree progress still tracks and fires its own evolution-milestone notice — the growing
+ * pixel-art stages these once animated (HomeEvolutionSystem/PondEvolutionSystem/TreeEvolutionSystem,
+ * now deleted) are retired in favor of the duplicable Home/Pond/Tree decorations, same as lanterns
+ * above; these names just moved here with them. */
+export const HOME_STAGE_NAMES = [
+  'Original cottage',
+  'Front porch cottage',
+  'Extended cottage',
+  'Lived-in cottage',
+  'Sanctuary cottage',
+  'Living sanctuary home',
+] as const
+
+export const POND_STAGE_NAMES = [
+  'Natural pond',
+  'Rippled water',
+  'Lily pond',
+  'First koi',
+  'Koi garden',
+  'Sanctuary pond',
+] as const
+
+export const TREE_STAGE_NAMES = [
+  'Quiet mound',
+  'First sprout',
+  'Young sapling',
+  'Budding cherry tree',
+  'First blossoms',
+  'Full bloom',
+] as const
+
 const FEATURE_IDS: SanctuaryFeatureId[] = ['tree', 'pond', 'home', 'garden', 'bridge', 'lanterns', 'bamboo']
 
 const unique = (values: string[]): string[] => [...new Set(values)]
