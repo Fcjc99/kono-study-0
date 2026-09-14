@@ -1,10 +1,12 @@
-import {useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent} from 'react'
+import {useEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent} from 'react'
 import {uid, type AppData, type BuildPlacement} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
-import {BUILD_ASSETS, BUILD_ASSET_BY_ID, BUILD_CATEGORIES, BUILD_CATEGORY_LABELS, type BuildCategory} from '../game/data/buildAssets'
+import {BUILD_ASSETS, BUILD_ASSET_BY_ID, BUILD_CATEGORIES, BUILD_CATEGORY_LABELS, type BuildAsset, type BuildCategory} from '../game/data/buildAssets'
 import {HOME_STYLES, homeStyleTexturePath} from '../game/data/homeStyles'
 import {POND_STYLES, pondStyleThumbnailPath} from '../game/data/pondStyles'
 import {TREE_STYLES, treeStyleTexturePath} from '../game/data/treeStyles'
+import {minutesFromDate, phaseBlendForMinutes} from '../game/sanctuary/timeEngine'
+import type {DayPhase, PhaseMode} from '../game/sanctuary/types'
 import './sanctuary-build.css'
 
 const nextRotation=(r:0|90|180|270):0|90|180|270=>r===0?90:r===90?180:r===180?270:0
@@ -18,8 +20,18 @@ const HOME_STYLE_DEFAULT_X=0.2417,HOME_STYLE_DEFAULT_Y=0.6906
 const POND_STYLE_DEFAULT_X=0.5076,POND_STYLE_DEFAULT_Y=0.7366
 const TREE_STYLE_DEFAULT_X=0.4862,TREE_STYLE_DEFAULT_Y=0.2505
 
-export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRepository['update']}){
+export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:PlannerRepository['update'];phase:PhaseMode}){
  const profileId=data.activeProfileId
+ const [liveDayPhase,setLiveDayPhase]=useState<DayPhase>(()=>phaseBlendForMinutes(minutesFromDate(new Date())).dominant)
+ useEffect(()=>{
+  if(phase!=='auto')return
+  const tick=()=>setLiveDayPhase(phaseBlendForMinutes(minutesFromDate(new Date())).dominant)
+  tick()
+  const interval=setInterval(tick,60000)
+  return ()=>clearInterval(interval)
+ },[phase])
+ const resolvedPhase:DayPhase=phase==='auto'?liveDayPhase:phase
+ const assetSrc=(asset:BuildAsset):string=>typeof asset.src==='string'?asset.src:asset.src[resolvedPhase]
  const decorFor=(d:AppData)=>d.sanctuaryDecor[profileId]??{profileId,placements:[],homeStyle:null,pondStyle:null,treeStyle:null,homeStyleScale:1,homeStyleFlipX:false,pondStyleScale:1,pondStyleFlipX:false,treeStyleScale:1,treeStyleFlipX:false,homeStyleX:null,homeStyleY:null,pondStyleX:null,pondStyleY:null,treeStyleX:null,treeStyleY:null}
  const decor=decorFor(data)
  const [category,setCategory]=useState<BuildCategory|null>(BUILD_CATEGORIES[0]??null)
@@ -195,7 +207,7 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
     if(!asset)return null
     const pos=dragId===p.id&&dragPos?dragPos:p
     return <button type="button" key={p.id} className={'build-item'+(selected===p.id?' is-selected':'')+(dragId===p.id?' is-dragging':'')} style={{left:(pos.x*100)+'%',top:(pos.y*100)+'%',width:(asset.width/1448*100)+'%',transform:`translate(-50%,-${asset.anchor.y*100}%) rotate(${p.rotation}deg) skewX(${p.skewX}deg) scale(${p.scale})`}} onPointerDown={e=>itemPointerDown(e,p)} onPointerMove={itemPointerMove} onPointerUp={e=>itemPointerUp(e,p)} aria-label={asset.label}>
-     <img src={asset.src} alt=""/>
+     <img src={assetSrc(asset)} alt=""/>
     </button>
    })}
    {decor.homeStyle&&<button type="button" className={'build-style-handle'+(styleDragId==='home'?' is-dragging':'')} style={{left:((styleDragId==='home'&&styleDragPos?styleDragPos.x:homeStylePos.x)*100)+'%',top:((styleDragId==='home'&&styleDragPos?styleDragPos.y:homeStylePos.y)*100)+'%'}} onPointerDown={e=>styleHandlePointerDown(e,'home')} onPointerMove={styleHandlePointerMove} onPointerUp={e=>styleHandlePointerUp(e,'home')} aria-label="Move home">⠿</button>}
@@ -239,7 +251,7 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
     <nav className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}</nav>
     <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=>{
      const arm=()=>{setArmed(armed===a.id?null:a.id);setSelected(null)}
-     return <div role="button" tabIndex={0} draggable key={a.id} className={'build-palette-item'+(armed===a.id?' is-armed':'')} onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={arm} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();arm()}}} aria-pressed={armed===a.id} aria-label={a.label}><span className="build-palette-thumb"><img src={a.src} alt="" draggable={false}/></span><small>{a.label}</small></div>
+     return <div role="button" tabIndex={0} draggable key={a.id} className={'build-palette-item'+(armed===a.id?' is-armed':'')} onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={arm} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();arm()}}} aria-pressed={armed===a.id} aria-label={a.label}><span className="build-palette-thumb"><img src={assetSrc(a)} alt="" draggable={false}/></span><small>{a.label}</small></div>
     })}</div>
    </>:<p className="wb-muted">No decorations available yet — check back soon.</p>}
   </section>
