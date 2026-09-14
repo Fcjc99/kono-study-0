@@ -62,8 +62,7 @@ interface SanctuaryStatePayload {
 const PHASE_VARIANTS = ['01', '02', '03', '04']
 const RIPPLE_VARIANTS = ['01', '02', '03', '06']
 
-const TERRACE_MAP_STAGE_COUNT = 6
-const terraceMapTextureKey = (phase: DayPhase, stage: number): string => `stage0-${phase}-terrace-stage-${Phaser.Math.Clamp(Math.round(stage), 0, TERRACE_MAP_STAGE_COUNT - 1)}`
+const terraceMapTextureKey = (phase: DayPhase): string => `stage0-${phase}-terrace`
 
 
 export default class Stage0Scene extends Phaser.Scene {
@@ -125,7 +124,7 @@ export default class Stage0Scene extends Phaser.Scene {
     return keys
   }
   private enqueuePhaseAssets(phase:DayPhase):void{
-    for(let stage=0;stage<TERRACE_MAP_STAGE_COUNT;stage++)this.load.image(terraceMapTextureKey(phase,stage),`/garden/terrace-22.8.7/${phase}/stage-${stage}.png`)
+    this.load.image(terraceMapTextureKey(phase),`/garden/terrace-23.0/${phase}.png`)
     FluidSystem.preload(this,[phase]);TreeEvolutionSystem.preload(this,[phase]);HomeEvolutionSystem.preload(this,[phase])
   }
 
@@ -171,7 +170,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.world.setQuality(this.settings.quality, this.scale.width)
     this.createGeneratedTextures()
 
-    this.baseA = this.add.image(this.scale.width / 2, this.scale.height / 2, terraceMapTextureKey(this.paintedPhase, this.progress.featureStages.lanterns ?? 0)).setOrigin(0.5).setDepth(RenderLayers.background)
+    this.baseA = this.add.image(this.scale.width / 2, this.scale.height / 2, terraceMapTextureKey(this.paintedPhase)).setOrigin(0.5).setDepth(RenderLayers.background)
     this.lighting = new LightingSystem(this)
     this.lighting.create(this.settings.reducedMotion)
     this.weatherSystem = new WeatherSystem(this)
@@ -402,12 +401,9 @@ export default class Stage0Scene extends Phaser.Scene {
     if (change.feature === 'tree') this.evolution?.setStage(change.nextStage, animate)
     else if (change.feature === 'home') this.homeEvolution?.setStage(change.nextStage, animate)
     else if (change.feature === 'pond') this.pondEvolution?.setStage(change.nextStage, animate)
-    else if (change.feature === 'lanterns') {
-      this.baseA?.setTexture(terraceMapTextureKey(this.paintedPhase, change.nextStage)).setAlpha(1)
-      this.fitBackgrounds()
-      this.positionWorldEffects()
-    }
     else if (change.feature === 'garden') this.gardenEvolution?.setStage(change.nextStage, animate)
+    // 'lanterns' progress still tracks and fires its own evolution-milestone notice — the terrace
+    // background is now a single blank-canvas image with no stage art of its own to swap in.
   }
 
   private handlePhaseEvent(mode: unknown): void {
@@ -559,7 +555,7 @@ export default class Stage0Scene extends Phaser.Scene {
     }
     const applyTexture = () => {
       this.paintedPhase = phase
-      this.baseA.setTexture(terraceMapTextureKey(phase, this.progress.featureStages.lanterns ?? 0)).setAlpha(1)
+      this.baseA.setTexture(terraceMapTextureKey(phase)).setAlpha(1)
       this.syncRegisteredPhaseArt(phase)
       this.fitBackgrounds()
       this.positionWorldEffects()
