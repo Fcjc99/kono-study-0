@@ -139,17 +139,29 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
      <img src={assetSrc(asset)} alt=""/>
     </button>
    })}
-   {selectedPlacement&&<div className={'build-item-panel'+(selectedPlacement.y>0.6?' is-above':'')} style={{left:`clamp(100px, ${selectedPlacement.x*100}%, calc(100% - 100px))`,top:(selectedPlacement.y*100)+'%'}}>
-    <label>Size<input type="range" min={MIN_SCALE} max={MAX_SCALE} step={0.05} value={liveScale&&liveScale.id===selectedPlacement.id?liveScale.value:selectedPlacement.scale} onChange={e=>setSelectedScale(Number(e.target.value))}/></label>
-    <label>Skew<input type="range" min={MIN_SKEW} max={MAX_SKEW} step={1} value={liveSkew&&liveSkew.id===selectedPlacement.id?liveSkew.value:selectedPlacement.skewX} onChange={e=>setSelectedSkew(Number(e.target.value))}/></label>
-    <div className="build-item-actions">
-     <button type="button" onClick={rotateSelected} aria-label="Rotate">⟳</button>
-     <button type="button" aria-pressed={selectedPlacement.flipX} onClick={mirrorSelected} aria-label="Mirror">⇋</button>
-     <button type="button" onClick={duplicateSelected} aria-label="Duplicate">⧉</button>
-     <button type="button" onClick={removeSelected} aria-label="Remove">🗑</button>
-     <button type="button" onClick={()=>setSelected(null)} aria-label="Done">✕</button>
+   {selectedPlacement&&(()=>{
+    // Anchored beside the selected item (flipping left/right to stay on screen) rather than below/
+    // above it, so the panel never sits on top of the very art it's adjusting — the item's own
+    // footprint width decides how far out the panel starts.
+    const selectedAsset=BUILD_ASSET_BY_ID[selectedPlacement.assetId]
+    if(!selectedAsset)return null
+    const halfWidthPct=(selectedAsset.width/1448*100)/2
+    const onRight=selectedPlacement.x<=0.58
+    const gapPct=halfWidthPct+2
+    const left=onRight?`calc(${selectedPlacement.x*100}% + ${gapPct}%)`:`calc(${selectedPlacement.x*100}% - ${gapPct}%)`
+    const top=`clamp(90px, ${selectedPlacement.y*100}%, calc(100% - 90px))`
+    return <div className={'build-item-panel'+(onRight?' is-right':' is-left')} style={{left,top}}>
+     <label>Size<input type="range" min={MIN_SCALE} max={MAX_SCALE} step={0.05} value={liveScale&&liveScale.id===selectedPlacement.id?liveScale.value:selectedPlacement.scale} onChange={e=>setSelectedScale(Number(e.target.value))}/></label>
+     <label>Skew<input type="range" min={MIN_SKEW} max={MAX_SKEW} step={1} value={liveSkew&&liveSkew.id===selectedPlacement.id?liveSkew.value:selectedPlacement.skewX} onChange={e=>setSelectedSkew(Number(e.target.value))}/></label>
+     <div className="build-item-actions">
+      <button type="button" onClick={rotateSelected} aria-label="Rotate">⟳</button>
+      <button type="button" aria-pressed={selectedPlacement.flipX} onClick={mirrorSelected} aria-label="Mirror">⇋</button>
+      <button type="button" onClick={duplicateSelected} aria-label="Duplicate">⧉</button>
+      <button type="button" onClick={removeSelected} aria-label="Remove">🗑</button>
+      <button type="button" onClick={()=>setSelected(null)} aria-label="Done">✕</button>
+     </div>
     </div>
-   </div>}
+   })()}
   </div>
   <section className="sanctuary-build">
    <p className="wb-muted">Drag an item onto your island, or tap it then tap a spot. Drag a placed item anywhere to move it, or tap it once to resize, skew, mirror, duplicate, rotate, or remove it. Place as many of anything as you like.</p>

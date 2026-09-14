@@ -6,16 +6,16 @@
 .build-item.is-dragging{cursor:grabbing;z-index:5}
 .build-item.is-selected{outline:2px solid #ffd54a;outline-offset:3px;border-radius:8px}
 .build-item img{width:100%;height:auto;display:block;pointer-events:none;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
-/* Anchored to the selected item's own position (see the inline left/top) rather than glued to the
- * bottom of the whole canvas, so the controls always appear right next to what they're adjusting.
- * .is-above flips the panel to sit above the item instead of below, for items in the lower part of
- * the island where a below-anchored panel would run off the canvas. */
-.build-item-panel{position:absolute;transform:translate(-50%,16px);display:flex;flex-direction:column;gap:8px;background:var(--wb-surface);border:1px solid var(--wb-line);box-shadow:0 8px 20px #00000030;padding:12px 14px;border-radius:16px;z-index:6;min-width:240px}
-.build-item-panel.is-above{transform:translate(-50%,calc(-100% - 16px))}
-.build-item-panel label{display:flex;align-items:center;gap:8px;font-size:.78rem;font-weight:700}
-.build-item-panel input[type="range"]{flex:1;height:28px}
-.build-item-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:2px}
-.build-item-actions button{width:40px;height:40px;border-radius:50%;border:1px solid var(--wb-line);background:var(--wb-surface);font-size:1.1rem;cursor:pointer;display:grid;place-items:center}
+/* Anchored beside the selected item (see the inline left/top, computed from the item's own
+ * footprint width) rather than below/above it, so the panel never covers the art it's adjusting.
+ * .is-right sits to the item's right (growing rightward), .is-left flips to its left (growing
+ * leftward) once the item is far enough right that a right-side panel would run off the canvas. */
+.build-item-panel{position:absolute;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;background:var(--wb-surface);border:1px solid var(--wb-line);box-shadow:0 8px 20px #00000030;padding:9px 11px;border-radius:14px;z-index:6;min-width:170px}
+.build-item-panel.is-left{transform:translate(-100%,-50%)}
+.build-item-panel label{display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:700}
+.build-item-panel input[type="range"]{flex:1;height:22px}
+.build-item-actions{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-top:1px}
+.build-item-actions button{width:30px;height:30px;border-radius:50%;border:1px solid var(--wb-line);background:var(--wb-surface);font-size:.9rem;cursor:pointer;display:grid;place-items:center}
 .build-item-actions button[aria-pressed="true"]{background:var(--wb-accent);color:#fff;border-color:var(--wb-accent)}
 .sanctuary-build{display:grid;gap:10px;margin-top:12px}
 .build-category-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
