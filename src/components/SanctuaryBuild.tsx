@@ -10,10 +10,15 @@ const nextRotation=(r:0|90|180|270):0|90|180|270=>r===0?90:r===90?180:r===180?27
 const DRAG_THRESHOLD=5
 const MIN_SCALE=0.3,MAX_SCALE=3,MIN_SKEW=-45,MAX_SKEW=45
 const MIN_STYLE_SCALE=0.5,MAX_STYLE_SCALE=2
+// The default ground anchor each style renders at when nobody has dragged it yet — mirrors the
+// contain-fit math in HomeEvolutionSystem/PondEvolutionSystem as a fraction of the scene bounds,
+// so the drag handle starts out sitting where the art actually is.
+const HOME_STYLE_DEFAULT_X=0.2417,HOME_STYLE_DEFAULT_Y=0.6906
+const POND_STYLE_DEFAULT_X=0.5076,POND_STYLE_DEFAULT_Y=0.7366
 
 export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRepository['update']}){
  const profileId=data.activeProfileId
- const decorFor=(d:AppData)=>d.sanctuaryDecor[profileId]??{profileId,placements:[],homeStyle:null,pondStyle:null,homeStyleScale:1,homeStyleFlipX:false,pondStyleScale:1,pondStyleFlipX:false}
+ const decorFor=(d:AppData)=>d.sanctuaryDecor[profileId]??{profileId,placements:[],homeStyle:null,pondStyle:null,homeStyleScale:1,homeStyleFlipX:false,pondStyleScale:1,pondStyleFlipX:false,homeStyleX:null,homeStyleY:null,pondStyleX:null,pondStyleY:null}
  const decor=decorFor(data)
  const [category,setCategory]=useState<BuildCategory|null>(BUILD_CATEGORIES[0]??null)
  const [armed,setArmed]=useState<string|null>(null)
@@ -23,10 +28,13 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
  const [dragId,setDragId]=useState<string|null>(null)
  const [dragPos,setDragPos]=useState<{x:number;y:number}|null>(null)
  const dragStart=useRef<{x:number;y:number;moved:boolean}|null>(null)
+ const [styleDragId,setStyleDragId]=useState<'home'|'pond'|null>(null)
+ const [styleDragPos,setStyleDragPos]=useState<{x:number;y:number}|null>(null)
+ const styleDragStart=useRef<{x:number;y:number;moved:boolean}|null>(null)
 
  const withCurrent=(d:AppData,patch:Partial<ReturnType<typeof decorFor>>)=>{
   const current=decorFor(d)
-  return {...d,sanctuaryDecor:{...d.sanctuaryDecor,[profileId]:{profileId,placements:current.placements,homeStyle:current.homeStyle,pondStyle:current.pondStyle,homeStyleScale:current.homeStyleScale,homeStyleFlipX:current.homeStyleFlipX,pondStyleScale:current.pondStyleScale,pondStyleFlipX:current.pondStyleFlipX,...patch}}}
+  return {...d,sanctuaryDecor:{...d.sanctuaryDecor,[profileId]:{profileId,placements:current.placements,homeStyle:current.homeStyle,pondStyle:current.pondStyle,homeStyleScale:current.homeStyleScale,homeStyleFlipX:current.homeStyleFlipX,homeStyleX:current.homeStyleX,homeStyleY:current.homeStyleY,pondStyleScale:current.pondStyleScale,pondStyleFlipX:current.pondStyleFlipX,pondStyleX:current.pondStyleX,pondStyleY:current.pondStyleY,...patch}}}
  }
  const commit=async(placements:BuildPlacement[])=>{
   if(busy)return;setBusy(true);setMessage('')
@@ -67,6 +75,18 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
  const setPondStyleFlipX=async(pondStyleFlipX:boolean)=>{
   if(busy)return;setBusy(true);setMessage('')
   try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');return withCurrent(d,{pondStyleFlipX})});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
+  catch(e){setMessage(e instanceof Error?e.message:'Could not save.')}
+  finally{setBusy(false)}
+ }
+ const setHomeStylePosition=async(homeStyleX:number,homeStyleY:number)=>{
+  if(busy)return;setBusy(true);setMessage('')
+  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');return withCurrent(d,{homeStyleX,homeStyleY})});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
+  catch(e){setMessage(e instanceof Error?e.message:'Could not save.')}
+  finally{setBusy(false)}
+ }
+ const setPondStylePosition=async(pondStyleX:number,pondStyleY:number)=>{
+  if(busy)return;setBusy(true);setMessage('')
+  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');return withCurrent(d,{pondStyleX,pondStyleY})});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
   catch(e){setMessage(e instanceof Error?e.message:'Could not save.')}
   finally{setBusy(false)}
  }
@@ -119,6 +139,26 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
   else setSelected(sel=>sel===placement.id?null:placement.id)
  }
 
+ const homeStylePos={x:decor.homeStyleX??HOME_STYLE_DEFAULT_X,y:decor.homeStyleY??HOME_STYLE_DEFAULT_Y}
+ const pondStylePos={x:decor.pondStyleX??POND_STYLE_DEFAULT_X,y:decor.pondStyleY??POND_STYLE_DEFAULT_Y}
+ const styleHandlePointerDown=(e:ReactPointerEvent<HTMLButtonElement>,which:'home'|'pond')=>{
+  e.stopPropagation()
+  e.currentTarget.setPointerCapture(e.pointerId)
+  styleDragStart.current={x:e.clientX,y:e.clientY,moved:false}
+  setStyleDragId(which);setStyleDragPos(which==='home'?homeStylePos:pondStylePos)
+ }
+ const styleHandlePointerMove=(e:ReactPointerEvent<HTMLButtonElement>)=>{
+  if(!styleDragId)return
+  if(styleDragStart.current&&(Math.abs(e.clientX-styleDragStart.current.x)>DRAG_THRESHOLD||Math.abs(e.clientY-styleDragStart.current.y)>DRAG_THRESHOLD))styleDragStart.current.moved=true
+  setStyleDragPos(fractionFromEvent(e))
+ }
+ const styleHandlePointerUp=(e:ReactPointerEvent<HTMLButtonElement>,which:'home'|'pond')=>{
+  e.stopPropagation()
+  const moved=styleDragStart.current?.moved??false,finalPos=styleDragPos
+  styleDragStart.current=null;setStyleDragId(null);setStyleDragPos(null)
+  if(moved&&finalPos){if(which==='home')void setHomeStylePosition(finalPos.x,finalPos.y);else void setPondStylePosition(finalPos.x,finalPos.y)}
+ }
+
  const selectedPlacement=decor.placements.find(p=>p.id===selected)??null
 
  return <>
@@ -131,6 +171,8 @@ export default function SanctuaryBuild({data,save}:{data:AppData;save:PlannerRep
      <img src={asset.src} alt=""/>
     </button>
    })}
+   {decor.homeStyle&&<button type="button" className={'build-style-handle'+(styleDragId==='home'?' is-dragging':'')} style={{left:((styleDragId==='home'&&styleDragPos?styleDragPos.x:homeStylePos.x)*100)+'%',top:((styleDragId==='home'&&styleDragPos?styleDragPos.y:homeStylePos.y)*100)+'%'}} onPointerDown={e=>styleHandlePointerDown(e,'home')} onPointerMove={styleHandlePointerMove} onPointerUp={e=>styleHandlePointerUp(e,'home')} aria-label="Move home">⠿</button>}
+   {decor.pondStyle&&<button type="button" className={'build-style-handle'+(styleDragId==='pond'?' is-dragging':'')} style={{left:((styleDragId==='pond'&&styleDragPos?styleDragPos.x:pondStylePos.x)*100)+'%',top:((styleDragId==='pond'&&styleDragPos?styleDragPos.y:pondStylePos.y)*100)+'%'}} onPointerDown={e=>styleHandlePointerDown(e,'pond')} onPointerMove={styleHandlePointerMove} onPointerUp={e=>styleHandlePointerUp(e,'pond')} aria-label="Move pond">⠿</button>}
    {selectedPlacement&&<div className="build-item-panel">
     <label>Size<input type="range" min={MIN_SCALE} max={MAX_SCALE} step={0.05} value={selectedPlacement.scale} onChange={e=>setSelectedScale(Number(e.target.value))}/></label>
     <label>Skew<input type="range" min={MIN_SKEW} max={MAX_SKEW} step={1} value={selectedPlacement.skewX} onChange={e=>setSelectedSkew(Number(e.target.value))}/></label>

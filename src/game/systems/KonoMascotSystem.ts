@@ -120,10 +120,6 @@ interface InteractionPayload {
   action?: KonoContextAction
 }
 
-interface FishingPayload {
-  type?: string
-}
-
 const textureForAction = (action: KonoContextAction): ReactionTexture => {
   if (action.id.includes('rest')) return action.phase === 'night' ? 'kono-sleep' : 'kono-tea'
   if (action.id.includes('read')) return 'kono-read'
@@ -196,7 +192,6 @@ export class KonoMascotSystem {
     })
 
     this.scene.game.events.on(SANCTUARY_EVENTS.interaction, this.handleInteraction, this)
-    this.scene.game.events.on(SANCTUARY_EVENTS.fishing, this.handleFishing, this)
     if (phase === 'night') this.enterNightSleep()
     else this.pickWanderTarget(this.scene.time.now + 1_200)
     this.applyLighting()
@@ -312,7 +307,6 @@ export class KonoMascotSystem {
 
   destroy(): void {
     this.scene.game.events.off(SANCTUARY_EVENTS.interaction, this.handleInteraction, this)
-    this.scene.game.events.off(SANCTUARY_EVENTS.fishing, this.handleFishing, this)
     this.sprite?.removeAllListeners()
     this.sprite?.destroy()
     this.shadow?.destroy()
@@ -345,17 +339,6 @@ export class KonoMascotSystem {
       this.pendingReaction = null
       this.beginReaction(reaction ?? 'kono-happy', this.scene.time.now + 1_550)
     }
-  }
-
-  private handleFishing(payload: FishingPayload): void {
-    if (this.phase === 'night') return
-    if (!payload?.type) return
-    const bridge = REACTION_SPOTS.bridge
-    this.forcedTarget = true
-    if (payload.type === 'cast' || payload.type === 'bite') this.pendingReaction = 'kono-question'
-    else if (payload.type === 'catch') this.pendingReaction = 'kono-excited'
-    else if (payload.type === 'miss') this.pendingReaction = 'kono-question'
-    this.navigateTo(bridge, 'bridge')
   }
 
   private beginReaction(texture: ReactionTexture, until: number): void {

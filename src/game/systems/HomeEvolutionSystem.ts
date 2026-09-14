@@ -76,6 +76,8 @@ export class HomeEvolutionSystem {
   private styleImage?: Phaser.GameObjects.Image
   private styleScale = 1
   private styleFlipX = false
+  private styleX: number | null = null
+  private styleY: number | null = null
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
@@ -109,12 +111,14 @@ export class HomeEvolutionSystem {
     return scene.textures.exists(homeStyleTextureKey(styleId, 'afternoon'))
   }
 
-  create(stage: number, phase: DayPhase, reducedMotion: boolean, styleId: string | null = null, styleScale = 1, styleFlipX = false): void {
+  create(stage: number, phase: DayPhase, reducedMotion: boolean, styleId: string | null = null, styleScale = 1, styleFlipX = false, styleX: number | null = null, styleY: number | null = null): void {
     this.stage = Phaser.Math.Clamp(Math.round(stage), 0, STAGE_COUNT - 1)
     this.phase = phase
     this.reducedMotion = reducedMotion
     this.styleScale = Phaser.Math.Clamp(Number.isFinite(styleScale) ? styleScale : 1, 0.3, 3)
     this.styleFlipX = styleFlipX
+    this.styleX = styleX
+    this.styleY = styleY
 
     this.groundShadow = this.scene.add.image(0, 0, shadowKey(Math.max(1, this.stage)))
       .setOrigin(0)
@@ -223,6 +227,14 @@ export class HomeEvolutionSystem {
     if (this.styleId) this.layoutStyleImage()
   }
 
+  /** A dragged position, as a fraction of the scene bounds — null falls back to the default
+   * ground-anchored spot the contain-fit math computes on its own. */
+  setStylePosition(x: number | null, y: number | null): void {
+    this.styleX = x
+    this.styleY = y
+    if (this.styleId) this.layoutStyleImage()
+  }
+
   destroy(): void {
     this.scene.tweens.killTweensOf([this.homeA, this.homeB, this.smoke, this.vegetableGarden])
     this.smokeEvent?.destroy()
@@ -269,8 +281,8 @@ export class HomeEvolutionSystem {
     // aspect ratio intact — unlike the default cottage's per-phase art, it was never painted to
     // tolerate a non-uniform stretch.
     const contentScale = Math.min(CROP_WIDTH / style.contentWidth, CROP_HEIGHT / style.contentHeight) * scaleX * this.styleScale
-    const groundX = this.sceneBounds.left + (CROP_X + CROP_WIDTH / 2) * scaleX
-    const groundY = this.sceneBounds.top + (CROP_Y + CROP_HEIGHT) * scaleY
+    const groundX = this.styleX == null ? this.sceneBounds.left + (CROP_X + CROP_WIDTH / 2) * scaleX : this.sceneBounds.left + this.styleX * this.sceneBounds.width
+    const groundY = this.styleY == null ? this.sceneBounds.top + (CROP_Y + CROP_HEIGHT) * scaleY : this.sceneBounds.top + this.styleY * this.sceneBounds.height
     this.styleImage
       .setOrigin(style.anchorX, style.anchorY)
       .setPosition(groundX, groundY)

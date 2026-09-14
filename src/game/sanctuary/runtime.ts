@@ -19,7 +19,6 @@ export const SANCTUARY_EVENTS = {
   homeStyleTransform: 'sanctuary:set-home-style-transform',
   pondStyleTransform: 'sanctuary:set-pond-style-transform',
   evolution: 'sanctuary:evolution-milestone',
-  fishing: 'sanctuary:fishing-event',
   interaction: 'sanctuary:kono-interaction',
   state: 'sanctuary:state',
 } as const

@@ -61,8 +61,12 @@ interface GardenCardProps {
   pondStyle?: string | null
   homeStyleScale?: number
   homeStyleFlipX?: boolean
+  homeStyleX?: number | null
+  homeStyleY?: number | null
   pondStyleScale?: number
   pondStyleFlipX?: boolean
+  pondStyleX?: number | null
+  pondStyleY?: number | null
 }
 
 const initialState: SanctuaryState = {
@@ -95,14 +99,14 @@ const formatDebugTime = (minutes: number) => {
 const debugFromUrl = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sanctuaryDebug') === '1'
 
-export default function GardenCard({ phase, weather, reducedMotion, progress, homeStyle = null, pondStyle = null, homeStyleScale = 1, homeStyleFlipX = false, pondStyleScale = 1, pondStyleFlipX = false }: GardenCardProps) {
+export default function GardenCard({ phase, weather, reducedMotion, progress, homeStyle = null, pondStyle = null, homeStyleScale = 1, homeStyleFlipX = false, homeStyleX = null, homeStyleY = null, pondStyleScale = 1, pondStyleFlipX = false, pondStyleX = null, pondStyleY = null }: GardenCardProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const gameRef = useRef<PhaserGameHandle | null>(null)
   const visibleRef = useRef(true)
   const debugEnabledRef = useRef(debugFromUrl())
   const lastCanvasSizeRef = useRef({ width: 0, height: 0 })
-  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, homeStyle, pondStyle, homeStyleScale, homeStyleFlipX, pondStyleScale, pondStyleFlipX })
-  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,homeStyle,pondStyle,homeStyleScale,homeStyleFlipX,pondStyleScale,pondStyleFlipX}},[phase,weather,reducedMotion,progress,homeStyle,pondStyle,homeStyleScale,homeStyleFlipX,pondStyleScale,pondStyleFlipX])
+  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, homeStyle, pondStyle, homeStyleScale, homeStyleFlipX, homeStyleX, homeStyleY, pondStyleScale, pondStyleFlipX, pondStyleX, pondStyleY })
+  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,homeStyle,pondStyle,homeStyleScale,homeStyleFlipX,homeStyleX,homeStyleY,pondStyleScale,pondStyleFlipX,pondStyleX,pondStyleY}},[phase,weather,reducedMotion,progress,homeStyle,pondStyle,homeStyleScale,homeStyleFlipX,homeStyleX,homeStyleY,pondStyleScale,pondStyleFlipX,pondStyleX,pondStyleY])
 
   const [state, setState] = useState<SanctuaryState>(initialState)
   const [debugEnabled, setDebugEnabled] = useState(debugFromUrl)
@@ -113,7 +117,6 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, ho
   const [loadStatus,setLoadStatus]=useState<{status:string;phase?:string;boot?:boolean}>({status:'loading'})
   const [attempt,setAttempt]=useState(0)
   const [landmark,setLandmark]=useState<KonoLandmarkId>('house')
-  const [fishingMessage,setFishingMessage]=useState('Cast a line, then wait for a bite. No time limit when using these controls.')
   const [debugQuality, setDebugQuality] = useState<SanctuaryQuality>('auto')
   const [debugFluidSpeed, setDebugFluidSpeed] = useState(1)
   const [debugFluidEnabled, setDebugFluidEnabled] = useState(true)
@@ -191,8 +194,12 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, ho
             bootingGame.registry.set('sanctuaryPondStyle', current.pondStyle)
             bootingGame.registry.set('sanctuaryHomeStyleScale', current.homeStyleScale)
             bootingGame.registry.set('sanctuaryHomeStyleFlipX', current.homeStyleFlipX)
+            bootingGame.registry.set('sanctuaryHomeStyleX', current.homeStyleX)
+            bootingGame.registry.set('sanctuaryHomeStyleY', current.homeStyleY)
             bootingGame.registry.set('sanctuaryPondStyleScale', current.pondStyleScale)
             bootingGame.registry.set('sanctuaryPondStyleFlipX', current.pondStyleFlipX)
+            bootingGame.registry.set('sanctuaryPondStyleX', current.pondStyleX)
+            bootingGame.registry.set('sanctuaryPondStyleY', current.pondStyleY)
           },
         },
       }) as unknown as PhaserGameHandle
@@ -200,8 +207,6 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, ho
 
       const handleLoad=(payload:{status:string;phase?:string;boot?:boolean})=>{if(!disposed)setLoadStatus(payload)}
       game.events.on(SANCTUARY_EVENTS.load,handleLoad)
-      const handleFishing=(payload:{type:string;catch?:{name:string;sizeCm:number}})=>{if(!disposed)setFishingMessage(payload.type==='bite'?'A bite! Use Reel in when you are ready.':payload.type==='catch'?`Caught ${payload.catch?.name??'a fish'} · ${payload.catch?.sizeCm??0} cm`:payload.type==='cast'?'Line cast. Waiting for a bite…':'The fish got away. Try another cast.')}
-      game.events.on(SANCTUARY_EVENTS.fishing,handleFishing)
       const handleState = (payload: SanctuaryState) => {
         if (debugEnabledRef.current) {
           setState(payload)
@@ -234,7 +239,6 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, ho
 
       detachEvents=()=>{
         game?.events.off(SANCTUARY_EVENTS.load,handleLoad)
-        game?.events.off(SANCTUARY_EVENTS.fishing,handleFishing)
         game?.events.off(SANCTUARY_EVENTS.state,handleState)
         game?.events.off(SANCTUARY_EVENTS.evolution,handleEvolutionMilestone)
         game?.events.off(SANCTUARY_EVENTS.interaction,handleKonoInteraction)
@@ -341,14 +345,18 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, ho
   useEffect(() => {
     gameRef.current?.registry.set('sanctuaryHomeStyleScale', homeStyleScale)
     gameRef.current?.registry.set('sanctuaryHomeStyleFlipX', homeStyleFlipX)
-    gameRef.current?.events.emit(SANCTUARY_EVENTS.homeStyleTransform, { scale: homeStyleScale, flipX: homeStyleFlipX })
-  }, [homeStyleScale, homeStyleFlipX])
+    gameRef.current?.registry.set('sanctuaryHomeStyleX', homeStyleX)
+    gameRef.current?.registry.set('sanctuaryHomeStyleY', homeStyleY)
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.homeStyleTransform, { scale: homeStyleScale, flipX: homeStyleFlipX, x: homeStyleX, y: homeStyleY })
+  }, [homeStyleScale, homeStyleFlipX, homeStyleX, homeStyleY])
 
   useEffect(() => {
     gameRef.current?.registry.set('sanctuaryPondStyleScale', pondStyleScale)
     gameRef.current?.registry.set('sanctuaryPondStyleFlipX', pondStyleFlipX)
-    gameRef.current?.events.emit(SANCTUARY_EVENTS.pondStyleTransform, { scale: pondStyleScale, flipX: pondStyleFlipX })
-  }, [pondStyleScale, pondStyleFlipX])
+    gameRef.current?.registry.set('sanctuaryPondStyleX', pondStyleX)
+    gameRef.current?.registry.set('sanctuaryPondStyleY', pondStyleY)
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.pondStyleTransform, { scale: pondStyleScale, flipX: pondStyleFlipX, x: pondStyleX, y: pondStyleY })
+  }, [pondStyleScale, pondStyleFlipX, pondStyleX, pondStyleY])
 
   const updateDebugTime = (minutes: number) => {
     setDebugMinutes(minutes)
@@ -399,7 +407,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, ho
       <b>{state.phaseLabel}</b>
       <em>{state.weatherLabel}</em>
     </div>
-    <details className="sanctuary-accessible-actions"><summary>Sanctuary actions · keyboard & touch</summary><label>Place <select value={landmark} onChange={e=>setLandmark(e.target.value as KonoLandmarkId)}><option value="house">Home</option><option value="garden">Garden</option><option value="cherry">Tree</option><option value="pond">Pond</option><option value="bridge">Bridge</option><option value="mailbox">Mailbox</option><option value="lanterns">Terrace</option></select></label><div>{getKonoActions(landmark,{phase:state.phase,lanternStage:progress.featureStages.lanterns??0,pondStage:progress.featureStages.pond??0}).map(action=><button disabled={loadStatus.status!=='ready'} key={action.id} onClick={()=>gameRef.current?.events.emit(SANCTUARY_EVENTS.action,{kind:'interaction',landmarkId:landmark,actionId:action.id})}>{action.label}</button>)}</div><div><button disabled={loadStatus.status!=='ready'} onClick={()=>gameRef.current?.events.emit(SANCTUARY_EVENTS.action,{kind:'fishing',action:'cast'})}>Cast a line</button><button disabled={loadStatus.status!=='ready'} onClick={()=>gameRef.current?.events.emit(SANCTUARY_EVENTS.action,{kind:'fishing',action:'reel'})}>Reel in</button><p role="status">{fishingMessage}</p></div></details>
+    <details className="sanctuary-accessible-actions"><summary>Sanctuary actions · keyboard & touch</summary><label>Place <select value={landmark} onChange={e=>setLandmark(e.target.value as KonoLandmarkId)}><option value="house">Home</option><option value="garden">Garden</option><option value="cherry">Tree</option><option value="pond">Pond</option><option value="bridge">Bridge</option><option value="mailbox">Mailbox</option><option value="lanterns">Terrace</option></select></label><div>{getKonoActions(landmark,{phase:state.phase,lanternStage:progress.featureStages.lanterns??0,pondStage:progress.featureStages.pond??0}).map(action=><button disabled={loadStatus.status!=='ready'} key={action.id} onClick={()=>gameRef.current?.events.emit(SANCTUARY_EVENTS.action,{kind:'interaction',landmarkId:landmark,actionId:action.id})}>{action.label}</button>)}</div></details>
     {debugEnabled && <aside className="sanctuary-debug-panel">
       <header>
         <strong>World debug</strong>

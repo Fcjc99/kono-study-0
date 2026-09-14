@@ -12,6 +12,18 @@ export const HOME_STAGE_THRESHOLDS = [0, 5, 12, 20, 30, 40] as const
 export const LANTERN_STAGE_THRESHOLDS = [0, 1, 3, 5, 7, 14] as const
 export const GARDEN_STAGE_THRESHOLDS = [0, 4, 10, 18, 30, 45] as const
 
+/** The terrace's own furniture growth (baked into the terrace map background art) still tracks this
+ * name per stage for the evolution-milestone notice — the lantern light halos this once also named
+ * are retired, but the terrace itself still furnishes up through six stages. */
+export const LANTERN_STAGE_NAMES = [
+  'Simple terrace',
+  'Quiet bench',
+  'Cozy corner lounge',
+  'Garden reading lounge',
+  'Blossom pergola',
+  'Grand sanctuary terrace',
+] as const
+
 const FEATURE_IDS: SanctuaryFeatureId[] = ['tree', 'pond', 'home', 'garden', 'bridge', 'lanterns', 'bamboo']
 
 const unique = (values: string[]): string[] => [...new Set(values)]

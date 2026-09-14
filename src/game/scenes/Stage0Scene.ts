@@ -18,17 +18,16 @@ import { FluidSystem } from '../systems/FluidSystem'
 import { CloudSystem } from '../systems/CloudSystem'
 import { AtmosphereSystem } from '../systems/AtmosphereSystem'
 import { VegetationSystem } from '../systems/VegetationSystem'
-import { LightingSystem, type LightingVisualState } from '../systems/LightingSystem'
+import { LightingSystem } from '../systems/LightingSystem'
 import { WeatherSystem } from '../systems/WeatherSystem'
 import { TREE_STAGE_NAMES, TreeEvolutionSystem } from '../systems/TreeEvolutionSystem'
 import { POND_STAGE_NAMES, PondEvolutionSystem } from '../systems/PondEvolutionSystem'
 import { HOME_STAGE_NAMES, HomeEvolutionSystem } from '../systems/HomeEvolutionSystem'
 import { isHomeStyleId } from '../data/homeStyles'
 import { isPondStyleId } from '../data/pondStyles'
-import { LANTERN_STAGE_INTERACTIONS, LANTERN_STAGE_NAMES, LanternEvolutionSystem } from '../systems/LanternEvolutionSystem'
+import { LANTERN_STAGE_NAMES } from '../progression/progressionEngine'
 import { GARDEN_STAGE_NAMES, GardenEvolutionSystem } from '../systems/GardenEvolutionSystem'
 import { CritterSystem } from '../systems/CritterSystem'
-import { FishingSystem } from '../systems/FishingSystem'
 import { KonoInteractionSystem, type KonoLandmarkId } from '../systems/KonoInteractionSystem'
 import { KonoMascotSystem } from '../systems/KonoMascotSystem'
 import { EvolutionCoordinator, type EvolutionStageChange } from '../evolution/EvolutionCoordinator'
@@ -74,10 +73,8 @@ export default class Stage0Scene extends Phaser.Scene {
   private popupObjects: Phaser.GameObjects.GameObject[] = []
   private popupLandmarkId: string | null = null
   private popupOpenedAt = -1_000
-  private lanternEvolution!: LanternEvolutionSystem
   private gardenEvolution!: GardenEvolutionSystem
   private critters!: CritterSystem
-  private fishing!: FishingSystem
   private konoInteractions!: KonoInteractionSystem
   private konoMascot!: KonoMascotSystem
   private fluid!: FluidSystem
@@ -91,16 +88,6 @@ export default class Stage0Scene extends Phaser.Scene {
   private homeEvolution!: HomeEvolutionSystem
   private evolutionCoordinator!: EvolutionCoordinator
   private paintedPhase: DayPhase = 'afternoon'
-  private lightingVisual: LightingVisualState = {
-    ambientLight: 1,
-    darkness: 0,
-    warmth: 0.03,
-    coolness: 0,
-    lanternStrength: 0,
-    starVisibility: 0,
-    haze: 0.025,
-    waterHighlight: 1,
-  }
   private ambientSprites = new Set<Phaser.GameObjects.Image>()
   private clockEvent?: Phaser.Time.TimerEvent
   private rippleEvent?: Phaser.Time.TimerEvent
@@ -112,8 +99,12 @@ export default class Stage0Scene extends Phaser.Scene {
   private pondStyle: string | null = null
   private homeStyleScale = 1
   private homeStyleFlipX = false
+  private homeStyleX: number | null = null
+  private homeStyleY: number | null = null
   private pondStyleScale = 1
   private pondStyleFlipX = false
+  private pondStyleX: number | null = null
+  private pondStyleY: number | null = null
   private world = new WorldEngine()
   private stateEmitClock = 0
   private readyPhases = new Set<DayPhase>()
@@ -135,7 +126,7 @@ export default class Stage0Scene extends Phaser.Scene {
   }
   private enqueuePhaseAssets(phase:DayPhase):void{
     for(let stage=0;stage<TERRACE_MAP_STAGE_COUNT;stage++)this.load.image(terraceMapTextureKey(phase,stage),`/garden/terrace-22.8.7/${phase}/stage-${stage}.png`)
-    FluidSystem.preload(this,[phase]);TreeEvolutionSystem.preload(this,[phase]);HomeEvolutionSystem.preload(this,[phase]);FishingSystem.preload(this,[phase])
+    FluidSystem.preload(this,[phase]);TreeEvolutionSystem.preload(this,[phase]);HomeEvolutionSystem.preload(this,[phase])
   }
 
   constructor() {
@@ -162,7 +153,6 @@ export default class Stage0Scene extends Phaser.Scene {
     AtmosphereSystem.preload(this)
     VegetationSystem.preload(this)
     PondEvolutionSystem.preload(this)
-    LanternEvolutionSystem.preload(this)
     LightingSystem.preload(this)
     GardenEvolutionSystem.preload(this)
     CritterSystem.preload(this)
@@ -190,14 +180,12 @@ export default class Stage0Scene extends Phaser.Scene {
     this.gardenEvolution = new GardenEvolutionSystem(this)
     this.gardenEvolution.create(this.progress.featureStages.garden ?? 0, this.settings.reducedMotion)
     this.homeEvolution = new HomeEvolutionSystem(this)
-    this.homeEvolution.create(this.progress.featureStages.home ?? 0, this.blend.dominant, this.settings.reducedMotion, this.homeStyle, this.homeStyleScale, this.homeStyleFlipX)
-    this.lanternEvolution = new LanternEvolutionSystem(this)
-    this.lanternEvolution.create(this.progress.featureStages.lanterns ?? 0, this.settings.reducedMotion)
+    this.homeEvolution.create(this.progress.featureStages.home ?? 0, this.blend.dominant, this.settings.reducedMotion, this.homeStyle, this.homeStyleScale, this.homeStyleFlipX, this.homeStyleX, this.homeStyleY)
     this.fluid = new FluidSystem(this)
     this.fluid.create(this.blend.dominant, this.settings.reducedMotion)
     this.fluid.setPondLayerVisible(!isPondStyleId(this.pondStyle))
     this.pondEvolution = new PondEvolutionSystem(this)
-    this.pondEvolution.create(this.progress.featureStages.pond ?? 0, this.settings.reducedMotion, this.pondStyle, this.pondStyleScale, this.pondStyleFlipX)
+    this.pondEvolution.create(this.progress.featureStages.pond ?? 0, this.settings.reducedMotion, this.pondStyle, this.pondStyleScale, this.pondStyleFlipX, this.pondStyleX, this.pondStyleY)
     this.clouds = new CloudSystem(this)
     this.clouds.create(this.blend.dominant, this.settings.reducedMotion)
     this.atmosphere = new AtmosphereSystem(this)
@@ -214,9 +202,6 @@ export default class Stage0Scene extends Phaser.Scene {
       this.progress.featureStages.garden ?? 0,
       this.progress.featureStages.pond ?? 0,
     )
-    this.fishing = new FishingSystem(this)
-    this.fishing.setPhase(this.paintedPhase)
-    this.fishing.create(this.settings.reducedMotion, this.progress.profileId)
     this.konoInteractions = new KonoInteractionSystem(this)
     this.konoInteractions.create(this.settings.reducedMotion, this.progress.profileId)
     this.konoMascot = new KonoMascotSystem(this)
@@ -257,8 +242,12 @@ export default class Stage0Scene extends Phaser.Scene {
     const pondStyle = this.registry.get('sanctuaryPondStyle')
     const homeStyleScale = this.registry.get('sanctuaryHomeStyleScale')
     const homeStyleFlipX = this.registry.get('sanctuaryHomeStyleFlipX')
+    const homeStyleX = this.registry.get('sanctuaryHomeStyleX')
+    const homeStyleY = this.registry.get('sanctuaryHomeStyleY')
     const pondStyleScale = this.registry.get('sanctuaryPondStyleScale')
     const pondStyleFlipX = this.registry.get('sanctuaryPondStyleFlipX')
+    const pondStyleX = this.registry.get('sanctuaryPondStyleX')
+    const pondStyleY = this.registry.get('sanctuaryPondStyleY')
 
     if (isPhaseMode(phaseMode)) this.settings.phaseMode = phaseMode
     if (isSanctuaryWeather(weather)) this.settings.weather = weather
@@ -276,8 +265,12 @@ export default class Stage0Scene extends Phaser.Scene {
     if (pondStyle === null || typeof pondStyle === 'string') this.pondStyle = pondStyle
     if (typeof homeStyleScale === 'number' && Number.isFinite(homeStyleScale)) this.homeStyleScale = Phaser.Math.Clamp(homeStyleScale, 0.3, 3)
     if (typeof homeStyleFlipX === 'boolean') this.homeStyleFlipX = homeStyleFlipX
+    if (homeStyleX === null || (typeof homeStyleX === 'number' && Number.isFinite(homeStyleX))) this.homeStyleX = homeStyleX
+    if (homeStyleY === null || (typeof homeStyleY === 'number' && Number.isFinite(homeStyleY))) this.homeStyleY = homeStyleY
     if (typeof pondStyleScale === 'number' && Number.isFinite(pondStyleScale)) this.pondStyleScale = Phaser.Math.Clamp(pondStyleScale, 0.3, 3)
     if (typeof pondStyleFlipX === 'boolean') this.pondStyleFlipX = pondStyleFlipX
+    if (pondStyleX === null || (typeof pondStyleX === 'number' && Number.isFinite(pondStyleX))) this.pondStyleX = pondStyleX
+    if (pondStyleY === null || (typeof pondStyleY === 'number' && Number.isFinite(pondStyleY))) this.pondStyleY = pondStyleY
   }
 
   private bindRuntimeEvents(): void {
@@ -324,7 +317,6 @@ export default class Stage0Scene extends Phaser.Scene {
     const nextPondStage = this.progress.featureStages.pond ?? 0
     this.critters?.setStages(nextGardenStage, nextPondStage)
     if (profileChanged) {
-      this.fishing?.setProfile(this.progress.profileId)
       this.konoInteractions?.setProfile(this.progress.profileId)
     }
     if (changes.some((change) => change.feature === 'pond')) this.scheduleNextRipple(260)
@@ -357,19 +349,31 @@ export default class Stage0Scene extends Phaser.Scene {
   }
 
   private handleHomeStyleTransformEvent(payload: unknown): void {
-    const scale = payload && typeof payload === 'object' && typeof (payload as { scale?: unknown }).scale === 'number' ? (payload as { scale: number }).scale : 1
-    const flipX = !!(payload && typeof payload === 'object' && (payload as { flipX?: unknown }).flipX)
+    const p = payload && typeof payload === 'object' ? payload as { scale?: unknown; flipX?: unknown; x?: unknown; y?: unknown } : {}
+    const scale = typeof p.scale === 'number' ? p.scale : 1
+    const flipX = !!p.flipX
+    const x = p.x === null ? null : typeof p.x === 'number' && Number.isFinite(p.x) ? p.x : this.homeStyleX
+    const y = p.y === null ? null : typeof p.y === 'number' && Number.isFinite(p.y) ? p.y : this.homeStyleY
     this.homeStyleScale = Phaser.Math.Clamp(Number.isFinite(scale) ? scale : 1, 0.3, 3)
     this.homeStyleFlipX = flipX
+    this.homeStyleX = x
+    this.homeStyleY = y
     this.homeEvolution?.setStyleTransform(this.homeStyleScale, this.homeStyleFlipX)
+    this.homeEvolution?.setStylePosition(this.homeStyleX, this.homeStyleY)
   }
 
   private handlePondStyleTransformEvent(payload: unknown): void {
-    const scale = payload && typeof payload === 'object' && typeof (payload as { scale?: unknown }).scale === 'number' ? (payload as { scale: number }).scale : 1
-    const flipX = !!(payload && typeof payload === 'object' && (payload as { flipX?: unknown }).flipX)
+    const p = payload && typeof payload === 'object' ? payload as { scale?: unknown; flipX?: unknown; x?: unknown; y?: unknown } : {}
+    const scale = typeof p.scale === 'number' ? p.scale : 1
+    const flipX = !!p.flipX
+    const x = p.x === null ? null : typeof p.x === 'number' && Number.isFinite(p.x) ? p.x : this.pondStyleX
+    const y = p.y === null ? null : typeof p.y === 'number' && Number.isFinite(p.y) ? p.y : this.pondStyleY
     this.pondStyleScale = Phaser.Math.Clamp(Number.isFinite(scale) ? scale : 1, 0.3, 3)
     this.pondStyleFlipX = flipX
+    this.pondStyleX = x
+    this.pondStyleY = y
     this.pondEvolution?.setStyleTransform(this.pondStyleScale, this.pondStyleFlipX)
+    this.pondEvolution?.setStylePosition(this.pondStyleX, this.pondStyleY)
   }
 
   private buildEvolutionChanges(previous: SanctuaryProgressState, next: SanctuaryProgressState): EvolutionStageChange[] {
@@ -399,7 +403,6 @@ export default class Stage0Scene extends Phaser.Scene {
     else if (change.feature === 'home') this.homeEvolution?.setStage(change.nextStage, animate)
     else if (change.feature === 'pond') this.pondEvolution?.setStage(change.nextStage, animate)
     else if (change.feature === 'lanterns') {
-      this.lanternEvolution?.setStage(change.nextStage, animate)
       this.baseA?.setTexture(terraceMapTextureKey(this.paintedPhase, change.nextStage)).setAlpha(1)
       this.fitBackgrounds()
       this.positionWorldEffects()
@@ -440,15 +443,12 @@ export default class Stage0Scene extends Phaser.Scene {
     this.weatherSystem.setReducedMotion(reducedMotion)
     this.pondEvolution.setReducedMotion(reducedMotion)
     this.homeEvolution.setReducedMotion(reducedMotion)
-    this.lanternEvolution.setReducedMotion(reducedMotion)
     this.gardenEvolution.setReducedMotion(reducedMotion)
     this.critters.setReducedMotion(reducedMotion)
-    this.fishing.setReducedMotion(reducedMotion)
     this.konoInteractions.setReducedMotion(reducedMotion)
     this.konoMascot.setReducedMotion(reducedMotion)
     this.evolution.setReducedMotion(reducedMotion)
     this.evolutionCoordinator.setReducedMotion(reducedMotion)
-    this.refreshPersistentEffects()
     this.rescheduleAmbientSystems()
   }
 
@@ -529,7 +529,6 @@ export default class Stage0Scene extends Phaser.Scene {
   }
   private handleAccessibleAction(payload:{kind?:string;landmarkId?:KonoLandmarkId;actionId?:string;action?:string}):void{
     if(!this.sceneReady||!payload)return
-    if(payload.kind==='fishing'){if(payload.action==='cast')this.fishing.start(true);if(payload.action==='reel')this.fishing.handleBridgePress();return}
     if(payload.kind!=='interaction'||!payload.landmarkId)return
     const actions=this.konoInteractions.getActions(payload.landmarkId,{lanternStage:this.progress.featureStages.lanterns??0,pondStage:this.progress.featureStages.pond??0,phase:this.paintedPhase})??[]
     const action=actions.find(a=>a.id===payload.actionId)
@@ -550,7 +549,6 @@ export default class Stage0Scene extends Phaser.Scene {
     this.vegetation.setPhase(nextBlend.dominant)
     this.critters.setPhase(nextBlend.dominant)
     this.konoMascot?.setPhase(nextBlend.dominant)
-    this.refreshPersistentEffects()
     this.emitState()
   }
 
@@ -578,8 +576,6 @@ export default class Stage0Scene extends Phaser.Scene {
     // same frame as the painted Sanctuary map. This prevents a transient old
     // roofline, clipped rock, terrace mismatch, or fishing-kit color shift.
     this.homeEvolution?.setPhase(phase)
-    this.lanternEvolution?.setPhase(phase)
-    this.fishing?.setPhase(phase)
     // Tree phase PNG must change on this exact frame too; crossfading two
     // differently painted trees caused transient old/new phase mismatch.
     this.evolution?.setPhase(phase, false)
@@ -599,18 +595,12 @@ export default class Stage0Scene extends Phaser.Scene {
   }
 
 
-  private refreshPersistentEffects(): void {
-    const environment = this.world.environment.snapshot()
-    this.lanternEvolution.update(this.lighting.snapshot(), environment, 0)
-  }
-
   update(timeMs: number, delta: number): void {
     if(!this.sceneReady)return
     const dt = Math.min(delta, 34) / 1000
     const frame = this.world.update(dt)
     const environment = frame.environment
-    this.lightingVisual = this.lighting.update(timeMs, dt, environment)
-    this.lanternEvolution.update(this.lightingVisual, environment, timeMs)
+    this.lighting.update(timeMs, dt, environment)
     this.fluid.update(timeMs, dt, environment)
     this.clouds.update(timeMs, dt, environment)
     this.atmosphere.update(timeMs, dt, environment)
@@ -634,7 +624,6 @@ export default class Stage0Scene extends Phaser.Scene {
     this.world.setWeather(weather, immediate || this.settings.reducedMotion)
     this.world.setQuality(this.settings.quality, this.scale.width)
     this.world.update(0)
-    this.refreshPersistentEffects()
     this.emitState()
   }
 
@@ -849,7 +838,7 @@ export default class Stage0Scene extends Phaser.Scene {
         this.tweens.add({ targets: outline, scaleX: 1, scaleY: 1, duration: 180, ease: 'Sine.Out' })
       })
       hitbox.on('pointerdown', () => {
-        if (landmark.id === 'bridge' && this.fishing.handleBridgePress()) return
+        if (landmark.id === 'cherry' || landmark.id === 'lanterns') return
         this.openLandmarkPopup(landmark)
       })
       this.landmarks.push({ data: landmark, hitbox, outline })
@@ -880,10 +869,8 @@ export default class Stage0Scene extends Phaser.Scene {
     this.weatherSystem.resize(this.sceneBounds)
     this.pondEvolution.resize(this.sceneBounds)
     this.homeEvolution.resize(this.sceneBounds)
-    this.lanternEvolution.resize(this.sceneBounds)
     this.gardenEvolution.resize(this.sceneBounds)
     this.critters.resize(this.sceneBounds)
-    this.fishing.resize(this.sceneBounds)
     this.konoInteractions.resize(this.sceneBounds)
     this.konoMascot.resize(this.sceneBounds)
     this.evolution.resize(this.sceneBounds)
@@ -916,94 +903,62 @@ export default class Stage0Scene extends Phaser.Scene {
     const centerX = width - panelWidth / 2 - margin
     const progress = this.getLandmarkProgress(landmark)
     const unlocked = progress.current >= progress.goal
-    const treeStage = this.progress.featureStages.tree ?? this.progress.unlockedStage
     const pondStage = this.progress.featureStages.pond ?? 0
     const homeStage = this.progress.featureStages.home ?? 0
     const lanternStage = this.progress.featureStages.lanterns ?? 0
     const gardenStage = this.progress.featureStages.garden ?? 0
     const scienceCredits = this.progress.creditsBySubjectKey?.science ?? 0
-    const activeDays = Object.keys(this.progress.completionDates).filter((key) => (this.progress.completionDates[key] ?? 0) > 0).length
-    const isCherry = landmark.id === 'cherry'
     const isPond = landmark.id === 'pond'
     const isHome = landmark.id === 'house'
-    const isLanterns = landmark.id === 'lanterns'
     const isGarden = landmark.id === 'garden'
-    const isBridge = landmark.id === 'bridge'
-    const fishingSummary = this.fishing.getSummary()
     const interactionSummary = this.konoInteractions.getSummary()
     const landmarkVisits = interactionSummary.landmarkVisits[landmark.id as KonoLandmarkId] ?? 0
-    const isEvolutionFeature = isCherry || isPond || isHome || isLanterns || isGarden
-    const nextTreeAt = this.progress.nextFeatureAt?.tree ?? this.progress.nextStageAt
+    const isEvolutionFeature = isPond || isHome || isGarden
     const nextPondAt = this.progress.nextFeatureAt?.pond ?? null
     const nextHomeAt = this.progress.nextFeatureAt?.home ?? null
-    const nextLanternAt = this.progress.nextFeatureAt?.lanterns ?? null
     const nextGardenAt = this.progress.nextFeatureAt?.garden ?? null
     const bodyWidth = panelWidth - 34
 
-    const levelLabel = isCherry
-      ? `Cherry tree · Stage ${treeStage}/5`
-      : isPond
-        ? `${POND_STAGE_NAMES[pondStage]} · Stage ${pondStage}/5`
-        : isHome
-          ? `${HOME_STAGE_NAMES[homeStage]} · Stage ${homeStage}/5`
-          : isLanterns
-            ? `${LANTERN_STAGE_NAMES[lanternStage]} · Stage ${lanternStage}/5`
-            : isGarden
-              ? `${GARDEN_STAGE_NAMES[gardenStage]} · Stage ${gardenStage}/5`
-              : isBridge
-                ? 'Fishing spot · Ready'
-                : unlocked ? 'Next stage ready' : 'Sanctuary stage 0'
+    const levelLabel = isPond
+      ? `${POND_STAGE_NAMES[pondStage]} · Stage ${pondStage}/5`
+      : isHome
+        ? `${HOME_STAGE_NAMES[homeStage]} · Stage ${homeStage}/5`
+        : isGarden
+          ? `${GARDEN_STAGE_NAMES[gardenStage]} · Stage ${gardenStage}/5`
+          : unlocked ? 'Next stage ready' : 'Sanctuary stage 0'
 
-    const progressLabel = isCherry
-      ? nextTreeAt === null ? `${this.progress.totalCredits} task credits · mature` : `${this.progress.totalCredits} / ${nextTreeAt} task credits`
-      : isPond
-        ? nextPondAt === null ? `${scienceCredits} science credits · complete` : `${scienceCredits} / ${nextPondAt} science credits`
-        : isHome
-          ? nextHomeAt === null ? `${this.progress.totalCredits} task credits · complete` : `${this.progress.totalCredits} / ${nextHomeAt} task credits`
-          : isLanterns
-            ? nextLanternAt === null ? `${activeDays} productive days · full glow` : `${activeDays} / ${nextLanternAt} productive days`
-            : isGarden
-              ? nextGardenAt === null ? `${this.progress.totalCredits} task credits · flourishing` : `${this.progress.totalCredits} / ${nextGardenAt} task credits`
-              : isBridge
-                ? `${fishingSummary.totalCatches} catches · ${progress.current}/${progress.goal} active days`
-                : `${progress.current} / ${progress.goal}`
+    const progressLabel = isPond
+      ? nextPondAt === null ? `${scienceCredits} science credits · complete` : `${scienceCredits} / ${nextPondAt} science credits`
+      : isHome
+        ? nextHomeAt === null ? `${this.progress.totalCredits} task credits · complete` : `${this.progress.totalCredits} / ${nextHomeAt} task credits`
+        : isGarden
+          ? nextGardenAt === null ? `${this.progress.totalCredits} task credits · flourishing` : `${this.progress.totalCredits} / ${nextGardenAt} task credits`
+          : `${progress.current} / ${progress.goal}`
 
     const descriptionCopy = isPond
       ? 'Science work brings ripples, lily details, and pond life.'
       : isHome
         ? 'Completed work grows the original cottage through six complete pixel-PNG home stages.'
-        : isLanterns
-          ? `Productive study days furnish the terrace through six permanent pixel-PNG stages. ${LANTERN_STAGE_INTERACTIONS[lanternStage]}`
-          : isGarden
-            ? 'Task milestones establish permanent garden clusters around the island.'
-            : isCherry
-              ? 'Every newly completed assignment helps the centerpiece tree grow.'
-              : isBridge
-                ? 'Cast from the wooden bridge into the ocean below. Wait for the bite, then tap the bridge again to reel in.'
-                : landmark.description
+        : isGarden
+          ? 'Task milestones establish permanent garden clusters around the island.'
+          : landmark.description
 
-    const nextCopy = isCherry
-      ? treeStage >= 5 ? 'Full bloom reached.' : 'Next: a larger cherry-tree form.'
-      : isPond
-        ? pondStage >= 5 ? 'Living pond reached.' : 'Next: more movement and pond life.'
-        : isHome
-          ? homeStage >= 5 ? 'Sanctuary cottage fully evolved.' : 'Next: a larger complete cottage sprite.'
-          : isLanterns
-            ? lanternStage >= 5 ? 'Cozy terrace complete: sit, tea, read, or rest.' : `Next: ${LANTERN_STAGE_NAMES[Math.min(5, lanternStage + 1)]}.`
-            : isGarden
-              ? gardenStage >= 5 ? 'Garden fully flourishing.' : 'Next: another planted island zone.'
-              : isBridge
-                ? `Best catch: ${fishingSummary.bestCatchName ?? '—'}${fishingSummary.bestSizeCm > 0 ? ` · ${fishingSummary.bestSizeCm} cm` : ''}`
-                : landmarkVisits > 0 ? `KONO visits: ${landmarkVisits} · ${unlocked ? `Ready: ${landmark.reward}` : `Future: ${landmark.reward}`}` : unlocked ? `Ready: ${landmark.reward}` : `Future: ${landmark.reward}`
+    const nextCopy = isPond
+      ? pondStage >= 5 ? 'Living pond reached.' : 'Next: more movement and pond life.'
+      : isHome
+        ? homeStage >= 5 ? 'Sanctuary cottage fully evolved.' : 'Next: a larger complete cottage sprite.'
+        : isGarden
+          ? gardenStage >= 5 ? 'Garden fully flourishing.' : 'Next: another planted island zone.'
+          : landmarkVisits > 0 ? `KONO visits: ${landmarkVisits} · ${unlocked ? `Ready: ${landmark.reward}` : `Future: ${landmark.reward}`}` : unlocked ? `Ready: ${landmark.reward}` : `Future: ${landmark.reward}`
 
     const title = this.add.text(0, 0, landmark.title, {
       fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#332d2a',
     }).setDepth(RenderLayers.popup + 2)
     const level = this.add.text(0, 0, levelLabel, {
-      fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: isEvolutionFeature || isBridge || unlocked ? '#5d7859' : '#8a7d76',
+      fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: isEvolutionFeature || unlocked ? '#5d7859' : '#8a7d76',
     }).setDepth(RenderLayers.popup + 2)
     const progressText = this.add.text(0, 0, progressLabel, {
-      fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: isEvolutionFeature || isBridge || unlocked ? '#557150' : '#8a665b',
+      fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: isEvolutionFeature || unlocked ? '#557150' : '#8a665b',
     }).setDepth(RenderLayers.popup + 2)
     const description = this.add.text(0, 0, descriptionCopy, {
       fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#5c514c', lineSpacing: 3, wordWrap: { width: bodyWidth },
@@ -1014,16 +969,9 @@ export default class Stage0Scene extends Phaser.Scene {
 
     const interactionActions = this.konoInteractions.getActions(landmark.id as KonoLandmarkId, { lanternStage, pondStage, phase: this.paintedPhase })
     const popupActions: Array<{ label: string; primary?: boolean; run: () => void }> = []
-    if (isBridge) {
-      popupActions.push({
-        label: 'Go Fishing',
-        primary: true,
-        run: () => this.fishing.start(),
-      })
-    }
     interactionActions.forEach((action) => popupActions.push({
       label: action.label,
-      primary: !isBridge && popupActions.length === 0,
+      primary: popupActions.length === 0,
       run: () => this.konoInteractions.start(action),
     }))
 
@@ -1152,7 +1100,6 @@ export default class Stage0Scene extends Phaser.Scene {
     this.tweens.killAll()
     this.ambientSprites.forEach((sprite) => sprite.destroy())
     this.ambientSprites.clear()
-    this.fishing.destroy()
     this.konoInteractions.destroy()
     this.konoMascot.destroy()
     this.fluid.destroy()
@@ -1163,7 +1110,6 @@ export default class Stage0Scene extends Phaser.Scene {
     this.weatherSystem.destroy()
     this.pondEvolution.destroy()
     this.homeEvolution.destroy()
-    this.lanternEvolution.destroy()
     this.gardenEvolution.destroy()
     this.critters.destroy()
     this.evolutionCoordinator.destroy()
