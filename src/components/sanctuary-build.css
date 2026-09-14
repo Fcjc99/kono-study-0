@@ -6,11 +6,16 @@
 .build-item.is-dragging{cursor:grabbing;z-index:5}
 .build-item.is-selected{outline:2px solid #ffd54a;outline-offset:3px;border-radius:8px}
 .build-item img{width:100%;height:auto;display:block;pointer-events:none;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
-.build-item-panel{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;background:#00000090;padding:10px 12px;border-radius:16px;z-index:6;min-width:180px}
-.build-item-panel label{display:flex;align-items:center;gap:8px;color:#fff;font-size:.78rem;font-weight:700}
-.build-item-panel input[type="range"]{flex:1}
+/* Anchored to the selected item's own position (see the inline left/top) rather than glued to the
+ * bottom of the whole canvas, so the controls always appear right next to what they're adjusting.
+ * .is-above flips the panel to sit above the item instead of below, for items in the lower part of
+ * the island where a below-anchored panel would run off the canvas. */
+.build-item-panel{position:absolute;transform:translate(-50%,16px);display:flex;flex-direction:column;gap:8px;background:var(--wb-surface);border:1px solid var(--wb-line);box-shadow:0 8px 20px #00000030;padding:12px 14px;border-radius:16px;z-index:6;min-width:200px}
+.build-item-panel.is-above{transform:translate(-50%,calc(-100% - 16px))}
+.build-item-panel label{display:flex;align-items:center;gap:8px;font-size:.78rem;font-weight:700}
+.build-item-panel input[type="range"]{flex:1;height:28px}
 .build-item-actions{display:flex;gap:8px;justify-content:center;margin-top:2px}
-.build-item-actions button{width:36px;height:36px;border-radius:50%;border:0;background:#fff;font-size:1.05rem;cursor:pointer;display:grid;place-items:center}
+.build-item-actions button{width:40px;height:40px;border-radius:50%;border:1px solid var(--wb-line);background:var(--wb-surface);font-size:1.1rem;cursor:pointer;display:grid;place-items:center}
 .sanctuary-build{display:grid;gap:10px;margin-top:12px}
 .build-home-styles{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 10px}
 .build-home-style-item{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border:1px solid var(--wb-line);border-radius:14px;background:var(--wb-surface);cursor:pointer;width:96px}

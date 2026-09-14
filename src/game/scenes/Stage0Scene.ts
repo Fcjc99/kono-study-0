@@ -131,7 +131,7 @@ export default class Stage0Scene extends Phaser.Scene {
   }
   private enqueuePhaseAssets(phase:DayPhase):void{
     this.load.image(terraceMapTextureKey(phase),`/garden/terrace-23.0/${phase}.png`)
-    FluidSystem.preload(this,[phase]);TreeEvolutionSystem.preload(this,[phase]);HomeEvolutionSystem.preload(this,[phase])
+    TreeEvolutionSystem.preload(this,[phase]);HomeEvolutionSystem.preload(this,[phase])
   }
 
   constructor() {
@@ -187,9 +187,12 @@ export default class Stage0Scene extends Phaser.Scene {
     this.gardenEvolution.create(this.progress.featureStages.garden ?? 0, this.settings.reducedMotion)
     this.homeEvolution = new HomeEvolutionSystem(this)
     this.homeEvolution.create(this.progress.featureStages.home ?? 0, this.blend.dominant, this.settings.reducedMotion, this.homeStyle, this.homeStyleScale, this.homeStyleFlipX, this.homeStyleX, this.homeStyleY)
+    // Build 23.0: the animated ocean/waterfall/foam/pond shimmer crops were tuned to fixed pixel
+    // positions on the old terrace map and no longer line up with the new blank island's coastline
+    // and waterfall — never created, rather than shown misplaced. New crops fitted to the new island's
+    // art (and its own per-phase variants) will replace this later; the class stays wired (every other
+    // call site below is a safe no-op against its empty layer map) so re-enabling it is a one-line change.
     this.fluid = new FluidSystem(this)
-    this.fluid.create(this.blend.dominant, this.settings.reducedMotion)
-    this.fluid.setPondLayerVisible(!isPondStyleId(this.pondStyle))
     this.pondEvolution = new PondEvolutionSystem(this)
     this.pondEvolution.create(this.progress.featureStages.pond ?? 0, this.settings.reducedMotion, this.pondStyle, this.pondStyleScale, this.pondStyleFlipX, this.pondStyleX, this.pondStyleY)
     this.clouds = new CloudSystem(this)
@@ -878,7 +881,7 @@ export default class Stage0Scene extends Phaser.Scene {
         this.tweens.add({ targets: outline, scaleX: 1, scaleY: 1, duration: 180, ease: 'Sine.Out' })
       })
       hitbox.on('pointerdown', () => {
-        if (landmark.id === 'cherry' || landmark.id === 'lanterns') return
+        if (landmark.id === 'cherry' || landmark.id === 'lanterns' || landmark.id === 'pond' || landmark.id === 'house') return
         this.openLandmarkPopup(landmark)
       })
       this.landmarks.push({ data: landmark, hitbox, outline })
@@ -944,61 +947,38 @@ export default class Stage0Scene extends Phaser.Scene {
     const progress = this.getLandmarkProgress(landmark)
     const unlocked = progress.current >= progress.goal
     const pondStage = this.progress.featureStages.pond ?? 0
-    const homeStage = this.progress.featureStages.home ?? 0
     const lanternStage = this.progress.featureStages.lanterns ?? 0
     const gardenStage = this.progress.featureStages.garden ?? 0
-    const scienceCredits = this.progress.creditsBySubjectKey?.science ?? 0
-    const isPond = landmark.id === 'pond'
-    const isHome = landmark.id === 'house'
     const isGarden = landmark.id === 'garden'
     const interactionSummary = this.konoInteractions.getSummary()
     const landmarkVisits = interactionSummary.landmarkVisits[landmark.id as KonoLandmarkId] ?? 0
-    const isEvolutionFeature = isPond || isHome || isGarden
-    const nextPondAt = this.progress.nextFeatureAt?.pond ?? null
-    const nextHomeAt = this.progress.nextFeatureAt?.home ?? null
     const nextGardenAt = this.progress.nextFeatureAt?.garden ?? null
     const bodyWidth = panelWidth - 34
 
-    const levelLabel = isPond
-      ? `${POND_STAGE_NAMES[pondStage]} · Stage ${pondStage}/5`
-      : isHome
-        ? `${HOME_STAGE_NAMES[homeStage]} · Stage ${homeStage}/5`
-        : isGarden
-          ? `${GARDEN_STAGE_NAMES[gardenStage]} · Stage ${gardenStage}/5`
-          : unlocked ? 'Next stage ready' : 'Sanctuary stage 0'
+    const levelLabel = isGarden
+      ? `${GARDEN_STAGE_NAMES[gardenStage]} · Stage ${gardenStage}/5`
+      : unlocked ? 'Next stage ready' : 'Sanctuary stage 0'
 
-    const progressLabel = isPond
-      ? nextPondAt === null ? `${scienceCredits} science credits · complete` : `${scienceCredits} / ${nextPondAt} science credits`
-      : isHome
-        ? nextHomeAt === null ? `${this.progress.totalCredits} task credits · complete` : `${this.progress.totalCredits} / ${nextHomeAt} task credits`
-        : isGarden
-          ? nextGardenAt === null ? `${this.progress.totalCredits} task credits · flourishing` : `${this.progress.totalCredits} / ${nextGardenAt} task credits`
-          : `${progress.current} / ${progress.goal}`
+    const progressLabel = isGarden
+      ? nextGardenAt === null ? `${this.progress.totalCredits} task credits · flourishing` : `${this.progress.totalCredits} / ${nextGardenAt} task credits`
+      : `${progress.current} / ${progress.goal}`
 
-    const descriptionCopy = isPond
-      ? 'Science work brings ripples, lily details, and pond life.'
-      : isHome
-        ? 'Completed work grows the original cottage through six complete pixel-PNG home stages.'
-        : isGarden
-          ? 'Task milestones establish permanent garden clusters around the island.'
-          : landmark.description
+    const descriptionCopy = isGarden
+      ? 'Task milestones establish permanent garden clusters around the island.'
+      : landmark.description
 
-    const nextCopy = isPond
-      ? pondStage >= 5 ? 'Living pond reached.' : 'Next: more movement and pond life.'
-      : isHome
-        ? homeStage >= 5 ? 'Sanctuary cottage fully evolved.' : 'Next: a larger complete cottage sprite.'
-        : isGarden
-          ? gardenStage >= 5 ? 'Garden fully flourishing.' : 'Next: another planted island zone.'
-          : landmarkVisits > 0 ? `KONO visits: ${landmarkVisits} · ${unlocked ? `Ready: ${landmark.reward}` : `Future: ${landmark.reward}`}` : unlocked ? `Ready: ${landmark.reward}` : `Future: ${landmark.reward}`
+    const nextCopy = isGarden
+      ? gardenStage >= 5 ? 'Garden fully flourishing.' : 'Next: another planted island zone.'
+      : landmarkVisits > 0 ? `KONO visits: ${landmarkVisits} · ${unlocked ? `Ready: ${landmark.reward}` : `Future: ${landmark.reward}`}` : unlocked ? `Ready: ${landmark.reward}` : `Future: ${landmark.reward}`
 
     const title = this.add.text(0, 0, landmark.title, {
       fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#332d2a',
     }).setDepth(RenderLayers.popup + 2)
     const level = this.add.text(0, 0, levelLabel, {
-      fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: isEvolutionFeature || unlocked ? '#5d7859' : '#8a7d76',
+      fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: isGarden || unlocked ? '#5d7859' : '#8a7d76',
     }).setDepth(RenderLayers.popup + 2)
     const progressText = this.add.text(0, 0, progressLabel, {
-      fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: isEvolutionFeature || unlocked ? '#557150' : '#8a665b',
+      fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: isGarden || unlocked ? '#557150' : '#8a665b',
     }).setDepth(RenderLayers.popup + 2)
     const description = this.add.text(0, 0, descriptionCopy, {
       fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#5c514c', lineSpacing: 3, wordWrap: { width: bodyWidth },
