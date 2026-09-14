@@ -28,7 +28,6 @@ export const RenderLayers = Object.freeze({
   landmarkHitbox: 32,
   lightingShade: 33,
   weatherShade: 34,
-  lanternGlow: 35,
   weather: 36,
   weatherFront: 37,
   phaseVeil: 38,

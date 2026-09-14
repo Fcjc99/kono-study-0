@@ -153,6 +153,8 @@ export class PondEvolutionSystem {
   private styleImage?: Phaser.GameObjects.Image
   private styleScale = 1
   private styleFlipX = false
+  private styleX: number | null = null
+  private styleY: number | null = null
   private styleFrame = 0
   private styleFrameEvent?: Phaser.Time.TimerEvent
   private sceneBounds = new Phaser.Geom.Rectangle()
@@ -195,11 +197,13 @@ export class PondEvolutionSystem {
     uniqueAssets.forEach((file, key) => scene.load.image(key, `${ASSET_ROOT}/${file}`))
   }
 
-  create(stage: number, reducedMotion: boolean, styleId: string | null = null, styleScale = 1, styleFlipX = false): void {
+  create(stage: number, reducedMotion: boolean, styleId: string | null = null, styleScale = 1, styleFlipX = false, styleX: number | null = null, styleY: number | null = null): void {
     this.stage = Phaser.Math.Clamp(Math.round(stage), 0, POND_STAGE_NAMES.length - 1)
     this.reducedMotion = reducedMotion
     this.styleScale = Phaser.Math.Clamp(Number.isFinite(styleScale) ? styleScale : 1, 0.3, 3)
     this.styleFlipX = styleFlipX
+    this.styleX = styleX
+    this.styleY = styleY
     // Build 22.9: the koi/lily/reed stage-growth visuals below are retired in favor of the pond-style
     // system (setStyle) — progression still tracks and scores pond stage under the hood, it just no
     // longer draws anything for it. With no style chosen the pond is the plain painted water already
@@ -314,6 +318,14 @@ export class PondEvolutionSystem {
     if (this.styleId) this.layoutStyleImage()
   }
 
+  /** A dragged position, as a fraction of the scene bounds — null falls back to the default
+   * ground-anchored spot the contain-fit math computes on its own. */
+  setStylePosition(x: number | null, y: number | null): void {
+    this.styleX = x
+    this.styleY = y
+    if (this.styleId) this.layoutStyleImage()
+  }
+
   private applyStyle(id: PondStyleId): void {
     this.styleId = id
     this.styleFrame = 0
@@ -346,8 +358,8 @@ export class PondEvolutionSystem {
     if (!this.styleImage || !this.styleId) return
     const style = POND_STYLE_BY_ID[this.styleId]
     const contentScale = Math.min(POND_STYLE_BOX_WIDTH / style.contentWidth, POND_STYLE_BOX_HEIGHT / style.contentHeight) * this.scaleX * this.styleScale
-    const groundX = this.sceneLeft + POND_STYLE_GROUND_X * this.scaleX
-    const groundY = this.sceneTop + POND_STYLE_GROUND_Y * this.scaleY
+    const groundX = this.styleX == null ? this.sceneLeft + POND_STYLE_GROUND_X * this.scaleX : this.sceneBounds.left + this.styleX * this.sceneBounds.width
+    const groundY = this.styleY == null ? this.sceneTop + POND_STYLE_GROUND_Y * this.scaleY : this.sceneBounds.top + this.styleY * this.sceneBounds.height
     this.styleImage
       .setOrigin(style.anchorX, style.anchorY)
       .setPosition(groundX, groundY)

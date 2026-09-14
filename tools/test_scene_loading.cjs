@@ -32,17 +32,17 @@ function setup(phase='afternoon') {
 }
 const tests=[]
 function test(name,body){body();tests.push(name)}
-test('Every manual boot requests exactly one phase, 219 textures, existing packaged assets',()=>{
+test('Every manual boot requests exactly one phase, 212 textures, existing packaged assets',()=>{
   for(const phase of ['morning','afternoon','evening','night']){
     const s=setup(phase);s.scene.preload()
     assert.equal(s.scene.paintedPhase,phase)
-    assert.equal(s.requests.length,219)
+    assert.equal(s.requests.length,212)
     for(const req of s.requests){
       assert.equal(fs.existsSync(path.join(ROOT,'dist/client',req.url)),true,req.url)
       const match=req.url.match(/morning|afternoon|evening|night/)
       if(match)assert.equal(match[0],phase,req.url)
     }
-    assert.equal(s.scene.bootImageKeys.length,219)
+    assert.equal(s.scene.bootImageKeys.length,212)
   }
 })
 test('Missing boot image emits error and update safely does nothing',()=>{
@@ -51,9 +51,9 @@ test('Missing boot image emits error and update safely does nothing',()=>{
   assert.equal(s.scene.sceneReady,false)
   assert.deepEqual(s.statuses.at(-1),{status:'error',phase:'night',boot:true})
 })
-test('A -> B -> A never commits stale B; B pack has only 70 uncached textures',()=>{
+test('A -> B -> A never commits stale B; B pack has only 63 uncached textures',()=>{
   const s=setup();s.boot();s.request('night');s.request('afternoon');s.finish()
-  assert.equal(s.batches[0].length,70)
+  assert.equal(s.batches[0].length,63)
   assert.deepEqual(s.commits.map(x=>x.phase),['afternoon'])
   assert.equal(s.scene.readyPhases.has('night'),true)
 })
@@ -81,7 +81,7 @@ test('DESTROY invalidates pending phase completion',()=>{
 test('Staged SHUTDOWN cleanup removes pending completion and runs systems only once',()=>{
   const s=setup();s.boot();s.request('night')
   const destroyed=[]
-  const names=['fishing','konoInteractions','konoMascot','fluid','clouds','atmosphere','vegetation','lighting','weatherSystem','pondEvolution','homeEvolution','lanternEvolution','gardenEvolution','critters','evolutionCoordinator','evolution']
+  const names=['konoInteractions','konoMascot','fluid','clouds','atmosphere','vegetation','lighting','weatherSystem','pondEvolution','homeEvolution','gardenEvolution','critters','evolutionCoordinator','evolution']
   for(const name of names)s.scene[name]={destroy:()=>destroyed.push(name)}
   Object.assign(s.scene,{systemsDisposed:false,sceneReady:true,scale:{off(){}},tweens:{killAll(){}},ambientSprites:new Set(),popupObjects:[]})
   s.scene.events.once('shutdown',s.scene.handleShutdown,s.scene)
