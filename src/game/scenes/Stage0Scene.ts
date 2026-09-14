@@ -195,6 +195,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.lanternEvolution.create(this.progress.featureStages.lanterns ?? 0, this.settings.reducedMotion)
     this.fluid = new FluidSystem(this)
     this.fluid.create(this.blend.dominant, this.settings.reducedMotion)
+    this.fluid.setPondLayerVisible(!isPondStyleId(this.pondStyle))
     this.pondEvolution = new PondEvolutionSystem(this)
     this.pondEvolution.create(this.progress.featureStages.pond ?? 0, this.settings.reducedMotion, this.pondStyle, this.pondStyleScale, this.pondStyleFlipX)
     this.clouds = new CloudSystem(this)
@@ -346,6 +347,7 @@ export default class Stage0Scene extends Phaser.Scene {
   private handlePondStyleEvent(styleId: unknown): void {
     const nextId = isPondStyleId(styleId) ? styleId : null
     this.pondStyle = nextId
+    this.fluid?.setPondLayerVisible(!nextId)
     if (!nextId) { this.pondEvolution?.setStyle(null); return }
     if (PondEvolutionSystem.isStyleLoaded(this, nextId)) { this.pondEvolution?.setStyle(nextId); return }
     if (this.load.isLoading()) { this.time.delayedCall(80, () => this.handlePondStyleEvent(styleId)); return }

@@ -19,6 +19,7 @@ export class FluidSystem {
   private readonly scene: Phaser.Scene
   private reducedMotion = false
   private enabled = true
+  private pondLayerVisible = true
   private speedMultiplier = 1
   private phase: DayPhase = 'afternoon'
   private layers = new Map<FluidLayer, LayerRuntime>()
@@ -116,10 +117,22 @@ export class FluidSystem {
 
   setEnabled(enabled: boolean): void {
     this.enabled = enabled
-    this.layers.forEach(({ spriteA, spriteB }) => {
-      spriteA.setVisible(enabled)
-      spriteB.setVisible(enabled)
+    this.layers.forEach(({ spriteA, spriteB }, layer) => {
+      const visible = enabled && (layer !== 'pond' || this.pondLayerVisible)
+      spriteA.setVisible(visible)
+      spriteB.setVisible(visible)
     })
+  }
+
+  /** A chosen pond style is a standalone illustration with its own water animation — this plain
+   * shimmering-water crop (sized for the default painted pond) would otherwise show through or
+   * around it, since the style's shape rarely matches this layer's rectangular crop exactly. */
+  setPondLayerVisible(visible: boolean): void {
+    this.pondLayerVisible = visible
+    const runtime = this.layers.get('pond')
+    if (!runtime) return
+    runtime.spriteA.setVisible(visible && this.enabled)
+    runtime.spriteB.setVisible(visible && this.enabled)
   }
 
   setSpeedMultiplier(multiplier: number): void {
