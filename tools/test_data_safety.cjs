@@ -258,6 +258,20 @@ assert.equal(decor.homeStyleX,0.3);assert.equal(decor.homeStyleY,0.7);
 assert.equal(decor.pondStyleX,0);assert.equal(decor.pondStyleY,1);
 same(model.normalizeData(normalized),normalized);
 });
+test('tree style defaults to null, round-trips scale/mirror/position, and clamps out-of-range values',()=>{
+const d=make(),pid=d.activeProfileId;
+const fresh=model.normalizeData(d).sanctuaryDecor[pid];
+assert.equal(fresh.treeStyle,null);assert.equal(fresh.treeStyleScale,1);assert.equal(fresh.treeStyleFlipX,false);
+assert.equal(fresh.treeStyleX,null);assert.equal(fresh.treeStyleY,null);
+d.sanctuaryDecor[pid].treeStyle='pine';d.sanctuaryDecor[pid].treeStyleScale=99;d.sanctuaryDecor[pid].treeStyleFlipX=true;
+d.sanctuaryDecor[pid].treeStyleX=0.4;d.sanctuaryDecor[pid].treeStyleY=-3;
+const normalized=model.normalizeData(d);const decor=normalized.sanctuaryDecor[pid];
+assert.equal(decor.treeStyle,'pine');assert.equal(decor.treeStyleScale,3);assert.equal(decor.treeStyleFlipX,true);
+assert.equal(decor.treeStyleX,0.4);assert.equal(decor.treeStyleY,0);
+same(model.normalizeData(normalized),normalized);
+d.sanctuaryDecor[pid].treeStyle='x'.repeat(101);
+assert.throws(()=>model.normalizeData(d));
+});
 test('all cozy color palettes survive save normalization',()=>{
  for(const theme of ['coral','sakura','lavender','mint','honey']){const d=make();d.settings.theme=theme;assert.equal(model.normalizeData(d).settings.theme,theme)}
 });

@@ -25,6 +25,7 @@ import { POND_STAGE_NAMES, PondEvolutionSystem } from '../systems/PondEvolutionS
 import { HOME_STAGE_NAMES, HomeEvolutionSystem } from '../systems/HomeEvolutionSystem'
 import { isHomeStyleId } from '../data/homeStyles'
 import { isPondStyleId } from '../data/pondStyles'
+import { isTreeStyleId } from '../data/treeStyles'
 import { LANTERN_STAGE_NAMES } from '../progression/progressionEngine'
 import { GARDEN_STAGE_NAMES, GardenEvolutionSystem } from '../systems/GardenEvolutionSystem'
 import { CritterSystem } from '../systems/CritterSystem'
@@ -96,6 +97,7 @@ export default class Stage0Scene extends Phaser.Scene {
   private progress: SanctuaryProgressState = createSanctuaryProgress('unassigned')
   private homeStyle: string | null = null
   private pondStyle: string | null = null
+  private treeStyle: string | null = null
   private homeStyleScale = 1
   private homeStyleFlipX = false
   private homeStyleX: number | null = null
@@ -104,6 +106,10 @@ export default class Stage0Scene extends Phaser.Scene {
   private pondStyleFlipX = false
   private pondStyleX: number | null = null
   private pondStyleY: number | null = null
+  private treeStyleScale = 1
+  private treeStyleFlipX = false
+  private treeStyleX: number | null = null
+  private treeStyleY: number | null = null
   private world = new WorldEngine()
   private stateEmitClock = 0
   private readyPhases = new Set<DayPhase>()
@@ -143,6 +149,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.enqueuePhaseAssets(this.paintedPhase)
     if(isHomeStyleId(this.homeStyle))HomeEvolutionSystem.preloadStyle(this,this.homeStyle)
     if(isPondStyleId(this.pondStyle))PondEvolutionSystem.preloadStyle(this,this.pondStyle)
+    if(isTreeStyleId(this.treeStyle))TreeEvolutionSystem.preloadStyle(this,this.treeStyle)
     RIPPLE_VARIANTS.forEach((id) => this.load.image(`ripple-${id}`, `/garden/processed/ripples/ripple-${id}.png`))
     PHASE_VARIANTS.forEach((id) => {
       this.load.image(`leaf-${id}`, `/garden/processed/leaves/leaf-${id}.png`)
@@ -192,7 +199,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.vegetation = new VegetationSystem(this)
     this.vegetation.create(this.blend.dominant, this.settings.reducedMotion)
     this.evolution = new TreeEvolutionSystem(this)
-    this.evolution.create(this.progress.featureStages.tree ?? this.progress.unlockedStage, this.blend.dominant, this.settings.reducedMotion)
+    this.evolution.create(this.progress.featureStages.tree ?? this.progress.unlockedStage, this.blend.dominant, this.settings.reducedMotion, this.treeStyle, this.treeStyleScale, this.treeStyleFlipX, this.treeStyleX, this.treeStyleY)
     this.critters = new CritterSystem(this)
     this.critters.create(
       this.blend.dominant,
@@ -247,6 +254,11 @@ export default class Stage0Scene extends Phaser.Scene {
     const pondStyleFlipX = this.registry.get('sanctuaryPondStyleFlipX')
     const pondStyleX = this.registry.get('sanctuaryPondStyleX')
     const pondStyleY = this.registry.get('sanctuaryPondStyleY')
+    const treeStyle = this.registry.get('sanctuaryTreeStyle')
+    const treeStyleScale = this.registry.get('sanctuaryTreeStyleScale')
+    const treeStyleFlipX = this.registry.get('sanctuaryTreeStyleFlipX')
+    const treeStyleX = this.registry.get('sanctuaryTreeStyleX')
+    const treeStyleY = this.registry.get('sanctuaryTreeStyleY')
 
     if (isPhaseMode(phaseMode)) this.settings.phaseMode = phaseMode
     if (isSanctuaryWeather(weather)) this.settings.weather = weather
@@ -270,6 +282,11 @@ export default class Stage0Scene extends Phaser.Scene {
     if (typeof pondStyleFlipX === 'boolean') this.pondStyleFlipX = pondStyleFlipX
     if (pondStyleX === null || (typeof pondStyleX === 'number' && Number.isFinite(pondStyleX))) this.pondStyleX = pondStyleX
     if (pondStyleY === null || (typeof pondStyleY === 'number' && Number.isFinite(pondStyleY))) this.pondStyleY = pondStyleY
+    if (treeStyle === null || typeof treeStyle === 'string') this.treeStyle = treeStyle
+    if (typeof treeStyleScale === 'number' && Number.isFinite(treeStyleScale)) this.treeStyleScale = Phaser.Math.Clamp(treeStyleScale, 0.3, 3)
+    if (typeof treeStyleFlipX === 'boolean') this.treeStyleFlipX = treeStyleFlipX
+    if (treeStyleX === null || (typeof treeStyleX === 'number' && Number.isFinite(treeStyleX))) this.treeStyleX = treeStyleX
+    if (treeStyleY === null || (typeof treeStyleY === 'number' && Number.isFinite(treeStyleY))) this.treeStyleY = treeStyleY
   }
 
   private bindRuntimeEvents(): void {
@@ -285,8 +302,10 @@ export default class Stage0Scene extends Phaser.Scene {
     this.game.events.on(SANCTUARY_EVENTS.progress, this.handleProgressEvent, this)
     this.game.events.on(SANCTUARY_EVENTS.homeStyle, this.handleHomeStyleEvent, this)
     this.game.events.on(SANCTUARY_EVENTS.pondStyle, this.handlePondStyleEvent, this)
+    this.game.events.on(SANCTUARY_EVENTS.treeStyle, this.handleTreeStyleEvent, this)
     this.game.events.on(SANCTUARY_EVENTS.homeStyleTransform, this.handleHomeStyleTransformEvent, this)
     this.game.events.on(SANCTUARY_EVENTS.pondStyleTransform, this.handlePondStyleTransformEvent, this)
+    this.game.events.on(SANCTUARY_EVENTS.treeStyleTransform, this.handleTreeStyleTransformEvent, this)
   }
 
   private handleProgressEvent(progress: unknown): void {
@@ -373,6 +392,31 @@ export default class Stage0Scene extends Phaser.Scene {
     this.pondStyleY = y
     this.pondEvolution?.setStyleTransform(this.pondStyleScale, this.pondStyleFlipX)
     this.pondEvolution?.setStylePosition(this.pondStyleX, this.pondStyleY)
+  }
+
+  private handleTreeStyleEvent(styleId: unknown): void {
+    const nextId = isTreeStyleId(styleId) ? styleId : null
+    this.treeStyle = nextId
+    if (!nextId) { this.evolution?.setStyle(null); return }
+    if (TreeEvolutionSystem.isStyleLoaded(this, nextId)) { this.evolution?.setStyle(nextId); return }
+    if (this.load.isLoading()) { this.time.delayedCall(80, () => this.handleTreeStyleEvent(styleId)); return }
+    TreeEvolutionSystem.preloadStyle(this, nextId)
+    this.load.once(Phaser.Loader.Events.COMPLETE, () => { if (this.treeStyle === nextId) this.evolution?.setStyle(nextId) })
+    this.load.start()
+  }
+
+  private handleTreeStyleTransformEvent(payload: unknown): void {
+    const p = payload && typeof payload === 'object' ? payload as { scale?: unknown; flipX?: unknown; x?: unknown; y?: unknown } : {}
+    const scale = typeof p.scale === 'number' ? p.scale : 1
+    const flipX = !!p.flipX
+    const x = p.x === null ? null : typeof p.x === 'number' && Number.isFinite(p.x) ? p.x : this.treeStyleX
+    const y = p.y === null ? null : typeof p.y === 'number' && Number.isFinite(p.y) ? p.y : this.treeStyleY
+    this.treeStyleScale = Phaser.Math.Clamp(Number.isFinite(scale) ? scale : 1, 0.3, 3)
+    this.treeStyleFlipX = flipX
+    this.treeStyleX = x
+    this.treeStyleY = y
+    this.evolution?.setStyleTransform(this.treeStyleScale, this.treeStyleFlipX)
+    this.evolution?.setStylePosition(this.treeStyleX, this.treeStyleY)
   }
 
   private buildEvolutionChanges(previous: SanctuaryProgressState, next: SanctuaryProgressState): EvolutionStageChange[] {
@@ -1090,8 +1134,10 @@ export default class Stage0Scene extends Phaser.Scene {
     this.game.events.off(SANCTUARY_EVENTS.progress, this.handleProgressEvent, this)
     this.game.events.off(SANCTUARY_EVENTS.homeStyle, this.handleHomeStyleEvent, this)
     this.game.events.off(SANCTUARY_EVENTS.pondStyle, this.handlePondStyleEvent, this)
+    this.game.events.off(SANCTUARY_EVENTS.treeStyle, this.handleTreeStyleEvent, this)
     this.game.events.off(SANCTUARY_EVENTS.homeStyleTransform, this.handleHomeStyleTransformEvent, this)
     this.game.events.off(SANCTUARY_EVENTS.pondStyleTransform, this.handlePondStyleTransformEvent, this)
+    this.game.events.off(SANCTUARY_EVENTS.treeStyleTransform, this.handleTreeStyleTransformEvent, this)
     this.scale.off('resize', this.handleResize, this)
     this.tweens.killAll()
     this.ambientSprites.forEach((sprite) => sprite.destroy())

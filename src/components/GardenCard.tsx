@@ -59,6 +59,7 @@ interface GardenCardProps {
   progress: SanctuaryProgressState
   homeStyle?: string | null
   pondStyle?: string | null
+  treeStyle?: string | null
   homeStyleScale?: number
   homeStyleFlipX?: boolean
   homeStyleX?: number | null
@@ -67,6 +68,10 @@ interface GardenCardProps {
   pondStyleFlipX?: boolean
   pondStyleX?: number | null
   pondStyleY?: number | null
+  treeStyleScale?: number
+  treeStyleFlipX?: boolean
+  treeStyleX?: number | null
+  treeStyleY?: number | null
 }
 
 const initialState: SanctuaryState = {
@@ -99,14 +104,14 @@ const formatDebugTime = (minutes: number) => {
 const debugFromUrl = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sanctuaryDebug') === '1'
 
-export default function GardenCard({ phase, weather, reducedMotion, progress, homeStyle = null, pondStyle = null, homeStyleScale = 1, homeStyleFlipX = false, homeStyleX = null, homeStyleY = null, pondStyleScale = 1, pondStyleFlipX = false, pondStyleX = null, pondStyleY = null }: GardenCardProps) {
+export default function GardenCard({ phase, weather, reducedMotion, progress, homeStyle = null, pondStyle = null, treeStyle = null, homeStyleScale = 1, homeStyleFlipX = false, homeStyleX = null, homeStyleY = null, pondStyleScale = 1, pondStyleFlipX = false, pondStyleX = null, pondStyleY = null, treeStyleScale = 1, treeStyleFlipX = false, treeStyleX = null, treeStyleY = null }: GardenCardProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const gameRef = useRef<PhaserGameHandle | null>(null)
   const visibleRef = useRef(true)
   const debugEnabledRef = useRef(debugFromUrl())
   const lastCanvasSizeRef = useRef({ width: 0, height: 0 })
-  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, homeStyle, pondStyle, homeStyleScale, homeStyleFlipX, homeStyleX, homeStyleY, pondStyleScale, pondStyleFlipX, pondStyleX, pondStyleY })
-  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,homeStyle,pondStyle,homeStyleScale,homeStyleFlipX,homeStyleX,homeStyleY,pondStyleScale,pondStyleFlipX,pondStyleX,pondStyleY}},[phase,weather,reducedMotion,progress,homeStyle,pondStyle,homeStyleScale,homeStyleFlipX,homeStyleX,homeStyleY,pondStyleScale,pondStyleFlipX,pondStyleX,pondStyleY])
+  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, homeStyle, pondStyle, treeStyle, homeStyleScale, homeStyleFlipX, homeStyleX, homeStyleY, pondStyleScale, pondStyleFlipX, pondStyleX, pondStyleY, treeStyleScale, treeStyleFlipX, treeStyleX, treeStyleY })
+  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,homeStyle,pondStyle,treeStyle,homeStyleScale,homeStyleFlipX,homeStyleX,homeStyleY,pondStyleScale,pondStyleFlipX,pondStyleX,pondStyleY,treeStyleScale,treeStyleFlipX,treeStyleX,treeStyleY}},[phase,weather,reducedMotion,progress,homeStyle,pondStyle,treeStyle,homeStyleScale,homeStyleFlipX,homeStyleX,homeStyleY,pondStyleScale,pondStyleFlipX,pondStyleX,pondStyleY,treeStyleScale,treeStyleFlipX,treeStyleX,treeStyleY])
 
   const [state, setState] = useState<SanctuaryState>(initialState)
   const [debugEnabled, setDebugEnabled] = useState(debugFromUrl)
@@ -192,6 +197,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, ho
             bootingGame.registry.set('sanctuaryProgress', current.progress)
             bootingGame.registry.set('sanctuaryHomeStyle', current.homeStyle)
             bootingGame.registry.set('sanctuaryPondStyle', current.pondStyle)
+            bootingGame.registry.set('sanctuaryTreeStyle', current.treeStyle)
             bootingGame.registry.set('sanctuaryHomeStyleScale', current.homeStyleScale)
             bootingGame.registry.set('sanctuaryHomeStyleFlipX', current.homeStyleFlipX)
             bootingGame.registry.set('sanctuaryHomeStyleX', current.homeStyleX)
@@ -200,6 +206,10 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, ho
             bootingGame.registry.set('sanctuaryPondStyleFlipX', current.pondStyleFlipX)
             bootingGame.registry.set('sanctuaryPondStyleX', current.pondStyleX)
             bootingGame.registry.set('sanctuaryPondStyleY', current.pondStyleY)
+            bootingGame.registry.set('sanctuaryTreeStyleScale', current.treeStyleScale)
+            bootingGame.registry.set('sanctuaryTreeStyleFlipX', current.treeStyleFlipX)
+            bootingGame.registry.set('sanctuaryTreeStyleX', current.treeStyleX)
+            bootingGame.registry.set('sanctuaryTreeStyleY', current.treeStyleY)
           },
         },
       }) as unknown as PhaserGameHandle
@@ -343,6 +353,11 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, ho
   }, [pondStyle])
 
   useEffect(() => {
+    gameRef.current?.registry.set('sanctuaryTreeStyle', treeStyle)
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.treeStyle, treeStyle)
+  }, [treeStyle])
+
+  useEffect(() => {
     gameRef.current?.registry.set('sanctuaryHomeStyleScale', homeStyleScale)
     gameRef.current?.registry.set('sanctuaryHomeStyleFlipX', homeStyleFlipX)
     gameRef.current?.registry.set('sanctuaryHomeStyleX', homeStyleX)
@@ -357,6 +372,14 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, ho
     gameRef.current?.registry.set('sanctuaryPondStyleY', pondStyleY)
     gameRef.current?.events.emit(SANCTUARY_EVENTS.pondStyleTransform, { scale: pondStyleScale, flipX: pondStyleFlipX, x: pondStyleX, y: pondStyleY })
   }, [pondStyleScale, pondStyleFlipX, pondStyleX, pondStyleY])
+
+  useEffect(() => {
+    gameRef.current?.registry.set('sanctuaryTreeStyleScale', treeStyleScale)
+    gameRef.current?.registry.set('sanctuaryTreeStyleFlipX', treeStyleFlipX)
+    gameRef.current?.registry.set('sanctuaryTreeStyleX', treeStyleX)
+    gameRef.current?.registry.set('sanctuaryTreeStyleY', treeStyleY)
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.treeStyleTransform, { scale: treeStyleScale, flipX: treeStyleFlipX, x: treeStyleX, y: treeStyleY })
+  }, [treeStyleScale, treeStyleFlipX, treeStyleX, treeStyleY])
 
   const updateDebugTime = (minutes: number) => {
     setDebugMinutes(minutes)

@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import type { EnvironmentSnapshot } from '../sanctuary/environmentManager'
 import type { DayPhase } from '../sanctuary/types'
 import { RenderLayers } from '../engine/RenderLayers'
+import { TREE_STYLE_BY_ID, isTreeStyleId, treeStyleTextureKey, treeStyleTexturePath, type TreeStyleId } from '../data/treeStyles'
 
 export const TREE_STAGE_NAMES = [
   'Quiet mound',
@@ -27,6 +28,11 @@ const SHADOW_TEXTURE_KEY = 'evolution-tree-ground-shadow'
 
 const SHADOW_WIDTHS = [126, 136, 152, 188, 224, 268] as const
 const SHADOW_HEIGHTS = [30, 32, 34, 42, 48, 54] as const
+// A style tree's footprint box, in the same SOURCE_WIDTH/HEIGHT coordinate space as the growth
+// tree's own ASSET_WIDTH/HEIGHT — sized a bit larger since these are full illustrated trees, not
+// the pixel-art growth sprites.
+const TREE_STYLE_BOX_WIDTH = 460
+const TREE_STYLE_BOX_HEIGHT = 480
 
 const stageTextureKey = (phase: DayPhase, stage: number): string => `evolution-tree-${phase}-stage-${stage}`
 
@@ -74,6 +80,12 @@ export class TreeEvolutionSystem {
   private transitionToken = 0
   private nextPetalAt = 0
   private readonly persistentPetals = new Set<Phaser.GameObjects.Image>()
+  private styleId: TreeStyleId | null = null
+  private styleImage?: Phaser.GameObjects.Image
+  private styleScale = 1
+  private styleFlipX = false
+  private styleX: number | null = null
+  private styleY: number | null = null
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
@@ -87,11 +99,25 @@ export class TreeEvolutionSystem {
     })
   }
 
-  create(stage: number, phase: DayPhase, reducedMotion: boolean): void {
+  /** A chosen tree style's 4 phase renders load as one batch, independent of the always-loaded
+   * default growth stages — students who never touch this feature pay nothing extra for it. */
+  static preloadStyle(scene: Phaser.Scene, styleId: TreeStyleId, phases: readonly DayPhase[] = PHASES): void {
+    phases.forEach((phase) => scene.load.image(treeStyleTextureKey(styleId, phase), treeStyleTexturePath(styleId, phase)))
+  }
+
+  static isStyleLoaded(scene: Phaser.Scene, styleId: TreeStyleId): boolean {
+    return scene.textures.exists(treeStyleTextureKey(styleId, 'afternoon'))
+  }
+
+  create(stage: number, phase: DayPhase, reducedMotion: boolean, styleId: string | null = null, styleScale = 1, styleFlipX = false, styleX: number | null = null, styleY: number | null = null): void {
     this.ensureShadowTexture()
     this.stage = Phaser.Math.Clamp(Math.round(stage), 0, STAGE_COUNT - 1)
     this.phase = phase
     this.reducedMotion = reducedMotion
+    this.styleScale = Phaser.Math.Clamp(Number.isFinite(styleScale) ? styleScale : 1, 0.3, 3)
+    this.styleFlipX = styleFlipX
+    this.styleX = styleX
+    this.styleY = styleY
 
     this.shadow = this.scene.add.image(0, 0, SHADOW_TEXTURE_KEY)
       .setDepth(RenderLayers.evolutionGround + 0.02)
@@ -111,9 +137,12 @@ export class TreeEvolutionSystem {
 
     this.activeTree = this.treeA
     this.incomingTree = this.treeB
+
+    if (isTreeStyleId(styleId)) this.applyStyle(styleId)
   }
 
   update(timeMs: number, environment: EnvironmentSnapshot): void {
+    if (this.styleId) return
     const shadowAlpha = phaseShadowAlpha(this.phase) * (1 - environment.weatherShade * 0.36)
     this.shadow.setAlpha(Phaser.Math.Clamp(shadowAlpha, 0.025, 0.115))
 
@@ -151,11 +180,74 @@ export class TreeEvolutionSystem {
 
     this.shadow.setPosition(anchorX, anchorY - 14 * scaleY)
     this.updateShadowSize()
+    if (this.styleId) this.layoutStyleImage()
+  }
+
+  /** Swaps in a chosen tree style in place of the default cherry tree's stage growth, or (passing
+   * null/unknown) clears it back to the default. Caller must have already preloaded the style's
+   * texture (see preloadStyle/isStyleLoaded) — this never triggers a load itself. */
+  setStyle(styleId: string | null): void {
+    const nextId = isTreeStyleId(styleId) ? styleId : null
+    if (nextId === this.styleId) return
+    if (!nextId) { this.clearStyle(); return }
+    this.applyStyle(nextId)
+  }
+
+  /** User-controlled resize/mirror on top of the auto-computed contain-fit sizing — independent of
+   * which style is chosen, so switching styles doesn't reset a player's preferred look. */
+  setStyleTransform(scale: number, flipX: boolean): void {
+    this.styleScale = Phaser.Math.Clamp(Number.isFinite(scale) ? scale : 1, 0.3, 3)
+    this.styleFlipX = flipX
+    if (this.styleId) this.layoutStyleImage()
+  }
+
+  /** A dragged position, as a fraction of the scene bounds — null falls back to the default
+   * ground-anchored spot the contain-fit math computes on its own. */
+  setStylePosition(x: number | null, y: number | null): void {
+    this.styleX = x
+    this.styleY = y
+    if (this.styleId) this.layoutStyleImage()
+  }
+
+  private applyStyle(id: TreeStyleId): void {
+    this.styleId = id
+    this.clearPersistentPetals()
+    this.shadow.setVisible(false)
+    this.treeA.setVisible(false)
+    this.treeB.setVisible(false)
+    const key = treeStyleTextureKey(id, this.phase)
+    if (!this.styleImage) this.styleImage = this.scene.add.image(0, 0, key).setDepth(RenderLayers.evolution)
+    else this.styleImage.setTexture(key).setVisible(true)
+    if (this.sceneBounds.width) this.layoutStyleImage()
+  }
+
+  private clearStyle(): void {
+    this.styleId = null
+    this.styleImage?.setVisible(false)
+    this.shadow.setVisible(true)
+    this.treeA.setVisible(true)
+    this.treeB.setVisible(this.treeB === this.incomingTree && this.incomingTree.alpha > 0)
+  }
+
+  private layoutStyleImage(): void {
+    if (!this.styleImage || !this.styleId) return
+    const style = TREE_STYLE_BY_ID[this.styleId]
+    const scaleX = this.sceneBounds.width / SOURCE_WIDTH
+    const scaleY = this.sceneBounds.height / SOURCE_HEIGHT
+    const contentScale = Math.min(TREE_STYLE_BOX_WIDTH / style.contentWidth, TREE_STYLE_BOX_HEIGHT / style.contentHeight) * scaleX * this.styleScale
+    const groundX = this.styleX == null ? this.sceneBounds.left + TREE_ANCHOR_X * scaleX : this.sceneBounds.left + this.styleX * this.sceneBounds.width
+    const groundY = this.styleY == null ? this.sceneBounds.top + TREE_GROUND_Y * scaleY : this.sceneBounds.top + this.styleY * this.sceneBounds.height
+    this.styleImage
+      .setOrigin(style.anchorX, style.anchorY)
+      .setPosition(groundX, groundY)
+      .setDisplaySize(style.width * contentScale, style.height * contentScale)
+      .setFlipX(this.styleFlipX)
   }
 
   setPhase(phase: DayPhase, animate = true): void {
     if (phase === this.phase) return
     this.phase = phase
+    if (this.styleId) { this.styleImage?.setTexture(treeStyleTextureKey(this.styleId, phase)); return }
     this.transitionToken += 1
     this.scene.tweens.killTweensOf([this.activeTree, this.incomingTree])
     this.nextPetalAt = 0
@@ -204,6 +296,7 @@ export class TreeEvolutionSystem {
     if (nextStage === this.stage) return
     const previousStage = this.stage
     this.stage = nextStage
+    if (this.styleId) return
     this.nextPetalAt = 0
     this.transitionToken += 1
     const token = this.transitionToken
@@ -261,6 +354,7 @@ export class TreeEvolutionSystem {
     this.shadow.destroy()
     this.treeA.destroy()
     this.treeB.destroy()
+    this.styleImage?.destroy()
   }
 
   private updateShadowSize(): void {
