@@ -42,6 +42,12 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
  const [dragId,setDragId]=useState<string|null>(null)
  const [dragPos,setDragPos]=useState<{x:number;y:number}|null>(null)
  const dragStart=useRef<{x:number;y:number;moved:boolean}|null>(null)
+ // Scoped by placement id rather than reset on selection change, so switching the selected item
+ // naturally falls back to its own committed value with no extra effect needed.
+ const [liveScale,setLiveScale]=useState<{id:string;value:number}|null>(null)
+ const [liveSkew,setLiveSkew]=useState<{id:string;value:number}|null>(null)
+ const scaleCommitTimer=useRef<number|undefined>(undefined)
+ const skewCommitTimer=useRef<number|undefined>(undefined)
  const [styleDragId,setStyleDragId]=useState<'home'|'pond'|'tree'|null>(null)
  const [styleDragPos,setStyleDragPos]=useState<{x:number;y:number}|null>(null)
  const styleDragStart=useRef<{x:number;y:number;moved:boolean}|null>(null)
@@ -155,8 +161,21 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
  }
  const rotateSelected=()=>{if(selected)void commit(decor.placements.map(p=>p.id===selected?{...p,rotation:nextRotation(p.rotation)}:p))}
  const removeSelected=()=>{if(selected){void commit(decor.placements.filter(p=>p.id!==selected));setSelected(null)}}
- const setSelectedScale=(scale:number)=>{if(selected)void commit(decor.placements.map(p=>p.id===selected?{...p,scale}:p))}
- const setSelectedSkew=(skewX:number)=>{if(selected)void commit(decor.placements.map(p=>p.id===selected?{...p,skewX}:p))}
+ // Committing on every slider tick would fight the in-flight-save guard in `commit` (it silently
+ // drops a call while a previous save is still pending), so dragging felt sticky/laggy. Update the
+ // visible value instantly via local state and only persist once the user pauses.
+ const setSelectedScale=(scale:number)=>{
+  if(!selected)return
+  setLiveScale({id:selected,value:scale})
+  window.clearTimeout(scaleCommitTimer.current)
+  scaleCommitTimer.current=window.setTimeout(()=>{void commit(decor.placements.map(p=>p.id===selected?{...p,scale}:p))},150)
+ }
+ const setSelectedSkew=(skewX:number)=>{
+  if(!selected)return
+  setLiveSkew({id:selected,value:skewX})
+  window.clearTimeout(skewCommitTimer.current)
+  skewCommitTimer.current=window.setTimeout(()=>{void commit(decor.placements.map(p=>p.id===selected?{...p,skewX}:p))},150)
+ }
 
  const itemPointerDown=(e:ReactPointerEvent<HTMLButtonElement>,placement:BuildPlacement)=>{
   e.stopPropagation()
@@ -171,7 +190,12 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
  }
  const itemPointerUp=(e:ReactPointerEvent<HTMLButtonElement>,placement:BuildPlacement)=>{
   e.stopPropagation()
-  const moved=dragStart.current?.moved??false,finalPos=dragPos
+  // Placing a new item renders its button right under the pointer mid-gesture: the same tap's
+  // pointerup can then land on that brand-new button instead of the canvas that started it, with no
+  // matching itemPointerDown here to set dragStart. Treat that as a foreign event, not a tap-to-toggle
+  // — otherwise the item selects itself in place() and immediately deselects again right here.
+  if(!dragStart.current)return
+  const moved=dragStart.current.moved,finalPos=dragPos
   dragStart.current=null;setDragId(null);setDragPos(null)
   if(moved&&finalPos){void commit(decor.placements.map(p=>p.id===placement.id?{...p,x:finalPos.x,y:finalPos.y}:p));setSelected(placement.id)}
   else setSelected(sel=>sel===placement.id?null:placement.id)
@@ -206,16 +230,19 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
     const asset=BUILD_ASSET_BY_ID[p.assetId]
     if(!asset)return null
     const pos=dragId===p.id&&dragPos?dragPos:p
-    return <button type="button" key={p.id} className={'build-item'+(selected===p.id?' is-selected':'')+(dragId===p.id?' is-dragging':'')} style={{left:(pos.x*100)+'%',top:(pos.y*100)+'%',width:(asset.width/1448*100)+'%',transform:`translate(-50%,-${asset.anchor.y*100}%) rotate(${p.rotation}deg) skewX(${p.skewX}deg) scale(${p.scale})`}} onPointerDown={e=>itemPointerDown(e,p)} onPointerMove={itemPointerMove} onPointerUp={e=>itemPointerUp(e,p)} aria-label={asset.label}>
+    const isSelected=selected===p.id
+    const scale=liveScale&&liveScale.id===p.id?liveScale.value:p.scale
+    const skewX=liveSkew&&liveSkew.id===p.id?liveSkew.value:p.skewX
+    return <button type="button" key={p.id} className={'build-item'+(isSelected?' is-selected':'')+(dragId===p.id?' is-dragging':'')} style={{left:(pos.x*100)+'%',top:(pos.y*100)+'%',width:(asset.width/1448*100)+'%',transformOrigin:`50% ${asset.anchor.y*100}%`,transform:`translate(-50%,-${asset.anchor.y*100}%) rotate(${p.rotation}deg) skewX(${skewX}deg) scale(${scale})`}} onPointerDown={e=>itemPointerDown(e,p)} onPointerMove={itemPointerMove} onPointerUp={e=>itemPointerUp(e,p)} aria-label={asset.label}>
      <img src={assetSrc(asset)} alt=""/>
     </button>
    })}
    {decor.homeStyle&&<button type="button" className={'build-style-handle'+(styleDragId==='home'?' is-dragging':'')} style={{left:((styleDragId==='home'&&styleDragPos?styleDragPos.x:homeStylePos.x)*100)+'%',top:((styleDragId==='home'&&styleDragPos?styleDragPos.y:homeStylePos.y)*100)+'%'}} onPointerDown={e=>styleHandlePointerDown(e,'home')} onPointerMove={styleHandlePointerMove} onPointerUp={e=>styleHandlePointerUp(e,'home')} aria-label="Move home">⠿</button>}
    {decor.pondStyle&&<button type="button" className={'build-style-handle'+(styleDragId==='pond'?' is-dragging':'')} style={{left:((styleDragId==='pond'&&styleDragPos?styleDragPos.x:pondStylePos.x)*100)+'%',top:((styleDragId==='pond'&&styleDragPos?styleDragPos.y:pondStylePos.y)*100)+'%'}} onPointerDown={e=>styleHandlePointerDown(e,'pond')} onPointerMove={styleHandlePointerMove} onPointerUp={e=>styleHandlePointerUp(e,'pond')} aria-label="Move pond">⠿</button>}
    {decor.treeStyle&&<button type="button" className={'build-style-handle'+(styleDragId==='tree'?' is-dragging':'')} style={{left:((styleDragId==='tree'&&styleDragPos?styleDragPos.x:treeStylePos.x)*100)+'%',top:((styleDragId==='tree'&&styleDragPos?styleDragPos.y:treeStylePos.y)*100)+'%'}} onPointerDown={e=>styleHandlePointerDown(e,'tree')} onPointerMove={styleHandlePointerMove} onPointerUp={e=>styleHandlePointerUp(e,'tree')} aria-label="Move tree">⠿</button>}
-   {selectedPlacement&&<div className="build-item-panel">
-    <label>Size<input type="range" min={MIN_SCALE} max={MAX_SCALE} step={0.05} value={selectedPlacement.scale} onChange={e=>setSelectedScale(Number(e.target.value))}/></label>
-    <label>Skew<input type="range" min={MIN_SKEW} max={MAX_SKEW} step={1} value={selectedPlacement.skewX} onChange={e=>setSelectedSkew(Number(e.target.value))}/></label>
+   {selectedPlacement&&<div className={'build-item-panel'+(selectedPlacement.y>0.6?' is-above':'')} style={{left:`clamp(100px, ${selectedPlacement.x*100}%, calc(100% - 100px))`,top:(selectedPlacement.y*100)+'%'}}>
+    <label>Size<input type="range" min={MIN_SCALE} max={MAX_SCALE} step={0.05} value={liveScale&&liveScale.id===selectedPlacement.id?liveScale.value:selectedPlacement.scale} onChange={e=>setSelectedScale(Number(e.target.value))}/></label>
+    <label>Skew<input type="range" min={MIN_SKEW} max={MAX_SKEW} step={1} value={liveSkew&&liveSkew.id===selectedPlacement.id?liveSkew.value:selectedPlacement.skewX} onChange={e=>setSelectedSkew(Number(e.target.value))}/></label>
     <div className="build-item-actions"><button type="button" onClick={rotateSelected} aria-label="Rotate">⟳</button><button type="button" onClick={removeSelected} aria-label="Remove">🗑</button><button type="button" onClick={()=>setSelected(null)} aria-label="Done">✕</button></div>
    </div>}
   </div>

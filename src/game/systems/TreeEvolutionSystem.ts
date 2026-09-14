@@ -124,11 +124,15 @@ export class TreeEvolutionSystem {
       .setOrigin(0.5)
       .setAlpha(phaseShadowAlpha(phase))
       .setTint(phaseShadowTint(phase))
+      .setVisible(this.stage > 0)
 
+    // Stage 0 ("Quiet mound") is a bare dirt lump with nothing planted yet — on the new blank island
+    // that reads as an unexplained blemish rather than progress, so it stays hidden until the first
+    // sprout (stage 1) actually appears.
     this.treeA = this.scene.add.image(0, 0, stageTextureKey(phase, this.stage))
       .setDepth(RenderLayers.evolution)
       .setOrigin(0.5, TREE_ORIGIN_Y)
-      .setAlpha(1)
+      .setAlpha(this.stage > 0 ? 1 : 0)
 
     this.treeB = this.scene.add.image(0, 0, stageTextureKey(phase, this.stage))
       .setDepth(RenderLayers.evolution + 0.01)
@@ -257,7 +261,7 @@ export class TreeEvolutionSystem {
       .setTint(phaseShadowTint(phase))
 
     if (!animate || this.reducedMotion || !this.sceneBounds.width) {
-      this.activeTree.setTexture(stageTextureKey(phase, this.stage)).setAlpha(1)
+      this.activeTree.setTexture(stageTextureKey(phase, this.stage)).setAlpha(this.stage > 0 ? 1 : 0)
       this.incomingTree.setTexture(stageTextureKey(phase, this.stage)).setAlpha(0)
       return
     }
@@ -279,7 +283,7 @@ export class TreeEvolutionSystem {
     this.scene.tweens.add({ targets: outgoing, alpha: 0, duration: 520, ease: 'Sine.InOut' })
     this.scene.tweens.add({
       targets: incoming,
-      alpha: 1,
+      alpha: this.stage > 0 ? 1 : 0,
       duration: 520,
       ease: 'Sine.InOut',
       onComplete: () => {
@@ -302,11 +306,12 @@ export class TreeEvolutionSystem {
     const token = this.transitionToken
     this.scene.tweens.killTweensOf([this.activeTree, this.incomingTree, this.shadow])
     this.updateShadowSize()
+    this.shadow.setVisible(nextStage > 0)
 
     if (!animate || this.reducedMotion || !this.sceneBounds.width) {
       this.activeTree
         .setTexture(stageTextureKey(this.phase, nextStage))
-        .setAlpha(1)
+        .setAlpha(nextStage > 0 ? 1 : 0)
         .setAngle(0)
         .setDisplaySize(this.treeDisplayWidth, this.treeDisplayHeight)
       this.incomingTree.setAlpha(0)
