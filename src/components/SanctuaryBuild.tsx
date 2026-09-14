@@ -3,7 +3,7 @@ import {uid, type AppData, type BuildPlacement} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
 import {BUILD_ASSETS, BUILD_ASSET_BY_ID, BUILD_CATEGORIES, BUILD_CATEGORY_LABELS, type BuildAsset, type BuildCategory} from '../game/data/buildAssets'
 import {HOME_STYLES, homeStyleTexturePath} from '../game/data/homeStyles'
-import {POND_STYLES, pondStyleThumbnailPath} from '../game/data/pondStyles'
+import {POND_STYLES, pondStyleTexturePath} from '../game/data/pondStyles'
 import {TREE_STYLES, treeStyleTexturePath} from '../game/data/treeStyles'
 import {minutesFromDate, phaseBlendForMinutes} from '../game/sanctuary/timeEngine'
 import type {DayPhase, PhaseMode} from '../game/sanctuary/types'
@@ -232,7 +232,7 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
    <p className="wb-muted">Pond style</p>
    <div className="build-home-styles" role="group" aria-label="Pond style">
     <button type="button" aria-pressed={!decor.pondStyle} onClick={()=>setPondStyle(null)} className="build-home-style-item"><span className="build-home-style-thumb build-home-style-thumb-default">💧</span><small>No pond (empty)</small></button>
-    {POND_STYLES.map(style=><button type="button" key={style.id} aria-pressed={decor.pondStyle===style.id} onClick={()=>setPondStyle(style.id)} className="build-home-style-item"><span className="build-home-style-thumb"><img src={pondStyleThumbnailPath(style.id)} alt=""/></span><small>{style.label}</small></button>)}
+    {POND_STYLES.map(style=><button type="button" key={style.id} aria-pressed={decor.pondStyle===style.id} onClick={()=>setPondStyle(style.id)} className="build-home-style-item"><span className="build-home-style-thumb"><img src={pondStyleTexturePath(style.id,'afternoon')} alt=""/></span><small>{style.label}</small></button>)}
    </div>
    {decor.pondStyle&&<div className="build-style-transform" aria-label="Pond style size and mirror">
     <label>Size<input type="range" min={MIN_STYLE_SCALE} max={MAX_STYLE_SCALE} step={0.05} value={decor.pondStyleScale??1} onChange={e=>setPondStyleScale(Number(e.target.value))}/></label>

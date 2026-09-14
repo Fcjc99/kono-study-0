@@ -1,7 +1,10 @@
 import Phaser from 'phaser'
 import type { EnvironmentSnapshot } from '../sanctuary/environmentManager'
 import { RenderLayers } from '../engine/RenderLayers'
-import { POND_STYLE_BY_ID, POND_STYLE_FRAME_COUNT, isPondStyleId, pondStyleFramePath, pondStyleTextureKey, type PondStyleId } from '../data/pondStyles'
+import { POND_STYLE_BY_ID, isPondStyleId, pondStyleTextureKey, pondStyleTexturePath, type PondStyleId } from '../data/pondStyles'
+import type { DayPhase } from '../sanctuary/types'
+
+const PHASES: readonly DayPhase[] = ['morning', 'afternoon', 'evening', 'night']
 
 export const POND_STAGE_NAMES = [
   'Natural pond',
@@ -31,7 +34,6 @@ const POND_STYLE_BOX_WIDTH = 400
 const POND_STYLE_BOX_HEIGHT = 260
 const POND_STYLE_GROUND_X = 735
 const POND_STYLE_GROUND_Y = 800
-const POND_STYLE_FRAME_DELAY_MS = 650
 
 /**
  * Build 21.5 koi routes.
@@ -155,22 +157,21 @@ export class PondEvolutionSystem {
   private styleFlipX = false
   private styleX: number | null = null
   private styleY: number | null = null
-  private styleFrame = 0
-  private styleFrameEvent?: Phaser.Time.TimerEvent
+  private phase: DayPhase = 'afternoon'
   private sceneBounds = new Phaser.Geom.Rectangle()
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
   }
 
-  /** A chosen style's 4 ripple frames load as their own batch, independent of the (now visually
+  /** A chosen style's 4 day-phase variants load as their own batch, independent of the (now visually
    * inert) default koi/decoration assets — students who never pick a pond style pay nothing extra. */
-  static preloadStyle(scene: Phaser.Scene, styleId: PondStyleId): void {
-    for (let frame = 0; frame < POND_STYLE_FRAME_COUNT; frame += 1) scene.load.image(pondStyleTextureKey(styleId, frame), pondStyleFramePath(styleId, frame))
+  static preloadStyle(scene: Phaser.Scene, styleId: PondStyleId, phases: readonly DayPhase[] = PHASES): void {
+    phases.forEach((phase) => scene.load.image(pondStyleTextureKey(styleId, phase), pondStyleTexturePath(styleId, phase)))
   }
 
   static isStyleLoaded(scene: Phaser.Scene, styleId: PondStyleId): boolean {
-    return scene.textures.exists(pondStyleTextureKey(styleId, 0))
+    return scene.textures.exists(pondStyleTextureKey(styleId, 'afternoon'))
   }
 
   /** True once a pond style image is on screen — callers use this to suppress the plain-water
@@ -264,10 +265,10 @@ export class PondEvolutionSystem {
       image.setTint(decorationTint).setAlpha(alpha)
     })
 
-    // Style art has no per-phase source images (unlike home styles), so morning/evening/night are
-    // remapped onto the one illustration with a color tint — same convention as the koi/decorations
-    // above — rather than fading it out, which would just make the pond look faded rather than lit.
-    this.styleImage?.setTint(decorationTint)
+    if (environment.phase !== this.phase) {
+      this.phase = environment.phase
+      if (this.styleId) this.styleImage?.setTexture(pondStyleTextureKey(this.styleId, this.phase))
+    }
   }
 
   resize(sceneBounds: Phaser.Geom.Rectangle): void {
@@ -328,30 +329,15 @@ export class PondEvolutionSystem {
 
   private applyStyle(id: PondStyleId): void {
     this.styleId = id
-    this.styleFrame = 0
-    const key = pondStyleTextureKey(id, 0)
+    const key = pondStyleTextureKey(id, this.phase)
     if (!this.styleImage) this.styleImage = this.scene.add.image(0, 0, key).setDepth(RenderLayers.pondGlint + 0.09)
     else this.styleImage.setTexture(key).setVisible(true)
     if (this.sceneBounds.width) this.layoutStyleImage()
-    this.styleFrameEvent?.destroy()
-    this.styleFrameEvent = this.scene.time.addEvent({
-      delay: POND_STYLE_FRAME_DELAY_MS,
-      loop: true,
-      callback: () => this.advanceStyleFrame(),
-    })
   }
 
   private clearStyle(): void {
     this.styleId = null
     this.styleImage?.setVisible(false)
-    this.styleFrameEvent?.destroy()
-    this.styleFrameEvent = undefined
-  }
-
-  private advanceStyleFrame(): void {
-    if (!this.styleId || this.reducedMotion) return
-    this.styleFrame = (this.styleFrame + 1) % POND_STYLE_FRAME_COUNT
-    this.styleImage?.setTexture(pondStyleTextureKey(this.styleId, this.styleFrame))
   }
 
   private layoutStyleImage(): void {
@@ -405,7 +391,6 @@ export class PondEvolutionSystem {
     })
     this.fish.length = 0
     this.decorations.length = 0
-    this.styleFrameEvent?.destroy()
     this.styleImage?.destroy()
   }
 
