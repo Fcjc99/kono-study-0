@@ -89,6 +89,15 @@
 .planner-due-remove:hover{background:#f1e3e8;color:#9f2947}
 .schedule-view-picker{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:.82rem;font-weight:600}
 .schedule-view-picker label{display:flex;align-items:center;gap:5px;font-weight:inherit}
+.schedule-view-picker input[type="checkbox"]{width:14px;height:14px;margin:0;accent-color:var(--wb-accent)}
+/* A segmented strip of pills, one per assignment due that day — filled ones are done. Sits right
+ * under a schedule section's heading, above the class list, so "how much of tonight's work is done"
+ * reads at a glance without opening the assignment list itself. */
+.assignment-progress{margin:2px 0 12px}
+.assignment-progress-bar{display:flex;flex-wrap:wrap;gap:4px}
+.assignment-progress-bar span{flex:1 0 14px;min-width:14px;height:8px;border-radius:999px;background:color-mix(in srgb,var(--wb-accent) 18%,transparent)}
+.assignment-progress-bar span.is-filled{background:var(--wb-accent)}
+.assignment-progress small{display:block;margin-top:5px;color:var(--wb-muted);font-size:.78rem;font-weight:600}
 .wb-agenda-day>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:2px 0}
 .wb-agenda-day>summary::-webkit-details-marker{display:none}
 .wb-agenda-day>summary::before{content:'▸';margin-right:8px;color:var(--wb-muted);font-size:.75rem}
