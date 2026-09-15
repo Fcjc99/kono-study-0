@@ -6,16 +6,20 @@ import { POND_STYLES, pondStyleTexturePath } from './pondStyles'
 import { TREE_STYLES, treeStyleTexturePath } from './treeStyles'
 import { LIGHT_ASSETS, lightAssetTexturePath } from './lightAssets'
 import { STUDY_DECOR_ASSETS, studyDecorAssetTexturePath } from './studyDecorAssets'
+import { BOBA_STAND_ASSETS, bobaStandAssetTexturePath } from './bobaStandAssets'
 
 export type BuildCategory=string
 export type BuildLayer='ground'|'ground-detail'|'terrain'|'water-feature'|'water-decor'|'water-or-bridge'|'bridge'|'border'|'decor'|'structure'|'wildlife-water'|'light-overlay'
 export type BuildSurface='grass'|'water'|'water-edge'|'water-gap'|'cliff-edge'|'cliff-or-water'
 /** `src` is a single path for a style-invariant asset, or a per-day-phase map for one (every asset
  * pack since the roads pack) whose art changes with time of day. */
-export type BuildAsset={id:string;label:string;category:BuildCategory;categoryLabel:string;src:string|Record<DayPhase,string>;width:number;height:number;defaultScale:number;anchor:{x:number;y:number};surface:BuildSurface;layer:BuildLayer;rotatable:boolean;flippable:boolean}
+/** `signArea` (fractions of this asset's own width/height) marks the blank patch of art a player's
+ * custom sign text renders over — only a handful of assets (a kiosk's arch sign, a chalkboard menu)
+ * have one; everything else is plain decoration with no writable surface. */
+export type BuildAsset={id:string;label:string;category:BuildCategory;categoryLabel:string;src:string|Record<DayPhase,string>;width:number;height:number;defaultScale:number;anchor:{x:number;y:number};surface:BuildSurface;layer:BuildLayer;rotatable:boolean;flippable:boolean;signArea?:{x:number;y:number;width:number;height:number}}
 
-export const BUILD_CATEGORIES:BuildCategory[]=['homes','ponds','trees','paths','bridges','lights','study']
-export const BUILD_CATEGORY_LABELS:Record<BuildCategory,string>={homes:'Homes',ponds:'Ponds',trees:'Trees',paths:'Paths & Roads',bridges:'Bridges & Water',lights:'Lights & Lanterns',study:'Study Decor'}
+export const BUILD_CATEGORIES:BuildCategory[]=['homes','ponds','trees','paths','bridges','lights','study','cafe']
+export const BUILD_CATEGORY_LABELS:Record<BuildCategory,string>={homes:'Homes',ponds:'Ponds',trees:'Trees',paths:'Paths & Roads',bridges:'Bridges & Water',lights:'Lights & Lanterns',study:'Study Decor',cafe:'Boba Stand'}
 
 const phaseSrc=(pathFor:(phase:DayPhase)=>string):Record<DayPhase,string>=>({
  morning:pathFor('morning'),
@@ -158,5 +162,22 @@ const studyDecorAssets:BuildAsset[]=STUDY_DECOR_ASSETS.map(item=>({
  flippable:item.flippable,
 }))
 
-export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets,...lightAssets,...studyDecorAssets]
+const bobaStandAssets:BuildAsset[]=BOBA_STAND_ASSETS.map(item=>({
+ id:'boba-'+item.id,
+ label:item.label,
+ category:'cafe',
+ categoryLabel:'Boba Stand',
+ src:phaseSrc(phase=>bobaStandAssetTexturePath(item.id,phase)),
+ width:item.width,
+ height:item.height,
+ defaultScale:1,
+ anchor:{x:0.5,y:0.95},
+ surface:'grass',
+ layer:'decor',
+ rotatable:item.rotatable,
+ flippable:item.flippable,
+ signArea:item.signArea,
+}))
+
+export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets,...lightAssets,...studyDecorAssets,...bobaStandAssets]
 export const BUILD_ASSET_BY_ID:Record<string,BuildAsset>=Object.fromEntries(BUILD_ASSETS.map(a=>[a.id,a]))
