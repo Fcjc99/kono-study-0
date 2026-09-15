@@ -39,29 +39,20 @@ function buildPhotoPrompt(): string {
 
 export type PhotoInput = { base64: string; mimeType: string }
 
-async function requestGemini(model: string, prompt: string, apiKey: string, photo?: PhotoInput): Promise<Response> {
+async function callGemini(prompt: string, apiKey: string, photo?: PhotoInput): Promise<string> {
   const parts: unknown[] = [{ text: prompt }]
   if (photo) parts.push({ inline_data: { mime_type: photo.mimeType, data: photo.base64 } })
-  return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+  // Google migrated the Gemini API to "auth keys" (the AQ.-prefixed format Google AI Studio now issues
+  // by default) in mid-2026, authenticated via the x-goog-api-key header rather than a ?key= query
+  // parameter — the classic AIzaSy-style keys sent that way are being phased out entirely. The header
+  // works for both key formats, so every key goes through this one path.
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: 'application/json' } }),
   })
-}
-
-async function callGemini(prompt: string, apiKey: string, photo?: PhotoInput): Promise<string> {
-  // A 404 specifically (as opposed to 400/403, which reliably mean a bad key regardless of model)
-  // can mean this particular key/project doesn't yet have the newest flash model enabled — retry once
-  // against an older, more universally available one before surfacing an error.
-  let response = await requestGemini('gemini-2.5-flash', prompt, apiKey, photo)
-  if (response.status === 404) response = await requestGemini('gemini-2.0-flash', prompt, apiKey, photo)
   if (!response.ok) fail(
-    response.status === 400 || response.status === 403 ? 'That Gemini API key was rejected. Check it in Settings.' :
-    // A real 404/000-style response from this exact endpoint essentially never comes from Google itself
-    // (bad/missing keys reliably 400 or 403) — it almost always means something between this device and
-    // Google's servers intercepted the request: a network content filter, a VPN, or a stale cached copy
-    // of this page. "Try again" won't fix that, so point at the actual next step instead.
-    response.status === 404 ? 'Gemini could not be reached (404) — this usually means something on this network or device is blocking it, or this page needs a refresh. Try reloading the page, or a different network.' :
+    response.status === 400 || response.status === 401 || response.status === 403 ? 'That Gemini API key was rejected. Check it in Settings.' :
     `Gemini request failed (${response.status}). Try again in a moment.`,
   )
   const data = await response.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
