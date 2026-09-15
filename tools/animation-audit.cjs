@@ -31,7 +31,7 @@ const cache=new Map();
 function load(rel){
   if(cache.has(rel))return cache.get(rel);
   const file=path.join(root,rel);
-  const stagedNames=['KonoMascotSystem.ts','PondEvolutionSystem.ts','TreeEvolutionSystem.ts'];
+  const stagedNames=['KonoMascotSystem.ts'];
   const staged=process.env.KONO_ANIMATION_STAGED==='1'&&stagedNames.includes(path.basename(rel));
   let source=fs.readFileSync(staged?path.join(__dirname,'patches',path.basename(rel)):file,'utf8');
   if(rel.endsWith('KonoMascotSystem.ts'))source+='\nexport {NAV_NODES,NAV_GRAPH,isWalkablePoint};';
@@ -103,28 +103,5 @@ console.log('Mid-edge nearest-node pond collisions:',unsafeConnections.length,JS
   const {m}=mascot();
   const samples=[1448,800,390].map(w=>{m.resize(new Rect(0,0,w,w*.75));return {mapWidth:w,mascotHeight:m.sprite.height*m.sprite.scaleY,shadowScale:m.shadow.scaleX}});
   console.log('Mascot sizes:',JSON.stringify(samples));
-}
-// Same runtime clock across motion toggles should preserve the koi position.
-{
-  const {PondEvolutionSystem}=load('src/game/systems/PondEvolutionSystem.ts');
-  const p=new PondEvolutionSystem(scene());p.create(5,false);p.resize(new Rect(0,0,1448,1086));
-  p.update(20000,env);const before=p.fish.map(({sprite})=>[sprite.x,sprite.y]);
-  p.setReducedMotion(true);p.update(20016,env);const after=p.fish.map(({sprite})=>[sprite.x,sprite.y]);
-  console.log('Koi toggle teleport pixels:',JSON.stringify(after.map((a,i)=>Math.hypot(a[0]-before[i][0],a[1]-before[i][1]))));
-}
-// Interrupt growth after its outgoing layer faded but before the incoming completes.
-for(const [rel,type,prefix]of [['TreeEvolutionSystem','TreeEvolutionSystem','Tree'],['HomeEvolutionSystem','HomeEvolutionSystem','Home']]){
-  const exports=load('src/game/systems/'+rel+'.ts'),s=scene(),sys=new exports[type](s);sys.create(1,'afternoon',false);sys.resize(new Rect(0,0,1448,1086));sys.setStage(2,true);
-  sys['active'+prefix].alpha=0;sys['incoming'+prefix].alpha=.8;
-  sys.setStage(3,true);
-  console.log(type+' rapid retarget alpha:',sys['active'+prefix].alpha,sys['incoming'+prefix].alpha);
-}
-// Growth petals should have only one owner for alpha at any given instant.
-{
-  const {TreeEvolutionSystem}=load('src/game/systems/TreeEvolutionSystem.ts'),s=scene(),tree=new TreeEvolutionSystem(s);
-  tree.create(3,'afternoon',false);tree.resize(new Rect(0,0,1448,1086));tree.setStage(4,true);
-  const petal=s.children.list.find(x=>x.key.startsWith('petal-'));
-  const alphaTweens=s.tweens.items.filter(t=>t.targets===petal&&t.alpha!==undefined);
-  console.log('Tree growth simultaneous alpha ranges:',JSON.stringify(alphaTweens.map(t=>({start:t.delay||0,end:(t.delay||0)+t.duration,alpha:t.alpha}))));
 }
 }

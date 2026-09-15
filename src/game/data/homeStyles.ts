@@ -23,10 +23,9 @@ export type HomeStyle = {
 }
 
 /**
- * These renders are finals with no per-stage growth art — picking one replaces the default
- * cottage's stage-by-stage evolution outright, it doesn't add a parallel evolution track.
- * More styles may be added later; each is expected to keep this same "one flat appearance,
- * four day phases" shape rather than the default cottage's 6-stage growth.
+ * Each is a flat final illustration with no growth stages — placed and duplicated freely as an
+ * ordinary decoration (see buildAssets.ts), with its own morning/afternoon/evening/night art
+ * swapped in as the sanctuary's time of day changes.
  */
 export const HOME_STYLES: HomeStyle[] = [
   { id: 'mushroom-house', label: 'Mushroom House', blurb: 'Fungal timber cap, hanging lantern, ivy-grown stone base.', width: 1300, height: 1177, contentWidth: 1170, contentHeight: 1047, anchorX: 0.4996, anchorY: 0.9439 },
@@ -37,9 +36,4 @@ export const HOME_STYLES: HomeStyle[] = [
   { id: 'treehouse', label: 'Treehouse', blurb: 'Canopy platform in an oak crown, rope-ladder access.', width: 1206, height: 1254, contentWidth: 1076, contentHeight: 1217, anchorX: 0.4996, anchorY: 0.9833 },
 ]
 
-export const HOME_STYLE_BY_ID: Record<HomeStyleId, HomeStyle> = Object.fromEntries(HOME_STYLES.map((s) => [s.id, s])) as Record<HomeStyleId, HomeStyle>
-
-export const isHomeStyleId = (value: unknown): value is HomeStyleId => typeof value === 'string' && value in HOME_STYLE_BY_ID
-
-export const homeStyleTextureKey = (styleId: HomeStyleId, phase: DayPhase): string => `home-style-${styleId}-${phase}`
 export const homeStyleTexturePath = (styleId: HomeStyleId, phase: DayPhase): string => `/garden/registered-22.8.6/home-styles/${styleId}/${phase}.png`
