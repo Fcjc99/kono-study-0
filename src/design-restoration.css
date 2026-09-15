@@ -38,6 +38,27 @@
 :root[data-theme='professional'] .workbench .wb-board:not(.board-plain){border:7px solid #aeb7bf;border-radius:14px;background:#fff;box-shadow:inset 0 0 0 1px #f5f7f8,0 10px 26px #17233114}:root[data-theme='professional'] .wb-board:not(.board-plain)>.wb-board-heading{background:linear-gradient(#fff,#edf0f3);color:#27343d;border-color:#d8dee3}:root[data-theme='professional'] .wb-board:not(.board-plain)>.wb-toolbar{background:#f7f8fa;color:#27343d;border-color:#d8dee3}:root[data-theme='professional'] .wb-board:not(.board-plain)>.wb-board-canvas{background:#f0f2f4;background-image:none}:root[data-theme='professional'] .wb-board-empty{background:#f0f2f4;color:#52606a;font-family:system-ui,sans-serif}:root[data-theme='professional'] .wb-board-tray{background:linear-gradient(#d7dce1,#a9b4bd);border-color:#eef1f4}:root[data-theme='professional'] .wb-board-tray span{visibility:hidden}
 :root[data-theme='professional'] .workbench .wb-sticky{background:#fff!important;color:#25313b!important;border:1px solid #d3dae0;border-top:4px solid #657e91;border-radius:5px;box-shadow:0 4px 10px #24303b0c}:root[data-theme='professional'] .workbench .wb-move button{background:#fff;color:#34424d;border-color:#ccd5dd}:root[data-theme='professional'] .workbench .sanctuary-card{border-color:#aab4bd!important;box-shadow:0 10px 25px #17233114;filter:none!important}
 :root[data-theme='midnight'] .wb-header{background:var(--wb-surface);border-color:var(--wb-line)}:root[data-theme='midnight'] .workbench .wb-panel:not(.wb-board){background:var(--wb-surface)}
+/* Modern needs the same counter-overrides Professional needed above: everything in this file down to
+ * here is unscoped Cozy restoration (brown sidebar, cream/pink header, flower accents, decorative
+ * board frame) that otherwise leaks straight through any experience that doesn't explicitly cancel it. */
+:root[data-theme='modern'] .workbench{background:var(--wb-bg)}
+:root[data-theme='modern'] .workbench .wb-sidebar{background:var(--wb-surface);border-color:var(--wb-line);box-shadow:none}
+:root[data-theme='modern'] .wb-brand>.brand-mark{background:var(--wb-bg);border-color:var(--wb-line);color:var(--wb-ink);box-shadow:none}
+:root[data-theme='modern'] .wb-brand i,:root[data-theme='modern'] .wb-sidebar nav button:after{display:none!important}
+:root[data-theme='modern'] .workbench .wb-sidebar nav button[aria-current='page']{background:color-mix(in srgb,var(--wb-accent) 12%,transparent);color:var(--wb-accent);border:0;border-radius:10px;box-shadow:none}
+:root[data-theme='modern'] .wb-sidebar [aria-current='page'] .wb-nav-icon{background:transparent;color:var(--wb-accent)}
+:root[data-theme='modern'] .wb-tabs-label{color:var(--wb-muted)}
+:root[data-theme='modern'] .wb-profile{background:var(--wb-bg);border-color:var(--wb-line);color:var(--wb-ink);box-shadow:none}
+:root[data-theme='modern'] .workbench .wb-header{background:none;border:0;border-radius:0}
+:root[data-theme='modern'] .workbench h1,:root[data-theme='modern'] .workbench h2,:root[data-theme='modern'] .wb-sticky h3{font-family:-apple-system,system-ui,sans-serif}
+:root[data-theme='modern'] .workbench .wb-board:not(.board-plain){border:1px solid var(--wb-line);border-radius:18px;background:var(--wb-surface);box-shadow:0 1px 2px #0000000a,0 10px 26px #0000000a}
+:root[data-theme='modern'] .wb-board:not(.board-plain)>.wb-board-heading{background:var(--wb-surface);color:var(--wb-ink);border-color:var(--wb-line)}
+:root[data-theme='modern'] .wb-board:not(.board-plain)>.wb-toolbar{background:var(--wb-surface);color:var(--wb-ink);border-color:var(--wb-line)}
+:root[data-theme='modern'] .wb-board:not(.board-plain)>.wb-board-canvas{background:var(--wb-surface);background-image:none}
+:root[data-theme='modern'] .wb-board-empty{background:var(--wb-surface);color:var(--wb-muted);font-family:-apple-system,system-ui,sans-serif}
+:root[data-theme='modern'] .workbench .wb-sticky{background:var(--wb-surface)!important;color:var(--wb-ink)!important;border:1px solid var(--wb-line);border-top:1px solid var(--wb-line);border-radius:14px;box-shadow:0 1px 2px #0000000a,0 8px 20px #0000000a}
+:root[data-theme='modern'] .workbench .wb-move button{background:var(--wb-bg);color:var(--wb-ink);border-color:var(--wb-line)}
+:root[data-theme='modern'] .workbench .sanctuary-card{border-color:var(--wb-line)!important;box-shadow:0 1px 2px #0000000a,0 12px 28px #0000000a;filter:none!important}
 .workbench[data-decoration='false'] .brand-mark i,.workbench[data-decoration='false'] .wb-board-tray span,.workbench[data-decoration='false'] .push-pin{display:none}
 @media(max-width:1000px) and (min-width:701px){.workbench{grid-template-columns:215px minmax(0,1fr)}.wb-brand strong{font-size:1.35rem}.wb-brand small{font-size:.75rem;letter-spacing:0}.wb-note-wrap.size-large{grid-column:auto}}
 @media(max-width:700px){.workbench{display:block}.workbench .wb-header{padding:16px;border-radius:18px}.workbench .wb-header h1{font-size:1.6rem}.workbench .sanctuary-card{border-width:5px!important;border-radius:19px!important}.workbench .wb-board:not(.board-plain){border-width:6px;border-radius:17px}.wb-board:not(.board-plain)>.wb-board-heading,.wb-board:not(.board-plain)>.wb-toolbar{padding:14px}.wb-board:not(.board-plain)>.wb-board-canvas{padding:25px 14px 18px;gap:20px}.wb-sticky .wb-toolbar{gap:5px}.workbench .wb-bottom-nav{border-top:2px solid #d9aaa0;box-shadow:0 -4px 18px #603b2812}.wb-header small{font-size:.75rem;letter-spacing:.07em}}

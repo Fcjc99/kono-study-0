@@ -39,5 +39,5 @@ const legacy=structuredClone(base);legacy.schemaVersion=3;delete legacy.studySea
 assert.equal(model.normalizeData(legacy).schemaVersion,6)
 assert.equal(c.classTime('10:00'),'10:00 AM');assert.equal(c.classTime('12:00'),'12:00 PM')
 console.log('PASS recurring classes: inclusive dates, weekdays, one-date notes, concurrent different-date notes, stale-note protection, skipped next class, ownership and legacy migration.')
-for(const experience of ['cozy','simplified','office']){const themed=structuredClone(noted);themed.settings.experience=experience;const restored=model.normalizeData(themed);assert.equal(restored.settings.experience,experience);assert.equal(JSON.stringify(restored.tasks),JSON.stringify(noted.tasks));assert.equal(restored.studySeasons[0].week.Tuesday[0].occurrenceNotes['2026-09-08'],'Bring book next week')}
+for(const experience of ['cozy','simplified','modern']){const themed=structuredClone(noted);themed.settings.experience=experience;const restored=model.normalizeData(themed);assert.equal(restored.settings.experience,experience);assert.equal(JSON.stringify(restored.tasks),JSON.stringify(noted.tasks));assert.equal(restored.studySeasons[0].week.Tuesday[0].occurrenceNotes['2026-09-08'],'Bring book next week')}
 console.log('PASS all three experiences preserve classes, dated notes and tasks through normalization.')
