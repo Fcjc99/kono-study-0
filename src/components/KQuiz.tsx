@@ -150,7 +150,10 @@ export default function KQuiz({ profileId, lectures, sets, decks, setData }: { p
       <p className="wb-muted">Take a picture of handwritten or printed notes and K-Quiz will read it and build a study set — no typing needed.</p>
       <div className="study-actions">
         <button type="button" className="primary" disabled={busy || generatingFor === 'photo'} onClick={() => photoInputRef.current?.click()}>{generatingFor === 'photo' ? 'Reading photo…' : '📷 Take or upload a photo'}</button>
-        <input ref={photoInputRef} type="file" accept="image/*" capture="environment" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void generateFromPhoto(file) }} />
+        {/* No `capture` attribute: that forces mobile browsers straight into the camera app with no
+         * way back to the photo library, which is exactly the "doesn't upload, just camera" complaint
+         * this fixes — plain file input still offers "Take Photo" as one of its own options. */}
+        <input ref={photoInputRef} type="file" accept="image/*" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void generateFromPhoto(file) }} />
       </div>
     </div>
 

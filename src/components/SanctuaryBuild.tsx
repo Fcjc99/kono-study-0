@@ -25,7 +25,6 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
  const decorFor=(d:AppData)=>d.sanctuaryDecor[profileId]??{profileId,placements:[]}
  const decor=decorFor(data)
  const [category,setCategory]=useState<BuildCategory|null>(BUILD_CATEGORIES[0]??null)
- const [armed,setArmed]=useState<string|null>(null)
  const [selected,setSelected]=useState<string|null>(null)
  const [busy,setBusy]=useState(false),[message,setMessage]=useState('')
  const canvasRef=useRef<HTMLDivElement|null>(null)
@@ -60,12 +59,18 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
   const asset=BUILD_ASSET_BY_ID[assetId]
   const placement:BuildPlacement={id:uid('placement'),assetId,x,y,rotation:0,scale:asset?.defaultScale??1,skewX:0,flipX:false}
   void commit([...decor.placements,placement])
-  setArmed(null);setSelected(placement.id)
+  setSelected(placement.id)
  }
- const placeArmedAt=(e:ReactPointerEvent)=>{
-  if(!armed)return
-  const {x,y}=fractionFromEvent(e)
-  place(armed,x,y)
+ // Tapping a palette item drops it straight onto the island instead of requiring a separate "now tap
+ // where you want it" step — a second precise tap is exactly what makes placement unreliable on a
+ // touch screen (the two taps can land on different re-rendered layouts, or the second tap just never
+ // arrives). It lands near the middle, already selected, ready to drag anywhere. Repeated taps of the
+ // same item cascade slightly so they don't stack in one unreachable pile. Dragging a palette item
+ // (desktop's native HTML5 drag-and-drop) still drops it exactly where it's released.
+ const placeDefault=(assetId:string)=>{
+  const existing=decor.placements.filter(p=>p.assetId===assetId).length
+  const offset=(existing%5)*0.035
+  place(assetId,Math.min(0.9,0.5+offset),Math.min(0.9,0.5+offset))
  }
  const onCanvasDrop=(e:DragEvent<HTMLDivElement>)=>{
   e.preventDefault()
@@ -127,7 +132,7 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
  const selectedPlacement=decor.placements.find(p=>p.id===selected)??null
 
  return <>
-  <div ref={canvasRef} className="build-hotspot-layer" onPointerDown={placeArmedAt} onDragOver={e=>e.preventDefault()} onDrop={onCanvasDrop}>
+  <div ref={canvasRef} className="build-hotspot-layer" onDragOver={e=>e.preventDefault()} onDrop={onCanvasDrop}>
    {decor.placements.map(p=>{
     const asset=BUILD_ASSET_BY_ID[p.assetId]
     if(!asset)return null
@@ -164,12 +169,11 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
    })()}
   </div>
   <section className="sanctuary-build">
-   <p className="wb-muted">Drag an item onto your island, or tap it then tap a spot. Drag a placed item anywhere to move it, or tap it once to resize, skew, mirror, duplicate, rotate, or remove it. Place as many of anything as you like.</p>
+   <p className="wb-muted">Tap an item to add it to your island, or drag it on to choose where it lands. Drag a placed item anywhere to move it, or tap it once to resize, skew, mirror, duplicate, rotate, or remove it. Place as many of anything as you like.</p>
    <nav className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}</nav>
-   <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=>{
-    const arm=()=>{setArmed(armed===a.id?null:a.id);setSelected(null)}
-    return <div role="button" tabIndex={0} draggable key={a.id} className={'build-palette-item'+(armed===a.id?' is-armed':'')} onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={arm} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();arm()}}} aria-pressed={armed===a.id} aria-label={a.label}><span className="build-palette-thumb"><img src={assetSrc(a)} alt="" draggable={false}/></span><small>{a.label}</small></div>
-   })}</div>
+   <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=>
+    <div role="button" tabIndex={0} draggable key={a.id} className="build-palette-item" onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={()=>placeDefault(a.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();placeDefault(a.id)}}} aria-label={'Add '+a.label}><span className="build-palette-thumb"><img src={assetSrc(a)} alt="" draggable={false}/></span><small>{a.label}</small></div>
+   )}</div>
   </section>
   {message&&<p role="status">{message}</p>}
  </>
