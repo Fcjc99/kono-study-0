@@ -35,13 +35,13 @@ export type TrashEntry={id:string;profileId:string;collection:string;title:strin
 /** Player-chosen island decoration — independent of SanctuaryProgressState, which is an earned/derived credit ledger.
  * Each placement drops one build asset freely on the island; x/y are 0-1 fractions of the canvas (matching the
  * SANCTUARY_LANDMARKS anchor convention), not a grid cell. assetId is a free-form string, so an unrecognized ID
- * is simply not found by the renderer, never a validation failure. scale resizes the asset (1 = its defaultScale);
- * skewX tilts it to sit correctly on the island's isometric ground plane. */
-export type BuildPlacement={id:string;assetId:string;x:number;y:number;rotation:0|90|180|270;scale:number;skewX:number}
-/** homeStyle is a free-form string, not validated against the game's known style list here (mirroring
- * assetId above) — an unrecognized or since-removed ID just falls back to the default cottage at render
- * time instead of failing the save. null/undefined means the default evolving cottage. */
-export type SanctuaryDecorState={profileId:string;placements:BuildPlacement[];homeStyle?:string|null;pondStyle?:string|null;treeStyle?:string|null;homeStyleScale?:number;homeStyleFlipX?:boolean;pondStyleScale?:number;pondStyleFlipX?:boolean;treeStyleScale?:number;treeStyleFlipX?:boolean;homeStyleX?:number|null;homeStyleY?:number|null;pondStyleX?:number|null;pondStyleY?:number|null;treeStyleX?:number|null;treeStyleY?:number|null}
+ * is simply not found by the renderer, never a validation failure — this is also how a home/pond/tree style
+ * becomes just another placeable decoration: nothing here distinguishes "a road tile" from "a mushroom house"
+ * beyond which asset catalog entry assetId happens to match, so duplicating and mixing them is free. scale
+ * resizes the asset (1 = its defaultScale); skewX tilts it to sit correctly on the island's isometric ground
+ * plane; flipX mirrors it horizontally. */
+export type BuildPlacement={id:string;assetId:string;x:number;y:number;rotation:0|90|180|270;scale:number;skewX:number;flipX:boolean}
+export type SanctuaryDecorState={profileId:string;placements:BuildPlacement[]}
 export type AppData={schemaVersion:6;trash:TrashEntry[];profiles:Profile[];activeProfileId:string;subjects:Subject[];tasks:Task[];exams:Exam[];notes:Note[];calendarEvents:CalendarEvent[];studySeasons:StudySeason[];studyPlans:StudyPlan[];flashcardDecks:FlashcardDeck[];settings:SettingsData;sanctuaryProgress:Record<string,SanctuaryProgressState>;sanctuaryDecor:Record<string,SanctuaryDecorState>;onboardingComplete?:boolean}
 
 export const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as const
@@ -61,7 +61,7 @@ export const localDate=(date=new Date())=>`${date.getFullYear()}-${String(date.g
 export const defaultSettings:SettingsData={experience:'cozy',textSize:'normal',density:'comfortable',decoration:true,boardStyle:'paper',theme:'coral',themeVersion:4,sound:true,ambient:true,reminders:false,browserNotifications:false,loginDigest:true,scheduleShowAcademic:true,scheduleShowSports:true,scheduleShowAppointments:true,reducedMotion:false,motionPreference:'system',sanctuaryWeather:'clear',sanctuaryWeatherMode:'clear',sanctuaryZipCodes:{},sanctuaryWeatherLocations:{}}
 export function createFreshData():AppData {
  const id=uid('profile'),start=localDate(),end=localDate(new Date(Date.now()+180*86400000))
- return {schemaVersion:6,trash:[],profiles:[{id,name:'Learner',label:'My study plan',kind:'custom',start,end,progressEpoch:uid('epoch')}],activeProfileId:id,subjects:[],tasks:[],exams:[],notes:[],calendarEvents:[],studyPlans:[],flashcardDecks:[],studySeasons:[{id:uid('season'),profileId:id,name:'My schedule',start,end,active:true,week:blankWeek()}],settings:{...defaultSettings},sanctuaryProgress:{[id]:createSanctuaryProgress(id)},sanctuaryDecor:{[id]:{profileId:id,placements:[],homeStyle:null,pondStyle:null,treeStyle:null,homeStyleScale:1,homeStyleFlipX:false,pondStyleScale:1,pondStyleFlipX:false,treeStyleScale:1,treeStyleFlipX:false,homeStyleX:null,homeStyleY:null,pondStyleX:null,pondStyleY:null,treeStyleX:null,treeStyleY:null}},onboardingComplete:false}
+ return {schemaVersion:6,trash:[],profiles:[{id,name:'Learner',label:'My study plan',kind:'custom',start,end,progressEpoch:uid('epoch')}],activeProfileId:id,subjects:[],tasks:[],exams:[],notes:[],calendarEvents:[],studyPlans:[],flashcardDecks:[],studySeasons:[{id:uid('season'),profileId:id,name:'My schedule',start,end,active:true,week:blankWeek()}],settings:{...defaultSettings},sanctuaryProgress:{[id]:createSanctuaryProgress(id)},sanctuaryDecor:{[id]:{profileId:id,placements:[]}},onboardingComplete:false}
 }
 
 type Obj=Record<string,unknown>
@@ -176,8 +176,24 @@ export function normalizeData(raw:unknown):AppData {
  }
  const sanctuaryProgress=Object.fromEntries(profiles.map(p=>{const saved=progress[p.id];const timestamp=object(saved)&&typeof saved.updatedAt==='string'&&Number.isFinite(Date.parse(saved.updatedAt))?saved.updatedAt:'1970-01-01T00:00:00.000Z';return [p.id,migrateSanctuaryProgress(saved,p.id,tasks.map(t=>({...t,subjectKey:subjects.find(x=>x.id===t.subjectId)?.name??t.subjectId})),timestamp)]}))
  const decor=object(raw.sanctuaryDecor)?raw.sanctuaryDecor:{}
- const placement=(v:Obj):BuildPlacement=>({id:id(v.id,'placement ID'),assetId:str(v.assetId,'placement asset',100),x:fraction(v.x),y:fraction(v.y),rotation:([0,90,180,270] as const).includes(v.rotation as 0)?v.rotation as 0|90|180|270:0,scale:placementScale(v.scale),skewX:placementSkew(v.skewX)})
- const sanctuaryDecor:Record<string,SanctuaryDecorState>=Object.fromEntries(profiles.map(p=>{const d=object(decor[p.id])?decor[p.id] as Obj:{};return [p.id,{profileId:p.id,placements:list(d.placements??[],'placements',300).map(placement),homeStyle:d.homeStyle==null?null:str(d.homeStyle,'home style',100),pondStyle:d.pondStyle==null?null:str(d.pondStyle,'pond style',100),treeStyle:d.treeStyle==null?null:str(d.treeStyle,'tree style',100),homeStyleScale:placementScale(d.homeStyleScale),homeStyleFlipX:bool(d.homeStyleFlipX),pondStyleScale:placementScale(d.pondStyleScale),pondStyleFlipX:bool(d.pondStyleFlipX),treeStyleScale:placementScale(d.treeStyleScale),treeStyleFlipX:bool(d.treeStyleFlipX),homeStyleX:nullableFraction(d.homeStyleX),homeStyleY:nullableFraction(d.homeStyleY),pondStyleX:nullableFraction(d.pondStyleX),pondStyleY:nullableFraction(d.pondStyleY),treeStyleX:nullableFraction(d.treeStyleX),treeStyleY:nullableFraction(d.treeStyleY)}]}))
+ const placement=(v:Obj):BuildPlacement=>({id:id(v.id,'placement ID'),assetId:str(v.assetId,'placement asset',100),x:fraction(v.x),y:fraction(v.y),rotation:([0,90,180,270] as const).includes(v.rotation as 0)?v.rotation as 0|90|180|270:0,scale:placementScale(v.scale),skewX:placementSkew(v.skewX),flipX:bool(v.flipX)})
+ // Home/pond/tree used to be one singular style slot each, with its own dedicated picker — now
+ // every home/pond/tree is just another duplicable placement in the shared palette. A save from
+ // before that change migrates its one chosen style (if any) into an ordinary placement the first
+ // time it's opened, landing at the same ground spot its old picker used to default a style to
+ // when nobody had dragged it yet.
+ const LEGACY_STYLE_GROUND:Record<'home'|'pond'|'tree',{x:number;y:number}>={home:{x:0.2417,y:0.6906},pond:{x:0.5076,y:0.7366},tree:{x:0.4862,y:0.2505}}
+ const migrateLegacyStyle=(d:Obj,feature:'home'|'pond'|'tree'):BuildPlacement[]=>{
+  const styleId=d[`${feature}Style`]
+  if(styleId==null||typeof styleId!=='string'||!styleId.trim())return []
+  const ground=LEGACY_STYLE_GROUND[feature]
+  return [{id:uid('placement'),assetId:`${feature}-${str(styleId,`${feature} style`,100)}`,x:nullableFraction(d[`${feature}StyleX`])??ground.x,y:nullableFraction(d[`${feature}StyleY`])??ground.y,rotation:0,scale:placementScale(d[`${feature}StyleScale`]),skewX:0,flipX:bool(d[`${feature}StyleFlipX`])}]
+ }
+ const sanctuaryDecor:Record<string,SanctuaryDecorState>=Object.fromEntries(profiles.map(p=>{
+  const d=object(decor[p.id])?decor[p.id] as Obj:{}
+  const placements=[...list(d.placements??[],'placements',300).map(placement),...migrateLegacyStyle(d,'home'),...migrateLegacyStyle(d,'pond'),...migrateLegacyStyle(d,'tree')]
+  return [p.id,{profileId:p.id,placements}]
+ }))
  const activeProfileId=typeof raw.activeProfileId==='string'&&pids.has(raw.activeProfileId)?raw.activeProfileId:profiles[0].id
  const trash:TrashEntry[]=list(raw.trash??[],'trash',2000).map(t=>({id:id(t.id,'trash ID'),profileId:owner(t.profileId),collection:choice(t.collection,['tasks','notes','exams','calendarEvents','subjects','studyPlans','flashcardDecks','studySeasons','scheduleBlocks'],'notes'),title:str(t.title,'trash title',1000),payload:str(t.payload,'trash payload',1000000),deletedAt:str(t.deletedAt,'deleted at',40)}))
  return {schemaVersion:6,trash,profiles,activeProfileId,subjects,tasks,exams,notes,calendarEvents,studySeasons,studyPlans,flashcardDecks,settings,sanctuaryProgress,sanctuaryDecor,onboardingComplete:bool(raw.onboardingComplete,true)}

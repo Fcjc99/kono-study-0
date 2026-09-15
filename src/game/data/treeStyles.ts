@@ -19,10 +19,9 @@ export type TreeStyle = {
 }
 
 /**
- * These renders are finals with no growth stages — picking one replaces the default cherry tree's
- * stage-by-stage growth outright with this one fixed illustration across all four day phases. With
- * no style chosen, the tree keeps growing through its original six stages (see
- * TreeEvolutionSystem), exactly like the default cottage does for home styles.
+ * Each is a flat final illustration with no growth stages — placed and duplicated freely as an
+ * ordinary decoration (see buildAssets.ts), with its own morning/afternoon/evening/night art
+ * swapped in as the sanctuary's time of day changes.
  */
 export const TREE_STYLES: TreeStyle[] = [
   { id: 'round-leafy', label: 'Round Leafy Tree', blurb: 'Classic rounded canopy over a mossy base.', width: 1101, height: 1214, contentWidth: 989, contentHeight: 1113, anchorX: 0.5, anchorY: 0.9605 },
@@ -33,9 +32,4 @@ export const TREE_STYLES: TreeStyle[] = [
   { id: 'bamboo-cluster', label: 'Bamboo Cluster', blurb: 'Tall bamboo stalks in a tidy grove.', width: 1119, height: 1293, contentWidth: 1028, contentHeight: 1214, anchorX: 0.5094, anchorY: 0.959 },
 ]
 
-export const TREE_STYLE_BY_ID: Record<TreeStyleId, TreeStyle> = Object.fromEntries(TREE_STYLES.map((s) => [s.id, s])) as Record<TreeStyleId, TreeStyle>
-
-export const isTreeStyleId = (value: unknown): value is TreeStyleId => typeof value === 'string' && value in TREE_STYLE_BY_ID
-
-export const treeStyleTextureKey = (styleId: TreeStyleId, phase: DayPhase): string => `tree-style-${styleId}-${phase}`
 export const treeStyleTexturePath = (styleId: TreeStyleId, phase: DayPhase): string => `/garden/registered-22.8.6/tree-styles/${styleId}/${phase}.png`

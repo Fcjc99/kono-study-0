@@ -1,6 +1,6 @@
 // Headless behavioral regressions against the shipped production systems.
 const assert=require('node:assert/strict');
-const {load,mascot,scene,Rect,env,NAV_NODES,NAV_GRAPH,isWalkablePoint,fakeMath}=require('./animation-audit.cjs');
+const {mascot,Rect,env,NAV_NODES,NAV_GRAPH,isWalkablePoint,fakeMath}=require('./animation-audit.cjs');
 const near=(a,b,message)=>assert.ok(Math.abs(a-b)<1e-10,`${message}: ${a} != ${b}`);
 let routes=0;
 fakeMath.random=()=>.99;
@@ -89,28 +89,4 @@ for(const delta of [0,-1,NaN,Infinity,1/60,100]){
     near(m.sprite.x,anchor.x,'reaction retains foot anchor x');near(m.sprite.y,anchor.y,'reaction retains foot anchor y');
   }
 }
-{
-  const {PondEvolutionSystem}=load('src/game/systems/PondEvolutionSystem.ts'),p=new PondEvolutionSystem(scene());
-  p.create(5,false);p.resize(new Rect(0,0,1448,1086));
-  for(let t=0;t<=20000;t+=16)p.update(t,env);
-  const positions=()=>p.fish.map(({sprite})=>[sprite.x,sprite.y,sprite.key]);
-  const before=positions();p.setReducedMotion(true);p.update(20016,env);assert.deepEqual(positions(),before,'reduced motion must freeze each fish in place');
-  p.update(80000,env);assert.deepEqual(positions(),before,'frozen fish remain in place');
-  p.setReducedMotion(false);p.update(80016,env);
-  p.fish.forEach(({sprite},i)=>assert.ok(Math.hypot(sprite.x-before[i][0],sprite.y-before[i][1])<3,'resume must not teleport'));
-  const clock=p.motionTimeMs;p.update(900000,env);near(p.motionTimeMs-clock,34,'page resume has a bounded clock step');
-  const stable=p.motionTimeMs;p.update(NaN,env);p.update(Infinity,env);near(p.motionTimeMs,stable,'invalid timestamps do not poison koi time');
-}
-{
-  const {TreeEvolutionSystem}=load('src/game/systems/TreeEvolutionSystem.ts'),s=scene(),tree=new TreeEvolutionSystem(s);
-  tree.create(3,'afternoon',false);tree.resize(new Rect(0,0,1448,1086));tree.setStage(4,true);
-  const petals=s.children.list.filter(x=>x.key.startsWith('petal-'));assert.equal(petals.length,5);
-  for(const petal of petals){
-    const tweens=s.tweens.items.filter(t=>t.targets===petal);assert.equal(tweens.length,1,'one tween owns growth-petal position and opacity');
-    const tween=tweens[0];tween.onUpdate({progress:0});near(petal.alpha,0,'petal begins transparent');
-    tween.onUpdate({progress:.5});assert.ok(petal.alpha>0,'petal becomes visible');
-    let last=petal.alpha;for(const progress of [.73,.8,.9,.96,1]){tween.onUpdate({progress});assert.ok(petal.alpha<=last,'petal must not reappear during fade out');last=petal.alpha}
-    near(last,0,'petal ends transparent');tween.onComplete();assert.equal(petal.active,false,'petal is cleaned up');
-  }
-}
-console.log(`PASS: ${nodeIds.length} nodes, ${routes} complete pond-safe routes, ${retargets} mid-route retargets; painted stair chain and doorstep/deck endpoints; finite travel budgets and stair pause recovery; stable evening idle; destination reactions; readable mascot/shadow sizes and stable pose anchors; koi motion toggles and pause recovery; growth-petal opacity and cleanup.`);
+console.log(`PASS: ${nodeIds.length} nodes, ${routes} complete pond-safe routes, ${retargets} mid-route retargets; painted stair chain and doorstep/deck endpoints; finite travel budgets and stair pause recovery; stable evening idle; destination reactions; readable mascot/shadow sizes and stable pose anchors.`);

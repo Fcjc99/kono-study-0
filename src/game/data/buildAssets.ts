@@ -1,29 +1,46 @@
 import type { DayPhase } from '../sanctuary/types'
 import { ROAD_ASSETS, roadAssetTexturePath } from './roadAssets'
+import { BRIDGE_ASSETS, bridgeAssetTexturePath } from './bridgeAssets'
+import { HOME_STYLES, homeStyleTexturePath } from './homeStyles'
+import { POND_STYLES, pondStyleTexturePath } from './pondStyles'
+import { TREE_STYLES, treeStyleTexturePath } from './treeStyles'
 
 export type BuildCategory=string
 export type BuildLayer='ground'|'ground-detail'|'terrain'|'water-feature'|'water-decor'|'water-or-bridge'|'bridge'|'border'|'decor'|'structure'|'wildlife-water'|'light-overlay'
 export type BuildSurface='grass'|'water'|'water-edge'|'water-gap'|'cliff-edge'|'cliff-or-water'
-/** `src` is a single path for a style-invariant asset, or a per-day-phase map for one (like the
- * roads pack) whose art changes with time of day the same way home/pond/tree style art does. */
+/** `src` is a single path for a style-invariant asset, or a per-day-phase map for one (every asset
+ * pack since the roads pack) whose art changes with time of day. */
 export type BuildAsset={id:string;label:string;category:BuildCategory;categoryLabel:string;src:string|Record<DayPhase,string>;width:number;height:number;defaultScale:number;anchor:{x:number;y:number};surface:BuildSurface;layer:BuildLayer;rotatable:boolean;flippable:boolean}
 
-export const BUILD_CATEGORIES:BuildCategory[]=['paths']
-export const BUILD_CATEGORY_LABELS:Record<BuildCategory,string>={paths:'Paths & Roads'}
+export const BUILD_CATEGORIES:BuildCategory[]=['homes','ponds','trees','paths','bridges']
+export const BUILD_CATEGORY_LABELS:Record<BuildCategory,string>={homes:'Homes',ponds:'Ponds',trees:'Trees',paths:'Paths & Roads',bridges:'Bridges & Water'}
 
-const roadSrc=(id:Parameters<typeof roadAssetTexturePath>[0]):Record<DayPhase,string>=>({
- morning:roadAssetTexturePath(id,'morning'),
- afternoon:roadAssetTexturePath(id,'afternoon'),
- evening:roadAssetTexturePath(id,'evening'),
- night:roadAssetTexturePath(id,'night'),
+const phaseSrc=(pathFor:(phase:DayPhase)=>string):Record<DayPhase,string>=>({
+ morning:pathFor('morning'),
+ afternoon:pathFor('afternoon'),
+ evening:pathFor('evening'),
+ night:pathFor('night'),
 })
 
-export const BUILD_ASSETS:BuildAsset[]=ROAD_ASSETS.map(road=>({
+// Every placed decoration renders as a plain <img> sized as a fraction of the shared 1448-wide
+// virtual island canvas (see SanctuaryBuild.tsx), so a road tile's native pixel width is already
+// the right "footprint" to use as-is. Home/pond/tree style art, though, was painted onto a padded
+// canvas much bigger than the house/pond/tree itself — contain-fitting the CONTENT box (not the
+// padded canvas) into the same world-space footprint the old dedicated pickers used keeps a short
+// wide style and a tall narrow one reading at a comparable size instead of one shrinking to fit the
+// other's padding. This mirrors the contain-fit math the old Home/Pond/TreeEvolutionSystem classes
+// used, just computed once here instead of every frame.
+const HOME_BOX={w:500,h:450}
+const POND_BOX={w:400,h:260}
+const TREE_BOX={w:460,h:480}
+const contentScale=(contentWidth:number,contentHeight:number,box:{w:number;h:number}):number=>Math.min(box.w/contentWidth,box.h/contentHeight)
+
+const roadAssets:BuildAsset[]=ROAD_ASSETS.map(road=>({
  id:'road-'+road.id,
  label:road.label,
  category:'paths',
  categoryLabel:'Paths & Roads',
- src:roadSrc(road.id),
+ src:phaseSrc(phase=>roadAssetTexturePath(road.id,phase)),
  width:road.width,
  height:road.height,
  defaultScale:1,
@@ -33,4 +50,79 @@ export const BUILD_ASSETS:BuildAsset[]=ROAD_ASSETS.map(road=>({
  rotatable:road.rotatable,
  flippable:road.flippable,
 }))
+
+const bridgeAssets:BuildAsset[]=BRIDGE_ASSETS.map(bridge=>({
+ id:'bridge-'+bridge.id,
+ label:bridge.label,
+ category:'bridges',
+ categoryLabel:'Bridges & Water',
+ src:phaseSrc(phase=>bridgeAssetTexturePath(bridge.id,phase)),
+ width:bridge.width,
+ height:bridge.height,
+ defaultScale:1,
+ anchor:{x:0.5,y:0.5},
+ surface:'water-edge',
+ layer:'bridge',
+ rotatable:bridge.rotatable,
+ flippable:bridge.flippable,
+}))
+
+const homeAssets:BuildAsset[]=HOME_STYLES.map(style=>{
+ const scale=contentScale(style.contentWidth,style.contentHeight,HOME_BOX)
+ return {
+  id:'home-'+style.id,
+  label:style.label,
+  category:'homes',
+  categoryLabel:'Homes',
+  src:phaseSrc(phase=>homeStyleTexturePath(style.id,phase)),
+  width:style.width*scale,
+  height:style.height*scale,
+  defaultScale:1,
+  anchor:{x:0.5,y:style.anchorY},
+  surface:'grass',
+  layer:'structure',
+  rotatable:false,
+  flippable:true,
+ }
+})
+
+const pondAssets:BuildAsset[]=POND_STYLES.map(style=>{
+ const scale=contentScale(style.contentWidth,style.contentHeight,POND_BOX)
+ return {
+  id:'pond-'+style.id,
+  label:style.label,
+  category:'ponds',
+  categoryLabel:'Ponds',
+  src:phaseSrc(phase=>pondStyleTexturePath(style.id,phase)),
+  width:style.width*scale,
+  height:style.height*scale,
+  defaultScale:1,
+  anchor:{x:0.5,y:style.anchorY},
+  surface:'water',
+  layer:'water-feature',
+  rotatable:false,
+  flippable:true,
+ }
+})
+
+const treeAssets:BuildAsset[]=TREE_STYLES.map(style=>{
+ const scale=contentScale(style.contentWidth,style.contentHeight,TREE_BOX)
+ return {
+  id:'tree-'+style.id,
+  label:style.label,
+  category:'trees',
+  categoryLabel:'Trees',
+  src:phaseSrc(phase=>treeStyleTexturePath(style.id,phase)),
+  width:style.width*scale,
+  height:style.height*scale,
+  defaultScale:1,
+  anchor:{x:0.5,y:style.anchorY},
+  surface:'grass',
+  layer:'decor',
+  rotatable:false,
+  flippable:true,
+ }
+})
+
+export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets]
 export const BUILD_ASSET_BY_ID:Record<string,BuildAsset>=Object.fromEntries(BUILD_ASSETS.map(a=>[a.id,a]))

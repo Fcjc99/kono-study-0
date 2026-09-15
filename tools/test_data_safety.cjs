@@ -208,69 +208,26 @@ assert.equal(placement.id,'p1');assert.equal(placement.assetId,'mailbox');assert
 assert.equal(placement.scale,1);assert.equal(placement.skewX,0);
 same(model.normalizeData(normalized),normalized);
 });
-test('placement scale/skewX round-trip and clamp to their safe ranges',()=>{
-const d=make(),pid=d.activeProfileId;d.sanctuaryDecor[pid].placements=[{id:'p1',assetId:'mailbox',x:0.3,y:0.4,rotation:0,scale:1.6,skewX:-20},{id:'p2',assetId:'bench',x:0.6,y:0.6,rotation:0,scale:99,skewX:9999}];
+test('placement scale/skewX/flipX round-trip and clamp to their safe ranges',()=>{
+const d=make(),pid=d.activeProfileId;d.sanctuaryDecor[pid].placements=[{id:'p1',assetId:'mailbox',x:0.3,y:0.4,rotation:0,scale:1.6,skewX:-20,flipX:true},{id:'p2',assetId:'bench',x:0.6,y:0.6,rotation:0,scale:99,skewX:9999,flipX:false}];
 const normalized=model.normalizeData(d);const [a,b]=normalized.sanctuaryDecor[pid].placements;
-assert.equal(a.scale,1.6);assert.equal(a.skewX,-20);assert.equal(b.scale,3);assert.equal(b.skewX,60);
+assert.equal(a.scale,1.6);assert.equal(a.skewX,-20);assert.equal(a.flipX,true);
+assert.equal(b.scale,3);assert.equal(b.skewX,60);assert.equal(b.flipX,false);
+assert.throws(()=>{const bad=make();bad.sanctuaryDecor[bad.activeProfileId].placements=[{id:'p3',assetId:'bench',x:0.5,y:0.5,rotation:0,scale:1,skewX:0,flipX:'yes'}];model.normalizeData(bad)});
 same(model.normalizeData(normalized),normalized);
 });
-test('homeStyle defaults to null, round-trips as a string, and an oversized value fails rather than silently truncating',()=>{
+test('a home/pond/tree style from before duplication migrates into an ordinary placement once, at its old default ground spot, and the migration does not repeat on the next save',()=>{
 const d=make(),pid=d.activeProfileId;
-assert.equal(model.normalizeData(d).sanctuaryDecor[pid].homeStyle,null);
-d.sanctuaryDecor[pid].homeStyle='treehouse';
-const normalized=model.normalizeData(d);
-assert.equal(normalized.sanctuaryDecor[pid].homeStyle,'treehouse');
+d.sanctuaryDecor[pid].homeStyle='treehouse';d.sanctuaryDecor[pid].homeStyleScale=1.4;d.sanctuaryDecor[pid].homeStyleFlipX=true;
+d.sanctuaryDecor[pid].pondStyle='round-stone-pond';d.sanctuaryDecor[pid].pondStyleX=0.3;d.sanctuaryDecor[pid].pondStyleY=0.6;
+d.sanctuaryDecor[pid].treeStyle=null;
+const normalized=model.normalizeData(d);const placements=normalized.sanctuaryDecor[pid].placements;
+assert.equal(placements.length,2);
+const home=placements.find(p=>p.assetId==='home-treehouse'),pond=placements.find(p=>p.assetId==='pond-round-stone-pond');
+assert.equal(home.scale,1.4);assert.equal(home.flipX,true);assert.equal(typeof home.x,'number');assert.equal(typeof home.y,'number');
+assert.equal(pond.x,0.3);assert.equal(pond.y,0.6);assert.equal(pond.flipX,false);
+assert.equal(normalized.sanctuaryDecor[pid].homeStyle,undefined);
 same(model.normalizeData(normalized),normalized);
-d.sanctuaryDecor[pid].homeStyle='x'.repeat(101);
-assert.throws(()=>model.normalizeData(d));
-});
-test('pondStyle defaults to null, round-trips as a string, and an oversized value fails rather than silently truncating',()=>{
-const d=make(),pid=d.activeProfileId;
-assert.equal(model.normalizeData(d).sanctuaryDecor[pid].pondStyle,null);
-d.sanctuaryDecor[pid].pondStyle='round-stone-pond';
-const normalized=model.normalizeData(d);
-assert.equal(normalized.sanctuaryDecor[pid].pondStyle,'round-stone-pond');
-same(model.normalizeData(normalized),normalized);
-d.sanctuaryDecor[pid].pondStyle='x'.repeat(101);
-assert.throws(()=>model.normalizeData(d));
-});
-test('home/pond style scale and mirror default sensibly, round-trip, and clamp out-of-range scale',()=>{
-const d=make(),pid=d.activeProfileId;
-const fresh=model.normalizeData(d).sanctuaryDecor[pid];
-assert.equal(fresh.homeStyleScale,1);assert.equal(fresh.homeStyleFlipX,false);
-assert.equal(fresh.pondStyleScale,1);assert.equal(fresh.pondStyleFlipX,false);
-d.sanctuaryDecor[pid].homeStyleScale=1.6;d.sanctuaryDecor[pid].homeStyleFlipX=true;
-d.sanctuaryDecor[pid].pondStyleScale=99;d.sanctuaryDecor[pid].pondStyleFlipX=true;
-const normalized=model.normalizeData(d);const decor=normalized.sanctuaryDecor[pid];
-assert.equal(decor.homeStyleScale,1.6);assert.equal(decor.homeStyleFlipX,true);
-assert.equal(decor.pondStyleScale,3);assert.equal(decor.pondStyleFlipX,true);
-same(model.normalizeData(normalized),normalized);
-});
-test('home/pond style position defaults to null (unmoved), round-trips as a fraction, and clamps out-of-range values',()=>{
-const d=make(),pid=d.activeProfileId;
-const fresh=model.normalizeData(d).sanctuaryDecor[pid];
-assert.equal(fresh.homeStyleX,null);assert.equal(fresh.homeStyleY,null);
-assert.equal(fresh.pondStyleX,null);assert.equal(fresh.pondStyleY,null);
-d.sanctuaryDecor[pid].homeStyleX=0.3;d.sanctuaryDecor[pid].homeStyleY=0.7;
-d.sanctuaryDecor[pid].pondStyleX=-2;d.sanctuaryDecor[pid].pondStyleY=5;
-const normalized=model.normalizeData(d);const decor=normalized.sanctuaryDecor[pid];
-assert.equal(decor.homeStyleX,0.3);assert.equal(decor.homeStyleY,0.7);
-assert.equal(decor.pondStyleX,0);assert.equal(decor.pondStyleY,1);
-same(model.normalizeData(normalized),normalized);
-});
-test('tree style defaults to null, round-trips scale/mirror/position, and clamps out-of-range values',()=>{
-const d=make(),pid=d.activeProfileId;
-const fresh=model.normalizeData(d).sanctuaryDecor[pid];
-assert.equal(fresh.treeStyle,null);assert.equal(fresh.treeStyleScale,1);assert.equal(fresh.treeStyleFlipX,false);
-assert.equal(fresh.treeStyleX,null);assert.equal(fresh.treeStyleY,null);
-d.sanctuaryDecor[pid].treeStyle='pine';d.sanctuaryDecor[pid].treeStyleScale=99;d.sanctuaryDecor[pid].treeStyleFlipX=true;
-d.sanctuaryDecor[pid].treeStyleX=0.4;d.sanctuaryDecor[pid].treeStyleY=-3;
-const normalized=model.normalizeData(d);const decor=normalized.sanctuaryDecor[pid];
-assert.equal(decor.treeStyle,'pine');assert.equal(decor.treeStyleScale,3);assert.equal(decor.treeStyleFlipX,true);
-assert.equal(decor.treeStyleX,0.4);assert.equal(decor.treeStyleY,0);
-same(model.normalizeData(normalized),normalized);
-d.sanctuaryDecor[pid].treeStyle='x'.repeat(101);
-assert.throws(()=>model.normalizeData(d));
 });
 test('all cozy color palettes survive save normalization',()=>{
  for(const theme of ['coral','sakura','lavender','mint','honey']){const d=make();d.settings.theme=theme;assert.equal(model.normalizeData(d).settings.theme,theme)}

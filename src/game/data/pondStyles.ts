@@ -19,12 +19,10 @@ export type PondStyle = {
 }
 
 /**
- * These are finals with no growth stages — picking one replaces the pond entirely with this one
- * fixed illustration, with its own morning/afternoon/evening/night art swapped in as the sanctuary's
- * time of day changes. There is deliberately no default pond to fall back to: with no style chosen,
- * the pond area is just the plain painted water already baked into the terrace map, with nothing
- * drawn on top of it (see PondEvolutionSystem, whose koi/lily/reed stage-growth visuals are
- * permanently disabled rather than used as a fallback).
+ * Each is a flat final illustration with no growth stages — placed and duplicated freely as an
+ * ordinary decoration (see buildAssets.ts), with its own morning/afternoon/evening/night art
+ * swapped in as the sanctuary's time of day changes. With none placed, the pond area is just the
+ * plain painted water already baked into the terrace map.
  */
 export const POND_STYLES: PondStyle[] = [
   { id: 'round-stone-pond', label: 'Round Stone Pond', blurb: 'Circular stone-ringed basin, calm center ripple.', width: 1241, height: 869, contentWidth: 1145, contentHeight: 773, anchorX: 0.4996, anchorY: 0.9436 },
@@ -33,9 +31,4 @@ export const POND_STYLES: PondStyle[] = [
   { id: 'tiered-waterfall-pond', label: 'Tiered Waterfall Pond', blurb: 'Two-level pond fed by a small stepped waterfall.', width: 1369, height: 1053, contentWidth: 1273, contentHeight: 957, anchorX: 0.4996, anchorY: 0.9535 },
 ]
 
-export const POND_STYLE_BY_ID: Record<PondStyleId, PondStyle> = Object.fromEntries(POND_STYLES.map((s) => [s.id, s])) as Record<PondStyleId, PondStyle>
-
-export const isPondStyleId = (value: unknown): value is PondStyleId => typeof value === 'string' && value in POND_STYLE_BY_ID
-
-export const pondStyleTextureKey = (styleId: PondStyleId, phase: DayPhase): string => `pond-style-${styleId}-${phase}`
 export const pondStyleTexturePath = (styleId: PondStyleId, phase: DayPhase): string => `/garden/registered-22.8.6/pond-styles/${styleId}/${phase}.png`
