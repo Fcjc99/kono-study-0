@@ -28,9 +28,11 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
  const [liveScale,setLiveScale]=useState<{id:string;value:number}|null>(null)
  const [liveSkew,setLiveSkew]=useState<{id:string;value:number}|null>(null)
  const [liveText,setLiveText]=useState<{id:string;value:string}|null>(null)
+ const [livePos,setLivePos]=useState<{id:string;x:number;y:number}|null>(null)
  const scaleCommitTimer=useRef<number|undefined>(undefined)
  const skewCommitTimer=useRef<number|undefined>(undefined)
  const textCommitTimer=useRef<number|undefined>(undefined)
+ const posCommitTimer=useRef<number|undefined>(undefined)
 
  const withCurrent=(d:AppData,patch:Partial<ReturnType<typeof decorFor>>)=>{
   const current=decorFor(d)
@@ -104,6 +106,20 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
   window.clearTimeout(textCommitTimer.current)
   textCommitTimer.current=window.setTimeout(()=>{void commit(decor.placements.map(p=>p.id===selected?{...p,text}:p))},400)
  }
+ // A reliable fallback for repositioning: dragging a placed item relies on pointer capture tracking a
+ // moving touch/mouse point, which has twice now turned out not to land consistently on real touch
+ // devices for this exact kind of gesture (see the resize/skew history above) — these two sliders let
+ // position be set the same guaranteed-native way, without needing the drag gesture to work at all.
+ const setSelectedPos=(axis:'x'|'y',value:number)=>{
+  if(!selected)return
+  const current=decor.placements.find(p=>p.id===selected)
+  const base=livePos&&livePos.id===selected?livePos:current?{id:selected,x:current.x,y:current.y}:null
+  if(!base)return
+  const next={id:selected,x:axis==='x'?value:base.x,y:axis==='y'?value:base.y}
+  setLivePos(next)
+  window.clearTimeout(posCommitTimer.current)
+  posCommitTimer.current=window.setTimeout(()=>{void commit(decor.placements.map(p=>p.id===selected?{...p,x:next.x,y:next.y}:p))},150)
+ }
  const itemPointerDown=(e:ReactPointerEvent<HTMLButtonElement>,placement:BuildPlacement)=>{
   e.stopPropagation()
   e.currentTarget.setPointerCapture(e.pointerId)
@@ -135,7 +151,7 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
    {decor.placements.map(p=>{
     const asset=BUILD_ASSET_BY_ID[p.assetId]
     if(!asset)return null
-    const pos=dragId===p.id&&dragPos?dragPos:p
+    const pos=dragId===p.id&&dragPos?dragPos:livePos&&livePos.id===p.id?livePos:p
     const isSelected=selected===p.id
     const scale=liveScale&&liveScale.id===p.id?liveScale.value:p.scale
     const skewX=liveSkew&&liveSkew.id===p.id?liveSkew.value:p.skewX
@@ -156,9 +172,13 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
     const scale=liveScale&&liveScale.id===selectedPlacement.id?liveScale.value:selectedPlacement.scale
     const skewX=liveSkew&&liveSkew.id===selectedPlacement.id?liveSkew.value:selectedPlacement.skewX
     const signText=liveText&&liveText.id===selectedPlacement.id?liveText.value:selectedPlacement.text??''
+    const posX=livePos&&livePos.id===selectedPlacement.id?livePos.x:selectedPlacement.x
+    const posY=livePos&&livePos.id===selectedPlacement.id?livePos.y:selectedPlacement.y
     const signable=!!BUILD_ASSET_BY_ID[selectedPlacement.assetId]?.signArea
     return <div className="build-item-panel">
      {signable&&<label>Sign text<input type="text" maxLength={120} value={signText} onChange={e=>setSelectedText(e.target.value)} placeholder="Write on this sign"/></label>}
+     <label>Left – right<input type="range" min={0} max={1} step={0.01} value={posX} onChange={e=>setSelectedPos('x',Number(e.target.value))}/></label>
+     <label>Up – down<input type="range" min={0} max={1} step={0.01} value={posY} onChange={e=>setSelectedPos('y',Number(e.target.value))}/></label>
      <label>Size<input type="range" min={MIN_SCALE} max={MAX_SCALE} step={0.05} value={scale} onChange={e=>setSelectedScale(Number(e.target.value))}/></label>
      <label>Skew<input type="range" min={MIN_SKEW} max={MAX_SKEW} step={1} value={skewX} onChange={e=>setSelectedSkew(Number(e.target.value))}/></label>
      <div className="build-item-actions">
@@ -170,7 +190,7 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
      </div>
     </div>
    })()}
-   <p className="wb-muted">Tap an item to add it to your island, or drag it on to choose where it lands. Drag a placed item anywhere to move it, or tap it once to select it — then use the controls above to resize, skew, rotate, mirror, duplicate, or remove it. A few items (like the boba stand's sign and menu board) let you write your own text on them, too. Place as many of anything as you like.</p>
+   <p className="wb-muted">Tap an item to add it to your island, or drag it on to choose where it lands. Drag a placed item anywhere to move it, or tap it once to select it — then use the controls above to reposition, resize, skew, rotate, mirror, duplicate, or remove it. If dragging ever feels unreliable, the Left–right and Up–down sliders move it too. A few items (like the boba stand's sign and menu board) let you write your own text on them, too. Place as many of anything as you like.</p>
    <nav className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}</nav>
    <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=>
     <div role="button" tabIndex={0} draggable key={a.id} className="build-palette-item" onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={()=>placeDefault(a.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();placeDefault(a.id)}}} aria-label={'Add '+a.label}><span className="build-palette-thumb"><img src={assetSrc(a)} alt="" draggable={false}/></span><small>{a.label}</small></div>
