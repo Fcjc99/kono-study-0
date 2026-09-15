@@ -149,9 +149,24 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
  // The Size/Skew controls sit in normal document flow below the canvas (see sanctuary-build.css) —
  // on a short phone screen, scrolling down to reach them can carry the canvas itself off the top of
  // the viewport, so dragging the slider produces a real, immediate change with no visible feedback at
- // all. Centering the canvas in view as soon as something is selected keeps it (and the controls right
- // below it) reachable together, instead of the two fighting over the same sliver of screen.
+ // all. Centering the canvas in view as soon as something is selected gives it a fighting chance of
+ // starting out visible; workbench.css's sticky positioning (see --wb-sticky-top below) is what keeps
+ // it that way once the controls below get scrolled further.
  useEffect(()=>{if(selected)canvasRef.current?.scrollIntoView({block:'center',behavior:'smooth'})},[selected])
+ // Sticky positioning pins the canvas near the top of the viewport while decorating, but a themed
+ // app header can be sticky too — without clearing its height, the canvas would stick right
+ // underneath it, hidden. Measuring whichever header is actually on screen, instead of hardcoding a
+ // height per theme, keeps this correct across every experience/theme and on rotation/resize.
+ useEffect(()=>{
+  const apply=()=>{
+   const header=document.querySelector('.mobile-desk-header,.topbar,.wb-header')
+   const clearance=header&&['sticky','fixed'].includes(getComputedStyle(header).position)?header.getBoundingClientRect().height:0
+   document.documentElement.style.setProperty('--wb-sticky-top',(clearance+8)+'px')
+  }
+  apply()
+  window.addEventListener('resize',apply)
+  return ()=>{window.removeEventListener('resize',apply);document.documentElement.style.removeProperty('--wb-sticky-top')}
+ },[])
 
  const selectedPlacement=decor.placements.find(p=>p.id===selected)??null
 
