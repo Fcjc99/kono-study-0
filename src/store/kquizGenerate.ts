@@ -31,10 +31,11 @@ function buildPrompt(transcript: string): string {
     `on the transcript content.\n\nTRANSCRIPT:\n${capped}`
 }
 
-function buildPhotoPrompt(): string {
+function buildTranscribePrompt(): string {
   return `You are a study assistant. Read the handwritten or printed notes in the attached photo ` +
-    `(work through any unclear handwriting using your best judgement), then ${OUTPUT_SCHEMA} Base ` +
-    `everything only on the content of the photo.`
+    `(work through any unclear handwriting using your best judgement) and transcribe them faithfully ` +
+    `as plain text, keeping headings, bullet points, and structure where it's reasonable to. Respond ` +
+    `with a single JSON object: {"text": string}. Output ONLY the JSON object, no other text.`
 }
 
 export type PhotoInput = { base64: string; mimeType: string }
@@ -120,12 +121,23 @@ export async function generateStudyMaterials(transcript: string, provider: KQuiz
   return parseGenerated(raw)
 }
 
-export async function generateStudyMaterialsFromPhoto(photo: PhotoInput, provider: KQuizProvider, apiKey: string): Promise<GeneratedMaterials> {
+function parseTranscription(raw: string): string {
+  let obj: unknown
+  try { obj = JSON.parse(raw) } catch { fail('The AI response was not valid JSON. Try again.') }
+  if (!obj || typeof obj !== 'object') fail('The AI response was not in the expected format.')
+  const text = (obj as Record<string, unknown>).text
+  return typeof text === 'string' && text.trim() ? text.trim().slice(0, 200000) : fail('Could not read any text from that photo. Try a clearer photo.')
+}
+
+/** Reads a photo into plain text only — no summary/flashcards/questions yet. Scanning a photo just
+ * adds it to a subject's running list of material; generating a study set happens later, over
+ * whichever entries get checked off (see generateStudyMaterials, called with their combined text). */
+export async function transcribePhoto(photo: PhotoInput, provider: KQuizProvider, apiKey: string): Promise<string> {
   if (!apiKey.trim()) fail('Add an API key in Settings first.')
-  const prompt = buildPhotoPrompt()
+  const prompt = buildTranscribePrompt()
   const raw = provider === 'gemini' ? await callGemini(prompt, apiKey.trim(), photo) : await callOpenAI(prompt, apiKey.trim(), photo)
-  return parseGenerated(raw)
+  return parseTranscription(raw)
 }
 
 /** Exposed for tests — exercises the same validation a real API response goes through. */
-export const __test__ = { parseGenerated, buildPrompt, buildPhotoPrompt }
+export const __test__ = { parseGenerated, parseTranscription, buildPrompt, buildTranscribePrompt }

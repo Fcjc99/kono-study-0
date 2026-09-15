@@ -46,6 +46,11 @@ export type SanctuaryDecorState={profileId:string;placements:BuildPlacement[]}
  * record's own id (see src/store/audioStore.ts) — only the transcript (plain text KONO already
  * knows how to sync/back up safely) travels with the rest of the plan. */
 export type KQuizLecture={id:string;profileId:string;subjectId:string;title:string;createdAt:string;durationSeconds:number;transcript:string}
+/** A single captured piece of material — a scanned photo already read into text, or notes pasted
+ * directly — filed under a subject and checked off later to fold into one combined generation, the
+ * same way a running binder of notes gets pulled together at midterms. Capturing one never calls the
+ * AI to generate a study set by itself; only "Generate" (over one or more checked sources) does. */
+export type KQuizSource={id:string;profileId:string;subjectId:string;title:string;createdAt:string;text:string}
 export type KQuizQuestion={id:string;type:'mcq';prompt:string;choices:string[];correctIndex:number}|{id:string;type:'written';prompt:string;answer:string}
 export type KQuizPracticeTest={questions:KQuizQuestion[]}
 /** A study set groups everything K-Quiz generated from one lecture (or from pasted notes, with no
@@ -53,7 +58,7 @@ export type KQuizPracticeTest={questions:KQuizQuestion[]}
  * FlashcardDeck in flashcardDecks, referenced by id, so practicing them reuses the same deck UI and
  * spaced-repetition state the rest of KONO already has, rather than a second parallel flashcard system. */
 export type KQuizSet={id:string;profileId:string;subjectId:string;lectureId?:string;title:string;createdAt:string;summary?:string;studyGuide?:string;flashcardDeckId?:string;practiceTest?:KQuizPracticeTest}
-export type AppData={schemaVersion:6;trash:TrashEntry[];profiles:Profile[];activeProfileId:string;subjects:Subject[];tasks:Task[];exams:Exam[];notes:Note[];calendarEvents:CalendarEvent[];studySeasons:StudySeason[];studyPlans:StudyPlan[];flashcardDecks:FlashcardDeck[];kquizLectures:KQuizLecture[];kquizSets:KQuizSet[];settings:SettingsData;sanctuaryProgress:Record<string,SanctuaryProgressState>;sanctuaryDecor:Record<string,SanctuaryDecorState>;onboardingComplete?:boolean}
+export type AppData={schemaVersion:6;trash:TrashEntry[];profiles:Profile[];activeProfileId:string;subjects:Subject[];tasks:Task[];exams:Exam[];notes:Note[];calendarEvents:CalendarEvent[];studySeasons:StudySeason[];studyPlans:StudyPlan[];flashcardDecks:FlashcardDeck[];kquizLectures:KQuizLecture[];kquizSets:KQuizSet[];kquizSources:KQuizSource[];settings:SettingsData;sanctuaryProgress:Record<string,SanctuaryProgressState>;sanctuaryDecor:Record<string,SanctuaryDecorState>;onboardingComplete?:boolean}
 
 export const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as const
 export const blankWeek=():WeekSchedule=>Object.fromEntries(dayNames.map(day=>[day,[]]))
@@ -72,7 +77,7 @@ export const localDate=(date=new Date())=>`${date.getFullYear()}-${String(date.g
 export const defaultSettings:SettingsData={experience:'cozy',textSize:'normal',density:'comfortable',decoration:true,boardStyle:'paper',theme:'coral',themeVersion:4,sound:true,ambient:true,reminders:false,browserNotifications:false,loginDigest:true,scheduleShowAcademic:true,scheduleShowSports:true,scheduleShowAppointments:true,reducedMotion:false,motionPreference:'system',sanctuaryWeather:'clear',sanctuaryWeatherMode:'clear',sanctuaryZipCodes:{},sanctuaryWeatherLocations:{}}
 export function createFreshData():AppData {
  const id=uid('profile'),start=localDate(),end=localDate(new Date(Date.now()+180*86400000))
- return {schemaVersion:6,trash:[],profiles:[{id,name:'Learner',label:'My study plan',kind:'custom',start,end,progressEpoch:uid('epoch')}],activeProfileId:id,subjects:[],tasks:[],exams:[],notes:[],calendarEvents:[],studyPlans:[],flashcardDecks:[],kquizLectures:[],kquizSets:[],studySeasons:[{id:uid('season'),profileId:id,name:'My schedule',start,end,active:true,week:blankWeek()}],settings:{...defaultSettings},sanctuaryProgress:{[id]:createSanctuaryProgress(id)},sanctuaryDecor:{[id]:{profileId:id,placements:[]}},onboardingComplete:false}
+ return {schemaVersion:6,trash:[],profiles:[{id,name:'Learner',label:'My study plan',kind:'custom',start,end,progressEpoch:uid('epoch')}],activeProfileId:id,subjects:[],tasks:[],exams:[],notes:[],calendarEvents:[],studyPlans:[],flashcardDecks:[],kquizLectures:[],kquizSets:[],kquizSources:[],studySeasons:[{id:uid('season'),profileId:id,name:'My schedule',start,end,active:true,week:blankWeek()}],settings:{...defaultSettings},sanctuaryProgress:{[id]:createSanctuaryProgress(id)},sanctuaryDecor:{[id]:{profileId:id,placements:[]}},onboardingComplete:false}
 }
 
 type Obj=Record<string,unknown>
@@ -202,6 +207,10 @@ export function normalizeData(raw:unknown):AppData {
   const profileId=owner(s.profileId),title=str(s.title,'study set title',300);if(!title.trim())return fail('study set title')
   return {id:id(s.id,'study set ID'),profileId,subjectId:subject(s.subjectId,profileId),lectureId:ref(s.lectureId,lectureIds,'lecture reference'),title,createdAt:str(s.createdAt,'study set date',40),summary:optional(s.summary,'summary',20000),studyGuide:optional(s.studyGuide,'study guide',50000),flashcardDeckId:ref(s.flashcardDeckId,deckIds,'deck reference'),practiceTest:practiceTest(s.practiceTest)}
  })
+ const kquizSources:KQuizSource[]=list(raw.kquizSources??[],'notes',1000).map(n=>{
+  const profileId=owner(n.profileId),title=str(n.title,'note title',300);if(!title.trim())return fail('note title')
+  return {id:id(n.id,'note ID'),profileId,subjectId:subject(n.subjectId,profileId),title,createdAt:str(n.createdAt,'note date',40),text:str(n.text??'','note text',200000)}
+ })
  const s=object(raw.settings)?raw.settings:{}
  // A legacy single-choice scheduleView ('all'|'academic'|'sports') migrates into the three
  // independent checkboxes below — appointments always defaults visible, since there was no way
@@ -233,8 +242,8 @@ export function normalizeData(raw:unknown):AppData {
   return [p.id,{profileId:p.id,placements}]
  }))
  const activeProfileId=typeof raw.activeProfileId==='string'&&pids.has(raw.activeProfileId)?raw.activeProfileId:profiles[0].id
- const trash:TrashEntry[]=list(raw.trash??[],'trash',2000).map(t=>({id:id(t.id,'trash ID'),profileId:owner(t.profileId),collection:choice(t.collection,['tasks','notes','exams','calendarEvents','subjects','studyPlans','flashcardDecks','kquizSets','studySeasons','scheduleBlocks'],'notes'),title:str(t.title,'trash title',1000),payload:str(t.payload,'trash payload',1000000),deletedAt:str(t.deletedAt,'deleted at',40)}))
- return {schemaVersion:6,trash,profiles,activeProfileId,subjects,tasks,exams,notes,calendarEvents,studySeasons,studyPlans,flashcardDecks,kquizLectures,kquizSets,settings,sanctuaryProgress,sanctuaryDecor,onboardingComplete:bool(raw.onboardingComplete,true)}
+ const trash:TrashEntry[]=list(raw.trash??[],'trash',2000).map(t=>({id:id(t.id,'trash ID'),profileId:owner(t.profileId),collection:choice(t.collection,['tasks','notes','exams','calendarEvents','subjects','studyPlans','flashcardDecks','kquizSets','kquizSources','studySeasons','scheduleBlocks'],'notes'),title:str(t.title,'trash title',1000),payload:str(t.payload,'trash payload',1000000),deletedAt:str(t.deletedAt,'deleted at',40)}))
+ return {schemaVersion:6,trash,profiles,activeProfileId,subjects,tasks,exams,notes,calendarEvents,studySeasons,studyPlans,flashcardDecks,kquizLectures,kquizSets,kquizSources,settings,sanctuaryProgress,sanctuaryDecor,onboardingComplete:bool(raw.onboardingComplete,true)}
 }
 
 export function assertProfileWrite(before:AppData,after:AppData,profileId:string):AppData {
@@ -242,7 +251,7 @@ export function assertProfileWrite(before:AppData,after:AppData,profileId:string
  if(JSON.stringify(before.profiles)!==JSON.stringify(after.profiles)||JSON.stringify(before.settings)!==JSON.stringify(after.settings)||after.activeProfileId!==before.activeProfileId)throw new Error('This editor cannot change account settings or another plan.')
  for(const profile of before.profiles)if(profile.id!==profileId&&JSON.stringify(before.sanctuaryProgress[profile.id])!==JSON.stringify(after.sanctuaryProgress[profile.id]))throw new Error('This edit belongs to another plan.')
  for(const profile of before.profiles)if(profile.id!==profileId&&JSON.stringify(before.sanctuaryDecor[profile.id])!==JSON.stringify(after.sanctuaryDecor[profile.id]))throw new Error('This edit belongs to another plan.')
- for(const key of ['subjects','tasks','notes','exams','calendarEvents','studySeasons','studyPlans','flashcardDecks','kquizLectures','kquizSets','trash'] as const){
+ for(const key of ['subjects','tasks','notes','exams','calendarEvents','studySeasons','studyPlans','flashcardDecks','kquizLectures','kquizSets','kquizSources','trash'] as const){
   const oldOther=before[key].filter(r=>r.profileId!==profileId)
   const newOther=after[key].filter(r=>r.profileId!==profileId)
   if(JSON.stringify(oldOther)!==JSON.stringify(newOther))throw new Error('This edit belongs to a different profile. Reopen the editor and try again.')

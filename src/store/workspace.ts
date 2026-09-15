@@ -1,7 +1,7 @@
 import { normalizeData, uid, type AppData, type TrashEntry, type Task } from './model'
 import { applyTaskCompletionChange, createSanctuaryProgress, syncCurrentTaskCompletion } from '../game/progression/progressionEngine'
 
-export const collections = ['tasks','notes','exams','calendarEvents','subjects','studyPlans','flashcardDecks','kquizSets','studySeasons'] as const
+export const collections = ['tasks','notes','exams','calendarEvents','subjects','studyPlans','flashcardDecks','kquizSets','kquizSources','studySeasons'] as const
 export type Collection = typeof collections[number]
 export type Entry = {id:string;profileId:string;[key:string]:unknown}
 export const records = (data:AppData,key:Collection) => data[key] as unknown as Entry[]
