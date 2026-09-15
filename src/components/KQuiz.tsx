@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type SetStateAction } from 'react'
 import { useDraftState } from '../hooks/useDraftState'
 import { useLectureRecorder } from '../hooks/useLectureRecorder'
-import { uid, type AppData, type KQuizLecture, type KQuizSet, type KQuizQuestion } from '../store/model'
+import { uid, type AppData, type KQuizLecture, type KQuizSet, type KQuizQuestion, type Subject } from '../store/model'
 import type { FlashcardDeck } from '../store/flashcards'
 import { generateStudyMaterials, generateStudyMaterialsFromPhoto } from '../store/kquizGenerate'
 import { saveRecording, loadRecording, deleteRecording } from '../store/audioStore'
@@ -16,17 +16,24 @@ function useLocalSetting(key: string, fallback: string): [string, (value: string
   return [value, update]
 }
 
-export default function KQuiz({ profileId, lectures, sets, decks, setData }: { profileId: string; lectures: KQuizLecture[]; sets: KQuizSet[]; decks: FlashcardDeck[]; setData: (action: SetStateAction<AppData>) => Promise<boolean> }) {
+const UNSORTED = '__unsorted__'
+
+export default function KQuiz({ profileId, lectures, sets, decks, subjects, setData }: { profileId: string; lectures: KQuizLecture[]; sets: KQuizSet[]; decks: FlashcardDeck[]; subjects: Subject[]; setData: (action: SetStateAction<AppData>) => Promise<boolean> }) {
   const [provider, setProvider] = useLocalSetting('kono-kquiz:' + profileId + ':provider', 'gemini')
   const [apiKey, setApiKey] = useLocalSetting('kono-kquiz:' + profileId + ':key', '')
   const [busy, setBusy] = useState(false), [message, setMessage] = useState('')
   const [pendingTitle, setPendingTitle] = useState('')
+  // The active folder both filters what's shown below and decides what subject a newly recorded
+  // lecture or generated study set files under — recording while browsing "Biology" lands in
+  // Biology, the same way saving a file into an open folder does. '' means All, UNSORTED its own bucket.
+  const [folder, setFolder] = useState('')
+  const folderSubjectId = folder === UNSORTED ? '' : folder
   const [pendingRecording, setPendingRecording] = useState<{ blob: Blob; transcript: string; durationSeconds: number } | null>(null)
   const [noteTitle, setNoteTitle] = useDraftState('kquiz-note-title:' + profileId, ''), [noteText, setNoteText] = useDraftState('kquiz-note-text:' + profileId, '')
   const [generatingFor, setGeneratingFor] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState<string | null>(null)
-  const [guideTab, setGuideTab] = useState<'summary' | 'guide'>('summary')
+  const [guideTab, setGuideTab] = useState<Record<string, 'summary' | 'guide'>>({})
   const [test, setTest] = useState<{ setId: string; index: number; picked: number | null; revealed: boolean; score: number } | null>(null)
+  const [flashSession, setFlashSession] = useState<{ deckId: string; index: number; revealed: boolean } | null>(null)
   const [playing, setPlaying] = useState<{ id: string; url: string } | null>(null)
   const recorder = useLectureRecorder()
   const saving = useRef(false)
@@ -46,7 +53,7 @@ export default function KQuiz({ profileId, lectures, sets, decks, setData }: { p
     event.preventDefault()
     if (!pendingRecording) return
     const title = pendingTitle.trim() || 'Untitled lecture'
-    const lecture: KQuizLecture = { id: uid('lecture'), profileId, title, createdAt: new Date().toISOString(), durationSeconds: pendingRecording.durationSeconds, transcript: pendingRecording.transcript }
+    const lecture: KQuizLecture = { id: uid('lecture'), profileId, subjectId: folderSubjectId, title, createdAt: new Date().toISOString(), durationSeconds: pendingRecording.durationSeconds, transcript: pendingRecording.transcript }
     void run(async () => { await saveRecording(lecture.id, pendingRecording.blob); return setData(data => ({ ...data, kquizLectures: [...data.kquizLectures, lecture] })) }, () => { setPendingRecording(null); setPendingTitle(''); setMessage('Lecture saved.') })
   }
   const discardRecording = () => { setPendingRecording(null); setPendingTitle('') }
@@ -63,23 +70,23 @@ export default function KQuiz({ profileId, lectures, sets, decks, setData }: { p
     setPlaying({ id: lecture.id, url: URL.createObjectURL(blob) })
   }
 
-  const saveGenerated = async (title: string, materials: Awaited<ReturnType<typeof generateStudyMaterials>>, lectureId?: string) => {
+  const saveGenerated = async (title: string, materials: Awaited<ReturnType<typeof generateStudyMaterials>>, lectureId?: string, subjectId?: string) => {
     const deck: FlashcardDeck = { id: uid('deck'), profileId, title, cards: materials.flashcards.map(c => ({ id: uid('card'), question: c.question, answer: c.answer, needsReview: true })) }
-    const set: KQuizSet = { id: uid('kqset'), profileId, lectureId, title, createdAt: new Date().toISOString(), summary: materials.summary, studyGuide: materials.studyGuide, flashcardDeckId: deck.id, practiceTest: { questions: materials.questions } }
+    const set: KQuizSet = { id: uid('kqset'), profileId, subjectId: subjectId ?? '', lectureId, title, createdAt: new Date().toISOString(), summary: materials.summary, studyGuide: materials.studyGuide, flashcardDeckId: deck.id, practiceTest: { questions: materials.questions } }
     return setData(data => ({ ...data, flashcardDecks: [...data.flashcardDecks, deck], kquizSets: [...data.kquizSets, set] }))
   }
-  const generate = async (title: string, transcript: string, lectureId?: string) => {
+  const generate = async (title: string, transcript: string, lectureId?: string, subjectId?: string) => {
     if (!apiKey.trim()) { setMessage('Add an API key in K-Quiz settings first.'); return }
     setGeneratingFor(lectureId ?? 'notes'); setMessage('')
     try {
       const materials = await generateStudyMaterials(transcript, provider === 'openai' ? 'openai' : 'gemini', apiKey)
-      const ok = await saveGenerated(title, materials, lectureId)
+      const ok = await saveGenerated(title, materials, lectureId, subjectId)
       setMessage(ok ? 'Study set generated.' : 'Not saved yet. Check the save status and try again.')
       if (ok) setNoteText(''); if (ok && !lectureId) setNoteTitle('')
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not generate study materials.') }
     finally { setGeneratingFor(null) }
   }
-  const generateFromNotes = (event: FormEvent) => { event.preventDefault(); if (!noteTitle.trim() || !noteText.trim()) { setMessage('Add a title and some notes or a transcript first.'); return }; void generate(noteTitle.trim(), noteText) }
+  const generateFromNotes = (event: FormEvent) => { event.preventDefault(); if (!noteTitle.trim() || !noteText.trim()) { setMessage('Add a title and some notes or a transcript first.'); return }; void generate(noteTitle.trim(), noteText, undefined, folderSubjectId) }
 
   const generateFromPhoto = async (file: File) => {
     if (!apiKey.trim()) { setMessage('Add an API key in K-Quiz settings first.'); return }
@@ -93,7 +100,7 @@ export default function KQuiz({ profileId, lectures, sets, decks, setData }: { p
         reader.readAsDataURL(file)
       })
       const materials = await generateStudyMaterialsFromPhoto({ base64, mimeType: file.type || 'image/jpeg' }, provider === 'openai' ? 'openai' : 'gemini', apiKey)
-      const ok = await saveGenerated('Scanned notes · ' + new Date().toLocaleDateString(), materials)
+      const ok = await saveGenerated('Scanned notes · ' + new Date().toLocaleDateString(), materials, undefined, folderSubjectId)
       setMessage(ok ? 'Study set generated from your photo.' : 'Not saved yet. Check the save status and try again.')
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not read that photo.') }
     finally { setGeneratingFor(null) }
@@ -108,9 +115,21 @@ export default function KQuiz({ profileId, lectures, sets, decks, setData }: { p
   const gradeWritten = (gotIt: boolean) => { if (!test) return; setTest({ ...test, score: test.score + (gotIt ? 1 : 0), revealed: false, picked: null, index: test.index + 1 }) }
   const nextQuestion = () => { if (!test) return; setTest({ ...test, index: test.index + 1, revealed: false, picked: null }) }
 
+  const flashDeck = flashSession ? decks.find(d => d.id === flashSession.deckId) : null
+  const flashCard = flashDeck?.cards[flashSession?.index ?? 0]
+
+  const visibleLectures = folder === '' ? lectures : lectures.filter(l => l.subjectId === folderSubjectId)
+  const visibleSets = folder === '' ? sets : sets.filter(s => s.subjectId === folderSubjectId)
+
   return <section className="card study-planner kquiz">
     <div className="card-head"><div><span className="eyebrow">K-Quiz</span><h3>Lectures &amp; study sets</h3><p>Record a lecture or paste notes, then generate a summary, study guide, flashcards, and a practice test.</p></div></div>
     {message && <p className="study-message" role="status">{message}</p>}
+
+    {subjects.length > 0 && <div className="kquiz-folders" role="tablist" aria-label="Folders">
+      <button type="button" role="tab" aria-selected={folder === ''} onClick={() => setFolder('')}>All</button>
+      {subjects.map(s => <button type="button" role="tab" key={s.id} aria-selected={folder === s.id} onClick={() => setFolder(s.id)}>{s.name}</button>)}
+      <button type="button" role="tab" aria-selected={folder === UNSORTED} onClick={() => setFolder(UNSORTED)}>Unsorted</button>
+    </div>}
 
     <details className="wb-panel kquiz-settings">
       <summary>AI settings</summary>
@@ -150,19 +169,22 @@ export default function KQuiz({ profileId, lectures, sets, decks, setData }: { p
       <p className="wb-muted">Take a picture of handwritten or printed notes and K-Quiz will read it and build a study set — no typing needed.</p>
       <div className="study-actions">
         <button type="button" className="primary" disabled={busy || generatingFor === 'photo'} onClick={() => photoInputRef.current?.click()}>{generatingFor === 'photo' ? 'Reading photo…' : '📷 Take or upload a photo'}</button>
-        <input ref={photoInputRef} type="file" accept="image/*" capture="environment" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void generateFromPhoto(file) }} />
+        {/* No `capture` attribute: that forces mobile browsers straight into the camera app with no
+         * way back to the photo library, which is exactly the "doesn't upload, just camera" complaint
+         * this fixes — plain file input still offers "Take Photo" as one of its own options. */}
+        <input ref={photoInputRef} type="file" accept="image/*" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void generateFromPhoto(file) }} />
       </div>
     </div>
 
-    {lectures.length > 0 && <div className="kquiz-lectures">
+    {visibleLectures.length > 0 && <div className="kquiz-lectures">
       <h4>Lectures</h4>
-      {lectures.map(lecture => {
+      {visibleLectures.map(lecture => {
         const linkedSet = sets.find(s => s.lectureId === lecture.id)
         return <article key={lecture.id} className="kquiz-lecture">
           <div><h5>{lecture.title}</h5><p className="wb-muted">{formatDuration(lecture.durationSeconds)} · {new Date(lecture.createdAt).toLocaleDateString()}{!lecture.transcript && ' · no transcript'}</p></div>
           <div className="study-actions">
             <button type="button" onClick={() => void togglePlay(lecture)}>{playing?.id === lecture.id ? 'Stop playback' : 'Play'}</button>
-            {!linkedSet && <button type="button" className="primary" disabled={!lecture.transcript || generatingFor === lecture.id} onClick={() => void generate(lecture.title, lecture.transcript, lecture.id)}>{generatingFor === lecture.id ? 'Generating…' : 'Generate study set'}</button>}
+            {!linkedSet && <button type="button" className="primary" disabled={!lecture.transcript || generatingFor === lecture.id} onClick={() => void generate(lecture.title, lecture.transcript, lecture.id, lecture.subjectId)}>{generatingFor === lecture.id ? 'Generating…' : 'Generate study set'}</button>}
             <button type="button" className="secondary" disabled={busy} onClick={() => deleteLecture(lecture)}>Delete</button>
           </div>
           {playing?.id === lecture.id && <audio controls autoPlay src={playing.url} onEnded={() => setPlaying(null)} />}
@@ -170,29 +192,29 @@ export default function KQuiz({ profileId, lectures, sets, decks, setData }: { p
       })}
     </div>}
 
-    {sets.length > 0 && <div className="kquiz-sets">
+    {visibleSets.length > 0 && <div className="kquiz-sets">
       <h4>Study sets</h4>
-      {sets.map(set => {
+      {visibleSets.map(set => {
         const deck = decks.find(d => d.id === set.flashcardDeckId)
-        const isOpen = expanded === set.id
+        const activeTab = guideTab[set.id] ?? (set.summary ? 'summary' : 'guide')
         return <article key={set.id} className="kquiz-set">
           <div className="kquiz-set-head"><h5>{set.title}</h5><button type="button" className="secondary" disabled={busy} onClick={() => deleteSet(set)}>Delete</button></div>
           <p className="wb-muted">{new Date(set.createdAt).toLocaleDateString()}{deck && ` · ${deck.cards.length} flashcards`}{set.practiceTest && ` · ${set.practiceTest.questions.length} practice questions`}</p>
 
           {(set.summary || set.studyGuide) && <>
             <div className="kquiz-guide-tabs" role="tablist">
-              <button type="button" role="tab" aria-selected={isOpen && guideTab === 'summary'} onClick={() => { setExpanded(set.id); setGuideTab('summary') }}>Summary</button>
-              <button type="button" role="tab" aria-selected={isOpen && guideTab === 'guide'} onClick={() => { setExpanded(set.id); setGuideTab('guide') }}>Study guide</button>
+              <button type="button" role="tab" aria-selected={activeTab === 'summary'} disabled={!set.summary} onClick={() => setGuideTab(g => ({ ...g, [set.id]: 'summary' }))}>Summary</button>
+              <button type="button" role="tab" aria-selected={activeTab === 'guide'} disabled={!set.studyGuide} onClick={() => setGuideTab(g => ({ ...g, [set.id]: 'guide' }))}>Study guide</button>
             </div>
-            {isOpen && <div className="kquiz-guide-panel">
-              <KQuizGuide text={(guideTab === 'summary' ? set.summary : set.studyGuide) ?? ''} />
+            <div className="kquiz-guide-panel">
+              <KQuizGuide text={(activeTab === 'summary' ? set.summary : set.studyGuide) ?? ''} />
               <p className="kquiz-ai-note">This study guide was generated by AI and may contain mistakes — check it against the original material.</p>
-            </div>}
+            </div>
           </>}
 
           <div className="kquiz-material-list">
             <p className="kquiz-material-label">Study this material</p>
-            {deck && <div className="kquiz-material-row"><span>🗂️ Flashcards</span><span className="wb-muted">In the Notes tab under Quiz me, titled “{deck.title}”</span></div>}
+            {deck && <button type="button" className="kquiz-material-row" onClick={() => setFlashSession({ deckId: deck.id, index: 0, revealed: false })}><span>🗂️ Flashcards</span><span className="wb-muted">{deck.cards.length} cards ›</span></button>}
             {set.practiceTest && <button type="button" className="kquiz-material-row" onClick={() => startTest(set)}><span>📝 Practice questions</span><span className="wb-muted">{set.practiceTest.questions.length} questions ›</span></button>}
           </div>
         </article>
@@ -213,6 +235,20 @@ export default function KQuiz({ profileId, lectures, sets, decks, setData }: { p
         </>}
       </>}
       <button type="button" className="secondary" onClick={() => setTest(null)}>Close test</button>
+    </div></div>}
+
+    {flashSession && flashDeck && <div className="kquiz-test" role="dialog" aria-label="Flashcards"><div className="kquiz-test-card">
+      <p className="wb-muted">{flashDeck.title}</p>
+      {flashCard ? <>
+        <span className="kquiz-test-count">{flashSession.index + 1}/{flashDeck.cards.length}</span>
+        <h4>{flashCard.question}</h4>
+        {flashSession.revealed && <p className="kquiz-text">{flashCard.answer}</p>}
+        <div className="study-actions">
+          {!flashSession.revealed ? <button type="button" className="primary" onClick={() => setFlashSession(s => s && { ...s, revealed: true })}>Show answer</button>
+            : <button type="button" className="primary" onClick={() => setFlashSession(s => s && { ...s, index: s.index + 1, revealed: false })}>Next</button>}
+        </div>
+      </> : <><h4>Round finished</h4><p>You've gone through all {flashDeck.cards.length} cards.</p></>}
+      <button type="button" className="secondary" onClick={() => setFlashSession(null)}>Close</button>
     </div></div>}
   </section>
 }
