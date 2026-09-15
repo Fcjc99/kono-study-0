@@ -37,6 +37,8 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
  const [liveSkew,setLiveSkew]=useState<{id:string;value:number}|null>(null)
  const scaleCommitTimer=useRef<number|undefined>(undefined)
  const skewCommitTimer=useRef<number|undefined>(undefined)
+ const resizeDrag=useRef<{anchorX:number;anchorY:number;startDistance:number;startScale:number}|null>(null)
+ const skewDrag=useRef<{startX:number;startSkew:number;boxWidthPx:number}|null>(null)
 
  const withCurrent=(d:AppData,patch:Partial<ReturnType<typeof decorFor>>)=>{
   const current=decorFor(d)
@@ -104,6 +106,44 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
   window.clearTimeout(skewCommitTimer.current)
   skewCommitTimer.current=window.setTimeout(()=>{void commit(decor.placements.map(p=>p.id===selected?{...p,skewX}:p))},150)
  }
+ // Resize/skew handles live on the item's own bounding box rather than in the side panel, so sizing
+ // an item is "grab a corner and drag" instead of hunting for a slider. Both read distance/position
+ // from the pointer's screen coordinates against the item's own anchor point (the same point its CSS
+ // transform-origin pivots around) rather than trying to invert the rotate/skew transform, which keeps
+ // the math simple and stays correct at any of the four rotation steps.
+ const handleResizeStart=(e:ReactPointerEvent<HTMLButtonElement>)=>{
+  const placement=decor.placements.find(p=>p.id===selected)
+  if(!placement)return
+  e.stopPropagation()
+  e.currentTarget.setPointerCapture(e.pointerId)
+  const rect=canvasRef.current?.getBoundingClientRect()
+  const anchorX=rect?rect.left+placement.x*rect.width:0,anchorY=rect?rect.top+placement.y*rect.height:0
+  const startDistance=Math.max(1,Math.hypot(e.clientX-anchorX,e.clientY-anchorY))
+  resizeDrag.current={anchorX,anchorY,startDistance,startScale:placement.scale}
+ }
+ const handleResizeMove=(e:ReactPointerEvent<HTMLButtonElement>)=>{
+  const drag=resizeDrag.current
+  if(!drag)return
+  const distance=Math.hypot(e.clientX-drag.anchorX,e.clientY-drag.anchorY)
+  setSelectedScale(Math.min(MAX_SCALE,Math.max(MIN_SCALE,drag.startScale*(distance/drag.startDistance))))
+ }
+ const handleResizeEnd=(e:ReactPointerEvent<HTMLButtonElement>)=>{e.stopPropagation();resizeDrag.current=null}
+ const handleSkewStart=(e:ReactPointerEvent<HTMLButtonElement>)=>{
+  const placement=decor.placements.find(p=>p.id===selected)
+  if(!placement)return
+  e.stopPropagation()
+  e.currentTarget.setPointerCapture(e.pointerId)
+  const asset=BUILD_ASSET_BY_ID[placement.assetId]
+  const rect=canvasRef.current?.getBoundingClientRect()
+  const boxWidthPx=asset&&rect?(asset.width/1448)*rect.width*placement.scale:100
+  skewDrag.current={startX:e.clientX,startSkew:placement.skewX,boxWidthPx:Math.max(20,boxWidthPx)}
+ }
+ const handleSkewMove=(e:ReactPointerEvent<HTMLButtonElement>)=>{
+  const drag=skewDrag.current
+  if(!drag)return
+  setSelectedSkew(Math.min(MAX_SKEW,Math.max(MIN_SKEW,drag.startSkew+(e.clientX-drag.startX)/drag.boxWidthPx*90)))
+ }
+ const handleSkewEnd=(e:ReactPointerEvent<HTMLButtonElement>)=>{e.stopPropagation();skewDrag.current=null}
 
  const itemPointerDown=(e:ReactPointerEvent<HTMLButtonElement>,placement:BuildPlacement)=>{
   e.stopPropagation()
@@ -145,6 +185,23 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
     </button>
    })}
    {selectedPlacement&&(()=>{
+    // Resize/rotate/skew live directly on the selected item's own bounding box — a sibling overlay
+    // sharing its exact left/top/transform, so the handles move, rotate and skew right along with the
+    // art instead of a fixed side panel. `pointer-events:none` on the wrapper keeps it from stealing
+    // clicks meant for the item or canvas; each handle opts back in.
+    const asset=BUILD_ASSET_BY_ID[selectedPlacement.assetId]
+    if(!asset)return null
+    const pos=dragId===selectedPlacement.id&&dragPos?dragPos:selectedPlacement
+    const scale=liveScale&&liveScale.id===selectedPlacement.id?liveScale.value:selectedPlacement.scale
+    const skewX=liveSkew&&liveSkew.id===selectedPlacement.id?liveSkew.value:selectedPlacement.skewX
+    const counterScale=1/Math.min(2.2,Math.max(0.6,scale))
+    return <div className="build-item-handles" style={{left:(pos.x*100)+'%',top:(pos.y*100)+'%',width:(asset.width/1448*100)+'%',aspectRatio:`${asset.width} / ${asset.height}`,transformOrigin:`50% ${asset.anchor.y*100}%`,transform:`translate(-50%,-${asset.anchor.y*100}%) rotate(${selectedPlacement.rotation}deg) skewX(${skewX}deg) scale(${(selectedPlacement.flipX?-1:1)*scale},${scale})`}}>
+     <button type="button" className="build-handle build-handle-rotate" style={{transform:`translate(-50%,-50%) scale(${counterScale})`}} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();rotateSelected()}} aria-label="Rotate">⟳</button>
+     <button type="button" className="build-handle build-handle-resize" style={{transform:`translate(50%,50%) scale(${counterScale})`}} onPointerDown={handleResizeStart} onPointerMove={handleResizeMove} onPointerUp={handleResizeEnd} aria-label="Resize">⤡</button>
+     <button type="button" className="build-handle build-handle-skew" style={{transform:`translate(-50%,50%) scale(${counterScale})`}} onPointerDown={handleSkewStart} onPointerMove={handleSkewMove} onPointerUp={handleSkewEnd} aria-label="Skew">⬠</button>
+    </div>
+   })()}
+   {selectedPlacement&&(()=>{
     // Anchored beside the selected item (flipping left/right to stay on screen) rather than below/
     // above it, so the panel never sits on top of the very art it's adjusting — the item's own
     // footprint width decides how far out the panel starts.
@@ -156,10 +213,7 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
     const left=onRight?`calc(${selectedPlacement.x*100}% + ${gapPct}%)`:`calc(${selectedPlacement.x*100}% - ${gapPct}%)`
     const top=`clamp(90px, ${selectedPlacement.y*100}%, calc(100% - 90px))`
     return <div className={'build-item-panel'+(onRight?' is-right':' is-left')} style={{left,top}}>
-     <label>Size<input type="range" min={MIN_SCALE} max={MAX_SCALE} step={0.05} value={liveScale&&liveScale.id===selectedPlacement.id?liveScale.value:selectedPlacement.scale} onChange={e=>setSelectedScale(Number(e.target.value))}/></label>
-     <label>Skew<input type="range" min={MIN_SKEW} max={MAX_SKEW} step={1} value={liveSkew&&liveSkew.id===selectedPlacement.id?liveSkew.value:selectedPlacement.skewX} onChange={e=>setSelectedSkew(Number(e.target.value))}/></label>
      <div className="build-item-actions">
-      <button type="button" onClick={rotateSelected} aria-label="Rotate">⟳</button>
       <button type="button" aria-pressed={selectedPlacement.flipX} onClick={mirrorSelected} aria-label="Mirror">⇋</button>
       <button type="button" onClick={duplicateSelected} aria-label="Duplicate">⧉</button>
       <button type="button" onClick={removeSelected} aria-label="Remove">🗑</button>
@@ -169,7 +223,7 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
    })()}
   </div>
   <section className="sanctuary-build">
-   <p className="wb-muted">Tap an item to add it to your island, or drag it on to choose where it lands. Drag a placed item anywhere to move it, or tap it once to resize, skew, mirror, duplicate, rotate, or remove it. Place as many of anything as you like.</p>
+   <p className="wb-muted">Tap an item to add it to your island, or drag it on to choose where it lands. Drag a placed item anywhere to move it, or tap it once to select it — then drag the ⤡ handle to resize, ⬠ to skew, or tap ⟳ to rotate, right on the item itself. Mirror, duplicate, and remove stay in the small panel beside it. Place as many of anything as you like.</p>
    <nav className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}</nav>
    <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=>
     <div role="button" tabIndex={0} draggable key={a.id} className="build-palette-item" onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={()=>placeDefault(a.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();placeDefault(a.id)}}} aria-label={'Add '+a.label}><span className="build-palette-thumb"><img src={assetSrc(a)} alt="" draggable={false}/></span><small>{a.label}</small></div>
