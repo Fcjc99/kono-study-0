@@ -1,0 +1,218 @@
+import { useEffect, useRef, useState, type FormEvent, type SetStateAction } from 'react'
+import { useDraftState } from '../hooks/useDraftState'
+import { useLectureRecorder } from '../hooks/useLectureRecorder'
+import { uid, type AppData, type KQuizLecture, type KQuizSet, type KQuizQuestion } from '../store/model'
+import type { FlashcardDeck } from '../store/flashcards'
+import { generateStudyMaterials, generateStudyMaterialsFromPhoto } from '../store/kquizGenerate'
+import { saveRecording, loadRecording, deleteRecording } from '../store/audioStore'
+import KQuizGuide from './KQuizGuide'
+import './kquiz.css'
+
+const formatDuration = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+
+function useLocalSetting(key: string, fallback: string): [string, (value: string) => void] {
+  const [value, setValue] = useState(() => { try { return localStorage.getItem(key) ?? fallback } catch { return fallback } })
+  const update = (next: string) => { setValue(next); try { localStorage.setItem(key, next) } catch { /* best effort; the field still works this session */ } }
+  return [value, update]
+}
+
+export default function KQuiz({ profileId, lectures, sets, decks, setData }: { profileId: string; lectures: KQuizLecture[]; sets: KQuizSet[]; decks: FlashcardDeck[]; setData: (action: SetStateAction<AppData>) => Promise<boolean> }) {
+  const [provider, setProvider] = useLocalSetting('kono-kquiz:' + profileId + ':provider', 'gemini')
+  const [apiKey, setApiKey] = useLocalSetting('kono-kquiz:' + profileId + ':key', '')
+  const [busy, setBusy] = useState(false), [message, setMessage] = useState('')
+  const [pendingTitle, setPendingTitle] = useState('')
+  const [pendingRecording, setPendingRecording] = useState<{ blob: Blob; transcript: string; durationSeconds: number } | null>(null)
+  const [noteTitle, setNoteTitle] = useDraftState('kquiz-note-title:' + profileId, ''), [noteText, setNoteText] = useDraftState('kquiz-note-text:' + profileId, '')
+  const [generatingFor, setGeneratingFor] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [guideTab, setGuideTab] = useState<'summary' | 'guide'>('summary')
+  const [test, setTest] = useState<{ setId: string; index: number; picked: number | null; revealed: boolean; score: number } | null>(null)
+  const [playing, setPlaying] = useState<{ id: string; url: string } | null>(null)
+  const recorder = useLectureRecorder()
+  const saving = useRef(false)
+  const photoInputRef = useRef<HTMLInputElement | null>(null)
+  const run = async (action: () => Promise<boolean>, success: () => void) => {
+    if (saving.current) return
+    saving.current = true; setBusy(true); setMessage('')
+    try { if (await action()) success(); else setMessage('Not saved yet. Check the save status and try again.') }
+    catch (error) { setMessage(error instanceof Error ? error.message : 'Could not save.') }
+    finally { saving.current = false; setBusy(false) }
+  }
+
+  useEffect(() => () => { if (playing) URL.revokeObjectURL(playing.url) }, [playing])
+
+  const stopRecording = async () => { const result = await recorder.stop(); if (result) { setPendingRecording(result); setPendingTitle('Lecture · ' + new Date().toLocaleDateString()) } }
+  const saveLecture = (event: FormEvent) => {
+    event.preventDefault()
+    if (!pendingRecording) return
+    const title = pendingTitle.trim() || 'Untitled lecture'
+    const lecture: KQuizLecture = { id: uid('lecture'), profileId, title, createdAt: new Date().toISOString(), durationSeconds: pendingRecording.durationSeconds, transcript: pendingRecording.transcript }
+    void run(async () => { await saveRecording(lecture.id, pendingRecording.blob); return setData(data => ({ ...data, kquizLectures: [...data.kquizLectures, lecture] })) }, () => { setPendingRecording(null); setPendingTitle(''); setMessage('Lecture saved.') })
+  }
+  const discardRecording = () => { setPendingRecording(null); setPendingTitle('') }
+
+  const deleteLecture = (lecture: KQuizLecture) => {
+    void run(async () => { await deleteRecording(lecture.id).catch(() => undefined); return setData(data => ({ ...data, kquizLectures: data.kquizLectures.filter(l => l.id !== lecture.id) })) }, () => setMessage('Lecture removed.'))
+  }
+
+  const togglePlay = async (lecture: KQuizLecture) => {
+    if (playing?.id === lecture.id) { URL.revokeObjectURL(playing.url); setPlaying(null); return }
+    const blob = await loadRecording(lecture.id)
+    if (!blob) { setMessage('This recording is no longer on this device.'); return }
+    if (playing) URL.revokeObjectURL(playing.url)
+    setPlaying({ id: lecture.id, url: URL.createObjectURL(blob) })
+  }
+
+  const saveGenerated = async (title: string, materials: Awaited<ReturnType<typeof generateStudyMaterials>>, lectureId?: string) => {
+    const deck: FlashcardDeck = { id: uid('deck'), profileId, title, cards: materials.flashcards.map(c => ({ id: uid('card'), question: c.question, answer: c.answer, needsReview: true })) }
+    const set: KQuizSet = { id: uid('kqset'), profileId, lectureId, title, createdAt: new Date().toISOString(), summary: materials.summary, studyGuide: materials.studyGuide, flashcardDeckId: deck.id, practiceTest: { questions: materials.questions } }
+    return setData(data => ({ ...data, flashcardDecks: [...data.flashcardDecks, deck], kquizSets: [...data.kquizSets, set] }))
+  }
+  const generate = async (title: string, transcript: string, lectureId?: string) => {
+    if (!apiKey.trim()) { setMessage('Add an API key in K-Quiz settings first.'); return }
+    setGeneratingFor(lectureId ?? 'notes'); setMessage('')
+    try {
+      const materials = await generateStudyMaterials(transcript, provider === 'openai' ? 'openai' : 'gemini', apiKey)
+      const ok = await saveGenerated(title, materials, lectureId)
+      setMessage(ok ? 'Study set generated.' : 'Not saved yet. Check the save status and try again.')
+      if (ok) setNoteText(''); if (ok && !lectureId) setNoteTitle('')
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not generate study materials.') }
+    finally { setGeneratingFor(null) }
+  }
+  const generateFromNotes = (event: FormEvent) => { event.preventDefault(); if (!noteTitle.trim() || !noteText.trim()) { setMessage('Add a title and some notes or a transcript first.'); return }; void generate(noteTitle.trim(), noteText) }
+
+  const generateFromPhoto = async (file: File) => {
+    if (!apiKey.trim()) { setMessage('Add an API key in K-Quiz settings first.'); return }
+    if (file.size > 8_000_000) { setMessage('Choose a photo under 8 MB.'); return }
+    setGeneratingFor('photo'); setMessage('')
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '')
+        reader.onerror = () => reject(new Error('Could not read that photo.'))
+        reader.readAsDataURL(file)
+      })
+      const materials = await generateStudyMaterialsFromPhoto({ base64, mimeType: file.type || 'image/jpeg' }, provider === 'openai' ? 'openai' : 'gemini', apiKey)
+      const ok = await saveGenerated('Scanned notes · ' + new Date().toLocaleDateString(), materials)
+      setMessage(ok ? 'Study set generated from your photo.' : 'Not saved yet. Check the save status and try again.')
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not read that photo.') }
+    finally { setGeneratingFor(null) }
+  }
+
+  const deleteSet = (set: KQuizSet) => { void run(() => setData(data => ({ ...data, kquizSets: data.kquizSets.filter(s => s.id !== set.id) })), () => { if (test?.setId === set.id) setTest(null); setMessage('Study set removed.') }) }
+
+  const startTest = (set: KQuizSet) => { if (!set.practiceTest?.questions.length) return; setTest({ setId: set.id, index: 0, picked: null, revealed: false, score: 0 }) }
+  const testSet = test ? sets.find(s => s.id === test.setId) : null
+  const question: KQuizQuestion | undefined = testSet?.practiceTest?.questions[test?.index ?? 0]
+  const answerMcq = (choiceIndex: number) => { if (!test || !question || question.type !== 'mcq' || test.revealed) return; setTest({ ...test, picked: choiceIndex, revealed: true, score: test.score + (choiceIndex === question.correctIndex ? 1 : 0) }) }
+  const gradeWritten = (gotIt: boolean) => { if (!test) return; setTest({ ...test, score: test.score + (gotIt ? 1 : 0), revealed: false, picked: null, index: test.index + 1 }) }
+  const nextQuestion = () => { if (!test) return; setTest({ ...test, index: test.index + 1, revealed: false, picked: null }) }
+
+  return <section className="card study-planner kquiz">
+    <div className="card-head"><div><span className="eyebrow">K-Quiz</span><h3>Lectures &amp; study sets</h3><p>Record a lecture or paste notes, then generate a summary, study guide, flashcards, and a practice test.</p></div></div>
+    {message && <p className="study-message" role="status">{message}</p>}
+
+    <details className="wb-panel kquiz-settings">
+      <summary>AI settings</summary>
+      <p className="wb-muted">Generation calls an AI provider directly from your browser using your own key — it's never sent anywhere else. Google's Gemini has a free tier with no credit card (though on the free tier Google may use your input to improve its models); OpenAI requires billing set up at platform.openai.com.</p>
+      <label>Provider<select value={provider} onChange={e => setProvider(e.target.value)}><option value="gemini">Google Gemini (free tier available)</option><option value="openai">OpenAI</option></select></label>
+      <label>API key<input type="password" autoComplete="off" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Paste your API key" /></label>
+    </details>
+
+    <div className="wb-panel kquiz-record">
+      <h4>Record a lecture</h4>
+      {!recorder.supported && <p className="wb-muted">Recording needs microphone access, which this browser doesn't support here.</p>}
+      {recorder.error && <p className="study-message" role="alert">{recorder.error}</p>}
+      {!pendingRecording && <div className="study-actions">
+        {recorder.state === 'idle' && recorder.supported && <button type="button" className="primary" onClick={() => void recorder.start()}>● Start recording</button>}
+        {recorder.state === 'recording' && <><span className="kquiz-timer">{formatDuration(recorder.elapsedSeconds)}</span><button type="button" className="primary" onClick={() => void stopRecording()}>■ Stop</button></>}
+        {recorder.state === 'stopping' && <span className="wb-muted">Finishing up…</span>}
+      </div>}
+      {recorder.state === 'recording' && <p className="kquiz-live-transcript" aria-live="polite">{recorder.transcript} <em>{recorder.interim}</em></p>}
+      {pendingRecording && <form className="study-plan-form" onSubmit={saveLecture}><fieldset disabled={busy}>
+        <label>Title<input required maxLength={300} value={pendingTitle} onChange={e => setPendingTitle(e.target.value)} /></label>
+        <p className="wb-muted">{formatDuration(pendingRecording.durationSeconds)} recorded{pendingRecording.transcript ? ', transcript captured.' : '. No transcript was captured — live transcription may not be supported in this browser.'}</p>
+        <div className="study-actions"><button className="primary">Save lecture</button><button type="button" className="secondary" onClick={discardRecording}>Discard</button></div>
+      </fieldset></form>}
+    </div>
+
+    <div className="wb-panel">
+      <h4>Or paste notes / a transcript</h4>
+      <form className="study-plan-form" onSubmit={generateFromNotes}><fieldset disabled={busy || generatingFor === 'notes'}>
+        <label>Title<input required maxLength={300} value={noteTitle} onChange={e => setNoteTitle(e.target.value)} placeholder="Chapter 4 — Cell biology" /></label>
+        <label>Notes or transcript<textarea required rows={6} maxLength={60000} value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Paste lecture notes, a transcript, or reading material here." /></label>
+        <div className="study-actions"><button className="primary">{generatingFor === 'notes' ? 'Generating…' : 'Generate study set'}</button></div>
+      </fieldset></form>
+    </div>
+
+    <div className="wb-panel kquiz-photo">
+      <h4>Or scan a photo of notes</h4>
+      <p className="wb-muted">Take a picture of handwritten or printed notes and K-Quiz will read it and build a study set — no typing needed.</p>
+      <div className="study-actions">
+        <button type="button" className="primary" disabled={busy || generatingFor === 'photo'} onClick={() => photoInputRef.current?.click()}>{generatingFor === 'photo' ? 'Reading photo…' : '📷 Take or upload a photo'}</button>
+        <input ref={photoInputRef} type="file" accept="image/*" capture="environment" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void generateFromPhoto(file) }} />
+      </div>
+    </div>
+
+    {lectures.length > 0 && <div className="kquiz-lectures">
+      <h4>Lectures</h4>
+      {lectures.map(lecture => {
+        const linkedSet = sets.find(s => s.lectureId === lecture.id)
+        return <article key={lecture.id} className="kquiz-lecture">
+          <div><h5>{lecture.title}</h5><p className="wb-muted">{formatDuration(lecture.durationSeconds)} · {new Date(lecture.createdAt).toLocaleDateString()}{!lecture.transcript && ' · no transcript'}</p></div>
+          <div className="study-actions">
+            <button type="button" onClick={() => void togglePlay(lecture)}>{playing?.id === lecture.id ? 'Stop playback' : 'Play'}</button>
+            {!linkedSet && <button type="button" className="primary" disabled={!lecture.transcript || generatingFor === lecture.id} onClick={() => void generate(lecture.title, lecture.transcript, lecture.id)}>{generatingFor === lecture.id ? 'Generating…' : 'Generate study set'}</button>}
+            <button type="button" className="secondary" disabled={busy} onClick={() => deleteLecture(lecture)}>Delete</button>
+          </div>
+          {playing?.id === lecture.id && <audio controls autoPlay src={playing.url} onEnded={() => setPlaying(null)} />}
+        </article>
+      })}
+    </div>}
+
+    {sets.length > 0 && <div className="kquiz-sets">
+      <h4>Study sets</h4>
+      {sets.map(set => {
+        const deck = decks.find(d => d.id === set.flashcardDeckId)
+        const isOpen = expanded === set.id
+        return <article key={set.id} className="kquiz-set">
+          <div className="kquiz-set-head"><h5>{set.title}</h5><button type="button" className="secondary" disabled={busy} onClick={() => deleteSet(set)}>Delete</button></div>
+          <p className="wb-muted">{new Date(set.createdAt).toLocaleDateString()}{deck && ` · ${deck.cards.length} flashcards`}{set.practiceTest && ` · ${set.practiceTest.questions.length} practice questions`}</p>
+
+          {(set.summary || set.studyGuide) && <>
+            <div className="kquiz-guide-tabs" role="tablist">
+              <button type="button" role="tab" aria-selected={isOpen && guideTab === 'summary'} onClick={() => { setExpanded(set.id); setGuideTab('summary') }}>Summary</button>
+              <button type="button" role="tab" aria-selected={isOpen && guideTab === 'guide'} onClick={() => { setExpanded(set.id); setGuideTab('guide') }}>Study guide</button>
+            </div>
+            {isOpen && <div className="kquiz-guide-panel">
+              <KQuizGuide text={(guideTab === 'summary' ? set.summary : set.studyGuide) ?? ''} />
+              <p className="kquiz-ai-note">This study guide was generated by AI and may contain mistakes — check it against the original material.</p>
+            </div>}
+          </>}
+
+          <div className="kquiz-material-list">
+            <p className="kquiz-material-label">Study this material</p>
+            {deck && <div className="kquiz-material-row"><span>🗂️ Flashcards</span><span className="wb-muted">In the Notes tab under Quiz me, titled “{deck.title}”</span></div>}
+            {set.practiceTest && <button type="button" className="kquiz-material-row" onClick={() => startTest(set)}><span>📝 Practice questions</span><span className="wb-muted">{set.practiceTest.questions.length} questions ›</span></button>}
+          </div>
+        </article>
+      })}
+    </div>}
+
+    {test && testSet && <div className="kquiz-test" role="dialog" aria-label="Practice test"><div className="kquiz-test-card">
+      <p className="wb-muted">{testSet.title}</p>
+      {!question ? <><h4>Test finished</h4><p>{test.score} of {testSet.practiceTest?.questions.length} correct.</p></> : <>
+        <span className="kquiz-test-count">{test.index + 1}/{testSet.practiceTest?.questions.length}</span>
+        <h4>{question.prompt}</h4>
+        {question.type === 'mcq' ? <div className="kquiz-choices">
+          {question.choices.map((choice, i) => <button type="button" key={i} aria-disabled={test.revealed} className={'kquiz-choice' + (test.revealed && i === question.correctIndex ? ' is-correct' : test.revealed && i === test.picked ? ' is-wrong' : '')} onClick={() => answerMcq(i)}>{test.revealed && i === question.correctIndex ? '✓ ' : test.revealed && i === test.picked ? '✗ ' : ''}{choice}</button>)}
+          {test.revealed && <button type="button" className="primary" onClick={nextQuestion}>Next</button>}
+        </div> : <>
+          <textarea rows={4} placeholder="Type your answer, then check it against the model answer." disabled={test.revealed} />
+          {!test.revealed ? <button type="button" className="primary" onClick={() => setTest({ ...test, revealed: true })}>Show model answer</button> : <><p className="kquiz-text"><strong>Model answer:</strong> {question.answer}</p><div className="study-actions"><button type="button" className="primary" onClick={() => gradeWritten(true)}>Got it</button><button type="button" className="secondary" onClick={() => gradeWritten(false)}>Review again</button></div></>}
+        </>}
+      </>}
+      <button type="button" className="secondary" onClick={() => setTest(null)}>Close test</button>
+    </div></div>}
+  </section>
+}

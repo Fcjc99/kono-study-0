@@ -5,7 +5,7 @@
 :root[data-experience='cozy'][data-theme='lavender']{--wb-bg:#f3efff;--wb-surface:#fdfbff;--wb-ink:#433653;--wb-muted:#73657f;--wb-accent:#8460ae;--wb-line:#d9cbea;--wb-nav:#554265;--cute-ink:#624678;--cute-edge:#c8addf;--cute-shadow:#a989c2}
 :root[data-experience='cozy'][data-theme='mint']{--wb-bg:#edf8f3;--wb-surface:#fbfffd;--wb-ink:#314a42;--wb-muted:#61776f;--wb-accent:#4d8e79;--wb-line:#c5dfd5;--wb-nav:#3e6257;--cute-ink:#3b6c5e;--cute-edge:#a9d3c4;--cute-shadow:#7eb39f}
 :root[data-experience='cozy'][data-theme='honey']{--wb-bg:#fff7e4;--wb-surface:#fffdf7;--wb-ink:#5a4028;--wb-muted:#7f6953;--wb-accent:#b97532;--wb-line:#ead4ad;--wb-nav:#755039;--cute-ink:#825125;--cute-edge:#e0bd7e;--cute-shadow:#c89752}
-:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.subject-tabs button):not(.build-item){
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.kquiz-material-row):not(.kquiz-guide-tabs button){
  border-radius:16px;border-color:var(--cute-edge);background:linear-gradient(180deg,#fffdfb,#ffedf4);color:var(--cute-ink);font-weight:650;min-height:44px;
  box-shadow:inset 0 2px 0 #fff,0 3px 0 #dcb6c5,0 5px 9px #78465a0c;
  transition:box-shadow .14s ease,background-color .14s ease,translate .14s ease;

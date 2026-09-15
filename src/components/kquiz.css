@@ -1,0 +1,39 @@
+.kquiz-settings p,.kquiz-record>p{margin:6px 0}
+.kquiz-timer{font-weight:700;font-variant-numeric:tabular-nums;font-size:1.1rem}
+.kquiz-photo input[type="file"]{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.kquiz-live-transcript{background:var(--wb-surface);border:1px solid var(--wb-line);border-radius:10px;padding:10px 12px;max-height:120px;overflow-y:auto;font-size:.85rem}
+.kquiz-live-transcript em{color:var(--wb-muted,#8a8a8a);font-style:normal;opacity:.7}
+.kquiz-lectures,.kquiz-sets{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.kquiz-lecture,.kquiz-set{border:1px solid var(--wb-line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.kquiz-lecture audio{width:100%}
+.kquiz-set-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.kquiz-set-head h5{margin:0}
+.kquiz-text{white-space:pre-wrap;font-size:.9rem;line-height:1.5}
+
+/* Outline/Quick-reference-style tabs over the generated summary and study guide. */
+.kquiz-guide-tabs{display:flex;gap:4px;border-bottom:1px solid var(--wb-line)}
+.kquiz-guide-tabs button{background:none;border:0;padding:8px 4px;font-weight:700;color:var(--wb-muted,#8a8a8a);border-bottom:2px solid transparent;cursor:pointer}
+.kquiz-guide-tabs button[aria-selected="true"]{color:var(--wb-ink);border-bottom-color:var(--wb-accent)}
+.kquiz-guide-panel{padding-top:4px}
+.kquiz-guide h4{margin:14px 0 4px;font-size:1rem}
+.kquiz-guide h5{margin:10px 0 2px;font-size:.88rem}
+.kquiz-guide p{margin:6px 0;font-size:.9rem;line-height:1.5}
+.kquiz-guide ul{margin:4px 0 4px 1.1em;padding:0;font-size:.9rem;line-height:1.55}
+.kquiz-ai-note{margin-top:10px;font-size:.72rem;color:var(--wb-muted,#8a8a8a)}
+
+/* "Study this material" pill list, matching a scan-and-study-guide app's own material picker. */
+.kquiz-material-list{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.kquiz-material-label{margin:0;font-size:.75rem;text-transform:uppercase;letter-spacing:.03em;opacity:.65}
+.kquiz-material-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:999px;border:1px solid var(--wb-line);background:var(--wb-surface);font-weight:700;text-align:left;cursor:default;width:100%}
+button.kquiz-material-row{cursor:pointer}
+button.kquiz-material-row:hover{border-color:var(--wb-accent)}
+
+.kquiz-test{position:fixed;inset:0;background:#00000060;display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.kquiz-test>*{background:var(--wb-surface);width:100%;max-width:520px;padding:20px;border-radius:16px}
+.kquiz-test-card{position:relative}
+.kquiz-test-count{display:block;font-size:.8rem;color:var(--wb-muted,#8a8a8a);margin-bottom:4px}
+.kquiz-test h4{margin-top:0}
+.kquiz-choices{display:flex;flex-direction:column;gap:8px}
+.kquiz-choice{text-align:left;padding:10px 14px;border-radius:10px;border:2px solid var(--wb-line);background:var(--wb-surface);cursor:pointer;font-weight:600}
+.kquiz-choice.is-correct{border-color:#2f8f52;background:#c9f0d6;color:#1c5c34}
+.kquiz-choice.is-wrong{border-color:#c23b3b;background:#f9c9c9;color:#7d2323}

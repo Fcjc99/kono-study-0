@@ -23,6 +23,7 @@ import {AccountPanel,Onboarding,SaveStatus} from './components/AccountPanel'
 import GardenCard from './components/GardenCard'
 import StudyPlanner from './components/StudyPlanner'
 import Flashcards from './components/Flashcards'
+import KQuiz from './components/KQuiz'
 import CommandPalette from './components/CommandPalette'
 import MusicPlayer from './components/MusicPlayer'
 import SafeNoteBody from './components/SafeNoteBody'
@@ -40,11 +41,11 @@ import './planner-polish.css'
 import './cozy-controls.css'
 import ActionIcon from './components/ActionIcon'
 
-const pages=['Sanctuary','Planner','Subjects','Notes','Exams','Settings','Trash'] as const
+const pages=['Sanctuary','Planner','Subjects','Notes','K-Quiz','Exams','Settings','Trash'] as const
 type Page=typeof pages[number]
 type Store=ReturnType<typeof usePlannerRepository>
 type Edit={key:Collection;entry:Entry;original?:Entry}
-const labels:Record<Collection,string>={tasks:'Assignment',notes:'Note',exams:'Exam / project',calendarEvents:'Event',subjects:'Subject',studyPlans:'Study plan',flashcardDecks:'Flashcards',studySeasons:'Schedule'}
+const labels:Record<Collection,string>={tasks:'Assignment',notes:'Note',exams:'Exam / project',calendarEvents:'Event',subjects:'Subject',studyPlans:'Study plan',flashcardDecks:'Flashcards',kquizSets:'K-Quiz set',studySeasons:'Schedule'}
 const cozyPalettes=['coral','sakura','lavender','mint','honey'] as const
 const cozyPalette=(theme:string)=>cozyPalettes.includes(theme as typeof cozyPalettes[number])?theme:'coral'
 const pageFromURL=():Page=>pages.find(p=>p.toLowerCase()===new URL(location.href).searchParams.get('page'))??'Sanctuary'
@@ -202,6 +203,7 @@ function Workspace({store}:{store:Store}){
    {page==='Subjects'&&experience!=='simplified'&&subjectWorkspace}
    {page==='Subjects'&&experience==='simplified'&&<><section className="wb-panel"><div className="wb-section-head"><h2>Your subjects</h2><button onClick={()=>create('subjects')}>＋ Subject</button></div><div className="wb-record-grid">{subjects.map(s=>card('subjects',s as unknown as Entry))}</div>{!subjects.length&&<p>Create your first subject to organize your work.</p>}</section><section className="wb-panel"><div className="wb-section-head"><h2>Assignments</h2><button onClick={()=>create('tasks')}>＋ Assignment</button></div><label>Filter subject<select value={subject} onChange={e=>setSubject(e.target.value)}><option value="">All subjects, including unassigned</option>{subjects.map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></label><div className="wb-toolbar"><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,true),d)),'Assignments completed.')}>Complete all shown</button><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,false),d)),'Assignments reopened; earned progress is kept.')}>Reopen all shown</button></div>{tasks.filter(t=>!subject||t.subjectId===subject).map(t=>card('tasks',t as unknown as Entry))}</section></>}
    {page==='Notes'&&<>{noteBoard()}<details className="wb-panel"><summary>Quiz me · Flashcards</summary><Flashcards draftKey={draftScope+':cards'} profileId={profile.id} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} setData={save}/></details></>}
+   {page==='K-Quiz'&&<KQuiz profileId={profile.id} lectures={data.kquizLectures.filter(l=>l.profileId===profile.id)} sets={data.kquizSets.filter(s=>s.profileId===profile.id)} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} setData={save}/>}
    {page==='Exams'&&<section className="wb-panel wb-board board-paper"><div className="wb-section-head wb-board-heading"><h2>Your exams</h2><button onClick={()=>create('exams')}>＋ Exam</button></div><div className="wb-note-grid wb-board-canvas">{data.exams.filter(e=>e.profileId===profile.id).sort((a,b)=>a.due.localeCompare(b.due)).map(e=>card('exams',e as unknown as Entry))}{!data.exams.some(e=>e.profileId===profile.id)&&<p className="wb-board-empty">No exams yet. Add a date and what you need to review.</p>}</div><div className="wb-board-tray" aria-hidden="true"><span>✿</span><span>✦</span><span>✿</span></div></section>}
    {page==='Settings'&&<div className="settings-groups"><div className="wb-section-head settings-page-tools"><h2>Settings</h2><small>Version {APP_VERSION} · Build {releaseLabel}</small></div><nav className="subject-section-tabs" aria-label="Settings sections">{['Appearance','Friends','Schedules','Account','Plans & more'].map(tab=><button key={tab} aria-current={tab===settingsTab?'page':undefined} onClick={()=>setSettingsTab(tab)}>{tab}</button>)}</nav>
    {settingsTab==='Appearance'&&<section className="wb-panel"><Appearance settings={data.settings} setting={setting}/></section>}
