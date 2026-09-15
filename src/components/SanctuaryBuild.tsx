@@ -1,4 +1,4 @@
-import {useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent} from 'react'
+import {useEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent} from 'react'
 import {uid, type AppData, type BuildPlacement} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
 import {BUILD_ASSETS, BUILD_ASSET_BY_ID, BUILD_CATEGORIES, BUILD_CATEGORY_LABELS, buildAssetSrc, buildItemStyle, signTextStyle, type BuildAsset, type BuildCategory} from '../game/data/buildAssets'
@@ -145,6 +145,13 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
   if(moved&&finalPos){void commit(decor.placements.map(p=>p.id===placement.id?{...p,x:finalPos.x,y:finalPos.y}:p));setSelected(placement.id)}
   else setSelected(sel=>sel===placement.id?null:placement.id)
  }
+
+ // The Size/Skew controls sit in normal document flow below the canvas (see sanctuary-build.css) —
+ // on a short phone screen, scrolling down to reach them can carry the canvas itself off the top of
+ // the viewport, so dragging the slider produces a real, immediate change with no visible feedback at
+ // all. Centering the canvas in view as soon as something is selected keeps it (and the controls right
+ // below it) reachable together, instead of the two fighting over the same sliver of screen.
+ useEffect(()=>{if(selected)canvasRef.current?.scrollIntoView({block:'center',behavior:'smooth'})},[selected])
 
  const selectedPlacement=decor.placements.find(p=>p.id===selected)??null
 
