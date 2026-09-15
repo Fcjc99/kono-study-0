@@ -22,6 +22,7 @@ export default function KQuiz({ profileId, lectures, sets, decks, subjects, setD
   const [provider, setProvider] = useLocalSetting('kono-kquiz:' + profileId + ':provider', 'gemini')
   const [apiKey, setApiKey] = useLocalSetting('kono-kquiz:' + profileId + ':key', '')
   const [busy, setBusy] = useState(false), [message, setMessage] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [pendingTitle, setPendingTitle] = useState('')
   // The active folder both filters what's shown below and decides what subject a newly recorded
   // lecture or generated study set files under — recording while browsing "Biology" lands in
@@ -38,6 +39,7 @@ export default function KQuiz({ profileId, lectures, sets, decks, subjects, setD
   const recorder = useLectureRecorder()
   const saving = useRef(false)
   const photoInputRef = useRef<HTMLInputElement | null>(null)
+  const messageRef = useRef<HTMLParagraphElement | null>(null)
   const run = async (action: () => Promise<boolean>, success: () => void) => {
     if (saving.current) return
     saving.current = true; setBusy(true); setMessage('')
@@ -45,8 +47,17 @@ export default function KQuiz({ profileId, lectures, sets, decks, subjects, setD
     catch (error) { setMessage(error instanceof Error ? error.message : 'Could not save.') }
     finally { saving.current = false; setBusy(false) }
   }
+  const needsApiKey = () => {
+    if (apiKey.trim()) return false
+    setMessage('Add an API key in K-Quiz settings first.'); setSettingsOpen(true)
+    return true
+  }
 
   useEffect(() => () => { if (playing) URL.revokeObjectURL(playing.url) }, [playing])
+  // A status message can land far from whatever the person just tapped (the photo scanner and
+  // notes form are both well below the fold on a long page) — without this, a rejected action can
+  // look like it silently did nothing.
+  useEffect(() => { if (message) messageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }, [message])
 
   const stopRecording = async () => { const result = await recorder.stop(); if (result) { setPendingRecording(result); setPendingTitle('Lecture · ' + new Date().toLocaleDateString()) } }
   const saveLecture = (event: FormEvent) => {
@@ -76,7 +87,7 @@ export default function KQuiz({ profileId, lectures, sets, decks, subjects, setD
     return setData(data => ({ ...data, flashcardDecks: [...data.flashcardDecks, deck], kquizSets: [...data.kquizSets, set] }))
   }
   const generate = async (title: string, transcript: string, lectureId?: string, subjectId?: string) => {
-    if (!apiKey.trim()) { setMessage('Add an API key in K-Quiz settings first.'); return }
+    if (needsApiKey()) return
     setGeneratingFor(lectureId ?? 'notes'); setMessage('')
     try {
       const materials = await generateStudyMaterials(transcript, provider === 'openai' ? 'openai' : 'gemini', apiKey)
@@ -89,7 +100,7 @@ export default function KQuiz({ profileId, lectures, sets, decks, subjects, setD
   const generateFromNotes = (event: FormEvent) => { event.preventDefault(); if (!noteTitle.trim() || !noteText.trim()) { setMessage('Add a title and some notes or a transcript first.'); return }; void generate(noteTitle.trim(), noteText, undefined, folderSubjectId) }
 
   const generateFromPhoto = async (file: File) => {
-    if (!apiKey.trim()) { setMessage('Add an API key in K-Quiz settings first.'); return }
+    if (needsApiKey()) return
     if (file.size > 8_000_000) { setMessage('Choose a photo under 8 MB.'); return }
     setGeneratingFor('photo'); setMessage('')
     try {
@@ -123,7 +134,7 @@ export default function KQuiz({ profileId, lectures, sets, decks, subjects, setD
 
   return <section className="card study-planner kquiz">
     <div className="card-head"><div><span className="eyebrow">K-Quiz</span><h3>Lectures &amp; study sets</h3><p>Record a lecture or paste notes, then generate a summary, study guide, flashcards, and a practice test.</p></div></div>
-    {message && <p className="study-message" role="status">{message}</p>}
+    {message && <p ref={messageRef} className="study-message" role="status">{message}</p>}
 
     {subjects.length > 0 && <div className="kquiz-folders" role="tablist" aria-label="Folders">
       <button type="button" role="tab" aria-selected={folder === ''} onClick={() => setFolder('')}>All</button>
@@ -131,7 +142,7 @@ export default function KQuiz({ profileId, lectures, sets, decks, subjects, setD
       <button type="button" role="tab" aria-selected={folder === UNSORTED} onClick={() => setFolder(UNSORTED)}>Unsorted</button>
     </div>}
 
-    <details className="wb-panel kquiz-settings">
+    <details className="wb-panel kquiz-settings" open={settingsOpen} onToggle={e => setSettingsOpen(e.currentTarget.open)}>
       <summary>AI settings</summary>
       <p className="wb-muted">Generation calls an AI provider directly from your browser using your own key — it's never sent anywhere else. Google's Gemini has a free tier with no credit card (though on the free tier Google may use your input to improve its models); OpenAI requires billing set up at platform.openai.com.</p>
       <label>Provider<select value={provider} onChange={e => setProvider(e.target.value)}><option value="gemini">Google Gemini (free tier available)</option><option value="openai">OpenAI</option></select></label>
