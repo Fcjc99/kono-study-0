@@ -103,10 +103,39 @@ test('the prompt sent to the AI includes the transcript and truncates a runaway 
  assert.ok(long.length<70000)
 })
 
-test('the photo scan prompt asks the model to read the image rather than a transcript',()=>{
- const prompt=kquiz.__test__.buildPhotoPrompt()
+test('the photo transcription prompt asks the model to read the image into plain text, not generate materials',()=>{
+ const prompt=kquiz.__test__.buildTranscribePrompt()
  assert.ok(prompt.toLowerCase().includes('photo'))
- assert.ok(prompt.includes('"summary"'));assert.ok(prompt.includes('"flashcards"'));assert.ok(prompt.includes('"questions"'))
+ assert.ok(prompt.includes('"text"'))
+ assert.ok(!prompt.includes('"summary"'),'transcription should not ask for full study materials')
+})
+
+test('photo transcription parsing accepts a well-formed response and rejects an empty or malformed one',()=>{
+ assert.equal(kquiz.__test__.parseTranscription(JSON.stringify({text:'  Mitochondria is the powerhouse of the cell.  '})),'Mitochondria is the powerhouse of the cell.')
+ assert.throws(()=>kquiz.__test__.parseTranscription('not json'))
+ assert.throws(()=>kquiz.__test__.parseTranscription(JSON.stringify({text:''})))
+ assert.throws(()=>kquiz.__test__.parseTranscription(JSON.stringify({})))
+})
+
+test('notes (kquizSources) survive normalization, default to an empty subjectId, and can be filed under a real subject',()=>{
+ const d=make(),pid=d.activeProfileId
+ d.subjects=[{id:'subj1',profileId:pid,name:'Biology',color:'#000'}]
+ d.kquizSources=[{id:'note1',profileId:pid,title:'Unsorted scan',createdAt:'2026-09-15T12:00:00.000Z',text:'Cell walls are rigid.'},{id:'note2',profileId:pid,subjectId:'subj1',title:'Filed scan',createdAt:'2026-09-15T12:00:00.000Z',text:'Mitochondria produce ATP.'}]
+ const normalized=model.normalizeData(d)
+ assert.equal(normalized.kquizSources.length,2)
+ assert.equal(normalized.kquizSources[0].subjectId,'');assert.equal(normalized.kquizSources[0].text,'Cell walls are rigid.')
+ assert.equal(normalized.kquizSources[1].subjectId,'subj1')
+ assert.equal(JSON.stringify(model.normalizeData(normalized)),JSON.stringify(normalized))
+})
+
+test('a note filed under another profile\'s subject is rejected, and a note needs a title',()=>{
+ const d=make(),ownPid=d.activeProfileId,otherPid='other-profile'
+ d.profiles.push({id:otherPid,name:'Other',label:'Other plan',kind:'custom',start:d.profiles[0].start,end:d.profiles[0].end})
+ d.subjects=[{id:'subj1',profileId:otherPid,name:'Not yours',color:'#000'}]
+ d.kquizSources=[{id:'note1',profileId:ownPid,subjectId:'subj1',title:'X',createdAt:'2026-09-15T12:00:00.000Z',text:'x'}]
+ assert.throws(()=>model.normalizeData(d),/subject belongs to another profile/)
+ const d2=make();d2.kquizSources=[{id:'note1',profileId:d2.activeProfileId,title:'  ',createdAt:'2026-09-15T12:00:00.000Z',text:'x'}]
+ assert.throws(()=>model.normalizeData(d2),/note title/)
 })
 
 let passed=0
