@@ -5,6 +5,9 @@
 :root[data-experience='cozy'][data-theme='lavender']{--wb-bg:#f3efff;--wb-surface:#fdfbff;--wb-ink:#433653;--wb-muted:#73657f;--wb-accent:#8460ae;--wb-line:#d9cbea;--wb-nav:#554265;--cute-ink:#624678;--cute-edge:#c8addf;--cute-shadow:#a989c2}
 :root[data-experience='cozy'][data-theme='mint']{--wb-bg:#edf8f3;--wb-surface:#fbfffd;--wb-ink:#314a42;--wb-muted:#61776f;--wb-accent:#4d8e79;--wb-line:#c5dfd5;--wb-nav:#3e6257;--cute-ink:#3b6c5e;--cute-edge:#a9d3c4;--cute-shadow:#7eb39f}
 :root[data-experience='cozy'][data-theme='honey']{--wb-bg:#fff7e4;--wb-surface:#fffdf7;--wb-ink:#5a4028;--wb-muted:#7f6953;--wb-accent:#b97532;--wb-line:#ead4ad;--wb-nav:#755039;--cute-ink:#825125;--cute-edge:#e0bd7e;--cute-shadow:#c89752}
+:root[data-experience='cozy'][data-theme='zen']{--wb-bg:#f2f0ea;--wb-surface:#fbfaf7;--wb-ink:#302b24;--wb-muted:#6e6659;--wb-accent:#7c8a6e;--wb-line:#ddd6c6;--wb-nav:#3d3a30;--cute-ink:#3d3a30;--cute-edge:#ccc4ae;--cute-shadow:#a89c81}
+:root[data-experience='cozy'][data-theme='floral']{--wb-bg:#fdf2f6;--wb-surface:#fffbfc;--wb-ink:#4a2f3d;--wb-muted:#7c5d6c;--wb-accent:#c9587a;--wb-line:#f0d3de;--wb-nav:#5c3346;--cute-ink:#6a3550;--cute-edge:#e8b8cf;--cute-shadow:#c98aa8}
+:root[data-experience='cozy'][data-theme='ocean']{--wb-bg:#eaf6f6;--wb-surface:#fbfffe;--wb-ink:#123a44;--wb-muted:#4a7078;--wb-accent:#1c9aa1;--wb-line:#bfe4e2;--wb-nav:#0e4a52;--cute-ink:#0e4a52;--cute-edge:#a8dcd8;--cute-shadow:#6fb8b3}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.kquiz-material-row):not(.kquiz-guide-tabs button):not(.kquiz-folders button){
  border-radius:16px;border-color:var(--cute-edge);background:linear-gradient(180deg,#fffdfb,#ffedf4);color:var(--cute-ink);font-weight:650;min-height:44px;
  box-shadow:inset 0 2px 0 #fff,0 3px 0 #dcb6c5,0 5px 9px #78465a0c;
@@ -42,22 +45,40 @@
 .quick-add-choice select{font-size:1rem}
 .add-more-choices>div{display:grid;gap:8px;padding-top:8px}
 .theme-lavender span{background:linear-gradient(90deg,#bea3e2,#8160aa)!important}.theme-mint span{background:linear-gradient(90deg,#b9e5d2,#4e927c)!important}.theme-honey span{background:linear-gradient(90deg,#f7d78e,#bd7735)!important}
+.theme-zen span{background:linear-gradient(90deg,#c7c2a9,#7c8a6e)!important}.theme-floral span{background:linear-gradient(90deg,#f3b6cb,#c9587a)!important}.theme-ocean span{background:linear-gradient(90deg,#a9e0dc,#1c9aa1)!important}
 :root[data-experience='cozy'][data-theme='lavender'] body{background:radial-gradient(circle at 12% 8%,#fff 0,#f6f0ff 38%,#eee7fb 100%)}
 :root[data-experience='cozy'][data-theme='mint'] body{background:radial-gradient(circle at 12% 8%,#fff 0,#eefaf5 38%,#e3f2eb 100%)}
 :root[data-experience='cozy'][data-theme='honey'] body{background:radial-gradient(circle at 12% 8%,#fffdf6 0,#fff5da 42%,#f7e8c7 100%)}
+/* Zen stays deliberately flat — no radial glow, no gradients — matching a minimalist Japanese
+ * design language where lavender/mint/honey/floral/ocean lean into soft cozy gradients. */
+:root[data-experience='cozy'][data-theme='zen'] body{background:#f2f0ea}
+:root[data-experience='cozy'][data-theme='floral'] body{background:radial-gradient(circle at 12% 8%,#fff 0,#fdeef3 38%,#f8dde8 100%)}
+:root[data-experience='cozy'][data-theme='ocean'] body{background:radial-gradient(circle at 12% 8%,#fff 0,#e4f5f5 38%,#d3ecea 100%)}
 :root[data-experience='cozy'][data-theme='lavender'] .workbench{background:linear-gradient(135deg,#f9f5ff,#efe8fa)}
 :root[data-experience='cozy'][data-theme='mint'] .workbench{background:linear-gradient(135deg,#f6fdf9,#e8f5ef)}
 :root[data-experience='cozy'][data-theme='honey'] .workbench{background:linear-gradient(135deg,#fffaf0,#f8ecd2)}
-:root[data-experience='cozy']:is([data-theme='lavender'],[data-theme='mint'],[data-theme='honey']) .sidebar{background:var(--wb-nav)!important}
+:root[data-experience='cozy'][data-theme='zen'] .workbench{background:#f2f0ea}
+:root[data-experience='cozy'][data-theme='floral'] .workbench{background:linear-gradient(135deg,#fff8fa,#fbe9ef)}
+:root[data-experience='cozy'][data-theme='ocean'] .workbench{background:linear-gradient(135deg,#f3fcfc,#e1f3f2)}
+:root[data-experience='cozy']:is([data-theme='lavender'],[data-theme='mint'],[data-theme='honey'],[data-theme='zen'],[data-theme='floral'],[data-theme='ocean']) .sidebar{background:var(--wb-nav)!important}
 :root[data-experience='cozy'][data-theme='lavender'] .wb-header{background:linear-gradient(115deg,#fdfaff,#e9ddf7);border-color:#d7c4e8}
 :root[data-experience='cozy'][data-theme='mint'] .wb-header{background:linear-gradient(115deg,#fbfffd,#dcefe6);border-color:#bddbcf}
 :root[data-experience='cozy'][data-theme='honey'] .wb-header{background:linear-gradient(115deg,#fffdf7,#f7dfb2);border-color:#e4c68e}
+:root[data-experience='cozy'][data-theme='zen'] .wb-header{background:#fbfaf7;border-color:#ddd6c6}
+:root[data-experience='cozy'][data-theme='floral'] .wb-header{background:linear-gradient(115deg,#fffbfc,#fbe0e9);border-color:#f0c9d8}
+:root[data-experience='cozy'][data-theme='ocean'] .wb-header{background:linear-gradient(115deg,#fbffff,#d9f0ee);border-color:#bfe4e2}
 :root[data-experience='cozy'][data-theme='lavender'] .wb-panel:not(.wb-board){background:linear-gradient(120deg,#fff,#f8f2ff);border-color:#dac8e8;border-top-color:#c8afe0}
 :root[data-experience='cozy'][data-theme='mint'] .wb-panel:not(.wb-board){background:linear-gradient(120deg,#fff,#f2fbf6);border-color:#c2dfd3;border-top-color:#a8d1c1}
 :root[data-experience='cozy'][data-theme='honey'] .wb-panel:not(.wb-board){background:linear-gradient(120deg,#fffef9,#fff7e8);border-color:#ead5ad;border-top-color:#e0ba79}
+:root[data-experience='cozy'][data-theme='zen'] .wb-panel:not(.wb-board){background:#fbfaf7;border-color:#ddd6c6;border-top-color:#ccc4ae}
+:root[data-experience='cozy'][data-theme='floral'] .wb-panel:not(.wb-board){background:linear-gradient(120deg,#fff,#fdeef4);border-color:#f0c9d8;border-top-color:#e8b0c6}
+:root[data-experience='cozy'][data-theme='ocean'] .wb-panel:not(.wb-board){background:linear-gradient(120deg,#fff,#eaf9f8);border-color:#bfe4e2;border-top-color:#9fd4d0}
 :root[data-experience='cozy'][data-theme='lavender'] :is(.workbench,.wb-dialog) button.primary{background:linear-gradient(#a67bca,#77509d);border-color:#68448d;box-shadow:inset 0 2px 0 #ffffff60,0 4px 0 #583878,0 6px 12px #49305e25}
 :root[data-experience='cozy'][data-theme='mint'] :is(.workbench,.wb-dialog) button.primary{background:linear-gradient(#76b9a2,#44816d);border-color:#376e5c;box-shadow:inset 0 2px 0 #ffffff60,0 4px 0 #315e50,0 6px 12px #274f4325}
 :root[data-experience='cozy'][data-theme='honey'] :is(.workbench,.wb-dialog) button.primary{background:linear-gradient(#dfa65c,#b56c2b);border-color:#9a5923;box-shadow:inset 0 2px 0 #ffffff60,0 4px 0 #81481d,0 6px 12px #70401725}
+:root[data-experience='cozy'][data-theme='zen'] :is(.workbench,.wb-dialog) button.primary{background:#7c8a6e;color:#fff;border-color:#5f6c53;box-shadow:inset 0 2px 0 #ffffff40,0 4px 0 #4c5642,0 6px 12px #3c452f25}
+:root[data-experience='cozy'][data-theme='floral'] :is(.workbench,.wb-dialog) button.primary{background:linear-gradient(#d97696,#a64467);border-color:#8f3a59;box-shadow:inset 0 2px 0 #ffffff60,0 4px 0 #7c3050,0 6px 12px #6b294425}
+:root[data-experience='cozy'][data-theme='ocean'] :is(.workbench,.wb-dialog) button.primary{background:linear-gradient(#39b6bc,#1a848a);border-color:#146d72;box-shadow:inset 0 2px 0 #ffffff60,0 4px 0 #10585c,0 6px 12px #0c454825}
 @media(max-width:700px){
  :root[data-experience='cozy'] .cozy-task-actions{gap:10px}
  :root[data-experience='cozy'] .cozy-task-actions button{flex:1 1 auto;white-space:normal}
