@@ -45,14 +45,14 @@ export type SanctuaryDecorState={profileId:string;placements:BuildPlacement[]}
 /** A recorded lecture's audio never lives here — it stays device-local in IndexedDB, keyed by this
  * record's own id (see src/store/audioStore.ts) — only the transcript (plain text KONO already
  * knows how to sync/back up safely) travels with the rest of the plan. */
-export type KQuizLecture={id:string;profileId:string;title:string;createdAt:string;durationSeconds:number;transcript:string}
+export type KQuizLecture={id:string;profileId:string;subjectId:string;title:string;createdAt:string;durationSeconds:number;transcript:string}
 export type KQuizQuestion={id:string;type:'mcq';prompt:string;choices:string[];correctIndex:number}|{id:string;type:'written';prompt:string;answer:string}
 export type KQuizPracticeTest={questions:KQuizQuestion[]}
 /** A study set groups everything K-Quiz generated from one lecture (or from pasted notes, with no
  * lecture at all). Its flashcards are deliberately not stored here — they're an ordinary
  * FlashcardDeck in flashcardDecks, referenced by id, so practicing them reuses the same deck UI and
  * spaced-repetition state the rest of KONO already has, rather than a second parallel flashcard system. */
-export type KQuizSet={id:string;profileId:string;lectureId?:string;title:string;createdAt:string;summary?:string;studyGuide?:string;flashcardDeckId?:string;practiceTest?:KQuizPracticeTest}
+export type KQuizSet={id:string;profileId:string;subjectId:string;lectureId?:string;title:string;createdAt:string;summary?:string;studyGuide?:string;flashcardDeckId?:string;practiceTest?:KQuizPracticeTest}
 export type AppData={schemaVersion:6;trash:TrashEntry[];profiles:Profile[];activeProfileId:string;subjects:Subject[];tasks:Task[];exams:Exam[];notes:Note[];calendarEvents:CalendarEvent[];studySeasons:StudySeason[];studyPlans:StudyPlan[];flashcardDecks:FlashcardDeck[];kquizLectures:KQuizLecture[];kquizSets:KQuizSet[];settings:SettingsData;sanctuaryProgress:Record<string,SanctuaryProgressState>;sanctuaryDecor:Record<string,SanctuaryDecorState>;onboardingComplete?:boolean}
 
 export const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as const
@@ -178,7 +178,7 @@ export function normalizeData(raw:unknown):AppData {
  const kquizLectures:KQuizLecture[]=list(raw.kquizLectures??[],'lectures',500).map(l=>{
   const profileId=owner(l.profileId),title=str(l.title,'lecture title',300);if(!title.trim())return fail('lecture title')
   const durationSeconds=typeof l.durationSeconds==='number'&&Number.isFinite(l.durationSeconds)?Math.min(Math.max(0,Math.round(l.durationSeconds)),36000):0
-  return {id:id(l.id,'lecture ID'),profileId,title,createdAt:str(l.createdAt,'lecture date',40),durationSeconds,transcript:str(l.transcript??'','transcript',200000)}
+  return {id:id(l.id,'lecture ID'),profileId,subjectId:subject(l.subjectId,profileId),title,createdAt:str(l.createdAt,'lecture date',40),durationSeconds,transcript:str(l.transcript??'','transcript',200000)}
  })
  const lectureIds=new Set(kquizLectures.map(l=>l.id)),deckIds=new Set(flashcardDecks.map(d=>d.id))
  const ref=(v:unknown,ids:Set<string>,path:string):string|undefined=>{if(v===undefined)return undefined;const key=str(v,path,150);return ids.has(key)?key:fail(`${path}: unknown reference`)}
@@ -200,7 +200,7 @@ export function normalizeData(raw:unknown):AppData {
  }
  const kquizSets:KQuizSet[]=list(raw.kquizSets??[],'study sets',300).map(s=>{
   const profileId=owner(s.profileId),title=str(s.title,'study set title',300);if(!title.trim())return fail('study set title')
-  return {id:id(s.id,'study set ID'),profileId,lectureId:ref(s.lectureId,lectureIds,'lecture reference'),title,createdAt:str(s.createdAt,'study set date',40),summary:optional(s.summary,'summary',20000),studyGuide:optional(s.studyGuide,'study guide',50000),flashcardDeckId:ref(s.flashcardDeckId,deckIds,'deck reference'),practiceTest:practiceTest(s.practiceTest)}
+  return {id:id(s.id,'study set ID'),profileId,subjectId:subject(s.subjectId,profileId),lectureId:ref(s.lectureId,lectureIds,'lecture reference'),title,createdAt:str(s.createdAt,'study set date',40),summary:optional(s.summary,'summary',20000),studyGuide:optional(s.studyGuide,'study guide',50000),flashcardDeckId:ref(s.flashcardDeckId,deckIds,'deck reference'),practiceTest:practiceTest(s.practiceTest)}
  })
  const s=object(raw.settings)?raw.settings:{}
  // A legacy single-choice scheduleView ('all'|'academic'|'sports') migrates into the three

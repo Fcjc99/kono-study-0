@@ -34,6 +34,24 @@ test('a lecture and a study set referencing it survive normalization, with the l
  assert.equal(JSON.stringify(model.normalizeData(normalized)),JSON.stringify(normalized))
 })
 
+test('lectures and study sets default to an empty subjectId and can be filed under a real subject',()=>{
+ const d=make(),pid=d.activeProfileId
+ d.subjects=[{id:'subj1',profileId:pid,name:'Biology',color:'#000'}]
+ d.kquizLectures=[{id:'lec1',profileId:pid,title:'No folder',createdAt:'2026-09-14T12:00:00.000Z',durationSeconds:60,transcript:'x'},{id:'lec2',profileId:pid,subjectId:'subj1',title:'Filed',createdAt:'2026-09-14T12:00:00.000Z',durationSeconds:60,transcript:'x'}]
+ d.kquizSets=[{id:'set1',profileId:pid,subjectId:'subj1',title:'X',createdAt:'2026-09-14T12:00:00.000Z'}]
+ const normalized=model.normalizeData(d)
+ assert.equal(normalized.kquizLectures[0].subjectId,'');assert.equal(normalized.kquizLectures[1].subjectId,'subj1')
+ assert.equal(normalized.kquizSets[0].subjectId,'subj1')
+})
+
+test('a study set filed under another profile\'s subject is rejected',()=>{
+ const d=make(),ownPid=d.activeProfileId,otherPid='other-profile'
+ d.profiles.push({id:otherPid,name:'Other',label:'Other plan',kind:'custom',start:d.profiles[0].start,end:d.profiles[0].end})
+ d.subjects=[{id:'subj1',profileId:otherPid,name:'Not yours',color:'#000'}]
+ d.kquizSets=[{id:'set1',profileId:ownPid,subjectId:'subj1',title:'X',createdAt:'2026-09-14T12:00:00.000Z'}]
+ assert.throws(()=>model.normalizeData(d),/subject belongs to another profile/)
+})
+
 test('a study set referencing an unknown lecture or deck is rejected, not silently dropped',()=>{
  const base=()=>{const d=make(),pid=d.activeProfileId;d.kquizSets=[{id:'set1',profileId:pid,title:'X',createdAt:'2026-09-14T12:00:00.000Z'}];return d}
  const withLecture=base();withLecture.kquizSets[0].lectureId='missing'

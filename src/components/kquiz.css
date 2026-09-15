@@ -3,6 +3,9 @@
 .kquiz-photo input[type="file"]{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .kquiz-live-transcript{background:var(--wb-surface);border:1px solid var(--wb-line);border-radius:10px;padding:10px 12px;max-height:120px;overflow-y:auto;font-size:.85rem}
 .kquiz-live-transcript em{color:var(--wb-muted,#8a8a8a);font-style:normal;opacity:.7}
+.kquiz-folders{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin:4px 0 2px}
+.kquiz-folders button{white-space:nowrap;padding:6px 13px;border-radius:999px;border:1px solid var(--wb-line);background:var(--wb-surface);cursor:pointer;font-weight:700;font-size:.8rem}
+.kquiz-folders button[aria-selected="true"]{background:var(--wb-accent);color:#fff;border-color:var(--wb-accent)}
 .kquiz-lectures,.kquiz-sets{display:flex;flex-direction:column;gap:10px;margin-top:6px}
 .kquiz-lecture,.kquiz-set{border:1px solid var(--wb-line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .kquiz-lecture audio{width:100%}
