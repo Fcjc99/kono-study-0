@@ -6,21 +6,11 @@
 .build-item.is-dragging{cursor:grabbing;z-index:5}
 .build-item.is-selected{outline:2px solid #ffd54a;outline-offset:3px;border-radius:8px}
 .build-item img{width:100%;height:auto;display:block;pointer-events:none;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
-/* A sibling overlay sharing the selected item's exact box/transform, so its handles ride along with
- * rotation/skew/scale. The wrapper itself ignores pointer events (it must not block the item or
- * canvas underneath); each handle button opts back in and is counter-scaled so it stays a reliable
- * touch target instead of ballooning or vanishing with the item's own scale. */
-.build-item-handles{position:absolute;pointer-events:none;z-index:7}
-.build-handle{position:absolute;pointer-events:auto;width:34px;height:34px;border-radius:50%;border:2px solid var(--wb-accent);background:var(--wb-surface);display:grid;place-items:center;font-size:.95rem;line-height:1;cursor:pointer;box-shadow:0 2px 6px #00000030;touch-action:none}
-.build-handle-rotate{top:-8%;left:50%}
-.build-handle-resize{right:-8%;bottom:-8%;cursor:nwse-resize}
-.build-handle-skew{left:-8%;bottom:-8%;cursor:ew-resize}
-/* Anchored beside the selected item (see the inline left/top, computed from the item's own
- * footprint width) rather than below/above it, so the panel never covers the art it's adjusting.
- * .is-right sits to the item's right (growing rightward), .is-left flips to its left (growing
- * leftward) once the item is far enough right that a right-side panel would run off the canvas. */
-.build-item-panel{position:absolute;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;background:var(--wb-surface);border:1px solid var(--wb-line);box-shadow:0 8px 20px #00000030;padding:10px 12px;border-radius:14px;z-index:6;min-width:190px}
-.build-item-panel.is-left{transform:translate(-100%,-50%)}
+/* Sits below the map in normal document flow, not floating over the canvas — the previous
+ * on-canvas/floating controls could cover most of a narrow phone screen and, worse, their custom
+ * pointer-drag handling for size/skew didn't register reliably on real touch devices. Every control
+ * here is a plain native input or button instead. */
+.build-item-panel{display:flex;flex-direction:column;gap:6px;background:var(--wb-surface);border:1px solid var(--wb-line);box-shadow:0 2px 8px #00000018;padding:10px 12px;border-radius:14px}
 .build-item-panel label{display:flex;align-items:center;gap:6px;font-size:.74rem;font-weight:700}
 .build-item-panel input[type="range"]{flex:1;height:28px}
 .build-item-actions{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:1px}
