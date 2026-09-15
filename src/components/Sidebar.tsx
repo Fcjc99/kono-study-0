@@ -12,7 +12,9 @@ const iconPaths:Record<ViewName,ReactNode>={
  Exams:<><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12 2.2 2.2 4.8-5"/></>,
  Settings:<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.1A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.16.38.37.72.6 1 .3.35.7.55 1.1.6h.1v4h-.1c-.4.05-.8.25-1.1.6-.23.28-.44.62-.6 1z"/></>
 }
-export function NavIcon({name}:{name:ViewName}){return <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{iconPaths[name]}</svg>}
+export function NavIcon({name,experience}:{name:ViewName;experience?:string}){
+ return <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={experience==='modern'?1.5:1.8} strokeLinecap="round" strokeLinejoin="round">{iconPaths[name]}</svg>
+}
 
 type ProfileOption={id:string;label:string}
 export default function Sidebar({view,onView,profile='Sophia',schoolYear='Summer 2026',profiles=[],activeProfileId,onProfileChange,musicPlayer}:{view:ViewName;onView:(v:ViewName)=>void;profile?:string;schoolYear?:string;profiles?:ProfileOption[];activeProfileId?:string;onProfileChange?:(id:string)=>void;musicPlayer?:ReactNode}){

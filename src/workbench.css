@@ -18,13 +18,10 @@
 :root[data-theme="ocean"]{--wb-bg:#e8f4fb;--wb-surface:#fafdff;--wb-ink:#193e54;--wb-muted:#496979;--wb-accent:#14678a;--wb-nav:#154960;--wb-line:#b5d6e3}
 :root[data-theme="midnight"]{--wb-bg:#131b2b;--wb-surface:#202c40;--wb-ink:#f0f3fc;--wb-muted:#c1cbe0;--wb-accent:#b7c6ff;--wb-nav:#0e1522;--wb-line:#455773}
 :root[data-theme="paper"]{--wb-bg:#f1f0ec;--wb-surface:#fffefa;--wb-ink:#252523;--wb-muted:#595954;--wb-accent:#414f54;--wb-nav:#343d3a;--wb-line:#cccac2;--wb-radius:8px}
-/* Full experience skins (experience-packs.css) — a fixed, non-swappable palette each, since these
- * are one whole art-directed look rather than a color applied over the same shapes. */
-:root[data-theme="journal"]{--wb-bg:#f3ead6;--wb-surface:#fffdf6;--wb-ink:#4a3826;--wb-muted:#8a7458;--wb-accent:#b5533e;--wb-nav:#5c4630;--wb-line:#dcc9a8;--wb-radius:2px}
-:root[data-theme="dashboard"]{--wb-bg:#eef1f5;--wb-surface:#ffffff;--wb-ink:#1a2130;--wb-muted:#5b6675;--wb-accent:#2f6fed;--wb-nav:#12161f;--wb-line:#d7dde5;--wb-radius:4px}
-:root[data-theme="zine"]{--wb-bg:#fff6e8;--wb-surface:#ffffff;--wb-ink:#151515;--wb-muted:#4a4a4a;--wb-accent:#ff3d54;--wb-nav:#151515;--wb-line:#151515;--wb-radius:0px}
-:root[data-theme="arcade"]{--wb-bg:#151233;--wb-surface:#1f1b4d;--wb-ink:#eef0ff;--wb-muted:#a9a6e0;--wb-accent:#39f2c8;--wb-nav:#0d0b26;--wb-line:#3c3780;--wb-radius:2px}
-:root[data-theme="focus"]{--wb-bg:#fafafa;--wb-surface:#ffffff;--wb-ink:#1f2328;--wb-muted:#6b7280;--wb-accent:#2563eb;--wb-nav:#f3f4f6;--wb-nav-ink:#1f2328;--wb-line:#e5e7eb;--wb-radius:6px}
+/* Modern (experiences.css) — a fixed, non-swappable palette, since it's one whole art-directed look
+ * rather than a color applied over the same shapes. Apple.com's own register: off-white, near-black
+ * text, one quiet blue, hairline dividers, generous rounding. */
+:root[data-theme="modern"]{--wb-bg:#f5f5f7;--wb-surface:#ffffff;--wb-ink:#1d1d1f;--wb-muted:#6e6e73;--wb-accent:#0071e3;--wb-nav:#ffffff;--wb-nav-ink:#1d1d1f;--wb-line:#d2d2d7;--wb-radius:18px}
 html:has(.workbench),body:has(.workbench){background:var(--wb-bg)!important;color:var(--wb-ink)!important;min-width:0;overflow-x:clip}
 body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .workbench{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100dvh;color:var(--wb-ink);font:400 1rem/1.55 system-ui,sans-serif;background:var(--wb-bg)}
@@ -79,6 +76,18 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .wb-sanctuary-stage{display:grid}
 .wb-sanctuary-backdrop{grid-area:1/1}
 .wb-sanctuary-backdrop.is-decorating{pointer-events:none}
+/* Matches .sanctuary-viewport's own box — same width (the grid cell, stretched), and the same 4:3
+ * aspect-ratio instead of stretching to the full grid row (which also contains the accessible-actions
+ * details footer below the art). Without align-self:start + aspect-ratio here, a placed item's y
+ * percentage was measured against card-height-including-footer, and since that footer is a roughly
+ * fixed pixel height while the art scales with width, the same saved y landed at a different point on
+ * the art in decorate (narrower, capped width) than in the live view (full width) — the two were never
+ * guaranteed to show the same thing. Deriving height from width the same way the art itself does keeps
+ * decorate and view pixel-identical regardless of how wide either one renders.
+ * Also clips: contains placed decorations to the visible island frame instead of letting a
+ * tall/scaled/skewed item's off-canvas portion bleed up into the rest of the page — which is what made
+ * resizing or skewing an item look like it wasn't doing anything: the part that grew rendered out of view. */
+.build-hotspot-layer{overflow:hidden;border-radius:var(--wb-radius);align-self:start;aspect-ratio:4/3}
 /* While decorating, the island preview only needs to be big enough to place things accurately —
  * capping the whole section's width (which the aspect-ratio-locked canvas scales height from too)
  * leaves real room for the asset palette below without scrolling past a near-full-height island.
