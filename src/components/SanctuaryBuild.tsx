@@ -8,7 +8,12 @@ import './sanctuary-build.css'
 
 const nextRotation=(r:0|90|180|270):0|90|180|270=>r===0?90:r===90?180:r===180?270:0
 const DRAG_THRESHOLD=5
-const MIN_SCALE=0.3,MAX_SCALE=3,MIN_SKEW=-45,MAX_SKEW=45
+// MAX_SCALE used to go to 3x — but most decorations (signs, lanterns, study/cafe props) are anchored
+// near their own base and already fill most of the frame's height at 1x, so anything much past ~1.3x
+// pushed the recognizable part of the art above the visible island before the clip fix even had a
+// chance to show it — the slider's upper range was effectively producing an invisible result. 2x still
+// gives real, visible growth for every category without running out of headroom immediately.
+const MIN_SCALE=0.3,MAX_SCALE=2,MIN_SKEW=-45,MAX_SKEW=45
 
 export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:PlannerRepository['update'];phase:PhaseMode}){
  const profileId=data.activeProfileId
@@ -64,7 +69,14 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
  const placeDefault=(assetId:string)=>{
   const existing=decor.placements.filter(p=>p.assetId===assetId).length
   const offset=(existing%5)*0.035
-  place(assetId,Math.min(0.9,0.5+offset),Math.min(0.9,0.5+offset))
+  // Base-anchored decorations (signs, lanterns, study/cafe props — anchor.y near the bottom of their
+  // own art) grow upward from wherever they land: dropping them at the canvas's vertical middle, like
+  // centered decorations (roads, homes, ponds, trees) can, left them already almost touching the top
+  // of the frame at 1x with zero headroom for the Size slider to do anything visible. Standing them
+  // nearer the "ground" by default gives them real room to grow into.
+  const asset=BUILD_ASSET_BY_ID[assetId]
+  const baseY=asset&&asset.anchor.y>0.8?0.8:0.5
+  place(assetId,Math.min(0.9,0.5+offset),Math.min(0.92,baseY+offset))
  }
  const onCanvasDrop=(e:DragEvent<HTMLDivElement>)=>{
   e.preventDefault()
