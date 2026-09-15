@@ -1,4 +1,5 @@
 import type { DayPhase } from '../sanctuary/types'
+import type { BuildPlacement } from '../../store/model'
 import { ROAD_ASSETS, roadAssetTexturePath } from './roadAssets'
 import { BRIDGE_ASSETS, bridgeAssetTexturePath } from './bridgeAssets'
 import { HOME_STYLES, homeStyleTexturePath } from './homeStyles'
@@ -181,3 +182,23 @@ const bobaStandAssets:BuildAsset[]=BOBA_STAND_ASSETS.map(item=>({
 
 export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets,...lightAssets,...studyDecorAssets,...bobaStandAssets]
 export const BUILD_ASSET_BY_ID:Record<string,BuildAsset>=Object.fromEntries(BUILD_ASSETS.map(a=>[a.id,a]))
+
+/** A placed item's box/transform, shared by the interactive Decorate editor and the read-only
+ * island view so the two never drift out of sync on how a placement is actually drawn. */
+export const buildItemStyle=(asset:BuildAsset,p:{x:number;y:number;rotation:number;scale:number;skewX:number;flipX:boolean}):Record<string,string>=>({
+ left:(p.x*100)+'%',
+ top:(p.y*100)+'%',
+ width:(asset.width/1448*100)+'%',
+ transformOrigin:`50% ${asset.anchor.y*100}%`,
+ transform:`translate(-50%,-${asset.anchor.y*100}%) rotate(${p.rotation}deg) skewX(${p.skewX}deg) scale(${(p.flipX?-1:1)*p.scale},${p.scale})`,
+})
+export const buildAssetSrc=(asset:BuildAsset,phase:DayPhase):string=>typeof asset.src==='string'?asset.src:asset.src[phase]
+export const signTextStyle=(asset:BuildAsset,flipX:boolean):Record<string,string>|null=>!asset.signArea?null:({
+ left:(asset.signArea.x*100)+'%',
+ top:(asset.signArea.y*100)+'%',
+ width:(asset.signArea.width*100)+'%',
+ height:(asset.signArea.height*100)+'%',
+ transform:flipX?'scaleX(-1)':'none',
+})
+export const resolvePlacements=(placements:BuildPlacement[]):{placement:BuildPlacement;asset:BuildAsset}[]=>
+ placements.map(placement=>({placement,asset:BUILD_ASSET_BY_ID[placement.assetId]})).filter((x):x is {placement:BuildPlacement;asset:BuildAsset}=>!!x.asset)
