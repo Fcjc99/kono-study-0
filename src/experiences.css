@@ -25,22 +25,37 @@
  * hairline dividers instead of shadows-as-borders, pill buttons, and lots of unclaimed space. Reuses
  * the same permanent-sidebar/side-sheet-editor structure that used to be Office's, restyled from
  * scratch: no card outlines, no sharp corners, no dense document rows. */
-:root .workbench[data-experience='modern']{grid-template-columns:220px minmax(0,1fr);font-family:-apple-system,'SF Pro Display',system-ui,sans-serif;background:var(--wb-bg);letter-spacing:-.01em}
+:root .workbench[data-experience='modern']{grid-template-columns:220px minmax(0,1fr);font-family:-apple-system,'SF Pro Display',system-ui,sans-serif;background:radial-gradient(120% 60% at 15% 0%,#ffffff 0%,var(--wb-bg) 55%);letter-spacing:-.01em}
 :root .workbench[data-experience='modern'] .wb-sidebar{padding:28px 16px;gap:28px;box-shadow:none;border-right:1px solid var(--wb-line);background:var(--wb-nav)}
 :root .workbench[data-experience='modern'] .wb-brand strong{font-size:1.2rem;font-weight:600;letter-spacing:-.01em}
 :root .workbench[data-experience='modern'] .wb-brand small{letter-spacing:0;color:var(--wb-muted)}
 :root .workbench[data-experience='modern'] .wb-tabs-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--wb-muted);font-weight:600}
 :root .workbench[data-experience='modern'] .wb-sidebar nav{gap:2px}
-:root .workbench[data-experience='modern'] .wb-sidebar nav button{border-radius:10px;font-weight:510;min-height:40px}
+:root .workbench[data-experience='modern'] .wb-sidebar nav button{border-radius:10px;font-weight:510;min-height:40px;transition:background .15s ease,color .15s ease}
 :root .workbench[data-experience='modern'] .wb-sidebar nav button[aria-current='page']{background:color-mix(in srgb,var(--wb-accent) 12%,transparent);color:var(--wb-accent)}
-:root .workbench[data-experience='modern'] .wb-header{padding:36px 4px 20px;border:0;border-radius:0;background:none;box-shadow:none}
-:root .workbench[data-experience='modern'] h1{font-size:2.1rem;font-weight:600;letter-spacing:-.02em}
+/* The single most recognizable apple.com signature: a translucent, blurred bar that the page scrolls
+ * beneath instead of a flat opaque header — content visibly slides under the glass. */
+:root .workbench[data-experience='modern'] .wb-header{position:sticky;top:0;z-index:5;padding:20px 4px;margin:0 0 16px;border:0;border-bottom:1px solid var(--wb-line);border-radius:0;background:color-mix(in srgb,var(--wb-surface) 78%,transparent);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6)}
+:root .workbench[data-experience='modern'] h1{font-size:2.3rem;font-weight:700;letter-spacing:-.025em;background:linear-gradient(180deg,var(--wb-ink),color-mix(in srgb,var(--wb-ink) 72%,transparent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
 :root .workbench[data-experience='modern'] button,:root .workbench[data-experience='modern'] input,:root .workbench[data-experience='modern'] select,:root .workbench[data-experience='modern'] textarea{border-radius:12px}
-:root .workbench[data-experience='modern'] button.primary{background:var(--wb-accent);border:0;border-radius:980px;color:#fff;font-weight:590;padding:9px 20px;box-shadow:none}
-:root .workbench[data-experience='modern'] button.primary:hover{background:color-mix(in srgb,var(--wb-accent) 85%,black)}
-:root .workbench[data-experience='modern'] button.secondary{background:transparent;border:1px solid var(--wb-line);border-radius:980px;color:var(--wb-ink)}
-:root .workbench[data-experience='modern'] .wb-panel,:root .workbench[data-experience='modern'] .card{border-radius:18px;box-shadow:0 1px 2px #0000000a,0 12px 28px #0000000a;border:1px solid var(--wb-line);background:var(--wb-surface)}
+:root .workbench[data-experience='modern'] button:not(:disabled){transition:transform .15s cubic-bezier(.2,.8,.3,1.4),box-shadow .2s ease,background .15s ease}
+/* A gradient CTA with its own soft color glow, the way apple.com's blue "Buy"/"Learn more" pills read
+ * as lifted off the page rather than flat-filled — and a spring-ish press/hover, not just a color swap. */
+:root .workbench[data-experience='modern'] button.primary{background:linear-gradient(180deg,color-mix(in srgb,white 15%,var(--wb-accent)),var(--wb-accent));border:0;border-radius:980px;color:#fff;font-weight:590;padding:9px 20px;box-shadow:0 1px 2px #0000001a,0 8px 20px color-mix(in srgb,var(--wb-accent) 35%,transparent)}
+:root .workbench[data-experience='modern'] button.primary:hover{transform:translateY(-1px);box-shadow:0 2px 4px #0000001f,0 12px 26px color-mix(in srgb,var(--wb-accent) 45%,transparent)}
+:root .workbench[data-experience='modern'] button.primary:active{transform:translateY(0) scale(.97)}
+:root .workbench[data-experience='modern'] button.secondary{background:color-mix(in srgb,var(--wb-ink) 6%,transparent);border:1px solid transparent;border-radius:980px;color:var(--wb-ink)}
+:root .workbench[data-experience='modern'] button.secondary:hover{background:color-mix(in srgb,var(--wb-ink) 10%,transparent)}
+/* Cards read as physically raised, not just outlined — a soft lift on hover is the other half of what
+ * makes apple.com's flat, minimal surfaces still feel tactile instead of just bare rectangles. */
+:root .workbench[data-experience='modern'] .wb-panel,:root .workbench[data-experience='modern'] .card{border-radius:18px;box-shadow:0 1px 2px #0000000a,0 12px 28px #0000000a;border:1px solid var(--wb-line);background:var(--wb-surface);transition:transform .2s cubic-bezier(.2,.8,.3,1),box-shadow .2s ease}
+:root .workbench[data-experience='modern'] .wb-panel:hover,:root .workbench[data-experience='modern'] .card:hover{transform:translateY(-2px);box-shadow:0 4px 10px #00000012,0 18px 36px #00000014}
 :root .workbench[data-experience='modern'] .wb-panel>h2,:root .workbench[data-experience='modern'] .wb-section-head h2{font-weight:600;letter-spacing:-.01em}
+/* iOS/macOS-style segmented control — a gray track with one sliding white, shadowed "thumb" — instead
+ * of a row of separately outlined pill buttons, for every tab group in the app. */
+:root .workbench[data-experience='modern'] .island-mode-tabs,:root .workbench[data-experience='modern'] .subject-section-tabs,:root .workbench[data-experience='modern'] .build-category-tabs{display:flex;flex-wrap:wrap;gap:2px;background:color-mix(in srgb,var(--wb-ink) 6%,transparent);border:0;border-radius:980px;padding:3px;width:fit-content}
+:root .workbench[data-experience='modern'] .island-mode-tabs button,:root .workbench[data-experience='modern'] .subject-section-tabs button,:root .workbench[data-experience='modern'] .build-category-tabs button{background:transparent;border:0;border-radius:980px;padding:6px 16px;font-weight:590;font-size:.85rem;color:var(--wb-muted);box-shadow:none;transition:background .15s ease,color .15s ease,box-shadow .15s ease}
+:root .workbench[data-experience='modern'] .island-mode-tabs button[aria-current],:root .workbench[data-experience='modern'] .subject-section-tabs button[aria-current],:root .workbench[data-experience='modern'] .build-category-tabs button[aria-current]{background:var(--wb-surface);color:var(--wb-ink);box-shadow:0 1px 3px #0000001a}
 :root .workbench[data-experience='modern'] .wb-board:not(.board-plain){border:1px solid var(--wb-line);border-radius:18px;box-shadow:0 1px 2px #0000000a,0 12px 28px #0000000a;background:var(--wb-surface)}
 :root .workbench[data-experience='modern'] .wb-board-tray{display:none}
 :root .workbench[data-experience='modern'] .wb-board-canvas,:root .workbench[data-experience='modern'] .wb-record-grid{grid-template-columns:minmax(0,1fr);gap:0}
