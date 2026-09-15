@@ -195,7 +195,12 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
     const scale=liveScale&&liveScale.id===selectedPlacement.id?liveScale.value:selectedPlacement.scale
     const skewX=liveSkew&&liveSkew.id===selectedPlacement.id?liveSkew.value:selectedPlacement.skewX
     const counterScale=1/Math.min(2.2,Math.max(0.6,scale))
-    return <div className="build-item-handles" style={{left:(pos.x*100)+'%',top:(pos.y*100)+'%',width:(asset.width/1448*100)+'%',aspectRatio:`${asset.width} / ${asset.height}`,transformOrigin:`50% ${asset.anchor.y*100}%`,transform:`translate(-50%,-${asset.anchor.y*100}%) rotate(${selectedPlacement.rotation}deg) skewX(${skewX}deg) scale(${(selectedPlacement.flipX?-1:1)*scale},${scale})`}}>
+    return <div className="build-item-handles" style={{left:(pos.x*100)+'%',top:(pos.y*100)+'%',width:(asset.width/1448*100)+'%',transformOrigin:`50% ${asset.anchor.y*100}%`,transform:`translate(-50%,-${asset.anchor.y*100}%) rotate(${selectedPlacement.rotation}deg) skewX(${skewX}deg) scale(${(selectedPlacement.flipX?-1:1)*scale},${scale})`}}>
+     {/* Defines the wrapper's height the exact same way the real item's own <img> does (intrinsic
+      * aspect ratio via width:100%/height:auto) instead of the CSS aspect-ratio property, which some
+      * mobile browsers size inconsistently once combined with rotate/skew and right/bottom-positioned
+      * absolute children — that mismatch is what sent the resize handle drifting away from the item. */}
+     <img src={assetSrc(asset)} alt="" style={{width:'100%',height:'auto',display:'block',visibility:'hidden',pointerEvents:'none'}}/>
      <button type="button" className="build-handle build-handle-rotate" style={{transform:`translate(-50%,-50%) scale(${counterScale})`}} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();rotateSelected()}} aria-label="Rotate">⟳</button>
      <button type="button" className="build-handle build-handle-resize" style={{transform:`translate(50%,50%) scale(${counterScale})`}} onPointerDown={handleResizeStart} onPointerMove={handleResizeMove} onPointerUp={handleResizeEnd} aria-label="Resize">⤡</button>
      <button type="button" className="build-handle build-handle-skew" style={{transform:`translate(-50%,50%) scale(${counterScale})`}} onPointerDown={handleSkewStart} onPointerMove={handleSkewMove} onPointerUp={handleSkewEnd} aria-label="Skew">⬠</button>
