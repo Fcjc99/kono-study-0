@@ -104,7 +104,7 @@ export function suggestRotatingClasses(text:string,cycle:string[],start:string,e
 
 const weekdayAliases:Record<string,string>={
  monday:'Monday',mon:'Monday',m:'Monday',
- tuesday:'Tuesday',tue:'Tuesday',tues:'Tuesday',tu:'Tuesday',
+ tuesday:'Tuesday',tue:'Tuesday',tues:'Tuesday',tu:'Tuesday',t:'Tuesday',
  wednesday:'Wednesday',wed:'Wednesday',w:'Wednesday',
  thursday:'Thursday',thu:'Thursday',thur:'Thursday',thurs:'Thursday',th:'Thursday',
  friday:'Friday',fri:'Friday',f:'Friday',
@@ -112,9 +112,12 @@ const weekdayAliases:Record<string,string>={
  sunday:'Sunday',sun:'Sunday'
 }
 const toTime=(hour:string,minute:string,ampm:string)=>{let h=Number(hour);if(h<1||h>12||Number(minute)>59)return '';h=h%12+(ampm.toLowerCase()==='pm'?12:0);return String(h).padStart(2,'0')+':'+minute}
+// Splits on whitespace as well as comma/semicolon so single/double-letter college registrar codes
+// like "T Th" (Tuesday, Thursday) or "M W F" tokenize the same as their comma-separated equivalents —
+// a space-only list otherwise stayed one unmatched token and silently dropped the whole class.
 const weekdaysFrom=(value:string,cycle:string[])=>{
  const wanted=new Set(cycle),found:string[]=[]
- for(const raw of value.replace(/\b(and|&|\+|\/)\b/gi,',').replace(/[&/+]/g,',').split(/[,;]/).map(x=>x.trim()).filter(Boolean)){
+ for(const raw of value.replace(/\b(and|&|\+|\/)\b/gi,',').replace(/[&/+]/g,',').split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean)){
   const key=raw.toLowerCase().replace(/\.$/,'')
   const day=weekdayAliases[key]??weekdayAliases[key.slice(0,3)]
   if(day&&wanted.has(day)&&!found.includes(day))found.push(day)
