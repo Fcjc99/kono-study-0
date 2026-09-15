@@ -12,6 +12,7 @@
 .kquiz-checkline{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
 .kquiz-checkline input[type="checkbox"]{width:20px;height:20px;flex-shrink:0;margin-top:2px}
 .kquiz-checkline h5{margin:0}
+.kquiz-folder-select{border-radius:999px;border:1px solid var(--wb-line);background:var(--wb-surface);padding:6px 10px;font-size:.78rem;font-weight:700}
 /* Pinned above the lists once something is checked, so "generate from what I picked" stays visible
  * without scrolling back up past Lectures and Notes. */
 .kquiz-combine{border-color:var(--wb-accent);background:color-mix(in srgb,var(--wb-accent) 8%,var(--wb-surface))}
