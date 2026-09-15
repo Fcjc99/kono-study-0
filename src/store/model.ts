@@ -122,6 +122,12 @@ const placementSkew=(v:unknown):number=>{const n=typeof v==='number'&&Number.isF
 /** null means "use the style's default position" (unmoved) — distinct from 0.5, so a style nobody has
  * dragged yet still renders at its normal spot rather than snapping to center. */
 const nullableFraction=(v:unknown):number|null=>v==null?null:fraction(v)
+/** A decoration's x/y is the anchor point on its OWN art (see buildItemStyle) — clamping it to a
+ * margin inside the canvas, not the full edge-to-edge 0-1 range `fraction` allows, guarantees the
+ * item's rendered box always overlaps the visible canvas somewhere near that point, however it's
+ * later scaled, so a placement can never end up entirely off-screen and unreachable to fix. Runs on
+ * every load, so it also recovers any placement saved off-screen before this existed. */
+const placementCoord=(v:unknown):number=>Math.min(0.94,Math.max(0.06,fraction(v)))
 
 /** Validate unknown input before migration. Never turn malformed records into a demo. */
 export function normalizeData(raw:unknown):AppData {
@@ -229,7 +235,7 @@ export function normalizeData(raw:unknown):AppData {
  }
  const sanctuaryProgress=Object.fromEntries(profiles.map(p=>{const saved=progress[p.id];const timestamp=object(saved)&&typeof saved.updatedAt==='string'&&Number.isFinite(Date.parse(saved.updatedAt))?saved.updatedAt:'1970-01-01T00:00:00.000Z';return [p.id,migrateSanctuaryProgress(saved,p.id,tasks.map(t=>({...t,subjectKey:subjects.find(x=>x.id===t.subjectId)?.name??t.subjectId})),timestamp)]}))
  const decor=object(raw.sanctuaryDecor)?raw.sanctuaryDecor:{}
- const placement=(v:Obj):BuildPlacement=>({id:id(v.id,'placement ID'),assetId:str(v.assetId,'placement asset',100),x:fraction(v.x),y:fraction(v.y),rotation:([0,90,180,270] as const).includes(v.rotation as 0)?v.rotation as 0|90|180|270:0,scale:placementScale(v.scale),skewX:placementSkew(v.skewX),flipX:bool(v.flipX),text:optional(v.text,'sign text',120)})
+ const placement=(v:Obj):BuildPlacement=>({id:id(v.id,'placement ID'),assetId:str(v.assetId,'placement asset',100),x:placementCoord(v.x),y:placementCoord(v.y),rotation:([0,90,180,270] as const).includes(v.rotation as 0)?v.rotation as 0|90|180|270:0,scale:placementScale(v.scale),skewX:placementSkew(v.skewX),flipX:bool(v.flipX),text:optional(v.text,'sign text',120)})
  // Home/pond/tree used to be one singular style slot each, with its own dedicated picker — now
  // every home/pond/tree is just another duplicable placement in the shared palette. A save from
  // before that change migrates its one chosen style (if any) into an ordinary placement the first
@@ -240,7 +246,8 @@ export function normalizeData(raw:unknown):AppData {
   const styleId=d[`${feature}Style`]
   if(styleId==null||typeof styleId!=='string'||!styleId.trim())return []
   const ground=LEGACY_STYLE_GROUND[feature]
-  return [{id:uid('placement'),assetId:`${feature}-${str(styleId,`${feature} style`,100)}`,x:nullableFraction(d[`${feature}StyleX`])??ground.x,y:nullableFraction(d[`${feature}StyleY`])??ground.y,rotation:0,scale:placementScale(d[`${feature}StyleScale`]),skewX:0,flipX:bool(d[`${feature}StyleFlipX`])}]
+  const legacyX=nullableFraction(d[`${feature}StyleX`]),legacyY=nullableFraction(d[`${feature}StyleY`])
+  return [{id:uid('placement'),assetId:`${feature}-${str(styleId,`${feature} style`,100)}`,x:legacyX==null?ground.x:placementCoord(legacyX),y:legacyY==null?ground.y:placementCoord(legacyY),rotation:0,scale:placementScale(d[`${feature}StyleScale`]),skewX:0,flipX:bool(d[`${feature}StyleFlipX`])}]
  }
  const sanctuaryDecor:Record<string,SanctuaryDecorState>=Object.fromEntries(profiles.map(p=>{
   const d=object(decor[p.id])?decor[p.id] as Obj:{}

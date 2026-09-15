@@ -14,6 +14,12 @@ const DRAG_THRESHOLD=5
 // chance to show it — the slider's upper range was effectively producing an invisible result. 2x still
 // gives real, visible growth for every category without running out of headroom immediately.
 const MIN_SCALE=0.3,MAX_SCALE=2,MIN_SKEW=-45,MAX_SKEW=45
+// Mirrors model.ts's placementCoord clamp — x/y is the anchor point on an item's own art, so keeping
+// it inset from the canvas edge (not the raw 0-1 range) guarantees the item's rendered box always
+// overlaps the visible, clickable canvas near that point. Clamping here too means a drag never shows
+// the item drifting past the edge only to snap back once it's saved.
+const PLACEMENT_MIN=0.06,PLACEMENT_MAX=0.94
+const clampCoord=(v:number):number=>Math.min(PLACEMENT_MAX,Math.max(PLACEMENT_MIN,v))
 
 export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:PlannerRepository['update'];phase:PhaseMode}){
  const profileId=data.activeProfileId
@@ -51,7 +57,7 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
  const fractionFromEvent=(e:{clientX:number;clientY:number}):{x:number;y:number}=>{
   const rect=canvasRef.current?.getBoundingClientRect()
   if(!rect||!rect.width||!rect.height)return {x:.5,y:.5}
-  return {x:Math.min(1,Math.max(0,(e.clientX-rect.left)/rect.width)),y:Math.min(1,Math.max(0,(e.clientY-rect.top)/rect.height))}
+  return {x:clampCoord((e.clientX-rect.left)/rect.width),y:clampCoord((e.clientY-rect.top)/rect.height)}
  }
 
  const place=(assetId:string,x:number,y:number)=>{
