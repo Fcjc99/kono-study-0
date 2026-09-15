@@ -78,6 +78,19 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
     void run(async () => { await deleteRecording(lecture.id).catch(() => undefined); return setData(data => ({ ...data, kquizLectures: data.kquizLectures.filter(l => l.id !== lecture.id) })) }, () => setMessage('Lecture removed.'))
   }
 
+  // Filing something under a folder only ever happens once, at the moment it's recorded/saved — if
+  // that was done from the All tab (or the wrong folder) there was previously no way to fix it short
+  // of deleting and redoing the work. This lets any lecture, note, or study set move folders after
+  // the fact without losing anything.
+  const moveLecture = (lecture: KQuizLecture, subjectId: string) => { void setData(data => ({ ...data, kquizLectures: data.kquizLectures.map(l => l.id === lecture.id ? { ...l, subjectId } : l) })) }
+  const moveSet = (set: KQuizSet, subjectId: string) => { void setData(data => ({ ...data, kquizSets: data.kquizSets.map(s => s.id === set.id ? { ...s, subjectId } : s) })) }
+  const folderSelect = (value: string, onChange: (subjectId: string) => void) => (
+    <select className="kquiz-folder-select" aria-label="Move to folder" value={value} onChange={e => onChange(e.target.value)}>
+      <option value="">Unsorted</option>
+      {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+    </select>
+  )
+
   const togglePlay = async (lecture: KQuizLecture) => {
     if (playing?.id === lecture.id) { URL.revokeObjectURL(playing.url); setPlaying(null); return }
     const blob = await loadRecording(lecture.id)
@@ -120,6 +133,18 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
 
   const deleteSource = (source: KQuizSource) => {
     void run(() => setData(data => ({ ...data, kquizSources: data.kquizSources.filter(s => s.id !== source.id) })), () => { setChecked(prev => { if (!prev.has(source.id)) return prev; const next = new Set(prev); next.delete(source.id); return next }); setMessage('Note removed.') })
+  }
+
+  // A scanned photo gets an auto-generated "Scanned notes · <date>" title with no chance to name it
+  // — this is the one place a note's title (and, alongside it, its folder) can be fixed afterward.
+  const [editingSource, setEditingSource] = useState<{ id: string; title: string; subjectId: string } | null>(null)
+  const startEditSource = (source: KQuizSource) => setEditingSource({ id: source.id, title: source.title, subjectId: source.subjectId })
+  const saveSourceEdit = (event: FormEvent) => {
+    event.preventDefault()
+    if (!editingSource) return
+    const title = editingSource.title.trim()
+    if (!title) { setMessage('Give this note a title.'); return }
+    void run(() => setData(data => ({ ...data, kquizSources: data.kquizSources.map(s => s.id === editingSource.id ? { ...s, title, subjectId: editingSource.subjectId } : s) })), () => { setEditingSource(null); setMessage('Note updated.') })
   }
 
   const toggleChecked = (id: string) => setChecked(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next })
@@ -230,6 +255,7 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
           <label className="kquiz-checkline"><input type="checkbox" disabled={!lecture.transcript} checked={checked.has(lecture.id)} onChange={() => toggleChecked(lecture.id)} /><div><h5>{lecture.title}</h5><p className="wb-muted">{formatDuration(lecture.durationSeconds)} · {new Date(lecture.createdAt).toLocaleDateString()}{!lecture.transcript && ' · no transcript'}</p></div></label>
           <div className="study-actions">
             <button type="button" onClick={() => void togglePlay(lecture)}>{playing?.id === lecture.id ? 'Stop playback' : 'Play'}</button>
+            {subjects.length > 0 && folderSelect(lecture.subjectId, subjectId => moveLecture(lecture, subjectId))}
             <button type="button" className="secondary" disabled={busy} onClick={() => deleteLecture(lecture)}>Delete</button>
           </div>
           {playing?.id === lecture.id && <audio controls autoPlay src={playing.url} onEnded={() => setPlaying(null)} />}
@@ -241,8 +267,19 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
       <h4>Notes</h4>
       {visibleSources.map(source => (
         <article key={source.id} className="kquiz-lecture">
-          <label className="kquiz-checkline"><input type="checkbox" checked={checked.has(source.id)} onChange={() => toggleChecked(source.id)} /><div><h5>{source.title}</h5><p className="wb-muted">{new Date(source.createdAt).toLocaleDateString()} · {source.text.length.toLocaleString()} characters</p></div></label>
-          <div className="study-actions"><button type="button" className="secondary" disabled={busy} onClick={() => deleteSource(source)}>Delete</button></div>
+          {editingSource?.id === source.id ? (
+            <form className="study-plan-form" onSubmit={saveSourceEdit}><fieldset disabled={busy}>
+              <label>Title<input required maxLength={300} value={editingSource.title} onChange={e => setEditingSource(s => s && { ...s, title: e.target.value })} /></label>
+              {subjects.length > 0 && <label>Folder{folderSelect(editingSource.subjectId, subjectId => setEditingSource(s => s && { ...s, subjectId }))}</label>}
+              <div className="study-actions"><button className="primary">Save</button><button type="button" className="secondary" onClick={() => setEditingSource(null)}>Cancel</button></div>
+            </fieldset></form>
+          ) : (<>
+            <label className="kquiz-checkline"><input type="checkbox" checked={checked.has(source.id)} onChange={() => toggleChecked(source.id)} /><div><h5>{source.title}</h5><p className="wb-muted">{new Date(source.createdAt).toLocaleDateString()} · {source.text.length.toLocaleString()} characters</p></div></label>
+            <div className="study-actions">
+              <button type="button" onClick={() => startEditSource(source)}>Rename / move</button>
+              <button type="button" className="secondary" disabled={busy} onClick={() => deleteSource(source)}>Delete</button>
+            </div>
+          </>)}
         </article>
       ))}
     </div>}
@@ -253,7 +290,7 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
         const deck = decks.find(d => d.id === set.flashcardDeckId)
         const activeTab = guideTab[set.id] ?? (set.summary ? 'summary' : 'guide')
         return <article key={set.id} className="kquiz-set">
-          <div className="kquiz-set-head"><h5>{set.title}</h5><button type="button" className="secondary" disabled={busy} onClick={() => deleteSet(set)}>Delete</button></div>
+          <div className="kquiz-set-head"><h5>{set.title}</h5><div className="study-actions">{subjects.length > 0 && folderSelect(set.subjectId, subjectId => moveSet(set, subjectId))}<button type="button" className="secondary" disabled={busy} onClick={() => deleteSet(set)}>Delete</button></div></div>
           <p className="wb-muted">{new Date(set.createdAt).toLocaleDateString()}{deck && ` · ${deck.cards.length} flashcards`}{set.practiceTest && ` · ${set.practiceTest.questions.length} practice questions`}</p>
 
           {(set.summary || set.studyGuide) && <>
