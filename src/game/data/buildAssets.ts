@@ -4,6 +4,8 @@ import { BRIDGE_ASSETS, bridgeAssetTexturePath } from './bridgeAssets'
 import { HOME_STYLES, homeStyleTexturePath } from './homeStyles'
 import { POND_STYLES, pondStyleTexturePath } from './pondStyles'
 import { TREE_STYLES, treeStyleTexturePath } from './treeStyles'
+import { LIGHT_ASSETS, lightAssetTexturePath } from './lightAssets'
+import { STUDY_DECOR_ASSETS, studyDecorAssetTexturePath } from './studyDecorAssets'
 
 export type BuildCategory=string
 export type BuildLayer='ground'|'ground-detail'|'terrain'|'water-feature'|'water-decor'|'water-or-bridge'|'bridge'|'border'|'decor'|'structure'|'wildlife-water'|'light-overlay'
@@ -12,8 +14,8 @@ export type BuildSurface='grass'|'water'|'water-edge'|'water-gap'|'cliff-edge'|'
  * pack since the roads pack) whose art changes with time of day. */
 export type BuildAsset={id:string;label:string;category:BuildCategory;categoryLabel:string;src:string|Record<DayPhase,string>;width:number;height:number;defaultScale:number;anchor:{x:number;y:number};surface:BuildSurface;layer:BuildLayer;rotatable:boolean;flippable:boolean}
 
-export const BUILD_CATEGORIES:BuildCategory[]=['homes','ponds','trees','paths','bridges']
-export const BUILD_CATEGORY_LABELS:Record<BuildCategory,string>={homes:'Homes',ponds:'Ponds',trees:'Trees',paths:'Paths & Roads',bridges:'Bridges & Water'}
+export const BUILD_CATEGORIES:BuildCategory[]=['homes','ponds','trees','paths','bridges','lights','study']
+export const BUILD_CATEGORY_LABELS:Record<BuildCategory,string>={homes:'Homes',ponds:'Ponds',trees:'Trees',paths:'Paths & Roads',bridges:'Bridges & Water',lights:'Lights & Lanterns',study:'Study Decor'}
 
 const phaseSrc=(pathFor:(phase:DayPhase)=>string):Record<DayPhase,string>=>({
  morning:pathFor('morning'),
@@ -124,5 +126,37 @@ const treeAssets:BuildAsset[]=TREE_STYLES.map(style=>{
  }
 })
 
-export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets]
+const lightAssets:BuildAsset[]=LIGHT_ASSETS.map(light=>({
+ id:'light-'+light.id,
+ label:light.label,
+ category:'lights',
+ categoryLabel:'Lights & Lanterns',
+ src:phaseSrc(phase=>lightAssetTexturePath(light.id,phase)),
+ width:light.width,
+ height:light.height,
+ defaultScale:1,
+ anchor:{x:0.5,y:0.95},
+ surface:'grass',
+ layer:'light-overlay',
+ rotatable:light.rotatable,
+ flippable:light.flippable,
+}))
+
+const studyDecorAssets:BuildAsset[]=STUDY_DECOR_ASSETS.map(item=>({
+ id:'study-'+item.id,
+ label:item.label,
+ category:'study',
+ categoryLabel:'Study Decor',
+ src:phaseSrc(phase=>studyDecorAssetTexturePath(item.id,phase)),
+ width:item.width,
+ height:item.height,
+ defaultScale:1,
+ anchor:{x:0.5,y:0.95},
+ surface:'grass',
+ layer:'decor',
+ rotatable:item.rotatable,
+ flippable:item.flippable,
+}))
+
+export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets,...lightAssets,...studyDecorAssets]
 export const BUILD_ASSET_BY_ID:Record<string,BuildAsset>=Object.fromEntries(BUILD_ASSETS.map(a=>[a.id,a]))
