@@ -5,7 +5,15 @@
  * its own transparent art, never a themed button card behind it. */
 .build-item{position:absolute!important;border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;min-height:0!important;cursor:grab;touch-action:none;display:block}
 .build-item.is-dragging{cursor:grabbing;z-index:5}
-.build-item.is-selected{outline:2px solid #ffd54a;outline-offset:3px;border-radius:8px}
+/* will-change:transform keeps the selected item on its own compositing layer while its Size/Skew
+ * controls are visible — without it, some mobile Chrome builds defer repainting it while a finger is
+ * actively dragging the (unrelated) slider below: the underlying scale/skew updates immediately, but
+ * nothing visibly changes on screen until the touch gesture ends and the browser catches up in one
+ * jump. Confirmed on a Samsung Fold 7 (Chrome) via screen recording: the slider and the saved data
+ * both tracked correctly the whole time — only the paint was stuck. Scoped to just the selected item
+ * (rather than every placed decoration) so a heavily-decorated island isn't holding a compositing
+ * layer open for art nothing is currently touching. */
+.build-item.is-selected{outline:2px solid #ffd54a;outline-offset:3px;border-radius:8px;will-change:transform}
 .build-item img{width:100%;height:auto;display:block;pointer-events:none;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
 /* Positioned per-asset over the art's own blank sign patch (see BuildAsset.signArea) — sized as a
  * fraction of the item's own box, so it scales and rotates along with the item itself. */
