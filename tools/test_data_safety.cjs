@@ -240,6 +240,9 @@ same(model.normalizeData(normalized),normalized);
 test('all cozy color palettes survive save normalization',()=>{
  for(const theme of ['coral','sakura','lavender','mint','honey','zen','floral','ocean']){const d=make();d.settings.theme=theme;assert.equal(model.normalizeData(d).settings.theme,theme)}
 });
+test('all KONO experiences survive save normalization',()=>{
+ for(const experience of ['cozy','simplified','office','journal','dashboard','zine','arcade','focus']){const d=make();d.settings.experience=experience;assert.equal(model.normalizeData(d).settings.experience,experience)}
+});
 test('repository Undo and Redo preserve independent newer records',async()=>{
 const d=make(),r=setup(d);r.scheduleSync=()=>{};await r.update(x=>note(x,'first'));assert.equal(r.canUndo,true);await r.undo();assert.equal(r.getSnapshot().data.notes.length,0);assert.equal(r.canRedo,true);await r.redo();assert.equal(r.getSnapshot().data.notes[0].id,'first');r.state={...r.state,data:note(r.state.data,'remote')};await r.undo();assert.equal(r.state.data.notes.length,1);assert.equal(r.state.data.notes[0].id,'remote');
 });
