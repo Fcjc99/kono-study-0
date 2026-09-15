@@ -18,12 +18,15 @@ export type BridgeAsset = {
 }
 
 export const BRIDGE_ASSETS: BridgeAsset[] = [
-  { id: 'bridge-straight-wooden', label: 'Straight Wooden Bridge', width: 410, height: 345, rotatable: true, flippable: true },
-  { id: 'bridge-curved-wooden', label: 'Curved Wooden Bridge', width: 425, height: 370, rotatable: true, flippable: true },
-  { id: 'dock-tiny-wooden-edge', label: 'Tiny Wooden Dock', width: 470, height: 355, rotatable: true, flippable: true },
+  // Straight bridge, curved bridge, dock, curved stream and stepping stones were redrawn in v3
+  // (style-matched to the rest of the pack) with new native dimensions; straight stream keeps its
+  // original v1 art, since v3 didn't include a replacement for it.
+  { id: 'bridge-straight-wooden', label: 'Straight Wooden Bridge', width: 441, height: 250, rotatable: true, flippable: true },
+  { id: 'bridge-curved-wooden', label: 'Curved Wooden Bridge', width: 445, height: 228, rotatable: true, flippable: true },
+  { id: 'dock-tiny-wooden-edge', label: 'Tiny Wooden Dock', width: 280, height: 315, rotatable: true, flippable: true },
   { id: 'stream-straight', label: 'Straight Stream', width: 350, height: 393, rotatable: true, flippable: true },
-  { id: 'stream-curve', label: 'Curved Stream', width: 455, height: 400, rotatable: true, flippable: true },
-  { id: 'stepping-stones-crossing', label: 'Stepping Stones Crossing', width: 475, height: 322, rotatable: true, flippable: false },
+  { id: 'stream-curve', label: 'Curved Stream', width: 554, height: 376, rotatable: true, flippable: true },
+  { id: 'stepping-stones-crossing', label: 'Stepping Stones Crossing', width: 450, height: 263, rotatable: true, flippable: false },
 ]
 
 export const BRIDGE_ASSET_BY_ID = Object.fromEntries(BRIDGE_ASSETS.map(a => [a.id, a])) as Record<BridgeAssetId, BridgeAsset>
