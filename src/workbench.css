@@ -72,6 +72,14 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .wb-sanctuary-stage{display:grid}
 .wb-sanctuary-backdrop{grid-area:1/1}
 .wb-sanctuary-backdrop.is-decorating{pointer-events:none}
+/* While decorating, the island preview only needs to be big enough to place things accurately —
+ * capping the whole section's width (which the aspect-ratio-locked canvas scales height from too)
+ * leaves real room for the asset palette below without scrolling past a near-full-height island.
+ * Constraining .wb-island itself, not just the backdrop, keeps every grid-area:1/1 layer here (the
+ * backdrop, the build-hotspot-layer overlay, the item-adjustment panel) sized identically — sizing
+ * only the backdrop would leave the click-to-place overlay full-width and misaligned with what's
+ * actually drawn. */
+.wb-island:has(.wb-sanctuary-backdrop.is-decorating){max-width:620px;margin-inline:auto}
 .wb-weather{display:block;margin:6px 0;color:var(--wb-muted)}
 .wb-island.is-expanded{position:fixed;inset:0;z-index:80;background:var(--wb-bg);padding:16px;overflow:auto;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
 .wb-record{border:1px solid var(--wb-line);border-radius:12px;padding:16px;margin:12px 0;background:var(--wb-surface);min-width:0;overflow-wrap:anywhere}
