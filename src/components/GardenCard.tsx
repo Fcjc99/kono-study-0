@@ -57,6 +57,14 @@ interface GardenCardProps {
   weather: SanctuaryWeather
   reducedMotion: boolean
   progress: SanctuaryProgressState
+  /** Sleep the Phaser render loop while true — the live weather/day-night simulation keeps
+   * rendering every frame behind the Decorate overlay otherwise, even though decorate only ever
+   * shows a static reference view of the island. On a large/high-res screen that competes for
+   * enough main-thread and GPU time that a real device (confirmed: Samsung Galaxy Z Fold 7, Chrome)
+   * can visibly delay repainting a placed item's own scale/skew change until well after the
+   * Size/Skew slider drag that caused it — the underlying data was already correct the whole time,
+   * only the paint was starved. */
+  paused?: boolean
 }
 
 const initialState: SanctuaryState = {
@@ -89,14 +97,17 @@ const formatDebugTime = (minutes: number) => {
 const debugFromUrl = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sanctuaryDebug') === '1'
 
-export default function GardenCard({ phase, weather, reducedMotion, progress }: GardenCardProps) {
+export default function GardenCard({ phase, weather, reducedMotion, progress, paused }: GardenCardProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const gameRef = useRef<PhaserGameHandle | null>(null)
   const visibleRef = useRef(true)
+  const pausedRef = useRef(!!paused)
+  const syncPauseStateRef = useRef<(() => void) | null>(null)
   const debugEnabledRef = useRef(debugFromUrl())
   const lastCanvasSizeRef = useRef({ width: 0, height: 0 })
   const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress })
   useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress}},[phase,weather,reducedMotion,progress])
+  useEffect(()=>{pausedRef.current=!!paused;syncPauseStateRef.current?.()},[paused])
 
   const [state, setState] = useState<SanctuaryState>(initialState)
   const [debugEnabled, setDebugEnabled] = useState(debugFromUrl)
@@ -242,7 +253,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress }: 
 
       syncPauseState = () => {
         if (!game) return
-        const shouldPause = document.hidden || !visibleRef.current
+        const shouldPause = document.hidden || !visibleRef.current || pausedRef.current
         if (shouldPause) {
           game.loop.sleep()
         } else {
@@ -250,6 +261,8 @@ export default function GardenCard({ phase, weather, reducedMotion, progress }: 
           resizeGame()
         }
       }
+      syncPauseStateRef.current = syncPauseState
+      syncPauseState()
       if(typeof IntersectionObserver!=='undefined'){visibilityObserver = new IntersectionObserver(([entry]) => {
         visibleRef.current = entry?.isIntersecting ?? true
         syncPauseState?.()
