@@ -69,8 +69,6 @@ export default class Stage0Scene extends Phaser.Scene {
   private sceneBounds = new Phaser.Geom.Rectangle()
   private landmarks: LandmarkRuntime[] = []
   private popupObjects: Phaser.GameObjects.GameObject[] = []
-  private popupLandmarkId: string | null = null
-  private popupOpenedAt = -1_000
   private gardenEvolution!: GardenEvolutionSystem
   private critters!: CritterSystem
   private konoInteractions!: KonoInteractionSystem
@@ -617,30 +615,12 @@ export default class Stage0Scene extends Phaser.Scene {
     this.game.events.emit(SANCTUARY_EVENTS.state, payload)
   }
 
-  private getLandmarkProgress(landmark: SanctuaryLandmark): { current: number; goal: number; level: number } {
-    let current = this.progress.totalCredits
-
-    if (landmark.id === 'pond') {
-      current = this.progress.creditsBySubjectKey?.science ?? 0
-    } else if (landmark.id === 'bridge') {
-      current = Object.keys(this.progress.completionDates).length
-    } else if (landmark.id === 'lanterns') {
-      current = Object.keys(this.progress.completionDates).filter((key) => (this.progress.completionDates[key] ?? 0) > 0).length
-    } else if (landmark.id === 'mailbox') {
-      const now = new Date()
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-      current = (this.progress.completionDates[today] ?? 0) > 0 ? 1 : 0
-    }
-
-    const goal = landmark.progressGoal
-    return { current: Math.min(current, goal), goal, level: current >= goal ? 1 : 0 }
-  }
-
   private createLandmarks(): void {
     // These landmarks have no info popup left (per explicit request) — the hover highlight and
     // hitbox that used to lead into it are retired along with it, not just the click action, so
-    // there's no dead "hover box that does nothing" left over.
-    const retiredLandmarkIds = new Set(['cherry', 'lanterns', 'house', 'pond', 'bridge'])
+    // there's no dead "hover box that does nothing" left over. garden and mailbox were the last two
+    // still wired up; decoration is now handled entirely by the manual Decorate-mode build system.
+    const retiredLandmarkIds = new Set(['cherry', 'lanterns', 'house', 'pond', 'bridge', 'garden', 'mailbox'])
     SANCTUARY_LANDMARKS.forEach((landmark) => {
       if (retiredLandmarkIds.has(landmark.id)) return
       const outline = this.add.rectangle(0, 0, 1, 1, 0xfff5c9, 0).setStrokeStyle(3, 0xfff2b5, 0).setDepth(RenderLayers.landmarkOutline)
@@ -656,7 +636,6 @@ export default class Stage0Scene extends Phaser.Scene {
         this.tweens.killTweensOf(outline)
         this.tweens.add({ targets: outline, scaleX: 1, scaleY: 1, duration: 180, ease: 'Sine.Out' })
       })
-      hitbox.on('pointerdown', () => this.openLandmarkPopup(landmark))
       this.landmarks.push({ data: landmark, hitbox, outline })
     })
   }
@@ -702,160 +681,9 @@ export default class Stage0Scene extends Phaser.Scene {
     })
   }
 
-  private openLandmarkPopup(landmark: SanctuaryLandmark): void {
-    const now = this.time.now
-    if (this.popupLandmarkId === landmark.id && now - this.popupOpenedAt < 240) return
-    this.closePopup()
-    this.popupLandmarkId = landmark.id
-    this.popupOpenedAt = now
-
-    const width = this.scale.width
-    const height = this.scale.height
-    const panelWidth = Math.min(350, Math.max(270, width - 24))
-    const margin = Math.max(12, Math.min(20, width * 0.025))
-    const centerX = width - panelWidth / 2 - margin
-    const progress = this.getLandmarkProgress(landmark)
-    const unlocked = progress.current >= progress.goal
-    const pondStage = this.progress.featureStages.pond ?? 0
-    const lanternStage = this.progress.featureStages.lanterns ?? 0
-    const gardenStage = this.progress.featureStages.garden ?? 0
-    const isGarden = landmark.id === 'garden'
-    const interactionSummary = this.konoInteractions.getSummary()
-    const landmarkVisits = interactionSummary.landmarkVisits[landmark.id as KonoLandmarkId] ?? 0
-    const nextGardenAt = this.progress.nextFeatureAt?.garden ?? null
-    const bodyWidth = panelWidth - 34
-
-    const levelLabel = isGarden
-      ? `${GARDEN_STAGE_NAMES[gardenStage]} · Stage ${gardenStage}/5`
-      : unlocked ? 'Next stage ready' : 'Sanctuary stage 0'
-
-    const progressLabel = isGarden
-      ? nextGardenAt === null ? `${this.progress.totalCredits} task credits · flourishing` : `${this.progress.totalCredits} / ${nextGardenAt} task credits`
-      : `${progress.current} / ${progress.goal}`
-
-    const descriptionCopy = isGarden
-      ? 'Task milestones establish permanent garden clusters around the island.'
-      : landmark.description
-
-    const nextCopy = isGarden
-      ? gardenStage >= 5 ? 'Garden fully flourishing.' : 'Next: another planted island zone.'
-      : landmarkVisits > 0 ? `KONO visits: ${landmarkVisits} · ${unlocked ? `Ready: ${landmark.reward}` : `Future: ${landmark.reward}`}` : unlocked ? `Ready: ${landmark.reward}` : `Future: ${landmark.reward}`
-
-    const title = this.add.text(0, 0, landmark.title, {
-      fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#332d2a',
-    }).setDepth(RenderLayers.popup + 2)
-    const level = this.add.text(0, 0, levelLabel, {
-      fontFamily: 'Arial, sans-serif', fontSize: '12px', fontStyle: 'bold', color: isGarden || unlocked ? '#5d7859' : '#8a7d76',
-    }).setDepth(RenderLayers.popup + 2)
-    const progressText = this.add.text(0, 0, progressLabel, {
-      fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: isGarden || unlocked ? '#557150' : '#8a665b',
-    }).setDepth(RenderLayers.popup + 2)
-    const description = this.add.text(0, 0, descriptionCopy, {
-      fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#5c514c', lineSpacing: 3, wordWrap: { width: bodyWidth },
-    }).setDepth(RenderLayers.popup + 2)
-    const next = this.add.text(0, 0, nextCopy, {
-      fontFamily: 'Arial, sans-serif', fontSize: '12px', color: '#6c7d62', lineSpacing: 3, wordWrap: { width: bodyWidth },
-    }).setDepth(RenderLayers.popup + 2)
-
-    const interactionActions = this.konoInteractions.getActions(landmark.id as KonoLandmarkId, { lanternStage, pondStage, phase: this.paintedPhase })
-    const popupActions: Array<{ label: string; primary?: boolean; run: () => void }> = []
-    interactionActions.forEach((action) => popupActions.push({
-      label: action.label,
-      primary: popupActions.length === 0,
-      run: () => this.konoInteractions.start(action),
-    }))
-
-    const actionColumns = popupActions.length > 1 ? 2 : 1
-    const actionRows = Math.ceil(popupActions.length / actionColumns)
-    const actionHeight = popupActions.length > 0 ? 12 + actionRows * 34 + Math.max(0, actionRows - 1) * 6 : 0
-    const contentHeight = title.height + 5 + level.height + 11 + progressText.height + 10 + description.height + 9 + next.height + actionHeight
-    const panelHeight = Math.min(height - margin * 2, Math.max(178, contentHeight + 34))
-    const centerY = Phaser.Math.Clamp(height * 0.50, margin + panelHeight / 2, height - margin - panelHeight / 2)
-    const shadow = this.add.rectangle(centerX + 4, centerY + 6, panelWidth, panelHeight, 0x251d1a, 0.18)
-      .setDepth(RenderLayers.popup)
-    const panel = this.add.rectangle(centerX, centerY, panelWidth, panelHeight, 0xfffbf6, 0.97)
-      .setStrokeStyle(2, 0xd8b8aa, 0.92)
-      .setDepth(RenderLayers.popup + 1)
-      .setInteractive()
-
-    const left = centerX - panelWidth / 2 + 17
-    let y = centerY - panelHeight / 2 + 14
-    title.setPosition(left, y); y += title.height + 5
-    level.setPosition(left, y); y += level.height + 11
-    progressText.setPosition(left, y); y += progressText.height + 10
-    description.setPosition(left, y); y += description.height + 9
-    next.setPosition(left, y); y += next.height
-
-    const actionObjects: Phaser.GameObjects.GameObject[] = []
-    if (popupActions.length > 0) {
-      y += 12
-      const actionGap = 6
-      const actionWidth = actionColumns === 1 ? bodyWidth : (bodyWidth - actionGap) / 2
-      popupActions.forEach((action, index) => {
-        const column = index % actionColumns
-        const row = Math.floor(index / actionColumns)
-        const actionX = left + actionWidth / 2 + column * (actionWidth + actionGap)
-        const actionY = y + 17 + row * 40
-        const fill = action.primary ? 0x6d8064 : 0xf3eadf
-        const stroke = action.primary ? 0x53644e : 0xd8b8aa
-        const textColor = action.primary ? '#ffffff' : '#5c514c'
-        const actionBg = this.add.rectangle(actionX, actionY, actionWidth, 34, fill, 1)
-          .setStrokeStyle(1, stroke, 0.95)
-          .setDepth(RenderLayers.popup + 3)
-          .setInteractive({ useHandCursor: true })
-        const actionText = this.add.text(actionX, actionY, action.label, {
-          fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: textColor,
-        }).setOrigin(0.5).setDepth(RenderLayers.popup + 4).setInteractive({ useHandCursor: true })
-
-        const runAction = (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
-          event.stopPropagation()
-          this.closePopup()
-          action.run()
-        }
-        actionBg.on('pointerdown', runAction)
-        actionText.on('pointerdown', runAction)
-        actionObjects.push(actionBg, actionText)
-      })
-    }
-
-    const closeX = centerX + panelWidth / 2 - 18
-    const closeY = centerY - panelHeight / 2 + 18
-    const closeBg = this.add.circle(closeX, closeY, 12, 0x6d8064, 1)
-      .setDepth(RenderLayers.popup + 3)
-      .setInteractive({ useHandCursor: true })
-    const closeText = this.add.text(closeX, closeY - 1, '×', {
-      fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#ffffff',
-    }).setOrigin(0.5).setDepth(RenderLayers.popup + 4).setInteractive({ useHandCursor: true })
-
-    closeBg.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
-      event.stopPropagation()
-      this.closePopup()
-    })
-    closeText.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
-      event.stopPropagation()
-      this.closePopup()
-    })
-
-    const popupObjects: Phaser.GameObjects.GameObject[] = [shadow, panel, title, level, progressText, description, next, closeBg, closeText, ...actionObjects]
-    this.popupObjects = popupObjects
-    popupObjects.forEach((object) => {
-      const alphaObject = object as Phaser.GameObjects.GameObject & { setAlpha?: (value: number) => unknown }
-      alphaObject.setAlpha?.(0)
-    })
-    panel.setScale(0.98)
-    this.tweens.add({
-      targets: popupObjects,
-      alpha: 1,
-      duration: this.settings.reducedMotion ? 60 : 150,
-      ease: 'Sine.Out',
-    })
-    this.tweens.add({ targets: panel, scaleX: 1, scaleY: 1, duration: this.settings.reducedMotion ? 60 : 180, ease: 'Sine.Out' })
-  }
-
   private closePopup(): void {
     this.popupObjects.forEach((object) => object.destroy())
     this.popupObjects = []
-    this.popupLandmarkId = null
   }
 
   private handleResize = (): void => {

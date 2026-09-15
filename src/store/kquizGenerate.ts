@@ -47,7 +47,15 @@ async function callGemini(prompt: string, apiKey: string, photo?: PhotoInput): P
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: 'application/json' } }),
   })
-  if (!response.ok) fail(response.status === 400 || response.status === 403 ? 'That Gemini API key was rejected. Check it in Settings.' : `Gemini request failed (${response.status}). Try again in a moment.`)
+  if (!response.ok) fail(
+    response.status === 400 || response.status === 403 ? 'That Gemini API key was rejected. Check it in Settings.' :
+    // A real 404/000-style response from this exact endpoint essentially never comes from Google itself
+    // (bad/missing keys reliably 400 or 403) — it almost always means something between this device and
+    // Google's servers intercepted the request: a network content filter, a VPN, or a stale cached copy
+    // of this page. "Try again" won't fix that, so point at the actual next step instead.
+    response.status === 404 ? 'Gemini could not be reached (404) — this usually means something on this network or device is blocking it, or this page needs a refresh. Try reloading the page, or a different network.' :
+    `Gemini request failed (${response.status}). Try again in a moment.`,
+  )
   const data = await response.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text
   return text ?? fail('Gemini returned an empty response. Try again.')
