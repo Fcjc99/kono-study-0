@@ -30,5 +30,9 @@
 .build-palette{display:flex;align-items:flex-end;gap:6px;overflow-x:auto;padding:4px 2px 8px}
 .build-palette-item{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px;border:1px solid var(--wb-line);border-radius:11px;background:var(--wb-surface);cursor:grab}
 .build-palette-thumb{display:flex;align-items:center;justify-content:center;height:46px}
-.build-palette-thumb img{display:block;height:100%;width:auto;max-width:78px;object-fit:contain}
+/* !important beats coral's mobile-width reset (html[data-theme='coral'] img{max-width:100%;height:auto},
+ * a general anti-overflow safety net) — without it, that rule's higher specificity (two type selectors
+ * plus the theme attribute) wins over this one's single class, and a palette thumbnail renders at its
+ * own native pixel size instead of the small icon this list needs. */
+.build-palette-thumb img{display:block;height:100%!important;width:auto!important;max-width:78px!important;object-fit:contain}
 .build-palette-item small{font-size:.62rem;text-align:center;line-height:1.1;max-width:76px}
