@@ -216,6 +216,14 @@ assert.equal(b.scale,3);assert.equal(b.skewX,60);assert.equal(b.flipX,false);
 assert.throws(()=>{const bad=make();bad.sanctuaryDecor[bad.activeProfileId].placements=[{id:'p3',assetId:'bench',x:0.5,y:0.5,rotation:0,scale:1,skewX:0,flipX:'yes'}];model.normalizeData(bad)});
 same(model.normalizeData(normalized),normalized);
 });
+test('a placement\'s x/y clamp inside the canvas edge so it can never render completely off-screen',()=>{
+const d=make(),pid=d.activeProfileId;d.sanctuaryDecor[pid].placements=[{id:'p1',assetId:'mailbox',x:-5,y:5,rotation:0,scale:1,skewX:0,flipX:false},{id:'p2',assetId:'bench',x:0.02,y:0.99,rotation:0,scale:1,skewX:0,flipX:false},{id:'p3',assetId:'bench',x:0.5,y:0.5,rotation:0,scale:1,skewX:0,flipX:false}];
+const normalized=model.normalizeData(d);const [a,b,c]=normalized.sanctuaryDecor[pid].placements;
+assert.equal(a.x,0.06);assert.equal(a.y,0.94);
+assert.equal(b.x,0.06);assert.equal(b.y,0.94);
+assert.equal(c.x,0.5);assert.equal(c.y,0.5);
+same(model.normalizeData(normalized),normalized);
+});
 test('a placement\'s sign text round-trips, defaults to undefined when absent, and is length-limited',()=>{
 const d=make(),pid=d.activeProfileId;d.sanctuaryDecor[pid].placements=[{id:'p1',assetId:'boba-stand-kiosk-blank-sign',x:0.5,y:0.5,rotation:0,scale:1,skewX:0,flipX:false,text:'Sarah\'s Boba Cafe'},{id:'p2',assetId:'mailbox',x:0.3,y:0.3,rotation:0,scale:1,skewX:0,flipX:false}];
 const normalized=model.normalizeData(d);const [a,b]=normalized.sanctuaryDecor[pid].placements;
