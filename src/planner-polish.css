@@ -95,7 +95,12 @@
  * reads at a glance without opening the assignment list itself. */
 .assignment-progress{margin:2px 0 12px}
 .assignment-progress-bar{display:flex;flex-wrap:wrap;gap:4px}
-.assignment-progress-bar span{flex:1 0 14px;min-width:14px;height:8px;border-radius:999px;background:color-mix(in srgb,var(--wb-accent) 18%,transparent)}
+/* The unfilled segment's tinted background alone was too close to the page's own off-white surface to
+ * read as a shape at a glance — in the coral default it was practically invisible until every
+ * assignment was done. var(--wb-line) turned out too pale itself (it's derived the same way), so the
+ * border is a stronger, fixed cut of the accent color instead, giving every segment a visible outline
+ * regardless of theme. */
+.assignment-progress-bar span{flex:1 0 14px;min-width:14px;height:8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--wb-accent) 55%,transparent);background:color-mix(in srgb,var(--wb-accent) 18%,transparent)}
 .assignment-progress-bar span.is-filled{background:var(--wb-accent)}
 .assignment-progress small{display:block;margin-top:5px;color:var(--wb-muted);font-size:.78rem;font-weight:600}
 .wb-agenda-day>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:2px 0}
