@@ -1,4 +1,5 @@
 .build-hotspot-layer{grid-area:1/1;position:relative;touch-action:none;z-index:2}
+.build-hotspot-layer.is-view{pointer-events:none;touch-action:auto}
 /* !important beats the app's global button skins (cozy/simplified/office all style bare <button>
  * elements with a border, padding, min-height and background) — a placed decoration must show only
  * its own transparent art, never a themed button card behind it. */

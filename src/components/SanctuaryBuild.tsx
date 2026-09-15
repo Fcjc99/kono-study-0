@@ -1,9 +1,9 @@
-import {useEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent} from 'react'
+import {useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent} from 'react'
 import {uid, type AppData, type BuildPlacement} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
-import {BUILD_ASSETS, BUILD_ASSET_BY_ID, BUILD_CATEGORIES, BUILD_CATEGORY_LABELS, type BuildAsset, type BuildCategory} from '../game/data/buildAssets'
-import {minutesFromDate, phaseBlendForMinutes} from '../game/sanctuary/timeEngine'
-import type {DayPhase, PhaseMode} from '../game/sanctuary/types'
+import {BUILD_ASSETS, BUILD_ASSET_BY_ID, BUILD_CATEGORIES, BUILD_CATEGORY_LABELS, buildAssetSrc, buildItemStyle, signTextStyle, type BuildAsset, type BuildCategory} from '../game/data/buildAssets'
+import {useResolvedDayPhase} from '../hooks/useResolvedDayPhase'
+import type {PhaseMode} from '../game/sanctuary/types'
 import './sanctuary-build.css'
 
 const nextRotation=(r:0|90|180|270):0|90|180|270=>r===0?90:r===90?180:r===180?270:0
@@ -12,16 +12,8 @@ const MIN_SCALE=0.3,MAX_SCALE=3,MIN_SKEW=-45,MAX_SKEW=45
 
 export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:PlannerRepository['update'];phase:PhaseMode}){
  const profileId=data.activeProfileId
- const [liveDayPhase,setLiveDayPhase]=useState<DayPhase>(()=>phaseBlendForMinutes(minutesFromDate(new Date())).dominant)
- useEffect(()=>{
-  if(phase!=='auto')return
-  const tick=()=>setLiveDayPhase(phaseBlendForMinutes(minutesFromDate(new Date())).dominant)
-  tick()
-  const interval=setInterval(tick,60000)
-  return ()=>clearInterval(interval)
- },[phase])
- const resolvedPhase:DayPhase=phase==='auto'?liveDayPhase:phase
- const assetSrc=(asset:BuildAsset):string=>typeof asset.src==='string'?asset.src:asset.src[resolvedPhase]
+ const resolvedPhase=useResolvedDayPhase(phase)
+ const assetSrc=(asset:BuildAsset):string=>buildAssetSrc(asset,resolvedPhase)
  const decorFor=(d:AppData)=>d.sanctuaryDecor[profileId]??{profileId,placements:[]}
  const decor=decorFor(data)
  const [category,setCategory]=useState<BuildCategory|null>(BUILD_CATEGORIES[0]??null)
@@ -148,9 +140,10 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
     const scale=liveScale&&liveScale.id===p.id?liveScale.value:p.scale
     const skewX=liveSkew&&liveSkew.id===p.id?liveSkew.value:p.skewX
     const signText=liveText&&liveText.id===p.id?liveText.value:p.text
-    return <button type="button" key={p.id} className={'build-item'+(isSelected?' is-selected':'')+(dragId===p.id?' is-dragging':'')} style={{left:(pos.x*100)+'%',top:(pos.y*100)+'%',width:(asset.width/1448*100)+'%',transformOrigin:`50% ${asset.anchor.y*100}%`,transform:`translate(-50%,-${asset.anchor.y*100}%) rotate(${p.rotation}deg) skewX(${skewX}deg) scale(${(p.flipX?-1:1)*scale},${scale})`}} onPointerDown={e=>itemPointerDown(e,p)} onPointerMove={itemPointerMove} onPointerUp={e=>itemPointerUp(e,p)} aria-label={asset.label}>
+    const signStyle=asset.signArea&&signText?signTextStyle(asset,p.flipX):null
+    return <button type="button" key={p.id} className={'build-item'+(isSelected?' is-selected':'')+(dragId===p.id?' is-dragging':'')} style={buildItemStyle(asset,{x:pos.x,y:pos.y,rotation:p.rotation,scale,skewX,flipX:p.flipX})} onPointerDown={e=>itemPointerDown(e,p)} onPointerMove={itemPointerMove} onPointerUp={e=>itemPointerUp(e,p)} aria-label={asset.label}>
      <img src={assetSrc(asset)} alt=""/>
-     {asset.signArea&&signText&&<span className="build-sign-text" style={{left:(asset.signArea.x*100)+'%',top:(asset.signArea.y*100)+'%',width:(asset.signArea.width*100)+'%',height:(asset.signArea.height*100)+'%',transform:p.flipX?'scaleX(-1)':undefined}}>{signText}</span>}
+     {signStyle&&<span className="build-sign-text" style={signStyle}>{signText}</span>}
     </button>
    })}
   </div>
