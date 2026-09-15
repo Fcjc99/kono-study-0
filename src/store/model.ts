@@ -40,7 +40,9 @@ export type TrashEntry={id:string;profileId:string;collection:string;title:strin
  * beyond which asset catalog entry assetId happens to match, so duplicating and mixing them is free. scale
  * resizes the asset (1 = its defaultScale); skewX tilts it to sit correctly on the island's isometric ground
  * plane; flipX mirrors it horizontally. */
-export type BuildPlacement={id:string;assetId:string;x:number;y:number;rotation:0|90|180|270;scale:number;skewX:number;flipX:boolean}
+/** `text` is only meaningful on a placement whose asset is `signable` (see BuildAsset) — a short
+ * caption the player writes themselves, rendered over the asset's blank sign area. */
+export type BuildPlacement={id:string;assetId:string;x:number;y:number;rotation:0|90|180|270;scale:number;skewX:number;flipX:boolean;text?:string}
 export type SanctuaryDecorState={profileId:string;placements:BuildPlacement[]}
 /** A recorded lecture's audio never lives here — it stays device-local in IndexedDB, keyed by this
  * record's own id (see src/store/audioStore.ts) — only the transcript (plain text KONO already
@@ -223,7 +225,7 @@ export function normalizeData(raw:unknown):AppData {
  }
  const sanctuaryProgress=Object.fromEntries(profiles.map(p=>{const saved=progress[p.id];const timestamp=object(saved)&&typeof saved.updatedAt==='string'&&Number.isFinite(Date.parse(saved.updatedAt))?saved.updatedAt:'1970-01-01T00:00:00.000Z';return [p.id,migrateSanctuaryProgress(saved,p.id,tasks.map(t=>({...t,subjectKey:subjects.find(x=>x.id===t.subjectId)?.name??t.subjectId})),timestamp)]}))
  const decor=object(raw.sanctuaryDecor)?raw.sanctuaryDecor:{}
- const placement=(v:Obj):BuildPlacement=>({id:id(v.id,'placement ID'),assetId:str(v.assetId,'placement asset',100),x:fraction(v.x),y:fraction(v.y),rotation:([0,90,180,270] as const).includes(v.rotation as 0)?v.rotation as 0|90|180|270:0,scale:placementScale(v.scale),skewX:placementSkew(v.skewX),flipX:bool(v.flipX)})
+ const placement=(v:Obj):BuildPlacement=>({id:id(v.id,'placement ID'),assetId:str(v.assetId,'placement asset',100),x:fraction(v.x),y:fraction(v.y),rotation:([0,90,180,270] as const).includes(v.rotation as 0)?v.rotation as 0|90|180|270:0,scale:placementScale(v.scale),skewX:placementSkew(v.skewX),flipX:bool(v.flipX),text:optional(v.text,'sign text',120)})
  // Home/pond/tree used to be one singular style slot each, with its own dedicated picker — now
  // every home/pond/tree is just another duplicable placement in the shared palette. A save from
  // before that change migrates its one chosen style (if any) into an ordinary placement the first

@@ -216,6 +216,14 @@ assert.equal(b.scale,3);assert.equal(b.skewX,60);assert.equal(b.flipX,false);
 assert.throws(()=>{const bad=make();bad.sanctuaryDecor[bad.activeProfileId].placements=[{id:'p3',assetId:'bench',x:0.5,y:0.5,rotation:0,scale:1,skewX:0,flipX:'yes'}];model.normalizeData(bad)});
 same(model.normalizeData(normalized),normalized);
 });
+test('a placement\'s sign text round-trips, defaults to undefined when absent, and is length-limited',()=>{
+const d=make(),pid=d.activeProfileId;d.sanctuaryDecor[pid].placements=[{id:'p1',assetId:'boba-stand-kiosk-blank-sign',x:0.5,y:0.5,rotation:0,scale:1,skewX:0,flipX:false,text:'Sarah\'s Boba Cafe'},{id:'p2',assetId:'mailbox',x:0.3,y:0.3,rotation:0,scale:1,skewX:0,flipX:false}];
+const normalized=model.normalizeData(d);const [a,b]=normalized.sanctuaryDecor[pid].placements;
+assert.equal(a.text,'Sarah\'s Boba Cafe');assert.equal(b.text,undefined);
+const long=make();long.sanctuaryDecor[long.activeProfileId].placements=[{id:'p1',assetId:'boba-stand-kiosk-blank-sign',x:0.5,y:0.5,rotation:0,scale:1,skewX:0,flipX:false,text:'x'.repeat(200)}];
+assert.throws(()=>model.normalizeData(long));
+same(model.normalizeData(normalized),normalized);
+});
 test('a home/pond/tree style from before duplication migrates into an ordinary placement once, at its old default ground spot, and the migration does not repeat on the next save',()=>{
 const d=make(),pid=d.activeProfileId;
 d.sanctuaryDecor[pid].homeStyle='treehouse';d.sanctuaryDecor[pid].homeStyleScale=1.4;d.sanctuaryDecor[pid].homeStyleFlipX=true;

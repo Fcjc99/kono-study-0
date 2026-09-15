@@ -6,6 +6,9 @@
 .build-item.is-dragging{cursor:grabbing;z-index:5}
 .build-item.is-selected{outline:2px solid #ffd54a;outline-offset:3px;border-radius:8px}
 .build-item img{width:100%;height:auto;display:block;pointer-events:none;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
+/* Positioned per-asset over the art's own blank sign patch (see BuildAsset.signArea) — sized as a
+ * fraction of the item's own box, so it scales and rotates along with the item itself. */
+.build-sign-text{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;pointer-events:none;color:#4b342a;font-weight:700;font-size:.78rem;line-height:1.15;word-break:break-word;padding:2px}
 /* Sits below the map in normal document flow, not floating over the canvas — the previous
  * on-canvas/floating controls could cover most of a narrow phone screen and, worse, their custom
  * pointer-drag handling for size/skew didn't register reliably on real touch devices. Every control

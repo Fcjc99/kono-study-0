@@ -35,8 +35,10 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
  // naturally falls back to its own committed value with no extra effect needed.
  const [liveScale,setLiveScale]=useState<{id:string;value:number}|null>(null)
  const [liveSkew,setLiveSkew]=useState<{id:string;value:number}|null>(null)
+ const [liveText,setLiveText]=useState<{id:string;value:string}|null>(null)
  const scaleCommitTimer=useRef<number|undefined>(undefined)
  const skewCommitTimer=useRef<number|undefined>(undefined)
+ const textCommitTimer=useRef<number|undefined>(undefined)
 
  const withCurrent=(d:AppData,patch:Partial<ReturnType<typeof decorFor>>)=>{
   const current=decorFor(d)
@@ -104,6 +106,12 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
   window.clearTimeout(skewCommitTimer.current)
   skewCommitTimer.current=window.setTimeout(()=>{void commit(decor.placements.map(p=>p.id===selected?{...p,skewX}:p))},150)
  }
+ const setSelectedText=(text:string)=>{
+  if(!selected)return
+  setLiveText({id:selected,value:text})
+  window.clearTimeout(textCommitTimer.current)
+  textCommitTimer.current=window.setTimeout(()=>{void commit(decor.placements.map(p=>p.id===selected?{...p,text}:p))},400)
+ }
  const itemPointerDown=(e:ReactPointerEvent<HTMLButtonElement>,placement:BuildPlacement)=>{
   e.stopPropagation()
   e.currentTarget.setPointerCapture(e.pointerId)
@@ -139,8 +147,10 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
     const isSelected=selected===p.id
     const scale=liveScale&&liveScale.id===p.id?liveScale.value:p.scale
     const skewX=liveSkew&&liveSkew.id===p.id?liveSkew.value:p.skewX
+    const signText=liveText&&liveText.id===p.id?liveText.value:p.text
     return <button type="button" key={p.id} className={'build-item'+(isSelected?' is-selected':'')+(dragId===p.id?' is-dragging':'')} style={{left:(pos.x*100)+'%',top:(pos.y*100)+'%',width:(asset.width/1448*100)+'%',transformOrigin:`50% ${asset.anchor.y*100}%`,transform:`translate(-50%,-${asset.anchor.y*100}%) rotate(${p.rotation}deg) skewX(${skewX}deg) scale(${(p.flipX?-1:1)*scale},${scale})`}} onPointerDown={e=>itemPointerDown(e,p)} onPointerMove={itemPointerMove} onPointerUp={e=>itemPointerUp(e,p)} aria-label={asset.label}>
      <img src={assetSrc(asset)} alt=""/>
+     {asset.signArea&&signText&&<span className="build-sign-text" style={{left:(asset.signArea.x*100)+'%',top:(asset.signArea.y*100)+'%',width:(asset.signArea.width*100)+'%',height:(asset.signArea.height*100)+'%',transform:p.flipX?'scaleX(-1)':undefined}}>{signText}</span>}
     </button>
    })}
   </div>
@@ -152,7 +162,10 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
     // touch devices. Every control here is a plain native input or button.
     const scale=liveScale&&liveScale.id===selectedPlacement.id?liveScale.value:selectedPlacement.scale
     const skewX=liveSkew&&liveSkew.id===selectedPlacement.id?liveSkew.value:selectedPlacement.skewX
+    const signText=liveText&&liveText.id===selectedPlacement.id?liveText.value:selectedPlacement.text??''
+    const signable=!!BUILD_ASSET_BY_ID[selectedPlacement.assetId]?.signArea
     return <div className="build-item-panel">
+     {signable&&<label>Sign text<input type="text" maxLength={120} value={signText} onChange={e=>setSelectedText(e.target.value)} placeholder="Write on this sign"/></label>}
      <label>Size<input type="range" min={MIN_SCALE} max={MAX_SCALE} step={0.05} value={scale} onChange={e=>setSelectedScale(Number(e.target.value))}/></label>
      <label>Skew<input type="range" min={MIN_SKEW} max={MAX_SKEW} step={1} value={skewX} onChange={e=>setSelectedSkew(Number(e.target.value))}/></label>
      <div className="build-item-actions">
@@ -164,7 +177,7 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
      </div>
     </div>
    })()}
-   <p className="wb-muted">Tap an item to add it to your island, or drag it on to choose where it lands. Drag a placed item anywhere to move it, or tap it once to select it — then use the controls above to resize, skew, rotate, mirror, duplicate, or remove it. Place as many of anything as you like.</p>
+   <p className="wb-muted">Tap an item to add it to your island, or drag it on to choose where it lands. Drag a placed item anywhere to move it, or tap it once to select it — then use the controls above to resize, skew, rotate, mirror, duplicate, or remove it. A few items (like the boba stand's sign and menu board) let you write your own text on them, too. Place as many of anything as you like.</p>
    <nav className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}</nav>
    <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=>
     <div role="button" tabIndex={0} draggable key={a.id} className="build-palette-item" onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={()=>placeDefault(a.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();placeDefault(a.id)}}} aria-label={'Add '+a.label}><span className="build-palette-thumb"><img src={assetSrc(a)} alt="" draggable={false}/></span><small>{a.label}</small></div>
