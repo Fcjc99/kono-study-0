@@ -39,14 +39,22 @@ function buildPhotoPrompt(): string {
 
 export type PhotoInput = { base64: string; mimeType: string }
 
-async function callGemini(prompt: string, apiKey: string, photo?: PhotoInput): Promise<string> {
+async function requestGemini(model: string, prompt: string, apiKey: string, photo?: PhotoInput): Promise<Response> {
   const parts: unknown[] = [{ text: prompt }]
   if (photo) parts.push({ inline_data: { mime_type: photo.mimeType, data: photo.base64 } })
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
+  return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: 'application/json' } }),
   })
+}
+
+async function callGemini(prompt: string, apiKey: string, photo?: PhotoInput): Promise<string> {
+  // A 404 specifically (as opposed to 400/403, which reliably mean a bad key regardless of model)
+  // can mean this particular key/project doesn't yet have the newest flash model enabled — retry once
+  // against an older, more universally available one before surfacing an error.
+  let response = await requestGemini('gemini-2.5-flash', prompt, apiKey, photo)
+  if (response.status === 404) response = await requestGemini('gemini-2.0-flash', prompt, apiKey, photo)
   if (!response.ok) fail(
     response.status === 400 || response.status === 403 ? 'That Gemini API key was rejected. Check it in Settings.' :
     // A real 404/000-style response from this exact endpoint essentially never comes from Google itself
