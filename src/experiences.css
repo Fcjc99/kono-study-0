@@ -5,12 +5,21 @@
 /* A compact grid of square tiles instead of a long list of description cards — the glyph plus name
  * carries the identity at a glance, and the full description only shows once, below the grid, for
  * whichever tile is currently picked (via title="" too, for a hover tooltip on any tile). */
-.experience-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin:14px 0 10px}
-.workbench .experience-choice{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;aspect-ratio:1;text-align:center;padding:8px 4px;min-height:0;border-width:2px}
-.experience-glyph{font-size:1.6rem;line-height:1}
-.experience-choice strong{font-size:.76rem;font-weight:700;line-height:1.15}
+.theme-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin:14px 0 10px}
+.workbench .theme-picker-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;aspect-ratio:1;text-align:center;padding:8px 4px;min-height:0;border-width:2px}
+.theme-picker-glyph{font-size:1.6rem;line-height:1}
+.theme-picker-tile strong{font-size:.76rem;font-weight:700;line-height:1.15}
+.theme-picker-tile[aria-pressed='true']{outline:3px solid var(--wb-accent);outline-offset:2px}
+.theme-picker-description{font-size:.82rem;color:var(--wb-muted);margin:0 0 18px}
+/* Wide description cards — used by ScheduleSetup's "what kind of schedule" picker (title + a full
+ * sentence each), which is a different, unrelated component that happens to want the same "row of
+ * choice cards" shape the theme picker used before its own square-tile redesign. Kept as its own
+ * class so redesigning one picker never again silently breaks the other. */
+.experience-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:14px 0 20px}
+.workbench .experience-choice{display:grid;align-content:start;text-align:left;gap:4px;padding:12px 14px;min-height:0;border-width:2px}
+.experience-choice strong{font-size:.95rem}
+.experience-choice span{font-size:.74rem;line-height:1.35}
 .experience-choice[aria-pressed='true']{outline:3px solid var(--wb-accent);outline-offset:2px}
-.experience-active-description{font-size:.82rem;color:var(--wb-muted);margin:0 0 18px}
 .workbench .experience-cozy{background:linear-gradient(135deg,#fff4d9,#ffd8e5);color:#684133;border-color:#b98566;font-family:Georgia,serif}.workbench .experience-modern{background:#f5f5f7;color:#1d1d1f;border-color:#d2d2d7;border-radius:14px}.experience-simplified{background:var(--wb-surface)}
 .cozy-navigation{display:contents}.workbench[data-experience='cozy'] .sidebar{position:sticky;top:0;height:100dvh;min-width:0;grid-column:1;overflow:auto}.workbench[data-experience='cozy'] #workspace-main{grid-column:2;padding-top:0}.workbench[data-experience='cozy'] .mobile-desk-header{display:none!important}
 .workbench[data-experience='cozy']{font-family:var(--font-body,system-ui),sans-serif;background:linear-gradient(135deg,#fff7f1,#f8eee8)}
@@ -77,8 +86,8 @@
 :root .workbench[data-experience='modern'] .workbench :is(input,select,textarea):focus,:root .workbench[data-experience='modern'] .wb-dialog :is(input,select,textarea):focus{outline:none;border-color:var(--wb-accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--wb-accent) 15%,transparent)}
 :root .workbench[data-experience='modern'] .push-pin{display:none}
 :root .workbench[data-experience='modern'] .kquiz-choice,:root .workbench[data-experience='modern'] .kquiz-material-row{border-radius:14px;border:1px solid var(--wb-line)}
-@media(max-width:900px){.workbench[data-experience='cozy']{display:block}.workbench[data-experience='cozy'] .mobile-desk-header{display:block!important;position:relative!important;top:auto!important}.workbench[data-experience='cozy'] .sidebar{display:none!important}.workbench[data-experience='cozy'] #workspace-main{padding:0 14px 28px}.workbench[data-experience='cozy'] .wb-header{margin:0 0 16px;padding:20px 8px}.workbench[data-experience='cozy'] .wb-bottom-nav{display:none!important}.workbench[data-experience='cozy'] .mobile-nav button{min-height:44px!important}.workbench[data-experience='cozy'] .radio-controls button{min-height:44px!important}.experience-choices{grid-template-columns:repeat(auto-fill,minmax(72px,1fr))}}
-@media(max-width:700px){:root .workbench[data-experience='modern']{display:block}.workbench[data-experience='cozy'] .wb-board:not(.board-plain){border-width:7px}.workbench[data-experience='cozy'] .wb-note-wrap .kono-sticky{transform:none!important}.workbench[data-experience='cozy'] .wb-calendar button{min-height:54px;border-radius:8px}.workbench[data-experience='cozy'] .wb-header .wb-toolbar{width:100%}.workbench .experience-choice{min-height:0}:root .workbench[data-experience='modern'] .wb-sticky{padding:15px 12px}}
+@media(max-width:900px){.workbench[data-experience='cozy']{display:block}.workbench[data-experience='cozy'] .mobile-desk-header{display:block!important;position:relative!important;top:auto!important}.workbench[data-experience='cozy'] .sidebar{display:none!important}.workbench[data-experience='cozy'] #workspace-main{padding:0 14px 28px}.workbench[data-experience='cozy'] .wb-header{margin:0 0 16px;padding:20px 8px}.workbench[data-experience='cozy'] .wb-bottom-nav{display:none!important}.workbench[data-experience='cozy'] .mobile-nav button{min-height:44px!important}.workbench[data-experience='cozy'] .radio-controls button{min-height:44px!important}.theme-picker-grid{grid-template-columns:repeat(auto-fill,minmax(72px,1fr))}}
+@media(max-width:700px){:root .workbench[data-experience='modern']{display:block}.workbench[data-experience='cozy'] .wb-board:not(.board-plain){border-width:7px}.workbench[data-experience='cozy'] .wb-note-wrap .kono-sticky{transform:none!important}.workbench[data-experience='cozy'] .wb-calendar button{min-height:54px;border-radius:8px}.workbench[data-experience='cozy'] .wb-header .wb-toolbar{width:100%}.workbench .theme-picker-tile{min-height:0}:root .workbench[data-experience='modern'] .wb-sticky{padding:15px 12px}}
 @media(prefers-reduced-motion:reduce){.workbench[data-experience] button{transition:none!important;transform:none!important}.workbench[data-experience] .kono-sticky{transform:none!important}}
 :root[data-motion='reduced'] .workbench button,:root[data-motion='reduced'] .workbench .kono-sticky{transition:none!important;transform:none!important}
 .workbench[data-experience='cozy'] .wb-record-subjects,.workbench[data-experience='cozy'] .wb-record-tasks{border-left:6px solid var(--subject-accent)!important}.workbench[data-experience='cozy'] .wb-record-subjects h3{color:var(--subject-accent)}.wb-cal-dots{display:flex;gap:3px;min-height:6px;flex-wrap:wrap}.wb-cal-dots i{display:block;width:6px;height:6px;border-radius:50%}
