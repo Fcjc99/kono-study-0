@@ -4,6 +4,16 @@
     "width": 238,
     "height": 226
   },
+  "fishing": {
+    "file": "fishing.png",
+    "width": 332,
+    "height": 247
+  },
+  "pond": {
+    "file": "pond.png",
+    "width": 294,
+    "height": 246
+  },
   "happy": {
     "file": "happy.png",
     "width": 237,

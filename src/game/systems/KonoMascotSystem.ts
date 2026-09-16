@@ -11,14 +11,14 @@ const MASCOT_HEIGHT_RATIO = 0.064
 const ASSET_ROOT = '/garden/kono'
 
 const WALK_FRAMES = {
-  down: ['kono-walk-down-01', 'kono-walk-down-02'],
-  up: ['kono-walk-up-01', 'kono-walk-up-02'],
+  down: ['kono-walk-down-01', 'kono-walk-down-02', 'kono-walk-down-03'],
+  up: ['kono-walk-up-01', 'kono-walk-up-02', 'kono-walk-up-03'],
   left: ['kono-walk-left-01', 'kono-walk-left-02'],
   right: ['kono-walk-right-01', 'kono-walk-right-02'],
 } as const
 
 type WalkDirection = keyof typeof WALK_FRAMES
-type ReactionTexture = 'kono-happy' | 'kono-excited' | 'kono-question' | 'kono-sleep' | 'kono-tea' | 'kono-read' | 'kono-idle'
+type ReactionTexture = 'kono-happy' | 'kono-excited' | 'kono-question' | 'kono-sleep' | 'kono-tea' | 'kono-read' | 'kono-idle' | 'kono-pond' | 'kono-fishing'
 
 type NavNodeId =
   | 'house'
@@ -84,7 +84,7 @@ const NAV_GRAPH: Record<NavNodeId, readonly NavNodeId[]> = {
   'pond-east': ['pond-south-east', 'terrace-entry'],
 }
 
-const WANDER_NODE_POOL: readonly NavNodeId[] = ['house', 'mailbox', 'garden', 'west-junction', 'north-west', 'north-center', 'cherry', 'terrace-entry', 'lanterns', 'pond-north', 'pond-west', 'pond-east']
+const WANDER_NODE_POOL: readonly NavNodeId[] = ['house', 'mailbox', 'garden', 'west-junction', 'north-west', 'north-center', 'cherry', 'terrace-entry', 'lanterns', 'pond-north', 'pond-west', 'pond-east', 'bridge']
 const DEFAULT_SPAWN_NODE: NavNodeId = 'west-junction'
 
 const REACTION_SPOTS: Record<KonoLandmarkId, { x: number; y: number }> = {
@@ -108,7 +108,8 @@ const isWalkablePoint = (point: { x: number; y: number }): boolean => {
 
 const idleReactionForNode = (nodeId: NavNodeId, phase: DayPhase): ReactionTexture | null => {
   if (nodeId === 'garden') return 'kono-happy'
-  if (nodeId === 'pond-north' || nodeId === 'pond-west' || nodeId === 'pond-east') return 'kono-question'
+  if (nodeId === 'pond-north' || nodeId === 'pond-west' || nodeId === 'pond-east') return Math.random() < 0.5 ? 'kono-pond' : 'kono-fishing'
+  if (nodeId === 'bridge') return 'kono-fishing'
   if (nodeId === 'lanterns') return phase === 'evening' ? 'kono-tea' : phase === 'night' ? 'kono-sleep' : 'kono-idle'
   if (nodeId === 'cherry') return phase === 'night' ? 'kono-sleep' : 'kono-read'
   if (nodeId === 'house') return phase === 'night' ? 'kono-sleep' : null
@@ -124,7 +125,9 @@ const textureForAction = (action: KonoContextAction): ReactionTexture => {
   if (action.id.includes('rest')) return action.phase === 'night' ? 'kono-sleep' : 'kono-tea'
   if (action.id.includes('read')) return 'kono-read'
   if (action.id.includes('tea') || action.id.includes('sit')) return 'kono-tea'
-  if (action.landmarkId === 'pond' || action.landmarkId === 'bridge' || action.id.includes('mailbox')) return 'kono-question'
+  if (action.landmarkId === 'pond') return 'kono-pond'
+  if (action.landmarkId === 'bridge') return 'kono-fishing'
+  if (action.id.includes('mailbox')) return 'kono-question'
   if (action.landmarkId === 'garden' || action.landmarkId === 'cherry') return 'kono-happy'
   if (action.landmarkId === 'house' && action.phase === 'evening') return 'kono-tea'
   return 'kono-excited'
@@ -165,6 +168,8 @@ export class KonoMascotSystem {
     scene.load.image('kono-sleep', `${ASSET_ROOT}/sleep.png`)
     scene.load.image('kono-tea', `${ASSET_ROOT}/tea.png`)
     scene.load.image('kono-read', `${ASSET_ROOT}/read.png`)
+    scene.load.image('kono-pond', `${ASSET_ROOT}/pond.png`)
+    scene.load.image('kono-fishing', `${ASSET_ROOT}/fishing.png`)
     scene.load.image('kono-shadow', `${ASSET_ROOT}/shadow.png`)
     WALK_FRAMES.down.forEach((key, index) => scene.load.image(key, `${ASSET_ROOT}/walk-down-0${index + 1}.png`))
     WALK_FRAMES.up.forEach((key, index) => scene.load.image(key, `${ASSET_ROOT}/walk-up-0${index + 1}.png`))
