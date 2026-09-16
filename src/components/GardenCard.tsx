@@ -262,7 +262,13 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, pa
         }
       }
       syncPauseStateRef.current = syncPauseState
-      syncPauseState()
+      // Deferred rather than called synchronously here: if Decorate mode (or an already-hidden
+      // tab) makes this pause on mount, Phaser's own boot sequence hasn't necessarily run its
+      // first render/clear-to-backgroundColor yet -- game.loop.sleep() before that point freezes
+      // the canvas in its raw, unpainted state (solid black) instead of the intended frozen frame.
+      // Two rAF ticks are enough for Phaser's internal loop (itself rAF-driven) to have painted at
+      // least once, regardless of whether the rest of the scene's assets have finished loading.
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => { if (!disposed) syncPauseState?.() }))
       if(typeof IntersectionObserver!=='undefined'){visibilityObserver = new IntersectionObserver(([entry]) => {
         visibleRef.current = entry?.isIntersecting ?? true
         syncPauseState?.()
