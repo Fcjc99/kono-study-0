@@ -40,10 +40,23 @@ function relLum([r, g, b]) {
  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
 }
 function parseColor(str) {
- const m = str && str.match(/rgba?\(([^)]+)\)/)
- if (!m) return null
- const parts = m[1].split(',').map(s => parseFloat(s.trim()))
- return { r: parts[0], g: parts[1], b: parts[2], a: parts.length > 3 ? parts[3] : 1 }
+ if (!str) return null
+ const rgb = str.match(/rgba?\(([^)]+)\)/)
+ if (rgb) {
+  const parts = rgb[1].split(',').map(s => parseFloat(s.trim()))
+  return { r: parts[0], g: parts[1], b: parts[2], a: parts.length > 3 ? parts[3] : 1 }
+ }
+ // A color-mix() result (e.g. --surface2) can serialize as `color(srgb r g b [/ a])` instead of
+ // rgb() -- components are 0-1 floats, not 0-255 ints. Missing this made getEffectiveBg treat any
+ // such background as unparseable and fall through to an ancestor's background instead, producing
+ // false positives wherever a color-mix()-based background paired correctly with its own text.
+ const cs = str.match(/color\(srgb\s+([^)]+)\)/)
+ if (cs) {
+  const parts = cs[1].split('/')[0].trim().split(/\s+/).map(s => parseFloat(s) * 255)
+  const alphaPart = cs[1].split('/')[1]
+  return { r: parts[0], g: parts[1], b: parts[2], a: alphaPart ? parseFloat(alphaPart) : 1 }
+ }
+ return null
 }
 function contrast(fg, bg) {
  const L1 = relLum([fg.r, fg.g, fg.b]) + 0.05
@@ -65,6 +78,16 @@ async function scanPage(page, label, results) {
      const parts = m[1].split(',').map(s => parseFloat(s.trim()))
      const a = parts.length > 3 ? parts[3] : 1
      if (a > 0.5) return cs.backgroundColor
+    } else {
+     // A color-mix() result (e.g. --surface2) can serialize as `color(srgb r g b [/ a])` instead
+     // of rgb() -- missing this made any such background look unparseable and fall through to an
+     // ancestor's background, misattributing a perfectly legible color-mix() pairing as broken.
+     const cm = cs.backgroundColor.match(/color\(srgb\s+([^)]+)\)/)
+     if (cm) {
+      const alphaPart = cm[1].split('/')[1]
+      const a = alphaPart ? parseFloat(alphaPart) : 1
+      if (a > 0.5) return cs.backgroundColor
+     }
     }
     node = node.parentElement
    }

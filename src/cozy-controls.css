@@ -60,7 +60,12 @@
 :root[data-experience='cozy'][data-theme='zen'] .workbench{background:#f2f0ea}
 :root[data-experience='cozy'][data-theme='floral'] .workbench{background:linear-gradient(135deg,#fff8fa,#fbe9ef)}
 :root[data-experience='cozy'][data-theme='ocean'] .workbench{background:linear-gradient(135deg,#f3fcfc,#e1f3f2)}
-:root[data-experience='cozy']:is([data-theme='lavender'],[data-theme='mint'],[data-theme='honey'],[data-theme='zen'],[data-theme='floral'],[data-theme='ocean']) .sidebar{background:var(--wb-nav)!important}
+/* Pairs with the background override above: .sidebar itself has no explicit color, so anything
+ * inside it that doesn't set its own (like .sidebar-section-label, "Notebook tabs") was inheriting
+ * --ink -- correct for the light default sidebar, unreadable against this forced-dark one. --wb-nav-ink
+ * is never overridden for these six palettes, so it already resolves to the same light cream
+ * experiences.css hardcodes for .brand h1/p a few lines down. */
+:root[data-experience='cozy']:is([data-theme='lavender'],[data-theme='mint'],[data-theme='honey'],[data-theme='zen'],[data-theme='floral'],[data-theme='ocean']) .sidebar{background:var(--wb-nav)!important;color:var(--wb-nav-ink)}
 :root[data-experience='cozy'][data-theme='lavender'] .wb-header{background:linear-gradient(115deg,#fdfaff,#e9ddf7);border-color:#d7c4e8}
 :root[data-experience='cozy'][data-theme='mint'] .wb-header{background:linear-gradient(115deg,#fbfffd,#dcefe6);border-color:#bddbcf}
 :root[data-experience='cozy'][data-theme='honey'] .wb-header{background:linear-gradient(115deg,#fffdf7,#f7dfb2);border-color:#e4c68e}
