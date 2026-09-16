@@ -20,10 +20,8 @@
 .workbench[data-experience="cozy"] .wb-calendar>button>small{font-size:.75rem;color:#856f78}
 .workbench[data-experience="cozy"] .school-day-mini{font-size:.8rem;color:#765b64}
 .workbench[data-experience="cozy"] .planner-day-paper{padding:28px 28px 28px 48px;background:linear-gradient(90deg,transparent 28px,#efcfd4 29px,transparent 30px),repeating-linear-gradient(#fffdf9 0px,#fffdf9 31px,#f2e4df 32px);box-shadow:0 6px 20px #7043370a}
-.workbench[data-experience="cozy"] .wb-class{border:1px solid #edddd5;border-left:5px solid #c987a2;border-radius:14px;background:linear-gradient(105deg,#fffaf6,#fff2f8);padding:12px 14px;box-shadow:0 4px 12px #71473809}
-.workbench[data-experience="cozy"] .wb-class:nth-of-type(3n+2){background:linear-gradient(105deg,#fffaf6,#f4f1fc);border-left-color:#8d8aba}
-.workbench[data-experience="cozy"] .wb-class:nth-of-type(3n){background:linear-gradient(105deg,#fffaf6,#f3f7ec);border-left-color:#8fa47b}
-.workbench[data-experience="cozy"] .wb-class h3{font-family:Georgia,serif;font-size:1.08rem;margin:5px 0}
+.workbench[data-experience="cozy"] .wb-class{border:1px solid #edddd5;border-left:5px solid var(--class-accent,#c987a2);border-radius:14px;background:linear-gradient(105deg,#fffaf6,color-mix(in srgb,var(--class-accent,#c987a2) 12%,#fff2f8));padding:12px 14px;box-shadow:0 4px 12px #71473809}
+.workbench[data-experience="cozy"] .wb-class h3{font-family:Georgia,serif;font-size:1.08rem;margin:0}
 .today-schedule-list{display:grid}
 .workbench[data-experience="cozy"] .wb-class-compact{margin:0;border:0!important;border-bottom:1px dashed #e7d4cc!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;padding:12px 4px!important}
 .wb-class-compact-row{display:grid;grid-template-columns:minmax(112px,138px) minmax(150px,1fr) auto;gap:14px;align-items:center}

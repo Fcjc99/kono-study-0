@@ -1,5 +1,11 @@
 
-.wb-class{border-left:5px solid var(--wb-accent)}.wb-class-note{white-space:pre-wrap;padding:14px;border-left:3px solid var(--wb-accent);background:var(--wb-bg)}.wb-class-editor{display:grid;gap:14px;margin-top:18px}.wb-class-editor hr{width:100%;border:0;border-top:1px solid var(--wb-line)}
+.wb-class{border-left:5px solid var(--class-accent,var(--wb-accent))}.wb-class-note{white-space:pre-wrap;padding:14px;border-left:3px solid var(--wb-accent);background:var(--wb-bg)}
+.wb-class-line{display:flex;align-items:baseline;gap:10px;margin:0}
+.wb-class-line h3{flex:1 1 auto;min-width:0;margin:0;font-size:1.05rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wb-class-time{flex:0 0 auto;font-weight:800;font-variant-numeric:tabular-nums;color:color-mix(in srgb,var(--class-accent,var(--wb-accent)) 78%,var(--wb-ink))}
+.wb-class-when{flex:0 0 auto;margin-left:auto;color:var(--wb-muted);font-size:.8rem;white-space:nowrap}
+.wb-class-meta{margin:4px 0 0;color:var(--wb-muted);font-size:.85rem}
+@media(max-width:480px){.wb-class-line{flex-wrap:wrap}.wb-class-when{flex-basis:100%;margin-left:0}}.wb-class-editor{display:grid;gap:14px;margin-top:18px}.wb-class-editor hr{width:100%;border:0;border-top:1px solid var(--wb-line)}
 
 /* Phase is already labelled above the scene; keep artwork controls unobstructed. */
 .workbench .sanctuary-world-status{display:none}
