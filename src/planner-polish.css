@@ -113,7 +113,7 @@
 .tomorrow-schedule{border-style:dashed!important}
 .island-mode-tabs{display:flex;gap:8px}
 .island-mode-tabs button{padding:8px 14px;border-radius:999px;border:1px solid var(--wb-line);background:var(--wb-surface);cursor:pointer;font-weight:700;font-size:.85rem}
-.island-mode-tabs button[aria-current]{background:var(--wb-accent);color:#fff;border-color:var(--wb-accent)}
+.island-mode-tabs button[aria-current]{background:var(--wb-accent);color:var(--wb-accent-ink);border-color:var(--wb-accent)}
 .settings-page-tools{align-items:baseline}
 .settings-page-tools small{color:var(--wb-muted)}
 .due-tomorrow-panel>.wb-section-head small,.tomorrow-schedule>.wb-section-head small{font-weight:850;letter-spacing:.08em;color:var(--wb-accent)}
