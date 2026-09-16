@@ -30,11 +30,11 @@
  * thing people interact with most in Decorate mode, so it's exempt from the otherwise-condensed
  * sizing everywhere else in this file. */
 .build-item-actions button{width:40px;height:40px;border-radius:50%;border:1px solid var(--wb-line);background:var(--wb-surface);font-size:1.05rem;cursor:pointer;display:grid;place-items:center}
-.build-item-actions button[aria-pressed="true"]{background:var(--wb-accent);color:#fff;border-color:var(--wb-accent)}
+.build-item-actions button[aria-pressed="true"]{background:var(--wb-accent);color:var(--wb-accent-ink);border-color:var(--wb-accent)}
 .sanctuary-build{display:grid;gap:6px;margin-top:8px}
 .build-category-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
 .build-category-tabs button{white-space:nowrap;padding:5px 11px;border-radius:999px;border:1px solid var(--wb-line);background:var(--wb-surface);cursor:pointer;font-weight:700;font-size:.78rem}
-.build-category-tabs button[aria-current]{background:var(--wb-accent);color:#fff;border-color:var(--wb-accent)}
+.build-category-tabs button[aria-current]{background:var(--wb-accent);color:var(--wb-accent-ink);border-color:var(--wb-accent)}
 .build-palette{display:flex;align-items:flex-end;gap:6px;overflow-x:auto;padding:4px 2px 8px}
 .build-palette-item{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px;border:1px solid var(--wb-line);border-radius:11px;background:var(--wb-surface);cursor:grab}
 .build-palette-thumb{display:flex;align-items:center;justify-content:center;height:46px}

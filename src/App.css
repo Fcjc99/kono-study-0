@@ -1,18 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600&display=swap');
-:root{--bg:#f4efe7;--surface:#fffdf9;--surface2:#f4f0e8;--ink:#27352d;--muted:#768178;--accent:#b96d82;--accent2:#6f9675;--line:rgba(39,53,45,.11);--shadow:0 20px 55px rgba(45,61,51,.11);font-family:'DM Sans',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
-[data-theme=forest]{--bg:#e8eee4;--surface:#fbfdf9;--surface2:#e9f0e6;--accent:#668b68;--accent2:#365f47}
-[data-theme=sunset]{--bg:#f6e9df;--surface:#fffaf6;--surface2:#f5e4d9;--accent:#d27c69;--accent2:#9b695b}
-[data-theme=midnight]{--bg:#e8ebf4;--surface:#fafbff;--surface2:#edf0f8;--ink:#263047;--accent:#747ec0;--accent2:#53658f}
-[data-theme=autumn]{--bg:#eee4d7;--surface:#fffaf3;--surface2:#f0e4d3;--accent:#a96a40;--accent2:#817246}
-[data-theme=winter]{--bg:#eaf1f4;--surface:#fbfdff;--surface2:#eef5f7;--ink:#2c3c45;--accent:#7198aa;--accent2:#557985}
-[data-theme=noir]{--bg:#151a16;--surface:#222923;--surface2:#2d352e;--ink:#edf3ed;--muted:#aeb9af;--accent:#d0ae71;--accent2:#718a77;--line:rgba(255,255,255,.1);--shadow:0 20px 55px rgba(0,0,0,.25)}
+/* This file predates the workbench theme system (--wb-*, set per data-theme in workbench.css) and
+ * still carries its own separate --bg/--surface/--ink/--accent/... names from that earlier design.
+ * A handful of rules across the app (here and in cozy-workspaces.css, coral.css, foundation.css,
+ * sanctuary.css) never got migrated off them. Rather than hunt down and rewrite every consumer,
+ * alias the old names to the real --wb-* ones once, here, so anything still reading the old names
+ * automatically tracks whichever theme is actually active instead of a fixed, theme-blind palette
+ * (previously: the command palette background, and the Settings section tabs' active-tab color,
+ * both effectively ignored the chosen theme). The six theme ids below (forest/sunset/midnight/
+ * autumn/winter/noir) belonged to that earlier design too -- sunset/autumn/winter/noir are no
+ * longer selectable at all, and forest/midnight collide with real, differently-colored theme ids
+ * in the current system, so their own separate overrides are dropped in favor of this alias. */
+:root{--bg:var(--wb-bg,#f4efe7);--surface:var(--wb-surface,#fffdf9);--surface2:color-mix(in srgb,var(--wb-ink,#27352d) 6%,var(--wb-surface,#fffdf9));--ink:var(--wb-ink,#27352d);--muted:var(--wb-muted,#768178);--accent:var(--wb-accent,#b96d82);--accent2:var(--wb-accent,#6f9675);--line:var(--wb-line,rgba(39,53,45,.11));--shadow:0 20px 55px rgba(45,61,51,.11);font-family:'DM Sans',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
 *{box-sizing:border-box}
 body{margin:0;min-width:320px;background:radial-gradient(circle at 85% 0%,rgba(255,255,255,.7),transparent 28%),var(--bg)}
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 .sidebar{position:fixed;inset:0 auto 0 0;width:250px;padding:30px 20px;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(18px);border-right:1px solid var(--line);display:flex;flex-direction:column;z-index:20}
 .brand{display:flex;align-items:center;gap:12px;padding:0 8px 28px}
-.brand-mark{width:43px;height:43px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(145deg,var(--accent),var(--accent2));color:white;font-family:Newsreader;font-size:25px;box-shadow:0 10px 24px color-mix(in srgb,var(--accent) 30%,transparent)}
+.brand-mark{width:43px;height:43px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(145deg,var(--accent),var(--accent2));color:var(--wb-accent-ink,white);font-family:Newsreader;font-size:25px;box-shadow:0 10px 24px color-mix(in srgb,var(--accent) 30%,transparent)}
 .brand h1{margin:0;font-family:Newsreader;font-size:24px}
 .brand p{margin:2px 0 0;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.13em}
 .nav-list{display:grid;gap:7px}
@@ -28,7 +33,7 @@ button{cursor:pointer}
 .search{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);padding:0 12px;border-radius:14px}
 .search input{border:0;outline:0;background:transparent;color:var(--ink);height:42px;width:190px}
 .primary,.secondary,.text-button{border:0;border-radius:13px;padding:11px 15px;font-weight:700}
-.primary{background:linear-gradient(145deg,var(--accent),var(--accent2));color:white;box-shadow:0 10px 24px color-mix(in srgb,var(--accent) 24%,transparent)}
+.primary{background:linear-gradient(145deg,var(--accent),var(--accent2));color:var(--wb-accent-ink,white);box-shadow:0 10px 24px color-mix(in srgb,var(--accent) 24%,transparent)}
 .secondary{background:var(--surface2);color:var(--ink);border:1px solid var(--line)}
 .page-stack{display:grid;gap:20px}
 .sanctuary-overlay h1,.page-hero h1{font-family:Newsreader;font-size:clamp(38px,5vw,66px);line-height:.95;margin:10px 0}
@@ -109,15 +114,7 @@ button{cursor:pointer}
 .subject-color-swatches button.active{border-color:var(--ink);transform:scale(1.08)}
 .subject-label{display:inline-flex;color:white;border-radius:999px;padding:6px 12px;font-size:11px;font-weight:800;margin-bottom:12px;box-shadow:0 6px 16px color-mix(in srgb,var(--subject-color) 25%,transparent)}
 @media(max-width:900px){.subject-color-swatches,.subject-create-form .primary{grid-column:1/-1}.subjects-layout{grid-template-columns:1fr}.subject-tabs{display:flex;overflow:auto}}
-/* v0.7.4 — two complete visual personalities */
-[data-theme='professional']{
- --bg:#f2eee7;--surface:#fffdf9;--surface2:#f4f0e8;--ink:#27352d;--muted:#768178;
- --accent:#315f4a;--accent2:#7c9a78;--line:rgba(39,53,45,.11);--shadow:0 20px 55px rgba(45,61,51,.11)
-}
-[data-theme='sakura']{
- --bg:#fff6f6;--surface:#fffdfd;--surface2:#fff0f5;--ink:#302b46;--muted:#83778b;
- --accent:#ef4f8b;--accent2:#7959c9;--line:rgba(188,93,137,.16);--shadow:0 18px 45px rgba(167,79,128,.14)
-}
+/* v0.7.4 — two complete visual personalities (color variables now come from the :root alias above) */
 [data-theme='sakura'] body{
  background:
   radial-gradient(circle at 8% 4%,rgba(255,191,216,.46),transparent 24%),
@@ -161,15 +158,15 @@ button{cursor:pointer}
 .theme-assurance span{display:grid}
 .theme-assurance small{color:var(--muted);line-height:1.4;margin-top:3px}
 @media(max-width:900px){.theme-choice-grid,.theme-assurance{grid-template-columns:1fr}}
-.command-palette{width:min(680px,calc(100vw - 32px));background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:0 32px 90px rgba(25,25,35,.28);overflow:hidden}
-.command-input{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
-.command-input input{border:0;outline:0;background:transparent;color:var(--ink);font:inherit;font-size:17px;flex:1}
-.command-input kbd{font:11px/1 system-ui;background:var(--surface2);padding:7px 9px;border-radius:8px;color:var(--muted)}
+.command-palette{width:min(680px,calc(100vw - 32px));background:var(--wb-surface,var(--surface));border:1px solid var(--wb-line,var(--line));border-radius:22px;box-shadow:0 32px 90px rgba(25,25,35,.28);overflow:hidden}
+.command-input{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--wb-line,var(--line))}
+.command-input input{border:0;outline:0;background:transparent;color:var(--wb-ink,var(--ink));font:inherit;font-size:17px;flex:1}
+.command-input kbd{font:11px/1 system-ui;background:color-mix(in srgb,var(--wb-ink,var(--ink)) 8%,var(--wb-surface,var(--surface)));padding:7px 9px;border-radius:8px;color:var(--wb-muted,var(--muted))}
 .command-results{padding:8px;max-height:420px;overflow:auto}
-.command-results button{width:100%;display:grid;grid-template-columns:26px 1fr auto;align-items:center;text-align:left;gap:8px;padding:12px;border:0;border-radius:12px;background:transparent;color:var(--ink)}
-.command-results button:hover{background:var(--surface2)}
-.command-results small{color:var(--muted)}
-.command-palette footer{display:flex;gap:18px;padding:11px 18px;background:var(--surface2);color:var(--muted);font-size:11px}
+.command-results button{width:100%;display:grid;grid-template-columns:26px 1fr auto;align-items:center;text-align:left;gap:8px;padding:12px;border:0;border-radius:12px;background:transparent;color:var(--wb-ink,var(--ink))}
+.command-results button:hover{background:color-mix(in srgb,var(--wb-ink,var(--ink)) 8%,var(--wb-surface,var(--surface)))}
+.command-results small{color:var(--wb-muted,var(--muted))}
+.command-palette footer{display:flex;gap:18px;padding:11px 18px;background:color-mix(in srgb,var(--wb-ink,var(--ink)) 8%,var(--wb-surface,var(--surface)));color:var(--wb-muted,var(--muted));font-size:11px}
 .note-toolbar button.active{background:color-mix(in srgb,var(--accent) 14%,var(--surface));border-color:var(--accent)}
 .rich-note.is-pinned:before{content:'';position:absolute;left:50%;top:6px;width:12px;height:12px;border-radius:50%;background:#e85c76;box-shadow:0 3px 0 #9f354a}
 .theme-name-list{display:grid;gap:10px}
@@ -177,7 +174,7 @@ button{cursor:pointer}
 .theme-name-list>button.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface));box-shadow:0 8px 22px color-mix(in srgb,var(--accent) 12%,transparent)}
 .theme-name-list>button div{display:grid;gap:3px}
 .theme-name-list small{color:var(--muted)}
-.theme-name-list em{margin-left:auto;background:var(--accent);color:white;border-radius:999px;padding:6px 10px;font-size:10px;font-style:normal;font-weight:800}
+.theme-name-list em{margin-left:auto;background:var(--accent);color:var(--wb-accent-ink,white);border-radius:999px;padding:6px 10px;font-size:10px;font-style:normal;font-weight:800}
 @media(max-width:700px){.command-palette footer{display:none}}
 .push-pin{position:absolute;z-index:4;left:50%;top:-8px;width:18px;height:18px;border-radius:50%;transform:translateX(-50%);box-shadow:0 4px 0 rgba(74,44,35,.34),0 5px 8px rgba(47,25,18,.24)}
 .push-pin:after{content:'';position:absolute;left:6px;top:14px;width:6px;height:11px;border-radius:2px;background:inherit;filter:brightness(.75)}
@@ -218,7 +215,6 @@ h1,h2,h3,h4,.cork-title,.eyebrow{font-family:var(--font-display)}
 [data-theme='sakura']{
  --font-display:"Arial Rounded MT Bold",Nunito,var(--font-ui);
  --font-ui:Nunito,"Segoe UI",system-ui,sans-serif;
- --surface:#fffafd;--surface2:#fff2f8;--text:#3d3046;--muted:#876d82;--line:#f2cada;
 }
 [data-theme='sakura'] .eyebrow{letter-spacing:.12em;color:#cf4f83}
 [data-theme='sakura'] .page-hero,[data-theme='sakura'] .card{border:1px solid rgba(242,190,213,.9)}
@@ -227,7 +223,6 @@ h1,h2,h3,h4,.cork-title,.eyebrow{font-family:var(--font-display)}
 [data-theme='professional']{
  --font-ui:Inter,"SF Pro Text","Segoe UI",system-ui,-apple-system,sans-serif;
  --font-display:Inter,"SF Pro Display","Segoe UI",system-ui,-apple-system,sans-serif;
- --surface:#ffffff;--surface2:#f7f7f9;--text:#1d1d1f;--muted:#6e6e73;--line:#e5e5e7;
 }
 [data-theme='professional'] body{background:#f5f5f7;color:#1d1d1f}
 [data-theme='professional'] .card,[data-theme='professional'] .page-hero,[data-theme='professional'] .welcome-hero{background:rgba(255,255,255,.9);border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 2px rgba(0,0,0,.03),0 10px 35px rgba(0,0,0,.045);border-radius:22px}

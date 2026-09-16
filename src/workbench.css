@@ -11,12 +11,12 @@
 .workbench .wb-island.is-expanded .sanctuary-card{width:min(100%,calc((100dvh - 150px)*4/3));margin:auto}
 @media(max-width:700px){.wb-status>.wb-toolbar{display:flex}.wb-status{font-size:.75rem}.workbench .wb-status button{min-height:44px}}
 /* Interface-only themes. Scene textures retain their native phase colors. */
-:root {--wb-bg:#f7f2ec;--wb-surface:#fffdf9;--wb-ink:#352d31;--wb-muted:#665b60;--wb-accent:#a74358;--wb-line:#dfcfd0;--wb-nav:#643d32;--wb-nav-ink:#fff6ec;--wb-radius:18px}
+:root {--wb-bg:#f7f2ec;--wb-surface:#fffdf9;--wb-ink:#352d31;--wb-muted:#665b60;--wb-accent:#a74358;--wb-accent-ink:#fff;--wb-line:#dfcfd0;--wb-nav:#643d32;--wb-nav-ink:#fff6ec;--wb-radius:18px}
 :root[data-theme="sakura"]{--wb-bg:#fff0f6;--wb-surface:#fffafd;--wb-accent:#973862;--wb-nav:#643453;--wb-line:#e6bfd0}
 :root[data-theme="professional"]{--wb-bg:#edf1f5;--wb-surface:#fff;--wb-ink:#233244;--wb-muted:#536174;--wb-accent:#285a83;--wb-nav:#22394c;--wb-line:#cad5df;--wb-radius:10px}
 :root[data-theme="forest"]{--wb-bg:#e8f0e9;--wb-surface:#f9fcf7;--wb-ink:#203b30;--wb-muted:#53685d;--wb-accent:#286247;--wb-nav:#203e32;--wb-line:#bccfc1}
 :root[data-theme="ocean"]{--wb-bg:#e8f4fb;--wb-surface:#fafdff;--wb-ink:#193e54;--wb-muted:#496979;--wb-accent:#14678a;--wb-nav:#154960;--wb-line:#b5d6e3}
-:root[data-theme="midnight"]{--wb-bg:#131b2b;--wb-surface:#202c40;--wb-ink:#f0f3fc;--wb-muted:#c1cbe0;--wb-accent:#b7c6ff;--wb-nav:#0e1522;--wb-line:#455773}
+:root[data-theme="midnight"]{--wb-bg:#131b2b;--wb-surface:#202c40;--wb-ink:#f0f3fc;--wb-muted:#c1cbe0;--wb-accent:#b7c6ff;--wb-accent-ink:#182238;--wb-nav:#0e1522;--wb-line:#455773}
 :root[data-theme="paper"]{--wb-bg:#f1f0ec;--wb-surface:#fffefa;--wb-ink:#252523;--wb-muted:#595954;--wb-accent:#414f54;--wb-nav:#343d3a;--wb-line:#cccac2;--wb-radius:8px}
 /* Modern (experiences.css) — a fixed, non-swappable palette, since it's one whole art-directed look
  * rather than a color applied over the same shapes. Apple.com's own register: off-white, near-black
@@ -37,11 +37,7 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .workbench button:disabled,.wb-dialog button:disabled{opacity:.5;cursor:not-allowed}
 .workbench button:hover:not(:disabled),.wb-dialog button:hover:not(:disabled){border-color:var(--wb-accent)}
 .workbench :focus-visible,.wb-dialog :focus-visible{outline:3px solid var(--wb-accent);outline-offset:3px}
-.workbench .primary,.wb-dialog .primary{background:var(--wb-accent);color:#fff;border-color:var(--wb-accent)}
-:root[data-theme="midnight"] .workbench .primary,:root[data-theme="midnight"] .wb-dialog .primary{color:#182238}
-/* Same fix as .primary above, for the other two places a white-on-accent style assumes the accent
- * stays dark-ish: Midnight's --wb-accent is a pale periwinkle, so white text nearly disappears. */
-:root[data-theme="midnight"] .workbench .island-mode-tabs button[aria-current],:root[data-theme="midnight"] .workbench .build-category-tabs button[aria-current]{color:#182238}
+.workbench .primary,.wb-dialog .primary{background:var(--wb-accent);color:var(--wb-accent-ink);border-color:var(--wb-accent)}
 .workbench label,.wb-dialog label{display:grid;gap:5px;font-size:.875rem;min-width:0}
 .workbench input[type="checkbox"],.wb-dialog input[type="checkbox"]{width:22px;height:22px;min-height:22px;accent-color:var(--wb-accent)}
 .workbench textarea,.wb-dialog textarea{resize:vertical;min-height:120px}
@@ -61,7 +57,7 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .voice-add-button{display:flex;align-items:center;gap:6px;border-radius:999px}
 .voice-add-button.is-listening{background:#d9464f;color:#fff;border-color:#d9464f;animation:voice-pulse 1.2s ease-in-out infinite}
 @keyframes voice-pulse{0%,100%{box-shadow:0 0 0 0 rgba(217,70,79,.45)}50%{box-shadow:0 0 0 8px rgba(217,70,79,0)}}
-.voice-add-error{width:100%;color:#b3273a;font-size:.82rem;margin:4px 0 0}
+.voice-add-error{width:100%;color:color-mix(in srgb,#b3273a 65%,var(--wb-ink));font-size:.82rem;margin:4px 0 0}
 @media (prefers-reduced-motion:reduce){.voice-add-button.is-listening{animation:none}}
 .wb-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .wb-status{margin-bottom:18px;font-size:.8rem;color:var(--wb-muted)}
@@ -133,8 +129,8 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .wb-muted{color:var(--wb-muted);font-size:.875rem}
 .voice-input{display:inline-flex;flex-direction:column;gap:4px;margin:-6px 0 8px}
 .voice-input-button{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:6px 12px;font-size:.875rem;background:transparent;border:1px solid var(--wb-line);border-radius:999px}
-.voice-input-button.is-listening{background:var(--wb-accent);color:#fff;border-color:var(--wb-accent)}
-.voice-input-error{color:#b4333f}
+.voice-input-button.is-listening{background:var(--wb-accent);color:var(--wb-accent-ink);border-color:var(--wb-accent)}
+.voice-input-error{color:color-mix(in srgb,#b4333f 65%,var(--wb-ink))}
 .wb-multidate{margin:4px 0 8px;padding:12px;border:1px solid var(--wb-line);border-radius:12px}
 .wb-multidate-summary{font-size:.875rem}
 .wb-multidate-calendar .wb-section-head{padding-bottom:8px;border-bottom:0;justify-content:center;gap:14px}
@@ -159,6 +155,7 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .focus-lock-overlay .eyebrow{letter-spacing:.12em;text-transform:uppercase;color:var(--wb-muted);font-size:.8125rem}
 .focus-lock-overlay h2{margin:0;font-size:1.6rem}
 .focus-lock-timer{font-size:4rem;font-variant-numeric:tabular-nums;font-weight:700}
+.focus-lock-overlay .focus-progress-track{width:min(320px,80vw);height:10px;margin:0}
 .focus-lock-overlay button{min-height:48px;padding:10px 22px}
 .login-digest{align-items:flex-start;justify-content:space-between}
 .login-digest ul{margin:6px 0 0;padding-left:18px}
@@ -201,8 +198,7 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
  .workbench .wb-calendar{gap:3px}.workbench .wb-calendar button{min-height:54px;padding:5px;border-radius:5px}.wb-calendar>span{font-size:.75rem}
  .wb-bottom-nav{position:fixed;inset:auto 0 0;z-index:40;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:6px 6px calc(6px + env(safe-area-inset-bottom));gap:4px;border-top:1px solid var(--wb-line);background:var(--wb-surface)}
  .workbench .wb-bottom-nav button{font-size:.8125rem;min-height:48px;padding:6px 2px;border-color:transparent}
- .workbench .wb-bottom-nav [aria-current="page"]{background:var(--wb-accent);color:white}
- :root[data-theme="midnight"] .workbench .wb-bottom-nav [aria-current="page"]{color:#182238}
+ .workbench .wb-bottom-nav [aria-current="page"]{background:var(--wb-accent);color:var(--wb-accent-ink)}
  .wb-dialog{padding:20px 16px;max-height:calc(100dvh - 16px);border-radius:18px;width:calc(100% - 16px)}
  .wb-actions[open]>div{right:auto;left:0}
  .workbench .wb-island.is-expanded{padding:8px}
