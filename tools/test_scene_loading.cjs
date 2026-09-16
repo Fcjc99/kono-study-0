@@ -32,17 +32,17 @@ function setup(phase='afternoon') {
 }
 const tests=[]
 function test(name,body){body();tests.push(name)}
-test('Every manual boot requests exactly one phase, 75 textures, existing packaged assets',()=>{
+test('Every manual boot requests exactly one phase, 79 textures, existing packaged assets',()=>{
   for(const phase of ['morning','afternoon','evening','night']){
     const s=setup(phase);s.scene.preload()
     assert.equal(s.scene.paintedPhase,phase)
-    assert.equal(s.requests.length,75)
+    assert.equal(s.requests.length,79)
     for(const req of s.requests){
       assert.equal(fs.existsSync(path.join(ROOT,'dist/client',req.url)),true,req.url)
       const match=req.url.match(/morning|afternoon|evening|night/)
       if(match)assert.equal(match[0],phase,req.url)
     }
-    assert.equal(s.scene.bootImageKeys.length,75)
+    assert.equal(s.scene.bootImageKeys.length,79)
   }
 })
 test('Missing boot image emits error and update safely does nothing',()=>{
