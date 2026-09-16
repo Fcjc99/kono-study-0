@@ -27,7 +27,7 @@
 .today-schedule-list{display:grid}
 .workbench[data-experience="cozy"] .wb-class-compact{margin:0;border:0!important;border-bottom:1px dashed #e7d4cc!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;padding:12px 4px!important}
 .wb-class-compact-row{display:grid;grid-template-columns:minmax(112px,138px) minmax(150px,1fr) auto;gap:14px;align-items:center}
-.wb-class-compact-row>time{font-size:.875rem;font-weight:800;color:#b75262;font-variant-numeric:tabular-nums}
+.wb-class-compact-row>time{font-size:.875rem;font-weight:800;color:color-mix(in srgb,#b75262 65%,var(--wb-ink));font-variant-numeric:tabular-nums}
 .wb-class-compact-copy{min-width:0}
 .workbench[data-experience="cozy"] .wb-class-compact-copy h3{margin:0;font:700 1.05rem/1.25 system-ui,sans-serif;overflow-wrap:anywhere}
 .wb-class-compact-copy small{display:block;margin-top:3px;color:var(--wb-muted)}
@@ -62,30 +62,30 @@
 .planner-date-tools label{display:grid;gap:5px}
 .wb-class-due{display:grid;gap:5px;margin:8px 0 2px;padding:7px 9px;border-radius:12px;background:#fffdf8;border:1px dashed color-mix(in srgb,var(--class-accent) 40%,#ddd)}
 .wb-class-compact .wb-class-due{margin:9px 4px 3px 152px;padding:8px 10px}
-.wb-class-due>strong{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#76626b}
+.wb-class-due>strong{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:color-mix(in srgb,#76626b 65%,var(--wb-ink))}
 .wb-class-due-item{display:grid;grid-template-columns:18px minmax(0,1fr) auto auto;gap:6px;align-items:center;font-size:.8rem}
 .wb-class-due-item>b{color:var(--class-accent)}
-.wb-class-due-item>small{font-weight:800;color:#72545f}
-.wb-class-due-remove{border:0;background:transparent;color:#8a7480;font-size:.85rem;line-height:1;padding:2px 4px;cursor:pointer;border-radius:6px}
+.wb-class-due-item>small{font-weight:800;color:color-mix(in srgb,#72545f 65%,var(--wb-ink))}
+.wb-class-due-remove{border:0;background:transparent;color:color-mix(in srgb,#8a7480 65%,var(--wb-ink));font-size:.85rem;line-height:1;padding:2px 4px;cursor:pointer;border-radius:6px}
 .wb-class-due-remove:hover{background:#f1e3e8;color:#9f2947}
-.wb-class-due-item.kind-exam{color:#9f2947;font-weight:750}
+.wb-class-due-item.kind-exam{color:color-mix(in srgb,#9f2947 65%,var(--wb-ink));font-weight:750}
 .calendar-date-row{display:flex;width:100%;align-items:center;justify-content:space-between}
 .calendar-date-row>b{padding:2px 5px;border-radius:999px;background:#c94061;color:#fff;font-size:.62rem}
 .calendar-entry-preview{display:grid;gap:2px;width:100%;font-size:.68rem;font-weight:650}
 .calendar-entry-preview>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;padding-left:5px;border-left:3px solid #d9a1b4}
-.calendar-entry-preview>.is-priority{border-color:#c94061;color:#a92c4a;font-weight:850}
+.calendar-entry-preview>.is-priority{border-color:#c94061;color:color-mix(in srgb,#a92c4a 65%,var(--wb-ink));font-weight:850}
 .workbench[data-experience="cozy"] .wb-calendar>button.has-priority{border-color:#d7a62f;background:linear-gradient(145deg,#fffaf7,#fff7d8);box-shadow:0 0 0 3px rgba(218,171,55,.32),inset 0 0 0 1px rgba(255,246,194,.9)}
 .workbench[data-experience="cozy"] .wb-calendar>button.has-priority[aria-pressed="true"]{border-color:#d36291;outline:2px solid #d36291;outline-offset:-3px;box-shadow:0 0 0 4px rgba(218,171,55,.45),0 0 0 7px rgba(211,98,145,.18),inset 0 0 0 1px #fff3b5}
-.wb-class-due-item.kind-note{color:#7353a2;font-weight:750}
-.wb-class-due-item.kind-reminder{color:#9a6530;font-weight:750}
+.wb-class-due-item.kind-note{color:color-mix(in srgb,#7353a2 65%,var(--wb-ink));font-weight:750}
+.wb-class-due-item.kind-reminder{color:color-mix(in srgb,#9a6530 65%,var(--wb-ink));font-weight:750}
 .tomorrow-extra-list{display:grid;gap:8px;padding:10px 12px;border-top:1px dashed #dfc6c1;background:#fffaf7}
-.tomorrow-extra-list>strong{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:#76626b}
+.tomorrow-extra-list>strong{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:color-mix(in srgb,#76626b 65%,var(--wb-ink))}
 .planner-day-board{margin-top:14px;padding:12px;border:1px dashed #e0c7bc;border-radius:14px;background:#fffaf7}
 .planner-day-list{display:grid;gap:8px}
 .planner-due-panel{margin-top:10px;padding-top:8px;border-top:1px dashed #ead6cf}
 .planner-due-panel ul{display:grid;gap:6px;margin:0;padding-left:18px}
 .planner-due-panel li{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.planner-due-remove{border:0;background:transparent;color:#8a7480;font-size:.8rem;line-height:1;padding:2px 5px;cursor:pointer;border-radius:6px;margin-left:auto}
+.planner-due-remove{border:0;background:transparent;color:color-mix(in srgb,#8a7480 65%,var(--wb-ink));font-size:.8rem;line-height:1;padding:2px 5px;cursor:pointer;border-radius:6px;margin-left:auto}
 .planner-due-remove:hover{background:#f1e3e8;color:#9f2947}
 .schedule-view-picker{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:.82rem;font-weight:600}
 .schedule-view-picker label{display:flex;align-items:center;gap:5px;font-weight:inherit}
