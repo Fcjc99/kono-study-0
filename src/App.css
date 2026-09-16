@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600&family=Caveat:wght@600;700&display=swap');
 /* This file predates the workbench theme system (--wb-*, set per data-theme in workbench.css) and
  * still carries its own separate --bg/--surface/--ink/--accent/... names from that earlier design.
  * A handful of rules across the app (here and in cozy-workspaces.css, coral.css, foundation.css,

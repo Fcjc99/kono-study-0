@@ -41,8 +41,11 @@ export type TrashEntry={id:string;profileId:string;collection:string;title:strin
  * resizes the asset (1 = its defaultScale); skewX tilts it to sit correctly on the island's isometric ground
  * plane; flipX mirrors it horizontally. */
 /** `text` is only meaningful on a placement whose asset is `signable` (see BuildAsset) — a short
- * caption the player writes themselves, rendered over the asset's blank sign area. */
-export type BuildPlacement={id:string;assetId:string;x:number;y:number;rotation:0|90|180|270;scale:number;skewX:number;flipX:boolean;text?:string}
+ * caption the player writes themselves, rendered over the asset's blank sign area. `textSize`/
+ * `textColor`/`textFont` are its own optional styling, independent of the asset's overall `scale`;
+ * undefined for any of them means "use the sign's default look" (see SIGN_TEXT_DEFAULTS). */
+export type SignTextFont='hand'|'serif'|'sans'
+export type BuildPlacement={id:string;assetId:string;x:number;y:number;rotation:0|90|180|270;scale:number;skewX:number;flipX:boolean;text?:string;textSize?:number;textColor?:string;textFont?:SignTextFont}
 export type SanctuaryDecorState={profileId:string;placements:BuildPlacement[]}
 /** A recorded lecture's audio never lives here — it stays device-local in IndexedDB, keyed by this
  * record's own id (see src/store/audioStore.ts) — only the transcript (plain text KONO already
@@ -119,6 +122,10 @@ const fraction=(v:unknown):number=>{const n=typeof v==='number'&&Number.isFinite
  * made before these fields existed) defaults to no resize/no skew instead of rejecting the whole save. */
 const placementScale=(v:unknown):number=>{const n=typeof v==='number'&&Number.isFinite(v)?v:1;return Math.min(3,Math.max(0.3,n))}
 const placementSkew=(v:unknown):number=>{const n=typeof v==='number'&&Number.isFinite(v)?v:0;return Math.min(60,Math.max(-60,n))}
+/** Unlike scale/skew, a missing textSize means "use the sign's own default size" (see
+ * SIGN_TEXT_DEFAULTS in buildAssets.ts), not a fixed fallback number — so this stays undefined
+ * rather than clamping to some baseline, only clamping the range when a value is actually present. */
+const textSize=(v:unknown):number|undefined=>v===undefined?undefined:typeof v==='number'&&Number.isFinite(v)?Math.min(2.2,Math.max(0.6,v)):fail('sign text size')
 /** null means "use the style's default position" (unmoved) — distinct from 0.5, so a style nobody has
  * dragged yet still renders at its normal spot rather than snapping to center. */
 const nullableFraction=(v:unknown):number|null=>v==null?null:fraction(v)
@@ -235,7 +242,7 @@ export function normalizeData(raw:unknown):AppData {
  }
  const sanctuaryProgress=Object.fromEntries(profiles.map(p=>{const saved=progress[p.id];const timestamp=object(saved)&&typeof saved.updatedAt==='string'&&Number.isFinite(Date.parse(saved.updatedAt))?saved.updatedAt:'1970-01-01T00:00:00.000Z';return [p.id,migrateSanctuaryProgress(saved,p.id,tasks.map(t=>({...t,subjectKey:subjects.find(x=>x.id===t.subjectId)?.name??t.subjectId})),timestamp)]}))
  const decor=object(raw.sanctuaryDecor)?raw.sanctuaryDecor:{}
- const placement=(v:Obj):BuildPlacement=>({id:id(v.id,'placement ID'),assetId:str(v.assetId,'placement asset',100),x:placementCoord(v.x),y:placementCoord(v.y),rotation:([0,90,180,270] as const).includes(v.rotation as 0)?v.rotation as 0|90|180|270:0,scale:placementScale(v.scale),skewX:placementSkew(v.skewX),flipX:bool(v.flipX),text:optional(v.text,'sign text',120)})
+ const placement=(v:Obj):BuildPlacement=>({id:id(v.id,'placement ID'),assetId:str(v.assetId,'placement asset',100),x:placementCoord(v.x),y:placementCoord(v.y),rotation:([0,90,180,270] as const).includes(v.rotation as 0)?v.rotation as 0|90|180|270:0,scale:placementScale(v.scale),skewX:placementSkew(v.skewX),flipX:bool(v.flipX),text:optional(v.text,'sign text',120),textSize:textSize(v.textSize),textColor:v.textColor===undefined?undefined:color(v.textColor,'#4b342a'),textFont:v.textFont===undefined?undefined:choice(v.textFont,['hand','serif','sans'],'hand')})
  // Home/pond/tree used to be one singular style slot each, with its own dedicated picker — now
  // every home/pond/tree is just another duplicable placement in the shared palette. A save from
  // before that change migrates its one chosen style (if any) into an ordinary placement the first

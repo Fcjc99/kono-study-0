@@ -16,7 +16,7 @@ export default function SanctuaryDecorLayer({ data, phase }: { data: AppData; ph
   if (!placements.length) return null
   return <div className="build-hotspot-layer is-view" aria-hidden="true">
     {resolvePlacements(placements).map(({ placement: p, asset }) => {
-      const signStyle = asset.signArea && p.text ? signTextStyle(asset, p.flipX) : null
+      const signStyle = asset.signArea && p.text ? signTextStyle(asset, p) : null
       return <div key={p.id} className="build-item is-static" style={buildItemStyle(asset, p)}>
         <img src={buildAssetSrc(asset, resolvedPhase)} alt="" />
         {signStyle && <span className="build-sign-text" style={signStyle}>{p.text}</span>}

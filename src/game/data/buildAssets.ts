@@ -1,5 +1,5 @@
 import type { DayPhase } from '../sanctuary/types'
-import type { BuildPlacement } from '../../store/model'
+import type { BuildPlacement, SignTextFont } from '../../store/model'
 import { ROAD_ASSETS, roadAssetTexturePath } from './roadAssets'
 import { BRIDGE_ASSETS, bridgeAssetTexturePath } from './bridgeAssets'
 import { HOME_STYLES, homeStyleTexturePath } from './homeStyles'
@@ -193,12 +193,24 @@ export const buildItemStyle=(asset:BuildAsset,p:{x:number;y:number;rotation:numb
  transform:`translate(-50%,-${asset.anchor.y*100}%) rotate(${p.rotation}deg) skewX(${p.skewX}deg) scale(${(p.flipX?-1:1)*p.scale},${p.scale})`,
 })
 export const buildAssetSrc=(asset:BuildAsset,phase:DayPhase):string=>typeof asset.src==='string'?asset.src:asset.src[phase]
-export const signTextStyle=(asset:BuildAsset,flipX:boolean):Record<string,string>|null=>!asset.signArea?null:({
+/** A sign's writable text has its own optional look (size/color/font, all on the placement itself,
+ * independent of the asset's overall scale) — these are the values it falls back to when the player
+ * hasn't customized them. 'hand' matches the signs' rustic, hand-lettered art style by default. */
+export const SIGN_TEXT_DEFAULTS={size:1,color:'#4b342a',font:'hand'} as const
+export const SIGN_TEXT_FONT_FAMILIES:Record<SignTextFont,string>={
+ hand:"'Caveat',cursive",
+ serif:"'Newsreader',serif",
+ sans:"'DM Sans',system-ui,sans-serif",
+}
+export const signTextStyle=(asset:BuildAsset,placement:Pick<BuildPlacement,'flipX'|'textSize'|'textColor'|'textFont'>):Record<string,string>|null=>!asset.signArea?null:({
  left:(asset.signArea.x*100)+'%',
  top:(asset.signArea.y*100)+'%',
  width:(asset.signArea.width*100)+'%',
  height:(asset.signArea.height*100)+'%',
- transform:flipX?'scaleX(-1)':'none',
+ transform:placement.flipX?'scaleX(-1)':'none',
+ fontSize:(placement.textSize??SIGN_TEXT_DEFAULTS.size)+'em',
+ color:placement.textColor??SIGN_TEXT_DEFAULTS.color,
+ fontFamily:SIGN_TEXT_FONT_FAMILIES[placement.textFont??SIGN_TEXT_DEFAULTS.font],
 })
 export const resolvePlacements=(placements:BuildPlacement[]):{placement:BuildPlacement;asset:BuildAsset}[]=>
  placements.map(placement=>({placement,asset:BUILD_ASSET_BY_ID[placement.assetId]})).filter((x):x is {placement:BuildPlacement;asset:BuildAsset}=>!!x.asset)
