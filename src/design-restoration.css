@@ -11,15 +11,20 @@
 /* Restore KONO's original notebook and office visual identities.
    Only presentation changes: record controls and the native scene stay intact. */
 .workbench{grid-template-columns:252px minmax(0,1fr)}
-.workbench .wb-sidebar{padding:24px 16px;gap:16px;border-right:1px solid #43271f;background:linear-gradient(100deg,#ffffff12,transparent 24%),linear-gradient(180deg,#79513f,#52342a);box-shadow:inset -8px 0 22px #2c181433}
-.wb-brand{padding:6px 4px 24px;border-bottom:1px solid #ffffff30}.wb-brand strong{font-size:1.7rem;letter-spacing:.14em}.wb-brand small{letter-spacing:.12em;font-size:.75rem}
-.wb-brand>.brand-mark{position:relative;flex-shrink:0;border:2px solid #cfa98c;border-radius:17px;background:linear-gradient(145deg,#fff8eb,#edcfb7);box-shadow:0 4px 0 #3f271f;padding:10px 15px}.wb-brand .brand-mark i{position:absolute;right:-7px;top:-9px;font-style:normal;color:#f49bbb;font-size:23px}
-.wb-tabs-label{font-size:.75rem;text-transform:uppercase;letter-spacing:.14em;color:#eedacf;margin:8px 10px 0}
+/* The properties below only ever used to be hardcoded to one warm brown/cream "notebook cover"
+ * look, regardless of which theme was active -- Cozy never reaches any of these selectors (it
+ * renders its own separate Sidebar component), so in practice this was every Simplified/Modern
+ * theme except the few (Sakura, Professional, Modern) that got their own more specific override
+ * further down this file. Switched to the workbench --wb-* variables so every theme's sidebar,
+ * header and profile card actually matches its own palette instead of a fixed brown one. */
+.workbench .wb-sidebar{padding:24px 16px;gap:16px}
+.wb-brand{padding:6px 4px 24px;border-bottom:1px solid color-mix(in srgb,var(--wb-nav-ink) 25%,transparent)}.wb-brand strong{font-size:1.7rem;letter-spacing:.14em}.wb-brand small{letter-spacing:.12em;font-size:.75rem}
+.wb-brand>.brand-mark{position:relative;flex-shrink:0;border:2px solid var(--wb-line);border-radius:17px;background:var(--wb-accent);color:var(--wb-accent-ink);padding:10px 15px}.wb-brand .brand-mark i{position:absolute;right:-7px;top:-9px;font-style:normal;color:var(--wb-accent-ink);font-size:23px;opacity:.75}
+.wb-tabs-label{font-size:.75rem;text-transform:uppercase;letter-spacing:.14em;color:color-mix(in srgb,var(--wb-nav-ink) 75%,transparent);margin:8px 10px 0}
 .workbench .wb-sidebar nav{gap:9px}.workbench .wb-sidebar nav button{display:flex;align-items:center;gap:12px;min-height:58px;padding:9px 12px;border-radius:14px;font-weight:650}
 .wb-nav-icon{display:grid;place-items:center;flex:0 0 34px;width:34px;height:36px;border-radius:10px;background:#ffffff12}.wb-nav-icon svg{width:22px;height:22px}
-.workbench .wb-sidebar nav button[aria-current="page"]{position:relative;background:linear-gradient(180deg,#fffaf1,#f8e4d2);color:#613d32;border:2px solid #d9aaa0;box-shadow:0 0 0 3px #492a2399,0 5px 0 #3b211e;}.workbench .wb-sidebar nav button[aria-current="page"]:after{content:'✿';margin-left:auto;color:#ca658a}.wb-sidebar [aria-current="page"] .wb-nav-icon{background:#f6cddd;color:#a74d75}
-.workbench .wb-profile{padding:18px 14px;background:linear-gradient(#fffaf1,#f0d9c9);border:1px solid #d5a991;border-radius:18px;color:#5c3b30;box-shadow:0 4px 0 #39241c}.wb-profile-title{font:600 1.2rem Georgia;margin-bottom:4px}.wb-music{margin-top:auto}.wb-music>summary{font-size:.875rem}.workbench .wb-music .radio-controls button{min-height:44px!important}
-.workbench .wb-header{position:relative;padding:22px 26px;background:linear-gradient(120deg,#fffdf8,#fbe9e5);border:1px solid #edcbd0;border-top:3px solid #f2d0db;border-radius:24px;box-shadow:0 8px 24px #7345350a;margin-bottom:16px}.wb-header small{text-transform:uppercase;letter-spacing:.14em;font-weight:750;font-size:.75rem}.workbench .wb-header h1{font-family:Georgia,serif;margin-top:5px}
+.workbench .wb-profile{padding:18px 14px;background:var(--wb-surface);border:1px solid var(--wb-line);border-radius:18px;color:var(--wb-ink)}.wb-profile-title{font:600 1.2rem Georgia;margin-bottom:4px}.wb-music{margin-top:auto}.wb-music>summary{font-size:.875rem}.workbench .wb-music .radio-controls button{min-height:44px!important}
+.workbench .wb-header{position:relative;padding:22px 26px;background:var(--wb-surface);border:1px solid var(--wb-line);border-radius:24px;box-shadow:0 8px 24px #7345350a;margin-bottom:16px}.wb-header small{text-transform:uppercase;letter-spacing:.14em;font-weight:750;font-size:.75rem}.workbench .wb-header h1{font-family:Georgia,serif;margin-top:5px}
 .workbench .wb-panel,.workbench .card{border-radius:22px;box-shadow:0 10px 26px #633c2510,0 2px 4px #633c2508}.workbench .wb-panel> .wb-section-head h2,.workbench .wb-panel>h2{font-family:Georgia,serif;font-size:1.5rem}
 .workbench .sanctuary-card{border:9px solid #794d3a!important;border-radius:26px!important;box-shadow:inset 0 0 0 2px #bd8c6f,0 12px 28px #603b2820}
 .workbench .build-hotspot-layer{border-radius:26px}
