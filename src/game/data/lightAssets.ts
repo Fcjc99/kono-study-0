@@ -21,7 +21,7 @@ export type LightAsset = {
 
 // v2 standalone pack — v1's assets were cropped tight to their art with visible edge cutoffs;
 // v2 restores full padded canvases (much bigger raw dimensions) matching every other pack added
-// since (boba stand, study decor, signs), which likewise use their padded canvas size as-is.
+// since (study decor, signs), which likewise use their padded canvas size as-is.
 export const LIGHT_ASSETS: LightAsset[] = [
   { id: 'lantern-post', label: 'Lantern Post', width: 621, height: 972, rotatable: true, flippable: true },
   { id: 'hanging-lantern-hook', label: 'Hanging Lantern', width: 670, height: 972, rotatable: true, flippable: true },

@@ -16,8 +16,14 @@
 .build-item.is-selected{outline:2px solid #ffd54a;outline-offset:3px;border-radius:8px;will-change:transform}
 .build-item img{width:100%;height:auto;display:block;pointer-events:none;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
 /* Positioned per-asset over the art's own blank sign patch (see BuildAsset.signArea) — sized as a
- * fraction of the item's own box, so it scales and rotates along with the item itself. */
-.build-sign-text{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;pointer-events:none;color:#4b342a;font-weight:700;font-size:.78rem;line-height:1.15;word-break:break-word;padding:2px}
+ * fraction of the item's own box, so it scales and rotates along with the item itself. Color/
+ * font-size/font-family come from the inline style (see signTextStyle in buildAssets.ts, driven by
+ * the placement's own textSize/textColor/textFont) -- the values here are only a fallback for the
+ * rare case nothing was passed. */
+.build-sign-text{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;pointer-events:none;color:#4b342a;font-weight:700;font-size:1em;line-height:1.15;word-break:break-word;padding:2px}
+.build-sign-style-controls{display:flex;flex-direction:column;gap:4px;padding:8px;border:1px solid var(--wb-line);border-radius:10px;background:color-mix(in srgb,var(--wb-ink) 4%,var(--wb-surface))}
+.build-sign-style-controls input[type="color"]{width:44px;height:32px;padding:2px;flex:none}
+.build-sign-style-controls select{flex:1;min-height:36px}
 /* Sits below the map in normal document flow, not floating over the canvas — the previous
  * on-canvas/floating controls could cover most of a narrow phone screen and, worse, their custom
  * pointer-drag handling for size/skew didn't register reliably on real touch devices. Every control

@@ -1,7 +1,7 @@
 import {useEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent} from 'react'
-import {uid, type AppData, type BuildPlacement} from '../store/model'
+import {uid, type AppData, type BuildPlacement, type SignTextFont} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
-import {BUILD_ASSETS, BUILD_ASSET_BY_ID, BUILD_CATEGORIES, BUILD_CATEGORY_LABELS, buildAssetSrc, buildItemStyle, signTextStyle, type BuildAsset, type BuildCategory} from '../game/data/buildAssets'
+import {BUILD_ASSETS, BUILD_ASSET_BY_ID, BUILD_CATEGORIES, BUILD_CATEGORY_LABELS, SIGN_TEXT_DEFAULTS, buildAssetSrc, buildItemStyle, signTextStyle, type BuildAsset, type BuildCategory} from '../game/data/buildAssets'
 import {useResolvedDayPhase} from '../hooks/useResolvedDayPhase'
 import type {PhaseMode} from '../game/sanctuary/types'
 import './sanctuary-build.css'
@@ -39,9 +39,12 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
  const [liveScale,setLiveScale]=useState<{id:string;value:number}|null>(null)
  const [liveSkew,setLiveSkew]=useState<{id:string;value:number}|null>(null)
  const [liveText,setLiveText]=useState<{id:string;value:string}|null>(null)
+ const [liveTextSize,setLiveTextSize]=useState<{id:string;value:number}|null>(null)
+ const [liveTextColor,setLiveTextColor]=useState<{id:string;value:string}|null>(null)
  const scaleCommitTimer=useRef<number|undefined>(undefined)
  const skewCommitTimer=useRef<number|undefined>(undefined)
  const textCommitTimer=useRef<number|undefined>(undefined)
+ const textSizeCommitTimer=useRef<number|undefined>(undefined)
 
  const withCurrent=(d:AppData,patch:Partial<ReturnType<typeof decorFor>>)=>{
   const current=decorFor(d)
@@ -122,6 +125,21 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
   window.clearTimeout(textCommitTimer.current)
   textCommitTimer.current=window.setTimeout(()=>{void commit(decor.placements.map(p=>p.id===selected?{...p,text}:p))},400)
  }
+ const setSelectedTextSize=(textSize:number)=>{
+  if(!selected)return
+  setLiveTextSize({id:selected,value:textSize})
+  window.clearTimeout(textSizeCommitTimer.current)
+  textSizeCommitTimer.current=window.setTimeout(()=>{void commit(decor.placements.map(p=>p.id===selected?{...p,textSize}:p))},150)
+ }
+ const setSelectedTextColor=(textColor:string)=>{
+  if(!selected)return
+  setLiveTextColor({id:selected,value:textColor})
+  void commit(decor.placements.map(p=>p.id===selected?{...p,textColor}:p))
+ }
+ const setSelectedTextFont=(textFont:SignTextFont)=>{
+  if(!selected)return
+  void commit(decor.placements.map(p=>p.id===selected?{...p,textFont}:p))
+ }
  const itemPointerDown=(e:ReactPointerEvent<HTMLButtonElement>,placement:BuildPlacement)=>{
   e.stopPropagation()
   e.currentTarget.setPointerCapture(e.pointerId)
@@ -180,7 +198,9 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
     const scale=liveScale&&liveScale.id===p.id?liveScale.value:p.scale
     const skewX=liveSkew&&liveSkew.id===p.id?liveSkew.value:p.skewX
     const signText=liveText&&liveText.id===p.id?liveText.value:p.text
-    const signStyle=asset.signArea&&signText?signTextStyle(asset,p.flipX):null
+    const signTextSize=liveTextSize&&liveTextSize.id===p.id?liveTextSize.value:p.textSize
+    const signTextColor=liveTextColor&&liveTextColor.id===p.id?liveTextColor.value:p.textColor
+    const signStyle=asset.signArea&&signText?signTextStyle(asset,{flipX:p.flipX,textSize:signTextSize,textColor:signTextColor,textFont:p.textFont}):null
     return <button type="button" key={p.id} className={'build-item'+(isSelected?' is-selected':'')+(dragId===p.id?' is-dragging':'')} style={buildItemStyle(asset,{x:pos.x,y:pos.y,rotation:p.rotation,scale,skewX,flipX:p.flipX})} onPointerDown={e=>itemPointerDown(e,p)} onPointerMove={itemPointerMove} onPointerUp={e=>itemPointerUp(e,p)} aria-label={asset.label}>
      <img src={assetSrc(asset)} alt=""/>
      {signStyle&&<span className="build-sign-text" style={signStyle}>{signText}</span>}
@@ -196,9 +216,21 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
     const scale=liveScale&&liveScale.id===selectedPlacement.id?liveScale.value:selectedPlacement.scale
     const skewX=liveSkew&&liveSkew.id===selectedPlacement.id?liveSkew.value:selectedPlacement.skewX
     const signText=liveText&&liveText.id===selectedPlacement.id?liveText.value:selectedPlacement.text??''
+    const signTextSize=liveTextSize&&liveTextSize.id===selectedPlacement.id?liveTextSize.value:selectedPlacement.textSize??SIGN_TEXT_DEFAULTS.size
+    const signTextColor=liveTextColor&&liveTextColor.id===selectedPlacement.id?liveTextColor.value:selectedPlacement.textColor??SIGN_TEXT_DEFAULTS.color
+    const signTextFont=selectedPlacement.textFont??SIGN_TEXT_DEFAULTS.font
     const signable=!!BUILD_ASSET_BY_ID[selectedPlacement.assetId]?.signArea
     return <div className="build-item-panel">
      {signable&&<label>Sign text<input type="text" maxLength={120} value={signText} onChange={e=>setSelectedText(e.target.value)} placeholder="Write on this sign"/></label>}
+     {signable&&signText&&<div className="build-sign-style-controls">
+      <label>Text size<input type="range" min={0.6} max={2.2} step={0.1} value={signTextSize} onChange={e=>setSelectedTextSize(Number(e.target.value))}/></label>
+      <label>Text color<input type="color" value={signTextColor} onChange={e=>setSelectedTextColor(e.target.value)}/></label>
+      <label>Font<select value={signTextFont} onChange={e=>setSelectedTextFont(e.target.value as SignTextFont)}>
+       <option value="hand">Handwritten</option>
+       <option value="serif">Storybook</option>
+       <option value="sans">Clean</option>
+      </select></label>
+     </div>}
      <label>Size<input type="range" min={MIN_SCALE} max={MAX_SCALE} step={0.05} value={scale} onChange={e=>setSelectedScale(Number(e.target.value))}/></label>
      <label>Skew<input type="range" min={MIN_SKEW} max={MAX_SKEW} step={1} value={skewX} onChange={e=>setSelectedSkew(Number(e.target.value))}/></label>
      <div className="build-item-actions">
@@ -210,7 +242,7 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
      </div>
     </div>
    })()}
-   <p className="wb-muted">Tap an item to add it to your island, or drag it on to choose where it lands. Drag a placed item anywhere to move it, or tap it once to select it — then use the controls above to resize, skew, rotate, mirror, duplicate, or remove it. A few items (like the boba stand's sign and menu board) let you write your own text on them, too. Place as many of anything as you like.</p>
+   <p className="wb-muted">Tap an item to add it to your island, or drag it on to choose where it lands. Drag a placed item anywhere to move it, or tap it once to select it — then use the controls above to resize, skew, rotate, mirror, duplicate, or remove it. A few items (like signs and the chalkboard) let you write your own text on them, too. Place as many of anything as you like.</p>
    <nav className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}</nav>
    <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=>
     <div role="button" tabIndex={0} draggable key={a.id} className="build-palette-item" onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={()=>placeDefault(a.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();placeDefault(a.id)}}} aria-label={'Add '+a.label}><span className="build-palette-thumb"><img src={assetSrc(a)} alt="" draggable={false}/></span><small>{a.label}</small></div>
