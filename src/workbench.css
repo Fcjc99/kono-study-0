@@ -159,6 +159,7 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .focus-lock-overlay .eyebrow{letter-spacing:.12em;text-transform:uppercase;color:var(--wb-muted);font-size:.8125rem}
 .focus-lock-overlay h2{margin:0;font-size:1.6rem}
 .focus-lock-timer{font-size:4rem;font-variant-numeric:tabular-nums;font-weight:700}
+.focus-lock-overlay .focus-progress-track{width:min(320px,80vw);height:10px;margin:0}
 .focus-lock-overlay button{min-height:48px;padding:10px 22px}
 .login-digest{align-items:flex-start;justify-content:space-between}
 .login-digest ul{margin:6px 0 0;padding-left:18px}
