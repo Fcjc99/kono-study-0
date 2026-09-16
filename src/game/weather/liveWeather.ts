@@ -3,6 +3,14 @@ import type { SanctuaryWeather } from '../sanctuary/types'
 export type WeatherMode = 'live' | 'manual' | 'clear'
 export type LiveWeatherSource = 'live' | 'cache' | 'manual' | 'clear' | 'loading' | 'error'
 
+export interface DailyWeatherForecast {
+  date: string
+  weather: SanctuaryWeather
+  weatherCode: number
+  highF: number
+  lowF: number
+}
+
 export interface LiveWeatherReading {
   weather: SanctuaryWeather
   locationQuery: string
@@ -18,6 +26,7 @@ export interface LiveWeatherReading {
   weatherCode: number
   observedAt: string
   fetchedAt: string
+  daily: DailyWeatherForecast[]
 }
 
 export interface LiveWeatherState {
@@ -50,7 +59,13 @@ interface ForecastCurrent {
   wind_speed_10m?: number
   wind_gusts_10m?: number
 }
-interface ForecastResponse { current?: ForecastCurrent }
+interface ForecastDaily {
+  time?: string[]
+  weather_code?: number[]
+  temperature_2m_max?: number[]
+  temperature_2m_min?: number[]
+}
+interface ForecastResponse { current?: ForecastCurrent; daily?: ForecastDaily }
 
 const WEATHER_CACHE_PREFIX = 'kono-live-weather-v2:'
 const CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000
@@ -87,6 +102,28 @@ const weatherFromConditions = (current: ForecastCurrent): SanctuaryWeather => {
   if (wind >= 18 || gust >= 28) return 'wind'
   if (cloudCover >= 50 || code === 2 || code === 3 || code === 45 || code === 48) return 'cloudy'
   return 'clear'
+}
+
+const weatherFromCode = (code: number): SanctuaryWeather => {
+  if (code >= 71 && code <= 77) return 'snow'
+  if (code >= 85 && code <= 86) return 'snow'
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95) return 'rain'
+  if (code === 2 || code === 3 || code === 45 || code === 48) return 'cloudy'
+  return 'clear'
+}
+
+const parseDailyForecast = (daily: ForecastDaily | undefined): DailyWeatherForecast[] => {
+  const dates = daily?.time ?? []
+  return dates.map((date, i) => {
+    const code = Number(daily?.weather_code?.[i] ?? 0)
+    return {
+      date,
+      weather: weatherFromCode(code),
+      weatherCode: code,
+      highF: Math.round(Number(daily?.temperature_2m_max?.[i] ?? 0)),
+      lowF: Math.round(Number(daily?.temperature_2m_min?.[i] ?? 0)),
+    }
+  })
 }
 
 const fetchJson = async <T>(url: string, signal: AbortSignal): Promise<T> => {
@@ -141,6 +178,8 @@ export const fetchLiveWeather = async (locationInput: string, signal: AbortSigna
   forecastUrl.searchParams.set('latitude', String(location.latitude))
   forecastUrl.searchParams.set('longitude', String(location.longitude))
   forecastUrl.searchParams.set('current', 'temperature_2m,precipitation,rain,showers,snowfall,weather_code,cloud_cover,wind_speed_10m,wind_gusts_10m')
+  forecastUrl.searchParams.set('daily', 'weather_code,temperature_2m_max,temperature_2m_min')
+  forecastUrl.searchParams.set('forecast_days', '7')
   forecastUrl.searchParams.set('temperature_unit', 'fahrenheit')
   forecastUrl.searchParams.set('wind_speed_unit', 'mph')
   forecastUrl.searchParams.set('precipitation_unit', 'inch')
@@ -165,6 +204,7 @@ export const fetchLiveWeather = async (locationInput: string, signal: AbortSigna
     weatherCode: Number(current.weather_code ?? 0),
     observedAt: current.time ?? fetchedAt,
     fetchedAt,
+    daily: parseDailyForecast(forecast.daily),
   }
 }
 
