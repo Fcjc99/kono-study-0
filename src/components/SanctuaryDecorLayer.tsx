@@ -6,7 +6,7 @@ import './sanctuary-build.css'
 
 /**
  * Read-only twin of the placement layer SanctuaryBuild draws while editing — everything placed in
- * Decorate mode (roads, lights, the boba stand, signs, …) needs to keep showing on the island once
+ * Decorate mode (roads, lights, signs, …) needs to keep showing on the island once
  * you leave Decorate, and this is the only place that renders `sanctuaryDecor` outside that editor.
  */
 export default function SanctuaryDecorLayer({ data, phase }: { data: AppData; phase: PhaseMode }) {

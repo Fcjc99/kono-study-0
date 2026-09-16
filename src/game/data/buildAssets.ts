@@ -7,7 +7,6 @@ import { POND_STYLES, pondStyleTexturePath } from './pondStyles'
 import { TREE_STYLES, treeStyleTexturePath } from './treeStyles'
 import { LIGHT_ASSETS, lightAssetTexturePath } from './lightAssets'
 import { STUDY_DECOR_ASSETS, studyDecorAssetTexturePath } from './studyDecorAssets'
-import { BOBA_STAND_ASSETS, bobaStandAssetTexturePath } from './bobaStandAssets'
 import { SIGN_ASSETS, signAssetTexturePath } from './signAssets'
 
 export type BuildCategory=string
@@ -20,8 +19,8 @@ export type BuildSurface='grass'|'water'|'water-edge'|'water-gap'|'cliff-edge'|'
  * have one; everything else is plain decoration with no writable surface. */
 export type BuildAsset={id:string;label:string;category:BuildCategory;categoryLabel:string;src:string|Record<DayPhase,string>;width:number;height:number;defaultScale:number;anchor:{x:number;y:number};surface:BuildSurface;layer:BuildLayer;rotatable:boolean;flippable:boolean;signArea?:{x:number;y:number;width:number;height:number}}
 
-export const BUILD_CATEGORIES:BuildCategory[]=['homes','ponds','trees','paths','bridges','lights','study','cafe','signs']
-export const BUILD_CATEGORY_LABELS:Record<BuildCategory,string>={homes:'Homes',ponds:'Ponds',trees:'Trees',paths:'Paths & Roads',bridges:'Bridges & Water',lights:'Lights & Lanterns',study:'Study Decor',cafe:'Boba Stand',signs:'Signs'}
+export const BUILD_CATEGORIES:BuildCategory[]=['homes','ponds','trees','paths','bridges','lights','study','signs']
+export const BUILD_CATEGORY_LABELS:Record<BuildCategory,string>={homes:'Homes',ponds:'Ponds',trees:'Trees',paths:'Paths & Roads',bridges:'Bridges & Water',lights:'Lights & Lanterns',study:'Study Decor',signs:'Signs'}
 
 const phaseSrc=(pathFor:(phase:DayPhase)=>string):Record<DayPhase,string>=>({
  morning:pathFor('morning'),
@@ -164,23 +163,6 @@ const studyDecorAssets:BuildAsset[]=STUDY_DECOR_ASSETS.map(item=>({
  flippable:item.flippable,
 }))
 
-const bobaStandAssets:BuildAsset[]=BOBA_STAND_ASSETS.map(item=>({
- id:'boba-'+item.id,
- label:item.label,
- category:'cafe',
- categoryLabel:'Boba Stand',
- src:phaseSrc(phase=>bobaStandAssetTexturePath(item.id,phase)),
- width:item.width,
- height:item.height,
- defaultScale:1,
- anchor:{x:0.5,y:0.95},
- surface:'grass',
- layer:'decor',
- rotatable:item.rotatable,
- flippable:item.flippable,
- signArea:item.signArea,
-}))
-
 const signAssets:BuildAsset[]=SIGN_ASSETS.map(item=>({
  id:'sign-'+item.id,
  label:item.label,
@@ -198,7 +180,7 @@ const signAssets:BuildAsset[]=SIGN_ASSETS.map(item=>({
  signArea:item.signArea,
 }))
 
-export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets,...lightAssets,...studyDecorAssets,...bobaStandAssets,...signAssets]
+export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets,...lightAssets,...studyDecorAssets,...signAssets]
 export const BUILD_ASSET_BY_ID:Record<string,BuildAsset>=Object.fromEntries(BUILD_ASSETS.map(a=>[a.id,a]))
 
 /** A placed item's box/transform, shared by the interactive Decorate editor and the read-only
