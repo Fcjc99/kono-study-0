@@ -26,6 +26,14 @@ const EXPERIENCES = [
  { experience: 'modern', palettes: [null] },
 ]
 const PAGES = ['Sanctuary', 'Planner', 'Subjects', 'Notes', 'K-Quiz', 'Exams', 'Settings']
+// Desktop swaps the mobile bottom nav for a persistent .wb-sidebar (Simplified/Modern) --
+// CSS scoped to that breakpoint (@media(min-width:701px) and up) never renders, and never gets
+// checked, at the 390px viewport alone. The sidebar/header theming bug fixed in #75 (a hardcoded
+// brown "notebook" look on 5 of 8 palettes) was invisible at mobile width for that reason.
+const VIEWPORTS = [
+ { name: 'mobile', width: 390, height: 844 },
+ { name: 'desktop', width: 1280, height: 900 },
+]
 
 function relLum([r, g, b]) {
  const f = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4) }
@@ -145,27 +153,31 @@ async function main() {
    ? { executablePath: process.env.PLAYWRIGHT_TEST_EXECUTABLE }
    : {}
   browser = await chromium.launch(launchOpts)
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
-  await page.goto(BASE_URL, { waitUntil: 'networkidle' })
-  await page.waitForTimeout(600)
-  const demoBtn = page.getByRole('button', { name: 'Try a small demo instead' })
-  if (await demoBtn.count()) { await demoBtn.click(); await page.waitForTimeout(600) }
 
   const results = []
   const navFails = []
-  for (const { experience, palettes } of EXPERIENCES) {
-   for (const theme of palettes) {
-    await setExperienceAndTheme(page, experience, theme)
-    for (const p of PAGES) {
-     try {
-      if (!(await goTo(page, p))) { navFails.push(`${experience}/${theme}/${p}`); continue }
-      await page.waitForTimeout(350)
-      await scanPage(page, `${experience}/${theme}/${p}`, results)
-     } catch (e) {
-      navFails.push(`${experience}/${theme}/${p} (${String(e.message || e).slice(0, 80)})`)
+  for (const viewport of VIEWPORTS) {
+   const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } })
+   await page.goto(BASE_URL, { waitUntil: 'networkidle' })
+   await page.waitForTimeout(600)
+   const demoBtn = page.getByRole('button', { name: 'Try a small demo instead' })
+   if (await demoBtn.count()) { await demoBtn.click(); await page.waitForTimeout(600) }
+
+   for (const { experience, palettes } of EXPERIENCES) {
+    for (const theme of palettes) {
+     await setExperienceAndTheme(page, experience, theme)
+     for (const p of PAGES) {
+      try {
+       if (!(await goTo(page, p))) { navFails.push(`${viewport.name}/${experience}/${theme}/${p}`); continue }
+       await page.waitForTimeout(350)
+       await scanPage(page, `${viewport.name}/${experience}/${theme}/${p}`, results)
+      } catch (e) {
+       navFails.push(`${viewport.name}/${experience}/${theme}/${p} (${String(e.message || e).slice(0, 80)})`)
+      }
      }
     }
    }
+   await page.close()
   }
 
   if (navFails.length) {
@@ -180,7 +192,7 @@ async function main() {
    if (results.length > 40) console.log(`   …and ${results.length - 40} more`)
    process.exitCode = 1
   } else {
-   console.log(`PASS: no near-invisible text across ${EXPERIENCES.reduce((n, e) => n + e.palettes.length, 0)} experience/theme combinations x ${PAGES.length} pages.`)
+   console.log(`PASS: no near-invisible text across ${EXPERIENCES.reduce((n, e) => n + e.palettes.length, 0)} experience/theme combinations x ${PAGES.length} pages x ${VIEWPORTS.length} viewports (${VIEWPORTS.map(v => v.name).join('/')}).`)
   }
  } finally {
   if (browser) await browser.close()
