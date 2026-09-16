@@ -275,18 +275,26 @@ html[data-theme='sakura'] .memory-board-canvas{background-color:#c99a6c!importan
 html[data-theme='sakura'] .board-ribbon:before,html[data-theme='sakura'] .board-ribbon:after{content:'';position:absolute;top:-12px;width:42px;height:18px;background:rgba(245,177,199,.76);box-shadow:0 2px 4px rgba(74,39,49,.12)}
 html[data-theme='sakura'] .board-ribbon:before{left:-20px;transform:rotate(-8deg)}
 html[data-theme='sakura'] .board-ribbon:after{right:-20px;transform:rotate(7deg)}
-/* floating Tamagotchi radio */
-.kono-radio{position:fixed;left:18px;bottom:18px;z-index:30;width:265px;display:grid;grid-template-columns:52px minmax(0,1fr);grid-template-areas:'mascot copy' 'controls controls';gap:8px 10px;padding:12px;border:3px solid #9c5e48;border-radius:22px;background:linear-gradient(180deg,#ffd8e5,#f7aeca);box-shadow:inset 0 0 0 4px rgba(255,255,255,.45),0 8px 0 #7d4939,0 18px 30px rgba(64,38,48,.2);color:#4c3040}
+/* floating cassette radio. Coral and Sakura draw their own bespoke cassette art
+ * (html[data-theme='coral'/'sakura'] .cassette-shell etc, in coral.css/foundation.css) that
+ * wins on selector specificity; every other palette/experience falls back to this
+ * theme-variable-driven version instead of a fixed pink cassette that ignored the active theme. */
+.kono-radio{position:fixed;left:18px;bottom:18px;z-index:30;width:265px;display:grid;grid-template-columns:64px minmax(0,1fr);grid-template-areas:'cassette copy' 'controls controls';gap:8px 10px;padding:12px;border:2px solid var(--wb-line);border-radius:22px;background:var(--wb-surface);box-shadow:0 8px 24px rgba(0,0,0,.18);color:var(--wb-ink)}
+.cassette-shell{grid-area:cassette;position:relative;width:64px;height:48px;padding:7px 7px 5px;border:2px solid var(--wb-accent);border-radius:8px;background:color-mix(in srgb,var(--wb-accent) 16%,var(--wb-surface))}
+.cassette-label{font-size:6px;line-height:1;text-align:center;font-weight:900;letter-spacing:.12em;color:var(--wb-accent)}
+.cassette-window{position:absolute;left:8px;right:8px;top:17px;height:20px;border:1px solid var(--wb-line);border-radius:5px;background:var(--wb-surface);display:flex;align-items:center;justify-content:space-between;padding:0 7px}
+.cassette-window i{width:13px;height:13px;border:3px dotted var(--wb-accent);border-radius:50%;background:var(--wb-surface)}
+.cassette-window span{width:18px;height:3px;border-radius:999px;background:var(--wb-accent)}
+.cassette-tape-line{position:absolute;left:17px;right:17px;bottom:5px;height:2px;border-radius:999px;background:var(--wb-accent)}
+.kono-radio.is-playing .cassette-window i{animation:kono-reel .8s linear infinite}
 .radio-copy{grid-area:copy;display:flex;flex-direction:column;min-width:0}
 .radio-copy small{font-size:9px;font-weight:900;letter-spacing:.1em}
 .radio-copy strong{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .radio-copy span{font-size:10px;opacity:.7}
-.radio-controls{grid-area:controls;display:flex;justify-content:center;gap:8px;padding-top:4px;border-top:1px solid rgba(99,48,67,.15)}
-.radio-controls button{width:34px;height:28px;border:0;border-radius:9px;background:#fff4ef;color:#5d3442;box-shadow:0 2px 0 #b87586;cursor:pointer}
-.radio-controls .radio-play{width:44px;background:#fff;color:#d45082}
-.kono-radio.is-playing .radio-mascot{animation:radio-bob 1.4s ease-in-out infinite}
-@keyframes radio-bob{50%{transform:translateY(-2px) rotate(1deg)}}
-@media(max-width:900px){.kono-radio{position:sticky;left:auto;bottom:10px;margin:12px 14px;width:auto;grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:'mascot copy controls';align-items:center}.radio-controls{border:0;padding:0}.radio-controls button{width:30px}.task{grid-template-columns:48px 7px minmax(0,1fr)!important}}
+.radio-controls{grid-area:controls;display:flex;justify-content:center;gap:8px;padding-top:4px;border-top:1px solid var(--wb-line)}
+.radio-controls button{width:34px;height:28px;border:0;border-radius:9px;background:var(--wb-surface);color:var(--wb-ink);box-shadow:none;cursor:pointer}
+.radio-controls .radio-play{width:44px;background:var(--wb-accent);color:var(--wb-accent-ink)}
+@media(max-width:900px){.kono-radio{position:sticky;left:auto;bottom:10px;margin:12px 14px;width:auto;grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:'cassette copy controls';align-items:center}.cassette-shell{width:44px;height:34px}.radio-controls{border:0;padding:0}.radio-controls button{width:30px}.task{grid-template-columns:48px 7px minmax(0,1fr)!important}}
 @media(max-width:560px){.kono-radio{grid-template-columns:40px minmax(0,1fr);grid-template-areas:'mascot copy' 'controls controls'}.task{min-height:82px!important;padding:13px!important;gap:10px!important}.task strong{font-size:16px!important}.memory-board-frame{border-width:12px!important}}
 /* Production 21.4 — planner events, subject customization, global weather locations */
 .planner-hero{display:flex;align-items:center;justify-content:space-between;gap:20px}
