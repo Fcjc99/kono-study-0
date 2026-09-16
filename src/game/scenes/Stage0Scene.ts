@@ -30,6 +30,8 @@ import { GARDEN_STAGE_NAMES, GardenEvolutionSystem } from '../systems/GardenEvol
 import { CritterSystem } from '../systems/CritterSystem'
 import { KonoInteractionSystem, type KonoLandmarkId } from '../systems/KonoInteractionSystem'
 import { KonoMascotSystem } from '../systems/KonoMascotSystem'
+import { mascotObstacles } from '../data/buildAssets'
+import type { BuildPlacement } from '../../store/model'
 import { EvolutionCoordinator, type EvolutionStageChange } from '../evolution/EvolutionCoordinator'
 
 interface LandmarkRuntime {
@@ -87,6 +89,7 @@ export default class Stage0Scene extends Phaser.Scene {
   private blend: PhaseBlend = stable('afternoon')
   private settings: SanctuaryRuntimeSettings = { ...DEFAULT_SANCTUARY_SETTINGS }
   private progress: SanctuaryProgressState = createSanctuaryProgress('unassigned')
+  private decorations: BuildPlacement[] = []
   private world = new WorldEngine()
   private stateEmitClock = 0
   private readyPhases = new Set<DayPhase>()
@@ -180,6 +183,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.konoInteractions.create(this.settings.reducedMotion, this.progress.profileId)
     this.konoMascot = new KonoMascotSystem(this)
     this.konoMascot.create(this.settings.reducedMotion, this.blend.dominant)
+    this.konoMascot.setObstacles(mascotObstacles(this.decorations))
     this.evolutionCoordinator = new EvolutionCoordinator(
       this,
       (change, animate) => this.applyEvolutionChange(change, animate),
@@ -211,6 +215,7 @@ export default class Stage0Scene extends Phaser.Scene {
     const debugMinutes = this.registry.get('sanctuaryDebugMinutes')
     const quality = this.registry.get('sanctuaryQuality')
     const progress = this.registry.get('sanctuaryProgress')
+    const decorations = this.registry.get('sanctuaryDecorations')
 
     if (isPhaseMode(phaseMode)) this.settings.phaseMode = phaseMode
     if (isSanctuaryWeather(weather)) this.settings.weather = weather
@@ -224,6 +229,7 @@ export default class Stage0Scene extends Phaser.Scene {
         : 'unassigned'
       this.progress = migrateSanctuaryProgress(progress, profileId)
     }
+    if (Array.isArray(decorations)) this.decorations = decorations as BuildPlacement[]
   }
 
   private bindRuntimeEvents(): void {
@@ -237,6 +243,13 @@ export default class Stage0Scene extends Phaser.Scene {
     this.game.events.on(SANCTUARY_EVENTS.fluidSpeed, this.handleFluidSpeedEvent, this)
     this.game.events.on(SANCTUARY_EVENTS.fluidEnabled, this.handleFluidEnabledEvent, this)
     this.game.events.on(SANCTUARY_EVENTS.progress, this.handleProgressEvent, this)
+    this.game.events.on(SANCTUARY_EVENTS.decor, this.handleDecorEvent, this)
+  }
+
+  private handleDecorEvent(decorations: unknown): void {
+    if (!Array.isArray(decorations)) return
+    this.decorations = decorations as BuildPlacement[]
+    this.konoMascot?.setObstacles(mascotObstacles(this.decorations))
   }
 
   private handleProgressEvent(progress: unknown): void {
@@ -709,6 +722,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.game.events.off(SANCTUARY_EVENTS.fluidSpeed, this.handleFluidSpeedEvent, this)
     this.game.events.off(SANCTUARY_EVENTS.fluidEnabled, this.handleFluidEnabledEvent, this)
     this.game.events.off(SANCTUARY_EVENTS.progress, this.handleProgressEvent, this)
+    this.game.events.off(SANCTUARY_EVENTS.decor, this.handleDecorEvent, this)
     this.scale.off('resize', this.handleResize, this)
     this.tweens.killAll()
     this.ambientSprites.forEach((sprite) => sprite.destroy())

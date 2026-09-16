@@ -214,3 +214,25 @@ export const signTextStyle=(asset:BuildAsset,placement:Pick<BuildPlacement,'flip
 })
 export const resolvePlacements=(placements:BuildPlacement[]):{placement:BuildPlacement;asset:BuildAsset}[]=>
  placements.map(placement=>({placement,asset:BUILD_ASSET_BY_ID[placement.assetId]})).filter((x):x is {placement:BuildPlacement;asset:BuildAsset}=>!!x.asset)
+
+/** Layers KONO can walk across freely — a path tile or bridge deck is meant to be stood on, not
+ * avoided, so only everything else (a building, tree, pond feature, or other ground-level decor)
+ * turns into a no-go footprint for the mascot's pathing. */
+const WALKABLE_LAYERS=new Set<BuildLayer>(['ground','ground-detail','terrain','bridge','water-or-bridge','border','wildlife-water'])
+const WORLD_REFERENCE_WIDTH=1448
+const clampValue=(value:number,min:number,max:number):number=>Math.min(max,Math.max(min,value))
+export type MascotObstacle={x:number;y:number;rx:number;ry:number}
+/** placement.x/y already sit at the asset's own anchor point (see buildItemStyle) — usually the
+ * object's base on the ground — so that point doubles as the obstacle's center with no extra math.
+ * The blocking radius is a fraction of the asset's on-screen width, not its full footprint: most
+ * sprites carry transparent padding or an overhanging canopy that KONO can still walk near, and a
+ * radius matching the whole sprite would make wide/tall decorations block far more ground than
+ * they actually occupy. Flattened vertically to roughly match the island's isometric perspective,
+ * the same ratio the terrain's own hardcoded pond exclusion uses. */
+export const obstacleFootprint=(asset:BuildAsset,placement:Pick<BuildPlacement,'x'|'y'|'scale'>):MascotObstacle|null=>{
+ if(WALKABLE_LAYERS.has(asset.layer))return null
+ const rx=clampValue((asset.width/WORLD_REFERENCE_WIDTH)*placement.scale*0.28,0.02,0.12)
+ return {x:placement.x,y:placement.y,rx,ry:rx*0.55}
+}
+export const mascotObstacles=(placements:BuildPlacement[]):MascotObstacle[]=>
+ resolvePlacements(placements).map(({placement,asset})=>obstacleFootprint(asset,placement)).filter((o):o is MascotObstacle=>!!o)

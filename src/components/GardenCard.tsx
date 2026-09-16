@@ -4,6 +4,7 @@ import { SANCTUARY_EVENTS } from '../game/sanctuary/runtime'
 import { DEFAULT_WEATHER_TUNING, type WeatherTuning } from '../game/engine/WeatherManager'
 import type { DayPhase, PhaseMode, SanctuaryQuality, SanctuaryWeather } from '../game/sanctuary/types'
 import type { SanctuaryProgressState } from '../game/progression/types'
+import type { BuildPlacement } from '../store/model'
 import type { EvolutionMilestonePayload } from '../game/evolution/EvolutionCoordinator'
 import type { KonoContextAction, KonoInteractionSummary } from '../game/systems/KonoInteractionSystem'
 import {getKonoActions, type KonoLandmarkId} from '../game/sanctuary/konoActions'
@@ -57,6 +58,9 @@ interface GardenCardProps {
   weather: SanctuaryWeather
   reducedMotion: boolean
   progress: SanctuaryProgressState
+  /** Placed Decorate-mode items, so KONO can path around them instead of walking through them.
+   * Defaults to no decorations for callers (like the Decorate preview) that don't pass any. */
+  decorations?: BuildPlacement[]
   /** Sleep the Phaser render loop while true — the live weather/day-night simulation keeps
    * rendering every frame behind the Decorate overlay otherwise, even though decorate only ever
    * shows a static reference view of the island. On a large/high-res screen that competes for
@@ -97,7 +101,7 @@ const formatDebugTime = (minutes: number) => {
 const debugFromUrl = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sanctuaryDebug') === '1'
 
-export default function GardenCard({ phase, weather, reducedMotion, progress, paused }: GardenCardProps) {
+export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused }: GardenCardProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const gameRef = useRef<PhaserGameHandle | null>(null)
   const visibleRef = useRef(true)
@@ -105,8 +109,8 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, pa
   const syncPauseStateRef = useRef<(() => void) | null>(null)
   const debugEnabledRef = useRef(debugFromUrl())
   const lastCanvasSizeRef = useRef({ width: 0, height: 0 })
-  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress })
-  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress}},[phase,weather,reducedMotion,progress])
+  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, decorations })
+  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,decorations}},[phase,weather,reducedMotion,progress,decorations])
   useEffect(()=>{pausedRef.current=!!paused;syncPauseStateRef.current?.()},[paused])
 
   const [state, setState] = useState<SanctuaryState>(initialState)
@@ -198,6 +202,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, pa
             bootingGame.registry.set('sanctuaryDebugMinutes', null)
             bootingGame.registry.set('sanctuaryQuality', 'auto')
             bootingGame.registry.set('sanctuaryProgress', current.progress)
+            bootingGame.registry.set('sanctuaryDecorations', current.decorations)
           },
         },
       }) as unknown as PhaserGameHandle
@@ -347,6 +352,11 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, pa
     gameRef.current?.registry.set('sanctuaryProgress', progress)
     gameRef.current?.events.emit(SANCTUARY_EVENTS.progress, progress)
   }, [progress])
+
+  useEffect(() => {
+    gameRef.current?.registry.set('sanctuaryDecorations', decorations)
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.decor, decorations)
+  }, [decorations])
 
   const updateDebugTime = (minutes: number) => {
     setDebugMinutes(minutes)
