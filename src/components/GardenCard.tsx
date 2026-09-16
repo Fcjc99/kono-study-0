@@ -181,6 +181,13 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, pa
           roundPixels: false,
           powerPreference: 'high-performance',
           batchSize: 4096,
+          // Decorate mode calls game.loop.sleep() to stop the render loop and freeze the current
+          // frame -- but WebGL's drawing buffer defaults to clearing itself after every composite
+          // (preserveDrawingBuffer defaults to false), so once nothing is redrawing, the *next*
+          // browser repaint can wipe the canvas to black instead of leaving the last frame visible.
+          // Reproduced directly: entering Decorate reliably blacked out the canvas. This keeps the
+          // buffer around between frames, which is exactly what "stop rendering, stay frozen" needs.
+          preserveDrawingBuffer: true,
         },
         callbacks: {
           preBoot: (bootingGame) => {
@@ -239,6 +246,16 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, pa
         resizeFrame = window.requestAnimationFrame(() => {
           resizeFrame = 0
           if (!game || !containerRef.current) return
+          // Entering Decorate mode isn't just a pause -- workbench.css narrows .wb-island's max
+          // width at the same time, so the ResizeObserver below fires right along with it. Canvas
+          // resizing always clears its pixel buffer (that's guaranteed HTML5 canvas behavior, not
+          // implementation-defined like WebGL's drawing-buffer preservation), and with the render
+          // loop already asleep nothing redraws it afterward -- reproduced directly: the canvas
+          // went solid black the instant Decorate mode's CSS resize landed. Skip applying the
+          // resize while paused; syncPauseState's own wake branch already calls resizeGame() right
+          // after game.loop.wake(), so the pending size difference gets picked up and applied then,
+          // once there's a running loop again to redraw the new dimensions.
+          if (pausedRef.current || document.hidden || !visibleRef.current) return
           const width = Math.max(1, Math.round(containerRef.current.clientWidth))
           const height = Math.max(1, Math.round(containerRef.current.clientHeight || width * WORLD_HEIGHT / WORLD_WIDTH))
           const previous = lastCanvasSizeRef.current
