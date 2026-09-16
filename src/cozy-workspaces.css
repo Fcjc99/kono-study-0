@@ -12,7 +12,7 @@
 .workbench .subject-workspace-title h2{font-family:var(--kono-display,Georgia);font-size:clamp(1.8rem,3vw,2.8rem);margin:14px 0;overflow-wrap:anywhere}
 .workbench .subject-label{display:inline-block;color:white;border-radius:30px;padding:8px 14px;max-width:100%;overflow-wrap:anywhere;font-size:.875rem;font-weight:700}
 .workbench .subject-section-tabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid #e0cabc;padding:14px 0;margin-bottom:16px}
-.workbench .subject-section-tabs button[aria-current]{background:var(--accent,#c25f87);color:white}
+.workbench .subject-section-tabs button[aria-current]{background:var(--accent,#c25f87);color:var(--wb-accent-ink,white)}
 .workbench .subject-quick-add{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#f6e9dd;border-radius:18px;padding:14px;margin-bottom:22px}
 .workbench .cozy-task-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:14px;padding:16px;margin:12px 0;background:linear-gradient(110deg,#fffaf4,#fff1f6);border:1px solid #edd8d1;border-radius:18px;box-shadow:0 4px 10px #62321f09}
 .workbench .cozy-task-row:nth-of-type(3n+2){background:linear-gradient(110deg,#fffaf4,#f4f1ff)}
