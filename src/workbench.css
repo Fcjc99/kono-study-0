@@ -5,7 +5,7 @@
 .workbench .sanctuary-world-status{display:none}
 
 .workbench .wb-status > .wb-toolbar{display:flex!important}
-.workbench .sanctuary-accessible-actions{position:static!important;max-width:none!important;margin:0;padding:0 12px;background:var(--wb-surface)}
+.workbench .sanctuary-accessible-actions{position:static!important;max-width:none!important;margin:0;padding:0 12px;background:var(--wb-surface);color:var(--wb-ink)}
 
 .workbench .sanctuary-viewport{width:100%!important;height:auto!important;min-height:0!important;aspect-ratio:4/3!important}
 .workbench .wb-island.is-expanded .sanctuary-card{width:min(100%,calc((100dvh - 150px)*4/3));margin:auto}
@@ -39,6 +39,9 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .workbench :focus-visible,.wb-dialog :focus-visible{outline:3px solid var(--wb-accent);outline-offset:3px}
 .workbench .primary,.wb-dialog .primary{background:var(--wb-accent);color:#fff;border-color:var(--wb-accent)}
 :root[data-theme="midnight"] .workbench .primary,:root[data-theme="midnight"] .wb-dialog .primary{color:#182238}
+/* Same fix as .primary above, for the other two places a white-on-accent style assumes the accent
+ * stays dark-ish: Midnight's --wb-accent is a pale periwinkle, so white text nearly disappears. */
+:root[data-theme="midnight"] .workbench .island-mode-tabs button[aria-current],:root[data-theme="midnight"] .workbench .build-category-tabs button[aria-current]{color:#182238}
 .workbench label,.wb-dialog label{display:grid;gap:5px;font-size:.875rem;min-width:0}
 .workbench input[type="checkbox"],.wb-dialog input[type="checkbox"]{width:22px;height:22px;min-height:22px;accent-color:var(--wb-accent)}
 .workbench textarea,.wb-dialog textarea{resize:vertical;min-height:120px}
