@@ -6,6 +6,7 @@
 
 .workbench .wb-status > .wb-toolbar{display:flex!important}
 .workbench .sanctuary-accessible-actions{position:static!important;max-width:none!important;margin:0;padding:0 12px;background:var(--wb-surface);color:var(--wb-ink)}
+.workbench .sanctuary-load-status{background:var(--wb-surface);color:var(--wb-ink)}
 
 .workbench .sanctuary-viewport{width:100%!important;height:auto!important;min-height:0!important;aspect-ratio:4/3!important}
 .workbench .wb-island.is-expanded .sanctuary-card{width:min(100%,calc((100dvh - 150px)*4/3));margin:auto}
