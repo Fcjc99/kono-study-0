@@ -70,10 +70,24 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .wb-notice{padding:12px 16px;background:var(--wb-surface);border:1px solid var(--wb-accent);border-radius:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .wb-island{position:relative;margin-bottom:24px;min-width:0}
 .wb-scene-toolbar{margin-bottom:8px}.wb-scene-toolbar label{display:flex;align-items:center;gap:10px}
+.wb-island-zoom{display:flex;align-items:center;gap:6px}
+.wb-island-zoom button{min-width:36px;padding:6px 10px}
+.wb-island-zoom span{min-width:3.4em;text-align:center;font-variant-numeric:tabular-nums;font-size:.8125rem;color:var(--wb-muted)}
 .workbench .sanctuary-card{width:100%;border-radius:var(--wb-radius);min-height:0!important}
 .workbench .sanctuary-card canvas{max-width:100%;touch-action:pan-y}
 .workbench .wb-island .sanctuary-stage{min-height:0!important}
 .wb-sanctuary-stage{display:grid}
+/* The scaled stack (see .wb-sanctuary-zoom below) takes over the grid-area:1/1 slot .wb-sanctuary-
+ * backdrop used to hold directly -- min-width/height:0 lets it actually scroll instead of stretching
+ * its own grid track to fit the (visually larger, but layout-unchanged -- transform doesn't affect
+ * layout size) zoomed content inside it. */
+.wb-sanctuary-zoom-wrap{grid-area:1/1;min-width:0;min-height:0;border-radius:var(--wb-radius)}
+/* display:grid so its own children (.wb-sanctuary-backdrop, and the decoration overlay in view mode)
+ * keep working with grid-area:1/1 the same way they did as direct children of .wb-sanctuary-stage
+ * before this wrapper existed. transform-origin:top center zooms from the middle of the island's top
+ * edge, matching where a page scrolled to the section naturally lands. */
+.wb-sanctuary-zoom{display:grid;transform-origin:top center}
+.wb-sanctuary-zoom-wrap:has(.wb-sanctuary-zoom.is-zoomed){overflow:auto}
 .wb-sanctuary-backdrop{grid-area:1/1}
 .wb-sanctuary-backdrop.is-decorating{pointer-events:none}
 /* Matches .sanctuary-viewport's own box — same width (the grid cell, stretched), and the same 4:3
