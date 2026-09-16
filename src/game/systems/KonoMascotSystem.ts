@@ -5,6 +5,7 @@ import type { EnvironmentSnapshot } from '../sanctuary/environmentManager'
 import type { DayPhase } from '../sanctuary/types'
 import type { KonoContextAction, KonoLandmarkId } from './KonoInteractionSystem'
 import { PHASE_LIGHT } from './sanctuaryLighting'
+import type { MascotObstacle } from '../data/buildAssets'
 
 const SOURCE_HEIGHT = 1_086
 const MASCOT_HEIGHT_RATIO = 0.064
@@ -97,13 +98,12 @@ const REACTION_SPOTS: Record<KonoLandmarkId, { x: number; y: number }> = {
   lanterns: NAV_NODES.lanterns,
 }
 
-const POND_EXCLUSION = Object.freeze({ cx: 0.555, cy: 0.635, rx: 0.155, ry: 0.085 })
+const POND_EXCLUSION = Object.freeze({ x: 0.555, y: 0.635, rx: 0.155, ry: 0.085 })
 
-const isWalkablePoint = (point: { x: number; y: number }): boolean => {
-  if (point.x < 0.18 || point.x > 0.82 || point.y < 0.20 || point.y > 0.80) return false
-  const nx = (point.x - POND_EXCLUSION.cx) / POND_EXCLUSION.rx
-  const ny = (point.y - POND_EXCLUSION.cy) / POND_EXCLUSION.ry
-  return nx * nx + ny * ny >= 1
+const insideEllipse = (point: { x: number; y: number }, ellipse: { x: number; y: number; rx: number; ry: number }): boolean => {
+  const nx = (point.x - ellipse.x) / ellipse.rx
+  const ny = (point.y - ellipse.y) / ellipse.ry
+  return nx * nx + ny * ny < 1
 }
 
 const idleReactionForNode = (nodeId: NavNodeId, phase: DayPhase): ReactionTexture | null => {
@@ -155,6 +155,7 @@ export class KonoMascotSystem {
   private forcedTarget = false
   private lastFrameIndex = -1
   private destinationNode: NavNodeId | null = null
+  private obstacles: MascotObstacle[] = []
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
@@ -204,6 +205,14 @@ export class KonoMascotSystem {
 
   setReducedMotion(reducedMotion: boolean): void {
     this.reducedMotion = reducedMotion
+  }
+
+  /** Decorate mode pauses the whole render loop while it's open (see GardenCard's `paused` prop),
+   * so a new footprint only actually has to be respected once play resumes — at that point the
+   * next update() tick's ensureSafePosition() call already relocates KONO off any point that's
+   * now blocked, and clears any in-flight route through it, with no extra bookkeeping needed here. */
+  setObstacles(obstacles: MascotObstacle[]): void {
+    this.obstacles = obstacles
   }
 
   getNormalizedPosition(): { x: number; y: number } {
@@ -297,7 +306,7 @@ export class KonoMascotSystem {
     }
 
     const proposed = { x: this.position.x + dx / distance * step, y: this.position.y + dy / distance * step }
-    if (isWalkablePoint(proposed)) {
+    if (this.isWalkablePoint(proposed)) {
       this.position.x = proposed.x
       this.position.y = proposed.y
     } else {
@@ -318,8 +327,14 @@ export class KonoMascotSystem {
   }
 
 
+  private isWalkablePoint = (point: { x: number; y: number }): boolean => {
+    if (point.x < 0.18 || point.x > 0.82 || point.y < 0.20 || point.y > 0.80) return false
+    if (insideEllipse(point, POND_EXCLUSION)) return false
+    return this.obstacles.every((obstacle) => !insideEllipse(point, obstacle))
+  }
+
   private ensureSafePosition(): void {
-    if (isWalkablePoint(this.position)) return
+    if (this.isWalkablePoint(this.position)) return
     const safeNode = this.closestNode(this.position)
     this.position = { ...NAV_NODES[safeNode] }
     this.target = { ...this.position }
@@ -359,7 +374,7 @@ export class KonoMascotSystem {
     {
       const candidates = WANDER_NODE_POOL.filter((id) => {
         const point = NAV_NODES[id]
-        return Math.hypot(point.x - this.position.x, point.y - this.position.y) > 0.055
+        return Math.hypot(point.x - this.position.x, point.y - this.position.y) > 0.055 && this.isWalkablePoint(point)
       })
       const next = Phaser.Utils.Array.GetRandom(candidates.length ? [...candidates] : [...WANDER_NODE_POOL])
       this.navigateToNode(next)
@@ -384,12 +399,17 @@ export class KonoMascotSystem {
     } else {
       routePoints.push({ ...destination })
     }
-    this.route = routePoints.filter(isWalkablePoint)
+    this.route = routePoints.filter(this.isWalkablePoint)
   }
 
+  /** Prefers a node KONO can actually stand on — a decoration placed on or near a nav node would
+   * otherwise make that node its own unsafe fallback. Only falls back to the nearest node
+   * regardless of blockage if every single one is somehow blocked, so this never returns nothing. */
   private closestNode(point: { x: number; y: number }): NavNodeId {
     let closest: NavNodeId = 'west-junction'
+    let closestWalkable: NavNodeId | null = null
     let best = Number.POSITIVE_INFINITY
+    let bestWalkable = Number.POSITIVE_INFINITY
     ;(Object.keys(NAV_NODES) as NavNodeId[]).forEach((id) => {
       const candidate = NAV_NODES[id]
       const distance = Math.hypot(candidate.x - point.x, candidate.y - point.y)
@@ -397,8 +417,12 @@ export class KonoMascotSystem {
         best = distance
         closest = id
       }
+      if (distance < bestWalkable && this.isWalkablePoint(candidate)) {
+        bestWalkable = distance
+        closestWalkable = id
+      }
     })
-    return closest
+    return closestWalkable ?? closest
   }
 
   private findNodePath(start: NavNodeId, end: NavNodeId): NavNodeId[] {

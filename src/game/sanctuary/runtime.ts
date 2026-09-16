@@ -14,6 +14,7 @@ export const SANCTUARY_EVENTS = {
   fluidSpeed: 'sanctuary:set-fluid-speed',
   fluidEnabled: 'sanctuary:set-fluid-enabled',
   progress: 'sanctuary:set-progress',
+  decor: 'sanctuary:set-decor',
   evolution: 'sanctuary:evolution-milestone',
   interaction: 'sanctuary:kono-interaction',
   state: 'sanctuary:state',
