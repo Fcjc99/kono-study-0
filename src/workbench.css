@@ -270,6 +270,10 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 @media(max-width:700px){
  .workbench{display:block}.workbench .wb-sidebar{display:none}
  .workbench #workspace-main{padding:14px 12px calc(88px + env(safe-area-inset-bottom));max-width:100%}
+ /* Matches the bottom padding above -- without it, a scrollIntoView/focus jump (K-Quiz feedback,
+  * the Sanctuary decorate canvas, keyboard Tab focus) can land its target's bottom edge behind the
+  * fixed .wb-bottom-nav, since scroll geometry doesn't know that strip is visually covered. */
+ html:has(.workbench){scroll-padding-bottom:calc(88px + env(safe-area-inset-bottom))}
  .wb-header{gap:8px}.wb-header h1{font-size:1.5rem}.wb-header .wb-toolbar{gap:6px}.wb-header button{padding:8px 11px}
  .wb-status{gap:6px;margin-bottom:12px}.wb-status .save-status{font-size:.75rem}.wb-status>.wb-toolbar{display:none}
  .wb-panel,.workbench .card{padding:16px;margin-bottom:16px;border-radius:14px}
