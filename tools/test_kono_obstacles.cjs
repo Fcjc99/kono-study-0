@@ -1,7 +1,13 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),ts=require('typescript');
 const root=path.resolve(__dirname,'..');
 class Rect {constructor(x=0,y=0,width=0,height=0){this.setTo(x,y,width,height)} setTo(x,y,width,height){Object.assign(this,{x,y,width,height,left:x,top:y});return this}}
-const phaser={Geom:{Rectangle:Rect},Math:{Clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),Between:(a,b)=>(a+b)/2},Utils:{Array:{GetRandom:a=>a[Math.floor(Math.random()*a.length)]}},BlendModes:{ADD:1}};
+// Round-robins instead of drawing from Math.random(): the assertions below are "never violated"
+// safety properties, so real randomness added no coverage, only flakiness (an unlucky run could
+// wander thousands of ticks without ever revisiting the one node under test). Cycling deterministically
+// still exercises the real pickWanderTarget/findNodePath/collision logic, just makes every run land
+// on the same outcome instead of gambling on one.
+let wanderPick=0
+const phaser={Geom:{Rectangle:Rect},Math:{Clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),Between:(a,b)=>(a+b)/2},Utils:{Array:{GetRandom:a=>a[wanderPick++%a.length]}},BlendModes:{ADD:1}};
 function load(file){const module={exports:{}};const js=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;vm.runInNewContext(js,{module,exports:module.exports,require:n=>n==='phaser'?phaser:load(path.resolve(path.dirname(file),n+'.ts')),Math,Map,Set,Number});return module.exports;}
 function scene(){const objects=[];function sprite(key){const s={key,height:100,width:100,alpha:1,events:{},setTexture(k){this.key=k;return this},setPosition(x,y){this.x=x;this.y=y;return this},setAlpha(a){this.alpha=a;return this},setTint(...t){this.tint=t;return this},setVisible(v){this.visible=v;return this},on(e,cb){this.events[e]=cb;return this}};for(const m of ['setOrigin','setDepth','setInteractive','setScale','setDisplaySize','setAngle','setBlendMode','removeAllListeners','destroy'])s[m]=()=>s;objects.push(s);return s;}return {objects,time:{now:0},game:{events:{on(){},off(){}}},textures:{exists:()=>false},add:{image:(x,y,k)=>sprite(k),rectangle:()=>sprite('core')}};}
 const {KonoMascotSystem}=load(path.join(root,'src/game/systems/KonoMascotSystem.ts'))

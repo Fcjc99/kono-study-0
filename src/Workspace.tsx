@@ -49,13 +49,14 @@ type Edit={key:Collection;entry:Entry;original?:Entry}
 const labels:Record<Collection,string>={tasks:'Assignment',notes:'Note',exams:'Exam / project',calendarEvents:'Event',subjects:'Subject',studyPlans:'Study plan',flashcardDecks:'Flashcards',kquizSets:'K-Quiz set',kquizSources:'K-Quiz note',studySeasons:'Schedule'}
 const cozyPalettes=['coral','sakura','lavender','mint','honey','zen','floral','ocean'] as const
 const cozyPalette=(theme:string)=>cozyPalettes.includes(theme as typeof cozyPalettes[number])?theme:'coral'
-// Modern is one opinionated, fully art-directed look rather than a color you pick — it carries its
-// own fixed palette instead of showing the swatch picker.
-const fixedPaletteExperiences:string[]=['modern']
+// Modern and Zen Ink are each one opinionated, fully art-directed look rather than a color you
+// pick — they carry their own fixed palette instead of showing the swatch picker.
+const fixedPaletteExperiences:string[]=['modern','sumi']
 const experienceOptions=[
  {id:'cozy',title:'Cozy',glyph:'🌸',description:'Notebook tabs, colorful pinned papers and gentle movement.'},
  {id:'simplified',title:'Simplified',glyph:'▢',description:'A compact workspace with straightforward cards and bottom navigation.'},
  {id:'modern',title:'Modern',glyph:'⚪',description:'Clean, minimal and spacious — off-white surfaces, quiet type and a single accent, in the spirit of apple.com.'},
+ {id:'sumi',title:'Zen Ink',glyph:'⛩️',description:'Sumi ink and washi paper — muted indigo and charcoal, hairline rules and quiet type, in the spirit of Japanese ink-wash art.'},
 ] as const
 function ExperienceIcon({id}:{id:string}){return <span className="theme-picker-glyph" aria-hidden="true">{experienceOptions.find(o=>o.id===id)?.glyph??'✦'}</span>}
 // A quick "how much of tonight's/today's work is done" readout — assignments only (exams already get

@@ -1,4 +1,7 @@
-
+/* Zen Ink's own type — literally the "Zen" family pairing on Google Fonts, so the name fits twice
+ * over: a mincho display face for headings, a kaku-gothic body face for everything else. Must stay
+ * the very first rule in this file (only @charset is allowed before an @import). */
+@import url('https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
 .wb-class{border-left:5px solid var(--class-accent,var(--wb-accent))}.wb-class-note{white-space:pre-wrap;padding:14px;border-left:3px solid var(--wb-accent);background:var(--wb-bg)}
 .wb-class-line{display:flex;align-items:baseline;gap:10px;margin:0}
 .wb-class-time{flex:0 0 auto;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;color:color-mix(in srgb,var(--class-accent,var(--wb-accent)) 78%,var(--wb-ink))}
@@ -28,6 +31,10 @@
  * rather than a color applied over the same shapes. Apple.com's own register: off-white, near-black
  * text, one quiet blue, hairline dividers, generous rounding. */
 :root[data-theme="modern"]{--wb-bg:#f5f5f7;--wb-surface:#ffffff;--wb-ink:#1d1d1f;--wb-muted:#6e6e73;--wb-accent:#0071e3;--wb-nav:#ffffff;--wb-nav-ink:#1d1d1f;--wb-line:#d2d2d7;--wb-radius:18px}
+/* Zen Ink (experiences.css) — a second fixed, non-swappable palette: unbleached washi paper, sumi-
+ * ink charcoal text and one quiet indigo (aiiro), with hairline rules instead of shadows and almost
+ * no corner rounding. */
+:root[data-theme="sumi"]{--wb-bg:#eee8d9;--wb-surface:#faf6ea;--wb-ink:#26221e;--wb-muted:#6b6459;--wb-accent:#33475c;--wb-accent-ink:#f3ecd9;--wb-nav:#1c2530;--wb-nav-ink:#e9e0c9;--wb-line:#d7cbab;--wb-radius:2px}
 html:has(.workbench),body:has(.workbench){background:var(--wb-bg)!important;color:var(--wb-ink)!important;min-width:0;overflow-x:clip}
 body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .workbench{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100dvh;color:var(--wb-ink);font:400 1rem/1.55 system-ui,sans-serif;background:var(--wb-bg)}
