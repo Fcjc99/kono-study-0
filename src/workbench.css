@@ -100,12 +100,7 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
  * edge, matching where a page scrolled to the section naturally lands. */
 .wb-sanctuary-zoom{display:grid;transform-origin:top center}
 .wb-sanctuary-zoom-wrap:has(.wb-sanctuary-zoom.is-zoomed){overflow:auto}
-/* translateZ(0) promotes this onto its own compositing layer for the same reason as
- * .build-hotspot-layer in sanctuary-build.css — switching islandMode unmounts/remounts this stack,
- * and some mobile Chrome builds (confirmed on a Samsung Fold 7) have shown stale paint right after a
- * DOM swap like that. Keeping both layers of the same grid-area:1/1 stack equally promoted avoids one
- * repainting a beat behind the other. */
-.wb-sanctuary-backdrop{grid-area:1/1;transform:translateZ(0)}
+.wb-sanctuary-backdrop{grid-area:1/1}
 .wb-sanctuary-backdrop.is-decorating{pointer-events:none}
 /* Matches .sanctuary-viewport's own box — same width (the grid cell, stretched), and the same 4:3
  * aspect-ratio instead of stretching to the full grid row (which also contains the accessible-actions
