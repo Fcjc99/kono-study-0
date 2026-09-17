@@ -8,6 +8,7 @@ import {suggestSchoolDates} from '../store/schoolImport'
 import {classTime} from '../store/classSchedule'
 import type {PlannerRepository} from '../store/repository'
 import type {SharedCatalogRow} from '../store/supabaseRemote'
+import WeekdayPicker from './WeekdayPicker'
 import {catalogRowToSeason,seasonToCatalogEntry} from '../store/schoolCatalogShare'
 import './school-calendar.css'
 import SchoolTimetableImport from './SchoolTimetableImport'
@@ -57,7 +58,7 @@ export default function SchoolCalendarPanel({data,save,draftKey,flow='school',fe
  <p className="wb-muted">The last regular class and final exam date can differ. Snow days do not automatically extend the year; enter the school’s announced makeup dates.</p>
  {draft.school.pattern!=='weekly'&&<><label>Rotation<select value={draft.school.pattern==='elevator'?'elevator':draft.school.cycle.length===2?'ae':draft.school.cycle.length===6?'six':'custom'} onChange={e=>{const elevator=e.target.value==='elevator',cycle=elevator?[...hanoverElevatorCycle]:e.target.value==='ae'?['A day','E day']:Array.from({length:6},(_,i)=>'Day '+(i+1));if(Object.values(draft.week).some(v=>v.length)){setError('Remove the draft classes before changing its rotation, or create another school schedule.');return}change({...draft,week:Object.fromEntries(cycle.map(d=>[d,[]])),school:{...draft.school!,pattern:elevator?'elevator':'rotation',cycle,anchorDay:'',exceptions:draft.school!.exceptions.map(x=>({...x,cycleDay:undefined}))}})}}><option value="ae">A / E · two school-day cycle</option><option value="six">Day 1–6 · six school-day cycle</option><option value="elevator">Hanover Elevator · 1A through 7B</option></select></label>
  <div className="wb-form-grid"><label>A date whose rotation you know<input type="date" value={draft.school.anchorDate} onInput={e=>config({anchorDate:e.currentTarget.value})}/></label><label>That date is<select value={draft.school.anchorDay} onChange={e=>config({anchorDay:e.target.value})}><option value="">Confirm with school</option>{draft.school.cycle.map(d=><option key={d}>{d}</option>)}</select></label></div>
- </>}<div className="wb-toolbar" role="group" aria-label="School weekdays">{dayNames.map((d,i)=><label className="wb-check" key={d}><input type="checkbox" checked={draft.school!.weekdays.includes(i)} onChange={e=>config({weekdays:e.target.checked?[...draft.school!.weekdays,i]:draft.school!.weekdays.filter(x=>x!==i)})}/>{d.slice(0,3)}</label>)}</div>
+ </>}<WeekdayPicker weekdays={draft.school!.weekdays} onChange={weekdays=>config({weekdays})} label="School weekdays" short/>
  {draft.school.pattern!=='weekly'&&<><label className="wb-check"><input type="checkbox" checked={draft.school.snowAdvances} onChange={e=>config({snowAdvances:e.target.checked})}/>Snow days consume the scheduled rotation day</label><p className="wb-muted">Checked: if A day is canceled by snow, the next school day is E. A holiday keeps A waiting for the next school day.</p></>}
  <label className="wb-check"><input type="checkbox" checked={draft.active} onChange={e=>change({...draft,active:e.target.checked})}/>Active school schedule for this profile</label></>}
  {step==='days'&&<SchoolDates key={draft.id} season={draft} change={change}/>}

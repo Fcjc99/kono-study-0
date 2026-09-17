@@ -87,6 +87,16 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 @keyframes voice-pulse{0%,100%{box-shadow:0 0 0 0 rgba(217,70,79,.45)}50%{box-shadow:0 0 0 8px rgba(217,70,79,0)}}
 .voice-add-error{width:100%;color:color-mix(in srgb,#b3273a 65%,var(--wb-ink));font-size:.82rem;margin:4px 0 0}
 @media (prefers-reduced-motion:reduce){.voice-add-button.is-listening{animation:none}}
+/* Fixed to the viewport rather than anchored to the mic button itself -- the header row it lives in
+ * scrolls horizontally on narrow screens (see .wb-header .wb-toolbar above), and an absolutely
+ * positioned bubble inside that row would get clipped by its own scroll container. */
+.kono-speech-bubble{position:fixed;top:calc(env(safe-area-inset-top,0px) + 64px);right:16px;z-index:30;display:flex;align-items:flex-start;gap:8px;max-width:min(260px,calc(100vw - 32px));padding:10px 30px 10px 10px;border:1px solid var(--wb-line);border-radius:14px;background:var(--wb-surface);color:var(--wb-ink);box-shadow:0 8px 24px #0002;animation:kono-bubble-in .3s ease-out}
+.kono-speech-bubble img{width:28px;height:28px;flex:0 0 28px;object-fit:contain}
+.kono-speech-bubble p{margin:0;font-size:.85rem;line-height:1.35}
+.kono-speech-bubble button{position:absolute;top:2px;right:2px;min-height:26px;min-width:26px;width:26px;height:26px;padding:0;border:0;background:transparent;color:var(--wb-muted);line-height:1;font-size:1rem}
+@keyframes kono-bubble-in{0%{opacity:0;transform:translateY(-8px)}100%{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.kono-speech-bubble{animation:none}}
+@media(max-width:700px){.kono-speech-bubble{top:calc(env(safe-area-inset-top,0px) + 12px);right:12px}}
 .wb-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .wb-status{margin-bottom:18px;font-size:.8rem;color:var(--wb-muted)}
 .workbench .save-status{margin:0;padding:0;border:0;background:none;color:inherit;flex:1}
@@ -243,6 +253,8 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .wb-match-outcome.is-loss{background:#fde2d4;color:#a2481a}
 .wb-match-outcome.is-tie{background:#eee3ca;color:#7a6420}
 .wb-check{display:flex!important;gap:10px;align-items:center;min-height:44px}
+.wb-weekday-picker{row-gap:6px}
+.wb-weekday-all{font-weight:600;padding-right:12px;margin-right:2px;border-right:1px solid var(--wb-line)}
 .wb-themes{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:10px;margin:20px 0}
 .wb-themes button{display:grid;gap:8px;text-align:left}.wb-themes span{height:32px;width:100%;border-radius:5px;background:#b15363}
 .wb-themes [aria-pressed="true"]{outline:2px solid var(--wb-accent)}.theme-sakura span{background:#ba6e96}.theme-professional span{background:#305476}.theme-forest span{background:#326e4e}.theme-ocean span{background:#2987ab}.theme-midnight span{background:#24304c}.theme-paper span{background:#d5d1c5}
