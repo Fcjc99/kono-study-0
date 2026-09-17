@@ -71,8 +71,19 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
  * width -- the row already tightens its own gap/padding at narrow widths (see the max-width:700px
  * block below), so this only ever needs a horizontal-scroll escape hatch, not an actual second line. */
 .wb-header .wb-toolbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.wb-header .wb-toolbar::-webkit-scrollbar{display:none}
-.voice-add-button{display:flex;align-items:center;gap:6px;border-radius:999px}
+.voice-add-button{display:flex;align-items:center;gap:6px;border-radius:999px;padding-left:6px}
 .voice-add-button.is-listening{background:#d9464f;color:#fff;border-color:#d9464f;animation:voice-pulse 1.2s ease-in-out infinite}
+/* A small KONO face standing in for a plain mic glyph -- idle breathes gently on its own; listening
+ * switches to the excited pose and animates faster/bigger, so the button reads as "paying attention
+ * to you" rather than just a toggled color. Each animation is scoped to this one element (not the
+ * whole button) precisely so it can't collide with the button-level transform reset under reduced
+ * motion the way Decorate's placed items once did -- see experiences.css's reduced-motion rule. */
+.kono-mic-face{display:block;width:26px;height:26px;flex:0 0 26px;animation:kono-mic-breathe 2.6s ease-in-out infinite}
+.kono-mic-face img{display:block;width:100%;height:100%;object-fit:contain}
+.voice-add-button.is-listening .kono-mic-face{animation:kono-mic-listen .7s ease-in-out infinite}
+@keyframes kono-mic-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes kono-mic-listen{0%,100%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.16) rotate(-4deg)}}
+@media(prefers-reduced-motion:reduce){.kono-mic-face,.voice-add-button.is-listening .kono-mic-face{animation:none}}
 @keyframes voice-pulse{0%,100%{box-shadow:0 0 0 0 rgba(217,70,79,.45)}50%{box-shadow:0 0 0 8px rgba(217,70,79,0)}}
 .voice-add-error{width:100%;color:color-mix(in srgb,#b3273a 65%,var(--wb-ink));font-size:.82rem;margin:4px 0 0}
 @media (prefers-reduced-motion:reduce){.voice-add-button.is-listening{animation:none}}
@@ -152,6 +163,10 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
  * light surface. Rendering it directly on the Sanctuary page for every experience needed a version
  * that reads correctly against --wb-surface instead. */
 .wb-weather-widget{margin:4px 0 14px}
+.wb-stats-strip{display:flex;gap:10px;margin:0 0 10px;flex-wrap:wrap}
+.wb-stat{padding:8px 16px;border:1px solid var(--wb-line);border-radius:12px;background:var(--wb-surface);min-width:112px}
+.wb-stat strong{display:block;font-size:1.35rem;line-height:1.15;font-variant-numeric:tabular-nums}
+.wb-stat small{display:block;color:var(--wb-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
 .mobile-week-weather{display:flex;gap:3px;width:100%;margin:0;padding:0}
 .mobile-week-weather-day{flex:1 1 0;min-width:0;display:grid;place-items:center;gap:1px;padding:6px 2px;border-radius:10px;background:var(--wb-surface);border:1px solid var(--wb-line);color:var(--wb-ink)}
 .mobile-week-weather-day>small{font-size:.62rem;font-weight:750;text-transform:uppercase;letter-spacing:.02em;color:var(--wb-muted)}
