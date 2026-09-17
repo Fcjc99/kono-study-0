@@ -4,6 +4,7 @@ import type {PlannerRepository} from '../store/repository'
 import {BUILD_ASSETS, BUILD_ASSET_BY_ID, BUILD_CATEGORIES, BUILD_CATEGORY_LABELS, SIGN_TEXT_DEFAULTS, buildAssetSrc, buildItemStyle, signTextStyle, type BuildAsset, type BuildCategory} from '../game/data/buildAssets'
 import {useResolvedDayPhase} from '../hooks/useResolvedDayPhase'
 import type {PhaseMode} from '../game/sanctuary/types'
+import DecorateDebugHUD from './DecorateDebugHUD'
 import './sanctuary-build.css'
 
 const nextRotation=(r:0|90|180|270):0|90|180|270=>r===0?90:r===90?180:r===180?270:0
@@ -249,5 +250,6 @@ export default function SanctuaryBuild({data,save,phase}:{data:AppData;save:Plan
    )}</div>
   </section>
   {message&&<p role="status">{message}</p>}
+  <DecorateDebugHUD mode="decorate"/>
  </>
 }

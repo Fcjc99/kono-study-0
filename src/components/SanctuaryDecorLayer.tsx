@@ -2,6 +2,7 @@ import type { AppData } from '../store/model'
 import { buildAssetSrc, buildItemStyle, resolvePlacements, signTextStyle } from '../game/data/buildAssets'
 import { useResolvedDayPhase } from '../hooks/useResolvedDayPhase'
 import type { PhaseMode } from '../game/sanctuary/types'
+import DecorateDebugHUD from './DecorateDebugHUD'
 import './sanctuary-build.css'
 
 /**
@@ -13,14 +14,17 @@ export default function SanctuaryDecorLayer({ data, phase }: { data: AppData; ph
   const profileId = data.activeProfileId
   const resolvedPhase = useResolvedDayPhase(phase)
   const placements = data.sanctuaryDecor[profileId]?.placements ?? []
-  if (!placements.length) return null
-  return <div className="build-hotspot-layer is-view" aria-hidden="true">
-    {resolvePlacements(placements).map(({ placement: p, asset }) => {
-      const signStyle = asset.signArea && p.text ? signTextStyle(asset, p) : null
-      return <div key={p.id} className="build-item is-static" style={buildItemStyle(asset, p)}>
-        <img src={buildAssetSrc(asset, resolvedPhase)} alt="" />
-        {signStyle && <span className="build-sign-text" style={signStyle}>{p.text}</span>}
-      </div>
-    })}
-  </div>
+  if (!placements.length) return <DecorateDebugHUD mode="view" />
+  return <>
+    <div className="build-hotspot-layer is-view" aria-hidden="true">
+      {resolvePlacements(placements).map(({ placement: p, asset }) => {
+        const signStyle = asset.signArea && p.text ? signTextStyle(asset, p) : null
+        return <div key={p.id} className="build-item is-static" style={buildItemStyle(asset, p)}>
+          <img src={buildAssetSrc(asset, resolvedPhase)} alt="" />
+          {signStyle && <span className="build-sign-text" style={signStyle}>{p.text}</span>}
+        </div>
+      })}
+    </div>
+    <DecorateDebugHUD mode="view" />
+  </>
 }
