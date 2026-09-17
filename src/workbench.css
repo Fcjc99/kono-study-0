@@ -67,6 +67,10 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .workbench #workspace-main{min-width:0;padding:22px clamp(16px,3vw,48px) 60px;max-width:1500px;width:100%;margin:0 auto}
 .wb-header,.wb-section-head,.wb-status,.wb-scene-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .wb-header{margin-bottom:10px}.wb-header small{color:var(--wb-muted)}
+/* Search/Trash/Add/mic stay one row on every device instead of wrapping once the row runs out of
+ * width -- the row already tightens its own gap/padding at narrow widths (see the max-width:700px
+ * block below), so this only ever needs a horizontal-scroll escape hatch, not an actual second line. */
+.wb-header .wb-toolbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.wb-header .wb-toolbar::-webkit-scrollbar{display:none}
 .voice-add-button{display:flex;align-items:center;gap:6px;border-radius:999px}
 .voice-add-button.is-listening{background:#d9464f;color:#fff;border-color:#d9464f;animation:voice-pulse 1.2s ease-in-out infinite}
 @keyframes voice-pulse{0%,100%{box-shadow:0 0 0 0 rgba(217,70,79,.45)}50%{box-shadow:0 0 0 8px rgba(217,70,79,0)}}
@@ -89,6 +93,17 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .workbench .sanctuary-card canvas{max-width:100%;touch-action:pan-y}
 .workbench .wb-island .sanctuary-stage{min-height:0!important}
 .wb-sanctuary-stage{display:grid}
+/* Same "cap the preview width while there's more page below it" idea Decorate's own max-width:620px
+ * already uses (see further down), applied to the live view too -- a full-bleed 4:3 island on a wide
+ * desktop window pushes its own height tall enough that the schedule panels below it need a real
+ * scroll to reach, even though nothing about the art needs that much width to read clearly. */
+@media(min-width:900px){.wb-island:not(.is-expanded):not(:has(.wb-sanctuary-backdrop.is-decorating)) .wb-sanctuary-stage{max-width:640px;margin-inline:auto}}
+/* Today's/Tomorrow's schedule side by side on desktop, the same shape as the notes/exams board pair
+ * below them -- collapses to one column at the same width restored-board-pair already does. */
+.today-tomorrow-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.today-tomorrow-pair .wb-panel{margin:0}
+@media(max-width:1100px){.today-tomorrow-pair{grid-template-columns:minmax(0,1fr)}}
+.wb-collapse-toggle{min-height:32px;min-width:32px;padding:0;border-radius:50%;font-size:.85rem;line-height:1;display:grid;place-items:center}
 /* The scaled stack (see .wb-sanctuary-zoom below) takes over the grid-area:1/1 slot .wb-sanctuary-
  * backdrop used to hold directly -- min-width/height:0 lets it actually scroll instead of stretching
  * its own grid track to fit the (visually larger, but layout-unchanged -- transform doesn't affect
@@ -131,7 +146,19 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
  * (see cozy-controls.css's .mobile-desk-header) push this down far enough to clear it. */
 .wb-island:has(.wb-sanctuary-backdrop.is-decorating) .wb-sanctuary-backdrop,
 .wb-island:has(.wb-sanctuary-backdrop.is-decorating) .build-hotspot-layer{position:sticky;top:var(--wb-sticky-top,8px);z-index:3}
-.wb-weather{display:block;margin:6px 0;color:var(--wb-muted)}
+/* Generic, theme-token-driven version of Sidebar's .mobile-week-weather -- that component was
+ * originally only ever rendered inside Cozy's own dark mobile header (see cozy-controls.css, which
+ * still owns the light-on-dark styling for that one spot), so it had no reason to work on a normal
+ * light surface. Rendering it directly on the Sanctuary page for every experience needed a version
+ * that reads correctly against --wb-surface instead. */
+.wb-weather-widget{margin:4px 0 14px}
+.mobile-week-weather{display:flex;gap:3px;width:100%;margin:0;padding:0}
+.mobile-week-weather-day{flex:1 1 0;min-width:0;display:grid;place-items:center;gap:1px;padding:6px 2px;border-radius:10px;background:var(--wb-surface);border:1px solid var(--wb-line);color:var(--wb-ink)}
+.mobile-week-weather-day>small{font-size:.62rem;font-weight:750;text-transform:uppercase;letter-spacing:.02em;color:var(--wb-muted)}
+.mobile-week-weather-day>span{font-size:1rem;line-height:1}
+.mobile-week-weather-day>b{font-size:.75rem;font-weight:800}
+.mobile-week-weather-day>i{font-size:.68rem;font-style:normal;color:var(--wb-muted)}
+@media(max-width:700px){.mobile-week-weather-day>small{font-size:.55rem}.mobile-week-weather-day>b{font-size:.68rem}.mobile-week-weather-day>i{font-size:.6rem}}
 .wb-island.is-expanded{position:fixed;inset:0;z-index:80;background:var(--wb-bg);padding:16px;overflow:auto;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
 .wb-record{border:1px solid var(--wb-line);border-radius:12px;padding:16px;margin:12px 0;background:var(--wb-surface);min-width:0;overflow-wrap:anywhere}
 .wb-record>small{color:var(--wb-muted)}.wb-record.is-complete>h3{text-decoration:line-through}
