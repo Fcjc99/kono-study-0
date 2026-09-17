@@ -1,19 +1,25 @@
-.build-hotspot-layer{grid-area:1/1;position:relative;touch-action:none;z-index:2}
+/* transform:translateZ(0) forces this layer onto its own compositing layer the moment it mounts —
+ * entering Decorate on a Samsung Fold 7 (Chrome), a second screen recording showed every placed item
+ * initially paint at a stale size/position (once even filling most of the frame, centered) that had
+ * nothing to do with its real, correctly-computed layout — confirmed by dumping actual computed
+ * geometry, which matched the art below it. That's a compositor paint bug, not a layout bug, and it
+ * was already showing up narrower elsewhere on this same device (see .build-item below) — this
+ * promotes the whole canvas up front instead of waiting for something on it to earn a layer. */
+.build-hotspot-layer{grid-area:1/1;position:relative;touch-action:none;z-index:2;transform:translateZ(0)}
 .build-hotspot-layer.is-view{pointer-events:none;touch-action:auto}
 /* !important beats the app's global button skins (cozy/simplified/office all style bare <button>
  * elements with a border, padding, min-height and background) — a placed decoration must show only
- * its own transparent art, never a themed button card behind it. */
-.build-item{position:absolute!important;border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;min-height:0!important;cursor:grab;touch-action:none;display:block}
+ * its own transparent art, never a themed button card behind it. will-change:transform is on every
+ * item unconditionally (not just the selected one) for the same stale-paint reason as the hotspot
+ * layer above: the glitch showed up on first entering Decorate, before anything was selected or
+ * dragged, so a fix scoped to only the selected item never covered it. */
+.build-item{position:absolute!important;border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;min-height:0!important;cursor:grab;touch-action:none;display:block;will-change:transform}
 .build-item.is-dragging{cursor:grabbing;z-index:5}
-/* will-change:transform keeps the selected item on its own compositing layer while its Size/Skew
- * controls are visible — without it, some mobile Chrome builds defer repainting it while a finger is
- * actively dragging the (unrelated) slider below: the underlying scale/skew updates immediately, but
- * nothing visibly changes on screen until the touch gesture ends and the browser catches up in one
- * jump. Confirmed on a Samsung Fold 7 (Chrome) via screen recording: the slider and the saved data
- * both tracked correctly the whole time — only the paint was stuck. Scoped to just the selected item
- * (rather than every placed decoration) so a heavily-decorated island isn't holding a compositing
- * layer open for art nothing is currently touching. */
-.build-item.is-selected{outline:2px solid #ffd54a;outline-offset:3px;border-radius:8px;will-change:transform}
+/* Confirmed on a Samsung Fold 7 (Chrome) via screen recording: while the Size/Skew controls are
+ * visible, some mobile Chrome builds defer repainting the selected item while a finger is actively
+ * dragging the (unrelated) slider below — the underlying scale/skew updates immediately, but nothing
+ * visibly changes on screen until the touch gesture ends and the browser catches up in one jump. */
+.build-item.is-selected{outline:2px solid #ffd54a;outline-offset:3px;border-radius:8px}
 .build-item img{width:100%;height:auto;display:block;pointer-events:none;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
 /* Positioned per-asset over the art's own blank sign patch (see BuildAsset.signArea) — sized as a
  * fraction of the item's own box, so it scales and rotates along with the item itself. Color/
