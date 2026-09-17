@@ -138,6 +138,15 @@
 @media(max-width:700px){:root .workbench[data-experience='sumi']{display:block}:root .workbench[data-experience='sumi'] .wb-sticky{padding:15px 4px}}
 @media(max-width:900px){.workbench[data-experience='cozy']{display:block}.workbench[data-experience='cozy'] .mobile-desk-header{display:block!important;position:relative!important;top:auto!important}.workbench[data-experience='cozy'] .sidebar{display:none!important}.workbench[data-experience='cozy'] #workspace-main{padding:0 14px 28px}.workbench[data-experience='cozy'] .wb-header{margin:0 0 16px;padding:20px 8px}.workbench[data-experience='cozy'] .wb-bottom-nav{display:none!important}.workbench[data-experience='cozy'] .mobile-nav button{min-height:44px!important}.workbench[data-experience='cozy'] .radio-controls button{min-height:44px!important}.theme-picker-grid{grid-template-columns:repeat(auto-fill,minmax(72px,1fr))}}
 @media(max-width:700px){:root .workbench[data-experience='modern']{display:block}.workbench[data-experience='cozy'] .wb-board:not(.board-plain){border-width:7px}.workbench[data-experience='cozy'] .wb-note-wrap .kono-sticky{transform:none!important}.workbench[data-experience='cozy'] .wb-calendar button{min-height:54px;border-radius:8px}.workbench[data-experience='cozy'] .wb-header .wb-toolbar{width:100%}.workbench .theme-picker-tile{min-height:0}:root .workbench[data-experience='modern'] .wb-sticky{padding:15px 12px}}
-@media(prefers-reduced-motion:reduce){.workbench[data-experience] button{transition:none!important;transform:none!important}.workbench[data-experience] .kono-sticky{transform:none!important}}
-:root[data-motion='reduced'] .workbench button,:root[data-motion='reduced'] .workbench .kono-sticky{transition:none!important;transform:none!important}
+/* :not(.build-item) -- a placed decoration in Decorate mode is a <button> (for native tap/drag
+ * handling), but its `transform` isn't decorative motion to cancel here: it's the actual placement
+ * math (buildItemStyle's anchor-recentering translate, rotate, skewX and Size-slider scale, all in
+ * one transform). Blanket-cancelling transform on every button under reduced motion silently dropped
+ * every part of that -- not just the scale (making a placed item render at its full un-scaled size),
+ * but also the anchor translate that recenters the box on its own art (making it sit anchored at its
+ * raw top-left corner instead), which together look exactly like "wrong size in a different spot".
+ * Confirmed via a real device's own debug numbers: the item's rendered box matched its un-transformed
+ * layout size to the pixel, both scale and translate silently gone, everywhere this rule reached. */
+@media(prefers-reduced-motion:reduce){.workbench[data-experience] button:not(.build-item){transition:none!important;transform:none!important}.workbench[data-experience] .kono-sticky{transform:none!important}}
+:root[data-motion='reduced'] .workbench button:not(.build-item),:root[data-motion='reduced'] .workbench .kono-sticky{transition:none!important;transform:none!important}
 .workbench[data-experience='cozy'] .wb-record-subjects,.workbench[data-experience='cozy'] .wb-record-tasks{border-left:6px solid var(--subject-accent)!important}.workbench[data-experience='cozy'] .wb-record-subjects h3{color:var(--subject-accent)}.wb-cal-dots{display:flex;gap:3px;min-height:6px;flex-wrap:wrap}.wb-cal-dots i{display:block;width:6px;height:6px;border-radius:50%}
