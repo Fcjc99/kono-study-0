@@ -40,6 +40,12 @@
 :root .workbench[data-experience='modern'] .subject-tabs button[aria-current='page']{background:#fff;box-shadow:0 1px 3px #00000014}
 :root .workbench[data-experience='modern'] .subject-workspace{background:#fff;border-radius:18px;border:1px solid #e5e5e7;border-left:1px solid #e5e5e7}
 :root .workbench[data-experience='modern'] .subject-quick-add{background:#f5f5f7;border-radius:14px}
+:root .workbench[data-experience='sumi'] .subject-tabs{background:transparent;border:1px solid var(--wb-line);border-radius:2px;padding:0}
+:root .workbench[data-experience='sumi'] .subject-tabs button{background:transparent;border:0;border-bottom:1px solid var(--wb-line);border-radius:0;box-shadow:none}
+:root .workbench[data-experience='sumi'] .subject-tabs button:last-child{border-bottom:0}
+:root .workbench[data-experience='sumi'] .subject-tabs button.active,:root .workbench[data-experience='sumi'] .subject-tabs button[aria-current='page']{background:color-mix(in srgb,var(--wb-accent) 10%,transparent);box-shadow:none}
+:root .workbench[data-experience='sumi'] .subject-workspace{background:var(--wb-surface);border-radius:2px;border:1px solid var(--wb-line)}
+:root .workbench[data-experience='sumi'] .subject-quick-add{background:var(--wb-bg);border-radius:2px}
 @media(max-width:1100px){.workbench .restored-board-pair{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:760px){
  .workbench .restored-subjects{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}

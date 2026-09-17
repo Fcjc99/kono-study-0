@@ -20,7 +20,7 @@
 .experience-choice strong{font-size:.95rem}
 .experience-choice span{font-size:.74rem;line-height:1.35}
 .experience-choice[aria-pressed='true']{outline:3px solid var(--wb-accent);outline-offset:2px}
-.workbench .experience-cozy{background:linear-gradient(135deg,#fff4d9,#ffd8e5);color:#684133;border-color:#b98566;font-family:Georgia,serif}.workbench .experience-modern{background:#f5f5f7;color:#1d1d1f;border-color:#d2d2d7;border-radius:14px}.experience-simplified{background:var(--wb-surface)}
+.workbench .experience-cozy{background:linear-gradient(135deg,#fff4d9,#ffd8e5);color:#684133;border-color:#b98566;font-family:Georgia,serif}.workbench .experience-modern{background:#f5f5f7;color:#1d1d1f;border-color:#d2d2d7;border-radius:14px}.experience-simplified{background:var(--wb-surface)}.workbench .experience-sumi{background:#eee8d9;color:#26221e;border-color:#33475c;border-radius:2px;font-family:'Zen Old Mincho',Georgia,serif}
 .cozy-navigation{display:contents}.workbench[data-experience='cozy'] .sidebar{position:sticky;top:0;height:100dvh;min-width:0;grid-column:1;overflow:auto}.workbench[data-experience='cozy'] #workspace-main{grid-column:2;padding-top:0}.workbench[data-experience='cozy'] .mobile-desk-header{display:none!important}
 .workbench[data-experience='cozy']{font-family:var(--font-body,system-ui),sans-serif;background:linear-gradient(135deg,#fff7f1,#f8eee8)}
 .workbench[data-experience='cozy'] .wb-header{margin:0 -20px 16px;padding:24px 22px;border:0;border-bottom:1px solid #ecc9c2;border-radius:0;background:linear-gradient(115deg,#fffaf5,#ffe6de);box-shadow:none}.cozy-heading-flower{display:inline-block;font-size:.7em;color:#db8aa3;margin-left:10px}.workbench[data-experience='cozy'] .wb-header small{color:#ae6570}.workbench[data-experience='cozy'] .wb-panel>h2,.workbench[data-experience='cozy'] .wb-section-head h2{font-family:Georgia,serif}
@@ -86,6 +86,56 @@
 :root .workbench[data-experience='modern'] .workbench :is(input,select,textarea):focus,:root .workbench[data-experience='modern'] .wb-dialog :is(input,select,textarea):focus{outline:none;border-color:var(--wb-accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--wb-accent) 15%,transparent)}
 :root .workbench[data-experience='modern'] .push-pin{display:none}
 :root .workbench[data-experience='modern'] .kquiz-choice,:root .workbench[data-experience='modern'] .kquiz-material-row{border-radius:14px;border:1px solid var(--wb-line)}
+/* Zen Ink: sumi-e ink-wash minimalism — unbleached washi paper, a single indigo (aiiro) accent,
+ * hairline rules instead of shadows-as-borders, almost no corner rounding, and a still, unhurried
+ * feel (no lift-on-hover, no spring easing — colour and border settle, nothing moves). Records read
+ * top to bottom as one continuous scroll (an emakimono handscroll) instead of a grid of cards, and
+ * the calendar's 1px rule grid doubles as a quiet tatami-mat motif. */
+:root .workbench[data-experience='sumi']{grid-template-columns:220px minmax(0,1fr);font-family:'Zen Kaku Gothic New',system-ui,sans-serif;letter-spacing:.01em;background:radial-gradient(ellipse at 12% -8%,color-mix(in srgb,var(--wb-ink) 4%,transparent),transparent 42%),repeating-linear-gradient(115deg,color-mix(in srgb,var(--wb-ink) 2.5%,transparent) 0 1px,transparent 1px 3px),var(--wb-bg)}
+:root .workbench[data-experience='sumi'] .wb-sidebar{padding:30px 20px;gap:26px;box-shadow:none;border-right:1px solid var(--wb-line)}
+:root .workbench[data-experience='sumi'] .wb-brand strong{font-family:'Zen Old Mincho',Georgia,serif;font-size:1.3rem;font-weight:600;letter-spacing:.16em}
+:root .workbench[data-experience='sumi'] .wb-brand small{letter-spacing:.08em;color:color-mix(in srgb,var(--wb-nav-ink) 70%,transparent)}
+:root .workbench[data-experience='sumi'] .wb-tabs-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.18em;color:color-mix(in srgb,var(--wb-nav-ink) 60%,transparent);font-weight:500}
+:root .workbench[data-experience='sumi'] .wb-sidebar nav{gap:1px}
+:root .workbench[data-experience='sumi'] .wb-sidebar nav button{border-radius:0;font-weight:500;min-height:46px;padding:9px 14px;transition:border-color .2s ease,color .2s ease}
+/* A short brush-stroke mark under the page title instead of a card frame around it — the header
+ * reads as an open sheet of paper the page continues onto, not a boxed banner. */
+:root .workbench[data-experience='sumi'] .wb-header{position:relative;padding:26px 4px 20px;margin:0 0 18px;border:0;border-bottom:1px solid var(--wb-line);border-radius:0;background:none;box-shadow:none}
+:root .workbench[data-experience='sumi'] .wb-header::after{content:'';position:absolute;left:0;bottom:-1px;width:56px;height:2px;background:var(--wb-accent)}
+:root .workbench[data-experience='sumi'] h1{font-family:'Zen Old Mincho',Georgia,serif;font-size:2rem;font-weight:600;letter-spacing:.03em;color:var(--wb-ink)}
+:root .workbench[data-experience='sumi'] button,:root .workbench[data-experience='sumi'] input,:root .workbench[data-experience='sumi'] select,:root .workbench[data-experience='sumi'] textarea{border-radius:2px}
+:root .workbench[data-experience='sumi'] button:not(:disabled){transition:border-color .2s ease,background .2s ease,color .2s ease}
+:root .workbench[data-experience='sumi'] button.primary{background:var(--wb-accent);border:1px solid var(--wb-accent);border-radius:2px;color:var(--wb-accent-ink);font-weight:500;box-shadow:none}
+:root .workbench[data-experience='sumi'] button.primary:hover{background:color-mix(in srgb,black 12%,var(--wb-accent))}
+:root .workbench[data-experience='sumi'] button.secondary{background:transparent;border:1px solid var(--wb-line);border-radius:2px;color:var(--wb-ink)}
+:root .workbench[data-experience='sumi'] button.secondary:hover{background:color-mix(in srgb,var(--wb-ink) 5%,transparent)}
+:root .workbench[data-experience='sumi'] .wb-panel,:root .workbench[data-experience='sumi'] .card{border-radius:2px;box-shadow:none;border:1px solid var(--wb-line);background:var(--wb-surface)}
+:root .workbench[data-experience='sumi'] .wb-panel>h2,:root .workbench[data-experience='sumi'] .wb-section-head h2{font-family:'Zen Old Mincho',Georgia,serif;font-weight:600;letter-spacing:.01em}
+/* Ruled underline tabs — a quiet ledger-form register instead of a filled pill/segmented control. */
+:root .workbench[data-experience='sumi'] .island-mode-tabs,:root .workbench[data-experience='sumi'] .subject-section-tabs,:root .workbench[data-experience='sumi'] .build-category-tabs{display:flex;flex-wrap:wrap;gap:4px;background:transparent;border:0;border-bottom:1px solid var(--wb-line);border-radius:0;padding:0;width:fit-content}
+:root .workbench[data-experience='sumi'] .island-mode-tabs button,:root .workbench[data-experience='sumi'] .subject-section-tabs button,:root .workbench[data-experience='sumi'] .build-category-tabs button{background:transparent;border:0;border-bottom:2px solid transparent;border-radius:0;padding:8px 14px;font-weight:500;font-size:.85rem;color:var(--wb-muted);box-shadow:none;transition:border-color .2s ease,color .2s ease}
+:root .workbench[data-experience='sumi'] .island-mode-tabs button[aria-current],:root .workbench[data-experience='sumi'] .subject-section-tabs button[aria-current],:root .workbench[data-experience='sumi'] .build-category-tabs button[aria-current]{background:transparent;color:var(--wb-accent);border-bottom-color:var(--wb-accent);box-shadow:none}
+:root .workbench[data-experience='sumi'] .wb-board-tray{display:none}
+:root .workbench[data-experience='sumi'] .wb-board-canvas,:root .workbench[data-experience='sumi'] .wb-record-grid{grid-template-columns:minmax(0,1fr);gap:0}
+:root .workbench[data-experience='sumi'] .wb-note-wrap.size-large{grid-column:auto}
+:root .workbench[data-experience='sumi'] .wb-sticky,:root .workbench[data-experience='sumi'] .wb-record{padding:18px 4px;margin:0;border:0;border-bottom:1px solid var(--wb-line);border-radius:0;box-shadow:none;background:transparent}
+:root .workbench[data-experience='sumi'] .wb-record:last-child,:root .workbench[data-experience='sumi'] .wb-sticky:last-child{border-bottom:0}
+:root .workbench[data-experience='sumi'] .wb-record-body{margin:8px 0;max-height:160px}
+:root .workbench[data-experience='sumi'] .wb-calendar{gap:1px;background:var(--wb-line);border-radius:2px;overflow:hidden;border:1px solid var(--wb-line)}
+:root .workbench[data-experience='sumi'] .wb-calendar button{border:0;border-radius:0;background:var(--wb-surface);box-shadow:none}
+:root .workbench[data-experience='sumi'] .wb-calendar button[aria-pressed='true']{background:color-mix(in srgb,var(--wb-accent) 12%,var(--wb-surface));color:var(--wb-accent)}
+:root .workbench[data-experience='sumi'] .wb-board:not(.board-plain)>.wb-board-canvas{padding:0}
+:root .workbench[data-experience='sumi'] .wb-board:not(.board-plain)>.wb-toolbar{border-bottom:1px solid var(--wb-line);padding:14px 4px}
+:root .workbench[data-experience='sumi'] .wb-class{border-left:2px solid var(--class-accent,var(--wb-accent))!important;border-radius:0}
+:root .workbench[data-experience='sumi'] .wb-class-note{background:var(--wb-bg);border-radius:2px;font-family:'Zen Kaku Gothic New',sans-serif}
+:root .workbench[data-experience='sumi'] .wb-dialog{border-radius:2px;border:1px solid var(--wb-line);background:var(--wb-surface);box-shadow:0 20px 60px #00000018}
+:root .workbench[data-experience='sumi'] .wb-dialog::backdrop{background:#1c1a1530;backdrop-filter:blur(3px)}
+:root .workbench[data-experience='sumi'] .wb-dialog h2{font-family:'Zen Old Mincho',Georgia,serif;font-weight:600}
+:root .workbench[data-experience='sumi'] .workbench :is(input,select,textarea),:root .workbench[data-experience='sumi'] .wb-dialog :is(input,select,textarea){border:1px solid var(--wb-line);background:var(--wb-bg);border-radius:2px}
+:root .workbench[data-experience='sumi'] .workbench :is(input,select,textarea):focus,:root .workbench[data-experience='sumi'] .wb-dialog :is(input,select,textarea):focus{outline:none;border-color:var(--wb-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--wb-accent) 18%,transparent)}
+:root .workbench[data-experience='sumi'] .push-pin{display:none}
+:root .workbench[data-experience='sumi'] .kquiz-choice,:root .workbench[data-experience='sumi'] .kquiz-material-row{border-radius:2px;border:1px solid var(--wb-line)}
+@media(max-width:700px){:root .workbench[data-experience='sumi']{display:block}:root .workbench[data-experience='sumi'] .wb-sticky{padding:15px 4px}}
 @media(max-width:900px){.workbench[data-experience='cozy']{display:block}.workbench[data-experience='cozy'] .mobile-desk-header{display:block!important;position:relative!important;top:auto!important}.workbench[data-experience='cozy'] .sidebar{display:none!important}.workbench[data-experience='cozy'] #workspace-main{padding:0 14px 28px}.workbench[data-experience='cozy'] .wb-header{margin:0 0 16px;padding:20px 8px}.workbench[data-experience='cozy'] .wb-bottom-nav{display:none!important}.workbench[data-experience='cozy'] .mobile-nav button{min-height:44px!important}.workbench[data-experience='cozy'] .radio-controls button{min-height:44px!important}.theme-picker-grid{grid-template-columns:repeat(auto-fill,minmax(72px,1fr))}}
 @media(max-width:700px){:root .workbench[data-experience='modern']{display:block}.workbench[data-experience='cozy'] .wb-board:not(.board-plain){border-width:7px}.workbench[data-experience='cozy'] .wb-note-wrap .kono-sticky{transform:none!important}.workbench[data-experience='cozy'] .wb-calendar button{min-height:54px;border-radius:8px}.workbench[data-experience='cozy'] .wb-header .wb-toolbar{width:100%}.workbench .theme-picker-tile{min-height:0}:root .workbench[data-experience='modern'] .wb-sticky{padding:15px 12px}}
 @media(prefers-reduced-motion:reduce){.workbench[data-experience] button{transition:none!important;transform:none!important}.workbench[data-experience] .kono-sticky{transform:none!important}}

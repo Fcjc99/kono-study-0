@@ -24,6 +24,7 @@ const EXPERIENCES = [
  { experience: 'cozy', palettes: ['coral', 'sakura', 'lavender', 'mint', 'honey', 'zen', 'floral', 'ocean'] },
  { experience: 'simplified', palettes: ['coral', 'sakura', 'professional', 'forest', 'ocean', 'midnight', 'paper'] },
  { experience: 'modern', palettes: [null] },
+ { experience: 'sumi', palettes: [null] },
 ]
 const PAGES = ['Sanctuary', 'Planner', 'Subjects', 'Notes', 'K-Quiz', 'Exams', 'Settings']
 // Desktop swaps the mobile bottom nav for a persistent .wb-sidebar (Simplified/Modern) --
@@ -135,10 +136,14 @@ async function goTo(page, pageName) {
  }
  return false
 }
+// Most experience ids double as their own visible tile label once capitalized (cozy -> "Cozy"); a
+// few pick a friendlier display name (see experienceOptions in Workspace.tsx) that doesn't follow
+// that pattern, so they need an explicit override here.
+const EXPERIENCE_LABELS = { sumi: 'Zen Ink' }
 async function setExperienceAndTheme(page, experience, theme) {
  await goTo(page, 'Settings')
  await page.waitForTimeout(400)
- const experienceLabel = experience[0].toUpperCase() + experience.slice(1)
+ const experienceLabel = EXPERIENCE_LABELS[experience] ?? (experience[0].toUpperCase() + experience.slice(1))
  await clickVisibleByName(page, experienceLabel)
  await page.waitForTimeout(400)
  if (theme) {
