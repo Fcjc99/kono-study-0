@@ -278,6 +278,12 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
  .wb-status{gap:6px;margin-bottom:12px}.wb-status .save-status{font-size:.75rem}.wb-status>.wb-toolbar{display:none}
  .wb-panel,.workbench .card{padding:16px;margin-bottom:16px;border-radius:14px}
  .wb-section-head{align-items:flex-start}.wb-section-head h2{margin:6px 0}
+ /* Today's/Tomorrow's schedule and the Planner calendar head pack a heading next to the
+  * Academics/Sports/Appointments checkboxes plus a button or two -- as plain wrapped flex row
+  * items that's a squeeze that leaves the heading vertically stranded next to a tall checkbox
+  * stack. Stacking just these heads (not every .wb-section-head, most of which are a simple
+  * title + one button that's fine inline) gives the heading its own full-width line. */
+ .wb-section-head:has(.schedule-view-picker){flex-direction:column;align-items:stretch}
  .wb-scene-toolbar label{font-size:.8125rem}.wb-scene-toolbar label select{max-width:125px}.wb-scene-toolbar button{font-size:.8125rem;padding:8px}
  .wb-note-grid,.wb-record-grid,.wb-form-grid{grid-template-columns:1fr}.wb-note-wrap.size-large{grid-column:auto}
  .workbench .wb-calendar{gap:3px}.workbench .wb-calendar button{min-height:54px;padding:5px;border-radius:5px}.wb-calendar>span{font-size:.75rem}
