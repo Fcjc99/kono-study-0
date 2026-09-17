@@ -109,11 +109,14 @@
  :root[data-experience='cozy'] .mobile-nav button.active{background:linear-gradient(#fff3f7,#f3c8da)!important;border-color:#fff!important;color:#6e3451!important;box-shadow:0 3px 0 #472b22!important}
  :root[data-experience='cozy'] .mobile-player-slot{display:none}
 }
-:root[data-experience='cozy'] .mobile-week-weather{display:flex;gap:2px;width:100%;margin:6px 0 0;padding:0}
-:root[data-experience='cozy'] .mobile-week-weather-day{flex:1 1 0;min-width:0;display:grid;place-items:center;gap:1px;padding:4px 1px;border-radius:8px;background:#fff7f00d;color:#fbeae4}
-:root[data-experience='cozy'] .mobile-week-weather-day>small{font-size:.5rem;font-weight:750;text-transform:uppercase;letter-spacing:.02em;opacity:.85}
-:root[data-experience='cozy'] .mobile-week-weather-day>span{font-size:.85rem;line-height:1}
-:root[data-experience='cozy'] .mobile-week-weather-day>b{font-size:.62rem;font-weight:800}
-:root[data-experience='cozy'] .mobile-week-weather-day>i{font-size:.55rem;font-style:normal;opacity:.7}
+/* Scoped to .mobile-desk-header specifically (not every .mobile-week-weather) -- that's the one
+ * place this light-on-dark styling is correct; workbench.css's generic version now covers the same
+ * component rendered directly on the Sanctuary page, against a normal light surface. */
+:root[data-experience='cozy'] .mobile-desk-header .mobile-week-weather{display:flex;gap:2px;width:100%;margin:6px 0 0;padding:0}
+:root[data-experience='cozy'] .mobile-desk-header .mobile-week-weather-day{flex:1 1 0;min-width:0;display:grid;place-items:center;gap:1px;padding:4px 1px;border-radius:8px;background:#fff7f00d;color:#fbeae4}
+:root[data-experience='cozy'] .mobile-desk-header .mobile-week-weather-day>small{font-size:.5rem;font-weight:750;text-transform:uppercase;letter-spacing:.02em;opacity:.85}
+:root[data-experience='cozy'] .mobile-desk-header .mobile-week-weather-day>span{font-size:.85rem;line-height:1}
+:root[data-experience='cozy'] .mobile-desk-header .mobile-week-weather-day>b{font-size:.62rem;font-weight:800}
+:root[data-experience='cozy'] .mobile-desk-header .mobile-week-weather-day>i{font-size:.55rem;font-style:normal;opacity:.7}
 @media(prefers-reduced-motion:reduce){:root[data-experience='cozy'] button{transition:none!important;translate:none!important}}
 :root[data-experience='cozy'][data-motion='reduced'] button{transition:none!important;translate:none!important}

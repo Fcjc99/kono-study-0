@@ -20,7 +20,7 @@ export function NavIcon({name,experience}:{name:ViewName;experience?:string}){
 const weatherEmoji:Record<DailyWeatherForecast['weather'],string>={clear:'☀️',cloudy:'☁️',rain:'🌧️',wind:'💨',snow:'❄️'}
 const weekdayShort=(date:string)=>new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'short'})
 
-function WeekWeather({days}:{days:DailyWeatherForecast[]}){
+export function WeekWeather({days}:{days:DailyWeatherForecast[]}){
  if(!days.length)return null
  return <div className="mobile-week-weather" aria-label="Weekly weather forecast">{days.slice(0,7).map((day,i)=><div className="mobile-week-weather-day" key={day.date}><small>{i===0?'Today':weekdayShort(day.date)}</small><span aria-hidden="true">{weatherEmoji[day.weather]}</span><b>{day.highF}°</b><i>{day.lowF}°</i></div>)}</div>
 }
