@@ -1,4 +1,6 @@
 .schedule-import fieldset{border:0;padding:0;margin:16px 0;min-width:0}
+.schedule-import .schedule-photo-import{padding-top:16px;border-top:1px solid var(--line,#d9c6ba)}
+.schedule-import .schedule-photo-import legend{font-weight:700;padding:0 0 4px}
 .schedule-import label{display:grid;gap:8px;margin:12px 0}
 .schedule-import .import-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
 .schedule-import input,.schedule-import textarea,.schedule-import select{width:100%;min-width:0;box-sizing:border-box;font-size:16px}
