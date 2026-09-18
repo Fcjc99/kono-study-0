@@ -63,8 +63,10 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .wb-sidebar nav{display:grid;gap:6px}
 .workbench .wb-sidebar nav button{background:transparent;border-color:transparent;text-align:left;color:inherit}
 .workbench .wb-sidebar nav button[aria-current="page"]{background:#ffffff20;border-color:#ffffff45}
-.wb-profile{margin-top:auto}.wb-music{border-top:1px solid #ffffff35}
-.workbench #workspace-main{min-width:0;padding:22px clamp(16px,3vw,48px) 60px;max-width:1500px;width:100%;margin:0 auto}
+.wb-profile{margin-top:auto}
+/* 76px bottom padding clears the floating .wb-music-bar pill (see its own rule further down) so it
+ * never sits over the last bit of page content. */
+.workbench #workspace-main{min-width:0;padding:22px clamp(16px,3vw,48px) 76px;max-width:1500px;width:100%;margin:0 auto}
 .wb-header,.wb-section-head,.wb-status,.wb-scene-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .wb-header{margin-bottom:10px}.wb-header small{color:var(--wb-muted)}
 /* Search/Trash/Add/mic stay one row on every device instead of wrapping once the row runs out of
@@ -119,6 +121,20 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
  * desktop window pushes its own height tall enough that the schedule panels below it need a real
  * scroll to reach, even though nothing about the art needs that much width to read clearly. */
 @media(min-width:900px){.wb-island:not(.is-expanded):not(:has(.wb-sanctuary-backdrop.is-decorating)) .wb-sanctuary-stage{max-width:640px;margin-inline:auto}}
+.wb-island-side{display:flex;flex-direction:column;gap:10px}
+.wb-island-side .wb-stats-strip{margin:0}
+.wb-island-side .wb-weather-widget{margin:0}
+/* A capped-width island centered in a much wider pane (the rule above) left the toolbar spanning the
+ * full pane width above it, spread out with big gaps while the art sat narrow and centered below --
+ * exactly the "dead space" a wide window shows. Past 1100px there's room to give that space a real
+ * job: a sidebar column for the streak/weather readout beside the toolbar+island, sized to match, so
+ * the whole section reads as one intentional block instead of a narrow card floating in a wide one. */
+@media(min-width:1100px){
+ .wb-island:not(.is-expanded):not(:has(.wb-sanctuary-backdrop.is-decorating)){display:grid;grid-template-columns:minmax(0,640px) minmax(200px,260px);column-gap:28px;justify-content:center;align-items:start}
+ .wb-island:not(.is-expanded):not(:has(.wb-sanctuary-backdrop.is-decorating)) .wb-scene-toolbar{grid-column:1;margin-bottom:12px}
+ .wb-island:not(.is-expanded):not(:has(.wb-sanctuary-backdrop.is-decorating)) .wb-sanctuary-stage{grid-column:1;max-width:none;margin-inline:0}
+ .wb-island:not(.is-expanded):not(:has(.wb-sanctuary-backdrop.is-decorating)) .wb-island-side{grid-column:2;grid-row:1/3;padding-top:6px}
+}
 /* Today's/Tomorrow's schedule side by side on desktop, the same shape as the notes/exams board pair
  * below them -- collapses to one column at the same width restored-board-pair already does. */
 .today-tomorrow-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
@@ -126,16 +142,22 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 @media(max-width:1100px){.today-tomorrow-pair{grid-template-columns:minmax(0,1fr)}}
 .wb-collapse-toggle{min-height:32px;min-width:32px;padding:0;border-radius:50%;font-size:.85rem;line-height:1;display:grid;place-items:center}
 /* The scaled stack (see .wb-sanctuary-zoom below) takes over the grid-area:1/1 slot .wb-sanctuary-
- * backdrop used to hold directly -- min-width/height:0 lets it actually scroll instead of stretching
- * its own grid track to fit the (visually larger, but layout-unchanged -- transform doesn't affect
- * layout size) zoomed content inside it. */
-.wb-sanctuary-zoom-wrap{grid-area:1/1;min-width:0;min-height:0;border-radius:var(--wb-radius)}
+ * backdrop used to hold directly -- min-width/height:0 keeps this box from stretching to fit the
+ * (visually larger, but layout-unchanged -- transform doesn't affect layout size) zoomed content
+ * inside it. overflow:hidden clips that content to the box's rounded corners; panning is handled
+ * entirely in JS via a translate() offset (see Workspace.tsx), not native scrolling -- transform:scale
+ * doesn't grow the box's actual scrollable area, so overflow:auto here would have nothing to scroll. */
+.wb-sanctuary-zoom-wrap{grid-area:1/1;min-width:0;min-height:0;border-radius:var(--wb-radius);overflow:hidden;touch-action:manipulation}
 /* display:grid so its own children (.wb-sanctuary-backdrop, and the decoration overlay in view mode)
  * keep working with grid-area:1/1 the same way they did as direct children of .wb-sanctuary-stage
- * before this wrapper existed. transform-origin:top center zooms from the middle of the island's top
- * edge, matching where a page scrolled to the section naturally lands. */
-.wb-sanctuary-zoom{display:grid;transform-origin:top center}
-.wb-sanctuary-zoom-wrap:has(.wb-sanctuary-zoom.is-zoomed){overflow:auto}
+ * before this wrapper existed. transform-origin:center zooms from the middle so panning can reach
+ * every edge evenly, rather than being anchored to one side. */
+.wb-sanctuary-zoom{display:grid;transform-origin:center}
+/* Once zoomed, this element owns pinch/pan gestures entirely in JS (see the onIslandTouch and
+ * onIslandPointer handlers in Workspace.tsx) -- touch-action:none stops the browser's own
+ * page-pan/pinch-zoom from fighting it. */
+.wb-sanctuary-zoom-wrap:has(.wb-sanctuary-zoom.is-zoomed){touch-action:none;cursor:grab}
+.wb-sanctuary-zoom-wrap:has(.wb-sanctuary-zoom.is-zoomed):active{cursor:grabbing}
 .wb-sanctuary-backdrop{grid-area:1/1}
 .wb-sanctuary-backdrop.is-decorating{pointer-events:none}
 /* Matches .sanctuary-viewport's own box — same width (the grid cell, stretched), and the same 4:3
@@ -266,14 +288,30 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .workbench.density-compact .wb-panel{padding:16px;margin-bottom:14px}.density-compact .wb-record{padding:12px;margin:8px 0}
 .workbench[data-decoration="false"] .wb-sticky{box-shadow:none}.workbench[data-decoration="false"] .wb-brand>span{border-radius:6px}
 .wb-bottom-nav{display:none}
+/* A single persistent, deliberately small player -- the one place playback lives now, replacing the
+ * larger cassette card that used to appear separately in each experience's sidebar/mobile header and
+ * again on the Sanctuary page. Floats centered at the page bottom on every breakpoint and experience;
+ * pointer-events:none on the wrapper keeps the empty space around the pill from blocking clicks on
+ * whatever's beneath it, while the pill itself (pointer-events:auto) stays interactive. */
+.wb-music-bar{position:fixed;left:0;right:0;bottom:0;z-index:35;display:flex;justify-content:center;pointer-events:none}
+.kono-radio-mini{pointer-events:auto;display:flex;align-items:center;gap:8px;max-width:min(280px,calc(100vw - 24px));margin:0 0 10px;padding:6px 12px 6px 6px;border:1px solid var(--wb-line);border-radius:999px;background:color-mix(in srgb,var(--wb-surface) 90%,transparent);backdrop-filter:blur(6px);box-shadow:0 4px 16px #00000022;color:var(--wb-ink)}
+.kono-radio-mini .radio-play{flex:0 0 26px;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:var(--wb-accent);color:var(--wb-accent-ink);cursor:pointer;display:grid;place-items:center;font-size:.7rem;line-height:1}
+.kono-radio-mini .radio-play:disabled{opacity:.5;cursor:not-allowed}
+.kono-radio-mini .radio-mini-copy{display:grid;min-width:0;line-height:1.25}
+.kono-radio-mini .radio-mini-copy b{font-size:.75rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kono-radio-mini .radio-mini-copy small{font-size:.66rem;color:var(--wb-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kono-radio-mini.is-playing{border-color:var(--wb-accent)}
 @media(max-width:900px){.workbench{grid-template-columns:175px minmax(0,1fr)}.workbench .wb-sidebar{padding:20px 12px}.wb-note-wrap.size-large{grid-column:auto}}
 @media(max-width:700px){
  .workbench{display:block}.workbench .wb-sidebar{display:none}
- .workbench #workspace-main{padding:14px 12px calc(88px + env(safe-area-inset-bottom));max-width:100%}
+ /* 88px clears the fixed .wb-bottom-nav; the extra 52px clears the .wb-music-bar pill floating just
+  * above it on this same (non-cozy) breakpoint -- see both elements' own rules further down. */
+ .workbench #workspace-main{padding:14px 12px calc(140px + env(safe-area-inset-bottom));max-width:100%}
  /* Matches the bottom padding above -- without it, a scrollIntoView/focus jump (K-Quiz feedback,
   * the Sanctuary decorate canvas, keyboard Tab focus) can land its target's bottom edge behind the
-  * fixed .wb-bottom-nav, since scroll geometry doesn't know that strip is visually covered. */
- html:has(.workbench){scroll-padding-bottom:calc(88px + env(safe-area-inset-bottom))}
+  * fixed .wb-bottom-nav or the music pill above it, since scroll geometry doesn't know that strip is
+  * visually covered. */
+ html:has(.workbench){scroll-padding-bottom:calc(140px + env(safe-area-inset-bottom))}
  .wb-header{gap:8px}.wb-header h1{font-size:1.5rem}.wb-header .wb-toolbar{gap:6px}.wb-header button{padding:8px 11px}
  .wb-status{gap:6px;margin-bottom:12px}.wb-status .save-status{font-size:.75rem}.wb-status>.wb-toolbar{display:none}
  .wb-panel,.workbench .card{padding:16px;margin-bottom:16px;border-radius:14px}
@@ -290,6 +328,9 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
  .wb-bottom-nav{position:fixed;inset:auto 0 0;z-index:40;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:6px 6px calc(6px + env(safe-area-inset-bottom));gap:4px;border-top:1px solid var(--wb-line);background:var(--wb-surface)}
  .workbench .wb-bottom-nav button{font-size:.8125rem;min-height:48px;padding:6px 2px;border-color:transparent}
  .workbench .wb-bottom-nav [aria-current="page"]{background:var(--wb-accent);color:var(--wb-accent-ink)}
+ /* Floats the music pill just above the fixed bottom nav on this breakpoint instead of behind it
+  * (cozy has no bottom nav here -- see .wb-music-bar's own rule for its plain bottom:0 default). */
+ .workbench:not([data-experience='cozy']) .wb-music-bar{bottom:calc(64px + env(safe-area-inset-bottom))}
  .wb-dialog{padding:20px 16px;max-height:calc(100dvh - 16px);border-radius:18px;width:calc(100% - 16px)}
  .wb-actions[open]>div{right:auto;left:0}
  .workbench .wb-island.is-expanded{padding:8px}
