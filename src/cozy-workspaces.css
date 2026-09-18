@@ -29,7 +29,7 @@
 :root .workbench[data-experience='cozy'] .restored-board-pair .board-ribbon strong{font-size:1.15rem!important}
 :root .workbench[data-experience='cozy'] .restored-board-pair .board-ribbon small{font-size:.75rem}
 :root .workbench[data-experience='cozy'] .restored-board-pair .board-link{font-size:.875rem;min-height:44px;white-space:normal}
-:root .workbench[data-experience='cozy'] .restored-board-pair .memory-board-canvas{grid-template-columns:minmax(0,1fr);min-height:300px!important;padding:30px 14px!important;overflow:visible;background-color:#d1a276!important;background-image:radial-gradient(circle at 1px 1px,rgba(90,51,29,.18) 1px,transparent 1.2px),radial-gradient(circle at 4px 4px,rgba(255,255,255,.15) .8px,transparent 1px),linear-gradient(125deg,rgba(255,255,255,.13),transparent 45%)!important;background-size:7px 7px,11px 11px,100% 100%!important;box-shadow:inset 0 5px 18px #55311d26}
+:root .workbench[data-experience='cozy'] .restored-board-pair .memory-board-canvas{grid-template-columns:minmax(0,1fr)!important;min-height:300px!important;padding:30px 14px!important;overflow:visible;background-color:#d1a276!important;background-image:radial-gradient(circle at 1px 1px,rgba(90,51,29,.18) 1px,transparent 1.2px),radial-gradient(circle at 4px 4px,rgba(255,255,255,.15) .8px,transparent 1px),linear-gradient(125deg,rgba(255,255,255,.13),transparent 45%)!important;background-size:7px 7px,11px 11px,100% 100%!important;box-shadow:inset 0 5px 18px #55311d26}
 .workbench .restored-board-pair .memory-board-empty{padding:22px 10px}
 .workbench .restored-board-pair .memory-board-empty p{font-size:1rem}
 .workbench .restored-board-pair .board-tray{font-size:.75rem;color:#fff1e5;gap:8px}
