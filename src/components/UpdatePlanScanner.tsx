@@ -101,7 +101,7 @@ export default function UpdatePlanScanner({ profileId, subjects, save, close }: 
   }
 
   return <div className="update-plan-scanner">
-    <p>Take photos of handwritten or printed notes listing assignments, due dates, tests, or classes — a to-do list, a torn notebook page, a whole week of a planner, anything. Every item found is added to your plan right away, flagged in red until you open or confirm it.</p>
+    <p>Take photos of handwritten or printed notes listing assignments, due dates, tests, or classes — a to-do list, a torn notebook page, a whole week of a planner, or a full course syllabus (photograph or scan each page). Every item found across every page is added to your plan right away, flagged in red until you open or confirm it.</p>
     <p className="wb-muted">Needs a real AI vision model to read handwriting reliably. Uses the same AI key as K-Quiz — set it up once in either place and it works in both. The photos and key go straight to your chosen provider from this browser; nothing is stored anywhere else.</p>
     <details><summary>AI settings</summary>
       <label>Provider<select value={provider} onChange={e => setProvider(e.target.value)}><option value="gemini">Google Gemini (free tier available)</option><option value="openai">OpenAI</option></select></label>
