@@ -36,6 +36,8 @@ import SanctuaryBuild from './components/SanctuaryBuild'
 import SanctuaryDecorLayer from './components/SanctuaryDecorLayer'
 import PeerConnections from './components/PeerConnections'
 import {NavIcon,WeekWeather} from './components/Sidebar'
+import {downloadData} from './store/localRepository'
+import {buildIcs} from './store/icsExport'
 import {APP_VERSION} from './version'
 import './workbench.css'
 import './design-restoration.css'
@@ -187,6 +189,23 @@ function Workspace({store}:{store:Store}){
  const dueSoon=[...ownTasks.filter(t=>!t.done).map(t=>({id:t.id,title:t.title,due:t.due})),...data.exams.filter(e=>e.profileId===profile.id&&!e.done).map(e=>({id:e.id,title:e.title,due:e.due}))].filter(t=>t.due>=today&&t.due<=addDays(today,3)).sort((a,b)=>a.due.localeCompare(b.due))
  const showDigest=data.settings.loginDigest!==false&&!digestDismissed&&dueSoon.length>0
  const dismissDigest=()=>{setDigestDismissed(true);try{sessionStorage.setItem(digestKey,today)}catch{/* Best effort; worst case it reappears next reload today. */}}
+ // Flags a day as a workload crunch point without any grade-weighting: either three or more
+ // undone things land on the same day, or two or more exams do -- exams are heavier than routine
+ // homework, so a pair of them alone is worth surfacing even below the generic 3-item threshold.
+ const crunchKey='kono-crunch:'+(store.user?.id??'device')+':'+profile.id
+ const [crunchDismissed,setCrunchDismissed]=useState(()=>{try{return sessionStorage.getItem(crunchKey)===today}catch{return false}})
+ const crunchDays=(()=>{
+  const items=[
+   ...ownTasks.filter(t=>!t.done).map(t=>({id:t.id,title:t.title,due:t.due,kind:'task' as const})),
+   ...data.exams.filter(e=>e.profileId===profile.id&&!e.done).map(e=>({id:e.id,title:e.title,due:e.due,kind:'exam' as const})),
+   ...data.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done).map(e=>({id:e.id,title:e.title,due:e.date,kind:'event' as const})),
+  ].filter(item=>item.due>=today&&item.due<=addDays(today,13))
+  const byDay=new Map<string,typeof items>()
+  for(const item of items)byDay.set(item.due,[...(byDay.get(item.due)??[]),item])
+  return [...byDay.entries()].filter(([,list])=>list.length>=3||list.filter(i=>i.kind==='exam').length>=2).sort(([a],[b])=>a.localeCompare(b))
+ })()
+ const showCrunch=data.settings.loginDigest!==false&&!crunchDismissed&&crunchDays.length>0
+ const dismissCrunch=()=>{setCrunchDismissed(true);try{sessionStorage.setItem(crunchKey,today)}catch{/* Best effort; worst case it reappears next reload today. */}}
  // Items auto-added by a photo scan (K-Quiz's Update-entire-plan and the schedule photo importer
  // both flag entries this way) -- gathered across every collection that can carry the flag so a
  // scan landing items under several different subjects still shows up as one place to check them.
@@ -330,6 +349,7 @@ function Workspace({store}:{store:Store}){
    <div className="wb-status"><div className="wb-toolbar"><button disabled={!repository.canUndo} onClick={()=>void run(repository.undo,'Undone. Earned progress is kept.')}>Undo</button><button disabled={!repository.canRedo} onClick={()=>void run(repository.redo,'Redone.')}>Redo</button></div></div>
    {message&&<p role="status" className="wb-notice">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></p>}
    {showDigest&&<div className="wb-notice login-digest" role="status"><div><strong>{dueSoon.length} thing{dueSoon.length===1?'':'s'} due in the next 3 days</strong><ul>{dueSoon.slice(0,5).map(t=><li key={t.id}>{t.title} · {dateLabel(t.due)}</li>)}</ul>{dueSoon.length>5&&<small>+{dueSoon.length-5} more</small>}</div><button onClick={dismissDigest}>Got it</button></div>}
+   {showCrunch&&<div className="wb-notice crunch-digest" role="status"><div><strong>{crunchDays.length===1?'A busy day is':'Busy days are'} coming up</strong><ul>{crunchDays.slice(0,3).map(([day,list])=><li key={day}>{dateLabel(day)}: {list.length} thing{list.length===1?'':'s'} due{list.filter(i=>i.kind==='exam').length>1?' (multiple exams)':''}</li>)}</ul>{crunchDays.length>3&&<small>+{crunchDays.length-3} more busy day{crunchDays.length-3===1?'':'s'}</small>}</div><button onClick={dismissCrunch}>Got it</button></div>}
    {showReviewDigest&&<div className="wb-notice review-digest" role="status"><div><strong>{needsReviewEntries.length} item{needsReviewEntries.length===1?'':'s'} from a scanned photo need{needsReviewEntries.length===1?'s':''} a check</strong><small>Added automatically — make sure each one is correct.</small></div><button className="primary" onClick={()=>setReviewOpen(true)}>Review now</button><button onClick={dismissReviewDigest}>Later</button></div>}
    {hasDraft&&!editor&&<div className="wb-notice">You have an unfinished draft.<button onClick={()=>{try{const draft=JSON.parse(localStorage.getItem(draftScope)??'null') as Edit;if(!draft||!collections.includes(draft.key)||draft.entry.profileId!==profile.id)throw Error('Invalid draft');setEditor(draft)}catch{setMessage('This draft could not be opened.')}}}>Resume draft</button><button onClick={()=>{setConfirmation({text:'Discard this unfinished draft?',action:()=>{localStorage.removeItem(draftScope);localStorage.removeItem(draftScope+':assignment-dates');setHasDraft(false)}})}}>Discard draft</button></div>}
    {page==='Sanctuary'&&<>
@@ -352,7 +372,7 @@ function Workspace({store}:{store:Store}){
    {page==='Settings'&&<div className="settings-groups"><div className="wb-section-head settings-page-tools"><h2>Settings</h2><small>Version {APP_VERSION} · Build {releaseLabel}</small></div><nav className="subject-section-tabs" aria-label="Settings sections">{['Appearance','Friends','Schedules','Account','Plans & more'].map(tab=><button key={tab} aria-current={tab===settingsTab?'page':undefined} onClick={()=>setSettingsTab(tab)}>{tab}</button>)}</nav>
    {settingsTab==='Appearance'&&<section className="wb-panel"><Appearance settings={data.settings} setting={setting}/></section>}
    {settingsTab==='Friends'&&<section className="wb-panel">{store.user?<PeerConnections repository={repository} myUserId={store.user.id} reducedMotion={reduced}/>:<p>Sign in with a KONO account to connect with classmates and share your classes.</p>}</section>}
-   {settingsTab==='Schedules'&&<section className="wb-panel"><ScheduleSetup data={data} save={save} draftKey={draftScope} fetchCatalog={repository.fetchSchoolCatalog} submitCatalogEntry={repository.submitSchoolCatalogEntry}/><details><summary>Weekly schedules & seasons · edit or pause</summary><SchedulePanel data={data} save={save} draftKey={draftScope+':schedule'}/></details><details><summary>Share a schedule with someone else</summary><ScheduleShare data={data} save={save}/></details><details><summary>Import assignments or dated events from a PDF</summary><ScheduleImport data={data} save={save}/></details></section>}
+   {settingsTab==='Schedules'&&<section className="wb-panel"><ScheduleSetup data={data} save={save} draftKey={draftScope} fetchCatalog={repository.fetchSchoolCatalog} submitCatalogEntry={repository.submitSchoolCatalogEntry}/><details><summary>Weekly schedules & seasons · edit or pause</summary><SchedulePanel data={data} save={save} draftKey={draftScope+':schedule'}/></details><details><summary>Share a schedule with someone else</summary><ScheduleShare data={data} save={save}/></details><details><summary>Import assignments or dated events from a PDF</summary><ScheduleImport data={data} save={save}/></details><details><summary>Export to your calendar app</summary><p>Download every assignment, exam and event in {profile.label} as a calendar file, then import or add it in Google Calendar, Apple Calendar, or Outlook. This is a one-time snapshot -- re-download it after making big changes to keep your calendar app in sync.</p><button type="button" onClick={()=>downloadData(buildIcs(data,profile.id),(profile.label||'kono-plan').toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.ics','text/calendar')}>Download calendar (.ics)</button></details></section>}
    {settingsTab==='Account'&&<section className="wb-panel"><AccountPanel store={store}/></section>}
    {settingsTab==='Plans & more'&&<div className="wb-legacy-settings"><Settings data={data} setData={save} weatherState={weather} onDeleteProfile={id=>{const p=data.profiles.find(x=>x.id===id);if(!p)return;setConfirmation({text:'Delete plan “'+p.label+'” and all its subjects, assignments, notes, schedules and Sanctuary progress? This does not delete your account or other plans. Export a backup first. Plan deletion is not kept in Trash.',action:()=>void run(()=>save(d=>deleteProfile(d,id)),'Plan deleted. Other plans were kept.')})}}/></div>}
    </div>}
