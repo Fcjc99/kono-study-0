@@ -267,6 +267,12 @@ button.needs-review-record{outline-offset:-2px}
 .wb-subtask-add{display:flex;gap:8px;margin-top:6px}
 .wb-subtask-add input{flex:1}
 .subtask-chip{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--wb-line);font-size:.75rem}
+.wb-time-estimate{margin:4px 0 8px;padding:12px;border:1px solid var(--wb-line);border-radius:12px}
+.wb-time-suggestions{margin-top:10px;padding-top:10px;border-top:1px dashed var(--wb-line)}
+.wb-time-suggestion-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.wb-time-suggestion-list button{padding:6px 12px;border-radius:999px;border:1px solid var(--wb-line);background:var(--wb-panel-bg,transparent)}
+.wb-time-suggestion-list button[aria-pressed="true"]{background:var(--wb-accent,#4169a8);color:#fff;border-color:transparent}
+.wb-time-planned{margin-top:8px;font-size:.875rem}
 .schedule-share-export{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .schedule-share-import{padding-top:12px;border-top:1px solid var(--wb-line)}
 .wb-draggable{cursor:grab}
