@@ -6,6 +6,22 @@ export const STREAK_MILESTONES=[3,7,14,30,60,100,180,365]
 
 const timeGreeting=(hour:number)=>hour<5?'Still up?':hour<12?'Good morning':hour<17?'Good afternoon':hour<21?'Good evening':'Working late?'
 
+/** Deterministic PRNG (xmur3 hash -> mulberry32) seeded from a string -- used to make the
+ * affirmation/fact choice stable for a given day+profile instead of re-rolling on every reload, so
+ * it reads as an actual "fact of the day" rather than a fresh coin flip each time the greeting
+ * happens to fire. */
+export function seededRand(seed:string):()=>number{
+ let h=1779033703^seed.length
+ for(let i=0;i<seed.length;i++){h=Math.imul(h^seed.charCodeAt(i),3432918353);h=h<<13|h>>>19}
+ let a=h>>>0
+ return()=>{
+  a|=0;a=a+0x6D2B79F5|0
+  let t=Math.imul(a^a>>>15,1|a)
+  t=t+Math.imul(t^t>>>7,61|t)^t
+  return((t^t>>>14)>>>0)/4294967296
+ }
+}
+
 const AFFIRMATIONS=[
  "You're doing great — one step at a time.",
  'Small progress is still progress. Keep going.',
@@ -22,6 +38,39 @@ const FACTS=[
  "Fun fact: bananas are berries, but strawberries aren't.",
  'Fun fact: the Eiffel Tower grows a little taller in summer heat.',
  'Fun fact: sea otters hold hands while sleeping so they don’t drift apart.',
+ 'Fun fact: a single cloud can weigh over a million pounds.',
+ 'Fun fact: sharks are older than trees — both predate the dinosaurs.',
+ 'Fun fact: wombat droppings are cube-shaped.',
+ 'Fun fact: a day on Venus is longer than a year on Venus.',
+ 'Fun fact: butterflies taste with their feet.',
+ 'Fun fact: the shortest war on record lasted about 38 minutes.',
+ 'Fun fact: there are more possible chess games than atoms in the observable universe.',
+ 'Fun fact: lightning is hotter than the surface of the sun.',
+ "Fun fact: the human brain uses about 20% of the body's energy.",
+ 'Fun fact: polar bears have black skin under their white fur.',
+ "Fun fact: a group of crows is called a 'murder.'",
+ 'Fun fact: Venus is the only planet that spins clockwise.',
+ "Fun fact: starfish don't have brains.",
+ 'Fun fact: cows form close friendships and get stressed when separated from them.',
+ "Fun fact: a group of pandas is called an 'embarrassment.'",
+ "Fun fact: koalas' fingerprints are almost identical to humans'.",
+ 'Fun fact: honeybees can recognize individual human faces.',
+ "Fun fact: elephants can't jump — they're the only mammal that can't.",
+ 'Fun fact: a snail can sleep for up to three years.',
+ "Fun fact: the dot over a lowercase i or j has a name — it's called a tittle.",
+ 'Fun fact: dolphins call each other by name, using a signature whistle.',
+ "Fun fact: it's basically impossible to hum while holding your nose.",
+ 'Fun fact: the unicorn is the national animal of Scotland.',
+ 'Fun fact: a jiffy is a real unit of time — one hundredth of a second.',
+ "Fun fact: peanuts aren't technically nuts — they're legumes.",
+ 'Fun fact: slugs have four noses.',
+ 'Fun fact: octopuses can taste with their entire skin.',
+ 'Fun fact: the Great Wall of China is not actually visible from space with the naked eye.',
+ 'Fun fact: a rainbow can only be seen with the sun behind you.',
+ 'Fun fact: hummingbirds are the only birds that can fly backward.',
+ 'Fun fact: short breaks actually improve focus more than pushing straight through.',
+ 'Fun fact: writing notes by hand tends to help memory more than typing them.',
+ 'Fun fact: studying a little each day beats one long cram session — it’s called the spacing effect.',
 ]
 
 const CELEBRATIONS=[
