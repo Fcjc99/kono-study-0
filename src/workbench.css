@@ -73,6 +73,20 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 html:has(.workbench){scroll-padding-bottom:76px}
 .wb-header,.wb-section-head,.wb-status,.wb-scene-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .wb-header{margin-bottom:10px}.wb-header small{color:var(--wb-muted)}
+.wb-title-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+/* This device only · Saved on this device now reads as a subtitle under the page heading, not its
+ * own full-width row above the toolbar (see the now Undo/Redo-only .wb-status further down). */
+.wb-header .save-status{font-size:.8rem;color:var(--wb-muted);margin-top:2px}
+.wb-header .save-status>small{display:none}
+/* Desktop-only, same reasoning as .wb-music-bar's own toggle just above: mobile already gets a weekly
+ * forecast in its own header (cozy's .mobile-desk-header, via Sidebar's <WeekWeather>), so this would
+ * just be a second, redundant one crammed next to a page title with no room for it. */
+.wb-header-weather{display:none}
+.wb-header-weather .mobile-week-weather{width:auto;min-width:350px;max-width:460px}
+.wb-header-weather .mobile-week-weather-day{padding:6px 3px}
+.wb-header-weather .mobile-week-weather-day>small{white-space:nowrap}
+@media(min-width:901px){.workbench[data-experience='cozy'] .wb-header-weather{display:block}}
+@media(min-width:701px){.workbench:not([data-experience='cozy']) .wb-header-weather{display:block}}
 /* Search/Trash/Add/mic stay one row on every device instead of wrapping once the row runs out of
  * width -- the row already tightens its own gap/padding at narrow widths (see the max-width:700px
  * block below), so this only ever needs a horizontal-scroll escape hatch, not an actual second line. */
@@ -104,9 +118,9 @@ html:has(.workbench){scroll-padding-bottom:76px}
 @media(prefers-reduced-motion:reduce){.kono-speech-bubble{animation:none}}
 @media(max-width:700px){.kono-speech-bubble{top:calc(env(safe-area-inset-top,0px) + 12px);right:12px}}
 .wb-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.wb-status{margin-bottom:18px;font-size:.8rem;color:var(--wb-muted)}
-.workbench .save-status{margin:0;padding:0;border:0;background:none;color:inherit;flex:1}
-.wb-status>.save-status>small{display:none}.wb-status button{min-height:36px;padding:4px 10px;font-size:.8125rem}
+.wb-status{margin-bottom:18px;font-size:.8rem;color:var(--wb-muted);justify-content:flex-end}
+.workbench .save-status{margin:0;padding:0;border:0;background:none;color:inherit}
+.wb-status button{min-height:36px;padding:4px 10px;font-size:.8125rem}
 .wb-panel,.workbench .card{padding:22px;margin:0 0 22px;border:1px solid var(--wb-line);border-radius:var(--wb-radius);background:var(--wb-surface);box-shadow:0 3px 12px #00000005;color:var(--wb-ink);min-width:0}
 .wb-panel .wb-toolbar{margin:12px 0}
 .workbench .card::before,.workbench .card::after{display:none}
@@ -132,25 +146,13 @@ button.needs-review-record{outline-offset:-2px}
 .workbench .sanctuary-card canvas{max-width:100%;touch-action:pan-y}
 .workbench .wb-island .sanctuary-stage{min-height:0!important}
 .wb-sanctuary-stage{display:grid}
-/* Same "cap the preview width while there's more page below it" idea Decorate's own max-width:620px
- * already uses (see further down), applied to the live view too -- a full-bleed 4:3 island on a wide
- * desktop window pushes its own height tall enough that the schedule panels below it need a real
- * scroll to reach, even though nothing about the art needs that much width to read clearly. */
-@media(min-width:900px){.wb-island:not(.is-expanded):not(:has(.wb-sanctuary-backdrop.is-decorating)) .wb-sanctuary-stage{max-width:640px;margin-inline:auto}}
-.wb-island-side{display:flex;flex-direction:column;gap:10px}
-.wb-island-side .wb-stats-strip{margin:0}
-.wb-island-side .wb-weather-widget{margin:0}
-/* A capped-width island centered in a much wider pane (the rule above) left the toolbar spanning the
- * full pane width above it, spread out with big gaps while the art sat narrow and centered below --
- * exactly the "dead space" a wide window shows. Past 1100px there's room to give that space a real
- * job: a sidebar column for the streak/weather readout beside the toolbar+island, sized to match, so
- * the whole section reads as one intentional block instead of a narrow card floating in a wide one. */
-@media(min-width:1100px){
- .wb-island:not(.is-expanded):not(:has(.wb-sanctuary-backdrop.is-decorating)){display:grid;grid-template-columns:minmax(0,640px) minmax(200px,260px);column-gap:28px;justify-content:center;align-items:start}
- .wb-island:not(.is-expanded):not(:has(.wb-sanctuary-backdrop.is-decorating)) .wb-scene-toolbar{grid-column:1;margin-bottom:12px}
- .wb-island:not(.is-expanded):not(:has(.wb-sanctuary-backdrop.is-decorating)) .wb-sanctuary-stage{grid-column:1;max-width:none;margin-inline:0}
- .wb-island:not(.is-expanded):not(:has(.wb-sanctuary-backdrop.is-decorating)) .wb-island-side{grid-column:2;grid-row:1/3;padding-top:6px}
-}
+/* The island now fills the same width as the panels below it (Today's/Tomorrow's schedule, the
+ * notes/exams board pair) instead of being capped to a narrow, centered 640px block -- that older cap
+ * left big empty margins on a wide window with the streak/weather readout stranded in a thin sidebar
+ * next to it. Weather moved up into the header (see .wb-header-weather) and the streak/done-this-week
+ * stats moved inline into .wb-scene-toolbar, so there's no more side column to lay out; the section is
+ * just the toolbar on one line followed by the stage, both at full width. */
+.wb-scene-toolbar .wb-stats-strip{margin:0 0 0 auto}
 /* Today's/Tomorrow's schedule side by side on desktop, the same shape as the notes/exams board pair
  * below them -- collapses to one column at the same width restored-board-pair already does. */
 .today-tomorrow-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
@@ -310,12 +312,18 @@ button.needs-review-record{outline-offset:-2px}
 .workbench.density-compact .wb-panel{padding:16px;margin-bottom:14px}.density-compact .wb-record{padding:12px;margin:8px 0}
 .workbench[data-decoration="false"] .wb-sticky{box-shadow:none}.workbench[data-decoration="false"] .wb-brand>span{border-radius:6px}
 .wb-bottom-nav{display:none}
-/* A single persistent, deliberately small player -- the one place playback lives now, replacing the
- * larger cassette card that used to appear separately in each experience's sidebar/mobile header and
- * again on the Sanctuary page. Floats centered at the page bottom on every breakpoint and experience;
- * pointer-events:none on the wrapper keeps the empty space around the pill from blocking clicks on
- * whatever's beneath it, while the pill itself (pointer-events:auto) stays interactive. */
+/* A single persistent, deliberately small player -- the same shared controller (and this same
+ * compact UI) also renders docked in the desktop sidebar below the nav list (see
+ * .sidebar-music-slot/.wb-sidebar below); the two never show at once, since each hides past the
+ * other's own sidebar breakpoint. Floats centered at the page bottom on mobile, where there's no
+ * sidebar to dock it in. pointer-events:none on the wrapper keeps the empty space around the pill
+ * from blocking clicks on whatever's beneath it, while the pill itself (pointer-events:auto) stays
+ * interactive. */
 .wb-music-bar{position:fixed;left:0;right:0;bottom:0;z-index:35;display:flex;justify-content:center;pointer-events:none}
+@media(min-width:901px){.workbench[data-experience='cozy'] .wb-music-bar{display:none}}
+@media(min-width:701px){.workbench:not([data-experience='cozy']) .wb-music-bar{display:none}}
+.sidebar-music-slot{margin:4px 0}
+.sidebar-music-slot .kono-radio-mini{max-width:none;width:100%;box-sizing:border-box;margin:0}
 .kono-radio-mini{pointer-events:auto;display:flex;align-items:center;gap:8px;max-width:min(280px,calc(100vw - 24px));margin:0 0 10px;padding:6px 12px 6px 6px;border:1px solid var(--wb-line);border-radius:999px;background:color-mix(in srgb,var(--wb-surface) 90%,transparent);backdrop-filter:blur(6px);box-shadow:0 4px 16px #00000022;color:var(--wb-ink)}
 .kono-radio-mini .radio-play{flex:0 0 26px;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:var(--wb-accent);color:var(--wb-accent-ink);cursor:pointer;display:grid;place-items:center;font-size:.7rem;line-height:1}
 .kono-radio-mini .radio-play:disabled{opacity:.5;cursor:not-allowed}
