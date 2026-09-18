@@ -238,6 +238,18 @@ function Workspace({store}:{store:Store}){
  useEffect(()=>{if(!konoPhrase)return;const timer=setTimeout(()=>setKonoPhrase(null),8000);return()=>clearTimeout(timer)},[konoPhrase])
  const edit=(key:Collection,entry:Entry)=>{const original=records(data,key).find(r=>r.id===entry.id)??entry;openEditor({key,entry:original,original})}
  const patch=(key:Collection,entry:Entry,changes:Partial<Entry>)=>run(()=>save(d=>({...d,[key]:records(d,key).map(r=>r.id===entry.id?{...r,...changes}:r)})),'Changes saved.')
+ // Clears needsReview on exactly the entries the "Needs review" modal is currently showing (scoped
+ // to this profile, same set as needsReviewEntries below) in one save -- for a scan that flagged a
+ // whole page of items, confirming them one at a time is a lot of clicking once you've actually
+ // checked the photo against what landed.
+ const confirmAllReviews=()=>{
+  const ids={tasks:new Set(needsReviewEntries.filter(e=>e.key==='tasks').map(e=>e.entry.id)),exams:new Set(needsReviewEntries.filter(e=>e.key==='exams').map(e=>e.entry.id)),calendarEvents:new Set(needsReviewEntries.filter(e=>e.key==='calendarEvents').map(e=>e.entry.id))}
+  return run(()=>save(d=>({...d,
+   tasks:d.tasks.map(t=>ids.tasks.has(t.id)?{...t,needsReview:false}:t),
+   exams:d.exams.map(e=>ids.exams.has(e.id)?{...e,needsReview:false}:e),
+   calendarEvents:d.calendarEvents.map(e=>ids.calendarEvents.has(e.id)?{...e,needsReview:false}:e),
+  })),'All items confirmed.')
+ }
  const reschedule=(key:Collection,entry:Entry,date:string)=>void patch(key,entry,{['due' in entry?'due':'date']:date})
  const toggle=(key:Collection,entry:Entry)=>{if(key==='tasks'){void run(async()=>{const saved=await save(d=>completeTask(d,entry.id));if(saved&&!entry.done){if(data.settings.sound){const audio=new Audio('/audio/completion.wav');audio.volume=.4;void audio.play().catch(()=>undefined)}if(entry.due===today&&!ownTasks.some(t=>t.id!==entry.id&&!t.done&&t.due===today)){
    // completeTask credits completionDates[today] on a profile's very first completion of the day
@@ -352,7 +364,7 @@ function Workspace({store}:{store:Store}){
   {more&&<Modal title="More" close={()=>setMore(false)}>{(['Subjects','K-Quiz','Exams','Settings','Trash'] as Page[]).map(p=><button key={p} onClick={()=>navigate(p)}>{p}</button>)}<label>Study profile<select value={profile.id} onChange={e=>void save(d=>({...d,activeProfileId:e.target.value}))}>{data.profiles.map(p=><option value={p.id} key={p.id}>{p.label}</option>)}</select></label></Modal>}
   {adding&&<Modal title="Add to your plan" close={()=>setAdding(false)}><div className="quick-add-choice"><label>What are you adding?<select aria-label="Add type" value={addKind} onChange={e=>setAddKind(e.target.value as typeof addKind)}><option value="tasks">Homework</option><option value="exams">Exam or test</option><option value="notes">Study note</option></select></label><p className="wb-muted">Exams appear on the countdown board. Study notes are pinned to your bulletin board.</p><button className="primary" onClick={()=>create(addKind)}>Continue</button></div><button type="button" className="update-entire-plan-button" onClick={()=>{setAdding(false);setScanningPlan(true)}}>📷 Update entire plan — scan handwritten notes</button><details className="add-more-choices"><summary>More ways to add</summary><div>{(['studyPlans','calendarEvents','subjects'] as Collection[]).map(key=><button key={key} onClick={()=>create(key)}>{labels[key]}</button>)}</div></details></Modal>}
   {scanningPlan&&<Modal title="Update entire plan" close={()=>setScanningPlan(false)}><UpdatePlanScanner profileId={profile.id} subjects={subjects} save={save} close={()=>setScanningPlan(false)}/></Modal>}
-  {reviewOpen&&<Modal title="Needs review" close={()=>setReviewOpen(false)}><p className="wb-muted">Added automatically from a scanned photo. Check each one — confirming it (or just opening and saving it) clears the flag.</p>{needsReviewEntries.length===0?<p>All caught up.</p>:needsReviewEntries.map(({key,entry})=>card(key,entry))}</Modal>}
+  {reviewOpen&&<Modal title="Needs review" close={()=>setReviewOpen(false)}><p className="wb-muted">Added automatically from a scanned photo. Check each one — confirming it (or just opening and saving it) clears the flag.</p>{needsReviewEntries.length===0?<p>All caught up.</p>:<>{needsReviewEntries.length>1&&<button type="button" className="primary" onClick={()=>void confirmAllReviews()}>Confirm all {needsReviewEntries.length} items</button>}{needsReviewEntries.map(({key,entry})=>card(key,entry))}</>}</Modal>}
   {search&&<CommandPalette commands={commands} onClose={()=>setSearch(false)}/>}
   {editor&&<EntryEditor key={editor.entry.id} edit={editor} data={data} save={save} draftScope={draftScope} close={(saved,discarded)=>{setEditor(null);setHasDraft(!saved);if(saved)setMessage(discarded?'Draft discarded.':'Saved.')}}/>}
  </div>
