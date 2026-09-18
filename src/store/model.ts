@@ -12,9 +12,9 @@ export type ProfileKind='summer'|'school'|'college'|'custom'
 export type Profile={id:string;name:string;label:string;kind:ProfileKind;start:string;end:string;progressEpoch?:string}
 export type Subject={id:string;profileId:string;name:string;color:string;teacher?:string;room?:string;resources:string[]}
 export type Subtask={id:string;title:string;done:boolean}
-export type Task={id:string;profileId:string;subjectId:string;title:string;due:string;done:boolean;notes:string;completedAt?:string;studyPlanId?:string;unitNumber?:number;subtasks?:Subtask[];recurringId?:string}
+export type Task={id:string;profileId:string;subjectId:string;title:string;due:string;done:boolean;notes:string;completedAt?:string;studyPlanId?:string;unitNumber?:number;subtasks?:Subtask[];recurringId?:string;needsReview?:boolean}
 export type StudyPlan={id:string;profileId:string;subjectId:string;title:string;unit:'chapter'|'page'|'problem'|'step';total:number;start:string;end:string;weekdays:number[];timeZone:string}
-export type Exam={id:string;profileId:string;subjectId:string;title:string;due:string;notes:string;done:boolean;color?:string;font?:string;highlight?:string;textColor?:string}
+export type Exam={id:string;profileId:string;subjectId:string;title:string;due:string;notes:string;done:boolean;color?:string;font?:string;highlight?:string;textColor?:string;needsReview?:boolean}
 export type Note={id:string;profileId:string;subjectId:string;title:string;body:string;created:string;source?:string;pinned?:boolean;completed?:boolean;color?:string;font?:string;highlight?:string;textColor?:string;size?:'small'|'medium'|'large';position?:number}
 export type CalendarEventKind='exam'|'test'|'quiz'|'assignment'|'study'|'activity'|'personal'|'sports'|'appointment'|'other'
 /** A recorded final score for a sports calendar event. Outcome (win/loss/tie) is always derived by
@@ -22,7 +22,7 @@ export type CalendarEventKind='exam'|'test'|'quiz'|'assignment'|'study'|'activit
 export type MatchResult={ourScore:number;opponentScore:number}
 export type MatchOutcome='win'|'loss'|'tie'
 export const matchOutcome=(result:MatchResult):MatchOutcome=>result.ourScore>result.opponentScore?'win':result.ourScore<result.opponentScore?'loss':'tie'
-export type CalendarEvent={id:string;profileId:string;date:string;title:string;kind:CalendarEventKind;done?:boolean;subjectId?:string;notes:string;time?:string;result?:MatchResult}
+export type CalendarEvent={id:string;profileId:string;date:string;title:string;kind:CalendarEventKind;done?:boolean;subjectId?:string;notes:string;time?:string;result?:MatchResult;needsReview?:boolean}
 /** Which of the three schedule categories (academic, sports, appointments) a calendar event's kind
  * belongs to for the schedule-view checkboxes below — 'sports' is its own category, everything
  * exam/assignment-shaped is academic, and the rest (personal/appointment/other) are appointments. */
@@ -169,7 +169,7 @@ export function normalizeData(raw:unknown):AppData {
  })
  const studyById=new Map(studyPlans.map(p=>[p.id,p])),seenUnits=new Map<string,Set<number>>()
  const subtasks=(v:unknown):Subtask[]|undefined=>{if(v===undefined)return undefined;return list(v,'subtasks',50).map(s=>({id:id(s.id,'subtask ID'),title:str(s.title,'subtask title',300),done:bool(s.done)}))}
- const tasks:Task[]=taskInput.map(t=>{const profileId=owner(t.profileId);const result:Task={id:id(t.id,'task ID'),profileId,subjectId:subject(t.subjectId,profileId),title:str(t.title,'task title',1000),due:date(t.due,'task date'),done:bool(t.done),notes:str(t.notes??'','task notes',100000),completedAt:optional(t.completedAt,'completion timestamp',40),subtasks:subtasks(t.subtasks),recurringId:optional(t.recurringId,'recurring series ID',150)}
+ const tasks:Task[]=taskInput.map(t=>{const profileId=owner(t.profileId);const result:Task={id:id(t.id,'task ID'),profileId,subjectId:subject(t.subjectId,profileId),title:str(t.title,'task title',1000),due:date(t.due,'task date'),done:bool(t.done),notes:str(t.notes??'','task notes',100000),completedAt:optional(t.completedAt,'completion timestamp',40),subtasks:subtasks(t.subtasks),recurringId:optional(t.recurringId,'recurring series ID',150),needsReview:bool(t.needsReview)}
   if(t.studyPlanId!==undefined){
    const plan=studyById.get(id(t.studyPlanId,'study reference'));if(!plan||plan.profileId!==profileId)return fail('study task ownership')
    const unitNumber=integer(t.unitNumber,'study unit',plan.total),seen=seenUnits.get(plan.id)??new Set<number>();if(seen.has(unitNumber))return fail('duplicate study unit');seen.add(unitNumber);seenUnits.set(plan.id,seen)
@@ -181,9 +181,9 @@ export function normalizeData(raw:unknown):AppData {
  })
  for(const plan of studyPlans)if(seenUnits.get(plan.id)?.size!==plan.total)return fail('study plan is missing tasks')
  const style=(s:Obj)=>({color:color(s.color,'#ffd2dd'),textColor:color(s.textColor,'#2f2942'),highlight:color(s.highlight,'transparent'),font:choice(s.font,['rounded','handwritten','serif','mono'],'rounded')})
- const exams:Exam[]=examInput.map(e=>{const profileId=owner(e.profileId);return {id:id(e.id,'exam ID'),profileId,subjectId:subject(e.subjectId,profileId),title:str(e.title,'exam title',1000),due:date(e.due,'exam date'),notes:str(e.notes??'','exam notes',100000),done:bool(e.done),...style(e)}})
+ const exams:Exam[]=examInput.map(e=>{const profileId=owner(e.profileId);return {id:id(e.id,'exam ID'),profileId,subjectId:subject(e.subjectId,profileId),title:str(e.title,'exam title',1000),due:date(e.due,'exam date'),notes:str(e.notes??'','exam notes',100000),done:bool(e.done),needsReview:bool(e.needsReview),...style(e)}})
  const notes:Note[]=noteInput.map(n=>{const profileId=owner(n.profileId);return {id:id(n.id,'note ID'),profileId,subjectId:subject(n.subjectId,profileId),title:str(n.title,'note title',1000),body:str(n.body??'','note body',100000),created:str(n.created,'note date',40),size:choice(n.size,['small','medium','large'],'medium'),position:typeof n.position==='number'&&Number.isFinite(n.position)?n.position:0,source:optional(n.source,'source',1000),pinned:bool(n.pinned),completed:bool(n.completed),...style(n)}})
- const calendarEvents:CalendarEvent[]=eventInput.map(e=>{const profileId=owner(e.profileId);return {id:id(e.id,'event ID'),profileId,done:bool(e.done),subjectId:subject(e.subjectId,profileId),title:str(e.title,'event title',1000),date:date(e.date,'event date'),notes:str(e.notes??'','event notes',100000),kind:choice(e.kind,['exam','test','quiz','assignment','study','activity','personal','sports','appointment','other'],'other'),time:e.time===undefined?undefined:clockTime(e.time),result:matchResult(e.result)}})
+ const calendarEvents:CalendarEvent[]=eventInput.map(e=>{const profileId=owner(e.profileId);return {id:id(e.id,'event ID'),profileId,done:bool(e.done),subjectId:subject(e.subjectId,profileId),title:str(e.title,'event title',1000),date:date(e.date,'event date'),notes:str(e.notes??'','event notes',100000),kind:choice(e.kind,['exam','test','quiz','assignment','study','activity','personal','sports','appointment','other'],'other'),time:e.time===undefined?undefined:clockTime(e.time),result:matchResult(e.result),needsReview:bool(e.needsReview)}})
  const studySeasons:StudySeason[]=list(raw.studySeasons??[],'schedules',500).map(s=>{
   const profileId=owner(s.profileId);if(!object(s.week))return fail('schedule week')
   const school=s.school===undefined?undefined:structuredClone(s.school) as SchoolCalendar
