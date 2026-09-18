@@ -65,8 +65,12 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .workbench .wb-sidebar nav button[aria-current="page"]{background:#ffffff20;border-color:#ffffff45}
 .wb-profile{margin-top:auto}
 /* 76px bottom padding clears the floating .wb-music-bar pill (see its own rule further down) so it
- * never sits over the last bit of page content. */
+ * never sits over the last bit of page content. scroll-padding-bottom matches it: without that, a
+ * scrollIntoView/focus jump (K-Quiz's textarea, keyboard Tab focus) can land its target's bottom
+ * edge exactly behind the fixed bar at desktop widths too, since scroll geometry doesn't know that
+ * strip is visually covered -- the @media(max-width:700px) block below already does this for mobile. */
 .workbench #workspace-main{min-width:0;padding:22px clamp(16px,3vw,48px) 76px;max-width:1500px;width:100%;margin:0 auto}
+html:has(.workbench){scroll-padding-bottom:76px}
 .wb-header,.wb-section-head,.wb-status,.wb-scene-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .wb-header{margin-bottom:10px}.wb-header small{color:var(--wb-muted)}
 /* Search/Trash/Add/mic stay one row on every device instead of wrapping once the row runs out of
@@ -117,7 +121,7 @@ button.needs-review-record{outline-offset:-2px}
 /* Persistent header pill -- unlike .review-digest (dismissible, shown once per day), this stays
  * visible on every page for as long as anything is still flagged, so a scan's leftovers can't get
  * lost once the day's login digest is gone. */
-.needs-review-nav-badge{background:#dc2626!important;border-color:#a91c1c!important;color:#fff!important;font-weight:800}
+.needs-review-nav-badge{background:#dc2626!important;border-color:#a91c1c!important;color:#fff!important;font-weight:800;white-space:nowrap;flex-shrink:0}
 @media(hover:hover){.needs-review-nav-badge:hover{filter:brightness(1.08)}}
 .wb-island{position:relative;margin-bottom:24px;min-width:0}
 .wb-scene-toolbar{margin-bottom:8px}.wb-scene-toolbar label{display:flex;align-items:center;gap:10px}
