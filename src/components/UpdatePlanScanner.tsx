@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { localDate, normalizeData, type AppData } from '../store/model'
+import { localDate, normalizeData, type AppData, type Subject } from '../store/model'
 import { readAssignmentPhoto, applyAssignmentPhoto, type CreatedItem } from '../store/assignmentPhoto'
 import { useLocalSetting } from '../hooks/useLocalSetting'
 
-export default function UpdatePlanScanner({ profileId, save, close }: { profileId: string; save: (fn: (d: AppData) => AppData) => Promise<boolean>; close: () => void }) {
+const kindLabels = { tasks: 'Assignment', exams: 'Exam / project', calendarEvents: 'Event' } as const
+
+export default function UpdatePlanScanner({ profileId, subjects, save, close }: { profileId: string; subjects: Subject[]; save: (fn: (d: AppData) => AppData) => Promise<boolean>; close: () => void }) {
   // Shares K-Quiz's exact provider/key storage (same localStorage keys) -- it is the same browser-side
   // AI call either way, so setting it up once in either place works in both.
   const [provider, setProvider] = useLocalSetting('kono-kquiz:' + profileId + ':provider', 'gemini')
@@ -45,11 +47,24 @@ export default function UpdatePlanScanner({ profileId, save, close }: { profileI
     finally { setBusy(false) }
   }
 
+  // Rows are editable in place (title/date/subject) before confirming, so a wrong AI guess never
+  // needs a trip into the full entry editor -- this is the "list of everything" a scan produces.
+  const editRow = (id: string, patch: Partial<CreatedItem>) => setCreatedItems(items => items.map(i => i.id === id ? { ...i, ...patch } : i))
+
   const confirmItem = async (item: CreatedItem) => {
     const ok = await save(d => {
-      if (item.key === 'tasks') return { ...d, tasks: d.tasks.map(t => t.id === item.id ? { ...t, needsReview: false } : t) }
-      if (item.key === 'exams') return { ...d, exams: d.exams.map(e => e.id === item.id ? { ...e, needsReview: false } : e) }
-      return { ...d, calendarEvents: d.calendarEvents.map(e => e.id === item.id ? { ...e, needsReview: false } : e) }
+      if (item.key === 'tasks') return { ...d, tasks: d.tasks.map(t => t.id === item.id ? { ...t, title: item.title, due: item.date, subjectId: item.subjectId, needsReview: false } : t) }
+      if (item.key === 'exams') return { ...d, exams: d.exams.map(e => e.id === item.id ? { ...e, title: item.title, due: item.date, subjectId: item.subjectId, needsReview: false } : e) }
+      return { ...d, calendarEvents: d.calendarEvents.map(e => e.id === item.id ? { ...e, title: item.title, date: item.date, subjectId: item.subjectId, needsReview: false } : e) }
+    })
+    if (ok) setCreatedItems(items => items.filter(i => i.id !== item.id))
+  }
+
+  const removeItem = async (item: CreatedItem) => {
+    const ok = await save(d => {
+      if (item.key === 'tasks') return { ...d, tasks: d.tasks.filter(t => t.id !== item.id) }
+      if (item.key === 'exams') return { ...d, exams: d.exams.filter(e => e.id !== item.id) }
+      return { ...d, calendarEvents: d.calendarEvents.filter(e => e.id !== item.id) }
     })
     if (ok) setCreatedItems(items => items.filter(i => i.id !== item.id))
   }
@@ -84,10 +99,21 @@ export default function UpdatePlanScanner({ profileId, save, close }: { profileI
     {status && <p role="status">{status}</p>}
     {error && <p role="alert">{error}</p>}
     {createdItems.length > 0 && <div className="update-plan-results">
-      <h4>Just added</h4>
+      <h4>Just added — check and fix each one</h4>
       {createdItems.map(item => <div className="update-plan-result-row" key={item.id}>
-        <span>{item.title}<small> · {item.date}</small></span>
-        <button type="button" onClick={() => void confirmItem(item)}>Looks good</button>
+        <span className="update-plan-result-kind">{kindLabels[item.key]}</span>
+        <div className="update-plan-result-fields">
+          <label>Title<input value={item.title} maxLength={200} onChange={e => editRow(item.id, { title: e.target.value })} /></label>
+          <label>Date<input type="date" value={item.date} onChange={e => editRow(item.id, { date: e.target.value })} /></label>
+          <label>Subject<select value={item.subjectId} onChange={e => editRow(item.id, { subjectId: e.target.value })}>
+            <option value="">General / unassigned</option>
+            {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select></label>
+        </div>
+        <div className="study-actions">
+          <button type="button" onClick={() => void confirmItem(item)}>Looks good</button>
+          <button type="button" className="secondary" onClick={() => void removeItem(item)}>Remove</button>
+        </div>
       </div>)}
     </div>}
     {receipt && <button type="button" className="secondary" disabled={busy} onClick={() => void undo()}>Undo this entire scan</button>}

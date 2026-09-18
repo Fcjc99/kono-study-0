@@ -76,6 +76,11 @@ test('applying items creates real tasks/exams/calendarEvents, each flagged needs
  assert.ok(chem,'a new subject is created for an unrecognized class name')
  assert.equal(result.data.exams[0].subjectId,chem.id)
  assert.equal(result.data.calendarEvents.length,1);assert.equal(result.data.calendarEvents[0].needsReview,true);assert.equal(result.data.calendarEvents[0].subjectId,'')
+ // each created-item receipt carries the resolved subjectId, so the scan-results UI can show/edit it
+ // without looking the entry back up in the full plan.
+ assert.equal(result.created.find(c=>c.key==='tasks').subjectId,'subj1')
+ assert.equal(result.created.find(c=>c.key==='exams').subjectId,chem.id)
+ assert.equal(result.created.find(c=>c.key==='calendarEvents').subjectId,'')
 })
 
 test('an item with no date lands on today rather than being dropped, still flagged for review',()=>{

@@ -48,7 +48,7 @@ export async function readAssignmentPhoto(photo: PhotoInput, provider: AiProvide
   return parseAssignmentPhoto(raw)
 }
 
-export type CreatedItem = { key: 'tasks' | 'exams' | 'calendarEvents'; id: string; title: string; date: string }
+export type CreatedItem = { key: 'tasks' | 'exams' | 'calendarEvents'; id: string; title: string; date: string; subjectId: string }
 export type ApplyAssignmentPhotoResult = { data: AppData; created: CreatedItem[] }
 
 /** Unlike the schedule photo importer, every item here lands as a real entry immediately -- no
@@ -78,15 +78,15 @@ export function applyAssignmentPhoto(data: AppData, profileId: string, items: As
     if (item.kind === 'exam') {
       const id = uid('exam')
       next.exams.push({ id, profileId, subjectId, title: item.title, due, notes: '', done: false, needsReview: true })
-      created.push({ key: 'exams', id, title: item.title, date: due })
+      created.push({ key: 'exams', id, title: item.title, date: due, subjectId })
     } else if (item.kind === 'task') {
       const id = uid('task')
       next.tasks.push({ id, profileId, subjectId, title: item.title, due, done: false, notes: '', needsReview: true })
-      created.push({ key: 'tasks', id, title: item.title, date: due })
+      created.push({ key: 'tasks', id, title: item.title, date: due, subjectId })
     } else {
       const id = uid('event')
       next.calendarEvents.push({ id, profileId, subjectId, title: item.title, date: due, kind: 'other' as CalendarEventKind, notes: '', done: false, needsReview: true })
-      created.push({ key: 'calendarEvents', id, title: item.title, date: due })
+      created.push({ key: 'calendarEvents', id, title: item.title, date: due, subjectId })
     }
   }
   return { data: normalizeData(next), created }
