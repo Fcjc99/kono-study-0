@@ -48,7 +48,8 @@ export async function readAssignmentPhoto(photo: PhotoInput, provider: AiProvide
   return parseAssignmentPhoto(raw)
 }
 
-export type ApplyAssignmentPhotoResult = { data: AppData; added: number }
+export type CreatedItem = { key: 'tasks' | 'exams' | 'calendarEvents'; id: string; title: string; date: string }
+export type ApplyAssignmentPhotoResult = { data: AppData; created: CreatedItem[] }
 
 /** Unlike the schedule photo importer, every item here lands as a real entry immediately -- no
  * separate review-before-commit checklist. Each one is marked needsReview instead, so it renders with
@@ -56,7 +57,8 @@ export type ApplyAssignmentPhotoResult = { data: AppData; added: number }
  * exactly the kind of thing that's cheap to skim-check in place, not worth a full checkbox gate for
  * every single item. An item with no resolvable date lands on today rather than being silently
  * dropped, so nothing written down is lost -- it's still flagged for review like everything else, so a
- * wrong guess is exactly as visible as a wrong date would be. */
+ * wrong guess is exactly as visible as a wrong date would be. `created` lets the caller show exactly
+ * what landed (and offer a quick per-item confirm) without having to diff the before/after data. */
 export function applyAssignmentPhoto(data: AppData, profileId: string, items: AssignmentPhotoItem[], today: string): ApplyAssignmentPhotoResult {
   if (data.activeProfileId !== profileId) throw new Error('Your profile changed. Reopen the scanner.')
   const next = structuredClone(data)
@@ -69,14 +71,25 @@ export function applyAssignmentPhoto(data: AppData, profileId: string, items: As
     next.subjects.push({ id, profileId, name: name.trim().slice(0, 200), color: '#4169a8', resources: [] })
     return id
   }
+  const created: CreatedItem[] = []
   for (const item of items) {
     const subjectId = subjectFor(item.subject)
     const due = item.date ?? today
-    if (item.kind === 'exam') next.exams.push({ id: uid('exam'), profileId, subjectId, title: item.title, due, notes: '', done: false, needsReview: true })
-    else if (item.kind === 'task') next.tasks.push({ id: uid('task'), profileId, subjectId, title: item.title, due, done: false, notes: '', needsReview: true })
-    else next.calendarEvents.push({ id: uid('event'), profileId, subjectId, title: item.title, date: due, kind: 'other' as CalendarEventKind, notes: '', done: false, needsReview: true })
+    if (item.kind === 'exam') {
+      const id = uid('exam')
+      next.exams.push({ id, profileId, subjectId, title: item.title, due, notes: '', done: false, needsReview: true })
+      created.push({ key: 'exams', id, title: item.title, date: due })
+    } else if (item.kind === 'task') {
+      const id = uid('task')
+      next.tasks.push({ id, profileId, subjectId, title: item.title, due, done: false, notes: '', needsReview: true })
+      created.push({ key: 'tasks', id, title: item.title, date: due })
+    } else {
+      const id = uid('event')
+      next.calendarEvents.push({ id, profileId, subjectId, title: item.title, date: due, kind: 'other' as CalendarEventKind, notes: '', done: false, needsReview: true })
+      created.push({ key: 'calendarEvents', id, title: item.title, date: due })
+    }
   }
-  return { data: normalizeData(next), added: items.length }
+  return { data: normalizeData(next), created }
 }
 
 /** Exposed for tests. */

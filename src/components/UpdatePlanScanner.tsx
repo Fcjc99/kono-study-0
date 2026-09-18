@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { localDate, type AppData } from '../store/model'
-import { readAssignmentPhoto, applyAssignmentPhoto } from '../store/assignmentPhoto'
+import { localDate, normalizeData, type AppData } from '../store/model'
+import { readAssignmentPhoto, applyAssignmentPhoto, type CreatedItem } from '../store/assignmentPhoto'
 import { useLocalSetting } from '../hooks/useLocalSetting'
 
 export default function UpdatePlanScanner({ profileId, save, close }: { profileId: string; save: (fn: (d: AppData) => AppData) => Promise<boolean>; close: () => void }) {
@@ -12,12 +12,18 @@ export default function UpdatePlanScanner({ profileId, save, close }: { profileI
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
+  const [createdItems, setCreatedItems] = useState<CreatedItem[]>([])
+  // Mirrors ScheduleImport's own receipt/undo: one snapshot of the plan right before this scan's
+  // items landed, so a bad read (wrong subject guesses, misread handwriting) can be undone as a whole
+  // batch instead of deleting each item by hand.
+  const [receipt, setReceipt] = useState<{ before: AppData; after: AppData } | null>(null)
 
   const scan = async () => {
     if (!file || busy) return
     if (file.size > 8_000_000) { setError('Choose a photo under 8 MB.'); return }
     if (!apiKey.trim()) { setError('Add an AI API key below first.'); return }
-    setBusy(true); setError(''); setStatus('Reading your notes…')
+    setBusy(true); setError(''); setStatus('Reading your notes…'); setCreatedItems([])
+    let before: AppData | undefined, after: AppData | undefined
     try {
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
@@ -27,11 +33,38 @@ export default function UpdatePlanScanner({ profileId, save, close }: { profileI
       })
       const today = localDate()
       const items = await readAssignmentPhoto({ base64, mimeType: file.type || 'image/jpeg' }, provider === 'openai' ? 'openai' : 'gemini', apiKey, today)
-      let added = 0
-      const saved = await save(d => { const result = applyAssignmentPhoto(d, profileId, items, today); added = result.added; return result.data })
-      if (saved) { setStatus(`${added} item${added === 1 ? '' : 's'} added to your plan — check the ones marked in red.`); setFile(null) }
-      else setError('Not saved yet. Check the save status and try again.')
+      let created: CreatedItem[] = []
+      const saved = await save(d => { before = normalizeData(d); const result = applyAssignmentPhoto(d, profileId, items, today); created = result.created; after = result.data; return result.data })
+      if (saved && before && after) {
+        setReceipt({ before, after })
+        setCreatedItems(created)
+        setStatus(`${created.length} item${created.length === 1 ? '' : 's'} added to your plan — check each one below.`)
+        setFile(null)
+      } else setError('Not saved yet. Check the save status and try again.')
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not read that photo.') }
+    finally { setBusy(false) }
+  }
+
+  const confirmItem = async (item: CreatedItem) => {
+    const ok = await save(d => {
+      if (item.key === 'tasks') return { ...d, tasks: d.tasks.map(t => t.id === item.id ? { ...t, needsReview: false } : t) }
+      if (item.key === 'exams') return { ...d, exams: d.exams.map(e => e.id === item.id ? { ...e, needsReview: false } : e) }
+      return { ...d, calendarEvents: d.calendarEvents.map(e => e.id === item.id ? { ...e, needsReview: false } : e) }
+    })
+    if (ok) setCreatedItems(items => items.filter(i => i.id !== item.id))
+  }
+
+  const undo = async () => {
+    if (!receipt || busy) return
+    setBusy(true); setError('')
+    try {
+      const saved = await save(current => {
+        if (JSON.stringify(normalizeData(current)) !== JSON.stringify(receipt.after)) throw new Error('Your plan has changed since scanning. Use each item’s own Trash action to avoid losing newer work.')
+        return receipt.before
+      })
+      if (saved) { setReceipt(null); setCreatedItems([]); setStatus('The entire scan was undone.') }
+      else setError('Undo was not saved. The scanned items are still there.')
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not undo.') }
     finally { setBusy(false) }
   }
 
@@ -50,5 +83,13 @@ export default function UpdatePlanScanner({ profileId, save, close }: { profileI
     </div>
     {status && <p role="status">{status}</p>}
     {error && <p role="alert">{error}</p>}
+    {createdItems.length > 0 && <div className="update-plan-results">
+      <h4>Just added</h4>
+      {createdItems.map(item => <div className="update-plan-result-row" key={item.id}>
+        <span>{item.title}<small> · {item.date}</small></span>
+        <button type="button" onClick={() => void confirmItem(item)}>Looks good</button>
+      </div>)}
+    </div>}
+    {receipt && <button type="button" className="secondary" disabled={busy} onClick={() => void undo()}>Undo this entire scan</button>}
   </div>
 }

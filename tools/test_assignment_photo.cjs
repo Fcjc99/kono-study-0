@@ -68,7 +68,8 @@ test('applying items creates real tasks/exams/calendarEvents, each flagged needs
   {title:'Field trip',date:'2026-09-30',kind:'event',subject:''},
  ]
  const result=photo.applyAssignmentPhoto(d,pid,items,'2026-09-18')
- assert.equal(result.added,3)
+ assert.equal(result.created.length,3)
+ assert.equal(result.created.map(c=>c.key).sort().join(','),'calendarEvents,exams,tasks')
  assert.equal(result.data.tasks.length,1);assert.equal(result.data.tasks[0].needsReview,true);assert.equal(result.data.tasks[0].subjectId,'subj1')
  assert.equal(result.data.exams.length,1);assert.equal(result.data.exams[0].needsReview,true)
  const chem=result.data.subjects.find(s=>s.name==='Chemistry')
