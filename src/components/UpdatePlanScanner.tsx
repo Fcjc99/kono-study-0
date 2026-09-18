@@ -106,6 +106,7 @@ export default function UpdatePlanScanner({ profileId, subjects, save, close }: 
     <details><summary>AI settings</summary>
       <label>Provider<select value={provider} onChange={e => setProvider(e.target.value)}><option value="gemini">Google Gemini (free tier available)</option><option value="openai">OpenAI</option></select></label>
       <label>API key<input type="password" autoComplete="off" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Paste your API key" /></label>
+      <p className="wb-muted ai-key-help">Don't have one? <a href={provider === 'openai' ? 'https://platform.openai.com/api-keys' : 'https://aistudio.google.com/apikey'} target="_blank" rel="noopener noreferrer">{provider === 'openai' ? 'Get an OpenAI key' : 'Get a free Gemini key'} →</a></p>
     </details>
     <label>Choose photos (up to {MAX_PHOTOS})<input type="file" accept="image/*" multiple disabled={busy} onChange={e => { setFiles(Array.from(e.target.files ?? []).slice(0, MAX_PHOTOS)); setError(''); e.target.value = '' }} /></label>
     {files.length > 0 && <div className="update-plan-photo-previews">

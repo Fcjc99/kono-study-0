@@ -240,6 +240,9 @@ button.needs-review-record{outline-offset:-2px}
 .workbench .wb-calendar button[aria-pressed="true"]{outline:2px solid var(--wb-accent);outline-offset:-2px}
 .wb-calendar .muted-day{opacity:.55}.wb-agenda-day{border-top:1px solid var(--wb-line);padding-top:16px}
 .wb-muted{color:var(--wb-muted);font-size:.875rem}
+.ai-key-help{margin-top:-4px}
+.ai-key-help a{color:var(--wb-accent);font-weight:700;text-decoration:none}
+.ai-key-help a:hover{text-decoration:underline}
 .voice-input{display:inline-flex;flex-direction:column;gap:4px;margin:-6px 0 8px}
 .voice-input-button{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:6px 12px;font-size:.875rem;background:transparent;border:1px solid var(--wb-line);border-radius:999px}
 .voice-input-button.is-listening{background:var(--wb-accent);color:var(--wb-accent-ink);border-color:var(--wb-accent)}
