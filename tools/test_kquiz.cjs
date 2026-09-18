@@ -138,6 +138,24 @@ test('a note filed under another profile\'s subject is rejected, and a note need
  assert.throws(()=>model.normalizeData(d2),/note title/)
 })
 
+test('the ask-your-notes prompt includes the notes and the question, and refuses an empty notes selection or question',()=>{
+ const prompt=kquiz.__test__.buildAnswerPrompt('Mitochondria is the powerhouse of the cell.','What produces ATP?')
+ assert.ok(prompt.includes('Mitochondria is the powerhouse of the cell.'))
+ assert.ok(prompt.includes('What produces ATP?'))
+ assert.ok(prompt.includes('"answer"'))
+ assert.throws(()=>kquiz.__test__.buildAnswerPrompt('   ','What produces ATP?'),/note or lecture/)
+ assert.throws(()=>kquiz.__test__.buildAnswerPrompt('Some notes.','   '),/question/)
+ const long=kquiz.__test__.buildAnswerPrompt('x'.repeat(70000),'A question?')
+ assert.ok(long.includes('[notes truncated]'))
+})
+
+test('answer parsing accepts a well-formed response and rejects an empty or malformed one',()=>{
+ assert.equal(kquiz.__test__.parseAnswer(JSON.stringify({answer:'  ATP is produced by mitochondria.  '})),'ATP is produced by mitochondria.')
+ assert.throws(()=>kquiz.__test__.parseAnswer('not json'))
+ assert.throws(()=>kquiz.__test__.parseAnswer(JSON.stringify({answer:''})))
+ assert.throws(()=>kquiz.__test__.parseAnswer(JSON.stringify({})))
+})
+
 let passed=0
 for(const t of tests){try{t.fn();passed++;console.log('PASS',t.name)}catch(e){console.error('FAIL',t.name);console.error(e);process.exitCode=1}}
 console.log(`${passed}/${tests.length} K-Quiz regression groups passed.`)

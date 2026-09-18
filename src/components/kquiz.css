@@ -16,6 +16,7 @@
 /* Pinned above the lists once something is checked, so "generate from what I picked" stays visible
  * without scrolling back up past Lectures and Notes. */
 .kquiz-combine{border-color:var(--wb-accent);background:color-mix(in srgb,var(--wb-accent) 8%,var(--wb-surface))}
+.kquiz-ask-form{margin-top:10px;padding-top:10px;border-top:1px solid var(--wb-line)}
 .kquiz-set-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .kquiz-set-head h5{margin:0}
 .kquiz-text{white-space:pre-wrap;font-size:.9rem;line-height:1.5}

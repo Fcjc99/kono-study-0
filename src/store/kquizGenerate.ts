@@ -31,6 +31,21 @@ function buildPrompt(transcript: string): string {
     `on the transcript content.\n\nTRANSCRIPT:\n${capped}`
 }
 
+function buildAnswerPrompt(context: string, question: string): string {
+  const trimmedContext = context.trim()
+  if (!trimmedContext) fail('Check off at least one note or lecture to ask about first.')
+  const trimmedQuestion = question.trim()
+  if (!trimmedQuestion) fail('Type a question first.')
+  const capped = trimmedContext.length > 60000 ? trimmedContext.slice(0, 60000) + '\n[notes truncated]' : trimmedContext
+  return `You are a study assistant. A student is asking a question about their own notes below ` +
+    `(they may include speech-recognition or handwriting-transcription errors — use your best ` +
+    `judgement to read through them). Answer using only the material provided — if the notes don't ` +
+    `contain enough to answer, say so plainly rather than guessing or using outside knowledge. Keep ` +
+    `the answer focused: a few sentences to a short paragraph, unless the question calls for a list ` +
+    `or steps. Respond with a single JSON object: {"answer": string}. Output ONLY the JSON object, ` +
+    `no other text.\n\nNOTES:\n${capped}\n\nQUESTION:\n${trimmedQuestion}`
+}
+
 function buildTranscribePrompt(): string {
   return `You are a study assistant. Read the handwritten or printed notes in the attached photo ` +
     `(work through any unclear handwriting using your best judgement) and transcribe them faithfully ` +
@@ -129,6 +144,14 @@ function parseTranscription(raw: string): string {
   return typeof text === 'string' && text.trim() ? text.trim().slice(0, 200000) : fail('Could not read any text from that photo. Try a clearer photo.')
 }
 
+function parseAnswer(raw: string): string {
+  let obj: unknown
+  try { obj = JSON.parse(raw) } catch { fail('The AI response was not valid JSON. Try asking again.') }
+  if (!obj || typeof obj !== 'object') fail('The AI response was not in the expected format.')
+  const answer = (obj as Record<string, unknown>).answer
+  return typeof answer === 'string' && answer.trim() ? answer.trim().slice(0, 10000) : fail('The AI did not return an answer. Try asking again.')
+}
+
 /** Reads a photo into plain text only — no summary/flashcards/questions yet. Scanning a photo just
  * adds it to a subject's running list of material; generating a study set happens later, over
  * whichever entries get checked off (see generateStudyMaterials, called with their combined text). */
@@ -139,5 +162,14 @@ export async function transcribePhoto(photo: PhotoInput, provider: KQuizProvider
   return parseTranscription(raw)
 }
 
+/** Answers a question grounded only in the student's own checked notes/lectures — no separate
+ * summary or flashcards, just a direct answer, so this stays cheap enough to ask freely. */
+export async function answerFromNotes(context: string, question: string, provider: KQuizProvider, apiKey: string): Promise<string> {
+  if (!apiKey.trim()) fail('Add an API key in Settings first.')
+  const prompt = buildAnswerPrompt(context, question)
+  const raw = provider === 'gemini' ? await callGemini(prompt, apiKey.trim()) : await callOpenAI(prompt, apiKey.trim())
+  return parseAnswer(raw)
+}
+
 /** Exposed for tests — exercises the same validation a real API response goes through. */
-export const __test__ = { parseGenerated, parseTranscription, buildPrompt, buildTranscribePrompt }
+export const __test__ = { parseGenerated, parseTranscription, parseAnswer, buildPrompt, buildTranscribePrompt, buildAnswerPrompt }
