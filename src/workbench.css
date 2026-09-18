@@ -273,6 +273,7 @@ button.needs-review-record{outline-offset:-2px}
 .wb-time-suggestion-list button{padding:6px 12px;border-radius:999px;border:1px solid var(--wb-line);background:var(--wb-panel-bg,transparent)}
 .wb-time-suggestion-list button[aria-pressed="true"]{background:var(--wb-accent,#4169a8);color:#fff;border-color:transparent}
 .wb-time-planned{margin-top:8px;font-size:.875rem}
+.start-focus-button{background:var(--wb-accent,#4169a8);color:var(--wb-accent-ink,#fff);border-color:transparent}
 .schedule-share-export{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .schedule-share-import{padding-top:12px;border-top:1px solid var(--wb-line)}
 .wb-draggable{cursor:grab}

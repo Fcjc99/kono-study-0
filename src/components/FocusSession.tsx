@@ -5,7 +5,8 @@ import type { Note, Task } from '../store/model'
 type WakeLockSentinelLike = { release: () => Promise<void> }
 type NavigatorWithWakeLock = Navigator & { wakeLock?: { request: (type: 'screen') => Promise<WakeLockSentinelLike> } }
 
-export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey='kono-focus-draft'}:{draftKey?:string;tasks:Task[];notes:Note[];onComplete:(id:string)=>void;onSaveNote:(body:string)=>void|Promise<boolean>}){
+export type FocusRequest={taskId:string;estimatedMinutes?:number;requestId:number}
+export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey='kono-focus-draft',focusRequest}:{draftKey?:string;tasks:Task[];notes:Note[];onComplete:(id:string)=>void;onSaveNote:(body:string)=>void|Promise<boolean>;focusRequest?:FocusRequest|null}){
  const [taskId,setTaskId]=useState(''),[draft,setDraft]=useDraftState(draftKey,'')
  const [duration,setDuration]=useDraftState(draftKey+':duration',25*60)
  const [remaining,setRemaining]=useState(duration),[until,setUntil]=useState<number|null>(null),[now,setNow]=useState(0)
@@ -13,6 +14,19 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey
  const [locked,setLocked]=useState(false),[interruptions,setInterruptions]=useState(0)
  const wakeLockRef=useRef<WakeLockSentinelLike|null>(null)
  const rootRef=useRef<HTMLDetailsElement>(null)
+ // A time-block notification (or its "Start now" button) hands a specific task off here. Adjusted
+ // directly during render (React's own pattern for "reset state when a prop changes") rather than in an
+ // effect, and guarded by requestId so a fresh handoff is applied exactly once no matter how many times
+ // this re-renders in between.
+ const [handledRequestId,setHandledRequestId]=useState<number|null>(null)
+ if(focusRequest&&handledRequestId!==focusRequest.requestId){
+  setHandledRequestId(focusRequest.requestId)
+  setTaskId(focusRequest.taskId)
+  if(focusRequest.estimatedMinutes){const secs=focusRequest.estimatedMinutes*60;setDuration(secs);setRemaining(secs)}
+ }
+ // Opening the <details> is a real DOM side effect (and needs the ref committed), so it stays in an
+ // effect rather than joining the state adjustment above.
+ useEffect(()=>{if(focusRequest&&rootRef.current)rootRef.current.open=true},[focusRequest])
  const task=tasks.find(t=>t.id===taskId&&!t.done)??tasks.filter(t=>!t.done).sort((a,b)=>a.due.localeCompare(b.due))[0]
  const seconds=until===null?remaining:Math.max(0,Math.ceil((until-now)/1000)),finished=until!==null&&seconds===0
  const progress=duration>0?Math.min(1,Math.max(0,1-seconds/duration)):0
