@@ -44,6 +44,9 @@
 .quick-add-choice{display:grid;gap:12px;padding:8px 0 16px}
 .quick-add-choice select{font-size:1rem}
 .add-more-choices>div{display:grid;gap:8px;padding-top:8px}
+.update-entire-plan-button{width:100%;padding:12px 14px;margin-bottom:8px;border:1px dashed var(--wb-line);border-radius:12px;background:var(--wb-surface);font-weight:700;text-align:center;cursor:pointer}
+.update-plan-scanner label{display:grid;gap:6px;margin:12px 0}
+.update-plan-scanner input,.update-plan-scanner select{width:100%;box-sizing:border-box}
 .theme-lavender span{background:linear-gradient(90deg,#bea3e2,#8160aa)!important}.theme-mint span{background:linear-gradient(90deg,#b9e5d2,#4e927c)!important}.theme-honey span{background:linear-gradient(90deg,#f7d78e,#bd7735)!important}
 .theme-zen span{background:linear-gradient(90deg,#c7c2a9,#7c8a6e)!important}.theme-floral span{background:linear-gradient(90deg,#f3b6cb,#c9587a)!important}.theme-ocean span{background:linear-gradient(90deg,#a9e0dc,#1c9aa1)!important}
 :root[data-experience='cozy'][data-theme='lavender'] body{background:radial-gradient(circle at 12% 8%,#fff 0,#f6f0ff 38%,#eee7fb 100%)}
