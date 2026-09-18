@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type SetStateAction } from 'react'
 import { useDraftState } from '../hooks/useDraftState'
 import { useLectureRecorder } from '../hooks/useLectureRecorder'
+import { useLocalSetting } from '../hooks/useLocalSetting'
 import { uid, localDate, type AppData, type KQuizLecture, type KQuizSet, type KQuizSource, type KQuizQuestion, type Subject } from '../store/model'
 import type { FlashcardDeck } from '../store/flashcards'
 import { srsInitial } from '../store/spacedRepetition'
@@ -10,12 +11,6 @@ import KQuizGuide from './KQuizGuide'
 import './kquiz.css'
 
 const formatDuration = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
-
-function useLocalSetting(key: string, fallback: string): [string, (value: string) => void] {
-  const [value, setValue] = useState(() => { try { return localStorage.getItem(key) ?? fallback } catch { return fallback } })
-  const update = (next: string) => { setValue(next); try { localStorage.setItem(key, next) } catch { /* best effort; the field still works this session */ } }
-  return [value, update]
-}
 
 const UNSORTED = '__unsorted__'
 
