@@ -7,7 +7,7 @@ import {calendarTasks,addDays} from './store/studyScheduler'
 import {classifyVoiceInput} from './store/voiceIntake'
 import {useSpeechToText} from './hooks/useSpeechToText'
 import {syncCurrentTaskCompletion,createSanctuaryProgress} from './game/progression/progressionEngine'
-import {pickKonoPhrase,konoCelebration,type KonoPhrase} from './store/konoPhrases'
+import {pickKonoPhrase,konoCelebration,konoStreakMilestone,STREAK_MILESTONES,type KonoPhrase} from './store/konoPhrases'
 import {useReducedMotion,useMusicController} from './hooks/useComfort'
 import {useDueNotifications} from './hooks/useDueNotifications'
 import {useLiveSanctuaryWeather} from './hooks/useLiveSanctuaryWeather'
@@ -85,7 +85,10 @@ export default function WorkspaceApp(){
  const store=usePlannerRepository()
  useEffect(()=>{const {experience='cozy',theme}=store.data.settings;document.documentElement.dataset.experience=experience;document.documentElement.dataset.theme=experience==='cozy'?cozyPalette(theme):fixedPaletteExperiences.includes(experience)?experience:theme},[store.data.settings])
  if(!store.ready)return <main className="startup-card"><h1>KONO</h1><p role="status">Opening your study plan…</p></main>
- if(!store.data.onboardingComplete)return <><SaveStatus store={store}/><Onboarding store={store}/></>
+ // AccountPanel (rendered inside Onboarding) shows its own SaveStatus in context -- a second
+ // one floating above the welcome card duplicated the exact same "Build X · This device only"
+ // line as a stray line of text before the reader has even reached the card it belongs to.
+ if(!store.data.onboardingComplete)return <Onboarding store={store}/>
  return <Workspace key={(store.user?.id??'device')+':'+store.data.activeProfileId} store={store}/>
 }
 function Workspace({store}:{store:Store}){
@@ -190,7 +193,15 @@ function Workspace({store}:{store:Store}){
  const edit=(key:Collection,entry:Entry)=>{const original=records(data,key).find(r=>r.id===entry.id)??entry;openEditor({key,entry:original,original})}
  const patch=(key:Collection,entry:Entry,changes:Partial<Entry>)=>run(()=>save(d=>({...d,[key]:records(d,key).map(r=>r.id===entry.id?{...r,...changes}:r)})),'Changes saved.')
  const reschedule=(key:Collection,entry:Entry,date:string)=>void patch(key,entry,{['due' in entry?'due':'date']:date})
- const toggle=(key:Collection,entry:Entry)=>{if(key==='tasks'){void run(async()=>{const saved=await save(d=>completeTask(d,entry.id));if(saved&&!entry.done){if(data.settings.sound){const audio=new Audio('/audio/completion.wav');audio.volume=.4;void audio.play().catch(()=>undefined)}if(entry.due===today&&!ownTasks.some(t=>t.id!==entry.id&&!t.done&&t.due===today))setKonoPhrase(konoCelebration())}return saved},'Assignment updated.');return}const field=key==='notes'?'completed':'done';void patch(key,entry,{[field]:!entry[field]})}
+ const toggle=(key:Collection,entry:Entry)=>{if(key==='tasks'){void run(async()=>{const saved=await save(d=>completeTask(d,entry.id));if(saved&&!entry.done){if(data.settings.sound){const audio=new Audio('/audio/completion.wav');audio.volume=.4;void audio.play().catch(()=>undefined)}if(entry.due===today&&!ownTasks.some(t=>t.id!==entry.id&&!t.done&&t.due===today)){
+   // completeTask credits completionDates[today] on a profile's very first completion of the day
+   // (any task, not just ones due today) -- so "today had no credit yet" is exactly "this
+   // completion is about to extend the streak," computed here instead of watched reactively so it
+   // can't race the "today's list is cleared" celebration below for the same click.
+   const extendsStreak=(sanctuaryProgress.completionDates[today]??0)===0
+   const resultingStreak=extendsStreak?currentStreak+1:currentStreak
+   setKonoPhrase(extendsStreak&&STREAK_MILESTONES.includes(resultingStreak)?konoStreakMilestone(resultingStreak):konoCelebration())
+  }}return saved},'Assignment updated.');return}const field=key==='notes'?'completed':'done';void patch(key,entry,{[field]:!entry[field]})}
  const remove=(key:Collection,entry:Entry)=>setConfirmation({text:'Move “'+titleOf(entry)+'” to Trash?'+(key==='subjects'?' Its assignments and notes remain available.':entry.studyPlanId?' Restoring this unit returns an independent assignment.':''),action:()=>void run(()=>save(d=>removeEntry(d,key,entry.id)),'Moved to Trash. You can restore it later.')})
  const removeSeries=(entry:Entry)=>{const recurringId=String(entry.recurringId??''),count=ownTasks.filter(t=>t.recurringId===recurringId).length;setConfirmation({text:'Move all '+count+' dates in this series to Trash? Each is trashed independently, so you can restore just one later if you change your mind.',action:()=>void run(()=>save(d=>({...d,tasks:d.tasks.filter(t=>!(t.profileId===entry.profileId&&t.recurringId===recurringId))})),'Series moved to Trash.')})}
  const duplicate=(key:Collection,entry:Entry)=>openEditor({key,entry:{...entry,id:uid(key),title:titleOf(entry)+' (copy)',name:key==='subjects'?titleOf(entry)+' (copy)':entry.name,done:false,completed:false,completedAt:undefined,studyPlanId:undefined,unitNumber:undefined}})
