@@ -8,16 +8,20 @@ export type AssignmentPhotoItem = { title: string; date: string | null; kind: 't
 
 function buildAssignmentPhotoPrompt(today: string): string {
   return `You are reading a photo of a student's handwritten or printed notes listing assignments, due ` +
-    `dates, tests, and classes -- this could be a to-do list, a page torn from a notebook, a sticky note, ` +
-    `anything. Today's date is ${today}. For every distinct item you can make out, extract one entry ` +
-    `(work through unclear handwriting using your best judgement; skip anything you truly cannot read). ` +
+    `dates, tests, and classes. This could be a quick to-do list, a page torn from a notebook, a sticky ` +
+    `note -- or a full course syllabus covering an entire term, including a week-by-week schedule table, ` +
+    `reading list, and exam dates. Today's date is ${today}. Extract every distinct dated item across the ` +
+    `ENTIRE document, not just ones near today -- a syllabus's schedule table can run many weeks past ` +
+    `today and every row in it matters just as much as this week's. Work through unclear handwriting or ` +
+    `small print using your best judgement; skip anything you truly cannot read. ` +
     `Respond with a single JSON object: {"items": array of {` +
     `"title": string (what the item is, cleaned up but close to what is written), ` +
     `"date": string in YYYY-MM-DD format, or null if genuinely no date or day is written or implied for ` +
-    `this item -- resolve any relative day reference ("Friday", "next Tuesday", "tomorrow") against ` +
-    `today's date (${today}), ` +
-    `"kind": one of "exam" (a test, quiz or exam), "task" (homework, an assignment, something to turn in), ` +
-    `or "event" (anything else), ` +
+    `this item -- a syllabus usually states its own literal dates (in the schedule table or next to each ` +
+    `assignment), so use those directly when given; only resolve a relative day reference ("Friday", ` +
+    `"next Tuesday", "tomorrow") against today's date (${today}) when no literal date is stated, ` +
+    `"kind": one of "exam" (a test, quiz or exam), "task" (homework, reading, an assignment, something to ` +
+    `turn in), or "event" (anything else, including a plain topic/lecture with no deliverable), ` +
     `"subject": string (the class or subject this belongs to, if mentioned or clearly implied -- ` +
     `otherwise an empty string)}}. Output ONLY the JSON object, no other text.`
 }
@@ -37,7 +41,7 @@ function parseAssignmentPhoto(raw: string): AssignmentPhotoItem[] {
     const kind = item.kind === 'exam' || item.kind === 'task' ? item.kind : 'event'
     const subject = typeof item.subject === 'string' ? item.subject.trim().slice(0, 200) : ''
     return [{ title, date, kind, subject }]
-  }).slice(0, 60)
+  }).slice(0, 150) // a dense multi-week syllabus table can list far more entries than a quick to-do photo
   if (!parsed.length) fail('Could not read any items from that photo. Try a clearer photo, or make sure the writing is legible.')
   return parsed
 }

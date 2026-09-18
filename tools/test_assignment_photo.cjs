@@ -27,6 +27,19 @@ test('the prompt tells the AI today\'s date so it can resolve relative day words
  assert.ok(prompt.includes('"subject"'))
 })
 
+test('the prompt covers a full course syllabus, not just a quick note, and prefers a syllabus\'s own literal dates',()=>{
+ const prompt=photo.__test__.buildAssignmentPhotoPrompt('2026-09-18')
+ assert.ok(prompt.toLowerCase().includes('syllabus'))
+ assert.ok(prompt.includes('ENTIRE document'))
+ assert.ok(prompt.toLowerCase().includes('literal date'))
+})
+
+test('a dense syllabus page can list far more items than the old 60-item cap allowed',()=>{
+ const items=Array.from({length:100},(_,i)=>({title:'Reading '+i,date:'2026-09-'+String(20+(i%9)).padStart(2,'0'),kind:'task',subject:''}))
+ const parsed=photo.__test__.parseAssignmentPhoto(JSON.stringify({items}))
+ assert.equal(parsed.length,100)
+})
+
 test('parsing accepts a well-formed response and rejects an empty or malformed one',()=>{
  const good=JSON.stringify({items:[
   {title:'Math worksheet pg 12',date:'2026-09-22',kind:'task',subject:'Math'},
