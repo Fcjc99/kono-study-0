@@ -6,6 +6,7 @@ import { createSanctuaryProgress, migrateSanctuaryProgress } from '../game/progr
 import { dateInZone, studyDates, studyUnits } from './studyScheduler'
 import {validateSchool,type SchoolCalendar} from './schoolCalendar'
 import type { FlashcardDeck } from './flashcards'
+import { srsInitial } from './spacedRepetition'
 
 export type ProfileKind='summer'|'school'|'college'|'custom'
 export type Profile={id:string;name:string;label:string;kind:ProfileKind;start:string;end:string;progressEpoch?:string}
@@ -92,6 +93,8 @@ const str=(v:unknown,path:string,max=1000):string=>typeof v==='string'&&v.length
 const id=(v:unknown,path:string):string=>{const s=str(v,path,150);return s&&!['__proto__','constructor','prototype'].includes(s)?s:fail(path)}
 const optional=(v:unknown,path:string,max=1000)=>v===undefined?undefined:str(v,path,max)
 const integer=(v:unknown,path:string,max:number)=>typeof v==='number'&&Number.isInteger(v)&&v>=1&&v<=max?v:fail(path)
+const nonNegativeInt=(v:unknown,path:string)=>typeof v==='number'&&Number.isInteger(v)&&v>=0&&v<=36500?v:fail(path)
+const easeValue=(v:unknown)=>typeof v==='number'&&Number.isFinite(v)&&v>=1&&v<=5?v:fail('card ease')
 const bool=(v:unknown,fallback=false)=>v===undefined?fallback:typeof v==='boolean'?v:fail('boolean')
 const list=(v:unknown,path:string,limit=20000):Obj[]=>{
  if(!Array.isArray(v)||v.length>limit||!v.every(object))return fail(path)
@@ -191,7 +194,11 @@ export function normalizeData(raw:unknown):AppData {
  })
  const flashcardDecks:FlashcardDeck[]=list(raw.flashcardDecks??[],'flashcard decks',100).map(d=>{
   const title=str(d.title,'deck title',200);if(!title.trim())return fail('deck title')
-  const cards=list(d.cards,'flashcards',200).map(c=>{const question=str(c.question,'flashcard question',2000),answer=str(c.answer,'flashcard answer',5000);if(!question.trim()||!answer.trim())return fail('empty flashcard');return {id:id(c.id,'card ID'),question,answer,needsReview:bool(c.needsReview,true),reviewId:optional(c.reviewId,'review ID',150)}})
+  const cards=list(d.cards,'flashcards',200).map(c=>{const question=str(c.question,'flashcard question',2000),answer=str(c.answer,'flashcard answer',5000);if(!question.trim()||!answer.trim())return fail('empty flashcard')
+   // Cards saved before spaced repetition shipped have none of interval/ease/dueDate -- treat them
+   // as due right now (srsInitial), the same "always reviewable" state needsReview:true used to mean.
+   const fresh=srsInitial(localDate())
+   return {id:id(c.id,'card ID'),question,answer,interval:c.interval===undefined?fresh.interval:nonNegativeInt(c.interval,'card interval'),ease:c.ease===undefined?fresh.ease:easeValue(c.ease),dueDate:c.dueDate===undefined?fresh.dueDate:date(c.dueDate,'card due date'),reviewId:optional(c.reviewId,'review ID',150)}})
   if(!cards.length)return fail('empty deck')
   return {id:id(d.id,'deck ID'),profileId:owner(d.profileId),title,cards}
  })

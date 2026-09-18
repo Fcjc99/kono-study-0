@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent, type SetStateAction } from 'react'
 import { useDraftState } from '../hooks/useDraftState'
 import { useLectureRecorder } from '../hooks/useLectureRecorder'
-import { uid, type AppData, type KQuizLecture, type KQuizSet, type KQuizSource, type KQuizQuestion, type Subject } from '../store/model'
+import { uid, localDate, type AppData, type KQuizLecture, type KQuizSet, type KQuizSource, type KQuizQuestion, type Subject } from '../store/model'
 import type { FlashcardDeck } from '../store/flashcards'
+import { srsInitial } from '../store/spacedRepetition'
 import { generateStudyMaterials, transcribePhoto } from '../store/kquizGenerate'
 import { saveRecording, loadRecording, deleteRecording } from '../store/audioStore'
 import KQuizGuide from './KQuizGuide'
@@ -100,7 +101,8 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
   }
 
   const saveGenerated = async (title: string, materials: Awaited<ReturnType<typeof generateStudyMaterials>>, subjectId?: string) => {
-    const deck: FlashcardDeck = { id: uid('deck'), profileId, title, cards: materials.flashcards.map(c => ({ id: uid('card'), question: c.question, answer: c.answer, needsReview: true })) }
+    const today = localDate()
+    const deck: FlashcardDeck = { id: uid('deck'), profileId, title, cards: materials.flashcards.map(c => ({ id: uid('card'), question: c.question, answer: c.answer, ...srsInitial(today) })) }
     const set: KQuizSet = { id: uid('kqset'), profileId, subjectId: subjectId ?? '', title, createdAt: new Date().toISOString(), summary: materials.summary, studyGuide: materials.studyGuide, flashcardDeckId: deck.id, practiceTest: { questions: materials.questions } }
     return setData(data => ({ ...data, flashcardDecks: [...data.flashcardDecks, deck], kquizSets: [...data.kquizSets, set] }))
   }
