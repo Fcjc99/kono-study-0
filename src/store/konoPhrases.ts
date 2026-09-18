@@ -1,4 +1,8 @@
-export type KonoPhrase={kind:'greeting'|'reminder'|'affirmation'|'fact'|'celebration';text:string}
+export type KonoPhrase={kind:'greeting'|'reminder'|'affirmation'|'fact'|'celebration'|'milestone';text:string}
+
+/** Checked with .includes(), not a threshold -- a streak only ever equals one of these on the exact
+ * day it's first reached, so this doubles as "is this a day worth celebrating." */
+export const STREAK_MILESTONES=[3,7,14,30,60,100,180,365]
 
 const timeGreeting=(hour:number)=>hour<5?'Still up?':hour<12?'Good morning':hour<17?'Good afternoon':hour<21?'Good evening':'Working late?'
 
@@ -41,4 +45,19 @@ export function pickKonoPhrase({name,hour,dueToday}:{name:string;hour:number;due
 
 export function konoCelebration(rand:()=>number=Math.random):KonoPhrase{
  return {kind:'celebration',text:CELEBRATIONS[Math.floor(rand()*CELEBRATIONS.length)]}
+}
+
+const MILESTONE_LINES:Record<number,string>={
+ 3:"Three days in a row — a streak is forming.",
+ 7:'Seven days straight. A full week of showing up.',
+ 14:'Two weeks in a row. This is a real habit now.',
+ 30:'Thirty days. A whole month — that’s extraordinary.',
+ 60:'Sixty days running. Nothing about this is an accident anymore.',
+ 100:'One hundred days. That’s a genuinely rare kind of consistency.',
+ 180:'Six months in a row. Half a year of showing up for yourself.',
+ 365:'A full year, every day. However you got here, remember it.',
+}
+
+export function konoStreakMilestone(streak:number):KonoPhrase{
+ return {kind:'milestone',text:MILESTONE_LINES[streak]??streak+' days in a row. Keep going.'}
 }
