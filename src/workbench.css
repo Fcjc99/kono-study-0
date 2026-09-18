@@ -114,6 +114,11 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .needs-review-record{outline:2px solid #dc2626;outline-offset:2px}
 .needs-review-badge{display:inline-block;margin:0 0 4px;padding:3px 9px;border-radius:999px;background:#dc2626;color:#fff;font-size:.7rem;font-weight:800;letter-spacing:.02em}
 button.needs-review-record{outline-offset:-2px}
+/* Persistent header pill -- unlike .review-digest (dismissible, shown once per day), this stays
+ * visible on every page for as long as anything is still flagged, so a scan's leftovers can't get
+ * lost once the day's login digest is gone. */
+.needs-review-nav-badge{background:#dc2626!important;border-color:#a91c1c!important;color:#fff!important;font-weight:800}
+@media(hover:hover){.needs-review-nav-badge:hover{filter:brightness(1.08)}}
 .wb-island{position:relative;margin-bottom:24px;min-width:0}
 .wb-scene-toolbar{margin-bottom:8px}.wb-scene-toolbar label{display:flex;align-items:center;gap:10px}
 .wb-island-zoom{display:flex;align-items:center;gap:6px}
