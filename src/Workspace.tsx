@@ -7,7 +7,7 @@ import {calendarTasks,addDays} from './store/studyScheduler'
 import {classifyVoiceInput} from './store/voiceIntake'
 import {useSpeechToText} from './hooks/useSpeechToText'
 import {syncCurrentTaskCompletion,createSanctuaryProgress} from './game/progression/progressionEngine'
-import {pickKonoPhrase,konoCelebration,konoStreakMilestone,STREAK_MILESTONES,type KonoPhrase} from './store/konoPhrases'
+import {pickKonoPhrase,konoCelebration,konoStreakMilestone,seededRand,STREAK_MILESTONES,type KonoPhrase} from './store/konoPhrases'
 import {useReducedMotion,useMusicController} from './hooks/useComfort'
 import {useDueNotifications} from './hooks/useDueNotifications'
 import {useLiveSanctuaryWeather} from './hooks/useLiveSanctuaryWeather'
@@ -185,7 +185,7 @@ function Workspace({store}:{store:Store}){
  const [konoPhrase,setKonoPhrase]=useState<KonoPhrase|null>(()=>{
   try{if(sessionStorage.getItem(konoGreetKey))return null}catch{/* Best effort; worst case it greets again this reload. */}
   const dueToday=[...ownTasks.filter(t=>!t.done&&t.due===today).map(t=>({title:t.title})),...data.exams.filter(e=>e.profileId===profile.id&&!e.done&&e.due===today).map(e=>({title:e.title}))]
-  const phrase=pickKonoPhrase({name:profile.name,hour:new Date().getHours(),dueToday})
+  const phrase=pickKonoPhrase({name:profile.name,hour:new Date().getHours(),dueToday},seededRand(today+':'+profile.id))
   try{sessionStorage.setItem(konoGreetKey,'1')}catch{/* Best effort. */}
   return phrase
  })
