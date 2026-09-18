@@ -65,8 +65,12 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .workbench .wb-sidebar nav button[aria-current="page"]{background:#ffffff20;border-color:#ffffff45}
 .wb-profile{margin-top:auto}
 /* 76px bottom padding clears the floating .wb-music-bar pill (see its own rule further down) so it
- * never sits over the last bit of page content. */
+ * never sits over the last bit of page content. scroll-padding-bottom matches it: without that, a
+ * scrollIntoView/focus jump (K-Quiz's textarea, keyboard Tab focus) can land its target's bottom
+ * edge exactly behind the fixed bar at desktop widths too, since scroll geometry doesn't know that
+ * strip is visually covered -- the @media(max-width:700px) block below already does this for mobile. */
 .workbench #workspace-main{min-width:0;padding:22px clamp(16px,3vw,48px) 76px;max-width:1500px;width:100%;margin:0 auto}
+html:has(.workbench){scroll-padding-bottom:76px}
 .wb-header,.wb-section-head,.wb-status,.wb-scene-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .wb-header{margin-bottom:10px}.wb-header small{color:var(--wb-muted)}
 /* Search/Trash/Add/mic stay one row on every device instead of wrapping once the row runs out of
