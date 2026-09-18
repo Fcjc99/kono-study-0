@@ -285,6 +285,13 @@ button.needs-review-record{outline-offset:-2px}
 .review-digest{align-items:center;justify-content:flex-start;border-color:#dc2626}
 .review-digest>div{display:flex;flex-direction:column;gap:2px;margin-right:auto}
 .review-digest small{color:var(--wb-muted)}
+/* Amber, not the review-digest's red -- "several things land the same day" is a heads-up to plan
+ * around, not a "please double-check this" flag, so it needs its own color to avoid conflating the
+ * two signals. */
+.crunch-digest{align-items:center;justify-content:flex-start;border-color:#b45309}
+.crunch-digest>div{display:flex;flex-direction:column;gap:2px;margin-right:auto}
+.crunch-digest ul{margin:6px 0 0;padding-left:18px}
+.crunch-digest small{color:var(--wb-muted)}
 .focus-session:fullscreen,.focus-session:-webkit-full-screen{width:100vw;height:100vh;max-width:none;border:0;border-radius:0;box-shadow:none;background:var(--wb-bg);display:flex;flex-direction:column}
 .focus-session:fullscreen .focus-lock-overlay,.focus-session:-webkit-full-screen .focus-lock-overlay{min-height:100vh;flex:1}
 .wb-dialog{position:fixed;inset:0;margin:auto;width:min(640px,calc(100% - 24px));max-height:calc(100dvh - 32px);overflow:auto;padding:24px;border:1px solid var(--wb-line);border-radius:20px;background:var(--wb-surface);color:var(--wb-ink);box-shadow:0 20px 80px #0005;font:1rem/1.5 system-ui}
