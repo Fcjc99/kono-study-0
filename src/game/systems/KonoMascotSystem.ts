@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import { RenderLayers } from '../engine/RenderLayers'
 import { SANCTUARY_EVENTS } from '../sanctuary/runtime'
 import type { EnvironmentSnapshot } from '../sanctuary/environmentManager'
-import type { DayPhase } from '../sanctuary/types'
+import type { DayPhase, SanctuaryWeather } from '../sanctuary/types'
 import type { KonoContextAction, KonoLandmarkId } from './KonoInteractionSystem'
 import { PHASE_LIGHT } from './sanctuaryLighting'
 import type { MascotObstacle } from '../data/buildAssets'
@@ -86,6 +86,10 @@ const NAV_GRAPH: Record<NavNodeId, readonly NavNodeId[]> = {
 }
 
 const WANDER_NODE_POOL: readonly NavNodeId[] = ['house', 'mailbox', 'garden', 'west-junction', 'north-west', 'north-center', 'cherry', 'terrace-entry', 'lanterns', 'pond-north', 'pond-west', 'pond-east', 'bridge']
+// The roofed cottage and the tree canopy are the only wander stops that read as actual shelter --
+// used to bias where KONO heads while it's raining or snowing, without needing new weather-specific
+// art (no umbrella/huddle pose exists, so this is a behavioral reaction only).
+const SHELTERED_NODES: ReadonlySet<NavNodeId> = new Set(['house', 'cherry'])
 const DEFAULT_SPAWN_NODE: NavNodeId = 'west-junction'
 
 const REACTION_SPOTS: Record<KonoLandmarkId, { x: number; y: number }> = {
@@ -145,6 +149,7 @@ export class KonoMascotSystem {
   private target = { ...this.position }
   private route: { x: number; y: number }[] = []
   private phase: DayPhase = 'afternoon'
+  private weather: SanctuaryWeather = 'clear'
   private reducedMotion = false
   private walkDirection: WalkDirection = 'down'
   private currentTexture = 'kono-idle'
@@ -233,6 +238,14 @@ export class KonoMascotSystem {
     this.applyLighting()
   }
 
+  private isSheltering(): boolean {
+    return this.weather === 'rain' || this.weather === 'snow'
+  }
+
+  setWeather(weather: SanctuaryWeather): void {
+    this.weather = weather
+  }
+
   resize(bounds: Phaser.Geom.Rectangle): void {
     this.bounds.setTo(bounds.x, bounds.y, bounds.width, bounds.height)
     this.positionVisuals()
@@ -240,6 +253,7 @@ export class KonoMascotSystem {
 
   update(timeMs: number, deltaSeconds: number, environment: EnvironmentSnapshot): void {
     this.setPhase(environment.phase)
+    this.setWeather(environment.weather)
     this.ensureSafePosition()
     this.applyLighting()
     if (this.phase === 'night') {
@@ -265,7 +279,10 @@ export class KonoMascotSystem {
     const dy = activeTarget.y - this.position.y
     const distance = Math.hypot(dx, dy)
     const phaseSpeed = this.phase === 'evening' ? 0.034 : 0.040
-    const speed = this.reducedMotion ? phaseSpeed * 0.48 : phaseSpeed
+    // A slower, more careful pace picking through rain or snow -- the only weather cue available
+    // without new art, but a believable one on its own.
+    const weatherSpeed = this.isSheltering() ? phaseSpeed * 0.78 : phaseSpeed
+    const speed = this.reducedMotion ? weatherSpeed * 0.48 : weatherSpeed
     const delta = Number.isFinite(deltaSeconds) ? Phaser.Math.Clamp(deltaSeconds, 0, 0.034) : 0
     const step = Math.min(distance, speed * delta)
 
@@ -376,10 +393,15 @@ export class KonoMascotSystem {
         const point = NAV_NODES[id]
         return Math.hypot(point.x - this.position.x, point.y - this.position.y) > 0.055 && this.isWalkablePoint(point)
       })
-      const next = Phaser.Utils.Array.GetRandom(candidates.length ? [...candidates] : [...WANDER_NODE_POOL])
+      // While it's raining or snowing, head for shelter (the cottage or the tree canopy) rather than
+      // an exposed spot like the pond or bridge, whenever one is actually reachable.
+      const sheltered = candidates.filter((id) => SHELTERED_NODES.has(id))
+      const pool = this.isSheltering() && sheltered.length ? sheltered : candidates.length ? candidates : [...WANDER_NODE_POOL]
+      const next = Phaser.Utils.Array.GetRandom([...pool])
       this.navigateToNode(next)
     }
-    this.nextWanderAt = timeMs + Phaser.Math.Between(3_800, 7_200)
+    // Lingers longer once it reaches shelter in bad weather, rather than dashing straight back out.
+    this.nextWanderAt = timeMs + (this.isSheltering() && SHELTERED_NODES.has(this.closestNode(this.position)) ? Phaser.Math.Between(7_000, 12_000) : Phaser.Math.Between(3_800, 7_200))
   }
 
   private navigateToNode(nodeId: NavNodeId): void {
