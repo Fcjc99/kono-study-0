@@ -17,6 +17,7 @@ export const SANCTUARY_EVENTS = {
   decor: 'sanctuary:set-decor',
   evolution: 'sanctuary:evolution-milestone',
   interaction: 'sanctuary:kono-interaction',
+  celebrate: 'sanctuary:kono-celebrate',
   state: 'sanctuary:state',
 } as const
 

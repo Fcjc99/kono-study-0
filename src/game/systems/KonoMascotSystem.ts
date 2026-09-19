@@ -203,6 +203,7 @@ export class KonoMascotSystem {
     })
 
     this.scene.game.events.on(SANCTUARY_EVENTS.interaction, this.handleInteraction, this)
+    this.scene.game.events.on(SANCTUARY_EVENTS.celebrate, this.celebrate, this)
     if (phase === 'night') this.enterNightSleep()
     else this.pickWanderTarget(this.scene.time.now + 1_200)
     this.applyLighting()
@@ -336,8 +337,18 @@ export class KonoMascotSystem {
     this.positionVisuals()
   }
 
+  /** Fired from outside the scene (see GardenCard's celebrateSignal prop) when the student actually
+   * finishes something -- clearing today's list, a streak milestone -- so KONO reacts to the moment
+   * itself, not only to a click on the sprite. Reuses the exact same reaction textures/duration as a
+   * pointer tap, just triggered externally. */
+  celebrate(): void {
+    if (this.phase === 'night') return
+    this.beginReaction(Math.random() < 0.5 ? 'kono-excited' : 'kono-happy', this.scene.time.now + 1_600)
+  }
+
   destroy(): void {
     this.scene.game.events.off(SANCTUARY_EVENTS.interaction, this.handleInteraction, this)
+    this.scene.game.events.off(SANCTUARY_EVENTS.celebrate, this.celebrate, this)
     this.sprite?.removeAllListeners()
     this.sprite?.destroy()
     this.shadow?.destroy()
