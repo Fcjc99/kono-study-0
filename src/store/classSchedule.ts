@@ -25,3 +25,14 @@ export function saveClassNote(data:AppData,item:ClassOccurrence,text:string):App
  return updateClass(data,item,b=>{if((b.occurrenceNotes?.[item.date]??'')!==(item.block.occurrenceNotes?.[item.date]??''))throw Error('This class note changed elsewhere. Your draft is preserved.');return {...b,occurrenceNotes:{...b.occurrenceNotes,[item.date]:text}}})
 }
 export const classTime=(time:string)=>{const [h,m]=time.split(':').map(Number);return (h%12||12)+':'+String(m).padStart(2,'0')+(h<12?' AM':' PM')}
+
+/** True while any class/routine/hobby block from today's occurrences is actually in session right now
+ * -- a 'break' block is free time within the day, not a commitment, so it's never treated as "in
+ * class". Used to hold notifications quiet during school hours instead of buzzing a phone mid-class. */
+export function isInClassNow(occurrences:ClassOccurrence[],nowClock:string):boolean{
+ return occurrences.some(({block,displayStart,displayEnd})=>{
+  if(block.kind==='break')return false
+  const start=displayStart??block.start,end=displayEnd??block.end
+  return start<=nowClock&&nowClock<end
+ })
+}
