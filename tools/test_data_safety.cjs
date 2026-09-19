@@ -179,11 +179,15 @@ assert.deepEqual([normalizedExplicit.settings.scheduleShowAcademic,normalizedExp
 test('eventCategory buckets calendar event kinds into academic, sports or appointments',()=>{
 for(const kind of ['exam','test','quiz','assignment','study','activity'])assert.equal(model.eventCategory(kind),'academic');
 assert.equal(model.eventCategory('sports'),'sports');
-for(const kind of ['personal','appointment','other'])assert.equal(model.eventCategory(kind),'appointments');
+for(const kind of ['personal','appointment','work','other'])assert.equal(model.eventCategory(kind),'appointments');
 });
 test('an appointment calendar event kind round-trips through normalization instead of being coerced to other',()=>{
 const d=make(),pid=d.activeProfileId;d.calendarEvents=[{id:'evt1',profileId:pid,date:'2026-09-20',title:'Dentist',kind:'appointment',notes:''}];
 assert.equal(model.normalizeData(d).calendarEvents[0].kind,'appointment');
+});
+test('a work calendar event kind round-trips through normalization instead of being coerced to other',()=>{
+const d=make(),pid=d.activeProfileId;d.calendarEvents=[{id:'evt1',profileId:pid,date:'2026-09-20',title:'Evening shift',kind:'work',notes:''}];
+assert.equal(model.normalizeData(d).calendarEvents[0].kind,'work');
 });
 test('a sports match result is clamped, derives the right outcome, and a malformed one is dropped rather than failing the save',()=>{
 const d=make(),pid=d.activeProfileId;
