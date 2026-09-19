@@ -18,6 +18,7 @@ export const SANCTUARY_EVENTS = {
   evolution: 'sanctuary:evolution-milestone',
   interaction: 'sanctuary:kono-interaction',
   celebrate: 'sanctuary:kono-celebrate',
+  focusCompanion: 'sanctuary:kono-focus-companion',
   state: 'sanctuary:state',
 } as const
 

@@ -6,7 +6,7 @@ type WakeLockSentinelLike = { release: () => Promise<void> }
 type NavigatorWithWakeLock = Navigator & { wakeLock?: { request: (type: 'screen') => Promise<WakeLockSentinelLike> } }
 
 export type FocusRequest={taskId:string;estimatedMinutes?:number;requestId:number}
-export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey='kono-focus-draft',focusRequest}:{draftKey?:string;tasks:Task[];notes:Note[];onComplete:(id:string)=>void;onSaveNote:(body:string)=>void|Promise<boolean>;focusRequest?:FocusRequest|null}){
+export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey='kono-focus-draft',focusRequest,onFocusActiveChange}:{draftKey?:string;tasks:Task[];notes:Note[];onComplete:(id:string)=>void;onSaveNote:(body:string)=>void|Promise<boolean>;focusRequest?:FocusRequest|null;onFocusActiveChange?:(active:boolean)=>void}){
  const [taskId,setTaskId]=useState(''),[draft,setDraft]=useDraftState(draftKey,'')
  const [duration,setDuration]=useDraftState(draftKey+':duration',25*60)
  const [remaining,setRemaining]=useState(duration),[until,setUntil]=useState<number|null>(null),[now,setNow]=useState(0)
@@ -30,6 +30,11 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey
  const task=tasks.find(t=>t.id===taskId&&!t.done)??tasks.filter(t=>!t.done).sort((a,b)=>a.due.localeCompare(b.due))[0]
  const seconds=until===null?remaining:Math.max(0,Math.ceil((until-now)/1000)),finished=until!==null&&seconds===0
  const progress=duration>0?Math.min(1,Math.max(0,1-seconds/duration)):0
+ // The running timer, not the locked overlay, is what makes KONO sit with you on the island (see
+ // GardenCard's focusCompanionActive prop) -- so it starts on "Start timer" and ends on pause, reset
+ // or the timer simply finishing, matching this component's own definition of an active session.
+ const focusActive=until!==null&&!finished
+ useEffect(()=>{onFocusActiveChange?.(focusActive)},[focusActive,onFocusActiveChange])
  const releaseLock=()=>{
   setLocked(false)
   void wakeLockRef.current?.release().catch(()=>undefined)
@@ -47,6 +52,10 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey
  useEffect(()=>{const onChange=()=>{if(!document.fullscreenElement&&locked)setLocked(false)};document.addEventListener('fullscreenchange',onChange);return()=>document.removeEventListener('fullscreenchange',onChange)},[locked])
  useEffect(()=>{if(!locked)return;const onVisibility=()=>{if(document.hidden)setInterruptions(n=>n+1)};document.addEventListener('visibilitychange',onVisibility);return()=>document.removeEventListener('visibilitychange',onVisibility)},[locked])
  useEffect(()=>()=>releaseLock(),[])
+ // Leaving this page mid-session (switching notebook tabs) unmounts this component without ever
+ // running the focusActive effect's own "now false" transition -- without this, KONO would be left
+ // stuck sitting at the cherry tree indefinitely.
+ useEffect(()=>()=>{onFocusActiveChange?.(false)},[onFocusActiveChange])
  const start=()=>{const timestamp=Date.now();setNow(timestamp);setUntil(timestamp+remaining*1000);void engageLock()}
  const pause=()=>{setRemaining(Math.max(0,Math.ceil(((until??Date.now())-Date.now())/1000)));setUntil(null);releaseLock()}
  const reset=()=>{setUntil(null);setRemaining(duration);releaseLock()}

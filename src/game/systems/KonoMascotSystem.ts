@@ -161,6 +161,7 @@ export class KonoMascotSystem {
   private lastFrameIndex = -1
   private destinationNode: NavNodeId | null = null
   private obstacles: MascotObstacle[] = []
+  private focusCompanion = false
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
@@ -204,6 +205,7 @@ export class KonoMascotSystem {
 
     this.scene.game.events.on(SANCTUARY_EVENTS.interaction, this.handleInteraction, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.celebrate, this.celebrate, this)
+    this.scene.game.events.on(SANCTUARY_EVENTS.focusCompanion, this.setFocusCompanion, this)
     if (phase === 'night') this.enterNightSleep()
     else this.pickWanderTarget(this.scene.time.now + 1_200)
     this.applyLighting()
@@ -235,6 +237,10 @@ export class KonoMascotSystem {
       this.reactionUntil = 0
       this.nextWanderAt = this.scene.time.now + 1_200
       this.setTexture('kono-idle')
+      if (this.focusCompanion) {
+        this.forcedTarget = true
+        this.navigateToNode('cherry')
+      }
     }
     this.applyLighting()
   }
@@ -263,7 +269,9 @@ export class KonoMascotSystem {
       return
     }
 
-    if (this.reactionTexture && timeMs < this.reactionUntil) {
+    // A focus-companion reaction (see setFocusCompanion) holds regardless of its own timer -- it
+    // only ever lifts when focus itself ends, not after the usual short reaction window.
+    if (this.reactionTexture && (timeMs < this.reactionUntil || this.focusCompanion)) {
       this.setTexture(this.reactionTexture)
       this.positionVisuals()
       return
@@ -308,8 +316,11 @@ export class KonoMascotSystem {
         this.beginReaction(reaction, timeMs + (reaction === 'kono-sleep' ? 2_450 : 1_550))
       } else if (this.destinationNode) {
         const idleReaction = idleReactionForNode(this.destinationNode, this.phase)
+        const atFocusSpot = this.focusCompanion && this.destinationNode === 'cherry'
         this.destinationNode = null
-        if (idleReaction && idleReaction !== 'kono-idle' && Math.random() < 0.58) {
+        if (atFocusSpot) {
+          this.beginReaction('kono-read', timeMs + 1_350)
+        } else if (idleReaction && idleReaction !== 'kono-idle' && Math.random() < 0.58) {
           this.beginReaction(idleReaction, timeMs + (idleReaction === 'kono-sleep' ? 2_300 : 1_350))
         } else {
           this.setTexture('kono-idle')
@@ -346,9 +357,31 @@ export class KonoMascotSystem {
     this.beginReaction(Math.random() < 0.5 ? 'kono-excited' : 'kono-happy', this.scene.time.now + 1_600)
   }
 
+  /** Fired from outside the scene (see GardenCard's focusCompanionActive prop) when a Focus Session
+   * starts or ends. While active, KONO heads for the cherry tree, settles into its reading pose, and
+   * skips normal wandering -- a calm companion rather than a distraction -- then resumes wandering
+   * the moment focus ends. */
+  setFocusCompanion(active: boolean): void {
+    if (active === this.focusCompanion) return
+    this.focusCompanion = active
+    if (active) {
+      this.pendingReaction = null
+      if (this.phase !== 'night') {
+        this.forcedTarget = true
+        this.navigateToNode('cherry')
+      }
+    } else {
+      this.forcedTarget = false
+      this.reactionTexture = null
+      this.reactionUntil = 0
+      this.nextWanderAt = this.scene.time.now
+    }
+  }
+
   destroy(): void {
     this.scene.game.events.off(SANCTUARY_EVENTS.interaction, this.handleInteraction, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.celebrate, this.celebrate, this)
+    this.scene.game.events.off(SANCTUARY_EVENTS.focusCompanion, this.setFocusCompanion, this)
     this.sprite?.removeAllListeners()
     this.sprite?.destroy()
     this.shadow?.destroy()
