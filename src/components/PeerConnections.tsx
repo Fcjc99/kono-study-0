@@ -125,7 +125,7 @@ export default function PeerConnections({repository,myUserId,reducedMotion}:{rep
    </select></label>
    {friendId&&friendSnapshot&&<div className="peer-friend-schedule">
     <p className="wb-muted">Read-only — from @{nameOf(friendId)}'s {friendSnapshot.profileLabel||'classes'}. This never changes your own plan, and they can't see or edit yours either.</p>
-    {friendSnapshot.sanctuary&&<div className="wb-island peer-friend-island"><GardenCard phase="auto" weather="clear" reducedMotion={reducedMotion} progress={sharedSanctuaryProgress(friendSnapshot.sanctuary,friendId)}/></div>}
+    {friendSnapshot.sanctuary&&<div className="wb-island peer-friend-island"><GardenCard phase="auto" weather="clear" reducedMotion={reducedMotion} progress={sharedSanctuaryProgress(friendSnapshot.sanctuary,friendId)} decorations={friendSnapshot.sanctuary.decor.placements}/></div>}
     {agenda(friendSnapshot).length?agenda(friendSnapshot).map(([date,items])=><div key={date} className="peer-friend-day"><strong>{date}</strong><ul>{items.map((it,i)=><li key={i}>{it.title} <small>· {it.kind}</small></li>)}</ul></div>)
      :<p>Nothing upcoming shared yet.</p>}
    </div>}
