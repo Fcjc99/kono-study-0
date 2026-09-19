@@ -69,6 +69,10 @@ interface GardenCardProps {
    * Size/Skew slider drag that caused it — the underlying data was already correct the whole time,
    * only the paint was starved. */
   paused?: boolean
+  /** A fresh (non-null) value makes KONO play a one-off celebration reaction -- set this when the
+   * student actually finishes something (clearing today's list, a streak milestone), not on every
+   * render. null/undefined means "nothing to celebrate right now". */
+  celebrateSignal?: number | null
 }
 
 const initialState: SanctuaryState = {
@@ -101,7 +105,7 @@ const formatDebugTime = (minutes: number) => {
 const debugFromUrl = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sanctuaryDebug') === '1'
 
-export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused }: GardenCardProps) {
+export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused, celebrateSignal }: GardenCardProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const gameRef = useRef<PhaserGameHandle | null>(null)
   const visibleRef = useRef(true)
@@ -357,6 +361,11 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
     gameRef.current?.registry.set('sanctuaryDecorations', decorations)
     gameRef.current?.events.emit(SANCTUARY_EVENTS.decor, decorations)
   }, [decorations])
+
+  useEffect(() => {
+    if (celebrateSignal == null) return
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.celebrate, celebrateSignal)
+  }, [celebrateSignal])
 
   const updateDebugTime = (minutes: number) => {
     setDebugMinutes(minutes)
