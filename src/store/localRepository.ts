@@ -71,8 +71,10 @@ export async function commitCache(scope:string,base:CacheEntry|null,next:CacheEn
 export async function deleteCache(scope:string):Promise<void>{
  const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction('plans','readwrite');tx.objectStore('plans').delete(scope);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})
 }
-export function downloadData(data:unknown,name='kono-backup.json',mimeType='application/json'){
- const blob=new Blob([typeof data==='string'?data:JSON.stringify(data,null,2)],{type:mimeType})
+export function downloadBlob(blob:Blob,name:string){
  const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+}
+export function downloadData(data:unknown,name='kono-backup.json',mimeType='application/json'){
+ downloadBlob(new Blob([typeof data==='string'?data:JSON.stringify(data,null,2)],{type:mimeType}),name)
 }
 export const exportData=(data:AppData)=>downloadData({format:'kono-backup',version:DATA_VERSION,exportedAt:new Date().toISOString(),data})
