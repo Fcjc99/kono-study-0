@@ -73,6 +73,9 @@ interface GardenCardProps {
    * student actually finishes something (clearing today's list, a streak milestone), not on every
    * render. null/undefined means "nothing to celebrate right now". */
   celebrateSignal?: number | null
+  /** True for the duration of an active Focus Session -- KONO heads to the cherry tree and settles
+   * into a reading pose as a quiet companion instead of wandering, then resumes as normal once false. */
+  focusCompanionActive?: boolean
 }
 
 const initialState: SanctuaryState = {
@@ -105,7 +108,7 @@ const formatDebugTime = (minutes: number) => {
 const debugFromUrl = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sanctuaryDebug') === '1'
 
-export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused, celebrateSignal }: GardenCardProps) {
+export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused, celebrateSignal, focusCompanionActive }: GardenCardProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const gameRef = useRef<PhaserGameHandle | null>(null)
   const visibleRef = useRef(true)
@@ -366,6 +369,10 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
     if (celebrateSignal == null) return
     gameRef.current?.events.emit(SANCTUARY_EVENTS.celebrate, celebrateSignal)
   }, [celebrateSignal])
+
+  useEffect(() => {
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.focusCompanion, Boolean(focusCompanionActive))
+  }, [focusCompanionActive])
 
   const updateDebugTime = (minutes: number) => {
     setDebugMinutes(minutes)
