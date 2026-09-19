@@ -13,7 +13,7 @@ import {useReducedMotion,useMusicController} from './hooks/useComfort'
 import {useDueNotifications,useTimeBlockNotifications} from './hooks/useDueNotifications'
 import {useLiveSanctuaryWeather} from './hooks/useLiveSanctuaryWeather'
 import ClassOccurrenceCard from './components/ClassOccurrenceCard'
-import {classOccurrences,classTime,type ClassOccurrence} from './store/classSchedule'
+import {classOccurrences,classTime,isInClassNow,type ClassOccurrence} from './store/classSchedule'
 import SchedulePanel from './components/SchedulePanel'
 import ScheduleImport from './components/ScheduleImport'
 import ScheduleSetup from './components/ScheduleSetup'
@@ -183,8 +183,12 @@ function Workspace({store}:{store:Store}){
  const weekTasks=ownTasks.filter(t=>t.due>=weekStart&&t.due<=today)
  const weekDone=weekTasks.filter(t=>t.done).length,weekTotal=weekTasks.length
  const subjects=data.subjects.filter(s=>s.profileId===profile.id),notes=data.notes.filter(n=>n.profileId===profile.id)
+ // Quiet hours: don't buzz a phone in someone's pocket mid-class. Re-evaluated on every render, which
+ // is frequent enough given the 30-second "today" ticker already running below.
+ const nowClock=(()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')})()
+ const notificationsQuiet=isInClassNow(classOccurrences(data,today),nowClock)
  const dueNotifyItems=[...ownTasks.map(t=>({id:t.id,title:t.title,due:t.due,done:t.done})),...data.exams.filter(e=>e.profileId===profile.id).map(e=>({id:e.id,title:e.title,due:e.due,done:e.done}))]
- useDueNotifications(Boolean(data.settings.browserNotifications),dueNotifyItems,today)
+ useDueNotifications(Boolean(data.settings.browserNotifications)&&!notificationsQuiet,dueNotifyItems,today)
  const [focusRequest,setFocusRequest]=useState<FocusRequest|null>(null)
  const sanctuaryFocusRef=useRef<HTMLDetailsElement>(null)
  const digestKey='kono-digest:'+(store.user?.id??'device')+':'+profile.id
@@ -239,7 +243,7 @@ function Workspace({store}:{store:Store}){
   })
  }
  const timeBlockNotifyItems=ownTasks.map(t=>({id:t.id,title:t.title,due:t.due,done:t.done,plannedTime:t.plannedTime,estimatedMinutes:t.estimatedMinutes}))
- useTimeBlockNotifications(Boolean(data.settings.browserNotifications),timeBlockNotifyItems,today,item=>startFocusSession(item.id,item.estimatedMinutes))
+ useTimeBlockNotifications(Boolean(data.settings.browserNotifications)&&!notificationsQuiet,timeBlockNotifyItems,today,item=>startFocusSession(item.id,item.estimatedMinutes))
  useEffect(()=>{const pop=()=>setPage(pageFromURL());window.addEventListener('popstate',pop);const timer=window.setInterval(()=>setToday(localDate()),30000);return()=>{window.removeEventListener('popstate',pop);clearInterval(timer)}},[])
  useEffect(()=>{document.documentElement.dataset.motion=reduced?'reduced':'full'},[reduced])
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();setSearch(v=>!v)}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[])
