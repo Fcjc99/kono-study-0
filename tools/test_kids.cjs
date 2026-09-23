@@ -170,6 +170,39 @@ test('kidTimeBlockItems carries plannedTime and estimatedMinutes, and prefixes t
  assert.equal(item.title,'Jack: Worksheet')
 })
 
+test('kidFamilyEventItems carries time and endTime, and prefixes the title once tagged',()=>{
+ const base=model.normalizeData(model.createFreshData())
+ const {data,id:blairId}=withKid(base,'Blair')
+ let full={...data,calendarEvents:[...data.calendarEvents,{id:'ev1',profileId:data.activeProfileId,subjectId:'',kidId:blairId,title:'Cheer practice',date:'2026-09-21',time:'15:30',endTime:'17:00',kind:'sports',notes:'',done:false}]}
+ full=model.normalizeData(full)
+ const items=kids.kidFamilyEventItems(full,full.activeProfileId,'2026-09-21')
+ const item=items.find(i=>i.id==='ev1')
+ assert.equal(item.time,'15:30')
+ assert.equal(item.endTime,'17:00')
+ assert.equal(item.title,'Blair: Cheer practice')
+})
+
+test('kidFamilyEventItems leaves an untagged event\'s title unprefixed',()=>{
+ const base=model.normalizeData(model.createFreshData())
+ const full=model.normalizeData({...base,calendarEvents:[...base.calendarEvents,{id:'ev2',profileId:base.activeProfileId,subjectId:'',title:'Family dinner',date:'2026-09-21',time:'18:00',kind:'personal',notes:'',done:false}]})
+ const items=kids.kidFamilyEventItems(full,full.activeProfileId,'2026-09-21')
+ assert.equal(items.find(i=>i.id==='ev2').title,'Family dinner')
+})
+
+test('kidFamilyEventItems excludes a completed event, an event on a different date, and an event on another profile',()=>{
+ const base=model.normalizeData(model.createFreshData())
+ const otherProfile={...base.profiles[0],id:model.uid('profile'),label:'Other'}
+ const full=model.normalizeData({...base,profiles:[...base.profiles,otherProfile],calendarEvents:[
+  {id:'done',profileId:base.activeProfileId,subjectId:'',title:'Done already',date:'2026-09-21',kind:'personal',notes:'',done:true},
+  {id:'other-day',profileId:base.activeProfileId,subjectId:'',title:'Tomorrow',date:'2026-09-22',kind:'personal',notes:'',done:false},
+  {id:'other-profile',profileId:otherProfile.id,subjectId:'',title:'Not mine',date:'2026-09-21',kind:'personal',notes:'',done:false},
+ ]})
+ const items=kids.kidFamilyEventItems(full,full.activeProfileId,'2026-09-21')
+ assert.equal(items.some(i=>i.id==='done'),false)
+ assert.equal(items.some(i=>i.id==='other-day'),false)
+ assert.equal(items.some(i=>i.id==='other-profile'),false)
+})
+
 test('parentMode defaults off for a fresh, kid-less save',()=>{
  const normalized=model.normalizeData(model.createFreshData())
  assert.equal(normalized.settings.parentMode,false)

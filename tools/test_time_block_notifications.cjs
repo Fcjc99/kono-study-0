@@ -14,7 +14,7 @@ function load(rel){
  vm.runInNewContext(code,{module:mod,exports:mod.exports,require:requireIn,crypto:{randomUUID},console,Date,Math,Set,Map,Object,Promise,structuredClone})
  modules.set(rel,mod.exports);return mod.exports
 }
-const {isTimeBlockDue}=load('src/hooks/useDueNotifications.ts')
+const {isTimeBlockDue,isReminderDue}=load('src/hooks/useDueNotifications.ts')
 
 const tests=[]
 function test(name,fn){tests.push({name,fn})}
@@ -53,6 +53,32 @@ test('a task due on a different day is never due today, regardless of the clock'
 
 test('a tab opened hours later does not surface a long-past block',()=>{
  assert.equal(isTimeBlockDue(item({plannedTime:'07:00'}),TODAY,minutes(18,0)),false)
+})
+
+// isReminderDue: the parent-mode "starting soon"/"ending soon" family-event reminder, used for both
+// a calendarEvent's start time and its end time (see useFamilyEventNotifications).
+test('due exactly 15 minutes before the clock time',()=>{
+ assert.equal(isReminderDue('09:15',TODAY,TODAY,minutes(9,0)),true)
+})
+
+test('still due right up to the moment the clock time arrives',()=>{
+ assert.equal(isReminderDue('09:15',TODAY,TODAY,minutes(9,15)),true)
+})
+
+test('not yet due more than 15 minutes before the clock time',()=>{
+ assert.equal(isReminderDue('09:15',TODAY,TODAY,minutes(8,59)),false)
+})
+
+test('no longer due once the clock time has passed',()=>{
+ assert.equal(isReminderDue('09:15',TODAY,TODAY,minutes(9,16)),false)
+})
+
+test('an event with no time is never due',()=>{
+ assert.equal(isReminderDue(undefined,TODAY,TODAY,minutes(9,0)),false)
+})
+
+test('an event on a different day is never due today, regardless of the clock',()=>{
+ assert.equal(isReminderDue('09:15','2026-09-19',TODAY,minutes(9,0)),false)
 })
 
 let passed=0
