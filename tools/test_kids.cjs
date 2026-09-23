@@ -208,6 +208,15 @@ test('parentMode defaults off for a fresh, kid-less save',()=>{
  assert.equal(normalized.settings.parentMode,false)
 })
 
+test('familyTileBorders and familyTileAvatars default on, and an explicit false round-trips',()=>{
+ const fresh=model.normalizeData(model.createFreshData())
+ assert.equal(fresh.settings.familyTileBorders,true)
+ assert.equal(fresh.settings.familyTileAvatars,true)
+ const off=model.normalizeData({...fresh,settings:{...fresh.settings,familyTileBorders:false,familyTileAvatars:false}})
+ assert.equal(off.settings.familyTileBorders,false)
+ assert.equal(off.settings.familyTileAvatars,false)
+})
+
 test('parentMode defaults on when a legacy save (no parentMode key at all) already has kids, so an existing parent never loses the tab silently',()=>{
  const base=model.normalizeData(model.createFreshData())
  const {data}=withKid(base,'Emma')
