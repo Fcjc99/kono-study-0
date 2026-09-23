@@ -184,11 +184,12 @@ test('an item with no kidName is left unassigned rather than getting tagged to a
  assert.equal(result.data.kids.length,1,'no new kid should be created for an unassigned item')
 })
 
-test('the prompt asks for a 24-hour start time, using only the start of a written range',()=>{
+test('the prompt asks for a 24-hour start time and end time, pulling both ends of a written range',()=>{
  const prompt=photo.__test__.buildAssignmentPhotoPrompt('2026-09-18')
  assert.ok(prompt.includes('"time"'))
+ assert.ok(prompt.includes('"endTime"'))
  assert.ok(prompt.toLowerCase().includes('24-hour'))
- assert.ok(prompt.toLowerCase().includes('start time'))
+ assert.ok(prompt.toLowerCase().includes("range's start"))
 })
 
 test('normalizeClockTime accepts 24-hour and common 12-hour forms, straight off the real screenshots (5:30p, 8:30p, 10:30a)',()=>{
@@ -240,6 +241,50 @@ test('a time on a task or exam is simply not applied -- neither model has a time
  ],'2026-09-18')
  assert.equal(result.data.tasks[0].time,undefined)
  assert.equal(result.data.exams[0].time,undefined)
+})
+
+// The real screenshots write every item as a range (e.g. "5:30-6:30p") -- endTime is the range's other
+// end, kept alongside the already-captured start time rather than discarded.
+test('parsing normalizes a well-formed end time alongside a start time',()=>{
+ const parsed=photo.__test__.parseAssignmentPhoto(JSON.stringify({items:[
+  {title:'Hockey practice',date:'2026-09-24',time:'17:30',endTime:'18:30',kind:'event',eventKind:'sports',subject:'',kidName:'Knox'},
+  {title:'Something',date:'2026-09-27',time:'20:30',endTime:'not a time',kind:'event',eventKind:'other',subject:'',kidName:''},
+ ]}))
+ assert.equal(parsed[0].endTime,'18:30')
+ assert.equal(parsed[1].endTime,null)
+})
+
+test('an end time with no start time is dropped rather than implying a start-less block',()=>{
+ const parsed=photo.__test__.parseAssignmentPhoto(JSON.stringify({items:[
+  {title:'Odd item',date:'2026-09-24',time:null,endTime:'18:30',kind:'event',eventKind:'other',subject:'',kidName:''},
+ ]}))
+ assert.equal(parsed[0].time,null)
+ assert.equal(parsed[0].endTime,null)
+})
+
+test('applying a scanned item with a start and end time sets both on the created calendarEvent and its receipt',()=>{
+ const d=make(),pid=d.activeProfileId
+ const result=photo.applyAssignmentPhoto(d,pid,[{title:'Hockey practice',date:'2026-09-24',time:'17:30',endTime:'18:30',kind:'event',eventKind:'sports',subject:'',kidName:'Knox'}],'2026-09-18')
+ assert.equal(result.data.calendarEvents[0].time,'17:30')
+ assert.equal(result.data.calendarEvents[0].endTime,'18:30')
+ assert.equal(result.created[0].time,'17:30')
+ assert.equal(result.created[0].endTime,'18:30')
+})
+
+test('an item with only a start time leaves the created calendarEvent\'s endTime undefined',()=>{
+ const d=make(),pid=d.activeProfileId
+ const result=photo.applyAssignmentPhoto(d,pid,[{title:'Dance',date:'2026-09-24',time:'17:30',endTime:null,kind:'event',eventKind:'personal',subject:'',kidName:'Blair'}],'2026-09-18')
+ assert.equal(result.data.calendarEvents[0].endTime,undefined)
+})
+
+test('an end time on a task or exam is simply not applied -- neither model has an endTime field',()=>{
+ const d=make(),pid=d.activeProfileId
+ const result=photo.applyAssignmentPhoto(d,pid,[
+  {title:'Worksheet',date:'2026-09-24',time:'09:00',endTime:'10:00',kind:'task',eventKind:'other',subject:'',kidName:''},
+  {title:'Quiz',date:'2026-09-25',time:'10:00',endTime:'11:00',kind:'exam',eventKind:'other',subject:'',kidName:''},
+ ],'2026-09-18')
+ assert.equal(result.data.tasks[0].endTime,undefined)
+ assert.equal(result.data.exams[0].endTime,undefined)
 })
 
 let passed=0
