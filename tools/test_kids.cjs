@@ -170,6 +170,36 @@ test('kidTimeBlockItems carries plannedTime and estimatedMinutes, and prefixes t
  assert.equal(item.title,'Jack: Worksheet')
 })
 
+test('parentMode defaults off for a fresh, kid-less save',()=>{
+ const normalized=model.normalizeData(model.createFreshData())
+ assert.equal(normalized.settings.parentMode,false)
+})
+
+test('parentMode defaults on when a legacy save (no parentMode key at all) already has kids, so an existing parent never loses the tab silently',()=>{
+ const base=model.normalizeData(model.createFreshData())
+ const {data}=withKid(base,'Emma')
+ const {parentMode,...settingsWithoutParentMode}=data.settings
+ const legacy={...data,settings:settingsWithoutParentMode}
+ const normalized=model.normalizeData(legacy)
+ assert.equal(normalized.settings.parentMode,true)
+})
+
+test('an explicit parentMode choice round-trips regardless of whether any kids exist',()=>{
+ const base=model.createFreshData()
+ const onWithNoKids=model.normalizeData({...base,settings:{...base.settings,parentMode:true}})
+ assert.equal(onWithNoKids.settings.parentMode,true)
+ const withEmma=withKid(model.normalizeData(base),'Emma').data
+ const offWithKids=model.normalizeData({...withEmma,settings:{...withEmma.settings,parentMode:false}})
+ assert.equal(offWithKids.settings.parentMode,false)
+})
+
+test('a multi-codepoint emoji (a ZWJ family sequence, well past the old 8-char cap) survives normalization',()=>{
+ const base=model.normalizeData(model.createFreshData())
+ const {data}=withKid(base,'Emma','#7ca982','\u{1F468}‍\u{1F469}‍\u{1F467}‍\u{1F466}')
+ const normalized=model.normalizeData(data)
+ assert.equal(normalized.kids[0].emoji,'\u{1F468}‍\u{1F469}‍\u{1F467}‍\u{1F466}')
+})
+
 let passed=0
 for(const t of tests){try{t.fn();passed++;console.log('PASS',t.name)}catch(e){console.error('FAIL',t.name);console.error(e);process.exitCode=1}}
 console.log(`${passed}/${tests.length} kid-tag regression groups passed.`)
