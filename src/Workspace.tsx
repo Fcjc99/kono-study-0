@@ -2,7 +2,7 @@ import {useEffect,useRef,useState,type CSSProperties,type DragEvent,type FormEve
 import {deleteProfile} from './store/deleteProfile'
 import {usePlannerRepository} from './store/repository'
 import {uid,localDate,dayNames,eventCategory,matchOutcome,type AppData,type SettingsData,type Task,type Subtask,type CalendarEventKind,type MatchResult,type Kid} from './store/model'
-import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems} from './store/kids'
+import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems,KID_COLORS} from './store/kids'
 import {collections,records,titleOf,equal,removeEntry,restoreEntry,completeTask,type Collection,type Entry} from './store/workspace'
 import {calendarTasks,addDays} from './store/studyScheduler'
 import {planExamReview} from './store/examReview'
@@ -357,7 +357,12 @@ function Workspace({store}:{store:Store}){
  const renderClass=(item:ClassOccurrence)=><ClassOccurrenceCard key={item.id} item={item} dueItems={classDueItems(item)} subjectColor={classColor(item)} save={save} draftKey={draftScope} onAdd={kind=>addForClass(item,kind)} onRemoveDue={removeDue}/>
  const renderCompactClass=(item:ClassOccurrence)=><ClassOccurrenceCard compact key={item.id} item={item} dueItems={classDueItems(item)} subjectColor={classColor(item)} save={save} draftKey={draftScope} onAdd={kind=>addForClass(item,kind)} onRemoveDue={removeDue}/>
  const seriesCount=(entry:Entry)=>entry.recurringId?ownTasks.filter(t=>t.recurringId===entry.recurringId).length:0
- const card=(key:Collection,entry:Entry,compact=false)=><RecordCard cozy={experience==='cozy'} compact={compact} key={entry.id} collection={key} entry={entry} subjectColor={subjects.find(s=>s.id===entry.subjectId)?.color} subject={subjects.find(s=>s.id===entry.subjectId)?.name} kid={data.kids.find(k=>k.id===entry.kidId)} seriesCount={key==='tasks'?seriesCount(entry):0} edit={()=>edit(key,entry)} remove={()=>remove(key,entry)} removeSeries={()=>removeSeries(entry)} duplicate={()=>duplicate(key,entry)} toggle={()=>toggle(key,entry)} pin={()=>void patch(key,entry,{pinned:!entry.pinned})} remind={()=>openEditor({key:'calendarEvents',entry:{id:uid('event'),profileId:profile.id,subjectId:String(entry.subjectId??''),title:'Reminder: '+titleOf(entry),date:today,kind:'personal',notes:'From note: '+titleOf(entry),done:false}})} scheduleReview={key==='exams'?()=>scheduleExamReview(entry):undefined} confirmReview={['tasks','exams','calendarEvents'].includes(key)?()=>void patch(key,entry,{needsReview:false}):undefined} startFocus={key==='tasks'&&!entry.done&&entry.plannedTime?()=>startFocusSession(entry.id,entry.estimatedMinutes as number|undefined):undefined}/>
+ // Parent mode gates both independently-toggleable tile features entirely -- a solo student who has
+ // never turned parent mode on gets the plain, pre-family tile design no matter what these settings
+ // happen to hold, so nothing "kid"-shaped ever surfaces on a personal calendar.
+ const showKidBorder=parentMode&&data.settings.familyTileBorders!==false
+ const showKidHeader=parentMode&&data.settings.familyTileAvatars!==false
+ const card=(key:Collection,entry:Entry,compact=false)=><RecordCard cozy={experience==='cozy'} compact={compact} key={entry.id} collection={key} entry={entry} subjectColor={subjects.find(s=>s.id===entry.subjectId)?.color} subject={subjects.find(s=>s.id===entry.subjectId)?.name} kid={data.kids.find(k=>k.id===entry.kidId)} showKidBorder={showKidBorder} showKidHeader={showKidHeader} seriesCount={key==='tasks'?seriesCount(entry):0} edit={()=>edit(key,entry)} remove={()=>remove(key,entry)} removeSeries={()=>removeSeries(entry)} duplicate={()=>duplicate(key,entry)} toggle={()=>toggle(key,entry)} pin={()=>void patch(key,entry,{pinned:!entry.pinned})} remind={()=>openEditor({key:'calendarEvents',entry:{id:uid('event'),profileId:profile.id,subjectId:String(entry.subjectId??''),title:'Reminder: '+titleOf(entry),date:today,kind:'personal',notes:'From note: '+titleOf(entry),done:false}})} scheduleReview={key==='exams'?()=>scheduleExamReview(entry):undefined} confirmReview={['tasks','exams','calendarEvents'].includes(key)?()=>void patch(key,entry,{needsReview:false}):undefined} startFocus={key==='tasks'&&!entry.done&&entry.plannedTime?()=>startFocusSession(entry.id,entry.estimatedMinutes as number|undefined):undefined}/>
  const reorder=(from:string,to:string)=>{const sorted=[...notes].sort((a,b)=>(a.position??0)-(b.position??0)),moving=sorted.find(n=>n.id===from);if(!moving||from===to)return;const order=sorted.filter(n=>n.id!==from);order.splice(order.findIndex(n=>n.id===to),0,moving);void run(()=>save(d=>({...d,notes:d.notes.map(n=>n.profileId===profile.id?{...n,position:order.findIndex(x=>x.id===n.id)}:n)})),'Board order saved.')}
  const move=(id:string,by:number)=>{const sorted=[...notes].sort((a,b)=>(a.position??0)-(b.position??0)),index=sorted.findIndex(n=>n.id===id),target=index+by;if(!sorted[target])return;[sorted[index],sorted[target]]=[sorted[target],sorted[index]];void run(()=>save(d=>({...d,notes:d.notes.map(n=>n.profileId===profile.id?{...n,position:sorted.findIndex(x=>x.id===n.id)}:n)})),'Board order saved.')}
  const noteBoard=(pinnedOnly=false)=><section className={'wb-panel wb-board board-'+(data.settings.boardStyle??'paper')}>
@@ -428,7 +433,7 @@ function Workspace({store}:{store:Store}){
     {experience==='cozy'?<div className="restored-board-pair">{board('notes')}{board('exams')}</div>:<>{noteBoard(true)}<section className="wb-panel"><h2>Upcoming exams</h2>{data.exams.filter(e=>e.profileId===profile.id&&!e.done).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,3).map(e=>card('exams',e as unknown as Entry))}{!data.exams.some(e=>e.profileId===profile.id&&!e.done)&&<p>No upcoming exams.</p>}</section></>}
    </>}
    {page==='Planner'&&<><div className="wb-toolbar planner-settings-link"><span>Your classes, assignments and daily plans</span><button onClick={()=>{setSettingsTab('Schedules');navigate('Settings')}}>Schedule settings</button></div><Calendar data={data} tasks={tasks} date={selectedDate} selectDate={setSelectedDate} create={create} render={card} renderClass={renderClass} reschedule={reschedule} setting={setting} navigate={navigate} parentMode={parentMode} quickAddEvent={quickAddFamilyEvent}/><StudyPlanner key={planRequest} initialOpen={planRequest>0} draftKey={draftScope+':plan'} profileId={profile.id} plans={plans} tasks={ownTasks} subjects={subjects} setData={save} onSelectDate={setSelectedDate}/></>}
-   {page==='Kids'&&<KidsPage data={data} create={create} edit={edit} remove={remove} setting={setting}/>}
+   {page==='Kids'&&<KidsPage data={data} create={create} edit={edit} remove={remove} setting={setting} patch={patch}/>}
    {page==='Subjects'&&experience!=='simplified'&&subjectWorkspace}
    {page==='Subjects'&&experience==='simplified'&&<><section className="wb-panel"><div className="wb-section-head"><h2>Your subjects</h2><button onClick={()=>create('subjects')}>＋ Subject</button></div><div className="wb-record-grid">{subjects.map(s=>card('subjects',s as unknown as Entry))}</div>{!subjects.length&&<p>Create your first subject to organize your work.</p>}</section><section className="wb-panel"><div className="wb-section-head"><h2>Assignments</h2><button onClick={()=>create('tasks')}>＋ Assignment</button></div><label>Filter subject<select value={subject} onChange={e=>setSubject(e.target.value)}><option value="">All subjects, including unassigned</option>{subjects.map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></label><div className="wb-toolbar"><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,true),d)),'Assignments completed.')}>Complete all shown</button><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,false),d)),'Assignments reopened; earned progress is kept.')}>Reopen all shown</button></div>{tasks.filter(t=>!subject||t.subjectId===subject).map(t=>card('tasks',t as unknown as Entry))}</section></>}
    {page==='Notes'&&<>{noteBoard()}<details className="wb-panel"><summary>Quiz me · Flashcards</summary><Flashcards draftKey={draftScope+':cards'} profileId={profile.id} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} setData={save}/></details></>}
@@ -459,7 +464,7 @@ function Modal({title,close,children}:{title:string;close:()=>void;children:Reac
  useEffect(()=>{const opener=document.activeElement as HTMLElement|null;ref.current?.showModal();return()=>opener?.focus()},[])
  return <dialog ref={ref} className="wb-dialog" aria-label={title} onCancel={e=>{e.preventDefault();close()}}><header><h2>{title}</h2><button aria-label="Close dialog" onClick={close}>×</button></header>{children}</dialog>
 }
-function RecordCard({cozy,collection,entry,subject,subjectColor,kid,seriesCount=0,compact=false,edit,remove,removeSeries,duplicate,toggle,pin,remind,scheduleReview,confirmReview,startFocus}:{cozy:boolean;collection:Collection;entry:Entry;subject?:string;subjectColor?:string;kid?:Kid;seriesCount?:number;compact?:boolean;edit:()=>void;remove:()=>void;removeSeries?:()=>void;duplicate:()=>void;toggle:()=>void;pin:()=>void;remind:()=>void;scheduleReview?:()=>void;confirmReview?:()=>void;startFocus?:()=>void}){
+function RecordCard({cozy,collection,entry,subject,subjectColor,kid,showKidBorder=false,showKidHeader=false,seriesCount=0,compact=false,edit,remove,removeSeries,duplicate,toggle,pin,remind,scheduleReview,confirmReview,startFocus}:{cozy:boolean;collection:Collection;entry:Entry;subject?:string;subjectColor?:string;kid?:Kid;showKidBorder?:boolean;showKidHeader?:boolean;seriesCount?:number;compact?:boolean;edit:()=>void;remove:()=>void;removeSeries?:()=>void;duplicate:()=>void;toggle:()=>void;pin:()=>void;remind:()=>void;scheduleReview?:()=>void;confirmReview?:()=>void;startFocus?:()=>void}){
  const note=collection==='notes',paper=note||collection==='exams',done=Boolean(note?entry.completed:entry.done),canComplete=['tasks','notes','exams','calendarEvents'].includes(collection)
  const due=String(entry.due??entry.date??''),dueLabel=due?countdown(due,done):''
  const subtasks=collection==='tasks'?entry.subtasks as Subtask[]|undefined:undefined
@@ -478,14 +483,16 @@ function RecordCard({cozy,collection,entry,subject,subjectColor,kid,seriesCount=
  if(cozy&&paper&&compact)return <button type="button" className={'cozy-pin-mini'+(priority?' priority-record':'')+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={{'--note-paper':String(entry.color??'#ffd2dd'),'--note-ink':String(entry.textColor??'#2f2942')} as CSSProperties} onClick={edit}><span className="push-pin pin-mini" aria-hidden="true"/>{priority&&<b aria-hidden="true">★</b>}<strong>{titleOf(entry)}</strong>{dueLabel&&<span className={'countdown-chip '+(daysUntil(due)<0?'is-overdue':'')}>{dueLabel}</span>}</button>
  if(cozy&&paper)return <div className={'cozy-note-record '+(priority?'priority-record':'')+(needsReview?' needs-review-record':'')} >{priority&&<span className="priority-flag">★ IMPORTANT · {dueLabel}</span>}{reviewBadge}<StickyNoteView kind={note?'note':'exam'} color={String(entry.color??'#ffd2dd')} textColor={String(entry.textColor??'#2f2942')} font={String(entry.font??'rounded')} pinned={Boolean(entry.pinned)} completed={done} subject={subject??'General'} title={titleOf(entry)} body={String(entry.body??entry.notes??'')} highlight={String(entry.highlight??'transparent')} dateLabel={due?dateLabel(due)+(dueLabel?' · '+dueLabel:''):undefined} onEdit={edit} onDelete={remove} onTogglePin={note?pin:undefined} onToggleComplete={toggle}/><div className="wb-toolbar">{reviewButton}<button className="cozy-duplicate" onClick={duplicate}>Duplicate</button>{note&&<button onClick={remind}>Add reminder</button>}{scheduleReview&&<button onClick={scheduleReview}>Schedule review</button>}</div></div>
  // A calendar event's own compact tile: the time is the first thing a parent's eye hits, in a
- // fixed-width column so a whole day's times line up for a straight vertical scan, and the border is
- // colored to whichever kid it's tagged to (the same color as their chip everywhere else) so "whose"
- // reads before anyone has to read a name. Untagged events fall back to a neutral border and "Family".
- if(collection==='calendarEvents')return <article className={'wb-family-event'+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={{'--kid-color':kid?.color??'#b47e75'} as CSSProperties}>
+ // fixed-width column so a whole day's times line up for a straight vertical scan. showKidBorder and
+ // showKidHeader are each their own opt-in (see the Kids page's appearance settings) and both require
+ // parentMode -- a solo student who never turns parent mode on always gets the plain subject-based
+ // header and a neutral border here, exactly as before the family calendar existed, never "Family" or
+ // a color that means nothing to them.
+ if(collection==='calendarEvents')return <article className={'wb-family-event'+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={{'--kid-color':showKidBorder?kid?.color??'#b47e75':undefined} as CSSProperties}>
   <div className="wb-family-event-main">
    <div className="wb-family-event-time">{entry.time?<><span className="wb-family-event-start">{classTime(String(entry.time))}</span>{entry.endTime&&<span className="wb-family-event-end">–{classTime(String(entry.endTime))}</span>}</>:'—'}</div>
    <div className="wb-family-event-info">
-    <small>{(kid?(kid.emoji?kid.emoji+' ':'')+kid.name:'Family')+(subject?' · '+subject:'')}</small>
+    <small>{showKidHeader?(kid?(kid.emoji?kid.emoji+' ':'')+kid.name:'Family')+(subject?' · '+subject:''):subject??(entry.subjectId?'Removed subject':'General')}</small>
     <h3>{titleOf(entry)}</h3>
    </div>
    {reviewBadge}{due&&<span className={'countdown-chip '+(daysUntil(due)<0?'is-overdue':'')}>{dueLabel}</span>}
@@ -548,7 +555,7 @@ function EntryEditor({edit,data,save,draftScope,close}:{edit:Edit;data:AppData;s
   {edit.key==='notes'&&<label>Type<select value={String(entry.kind??'note')} onChange={e=>field('kind',e.target.value)}><option value="note">Note / reminder</option><option value="homework">Homework / assignment</option><option value="exam">Exam / project</option></select></label>}
   {edit.key==='calendarEvents'&&<label>Event type<select value={String(entry.kind)} onChange={e=>field('kind',e.target.value)}>{['exam','test','quiz','assignment','study','activity','personal','sports','appointment','work','other'].map(k=><option key={k}>{k}</option>)}</select></label>}
   {edit.key==='calendarEvents'&&entry.kind==='sports'&&(()=>{const result=entry.result as MatchResult|undefined;const outcome=result?matchOutcome(result):null;return <div className="wb-match-result"><p className="wb-muted">Final score (once the match is over)</p><div className="wb-form-grid"><label>Us<input type="number" min={0} max={999} value={result?.ourScore??''} onChange={e=>field('result',{ourScore:Number(e.target.value),opponentScore:result?.opponentScore??0})}/></label><label>Opponent<input type="number" min={0} max={999} value={result?.opponentScore??''} onChange={e=>field('result',{ourScore:result?.ourScore??0,opponentScore:Number(e.target.value)})}/></label>{result&&<button type="button" onClick={()=>field('result',undefined)}>Clear score</button>}</div>{outcome&&<p className={'wb-match-outcome is-'+outcome}>{outcome==='win'?'Win':outcome==='loss'?'Loss':'Tie'} · {result!.ourScore}–{result!.opponentScore}</p>}</div>})()}
-  {edit.key==='subjects'?<><label>Teacher<input maxLength={200} value={String(entry.teacher??'')} onChange={e=>field('teacher',e.target.value)}/></label><label>Room<input maxLength={100} value={String(entry.room??'')} onChange={e=>field('room',e.target.value)}/></label><label>Resources (one per line)<textarea value={(entry.resources as string[]??[]).join('\n')} onChange={e=>field('resources',e.target.value.split('\n').filter(Boolean))}/></label><label>Subject color<input type="color" value={String(entry.color??'#4169a8')} onChange={e=>field('color',e.target.value)}/></label></>:edit.key==='kids'?<><label>Emoji<input maxLength={40} placeholder="✿" value={String(entry.emoji??'')} onChange={e=>field('emoji',e.target.value)}/></label><label>Kid color<input type="color" value={String(entry.color??'#7ca982')} onChange={e=>field('color',e.target.value)}/></label></>:<label>{note?'Note':'Details'}<textarea ref={bodyRef} rows={6} maxLength={100000} value={String(note?entry.body??'':entry.notes??'')} onChange={e=>field(note?'body':'notes',e.target.value)}/></label>}
+  {edit.key==='subjects'?<><label>Teacher<input maxLength={200} value={String(entry.teacher??'')} onChange={e=>field('teacher',e.target.value)}/></label><label>Room<input maxLength={100} value={String(entry.room??'')} onChange={e=>field('room',e.target.value)}/></label><label>Resources (one per line)<textarea value={(entry.resources as string[]??[]).join('\n')} onChange={e=>field('resources',e.target.value.split('\n').filter(Boolean))}/></label><label>Subject color<input type="color" value={String(entry.color??'#4169a8')} onChange={e=>field('color',e.target.value)}/></label></>:edit.key==='kids'?<p className="wb-muted">Set their emoji and color from the Kids page's "🎨 Appearance" button — this keeps it in one place.</p>:<label>{note?'Note':'Details'}<textarea ref={bodyRef} rows={6} maxLength={100000} value={String(note?entry.body??'':entry.notes??'')} onChange={e=>field(note?'body':'notes',e.target.value)}/></label>}
   {!['subjects','kids'].includes(edit.key)&&<VoiceInputButton label={note?'note':'details'} onText={text=>append(note?'body':'notes',text)}/>}
   {(note||edit.key==='exams')&&<><div className="wb-note-formatting" aria-label="Text formatting"><button type="button" onClick={()=>format('<b>','</b>')}>Bold</button><button type="button" onClick={()=>format('<i>','</i>')}>Italic</button><button type="button" onClick={()=>format('<mark>','</mark>')}>Highlight selection</button></div><div className="wb-paper-swatches" aria-label="Paper colors">{['#ffd2dd','#d9efff','#fff2b4','#dff1c2','#e7d5ff','#ffdcb8'].map((color,i)=><button type="button" key={color} aria-label={'Paper '+['Pink','Blue','Cream','Green','Lavender','Peach'][i]} aria-pressed={entry.color===color} style={{background:color}} onClick={()=>field('color',color)}/>)}</div></>}
   {(note||edit.key==='exams')&&<details><summary>Customize paper & text</summary><div className="wb-form-grid"><label>Paper<input type="color" value={String(entry.color??'#fff2b4')} onChange={e=>field('color',e.target.value)}/></label><label>Text color<input type="color" value={String(entry.textColor??'#2f2942')} onChange={e=>field('textColor',e.target.value)}/></label><label>Text style<select value={String(entry.font??'rounded')} onChange={e=>field('font',e.target.value)}>{['rounded','handwritten','serif','mono'].map(f=><option key={f}>{f}</option>)}</select></label><label>Highlight<select value={String(entry.highlight??'transparent')} onChange={e=>field('highlight',e.target.value)}><option value="transparent">None</option><option value="#fff39d">Yellow</option><option value="#ffc4dd">Pink</option><option value="#c9f3d4">Mint</option></select></label>{note&&<label>Note size<select value={String(entry.size??'medium')} onChange={e=>field('size',e.target.value)}>{['small','medium','large'].map(s=><option key={s}>{s}</option>)}</select></label>}</div></details>}
@@ -667,8 +674,9 @@ function QuickFamilyAdd({kids,onCancel,onSave}:{kids:Kid[];onCancel:()=>void;onS
 // EntryEditor's Kid picker and the recurring-class editors) and filter the Planner calendar by kid
 // there, the same way subjects already work. Kids are ordinary generic collection entries (see
 // store/workspace.ts), so create/edit/remove below reuse the app's existing undo/redo and Trash.
-function KidsPage({data,create,edit,remove,setting}:{data:AppData;create:(key:Collection)=>void;edit:(key:Collection,entry:Entry)=>void;remove:(key:Collection,entry:Entry)=>void;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
+function KidsPage({data,create,edit,remove,setting,patch}:{data:AppData;create:(key:Collection)=>void;edit:(key:Collection,entry:Entry)=>void;remove:(key:Collection,entry:Entry)=>void;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
  const [notifyError,setNotifyError]=useState('')
+ const [appearanceOpen,setAppearanceOpen]=useState(false)
  const notifyPermission=notificationsSupported()?Notification.permission:'unsupported'
  const notifyOn=data.settings.browserNotifications&&notifyPermission==='granted'
  const enableNotifications=()=>{
@@ -680,8 +688,8 @@ function KidsPage({data,create,edit,remove,setting}:{data:AppData;create:(key:Co
  }
  const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
  return <section className="wb-panel family-calendar">
-  <div className="wb-section-head"><div><small>ONE SHARED CALENDAR</small><h2>Kids</h2></div><button onClick={()=>create('kids')}>＋ Add a kid</button></div>
-  <p className="wb-muted">Add each kid once, with their own color and emoji. Tag any assignment, exam, class or event with a kid from its own editor, then filter your Planner calendar by kid — the same way you already filter by subject.</p>
+  <div className="wb-section-head"><div><small>ONE SHARED CALENDAR</small><h2>Kids</h2></div><div className="wb-toolbar"><button type="button" onClick={()=>setAppearanceOpen(true)}>🎨 Appearance</button><button onClick={()=>create('kids')}>＋ Add a kid</button></div></div>
+  <p className="wb-muted">Add each kid once, then tag any assignment, exam, class or event with them from its own editor and filter your Planner calendar by kid — the same way you already filter by subject. Pick their emoji and color under Appearance.</p>
   <div className="family-kid-list" role="group" aria-label="Kids">
    {kids.map(k=><div key={k.id} className="family-kid-chip" style={{'--kid-color':k.color} as CSSProperties}><i className="family-kid-swatch" aria-hidden="true"/><strong>{(k.emoji?k.emoji+' ':'')+k.name}</strong><button type="button" onClick={()=>edit('kids',k as unknown as Entry)}>Edit</button><button type="button" onClick={()=>remove('kids',k as unknown as Entry)}>Move to Trash</button></div>)}
   </div>
@@ -694,7 +702,47 @@ function KidsPage({data,create,edit,remove,setting}:{data:AppData;create:(key:Co
    {notifyError&&<span role="alert" className="family-add-error">{notifyError}</span>}
   </div>
   {notifyOn&&<label className="wb-check family-event-reminder-toggle"><input type="checkbox" checked={Boolean(data.settings.familyEventReminders)} onChange={e=>void setting('familyEventReminders',e.target.checked)}/>Remind me 15 minutes before a kid's event starts or ends</label>}
+  {appearanceOpen&&<KidAppearancePanel data={data} setting={setting} patch={patch} close={()=>setAppearanceOpen(false)}/>}
  </section>
+}
+// The whole point of a curated grid over a bare text field: a parent (or a kid picking their own,
+// with a parent watching) can browse and tap rather than hunt through an OS emoji picker. The custom
+// field underneath still covers anything not in this set.
+const KID_AVATAR_EMOJI=['🐻','🐰','🦄','🐯','🦁','🐨','🐼','🦊','🐸','🐙','😊','🤩','🥳','😎','🦸','🧑‍🚀','🧚','🧙','⚽','🏀','🏈','⚾','🎾','🥋','🎨','🎵','📚','🎮','⭐','🌈','🌸','🌻','🍀','⚡','🔥','❄️'] as const
+// A dedicated page for how kids look on their tiles, kept separate from the plain add/edit-kid form
+// (see EntryEditor) and from the general Settings/Appearance page (theme, text size) -- both of those
+// are used by every profile, including a solo student's own personal plan with no kids at all, and
+// this one is reached only from the Kids page, itself hidden unless parent mode is on.
+function KidAppearancePanel({data,setting,patch,close}:{data:AppData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>;close:()=>void}){
+ const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
+ return <Modal title="Kids' appearance" close={close}>
+  <p className="wb-muted">Turn each look on or off for the whole family, then pick each kid's own emoji and color below. Changes show up right away on their tiles across the Planner and Sanctuary.</p>
+  <div className="kid-appearance-toggles">
+   <label className="wb-check"><input type="checkbox" checked={data.settings.familyTileBorders!==false} onChange={e=>void setting('familyTileBorders',e.target.checked)}/>Color-code event tiles by kid</label>
+   <label className="wb-check"><input type="checkbox" checked={data.settings.familyTileAvatars!==false} onChange={e=>void setting('familyTileAvatars',e.target.checked)}/>Show each kid's emoji and name on their tiles</label>
+  </div>
+  {!kids.length&&<p className="wb-muted">Add a kid first (close this and use "＋ Add a kid"), then come back here to customize how they look.</p>}
+  {kids.map(k=><KidAppearanceEditor key={k.id} kid={k} patch={patch}/>)}
+ </Modal>
+}
+function KidAppearanceEditor({kid,patch}:{kid:Kid;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
+ const [customEmoji,setCustomEmoji]=useState('')
+ const setEmoji=(emoji:string)=>void patch('kids',kid as unknown as Entry,{emoji})
+ const setColor=(color:string)=>void patch('kids',kid as unknown as Entry,{color})
+ return <div className="kid-appearance-editor" style={{'--kid-color':kid.color} as CSSProperties}>
+  <div className="kid-appearance-head"><i className="family-kid-swatch" aria-hidden="true"/><strong>{(kid.emoji?kid.emoji+' ':'')+kid.name}</strong></div>
+  <div className="wb-family-event kid-appearance-preview" aria-hidden="true"><div className="wb-family-event-main"><div className="wb-family-event-time"><span className="wb-family-event-start">3:30 PM</span></div><div className="wb-family-event-info"><small>{(kid.emoji?kid.emoji+' ':'')+kid.name}</small><h3>Practice</h3></div></div></div>
+  <p className="wb-muted">Emoji</p>
+  <div className="kid-emoji-grid" role="group" aria-label={kid.name+"'s emoji"}>
+   {KID_AVATAR_EMOJI.map(e=><button type="button" key={e} aria-pressed={kid.emoji===e} onClick={()=>setEmoji(e)}>{e}</button>)}
+  </div>
+  <div className="kid-emoji-custom"><label>Custom emoji<input maxLength={40} placeholder="Type or paste your own" value={customEmoji} onChange={ev=>setCustomEmoji(ev.target.value)}/></label><button type="button" disabled={!customEmoji.trim()} onClick={()=>{setEmoji(customEmoji.trim());setCustomEmoji('')}}>Use this</button></div>
+  <p className="wb-muted">Color</p>
+  <div className="kid-color-grid" role="group" aria-label={kid.name+"'s color"}>
+   {KID_COLORS.map(c=><button type="button" key={c} aria-pressed={kid.color===c} aria-label={c} style={{background:c}} onClick={()=>setColor(c)}/>)}
+   <label className="kid-color-custom">Custom<input type="color" value={kid.color} onChange={e=>setColor(e.target.value)}/></label>
+  </div>
+ </div>
 }
 function Appearance({settings,setting}:{settings:SettingsData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
  const activePalette=settings.experience==='cozy'?cozyPalette(settings.theme):settings.theme
