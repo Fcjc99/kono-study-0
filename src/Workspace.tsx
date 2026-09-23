@@ -2,7 +2,7 @@ import {useEffect,useRef,useState,type CSSProperties,type DragEvent,type FormEve
 import {deleteProfile} from './store/deleteProfile'
 import {usePlannerRepository} from './store/repository'
 import {uid,localDate,dayNames,eventCategory,matchOutcome,type AppData,type SettingsData,type Task,type Subtask,type CalendarEventKind,type MatchResult} from './store/model'
-import {FAMILY_COLORS,addKidProfile,familyDueItems,familyItemsForDate,familyTimeBlockItems} from './store/familyCalendar'
+import {nextKidColor,kidDueItems,kidTimeBlockItems} from './store/kids'
 import {collections,records,titleOf,equal,removeEntry,restoreEntry,completeTask,type Collection,type Entry} from './store/workspace'
 import {calendarTasks,addDays} from './store/studyScheduler'
 import {planExamReview} from './store/examReview'
@@ -49,11 +49,11 @@ import './planner-polish.css'
 import './cozy-controls.css'
 import ActionIcon from './components/ActionIcon'
 
-const pages=['Sanctuary','Planner','Family','Subjects','Notes','K-Quiz','Exams','Settings','Trash'] as const
+const pages=['Sanctuary','Planner','Kids','Subjects','Notes','K-Quiz','Exams','Settings','Trash'] as const
 type Page=typeof pages[number]
 type Store=ReturnType<typeof usePlannerRepository>
 type Edit={key:Collection;entry:Entry;original?:Entry}
-const labels:Record<Collection,string>={tasks:'Assignment',notes:'Note',exams:'Exam / project',calendarEvents:'Event',subjects:'Subject',studyPlans:'Study plan',flashcardDecks:'Flashcards',kquizSets:'K-Quiz set',kquizSources:'K-Quiz note',studySeasons:'Schedule'}
+const labels:Record<Collection,string>={tasks:'Assignment',notes:'Note',exams:'Exam / project',calendarEvents:'Event',subjects:'Subject',kids:'Kid',studyPlans:'Study plan',flashcardDecks:'Flashcards',kquizSets:'K-Quiz set',kquizSources:'K-Quiz note',studySeasons:'Schedule'}
 const cozyPalettes=['coral','sakura','lavender','mint','honey','zen','floral','ocean'] as const
 const cozyPalette=(theme:string)=>cozyPalettes.includes(theme as typeof cozyPalettes[number])?theme:'coral'
 // Modern and Zen Ink are each one opinionated, fully art-directed look rather than a color you
@@ -187,11 +187,11 @@ function Workspace({store}:{store:Store}){
  // Quiet hours: don't buzz a phone in someone's pocket mid-class. Re-evaluated on every render, which
  // is frequent enough given the 30-second "today" ticker already running below.
  const nowClock=(()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')})()
- // Every kid's due items, not just the active profile's -- a parent's device should hear about all of
- // them (see familyDueItems), labeled by name once there's more than one kid. Quiet hours is now
- // per-kid rather than a single flag, so it's folded into familyDueItems itself instead of gating the
- // whole hook the way the old single-profile notificationsQuiet boolean did.
- const dueNotifyItems=familyDueItems(data,data.profiles,today,nowClock)
+ // Every kid's due items, tagged or not -- a parent's device should hear about all of them (see
+ // kidDueItems), labeled by name whenever an item is tagged to a kid. Quiet hours is per-kid rather
+ // than a single flag, so it's folded into kidDueItems itself instead of gating the whole hook the
+ // way a single-profile notificationsQuiet boolean would.
+ const dueNotifyItems=kidDueItems(data,profile.id,today,nowClock)
  useDueNotifications(Boolean(data.settings.browserNotifications),dueNotifyItems,today)
  const [focusRequest,setFocusRequest]=useState<FocusRequest|null>(null)
  const sanctuaryFocusRef=useRef<HTMLDetailsElement>(null)
@@ -235,26 +235,19 @@ function Workspace({store}:{store:Store}){
  const scheduleClasses=(date:string)=>classOccurrences(data,date).filter(c=>categoryVisible(c.season.category??'academic'))
  const scheduleViewPicker=<div className="schedule-view-picker" role="group" aria-label="Schedule view"><label><input type="checkbox" checked={showAcademic} onChange={e=>void setting('scheduleShowAcademic',e.target.checked)}/> Academics</label><label><input type="checkbox" checked={showSports} onChange={e=>void setting('scheduleShowSports',e.target.checked)}/> Sports</label><label><input type="checkbox" checked={showAppointments} onChange={e=>void setting('scheduleShowAppointments',e.target.checked)}/> Appointments</label></div>
  const navigate=(next:Page)=>{const url=new URL(location.href);url.searchParams.set('page',next.toLowerCase());history.pushState(null,'',url);setPage(next);setMore(false);window.scrollTo({top:0})}
- // A time-block notification for another kid's task (see timeBlockNotifyItems) needs their profile
- // active before FocusSession can find their task at all -- ownTasks below is scoped to whichever
- // profile is active, so switching happens first and only then does the rest of the existing flow run.
- const startFocusSession=(taskId:string,estimatedMinutes?:number,profileId?:string)=>{
-  const begin=()=>{
-   navigate('Sanctuary')
-   setFocusRequest({taskId,estimatedMinutes,requestId:Date.now()})
-   requestAnimationFrame(()=>{
-    // FocusSession opens its own inner <details> once it sees the request, but this outer wrapper is
-    // a separate <details> one level up -- without also opening it, the inner one stays hidden inside
-    // a collapsed parent.
-    if(sanctuaryFocusRef.current)sanctuaryFocusRef.current.open=true
-    sanctuaryFocusRef.current?.scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'})
-   })
-  }
-  if(profileId&&profileId!==profile.id)void save(d=>({...d,activeProfileId:profileId})).then(begin)
-  else begin()
+ const startFocusSession=(taskId:string,estimatedMinutes?:number)=>{
+  navigate('Sanctuary')
+  setFocusRequest({taskId,estimatedMinutes,requestId:Date.now()})
+  requestAnimationFrame(()=>{
+   // FocusSession opens its own inner <details> once it sees the request, but this outer wrapper is
+   // a separate <details> one level up -- without also opening it, the inner one stays hidden inside
+   // a collapsed parent.
+   if(sanctuaryFocusRef.current)sanctuaryFocusRef.current.open=true
+   sanctuaryFocusRef.current?.scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'})
+  })
  }
- const timeBlockNotifyItems=familyTimeBlockItems(data,data.profiles,today,nowClock)
- useTimeBlockNotifications(Boolean(data.settings.browserNotifications),timeBlockNotifyItems,today,item=>startFocusSession(item.id,item.estimatedMinutes,item.profileId))
+ const timeBlockNotifyItems=kidTimeBlockItems(data,profile.id,today,nowClock)
+ useTimeBlockNotifications(Boolean(data.settings.browserNotifications),timeBlockNotifyItems,today,item=>startFocusSession(item.id,item.estimatedMinutes))
  useEffect(()=>{const pop=()=>setPage(pageFromURL());window.addEventListener('popstate',pop);const timer=window.setInterval(()=>setToday(localDate()),30000);return()=>{window.removeEventListener('popstate',pop);clearInterval(timer)}},[])
  useEffect(()=>{document.documentElement.dataset.motion=reduced?'reduced':'full'},[reduced])
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();setSearch(v=>!v)}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[])
@@ -268,6 +261,7 @@ function Workspace({store}:{store:Store}){
   if(key==='notes')Object.assign(entry,{body:'',date,kind:'note',created:new Date().toISOString(),pinned:true,completed:false,color:'#fff2b4',textColor:'#2f2942',font:'rounded',size:'medium',position:Math.max(0,...notes.map(n=>n.position??0))+1})
   if(key==='calendarEvents')Object.assign(entry,{date,kind:entry.kind??'personal'})
   if(key==='subjects')Object.assign(entry,{name:'',resources:[],color:'#4169a8'})
+ if(key==='kids')Object.assign(entry,{name:'',color:nextKidColor(data.kids.filter(k=>k.profileId===profile.id)),emoji:'✿'})
   openEditor({key,entry})
  }
  const {listening:voiceListening,error:voiceError,toggle:toggleVoiceAdd,supported:voiceSupported}=useSpeechToText(text=>{
@@ -374,7 +368,7 @@ function Workspace({store}:{store:Store}){
   {subjectTab==='Exams'&&<><button onClick={()=>create('exams',today,selectedSubjectId)}>＋ Add exam</button>{data.exams.filter(e=>e.profileId===profile.id&&(selectedSubject?e.subjectId===selectedSubjectId:!subjects.some(s=>s.id===e.subjectId))).map(e=>card('exams',e as unknown as Entry))}</>}
   {subjectTab==='Schedule'&&<><p>Classes over the next four weeks.</p><button onClick={()=>navigate('Settings')}>Edit weekly schedule</button>{subjectClasses.map(renderClass)}{!subjectClasses.length&&<p>No upcoming classes linked to this subject. Choose its subject when editing a recurring class.</p>}</>}
   </section></div></>
- const commands=[...pages.map(p=>({label:'Open '+p,hint:'Page',run:()=>navigate(p)})),...(['tasks','notes','exams','calendarEvents','subjects'] as Collection[]).flatMap(key=>own(data,key).map(entry=>({label:titleOf(entry),hint:labels[key]+' · '+String(entry.due??entry.date??entry.body??entry.notes??'').slice(0,160),run:()=>edit(key,entry)})))]
+ const commands=[...pages.map(p=>({label:'Open '+p,hint:'Page',run:()=>navigate(p)})),...(['tasks','notes','exams','calendarEvents','subjects','kids'] as Collection[]).flatMap(key=>own(data,key).map(entry=>({label:titleOf(entry),hint:labels[key]+' · '+String(entry.due??entry.date??entry.body??entry.notes??'').slice(0,160),run:()=>edit(key,entry)})))]
  const tomorrowClasses=scheduleClasses(tomorrow)
  const tomorrowLoose=[
   ...tasks.filter(t=>!t.done&&t.due===tomorrow).map(t=>({key:'tasks' as Collection,entry:t as unknown as Entry,date:t.due})),
@@ -404,7 +398,7 @@ function Workspace({store}:{store:Store}){
     {experience==='cozy'?<div className="restored-board-pair">{board('notes')}{board('exams')}</div>:<>{noteBoard(true)}<section className="wb-panel"><h2>Upcoming exams</h2>{data.exams.filter(e=>e.profileId===profile.id&&!e.done).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,3).map(e=>card('exams',e as unknown as Entry))}{!data.exams.some(e=>e.profileId===profile.id&&!e.done)&&<p>No upcoming exams.</p>}</section></>}
    </>}
    {page==='Planner'&&<><div className="wb-toolbar planner-settings-link"><span>Your classes, assignments and daily plans</span><button onClick={()=>{setSettingsTab('Schedules');navigate('Settings')}}>Schedule settings</button></div><Calendar data={data} tasks={tasks} date={selectedDate} selectDate={setSelectedDate} create={create} render={card} renderClass={renderClass} reschedule={reschedule} setting={setting} remove={remove}/><StudyPlanner key={planRequest} initialOpen={planRequest>0} draftKey={draftScope+':plan'} profileId={profile.id} plans={plans} tasks={ownTasks} subjects={subjects} setData={save} onSelectDate={setSelectedDate}/></>}
-   {page==='Family'&&<FamilyPage data={data} save={save} navigate={navigate} setting={setting}/>}
+   {page==='Kids'&&<KidsPage data={data} create={create} edit={edit} remove={remove} setting={setting}/>}
    {page==='Subjects'&&experience!=='simplified'&&subjectWorkspace}
    {page==='Subjects'&&experience==='simplified'&&<><section className="wb-panel"><div className="wb-section-head"><h2>Your subjects</h2><button onClick={()=>create('subjects')}>＋ Subject</button></div><div className="wb-record-grid">{subjects.map(s=>card('subjects',s as unknown as Entry))}</div>{!subjects.length&&<p>Create your first subject to organize your work.</p>}</section><section className="wb-panel"><div className="wb-section-head"><h2>Assignments</h2><button onClick={()=>create('tasks')}>＋ Assignment</button></div><label>Filter subject<select value={subject} onChange={e=>setSubject(e.target.value)}><option value="">All subjects, including unassigned</option>{subjects.map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></label><div className="wb-toolbar"><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,true),d)),'Assignments completed.')}>Complete all shown</button><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,false),d)),'Assignments reopened; earned progress is kept.')}>Reopen all shown</button></div>{tasks.filter(t=>!subject||t.subjectId===subject).map(t=>card('tasks',t as unknown as Entry))}</section></>}
    {page==='Notes'&&<>{noteBoard()}<details className="wb-panel"><summary>Quiz me · Flashcards</summary><Flashcards draftKey={draftScope+':cards'} profileId={profile.id} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} setData={save}/></details></>}
@@ -422,8 +416,8 @@ function Workspace({store}:{store:Store}){
   <nav className="wb-bottom-nav" aria-label="Mobile navigation">{(['Sanctuary','Planner','Notes'] as Page[]).map(p=><button aria-current={page===p?'page':undefined} key={p} onClick={()=>navigate(p)}>{p}</button>)}<button aria-expanded={more} onClick={()=>setMore(v=>!v)}>More</button></nav>
   <div className="wb-music-bar"><MusicPlayer controller={music} compact/></div>
   {confirmation&&<Modal title="Confirm change" close={()=>setConfirmation(null)}><p>{confirmation.text}</p><button onClick={()=>{confirmation.action();setConfirmation(null)}}>Confirm</button><button onClick={()=>setConfirmation(null)}>Cancel</button></Modal>}
-  {more&&<Modal title="More" close={()=>setMore(false)}>{(['Subjects','K-Quiz','Exams','Settings','Trash'] as Page[]).map(p=><button key={p} onClick={()=>navigate(p)}>{p}</button>)}<label>Study profile<select value={profile.id} onChange={e=>void save(d=>({...d,activeProfileId:e.target.value}))}>{data.profiles.map(p=><option value={p.id} key={p.id}>{p.label}</option>)}</select></label></Modal>}
-  {adding&&<Modal title="Add to your plan" close={()=>setAdding(false)}><div className="quick-add-choice"><label>What are you adding?<select aria-label="Add type" value={addKind} onChange={e=>setAddKind(e.target.value as typeof addKind)}><option value="tasks">Homework</option><option value="exams">Exam or test</option><option value="notes">Study note</option></select></label><p className="wb-muted">Exams appear on the countdown board. Study notes are pinned to your bulletin board.</p><button className="primary" onClick={()=>create(addKind)}>Continue</button></div><button type="button" className="update-entire-plan-button" onClick={()=>{setAdding(false);setScanningPlan(true)}}>📷 Update entire plan — scan notes or a syllabus</button><details className="add-more-choices"><summary>More ways to add</summary><div>{(['studyPlans','calendarEvents','subjects'] as Collection[]).map(key=><button key={key} onClick={()=>create(key)}>{labels[key]}</button>)}</div></details></Modal>}
+  {more&&<Modal title="More" close={()=>setMore(false)}>{(['Kids','Subjects','K-Quiz','Exams','Settings','Trash'] as Page[]).map(p=><button key={p} onClick={()=>navigate(p)}>{p}</button>)}<label>Study profile<select value={profile.id} onChange={e=>void save(d=>({...d,activeProfileId:e.target.value}))}>{data.profiles.map(p=><option value={p.id} key={p.id}>{p.label}</option>)}</select></label></Modal>}
+  {adding&&<Modal title="Add to your plan" close={()=>setAdding(false)}><div className="quick-add-choice"><label>What are you adding?<select aria-label="Add type" value={addKind} onChange={e=>setAddKind(e.target.value as typeof addKind)}><option value="tasks">Homework</option><option value="exams">Exam or test</option><option value="notes">Study note</option></select></label><p className="wb-muted">Exams appear on the countdown board. Study notes are pinned to your bulletin board.</p><button className="primary" onClick={()=>create(addKind)}>Continue</button></div><button type="button" className="update-entire-plan-button" onClick={()=>{setAdding(false);setScanningPlan(true)}}>📷 Update entire plan — scan notes or a syllabus</button><details className="add-more-choices"><summary>More ways to add</summary><div>{(['studyPlans','calendarEvents','subjects','kids'] as Collection[]).map(key=><button key={key} onClick={()=>create(key)}>{labels[key]}</button>)}</div></details></Modal>}
   {scanningPlan&&<Modal title="Update entire plan" close={()=>setScanningPlan(false)}><UpdatePlanScanner profileId={profile.id} subjects={subjects} save={save} close={()=>setScanningPlan(false)}/></Modal>}
   {reviewOpen&&<Modal title="Needs review" close={()=>setReviewOpen(false)}><p className="wb-muted">Added automatically from a scanned photo. Check each one — confirming it (or just opening and saving it) clears the flag.</p>{needsReviewEntries.length===0?<p>All caught up.</p>:<>{needsReviewEntries.length>1&&<button type="button" className="primary" onClick={()=>void confirmAllReviews()}>Confirm all {needsReviewEntries.length} items</button>}{needsReviewEntries.map(({key,entry})=>card(key,entry))}</>}</Modal>}
   {search&&<CommandPalette commands={commands} onClose={()=>setSearch(false)}/>}
@@ -463,7 +457,7 @@ function RecordCard({cozy,collection,entry,subject,subjectColor,seriesCount=0,co
 function EntryEditor({edit,data,save,draftScope,close}:{edit:Edit;data:AppData;save:Store['repository']['update'];draftScope:string;close:(saved:boolean,discarded?:boolean)=>void}){
  const [entry,setEntry]=useState(edit.entry),[busy,setBusy]=useState(false),[error,setError]=useState(''),[draftError,setDraftError]=useState('')
  const bodyRef=useRef<HTMLTextAreaElement>(null)
- const titleKey=edit.key==='subjects'?'name':'title',note=edit.key==='notes'
+ const titleKey=edit.key==='subjects'||edit.key==='kids'?'name':'title',note=edit.key==='notes'
  const isNewAssignment=edit.key==='tasks'&&!edit.original
  const extraDatesKey=draftScope+':assignment-dates'
  const [extraDates,setExtraDates]=useState<string[]>(()=>{if(!isNewAssignment)return [];try{const saved=JSON.parse(localStorage.getItem(extraDatesKey)??'[]');return Array.isArray(saved)?saved.filter(d=>typeof d==='string'):[]}catch{return []}})
@@ -495,9 +489,10 @@ function EntryEditor({edit,data,save,draftScope,close}:{edit:Edit;data:AppData;s
   const copies=seriesDates.map(due=>({...payload,id:uid(edit.key),due}))
   try{const saved=await save(d=>{if(d.activeProfileId!==entry.profileId)throw Error('Your profile changed. Reopen the editor.');const current=records(d,edit.key).find(r=>r.id===entry.id);if(edit.original&&!equal(current,edit.original))throw Error('This item changed elsewhere. Your draft is preserved; reopen the current item before saving.');if(!edit.original&&current)throw Error('This item already exists.');return {...d,[edit.key]:edit.original?records(d,edit.key).map(r=>r.id===entry.id?payload:r):[...records(d,edit.key),payload,...copies]}});if(saved){clearDrafts();close(true)}else setError('Not saved yet. Your draft is still here.')}catch(e){setError(e instanceof Error?e.message:'Could not save.')}finally{setBusy(false)}
  }
- return <Modal title={(edit.original?'Edit ':'New ')+labels[edit.key]} close={keep}><form onSubmit={submit}><fieldset disabled={busy}><label>{edit.key==='subjects'?'Subject name':'Title'}<input autoFocus required maxLength={edit.key==='subjects'?200:1000} value={String(entry[titleKey]??'')} onChange={e=>field(titleKey,e.target.value)}/></label>
+ return <Modal title={(edit.original?'Edit ':'New ')+labels[edit.key]} close={keep}><form onSubmit={submit}><fieldset disabled={busy}><label>{edit.key==='subjects'?'Subject name':edit.key==='kids'?'Kid name':'Title'}<input autoFocus required maxLength={edit.key==='subjects'||edit.key==='kids'?200:1000} value={String(entry[titleKey]??'')} onChange={e=>field(titleKey,e.target.value)}/></label>
   {note&&<VoiceInputButton label="title" onText={text=>append(titleKey,text)}/>}
-  {edit.key!=='subjects'&&<label>Subject<select value={String(entry.subjectId??'')} onChange={e=>field('subjectId',e.target.value)}><option value="">General / unassigned</option>{data.subjects.filter(s=>s.profileId===entry.profileId).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}
+  {!['subjects','kids'].includes(edit.key)&&<label>Subject<select value={String(entry.subjectId??'')} onChange={e=>field('subjectId',e.target.value)}><option value="">General / unassigned</option>{data.subjects.filter(s=>s.profileId===entry.profileId).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}
+  {(['tasks','exams','calendarEvents'] as Collection[]).includes(edit.key)&&<label>Kid (optional)<select value={String(entry.kidId??'')} onChange={e=>field('kidId',e.target.value||undefined)}><option value="">Whole family / unassigned</option>{data.kids.filter(k=>k.profileId===entry.profileId).map(k=><option key={k.id} value={k.id}>{(k.emoji?k.emoji+' ':'')+k.name}</option>)}</select></label>}
   {('due' in entry||'date' in entry)&&<label>Date<input required type="date" value={String(entry.due??entry.date??'')} onInput={e=>{const next={...entry,['due' in entry?'due':'date']:e.currentTarget.value,...(edit.key==='tasks'?{plannedTime:undefined}:{})};persist(next);setEntry(next)}}/></label>}
   {edit.key==='calendarEvents'&&<label>Time (optional)<input type="time" value={String(entry.time??'')} onChange={e=>field('time',e.target.value||undefined)}/></label>}
   {isNewAssignment&&<div className="wb-multidate"><p className="wb-muted">Repeats on more days? Click each extra date below — one assignment is created per date.</p><MultiDatePicker primary={String(entry.due??'')} selected={extraDates} onToggle={toggleDate}/><div className="wb-repeat-weekly"><label>Repeat weekly until<input type="date" min={String(entry.due??'')} value={repeatUntil} onChange={e=>setRepeatUntil(e.target.value)}/></label><button type="button" className="secondary" disabled={!repeatUntil||!entry.due} onClick={addWeeklyRepeats}>+ Add weekly occurrences</button></div>{extraDates.length>0&&<p className="wb-multidate-summary">{extraDates.length} extra date{extraDates.length===1?'':'s'} selected: {extraDates.map(d=>dateLabel(d)).join(', ')}</p>}</div>}
@@ -507,8 +502,8 @@ function EntryEditor({edit,data,save,draftScope,close}:{edit:Edit;data:AppData;s
   {edit.key==='notes'&&<label>Type<select value={String(entry.kind??'note')} onChange={e=>field('kind',e.target.value)}><option value="note">Note / reminder</option><option value="homework">Homework / assignment</option><option value="exam">Exam / project</option></select></label>}
   {edit.key==='calendarEvents'&&<label>Event type<select value={String(entry.kind)} onChange={e=>field('kind',e.target.value)}>{['exam','test','quiz','assignment','study','activity','personal','sports','appointment','work','other'].map(k=><option key={k}>{k}</option>)}</select></label>}
   {edit.key==='calendarEvents'&&entry.kind==='sports'&&(()=>{const result=entry.result as MatchResult|undefined;const outcome=result?matchOutcome(result):null;return <div className="wb-match-result"><p className="wb-muted">Final score (once the match is over)</p><div className="wb-form-grid"><label>Us<input type="number" min={0} max={999} value={result?.ourScore??''} onChange={e=>field('result',{ourScore:Number(e.target.value),opponentScore:result?.opponentScore??0})}/></label><label>Opponent<input type="number" min={0} max={999} value={result?.opponentScore??''} onChange={e=>field('result',{ourScore:result?.ourScore??0,opponentScore:Number(e.target.value)})}/></label>{result&&<button type="button" onClick={()=>field('result',undefined)}>Clear score</button>}</div>{outcome&&<p className={'wb-match-outcome is-'+outcome}>{outcome==='win'?'Win':outcome==='loss'?'Loss':'Tie'} · {result!.ourScore}–{result!.opponentScore}</p>}</div>})()}
-  {edit.key==='subjects'?<><label>Teacher<input maxLength={200} value={String(entry.teacher??'')} onChange={e=>field('teacher',e.target.value)}/></label><label>Room<input maxLength={100} value={String(entry.room??'')} onChange={e=>field('room',e.target.value)}/></label><label>Resources (one per line)<textarea value={(entry.resources as string[]??[]).join('\n')} onChange={e=>field('resources',e.target.value.split('\n').filter(Boolean))}/></label><label>Subject color<input type="color" value={String(entry.color??'#4169a8')} onChange={e=>field('color',e.target.value)}/></label></>:<label>{note?'Note':'Details'}<textarea ref={bodyRef} rows={6} maxLength={100000} value={String(note?entry.body??'':entry.notes??'')} onChange={e=>field(note?'body':'notes',e.target.value)}/></label>}
-  {edit.key!=='subjects'&&<VoiceInputButton label={note?'note':'details'} onText={text=>append(note?'body':'notes',text)}/>}
+  {edit.key==='subjects'?<><label>Teacher<input maxLength={200} value={String(entry.teacher??'')} onChange={e=>field('teacher',e.target.value)}/></label><label>Room<input maxLength={100} value={String(entry.room??'')} onChange={e=>field('room',e.target.value)}/></label><label>Resources (one per line)<textarea value={(entry.resources as string[]??[]).join('\n')} onChange={e=>field('resources',e.target.value.split('\n').filter(Boolean))}/></label><label>Subject color<input type="color" value={String(entry.color??'#4169a8')} onChange={e=>field('color',e.target.value)}/></label></>:edit.key==='kids'?<><label>Emoji<input maxLength={8} placeholder="✿" value={String(entry.emoji??'')} onChange={e=>field('emoji',e.target.value)}/></label><label>Kid color<input type="color" value={String(entry.color??'#7ca982')} onChange={e=>field('color',e.target.value)}/></label></>:<label>{note?'Note':'Details'}<textarea ref={bodyRef} rows={6} maxLength={100000} value={String(note?entry.body??'':entry.notes??'')} onChange={e=>field(note?'body':'notes',e.target.value)}/></label>}
+  {!['subjects','kids'].includes(edit.key)&&<VoiceInputButton label={note?'note':'details'} onText={text=>append(note?'body':'notes',text)}/>}
   {(note||edit.key==='exams')&&<><div className="wb-note-formatting" aria-label="Text formatting"><button type="button" onClick={()=>format('<b>','</b>')}>Bold</button><button type="button" onClick={()=>format('<i>','</i>')}>Italic</button><button type="button" onClick={()=>format('<mark>','</mark>')}>Highlight selection</button></div><div className="wb-paper-swatches" aria-label="Paper colors">{['#ffd2dd','#d9efff','#fff2b4','#dff1c2','#e7d5ff','#ffdcb8'].map((color,i)=><button type="button" key={color} aria-label={'Paper '+['Pink','Blue','Cream','Green','Lavender','Peach'][i]} aria-pressed={entry.color===color} style={{background:color}} onClick={()=>field('color',color)}/>)}</div></>}
   {(note||edit.key==='exams')&&<details><summary>Customize paper & text</summary><div className="wb-form-grid"><label>Paper<input type="color" value={String(entry.color??'#fff2b4')} onChange={e=>field('color',e.target.value)}/></label><label>Text color<input type="color" value={String(entry.textColor??'#2f2942')} onChange={e=>field('textColor',e.target.value)}/></label><label>Text style<select value={String(entry.font??'rounded')} onChange={e=>field('font',e.target.value)}>{['rounded','handwritten','serif','mono'].map(f=><option key={f}>{f}</option>)}</select></label><label>Highlight<select value={String(entry.highlight??'transparent')} onChange={e=>field('highlight',e.target.value)}><option value="transparent">None</option><option value="#fff39d">Yellow</option><option value="#ffc4dd">Pink</option><option value="#c9f3d4">Mint</option></select></label>{note&&<label>Note size<select value={String(entry.size??'medium')} onChange={e=>field('size',e.target.value)}>{['small','medium','large'].map(s=><option key={s}>{s}</option>)}</select></label>}</div></details>}
   {note&&<label className="wb-check"><input type="checkbox" checked={Boolean(entry.pinned)} onChange={e=>field('pinned',e.target.checked)}/>Pin to bulletin board</label>}
@@ -547,12 +542,21 @@ function Calendar({data,tasks,date,selectDate,create,render,renderClass,reschedu
  const showSports=data.settings.scheduleShowSports??true
  const showAppointments=data.settings.scheduleShowAppointments??true
  const categoryVisible=(category:'academic'|'sports'|'appointments')=>category==='academic'?showAcademic:category==='sports'?showSports:showAppointments
- const scheduleClasses=(day:string)=>classOccurrences(data,day).filter(c=>categoryVisible(c.season.category??'academic'))
+ const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
+ // Which kid a day's items belong to is a filter on top of the academic/sports/appointments one, not
+ // a replacement for it -- both narrow the same one shared calendar together. Kept as local state
+ // (not a persisted setting, unlike the checkboxes above) so a newly added kid shows by default: it's
+ // simply absent from "hidden" until someone unchecks them, same pattern as the old Family page.
+ const [hiddenKids,setHiddenKids]=useState<Set<string>>(()=>new Set())
+ const kidVisible=(kidId?:string)=>!kidId||!hiddenKids.has(kidId)
+ const toggleKid=(id:string)=>setHiddenKids(v=>{const next=new Set(v);if(next.has(id))next.delete(id);else next.add(id);return next})
+ const kidOf=(kidId?:string)=>kidId?kids.find(k=>k.id===kidId):undefined
+ const scheduleClasses=(day:string)=>classOccurrences(data,day).filter(c=>categoryVisible(c.season.category??'academic')&&kidVisible(c.block.kidId))
  const entries=[
-  ...(showAcademic?tasks.map(t=>({key:'tasks' as Collection,entry:t as unknown as Entry,date:t.due})):[]),
-  ...(showAcademic?own(data,'exams').map(e=>({key:'exams' as Collection,entry:e,date:String(e.due)})):[]),
+  ...(showAcademic?tasks.filter(t=>kidVisible(t.kidId)).map(t=>({key:'tasks' as Collection,entry:t as unknown as Entry,date:t.due})):[]),
+  ...(showAcademic?own(data,'exams').filter(e=>kidVisible(e.kidId as string|undefined)).map(e=>({key:'exams' as Collection,entry:e,date:String(e.due)})):[]),
   ...(showAcademic?own(data,'notes').filter(n=>entryDate(n)).map(n=>({key:'notes' as Collection,entry:n,date:entryDate(n)})):[]),
-  ...own(data,'calendarEvents').filter(e=>categoryVisible(eventCategory(e.kind as CalendarEventKind))).map(e=>({key:'calendarEvents' as Collection,entry:e,date:String(e.date)})),
+  ...own(data,'calendarEvents').filter(e=>categoryVisible(eventCategory(e.kind as CalendarEventKind))&&kidVisible(e.kidId as string|undefined)).map(e=>({key:'calendarEvents' as Collection,entry:e,date:String(e.date)})),
  ]
  const selectedEntries=entries.filter(entry=>entry.date===date)
  const selectedClasses=scheduleClasses(date)
@@ -562,27 +566,45 @@ function Calendar({data,tasks,date,selectDate,create,render,renderClass,reschedu
  const dropOn=(day:string)=>({onDragOver:(e:DragEvent<HTMLElement>)=>{e.preventDefault();e.dataTransfer.dropEffect='move'},onDragEnter:()=>setDropTarget(day),onDragLeave:()=>setDropTarget(t=>t===day?'':t),onDrop:(e:DragEvent<HTMLElement>)=>{e.preventDefault();setDropTarget('');const raw=e.dataTransfer.getData('application/json');if(!raw)return;try{const dropped=JSON.parse(raw) as {key:Collection;id:string},item=entries.find(x=>x.entry.id===dropped.id&&x.key===dropped.key);if(item&&item.date!==day)reschedule(item.key,item.entry,day)}catch{/* Ignore a drag payload from outside this calendar. */}}})
  const dayHasPriority=(entry:{key:Collection;entry:Entry})=>isImportantEntry(entry.key,entry.entry)
  const draggableEntry=(e:{key:Collection;entry:Entry})=><div key={e.entry.id} className="wb-draggable" draggable onDragStart={ev=>dragEntry(ev,e)}>{render(e.key,e.entry,dayHasPriority(e))}</div>
- const dueLabel=(value:Entry,key:Collection)=>key==='calendarEvents'&&eventKind(value).includes('event')?countdown(String(value.date),Boolean(value.done)):(value.due?countdown(String(value.due),Boolean(value.done)):value.date?countdown(String(value.date),Boolean(value.done)):undefined)
  const importantFirst=<T extends {key:Collection;entry:Entry}>(list:T[]):T[]=>[...list].sort((a,b)=>Number(dayHasPriority(b))-Number(dayHasPriority(a)))
  const attachedToClass=(entry:{key:Collection;entry:Entry;date:string},classes:ClassOccurrence[])=>Boolean(entry.entry.subjectId&&classes.some(c=>c.block.subjectId===entry.entry.subjectId&&c.date===entry.date))
  const dayEntries=Array.from({length:7},(_,i)=>({day:addDays(date,i),entries:entries.filter(e=>e.date===addDays(date,i)),classes:scheduleClasses(addDays(date,i))}))
+ // A dot/list-item's color: whichever kid it's tagged to, so a parent scanning the grid sees "whose"
+ // before "what subject" -- falling back to the subject color (and the priority red) exactly as
+ // before for anything not tagged to a kid.
+ const dotColor=(entry:{key:Collection;entry:Entry})=>kidOf(entry.entry.kidId as string|undefined)?.color??(dayHasPriority(entry)?'#d24864':data.subjects.find(s=>s.id===entry.entry.subjectId)?.color??'#d9828a')
+ const classDotColor=(c:ClassOccurrence)=>kidOf(c.block.kidId)?.color??data.subjects.find(s=>s.id===c.block.subjectId)?.color??'#b77c98'
+ // One coordinated, time-sorted list for a single date -- every tagged kid's tasks, exams, events and
+ // recurring classes together, each showing that kid's color/emoji/name, so a parent on one shared
+ // device sees the whole family's day at a glance rather than switching between separate views.
+ // Untagged items still appear (without a kid swatch), the same way "unassigned" subject items do.
+ const dayFamilyList=(day:string)=>{
+  const dayItems=[
+   ...entries.filter(e=>e.date===day&&e.key!=='notes').map(e=>({id:e.key+':'+e.entry.id,title:titleOf(e.entry),time:e.key==='calendarEvents'?e.entry.time as string|undefined:e.key==='tasks'?e.entry.plannedTime as string|undefined:undefined,kidId:e.entry.kidId as string|undefined,removable:{key:e.key,entry:e.entry}})),
+   ...scheduleClasses(day).map(c=>({id:'class:'+c.id,title:c.block.label,time:c.displayStart??c.block.start,kidId:c.block.kidId,removable:undefined as {key:Collection;entry:Entry}|undefined})),
+  ]
+  return dayItems.sort((a,b)=>(a.time??'99:99').localeCompare(b.time??'99:99'))
+ }
+ const familyDayList=(day:string)=>{
+  const items=dayFamilyList(day)
+  return <ul className="family-day-agenda-list">{items.map(item=>{const kid=kidOf(item.kidId);return <li key={item.id} style={kid?{'--kid-color':kid.color} as CSSProperties:undefined}>{kid&&<i className="family-kid-swatch" aria-hidden="true"/>}{kid&&<strong>{(kid.emoji?kid.emoji+' ':'')+kid.name}</strong>}<span>{item.title}</span>{item.time&&<small>{classTime(item.time)}</small>}{item.removable&&<button type="button" className="planner-due-remove" aria-label={'Remove '+item.title} onClick={()=>remove(item.removable!.key,item.removable!.entry)}>✕</button>}</li>})}{!items.length&&<li className="wb-muted">Nothing scheduled.</li>}</ul>
+ }
  return <section className="wb-panel cozy-calendar-shell"><div className="wb-section-head"><h2>Your calendar</h2><div className="wb-toolbar"><button onClick={()=>{selectDate(localDate());setMonth(localDate().slice(0,7))}}>Today</button><div className="schedule-view-picker" role="group" aria-label="Schedule view"><label><input type="checkbox" checked={showAcademic} onChange={e=>void setting('scheduleShowAcademic',e.target.checked)}/> Academics</label><label><input type="checkbox" checked={showSports} onChange={e=>void setting('scheduleShowSports',e.target.checked)}/> Sports</label><label><input type="checkbox" checked={showAppointments} onChange={e=>void setting('scheduleShowAppointments',e.target.checked)}/> Appointments</label></div><label>Calendar view<select value={mode} onChange={e=>setMode(e.target.value)}><option value="agenda">Agenda</option><option value="month">Month</option></select></label></div></div>
-  {mode==='month'&&<><div className="wb-section-head"><button aria-label="Previous month" onClick={()=>shift(-1)}>‹</button><h3>{start.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</h3><button aria-label="Next month" onClick={()=>shift(1)}>›</button></div><div className="wb-calendar">{dayNames.map(d=><span key={d}>{d.slice(0,3)}</span>)}{Array.from({length:42},(_,i)=>addDays(gridStart,i)).map(day=>{const dayEntriesForDate=entries.filter(e=>e.date===day),classes=scheduleClasses(day),important=dayEntriesForDate.filter(dayHasPriority);return <button key={day} aria-label={dateLabel(day)+' · '+(dayEntriesForDate.length+classes.length)+' entries · '+important.length+' important · '+schoolDayLabels(data,day).join(' · ')} aria-pressed={date===day} className={(day.slice(0,7)!==month?'muted-day ':'')+(important.length?'has-priority':'')+(dropTarget===day?' drop-target':'')} onClick={()=>selectDate(day)} {...dropOn(day)}><span className="calendar-date-row"><strong>{Number(day.slice(-2))}</strong>{important.length>0&&<b title="Exam or project">★ {important.length}</b>}</span><small>{dayEntriesForDate.length+classes.length||''}{dayEntriesForDate.length+classes.length?' entries':''}</small><span className="school-day-mini">{schoolDayLabels(data,day).map(label=>label.slice(label.indexOf(':')+1).trim()).join(' · ')}</span><span className="calendar-class-preview">{classes.slice(0,2).map(c=><span key={c.id}>{c.block.label}</span>)}</span><span className="calendar-entry-preview">{dayEntriesForDate.slice(0,2).map(e=><span className={dayHasPriority(e)?'is-priority':''} key={e.entry.id}>{dayHasPriority(e)?'★ ':''}{titleOf(e.entry)}</span>)}</span><span className="wb-cal-dots" aria-hidden="true">{classes.slice(0,5).map(c=><i key={c.id} style={{background:data.subjects.find(s=>s.id===c.block.subjectId)?.color??'#b77c98'}}/>)}{dayEntriesForDate.slice(0,4).map(e=><i key={e.entry.id} style={{background:dayHasPriority(e)?'#d24864':data.subjects.find(s=>s.id===e.entry.subjectId)?.color??'#d9828a'}}/>)}</span></button>})}</div></>}
-  {mode==='agenda'&&<div className="wb-agenda-upcoming"><h4>Coming up</h4>{dayEntries.slice(1).map(({day,entries:dayEntriesForDate,classes:dayClasses},i)=>{const important=dayEntriesForDate.filter(dayHasPriority).length;return <details key={day} open={i===0} className={'wb-agenda-day'+(dropTarget===day?' drop-target':'')} {...dropOn(day)}><summary><h3>{dateLabel(day)}</h3><small>{dayClasses.length+dayEntriesForDate.length} item{dayClasses.length+dayEntriesForDate.length===1?'':'s'}{important?' · '+important+' important':''}</small></summary>{schoolDayLabels(data,day).map(label=><p className="school-day-label" key={label}>{label}</p>)}{importantFirst(dayEntriesForDate.filter(e=>e.key==='exams'||!attachedToClass(e,dayClasses))).map(draggableEntry)}{dayClasses.map(renderClass)}{!dayClasses.length&&!dayEntriesForDate.length&&<p className="wb-muted">Nothing scheduled.</p>}</details>})}</div>}
+  {kids.length>0&&<div className="family-kid-list" role="group" aria-label="Filter calendar by kid">{kids.map(k=><label key={k.id} className="family-kid-chip" style={{'--kid-color':k.color} as CSSProperties}><input type="checkbox" checked={!hiddenKids.has(k.id)} onChange={()=>toggleKid(k.id)}/><i className="family-kid-swatch" aria-hidden="true"/>{(k.emoji?k.emoji+' ':'')+k.name}</label>)}</div>}
+  {mode==='month'&&<><div className="wb-section-head"><button aria-label="Previous month" onClick={()=>shift(-1)}>‹</button><h3>{start.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</h3><button aria-label="Next month" onClick={()=>shift(1)}>›</button></div><div className="wb-calendar">{dayNames.map(d=><span key={d}>{d.slice(0,3)}</span>)}{Array.from({length:42},(_,i)=>addDays(gridStart,i)).map(day=>{const dayEntriesForDate=entries.filter(e=>e.date===day),classes=scheduleClasses(day),important=dayEntriesForDate.filter(dayHasPriority);return <button key={day} aria-label={dateLabel(day)+' · '+(dayEntriesForDate.length+classes.length)+' entries · '+important.length+' important · '+schoolDayLabels(data,day).join(' · ')} aria-pressed={date===day} className={(day.slice(0,7)!==month?'muted-day ':'')+(important.length?'has-priority':'')+(dropTarget===day?' drop-target':'')} onClick={()=>selectDate(day)} {...dropOn(day)}><span className="calendar-date-row"><strong>{Number(day.slice(-2))}</strong>{important.length>0&&<b title="Exam or project">★ {important.length}</b>}</span><small>{dayEntriesForDate.length+classes.length||''}{dayEntriesForDate.length+classes.length?' entries':''}</small><span className="school-day-mini">{schoolDayLabels(data,day).map(label=>label.slice(label.indexOf(':')+1).trim()).join(' · ')}</span><span className="calendar-class-preview">{classes.slice(0,2).map(c=><span key={c.id}>{c.block.label}</span>)}</span><span className="calendar-entry-preview">{dayEntriesForDate.slice(0,2).map(e=><span className={dayHasPriority(e)?'is-priority':''} key={e.entry.id}>{dayHasPriority(e)?'★ ':''}{titleOf(e.entry)}</span>)}</span><span className="wb-cal-dots" aria-hidden="true">{classes.slice(0,5).map(c=><i key={c.id} style={{background:classDotColor(c)}}/>)}{dayEntriesForDate.slice(0,4).map(e=><i key={e.entry.id} style={{background:dotColor(e)}}/>)}</span></button>})}</div></>}
+  {mode==='agenda'&&<div className="wb-agenda-upcoming"><h4>Coming up</h4>{dayEntries.slice(1).map(({day,entries:dayEntriesForDate,classes:dayClasses},i)=>{const important=dayEntriesForDate.filter(dayHasPriority).length;return <details key={day} open={i===0} className={'wb-agenda-day'+(dropTarget===day?' drop-target':'')} {...dropOn(day)}><summary><h3>{dateLabel(day)}</h3><small>{dayClasses.length+dayEntriesForDate.length} item{dayClasses.length+dayEntriesForDate.length===1?'':'s'}{important?' · '+important+' important':''}</small></summary>{schoolDayLabels(data,day).map(label=><p className="school-day-label" key={label}>{label}</p>)}{kids.length>0&&familyDayList(day)}{importantFirst(dayEntriesForDate.filter(e=>e.key==='exams'||!attachedToClass(e,dayClasses))).map(draggableEntry)}{dayClasses.map(renderClass)}{!dayClasses.length&&!dayEntriesForDate.length&&<p className="wb-muted">Nothing scheduled.</p>}</details>})}</div>}
   <div className="planner-day-paper"><header><small>YOUR DAILY PAGE</small><h3>{dateLabel(date)}{schoolDayLabels(data,date).map(label=><span className="planner-day-school" key={label}> · {label}</span>)}</h3></header><AssignmentProgress tasks={tasks} date={date} label={dateLabel(date)}/><div className="planner-date-tools"><label>Selected date<input type="date" value={date} onInput={e=>{if(e.currentTarget.value){selectDate(e.currentTarget.value);setMonth(e.currentTarget.value.slice(0,7))}}}/></label><details className="planner-add-menu"><summary>＋ Add to this date</summary><div><button onClick={()=>create('tasks',date)}>Assignment</button><button onClick={()=>create('notes',date)}>Study note</button><button className="is-priority" onClick={()=>create('exams',date)}>★ Exam / project</button><button onClick={()=>create('calendarEvents',date)}>Reminder / event</button></div></details></div>
   <section className={'planner-day-board'+(dropTarget===date?' drop-target':'')} {...dropOn(date)}><p className="wb-muted">Drag an item here — or onto any date below — to reschedule it.</p>{selectedEntries.length||selectedClasses.length?<><div className="planner-day-list">{importantFirst(selectedEntries.filter(e=>e.key==='exams'||!attachedToClass(e,selectedClasses))).map(draggableEntry)}{selectedClasses.map(renderClass)}</div><div className="planner-day-meta"><small>{dateLabel(date)} contains {selectedClasses.length} class block{selectedClasses.length===1?'':'s'} and {selectedEntries.length} added item{selectedEntries.length===1?'':'s'}</small></div></> : <p className="wb-muted">No items for this date yet. Add an assignment, note, exam/project or reminder above.</p>}
-   <div className="planner-due-panel"><p>Due list for this date</p><ul>{selectedEntries.sort((a,b)=>String(a.entry.due||a.entry.date).localeCompare(String(b.entry.due||b.entry.date))).filter(({key})=>key==='tasks'||key==='exams'||key==='calendarEvents').map(entry=><li key={entry.entry.id}><strong>{labels[entry.key]}</strong> · <span>{titleOf(entry.entry)}</span> {dueLabel(entry.entry,entry.key)?<span className={'countdown-chip '+(daysUntil(String(entry.entry.due??entry.entry.date??''))<0?'is-overdue':'')}>{dueLabel(entry.entry,entry.key)}</span>:null}<button type="button" className="planner-due-remove" aria-label={'Remove '+titleOf(entry.entry)} onClick={()=>remove(entry.key,entry.entry)}>✕</button></li>)}</ul></div></section>
+   <div className="planner-due-panel"><p>{kids.length>0?'Family day list — sorted by time':'Due list for this date'}</p>{familyDayList(date)}</div></section>
   </div>
   </section>
 }
-// A parent-facing overview of every kid's schedule at once, color-coded and filterable -- separate
-// from Calendar above (which is tightly single-profile) so this stays purely additive: it reads
-// classOccurrences/tasks/exams/calendarEvents across every profile without touching how the existing
-// single-profile Planner calendar works. Editing a kid's own recurring schedule still happens in their
-// own Planner/Settings, reached via "Open planner" below, rather than rebuilding that editor here.
-function FamilyPage({data,save,navigate,setting}:{data:AppData;save:(fn:(d:AppData)=>AppData)=>Promise<boolean>;navigate:(page:Page)=>void;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
- const [month,setMonth]=useState(()=>localDate().slice(0,7))
- const [date,setDate]=useState(()=>localDate())
+// A per-kid tag list for the one shared family calendar -- add each kid once here with a color and
+// emoji, then tag any assignment, exam, class or event with them from its own editor (see
+// EntryEditor's Kid picker and the recurring-class editors) and filter the Planner calendar by kid
+// there, the same way subjects already work. Kids are ordinary generic collection entries (see
+// store/workspace.ts), so create/edit/remove below reuse the app's existing undo/redo and Trash.
+function KidsPage({data,create,edit,remove,setting}:{data:AppData;create:(key:Collection)=>void;edit:(key:Collection,entry:Entry)=>void;remove:(key:Collection,entry:Entry)=>void;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
  const [notifyError,setNotifyError]=useState('')
  const notifyPermission=notificationsSupported()?Notification.permission:'unsupported'
  const notifyOn=data.settings.browserNotifications&&notifyPermission==='granted'
@@ -593,41 +615,21 @@ function FamilyPage({data,save,navigate,setting}:{data:AppData;save:(fn:(d:AppDa
    else setNotifyError('Notifications need to be allowed in your browser to turn this on.')
   }).catch(()=>setNotifyError('Could not request notification permission.'))
  }
- // A hidden-ids set (rather than a visible-ids set) so a newly added kid is shown by default without
- // this state needing to react to data.profiles changing -- it's simply absent from "hidden" until
- // someone unchecks them.
- const [hidden,setHidden]=useState<Set<string>>(()=>new Set())
- const [addingName,setAddingName]=useState('')
- const [adding,setAdding]=useState(false)
- const [addError,setAddError]=useState('')
- const visibleProfiles=data.profiles.filter(p=>!hidden.has(p.id))
- const dayItems=familyItemsForDate(data,visibleProfiles,date)
- const start=new Date(month+'-01T12:00:00'),gridStart=addDays(month+'-01',-start.getDay())
- const shift=(by:number)=>{const next=new Date(start);next.setMonth(next.getMonth()+by);setMonth(localDate(next).slice(0,7))}
- const toggle=(id:string)=>setHidden(v=>{const next=new Set(v);if(next.has(id))next.delete(id);else next.add(id);return next})
- const openKid=(id:string)=>{void save(d=>({...d,activeProfileId:id}));navigate('Planner')}
- const addKid=(e:FormEvent)=>{
-  e.preventDefault()
-  const name=addingName
-  save(d=>addKidProfile(d,name)).then(saved=>{if(saved){setAddingName('');setAdding(false);setAddError('')}else setAddError('Could not add this kid. Try again.')}).catch(()=>setAddError(name.trim()?'Could not add this kid. Try again.':'Enter a name for this kid.'))
- }
+ const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
  return <section className="wb-panel family-calendar">
-  <div className="wb-section-head"><div><small>PARENT MODE</small><h2>Family calendar</h2></div><button onClick={()=>{setDate(localDate());setMonth(localDate().slice(0,7))}}>Today</button></div>
+  <div className="wb-section-head"><div><small>ONE SHARED CALENDAR</small><h2>Kids</h2></div><button onClick={()=>create('kids')}>＋ Add a kid</button></div>
+  <p className="wb-muted">Add each kid once, with their own color and emoji. Tag any assignment, exam, class or event with a kid from its own editor, then filter your Planner calendar by kid — the same way you already filter by subject.</p>
+  <div className="family-kid-list" role="group" aria-label="Kids">
+   {kids.map(k=><div key={k.id} className="family-kid-chip" style={{'--kid-color':k.color} as CSSProperties}><i className="family-kid-swatch" aria-hidden="true"/><strong>{(k.emoji?k.emoji+' ':'')+k.name}</strong><button type="button" onClick={()=>edit('kids',k as unknown as Entry)}>Edit</button><button type="button" onClick={()=>remove('kids',k as unknown as Entry)}>Move to Trash</button></div>)}
+  </div>
+  {!kids.length&&<p className="wb-muted">No kids added yet. Add one to start tagging their assignments, exams, classes and events on your calendar.</p>}
   <div className="family-notify-row">
    {notifyOn?<p className="wb-muted">Notifications are on — you'll get a daily digest and time-block alerts for every kid, labeled by name.</p>
    :notifyPermission==='denied'?<p className="wb-muted">Notifications are blocked for this site. Allow them in your browser's site settings to turn this on.</p>
    :notifyPermission==='unsupported'?null
-   :<button type="button" onClick={enableNotifications}>Turn on notifications for all kids</button>}
+   :<button type="button" onClick={enableNotifications}>Turn on notifications</button>}
    {notifyError&&<span role="alert" className="family-add-error">{notifyError}</span>}
   </div>
-  <div className="family-kid-list" role="group" aria-label="Show kids on the calendar">
-   {data.profiles.map(p=><label key={p.id} className="family-kid-chip" style={{'--kid-color':p.color??FAMILY_COLORS[0]} as CSSProperties}><input type="checkbox" checked={!hidden.has(p.id)} onChange={()=>toggle(p.id)}/><i className="family-kid-swatch" aria-hidden="true"/>{p.name}<button type="button" onClick={()=>openKid(p.id)}>Open planner</button></label>)}
-   {adding?<form onSubmit={addKid} className="family-add-kid-form"><input autoFocus placeholder="Kid's name" value={addingName} onChange={e=>setAddingName(e.target.value)} maxLength={200}/><button type="submit">Add</button><button type="button" onClick={()=>{setAdding(false);setAddingName('');setAddError('')}}>Cancel</button>{addError&&<span role="alert" className="family-add-error">{addError}</span>}</form>:<button type="button" onClick={()=>setAdding(true)}>＋ Add a kid</button>}
-  </div>
-  <div className="wb-section-head"><button aria-label="Previous month" onClick={()=>shift(-1)}>‹</button><h3>{start.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</h3><button aria-label="Next month" onClick={()=>shift(1)}>›</button></div>
-  <div className="wb-calendar family-month-grid">{dayNames.map(d=><span key={d}>{d.slice(0,3)}</span>)}{Array.from({length:42},(_,i)=>addDays(gridStart,i)).map(day=>{const items=familyItemsForDate(data,visibleProfiles,day);return <button key={day} aria-label={dateLabel(day)+' · '+items.length+' items'} aria-pressed={date===day} className={(day.slice(0,7)!==month?'muted-day ':'')+(date===day?'is-selected':'')} onClick={()=>setDate(day)}><span className="calendar-date-row"><strong>{Number(day.slice(-2))}</strong></span><span className="wb-cal-dots" aria-hidden="true">{items.slice(0,6).map((item,i)=><i key={item.kind+item.id+i} style={{background:item.color}}/>)}</span></button>})}</div>
-  <div className="family-day-agenda"><h3>{dateLabel(date)}</h3>{dayItems.length?<ul>{dayItems.map(item=><li key={item.kind+item.id} className={item.done?'is-complete':''} style={{'--kid-color':item.color} as CSSProperties}><i className="family-kid-swatch" aria-hidden="true"/><strong>{item.profileName}</strong><span>{item.title}</span>{item.time&&<small>{classTime(item.time)}</small>}</li>)}</ul>:<p className="wb-muted">Nothing for {visibleProfiles.length?'the shown kids':'any kid'} on this date.</p>}</div>
-  {!visibleProfiles.length&&data.profiles.length>0&&<p className="wb-muted">No kids are shown — check at least one above.</p>}
  </section>
 }
 function Appearance({settings,setting}:{settings:SettingsData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
