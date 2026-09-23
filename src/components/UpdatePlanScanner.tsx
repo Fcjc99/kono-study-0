@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { localDate, normalizeData, type AppData, type Subject } from '../store/model'
+import { localDate, normalizeData, type AppData, type Kid, type Subject } from '../store/model'
 import { readAssignmentPhoto, applyAssignmentPhoto, type CreatedItem } from '../store/assignmentPhoto'
 import { useLocalSetting } from '../hooks/useLocalSetting'
 
 const kindLabels = { tasks: 'Assignment', exams: 'Exam / project', calendarEvents: 'Event' } as const
 const MAX_PHOTOS = 8
 
-export default function UpdatePlanScanner({ profileId, subjects, save, close }: { profileId: string; subjects: Subject[]; save: (fn: (d: AppData) => AppData) => Promise<boolean>; close: () => void }) {
+export default function UpdatePlanScanner({ profileId, subjects, kids, save, close }: { profileId: string; subjects: Subject[]; kids: Kid[]; save: (fn: (d: AppData) => AppData) => Promise<boolean>; close?: () => void }) {
   // Shares K-Quiz's exact provider/key storage (same localStorage keys) -- it is the same browser-side
   // AI call either way, so setting it up once in either place works in both.
   const [provider, setProvider] = useLocalSetting('kono-kquiz:' + profileId + ':provider', 'gemini')
@@ -70,9 +70,9 @@ export default function UpdatePlanScanner({ profileId, subjects, save, close }: 
 
   const confirmItem = async (item: CreatedItem) => {
     const ok = await save(d => {
-      if (item.key === 'tasks') return { ...d, tasks: d.tasks.map(t => t.id === item.id ? { ...t, title: item.title, due: item.date, subjectId: item.subjectId, needsReview: false } : t) }
-      if (item.key === 'exams') return { ...d, exams: d.exams.map(e => e.id === item.id ? { ...e, title: item.title, due: item.date, subjectId: item.subjectId, needsReview: false } : e) }
-      return { ...d, calendarEvents: d.calendarEvents.map(e => e.id === item.id ? { ...e, title: item.title, date: item.date, subjectId: item.subjectId, needsReview: false } : e) }
+      if (item.key === 'tasks') return { ...d, tasks: d.tasks.map(t => t.id === item.id ? { ...t, title: item.title, due: item.date, subjectId: item.subjectId, kidId: item.kidId, needsReview: false } : t) }
+      if (item.key === 'exams') return { ...d, exams: d.exams.map(e => e.id === item.id ? { ...e, title: item.title, due: item.date, subjectId: item.subjectId, kidId: item.kidId, needsReview: false } : e) }
+      return { ...d, calendarEvents: d.calendarEvents.map(e => e.id === item.id ? { ...e, title: item.title, date: item.date, subjectId: item.subjectId, kidId: item.kidId, needsReview: false } : e) }
     })
     if (ok) setCreatedItems(items => items.filter(i => i.id !== item.id))
   }
@@ -101,7 +101,7 @@ export default function UpdatePlanScanner({ profileId, subjects, save, close }: 
   }
 
   return <div className="update-plan-scanner">
-    <p>Take photos of handwritten or printed notes listing assignments, due dates, tests, or classes — a to-do list, a torn notebook page, a whole week of a planner, or a full course syllabus (photograph or scan each page). Every item found across every page is added to your plan right away, flagged in red until you open or confirm it.</p>
+    <p>Take photos of handwritten or printed notes, a family calendar app screenshot, or a planner page listing assignments, due dates, tests, classes, appointments, or activities — a to-do list, a torn notebook page, a whole week of a planner, a full course syllabus, or a screenshot per day/week (photograph or scan each page). Every item found across every page is added to your plan right away, flagged in red until you open or confirm it. When a screenshot labels items by person (a family calendar's per-item name and color dot), each item is tagged to that kid automatically — a kid not already on your Kids page is added with its own color.</p>
     <p className="wb-muted">Needs a real AI vision model to read handwriting reliably. Uses the same AI key as K-Quiz — set it up once in either place and it works in both. The photos and key go straight to your chosen provider from this browser; nothing is stored anywhere else.</p>
     <details><summary>AI settings</summary>
       <label>Provider<select value={provider} onChange={e => setProvider(e.target.value)}><option value="gemini">Google Gemini (free tier available)</option><option value="openai">OpenAI</option></select></label>
@@ -118,7 +118,7 @@ export default function UpdatePlanScanner({ profileId, subjects, save, close }: 
     </div>}
     <div className="study-actions">
       <button className="primary" disabled={!files.length || busy} onClick={() => void scan()}>{busy ? 'Reading…' : files.length > 1 ? `Scan ${files.length} photos and add to plan` : 'Scan and add to plan'}</button>
-      <button type="button" className="secondary" onClick={close}>Close</button>
+      {close&&<button type="button" className="secondary" onClick={close}>Close</button>}
     </div>
     {status && <p role="status">{status}</p>}
     {error && <p role="alert">{error}</p>}
@@ -132,6 +132,10 @@ export default function UpdatePlanScanner({ profileId, subjects, save, close }: 
           <label>Subject<select value={item.subjectId} onChange={e => editRow(item.id, { subjectId: e.target.value })}>
             <option value="">General / unassigned</option>
             {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select></label>
+          <label>Kid<select value={item.kidId ?? ''} onChange={e => editRow(item.id, { kidId: e.target.value || undefined })}>
+            <option value="">Whole family / unassigned</option>
+            {kids.map(k => <option key={k.id} value={k.id}>{(k.emoji ? k.emoji + ' ' : '') + k.name}</option>)}
           </select></label>
         </div>
         <div className="study-actions">

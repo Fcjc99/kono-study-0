@@ -116,6 +116,74 @@ test('applying to a profile other than the active one is refused',()=>{
  assert.throws(()=>photo.applyAssignmentPhoto(d,'someone-else',[{title:'X',date:null,kind:'task',subject:''}],'2026-09-18'),/profile changed/)
 })
 
+test('the prompt asks for a per-item kidName and an eventKind, so a family calendar screenshot\'s per-person color-coded items come through tagged',()=>{
+ const prompt=photo.__test__.buildAssignmentPhotoPrompt('2026-09-18')
+ assert.ok(prompt.includes('"kidName"'))
+ assert.ok(prompt.includes('"eventKind"'))
+ assert.ok(prompt.toLowerCase().includes('family'))
+})
+
+test('parsing accepts eventKind and kidName, and defaults eventKind to "other" when missing or invalid',()=>{
+ const parsed=photo.__test__.parseAssignmentPhoto(JSON.stringify({items:[
+  {title:'Hockey practice',date:'2026-09-24',kind:'event',eventKind:'sports',subject:'',kidName:'Knox'},
+  {title:'Family bike ride',date:'2026-09-26',kind:'event',subject:'',kidName:''},
+  {title:'Birthday party',date:'2026-09-27',kind:'event',eventKind:'not-a-kind',subject:'',kidName:'Ivy'},
+ ]}))
+ assert.equal(parsed[0].eventKind,'sports');assert.equal(parsed[0].kidName,'Knox')
+ assert.equal(parsed[1].eventKind,'other');assert.equal(parsed[1].kidName,'')
+ assert.equal(parsed[2].eventKind,'other');assert.equal(parsed[2].kidName,'Ivy')
+})
+
+// Modeled directly on the real family-calendar screenshots shared alongside this feature request:
+// several kids (Blair, Knox, Justin, Nikki, Ivy, Parker), each with their own color-coded events --
+// hockey, soccer, dance, tennis -- scanned from a shared calendar app's agenda view.
+test('applying a scanned family calendar creates one kid per name, each with its own color, and tags every item to the right one',()=>{
+ const d=make(),pid=d.activeProfileId
+ const items=[
+  {title:'Dance',date:'2026-09-24',kind:'event',eventKind:'personal',subject:'',kidName:'Blair'},
+  {title:'Hockey',date:'2026-09-24',kind:'event',eventKind:'sports',subject:'',kidName:'Knox'},
+  {title:'Soccer',date:'2026-09-23',kind:'event',eventKind:'sports',subject:'',kidName:'Ivy'},
+  {title:'Soccer',date:'2026-09-23',kind:'event',eventKind:'sports',subject:'',kidName:'Parker'},
+  {title:'Tennis lesson',date:'2026-09-25',kind:'event',eventKind:'sports',subject:'',kidName:'Nikki'},
+  {title:'Hockey',date:'2026-09-27',kind:'event',eventKind:'sports',subject:'',kidName:'Justin'},
+ ]
+ const result=photo.applyAssignmentPhoto(d,pid,items,'2026-09-18')
+ const kidNames=result.data.kids.map(k=>k.name).sort()
+ assert.deepEqual(kidNames,['Blair','Ivy','Justin','Knox','Nikki','Parker'])
+ const colors=new Set(result.data.kids.map(k=>k.color))
+ assert.equal(colors.size,6,'expected every kid to get a distinct color')
+ for(const event of result.data.calendarEvents){
+  const kid=result.data.kids.find(k=>k.id===event.kidId)
+  assert.ok(kid,'every scanned item should resolve to a real kid')
+  if(event.title==='Dance')assert.equal(kid.name,'Blair')
+  if(event.title==='Tennis lesson')assert.equal(kid.name,'Nikki')
+ }
+ // the receipt (what the scan-results UI shows/edits) carries kidId too, without a lookup
+ assert.equal(result.created.every(c=>c.kidId),true)
+})
+
+test('a scanned event\'s kind (e.g. sports) is preserved on the created calendarEvent instead of always becoming "other"',()=>{
+ const d=make(),pid=d.activeProfileId
+ const result=photo.applyAssignmentPhoto(d,pid,[{title:'Soccer game',date:'2026-09-23',kind:'event',eventKind:'sports',subject:'',kidName:'Ivy'}],'2026-09-18')
+ assert.equal(result.data.calendarEvents[0].kind,'sports')
+})
+
+test('a kid name matches an existing kid case-insensitively instead of creating a duplicate',()=>{
+ const d=make(),pid=d.activeProfileId
+ d.kids=[{id:'kid1',profileId:pid,name:'Knox',color:'#7f9fc9'}]
+ const result=photo.applyAssignmentPhoto(d,pid,[{title:'Hockey',date:'2026-09-24',kind:'event',eventKind:'sports',subject:'',kidName:'knox'}],'2026-09-18')
+ assert.equal(result.data.kids.length,1)
+ assert.equal(result.data.calendarEvents[0].kidId,'kid1')
+})
+
+test('an item with no kidName is left unassigned rather than getting tagged to an arbitrary kid',()=>{
+ const d=make(),pid=d.activeProfileId
+ d.kids=[{id:'kid1',profileId:pid,name:'Knox',color:'#7f9fc9'}]
+ const result=photo.applyAssignmentPhoto(d,pid,[{title:'Family dinner',date:'2026-09-24',kind:'event',eventKind:'personal',subject:'',kidName:''}],'2026-09-18')
+ assert.equal(result.data.calendarEvents[0].kidId,undefined)
+ assert.equal(result.data.kids.length,1,'no new kid should be created for an unassigned item')
+})
+
 let passed=0
 for(const t of tests){try{t.fn();passed++;console.log('PASS',t.name)}catch(e){console.error('FAIL',t.name);console.error(e);process.exitCode=1}}
 console.log(`${passed}/${tests.length} assignment-photo regression groups passed.`)
