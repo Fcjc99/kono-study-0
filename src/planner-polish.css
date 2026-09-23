@@ -81,11 +81,6 @@
 .tomorrow-extra-list>strong{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:color-mix(in srgb,#76626b 65%,var(--wb-ink))}
 .planner-day-board{margin-top:14px;padding:12px;border:1px dashed #e0c7bc;border-radius:14px;background:#fffaf7}
 .planner-day-list{display:grid;gap:8px}
-.planner-due-panel{margin-top:10px;padding-top:8px;border-top:1px dashed #ead6cf}
-.planner-due-panel ul{display:grid;gap:6px;margin:0;padding-left:18px}
-.planner-due-panel li{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.planner-due-remove{border:0;background:transparent;color:color-mix(in srgb,#8a7480 65%,var(--wb-ink));font-size:.8rem;line-height:1;padding:2px 5px;cursor:pointer;border-radius:6px;margin-left:auto}
-.planner-due-remove:hover{background:#f1e3e8;color:#9f2947}
 .schedule-view-picker{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:.82rem;font-weight:600}
 .schedule-view-picker label{display:flex;align-items:center;gap:5px;font-weight:inherit}
 .schedule-view-picker input[type="checkbox"]{width:14px;height:14px;margin:0;accent-color:var(--wb-accent)}
