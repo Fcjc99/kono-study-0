@@ -40,12 +40,12 @@ test('a kid with no emoji normalizes to undefined, not a forced default',()=>{
  assert.equal(normalized.kids[0].emoji,undefined)
 })
 
-test('a kid\'s borderStyle defaults to solid, round-trips a valid choice, and rejects an invalid one',()=>{
+test('a kid\'s borderStyle defaults to modern, round-trips a valid choice, and rejects an invalid one',()=>{
  const base=model.createFreshData()
  const {data}=withKid(base,'Emma')
- assert.equal(model.normalizeData(data).kids[0].borderStyle,'solid')
- const withFire=model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:'fire'}]})
- assert.equal(withFire.kids[0].borderStyle,'fire')
+ assert.equal(model.normalizeData(data).kids[0].borderStyle,'modern')
+ const withSports=model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:'sports'}]})
+ assert.equal(withSports.kids[0].borderStyle,'sports')
  assert.throws(()=>model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:'not-a-style'}]}))
 })
 

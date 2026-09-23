@@ -491,7 +491,7 @@ function RecordCard({cozy,collection,entry,subject,subjectColor,kid,showKidBorde
  // A kid's own border flair (see the Kids page's Appearance panel) only ever paints when a specific
  // kid is both tagged and showing -- an untagged "Family" item or a solo student's plain tile always
  // gets the ordinary static border, never someone else's chosen animation.
- const borderStyle=showKidBorder&&kid?kid.borderStyle??'solid':'solid'
+ const borderStyle=showKidBorder&&kid?kid.borderStyle??'modern':'solid'
  if(collection==='calendarEvents')return <article className={'wb-family-event kid-border-'+borderStyle+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={{'--kid-color':showKidBorder?kid?.color??'#b47e75':undefined} as CSSProperties}>
   <div className="wb-family-event-main">
    <div className="wb-family-event-time">{entry.time?<><span className="wb-family-event-start">{classTime(String(entry.time))}</span>{entry.endTime&&<span className="wb-family-event-end">–{classTime(String(entry.endTime))}</span>}</>:'—'}</div>
@@ -729,10 +729,10 @@ function KidAppearancePanel({data,setting,patch,close}:{data:AppData;setting:<K 
   {kids.map(k=><KidAppearanceEditor key={k.id} kid={k} patch={patch}/>)}
  </Modal>
 }
-const BORDER_STYLE_OPTIONS=[['solid','Solid'],['dashed','Dashed'],['glow','Glow'],['sparkle','Sparkle ✨'],['fire','Fire 🔥'],['rainbow','Rainbow 🌈']] as const
+const BORDER_STYLE_OPTIONS=[['cute','Cute 💗'],['sports','Sports 🏁'],['modern','Modern'],['unique','Unique']] as const
 function KidAppearanceEditor({kid,patch}:{kid:Kid;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
  const [customEmoji,setCustomEmoji]=useState('')
- const borderStyle=kid.borderStyle??'solid'
+ const borderStyle=kid.borderStyle??'modern'
  const setEmoji=(emoji:string)=>void patch('kids',kid as unknown as Entry,{emoji})
  const setColor=(color:string)=>void patch('kids',kid as unknown as Entry,{color})
  const setBorderStyle=(style:KidBorderStyle)=>void patch('kids',kid as unknown as Entry,{borderStyle:style})

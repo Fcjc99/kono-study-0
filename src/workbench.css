@@ -236,19 +236,26 @@ button.needs-review-record{outline-offset:-2px}
 .wb-family-event.is-complete .wb-family-event-info>h3{text-decoration:line-through;opacity:.65}
 /* Per-kid border flair (see the Kids page's Appearance panel). Reduced motion is already handled
  * globally -- see foundation.css/production.css's [data-motion=reduced] rule, which zeroes every
- * animation-duration on the page, so none of these need their own reduced-motion overrides. */
-.wb-family-event.kid-border-dashed{border-style:dashed}
-.wb-family-event.kid-border-glow{animation:kid-border-glow 2.2s ease-in-out infinite}
-@keyframes kid-border-glow{0%,100%{box-shadow:0 0 0 2px color-mix(in srgb,var(--kid-color,#b47e75) 20%,transparent)}50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--kid-color,#b47e75) 45%,transparent)}}
-.wb-family-event.kid-border-fire{animation:kid-border-fire 1.6s ease-in-out infinite}
-@keyframes kid-border-fire{0%,100%{border-color:#ff5722}33%{border-color:#ff9800}66%{border-color:#ffc107}}
-.wb-family-event.kid-border-sparkle::before,.wb-family-event.kid-border-sparkle::after{content:'✨';position:absolute;font-size:.8rem;line-height:1;pointer-events:none;animation:kid-border-sparkle-twinkle 1.8s ease-in-out infinite}
-.wb-family-event.kid-border-sparkle::before{top:-9px;left:-7px}
-.wb-family-event.kid-border-sparkle::after{bottom:-9px;right:-7px;animation-delay:.9s}
-@keyframes kid-border-sparkle-twinkle{0%,100%{opacity:0;transform:scale(.5) rotate(-10deg)}50%{opacity:1;transform:scale(1.15) rotate(12deg)}}
-.wb-family-event.kid-border-rainbow{border-color:transparent}
-.wb-family-event.kid-border-rainbow::before{content:'';position:absolute;inset:-2px;border-radius:inherit;border:2px solid var(--kid-color,#b47e75);pointer-events:none;animation:kid-border-rainbow-spin 4s linear infinite}
-@keyframes kid-border-rainbow-spin{to{filter:hue-rotate(360deg)}}
+ * animation-duration on the page, so none of these need their own reduced-motion overrides.
+ * Each style is a genuinely different mechanism so the four read as distinct, not palette swaps:
+ * cute/modern sweep a conic-gradient ring around the tile by animating an interpolatable angle
+ * custom property (registering it is what lets @keyframes animate a gradient's rotation instead of
+ * spinning the whole element, so it travels correctly around a non-square rectangle); sports marches
+ * a striped ring via background-position; unique morphs the tile's own border-radius over time. The
+ * ring styles use the padding+mask-composite trick to paint a gradient-filled ring exactly as thick
+ * as the padding, cut out from a filled box via content-box/xor. */
+@property --kid-border-angle{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes kid-border-angle-spin{to{--kid-border-angle:360deg}}
+.wb-family-event.kid-border-cute,.wb-family-event.kid-border-sports{border-color:transparent}
+.wb-family-event.kid-border-cute::before,.wb-family-event.kid-border-sports::before,.wb-family-event.kid-border-modern::after{content:'';position:absolute;inset:-3px;border-radius:inherit;padding:3px;pointer-events:none;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.wb-family-event.kid-border-cute::before{background:conic-gradient(from var(--kid-border-angle) at 50% 50%,#ff9ecb,#ffd3e8,#c9a9ff,#9ecbff,#ff9ecb);animation:kid-border-angle-spin 3.5s linear infinite}
+.wb-family-event.kid-border-cute::after{content:'💗';position:absolute;top:-10px;right:-6px;font-size:.75rem;line-height:1;pointer-events:none;animation:kid-border-twinkle 1.8s ease-in-out infinite}
+@keyframes kid-border-twinkle{0%,100%{opacity:0;transform:scale(.5) rotate(-10deg)}50%{opacity:1;transform:scale(1.15) rotate(12deg)}}
+.wb-family-event.kid-border-sports::before{background-image:repeating-linear-gradient(45deg,var(--kid-color,#b47e75) 0 8px,#fff 8px 16px);background-size:22px 22px;animation:kid-border-sports-march .9s linear infinite}
+@keyframes kid-border-sports-march{to{background-position:22px 0}}
+.wb-family-event.kid-border-modern::after{background:conic-gradient(from var(--kid-border-angle) at 50% 50%,transparent 0deg,transparent 305deg,color-mix(in srgb,var(--kid-color,#b47e75) 60%,#fff) 330deg,#fff 345deg,color-mix(in srgb,var(--kid-color,#b47e75) 60%,#fff) 360deg);animation:kid-border-angle-spin 2.2s linear infinite}
+.wb-family-event.kid-border-unique{border-width:3px;animation:kid-border-unique-wobble 4s ease-in-out infinite}
+@keyframes kid-border-unique-wobble{0%{border-radius:10px 26px 14px 30px/22px 12px 28px 14px}25%{border-radius:30px 14px 26px 10px/14px 28px 12px 22px}50%{border-radius:14px 30px 10px 26px/28px 14px 22px 12px}75%{border-radius:26px 10px 30px 14px/12px 22px 14px 28px}100%{border-radius:10px 26px 14px 30px/22px 12px 28px 14px}}
 .wb-family-event-main{display:flex;align-items:flex-start;gap:10px}
 .wb-family-event-time{flex:0 0 4.6em;display:flex;flex-direction:column;font-variant-numeric:tabular-nums;line-height:1.25;color:var(--kid-color,var(--wb-ink))}
 .wb-family-event-start{font-weight:700;font-size:.78rem}
@@ -293,11 +300,13 @@ button.needs-review-record{outline-offset:-2px}
 .kid-border-grid{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
 .kid-border-swatch{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 8px;border-radius:10px;border:1px solid var(--wb-line);background:var(--wb-surface);cursor:pointer;font-size:.7rem;color:inherit}
 .kid-border-swatch[aria-pressed="true"]{outline:2px solid var(--kid-color,var(--wb-accent));outline-offset:1px}
-.kid-border-swatch>span{display:block;width:28px;height:20px;border-radius:6px;border:2px solid var(--kid-color,var(--wb-line))}
-.kid-border-swatch.kid-border-dashed>span{border-style:dashed}
-.kid-border-swatch.kid-border-glow>span{animation:kid-border-glow 2.2s ease-in-out infinite}
-.kid-border-swatch.kid-border-fire>span{animation:kid-border-fire 1.6s ease-in-out infinite}
-.kid-border-swatch.kid-border-rainbow>span{border-color:var(--kid-color,#b47e75);animation:kid-border-rainbow-spin 4s linear infinite}
+.kid-border-swatch>span{display:block;position:relative;width:28px;height:20px;border-radius:6px;border:2px solid var(--kid-color,var(--wb-line))}
+.kid-border-swatch.kid-border-cute>span,.kid-border-swatch.kid-border-sports>span{border-color:transparent}
+.kid-border-swatch.kid-border-cute>span::before,.kid-border-swatch.kid-border-sports>span::before,.kid-border-swatch.kid-border-modern>span::after{content:'';position:absolute;inset:-2px;border-radius:inherit;padding:2px;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.kid-border-swatch.kid-border-cute>span::before{background:conic-gradient(from var(--kid-border-angle) at 50% 50%,#ff9ecb,#ffd3e8,#c9a9ff,#9ecbff,#ff9ecb);animation:kid-border-angle-spin 3.5s linear infinite}
+.kid-border-swatch.kid-border-sports>span::before{background-image:repeating-linear-gradient(45deg,var(--kid-color,#b47e75) 0 6px,#fff 6px 12px);background-size:17px 17px;animation:kid-border-sports-march .9s linear infinite}
+.kid-border-swatch.kid-border-modern>span::after{background:conic-gradient(from var(--kid-border-angle) at 50% 50%,transparent 0deg,transparent 305deg,color-mix(in srgb,var(--kid-color,#b47e75) 60%,#fff) 330deg,#fff 345deg,color-mix(in srgb,var(--kid-color,#b47e75) 60%,#fff) 360deg);animation:kid-border-angle-spin 2.2s linear infinite}
+.kid-border-swatch.kid-border-unique>span{animation:kid-border-unique-wobble 4s ease-in-out infinite}
 .family-kid-list{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}
 .workbench .family-kid-chip{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--wb-line);border-radius:999px;background:var(--wb-surface)}
 .family-kid-swatch{display:block;width:12px;height:12px;border-radius:50%;background:var(--kid-color,var(--wb-accent))}
