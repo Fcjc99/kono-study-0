@@ -2,7 +2,7 @@ import {useEffect,useRef,useState,type CSSProperties,type DragEvent,type FormEve
 import {deleteProfile} from './store/deleteProfile'
 import {usePlannerRepository} from './store/repository'
 import {uid,localDate,dayNames,eventCategory,matchOutcome,type AppData,type SettingsData,type Task,type Subtask,type CalendarEventKind,type MatchResult} from './store/model'
-import {FAMILY_COLORS,addKidProfile,familyItemsForDate} from './store/familyCalendar'
+import {FAMILY_COLORS,addKidProfile,familyDueItems,familyItemsForDate,familyTimeBlockItems} from './store/familyCalendar'
 import {collections,records,titleOf,equal,removeEntry,restoreEntry,completeTask,type Collection,type Entry} from './store/workspace'
 import {calendarTasks,addDays} from './store/studyScheduler'
 import {planExamReview} from './store/examReview'
@@ -11,10 +11,10 @@ import {useSpeechToText} from './hooks/useSpeechToText'
 import {syncCurrentTaskCompletion,createSanctuaryProgress} from './game/progression/progressionEngine'
 import {pickKonoPhrase,konoCelebration,konoStreakMilestone,seededRand,STREAK_MILESTONES,type KonoPhrase} from './store/konoPhrases'
 import {useReducedMotion,useMusicController} from './hooks/useComfort'
-import {useDueNotifications,useTimeBlockNotifications} from './hooks/useDueNotifications'
+import {useDueNotifications,useTimeBlockNotifications,notificationsSupported,requestNotificationPermission} from './hooks/useDueNotifications'
 import {useLiveSanctuaryWeather} from './hooks/useLiveSanctuaryWeather'
 import ClassOccurrenceCard from './components/ClassOccurrenceCard'
-import {classOccurrences,classTime,isInClassNow,type ClassOccurrence} from './store/classSchedule'
+import {classOccurrences,classTime,type ClassOccurrence} from './store/classSchedule'
 import SchedulePanel from './components/SchedulePanel'
 import ScheduleImport from './components/ScheduleImport'
 import ScheduleSetup from './components/ScheduleSetup'
@@ -187,9 +187,12 @@ function Workspace({store}:{store:Store}){
  // Quiet hours: don't buzz a phone in someone's pocket mid-class. Re-evaluated on every render, which
  // is frequent enough given the 30-second "today" ticker already running below.
  const nowClock=(()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')})()
- const notificationsQuiet=isInClassNow(classOccurrences(data,today),nowClock)
- const dueNotifyItems=[...ownTasks.map(t=>({id:t.id,title:t.title,due:t.due,done:t.done})),...data.exams.filter(e=>e.profileId===profile.id).map(e=>({id:e.id,title:e.title,due:e.due,done:e.done}))]
- useDueNotifications(Boolean(data.settings.browserNotifications)&&!notificationsQuiet,dueNotifyItems,today)
+ // Every kid's due items, not just the active profile's -- a parent's device should hear about all of
+ // them (see familyDueItems), labeled by name once there's more than one kid. Quiet hours is now
+ // per-kid rather than a single flag, so it's folded into familyDueItems itself instead of gating the
+ // whole hook the way the old single-profile notificationsQuiet boolean did.
+ const dueNotifyItems=familyDueItems(data,data.profiles,today,nowClock)
+ useDueNotifications(Boolean(data.settings.browserNotifications),dueNotifyItems,today)
  const [focusRequest,setFocusRequest]=useState<FocusRequest|null>(null)
  const sanctuaryFocusRef=useRef<HTMLDetailsElement>(null)
  const digestKey='kono-digest:'+(store.user?.id??'device')+':'+profile.id
@@ -232,19 +235,26 @@ function Workspace({store}:{store:Store}){
  const scheduleClasses=(date:string)=>classOccurrences(data,date).filter(c=>categoryVisible(c.season.category??'academic'))
  const scheduleViewPicker=<div className="schedule-view-picker" role="group" aria-label="Schedule view"><label><input type="checkbox" checked={showAcademic} onChange={e=>void setting('scheduleShowAcademic',e.target.checked)}/> Academics</label><label><input type="checkbox" checked={showSports} onChange={e=>void setting('scheduleShowSports',e.target.checked)}/> Sports</label><label><input type="checkbox" checked={showAppointments} onChange={e=>void setting('scheduleShowAppointments',e.target.checked)}/> Appointments</label></div>
  const navigate=(next:Page)=>{const url=new URL(location.href);url.searchParams.set('page',next.toLowerCase());history.pushState(null,'',url);setPage(next);setMore(false);window.scrollTo({top:0})}
- const startFocusSession=(taskId:string,estimatedMinutes?:number)=>{
-  navigate('Sanctuary')
-  setFocusRequest({taskId,estimatedMinutes,requestId:Date.now()})
-  requestAnimationFrame(()=>{
-   // FocusSession opens its own inner <details> once it sees the request, but this outer wrapper is
-   // a separate <details> one level up -- without also opening it, the inner one stays hidden inside
-   // a collapsed parent.
-   if(sanctuaryFocusRef.current)sanctuaryFocusRef.current.open=true
-   sanctuaryFocusRef.current?.scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'})
-  })
+ // A time-block notification for another kid's task (see timeBlockNotifyItems) needs their profile
+ // active before FocusSession can find their task at all -- ownTasks below is scoped to whichever
+ // profile is active, so switching happens first and only then does the rest of the existing flow run.
+ const startFocusSession=(taskId:string,estimatedMinutes?:number,profileId?:string)=>{
+  const begin=()=>{
+   navigate('Sanctuary')
+   setFocusRequest({taskId,estimatedMinutes,requestId:Date.now()})
+   requestAnimationFrame(()=>{
+    // FocusSession opens its own inner <details> once it sees the request, but this outer wrapper is
+    // a separate <details> one level up -- without also opening it, the inner one stays hidden inside
+    // a collapsed parent.
+    if(sanctuaryFocusRef.current)sanctuaryFocusRef.current.open=true
+    sanctuaryFocusRef.current?.scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'})
+   })
+  }
+  if(profileId&&profileId!==profile.id)void save(d=>({...d,activeProfileId:profileId})).then(begin)
+  else begin()
  }
- const timeBlockNotifyItems=ownTasks.map(t=>({id:t.id,title:t.title,due:t.due,done:t.done,plannedTime:t.plannedTime,estimatedMinutes:t.estimatedMinutes}))
- useTimeBlockNotifications(Boolean(data.settings.browserNotifications)&&!notificationsQuiet,timeBlockNotifyItems,today,item=>startFocusSession(item.id,item.estimatedMinutes))
+ const timeBlockNotifyItems=familyTimeBlockItems(data,data.profiles,today,nowClock)
+ useTimeBlockNotifications(Boolean(data.settings.browserNotifications),timeBlockNotifyItems,today,item=>startFocusSession(item.id,item.estimatedMinutes,item.profileId))
  useEffect(()=>{const pop=()=>setPage(pageFromURL());window.addEventListener('popstate',pop);const timer=window.setInterval(()=>setToday(localDate()),30000);return()=>{window.removeEventListener('popstate',pop);clearInterval(timer)}},[])
  useEffect(()=>{document.documentElement.dataset.motion=reduced?'reduced':'full'},[reduced])
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();setSearch(v=>!v)}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[])
@@ -394,7 +404,7 @@ function Workspace({store}:{store:Store}){
     {experience==='cozy'?<div className="restored-board-pair">{board('notes')}{board('exams')}</div>:<>{noteBoard(true)}<section className="wb-panel"><h2>Upcoming exams</h2>{data.exams.filter(e=>e.profileId===profile.id&&!e.done).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,3).map(e=>card('exams',e as unknown as Entry))}{!data.exams.some(e=>e.profileId===profile.id&&!e.done)&&<p>No upcoming exams.</p>}</section></>}
    </>}
    {page==='Planner'&&<><div className="wb-toolbar planner-settings-link"><span>Your classes, assignments and daily plans</span><button onClick={()=>{setSettingsTab('Schedules');navigate('Settings')}}>Schedule settings</button></div><Calendar data={data} tasks={tasks} date={selectedDate} selectDate={setSelectedDate} create={create} render={card} renderClass={renderClass} reschedule={reschedule} setting={setting} remove={remove}/><StudyPlanner key={planRequest} initialOpen={planRequest>0} draftKey={draftScope+':plan'} profileId={profile.id} plans={plans} tasks={ownTasks} subjects={subjects} setData={save} onSelectDate={setSelectedDate}/></>}
-   {page==='Family'&&<FamilyPage data={data} save={save} navigate={navigate}/>}
+   {page==='Family'&&<FamilyPage data={data} save={save} navigate={navigate} setting={setting}/>}
    {page==='Subjects'&&experience!=='simplified'&&subjectWorkspace}
    {page==='Subjects'&&experience==='simplified'&&<><section className="wb-panel"><div className="wb-section-head"><h2>Your subjects</h2><button onClick={()=>create('subjects')}>＋ Subject</button></div><div className="wb-record-grid">{subjects.map(s=>card('subjects',s as unknown as Entry))}</div>{!subjects.length&&<p>Create your first subject to organize your work.</p>}</section><section className="wb-panel"><div className="wb-section-head"><h2>Assignments</h2><button onClick={()=>create('tasks')}>＋ Assignment</button></div><label>Filter subject<select value={subject} onChange={e=>setSubject(e.target.value)}><option value="">All subjects, including unassigned</option>{subjects.map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></label><div className="wb-toolbar"><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,true),d)),'Assignments completed.')}>Complete all shown</button><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,false),d)),'Assignments reopened; earned progress is kept.')}>Reopen all shown</button></div>{tasks.filter(t=>!subject||t.subjectId===subject).map(t=>card('tasks',t as unknown as Entry))}</section></>}
    {page==='Notes'&&<>{noteBoard()}<details className="wb-panel"><summary>Quiz me · Flashcards</summary><Flashcards draftKey={draftScope+':cards'} profileId={profile.id} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} setData={save}/></details></>}
@@ -570,9 +580,19 @@ function Calendar({data,tasks,date,selectDate,create,render,renderClass,reschedu
 // classOccurrences/tasks/exams/calendarEvents across every profile without touching how the existing
 // single-profile Planner calendar works. Editing a kid's own recurring schedule still happens in their
 // own Planner/Settings, reached via "Open planner" below, rather than rebuilding that editor here.
-function FamilyPage({data,save,navigate}:{data:AppData;save:(fn:(d:AppData)=>AppData)=>Promise<boolean>;navigate:(page:Page)=>void}){
+function FamilyPage({data,save,navigate,setting}:{data:AppData;save:(fn:(d:AppData)=>AppData)=>Promise<boolean>;navigate:(page:Page)=>void;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
  const [month,setMonth]=useState(()=>localDate().slice(0,7))
  const [date,setDate]=useState(()=>localDate())
+ const [notifyError,setNotifyError]=useState('')
+ const notifyPermission=notificationsSupported()?Notification.permission:'unsupported'
+ const notifyOn=data.settings.browserNotifications&&notifyPermission==='granted'
+ const enableNotifications=()=>{
+  setNotifyError('')
+  requestNotificationPermission().then(result=>{
+   if(result==='granted')void setting('browserNotifications',true)
+   else setNotifyError('Notifications need to be allowed in your browser to turn this on.')
+  }).catch(()=>setNotifyError('Could not request notification permission.'))
+ }
  // A hidden-ids set (rather than a visible-ids set) so a newly added kid is shown by default without
  // this state needing to react to data.profiles changing -- it's simply absent from "hidden" until
  // someone unchecks them.
@@ -593,6 +613,13 @@ function FamilyPage({data,save,navigate}:{data:AppData;save:(fn:(d:AppData)=>App
  }
  return <section className="wb-panel family-calendar">
   <div className="wb-section-head"><div><small>PARENT MODE</small><h2>Family calendar</h2></div><button onClick={()=>{setDate(localDate());setMonth(localDate().slice(0,7))}}>Today</button></div>
+  <div className="family-notify-row">
+   {notifyOn?<p className="wb-muted">Notifications are on — you'll get a daily digest and time-block alerts for every kid, labeled by name.</p>
+   :notifyPermission==='denied'?<p className="wb-muted">Notifications are blocked for this site. Allow them in your browser's site settings to turn this on.</p>
+   :notifyPermission==='unsupported'?null
+   :<button type="button" onClick={enableNotifications}>Turn on notifications for all kids</button>}
+   {notifyError&&<span role="alert" className="family-add-error">{notifyError}</span>}
+  </div>
   <div className="family-kid-list" role="group" aria-label="Show kids on the calendar">
    {data.profiles.map(p=><label key={p.id} className="family-kid-chip" style={{'--kid-color':p.color??FAMILY_COLORS[0]} as CSSProperties}><input type="checkbox" checked={!hidden.has(p.id)} onChange={()=>toggle(p.id)}/><i className="family-kid-swatch" aria-hidden="true"/>{p.name}<button type="button" onClick={()=>openKid(p.id)}>Open planner</button></label>)}
    {adding?<form onSubmit={addKid} className="family-add-kid-form"><input autoFocus placeholder="Kid's name" value={addingName} onChange={e=>setAddingName(e.target.value)} maxLength={200}/><button type="submit">Add</button><button type="button" onClick={()=>{setAdding(false);setAddingName('');setAddError('')}}>Cancel</button>{addError&&<span role="alert" className="family-add-error">{addError}</span>}</form>:<button type="button" onClick={()=>setAdding(true)}>＋ Add a kid</button>}

@@ -1,6 +1,6 @@
 import {blankWeek,uid,type AppData,type Profile} from './model'
 import {createSanctuaryProgress} from '../game/progression/progressionEngine'
-import {classOccurrences} from './classSchedule'
+import {classOccurrences,isInClassNow} from './classSchedule'
 
 /** Reuses the same distinguishable, muted color set the rest of the app already leans on for
  * per-item accents, so a kid's color reads as consistent with the app's existing palette choices. */
@@ -51,5 +51,43 @@ export function familyItemsForDate(data:Pick<AppData,'tasks'|'exams'|'calendarEv
   for(const ev of data.calendarEvents)if(ev.profileId===profile.id&&ev.date===date)items.push({profileId:profile.id,profileName:profile.name,color,kind:'event',id:ev.id,title:ev.title,date,done:Boolean(ev.done),time:ev.time})
   for(const c of classOccurrences({activeProfileId:profile.id,studySeasons:data.studySeasons},date))items.push({profileId:profile.id,profileName:profile.name,color,kind:'class',id:c.id,title:c.block.label,date,done:false,time:c.displayStart??c.block.start})
   return items
+ })
+}
+
+/** A profile currently in class right now, per isInClassNow -- reused so the parent's device buzzing
+ * about a kid's assignment respects that kid's own quiet hours, not just whichever profile happens to
+ * be active. */
+const profileInClassNow=(data:Pick<AppData,'studySeasons'>,profileId:string,today:string,nowClock:string):boolean=>
+ isInClassNow(classOccurrences({activeProfileId:profileId,studySeasons:data.studySeasons},today),nowClock)
+
+export type FamilyDueItem={id:string;title:string;due:string;done:boolean}
+
+/** Every kid's due tasks and exams for the due-today notification digest (see useDueNotifications),
+ * each title prefixed with the kid's name once there's more than one profile -- a single-kid household
+ * sees exactly the same unprefixed titles it always has. Drops a kid's items entirely while they're
+ * currently in class, generalizing the single-profile quiet-hours check to check the right kid instead
+ * of always whichever profile the parent's screen happens to be showing. */
+export function familyDueItems(data:Pick<AppData,'tasks'|'exams'|'studySeasons'>,profiles:readonly Profile[],today:string,nowClock:string):FamilyDueItem[] {
+ const label=(name:string,title:string)=>profiles.length>1?name+': '+title:title
+ return profiles.flatMap(profile=>{
+  if(profileInClassNow(data,profile.id,today,nowClock))return []
+  return [
+   ...data.tasks.filter(t=>t.profileId===profile.id).map(t=>({id:t.id,title:label(profile.name,t.title),due:t.due,done:t.done})),
+   ...data.exams.filter(e=>e.profileId===profile.id).map(e=>({id:e.id,title:label(profile.name,e.title),due:e.due,done:e.done})),
+  ]
+ })
+}
+
+export type FamilyTimeBlockItem=FamilyDueItem&{plannedTime?:string;estimatedMinutes?:number;profileId:string}
+
+/** Every kid's tasks with a planned time-block, for the "time to start" notification (see
+ * useTimeBlockNotifications) -- same name-prefixing and per-kid quiet-hours behavior as
+ * familyDueItems, plus the owning profileId so starting a Focus Session from the notification can
+ * switch to the right kid first (see startFocusSession). */
+export function familyTimeBlockItems(data:Pick<AppData,'tasks'|'studySeasons'>,profiles:readonly Profile[],today:string,nowClock:string):FamilyTimeBlockItem[] {
+ const label=(name:string,title:string)=>profiles.length>1?name+': '+title:title
+ return profiles.flatMap(profile=>{
+  if(profileInClassNow(data,profile.id,today,nowClock))return []
+  return data.tasks.filter(t=>t.profileId===profile.id).map(t=>({id:t.id,title:label(profile.name,t.title),due:t.due,done:t.done,plannedTime:t.plannedTime,estimatedMinutes:t.estimatedMinutes,profileId:profile.id}))
  })
 }

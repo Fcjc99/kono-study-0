@@ -29,7 +29,7 @@ export function useDueNotifications(enabled: boolean, items: NotifiableItem[], t
   }, [enabled, items, today])
 }
 
-type TimeBlockItem = { id: string; title: string; due: string; done: boolean; plannedTime?: string; estimatedMinutes?: number }
+type TimeBlockItem = { id: string; title: string; due: string; done: boolean; plannedTime?: string; estimatedMinutes?: number; profileId?: string }
 const notifiedBlockKey = (id: string, date: string) => 'kono-notified-block:' + id + ':' + date
 
 /** True the moment a planned time-block (see store/timeBlocking.ts) has arrived -- or up to 15 minutes
