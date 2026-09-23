@@ -111,6 +111,52 @@ test('familyItemsForDate includes a kid\'s recurring class occurrences on that d
  assert.ok(items.some(i=>i.kind==='class'&&i.title==='Math'),'expected the recurring Math class to show up as a family item')
 })
 
+test('familyDueItems leaves titles unprefixed for a single-profile household, matching the old single-kid behavior exactly',()=>{
+ let data=model.normalizeData(model.createFreshData())
+ const kid=data.profiles[0]
+ data={...data,tasks:[...data.tasks,{id:'t1',profileId:kid.id,subjectId:'',title:'Reading log',due:'2026-09-21',done:false,notes:''}]}
+ const items=fam.familyDueItems(data,data.profiles,'2026-09-21','15:00')
+ assert.equal(items.find(i=>i.id==='t1').title,'Reading log')
+})
+
+test('familyDueItems prefixes each title with the kid\'s name once there is more than one profile',()=>{
+ let data=model.normalizeData(fam.addKidProfile(model.normalizeData(model.createFreshData()),'Jack'))
+ const [emma,jack]=data.profiles
+ data={...data,tasks:[...data.tasks,{id:'t1',profileId:emma.id,subjectId:'',title:'Reading log',due:'2026-09-21',done:false,notes:''}],exams:[...data.exams,{id:'e1',profileId:jack.id,subjectId:'',title:'Science test',due:'2026-09-21',done:false,notes:''}]}
+ const items=fam.familyDueItems(data,data.profiles,'2026-09-21','15:00')
+ assert.equal(items.find(i=>i.id==='t1').title,emma.name+': Reading log')
+ assert.equal(items.find(i=>i.id==='e1').title,'Jack: Science test')
+})
+
+test('familyDueItems drops a kid\'s items while they are in class right now, but keeps another kid\'s items unaffected',()=>{
+ let data=model.normalizeData(fam.addKidProfile(model.normalizeData(model.createFreshData()),'Jack'))
+ const [emma,jack]=data.profiles
+ const emmaSeason=data.studySeasons.find(s=>s.profileId===emma.id)
+ data={
+  ...data,
+  studySeasons:data.studySeasons.map(s=>s.id===emmaSeason.id?{...s,start:'2026-09-01',end:'2026-12-31',week:{...s.week,Monday:[{id:'math',label:'Math',start:'09:00',end:'10:00',kind:'study',occurrenceNotes:{}}]}}:s),
+  tasks:[...data.tasks,{id:'t1',profileId:emma.id,subjectId:'',title:'Reading log',due:'2026-09-21',done:false,notes:''},{id:'t2',profileId:jack.id,subjectId:'',title:'Worksheet',due:'2026-09-21',done:false,notes:''}],
+ }
+ data=model.normalizeData(data)
+ // 2026-09-21 is a Monday; 09:30 falls inside Emma's 09:00-10:00 class.
+ const duringClass=fam.familyDueItems(data,data.profiles,'2026-09-21','09:30')
+ assert.ok(!duringClass.some(i=>i.id==='t1'),'expected Emma\'s item to be dropped while she is in class')
+ assert.ok(duringClass.some(i=>i.id==='t2'),'expected Jack\'s item to still show up, unaffected by Emma\'s class')
+ const afterClass=fam.familyDueItems(data,data.profiles,'2026-09-21','11:00')
+ assert.ok(afterClass.some(i=>i.id==='t1'),'expected Emma\'s item back once her class has ended')
+})
+
+test('familyTimeBlockItems carries plannedTime, estimatedMinutes and the owning profileId, so starting a Focus Session from a notification knows which kid to switch to',()=>{
+ let data=model.normalizeData(fam.addKidProfile(model.normalizeData(model.createFreshData()),'Jack'))
+ const [,jack]=data.profiles
+ data={...data,tasks:[...data.tasks,{id:'t1',profileId:jack.id,subjectId:'',title:'Worksheet',due:'2026-09-21',done:false,notes:'',plannedTime:'16:00',estimatedMinutes:30}]}
+ const items=fam.familyTimeBlockItems(data,data.profiles,'2026-09-21','15:00')
+ const item=items.find(i=>i.id==='t1')
+ assert.equal(item.plannedTime,'16:00')
+ assert.equal(item.estimatedMinutes,30)
+ assert.equal(item.profileId,jack.id)
+})
+
 let passed=0
 for(const t of tests){try{t.fn();passed++;console.log('PASS',t.name)}catch(e){console.error('FAIL',t.name);console.error(e);process.exitCode=1}}
 console.log(`${passed}/${tests.length} family-calendar regression groups passed.`)
