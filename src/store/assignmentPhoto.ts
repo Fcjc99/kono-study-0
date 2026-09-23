@@ -14,7 +14,7 @@ const fail = aiFail
 const EVENT_KINDS = ['personal', 'sports', 'appointment', 'work', 'other'] as const
 type EventKind = typeof EVENT_KINDS[number]
 
-export type AssignmentPhotoItem = { title: string; date: string | null; time: string | null; kind: 'task' | 'exam' | 'event'; eventKind: EventKind; subject: string; kidName: string }
+export type AssignmentPhotoItem = { title: string; date: string | null; time: string | null; endTime: string | null; kind: 'task' | 'exam' | 'event'; eventKind: EventKind; subject: string; kidName: string }
 
 /** Defensive fallback for a time the AI didn't format as the requested 24-hour "HH:MM" -- accepts
  * that format directly, or a common 12-hour form ("5:30pm", "5:30 PM", "5p"). Returns undefined
@@ -56,7 +56,10 @@ function buildAssignmentPhotoPrompt(today: string): string {
     `"tomorrow") against today's date (${today}) when no literal date is stated, ` +
     `"time": string in 24-hour "HH:MM" format (e.g. "17:30" for 5:30 PM), or null if no time of day is ` +
     `written or implied for this item -- when a range is given (e.g. "5:30-6:30pm" or "530-630pm"), use ` +
-    `only the start time, ` +
+    `the range's start, ` +
+    `"endTime": string in 24-hour "HH:MM" format for when the item ends, or null if no end time is ` +
+    `written or implied -- only fill this in from an explicit range (e.g. "5:30-6:30pm" gives endTime ` +
+    `"18:30"); never guess a duration for an item with only a single time, ` +
     `"kind": one of "exam" (a test, quiz or exam), "task" (homework, reading, an assignment, something to ` +
     `turn in), or "event" (anything else: an appointment, sports practice or game, activity, or a plain ` +
     `topic/lecture with no deliverable), ` +
@@ -86,11 +89,14 @@ function parseAssignmentPhoto(raw: string): AssignmentPhotoItem[] {
     if (!title) return []
     const date = typeof item.date === 'string' && validDate(item.date) ? item.date : null
     const time = typeof item.time === 'string' ? normalizeClockTime(item.time) ?? null : null
+    // An end time only means anything alongside a start time -- drop a stray one rather than let a
+    // "5:30" item silently gain an implied 5-hour block from a misread "endTime" with no "time".
+    const endTime = time && typeof item.endTime === 'string' ? normalizeClockTime(item.endTime) ?? null : null
     const kind = item.kind === 'exam' || item.kind === 'task' ? item.kind : 'event'
     const eventKind = (EVENT_KINDS as readonly string[]).includes(item.eventKind as string) ? item.eventKind as EventKind : 'other'
     const subject = typeof item.subject === 'string' ? item.subject.trim().slice(0, 200) : ''
     const kidName = typeof item.kidName === 'string' ? item.kidName.trim().slice(0, 200) : ''
-    return [{ title, date, time, kind, eventKind, subject, kidName }]
+    return [{ title, date, time, endTime, kind, eventKind, subject, kidName }]
   }).slice(0, 150) // a dense multi-week syllabus table can list far more entries than a quick to-do photo
   if (!parsed.length) fail('Could not read any items from that photo. Try a clearer photo, or make sure the writing is legible.')
   return parsed
@@ -102,7 +108,7 @@ export async function readAssignmentPhoto(photo: PhotoInput, provider: AiProvide
   return parseAssignmentPhoto(raw)
 }
 
-export type CreatedItem = { key: 'tasks' | 'exams' | 'calendarEvents'; id: string; title: string; date: string; time?: string; subjectId: string; kidId?: string }
+export type CreatedItem = { key: 'tasks' | 'exams' | 'calendarEvents'; id: string; title: string; date: string; time?: string; endTime?: string; subjectId: string; kidId?: string }
 export type ApplyAssignmentPhotoResult = { data: AppData; created: CreatedItem[] }
 
 /** Unlike the schedule photo importer, every item here lands as a real entry immediately -- no
@@ -152,8 +158,9 @@ export function applyAssignmentPhoto(data: AppData, profileId: string, items: As
     } else {
       const id = uid('event')
       const time = item.time ?? undefined
-      next.calendarEvents.push({ id, profileId, subjectId, kidId, title: item.title, date: due, time, kind: (item.eventKind ?? 'other') as CalendarEventKind, notes: '', done: false, needsReview: true })
-      created.push({ key: 'calendarEvents', id, title: item.title, date: due, time, subjectId, kidId })
+      const endTime = item.endTime ?? undefined
+      next.calendarEvents.push({ id, profileId, subjectId, kidId, title: item.title, date: due, time, endTime, kind: (item.eventKind ?? 'other') as CalendarEventKind, notes: '', done: false, needsReview: true })
+      created.push({ key: 'calendarEvents', id, title: item.title, date: due, time, endTime, subjectId, kidId })
     }
   }
   return { data: normalizeData(next), created }

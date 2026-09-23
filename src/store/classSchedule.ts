@@ -25,6 +25,8 @@ export function saveClassNote(data:AppData,item:ClassOccurrence,text:string):App
  return updateClass(data,item,b=>{if((b.occurrenceNotes?.[item.date]??'')!==(item.block.occurrenceNotes?.[item.date]??''))throw Error('This class note changed elsewhere. Your draft is preserved.');return {...b,occurrenceNotes:{...b.occurrenceNotes,[item.date]:text}}})
 }
 export const classTime=(time:string)=>{const [h,m]=time.split(':').map(Number);return (h%12||12)+':'+String(m).padStart(2,'0')+(h<12?' AM':' PM')}
+/** A single start time, or a "start–end" range once an end time is also known. */
+export const timeRange=(start:string,end?:string)=>classTime(start)+(end?'–'+classTime(end):'')
 
 /** True while any class/routine/hobby block from today's occurrences is actually in session right now
  * -- a 'break' block is free time within the day, not a commitment, so it's never treated as "in
