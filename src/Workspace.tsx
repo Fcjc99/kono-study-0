@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState,type CSSProperties,type DragEvent,type FormEvent,type PointerEvent,type ReactNode,type TouchEvent} from 'react'
 import {deleteProfile} from './store/deleteProfile'
 import {usePlannerRepository} from './store/repository'
-import {uid,localDate,dayNames,eventCategory,matchOutcome,type AppData,type SettingsData,type Task,type Subtask,type CalendarEventKind,type MatchResult,type Kid} from './store/model'
+import {uid,localDate,dayNames,eventCategory,matchOutcome,type AppData,type SettingsData,type Task,type Subtask,type CalendarEventKind,type MatchResult,type Kid,type KidBorderStyle} from './store/model'
 import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems,KID_COLORS} from './store/kids'
 import {collections,records,titleOf,equal,removeEntry,restoreEntry,completeTask,type Collection,type Entry} from './store/workspace'
 import {calendarTasks,addDays} from './store/studyScheduler'
@@ -488,7 +488,11 @@ function RecordCard({cozy,collection,entry,subject,subjectColor,kid,showKidBorde
  // parentMode -- a solo student who never turns parent mode on always gets the plain subject-based
  // header and a neutral border here, exactly as before the family calendar existed, never "Family" or
  // a color that means nothing to them.
- if(collection==='calendarEvents')return <article className={'wb-family-event'+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={{'--kid-color':showKidBorder?kid?.color??'#b47e75':undefined} as CSSProperties}>
+ // A kid's own border flair (see the Kids page's Appearance panel) only ever paints when a specific
+ // kid is both tagged and showing -- an untagged "Family" item or a solo student's plain tile always
+ // gets the ordinary static border, never someone else's chosen animation.
+ const borderStyle=showKidBorder&&kid?kid.borderStyle??'solid':'solid'
+ if(collection==='calendarEvents')return <article className={'wb-family-event kid-border-'+borderStyle+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={{'--kid-color':showKidBorder?kid?.color??'#b47e75':undefined} as CSSProperties}>
   <div className="wb-family-event-main">
    <div className="wb-family-event-time">{entry.time?<><span className="wb-family-event-start">{classTime(String(entry.time))}</span>{entry.endTime&&<span className="wb-family-event-end">–{classTime(String(entry.endTime))}</span>}</>:'—'}</div>
    <div className="wb-family-event-info">
@@ -725,13 +729,16 @@ function KidAppearancePanel({data,setting,patch,close}:{data:AppData;setting:<K 
   {kids.map(k=><KidAppearanceEditor key={k.id} kid={k} patch={patch}/>)}
  </Modal>
 }
+const BORDER_STYLE_OPTIONS=[['solid','Solid'],['dashed','Dashed'],['glow','Glow'],['sparkle','Sparkle ✨'],['fire','Fire 🔥'],['rainbow','Rainbow 🌈']] as const
 function KidAppearanceEditor({kid,patch}:{kid:Kid;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
  const [customEmoji,setCustomEmoji]=useState('')
+ const borderStyle=kid.borderStyle??'solid'
  const setEmoji=(emoji:string)=>void patch('kids',kid as unknown as Entry,{emoji})
  const setColor=(color:string)=>void patch('kids',kid as unknown as Entry,{color})
+ const setBorderStyle=(style:KidBorderStyle)=>void patch('kids',kid as unknown as Entry,{borderStyle:style})
  return <div className="kid-appearance-editor" style={{'--kid-color':kid.color} as CSSProperties}>
   <div className="kid-appearance-head"><i className="family-kid-swatch" aria-hidden="true"/><strong>{(kid.emoji?kid.emoji+' ':'')+kid.name}</strong></div>
-  <div className="wb-family-event kid-appearance-preview" aria-hidden="true"><div className="wb-family-event-main"><div className="wb-family-event-time"><span className="wb-family-event-start">3:30 PM</span></div><div className="wb-family-event-info"><small>{(kid.emoji?kid.emoji+' ':'')+kid.name}</small><h3>Practice</h3></div></div></div>
+  <div className={'wb-family-event kid-border-'+borderStyle+' kid-appearance-preview'} aria-hidden="true"><div className="wb-family-event-main"><div className="wb-family-event-time"><span className="wb-family-event-start">3:30 PM</span></div><div className="wb-family-event-info"><small>{(kid.emoji?kid.emoji+' ':'')+kid.name}</small><h3>Practice</h3></div></div></div>
   <p className="wb-muted">Emoji</p>
   <div className="kid-emoji-grid" role="group" aria-label={kid.name+"'s emoji"}>
    {KID_AVATAR_EMOJI.map(e=><button type="button" key={e} aria-pressed={kid.emoji===e} onClick={()=>setEmoji(e)}>{e}</button>)}
@@ -741,6 +748,10 @@ function KidAppearanceEditor({kid,patch}:{kid:Kid;patch:(key:Collection,entry:En
   <div className="kid-color-grid" role="group" aria-label={kid.name+"'s color"}>
    {KID_COLORS.map(c=><button type="button" key={c} aria-pressed={kid.color===c} aria-label={c} style={{background:c}} onClick={()=>setColor(c)}/>)}
    <label className="kid-color-custom">Custom<input type="color" value={kid.color} onChange={e=>setColor(e.target.value)}/></label>
+  </div>
+  <p className="wb-muted">Border</p>
+  <div className="kid-border-grid" role="group" aria-label={kid.name+"'s border style"}>
+   {BORDER_STYLE_OPTIONS.map(([value,label])=><button type="button" key={value} className={'kid-border-swatch kid-border-'+value} aria-pressed={borderStyle===value} onClick={()=>setBorderStyle(value)}><span/>{label}</button>)}
   </div>
  </div>
 }
