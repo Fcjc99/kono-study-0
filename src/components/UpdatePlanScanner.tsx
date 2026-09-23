@@ -72,7 +72,7 @@ export default function UpdatePlanScanner({ profileId, subjects, kids, save, clo
     const ok = await save(d => {
       if (item.key === 'tasks') return { ...d, tasks: d.tasks.map(t => t.id === item.id ? { ...t, title: item.title, due: item.date, subjectId: item.subjectId, kidId: item.kidId, needsReview: false } : t) }
       if (item.key === 'exams') return { ...d, exams: d.exams.map(e => e.id === item.id ? { ...e, title: item.title, due: item.date, subjectId: item.subjectId, kidId: item.kidId, needsReview: false } : e) }
-      return { ...d, calendarEvents: d.calendarEvents.map(e => e.id === item.id ? { ...e, title: item.title, date: item.date, subjectId: item.subjectId, kidId: item.kidId, needsReview: false } : e) }
+      return { ...d, calendarEvents: d.calendarEvents.map(e => e.id === item.id ? { ...e, title: item.title, date: item.date, time: item.time, subjectId: item.subjectId, kidId: item.kidId, needsReview: false } : e) }
     })
     if (ok) setCreatedItems(items => items.filter(i => i.id !== item.id))
   }
@@ -129,6 +129,7 @@ export default function UpdatePlanScanner({ profileId, subjects, kids, save, clo
         <div className="update-plan-result-fields">
           <label>Title<input value={item.title} maxLength={200} onChange={e => editRow(item.id, { title: e.target.value })} /></label>
           <label>Date<input type="date" value={item.date} onChange={e => editRow(item.id, { date: e.target.value })} /></label>
+          {item.key === 'calendarEvents' && <label>Time (optional)<input type="time" value={item.time ?? ''} onChange={e => editRow(item.id, { time: e.target.value || undefined })} /></label>}
           <label>Subject<select value={item.subjectId} onChange={e => editRow(item.id, { subjectId: e.target.value })}>
             <option value="">General / unassigned</option>
             {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}

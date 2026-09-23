@@ -184,6 +184,64 @@ test('an item with no kidName is left unassigned rather than getting tagged to a
  assert.equal(result.data.kids.length,1,'no new kid should be created for an unassigned item')
 })
 
+test('the prompt asks for a 24-hour start time, using only the start of a written range',()=>{
+ const prompt=photo.__test__.buildAssignmentPhotoPrompt('2026-09-18')
+ assert.ok(prompt.includes('"time"'))
+ assert.ok(prompt.toLowerCase().includes('24-hour'))
+ assert.ok(prompt.toLowerCase().includes('start time'))
+})
+
+test('normalizeClockTime accepts 24-hour and common 12-hour forms, straight off the real screenshots (5:30p, 8:30p, 10:30a)',()=>{
+ assert.equal(photo.__test__.normalizeClockTime('17:30'),'17:30')
+ assert.equal(photo.__test__.normalizeClockTime('5:30p'),'17:30')
+ assert.equal(photo.__test__.normalizeClockTime('5:30pm'),'17:30')
+ assert.equal(photo.__test__.normalizeClockTime('5:30 PM'),'17:30')
+ assert.equal(photo.__test__.normalizeClockTime('8:30p'),'20:30')
+ assert.equal(photo.__test__.normalizeClockTime('10:30a'),'10:30')
+ assert.equal(photo.__test__.normalizeClockTime('9a'),'09:00')
+ assert.equal(photo.__test__.normalizeClockTime('12:00a'),'00:00')
+ assert.equal(photo.__test__.normalizeClockTime('12:00p'),'12:00')
+ assert.equal(photo.__test__.normalizeClockTime(null),undefined)
+ assert.equal(photo.__test__.normalizeClockTime(''),undefined)
+ assert.equal(photo.__test__.normalizeClockTime('sometime this afternoon'),undefined)
+})
+
+test('parsing normalizes a well-formed time and drops a malformed one to null rather than failing the item',()=>{
+ const parsed=photo.__test__.parseAssignmentPhoto(JSON.stringify({items:[
+  {title:'Dance',date:'2026-09-24',time:'17:30',kind:'event',eventKind:'personal',subject:'',kidName:'Blair'},
+  {title:'Bike ride',date:'2026-09-26',time:null,kind:'event',eventKind:'personal',subject:'',kidName:''},
+  {title:'Something',date:'2026-09-27',time:'not a time',kind:'event',eventKind:'other',subject:'',kidName:''},
+ ]}))
+ assert.equal(parsed[0].time,'17:30')
+ assert.equal(parsed[1].time,null)
+ assert.equal(parsed[2].time,null)
+})
+
+// The real screenshots write every item as a range (e.g. "5:30p 530-630pm", "8:30p 830pm") -- the AI is
+// asked for the start time only, which is what applyAssignmentPhoto should carry onto the event.
+test('applying a scanned item with a time sets it on the created calendarEvent and its receipt',()=>{
+ const d=make(),pid=d.activeProfileId
+ const result=photo.applyAssignmentPhoto(d,pid,[{title:'Dance',date:'2026-09-24',time:'17:30',kind:'event',eventKind:'personal',subject:'',kidName:'Blair'}],'2026-09-18')
+ assert.equal(result.data.calendarEvents[0].time,'17:30')
+ assert.equal(result.created[0].time,'17:30')
+})
+
+test('an item with no time leaves the created calendarEvent\'s time undefined rather than a placeholder',()=>{
+ const d=make(),pid=d.activeProfileId
+ const result=photo.applyAssignmentPhoto(d,pid,[{title:'All-day thing',date:'2026-09-24',time:null,kind:'event',eventKind:'other',subject:'',kidName:''}],'2026-09-18')
+ assert.equal(result.data.calendarEvents[0].time,undefined)
+})
+
+test('a time on a task or exam is simply not applied -- neither model has a time field',()=>{
+ const d=make(),pid=d.activeProfileId
+ const result=photo.applyAssignmentPhoto(d,pid,[
+  {title:'Worksheet',date:'2026-09-24',time:'09:00',kind:'task',eventKind:'other',subject:'',kidName:''},
+  {title:'Quiz',date:'2026-09-25',time:'10:00',kind:'exam',eventKind:'other',subject:'',kidName:''},
+ ],'2026-09-18')
+ assert.equal(result.data.tasks[0].time,undefined)
+ assert.equal(result.data.exams[0].time,undefined)
+})
+
 let passed=0
 for(const t of tests){try{t.fn();passed++;console.log('PASS',t.name)}catch(e){console.error('FAIL',t.name);console.error(e);process.exitCode=1}}
 console.log(`${passed}/${tests.length} assignment-photo regression groups passed.`)
