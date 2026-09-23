@@ -1,29 +1,55 @@
 import { normalizeData, uid, type AppData, type CalendarEventKind } from './model'
 import { validDate } from './scheduleImport'
 import { aiFail, callAi, type AiProvider, type PhotoInput } from './aiProvider'
+import { nextKidColor } from './kids'
 
 const fail = aiFail
 
-export type AssignmentPhotoItem = { title: string; date: string | null; kind: 'task' | 'exam' | 'event'; subject: string }
+// Anything that isn't a task or exam lands as a calendarEvent with one of these kinds -- the same set
+// the quick-add popup offers (see Workspace.tsx's QUICK_KIND_OPTIONS), plus "work". Letting the AI pick
+// among them (instead of always coercing to "other") means a scanned family calendar's sports practices
+// and appointments still show up correctly colored and filterable under Academic/Sports/Appointments,
+// the same as one entered by hand. "activity" is deliberately excluded -- eventCategory buckets it as
+// Academic, which is wrong for a dance class or club scanned off a family calendar.
+const EVENT_KINDS = ['personal', 'sports', 'appointment', 'work', 'other'] as const
+type EventKind = typeof EVENT_KINDS[number]
+
+export type AssignmentPhotoItem = { title: string; date: string | null; kind: 'task' | 'exam' | 'event'; eventKind: EventKind; subject: string; kidName: string }
 
 function buildAssignmentPhotoPrompt(today: string): string {
-  return `You are reading a photo of a student's handwritten or printed notes listing assignments, due ` +
-    `dates, tests, and classes. This could be a quick to-do list, a page torn from a notebook, a sticky ` +
-    `note -- or a full course syllabus covering an entire term, including a week-by-week schedule table, ` +
-    `reading list, and exam dates. Today's date is ${today}. Extract every distinct dated item across the ` +
-    `ENTIRE document, not just ones near today -- a syllabus's schedule table can run many weeks past ` +
-    `today and every row in it matters just as much as this week's. Work through unclear handwriting or ` +
-    `small print using your best judgement; skip anything you truly cannot read. ` +
+  return `You are reading a photo of notes, a planner page, or a family calendar app screenshot listing ` +
+    `assignments, due dates, tests, classes, appointments, sports practices/games, or other scheduled ` +
+    `items. This could be a quick to-do list, a page torn from a notebook, a sticky note, a full course ` +
+    `syllabus covering an entire term (with a week-by-week schedule table, reading list, and exam ` +
+    `dates), or a screenshot of a family/shared calendar app where each item is labeled with a person's ` +
+    `name and often a color-coded dot next to their name. Today's date is ${today}. Extract every ` +
+    `distinct dated item across the ENTIRE document, not just ones near today -- a syllabus's schedule ` +
+    `table can run many weeks past today and every row in it matters just as much as this week's, and a ` +
+    `calendar screenshot's later days matter just as much as today's. Work through unclear handwriting ` +
+    `or small print using your best judgement; skip anything you truly cannot read. ` +
     `Respond with a single JSON object: {"items": array of {` +
-    `"title": string (what the item is, cleaned up but close to what is written), ` +
+    `"title": string (what the item is, cleaned up but close to what is written -- drop a person's name ` +
+    `from the title itself if it's already captured in "kidName" below, e.g. "Blair- dance" becomes just ` +
+    `"Dance"), ` +
     `"date": string in YYYY-MM-DD format, or null if genuinely no date or day is written or implied for ` +
     `this item -- a syllabus usually states its own literal dates (in the schedule table or next to each ` +
-    `assignment), so use those directly when given; only resolve a relative day reference ("Friday", ` +
-    `"next Tuesday", "tomorrow") against today's date (${today}) when no literal date is stated, ` +
+    `assignment), a calendar screenshot's day headers give the literal date for everything under them, ` +
+    `so use those directly when given; only resolve a relative day reference ("Friday", "next Tuesday", ` +
+    `"tomorrow") against today's date (${today}) when no literal date is stated, ` +
     `"kind": one of "exam" (a test, quiz or exam), "task" (homework, reading, an assignment, something to ` +
-    `turn in), or "event" (anything else, including a plain topic/lecture with no deliverable), ` +
+    `turn in), or "event" (anything else: an appointment, sports practice or game, activity, or a plain ` +
+    `topic/lecture with no deliverable), ` +
+    `"eventKind": only meaningful when "kind" is "event" -- one of "sports" (a practice, game, or sports ` +
+    `activity), "appointment" (a doctor/dentist/other appointment), "personal" (dance, music, tutoring, ` +
+    `a club, a family event, or anything general/personal), "work" (a work shift), or "other" (anything ` +
+    `else, including a plain event with no clearer category), ` +
     `"subject": string (the class or subject this belongs to, if mentioned or clearly implied -- ` +
-    `otherwise an empty string)}}. Output ONLY the JSON object, no other text.`
+    `otherwise an empty string), ` +
+    `"kidName": string (the first name of the specific person/kid this item is for, if the document ` +
+    `labels items by person -- for example a family calendar screenshot's per-item name and color dot, ` +
+    `or a planner page headed with one kid's name -- otherwise an empty string if the item applies to ` +
+    `nobody in particular or the document isn't organized by person)` +
+    `}}. Output ONLY the JSON object, no other text.`
 }
 
 function parseAssignmentPhoto(raw: string): AssignmentPhotoItem[] {
@@ -39,8 +65,10 @@ function parseAssignmentPhoto(raw: string): AssignmentPhotoItem[] {
     if (!title) return []
     const date = typeof item.date === 'string' && validDate(item.date) ? item.date : null
     const kind = item.kind === 'exam' || item.kind === 'task' ? item.kind : 'event'
+    const eventKind = (EVENT_KINDS as readonly string[]).includes(item.eventKind as string) ? item.eventKind as EventKind : 'other'
     const subject = typeof item.subject === 'string' ? item.subject.trim().slice(0, 200) : ''
-    return [{ title, date, kind, subject }]
+    const kidName = typeof item.kidName === 'string' ? item.kidName.trim().slice(0, 200) : ''
+    return [{ title, date, kind, eventKind, subject, kidName }]
   }).slice(0, 150) // a dense multi-week syllabus table can list far more entries than a quick to-do photo
   if (!parsed.length) fail('Could not read any items from that photo. Try a clearer photo, or make sure the writing is legible.')
   return parsed
@@ -52,7 +80,7 @@ export async function readAssignmentPhoto(photo: PhotoInput, provider: AiProvide
   return parseAssignmentPhoto(raw)
 }
 
-export type CreatedItem = { key: 'tasks' | 'exams' | 'calendarEvents'; id: string; title: string; date: string; subjectId: string }
+export type CreatedItem = { key: 'tasks' | 'exams' | 'calendarEvents'; id: string; title: string; date: string; subjectId: string; kidId?: string }
 export type ApplyAssignmentPhotoResult = { data: AppData; created: CreatedItem[] }
 
 /** Unlike the schedule photo importer, every item here lands as a real entry immediately -- no
@@ -75,22 +103,34 @@ export function applyAssignmentPhoto(data: AppData, profileId: string, items: As
     next.subjects.push({ id, profileId, name: name.trim().slice(0, 200), color: '#4169a8', resources: [] })
     return id
   }
+  // Mirrors subjectFor above -- a scanned family calendar labels most items by person, not subject, so
+  // the same "match an existing one by name, otherwise create it" pattern applies to kids too. A new
+  // kid gets the next unused palette color, same as adding one by hand from the Kids page.
+  const kidFor = (name?: string): string | undefined => {
+    if (!name?.trim()) return undefined
+    const known = next.kids.find(k => k.profileId === profileId && clean(k.name) === clean(name))
+    if (known) return known.id
+    const id = uid('kid')
+    next.kids.push({ id, profileId, name: name.trim().slice(0, 200), color: nextKidColor(next.kids.filter(k => k.profileId === profileId)) })
+    return id
+  }
   const created: CreatedItem[] = []
   for (const item of items) {
     const subjectId = subjectFor(item.subject)
+    const kidId = kidFor(item.kidName)
     const due = item.date ?? today
     if (item.kind === 'exam') {
       const id = uid('exam')
-      next.exams.push({ id, profileId, subjectId, title: item.title, due, notes: '', done: false, needsReview: true })
-      created.push({ key: 'exams', id, title: item.title, date: due, subjectId })
+      next.exams.push({ id, profileId, subjectId, kidId, title: item.title, due, notes: '', done: false, needsReview: true })
+      created.push({ key: 'exams', id, title: item.title, date: due, subjectId, kidId })
     } else if (item.kind === 'task') {
       const id = uid('task')
-      next.tasks.push({ id, profileId, subjectId, title: item.title, due, done: false, notes: '', needsReview: true })
-      created.push({ key: 'tasks', id, title: item.title, date: due, subjectId })
+      next.tasks.push({ id, profileId, subjectId, kidId, title: item.title, due, done: false, notes: '', needsReview: true })
+      created.push({ key: 'tasks', id, title: item.title, date: due, subjectId, kidId })
     } else {
       const id = uid('event')
-      next.calendarEvents.push({ id, profileId, subjectId, title: item.title, date: due, kind: 'other' as CalendarEventKind, notes: '', done: false, needsReview: true })
-      created.push({ key: 'calendarEvents', id, title: item.title, date: due, subjectId })
+      next.calendarEvents.push({ id, profileId, subjectId, kidId, title: item.title, date: due, kind: (item.eventKind ?? 'other') as CalendarEventKind, notes: '', done: false, needsReview: true })
+      created.push({ key: 'calendarEvents', id, title: item.title, date: due, subjectId, kidId })
     }
   }
   return { data: normalizeData(next), created }
