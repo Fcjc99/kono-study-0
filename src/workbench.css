@@ -245,6 +245,18 @@ button.needs-review-record{outline-offset:-2px}
 .workbench .wb-calendar button{min-height:74px;display:grid;text-align:left;padding:10px;border-radius:8px}
 .workbench .wb-calendar button[aria-pressed="true"]{outline:2px solid var(--wb-accent);outline-offset:-2px}
 .wb-calendar .muted-day{opacity:.55}.wb-agenda-day{border-top:1px solid var(--wb-line);padding-top:16px}
+.wb-calendar button.is-selected{outline:2px solid var(--wb-accent);outline-offset:-2px}
+.family-kid-list{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}
+.workbench .family-kid-chip{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--wb-line);border-radius:999px;background:var(--wb-surface)}
+.family-kid-swatch{display:block;width:12px;height:12px;border-radius:50%;background:var(--kid-color,var(--wb-accent))}
+.family-kid-chip button{margin-left:4px;font-size:.8rem}
+.family-add-kid-form{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.family-add-error{color:var(--wb-danger,#b3403f);font-size:.85rem}
+.family-day-agenda{margin-top:18px;border-top:1px solid var(--wb-line);padding-top:14px}
+.family-day-agenda ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.family-day-agenda li{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border-left:4px solid var(--kid-color,var(--wb-accent));background:var(--wb-surface)}
+.family-day-agenda li.is-complete{opacity:.55;text-decoration:line-through}
+.family-day-agenda li small{margin-left:auto;color:var(--wb-muted,inherit);opacity:.75}
 .wb-muted{color:var(--wb-muted);font-size:.875rem}
 .ai-key-help{margin-top:-4px}
 .ai-key-help a{color:var(--wb-accent);font-weight:700;text-decoration:none}

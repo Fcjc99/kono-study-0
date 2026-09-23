@@ -3,12 +3,13 @@ import type { DailyWeatherForecast } from '../game/weather/liveWeather'
 import type { useMusicController } from '../hooks/useComfort'
 import MusicPlayer from './MusicPlayer'
 
-const navItems=['Sanctuary','Planner','Subjects','Notes','K-Quiz','Exams','Settings'] as const
+const navItems=['Sanctuary','Planner','Family','Subjects','Notes','K-Quiz','Exams','Settings'] as const
 export type ViewName=typeof navItems[number]
 
 const iconPaths:Record<ViewName,ReactNode>={
  Sanctuary:<><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9 20v-6h6v6"/></>,
  Planner:<><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M7 3v4M17 3v4M3.5 9.5h17"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01"/></>,
+ Family:<><circle cx="8" cy="7" r="2.6"/><circle cx="16" cy="7" r="2.6"/><path d="M3.5 19.5c0-3 2-5 4.5-5s4.5 2 4.5 5M11.5 19.5c0-3 2-5 4.5-5s4.5 2 4.5 5"/></>,
  Subjects:<><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5A2.5 2.5 0 0 1 20 22z"/></>,
  Notes:<><path d="M6 3.5h9l3 3V20.5H6z"/><path d="M15 3.5v3h3M9 11h6M9 15h6"/></>,
  'K-Quiz':<><rect x="4" y="4" width="16" height="12" rx="2"/><path d="M9 20h6M12 16v4"/><circle cx="12" cy="10" r="2.4"/></>,

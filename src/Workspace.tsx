@@ -2,6 +2,7 @@ import {useEffect,useRef,useState,type CSSProperties,type DragEvent,type FormEve
 import {deleteProfile} from './store/deleteProfile'
 import {usePlannerRepository} from './store/repository'
 import {uid,localDate,dayNames,eventCategory,matchOutcome,type AppData,type SettingsData,type Task,type Subtask,type CalendarEventKind,type MatchResult} from './store/model'
+import {FAMILY_COLORS,addKidProfile,familyItemsForDate} from './store/familyCalendar'
 import {collections,records,titleOf,equal,removeEntry,restoreEntry,completeTask,type Collection,type Entry} from './store/workspace'
 import {calendarTasks,addDays} from './store/studyScheduler'
 import {planExamReview} from './store/examReview'
@@ -48,7 +49,7 @@ import './planner-polish.css'
 import './cozy-controls.css'
 import ActionIcon from './components/ActionIcon'
 
-const pages=['Sanctuary','Planner','Subjects','Notes','K-Quiz','Exams','Settings','Trash'] as const
+const pages=['Sanctuary','Planner','Family','Subjects','Notes','K-Quiz','Exams','Settings','Trash'] as const
 type Page=typeof pages[number]
 type Store=ReturnType<typeof usePlannerRepository>
 type Edit={key:Collection;entry:Entry;original?:Entry}
@@ -393,6 +394,7 @@ function Workspace({store}:{store:Store}){
     {experience==='cozy'?<div className="restored-board-pair">{board('notes')}{board('exams')}</div>:<>{noteBoard(true)}<section className="wb-panel"><h2>Upcoming exams</h2>{data.exams.filter(e=>e.profileId===profile.id&&!e.done).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,3).map(e=>card('exams',e as unknown as Entry))}{!data.exams.some(e=>e.profileId===profile.id&&!e.done)&&<p>No upcoming exams.</p>}</section></>}
    </>}
    {page==='Planner'&&<><div className="wb-toolbar planner-settings-link"><span>Your classes, assignments and daily plans</span><button onClick={()=>{setSettingsTab('Schedules');navigate('Settings')}}>Schedule settings</button></div><Calendar data={data} tasks={tasks} date={selectedDate} selectDate={setSelectedDate} create={create} render={card} renderClass={renderClass} reschedule={reschedule} setting={setting} remove={remove}/><StudyPlanner key={planRequest} initialOpen={planRequest>0} draftKey={draftScope+':plan'} profileId={profile.id} plans={plans} tasks={ownTasks} subjects={subjects} setData={save} onSelectDate={setSelectedDate}/></>}
+   {page==='Family'&&<FamilyPage data={data} save={save} navigate={navigate}/>}
    {page==='Subjects'&&experience!=='simplified'&&subjectWorkspace}
    {page==='Subjects'&&experience==='simplified'&&<><section className="wb-panel"><div className="wb-section-head"><h2>Your subjects</h2><button onClick={()=>create('subjects')}>＋ Subject</button></div><div className="wb-record-grid">{subjects.map(s=>card('subjects',s as unknown as Entry))}</div>{!subjects.length&&<p>Create your first subject to organize your work.</p>}</section><section className="wb-panel"><div className="wb-section-head"><h2>Assignments</h2><button onClick={()=>create('tasks')}>＋ Assignment</button></div><label>Filter subject<select value={subject} onChange={e=>setSubject(e.target.value)}><option value="">All subjects, including unassigned</option>{subjects.map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></label><div className="wb-toolbar"><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,true),d)),'Assignments completed.')}>Complete all shown</button><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,false),d)),'Assignments reopened; earned progress is kept.')}>Reopen all shown</button></div>{tasks.filter(t=>!subject||t.subjectId===subject).map(t=>card('tasks',t as unknown as Entry))}</section></>}
    {page==='Notes'&&<>{noteBoard()}<details className="wb-panel"><summary>Quiz me · Flashcards</summary><Flashcards draftKey={draftScope+':cards'} profileId={profile.id} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} setData={save}/></details></>}
@@ -562,6 +564,44 @@ function Calendar({data,tasks,date,selectDate,create,render,renderClass,reschedu
    <div className="planner-due-panel"><p>Due list for this date</p><ul>{selectedEntries.sort((a,b)=>String(a.entry.due||a.entry.date).localeCompare(String(b.entry.due||b.entry.date))).filter(({key})=>key==='tasks'||key==='exams'||key==='calendarEvents').map(entry=><li key={entry.entry.id}><strong>{labels[entry.key]}</strong> · <span>{titleOf(entry.entry)}</span> {dueLabel(entry.entry,entry.key)?<span className={'countdown-chip '+(daysUntil(String(entry.entry.due??entry.entry.date??''))<0?'is-overdue':'')}>{dueLabel(entry.entry,entry.key)}</span>:null}<button type="button" className="planner-due-remove" aria-label={'Remove '+titleOf(entry.entry)} onClick={()=>remove(entry.key,entry.entry)}>✕</button></li>)}</ul></div></section>
   </div>
   </section>
+}
+// A parent-facing overview of every kid's schedule at once, color-coded and filterable -- separate
+// from Calendar above (which is tightly single-profile) so this stays purely additive: it reads
+// classOccurrences/tasks/exams/calendarEvents across every profile without touching how the existing
+// single-profile Planner calendar works. Editing a kid's own recurring schedule still happens in their
+// own Planner/Settings, reached via "Open planner" below, rather than rebuilding that editor here.
+function FamilyPage({data,save,navigate}:{data:AppData;save:(fn:(d:AppData)=>AppData)=>Promise<boolean>;navigate:(page:Page)=>void}){
+ const [month,setMonth]=useState(()=>localDate().slice(0,7))
+ const [date,setDate]=useState(()=>localDate())
+ // A hidden-ids set (rather than a visible-ids set) so a newly added kid is shown by default without
+ // this state needing to react to data.profiles changing -- it's simply absent from "hidden" until
+ // someone unchecks them.
+ const [hidden,setHidden]=useState<Set<string>>(()=>new Set())
+ const [addingName,setAddingName]=useState('')
+ const [adding,setAdding]=useState(false)
+ const [addError,setAddError]=useState('')
+ const visibleProfiles=data.profiles.filter(p=>!hidden.has(p.id))
+ const dayItems=familyItemsForDate(data,visibleProfiles,date)
+ const start=new Date(month+'-01T12:00:00'),gridStart=addDays(month+'-01',-start.getDay())
+ const shift=(by:number)=>{const next=new Date(start);next.setMonth(next.getMonth()+by);setMonth(localDate(next).slice(0,7))}
+ const toggle=(id:string)=>setHidden(v=>{const next=new Set(v);if(next.has(id))next.delete(id);else next.add(id);return next})
+ const openKid=(id:string)=>{void save(d=>({...d,activeProfileId:id}));navigate('Planner')}
+ const addKid=(e:FormEvent)=>{
+  e.preventDefault()
+  const name=addingName
+  save(d=>addKidProfile(d,name)).then(saved=>{if(saved){setAddingName('');setAdding(false);setAddError('')}else setAddError('Could not add this kid. Try again.')}).catch(()=>setAddError(name.trim()?'Could not add this kid. Try again.':'Enter a name for this kid.'))
+ }
+ return <section className="wb-panel family-calendar">
+  <div className="wb-section-head"><div><small>PARENT MODE</small><h2>Family calendar</h2></div><button onClick={()=>{setDate(localDate());setMonth(localDate().slice(0,7))}}>Today</button></div>
+  <div className="family-kid-list" role="group" aria-label="Show kids on the calendar">
+   {data.profiles.map(p=><label key={p.id} className="family-kid-chip" style={{'--kid-color':p.color??FAMILY_COLORS[0]} as CSSProperties}><input type="checkbox" checked={!hidden.has(p.id)} onChange={()=>toggle(p.id)}/><i className="family-kid-swatch" aria-hidden="true"/>{p.name}<button type="button" onClick={()=>openKid(p.id)}>Open planner</button></label>)}
+   {adding?<form onSubmit={addKid} className="family-add-kid-form"><input autoFocus placeholder="Kid's name" value={addingName} onChange={e=>setAddingName(e.target.value)} maxLength={200}/><button type="submit">Add</button><button type="button" onClick={()=>{setAdding(false);setAddingName('');setAddError('')}}>Cancel</button>{addError&&<span role="alert" className="family-add-error">{addError}</span>}</form>:<button type="button" onClick={()=>setAdding(true)}>＋ Add a kid</button>}
+  </div>
+  <div className="wb-section-head"><button aria-label="Previous month" onClick={()=>shift(-1)}>‹</button><h3>{start.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</h3><button aria-label="Next month" onClick={()=>shift(1)}>›</button></div>
+  <div className="wb-calendar family-month-grid">{dayNames.map(d=><span key={d}>{d.slice(0,3)}</span>)}{Array.from({length:42},(_,i)=>addDays(gridStart,i)).map(day=>{const items=familyItemsForDate(data,visibleProfiles,day);return <button key={day} aria-label={dateLabel(day)+' · '+items.length+' items'} aria-pressed={date===day} className={(day.slice(0,7)!==month?'muted-day ':'')+(date===day?'is-selected':'')} onClick={()=>setDate(day)}><span className="calendar-date-row"><strong>{Number(day.slice(-2))}</strong></span><span className="wb-cal-dots" aria-hidden="true">{items.slice(0,6).map((item,i)=><i key={item.kind+item.id+i} style={{background:item.color}}/>)}</span></button>})}</div>
+  <div className="family-day-agenda"><h3>{dateLabel(date)}</h3>{dayItems.length?<ul>{dayItems.map(item=><li key={item.kind+item.id} className={item.done?'is-complete':''} style={{'--kid-color':item.color} as CSSProperties}><i className="family-kid-swatch" aria-hidden="true"/><strong>{item.profileName}</strong><span>{item.title}</span>{item.time&&<small>{classTime(item.time)}</small>}</li>)}</ul>:<p className="wb-muted">Nothing for {visibleProfiles.length?'the shown kids':'any kid'} on this date.</p>}</div>
+  {!visibleProfiles.length&&data.profiles.length>0&&<p className="wb-muted">No kids are shown — check at least one above.</p>}
+ </section>
 }
 function Appearance({settings,setting}:{settings:SettingsData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
  const activePalette=settings.experience==='cozy'?cozyPalette(settings.theme):settings.theme

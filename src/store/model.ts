@@ -9,7 +9,7 @@ import type { FlashcardDeck } from './flashcards'
 import { srsInitial } from './spacedRepetition'
 
 export type ProfileKind='summer'|'school'|'college'|'custom'
-export type Profile={id:string;name:string;label:string;kind:ProfileKind;start:string;end:string;progressEpoch?:string}
+export type Profile={id:string;name:string;label:string;kind:ProfileKind;start:string;end:string;progressEpoch?:string;color?:string}
 export type Subject={id:string;profileId:string;name:string;color:string;teacher?:string;room?:string;resources:string[]}
 export type Subtask={id:string;title:string;done:boolean}
 export type Task={id:string;profileId:string;subjectId:string;title:string;due:string;done:boolean;notes:string;completedAt?:string;studyPlanId?:string;unitNumber?:number;subtasks?:Subtask[];recurringId?:string;needsReview?:boolean;estimatedMinutes?:number;plannedTime?:string}
@@ -144,7 +144,7 @@ export function normalizeData(raw:unknown):AppData {
  if(!z.object({profiles:z.array(z.record(z.string(),z.unknown())).min(1).max(100)}).safeParse(raw).success)return fail('profiles')
  if(!object(raw))return fail('document')
  if(raw.schemaVersion!==undefined&&raw.schemaVersion!==2&&raw.schemaVersion!==3&&raw.schemaVersion!==4&&raw.schemaVersion!==5&&raw.schemaVersion!==6)return fail('unsupported data version; update KONO before opening this save')
- const profiles:Profile[]=list(raw.profiles,'profiles',100).map(p=>({id:id(p.id,'profile ID'),name:str(p.name,'name',200),label:str(p.label,'plan name',200),kind:choice(p.kind,['summer','school','college','custom'],'custom'),start:date(p.start,'profile start'),end:date(p.end,'profile end'),progressEpoch:optional(p.progressEpoch,'epoch',150)}))
+ const profiles:Profile[]=list(raw.profiles,'profiles',100).map(p=>({id:id(p.id,'profile ID'),name:str(p.name,'name',200),label:str(p.label,'plan name',200),kind:choice(p.kind,['summer','school','college','custom'],'custom'),start:date(p.start,'profile start'),end:date(p.end,'profile end'),progressEpoch:optional(p.progressEpoch,'epoch',150),color:p.color===undefined?undefined:color(p.color,'#7ca982')}))
  if(!profiles.length)return fail('profiles must contain at least one plan')
  const pids=new Set(profiles.map(p=>p.id))
  const owner=(v:unknown)=>{const key=id(v,'record profile');return pids.has(key)?key:fail('record references an unknown profile')}
