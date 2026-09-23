@@ -11,10 +11,14 @@ import { srsInitial } from './spacedRepetition'
 export type ProfileKind='summer'|'school'|'college'|'custom'
 export type Profile={id:string;name:string;label:string;kind:ProfileKind;start:string;end:string;progressEpoch?:string;color?:string}
 export type Subject={id:string;profileId:string;name:string;color:string;teacher?:string;room?:string;resources:string[]}
+/** A kid is a lightweight tag within one shared family calendar/profile -- not its own Profile. Any
+ * task/exam/calendarEvent/class block can carry a kidId the same way it already carries a subjectId,
+ * so "whose is this" filters and colors the same way "which subject is this" already does. */
+export type Kid={id:string;profileId:string;name:string;color:string;emoji?:string}
 export type Subtask={id:string;title:string;done:boolean}
-export type Task={id:string;profileId:string;subjectId:string;title:string;due:string;done:boolean;notes:string;completedAt?:string;studyPlanId?:string;unitNumber?:number;subtasks?:Subtask[];recurringId?:string;needsReview?:boolean;estimatedMinutes?:number;plannedTime?:string}
+export type Task={id:string;profileId:string;subjectId:string;kidId?:string;title:string;due:string;done:boolean;notes:string;completedAt?:string;studyPlanId?:string;unitNumber?:number;subtasks?:Subtask[];recurringId?:string;needsReview?:boolean;estimatedMinutes?:number;plannedTime?:string}
 export type StudyPlan={id:string;profileId:string;subjectId:string;title:string;unit:'chapter'|'page'|'problem'|'step';total:number;start:string;end:string;weekdays:number[];timeZone:string}
-export type Exam={id:string;profileId:string;subjectId:string;title:string;due:string;notes:string;done:boolean;color?:string;font?:string;highlight?:string;textColor?:string;needsReview?:boolean}
+export type Exam={id:string;profileId:string;subjectId:string;kidId?:string;title:string;due:string;notes:string;done:boolean;color?:string;font?:string;highlight?:string;textColor?:string;needsReview?:boolean}
 export type Note={id:string;profileId:string;subjectId:string;title:string;body:string;created:string;source?:string;pinned?:boolean;completed?:boolean;color?:string;font?:string;highlight?:string;textColor?:string;size?:'small'|'medium'|'large';position?:number}
 export type CalendarEventKind='exam'|'test'|'quiz'|'assignment'|'study'|'activity'|'personal'|'sports'|'appointment'|'work'|'other'
 /** A recorded final score for a sports calendar event. Outcome (win/loss/tie) is always derived by
@@ -22,14 +26,14 @@ export type CalendarEventKind='exam'|'test'|'quiz'|'assignment'|'study'|'activit
 export type MatchResult={ourScore:number;opponentScore:number}
 export type MatchOutcome='win'|'loss'|'tie'
 export const matchOutcome=(result:MatchResult):MatchOutcome=>result.ourScore>result.opponentScore?'win':result.ourScore<result.opponentScore?'loss':'tie'
-export type CalendarEvent={id:string;profileId:string;date:string;title:string;kind:CalendarEventKind;done?:boolean;subjectId?:string;notes:string;time?:string;result?:MatchResult;needsReview?:boolean}
+export type CalendarEvent={id:string;profileId:string;date:string;title:string;kind:CalendarEventKind;done?:boolean;subjectId?:string;kidId?:string;notes:string;time?:string;result?:MatchResult;needsReview?:boolean}
 /** Which of the three schedule categories (academic, sports, appointments) a calendar event's kind
  * belongs to for the schedule-view checkboxes below — 'sports' is its own category, everything
  * exam/assignment-shaped is academic, and the rest (personal/appointment/other) are appointments. */
 const ACADEMIC_EVENT_KINDS=new Set<CalendarEventKind>(['exam','test','quiz','assignment','study','activity'])
 export const eventCategory=(kind:CalendarEventKind):'academic'|'sports'|'appointments'=>kind==='sports'?'sports':ACADEMIC_EVENT_KINDS.has(kind)?'academic':'appointments'
 export type SettingsData={experience?:'cozy'|'simplified'|'modern'|'sumi';theme:string;themeVersion:number;sound:boolean;ambient:boolean;reminders:boolean;browserNotifications?:boolean;loginDigest?:boolean;scheduleShowAcademic?:boolean;scheduleShowSports?:boolean;scheduleShowAppointments?:boolean;reducedMotion:boolean;textSize?:'normal'|'large';density?:'comfortable'|'compact';decoration?:boolean;boardStyle?:'paper'|'cork'|'plain';motionPreference?:'system'|'reduced'|'full';sanctuaryWeather:SanctuaryWeather;sanctuaryWeatherMode:WeatherMode;sanctuaryZipCodes:Record<string,string>;sanctuaryWeatherLocations:Record<string,string>}
-export type ScheduleBlock={fullYear?:boolean;slot?:string;dateStart?:string;dateEnd?:string;occurrenceNotes?:Record<string,string>;completedDates?:string[];skippedDates?:string[];id:string;start:string;end:string;label:string;kind:'study'|'break'|'routine'|'hobby';subjectId?:string;location?:string}
+export type ScheduleBlock={fullYear?:boolean;slot?:string;dateStart?:string;dateEnd?:string;occurrenceNotes?:Record<string,string>;completedDates?:string[];skippedDates?:string[];id:string;start:string;end:string;label:string;kind:'study'|'break'|'routine'|'hobby';subjectId?:string;kidId?:string;location?:string}
 export type WeekSchedule=Record<string,ScheduleBlock[]>
 export type StudySeason={school?:SchoolCalendar;category?:'academic'|'sports';id:string;profileId:string;name:string;start:string;end:string;active:boolean;week:WeekSchedule}
 export type TrashEntry={id:string;profileId:string;collection:string;title:string;payload:string;deletedAt:string}
@@ -64,7 +68,7 @@ export type KQuizPracticeTest={questions:KQuizQuestion[]}
  * FlashcardDeck in flashcardDecks, referenced by id, so practicing them reuses the same deck UI and
  * spaced-repetition state the rest of KONO already has, rather than a second parallel flashcard system. */
 export type KQuizSet={id:string;profileId:string;subjectId:string;lectureId?:string;title:string;createdAt:string;summary?:string;studyGuide?:string;flashcardDeckId?:string;practiceTest?:KQuizPracticeTest}
-export type AppData={schemaVersion:6;trash:TrashEntry[];profiles:Profile[];activeProfileId:string;subjects:Subject[];tasks:Task[];exams:Exam[];notes:Note[];calendarEvents:CalendarEvent[];studySeasons:StudySeason[];studyPlans:StudyPlan[];flashcardDecks:FlashcardDeck[];kquizLectures:KQuizLecture[];kquizSets:KQuizSet[];kquizSources:KQuizSource[];settings:SettingsData;sanctuaryProgress:Record<string,SanctuaryProgressState>;sanctuaryDecor:Record<string,SanctuaryDecorState>;onboardingComplete?:boolean}
+export type AppData={schemaVersion:6;trash:TrashEntry[];profiles:Profile[];activeProfileId:string;subjects:Subject[];kids:Kid[];tasks:Task[];exams:Exam[];notes:Note[];calendarEvents:CalendarEvent[];studySeasons:StudySeason[];studyPlans:StudyPlan[];flashcardDecks:FlashcardDeck[];kquizLectures:KQuizLecture[];kquizSets:KQuizSet[];kquizSources:KQuizSource[];settings:SettingsData;sanctuaryProgress:Record<string,SanctuaryProgressState>;sanctuaryDecor:Record<string,SanctuaryDecorState>;onboardingComplete?:boolean}
 
 export const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as const
 export const blankWeek=():WeekSchedule=>Object.fromEntries(dayNames.map(day=>[day,[]]))
@@ -83,7 +87,7 @@ export const localDate=(date=new Date())=>`${date.getFullYear()}-${String(date.g
 export const defaultSettings:SettingsData={experience:'cozy',textSize:'normal',density:'comfortable',decoration:true,boardStyle:'paper',theme:'coral',themeVersion:4,sound:true,ambient:true,reminders:false,browserNotifications:false,loginDigest:true,scheduleShowAcademic:true,scheduleShowSports:true,scheduleShowAppointments:true,reducedMotion:false,motionPreference:'system',sanctuaryWeather:'clear',sanctuaryWeatherMode:'clear',sanctuaryZipCodes:{},sanctuaryWeatherLocations:{}}
 export function createFreshData():AppData {
  const id=uid('profile'),start=localDate(),end=localDate(new Date(Date.now()+180*86400000))
- return {schemaVersion:6,trash:[],profiles:[{id,name:'Learner',label:'My study plan',kind:'custom',start,end,progressEpoch:uid('epoch')}],activeProfileId:id,subjects:[],tasks:[],exams:[],notes:[],calendarEvents:[],studyPlans:[],flashcardDecks:[],kquizLectures:[],kquizSets:[],kquizSources:[],studySeasons:[{id:uid('season'),profileId:id,name:'My schedule',start,end,active:true,week:blankWeek()}],settings:{...defaultSettings},sanctuaryProgress:{[id]:createSanctuaryProgress(id)},sanctuaryDecor:{[id]:{profileId:id,placements:[]}},onboardingComplete:false}
+ return {schemaVersion:6,trash:[],profiles:[{id,name:'Learner',label:'My study plan',kind:'custom',start,end,progressEpoch:uid('epoch')}],activeProfileId:id,subjects:[],kids:[],tasks:[],exams:[],notes:[],calendarEvents:[],studyPlans:[],flashcardDecks:[],kquizLectures:[],kquizSets:[],kquizSources:[],studySeasons:[{id:uid('season'),profileId:id,name:'My schedule',start,end,active:true,week:blankWeek()}],settings:{...defaultSettings},sanctuaryProgress:{[id]:createSanctuaryProgress(id)},sanctuaryDecor:{[id]:{profileId:id,placements:[]}},onboardingComplete:false}
 }
 
 type Obj=Record<string,unknown>
@@ -159,6 +163,10 @@ export function normalizeData(raw:unknown):AppData {
   owners.forEach((profileId,index)=>{let mapped=sid;if(index){let suffix=1;do{mapped=`${sid.slice(0,100)}:migrated-${suffix++}`}while(usedSubjectIds.has(mapped));usedSubjectIds.add(mapped)}remap.set(`${sid}:${profileId}`,mapped);subjects.push({id:mapped,profileId,name:str(s.name,'subject name',200),color:color(s.color,'#4169a8'),teacher:optional(s.teacher,'teacher',200),room:optional(s.room,'room',100),resources:Array.isArray(s.resources)?s.resources.map(x=>str(x,'resource',2000)):[]})})
  }
  const subject=(v:unknown,profileId:string)=>{if(v===undefined||v==='')return '';const key=id(v,'subject reference'),mapped=remap.get(`${key}:${profileId}`)??key;const known=subjects.find(s=>s.id===mapped);if(known&&known.profileId!==profileId)return fail('subject belongs to another profile');return mapped}
+ const kids:Kid[]=list(raw.kids??[],'kids',500).map(k=>({id:id(k.id,'kid ID'),profileId:owner(k.profileId),name:str(k.name,'kid name',200),color:color(k.color,'#7ca982'),emoji:optional(k.emoji,'kid emoji',8)}))
+ // A kid tag is cosmetic, unlike a subject reference -- a stale or cross-profile kidId (e.g. from a
+ // kid deleted elsewhere) just clears back to unassigned rather than failing the whole save.
+ const kidRef=(v:unknown,profileId:string):string|undefined=>{if(v===undefined||v==='')return undefined;const key=str(v,'kid reference',150);const known=kids.find(k=>k.id===key);return known&&known.profileId===profileId?key:undefined}
  const studyPlans:StudyPlan[]=list(raw.studyPlans??[],'study plans',200).map(p=>{
   const profileId=owner(p.profileId),start=date(p.start,'study start'),end=date(p.end,'study deadline'),timeZone=str(p.timeZone,'study time zone',100)
   if(!Array.isArray(p.weekdays))return fail('study weekdays')
@@ -169,7 +177,7 @@ export function normalizeData(raw:unknown):AppData {
  })
  const studyById=new Map(studyPlans.map(p=>[p.id,p])),seenUnits=new Map<string,Set<number>>()
  const subtasks=(v:unknown):Subtask[]|undefined=>{if(v===undefined)return undefined;return list(v,'subtasks',50).map(s=>({id:id(s.id,'subtask ID'),title:str(s.title,'subtask title',300),done:bool(s.done)}))}
- const tasks:Task[]=taskInput.map(t=>{const profileId=owner(t.profileId);const result:Task={id:id(t.id,'task ID'),profileId,subjectId:subject(t.subjectId,profileId),title:str(t.title,'task title',1000),due:date(t.due,'task date'),done:bool(t.done),notes:str(t.notes??'','task notes',100000),completedAt:optional(t.completedAt,'completion timestamp',40),subtasks:subtasks(t.subtasks),recurringId:optional(t.recurringId,'recurring series ID',150),needsReview:bool(t.needsReview),estimatedMinutes:t.estimatedMinutes===undefined?undefined:integer(t.estimatedMinutes,'estimated minutes',600),plannedTime:t.plannedTime===undefined?undefined:clockTime(t.plannedTime)}
+ const tasks:Task[]=taskInput.map(t=>{const profileId=owner(t.profileId);const result:Task={id:id(t.id,'task ID'),profileId,subjectId:subject(t.subjectId,profileId),kidId:kidRef(t.kidId,profileId),title:str(t.title,'task title',1000),due:date(t.due,'task date'),done:bool(t.done),notes:str(t.notes??'','task notes',100000),completedAt:optional(t.completedAt,'completion timestamp',40),subtasks:subtasks(t.subtasks),recurringId:optional(t.recurringId,'recurring series ID',150),needsReview:bool(t.needsReview),estimatedMinutes:t.estimatedMinutes===undefined?undefined:integer(t.estimatedMinutes,'estimated minutes',600),plannedTime:t.plannedTime===undefined?undefined:clockTime(t.plannedTime)}
   if(t.studyPlanId!==undefined){
    const plan=studyById.get(id(t.studyPlanId,'study reference'));if(!plan||plan.profileId!==profileId)return fail('study task ownership')
    const unitNumber=integer(t.unitNumber,'study unit',plan.total),seen=seenUnits.get(plan.id)??new Set<number>();if(seen.has(unitNumber))return fail('duplicate study unit');seen.add(unitNumber);seenUnits.set(plan.id,seen)
@@ -181,14 +189,14 @@ export function normalizeData(raw:unknown):AppData {
  })
  for(const plan of studyPlans)if(seenUnits.get(plan.id)?.size!==plan.total)return fail('study plan is missing tasks')
  const style=(s:Obj)=>({color:color(s.color,'#ffd2dd'),textColor:color(s.textColor,'#2f2942'),highlight:color(s.highlight,'transparent'),font:choice(s.font,['rounded','handwritten','serif','mono'],'rounded')})
- const exams:Exam[]=examInput.map(e=>{const profileId=owner(e.profileId);return {id:id(e.id,'exam ID'),profileId,subjectId:subject(e.subjectId,profileId),title:str(e.title,'exam title',1000),due:date(e.due,'exam date'),notes:str(e.notes??'','exam notes',100000),done:bool(e.done),needsReview:bool(e.needsReview),...style(e)}})
+ const exams:Exam[]=examInput.map(e=>{const profileId=owner(e.profileId);return {id:id(e.id,'exam ID'),profileId,subjectId:subject(e.subjectId,profileId),kidId:kidRef(e.kidId,profileId),title:str(e.title,'exam title',1000),due:date(e.due,'exam date'),notes:str(e.notes??'','exam notes',100000),done:bool(e.done),needsReview:bool(e.needsReview),...style(e)}})
  const notes:Note[]=noteInput.map(n=>{const profileId=owner(n.profileId);return {id:id(n.id,'note ID'),profileId,subjectId:subject(n.subjectId,profileId),title:str(n.title,'note title',1000),body:str(n.body??'','note body',100000),created:str(n.created,'note date',40),size:choice(n.size,['small','medium','large'],'medium'),position:typeof n.position==='number'&&Number.isFinite(n.position)?n.position:0,source:optional(n.source,'source',1000),pinned:bool(n.pinned),completed:bool(n.completed),...style(n)}})
- const calendarEvents:CalendarEvent[]=eventInput.map(e=>{const profileId=owner(e.profileId);return {id:id(e.id,'event ID'),profileId,done:bool(e.done),subjectId:subject(e.subjectId,profileId),title:str(e.title,'event title',1000),date:date(e.date,'event date'),notes:str(e.notes??'','event notes',100000),kind:choice(e.kind,['exam','test','quiz','assignment','study','activity','personal','sports','appointment','work','other'],'other'),time:e.time===undefined?undefined:clockTime(e.time),result:matchResult(e.result),needsReview:bool(e.needsReview)}})
+ const calendarEvents:CalendarEvent[]=eventInput.map(e=>{const profileId=owner(e.profileId);return {id:id(e.id,'event ID'),profileId,done:bool(e.done),subjectId:subject(e.subjectId,profileId),kidId:kidRef(e.kidId,profileId),title:str(e.title,'event title',1000),date:date(e.date,'event date'),notes:str(e.notes??'','event notes',100000),kind:choice(e.kind,['exam','test','quiz','assignment','study','activity','personal','sports','appointment','work','other'],'other'),time:e.time===undefined?undefined:clockTime(e.time),result:matchResult(e.result),needsReview:bool(e.needsReview)}})
  const studySeasons:StudySeason[]=list(raw.studySeasons??[],'schedules',500).map(s=>{
   const profileId=owner(s.profileId);if(!object(s.week))return fail('schedule week')
   const school=s.school===undefined?undefined:structuredClone(s.school) as SchoolCalendar
   if(school)validateSchool(school,date(s.start,'school start'),date(s.end,'school end'))
-  const week=Object.fromEntries((school?school.cycle:dayNames).map(day=>[day,list((s.week as Obj)[day]??[],`schedule ${day}`,100).map(b=>({fullYear:bool(b.fullYear),slot:optional(b.slot,'block letter',30),dateStart:b.dateStart===undefined?undefined:date(b.dateStart,'class starts'),dateEnd:b.dateEnd===undefined?undefined:date(b.dateEnd,'class ends'),occurrenceNotes:occurrenceNotes(b.occurrenceNotes),completedDates:Array.isArray(b.completedDates)?b.completedDates.map(x=>date(x,'completed occurrence')):[],skippedDates:Array.isArray(b.skippedDates)?b.skippedDates.map(x=>date(x,'skipped occurrence')):[],id:id(b.id,'block ID'),start:clockTime(b.start),end:clockTime(b.end),label:str(b.label,'block label',1000),kind:choice(b.kind,['study','break','routine','hobby'],'study'),subjectId:subject(b.subjectId,profileId),location:optional(b.location,'location',200)}))]))
+  const week=Object.fromEntries((school?school.cycle:dayNames).map(day=>[day,list((s.week as Obj)[day]??[],`schedule ${day}`,100).map(b=>({fullYear:bool(b.fullYear),slot:optional(b.slot,'block letter',30),dateStart:b.dateStart===undefined?undefined:date(b.dateStart,'class starts'),dateEnd:b.dateEnd===undefined?undefined:date(b.dateEnd,'class ends'),occurrenceNotes:occurrenceNotes(b.occurrenceNotes),completedDates:Array.isArray(b.completedDates)?b.completedDates.map(x=>date(x,'completed occurrence')):[],skippedDates:Array.isArray(b.skippedDates)?b.skippedDates.map(x=>date(x,'skipped occurrence')):[],id:id(b.id,'block ID'),start:clockTime(b.start),end:clockTime(b.end),label:str(b.label,'block label',1000),kind:choice(b.kind,['study','break','routine','hobby'],'study'),subjectId:subject(b.subjectId,profileId),kidId:kidRef(b.kidId,profileId),location:optional(b.location,'location',200)}))]))
   for(const blocks of Object.values(week))for(const block of blocks){if(block.dateStart&&block.dateEnd&&block.dateEnd<block.dateStart)fail('class date range');}
   return {school,category:s.category===undefined?undefined:choice(s.category,['academic','sports'],'academic'),id:id(s.id,'season ID'),profileId,name:str(s.name,'season name',200),start:date(s.start,'season start'),end:date(s.end,'season end'),active:bool(s.active),week}
  })
@@ -269,8 +277,8 @@ export function normalizeData(raw:unknown):AppData {
   return [p.id,{profileId:p.id,placements}]
  }))
  const activeProfileId=typeof raw.activeProfileId==='string'&&pids.has(raw.activeProfileId)?raw.activeProfileId:profiles[0].id
- const trash:TrashEntry[]=list(raw.trash??[],'trash',2000).map(t=>({id:id(t.id,'trash ID'),profileId:owner(t.profileId),collection:choice(t.collection,['tasks','notes','exams','calendarEvents','subjects','studyPlans','flashcardDecks','kquizSets','kquizSources','studySeasons','scheduleBlocks'],'notes'),title:str(t.title,'trash title',1000),payload:str(t.payload,'trash payload',1000000),deletedAt:str(t.deletedAt,'deleted at',40)}))
- return {schemaVersion:6,trash,profiles,activeProfileId,subjects,tasks,exams,notes,calendarEvents,studySeasons,studyPlans,flashcardDecks,kquizLectures,kquizSets,kquizSources,settings,sanctuaryProgress,sanctuaryDecor,onboardingComplete:bool(raw.onboardingComplete,true)}
+ const trash:TrashEntry[]=list(raw.trash??[],'trash',2000).map(t=>({id:id(t.id,'trash ID'),profileId:owner(t.profileId),collection:choice(t.collection,['tasks','notes','exams','calendarEvents','subjects','kids','studyPlans','flashcardDecks','kquizSets','kquizSources','studySeasons','scheduleBlocks'],'notes'),title:str(t.title,'trash title',1000),payload:str(t.payload,'trash payload',1000000),deletedAt:str(t.deletedAt,'deleted at',40)}))
+ return {schemaVersion:6,trash,profiles,activeProfileId,subjects,kids,tasks,exams,notes,calendarEvents,studySeasons,studyPlans,flashcardDecks,kquizLectures,kquizSets,kquizSources,settings,sanctuaryProgress,sanctuaryDecor,onboardingComplete:bool(raw.onboardingComplete,true)}
 }
 
 export function assertProfileWrite(before:AppData,after:AppData,profileId:string):AppData {
@@ -278,7 +286,7 @@ export function assertProfileWrite(before:AppData,after:AppData,profileId:string
  if(JSON.stringify(before.profiles)!==JSON.stringify(after.profiles)||JSON.stringify(before.settings)!==JSON.stringify(after.settings)||after.activeProfileId!==before.activeProfileId)throw new Error('This editor cannot change account settings or another plan.')
  for(const profile of before.profiles)if(profile.id!==profileId&&JSON.stringify(before.sanctuaryProgress[profile.id])!==JSON.stringify(after.sanctuaryProgress[profile.id]))throw new Error('This edit belongs to another plan.')
  for(const profile of before.profiles)if(profile.id!==profileId&&JSON.stringify(before.sanctuaryDecor[profile.id])!==JSON.stringify(after.sanctuaryDecor[profile.id]))throw new Error('This edit belongs to another plan.')
- for(const key of ['subjects','tasks','notes','exams','calendarEvents','studySeasons','studyPlans','flashcardDecks','kquizLectures','kquizSets','kquizSources','trash'] as const){
+ for(const key of ['subjects','kids','tasks','notes','exams','calendarEvents','studySeasons','studyPlans','flashcardDecks','kquizLectures','kquizSets','kquizSources','trash'] as const){
   const oldOther=before[key].filter(r=>r.profileId!==profileId)
   const newOther=after[key].filter(r=>r.profileId!==profileId)
   if(JSON.stringify(oldOther)!==JSON.stringify(newOther))throw new Error('This edit belongs to a different profile. Reopen the editor and try again.')
