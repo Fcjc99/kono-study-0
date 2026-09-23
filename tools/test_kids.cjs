@@ -49,6 +49,16 @@ test('a kid\'s borderStyle defaults to modern, round-trips a valid choice, and r
  assert.throws(()=>model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:'not-a-style'}]}))
 })
 
+test('a kid saved under one of the retired border styles migrates to a new one instead of failing the whole load',()=>{
+ const base=model.createFreshData()
+ const {data}=withKid(base,'Emma')
+ const migrated={solid:'modern',dashed:'sports',glow:'modern',sparkle:'cute',fire:'unique',rainbow:'cute'}
+ for(const [legacy,expected] of Object.entries(migrated)){
+  const normalized=model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:legacy}]})
+  assert.equal(normalized.kids[0].borderStyle,expected)
+ }
+})
+
 test('a task tagged with a real kid from the same profile keeps that tag',()=>{
  const base=model.normalizeData(model.createFreshData())
  const {data,id}=withKid(base,'Emma')

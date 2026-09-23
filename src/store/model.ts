@@ -166,7 +166,11 @@ export function normalizeData(raw:unknown):AppData {
  const subject=(v:unknown,profileId:string)=>{if(v===undefined||v==='')return '';const key=id(v,'subject reference'),mapped=remap.get(`${key}:${profileId}`)??key;const known=subjects.find(s=>s.id===mapped);if(known&&known.profileId!==profileId)return fail('subject belongs to another profile');return mapped}
  // 40 chars comfortably covers a multi-codepoint emoji (skin-tone modifiers, ZWJ family/couple
  // sequences can run well past a handful of UTF-16 units) without accepting arbitrary text.
- const kids:Kid[]=list(raw.kids??[],'kids',500).map(k=>({id:id(k.id,'kid ID'),profileId:owner(k.profileId),name:str(k.name,'kid name',200),color:color(k.color,'#7ca982'),emoji:optional(k.emoji,'kid emoji',40),borderStyle:choice(k.borderStyle,['cute','sports','modern','unique'],'modern')}))
+ // A save from before the border-style redesign carries one of the old six values (solid was the
+ // default, so this covers essentially every existing kid) -- map it onto its closest new style
+ // rather than rejecting the whole save over a cosmetic field.
+ const legacyBorderStyle:Record<string,KidBorderStyle>={solid:'modern',glow:'modern',dashed:'sports',sparkle:'cute',rainbow:'cute',fire:'unique'}
+ const kids:Kid[]=list(raw.kids??[],'kids',500).map(k=>({id:id(k.id,'kid ID'),profileId:owner(k.profileId),name:str(k.name,'kid name',200),color:color(k.color,'#7ca982'),emoji:optional(k.emoji,'kid emoji',40),borderStyle:choice(typeof k.borderStyle==='string'?legacyBorderStyle[k.borderStyle]??k.borderStyle:k.borderStyle,['cute','sports','modern','unique'],'modern')}))
  // A kid tag is cosmetic, unlike a subject reference -- a stale or cross-profile kidId (e.g. from a
  // kid deleted elsewhere) just clears back to unassigned rather than failing the whole save.
  const kidRef=(v:unknown,profileId:string):string|undefined=>{if(v===undefined||v==='')return undefined;const key=str(v,'kid reference',150);const known=kids.find(k=>k.id===key);return known&&known.profileId===profileId?key:undefined}
