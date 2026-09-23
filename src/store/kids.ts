@@ -62,3 +62,14 @@ export function kidTimeBlockItems(data:Pick<AppData,'tasks'|'studySeasons'|'kids
  const label=(kidId:string|undefined,title:string)=>{const kid=kidId?data.kids.find(k=>k.id===kidId):undefined;return kid?kid.name+': '+title:title}
  return data.tasks.filter(t=>t.profileId===profileId&&!kidInClassNow(data,profileId,t.kidId,today,nowClock)).map(t=>({id:t.id,title:label(t.kidId,t.title),due:t.due,done:t.done,plannedTime:t.plannedTime,estimatedMinutes:t.estimatedMinutes}))
 }
+
+export type KidFamilyEventItem={id:string;title:string;date:string;done:boolean;time?:string;endTime?:string}
+
+/** Today's calendar events, for the parent-mode "starting soon"/"ending soon" reminder notifications
+ * (see useFamilyEventNotifications) -- same name-prefixing as kidDueItems. Unlike kidDueItems/
+ * kidTimeBlockItems, a kid's own tagged event is never suppressed by kidInClassNow: the event itself
+ * IS their schedule, not a loose task that might happen to overlap a class. */
+export function kidFamilyEventItems(data:Pick<AppData,'calendarEvents'|'kids'>,profileId:string,today:string):KidFamilyEventItem[] {
+ const label=(kidId:string|undefined,title:string)=>{const kid=kidId?data.kids.find(k=>k.id===kidId):undefined;return kid?kid.name+': '+title:title}
+ return data.calendarEvents.filter(e=>e.profileId===profileId&&e.date===today&&!e.done).map(e=>({id:e.id,title:label(e.kidId,e.title),date:e.date,done:Boolean(e.done),time:e.time,endTime:e.endTime}))
+}

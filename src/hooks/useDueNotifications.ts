@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { classTime } from '../store/classSchedule'
 
 type NotifiableItem = { id: string; title: string; due: string; done: boolean }
 
@@ -69,4 +70,45 @@ export function useTimeBlockNotifications(enabled: boolean, items: TimeBlockItem
     const interval = window.setInterval(check, 60000)
     return () => window.clearInterval(interval)
   }, [enabled, items, today, onDue])
+}
+
+type FamilyEventItem = { id: string; title: string; date: string; done: boolean; time?: string; endTime?: string }
+const notifiedEventKey = (edge: 'start' | 'end', id: string, date: string) => 'kono-notified-event-' + edge + ':' + id + ':' + date
+
+/** True from the moment a clock time is 15 minutes away until the moment it arrives -- a wide lead
+ * window (mirroring isTimeBlockDue's own 16-minute window) so a check that lands anywhere in it still
+ * catches the reminder, deduplicated by the caller so it only actually notifies once. Split out as a
+ * pure function for the same reason as isTimeBlockDue. */
+export function isReminderDue(clockTime: string | undefined, date: string, today: string, nowMinutes: number): boolean {
+  if (!clockTime || date !== today) return false
+  const [h, m] = clockTime.split(':').map(Number), minutesUntil = h * 60 + m - nowMinutes
+  return minutesUntil >= 0 && minutesUntil <= 15
+}
+
+/** Parent mode's "starting soon"/"ending soon" reminders: one notification 15 minutes before a
+ * family calendar event's start time, and another 15 minutes before its end time -- so a parent
+ * driving carpool or juggling several kids' activities gets a heads-up for each edge, not just the
+ * due-today digest. Same one-per-edge-per-day dedup as the other notification hooks here. */
+export function useFamilyEventNotifications(enabled: boolean, items: FamilyEventItem[], today: string) {
+  useEffect(() => {
+    if (!enabled || !notificationsSupported() || Notification.permission !== 'granted') return
+    const notifyOnce = (edge: 'start' | 'end', id: string, title: string, verb: string, clockTime: string) => {
+      const key = notifiedEventKey(edge, id, today)
+      let already = ''
+      try { already = localStorage.getItem(key) ?? '' } catch { /* Storage can be blocked; treat as not yet notified. */ }
+      if (already) return
+      try { new Notification(verb + ' soon: ' + title, { body: verb + ' at ' + classTime(clockTime) + '.', tag: 'kono-event-' + edge + '-' + id }) } catch { /* Notifications can be blocked mid-session; skip silently. */ }
+      try { localStorage.setItem(key, '1') } catch { /* Best effort; worst case it re-notifies later this session. */ }
+    }
+    const check = () => {
+      const now = new Date(), nowMinutes = now.getHours() * 60 + now.getMinutes()
+      for (const item of items) {
+        if (isReminderDue(item.time, item.date, today, nowMinutes)) notifyOnce('start', item.id, item.title, 'Starts', item.time as string)
+        if (isReminderDue(item.endTime, item.date, today, nowMinutes)) notifyOnce('end', item.id, item.title, 'Ends', item.endTime as string)
+      }
+    }
+    check()
+    const interval = window.setInterval(check, 60000)
+    return () => window.clearInterval(interval)
+  }, [enabled, items, today])
 }
