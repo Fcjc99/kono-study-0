@@ -26,11 +26,11 @@ test('a valid kid (name, color, emoji) round-trips through normalization',()=>{
  assert.equal(kid.emoji,'🦄')
 })
 
-test('a malformed kid color is rejected rather than silently accepted',()=>{
+test('a malformed kid color falls back to the default instead of failing the whole load',()=>{
  const base=model.createFreshData()
  const {data}=withKid(base,'Emma')
  data.kids[0].color='not-a-color'
- assert.throws(()=>model.normalizeData(data))
+ assert.equal(model.normalizeData(data).kids[0].color,'#7ca982')
 })
 
 test('a kid with no emoji normalizes to undefined, not a forced default',()=>{

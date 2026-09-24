@@ -42,6 +42,12 @@ export async function readCache(scope:string):Promise<CacheEntry|null>{
   request.onerror=()=>reject(request.error)
  })
 }
+/** The stored cache entry exactly as saved, without normalizing it -- for handing someone a copy of a
+ * save this build can't read, so nothing is lost while it gets fixed. */
+export async function readRawCache(scope:string):Promise<unknown>{
+ const db=await openDB()
+ return new Promise((resolve,reject)=>{const request=db.transaction('plans','readonly').objectStore('plans').get(scope);request.onsuccess=()=>resolve(request.result??null);request.onerror=()=>reject(request.error)})
+}
 /** One readwrite transaction serializes tab commits; the last acknowledged base travels with data. */
 export async function commitCache(scope:string,base:CacheEntry|null,next:CacheEntry):Promise<CacheEntry>{
  const db=await openDB()

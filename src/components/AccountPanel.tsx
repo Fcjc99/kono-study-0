@@ -28,6 +28,18 @@ export function BackupPanel({store}:{store:Store}){
  {candidate&&<div className="recovery-notice"><h3>Review backup before replacing</h3><p>{candidate.profiles.length} plans · {candidate.tasks.length} assignments · {candidate.notes.length} notes · {candidate.exams.length} exams</p><p>This replaces the plans currently open here. Export your current work first.</p><button onClick={()=>{if(window.confirm('Replace the current plans with this backup?')){repository.replace(candidate);setCandidate(null)}}}>Use this backup</button><button onClick={()=>setCandidate(null)}>Cancel</button></div>}
  <details><summary>Recovery snapshots</summary><p>The five most recent device copies and up to twenty cloud revisions are retained. Download a snapshot, then use Import backup to review it before restoring.</p>{repository.localBackups().map((data,i)=><button key={i} onClick={()=>repository.downloadBackup(data)}>Download device copy {i+1}</button>)}{store.user&&<><button disabled={busy} onClick={()=>void action(async()=>{setHistory(await repository.cloudHistory())})}>Show cloud history</button><ul>{history.map(item=><li key={item.revision}><button disabled={busy} onClick={()=>void action(()=>repository.downloadCloudBackup(item.revision))}>Download revision {item.revision}</button> · {new Date(item.created_at).toLocaleString()}</li>)}</ul></>}</details></section>
 }
+/** Shown instead of the welcome screen when saved data exists but this build couldn't read it. */
+export function RecoveryScreen({store}:{store:Store}){
+ const [status,setStatus]=useState('')
+ const download=async()=>{setStatus('');try{setStatus(await store.repository.downloadUnreadable()?'Downloaded. Keep that file somewhere safe.':'')}catch{setStatus('Could not prepare the download. Your data is still in this browser.')}}
+ return <main className="onboarding page-stack"><section className="card recovery-screen" role="alert"><span className="eyebrow">KONO</span><h1>We couldn't open your saved plan</h1>
+  <p><strong>Your data is safe.</strong> Nothing has been changed or deleted, and KONO won't save over it while this screen is showing.</p>
+  <p>This can happen right after an update. Trying again often fixes it. If it doesn't, download a copy so nothing can be lost, then check back after the next update.</p>
+  <div className="account-actions"><button className="primary" onClick={()=>window.location.reload()}>Try again</button><button onClick={()=>void download()}>Download a copy of my data</button>{store.recovery.filter(file=>file.raw).map(file=><button key={file.name} onClick={()=>store.repository.downloadRecovery(file)}>Download older copy ({file.name})</button>)}</div>
+  {status&&<p role="status">{status}</p>}
+  {store.error&&<details><summary>Technical details</summary><p>{store.error}</p></details>}
+ </section></main>
+}
 export function Onboarding({store}:{store:Store}){
  const profile=store.data.profiles[0], [name,setName]=useState(''),[label,setLabel]=useState('My study plan')
  const submit=(e:FormEvent)=>{e.preventDefault();if(!name.trim()||!label.trim())return;store.repository.update(d=>({...d,onboardingComplete:true,profiles:d.profiles.map(p=>p.id===profile.id?{...p,name:name.trim(),label:label.trim()}:p)}))}
