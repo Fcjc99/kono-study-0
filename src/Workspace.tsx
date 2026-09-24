@@ -11,7 +11,7 @@ import {useSpeechToText} from './hooks/useSpeechToText'
 import {syncCurrentTaskCompletion,createSanctuaryProgress} from './game/progression/progressionEngine'
 import {pickKonoPhrase,konoCelebration,konoStreakMilestone,seededRand,STREAK_MILESTONES,type KonoPhrase} from './store/konoPhrases'
 import {useReducedMotion,useMusicController} from './hooks/useComfort'
-import {useDueNotifications,useTimeBlockNotifications,useFamilyEventNotifications,notificationsSupported,requestNotificationPermission} from './hooks/useDueNotifications'
+import {useDueNotifications,useTimeBlockNotifications,useFamilyEventNotifications,notificationsSupported} from './hooks/useDueNotifications'
 import {useLiveSanctuaryWeather} from './hooks/useLiveSanctuaryWeather'
 import ClassOccurrenceCard from './components/ClassOccurrenceCard'
 import {classOccurrences,classTime,type ClassOccurrence} from './store/classSchedule'
@@ -20,9 +20,10 @@ import ScheduleImport from './components/ScheduleImport'
 import ScheduleSetup from './components/ScheduleSetup'
 import ScheduleShare from './components/ScheduleShare'
 import {schoolDayLabels} from './store/schoolCalendar'
-import {Settings,StickyNoteView} from './LegacyApp'
+import {PlanSettings,WeatherSettings,SoundMotionSettings,ReminderSettings,StickyNoteView} from './LegacyApp'
 import Sidebar from './components/Sidebar'
-import {AccountPanel,Onboarding,SaveStatus} from './components/AccountPanel'
+import {AccountPanel,BackupPanel,Onboarding,SaveStatus} from './components/AccountPanel'
+import {AiHelperSettings} from './components/AiHelper'
 import GardenCard from './components/GardenCard'
 import StudyPlanner from './components/StudyPlanner'
 import Flashcards from './components/Flashcards'
@@ -49,6 +50,9 @@ import './planner-polish.css'
 import './cozy-controls.css'
 import ActionIcon from './components/ActionIcon'
 
+// Settings tabs, grouped by what a person is trying to do rather than by where each feature was built.
+const SETTINGS_TABS=['Look & feel','Notifications','Family','Schedules','Import & export','Plans & account'] as const
+type SettingsTab=typeof SETTINGS_TABS[number]
 const pages=['Sanctuary','Planner','Kids','Subjects','Notes','K-Quiz','Exams','Settings','Trash'] as const
 type Page=typeof pages[number]
 type Store=ReturnType<typeof usePlannerRepository>
@@ -164,7 +168,7 @@ function Workspace({store}:{store:Store}){
  const onIslandPointerUp=()=>{mouseDrag.current=null}
  const [todayCollapsed,setTodayCollapsed]=useState(false),[tomorrowCollapsed,setTomorrowCollapsed]=useState(false)
  const [today,setToday]=useState(localDate),[selectedDate,setSelectedDate]=useState(localDate),[subject,setSubject]=useState(''),[boardView,setBoardView]=useState('board'),[subjectTab,setSubjectTab]=useState('Assignments')
- const [settingsTab,setSettingsTab]=useState('Appearance')
+ const [settingsTab,setSettingsTab]=useState<SettingsTab>('Look & feel')
  const tomorrow=addDays(today,1)
  const draftScope='kono-draft-v3:'+(store.user?.id??'device')+':'+profile.id
  const [hasDraft,setHasDraft]=useState(()=>{try{return !!localStorage.getItem(draftScope)}catch{return false}})
@@ -228,8 +232,9 @@ function Workspace({store}:{store:Store}){
  const dismissReviewDigest=()=>{setReviewDigestDismissed(true);try{sessionStorage.setItem(reviewDigestKey,today)}catch{/* Best effort; worst case it reappears next reload today. */}}
  const season=data.studySeasons.find(s=>s.profileId===profile.id&&s.active)
  const setting=<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>save(d=>({...d,settings:{...d.settings,[key]:value}}))
+ const openSettings=(tab:SettingsTab)=>{setSettingsTab(tab);navigate('Settings')}
  // Off by default so a student sharing the app never sees a nav tab meant for a parent managing
- // multiple kids -- turned on from Settings > Appearance, the same way the schedule-setup flow picker
+ // multiple kids -- turned on from Settings > Family, the same way the schedule-setup flow picker
  // (Work/College/School/Sports) opts into a different kind of setup rather than showing everything.
  const parentMode=data.settings.parentMode===true
  const visiblePages=pages.filter(p=>p!=='Kids'||parentMode)
@@ -433,18 +438,19 @@ function Workspace({store}:{store:Store}){
     {experience==='cozy'?<div className="restored-board-pair">{board('notes')}{board('exams')}</div>:<>{noteBoard(true)}<section className="wb-panel"><h2>Upcoming exams</h2>{data.exams.filter(e=>e.profileId===profile.id&&!e.done).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,3).map(e=>card('exams',e as unknown as Entry))}{!data.exams.some(e=>e.profileId===profile.id&&!e.done)&&<p>No upcoming exams.</p>}</section></>}
    </>}
    {page==='Planner'&&<><div className="wb-toolbar planner-settings-link"><span>Your classes, assignments and daily plans</span><button onClick={()=>{setSettingsTab('Schedules');navigate('Settings')}}>Schedule settings</button></div><Calendar data={data} tasks={tasks} date={selectedDate} selectDate={setSelectedDate} create={create} render={card} renderClass={renderClass} reschedule={reschedule} setting={setting} navigate={navigate} parentMode={parentMode} quickAddEvent={quickAddFamilyEvent}/><StudyPlanner key={planRequest} initialOpen={planRequest>0} draftKey={draftScope+':plan'} profileId={profile.id} plans={plans} tasks={ownTasks} subjects={subjects} setData={save} onSelectDate={setSelectedDate}/></>}
-   {page==='Kids'&&<KidsPage data={data} create={create} edit={edit} remove={remove} setting={setting} patch={patch}/>}
+   {page==='Kids'&&<KidsPage data={data} create={create} edit={edit} remove={remove} patch={patch} openSettings={openSettings}/>}
    {page==='Subjects'&&experience!=='simplified'&&subjectWorkspace}
    {page==='Subjects'&&experience==='simplified'&&<><section className="wb-panel"><div className="wb-section-head"><h2>Your subjects</h2><button onClick={()=>create('subjects')}>＋ Subject</button></div><div className="wb-record-grid">{subjects.map(s=>card('subjects',s as unknown as Entry))}</div>{!subjects.length&&<p>Create your first subject to organize your work.</p>}</section><section className="wb-panel"><div className="wb-section-head"><h2>Assignments</h2><button onClick={()=>create('tasks')}>＋ Assignment</button></div><label>Filter subject<select value={subject} onChange={e=>setSubject(e.target.value)}><option value="">All subjects, including unassigned</option>{subjects.map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></label><div className="wb-toolbar"><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,true),d)),'Assignments completed.')}>Complete all shown</button><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,false),d)),'Assignments reopened; earned progress is kept.')}>Reopen all shown</button></div>{tasks.filter(t=>!subject||t.subjectId===subject).map(t=>card('tasks',t as unknown as Entry))}</section></>}
    {page==='Notes'&&<>{noteBoard()}<details className="wb-panel"><summary>Quiz me · Flashcards</summary><Flashcards draftKey={draftScope+':cards'} profileId={profile.id} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} setData={save}/></details></>}
-   {page==='K-Quiz'&&<KQuiz profileId={profile.id} lectures={data.kquizLectures.filter(l=>l.profileId===profile.id)} sets={data.kquizSets.filter(s=>s.profileId===profile.id)} sources={data.kquizSources.filter(s=>s.profileId===profile.id)} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} subjects={subjects} setData={save}/>}
+   {page==='K-Quiz'&&<KQuiz onOpenAiSettings={()=>openSettings('Import & export')} profileId={profile.id} lectures={data.kquizLectures.filter(l=>l.profileId===profile.id)} sets={data.kquizSets.filter(s=>s.profileId===profile.id)} sources={data.kquizSources.filter(s=>s.profileId===profile.id)} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} subjects={subjects} setData={save}/>}
    {page==='Exams'&&<section className="wb-panel wb-board board-paper"><div className="wb-section-head wb-board-heading"><h2>Your exams</h2><button onClick={()=>create('exams')}>＋ Exam</button></div><div className="wb-note-grid wb-board-canvas">{data.exams.filter(e=>e.profileId===profile.id).sort((a,b)=>a.due.localeCompare(b.due)).map(e=>card('exams',e as unknown as Entry))}{!data.exams.some(e=>e.profileId===profile.id)&&<p className="wb-board-empty">No exams yet. Add a date and what you need to review.</p>}</div><div className="wb-board-tray" aria-hidden="true"><span>✿</span><span>✦</span><span>✿</span></div></section>}
-   {page==='Settings'&&<div className="settings-groups"><div className="wb-section-head settings-page-tools"><h2>Settings</h2><small>Version {APP_VERSION} · Build {releaseLabel}</small></div><nav className="subject-section-tabs" aria-label="Settings sections">{['Appearance','Friends','Schedules','Account','Plans & more'].map(tab=><button key={tab} aria-current={tab===settingsTab?'page':undefined} onClick={()=>setSettingsTab(tab)}>{tab}</button>)}</nav>
-   {settingsTab==='Appearance'&&<section className="wb-panel"><Appearance settings={data.settings} setting={setting}/></section>}
-   {settingsTab==='Friends'&&<section className="wb-panel">{store.user?<PeerConnections repository={repository} myUserId={store.user.id} reducedMotion={reduced}/>:<p>Sign in with a KONO account to connect with classmates and share your classes.</p>}</section>}
-   {settingsTab==='Schedules'&&<section className="wb-panel"><ScheduleSetup data={data} save={save} draftKey={draftScope} fetchCatalog={repository.fetchSchoolCatalog} submitCatalogEntry={repository.submitSchoolCatalogEntry}/><details><summary>Weekly schedules & seasons · edit or pause</summary><SchedulePanel data={data} save={save} draftKey={draftScope+':schedule'}/></details><details><summary>Share a schedule with someone else</summary><ScheduleShare data={data} save={save}/></details><details><summary>Import assignments or dated events from a PDF</summary><ScheduleImport data={data} save={save}/></details><details><summary>Upload photos or screenshots of a calendar, planner, or syllabus</summary><UpdatePlanScanner profileId={profile.id} subjects={subjects} kids={profileKids} save={save}/></details><details><summary>Export to your calendar app</summary><p>Download every assignment, exam and event in {profile.label} as a calendar file, then import or add it in Google Calendar, Apple Calendar, or Outlook. This is a one-time snapshot -- re-download it after making big changes to keep your calendar app in sync.</p><button type="button" onClick={()=>downloadData(buildIcs(data,profile.id),(profile.label||'kono-plan').toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.ics','text/calendar')}>Download calendar (.ics)</button></details></section>}
-   {settingsTab==='Account'&&<section className="wb-panel"><AccountPanel store={store}/></section>}
-   {settingsTab==='Plans & more'&&<div className="wb-legacy-settings"><Settings data={data} setData={save} weatherState={weather} onDeleteProfile={id=>{const p=data.profiles.find(x=>x.id===id);if(!p)return;setConfirmation({text:'Delete plan “'+p.label+'” and all its subjects, assignments, notes, schedules and Sanctuary progress? This does not delete your account or other plans. Export a backup first. Plan deletion is not kept in Trash.',action:()=>void run(()=>save(d=>deleteProfile(d,id)),'Plan deleted. Other plans were kept.')})}}/></div>}
+   {page==='Settings'&&<div className="settings-groups"><div className="wb-section-head settings-page-tools"><h2>Settings</h2><small>Version {APP_VERSION} · Build {releaseLabel}</small></div><nav className="subject-section-tabs" aria-label="Settings sections">{SETTINGS_TABS.map(tab=><button key={tab} aria-current={tab===settingsTab?'page':undefined} onClick={()=>setSettingsTab(tab)}>{tab}</button>)}</nav>
+   {settingsTab==='Look & feel'&&<><section className="wb-panel"><Appearance settings={data.settings} setting={setting}/></section><section className="wb-panel"><h2>Sound &amp; motion</h2><SoundMotionSettings data={data} setData={save}/></section><section className="wb-panel"><h2>Sanctuary weather</h2><WeatherSettings data={data} setData={save} weatherState={weather}/></section></>}
+   {settingsTab==='Notifications'&&<section className="wb-panel"><h2>Notifications</h2><ReminderSettings data={data} setData={save}/>{parentMode&&<FamilyReminderSettings data={data} setting={setting}/>}</section>}
+   {settingsTab==='Family'&&<FamilySettings data={data} setting={setting} patch={patch} navigate={navigate}/>}
+   {settingsTab==='Schedules'&&<section className="wb-panel"><ScheduleSetup data={data} save={save} draftKey={draftScope} fetchCatalog={repository.fetchSchoolCatalog} submitCatalogEntry={repository.submitSchoolCatalogEntry}/><details><summary>Weekly schedules & seasons · edit or pause</summary><SchedulePanel data={data} save={save} draftKey={draftScope+':schedule'}/></details></section>}
+   {settingsTab==='Import & export'&&<section className="wb-panel"><h2>Import &amp; export</h2><div id="ai-helper"><AiHelperSettings profileId={profile.id}/></div><details><summary>Upload photos or screenshots of a calendar, planner, or syllabus</summary><UpdatePlanScanner profileId={profile.id} subjects={subjects} kids={profileKids} save={save} onOpenAiSettings={()=>document.getElementById('ai-helper')?.scrollIntoView({behavior:'smooth',block:'start'})}/></details><details><summary>Import assignments or dated events from a PDF</summary><ScheduleImport data={data} save={save}/></details><details><summary>Share a schedule with someone else</summary><ScheduleShare data={data} save={save}/></details><details><summary>Export to your calendar app</summary><p>Download every assignment, exam and event in {profile.label} as a calendar file, then import or add it in Google Calendar, Apple Calendar, or Outlook. This is a one-time snapshot -- re-download it after making big changes to keep your calendar app in sync.</p><button type="button" onClick={()=>downloadData(buildIcs(data,profile.id),(profile.label||'kono-plan').toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.ics','text/calendar')}>Download calendar (.ics)</button></details><BackupPanel store={store}/></section>}
+   {settingsTab==='Plans & account'&&<><section className="wb-panel"><AccountPanel store={store}/></section><section className="wb-panel"><h2>Plans</h2><PlanSettings data={data} setData={save} onDeleteProfile={id=>{const p=data.profiles.find(x=>x.id===id);if(!p)return;setConfirmation({text:'Delete plan “'+p.label+'” and all its subjects, assignments, notes, schedules and Sanctuary progress? This does not delete your account or other plans. Export a backup first. Plan deletion is not kept in Trash.',action:()=>void run(()=>save(d=>deleteProfile(d,id)),'Plan deleted. Other plans were kept.')})}}/></section><section className="wb-panel"><h2>Friends</h2>{store.user?<PeerConnections repository={repository} myUserId={store.user.id} reducedMotion={reduced}/>:<p>Sign in with a KONO account to connect with classmates and share your classes.</p>}</section></>}
    </div>}
    {page==='Trash'&&<section className="wb-panel"><h2>Recently removed</h2><p>Restore items here, even after a reload. Undo/Redo covers the last 30 changes in this session. Signed-in Trash syncs with your account.</p>{data.trash.filter(t=>t.profileId===profile.id).map(t=><article className="wb-record" key={t.id}><h3>{t.title}</h3><p>{labels[t.collection as Collection]??'Schedule block'} · Removed {new Date(t.deletedAt).toLocaleString()}</p><div className="wb-toolbar"><button onClick={()=>void run(()=>save(d=>restoreEntry(d,t.id)),'Restored.')}>Restore</button><button onClick={()=>{setConfirmation({text:'Permanently delete “'+t.title+'” from Trash? Older backups may still contain it.',action:()=>void run(()=>save(d=>({...d,trash:d.trash.filter(x=>x.id!==t.id)})),'Removed from Trash.')})}}>Delete permanently</button></div></article>)}{!data.trash.some(t=>t.profileId===profile.id)&&<p>Trash is empty.</p>}</section>}
   </main>
@@ -453,7 +459,7 @@ function Workspace({store}:{store:Store}){
   {confirmation&&<Modal title="Confirm change" close={()=>setConfirmation(null)}><p>{confirmation.text}</p><button onClick={()=>{confirmation.action();setConfirmation(null)}}>Confirm</button><button onClick={()=>setConfirmation(null)}>Cancel</button></Modal>}
   {more&&<Modal title="More" close={()=>setMore(false)}>{(['Kids','Subjects','K-Quiz','Exams','Settings','Trash'] as Page[]).filter(p=>p!=='Kids'||parentMode).map(p=><button key={p} onClick={()=>navigate(p)}>{p}</button>)}<label>Study profile<select value={profile.id} onChange={e=>void save(d=>({...d,activeProfileId:e.target.value}))}>{data.profiles.map(p=><option value={p.id} key={p.id}>{p.label}</option>)}</select></label></Modal>}
   {adding&&<Modal title="Add to your plan" close={()=>setAdding(false)}><div className="quick-add-choice"><label>What are you adding?<select aria-label="Add type" value={addKind} onChange={e=>setAddKind(e.target.value as typeof addKind)}><option value="tasks">Homework</option><option value="exams">Exam or test</option><option value="notes">Study note</option></select></label><p className="wb-muted">Exams appear on the countdown board. Study notes are pinned to your bulletin board.</p><button className="primary" onClick={()=>create(addKind)}>Continue</button></div><button type="button" className="update-entire-plan-button" onClick={()=>{setAdding(false);setScanningPlan(true)}}>📷 Update entire plan — scan notes or a syllabus</button><details className="add-more-choices"><summary>More ways to add</summary><div>{(['studyPlans','calendarEvents','subjects',...(parentMode?['kids'] as const:[])] as Collection[]).map(key=><button key={key} onClick={()=>create(key)}>{labels[key]}</button>)}</div></details></Modal>}
-  {scanningPlan&&<Modal title="Update entire plan" close={()=>setScanningPlan(false)}><UpdatePlanScanner profileId={profile.id} subjects={subjects} kids={profileKids} save={save} close={()=>setScanningPlan(false)}/></Modal>}
+  {scanningPlan&&<Modal title="Update entire plan" close={()=>setScanningPlan(false)}><UpdatePlanScanner profileId={profile.id} subjects={subjects} kids={profileKids} save={save} close={()=>setScanningPlan(false)} onOpenAiSettings={()=>{setScanningPlan(false);openSettings('Import & export')}}/></Modal>}
   {reviewOpen&&<Modal title="Needs review" close={()=>setReviewOpen(false)}><p className="wb-muted">Added automatically from a scanned photo. Check each one — confirming it (or just opening and saving it) clears the flag.</p>{needsReviewEntries.length===0?<p>All caught up.</p>:<>{needsReviewEntries.length>1&&<button type="button" className="primary" onClick={()=>void confirmAllReviews()}>Confirm all {needsReviewEntries.length} items</button>}{needsReviewEntries.map(({key,entry})=>card(key,entry))}</>}</Modal>}
   {search&&<CommandPalette commands={commands} onClose={()=>setSearch(false)}/>}
   {editor&&<EntryEditor key={editor.entry.id} edit={editor} data={data} save={save} draftScope={draftScope} close={(saved,discarded)=>{setEditor(null);setHasDraft(!saved);if(saved)setMessage(discarded?'Draft discarded.':'Saved.')}}/>}
@@ -679,18 +685,34 @@ function QuickFamilyAdd({kids,onCancel,onSave}:{kids:Kid[];onCancel:()=>void;onS
 // EntryEditor's Kid picker and the recurring-class editors) and filter the Planner calendar by kid
 // there, the same way subjects already work. Kids are ordinary generic collection entries (see
 // store/workspace.ts), so create/edit/remove below reuse the app's existing undo/redo and Trash.
-function KidsPage({data,create,edit,remove,setting,patch}:{data:AppData;create:(key:Collection)=>void;edit:(key:Collection,entry:Entry)=>void;remove:(key:Collection,entry:Entry)=>void;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
- const [notifyError,setNotifyError]=useState('')
+// Settings › Family. A solo student only ever sees the Parent mode switch here; everything else
+// appears once it's on.
+function FamilySettings({data,setting,patch,navigate}:{data:AppData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>;navigate:(page:Page)=>void}){
+ const [lookOpen,setLookOpen]=useState(false)
+ const parentMode=data.settings.parentMode===true
+ return <section className="wb-panel family-settings"><h2>Family</h2>
+  <label className="wb-check"><input type="checkbox" checked={parentMode} onChange={e=>void setting('parentMode',e.target.checked)}/>Parent mode: show the Kids tab</label>
+  <p className="theme-picker-description">Turn this on if you're a parent managing more than one kid on a shared device. It adds a Kids tab for tagging assignments, exams, classes and events with a kid — and a kid filter on your calendar — the same way subjects already work. Off by default, so it stays out of the way if you're not a parent.</p>
+  {parentMode&&<>
+  <div className="kid-appearance-toggles">
+   <label className="wb-check"><input type="checkbox" checked={data.settings.familyTileBorders!==false} onChange={e=>void setting('familyTileBorders',e.target.checked)}/>Color-code event tiles by kid</label>
+   <label className="wb-check"><input type="checkbox" checked={data.settings.familyTileAvatars!==false} onChange={e=>void setting('familyTileAvatars',e.target.checked)}/>Show each kid's emoji and name on their tiles</label>
+  </div>
+   <div className="wb-toolbar"><button type="button" onClick={()=>navigate('Kids')}>Manage kids</button><button type="button" onClick={()=>setLookOpen(true)}>🎨 Kids' appearance</button></div>
+   {lookOpen&&<KidAppearancePanel data={data} patch={patch} close={()=>setLookOpen(false)}/>}
+  </>}
+ </section>
+}
+// Settings › Notifications, parent mode only. Family reminders ride on browser notifications.
+function FamilyReminderSettings({data,setting}:{data:AppData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
+ const notifyOn=Boolean(data.settings.browserNotifications)&&notificationsSupported()&&Notification.permission==='granted'
+ return <section className="card settings-list family-reminder-settings"><h3>Family</h3>
+  <label className="wb-check"><input type="checkbox" disabled={!notifyOn} checked={Boolean(data.settings.familyEventReminders)} onChange={e=>void setting('familyEventReminders',e.target.checked)}/>Remind me 15 minutes before a kid's event starts or ends</label>
+  <p className="wb-muted">{notifyOn?'Notifications are labeled with each kid\'s name.':'Turn on Browser notifications above to use this.'}</p>
+ </section>
+}
+function KidsPage({data,create,edit,remove,patch,openSettings}:{openSettings:(tab:SettingsTab)=>void;data:AppData;create:(key:Collection)=>void;edit:(key:Collection,entry:Entry)=>void;remove:(key:Collection,entry:Entry)=>void;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
  const [appearanceOpen,setAppearanceOpen]=useState(false)
- const notifyPermission=notificationsSupported()?Notification.permission:'unsupported'
- const notifyOn=data.settings.browserNotifications&&notifyPermission==='granted'
- const enableNotifications=()=>{
-  setNotifyError('')
-  requestNotificationPermission().then(result=>{
-   if(result==='granted')void setting('browserNotifications',true)
-   else setNotifyError('Notifications need to be allowed in your browser to turn this on.')
-  }).catch(()=>setNotifyError('Could not request notification permission.'))
- }
  const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
  return <section className="wb-panel family-calendar">
   <div className="wb-section-head"><div><small>ONE SHARED CALENDAR</small><h2>Kids</h2></div><div className="wb-toolbar"><button type="button" onClick={()=>setAppearanceOpen(true)}>🎨 Appearance</button><button onClick={()=>create('kids')}>＋ Add a kid</button></div></div>
@@ -699,15 +721,8 @@ function KidsPage({data,create,edit,remove,setting,patch}:{data:AppData;create:(
    {kids.map(k=><div key={k.id} className="family-kid-chip" style={{'--kid-color':k.color} as CSSProperties}><i className="family-kid-swatch" aria-hidden="true"/><strong>{(k.emoji?k.emoji+' ':'')+k.name}</strong><button type="button" onClick={()=>edit('kids',k as unknown as Entry)}>Edit</button><button type="button" onClick={()=>remove('kids',k as unknown as Entry)}>Move to Trash</button></div>)}
   </div>
   {!kids.length&&<p className="wb-muted">No kids added yet. Add one to start tagging their assignments, exams, classes and events on your calendar.</p>}
-  <div className="family-notify-row">
-   {notifyOn?<p className="wb-muted">Notifications are on — you'll get a daily digest and time-block alerts for every kid, labeled by name.</p>
-   :notifyPermission==='denied'?<p className="wb-muted">Notifications are blocked for this site. Allow them in your browser's site settings to turn this on.</p>
-   :notifyPermission==='unsupported'?null
-   :<button type="button" onClick={enableNotifications}>Turn on notifications</button>}
-   {notifyError&&<span role="alert" className="family-add-error">{notifyError}</span>}
-  </div>
-  {notifyOn&&<label className="wb-check family-event-reminder-toggle"><input type="checkbox" checked={Boolean(data.settings.familyEventReminders)} onChange={e=>void setting('familyEventReminders',e.target.checked)}/>Remind me 15 minutes before a kid's event starts or ends</label>}
-  {appearanceOpen&&<KidAppearancePanel data={data} setting={setting} patch={patch} close={()=>setAppearanceOpen(false)}/>}
+  <p className="wb-muted">Reminders for your kids' events, and the family-wide look switches, live in Settings: <button type="button" className="link-button" onClick={()=>openSettings('Notifications')}>Notifications</button> · <button type="button" className="link-button" onClick={()=>openSettings('Family')}>Family</button></p>
+  {appearanceOpen&&<KidAppearancePanel data={data} patch={patch} close={()=>setAppearanceOpen(false)}/>}
  </section>
 }
 // The whole point of a curated grid over a bare text field: a parent (or a kid picking their own,
@@ -718,14 +733,10 @@ const KID_AVATAR_EMOJI=['🐻','🐰','🦄','🐯','🦁','🐨','🐼','🦊',
 // (see EntryEditor) and from the general Settings/Appearance page (theme, text size) -- both of those
 // are used by every profile, including a solo student's own personal plan with no kids at all, and
 // this one is reached only from the Kids page, itself hidden unless parent mode is on.
-function KidAppearancePanel({data,setting,patch,close}:{data:AppData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>;close:()=>void}){
+function KidAppearancePanel({data,patch,close}:{data:AppData;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>;close:()=>void}){
  const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
  return <Modal title="Kids' appearance" close={close}>
-  <p className="wb-muted">Turn each look on or off for the whole family, then pick each kid's own emoji and color below. Changes show up right away on their tiles across the Planner and Sanctuary.</p>
-  <div className="kid-appearance-toggles">
-   <label className="wb-check"><input type="checkbox" checked={data.settings.familyTileBorders!==false} onChange={e=>void setting('familyTileBorders',e.target.checked)}/>Color-code event tiles by kid</label>
-   <label className="wb-check"><input type="checkbox" checked={data.settings.familyTileAvatars!==false} onChange={e=>void setting('familyTileAvatars',e.target.checked)}/>Show each kid's emoji and name on their tiles</label>
-  </div>
+  <p className="wb-muted">Pick each kid's own emoji, color and border below. Changes show up right away on their tiles across the Planner and Sanctuary. Family-wide on/off switches are in Settings › Family.</p>
   {!kids.length&&<p className="wb-muted">Add a kid first (close this and use "＋ Add a kid"), then come back here to customize how they look.</p>}
   {kids.map(k=><KidAppearanceEditor key={k.id} kid={k} patch={patch}/>)}
  </Modal>
@@ -791,9 +802,6 @@ function Appearance({settings,setting}:{settings:SettingsData;setting:<K extends
  const active=settings.experience??'cozy'
  const activeOption=experienceOptions.find(o=>o.id===active)
  return <section className="wb-panel"><h2>Choose your KONO experience</h2><div className="theme-picker-grid">{experienceOptions.map(option=><button key={option.id} type="button" className={'theme-picker-tile experience-'+option.id} aria-pressed={active===option.id} title={option.description} onClick={()=>void setting('experience',option.id)}><ExperienceIcon id={option.id}/><strong>{option.title}</strong></button>)}</div>{activeOption&&<p className="theme-picker-description">{activeOption.description}</p>}{!fixedPaletteExperiences.includes(settings.experience??'cozy')&&<><h3>Color palette</h3><div className="wb-themes">{(settings.experience==='cozy'?[...cozyPalettes]:['coral','sakura','professional','forest','ocean','midnight','paper']).map(t=><button className={'theme-'+t} key={t} aria-pressed={activePalette===t} onClick={()=>void setting('theme',t)}><span/>{paletteLabel(t)}{activePalette===t?' ✓':''}</button>)}</div></>}
-  <h3>Parent mode</h3>
-  <label className="wb-check"><input type="checkbox" checked={settings.parentMode===true} onChange={e=>void setting('parentMode',e.target.checked)}/>Show the Kids tab</label>
-  <p className="theme-picker-description">Turn this on if you're a parent managing more than one kid on a shared device. It adds a Kids tab for tagging assignments, exams, classes and events with a kid — and a kid filter on your calendar — the same way subjects already work. Off by default, so it stays out of the way if you're not a parent.</p>
   <div className="wb-form-grid"><label>Text size<select value={settings.textSize??'normal'} onChange={e=>void setting('textSize',e.target.value as SettingsData['textSize'])}><option value="normal">Normal</option><option value="large">Large</option></select></label><label>Spacing<select value={settings.density??'comfortable'} onChange={e=>void setting('density',e.target.value as SettingsData['density'])}><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label><label>Board background<select value={settings.boardStyle??'paper'} onChange={e=>void setting('boardStyle',e.target.value as SettingsData['boardStyle'])}><option value="paper">Cream paper</option><option value="cork">Cork</option><option value="plain">Plain</option></select></label><label className="wb-check"><input type="checkbox" checked={settings.decoration!==false} onChange={e=>void setting('decoration',e.target.checked)}/>Decorative details</label></div><p>Interface themes never recolor your Sanctuary artwork.</p></section>
 }
 

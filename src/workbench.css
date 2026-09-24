@@ -480,7 +480,11 @@ html[data-motion=reduced] .kid-border-fx>i{display:none!important}
 .wb-themes{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:10px;margin:20px 0}
 .wb-themes button{display:grid;gap:8px;text-align:left}.wb-themes span{height:32px;width:100%;border-radius:5px;background:#b15363}
 .wb-themes [aria-pressed="true"]{outline:2px solid var(--wb-accent)}.theme-sakura span{background:#ba6e96}.theme-professional span{background:#305476}.theme-forest span{background:#326e4e}.theme-ocean span{background:#2987ab}.theme-midnight span{background:#24304c}.theme-paper span{background:#d5d1c5}
-.wb-legacy-settings #appearance-settings,.wb-legacy-settings #schedule-settings,.wb-legacy-settings .settings-jump-links,.wb-legacy-settings .settings-hero{display:none!important}
+/* Settings tabs: stacked cards, plus the plain in-text links that jump between tabs. */
+.settings-stack{display:grid;gap:12px}
+.workbench .link-button{background:none;border:0;padding:0;min-height:0;color:var(--wb-accent);text-decoration:underline;font:inherit;cursor:pointer;box-shadow:none}
+.ai-helper-status{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.family-settings .kid-appearance-toggles{margin-top:10px}
 .workbench .schedule-builder-row{display:flex;flex-wrap:wrap;gap:10px}.workbench .time-12-input{display:flex;gap:4px}.workbench .time-12-input select{padding:8px 5px;min-width:54px}
 .workbench .season-toolbar{display:flex;flex-wrap:wrap;gap:10px}
 .workbench .settings-page .profile-grid,.workbench .weather-mode-grid{grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr))}
