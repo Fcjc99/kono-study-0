@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent, type SetStateAction } from 'react'
 import { useDraftState } from '../hooks/useDraftState'
 import { useLectureRecorder } from '../hooks/useLectureRecorder'
-import { useLocalSetting } from '../hooks/useLocalSetting'
+import { AiHelperStatus } from './AiHelper'
+import { useAiHelper } from '../hooks/useAiHelper'
 import { uid, localDate, type AppData, type KQuizLecture, type KQuizSet, type KQuizSource, type KQuizQuestion, type Subject } from '../store/model'
 import type { FlashcardDeck } from '../store/flashcards'
 import { srsInitial } from '../store/spacedRepetition'
@@ -16,11 +17,9 @@ const formatDuration = (seconds: number) => `${Math.floor(seconds / 60)}:${Strin
 
 const UNSORTED = '__unsorted__'
 
-export default function KQuiz({ profileId, lectures, sets, sources, decks, subjects, setData }: { profileId: string; lectures: KQuizLecture[]; sets: KQuizSet[]; sources: KQuizSource[]; decks: FlashcardDeck[]; subjects: Subject[]; setData: (action: SetStateAction<AppData>) => Promise<boolean> }) {
-  const [provider, setProvider] = useLocalSetting('kono-kquiz:' + profileId + ':provider', 'gemini')
-  const [apiKey, setApiKey] = useLocalSetting('kono-kquiz:' + profileId + ':key', '')
+export default function KQuiz({ profileId, lectures, sets, sources, decks, subjects, setData, onOpenAiSettings }: { profileId: string; onOpenAiSettings?: () => void; lectures: KQuizLecture[]; sets: KQuizSet[]; sources: KQuizSource[]; decks: FlashcardDeck[]; subjects: Subject[]; setData: (action: SetStateAction<AppData>) => Promise<boolean> }) {
+  const { provider, apiKey } = useAiHelper(profileId)
   const [busy, setBusy] = useState(false), [message, setMessage] = useState('')
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [pendingTitle, setPendingTitle] = useState('')
   // The active folder both filters what's shown below and decides what subject a newly recorded
   // lecture or generated study set files under — recording while browsing "Biology" lands in
@@ -55,7 +54,7 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
   }
   const needsApiKey = () => {
     if (apiKey.trim()) return false
-    setMessage('Add an API key in K-Quiz settings first.'); setSettingsOpen(true)
+    setMessage('Set up the AI helper first (Settings › Import & export).')
     return true
   }
 
@@ -133,7 +132,7 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
         reader.onerror = () => reject(new Error('Could not read that photo.'))
         reader.readAsDataURL(file)
       })
-      const text = await transcribePhoto({ base64, mimeType: file.type || 'image/jpeg' }, provider === 'openai' ? 'openai' : 'gemini', apiKey)
+      const text = await transcribePhoto({ base64, mimeType: file.type || 'image/jpeg' }, provider, apiKey)
       const source: KQuizSource = { id: uid('note'), profileId, subjectId: folderSubjectId, title: 'Scanned notes · ' + new Date().toLocaleDateString(), createdAt: new Date().toISOString(), text }
       const ok = await setData(data => ({ ...data, kquizSources: [...data.kquizSources, source] }))
       setMessage(ok ? 'Photo saved to your notes.' : 'Not saved yet. Check the save status and try again.')
@@ -168,7 +167,7 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
     setGeneratingFor('combined'); setMessage('')
     try {
       const combined = [...checkedLectures.map(l => `--- ${l.title} ---\n${l.transcript}`), ...checkedSources.map(s => `--- ${s.title} ---\n${s.text}`)].join('\n\n')
-      const materials = await generateStudyMaterials(combined, provider === 'openai' ? 'openai' : 'gemini', apiKey)
+      const materials = await generateStudyMaterials(combined, provider, apiKey)
       const ok = await saveGenerated(combineTitle.trim(), materials, folderSubjectId)
       setMessage(ok ? 'Study set generated.' : 'Not saved yet. Check the save status and try again.')
       if (ok) { setChecked(new Set()); setCombineTitle('') }
@@ -182,7 +181,7 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
     setQaBusy(true); setMessage(''); setQaAnswer(null)
     try {
       const combined = [...checkedLectures.map(l => `--- ${l.title} ---\n${l.transcript}`), ...checkedSources.map(s => `--- ${s.title} ---\n${s.text}`)].join('\n\n')
-      setQaAnswer(await answerFromNotes(combined, qaQuestion.trim(), provider === 'openai' ? 'openai' : 'gemini', apiKey))
+      setQaAnswer(await answerFromNotes(combined, qaQuestion.trim(), provider, apiKey))
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not answer that question.') }
     finally { setQaBusy(false) }
   }
@@ -213,13 +212,7 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
       <button type="button" role="tab" aria-selected={folder === UNSORTED} onClick={() => setFolder(UNSORTED)}>Unsorted</button>
     </div>}
 
-    <details className="wb-panel kquiz-settings" open={settingsOpen} onToggle={e => setSettingsOpen(e.currentTarget.open)}>
-      <summary>AI settings</summary>
-      <p className="wb-muted">Generation calls an AI provider directly from your browser using your own key — it's never sent anywhere else. Google's Gemini has a free tier with no credit card (though on the free tier Google may use your input to improve its models); OpenAI requires billing set up at platform.openai.com.</p>
-      <label>Provider<select value={provider} onChange={e => setProvider(e.target.value)}><option value="gemini">Google Gemini (free tier available)</option><option value="openai">OpenAI</option></select></label>
-      <label>API key<input type="password" autoComplete="off" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Paste your API key" /></label>
-      <p className="wb-muted ai-key-help">Don't have one? <a href={provider === 'openai' ? 'https://platform.openai.com/api-keys' : 'https://aistudio.google.com/apikey'} target="_blank" rel="noopener noreferrer">{provider === 'openai' ? 'Get an OpenAI key' : 'Get a free Gemini key'} →</a></p>
-    </details>
+    <AiHelperStatus profileId={profileId} onOpenSettings={onOpenAiSettings} />
 
     <div className="wb-panel kquiz-record">
       <h4>Record a lecture</h4>

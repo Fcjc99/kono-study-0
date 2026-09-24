@@ -4,8 +4,9 @@ import {addDays} from '../store/studyScheduler'
 import type {PlannerRepository} from '../store/repository'
 import {applyScheduleImport,suggestSchedule,validDate,type ImportRow} from '../store/scheduleImport'
 import {readPlannerPhoto,plannerPhotoToImportRows} from '../store/scheduleCalendarPhoto'
-import {useLocalSetting} from '../hooks/useLocalSetting'
 import './schedule-import.css'
+import {AiHelperStatus} from './AiHelper'
+import {useAiHelper} from '../hooks/useAiHelper'
 
 // Monday of the current week, as a sane default for "which week is this photo of" -- dateNumber-style
 // UTC-noon anchoring avoids the off-by-one a plain `new Date(dateString)` risks near midnight.
@@ -17,10 +18,7 @@ export default function ScheduleImport({data,save}:{data:AppData;save:PlannerRep
  const [start,setStart]=useState(profile.start),[end,setEnd]=useState(profile.end),[order,setOrder]=useState<'mdy'|'dmy'>('mdy')
  const [first,setFirst]=useState(1),[last,setLast]=useState(1),[busy,setBusy]=useState(false),[reading,setReading]=useState(false),[status,setStatus]=useState(''),[error,setError]=useState(''),[reviewed,setReviewed]=useState(false)
  const [receipt,setReceipt]=useState<{before:AppData;after:AppData}|null>(null)
- // Shares K-Quiz's exact provider/key storage (same localStorage keys) -- it is the same browser-side
- // AI call either way, so setting it up once in either place works in both.
- const [photoProvider,setPhotoProvider]=useLocalSetting('kono-kquiz:'+profile.id+':provider','gemini')
- const [photoApiKey,setPhotoApiKey]=useLocalSetting('kono-kquiz:'+profile.id+':key','')
+ const {provider:photoProvider,apiKey:photoApiKey}=useAiHelper(profile.id)
  const [photoFile,setPhotoFile]=useState<File|null>(null),[mondayDate,setMondayDate]=useState(mondayOfThisWeek()),[photoReading,setPhotoReading]=useState(false)
  const active=useRef<AbortController|null>(null),mounted=useRef(true)
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;active.current?.abort()}},[])
@@ -42,12 +40,12 @@ export default function ScheduleImport({data,save}:{data:AppData;save:PlannerRep
  const readPhoto=async()=>{
   if(!photoFile||busy)return
   if(photoFile.size>8_000_000){setError('Choose a photo under 8 MB.');return}
-  if(!photoApiKey.trim()){setError('Add an AI API key below first.');return}
+  if(!photoApiKey.trim()){setError('Set up the AI helper first (above).');return}
   if(!validDate(mondayDate)){setError('Choose the Monday this planner page covers.');return}
   setBusy(true);setPhotoReading(true);setError('');setStatus('Reading the photo…')
   try{
    const base64=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]??'');reader.onerror=()=>reject(new Error('Could not read that photo.'));reader.readAsDataURL(photoFile)})
-   const items=await readPlannerPhoto({base64,mimeType:photoFile.type||'image/jpeg'},photoProvider==='openai'?'openai':'gemini',photoApiKey)
+   const items=await readPlannerPhoto({base64,mimeType:photoFile.type||'image/jpeg'},photoProvider,photoApiKey)
    const found=plannerPhotoToImportRows(items,mondayDate)
    setRows(found);setReviewed(false);setText('');setFile(null);setPhotoFile(null)
    setStatus(found.length+' item'+(found.length===1?'':'s')+' found. Check each one against the photo below, then add the ones you want.')
@@ -59,8 +57,8 @@ export default function ScheduleImport({data,save}:{data:AppData;save:PlannerRep
  <fieldset disabled={busy}><label>Choose PDF (up to 20 MB)<input type="file" accept="application/pdf,.pdf" onChange={e=>{setFile(e.target.files?.[0]??null);setError('');e.target.value=''}}/></label>{file&&<p>{file.name}</p>}<div className="import-fields"><label>First page<input type="number" min="1" max="1000" value={first} onChange={e=>setFirst(Number(e.target.value))}/></label><label>Last page<input type="number" min={first} max={first+4} value={last} onChange={e=>setLast(Number(e.target.value))}/></label></div><p>Read up to five pages at a time. Start with one on an iPhone. Blurry text, handwriting and timetable columns need extra checking.</p><label className="import-select"><input type="checkbox" checked={scanAll} onChange={e=>setScanAll(e.target.checked)}/> Read scanned images on every page (recommended for scans)</label><button disabled={!file} onClick={()=>void read()}>Read selected pages</button></fieldset>
  {reading&&<button onClick={()=>active.current?.abort()}>Cancel reading</button>}
  <fieldset disabled={busy} className="schedule-photo-import"><legend>Or scan a photo of a handwritten weekly planner</legend>
- <p>Real handwriting needs an actual AI vision model to read reliably, unlike the PDF reader above. Uses the same AI key as K-Quiz — set it up once in either place and it works in both. The photo and key go straight to your chosen provider from this browser; nothing is stored anywhere else.</p>
- <details><summary>AI settings</summary><label>Provider<select value={photoProvider} onChange={e=>setPhotoProvider(e.target.value)}><option value="gemini">Google Gemini (free tier available)</option><option value="openai">OpenAI</option></select></label><label>API key<input type="password" autoComplete="off" value={photoApiKey} onChange={e=>setPhotoApiKey(e.target.value)} placeholder="Paste your API key"/></label><p className="wb-muted ai-key-help">Don't have one? <a href={photoProvider==='openai'?'https://platform.openai.com/api-keys':'https://aistudio.google.com/apikey'} target="_blank" rel="noopener noreferrer">{photoProvider==='openai'?'Get an OpenAI key':'Get a free Gemini key'} →</a></p></details>
+ <p>Real handwriting needs an actual AI vision model to read reliably, unlike the PDF reader above. The photo goes straight from this browser to your AI helper's provider; nothing is stored anywhere else.</p>
+ <AiHelperStatus profileId={profile.id}/>
  <label>Week starting (Monday)<input type="date" value={mondayDate} onInput={e=>setMondayDate(e.currentTarget.value)}/></label>
  <label>Choose photo<input type="file" accept="image/*" onChange={e=>{setPhotoFile(e.target.files?.[0]??null);setError('');e.target.value=''}}/></label>{photoFile&&<p>{photoFile.name}</p>}
  <button disabled={!photoFile||photoReading} onClick={()=>void readPhoto()}>{photoReading?'Reading photo…':'Read photo'}</button>

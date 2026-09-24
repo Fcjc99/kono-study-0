@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { localDate, normalizeData, type AppData, type Kid, type Subject } from '../store/model'
 import { readAssignmentPhoto, applyAssignmentPhoto, type CreatedItem } from '../store/assignmentPhoto'
-import { useLocalSetting } from '../hooks/useLocalSetting'
+import { AiHelperStatus } from './AiHelper'
+import { useAiHelper } from '../hooks/useAiHelper'
 
 const kindLabels = { tasks: 'Assignment', exams: 'Exam / project', calendarEvents: 'Event' } as const
 const MAX_PHOTOS = 8
 
-export default function UpdatePlanScanner({ profileId, subjects, kids, save, close }: { profileId: string; subjects: Subject[]; kids: Kid[]; save: (fn: (d: AppData) => AppData) => Promise<boolean>; close?: () => void }) {
-  // Shares K-Quiz's exact provider/key storage (same localStorage keys) -- it is the same browser-side
-  // AI call either way, so setting it up once in either place works in both.
-  const [provider, setProvider] = useLocalSetting('kono-kquiz:' + profileId + ':provider', 'gemini')
-  const [apiKey, setApiKey] = useLocalSetting('kono-kquiz:' + profileId + ':key', '')
+export default function UpdatePlanScanner({ profileId, subjects, kids, save, close, onOpenAiSettings }: { profileId: string; onOpenAiSettings?: () => void; subjects: Subject[]; kids: Kid[]; save: (fn: (d: AppData) => AppData) => Promise<boolean>; close?: () => void }) {
+  const { provider, apiKey } = useAiHelper(profileId)
   const [files, setFiles] = useState<File[]>([])
   // Thumbnail previews so a person can confirm they picked the right page(s) before spending an AI
   // call on them -- object URLs are revoked whenever the file list changes or the scanner unmounts.
@@ -36,12 +34,12 @@ export default function UpdatePlanScanner({ profileId, subjects, kids, save, clo
   const scan = async () => {
     if (!files.length || busy) return
     if (files.some(f => f.size > 8_000_000)) { setError('Each photo must be under 8 MB.'); return }
-    if (!apiKey.trim()) { setError('Add an AI API key below first.'); return }
+    if (!apiKey.trim()) { setError('Set up the AI helper first (Settings › Import & export).'); return }
     setBusy(true); setError(''); setStatus(`Reading ${files.length} photo${files.length === 1 ? '' : 's'}…`); setCreatedItems([])
     let before: AppData | undefined, after: AppData | undefined
     try {
       const today = localDate()
-      const aiProvider = provider === 'openai' ? 'openai' : 'gemini'
+      const aiProvider = provider
       // Every photo is read independently, then merged into one batch -- one page misread (a bad
       // photo, a request that failed) doesn't sink the others, and everything still lands as a single
       // undo-able scan instead of N separate ones.
@@ -102,12 +100,8 @@ export default function UpdatePlanScanner({ profileId, subjects, kids, save, clo
 
   return <div className="update-plan-scanner">
     <p>Take photos of handwritten or printed notes, a family calendar app screenshot, or a planner page listing assignments, due dates, tests, classes, appointments, or activities — a to-do list, a torn notebook page, a whole week of a planner, a full course syllabus, or a screenshot per day/week (photograph or scan each page). Every item found across every page is added to your plan right away, flagged in red until you open or confirm it. When a screenshot labels items by person (a family calendar's per-item name and color dot), each item is tagged to that kid automatically — a kid not already on your Kids page is added with its own color.</p>
-    <p className="wb-muted">Needs a real AI vision model to read handwriting reliably. Uses the same AI key as K-Quiz — set it up once in either place and it works in both. The photos and key go straight to your chosen provider from this browser; nothing is stored anywhere else.</p>
-    <details><summary>AI settings</summary>
-      <label>Provider<select value={provider} onChange={e => setProvider(e.target.value)}><option value="gemini">Google Gemini (free tier available)</option><option value="openai">OpenAI</option></select></label>
-      <label>API key<input type="password" autoComplete="off" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Paste your API key" /></label>
-      <p className="wb-muted ai-key-help">Don't have one? <a href={provider === 'openai' ? 'https://platform.openai.com/api-keys' : 'https://aistudio.google.com/apikey'} target="_blank" rel="noopener noreferrer">{provider === 'openai' ? 'Get an OpenAI key' : 'Get a free Gemini key'} →</a></p>
-    </details>
+    <p className="wb-muted">Needs a real AI vision model to read handwriting reliably. The photos go straight from this browser to your AI helper's provider; nothing is stored anywhere else.</p>
+    <AiHelperStatus profileId={profileId} onOpenSettings={onOpenAiSettings} />
     <label>Choose photos (up to {MAX_PHOTOS})<input type="file" accept="image/*" multiple disabled={busy} onChange={e => { setFiles(Array.from(e.target.files ?? []).slice(0, MAX_PHOTOS)); setError(''); e.target.value = '' }} /></label>
     {files.length > 0 && <div className="update-plan-photo-previews">
       {files.map((f, i) => <div className="update-plan-photo-preview" key={f.name + i}>
