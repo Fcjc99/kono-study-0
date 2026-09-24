@@ -111,10 +111,16 @@ const list=(v:unknown,path:string,limit=20000):Obj[]=>{
  const seen=new Set<string>();for(const item of v){const key=id(item.id,`${path}.id`);if(seen.has(key))fail(`${path}: duplicate ID`);seen.add(key)}
  return v
 }
-const choice=<const T extends string>(v:unknown,values:readonly T[],fallback:T):T=>v===undefined?fallback:values.includes(v as T)?v as T:fail('choice')
+// Enum-like fields (kinds, themes, fonts, sizes...) fall back to their default on an unknown value:
+// a value this build doesn't know usually means a newer build wrote it (or an older one did and it
+// was since retired), and failing the whole load over it would lock someone out of their plan.
+const choice=<const T extends string>(v:unknown,values:readonly T[],fallback:T):T=>values.includes(v as T)?v as T:fallback
+// For the few enums that decide where data goes, guessing would misplace it, so these stay strict.
+const exactChoice=<const T extends string>(v:unknown,values:readonly T[],fallback:T):T=>v===undefined?fallback:values.includes(v as T)?v as T:fail('choice')
 const date=(v:unknown,path:string):string=>{const s=str(v,path,10),d=new Date(`${s}T12:00:00Z`);return /^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===s?s:fail(path)}
 const clockTime=(v:unknown)=>{const s=str(v,'schedule time',5);return /^([01]\d|2[0-3]):[0-5]\d$/.test(s)?s:fail('schedule time')}
-const color=(v:unknown,fallback:string)=>v===undefined?fallback:typeof v==='string'&&(/^(#[0-9a-f]{3,8}|transparent)$/i.test(v))?v:fail('color')
+// Colors are cosmetic: anything this build can't use as a color falls back instead of failing the load.
+const color=(v:unknown,fallback:string)=>typeof v==='string'&&(/^(#[0-9a-f]{3,8}|transparent)$/i.test(v))?v:fallback
 const occurrenceNotes=(value:unknown):Record<string,string>=>{if(value===undefined)return {};if(!object(value)||Object.keys(value).length>2000)return fail('class notes');return Object.fromEntries(Object.entries(value).map(([key,text])=>[date(key,'class note date'),str(text,'class note',10000)]))}
 const stringMap=(v:unknown):Record<string,string>=>{if(v===undefined)return {};if(!object(v))return fail('settings locations');return Object.fromEntries(Object.entries(v).map(([k,x])=>[id(k,'location profile'),str(x,'location',300)]))}
 /** A match score is cosmetic, recorded well after the fact — malformed input (e.g. from a future
@@ -295,7 +301,7 @@ export function normalizeData(raw:unknown):AppData {
   return [p.id,{profileId:p.id,placements}]
  }))
  const activeProfileId=typeof raw.activeProfileId==='string'&&pids.has(raw.activeProfileId)?raw.activeProfileId:profiles[0].id
- const trash:TrashEntry[]=list(raw.trash??[],'trash',2000).map(t=>({id:id(t.id,'trash ID'),profileId:owner(t.profileId),collection:choice(t.collection,['tasks','notes','exams','calendarEvents','subjects','kids','studyPlans','flashcardDecks','kquizSets','kquizSources','studySeasons','scheduleBlocks'],'notes'),title:str(t.title,'trash title',1000),payload:str(t.payload,'trash payload',1000000),deletedAt:str(t.deletedAt,'deleted at',40)}))
+ const trash:TrashEntry[]=list(raw.trash??[],'trash',2000).map(t=>({id:id(t.id,'trash ID'),profileId:owner(t.profileId),collection:exactChoice(t.collection,['tasks','notes','exams','calendarEvents','subjects','kids','studyPlans','flashcardDecks','kquizSets','kquizSources','studySeasons','scheduleBlocks'],'notes'),title:str(t.title,'trash title',1000),payload:str(t.payload,'trash payload',1000000),deletedAt:str(t.deletedAt,'deleted at',40)}))
  return {schemaVersion:6,trash,profiles,activeProfileId,subjects,kids,tasks,exams,notes,calendarEvents,studySeasons,studyPlans,flashcardDecks,kquizLectures,kquizSets,kquizSources,settings,sanctuaryProgress,sanctuaryDecor,onboardingComplete:bool(raw.onboardingComplete,true)}
 }
 

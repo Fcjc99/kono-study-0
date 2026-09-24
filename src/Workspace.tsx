@@ -22,7 +22,7 @@ import ScheduleShare from './components/ScheduleShare'
 import {schoolDayLabels} from './store/schoolCalendar'
 import {PlanSettings,WeatherSettings,SoundMotionSettings,ReminderSettings,StickyNoteView} from './LegacyApp'
 import Sidebar from './components/Sidebar'
-import {AccountPanel,BackupPanel,Onboarding,SaveStatus} from './components/AccountPanel'
+import {AccountPanel,BackupPanel,Onboarding,RecoveryScreen,SaveStatus} from './components/AccountPanel'
 import {AiHelperSettings} from './components/AiHelper'
 import GardenCard from './components/GardenCard'
 import StudyPlanner from './components/StudyPlanner'
@@ -98,7 +98,7 @@ export default function WorkspaceApp(){
  // AccountPanel (rendered inside Onboarding) shows its own SaveStatus in context -- a second
  // one floating above the welcome card duplicated the exact same "Build X · This device only"
  // line as a stray line of text before the reader has even reached the card it belongs to.
- if(!store.data.onboardingComplete)return <Onboarding store={store}/>
+ if(!store.data.onboardingComplete)return store.unreadable?<RecoveryScreen store={store}/>:<Onboarding store={store}/>
  return <Workspace key={(store.user?.id??'device')+':'+store.data.activeProfileId} store={store}/>
 }
 function Workspace({store}:{store:Store}){

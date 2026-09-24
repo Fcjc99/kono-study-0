@@ -1,20 +1,20 @@
 import { useEffect, useState, useSyncExternalStore, type SetStateAction } from 'react'
 import { createFreshData, normalizeData, randomId, type AppData } from './model'
-import { commitCache, decodeData, deleteCache, downloadData, exportData, readCache, readLegacy, type CacheEntry, type RecoveryFile } from './localRepository'
+import { commitCache, decodeData, deleteCache, downloadData, exportData, readCache, readLegacy, readRawCache, type CacheEntry, type RecoveryFile } from './localRepository'
 import { captureDeletions } from './workspace'
 import { mergeData, type MergeConflict } from './merge'
 import type {SupabaseRemote} from './supabaseRemote'
 import { buildSharedSnapshot } from './peerShare'
 type User={id:string;email:string;name:string}
 type Remote={revision:number;data:AppData|null}
-export type RepositoryState={data:AppData;ready:boolean;status:string;error:string;user:User|null;recovery:RecoveryFile[];needsMigration:boolean;conflicts:MergeConflict[];savedAt:string|null}
+export type RepositoryState={data:AppData;ready:boolean;status:string;error:string;user:User|null;recovery:RecoveryFile[];needsMigration:boolean;conflicts:MergeConflict[];savedAt:string|null;unreadable:boolean}
 const message=(e:unknown)=>e instanceof Error?e.message:'Could not save. Export your working copy before leaving.'
 const content=(data:AppData)=>JSON.stringify({...data,activeProfileId:undefined})
 const remoteValue=(value:unknown):Remote=>{const r=value as Remote;if(!r||!Number.isSafeInteger(r.revision)||r.revision<0||!('data' in r))throw new Error('Invalid cloud response. Your device copy is preserved.');return {revision:r.revision,data:r.data===null?null:normalizeData(r.data)}}
 /** One queue owns account transitions, transactions and acknowledgements.
  * Queued edits capture their account generation and cannot cross into another account. */
 export class PlannerRepository {
- private state:RepositoryState={data:createFreshData(),ready:false,status:'Loading',error:'',user:null,recovery:[],needsMigration:false,conflicts:[],savedAt:null}
+ private state:RepositoryState={data:createFreshData(),ready:false,status:'Loading',error:'',user:null,recovery:[],needsMigration:false,conflicts:[],savedAt:null,unreadable:false}
  private undoStack:{before:AppData;after:AppData}[]=[]
  private redoStack:{before:AppData;after:AppData}[]=[]
  private historyMove=false
@@ -68,7 +68,11 @@ export class PlannerRepository {
   if(!this.valid(generation))return
   this.scope='device';this.cache=local;this.blocked=!!error
   this.migration=local?.data??(legacy.found?legacy.data:null)
-  this.notify({data:local?.data??legacy.data,recovery:legacy.recovery,error,status:error?'Recovery needed':'Saved on this device'})
+  // Saved data exists but couldn't be read: never fall through to a blank plan (which looks like the
+  // work was deleted and would let a fresh start overwrite it). The app shows a recovery screen instead.
+  const unreadable=!!error||(!local&&!legacy.found&&legacy.recovery.some(file=>file.raw!==''))
+  if(unreadable)this.blocked=true
+  this.notify({data:local?.data??legacy.data,recovery:legacy.recovery,error,unreadable,status:unreadable?'Recovery needed':'Saved on this device'})
   try{
    const supabaseUrl=typeof __KONO_SUPABASE_URL__==='string'?__KONO_SUPABASE_URL__:''
    const supabaseKey=typeof __KONO_SUPABASE_ANON_KEY__==='string'?__KONO_SUPABASE_ANON_KEY__:''
@@ -103,11 +107,14 @@ export class PlannerRepository {
  private async openAccount(user:User,generation:number){
   this.undoStack=[];this.redoStack=[];this.scope='account:'+user.id;this.cache=null;this.blocked=false
   this.notify({user,data:createFreshData(),status:'Connecting',error:''})
-  try{this.cache=await readCache(this.scope)}catch(e){this.blocked=true;throw e}
+  try{this.cache=await readCache(this.scope)}catch(e){this.blocked=true;this.notify({unreadable:true,status:'Recovery needed'});throw e}
   if(!this.valid(generation))return
   if(this.cache)this.notify({data:this.cache.data})
   const response=await this.api('plan');if(!response.ok)throw new Error('Cloud plan unavailable. Retry when connected.')
-  const remote=remoteValue(await response.json());if(!this.valid(generation))return
+  const body:unknown=await response.json()
+  let remote:Remote
+  try{remote=remoteValue(body)}catch(e){this.unreadableCopy=body;if(!this.cache){this.blocked=true;this.notify({unreadable:true,status:'Recovery needed'})}throw e}
+  if(!this.valid(generation))return
   if(!this.cache){
    if(remote.data)await this.saveCache(remote.data,remote.data,remote.revision,false,generation)
    else{await this.saveCache(this.state.data,null,remote.revision,false,generation);this.notify({needsMigration:remote.revision===0&&!!this.migration,status:'Account ready'})}
@@ -189,6 +196,9 @@ export class PlannerRepository {
  downloadBackup=(data:AppData)=>exportData(normalizeData(data))
  cloudHistory=async()=>{const generation=this.generation,response=await this.api('history');if(!response.ok||!this.valid(generation))throw new Error('History unavailable.');const result=await response.json() as {history:{revision:number;created_at:string}[]};if(!this.valid(generation))throw new Error('Account changed.');return result.history}
  downloadCloudBackup=async(revision:number)=>{const generation=this.generation,response=await this.api('history/'+revision);if(!response.ok)throw new Error('Backup unavailable.');const data=decodeData(await response.text());if(this.valid(generation))exportData(data)}
+ private unreadableCopy:unknown=null
+ /** Downloads the save this build couldn't read, exactly as stored, so it can be restored later. */
+ downloadUnreadable=async()=>{const raw=this.unreadableCopy??await readRawCache(this.scope).catch(()=>null);if(raw)downloadData(raw,'kono-saved-plan-'+new Date().toISOString().slice(0,10)+'.json');return Boolean(raw)}
  downloadRecovery=(file:RecoveryFile)=>downloadData(file.raw,file.name.replace(/[^a-z0-9-]/gi,'-')+'-recovery.json')
  /** async: a guard that fails must reject its promise, never throw synchronously — callers
   * chain .then/.catch on these rather than always awaiting inside a try/catch. */

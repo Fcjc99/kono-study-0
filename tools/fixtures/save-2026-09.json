@@ -1,0 +1,302 @@
+{
+ "schemaVersion": 6,
+ "trash": [],
+ "profiles": [
+  {
+   "id": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+   "name": "Learner",
+   "label": "My study plan",
+   "kind": "custom",
+   "start": "2026-09-24",
+   "end": "2027-03-23",
+   "progressEpoch": "epoch-ea36cafa-e10e-4b80-b812-3b58e4497e04"
+  }
+ ],
+ "activeProfileId": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+ "subjects": [
+  {
+   "id": "sub-bio",
+   "profileId": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+   "name": "Biology",
+   "color": "#4169a8",
+   "teacher": "Ms. Lee",
+   "room": "204",
+   "resources": [
+    "https://example.test/bio"
+   ]
+  }
+ ],
+ "kids": [
+  {
+   "id": "kid-emma",
+   "profileId": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+   "name": "Emma",
+   "color": "#7f9fc9",
+   "emoji": "🦄",
+   "borderStyle": "ocean",
+   "borderColors": [
+    "#0d6eaf",
+    "#44b8ea"
+   ],
+   "borderSpeed": 1.5,
+   "borderGlow": "strong",
+   "borderExtras": true
+  },
+  {
+   "id": "kid-leo",
+   "profileId": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+   "name": "Leo",
+   "color": "#d98f8f",
+   "borderStyle": "garden",
+   "borderSpeed": 1,
+   "borderGlow": "soft",
+   "borderExtras": true
+  }
+ ],
+ "tasks": [
+  {
+   "id": "task-1",
+   "profileId": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+   "subjectId": "sub-bio",
+   "kidId": "kid-emma",
+   "title": "Read chapter 3",
+   "due": "2026-09-25",
+   "done": false,
+   "notes": "Pages 40-60",
+   "subtasks": [
+    {
+     "id": "st-1",
+     "title": "Skim",
+     "done": true
+    }
+   ],
+   "needsReview": false,
+   "estimatedMinutes": 30,
+   "plannedTime": "16:00"
+  },
+  {
+   "id": "task-2",
+   "profileId": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+   "subjectId": "",
+   "title": "Done task",
+   "due": "2026-09-20",
+   "done": true,
+   "notes": "",
+   "completedAt": "2026-09-20T18:00:00.000Z",
+   "needsReview": false
+  }
+ ],
+ "exams": [
+  {
+   "id": "exam-1",
+   "profileId": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+   "subjectId": "sub-bio",
+   "kidId": "kid-leo",
+   "title": "Cell biology test",
+   "due": "2026-10-02",
+   "notes": "",
+   "done": false,
+   "needsReview": false,
+   "color": "#ffd2dd",
+   "textColor": "#2f2942",
+   "highlight": "transparent",
+   "font": "handwritten"
+  }
+ ],
+ "notes": [
+  {
+   "id": "note-1",
+   "profileId": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+   "subjectId": "sub-bio",
+   "title": "Mitosis",
+   "body": "**Prophase** then metaphase",
+   "created": "2026-09-10T12:00:00Z",
+   "size": "large",
+   "position": 0,
+   "pinned": true,
+   "completed": false,
+   "color": "#fff2b4",
+   "textColor": "#2f2942",
+   "highlight": "transparent",
+   "font": "serif"
+  }
+ ],
+ "calendarEvents": [
+  {
+   "id": "ev-1",
+   "profileId": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+   "done": false,
+   "subjectId": "",
+   "kidId": "kid-leo",
+   "title": "Soccer game",
+   "date": "2026-09-26",
+   "notes": "",
+   "kind": "sports",
+   "time": "10:00",
+   "endTime": "11:30",
+   "result": {
+    "ourScore": 3,
+    "opponentScore": 1
+   },
+   "needsReview": false
+  },
+  {
+   "id": "ev-2",
+   "profileId": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+   "done": false,
+   "subjectId": "",
+   "kidId": "kid-emma",
+   "title": "Dentist",
+   "date": "2026-09-27",
+   "notes": "",
+   "kind": "appointment",
+   "time": "15:30",
+   "needsReview": false
+  }
+ ],
+ "studySeasons": [
+  {
+   "id": "season-3ae2e768-f14b-4464-9889-e94f9da56aee",
+   "profileId": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+   "name": "My schedule",
+   "start": "2026-09-24",
+   "end": "2027-03-23",
+   "active": true,
+   "week": {
+    "Sunday": [],
+    "Monday": [
+     {
+      "fullYear": false,
+      "occurrenceNotes": {},
+      "completedDates": [],
+      "skippedDates": [],
+      "id": "blk-1",
+      "start": "09:00",
+      "end": "10:00",
+      "label": "Biology",
+      "kind": "study",
+      "subjectId": "sub-bio",
+      "location": "204"
+     }
+    ],
+    "Tuesday": [],
+    "Wednesday": [],
+    "Thursday": [],
+    "Friday": [],
+    "Saturday": []
+   }
+  }
+ ],
+ "studyPlans": [],
+ "flashcardDecks": [
+  {
+   "id": "deck-1",
+   "profileId": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+   "title": "Cell parts",
+   "cards": [
+    {
+     "id": "card-1",
+     "question": "Powerhouse?",
+     "answer": "Mitochondria",
+     "interval": 0,
+     "ease": 2.3,
+     "dueDate": "2026-09-24"
+    }
+   ]
+  }
+ ],
+ "kquizLectures": [],
+ "kquizSets": [],
+ "kquizSources": [],
+ "settings": {
+  "experience": "cozy",
+  "textSize": "large",
+  "density": "compact",
+  "decoration": true,
+  "boardStyle": "cork",
+  "theme": "sakura",
+  "themeVersion": 4,
+  "sound": true,
+  "ambient": true,
+  "reminders": false,
+  "browserNotifications": false,
+  "familyEventReminders": false,
+  "familyTileBorders": true,
+  "familyTileAvatars": true,
+  "loginDigest": true,
+  "scheduleShowAcademic": true,
+  "scheduleShowSports": true,
+  "scheduleShowAppointments": true,
+  "parentMode": true,
+  "reducedMotion": false,
+  "motionPreference": "system",
+  "sanctuaryWeather": "snow",
+  "sanctuaryWeatherMode": "manual",
+  "sanctuaryZipCodes": {},
+  "sanctuaryWeatherLocations": {}
+ },
+ "sanctuaryProgress": {
+  "profile-80fd0429-6837-467b-ac41-e82a15b2be86": {
+   "schemaVersion": 7,
+   "profileId": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+   "creditedTaskIds": [
+    "task-2"
+   ],
+   "currentCompletedTaskIds": [
+    "task-2"
+   ],
+   "creditsBySubjectId": {},
+   "creditsBySubjectKey": {},
+   "completionDates": {
+    "2026-09-24": 1
+   },
+   "totalCredits": 1,
+   "currentCompletedCount": 1,
+   "unlockedStage": 0,
+   "readyStage": 0,
+   "nextStageAt": 3,
+   "featureStages": {
+    "tree": 0,
+    "pond": 0,
+    "home": 0,
+    "garden": 0,
+    "bridge": 0,
+    "lanterns": 1,
+    "bamboo": 0
+   },
+   "nextFeatureAt": {
+    "tree": 3,
+    "pond": 1,
+    "home": 5,
+    "garden": 4,
+    "bridge": null,
+    "lanterns": 3,
+    "bamboo": null
+   },
+   "lastTaskCompletedAt": null,
+   "updatedAt": "2026-09-24T23:21:15.963Z"
+  }
+ },
+ "sanctuaryDecor": {
+  "profile-80fd0429-6837-467b-ac41-e82a15b2be86": {
+   "profileId": "profile-80fd0429-6837-467b-ac41-e82a15b2be86",
+   "placements": [
+    {
+     "id": "pl-1",
+     "assetId": "bench",
+     "x": 0.4,
+     "y": 0.6,
+     "rotation": 90,
+     "scale": 1.2,
+     "skewX": 0,
+     "flipX": true,
+     "text": "Hi",
+     "textSize": 1.2,
+     "textColor": "#4b342a",
+     "textFont": "serif"
+    }
+   ]
+  }
+ },
+ "onboardingComplete": true
+}
