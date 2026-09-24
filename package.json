@@ -17,6 +17,7 @@
     "check": "npm run lint && npm run build && npm test",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test:e2e": "node tools/test_e2e.cjs",
     "test:visual": "node tools/test_theme_contrast.cjs",
     "assets:water": "python tools/generate_production_water.py",
     "assets:atmosphere": "python tools/generate_production_atmosphere.py",
