@@ -152,7 +152,35 @@ button.needs-review-record{outline-offset:-2px}
  * next to it. Weather moved up into the header (see .wb-header-weather) and the streak/done-this-week
  * stats moved inline into .wb-scene-toolbar, so there's no more side column to lay out; the section is
  * just the toolbar on one line followed by the stage, both at full width. */
-.wb-scene-toolbar .wb-stats-strip{margin:0 0 0 auto}
+/* Scene toolbar: the view switch and the streak pills on the left, the scene's own controls (time,
+ * zoom, expand) grouped on the right. On a narrow screen each half becomes its own full-width row. */
+.wb-scene-toolbar{align-items:center;gap:10px 16px}
+.wb-scene-left,.wb-scene-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.wb-scene-controls{margin-left:auto}
+.wb-scene-toolbar .wb-stats-strip{margin:0;gap:6px}
+.wb-scene-toolbar .wb-stat{display:flex;align-items:baseline;gap:5px;padding:5px 12px;border-radius:999px;min-width:0}
+.wb-scene-toolbar .wb-stat strong{display:inline;font-size:1rem}
+.wb-scene-toolbar .wb-stat small{display:inline;margin:0;font-size:.68rem}
+.wb-scene-controls>*{flex:0 0 auto}
+.wb-scene-time{display:flex;align-items:center;gap:6px;padding:0 4px 0 10px;border:1px solid var(--wb-line);border-radius:999px;background:var(--wb-surface)}
+.workbench .wb-scene-time select{border:0;background:transparent;padding:6px 4px;min-height:0;box-shadow:none;font-size:.85rem}
+.wb-scene-controls .wb-island-zoom{padding:2px;border:1px solid var(--wb-line);border-radius:999px;background:var(--wb-surface);gap:2px}
+.workbench .wb-scene-controls .wb-island-zoom button{min-width:30px;min-height:30px;padding:2px 8px;border-radius:999px;box-shadow:none}
+.workbench .wb-scene-expand{border-radius:999px;padding:6px 14px;font-size:.85rem}
+@media(max-width:700px){
+ .wb-scene-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"tabs expand" "time zoom" "stats stats";gap:8px}
+ .wb-scene-left,.wb-scene-controls{display:contents}
+ .wb-scene-toolbar .island-mode-tabs{grid-area:tabs}.wb-scene-toolbar .wb-scene-expand{grid-area:expand;justify-self:end}
+ .wb-scene-toolbar .wb-scene-time{grid-area:time;justify-self:start}.wb-scene-toolbar .wb-island-zoom{grid-area:zoom;justify-self:end}
+ .wb-scene-toolbar .wb-stats-strip{grid-area:stats}
+}
+/* Live weather chip beside the KONO name; opens Sanctuary weather from any page. */
+.workbench .kono-weather-chip,.workbench[data-experience] .kono-weather-chip{display:inline-flex!important;align-items:center;gap:3px;margin-left:auto;padding:3px 8px!important;min-height:0!important;min-width:0!important;width:auto!important;height:auto!important;border-radius:999px!important;font-size:.95rem;line-height:1;box-shadow:none!important;flex:0 0 auto;align-self:center}
+/* The weather chip takes the corner the coral theme's decorative flower used to sit in. */
+html[data-theme] .brand:has(.kono-weather-chip):after,html[data-theme] .sidebar:has(.brand .kono-weather-chip):before{content:none}
+.brand-title-row{display:flex;align-items:center;gap:8px}.brand-title-row .kono-weather-chip{margin-left:0}
+.wb-brand-row{display:flex;align-items:center;gap:8px}.wb-brand-row .wb-brand{flex:1;min-width:0}
+.workbench .kono-weather-chip small{font-size:.75rem;font-weight:700;font-variant-numeric:tabular-nums}
 /* Today's/Tomorrow's schedule side by side on desktop, the same shape as the notes/exams board pair
  * below them -- collapses to one column at the same width restored-board-pair already does. */
 .today-tomorrow-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
@@ -265,7 +293,7 @@ button.needs-review-record{outline-offset:-2px}
 .kid-border-swatch:is(.kid-border-unique)>span::before{content:none}
 .kid-border-fx>i{position:absolute;top:0;left:0;display:none;font-style:normal;font-size:1.1rem;line-height:1;offset-path:inset(calc(var(--kid-ring)/2) round 12px);offset-rotate:0deg;animation:kid-fx-travel var(--kid-fx-dur,calc(10s/var(--kid-speed,1))) linear infinite;animation-delay:calc(var(--p,0)*var(--kid-fx-dur,calc(10s/var(--kid-speed,1)))*-1)}
 .kid-border-fx>i::before{display:block}
-.kid-border-fx>i:nth-of-type(2){--p:.2}.kid-border-fx>i:nth-of-type(3){--p:.4}.kid-border-fx>i:nth-of-type(4){--p:.6}.kid-border-fx>i:nth-of-type(5){--p:.8}
+.kid-border-fx>i:nth-of-type(2){--p:.2}.kid-border-fx>i:nth-of-type(3){--p:.4}.kid-border-fx>i:nth-of-type(4){--p:.6}.kid-border-fx>i:nth-of-type(5){--p:.8}.kid-border-fx>i:nth-of-type(6){--p:.1}.kid-border-fx>i:nth-of-type(7){--p:.3}.kid-border-fx>i:nth-of-type(8){--p:.5}
 @keyframes kid-fx-travel{from{offset-distance:0%}to{offset-distance:100%}}
 @supports not (offset-path:inset(0 round 1px)){.kid-border-fx>i{display:none!important}}
 html[data-motion=reduced] .kid-border-fx>i{display:none!important}
@@ -297,36 +325,50 @@ html[data-motion=reduced] .kid-border-fx>i{display:none!important}
 .kid-border-unique .kid-border-fx>s{display:none}
 .kid-border-unique .kid-border-fx>b{filter:blur(8px) saturate(1.6)}
 .kid-border-unique .kid-border-fx>b::before{background:conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,var(--kid-color,#b47e75)),var(--kid-ring-b,#ff7ad9),var(--kid-ring-a-soft,#7ad7ff),var(--kid-ring-b-soft,#ffe27a),var(--kid-ring-a,var(--kid-color,#b47e75)));animation:kid-border-angle-spin calc(4s/var(--kid-speed,1)) linear infinite}
-/* Space: a comet streaks a navy ring while a rocket flies the loop past twinkling stars. */
-.kid-border-space{--kid-fx-dur:calc(7s/var(--kid-speed,1))}
-.kid-border-space .kid-border-fx>s,.kid-border-space .kid-border-fx>b::before,.kid-border-swatch.kid-border-space>span::before{background:conic-gradient(from var(--kid-border-angle),transparent 0deg 240deg,var(--kid-ring-a,#6f8cff) 320deg,#fff 356deg,transparent 360deg),var(--kid-ring-b,#1f2456);animation:kid-border-angle-spin calc(2.8s/var(--kid-speed,1)) linear infinite}
-.kid-border-space .kid-border-fx>i{display:block}
-.kid-border-space .kid-border-fx>i:first-of-type{offset-rotate:auto 45deg}
-.kid-border-space .kid-border-fx>i:first-of-type::before{content:'🚀';font-size:1.2rem}
-.kid-border-space .kid-border-fx>i:nth-of-type(n+2){animation:none;offset-distance:calc(var(--p)*100% + 5%)}
-.kid-border-space .kid-border-fx>i:nth-of-type(n+2)::before{content:'✦';font-size:.9rem;color:#ffd76a;text-shadow:0 0 6px #ffd76a;animation:kid-fx-twinkle calc(1.6s/var(--kid-speed,1)) ease-in-out infinite}
-.kid-border-space .kid-border-fx>i:nth-of-type(3)::before{animation-delay:calc(-.4s/var(--kid-speed,1))}.kid-border-space .kid-border-fx>i:nth-of-type(4)::before{animation-delay:calc(-.8s/var(--kid-speed,1))}.kid-border-space .kid-border-fx>i:nth-of-type(5)::before{animation-delay:calc(-1.2s/var(--kid-speed,1))}
-/* Garden: a leafy vine ring, with leaves and flowers blowing around it in the breeze. */
-.kid-border-garden{--kid-fx-dur:calc(14s/var(--kid-speed,1))}
-.kid-border-garden .kid-border-fx>s,.kid-border-garden .kid-border-fx>b::before,.kid-border-swatch.kid-border-garden>span::before{background:repeating-conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,#3f8f3a) 0deg 9deg,var(--kid-ring-b,#74c466) 9deg 18deg,var(--kid-ring-b-soft,#a9dc90) 18deg 22deg);animation:kid-border-angle-spin calc(24s/var(--kid-speed,1)) linear infinite}
+/* Space: a shooting star sweeps a starry navy ring while planets, moons and space rocks drift slowly
+ * around the frame, bobbing and turning as they float. */
+.kid-border-space{--kid-fx-dur:calc(28s/var(--kid-speed,1))}
+.kid-border-space .kid-border-fx>s,.kid-border-space .kid-border-fx>b::before,.kid-border-swatch.kid-border-space>span::before{background:conic-gradient(from var(--kid-border-angle),transparent 0deg 250deg,var(--kid-ring-a,#6f8cff) 325deg,#fff 356deg,transparent 360deg),radial-gradient(circle,#fff 0 .7px,transparent 1.2px) 0 0/23px 17px,radial-gradient(circle,#cfd8ff 0 .6px,transparent 1.1px) 11px 8px/31px 13px,var(--kid-ring-b,#1f2456);animation:kid-border-angle-spin calc(3.2s/var(--kid-speed,1)) linear infinite}
+.kid-border-space .kid-border-fx>i:nth-of-type(-n+6){display:block}
+.kid-border-space .kid-border-fx>i:nth-of-type(1){--p:0}.kid-border-space .kid-border-fx>i:nth-of-type(2){--p:.17}.kid-border-space .kid-border-fx>i:nth-of-type(3){--p:.33}.kid-border-space .kid-border-fx>i:nth-of-type(4){--p:.5}.kid-border-space .kid-border-fx>i:nth-of-type(5){--p:.67}.kid-border-space .kid-border-fx>i:nth-of-type(6){--p:.83}
+.kid-border-space .kid-border-fx>i::before{content:'🪐';font-size:1.25rem;animation:kid-fx-float calc(4s/var(--kid-speed,1)) ease-in-out infinite}
+.kid-border-space .kid-border-fx>i:nth-of-type(2)::before{content:'🌙';animation-delay:calc(-1s/var(--kid-speed,1))}
+.kid-border-space .kid-border-fx>i:nth-of-type(3)::before{content:'🪨';font-size:.9rem;animation-delay:calc(-2s/var(--kid-speed,1))}
+.kid-border-space .kid-border-fx>i:nth-of-type(4)::before{content:'🌍';font-size:1.05rem;animation-delay:calc(-3s/var(--kid-speed,1))}
+.kid-border-space .kid-border-fx>i:nth-of-type(5)::before{content:'✦';font-size:.9rem;color:#ffd76a;text-shadow:0 0 6px #ffd76a;animation:kid-fx-twinkle calc(1.6s/var(--kid-speed,1)) ease-in-out infinite}
+.kid-border-space .kid-border-fx>i:nth-of-type(6)::before{content:'🪨';font-size:.75rem;animation-delay:calc(-1.5s/var(--kid-speed,1))}
+@keyframes kid-fx-float{0%,100%{transform:translateY(0) rotate(-10deg)}50%{transform:translateY(-4px) rotate(10deg)}}
+/* Garden: flowers and sprouts grow out of the border and sway as a breeze passes along it, while a
+ * leaf and a petal blow around the frame. Each plant sits at a fixed spot on the border path;
+ * offset-rotate:auto turns it to face outward on every edge and offset-anchor plants its base on the
+ * border line. Each plant's sway is delayed by its position, so the gust visibly travels. */
+.kid-border-garden{--kid-fx-dur:calc(9s/var(--kid-speed,1))}
+.kid-border-garden .kid-border-fx>s,.kid-border-garden .kid-border-fx>b::before,.kid-border-swatch.kid-border-garden>span::before{background:conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,#3f8f3a),var(--kid-ring-b,#74c466),var(--kid-ring-a,#3f8f3a),var(--kid-ring-b-soft,#a9dc90),var(--kid-ring-a,#3f8f3a));animation:kid-border-angle-spin calc(16s/var(--kid-speed,1)) linear infinite}
 .kid-border-garden .kid-border-fx>i{display:block}
-.kid-border-garden .kid-border-fx>i::before{content:'🍃';animation:kid-fx-flutter calc(1.4s/var(--kid-speed,1)) ease-in-out infinite}
-.kid-border-garden .kid-border-fx>i:nth-of-type(2)::before{content:'🌸';animation-delay:calc(-.3s/var(--kid-speed,1))}
-.kid-border-garden .kid-border-fx>i:nth-of-type(3)::before{animation-delay:calc(-.7s/var(--kid-speed,1))}
-.kid-border-garden .kid-border-fx>i:nth-of-type(4)::before{content:'🌼';animation-delay:calc(-1s/var(--kid-speed,1))}
-.kid-border-garden .kid-border-fx>i:nth-of-type(5)::before{content:'🌿';animation-delay:calc(-.5s/var(--kid-speed,1))}
+.kid-border-garden .kid-border-fx>i:nth-of-type(-n+6){animation:none;offset-rotate:auto;offset-anchor:50% 100%;offset-distance:calc(var(--g)*100%);font-size:1.2rem}
+.kid-border-garden .kid-border-fx>i:nth-of-type(1){--g:.04}.kid-border-garden .kid-border-fx>i:nth-of-type(2){--g:.13}.kid-border-garden .kid-border-fx>i:nth-of-type(3){--g:.24}.kid-border-garden .kid-border-fx>i:nth-of-type(4){--g:.36}.kid-border-garden .kid-border-fx>i:nth-of-type(5){--g:.58}.kid-border-garden .kid-border-fx>i:nth-of-type(6){--g:.78}
+.kid-border-garden .kid-border-fx>i:nth-of-type(-n+6)::before{content:'🌷';transform-origin:50% 100%;animation:kid-fx-sway calc(2.6s/var(--kid-speed,1)) ease-in-out infinite;animation-delay:calc(var(--g)*-2.6s/var(--kid-speed,1))}
+.kid-border-garden .kid-border-fx>i:nth-of-type(2)::before{content:'🌱'}.kid-border-garden .kid-border-fx>i:nth-of-type(3)::before{content:'🌼'}.kid-border-garden .kid-border-fx>i:nth-of-type(4)::before{content:'🌿'}.kid-border-garden .kid-border-fx>i:nth-of-type(5)::before{content:'🌸'}.kid-border-garden .kid-border-fx>i:nth-of-type(6)::before{content:'🌻'}
+@keyframes kid-fx-sway{0%,100%{transform:rotate(-10deg)}30%{transform:rotate(16deg)}60%{transform:rotate(-4deg)}}
+.kid-border-garden .kid-border-fx>i:nth-of-type(7){--p:.3;font-size:.9rem}.kid-border-garden .kid-border-fx>i:nth-of-type(8){--p:.8;font-size:.8rem}
+.kid-border-garden .kid-border-fx>i:nth-of-type(n+7)::before{content:'🍃';animation:kid-fx-flutter calc(1.4s/var(--kid-speed,1)) ease-in-out infinite}
+.kid-border-garden .kid-border-fx>i:nth-of-type(8)::before{content:'🌸';animation-delay:calc(-.7s/var(--kid-speed,1))}
 @keyframes kid-fx-flutter{0%,100%{transform:translate(0,0) rotate(-20deg)}25%{transform:translate(2px,-3px) rotate(10deg)}50%{transform:translate(-1px,-5px) rotate(28deg)}75%{transform:translate(-3px,-2px) rotate(-6deg)}}
-/* Ocean: blue water flowing one way with glints running the other, waves rolling along the top
- * and bottom edges, and bubbles drifting around. */
-.kid-border-ocean{--kid-fx-dur:calc(11s/var(--kid-speed,1))}
-.kid-border-ocean .kid-border-fx>s,.kid-border-ocean .kid-border-fx>b::before,.kid-border-swatch.kid-border-ocean>span::before{background:repeating-conic-gradient(from var(--kid-border-angle-b),#ffffff66 0deg 3deg,transparent 3deg 20deg),repeating-conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,#0d6eaf) 0deg,var(--kid-ring-b,#44b8ea) 16deg,var(--kid-ring-a,#0d6eaf) 32deg);animation:kid-border-angle-spin calc(6s/var(--kid-speed,1)) linear infinite,kid-border-angle-back calc(4s/var(--kid-speed,1)) linear infinite}
-.kid-border-ocean .kid-border-fx::before,.kid-border-ocean .kid-border-fx::after{content:'';position:absolute;left:12px;right:12px;height:10px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='10'%3E%3Cpath d='M0 6 Q7 0 14 6 T28 6' fill='none' stroke='%23eafcff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") 0 0/28px 10px repeat-x;animation:kid-fx-wave calc(1.6s/var(--kid-speed,1)) linear infinite}
-.kid-border-ocean .kid-border-fx::before{top:-1px;z-index:1}
-.kid-border-ocean .kid-border-fx::after{bottom:-1px;transform:scaleY(-1);animation-direction:reverse}
-@keyframes kid-fx-wave{to{background-position:28px 0}}
-.kid-border-ocean .kid-border-fx>i:nth-of-type(-n+4){display:block}
-.kid-border-ocean .kid-border-fx>i::before{content:'';width:9px;height:9px;border-radius:50%;border:2px solid #8fdcff;background:#ffffff40;animation:kid-fx-bubble calc(1.8s/var(--kid-speed,1)) ease-in-out infinite}
-.kid-border-ocean .kid-border-fx>i:nth-of-type(even)::before{width:6px;height:6px;animation-delay:calc(-.9s/var(--kid-speed,1))}
+/* Ocean: a swell rolls clockwise around all four edges of a flowing-water ring, with bubbles drifting
+ * by. Each edge is a filled wave shape used as a mask over the water colors (so custom colors apply),
+ * its crests poking just outside the frame; each edge's mask scrolls along that edge, so the waves
+ * travel around the tile. */
+.kid-border-ocean{--kid-fx-dur:calc(11s/var(--kid-speed,1));--kid-wave-h:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='12'%3E%3Cpath d='M0 12V7Q7 0 14 7T28 7V12Z'/%3E%3C/svg%3E");--kid-wave-v:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='28'%3E%3Cpath d='M0 0H5Q12 7 5 14T5 28H0Z'/%3E%3C/svg%3E")}
+.kid-border-ocean .kid-border-fx>s,.kid-border-ocean .kid-border-fx>b::before,.kid-border-swatch.kid-border-ocean>span::before{background:repeating-conic-gradient(from var(--kid-border-angle-b),#ffffff55 0deg 3deg,transparent 3deg 20deg),repeating-conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,#0d6eaf) 0deg,var(--kid-ring-b,#44b8ea) 16deg,var(--kid-ring-a,#0d6eaf) 32deg);animation:kid-border-angle-spin calc(6s/var(--kid-speed,1)) linear infinite,kid-border-angle-back calc(4s/var(--kid-speed,1)) linear infinite}
+.kid-border-ocean .kid-border-fx>i:nth-of-type(-n+4){display:block;offset-path:none;top:-7px;left:14px;right:14px;height:12px;background:linear-gradient(to top,var(--kid-ring-a,#0d6eaf),var(--kid-ring-b,#44b8ea) 55%,#eafcff);-webkit-mask:var(--kid-wave-h) 0 0/28px 12px repeat-x;mask:var(--kid-wave-h) 0 0/28px 12px repeat-x;animation:kid-fx-wave-x calc(1.8s/var(--kid-speed,1)) linear infinite}
+.kid-border-ocean .kid-border-fx>i:nth-of-type(3){top:auto;bottom:-7px;transform:scaleY(-1);animation-direction:reverse}
+.kid-border-ocean .kid-border-fx>i:nth-of-type(even):nth-of-type(-n+4){top:14px;bottom:14px;left:auto;right:-7px;width:12px;height:auto;background:linear-gradient(to right,var(--kid-ring-a,#0d6eaf),var(--kid-ring-b,#44b8ea) 55%,#eafcff);-webkit-mask:var(--kid-wave-v) 0 0/12px 28px repeat-y;mask:var(--kid-wave-v) 0 0/12px 28px repeat-y;animation-name:kid-fx-wave-y}
+.kid-border-ocean .kid-border-fx>i:nth-of-type(4):nth-of-type(-n+4){right:auto;left:-7px;transform:scaleX(-1);animation-direction:reverse}
+@keyframes kid-fx-wave-x{to{-webkit-mask-position:28px 0;mask-position:28px 0}}
+@keyframes kid-fx-wave-y{to{-webkit-mask-position:0 28px;mask-position:0 28px}}
+.kid-border-ocean .kid-border-fx>i:nth-of-type(5),.kid-border-ocean .kid-border-fx>i:nth-of-type(6){display:block}.kid-border-ocean .kid-border-fx>i:nth-of-type(6){--p:.5}
+.kid-border-ocean .kid-border-fx>i:nth-of-type(n+5)::before{content:'';width:9px;height:9px;border-radius:50%;border:2px solid #8fdcff;background:#ffffff40;animation:kid-fx-bubble calc(1.8s/var(--kid-speed,1)) ease-in-out infinite}
+.kid-border-ocean .kid-border-fx>i:nth-of-type(6)::before{width:6px;height:6px;animation-delay:calc(-.9s/var(--kid-speed,1))}
 @keyframes kid-fx-bubble{0%{transform:translateY(3px) scale(.6);opacity:0}30%{opacity:1}100%{transform:translateY(-10px) scale(1.1);opacity:0}}
 /* Neon: marquee bulbs chase in discrete steps (steps(30) over 360deg = one 12deg segment per step)
  * inside a flickering tube glow. */
@@ -374,9 +416,6 @@ html[data-motion=reduced] .kid-border-fx>i{display:none!important}
 .kid-appearance-editor{margin:18px 0;padding:14px;border:2px solid var(--kid-color,var(--wb-line));border-radius:14px;background:var(--wb-surface)}
 .kid-appearance-head{display:flex;align-items:center;gap:8px;font-size:1.05rem;margin-bottom:10px}
 .kid-appearance-preview{pointer-events:none;margin-bottom:12px}
-.kid-emoji-grid{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
-.kid-emoji-grid button{font-size:1.3rem;line-height:1;padding:6px 8px;border-radius:10px;border:1px solid var(--wb-line);background:var(--wb-surface);cursor:pointer}
-.kid-emoji-grid button[aria-pressed="true"]{outline:2px solid var(--kid-color,var(--wb-accent));outline-offset:1px}
 .kid-emoji-custom{display:flex;align-items:flex-end;gap:8px;margin:8px 0;flex-wrap:wrap}
 .kid-emoji-custom label{flex:1;min-width:160px;display:flex;flex-direction:column;gap:4px;font-size:.85rem}
 .kid-color-grid{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
@@ -532,7 +571,6 @@ html[data-motion=reduced] .kid-border-fx>i{display:none!important}
   * stack. Stacking just these heads (not every .wb-section-head, most of which are a simple
   * title + one button that's fine inline) gives the heading its own full-width line. */
  .wb-section-head:has(.schedule-view-picker){flex-direction:column;align-items:stretch}
- .wb-scene-toolbar label{font-size:.8125rem}.wb-scene-toolbar label select{max-width:125px}.wb-scene-toolbar button{font-size:.8125rem;padding:8px}
  .wb-note-grid,.wb-record-grid,.wb-form-grid{grid-template-columns:1fr}.wb-note-wrap.size-large{grid-column:auto}
  .workbench .wb-calendar{gap:3px}.workbench .wb-calendar button{min-height:54px;padding:5px;border-radius:5px}.wb-calendar>span{font-size:.75rem}
  .wb-bottom-nav{position:fixed;inset:auto 0 0;z-index:40;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:6px 6px calc(6px + env(safe-area-inset-bottom));gap:4px;border-top:1px solid var(--wb-line);background:var(--wb-surface)}
