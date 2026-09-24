@@ -16,27 +16,28 @@ import {useLiveSanctuaryWeather} from './hooks/useLiveSanctuaryWeather'
 import ClassOccurrenceCard from './components/ClassOccurrenceCard'
 import {classOccurrences,classTime,type ClassOccurrence} from './store/classSchedule'
 import SchedulePanel from './components/SchedulePanel'
-import ScheduleImport from './components/ScheduleImport'
-import ScheduleSetup from './components/ScheduleSetup'
-import ScheduleShare from './components/ScheduleShare'
+// Styles of the on-demand panels below stay in the startup CSS, in their original cascade position:
+// several of them also style shared classes (.wb-toolbar, .wb-calendar, .school-day-label, …).
+import './components/schedule-import.css'
+import './components/school-calendar.css'
+import './components/sports-setup.css'
 import {schoolDayLabels} from './store/schoolCalendar'
 import {PlanSettings,WeatherSettings,SoundMotionSettings,ReminderSettings,StickyNoteView} from './LegacyApp'
 import Sidebar from './components/Sidebar'
+import {lazyPanel} from './lazyPanel'
 import {AccountPanel,BackupPanel,Onboarding,RecoveryScreen,SaveStatus} from './components/AccountPanel'
 import {AiHelperSettings} from './components/AiHelper'
 import GardenCard from './components/GardenCard'
 import StudyPlanner from './components/StudyPlanner'
-import Flashcards from './components/Flashcards'
-import KQuiz from './components/KQuiz'
+import './components/kquiz.css'
 import CommandPalette from './components/CommandPalette'
-import UpdatePlanScanner from './components/UpdatePlanScanner'
 import MusicPlayer from './components/MusicPlayer'
 import SafeNoteBody from './components/SafeNoteBody'
 import VoiceInputButton from './components/VoiceInputButton'
 import FocusSession, {type FocusRequest} from './components/FocusSession'
 import SanctuaryBuild from './components/SanctuaryBuild'
 import SanctuaryDecorLayer from './components/SanctuaryDecorLayer'
-import PeerConnections from './components/PeerConnections'
+import './components/peer-connections.css'
 import {NavIcon,WeekWeather} from './components/Sidebar'
 import {downloadData} from './store/localRepository'
 import {buildIcs} from './store/icsExport'
@@ -49,6 +50,14 @@ import './cozy-workspaces.css'
 import './planner-polish.css'
 import './cozy-controls.css'
 import ActionIcon from './components/ActionIcon'
+// Panels that aren't needed on first paint load on demand.
+const ScheduleImport=lazyPanel(()=>import('./components/ScheduleImport'))
+const ScheduleSetup=lazyPanel(()=>import('./components/ScheduleSetup'))
+const ScheduleShare=lazyPanel(()=>import('./components/ScheduleShare'))
+const Flashcards=lazyPanel(()=>import('./components/Flashcards'))
+const KQuiz=lazyPanel(()=>import('./components/KQuiz'))
+const UpdatePlanScanner=lazyPanel(()=>import('./components/UpdatePlanScanner'))
+const PeerConnections=lazyPanel(()=>import('./components/PeerConnections'))
 
 // Settings tabs, grouped by what a person is trying to do rather than by where each feature was built.
 const SETTINGS_TABS=['Look & feel','Notifications','Family','Schedules','Import & export','Plans & account'] as const

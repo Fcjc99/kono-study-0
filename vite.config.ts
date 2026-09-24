@@ -7,7 +7,7 @@ import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
 
-type ManifestChunk={file:string;css?:string[];imports?:string[]}
+type ManifestChunk={file:string;css?:string[];imports?:string[];dynamicImports?:string[]}
 function precacheList(manifest:Record<string,ManifestChunk>):string[]{
   const entryKey=Object.keys(manifest).find(k=>(manifest[k] as ManifestChunk&{isEntry?:boolean}).isEntry)
   if(!entryKey)return []
@@ -21,6 +21,9 @@ function precacheList(manifest:Record<string,ManifestChunk>):string[]{
     for(const dep of chunk.imports??[])walk(dep)
   }
   walk(entryKey)
+  // Panels split out of the startup bundle (src/lazyPanel.tsx) still open offline: precache them in
+  // the background. Heavy engines and importers (Phaser, PDF, OCR, sign-in) stay runtime-cached only.
+  for(const dep of manifest[entryKey].dynamicImports??[])if(dep.startsWith('src/components/'))walk(dep)
   return [...files]
 }
 function writeServiceWorker(outDir:string){
