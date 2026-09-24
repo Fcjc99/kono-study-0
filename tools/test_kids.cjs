@@ -40,13 +40,20 @@ test('a kid with no emoji normalizes to undefined, not a forced default',()=>{
  assert.equal(normalized.kids[0].emoji,undefined)
 })
 
-test('a kid\'s borderStyle defaults to modern, round-trips a valid choice, and rejects an invalid one',()=>{
+test('a kid\'s borderStyle defaults to modern and every current style round-trips',()=>{
  const base=model.createFreshData()
  const {data}=withKid(base,'Emma')
  assert.equal(model.normalizeData(data).kids[0].borderStyle,'modern')
- const withSports=model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:'sports'}]})
- assert.equal(withSports.kids[0].borderStyle,'sports')
- assert.throws(()=>model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:'not-a-style'}]}))
+ for(const style of model.KID_BORDER_STYLES){
+  assert.equal(model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:style}]}).kids[0].borderStyle,style)
+ }
+})
+
+test('an unknown borderStyle (e.g. synced from a newer build) falls back to modern instead of failing the whole load',()=>{
+ const base=model.createFreshData()
+ const {data}=withKid(base,'Emma')
+ assert.equal(model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:'not-a-style'}]}).kids[0].borderStyle,'modern')
+ assert.equal(model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:42}]}).kids[0].borderStyle,'modern')
 })
 
 test('a kid saved under one of the retired border styles migrates to a new one instead of failing the whole load',()=>{

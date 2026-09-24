@@ -307,6 +307,26 @@ button.needs-review-record{outline-offset:-2px}
 .kid-border-swatch.kid-border-sports>span::before{background-image:repeating-linear-gradient(45deg,var(--kid-color,#b47e75) 0 6px,#fff 6px 12px);background-size:17px 17px;animation:kid-border-sports-march .9s linear infinite}
 .kid-border-swatch.kid-border-modern>span::after{background:conic-gradient(from var(--kid-border-angle) at 50% 50%,transparent 0deg,transparent 305deg,color-mix(in srgb,var(--kid-color,#b47e75) 60%,#fff) 330deg,#fff 345deg,color-mix(in srgb,var(--kid-color,#b47e75) 60%,#fff) 360deg);animation:kid-border-angle-spin 2.2s linear infinite}
 .kid-border-swatch.kid-border-unique>span{animation:kid-border-unique-wobble 4s ease-in-out infinite}
+/* Space/Garden/Ocean/Neon share one ring rule between the full tile and its picker swatch;
+ * --kid-ring is the only size difference between the two. */
+.wb-family-event{--kid-ring:3px}.kid-border-swatch>span{--kid-ring:2px}
+.wb-family-event:is(.kid-border-space,.kid-border-garden,.kid-border-ocean,.kid-border-neon),.kid-border-swatch:is(.kid-border-space,.kid-border-garden,.kid-border-ocean,.kid-border-neon)>span{border-color:transparent}
+.wb-family-event:is(.kid-border-space,.kid-border-garden,.kid-border-ocean,.kid-border-neon)::before,.kid-border-swatch:is(.kid-border-space,.kid-border-garden,.kid-border-ocean,.kid-border-neon)>span::before{content:'';position:absolute;inset:calc(-1*var(--kid-ring));border-radius:inherit;padding:var(--kid-ring);pointer-events:none;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.wb-family-event.kid-border-space::before,.kid-border-swatch.kid-border-space>span::before{background:conic-gradient(from var(--kid-border-angle),transparent 0deg 240deg,#6f8cff 320deg,#fff 356deg,transparent 360deg),#1f2456;animation:kid-border-angle-spin 2.8s linear infinite}
+.wb-family-event.kid-border-space::after{content:'✦';position:absolute;top:-9px;left:-5px;font-size:.8rem;line-height:1;color:#f5c542;pointer-events:none;animation:kid-border-twinkle 1.6s ease-in-out infinite}
+/* Garden draws the vine on: a hard conic stop at the animated angle fills the ring clockwise. */
+.wb-family-event.kid-border-garden::before,.kid-border-swatch.kid-border-garden>span::before{background:conic-gradient(#4f9a45 var(--kid-border-angle),transparent 0),#d3ebc6;animation:kid-border-grow 4s ease-in-out infinite}
+@keyframes kid-border-grow{0%{--kid-border-angle:0deg}75%,100%{--kid-border-angle:360deg}}
+.wb-family-event.kid-border-garden::after{content:'🌿';position:absolute;top:-10px;left:-6px;font-size:.8rem;line-height:1;pointer-events:none;transform-origin:bottom right;animation:kid-border-sway 2.4s ease-in-out infinite}
+@keyframes kid-border-sway{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(10deg)}}
+.wb-family-event.kid-border-ocean::before,.kid-border-swatch.kid-border-ocean>span::before{background:repeating-conic-gradient(from var(--kid-border-angle),#1a7fbf 0deg,#7fd3f0 20deg,#1a7fbf 40deg);animation:kid-border-angle-spin 5s linear infinite}
+.wb-family-event.kid-border-ocean::after{content:'';position:absolute;bottom:-4px;right:12px;width:6px;height:6px;border:1.5px solid #5fbfe6;border-radius:50%;pointer-events:none;animation:kid-border-bubble 2.2s ease-out infinite}
+@keyframes kid-border-bubble{0%{opacity:0;transform:translateY(4px) scale(.6)}40%{opacity:1}100%{opacity:0;transform:translateY(-12px) scale(1)}}
+/* Neon steps its three-color pattern one segment at a time (steps(30) over 360deg = one 12deg
+ * segment per step), so it reads as marquee bulbs chasing rather than a smooth sweep. */
+.wb-family-event.kid-border-neon,.kid-border-swatch.kid-border-neon>span{animation:kid-border-flicker 3s linear infinite}
+.wb-family-event.kid-border-neon::before,.kid-border-swatch.kid-border-neon>span::before{background:repeating-conic-gradient(from var(--kid-border-angle),#ff3fd0 0deg 12deg,#2fe6ff 12deg 24deg,#8a3cff 24deg 36deg);animation:kid-border-angle-spin 6s steps(30) infinite}
+@keyframes kid-border-flicker{0%,17%,23%,58%,66%,100%{box-shadow:0 0 6px #ff3fd0aa,0 0 12px #2fe6ff66}20%,62%{box-shadow:none}}
 .family-kid-list{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}
 .workbench .family-kid-chip{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--wb-line);border-radius:999px;background:var(--wb-surface)}
 .family-kid-swatch{display:block;width:12px;height:12px;border-radius:50%;background:var(--kid-color,var(--wb-accent))}
