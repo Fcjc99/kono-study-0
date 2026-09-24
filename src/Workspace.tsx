@@ -729,7 +729,7 @@ function KidAppearancePanel({data,setting,patch,close}:{data:AppData;setting:<K 
   {kids.map(k=><KidAppearanceEditor key={k.id} kid={k} patch={patch}/>)}
  </Modal>
 }
-const BORDER_STYLE_OPTIONS=[['cute','Cute 💗'],['sports','Sports 🏁'],['modern','Modern'],['unique','Unique']] as const
+const BORDER_STYLE_OPTIONS=[['cute','Cute 💗'],['sports','Sports 🏁'],['modern','Modern'],['unique','Unique'],['space','Space 🚀'],['garden','Garden 🌿'],['ocean','Ocean 🌊'],['neon','Neon']] as const
 function KidAppearanceEditor({kid,patch}:{kid:Kid;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
  const [customEmoji,setCustomEmoji]=useState('')
  const borderStyle=kid.borderStyle??'modern'
