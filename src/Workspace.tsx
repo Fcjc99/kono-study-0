@@ -502,6 +502,7 @@ function RecordCard({cozy,collection,entry,subject,subjectColor,kid,showKidBorde
    {reviewBadge}{due&&<span className={'countdown-chip '+(daysUntil(due)<0?'is-overdue':'')}>{dueLabel}</span>}
   </div>
   <div className="wb-toolbar">{reviewButton}<button onClick={toggle}>{done?'Reopen':'Complete'}</button><button onClick={edit}>Edit</button><details className="wb-actions"><summary>More actions</summary><div><button onClick={duplicate}>Duplicate</button><button onClick={remove}>Move to Trash</button></div></details></div>
+  {borderStyle!=='solid'&&<KidBorderFx/>}
  </article>
  return <article className={'wb-record wb-record-'+collection+' '+(paper?'wb-sticky note-font-'+String(entry.font??'rounded'):'')+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={paper?{'--note-paper':String(entry.color??'#fff2b4'),'--note-ink':String(entry.textColor??'#2f2942')} as CSSProperties:{'--subject-accent':subjectColor??String(entry.color??'#b47e75')} as CSSProperties}>
   <>{paper&&<span className="push-pin pin-0" aria-hidden="true"/>}</>{reviewBadge}<small>{subject??(entry.subjectId?'Removed subject':'General')} · {labels[collection]}{note&&entry.pinned?' · Pinned':''}</small><h3>{titleOf(entry)}</h3>{Boolean(entry.due||entry.date)&&<p>{dateLabel(String(entry.due??entry.date))}{done?' · Completed':''} {due&&<span className={'countdown-chip '+(daysUntil(due)<0?'is-overdue':'')}>{dueLabel}</span>}{plannedChip}{subtaskProgress&&<span className="subtask-chip">{subtaskProgress}</span>}{inSeries&&<span className="subtask-chip">1 of {seriesCount} dates</span>}</p>}
@@ -729,6 +730,8 @@ function KidAppearancePanel({data,setting,patch,close}:{data:AppData;setting:<K 
   {kids.map(k=><KidAppearanceEditor key={k.id} kid={k} patch={patch}/>)}
  </Modal>
 }
+// The glow, ring and travelling particles for a kid's border style; all the look lives in workbench.css.
+const KidBorderFx=()=><span className="kid-border-fx" aria-hidden="true"><b/><s/><i/><i/><i/><i/><i/></span>
 const BORDER_STYLE_OPTIONS=[['cute','Cute 💗'],['sports','Sports 🏁'],['modern','Modern'],['unique','Unique'],['space','Space 🚀'],['garden','Garden 🌿'],['ocean','Ocean 🌊'],['neon','Neon']] as const
 function KidAppearanceEditor({kid,patch}:{kid:Kid;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
  const [customEmoji,setCustomEmoji]=useState('')
@@ -738,7 +741,7 @@ function KidAppearanceEditor({kid,patch}:{kid:Kid;patch:(key:Collection,entry:En
  const setBorderStyle=(style:KidBorderStyle)=>void patch('kids',kid as unknown as Entry,{borderStyle:style})
  return <div className="kid-appearance-editor" style={{'--kid-color':kid.color} as CSSProperties}>
   <div className="kid-appearance-head"><i className="family-kid-swatch" aria-hidden="true"/><strong>{(kid.emoji?kid.emoji+' ':'')+kid.name}</strong></div>
-  <div className={'wb-family-event kid-border-'+borderStyle+' kid-appearance-preview'} aria-hidden="true"><div className="wb-family-event-main"><div className="wb-family-event-time"><span className="wb-family-event-start">3:30 PM</span></div><div className="wb-family-event-info"><small>{(kid.emoji?kid.emoji+' ':'')+kid.name}</small><h3>Practice</h3></div></div></div>
+  <div className={'wb-family-event kid-border-'+borderStyle+' kid-appearance-preview'} aria-hidden="true"><div className="wb-family-event-main"><div className="wb-family-event-time"><span className="wb-family-event-start">3:30 PM</span></div><div className="wb-family-event-info"><small>{(kid.emoji?kid.emoji+' ':'')+kid.name}</small><h3>Practice</h3></div></div><KidBorderFx/></div>
   <p className="wb-muted">Emoji</p>
   <div className="kid-emoji-grid" role="group" aria-label={kid.name+"'s emoji"}>
    {KID_AVATAR_EMOJI.map(e=><button type="button" key={e} aria-pressed={kid.emoji===e} onClick={()=>setEmoji(e)}>{e}</button>)}
