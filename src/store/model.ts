@@ -16,7 +16,11 @@ export type Subject={id:string;profileId:string;name:string;color:string;teacher
  * so "whose is this" filters and colors the same way "which subject is this" already does. */
 export const KID_BORDER_STYLES=['cute','sports','modern','unique','space','garden','ocean','neon'] as const
 export type KidBorderStyle=typeof KID_BORDER_STYLES[number]
-export type Kid={id:string;profileId:string;name:string;color:string;emoji?:string;borderStyle?:KidBorderStyle}
+export type KidBorderGlow='off'|'soft'|'strong'
+/** borderColors overrides the style's two theme colors; borderSpeed multiplies animation speed
+ * (0.25-3); borderExtras shows the floating particles (hearts, leaves, rocket, waves...). */
+export type Kid={id:string;profileId:string;name:string;color:string;emoji?:string;borderStyle?:KidBorderStyle;borderColors?:[string,string];borderSpeed?:number;borderGlow?:KidBorderGlow;borderExtras?:boolean}
+export const KID_BORDER_SPEED={min:.25,max:3}
 export type Subtask={id:string;title:string;done:boolean}
 export type Task={id:string;profileId:string;subjectId:string;kidId?:string;title:string;due:string;done:boolean;notes:string;completedAt?:string;studyPlanId?:string;unitNumber?:number;subtasks?:Subtask[];recurringId?:string;needsReview?:boolean;estimatedMinutes?:number;plannedTime?:string}
 export type StudyPlan={id:string;profileId:string;subjectId:string;title:string;unit:'chapter'|'page'|'problem'|'step';total:number;start:string;end:string;weekdays:number[];timeZone:string}
@@ -167,13 +171,17 @@ export function normalizeData(raw:unknown):AppData {
  const subject=(v:unknown,profileId:string)=>{if(v===undefined||v==='')return '';const key=id(v,'subject reference'),mapped=remap.get(`${key}:${profileId}`)??key;const known=subjects.find(s=>s.id===mapped);if(known&&known.profileId!==profileId)return fail('subject belongs to another profile');return mapped}
  // 40 chars comfortably covers a multi-codepoint emoji (skin-tone modifiers, ZWJ family/couple
  // sequences can run well past a handful of UTF-16 units) without accepting arbitrary text.
- // Border style is cosmetic, so it never fails the whole load: a save from before the redesign
+ // Border style and its tuning (colors/speed/glow/extras below) are cosmetic, so they never fail the whole load: a save from before the redesign
  // carries one of the old six values (map it to its closest new style), and a value this build
  // doesn't know -- e.g. a style added in a newer build and synced from another device -- falls back
  // to the default rather than resetting someone's plan.
  const legacyBorderStyle:Record<string,KidBorderStyle>={solid:'modern',glow:'modern',dashed:'sports',sparkle:'cute',rainbow:'cute',fire:'unique'}
  const borderStyle=(v:unknown):KidBorderStyle=>{const s=typeof v==='string'?legacyBorderStyle[v]??v:v;return KID_BORDER_STYLES.includes(s as KidBorderStyle)?s as KidBorderStyle:'modern'}
- const kids:Kid[]=list(raw.kids??[],'kids',500).map(k=>({id:id(k.id,'kid ID'),profileId:owner(k.profileId),name:str(k.name,'kid name',200),color:color(k.color,'#7ca982'),emoji:optional(k.emoji,'kid emoji',40),borderStyle:borderStyle(k.borderStyle)}))
+ const hex=(v:unknown)=>typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v)
+ const borderColors=(v:unknown):[string,string]|undefined=>Array.isArray(v)&&v.length===2&&hex(v[0])&&hex(v[1])?[v[0],v[1]]:undefined
+ const borderSpeed=(v:unknown)=>typeof v==='number'&&Number.isFinite(v)?Math.min(KID_BORDER_SPEED.max,Math.max(KID_BORDER_SPEED.min,v)):1
+ const borderGlow=(v:unknown):KidBorderGlow=>v==='off'||v==='strong'?v:'soft'
+ const kids:Kid[]=list(raw.kids??[],'kids',500).map(k=>({id:id(k.id,'kid ID'),profileId:owner(k.profileId),name:str(k.name,'kid name',200),color:color(k.color,'#7ca982'),emoji:optional(k.emoji,'kid emoji',40),borderStyle:borderStyle(k.borderStyle),borderColors:borderColors(k.borderColors),borderSpeed:borderSpeed(k.borderSpeed),borderGlow:borderGlow(k.borderGlow),borderExtras:k.borderExtras!==false}))
  // A kid tag is cosmetic, unlike a subject reference -- a stale or cross-profile kidId (e.g. from a
  // kid deleted elsewhere) just clears back to unassigned rather than failing the whole save.
  const kidRef=(v:unknown,profileId:string):string|undefined=>{if(v===undefined||v==='')return undefined;const key=str(v,'kid reference',150);const known=kids.find(k=>k.id===key);return known&&known.profileId===profileId?key:undefined}

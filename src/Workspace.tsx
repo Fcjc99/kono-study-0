@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState,type CSSProperties,type DragEvent,type FormEvent,type PointerEvent,type ReactNode,type TouchEvent} from 'react'
 import {deleteProfile} from './store/deleteProfile'
 import {usePlannerRepository} from './store/repository'
-import {uid,localDate,dayNames,eventCategory,matchOutcome,type AppData,type SettingsData,type Task,type Subtask,type CalendarEventKind,type MatchResult,type Kid,type KidBorderStyle} from './store/model'
+import {uid,localDate,dayNames,eventCategory,matchOutcome,type AppData,type SettingsData,type Task,type Subtask,type CalendarEventKind,type MatchResult,type Kid,type KidBorderStyle,type KidBorderGlow,KID_BORDER_SPEED} from './store/model'
 import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems,KID_COLORS} from './store/kids'
 import {collections,records,titleOf,equal,removeEntry,restoreEntry,completeTask,type Collection,type Entry} from './store/workspace'
 import {calendarTasks,addDays} from './store/studyScheduler'
@@ -491,8 +491,8 @@ function RecordCard({cozy,collection,entry,subject,subjectColor,kid,showKidBorde
  // A kid's own border flair (see the Kids page's Appearance panel) only ever paints when a specific
  // kid is both tagged and showing -- an untagged "Family" item or a solo student's plain tile always
  // gets the ordinary static border, never someone else's chosen animation.
- const borderStyle=showKidBorder&&kid?kid.borderStyle??'modern':'solid'
- if(collection==='calendarEvents')return <article className={'wb-family-event kid-border-'+borderStyle+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={{'--kid-color':showKidBorder?kid?.color??'#b47e75':undefined} as CSSProperties}>
+ const borderStyle=showKidBorder&&kid?kid.borderStyle??'modern':'solid',look=showKidBorder&&kid?kidBorderLook(kid):null
+ if(collection==='calendarEvents')return <article className={'wb-family-event kid-border-'+borderStyle+(look?.className??'')+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={look?.style??{'--kid-color':showKidBorder?'#b47e75':undefined} as CSSProperties}>
   <div className="wb-family-event-main">
    <div className="wb-family-event-time">{entry.time?<><span className="wb-family-event-start">{classTime(String(entry.time))}</span>{entry.endTime&&<span className="wb-family-event-end">–{classTime(String(entry.endTime))}</span>}</>:'—'}</div>
    <div className="wb-family-event-info">
@@ -732,6 +732,20 @@ function KidAppearancePanel({data,setting,patch,close}:{data:AppData;setting:<K 
 }
 // The glow, ring and travelling particles for a kid's border style; all the look lives in workbench.css.
 const KidBorderFx=()=><span className="kid-border-fx" aria-hidden="true"><b/><s/><i/><i/><i/><i/><i/></span>
+// A kid's border tuning as the inline vars/classes workbench.css reads (see "Per-kid tuning" there).
+const kidBorderLook=(kid:Kid)=>({className:' kid-glow-'+(kid.borderGlow??'soft')+(kid.borderExtras===false?' kid-extras-off':''),style:{'--kid-color':kid.color,'--kid-speed':String(kid.borderSpeed??1),'--kid-ring-a':kid.borderColors?.[0],'--kid-ring-b':kid.borderColors?.[1]} as CSSProperties})
+// Each style's own two colors, used to seed the pickers when "Use my own colors" is first turned on.
+const BORDER_THEME_COLORS:Record<KidBorderStyle,(kid:Kid)=>[string,string]>={cute:()=>['#ff8ec7','#9ecbff'],sports:k=>[k.color,'#ffffff'],modern:k=>[k.color,'#ffffff'],unique:k=>[k.color,'#ff7ad9'],space:()=>['#6f8cff','#1f2456'],garden:()=>['#3f8f3a','#74c466'],ocean:()=>['#0d6eaf','#44b8ea'],neon:()=>['#ff3fd0','#2fe6ff']}
+const GLOW_OPTIONS=[['off','Off'],['soft','Soft'],['strong','Strong']] as const
+// Local state that saves after a short pause, so dragging a slider or color picker doesn't write every step.
+function useDebouncedSave<T>(saved:T,save:(value:T)=>void){
+ const [draft,setDraft]=useState(saved),saveRef=useRef(save)
+ useEffect(()=>{saveRef.current=save})
+ // Keyed on the values only (save is a fresh closure each render), so a value the store normalizes
+ // away can't re-trigger itself forever.
+ useEffect(()=>{if(Object.is(draft,saved))return;const t=setTimeout(()=>saveRef.current(draft),250);return()=>clearTimeout(t)},[draft,saved])
+ return [draft,setDraft] as const
+}
 const BORDER_STYLE_OPTIONS=[['cute','Cute 💗'],['sports','Sports 🏁'],['modern','Modern'],['unique','Unique'],['space','Space 🚀'],['garden','Garden 🌿'],['ocean','Ocean 🌊'],['neon','Neon']] as const
 function KidAppearanceEditor({kid,patch}:{kid:Kid;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
  const [customEmoji,setCustomEmoji]=useState('')
@@ -739,7 +753,12 @@ function KidAppearanceEditor({kid,patch}:{kid:Kid;patch:(key:Collection,entry:En
  const setEmoji=(emoji:string)=>void patch('kids',kid as unknown as Entry,{emoji})
  const setColor=(color:string)=>void patch('kids',kid as unknown as Entry,{color})
  const setBorderStyle=(style:KidBorderStyle)=>void patch('kids',kid as unknown as Entry,{borderStyle:style})
- return <div className="kid-appearance-editor" style={{'--kid-color':kid.color} as CSSProperties}>
+ const [speed,setSpeed]=useDebouncedSave(kid.borderSpeed??1,v=>void patch('kids',kid as unknown as Entry,{borderSpeed:v}))
+ const [colors,setColors]=useDebouncedSave(kid.borderColors?.join(',')??'',v=>void patch('kids',kid as unknown as Entry,{borderColors:v?v.split(','):undefined}))
+ const [colorA,colorB]=colors?colors.split(','):BORDER_THEME_COLORS[borderStyle](kid)
+ const tuned=kid.borderSpeed!==1||kid.borderGlow!=='soft'||kid.borderExtras===false||Boolean(kid.borderColors)
+ const look=kidBorderLook({...kid,borderSpeed:speed,borderColors:colors?[colorA,colorB]:undefined})
+ return <div className={'kid-appearance-editor'+look.className} style={look.style}>
   <div className="kid-appearance-head"><i className="family-kid-swatch" aria-hidden="true"/><strong>{(kid.emoji?kid.emoji+' ':'')+kid.name}</strong></div>
   <div className={'wb-family-event kid-border-'+borderStyle+' kid-appearance-preview'} aria-hidden="true"><div className="wb-family-event-main"><div className="wb-family-event-time"><span className="wb-family-event-start">3:30 PM</span></div><div className="wb-family-event-info"><small>{(kid.emoji?kid.emoji+' ':'')+kid.name}</small><h3>Practice</h3></div></div><KidBorderFx/></div>
   <p className="wb-muted">Emoji</p>
@@ -755,6 +774,14 @@ function KidAppearanceEditor({kid,patch}:{kid:Kid;patch:(key:Collection,entry:En
   <p className="wb-muted">Border</p>
   <div className="kid-border-grid" role="group" aria-label={kid.name+"'s border style"}>
    {BORDER_STYLE_OPTIONS.map(([value,label])=><button type="button" key={value} className={'kid-border-swatch kid-border-'+value} aria-pressed={borderStyle===value} onClick={()=>setBorderStyle(value)}><span/>{label}</button>)}
+  </div>
+  <div className="kid-border-tuning">
+   <label className="kid-border-speed">Animation speed<input type="range" min={KID_BORDER_SPEED.min} max={KID_BORDER_SPEED.max} step={0.25} value={speed} onChange={e=>setSpeed(Number(e.target.value))}/><output>{speed}×</output></label>
+   <div className="kid-border-glow" role="group" aria-label={kid.name+"'s border glow"}><span>Glow</span>{GLOW_OPTIONS.map(([value,label])=><button type="button" key={value} aria-pressed={(kid.borderGlow??'soft')===value} onClick={()=>void patch('kids',kid as unknown as Entry,{borderGlow:value as KidBorderGlow})}>{label}</button>)}</div>
+   <label className="wb-check"><input type="checkbox" checked={kid.borderExtras!==false} onChange={e=>void patch('kids',kid as unknown as Entry,{borderExtras:e.target.checked})}/>Floating extras (hearts, leaves, rocket, waves…)</label>
+   <label className="wb-check"><input type="checkbox" checked={Boolean(colors)} onChange={e=>setColors(e.target.checked?BORDER_THEME_COLORS[borderStyle](kid).join(','):'')}/>Use my own border colors</label>
+   {colors&&<div className="kid-border-colors"><label>Color 1<input type="color" value={colorA} onChange={e=>setColors(e.target.value+','+colorB)}/></label><label>Color 2<input type="color" value={colorB} onChange={e=>setColors(colorA+','+e.target.value)}/></label></div>}
+   {tuned&&<button type="button" className="kid-border-reset" onClick={()=>{setSpeed(1);setColors('');void patch('kids',kid as unknown as Entry,{borderSpeed:1,borderGlow:'soft',borderExtras:true,borderColors:undefined})}}>Reset border to the style's defaults</button>}
   </div>
  </div>
 }

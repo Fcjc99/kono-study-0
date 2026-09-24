@@ -49,6 +49,24 @@ test('a kid\'s borderStyle defaults to modern and every current style round-trip
  }
 })
 
+test('border tuning (colors, speed, glow, extras) round-trips and defaults sensibly',()=>{
+ const base=model.createFreshData()
+ const {data}=withKid(base,'Emma')
+ const plain=model.normalizeData(data).kids[0]
+ assert.deepEqual([plain.borderColors,plain.borderSpeed,plain.borderGlow,plain.borderExtras],[undefined,1,'soft',true])
+ const tuned=model.normalizeData({...data,kids:[{...data.kids[0],borderColors:['#112233','#aabbcc'],borderSpeed:2.5,borderGlow:'strong',borderExtras:false}]}).kids[0]
+ assert.equal(JSON.stringify([tuned.borderColors,tuned.borderSpeed,tuned.borderGlow,tuned.borderExtras]),JSON.stringify([['#112233','#aabbcc'],2.5,'strong',false]))
+})
+
+test('malformed border tuning is dropped or clamped instead of failing the whole load',()=>{
+ const base=model.createFreshData()
+ const {data}=withKid(base,'Emma')
+ const k=model.normalizeData({...data,kids:[{...data.kids[0],borderColors:['red','url(x)'],borderSpeed:99,borderGlow:'blinding',borderExtras:'yes'}]}).kids[0]
+ assert.deepEqual([k.borderColors,k.borderSpeed,k.borderGlow,k.borderExtras],[undefined,3,'soft',true])
+ assert.equal(model.normalizeData({...data,kids:[{...data.kids[0],borderSpeed:-4}]}).kids[0].borderSpeed,.25)
+ assert.equal(model.normalizeData({...data,kids:[{...data.kids[0],borderColors:['#112233']}]}).kids[0].borderColors,undefined)
+})
+
 test('an unknown borderStyle (e.g. synced from a newer build) falls back to modern instead of failing the whole load',()=>{
  const base=model.createFreshData()
  const {data}=withKid(base,'Emma')

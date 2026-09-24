@@ -256,14 +256,14 @@ button.needs-review-record{outline-offset:-2px}
 .kid-border-fx{position:absolute;inset:calc(-1*var(--kid-ring));border-radius:inherit;pointer-events:none;z-index:0}
 .kid-border-fx>s{position:absolute;inset:0;border-radius:inherit}
 .kid-border-fx>b{position:absolute;inset:calc(-1*var(--kid-ring));border-radius:inherit}
-.kid-border-fx>b{filter:blur(8px) saturate(1.5);animation:kid-fx-breathe 2.6s ease-in-out infinite}
+.kid-border-fx>b{filter:blur(8px) saturate(1.5);animation:kid-fx-breathe calc(2.6s/var(--kid-speed,1)) ease-in-out infinite}
 @keyframes kid-fx-breathe{0%,100%{opacity:.5}50%{opacity:1}}
 .kid-border-fx>b::before{content:'';position:absolute;inset:0;border-radius:inherit}
 .kid-border-swatch>span::before{content:'';position:absolute;inset:calc(-1*var(--kid-ring));border-radius:inherit}
-.kid-border-fx>b::before{padding:calc(2*var(--kid-ring))}
 .kid-border-fx>s,.kid-border-fx>b::before,.kid-border-swatch>span::before{padding:var(--kid-ring);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.kid-border-fx>b::before{padding:calc(2*var(--kid-ring))}
 .kid-border-swatch:is(.kid-border-unique)>span::before{content:none}
-.kid-border-fx>i{position:absolute;top:0;left:0;display:none;font-style:normal;font-size:1.1rem;line-height:1;offset-path:inset(calc(var(--kid-ring)/2) round 12px);offset-rotate:0deg;animation:kid-fx-travel var(--kid-fx-dur,10s) linear infinite;animation-delay:calc(var(--p,0)*var(--kid-fx-dur,10s)*-1)}
+.kid-border-fx>i{position:absolute;top:0;left:0;display:none;font-style:normal;font-size:1.1rem;line-height:1;offset-path:inset(calc(var(--kid-ring)/2) round 12px);offset-rotate:0deg;animation:kid-fx-travel var(--kid-fx-dur,calc(10s/var(--kid-speed,1))) linear infinite;animation-delay:calc(var(--p,0)*var(--kid-fx-dur,calc(10s/var(--kid-speed,1)))*-1)}
 .kid-border-fx>i::before{display:block}
 .kid-border-fx>i:nth-of-type(2){--p:.2}.kid-border-fx>i:nth-of-type(3){--p:.4}.kid-border-fx>i:nth-of-type(4){--p:.6}.kid-border-fx>i:nth-of-type(5){--p:.8}
 @keyframes kid-fx-travel{from{offset-distance:0%}to{offset-distance:100%}}
@@ -272,66 +272,76 @@ html[data-motion=reduced] .kid-border-fx>i{display:none!important}
 @media(prefers-reduced-motion:reduce){html:not([data-motion=full]) .kid-border-fx>i{display:none!important}}
 @keyframes kid-fx-twinkle{0%,100%{opacity:.25;transform:scale(.6) rotate(0)}50%{opacity:1;transform:scale(1.2) rotate(45deg)}}
 /* Cute: a pastel swirl, with hearts and sparkles bouncing around it. */
-.kid-border-cute{--kid-fx-dur:9s}
-.kid-border-cute .kid-border-fx>s,.kid-border-cute .kid-border-fx>b::before,.kid-border-swatch.kid-border-cute>span::before{background:conic-gradient(from var(--kid-border-angle),#ff8ec7,#ffd3e8,#c9a9ff,#9ecbff,#ff8ec7);animation:kid-border-angle-spin 3.5s linear infinite}
+.kid-border-cute{--kid-fx-dur:calc(9s/var(--kid-speed,1))}
+.kid-border-cute .kid-border-fx>s,.kid-border-cute .kid-border-fx>b::before,.kid-border-swatch.kid-border-cute>span::before{background:conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,#ff8ec7),var(--kid-ring-a-soft,#ffd3e8),var(--kid-ring-b-soft,#c9a9ff),var(--kid-ring-b,#9ecbff),var(--kid-ring-a,#ff8ec7));animation:kid-border-angle-spin calc(3.5s/var(--kid-speed,1)) linear infinite}
 .kid-border-cute .kid-border-fx>i:nth-of-type(-n+4){display:block}
-.kid-border-cute .kid-border-fx>i::before{content:'💗';animation:kid-fx-bob 1.2s ease-in-out infinite}
+.kid-border-cute .kid-border-fx>i::before{content:'💗';animation:kid-fx-bob calc(1.2s/var(--kid-speed,1)) ease-in-out infinite}
 .kid-border-cute .kid-border-fx>i:nth-of-type(even)::before{content:'✨';font-size:.9rem;animation-name:kid-fx-twinkle}
 @keyframes kid-fx-bob{0%,100%{transform:translateY(0) scale(.85)}50%{transform:translateY(-3px) scale(1.15)}}
 /* Sports: marching stripes, with two balls rolling laps. */
-.kid-border-sports{--kid-fx-dur:5s}
-.kid-border-sports .kid-border-fx>s,.kid-border-sports .kid-border-fx>b::before,.kid-border-swatch.kid-border-sports>span::before{background:repeating-linear-gradient(45deg,var(--kid-color,#b47e75) 0 8px,#fff 8px 16px) 0 0/22px 22px;animation:kid-border-sports-march .9s linear infinite}
-.kid-border-swatch.kid-border-sports>span::before{background:repeating-linear-gradient(45deg,var(--kid-color,#b47e75) 0 6px,#fff 6px 12px) 0 0/17px 17px}
+.kid-border-sports{--kid-fx-dur:calc(5s/var(--kid-speed,1))}
+.kid-border-sports .kid-border-fx>s,.kid-border-sports .kid-border-fx>b::before,.kid-border-swatch.kid-border-sports>span::before{background:repeating-linear-gradient(45deg,var(--kid-ring-a,var(--kid-color,#b47e75)) 0 8px,var(--kid-ring-b,#fff) 8px 16px) 0 0/22px 22px;animation:kid-border-sports-march calc(.9s/var(--kid-speed,1)) linear infinite}
+.kid-border-swatch.kid-border-sports>span::before{background:repeating-linear-gradient(45deg,var(--kid-ring-a,var(--kid-color,#b47e75)) 0 6px,var(--kid-ring-b,#fff) 6px 12px) 0 0/17px 17px}
 @keyframes kid-border-sports-march{to{background-position:22px 0}}
 .kid-border-sports .kid-border-fx>i:nth-of-type(-n+2){display:block}
 .kid-border-sports .kid-border-fx>i:nth-of-type(2){--p:.5}
-.kid-border-sports .kid-border-fx>i::before{content:'⚽';animation:kid-fx-spin .5s linear infinite}
+.kid-border-sports .kid-border-fx>i::before{content:'⚽';animation:kid-fx-spin calc(.5s/var(--kid-speed,1)) linear infinite}
 .kid-border-sports .kid-border-fx>i:nth-of-type(2)::before{content:'🏀'}
 @keyframes kid-fx-spin{to{transform:rotate(360deg)}}
 /* Modern: a bright beam sweeps the kid-colored border, trailing its own glow. */
-.kid-border-modern .kid-border-fx>s,.kid-border-modern .kid-border-fx>b::before,.kid-border-swatch.kid-border-modern>span::before{background:conic-gradient(from var(--kid-border-angle),transparent 0deg 290deg,color-mix(in srgb,var(--kid-color,#b47e75) 55%,#fff) 325deg,#fff 348deg,transparent 360deg);animation:kid-border-angle-spin 2.2s linear infinite}
+.kid-border-modern .kid-border-fx>s,.kid-border-modern .kid-border-fx>b::before,.kid-border-swatch.kid-border-modern>span::before{background:conic-gradient(from var(--kid-border-angle),transparent 0deg 290deg,var(--kid-ring-b-soft,color-mix(in srgb,var(--kid-color,#b47e75) 55%,#fff)) 325deg,var(--kid-ring-b,#fff) 348deg,transparent 360deg);animation:kid-border-angle-spin calc(2.2s/var(--kid-speed,1)) linear infinite}
 /* Unique: the tile's own outline wobbles like a blob, haloed by a slow rainbow glow. */
-.wb-family-event.kid-border-unique,.kid-border-swatch.kid-border-unique>span{animation:kid-border-unique-wobble 4s ease-in-out infinite}
+.wb-family-event.kid-border-unique,.kid-border-swatch.kid-border-unique>span{animation:kid-border-unique-wobble calc(4s/var(--kid-speed,1)) ease-in-out infinite}
 @keyframes kid-border-unique-wobble{0%,100%{border-radius:10px 26px 14px 30px/22px 12px 28px 14px}25%{border-radius:30px 14px 26px 10px/14px 28px 12px 22px}50%{border-radius:14px 30px 10px 26px/28px 14px 22px 12px}75%{border-radius:26px 10px 30px 14px/12px 22px 14px 28px}}
+.wb-family-event:is(.kid-border-modern,.kid-border-unique),.kid-border-swatch:is(.kid-border-modern,.kid-border-unique)>span{border-color:var(--kid-ring-a,var(--kid-color,#b47e75))}
 .kid-border-unique .kid-border-fx>s{display:none}
 .kid-border-unique .kid-border-fx>b{filter:blur(8px) saturate(1.6)}
-.kid-border-unique .kid-border-fx>b::before{background:conic-gradient(from var(--kid-border-angle),var(--kid-color,#b47e75),#ff7ad9,#7ad7ff,#ffe27a,var(--kid-color,#b47e75));animation:kid-border-angle-spin 4s linear infinite}
+.kid-border-unique .kid-border-fx>b::before{background:conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,var(--kid-color,#b47e75)),var(--kid-ring-b,#ff7ad9),var(--kid-ring-a-soft,#7ad7ff),var(--kid-ring-b-soft,#ffe27a),var(--kid-ring-a,var(--kid-color,#b47e75)));animation:kid-border-angle-spin calc(4s/var(--kid-speed,1)) linear infinite}
 /* Space: a comet streaks a navy ring while a rocket flies the loop past twinkling stars. */
-.kid-border-space{--kid-fx-dur:7s}
-.kid-border-space .kid-border-fx>s,.kid-border-space .kid-border-fx>b::before,.kid-border-swatch.kid-border-space>span::before{background:conic-gradient(from var(--kid-border-angle),transparent 0deg 240deg,#6f8cff 320deg,#fff 356deg,transparent 360deg),#1f2456;animation:kid-border-angle-spin 2.8s linear infinite}
+.kid-border-space{--kid-fx-dur:calc(7s/var(--kid-speed,1))}
+.kid-border-space .kid-border-fx>s,.kid-border-space .kid-border-fx>b::before,.kid-border-swatch.kid-border-space>span::before{background:conic-gradient(from var(--kid-border-angle),transparent 0deg 240deg,var(--kid-ring-a,#6f8cff) 320deg,#fff 356deg,transparent 360deg),var(--kid-ring-b,#1f2456);animation:kid-border-angle-spin calc(2.8s/var(--kid-speed,1)) linear infinite}
 .kid-border-space .kid-border-fx>i{display:block}
 .kid-border-space .kid-border-fx>i:first-of-type{offset-rotate:auto 45deg}
 .kid-border-space .kid-border-fx>i:first-of-type::before{content:'🚀';font-size:1.2rem}
 .kid-border-space .kid-border-fx>i:nth-of-type(n+2){animation:none;offset-distance:calc(var(--p)*100% + 5%)}
-.kid-border-space .kid-border-fx>i:nth-of-type(n+2)::before{content:'✦';font-size:.9rem;color:#ffd76a;text-shadow:0 0 6px #ffd76a;animation:kid-fx-twinkle 1.6s ease-in-out infinite}
-.kid-border-space .kid-border-fx>i:nth-of-type(3)::before{animation-delay:-.4s}.kid-border-space .kid-border-fx>i:nth-of-type(4)::before{animation-delay:-.8s}.kid-border-space .kid-border-fx>i:nth-of-type(5)::before{animation-delay:-1.2s}
+.kid-border-space .kid-border-fx>i:nth-of-type(n+2)::before{content:'✦';font-size:.9rem;color:#ffd76a;text-shadow:0 0 6px #ffd76a;animation:kid-fx-twinkle calc(1.6s/var(--kid-speed,1)) ease-in-out infinite}
+.kid-border-space .kid-border-fx>i:nth-of-type(3)::before{animation-delay:calc(-.4s/var(--kid-speed,1))}.kid-border-space .kid-border-fx>i:nth-of-type(4)::before{animation-delay:calc(-.8s/var(--kid-speed,1))}.kid-border-space .kid-border-fx>i:nth-of-type(5)::before{animation-delay:calc(-1.2s/var(--kid-speed,1))}
 /* Garden: a leafy vine ring, with leaves and flowers blowing around it in the breeze. */
-.kid-border-garden{--kid-fx-dur:14s}
-.kid-border-garden .kid-border-fx>s,.kid-border-garden .kid-border-fx>b::before,.kid-border-swatch.kid-border-garden>span::before{background:repeating-conic-gradient(from var(--kid-border-angle),#3f8f3a 0deg 9deg,#74c466 9deg 18deg,#a9dc90 18deg 22deg);animation:kid-border-angle-spin 24s linear infinite}
+.kid-border-garden{--kid-fx-dur:calc(14s/var(--kid-speed,1))}
+.kid-border-garden .kid-border-fx>s,.kid-border-garden .kid-border-fx>b::before,.kid-border-swatch.kid-border-garden>span::before{background:repeating-conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,#3f8f3a) 0deg 9deg,var(--kid-ring-b,#74c466) 9deg 18deg,var(--kid-ring-b-soft,#a9dc90) 18deg 22deg);animation:kid-border-angle-spin calc(24s/var(--kid-speed,1)) linear infinite}
 .kid-border-garden .kid-border-fx>i{display:block}
-.kid-border-garden .kid-border-fx>i::before{content:'🍃';animation:kid-fx-flutter 1.4s ease-in-out infinite}
-.kid-border-garden .kid-border-fx>i:nth-of-type(2)::before{content:'🌸';animation-delay:-.3s}
-.kid-border-garden .kid-border-fx>i:nth-of-type(3)::before{animation-delay:-.7s}
-.kid-border-garden .kid-border-fx>i:nth-of-type(4)::before{content:'🌼';animation-delay:-1s}
-.kid-border-garden .kid-border-fx>i:nth-of-type(5)::before{content:'🌿';animation-delay:-.5s}
+.kid-border-garden .kid-border-fx>i::before{content:'🍃';animation:kid-fx-flutter calc(1.4s/var(--kid-speed,1)) ease-in-out infinite}
+.kid-border-garden .kid-border-fx>i:nth-of-type(2)::before{content:'🌸';animation-delay:calc(-.3s/var(--kid-speed,1))}
+.kid-border-garden .kid-border-fx>i:nth-of-type(3)::before{animation-delay:calc(-.7s/var(--kid-speed,1))}
+.kid-border-garden .kid-border-fx>i:nth-of-type(4)::before{content:'🌼';animation-delay:calc(-1s/var(--kid-speed,1))}
+.kid-border-garden .kid-border-fx>i:nth-of-type(5)::before{content:'🌿';animation-delay:calc(-.5s/var(--kid-speed,1))}
 @keyframes kid-fx-flutter{0%,100%{transform:translate(0,0) rotate(-20deg)}25%{transform:translate(2px,-3px) rotate(10deg)}50%{transform:translate(-1px,-5px) rotate(28deg)}75%{transform:translate(-3px,-2px) rotate(-6deg)}}
 /* Ocean: blue water flowing one way with glints running the other, waves rolling along the top
  * and bottom edges, and bubbles drifting around. */
-.kid-border-ocean{--kid-fx-dur:11s}
-.kid-border-ocean .kid-border-fx>s,.kid-border-ocean .kid-border-fx>b::before,.kid-border-swatch.kid-border-ocean>span::before{background:repeating-conic-gradient(from var(--kid-border-angle-b),#ffffff66 0deg 3deg,transparent 3deg 20deg),repeating-conic-gradient(from var(--kid-border-angle),#0d6eaf 0deg,#44b8ea 16deg,#0d6eaf 32deg);animation:kid-border-angle-spin 6s linear infinite,kid-border-angle-back 4s linear infinite}
-.kid-border-ocean .kid-border-fx::before,.kid-border-ocean .kid-border-fx::after{content:'';position:absolute;left:12px;right:12px;height:10px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='10'%3E%3Cpath d='M0 6 Q7 0 14 6 T28 6' fill='none' stroke='%23eafcff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") 0 0/28px 10px repeat-x;animation:kid-fx-wave 1.6s linear infinite}
+.kid-border-ocean{--kid-fx-dur:calc(11s/var(--kid-speed,1))}
+.kid-border-ocean .kid-border-fx>s,.kid-border-ocean .kid-border-fx>b::before,.kid-border-swatch.kid-border-ocean>span::before{background:repeating-conic-gradient(from var(--kid-border-angle-b),#ffffff66 0deg 3deg,transparent 3deg 20deg),repeating-conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,#0d6eaf) 0deg,var(--kid-ring-b,#44b8ea) 16deg,var(--kid-ring-a,#0d6eaf) 32deg);animation:kid-border-angle-spin calc(6s/var(--kid-speed,1)) linear infinite,kid-border-angle-back calc(4s/var(--kid-speed,1)) linear infinite}
+.kid-border-ocean .kid-border-fx::before,.kid-border-ocean .kid-border-fx::after{content:'';position:absolute;left:12px;right:12px;height:10px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='10'%3E%3Cpath d='M0 6 Q7 0 14 6 T28 6' fill='none' stroke='%23eafcff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") 0 0/28px 10px repeat-x;animation:kid-fx-wave calc(1.6s/var(--kid-speed,1)) linear infinite}
 .kid-border-ocean .kid-border-fx::before{top:-1px;z-index:1}
 .kid-border-ocean .kid-border-fx::after{bottom:-1px;transform:scaleY(-1);animation-direction:reverse}
 @keyframes kid-fx-wave{to{background-position:28px 0}}
 .kid-border-ocean .kid-border-fx>i:nth-of-type(-n+4){display:block}
-.kid-border-ocean .kid-border-fx>i::before{content:'';width:9px;height:9px;border-radius:50%;border:2px solid #8fdcff;background:#ffffff40;animation:kid-fx-bubble 1.8s ease-in-out infinite}
-.kid-border-ocean .kid-border-fx>i:nth-of-type(even)::before{width:6px;height:6px;animation-delay:-.9s}
+.kid-border-ocean .kid-border-fx>i::before{content:'';width:9px;height:9px;border-radius:50%;border:2px solid #8fdcff;background:#ffffff40;animation:kid-fx-bubble calc(1.8s/var(--kid-speed,1)) ease-in-out infinite}
+.kid-border-ocean .kid-border-fx>i:nth-of-type(even)::before{width:6px;height:6px;animation-delay:calc(-.9s/var(--kid-speed,1))}
 @keyframes kid-fx-bubble{0%{transform:translateY(3px) scale(.6);opacity:0}30%{opacity:1}100%{transform:translateY(-10px) scale(1.1);opacity:0}}
 /* Neon: marquee bulbs chase in discrete steps (steps(30) over 360deg = one 12deg segment per step)
  * inside a flickering tube glow. */
-.kid-border-neon .kid-border-fx>s,.kid-border-neon .kid-border-fx>b::before,.kid-border-swatch.kid-border-neon>span::before{background:repeating-conic-gradient(from var(--kid-border-angle),#ff3fd0 0deg 12deg,#2fe6ff 12deg 24deg,#8a3cff 24deg 36deg);animation:kid-border-angle-spin 6s steps(30) infinite}
-.kid-border-neon .kid-border-fx>b{filter:blur(8px) saturate(1.6);animation:kid-fx-flicker 3s linear infinite}
+.kid-border-neon .kid-border-fx>s,.kid-border-neon .kid-border-fx>b::before,.kid-border-swatch.kid-border-neon>span::before{background:repeating-conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,#ff3fd0) 0deg 12deg,var(--kid-ring-b,#2fe6ff) 12deg 24deg,var(--kid-ring-mid,#8a3cff) 24deg 36deg);animation:kid-border-angle-spin calc(6s/var(--kid-speed,1)) steps(30) infinite}
+.kid-border-neon .kid-border-fx>b{filter:blur(8px) saturate(1.6);animation:kid-fx-flicker calc(3s/var(--kid-speed,1)) linear infinite}
 @keyframes kid-fx-flicker{0%,17%,23%,58%,66%,100%{opacity:1}20%,62%{opacity:.25}}
+/* Per-kid tuning, set inline on the tile (kidBorderStyle in Workspace.tsx): --kid-speed scales every
+ * duration above; --kid-ring-a/-b replace the style's two theme colors, with -soft/-mid variants
+ * derived here. While a/b are unset these derived values are invalid, so each var() falls back to
+ * the theme color. Glow and extras are classes. */
+.wb-family-event,.kid-appearance-editor{--kid-ring-a-soft:color-mix(in srgb,var(--kid-ring-a) 45%,#fff);--kid-ring-b-soft:color-mix(in srgb,var(--kid-ring-b) 45%,#fff);--kid-ring-mid:color-mix(in srgb,var(--kid-ring-a),var(--kid-ring-b))}
+.kid-glow-off .kid-border-fx>b{display:none}
+.kid-glow-strong .kid-border-fx>b{filter:blur(12px) saturate(1.8) brightness(1.1)}
+.kid-glow-strong .kid-border-fx>b::before{padding:calc(3*var(--kid-ring))}
+.kid-extras-off .kid-border-fx>i,.kid-extras-off .kid-border-fx::before,.kid-extras-off .kid-border-fx::after{display:none!important}
 .wb-family-event-main{display:flex;align-items:flex-start;gap:10px}
 .wb-family-event-time{flex:0 0 4.6em;display:flex;flex-direction:column;font-variant-numeric:tabular-nums;line-height:1.25;color:var(--kid-color,var(--wb-ink))}
 .wb-family-event-start{font-weight:700;font-size:.78rem}
@@ -377,6 +387,13 @@ html[data-motion=reduced] .kid-border-fx>i{display:none!important}
 .kid-border-swatch{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 8px;border-radius:10px;border:1px solid var(--wb-line);background:var(--wb-surface);cursor:pointer;font-size:.7rem;color:inherit}
 .kid-border-swatch[aria-pressed="true"]{outline:2px solid var(--kid-color,var(--wb-accent));outline-offset:1px}
 .kid-border-swatch>span{display:block;position:relative;width:30px;height:22px;border-radius:6px;border:2px solid var(--kid-color,var(--wb-line))}
+.kid-border-tuning{display:flex;flex-direction:column;gap:10px;margin:12px 0 4px;padding:12px;border:1px solid var(--wb-line);border-radius:10px}
+.kid-border-speed{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.85rem}
+.kid-border-speed input{flex:1;min-width:140px}.kid-border-speed output{min-width:3ch;font-variant-numeric:tabular-nums}
+.kid-border-glow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.85rem}.kid-border-glow>span{margin-right:4px}
+.kid-border-glow button[aria-pressed="true"]{outline:2px solid var(--kid-color,var(--wb-accent));outline-offset:1px}
+.kid-border-colors{display:flex;gap:16px;flex-wrap:wrap}.kid-border-colors label{display:flex;align-items:center;gap:6px;font-size:.85rem}
+.kid-border-reset{align-self:flex-start;font-size:.8rem}
 .family-kid-list{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}
 .workbench .family-kid-chip{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--wb-line);border-radius:999px;background:var(--wb-surface)}
 .family-kid-swatch{display:block;width:12px;height:12px;border-radius:50%;background:var(--kid-color,var(--wb-accent))}
