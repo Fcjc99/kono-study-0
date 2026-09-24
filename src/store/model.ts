@@ -1,5 +1,4 @@
 import type { SanctuaryWeather } from '../game/sanctuary/types'
-import { z } from 'zod'
 import type { WeatherMode } from '../game/weather/liveWeather'
 import type { SanctuaryProgressState } from '../game/progression/types'
 import { createSanctuaryProgress, migrateSanctuaryProgress } from '../game/progression/progressionEngine'
@@ -157,8 +156,8 @@ const placementCoord=(v:unknown):number=>Math.min(0.94,Math.max(0.06,fraction(v)
 
 /** Validate unknown input before migration. Never turn malformed records into a demo. */
 export function normalizeData(raw:unknown):AppData {
- if(!z.object({profiles:z.array(z.record(z.string(),z.unknown())).min(1).max(100)}).safeParse(raw).success)return fail('profiles')
- if(!object(raw))return fail('document')
+ if(!object(raw))return fail('profiles')
+ if(!Array.isArray(raw.profiles)||raw.profiles.length<1||raw.profiles.length>100||!raw.profiles.every(object))return fail('profiles')
  if(raw.schemaVersion!==undefined&&raw.schemaVersion!==2&&raw.schemaVersion!==3&&raw.schemaVersion!==4&&raw.schemaVersion!==5&&raw.schemaVersion!==6)return fail('unsupported data version; update KONO before opening this save')
  const profiles:Profile[]=list(raw.profiles,'profiles',100).map(p=>({id:id(p.id,'profile ID'),name:str(p.name,'name',200),label:str(p.label,'plan name',200),kind:choice(p.kind,['summer','school','college','custom'],'custom'),start:date(p.start,'profile start'),end:date(p.end,'profile end'),progressEpoch:optional(p.progressEpoch,'epoch',150),color:p.color===undefined?undefined:color(p.color,'#7ca982')}))
  if(!profiles.length)return fail('profiles must contain at least one plan')
