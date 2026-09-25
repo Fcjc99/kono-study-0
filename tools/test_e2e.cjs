@@ -9,14 +9,20 @@ const ARTIFACTS=path.join(ROOT,'test-results','e2e')
 
 function startServer(){
  if(!fs.existsSync(path.join(ROOT,'dist','client','index.html')))throw new Error('No production build found. Run `npm run build` first.')
+ const proc=spawn(process.execPath,[path.join(ROOT,'node_modules','vite','bin','vite.js'),'preview','--port',String(PORT),'--strictPort'],{cwd:ROOT,stdio:'pipe'})
+ let output='',exited=null
+ proc.stdout.on('data',data=>{output+=data});proc.stderr.on('data',data=>{output+=data})
+ proc.on('exit',code=>{exited=code})
+ // Wait for the port to answer rather than parsing log text, which differs between terminals and CI.
  return new Promise((resolve,reject)=>{
-  const proc=spawn(process.execPath,[path.join(ROOT,'node_modules','vite','bin','vite.js'),'preview','--port',String(PORT),'--strictPort'],{cwd:ROOT,stdio:'pipe'})
-  let done=false
-  const onData=data=>{if(!done&&/Local:/.test(data.toString())){done=true;resolve(proc)}}
-  proc.stdout.on('data',onData);proc.stderr.on('data',onData)
-  proc.on('error',reject)
-  proc.on('exit',code=>{if(!done)reject(new Error(`vite preview exited early (${code})`))})
-  setTimeout(()=>{if(!done)reject(new Error('vite preview did not start within 30s'))},30000)
+  const started=Date.now()
+  const poll=async()=>{
+   if(exited!==null)return reject(new Error(`vite preview exited early (${exited}):\n${output}`))
+   try{const response=await fetch(BASE);if(response.ok)return resolve(proc)}catch{/* not listening yet */}
+   if(Date.now()-started>60000){proc.kill();return reject(new Error(`vite preview did not answer on ${BASE} within 60s:\n${output}`))}
+   setTimeout(poll,250)
+  }
+  void poll()
  })
 }
 
