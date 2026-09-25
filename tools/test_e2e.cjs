@@ -300,6 +300,29 @@ test('KONO support can list every account, open one to add something for them, a
  assert.equal(await banner.count(),0)
 })
 
+test('keyboard: K-Quiz practice questions and flashcards keep focus inside, close with Escape, and return focus',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
+ plan.kquizSets=[{id:'set-1',profileId:plan.activeProfileId,subjectId:'',title:'Cells (e2e)',createdAt:'2026-09-20T00:00:00Z',flashcardDeckId:plan.flashcardDecks[0].id,practiceTest:{questions:[{id:'q1',type:'mcq',prompt:'Powerhouse of the cell?',choices:['Mitochondria','Nucleus'],correctIndex:0}]}}]
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await mainHeading(page).waitFor()
+ await go(page,'K-Quiz')
+ for(const [opener,label] of [['Practice questions','Practice test'],['Flashcards','Flashcards']]){
+  const button=page.getByRole('button',{name:new RegExp(opener)}).first()
+  await button.click()
+  const dialog=page.getByRole('dialog',{name:label})
+  await dialog.waitFor()
+  assert.ok(await page.evaluate(()=>!!document.activeElement?.closest('[role=dialog]')),`${label}: focus didn't move into the dialog`)
+  for(let i=0;i<12;i++){
+   await page.keyboard.press(i%3?'Tab':'Shift+Tab')
+   assert.ok(await page.evaluate(()=>!!document.activeElement?.closest('[role=dialog]')),`${label}: Tab left the dialog`)
+  }
+  await page.keyboard.press('Escape')
+  await dialog.waitFor({state:'detached'})
+  assert.ok(await button.evaluate(el=>el===document.activeElement),`${label}: focus didn't return to the button that opened it`)
+ }
+})
+
 async function main(){
  const server=await startServer()
  const onlyArg=process.argv[2]
