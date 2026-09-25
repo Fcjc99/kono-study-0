@@ -50,6 +50,8 @@ try{
   insert into auth.users(id,email) values ('${alice}','alice@example.com'),('${bob}','bob@example.com'),('${carol}','carol@example.com');
  `)
  for(const file of fs.readdirSync(path.join(root,'supabase','migrations')).filter(f=>f.endsWith('.sql')).sort())psql(fs.readFileSync(path.join(root,'supabase','migrations',file),'utf8'))
+ // People run the newest migration by hand in the Supabase SQL editor, sometimes twice: it must be re-runnable.
+ psql(fs.readFileSync(path.join(root,'supabase','migrations','0004_kono_backups_and_support.sql'),'utf8'))
 
  test('a signed-in person saves their plan and nobody else can read it',()=>{
   assert.equal(save(alice,0,'Alice').revision,1)
