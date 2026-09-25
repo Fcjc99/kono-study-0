@@ -5,7 +5,9 @@ import { type AppData, localDate } from '../store/model'
 import {APP_VERSION} from '../version'
 type Store=ReturnType<typeof usePlannerRepository>
 export function SaveStatus({store}:{store:Store}){
- return <div className="save-status"><small>Build {APP_VERSION.split('production-')[1]} · </small><span role="status"><span className="save-status-account">{store.support?'Helping: '+store.support.email:store.user?'Account: '+store.user.email:'This device only'} · </span>{store.status}</span>{store.error&&<p role="alert">{store.error} <button onClick={store.repository.export}>Export working copy</button> <button onClick={store.repository.retry}>Retry</button></p>}</div>
+ // Routine "Saved…" states are quiet (hidden on small screens); anything needing attention always shows.
+ const quiet=!store.error&&!store.support&&/^(Saved on this device|Saved to your account|Saved|Account ready)$/.test(store.status)
+ return <div className={'save-status'+(quiet?' is-quiet':'')}><small>Build {APP_VERSION.split('production-')[1]} · </small><span role="status"><span className="save-status-account">{store.support?'Helping: '+store.support.email:store.user?'Account: '+store.user.email:'This device only'} · </span>{store.status}</span>{store.error&&<p role="alert">{store.error} <button onClick={store.repository.export}>Export working copy</button> <button onClick={store.repository.retry}>Retry</button></p>}</div>
 }
 export function AccountPanel({store}:{store:Store}){
  const {repository}=store
@@ -47,17 +49,24 @@ export function RecoveryScreen({store}:{store:Store}){
  </section></main>
 }
 /** Email sign-in link form, shared by onboarding, the save-to-email banner and Settings. */
-export function EmailSignIn({store,button='Email me a sign-in link'}:{store:Store;button?:string}){
- const [email,setEmail]=useState(''),[busy,setBusy]=useState(false),[sent,setSent]=useState(false),[error,setError]=useState('')
- const submit=async(e:FormEvent)=>{e.preventDefault();setBusy(true);setError('');try{await store.repository.signInWithEmail(email);setSent(true)}catch(err){setError(err instanceof Error?err.message:'Could not send the link. Try again.')}finally{setBusy(false)}}
- return <form className="email-sign-in" onSubmit={e=>void submit(e)}><label>Email address<input required type="email" autoComplete="email" maxLength={320} value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"/></label><button className="primary" disabled={busy}>{busy?'Sending…':button}</button>{sent&&<p role="status">Check your email for a link from KONO and open it on this device. It can take a minute; check spam if it doesn’t arrive.</p>}{error&&<p role="alert">{error}</p>}</form>
+/** Turns a sign-in email failure into plain words; rate limits and outages aren't the person's fault. */
+function signInProblem(err:unknown){
+ const raw=err instanceof Error?err.message:''
+ if(/rate limit|too many|429|over_email_send_rate/i.test(raw))return {text:'KONO has sent a lot of sign-in emails in the last hour, so this one is waiting its turn. Try again in a little while.',service:true}
+ if(/fetch|network|failed to|timeout|smtp|sending|unexpected|500|503/i.test(raw)||!raw)return {text:'We couldn’t send the email right now. Check your connection and try again in a moment.',service:true}
+ return {text:raw,service:false}
+}
+export function EmailSignIn({store,button='Email me a sign-in link',onUseDevice}:{store:Store;button?:string;onUseDevice?:()=>void}){
+ const [email,setEmail]=useState(''),[busy,setBusy]=useState(false),[sent,setSent]=useState(false),[error,setError]=useState<{text:string;service:boolean}|null>(null)
+ const submit=async(e:FormEvent)=>{e.preventDefault();setBusy(true);setError(null);try{await store.repository.signInWithEmail(email);setSent(true)}catch(err){setError(signInProblem(err))}finally{setBusy(false)}}
+ return <form className="email-sign-in" onSubmit={e=>void submit(e)}><label>Email address<input required type="email" autoComplete="email" maxLength={320} value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"/></label><button className="primary" disabled={busy}>{busy?'Sending…':button}</button>{sent&&<p role="status">Check your email for a link from KONO and open it on this device. It can take a minute; check spam if it doesn’t arrive.</p>}{error&&<p role="alert">{error.text}{error.service&&onUseDevice&&<> <button type="button" className="sign-in-fallback" onClick={onUseDevice}>Start on this device for now</button> <small>You can save it to your email later from the banner at the top.</small></>}</p>}</form>
 }
 export function Onboarding({store}:{store:Store}){
- const profile=store.data.profiles[0], [name,setName]=useState(''),[label,setLabel]=useState('My study plan')
+ const profile=store.data.profiles[0], [name,setName]=useState(''),[label,setLabel]=useState('My study plan'),[deviceStart,setDeviceStart]=useState(false)
  const submit=(e:FormEvent)=>{e.preventDefault();if(!name.trim()||!label.trim())return;store.repository.update(d=>({...d,onboardingComplete:true,profiles:d.profiles.map(p=>p.id===profile.id?{...p,name:name.trim(),label:label.trim()}:p)}))}
  const demo=()=>void store.repository.update(d=>({...d,onboardingComplete:true,notes:[...d.notes,{id:'demo-note-'+profile.id,profileId:profile.id,subjectId:'',title:'Welcome to your board',body:'Edit this note, change its color, or move it to Trash. Your own work starts here.',created:new Date().toISOString(),pinned:true}],tasks:[...d.tasks,{id:'demo-task-'+profile.id,profileId:profile.id,subjectId:'',title:'Try completing an assignment',due:localDate(),done:false,notes:'This optional demo task can be edited, reopened, or removed.'}]}))
  // Plans live in an account tied to your email, so they can't be lost with a browser. The demo stays on this device.
- if(store.repository.signInProvider==='email'&&!store.user)return <main className="onboarding page-stack"><section className="card"><span className="eyebrow">Welcome to KONO</span><h1>A little space for steady progress.</h1><p>Sign in with your email to start your plan. It’s saved to your account, backed up automatically every time you open KONO, and there on any device you sign in on. No password: we email you a link.</p><EmailSignIn store={store} button="Email me a link to start"/><p className="onboarding-demo">Just looking around? <button type="button" onClick={demo}>Try a small demo instead</button> <small>The demo is saved on this device only.</small></p></section></main>
+ if(store.repository.signInProvider==='email'&&!store.user&&!deviceStart)return <main className="onboarding page-stack"><section className="card"><span className="eyebrow">Welcome to KONO</span><h1>A little space for steady progress.</h1><p>Sign in with your email to start your plan. It’s saved to your account, backed up automatically every time you open KONO, and there on any device you sign in on. No password: we email you a link.</p><EmailSignIn store={store} button="Email me a link to start" onUseDevice={()=>setDeviceStart(true)}/><p className="onboarding-demo">Just looking around? <button type="button" onClick={demo}>Try a small demo instead</button> <small>The demo is saved on this device only.</small></p></section></main>
  return <main className="onboarding page-stack"><form className="card" onSubmit={submit}><span className="eyebrow">Welcome to KONO</span><h1>A little space for steady progress.</h1>{store.user&&<p className="onboarding-account">Signed in as <strong>{store.user.email}</strong>. Your plan saves to this account.</p>}<p>Start with your own plan. Add subjects, small assignments and notes; your Sanctuary grows as you finish work.</p><label>Your name<input required maxLength={200} value={name} onChange={e=>setName(e.target.value)} autoComplete="given-name"/></label><label>Plan name<input required maxLength={200} value={label} onChange={e=>setLabel(e.target.value)}/></label><button className="primary" disabled={store.needsMigration}>Create my study plan</button><button type="button" disabled={store.needsMigration} onClick={demo}>Try a small demo instead</button></form><AccountPanel store={store}/></main>
 }
 const SNOOZE_KEY='kono-save-to-email-snoozed-until'

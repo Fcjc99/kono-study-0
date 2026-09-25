@@ -96,11 +96,11 @@ test('homework added in the Planner survives a reload',async({page})=>{
  await createPlan(page)
  await go(page,'Planner')
  await addFromMenu(page,'tasks','Read chapter 3 (e2e)')
- await page.getByText('Read chapter 3 (e2e)').first().waitFor()
+ await page.getByText('Read chapter 3 (e2e)').filter({visible:true}).first().waitFor()
  await flushSave(page,'Read chapter 3 (e2e)')
  await page.reload()
  await go(page,'Planner')
- await page.getByText('Read chapter 3 (e2e)').first().waitFor()
+ await page.getByText('Read chapter 3 (e2e)').filter({visible:true}).first().waitFor()
 })
 
 test('a study note can be moved to Trash and restored',async({page})=>{
@@ -264,7 +264,7 @@ test('signed in: changes upload to the account, and a brand-new device opens the
   await other.page.goto(BASE)
   await heading(other.page,'Sanctuary')
   await go(other.page,'Planner')
-  await other.page.getByText('Saved to my account (e2e)').first().waitFor()
+  await other.page.getByText('Saved to my account (e2e)').filter({visible:true}).first().waitFor()
   assert.deepEqual(other.errors,[])
  }finally{await other.context.close()}
 })

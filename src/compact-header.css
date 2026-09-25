@@ -44,3 +44,14 @@
  .wb-stat-long{display:none}
  .wb-stat-short{display:inline}
 }
+
+/* Phones and tablets: the highlighted tab already names the page and the plan card (top right) names
+ * the plan, so the page header drops its title and eyebrow (the title stays for screen readers) and the
+ * save line only appears when something needs attention. */
+@media (max-width:900px){
+ .workbench .wb-header>div:first-child>small{display:none!important}
+ .workbench .wb-header .wb-title-row>h1{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important}
+ .workbench .wb-header .save-status.is-quiet{display:none!important}
+ .workbench .wb-header{padding-top:10px!important;padding-bottom:10px!important;min-height:0!important}
+ .workbench .wb-header>div:first-child:not(:has(.save-status:not(.is-quiet))):not(:has(.wb-header-weather)){display:none!important}
+}
