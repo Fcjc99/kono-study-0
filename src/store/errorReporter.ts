@@ -6,7 +6,7 @@ let context:()=>{page?:string;appVersion?:string}=()=>({})
 const seen=new Set<string>()
 let installed=false
 
-export function reportError(error:unknown,extra?:{page?:string}){
+export function reportError(error:unknown,extra?:{page?:string;detail?:string}){
  if(!send||seen.size>=5)return
  const message=error instanceof Error?error.message:typeof error==='string'?error:'Unknown error'
  if(!message||seen.has(message)||/ResizeObserver loop|Load failed|NetworkError|Failed to fetch|AbortError/i.test(message))return

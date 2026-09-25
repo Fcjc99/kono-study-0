@@ -1,5 +1,5 @@
-import {dateFrom} from './scheduleImport'
-import {uid,type StudySeason} from './model'
+import {dateFrom,type ImportRow} from './scheduleImport'
+import {dayNames,normalizeData,uid,type AppData,type StudySeason} from './model'
 import {classColumns,classTableRow,toTime,weekdaysFrom,type ClassColumns} from './classTable'
 import type {SchoolException} from './schoolCalendar'
 /** OCR is evidence to review, never authority to close school automatically. */
@@ -151,4 +151,33 @@ export function addTimetableRows(season:StudySeason,rows:RotatingImportRow[]):St
   blocks.push({id:uid('block'),label:r.label.trim(),slot:r.slot,start:r.start,end:r.end,dateStart:r.dateStart,dateEnd:r.dateEnd,kind:r.kind,location:r.location?.trim()||undefined})
  }
  return next
+}
+
+/** Weekly classes found by the PDF importer go into an existing college semester, so its breaks and
+ * holidays apply to them, instead of a separate schedule. Classes already there are skipped. */
+export function addImportedClassesToSeason(data:AppData,profileId:string,seasonId:string,rows:ImportRow[]){
+ if(data.activeProfileId!==profileId)throw Error('Your profile changed. Reopen the importer.')
+ const season=data.studySeasons.find(s=>s.id===seasonId&&s.profileId===profileId&&s.school?.pattern==='weekly')
+ if(!season?.school)throw Error('That semester was removed. Choose another one.')
+ const classes=rows.filter(r=>r.include&&r.kind==='class')
+ const lastClass=season.school.lastClassDate||season.end
+ const timetable:RotatingImportRow[]=classes.flatMap(r=>[...new Set(r.weekdays)].map(d=>{
+  const day=dayNames[d]
+  if(!season.school!.cycle.includes(day))throw Error(r.title+' meets on '+day+', which isn’t a class day in '+season.name+'.')
+  return {id:uid('import-block'),include:true,day,label:r.title.trim(),slot:'',start:r.start,end:r.end,dateStart:season.start,dateEnd:lastClass,kind:'study' as const,location:r.location}
+ }))
+ const before=Object.values(season.week).reduce((n,v)=>n+v.length,0)
+ const updated=addTimetableRows(season,timetable)
+ const result=structuredClone(data)
+ let added=Object.values(updated.week).reduce((n,v)=>n+v.length,0)-before
+ const skipped=timetable.length-added
+ for(const blocks of Object.values(updated.week))for(const b of blocks){
+  if(b.subjectId||b.kind!=='study')continue
+  const name=(classes.find(r=>r.title.trim()===b.label)?.subject||b.label).trim()
+  let subject=result.subjects.find(s=>s.profileId===profileId&&s.name.trim().toLowerCase()===name.toLowerCase())
+  if(!subject){subject={id:uid('subject'),profileId,name,color:'#4169a8',resources:[]};result.subjects.push(subject);added++}
+  b.subjectId=subject.id
+ }
+ result.studySeasons=result.studySeasons.map(s=>s.id===season.id?updated:s)
+ return {data:normalizeData(result),added,skipped}
 }
