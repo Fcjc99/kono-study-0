@@ -52,3 +52,18 @@
 
 /* Sanctuary: the island picture shows right away while its engine loads (same "contain" fit). */
 .sanctuary-viewport{background-size:contain;background-position:center;background-repeat:no-repeat}
+
+/* Settings › Schedules: "Your weekly schedules" cards, and the add form that opens from one button. */
+.weekly-schedules>.wb-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.weekly-list{display:grid;gap:12px;margin-top:10px}
+.weekly-card{display:grid;gap:6px}
+.weekly-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.weekly-card-head h3{margin:0}
+.weekly-status{font-size:.78rem;font-weight:700;padding:3px 10px;border-radius:999px;border:1px solid var(--wb-line);color:var(--wb-muted)}
+.weekly-status.is-on{color:#1f6b45;border-color:#8cc7a6;background:#eaf7ef}
+.weekly-summary,.weekly-times{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.weekly-summary li{font-size:.92rem}
+.weekly-times li{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:6px 10px;border:1px solid var(--wb-line);border-radius:10px}
+.weekly-editor fieldset{display:grid;gap:10px;border:0;padding:0;margin:4px 0 0}
+.weekly-editor h4,.weekly-time-form h4{margin:4px 0 0}
+.weekly-add{margin:10px 0}
