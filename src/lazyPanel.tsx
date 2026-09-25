@@ -1,10 +1,12 @@
 import {Component,Suspense,lazy,type ComponentType,type ReactNode} from 'react'
+import {reportError} from './store/errorReporter'
 
 /** Shown if a panel's code can't be downloaded -- usually offline, or KONO updated since this tab opened
  * and the old file is gone. Nothing in the plan is affected; reloading picks up the current version. */
 class PanelLoadBoundary extends Component<{children:ReactNode},{failed:boolean}>{
  state={failed:false}
  static getDerivedStateFromError(){return {failed:true}}
+ componentDidCatch(error:unknown){reportError(error)}
  render(){
   if(!this.state.failed)return this.props.children
   return <div className="wb-panel lazy-panel-error" role="alert"><p>This part of KONO couldn't load. You may be offline, or KONO was just updated. Your plan is safe.</p><button type="button" onClick={()=>window.location.reload()}>Reload KONO</button></div>
