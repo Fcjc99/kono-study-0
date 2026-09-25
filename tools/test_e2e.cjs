@@ -462,6 +462,45 @@ test('Work & weekly activities: one list of schedules, one add button; edit adds
  await card.waitFor({state:'detached'})
 })
 
+/** A small calendar like Google Calendar's export: a weekly class and a one-time appointment, dated from today. */
+function sampleIcs(){
+ const d=new Date(),ymd=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0')
+ const next=new Date(d);next.setDate(d.getDate()+3)
+ const until=new Date(d);until.setDate(d.getDate()+60)
+ return ['BEGIN:VCALENDAR','VERSION:2.0','X-WR-CALNAME:Sam school','BEGIN:VEVENT','UID:bio@example','SUMMARY:Biology lab','LOCATION:Science 101','DTSTART:'+ymd(d)+'T140000','DTEND:'+ymd(d)+'T153000','RRULE:FREQ=WEEKLY;BYDAY=MO,WE;UNTIL='+ymd(until),'END:VEVENT',
+  'BEGIN:VEVENT','UID:dentist@example','SUMMARY:Dentist appointment','DTSTART:'+ymd(next)+'T090000','DTEND:'+ymd(next)+'T100000','END:VEVENT','END:VCALENDAR'].join('\r\n')
+}
+
+test('Calendar import: a Google/Apple calendar file or link adds weekly repeats and events, and importing again adds nothing new',async({context,page})=>{
+ const requests=[]
+ await context.route(BASE+'api/calendar-feed',route=>{requests.push(route.request().postDataJSON());return route.fulfill({status:200,headers:{'content-type':'text/calendar'},body:sampleIcs()})})
+ await createPlan(page)
+ await go(page,'Settings')
+ await settingsTab(page,'Import & export')
+ await page.getByText('Import from Google Calendar or Apple Calendar').click()
+ await page.getByLabel('Calendar file (.ics)').setInputFiles({name:'sam.ics',mimeType:'text/calendar',buffer:Buffer.from(sampleIcs())})
+ await page.getByText('Found 1 weekly repeat and 1 event',{exact:false}).waitFor()
+ const review=page.locator('.calendar-import-review')
+ assert.match(await review.innerText(),/Biology lab · Mon, Wed · 2:00 PM–3:30 PM · Science 101/)
+ assert.match(await review.innerText(),/“Sam school · weekly”/)
+ await review.getByRole('button',{name:'Add 2 to my plan'}).click()
+ await page.getByText(/^2 added\./).waitFor()
+ await flushSave(page,'Dentist appointment')
+
+ // The same calendar by link (Google's secret address / an iCloud public link): nothing new to add.
+ await page.getByLabel('Or paste a calendar link').fill('webcal://p52-caldav.icloud.com/published/2/abc')
+ await page.getByRole('button',{name:'Get calendar'}).click()
+ await page.getByText('Found 1 weekly repeat and 1 event',{exact:false}).waitFor()
+ assert.equal(requests[0].url,'webcal://p52-caldav.icloud.com/published/2/abc')
+ await page.locator('.calendar-import-review').getByRole('button',{name:'Add 2 to my plan'}).click()
+ await page.getByText('0 added, 2 already in your plan',{exact:false}).waitFor()
+
+ await settingsTab(page,'Schedules')
+ const card=page.locator('#weekly-schedules').getByRole('article',{name:'Sam school · weekly'})
+ await card.waitFor()
+ assert.match(await card.innerText(),/Biology lab · Mon, Wed · 2:00 PM–3:30 PM/)
+})
+
 /** A landscape class-schedule PDF like a registrar printout: day, time and building cells wrap onto two lines. */
 function classTablePdf(){
  const {jsPDF}=require('jspdf'),doc=new jsPDF({orientation:'landscape',unit:'pt',format:'letter'})

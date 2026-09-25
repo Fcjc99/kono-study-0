@@ -10,7 +10,7 @@ function load(relative){
  return module.exports
 }
 const model=load('src/store/model.ts'),c=load('src/store/classSchedule.ts'),{mergeData}=load('src/store/merge.ts')
-const base=model.createFreshData(),season=base.studySeasons[0]
+const base=model.createFreshData();base.studySeasons=[{id:'season-test',profileId:base.activeProfileId,name:'Test schedule',start:base.profiles[0].start,end:base.profiles[0].end,active:true,week:model.blankWeek()}];const season=base.studySeasons[0]
 season.start='2026-09-01';season.end='2026-12-31'
 season.week.Tuesday=[{id:'bio',label:'Biology',start:'10:00',end:'12:00',kind:'study',dateStart:'2026-09-08',dateEnd:'2026-10-06',occurrenceNotes:{}}]
 const data=model.normalizeData(base),first=c.classOccurrences(data,'2026-09-08')[0]
