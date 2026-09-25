@@ -49,3 +49,6 @@
 .support-errors{list-style:none;padding:0;display:grid;gap:8px}
 .support-errors li{display:grid;gap:2px;padding:8px 10px;border:1px solid var(--wb-line);border-radius:10px}
 .support-errors pre{white-space:pre-wrap;font-size:.75rem;overflow-wrap:anywhere}
+
+/* Sanctuary: the island picture shows right away while its engine loads (same "contain" fit). */
+.sanctuary-viewport{background-size:contain;background-position:center;background-repeat:no-repeat}

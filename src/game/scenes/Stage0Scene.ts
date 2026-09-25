@@ -110,7 +110,7 @@ export default class Stage0Scene extends Phaser.Scene {
     return keys
   }
   private enqueuePhaseAssets(phase:DayPhase):void{
-    this.load.image(terraceMapTextureKey(phase),`/garden/terrace-23.0/${phase}.png`)
+    this.load.image(terraceMapTextureKey(phase),`/garden/terrace-23.0/${phase}.webp`)
   }
 
   constructor() {
