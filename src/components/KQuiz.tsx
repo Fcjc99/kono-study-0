@@ -5,6 +5,7 @@ import { AiHelperStatus } from './AiHelper'
 import { useAiHelper } from '../hooks/useAiHelper'
 import { uid, localDate, type AppData, type KQuizLecture, type KQuizSet, type KQuizSource, type KQuizQuestion, type Subject } from '../store/model'
 import type { FlashcardDeck } from '../store/flashcards'
+import ModalOverlay from './ModalOverlay'
 import { srsInitial } from '../store/spacedRepetition'
 import { generateStudyMaterials, transcribePhoto, answerFromNotes } from '../store/kquizGenerate'
 import { saveRecording, loadRecording, deleteRecording } from '../store/audioStore'
@@ -248,7 +249,7 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
         {/* No `capture` attribute: that forces mobile browsers straight into the camera app with no
          * way back to the photo library, which is exactly the "doesn't upload, just camera" complaint
          * this fixes — plain file input still offers "Take Photo" as one of its own options. */}
-        <input ref={photoInputRef} type="file" accept="image/*" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void scanPhoto(file) }} />
+        <input ref={photoInputRef} type="file" accept="image/*" aria-label="Photo of your notes" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void scanPhoto(file) }} />
       </div>
     </div>
 
@@ -334,7 +335,7 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
       })}
     </div>}
 
-    {test && testSet && <div className="kquiz-test" role="dialog" aria-label="Practice test"><div className="kquiz-test-card">
+    {test && testSet && <ModalOverlay className="kquiz-test" label="Practice test" onClose={() => setTest(null)}><div className="kquiz-test-card">
       <p className="wb-muted">{testSet.title}</p>
       {!question ? <><h4>Test finished</h4><p>{test.score} of {testSet.practiceTest?.questions.length} correct.</p></> : <>
         <span className="kquiz-test-count">{test.index + 1}/{testSet.practiceTest?.questions.length}</span>
@@ -343,14 +344,14 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
           {question.choices.map((choice, i) => <button type="button" key={i} aria-disabled={test.revealed} className={'kquiz-choice' + (test.revealed && i === question.correctIndex ? ' is-correct' : test.revealed && i === test.picked ? ' is-wrong' : '')} onClick={() => answerMcq(i)}>{test.revealed && i === question.correctIndex ? '✓ ' : test.revealed && i === test.picked ? '✗ ' : ''}{choice}</button>)}
           {test.revealed && <button type="button" className="primary" onClick={nextQuestion}>Next</button>}
         </div> : <>
-          <textarea rows={4} placeholder="Type your answer, then check it against the model answer." disabled={test.revealed} />
+          <textarea rows={4} aria-label="Your answer" placeholder="Type your answer, then check it against the model answer." disabled={test.revealed} />
           {!test.revealed ? <button type="button" className="primary" onClick={() => setTest({ ...test, revealed: true })}>Show model answer</button> : <><p className="kquiz-text"><strong>Model answer:</strong> {question.answer}</p><div className="study-actions"><button type="button" className="primary" onClick={() => gradeWritten(true)}>Got it</button><button type="button" className="secondary" onClick={() => gradeWritten(false)}>Review again</button></div></>}
         </>}
       </>}
       <button type="button" className="secondary" onClick={() => setTest(null)}>Close test</button>
-    </div></div>}
+    </div></ModalOverlay>}
 
-    {flashSession && flashDeck && <div className="kquiz-test" role="dialog" aria-label="Flashcards"><div className="kquiz-test-card">
+    {flashSession && flashDeck && <ModalOverlay className="kquiz-test" label="Flashcards" onClose={() => setFlashSession(null)}><div className="kquiz-test-card">
       <p className="wb-muted">{flashDeck.title}</p>
       {flashCard ? <>
         <span className="kquiz-test-count">{flashSession.index + 1}/{flashDeck.cards.length}</span>
@@ -362,6 +363,6 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
         </div>
       </> : <><h4>Round finished</h4><p>You've gone through all {flashDeck.cards.length} cards.</p></>}
       <button type="button" className="secondary" onClick={() => setFlashSession(null)}>Close</button>
-    </div></div>}
+    </div></ModalOverlay>}
   </section>
 }
