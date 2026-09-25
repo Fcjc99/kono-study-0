@@ -5,6 +5,8 @@ export type SharedCatalogRow={id:string;label:string;kind:'school'|'college';tow
 export type ClassmateProfile={userId:string;username:string;displayName:string}
 export type ConnectionStatus='pending'|'accepted'|'declined'
 export type ConnectionRow={id:string;requesterId:string;recipientId:string;status:ConnectionStatus;createdAt:string}
+export type AdminAccount={userId:string;email:string;createdAt:string;lastSignInAt:string|null;revision:number|null;updatedAt:string|null;profiles:string;username:string|null}
+export type SupportActivity={id:number;accountId:string;adminId:string|null;action:'view'|'edit';revision:number|null;createdAt:string}
 
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}})
 const failure=(message='Cloud storage is temporarily unavailable.')=>json({error:message},503)
@@ -28,6 +30,26 @@ export class SupabaseRemote{
   if(error)throw error
  }
  async signOut(){const {error}=await this.client.auth.signOut();if(error)throw error}
+ /** Keeps a copy of the saved cloud plan each time KONO opens (the database skips it when nothing changed). */
+ async backupOnOpen(){const {error}=await this.client.rpc('kono_backup_on_open');if(error)throw error}
+ /** UI hint only: every support function re-checks kono_admins on the server. */
+ async isAdmin(){const {data,error}=await this.client.rpc('kono_is_admin');return !error&&data===true}
+ async adminAccounts():Promise<AdminAccount[]>{
+  const {data,error}=await this.client.rpc('kono_admin_accounts')
+  if(error)throw new Error(error.message)
+  return ((data??[]) as {user_id:string;email:string|null;created_at:string;last_sign_in_at:string|null;revision:number|null;updated_at:string|null;profiles:string|null;username:string|null}[]).map(r=>({userId:r.user_id,email:r.email??'',createdAt:r.created_at,lastSignInAt:r.last_sign_in_at,revision:r.revision,updatedAt:r.updated_at,profiles:r.profiles??'',username:r.username}))
+ }
+ /** Support views and edits: a person sees their own account's; KONO support sees all of them. */
+ async supportActivity(accountId?:string):Promise<SupportActivity[]>{
+  let query=this.client.from('kono_admin_audit').select('id,account_id,admin_id,action,revision,created_at').order('id',{ascending:false}).limit(50)
+  if(accountId)query=query.eq('account_id',accountId)
+  const {data,error}=await query
+  if(error)throw new Error(error.message)
+  return ((data??[]) as {id:number;account_id:string;admin_id:string|null;action:'view'|'edit';revision:number|null;created_at:string}[]).map(r=>({id:r.id,accountId:r.account_id,adminId:r.admin_id,action:r.action,revision:r.revision,createdAt:r.created_at}))
+ }
+ /** While set, the plan endpoints below read and write this account through the support functions. */
+ private supportTarget:string|null=null
+ setSupportTarget(accountId:string|null){this.supportTarget=accountId}
  /** Public read: works even for signed-out/local-only devices, since the catalog is shared community data, not a private plan. */
  async fetchSchoolCatalog():Promise<SharedCatalogRow[]>{
   const {data,error}=await this.client.from('kono_school_catalog').select('id,label,kind,town,data,source,url,created_at').order('created_at',{ascending:false}).limit(500)
@@ -126,6 +148,7 @@ export class SupabaseRemote{
   const headers=new Headers(init?.headers)
   if(headers.get('X-Kono-Data-Version')!=='6')return json({error:'A newer KONO version is required.'},426)
   try{
+   if(this.supportTarget)return await this.supportRequest(path,init,this.supportTarget)
    if(path==='plan'&&(!init?.method||init.method==='GET')){
     const {data,error}=await this.client.from('kono_plans').select('revision,data').maybeSingle()
     if(error)return failure(error.message)
@@ -148,8 +171,18 @@ export class SupabaseRemote{
     return result?.conflict?json({error:'Plan changed. Refresh before deleting.'},409):json({revision:result?.revision,data:null})
    }
    if(path==='history'&&(!init?.method||init.method==='GET')){
-    const {data,error}=await this.client.from('kono_plan_history').select('revision,created_at').order('revision',{ascending:false}).limit(20)
-    return error?failure(error.message):json({history:data??[]})
+    const {data,error}=await this.client.from('kono_plan_history').select('revision,created_at,changed_by').order('revision',{ascending:false}).limit(20)
+    return error?failure(error.message):json({history:(data??[]).map(({changed_by,...row})=>({...row,bySupport:!!changed_by&&changed_by!==accountId}))})
+   }
+   if(path==='backups'&&(!init?.method||init.method==='GET')){
+    const {data,error}=await this.client.from('kono_plan_backups').select('revision,created_at,reason').order('revision',{ascending:false}).limit(30)
+    return error?failure(error.message):json({backups:data??[]})
+   }
+   const backup=path.match(/^backups\/(\d+)$/)
+   if(backup&&(!init?.method||init.method==='GET')){
+    const {data,error}=await this.client.from('kono_plan_backups').select('data').eq('revision',Number(backup[1])).maybeSingle()
+    if(error)return failure(error.message)
+    return data?json({version:6,data:data.data}):json({error:'Backup not found.'},404)
    }
    const match=path.match(/^history\/(\d+)$/)
    if(match&&(!init?.method||init.method==='GET')){
@@ -159,6 +192,23 @@ export class SupabaseRemote{
    }
    return json({error:'Not found.'},404)
   }catch(error){return failure(error instanceof Error?error.message:undefined)}
+ }
+ private async supportRequest(path:string,init:RequestInit|undefined,owner:string):Promise<Response>{
+  if(path==='plan'&&(!init?.method||init.method==='GET')){
+   const {data,error}=await this.client.rpc('kono_admin_get_plan',{p_owner:owner})
+   if(error)return json({error:error.message},403)
+   const result=data as {revision?:number;data?:unknown}|null
+   return json({revision:result?.revision??0,data:result?.data??null})
+  }
+  if(path==='plan'&&init?.method==='PUT'){
+   const body=JSON.parse(String(init.body??'')) as {expectedRevision:number;operationId:string;data:unknown}
+   if(new TextEncoder().encode(JSON.stringify(body.data)).length>750000)return json({error:'This plan exceeds the 750 KB cloud limit.'},413)
+   const {data,error}=await this.client.rpc('kono_admin_save_plan',{p_owner:owner,p_expected_revision:body.expectedRevision,p_operation_id:body.operationId,p_data:body.data})
+   if(error)return json({error:error.message},403)
+   const result=data as {revision?:number;conflict?:boolean}|null
+   return result?.conflict?json({error:'They changed this plan meanwhile. Retry sync.'},409):json({revision:result?.revision})
+  }
+  return json({error:'Not available while helping another account.'},403)
  }
 }
 
