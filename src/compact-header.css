@@ -1,0 +1,46 @@
+/* Header actions and the Sanctuary toolbar, compacted.
+ * Undo/Redo live in the header action row (no separate row). On desktop the buttons keep their
+ * text; on phones Undo, Redo, Search, Trash and Expand collapse to icons (the text stays for screen
+ * readers), and the Sanctuary toolbar fits in two rows. */
+
+.wb-stat-short{display:none}
+/* Only the Cozy experience used icons on its header buttons before; keep the others text-only on desktop. */
+@media (min-width:701px){
+ :root:not([data-experience='cozy']) .wb-header .wb-toolbar .kono-action-icon{display:none}
+}
+
+@media (max-width:700px){
+ .wb-btn-label{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important}
+
+ /* Header: title + status, then one row of actions. */
+ .workbench .wb-header{gap:8px!important}
+ .workbench .wb-header .save-status small,.workbench .wb-header .save-status-account{display:none!important}
+ .workbench .wb-header>.wb-toolbar{width:100%;display:flex!important;flex-wrap:nowrap!important;align-items:center;gap:6px!important;margin:0!important}
+ .workbench .wb-header>.wb-toolbar>button{flex:0 0 auto;min-height:42px!important;height:42px;font-size:.95rem}
+ .workbench .wb-header>.wb-toolbar>.wb-history-btn,
+ .workbench .wb-header>.wb-toolbar>.wb-icon-able{width:42px!important;min-width:42px!important;padding:0!important;display:inline-flex!important;align-items:center;justify-content:center}
+ .workbench .wb-header>.wb-toolbar .kono-action-icon{margin:0!important;width:20px;height:20px}
+ .workbench .wb-header>.wb-toolbar>.wb-history-btn:disabled{opacity:.45}
+ .workbench .wb-header>.wb-toolbar>.primary{margin-left:auto!important;padding:0 14px!important}
+ .workbench .wb-header>.wb-toolbar>.voice-add-button{width:42px;min-width:42px!important;padding:0!important}
+ .workbench .wb-header>.wb-toolbar>.needs-review-nav-badge{padding:0 10px!important;font-size:.8rem}
+
+ /* Sanctuary toolbar: [view | decorate] [zoom] / [time] [streak, week] [expand]. */
+ .workbench .wb-scene-toolbar{grid-template-columns:auto minmax(0,1fr) auto!important;grid-template-areas:"tabs zoom zoom" "time stats expand"!important;gap:8px 6px!important;align-items:center}
+ .workbench .wb-scene-toolbar .island-mode-tabs{grid-area:tabs}
+ .workbench .wb-scene-toolbar .island-mode-tabs{gap:4px}
+ .workbench .wb-scene-toolbar .island-mode-tabs button{min-height:38px!important;padding:0 11px!important;font-size:.85rem!important;white-space:nowrap}
+ .workbench .wb-scene-toolbar .wb-island-zoom{grid-area:zoom;justify-self:end}
+ .workbench .wb-scene-toolbar .wb-island-zoom button{min-width:34px!important;min-height:34px!important}
+ .workbench .wb-scene-toolbar .wb-island-zoom span{font-size:.8rem;min-width:3.2em;text-align:center}
+ .workbench .wb-scene-toolbar .wb-scene-expand{grid-area:expand;justify-self:end;width:40px!important;min-width:40px!important;min-height:38px!important;padding:0!important;display:inline-flex!important;align-items:center;justify-content:center;font-size:1.05rem}
+ .workbench .wb-scene-toolbar .wb-scene-time{grid-area:time;justify-self:start}
+ .workbench .wb-scene-toolbar .wb-scene-time{gap:4px!important;min-width:0}
+ .workbench .wb-scene-toolbar .wb-scene-time select{min-height:36px!important;max-width:128px;font-size:.85rem!important;padding:0 26px 0 8px!important}
+ .workbench .wb-scene-toolbar .wb-stats-strip{grid-area:stats;justify-self:end;flex-wrap:nowrap!important;gap:6px!important}
+ .workbench .wb-scene-toolbar .wb-stat{padding:4px 9px!important;white-space:nowrap;gap:4px!important}
+ .workbench .wb-scene-toolbar .wb-stat-streak small{order:-1}
+ .workbench .wb-scene-toolbar .wb-stat small{font-size:.72rem!important}
+ .wb-stat-long{display:none}
+ .wb-stat-short{display:inline}
+}
