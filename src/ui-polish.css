@@ -1,0 +1,38 @@
+/* General UI polish: docked music button, slim due-soon strip, "⋯" card menu, one shared schedule filter. */
+
+/* Music: on phones a small round play button in the corner instead of a pill over the page. */
+@media (max-width:900px){
+ .wb-music-bar{justify-content:flex-end!important;padding:0 12px}
+ .wb-music-bar .kono-radio-mini{padding:4px!important;gap:0!important;border-radius:999px;margin-bottom:12px!important;box-shadow:0 6px 16px rgba(40,20,30,.18)}
+ .wb-music-bar .radio-mini-copy{display:none!important}
+ .wb-music-bar .kono-radio-mini .radio-play{flex-basis:40px!important;width:40px!important;height:40px!important;font-size:.85rem!important}
+}
+
+/* Due-soon: one line that expands. */
+.login-digest.is-slim{align-items:center;gap:10px;padding:8px 12px}
+.login-digest.is-slim details{flex:1;min-width:0}
+.login-digest.is-slim summary{cursor:pointer;list-style:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.login-digest.is-slim summary::-webkit-details-marker{display:none}
+.login-digest.is-slim summary::before{content:'📌 ';}
+.login-digest.is-slim details[open] summary{white-space:normal}
+.login-digest.is-slim .digest-inline{font-weight:400;color:var(--wb-muted)}
+.login-digest.is-slim>button{flex:0 0 auto;min-height:34px;padding:4px 12px}
+
+/* "⋯" menu for secondary card actions. */
+.card-more{position:relative;display:inline-block}
+.card-more>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:36px;padding:0 10px;border:1px solid var(--wb-line);border-radius:999px;background:var(--wb-surface);font-weight:700;letter-spacing:.08em;user-select:none}
+.card-more>summary::-webkit-details-marker{display:none}
+/* Opens inline under the card's buttons: cards clip overflow, so a floating menu would be cut off. */
+.card-more[open]{flex-basis:100%;display:block}
+.card-more[open]>summary{margin-left:auto;display:flex;width:max-content}
+.card-more>div{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;padding:6px;border:1px dashed var(--wb-line);border-radius:14px}
+.card-more>div button{flex:1 1 auto}
+.cozy-task-actions{align-items:center;flex-wrap:wrap}
+
+/* One shared "Show" filter above Today and Tomorrow. */
+.schedule-filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;padding:0 4px;font-size:.85rem;color:var(--wb-muted)}
+.schedule-filter-row>span{font-weight:700}
+.schedule-filter-row .schedule-view-picker{margin:0}
+.wb-agenda-empty-note{margin:10px 4px 0;font-size:.85rem}
+.settings-page-tools{justify-content:flex-end}
+.sign-in-fallback{margin-top:6px}
