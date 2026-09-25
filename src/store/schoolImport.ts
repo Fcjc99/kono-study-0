@@ -1,5 +1,6 @@
 import {dateFrom} from './scheduleImport'
 import {uid,type StudySeason} from './model'
+import {classColumns,classTableRow,toTime,weekdaysFrom,type ClassColumns} from './classTable'
 import type {SchoolException} from './schoolCalendar'
 /** OCR is evidence to review, never authority to close school automatically. */
 export function suggestSchoolDates(text:string,start:string,end:string):(SchoolException&{include:boolean;source:string})[]{
@@ -102,33 +103,16 @@ export function suggestRotatingClasses(text:string,cycle:string[],start:string,e
  return rows
 }
 
-const weekdayAliases:Record<string,string>={
- monday:'Monday',mon:'Monday',m:'Monday',
- tuesday:'Tuesday',tue:'Tuesday',tues:'Tuesday',tu:'Tuesday',t:'Tuesday',
- wednesday:'Wednesday',wed:'Wednesday',w:'Wednesday',
- thursday:'Thursday',thu:'Thursday',thur:'Thursday',thurs:'Thursday',th:'Thursday',
- friday:'Friday',fri:'Friday',f:'Friday',
- saturday:'Saturday',sat:'Saturday',
- sunday:'Sunday',sun:'Sunday'
-}
-const toTime=(hour:string,minute:string,ampm:string)=>{let h=Number(hour);if(h<1||h>12||Number(minute)>59)return '';h=h%12+(ampm.toLowerCase()==='pm'?12:0);return String(h).padStart(2,'0')+':'+minute}
-// Splits on whitespace as well as comma/semicolon so single/double-letter college registrar codes
-// like "T Th" (Tuesday, Thursday) or "M W F" tokenize the same as their comma-separated equivalents —
-// a space-only list otherwise stayed one unmatched token and silently dropped the whole class.
-const weekdaysFrom=(value:string,cycle:string[])=>{
- const wanted=new Set(cycle),found:string[]=[]
- for(const raw of value.replace(/\b(and|&|\+|\/)\b/gi,',').replace(/[&/+]/g,',').split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean)){
-  const key=raw.toLowerCase().replace(/\.$/,'')
-  const day=weekdayAliases[key]??weekdayAliases[key.slice(0,3)]
-  if(day&&wanted.has(day)&&!found.includes(day))found.push(day)
- }
- return found
-}
 /** Parse simple college/work weekly tables: course, class name, weekdays, time and building/room. */
 export function parseWeeklyCollegeSchedule(text:string,start:string,end:string,cycle:string[]):RotatingImportRow[]{
  const rows:RotatingImportRow[]=[]
  const lines=text.split(/\r?\n/).map(line=>line.trim()).filter(Boolean)
+ let columns:ClassColumns|null=null
  for(const line of lines){
+  const header=classColumns(line.split(/\t|\s*\|\s*/))
+  if(header){columns=header;continue}
+  const found=columns&&classTableRow(line,columns,cycle)
+  if(found){for(const day of found.days)rows.push({id:uid('import-block'),include:true,day,label:found.label,slot:found.code,start:found.start,end:found.end,dateStart:start,dateEnd:end,kind:'study',location:found.location});continue}
   if(/^weekly class schedule|^day, time|^course\s*\|/i.test(line))continue
   const cells=line.split(/\t+|\s*\|\s*/).map(x=>x.trim()).filter(Boolean)
   if(cells.length>=5){

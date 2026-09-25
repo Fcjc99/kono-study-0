@@ -1,7 +1,7 @@
-import {pdfSixDayTimetableText,pdfTimetableText} from './pdfTimetableText'
+import {pdfClassTableText,pdfSixDayTimetableText,pdfTimetableText} from './pdfTimetableText'
 import type {Worker} from 'tesseract.js'
 
-export async function readSchedulePdf(file:File,first:number,last:number,signal:AbortSignal,progress:(message:string)=>void,scanAll=true,preserveColumns:boolean|'six-day'=false){
+export async function readSchedulePdf(file:File,first:number,last:number,signal:AbortSignal,progress:(message:string)=>void,scanAll=true,preserveColumns:boolean|'six-day'|'class-table'|'find-class-table'=false){
  if(file.size>20*1024*1024)throw Error('Choose a PDF smaller than 20 MB. Split a large scan into smaller files.')
  if(!Number.isInteger(first)||!Number.isInteger(last)||first<1||last<first||last-first>=5)throw Error('Read up to five pages at a time.')
  const magic=new TextDecoder().decode(await file.slice(0,5).arrayBuffer());if(magic!=='%PDF-')throw Error('Choose a valid PDF file.')
@@ -20,9 +20,12 @@ export async function readSchedulePdf(file:File,first:number,last:number,signal:
    const page=await doc.getPage(number),content=await page.getTextContent()
    let text='',lastY:number|undefined
    for(const item of content.items){if(!('str' in item))continue;const y=item.transform[5];if(lastY!==undefined&&Math.abs(lastY-y)>3)text+='\n';text+=item.str+(item.hasEOL?'\n':' ');lastY=y}
-   if(preserveColumns==='six-day')text=pdfSixDayTimetableText(content.items)
-   else if(preserveColumns)text=pdfTimetableText(content.items)
-   if(scanAll||text.replace(/\s/g,'').length<40){
+   // A class table found in the PDF's own text beats reading the page as a picture.
+   const table=preserveColumns==='class-table'||preserveColumns==='find-class-table'?pdfClassTableText(content.items):null
+   if(table)text=table
+   else if(preserveColumns==='six-day')text=pdfSixDayTimetableText(content.items)
+   else if(preserveColumns&&preserveColumns!=='find-class-table')text=pdfTimetableText(content.items)
+   if(!table&&(scanAll||text.replace(/\s/g,'').length<40)){
     progress('Reading scanned page '+number+'… Keep KONO open.')
     if(!worker){const {createWorker}=await import('tesseract.js');check();worker=await createWorker('eng',1,{workerPath:'/ocr/worker.min.js',corePath:'/ocr',langPath:'/ocr',workerBlobURL:false,cacheMethod:'none',logger:m=>{if(!signal.aborted&&m.status==='recognizing text')progress('Scanned page '+number+' · '+Math.round(m.progress*100)+'%')}});check()}
     const native=page.getViewport({scale:1}),scale=Math.min(2.5,2200/Math.max(native.width,native.height)),viewport=page.getViewport({scale}),canvas=document.createElement('canvas')
