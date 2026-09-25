@@ -1,6 +1,7 @@
 import {blankWeek,dayNames,normalizeData,uid,type AppData,type CalendarEventKind,type ScheduleBlock,type StudySeason} from './model'
+import {classColumns,classTableRow,type ClassColumns} from './classTable'
 
-export type ImportRow={id:string;include:boolean;kind:'class'|'exam'|'task'|'event'|'subject';title:string;subject:string;date:string;weekdays:number[];start:string;end:string;source:string}
+export type ImportRow={id:string;include:boolean;kind:'class'|'exam'|'task'|'event'|'subject';title:string;subject:string;date:string;weekdays:number[];start:string;end:string;source:string;location?:string}
 export const validDate=(s:string)=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s
 const clean=(s:string)=>s.trim().replace(/\s+/g,' ').toLowerCase()
 const time=(h:string,m:string|undefined,period:string|undefined)=>{let hour=Number(h);if(period){if(hour<1||hour>12)return '';hour=hour%12+(period.toLowerCase()==='pm'?12:0)}else if(hour<0||hour>23)return '';const minute=Number(m??0);return minute<60?String(hour).padStart(2,'0')+':'+String(minute).padStart(2,'0'):''}
@@ -45,7 +46,27 @@ const cleanTitle=(source:string):string=>source
  .replace(/\b\d{1,2}(?::\d{2})?\s*(am|pm)\b(?:\s*[-–—]\s*\d{1,2}(?::\d{2})?\s*(am|pm)?\b)?/gi,'')
  .replace(/[|,;:]+/g,' ').replace(/\s+/g,' ').trim()
 /** Conservative suggestions only. Unmatched source text remains visible for manual review. */
+/** A headed class table ("Class Name | Teacher | Day | Time | Building | Room"): one weekly class per row. */
+function classTableRows(text:string):ImportRow[]{
+ const rows:ImportRow[]=[]
+ let columns:ClassColumns|null=null
+ for(const line of text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean)){
+  const header=classColumns(line.split(/\t|\s*\|\s*/))
+  if(header){columns=header;continue}
+  const found=columns&&classTableRow(line,columns,[...dayNames])
+  if(!found)continue
+  const weekdays=found.days.map(d=>dayNames.indexOf(d as typeof dayNames[number]))
+  rows.push({id:uid('import-row'),include:false,kind:'class',title:found.label,subject:found.label.replace(/\s*\((?:lecture|discussion|lab|laboratory|recitation|seminar|tutorial)\)$/i,''),date:'',weekdays,start:found.start,end:found.end,source:[found.label,found.location].filter(Boolean).join(' · ').slice(0,1000),location:found.location})
+ }
+ return rows
+}
 export function suggestSchedule(text:string,start:string,end:string,order:'mdy'|'dmy'):ImportRow[]{
+ const table=classTableRows(text)
+ // With a class table, weekly classes come from its rows; other lines can still add dated items.
+ if(table.length)return [...table,...suggestLines(text,start,end,order).filter(r=>r.kind!=='class')].slice(0,100)
+ return suggestLines(text,start,end,order)
+}
+function suggestLines(text:string,start:string,end:string,order:'mdy'|'dmy'):ImportRow[]{
  const rows:ImportRow[]=[]
  const lines=mergeRecordLines(text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).slice(0,2000),start,end,order)
  for(const source of lines){
@@ -86,7 +107,7 @@ export function applyScheduleImport(data:AppData,profileId:string,rows:ImportRow
   if(row.kind==='class'){
    for(const d of new Set(row.weekdays)){
     const day=dayNames[d],duplicate=[...next.studySeasons,season].some(s=>s.profileId===profileId&&(s.week[day]??[]).some(b=>clean(b.label)===clean(row.title)&&b.subjectId===subjectId&&b.start===row.start&&b.end===row.end&&(b.dateStart??s.start)===start&&(b.dateEnd??s.end)===end))
-    if(duplicate){skipped++;continue}season.week[day].push({id:uid('block'),label:row.title.trim(),subjectId,start:row.start,end:row.end,dateStart:start,dateEnd:end,kind:options.blockKind??'study',occurrenceNotes:{}});added++
+    if(duplicate){skipped++;continue}season.week[day].push({id:uid('block'),label:row.title.trim(),subjectId,start:row.start,end:row.end,dateStart:start,dateEnd:end,kind:options.blockKind??'study',occurrenceNotes:{},...(row.location?.trim()?{location:row.location.trim().slice(0,160)}:{})});added++
    }
   }else{
    const key=row.kind==='exam'?'exams':row.kind==='task'?'tasks':'calendarEvents'
