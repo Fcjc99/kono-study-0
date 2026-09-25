@@ -31,7 +31,7 @@ const fails=(id,sql,pattern)=>assert.throws(()=>as(id,sql),pattern)
 
 const tests=[]
 const test=(name,fn)=>tests.push({name,fn})
-const alice=randomUUID(),bob=randomUUID(),carol=randomUUID()
+const alice=randomUUID(),bob=randomUUID(),carol=randomUUID(),dave=randomUUID()
 const plan=name=>JSON.stringify({schemaVersion:6,profiles:[{id:'p1',name,label:'Fall term'}]}).replace(/'/g,"''")
 const save=(id,expected,name)=>JSON.parse(as(id,`select public.kono_save_plan(${expected},'${randomUUID()}','${plan(name)}'::jsonb);`))
 
@@ -47,11 +47,11 @@ try{
   alter default privileges in schema public grant all on tables to anon, authenticated;
   alter default privileges in schema public grant all on sequences to anon, authenticated;
   alter default privileges in schema public grant execute on functions to anon, authenticated;
-  insert into auth.users(id,email) values ('${alice}','alice@example.com'),('${bob}','bob@example.com'),('${carol}','carol@example.com');
+  insert into auth.users(id,email) values ('${alice}','alice@example.com'),('${bob}','bob@example.com'),('${carol}','carol@example.com'),('${dave}','dave@example.com');
  `)
  for(const file of fs.readdirSync(path.join(root,'supabase','migrations')).filter(f=>f.endsWith('.sql')).sort())psql(fs.readFileSync(path.join(root,'supabase','migrations',file),'utf8'))
  // People run the newest migration by hand in the Supabase SQL editor, sometimes twice: it must be re-runnable.
- psql(fs.readFileSync(path.join(root,'supabase','migrations','0004_kono_backups_and_support.sql'),'utf8'))
+ for(const again of ['0004_kono_backups_and_support.sql','0005_kono_nightly_backup_support_setup_errors.sql'])psql(fs.readFileSync(path.join(root,'supabase','migrations',again),'utf8'))
 
  test('a signed-in person saves their plan and nobody else can read it',()=>{
   assert.equal(save(alice,0,'Alice').revision,1)
@@ -85,7 +85,7 @@ try{
   psql(`insert into public.kono_admins(user_id) values ('${carol}');`)
   assert.equal(as(carol,'select public.kono_is_admin();'),'t')
   const rows=as(carol,`select email||'|'||coalesce(profiles,'') from public.kono_admin_accounts() order by email;`).split('\n')
-  assert.deepEqual(rows,['alice@example.com|Alice 34 · Fall term','bob@example.com|Bob · Fall term','carol@example.com|'])
+  assert.deepEqual(rows,['alice@example.com|Alice 34 · Fall term','bob@example.com|Bob · Fall term','carol@example.com|','dave@example.com|'])
  })
 
  test('support opening an account backs it up first and is logged; edits are attributed and logged',()=>{
@@ -106,10 +106,44 @@ try{
   assert.equal(as(bob,`select count(*) from public.kono_plan_backups where reason='before-support';`),'1')
  })
 
+ test('the nightly job keeps one backup per account, overwritten each night, readable only by its owner',()=>{
+  assert.equal(psql('select public.kono_nightly_backup();'),'2')
+  const first=as(alice,'select revision from public.kono_plan_nightly;')
+  assert.equal(psql('select public.kono_nightly_backup();'),'0','an unchanged plan is not copied again')
+  save(alice,Number(as(alice,'select revision from public.kono_plans;')),'Alice later')
+  assert.equal(psql('select public.kono_nightly_backup();'),'1')
+  assert.equal(as(alice,'select count(*) from public.kono_plan_nightly;'),'1')
+  assert.notEqual(as(alice,'select revision from public.kono_plan_nightly;'),first)
+  assert.equal(as(alice,"select data->'profiles'->0->>'name' from public.kono_plan_nightly;"),'Alice later')
+  assert.equal(as(bob,`select count(*) from public.kono_plan_nightly where owner='${alice}';`),'0')
+  fails(alice,'select public.kono_nightly_backup();',/permission denied/)
+  fails(alice,`delete from public.kono_plan_nightly;`,/permission denied/)
+  assert.equal(JSON.parse(as(carol,`select public.kono_admin_get_nightly('${alice}');`)).data.profiles[0].name,'Alice later')
+  fails(bob,`select public.kono_admin_get_nightly('${alice}');`,/KONO support access only/)
+ })
+
+ test('KONO support can set up the first plan for an account that has never saved',()=>{
+  assert.equal(JSON.parse(as(carol,`select public.kono_admin_get_plan('${dave}');`)).data,null)
+  const made=JSON.parse(as(carol,`select public.kono_admin_save_plan('${dave}',0,'${randomUUID()}','${plan('Dave')}'::jsonb);`))
+  assert.deepEqual(made,{revision:1,conflict:false})
+  assert.equal(as(dave,"select data->'profiles'->0->>'name' from public.kono_plans;"),'Dave')
+  assert.equal(JSON.parse(as(carol,`select public.kono_admin_save_plan('${dave}',0,'${randomUUID()}','${plan('Again')}'::jsonb);`)).conflict,true)
+  fails(bob,`select public.kono_admin_save_plan('${randomUUID()}',0,'${randomUUID()}','${plan('x')}'::jsonb);`,/KONO support access only/)
+ })
+
+ test('app errors: people can report their own, only KONO support can read them',()=>{
+  as(bob,"insert into public.kono_client_errors(message,page) values ('Boom','Planner');")
+  fails(bob,`insert into public.kono_client_errors(user_id,message) values ('${alice}','spoof');`,/row-level security/)
+  fails(null,"insert into public.kono_client_errors(message) values ('anon');",/permission denied/)
+  assert.equal(as(bob,'select count(*) from public.kono_client_errors;'),'0')
+  assert.equal(as(carol,"select message||'|'||user_id from public.kono_client_errors;"),'Boom|'+bob)
+ })
+
  test('deleting your cloud study data also deletes its automatic backups',()=>{
   const revision=Number(as(alice,'select revision from public.kono_plans;'))
   as(alice,`select public.kono_delete_plan(${revision},'${randomUUID()}');`)
   assert.equal(as(alice,'select count(*) from public.kono_plan_backups;'),'0')
+  assert.equal(psql(`select count(*) from public.kono_plan_nightly where owner='${alice}';`),'0')
  })
 }catch(error){tests.length=0;console.error('FAIL setting up the database');console.error(error);process.exitCode=1}
 

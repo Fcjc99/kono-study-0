@@ -3,7 +3,9 @@ import { createFreshData, normalizeData, randomId, type AppData } from './model'
 import { commitCache, decodeData, deleteCache, downloadData, exportData, readCache, readLegacy, readRawCache, type CacheEntry, type RecoveryFile } from './localRepository'
 import { captureDeletions } from './workspace'
 import { mergeData, type MergeConflict } from './merge'
-import type {AdminAccount,SupabaseRemote,SupportActivity} from './supabaseRemote'
+import type {AdminAccount,ClientError,SupabaseRemote,SupportActivity} from './supabaseRemote'
+import {installErrorReporter} from './errorReporter'
+import {APP_VERSION} from '../version'
 import { buildSharedSnapshot } from './peerShare'
 type User={id:string;email:string;name:string}
 type Remote={revision:number;data:AppData|null}
@@ -99,6 +101,8 @@ export class PlannerRepository {
    if(!this.valid(generation))return
    if(user){
     if(typeof user.id!=='string'||!user.id||user.id.length>200||typeof user.email!=='string')throw new Error('Invalid account response.')
+    const cloud=this.cloud
+    if(cloud)installErrorReporter(entry=>cloud.reportError(entry),()=>({page:document.querySelector('#workspace-main h1')?.textContent??undefined,appVersion:APP_VERSION}))
     const support=this.cloud?readSupportTarget():null
     if(support&&this.cloud&&await this.cloud.isAdmin()){if(this.valid(generation))await this.openSupport(user,support,generation)}
     else{if(support)clearSupportTarget();await this.openAccount(user,generation)}
@@ -144,7 +148,8 @@ export class PlannerRepository {
   const response=await this.api('plan')
   if(!response.ok){this.blocked=true;const problem=await response.json().catch(()=>({})) as {error?:string};throw new Error(problem.error??'Could not open that account.')}
   const remote=remoteValue(await response.json());if(!this.valid(generation))return
-  if(!remote.data){this.blocked=true;this.notify({status:'Nothing to open',error:target.email+' has no saved plan yet. Exit support; they need to create one first.'});return}
+  // An account that has never saved opens on the welcome screen, so support can set up its first plan.
+  if(!remote.data){await this.saveCache(createFreshData(),null,remote.revision,false,generation);return}
   await this.saveCache(remote.data,remote.data,remote.revision,false,generation)
  }
  private warnUnsaved=(event:BeforeUnloadEvent)=>{if(this.cache?.pending||this.state.status==='Unsaved'||this.state.status==='Saving'){event.preventDefault();event.returnValue=''}}
@@ -227,6 +232,10 @@ export class PlannerRepository {
  /** Copies kept automatically each time KONO opened (newest 30). */
  autoBackups=async()=>{const generation=this.generation,response=await this.api('backups');if(!response.ok||!this.valid(generation))throw new Error('Automatic backups unavailable.');return (await response.json() as {backups:{revision:number;created_at:string;reason:'open'|'before-support'}[]}).backups}
  downloadAutoBackup=async(revision:number)=>{const generation=this.generation,response=await this.api('backups/'+revision);if(!response.ok)throw new Error('Backup unavailable.');const data=decodeData(await response.text());if(this.valid(generation))exportData(data)}
+ /** Downloads this account's nightly backup (one file, replaced every evening). */
+ downloadNightly=async()=>{if(!this.cloud)throw new Error('Nightly backups need a signed-in account.');const backup=await this.cloud.nightlyBackup();if(!backup)return false;exportData(decodeData(JSON.stringify({version:6,data:backup.data})));return true}
+ adminDownloadNightly=async(owner:string)=>{const backup=await this.requireCloud().adminNightly(owner);if(!backup)return null;exportData(decodeData(JSON.stringify({version:6,data:backup.data})));return backup.savedAt}
+ adminErrors=async():Promise<ClientError[]>=>this.requireCloud().adminErrors()
  /** Views and edits KONO support made on this account. */
  supportActivity=async():Promise<SupportActivity[]>=>this.cloud&&this.state.user?this.cloud.supportActivity(this.state.user.id):[]
  adminAccounts=async():Promise<AdminAccount[]>=>this.requireCloud().adminAccounts()

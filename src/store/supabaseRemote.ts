@@ -6,6 +6,8 @@ export type ClassmateProfile={userId:string;username:string;displayName:string}
 export type ConnectionStatus='pending'|'accepted'|'declined'
 export type ConnectionRow={id:string;requesterId:string;recipientId:string;status:ConnectionStatus;createdAt:string}
 export type AdminAccount={userId:string;email:string;createdAt:string;lastSignInAt:string|null;revision:number|null;updatedAt:string|null;profiles:string;username:string|null}
+export type ClientError={id:number;userId:string|null;message:string;detail:string|null;page:string|null;appVersion:string|null;userAgent:string|null;createdAt:string}
+export type NightlyBackup={revision:number;savedAt:string;data:unknown}
 export type SupportActivity={id:number;accountId:string;adminId:string|null;action:'view'|'edit';revision:number|null;createdAt:string}
 
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}})
@@ -46,6 +48,29 @@ export class SupabaseRemote{
   const {data,error}=await query
   if(error)throw new Error(error.message)
   return ((data??[]) as {id:number;account_id:string;admin_id:string|null;action:'view'|'edit';revision:number|null;created_at:string}[]).map(r=>({id:r.id,accountId:r.account_id,adminId:r.admin_id,action:r.action,revision:r.revision,createdAt:r.created_at}))
+ }
+ /** The account's last nightly backup (one per account, overwritten each night), or null. */
+ async nightlyBackup():Promise<NightlyBackup|null>{
+  const {data,error}=await this.client.from('kono_plan_nightly').select('revision,saved_at,data').maybeSingle()
+  if(error)throw new Error(error.message)
+  return data?{revision:data.revision as number,savedAt:data.saved_at as string,data:data.data}:null
+ }
+ async adminNightly(owner:string):Promise<NightlyBackup|null>{
+  const {data,error}=await this.client.rpc('kono_admin_get_nightly',{p_owner:owner})
+  if(error)throw new Error(error.message)
+  const row=data as {revision:number;saved_at:string;data:unknown}|null
+  return row?{revision:row.revision,savedAt:row.saved_at,data:row.data}:null
+ }
+ /** Best effort: an error report must never cause another error. */
+ async reportError(entry:{message:string;detail?:string;page?:string;appVersion?:string}){
+  const {data:{session}}=await this.client.auth.getSession()
+  if(!session?.user)return
+  await this.client.from('kono_client_errors').insert({message:entry.message.slice(0,1000)||'Unknown error',detail:entry.detail?.slice(0,4000)??null,page:entry.page?.slice(0,200)??null,app_version:entry.appVersion?.slice(0,80)??null,user_agent:navigator.userAgent.slice(0,300)})
+ }
+ async adminErrors():Promise<ClientError[]>{
+  const {data,error}=await this.client.from('kono_client_errors').select('id,user_id,message,detail,page,app_version,user_agent,created_at').order('id',{ascending:false}).limit(50)
+  if(error)throw new Error(error.message)
+  return ((data??[]) as {id:number;user_id:string|null;message:string;detail:string|null;page:string|null;app_version:string|null;user_agent:string|null;created_at:string}[]).map(r=>({id:r.id,userId:r.user_id,message:r.message,detail:r.detail,page:r.page,appVersion:r.app_version,userAgent:r.user_agent,createdAt:r.created_at}))
  }
  /** While set, the plan endpoints below read and write this account through the support functions. */
  private supportTarget:string|null=null

@@ -36,3 +36,16 @@
 .wb-agenda-empty-note{margin:10px 4px 0;font-size:.85rem}
 .settings-page-tools{justify-content:flex-end}
 .sign-in-fallback{margin-top:6px}
+
+/* Terms & Privacy */
+.terms-check{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;margin:10px 0;font-size:.9rem;line-height:1.45}
+.terms-check label{display:flex!important;align-items:flex-start;gap:8px;margin:0!important;font-weight:400!important;flex:1 1 240px}
+.terms-check input{margin-top:3px;width:18px;height:18px;flex:0 0 auto}
+.legal-link{background:none!important;border:0!important;box-shadow:none!important;padding:0!important;min-height:0!important;color:var(--wb-accent,#b0456a)!important;text-decoration:underline;font:inherit;cursor:pointer}
+.legal-dialog{max-width:min(680px,94vw);max-height:88vh;overflow:auto}
+.legal-text h3{margin:18px 0 6px}.legal-text h4{margin:12px 0 4px;font-size:.95rem}.legal-text p,.legal-text li{line-height:1.55;font-size:.92rem}
+/* Support panel */
+.support-account-actions{display:flex;gap:6px;flex-wrap:wrap}
+.support-errors{list-style:none;padding:0;display:grid;gap:8px}
+.support-errors li{display:grid;gap:2px;padding:8px 10px;border:1px solid var(--wb-line);border-radius:10px}
+.support-errors pre{white-space:pre-wrap;font-size:.75rem;overflow-wrap:anywhere}

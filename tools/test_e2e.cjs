@@ -203,7 +203,7 @@ function supabaseHost(){
 }
 function fakeCloud(){
  const named=(name,email)=>{const d=fixture();d.profiles[0].name=name;return {email,admin:false,plan:{revision:3,data:d}}}
- return {users:{alice:named('Alice','alice@example.com'),carol:{...named('Carol','carol@example.com'),admin:true}},me:'alice',calls:[],audit:[]}
+ return {users:{alice:named('Alice','alice@example.com'),carol:{...named('Carol','carol@example.com'),admin:true},dave:{email:'dave@example.com',admin:false,plan:{revision:0,data:null}}},me:'alice',calls:[],audit:[],errors:[],nightly:{}}
 }
 const b64=value=>Buffer.from(JSON.stringify(value)).toString('base64url')
 async function signInAs(context,cloud,id){
@@ -225,12 +225,15 @@ async function signInAs(context,cloud,id){
    case '/rest/v1/rpc/kono_backup_on_open':return reply({backedUp:true,revision:me.plan.revision})
    case '/rest/v1/rpc/kono_is_admin':return reply(me.admin)
    case '/rest/v1/rpc/kono_save_plan':return saveTo(me,body.p_expected_revision)
-   case '/rest/v1/rpc/kono_admin_accounts':return me.admin?reply(Object.entries(cloud.users).map(([id,u])=>({user_id:id,email:u.email,created_at:'2026-09-01T00:00:00Z',last_sign_in_at:'2026-09-24T00:00:00Z',revision:u.plan.revision,updated_at:'2026-09-24T00:00:00Z',profiles:u.plan.data.profiles.map(p=>p.name+' · '+p.label).join(', '),username:null}))):denied()
+   case '/rest/v1/rpc/kono_admin_accounts':return me.admin?reply(Object.entries(cloud.users).map(([id,u])=>({user_id:id,email:u.email,created_at:'2026-09-01T00:00:00Z',last_sign_in_at:'2026-09-24T00:00:00Z',revision:u.plan.revision,updated_at:'2026-09-24T00:00:00Z',profiles:(u.plan.data?.profiles??[]).map(p=>p.name+' · '+p.label).join(', '),username:null}))):denied()
    case '/rest/v1/rpc/kono_admin_get_plan':{if(!me.admin)return denied();const owner=cloud.users[body.p_owner];cloud.audit.push({id:cloud.audit.length+1,account_id:body.p_owner,admin_id:cloud.me,action:'view',revision:owner.plan.revision,created_at:new Date().toISOString()});return reply({revision:owner.plan.revision,data:owner.plan.data})}
    case '/rest/v1/rpc/kono_admin_save_plan':{if(!me.admin)return denied();const result=saveTo(cloud.users[body.p_owner],body.p_expected_revision);cloud.audit.push({id:cloud.audit.length+1,account_id:body.p_owner,admin_id:cloud.me,action:'edit',revision:null,created_at:new Date().toISOString()});return result}
    case '/rest/v1/kono_plans':return reply([{revision:me.plan.revision,data:me.plan.data}])
    case '/rest/v1/kono_admin_audit':return reply(me.admin?cloud.audit:cloud.audit.filter(a=>a.account_id===cloud.me))
    case '/rest/v1/kono_shared_snapshots':return reply([],201)
+   case '/rest/v1/kono_plan_nightly':{const n=cloud.nightly[cloud.me];return reply(n?[n]:[])}
+   case '/rest/v1/rpc/kono_admin_get_nightly':{if(!me.admin)return denied();return reply(cloud.nightly[body.p_owner]??null)}
+   case '/rest/v1/kono_client_errors':if(method==='POST'){const rows=Array.isArray(body)?body:[body];for(const r of rows)cloud.errors.push({id:cloud.errors.length+1,user_id:cloud.me,created_at:new Date().toISOString(),...r});return reply([],201)}return reply(me.admin?[...cloud.errors].reverse():[])
    default:return reply([])
   }
  })
@@ -321,6 +324,58 @@ test('keyboard: K-Quiz practice questions and flashcards keep focus inside, clos
   await dialog.waitFor({state:'detached'})
   assert.ok(await button.evaluate(el=>el===document.activeElement),`${label}: focus didn't return to the button that opened it`)
  }
+})
+
+test('sign-up needs the age and Terms agreement, and the Terms open without ticking the box',async({page})=>{
+ await page.goto(BASE)
+ await page.getByLabel('Email address').fill('newperson@example.com')
+ const box=page.getByRole('checkbox',{name:/13 or older/})
+ assert.equal(await box.isChecked(),false)
+ await page.getByRole('button',{name:'Email me a link to start'}).click()
+ assert.equal(await page.evaluate(()=>document.querySelector('.terms-check input')?.validity.valid??null),false,'the form was allowed to send without the agreement')
+ await page.getByRole('button',{name:'Read them'}).click()
+ const dialog=page.getByRole('dialog',{name:'Terms and Privacy'})
+ await dialog.getByText('You need to be').click()
+ await dialog.getByRole('button',{name:'Close'}).last().click()
+ await dialog.waitFor({state:'detached'})
+ assert.equal(await box.isChecked(),false,'clicking inside the Terms ticked the box')
+})
+
+test('KONO support can set up the first plan for an account that has never saved',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'carol')
+ await page.goto(BASE)
+ await mainHeading(page).waitFor()
+ await go(page,'Settings')
+ await settingsTab(page,'KONO support')
+ await page.getByRole('button',{name:'Show all accounts'}).click()
+ const row=page.locator('.support-account').filter({hasText:'dave@example.com'})
+ page.once('dialog',dialog=>void dialog.accept())
+ await row.getByRole('button',{name:'Set up their plan'}).click()
+ await page.getByText('Setting up a plan for').waitFor()
+ assert.equal(await page.getByRole('checkbox',{name:/13 or older/}).count(),0,'support was asked to accept the Terms for someone else')
+ await page.getByLabel('Your name').fill('Dave')
+ await page.getByRole('button',{name:'Create their study plan'}).click()
+ for(let i=0;i<40&&!cloud.users.dave.plan.data;i++)await page.waitForTimeout(250)
+ assert.equal(cloud.users.dave.plan.data?.profiles?.[0]?.name,'Dave')
+ assert.equal(cloud.users.carol.plan.data.profiles[0].name,'Carol')
+})
+
+test('signed in: last night\'s backup downloads, and app errors reach KONO support',async({context,page})=>{
+ const cloud=fakeCloud()
+ cloud.nightly.alice={revision:3,saved_at:'2026-09-25T03:00:00Z',data:cloud.users.alice.plan.data}
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await mainHeading(page).waitFor()
+ await go(page,'Settings')
+ await settingsTab(page,'Import & export')
+ await page.getByText('Nightly backup').click()
+ const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:"Download last night's backup"}).click()])
+ assert.ok(fs.readFileSync(await download.path(),'utf8').includes('"Alice"'))
+ await page.evaluate(()=>window.dispatchEvent(new ErrorEvent('error',{error:new Error('Boom from e2e'),message:'Boom from e2e'})))
+ for(let i=0;i<20&&!cloud.errors.length;i++)await page.waitForTimeout(250)
+ assert.equal(cloud.errors[0]?.message,'Boom from e2e')
+ assert.ok(!JSON.stringify(cloud.errors[0]).includes('Read chapter 3'),'an error report carried plan content')
 })
 
 async function main(){
