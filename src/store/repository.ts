@@ -3,18 +3,23 @@ import { createFreshData, normalizeData, randomId, type AppData } from './model'
 import { commitCache, decodeData, deleteCache, downloadData, exportData, readCache, readLegacy, readRawCache, type CacheEntry, type RecoveryFile } from './localRepository'
 import { captureDeletions } from './workspace'
 import { mergeData, type MergeConflict } from './merge'
-import type {SupabaseRemote} from './supabaseRemote'
+import type {AdminAccount,SupabaseRemote,SupportActivity} from './supabaseRemote'
 import { buildSharedSnapshot } from './peerShare'
 type User={id:string;email:string;name:string}
 type Remote={revision:number;data:AppData|null}
-export type RepositoryState={data:AppData;ready:boolean;status:string;error:string;user:User|null;recovery:RecoveryFile[];needsMigration:boolean;conflicts:MergeConflict[];savedAt:string|null;unreadable:boolean}
+export type SupportTarget={id:string;email:string}
+/** The account a KONO support tab is helping. Per tab (sessionStorage), so other tabs stay on your own plan. */
+const SUPPORT_KEY='kono-support-target'
+const readSupportTarget=():SupportTarget|null=>{try{const v=JSON.parse(sessionStorage.getItem(SUPPORT_KEY)??'null') as SupportTarget|null;return v&&typeof v.id==='string'&&typeof v.email==='string'?v:null}catch{return null}}
+const clearSupportTarget=()=>{try{sessionStorage.removeItem(SUPPORT_KEY)}catch{/* storage unavailable */}}
+export type RepositoryState={data:AppData;ready:boolean;status:string;error:string;user:User|null;recovery:RecoveryFile[];needsMigration:boolean;conflicts:MergeConflict[];savedAt:string|null;unreadable:boolean;isAdmin:boolean;support:SupportTarget|null}
 const message=(e:unknown)=>e instanceof Error?e.message:'Could not save. Export your working copy before leaving.'
 const content=(data:AppData)=>JSON.stringify({...data,activeProfileId:undefined})
 const remoteValue=(value:unknown):Remote=>{const r=value as Remote;if(!r||!Number.isSafeInteger(r.revision)||r.revision<0||!('data' in r))throw new Error('Invalid cloud response. Your device copy is preserved.');return {revision:r.revision,data:r.data===null?null:normalizeData(r.data)}}
 /** One queue owns account transitions, transactions and acknowledgements.
  * Queued edits capture their account generation and cannot cross into another account. */
 export class PlannerRepository {
- private state:RepositoryState={data:createFreshData(),ready:false,status:'Loading',error:'',user:null,recovery:[],needsMigration:false,conflicts:[],savedAt:null,unreadable:false}
+ private state:RepositoryState={data:createFreshData(),ready:false,status:'Loading',error:'',user:null,recovery:[],needsMigration:false,conflicts:[],savedAt:null,unreadable:false,isAdmin:false,support:null}
  private undoStack:{before:AppData;after:AppData}[]=[]
  private redoStack:{before:AppData;after:AppData}[]=[]
  private historyMove=false
@@ -54,8 +59,10 @@ export class PlannerRepository {
   return result
  }
  private api=async(path:string,init?:RequestInit)=>{
-  if(this.cloud)return this.cloud.request(path,init,this.state.user?.id??'')
-  const response=await fetch('/api/'+path,{...init,credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','X-Kono-Request':'1','X-Kono-Data-Version':'6','X-Kono-Account-ID':this.state.user?.id??'',...init?.headers},signal:AbortSignal.timeout(10000)})
+  // Both paths carry the data version: SupabaseRemote.request refuses (426) any request without it.
+  const response=this.cloud
+   ?await this.cloud.request(path,{...init,headers:{'X-Kono-Data-Version':'6',...init?.headers}},this.state.user?.id??'')
+   :await fetch('/api/'+path,{...init,credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','X-Kono-Request':'1','X-Kono-Data-Version':'6','X-Kono-Account-ID':this.state.user?.id??'',...init?.headers},signal:AbortSignal.timeout(10000)})
   if(response.status===401){this.blocked=true;throw new Error('Your session ended. Export pending work, then sign in again. Your device copy is preserved.')}
   if(response.status===426){this.blocked=true;throw new Error('A newer KONO version is required. Export unsaved work, then reload before syncing.')}
   return response
@@ -92,7 +99,9 @@ export class PlannerRepository {
    if(!this.valid(generation))return
    if(user){
     if(typeof user.id!=='string'||!user.id||user.id.length>200||typeof user.email!=='string')throw new Error('Invalid account response.')
-    await this.openAccount(user,generation)
+    const support=this.cloud?readSupportTarget():null
+    if(support&&this.cloud&&await this.cloud.isAdmin()){if(this.valid(generation))await this.openSupport(user,support,generation)}
+    else{if(support)clearSupportTarget();await this.openAccount(user,generation)}
    }
   }catch(e){
    console.error('KONO cloud startup failed — falling back to local-only/ChatGPT sign-in:',e)
@@ -115,10 +124,28 @@ export class PlannerRepository {
   let remote:Remote
   try{remote=remoteValue(body)}catch(e){this.unreadableCopy=body;if(!this.cache){this.blocked=true;this.notify({unreadable:true,status:'Recovery needed'})}throw e}
   if(!this.valid(generation))return
+  if(this.cloud){
+   // Keep a copy of the saved plan every time KONO opens, and find out whether this is a support account.
+   void this.cloud.backupOnOpen().catch(()=>undefined)
+   void this.cloud.isAdmin().then(isAdmin=>{if(this.valid(generation))this.notify({isAdmin})})
+  }
   if(!this.cache){
    if(remote.data)await this.saveCache(remote.data,remote.data,remote.revision,false,generation)
    else{await this.saveCache(this.state.data,null,remote.revision,false,generation);this.notify({needsMigration:remote.revision===0&&!!this.migration,status:'Account ready'})}
   }else await this.acceptRemote(remote,generation)
+ }
+ /** KONO support: this tab edits another account's plan through the logged support functions. */
+ private async openSupport(user:User,target:SupportTarget,generation:number){
+  const cloud=this.cloud!
+  cloud.setSupportTarget(target.id)
+  this.undoStack=[];this.redoStack=[];this.scope='support:'+target.id;this.cache=null;this.blocked=false
+  this.notify({user,support:target,isAdmin:true,data:createFreshData(),status:'Opening '+target.email,error:''})
+  await deleteCache(this.scope).catch(()=>undefined)
+  const response=await this.api('plan')
+  if(!response.ok){this.blocked=true;const problem=await response.json().catch(()=>({})) as {error?:string};throw new Error(problem.error??'Could not open that account.')}
+  const remote=remoteValue(await response.json());if(!this.valid(generation))return
+  if(!remote.data){this.blocked=true;this.notify({status:'Nothing to open',error:target.email+' has no saved plan yet. Exit support; they need to create one first.'});return}
+  await this.saveCache(remote.data,remote.data,remote.revision,false,generation)
  }
  private warnUnsaved=(event:BeforeUnloadEvent)=>{if(this.cache?.pending||this.state.status==='Unsaved'||this.state.status==='Saving'){event.preventDefault();event.returnValue=''}}
  private handleOnline=()=>this.retry()
@@ -128,7 +155,7 @@ export class PlannerRepository {
   if(!this.valid(generation))return
   this.cache=saved
   this.unsaved=false
-  this.notify({data:saved.data,status:saved.pending?'Saved locally — sync pending':this.state.user?'Saved to your account':'Saved on this device',savedAt:new Date().toISOString(),error:''})
+  this.notify({data:saved.data,status:saved.pending?'Saved locally — sync pending':this.state.support?'Saved to their account':this.state.user?'Saved to your account':'Saved on this device',savedAt:new Date().toISOString(),error:''})
   this.channel?.postMessage({scope:this.scope})
  }
  update=(action:SetStateAction<AppData>)=>{
@@ -176,7 +203,8 @@ export class PlannerRepository {
  private async syncNow(generation:number){
   if(!this.state.user||this.blocked||this.state.needsMigration||this.state.conflicts.length||this.unsaved)return
   if(!navigator.onLine){this.notify({status:'Offline — changes kept on this device'});return}
-  if(this.cloud)this.cloud.publishSharedSnapshot(buildSharedSnapshot(this.state.data)).catch(()=>undefined)
+  // Never publish another person's plan as your own friend snapshot while helping them.
+  if(this.cloud&&!this.state.support)this.cloud.publishSharedSnapshot(buildSharedSnapshot(this.state.data)).catch(()=>undefined)
   await this.reloadOtherTab(generation)
   const response=await this.api('plan');if(!response.ok)throw new Error('Cloud sync unavailable. Your device copy is preserved.')
   const remote=remoteValue(await response.json());if(!this.valid(generation))return
@@ -194,8 +222,24 @@ export class PlannerRepository {
  export=()=>exportData(this.state.data)
  localBackups=()=>this.cache?.backups??[]
  downloadBackup=(data:AppData)=>exportData(normalizeData(data))
- cloudHistory=async()=>{const generation=this.generation,response=await this.api('history');if(!response.ok||!this.valid(generation))throw new Error('History unavailable.');const result=await response.json() as {history:{revision:number;created_at:string}[]};if(!this.valid(generation))throw new Error('Account changed.');return result.history}
+ cloudHistory=async()=>{const generation=this.generation,response=await this.api('history');if(!response.ok||!this.valid(generation))throw new Error('History unavailable.');const result=await response.json() as {history:{revision:number;created_at:string;bySupport?:boolean}[]};if(!this.valid(generation))throw new Error('Account changed.');return result.history}
  downloadCloudBackup=async(revision:number)=>{const generation=this.generation,response=await this.api('history/'+revision);if(!response.ok)throw new Error('Backup unavailable.');const data=decodeData(await response.text());if(this.valid(generation))exportData(data)}
+ /** Copies kept automatically each time KONO opened (newest 30). */
+ autoBackups=async()=>{const generation=this.generation,response=await this.api('backups');if(!response.ok||!this.valid(generation))throw new Error('Automatic backups unavailable.');return (await response.json() as {backups:{revision:number;created_at:string;reason:'open'|'before-support'}[]}).backups}
+ downloadAutoBackup=async(revision:number)=>{const generation=this.generation,response=await this.api('backups/'+revision);if(!response.ok)throw new Error('Backup unavailable.');const data=decodeData(await response.text());if(this.valid(generation))exportData(data)}
+ /** Views and edits KONO support made on this account. */
+ supportActivity=async():Promise<SupportActivity[]>=>this.cloud&&this.state.user?this.cloud.supportActivity(this.state.user.id):[]
+ adminAccounts=async():Promise<AdminAccount[]>=>this.requireCloud().adminAccounts()
+ adminActivity=async():Promise<SupportActivity[]>=>this.requireCloud().supportActivity()
+ /** Opens another account in this tab (after a reload); the server refuses unless you're KONO support. */
+ startSupport=(target:SupportTarget)=>{
+  if(this.cache?.pending||this.state.status==='Unsaved')throw new Error('Wait for your own changes to finish saving first.')
+  sessionStorage.setItem(SUPPORT_KEY,JSON.stringify({id:target.id,email:target.email}));window.location.reload()
+ }
+ exitSupport=()=>this.enqueue(async()=>{
+  if(this.cache?.pending||this.state.status==='Unsaved'||this.state.status==='Saving')throw new Error('Their last change is still saving. Try again in a moment.')
+  clearSupportTarget();await deleteCache(this.scope).catch(()=>undefined);window.location.reload()
+ })
  private unreadableCopy:unknown=null
  /** Downloads the save this build couldn't read, exactly as stored, so it can be restored later. */
  downloadUnreadable=async()=>{const raw=this.unreadableCopy??await readRawCache(this.scope).catch(()=>null);if(raw)downloadData(raw,'kono-saved-plan-'+new Date().toISOString().slice(0,10)+'.json');return Boolean(raw)}
@@ -220,6 +264,8 @@ export class PlannerRepository {
   return {rows,profiles}
  }
  fetchFriendSnapshot=async(ownerId:string)=>this.requireCloud().fetchSharedSnapshot(ownerId)
+ /** A plan kept in this browser from before signing in (device-only mode), if there is one. */
+ deviceCopy=()=>this.state.user&&!this.state.support?this.migration:null
  importPreview=(raw:string)=>decodeData(raw)
  replace=(data:AppData)=>{if(this.blocked){this.notify({error:'The cache could not be read. Export your recovery data and reopen KONO before replacing it.'});return}this.notify({needsMigration:false,conflicts:[]});this.update(data)}
  importLegacy=()=>{if(this.migration)this.replace(this.migration)}
@@ -232,6 +278,7 @@ export class PlannerRepository {
   this.notify({conflicts:[],needsMigration:false})
  })
  signOut=()=>this.enqueue(async generation=>{
+  if(this.state.support)throw new Error('Exit support mode first.')
   if(this.cache?.pending||this.state.status==='Unsaved')throw new Error('Save your pending changes before signing out.')
   const destination=this.cloud?'/':'/signout-with-chatgpt?return_to=/'
   if(this.cloud)await this.cloud.signOut()
@@ -245,6 +292,7 @@ export class PlannerRepository {
   await this.cloud.signInWithEmail(address)
  }
  deleteAccountData=()=>this.enqueue(async generation=>{
+  if(this.state.support)throw new Error('Support can’t delete someone’s plan.')
   const response=await this.api('plan',{method:'DELETE',body:JSON.stringify({expectedRevision:this.cache?.serverRevision??0})})
   if(!response.ok)throw new Error('The cloud plan changed or deletion failed. Sync, review it and retry.')
   const remote=remoteValue(await response.json());if(!this.valid(generation))return

@@ -35,11 +35,10 @@ async function freshPage(options={}){
  page.setDefaultTimeout(10000)
  return {context,page,errors}
 }
+/** A device-only plan (the demo), which needs no account. */
 async function createPlan(page){
  await page.goto(BASE)
- await page.getByLabel('Your name').fill('Sam')
- await page.getByLabel('Plan name').fill('Fall term')
- await page.getByRole('button',{name:'Create my study plan'}).click()
+ await page.getByRole('button',{name:'Try a small demo instead'}).click()
  await heading(page,'Sanctuary')
 }
 const mainHeading=page=>page.locator('#workspace-main h1').first()
@@ -72,11 +71,25 @@ async function flushSave(page,text){
 const tests=[]
 const test=(name,fn)=>tests.push({name,fn})
 
-test('a new visitor can create a plan and lands in their Sanctuary',async({page})=>{
+test('a new visitor is asked to sign in with email to start, and can try the demo instead',async({page})=>{
  await page.goto(BASE)
  await page.getByRole('heading',{name:'A little space for steady progress.'}).waitFor()
+ await page.getByLabel('Email address').waitFor()
+ await page.getByRole('button',{name:'Email me a link to start'}).waitFor()
+ assert.equal(await page.getByRole('button',{name:'Create my study plan'}).count(),0,'a plan can be created without an account')
  await createPlan(page)
  for(const name of ['Planner','Notes','Exams','Settings','Sanctuary'])await go(page,name)
+})
+
+test('a device-only plan is nudged to save to an email account; "Remind me tomorrow" is remembered',async({page})=>{
+ await createPlan(page)
+ const banner=page.getByRole('region',{name:'Save your plan to your email'})
+ await banner.waitFor()
+ await banner.getByRole('button',{name:'Remind me tomorrow'}).click()
+ await banner.waitFor({state:'detached'})
+ await page.reload()
+ await mainHeading(page).waitFor()
+ assert.equal(await banner.count(),0)
 })
 
 test('homework added in the Planner survives a reload',async({page})=>{
@@ -177,6 +190,114 @@ test('phone-sized screens have no sideways scrolling on the main pages',async({c
   }
   assert.deepEqual(phone.errors,[])
  }finally{await phone.context.close()}
+})
+
+// ---------------------------------------------------------------- signed-in flows against a fake Supabase
+// Answers the auth/REST/RPC calls KONO makes from in-memory state, so account features can be exercised
+// in the real UI without a live project. The SQL behind these calls is tested in test_supabase_policies.cjs.
+const fixture=()=>JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures','save-2026-09.json'),'utf8'))
+function supabaseHost(){
+ const assets=path.join(ROOT,'dist','client','assets')
+ for(const file of fs.readdirSync(assets).filter(f=>f.endsWith('.js'))){const m=fs.readFileSync(path.join(assets,file),'utf8').match(/https:\/\/([a-z0-9]+)\.supabase\.co/);if(m)return m[1]}
+ throw new Error('No Supabase URL found in the build.')
+}
+function fakeCloud(){
+ const named=(name,email)=>{const d=fixture();d.profiles[0].name=name;return {email,admin:false,plan:{revision:3,data:d}}}
+ return {users:{alice:named('Alice','alice@example.com'),carol:{...named('Carol','carol@example.com'),admin:true}},me:'alice',calls:[],audit:[]}
+}
+const b64=value=>Buffer.from(JSON.stringify(value)).toString('base64url')
+async function signInAs(context,cloud,id){
+ cloud.me=id
+ const ref=supabaseHost(),exp=Math.floor(Date.now()/1000)+3600
+ const user={id,aud:'authenticated',role:'authenticated',email:cloud.users[id].email,app_metadata:{},user_metadata:{},created_at:'2026-09-01T00:00:00Z'}
+ const session={access_token:b64({alg:'HS256',typ:'JWT'})+'.'+b64({sub:id,exp,role:'authenticated'})+'.sig',token_type:'bearer',expires_in:3600,expires_at:exp,refresh_token:'fake-refresh',user}
+ await context.addInitScript(([key,value])=>localStorage.setItem(key,value),[`sb-${ref}-auth-token`,JSON.stringify(session)])
+ await context.route(/\.supabase\.co\//,async route=>{
+  const request=route.request(),url=new URL(request.url()),method=request.method(),where=url.pathname
+  const cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'*'}
+  if(method==='OPTIONS')return route.fulfill({status:204,headers:cors})
+  const body=request.postData()?JSON.parse(request.postData()):null,me=cloud.users[cloud.me]
+  cloud.calls.push({method,where,body,as:cloud.me})
+  const reply=(json,status=200)=>route.fulfill({status,headers:{...cors,'content-type':'application/json'},body:JSON.stringify(json)})
+  const denied=()=>reply({code:'P0001',message:'KONO support access only'},400)
+  const saveTo=(owner,expected)=>{if(owner.plan.revision!==expected)return reply({revision:owner.plan.revision,conflict:true});owner.plan={revision:expected+1,data:body.p_data};return reply({revision:owner.plan.revision,conflict:false})}
+  switch(where){
+   case '/rest/v1/rpc/kono_backup_on_open':return reply({backedUp:true,revision:me.plan.revision})
+   case '/rest/v1/rpc/kono_is_admin':return reply(me.admin)
+   case '/rest/v1/rpc/kono_save_plan':return saveTo(me,body.p_expected_revision)
+   case '/rest/v1/rpc/kono_admin_accounts':return me.admin?reply(Object.entries(cloud.users).map(([id,u])=>({user_id:id,email:u.email,created_at:'2026-09-01T00:00:00Z',last_sign_in_at:'2026-09-24T00:00:00Z',revision:u.plan.revision,updated_at:'2026-09-24T00:00:00Z',profiles:u.plan.data.profiles.map(p=>p.name+' · '+p.label).join(', '),username:null}))):denied()
+   case '/rest/v1/rpc/kono_admin_get_plan':{if(!me.admin)return denied();const owner=cloud.users[body.p_owner];cloud.audit.push({id:cloud.audit.length+1,account_id:body.p_owner,admin_id:cloud.me,action:'view',revision:owner.plan.revision,created_at:new Date().toISOString()});return reply({revision:owner.plan.revision,data:owner.plan.data})}
+   case '/rest/v1/rpc/kono_admin_save_plan':{if(!me.admin)return denied();const result=saveTo(cloud.users[body.p_owner],body.p_expected_revision);cloud.audit.push({id:cloud.audit.length+1,account_id:body.p_owner,admin_id:cloud.me,action:'edit',revision:null,created_at:new Date().toISOString()});return result}
+   case '/rest/v1/kono_plans':return reply([{revision:me.plan.revision,data:me.plan.data}])
+   case '/rest/v1/kono_admin_audit':return reply(me.admin?cloud.audit:cloud.audit.filter(a=>a.account_id===cloud.me))
+   case '/rest/v1/kono_shared_snapshots':return reply([],201)
+   default:return reply([])
+  }
+ })
+}
+const accountStatus=page=>page.locator('.save-status [role=status]').first()
+
+test('signed in: KONO keeps an automatic backup on open, shows no sign-in nudge, and regular accounts get no support tab',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ await page.waitForFunction(()=>document.querySelector('.save-status [role=status]')?.textContent?.includes('alice@example.com'))
+ await page.waitForTimeout(500)
+ assert.ok(cloud.calls.some(c=>c.where==='/rest/v1/rpc/kono_backup_on_open'),'no automatic backup was requested on open')
+ assert.equal(await page.getByRole('region',{name:'Save your plan to your email'}).count(),0)
+ await go(page,'Settings')
+ assert.equal(await page.getByRole('navigation',{name:'Settings sections'}).getByRole('button',{name:'KONO support'}).count(),0)
+})
+
+test('signed in: changes upload to the account, and a brand-new device opens the same plan (the lost-account bug)',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ await addFromMenu(page,'tasks','Saved to my account (e2e)')
+ for(let i=0;i<40&&!JSON.stringify(cloud.users.alice.plan.data).includes('Saved to my account (e2e)');i++)await page.waitForTimeout(250)
+ assert.ok(JSON.stringify(cloud.users.alice.plan.data).includes('Saved to my account (e2e)'),'the change never reached the account')
+ const other=await freshPage()
+ try{
+  await signInAs(other.context,cloud,'alice')
+  await other.page.goto(BASE)
+  await heading(other.page,'Sanctuary')
+  await go(other.page,'Planner')
+  await other.page.getByText('Saved to my account (e2e)').first().waitFor()
+  assert.deepEqual(other.errors,[])
+ }finally{await other.context.close()}
+})
+
+test('KONO support can list every account, open one to add something for them, and exit back to their own plan',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'carol')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ await go(page,'Settings')
+ await settingsTab(page,'KONO support')
+ await page.getByRole('button',{name:'Show all accounts'}).click()
+ const row=page.locator('.support-account').filter({hasText:'alice@example.com'})
+ await row.waitFor()
+ assert.match(await row.innerText(),/Alice · My study plan/)
+ assert.match(await page.locator('.support-account').filter({hasText:'carol@example.com'}).innerText(),/You/)
+ page.once('dialog',dialog=>void dialog.accept())
+ await row.getByRole('button',{name:'Open to help'}).click()
+ const banner=page.locator('.support-banner')
+ await banner.waitFor()
+ assert.match(await banner.innerText(),/alice@example\.com/)
+ await page.waitForFunction(()=>document.querySelector('.save-status [role=status]')?.textContent?.includes('Helping: alice@example.com'))
+ const publishedBefore=cloud.calls.filter(c=>c.where==='/rest/v1/kono_shared_snapshots').length
+ await addFromMenu(page,'tasks','Added by support (e2e)')
+ for(let i=0;i<40&&!JSON.stringify(cloud.users.alice.plan.data).includes('Added by support (e2e)');i++)await page.waitForTimeout(250)
+ assert.ok(JSON.stringify(cloud.users.alice.plan.data).includes('Added by support (e2e)'),"the change didn't reach Alice's account")
+ assert.ok(!JSON.stringify(cloud.users.carol.plan.data).includes('Added by support (e2e)'),"the change leaked into the support person's own plan")
+ assert.ok(cloud.calls.some(c=>c.where==='/rest/v1/rpc/kono_admin_save_plan'&&c.body.p_owner==='alice'))
+ assert.equal(cloud.calls.filter(c=>c.where==='/rest/v1/kono_shared_snapshots').length,publishedBefore,"Alice's plan was published as a friend snapshot")
+ assert.deepEqual(cloud.audit.map(a=>a.action).filter((a,i,all)=>all.indexOf(a)===i),['view','edit'])
+ await banner.getByRole('button',{name:'Exit support'}).click()
+ await page.waitForFunction(()=>document.querySelector('.save-status [role=status]')?.textContent?.includes('Account: carol@example.com'))
+ assert.equal(await banner.count(),0)
 })
 
 async function main(){
