@@ -168,20 +168,20 @@ export class KonoMascotSystem {
   }
 
   static preload(scene: Phaser.Scene): void {
-    scene.load.image('kono-idle', `${ASSET_ROOT}/idle.png`)
-    scene.load.image('kono-happy', `${ASSET_ROOT}/happy.png`)
-    scene.load.image('kono-excited', `${ASSET_ROOT}/excited.png`)
-    scene.load.image('kono-question', `${ASSET_ROOT}/question.png`)
-    scene.load.image('kono-sleep', `${ASSET_ROOT}/sleep.png`)
-    scene.load.image('kono-tea', `${ASSET_ROOT}/tea.png`)
-    scene.load.image('kono-read', `${ASSET_ROOT}/read.png`)
-    scene.load.image('kono-pond', `${ASSET_ROOT}/pond.png`)
-    scene.load.image('kono-fishing', `${ASSET_ROOT}/fishing.png`)
-    scene.load.image('kono-shadow', `${ASSET_ROOT}/shadow.png`)
-    WALK_FRAMES.down.forEach((key, index) => scene.load.image(key, `${ASSET_ROOT}/walk-down-0${index + 1}.png`))
-    WALK_FRAMES.up.forEach((key, index) => scene.load.image(key, `${ASSET_ROOT}/walk-up-0${index + 1}.png`))
-    WALK_FRAMES.left.forEach((key, index) => scene.load.image(key, `${ASSET_ROOT}/walk-left-0${index + 1}.png`))
-    WALK_FRAMES.right.forEach((key, index) => scene.load.image(key, `${ASSET_ROOT}/walk-right-0${index + 1}.png`))
+    scene.load.image('kono-idle', `${ASSET_ROOT}/idle.webp`)
+    scene.load.image('kono-happy', `${ASSET_ROOT}/happy.webp`)
+    scene.load.image('kono-excited', `${ASSET_ROOT}/excited.webp`)
+    scene.load.image('kono-question', `${ASSET_ROOT}/question.webp`)
+    scene.load.image('kono-sleep', `${ASSET_ROOT}/sleep.webp`)
+    scene.load.image('kono-tea', `${ASSET_ROOT}/tea.webp`)
+    scene.load.image('kono-read', `${ASSET_ROOT}/read.webp`)
+    scene.load.image('kono-pond', `${ASSET_ROOT}/pond.webp`)
+    scene.load.image('kono-fishing', `${ASSET_ROOT}/fishing.webp`)
+    scene.load.image('kono-shadow', `${ASSET_ROOT}/shadow.webp`)
+    WALK_FRAMES.down.forEach((key, index) => scene.load.image(key, `${ASSET_ROOT}/walk-down-0${index + 1}.webp`))
+    WALK_FRAMES.up.forEach((key, index) => scene.load.image(key, `${ASSET_ROOT}/walk-up-0${index + 1}.webp`))
+    WALK_FRAMES.left.forEach((key, index) => scene.load.image(key, `${ASSET_ROOT}/walk-left-0${index + 1}.webp`))
+    WALK_FRAMES.right.forEach((key, index) => scene.load.image(key, `${ASSET_ROOT}/walk-right-0${index + 1}.webp`))
   }
 
   create(reducedMotion: boolean, phase: DayPhase): void {

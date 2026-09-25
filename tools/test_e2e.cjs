@@ -378,6 +378,51 @@ test('signed in: last night\'s backup downloads, and app errors reach KONO suppo
  assert.ok(!JSON.stringify(cloud.errors[0]).includes('Read chapter 3'),'an error report carried plan content')
 })
 
+test('Sanctuary: the island draws, zooms, expands and changes time; Decorate adds, duplicates, removes and keeps items',async({page})=>{
+ const loaded=[];page.on('response',r=>{const u=new URL(r.url());if(/\/garden\/(terrace-23\.0|kono)\//.test(u.pathname))loaded.push([u.pathname,r.status()])})
+ await createPlan(page)
+ const ready=()=>page.waitForFunction(()=>!document.querySelector('.sanctuary-load-status'),null,{timeout:30000})
+ await ready()
+ // The canvas has real artwork on it (a blank canvas encodes to a tiny image).
+ await page.waitForFunction(()=>{const c=document.querySelector('.sanctuary-viewport canvas');return !!c&&c.width>100&&c.toDataURL('image/png').length>60000},null,{timeout:20000})
+ assert.ok(loaded.some(([path,status])=>/terrace-23\.0\/\w+\.webp$/.test(path)&&status===200),'the island map did not load')
+ assert.ok(loaded.every(([,status])=>status===200),'a Sanctuary image failed to load: '+JSON.stringify(loaded.filter(([,st])=>st!==200)))
+ const zoom=page.getByRole('group',{name:'Zoom island'})
+ await zoom.getByRole('button',{name:'Zoom in'}).click()
+ await zoom.getByText('125%').waitFor()
+ await zoom.getByRole('button',{name:'Zoom out'}).click()
+ await zoom.getByText('100%').waitFor()
+ await page.locator('.wb-scene-expand').click()
+ await page.locator('.wb-island.is-expanded').waitFor()
+ await page.locator('.wb-scene-expand').click()
+ await page.locator('.wb-island.is-expanded').waitFor({state:'detached'})
+ const phase=await page.getByLabel('Sanctuary time').inputValue()
+ const other=phase==='morning'?'evening':'morning'
+ const mapLoaded=page.waitForResponse(r=>r.url().endsWith(`/terrace-23.0/${other}.webp`)&&r.status()===200,{timeout:20000})
+ await page.getByLabel('Sanctuary time').selectOption(other)
+ await mapLoaded
+ await ready()
+ // Decorate
+ await page.getByRole('button',{name:'Decorate'}).click()
+ const add=page.locator('.build-palette [aria-label^="Add "]').first()
+ await add.waitFor()
+ await add.click()
+ await page.locator('.build-item').first().waitFor()
+ assert.equal(await page.locator('.build-item').count(),1)
+ // A newly added item comes selected, with its Rotate / Mirror / Duplicate / Remove toolbar.
+ await page.locator('.build-item.is-selected').waitFor()
+ await page.locator('button[aria-label="Duplicate"]').click()
+ await page.waitForFunction(()=>document.querySelectorAll('.build-item').length===2)
+ await page.locator('button[aria-label="Remove"]').click()
+ await page.waitForFunction(()=>document.querySelectorAll('.build-item').length===1)
+ await flushSave(page,'"placements":[{')
+ await page.reload()
+ await mainHeading(page).waitFor()
+ await page.getByRole('button',{name:'Decorate'}).click()
+ await page.locator('.build-item').first().waitFor()
+ assert.equal(await page.locator('.build-item').count(),1,'the placed item did not survive a reload')
+})
+
 async function main(){
  const server=await startServer()
  const onlyArg=process.argv[2]

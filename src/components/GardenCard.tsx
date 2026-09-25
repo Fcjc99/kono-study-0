@@ -1,3 +1,4 @@
+import { minutesFromDate, phaseBlendForMinutes } from '../game/sanctuary/timeEngine'
 import { useEffect, useRef, useState } from 'react'
 import { WORLD_HEIGHT, WORLD_WIDTH } from '../game/sanctuary/config'
 import { SANCTUARY_EVENTS } from '../game/sanctuary/runtime'
@@ -7,7 +8,6 @@ import type { SanctuaryProgressState } from '../game/progression/types'
 import type { BuildPlacement } from '../store/model'
 import type { EvolutionMilestonePayload } from '../game/evolution/EvolutionCoordinator'
 import type { KonoContextAction, KonoInteractionSummary } from '../game/systems/KonoInteractionSystem'
-import {getKonoActions, type KonoLandmarkId} from '../game/sanctuary/konoActions'
 import { APP_VERSION } from '../version'
 
 interface SanctuaryState {
@@ -121,6 +121,8 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
   useEffect(()=>{pausedRef.current=!!paused;syncPauseStateRef.current?.()},[paused])
 
   const [state, setState] = useState<SanctuaryState>(initialState)
+  // Shown while the island engine downloads: the same picture the island starts from, sized the same way.
+  const [autoPhase] = useState(() => phaseBlendForMinutes(minutesFromDate(new Date())).dominant)
   const [debugEnabled, setDebugEnabled] = useState(debugFromUrl)
   const [debugMinutes, setDebugMinutes] = useState(() => new Date().getHours() * 60 + new Date().getMinutes())
   const [debugDensity, setDebugDensity] = useState(1)
@@ -128,7 +130,6 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
   const debugWeather=weatherOverride?.base===weather?weatherOverride.value:weather
   const [loadStatus,setLoadStatus]=useState<{status:string;phase?:string;boot?:boolean}>({status:'loading'})
   const [attempt,setAttempt]=useState(0)
-  const [landmark,setLandmark]=useState<KonoLandmarkId>('house')
   const [debugQuality, setDebugQuality] = useState<SanctuaryQuality>('auto')
   const [debugFluidSpeed, setDebugFluidSpeed] = useState(1)
   const [debugFluidEnabled, setDebugFluidEnabled] = useState(true)
@@ -413,7 +414,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
   }
 
   return <article className="sanctuary-card" aria-label="KONO Living Sanctuary">
-    <div ref={containerRef} className="sanctuary-viewport" role="img" aria-label={`${state.phaseLabel} sanctuary, ${state.weatherLabel.toLowerCase()} weather`} />
+    <div ref={containerRef} className="sanctuary-viewport" role="img" aria-label={`${state.phaseLabel} sanctuary, ${state.weatherLabel.toLowerCase()} weather`} style={loadStatus.status!=='ready'?{backgroundImage:`url(/garden/terrace-23.0/${phase==='auto'?autoPhase:phase}.webp)`}:undefined} />
     {loadStatus.status!=='ready'&&<div className="sanctuary-load-status" role="status">{loadStatus.status==='error'?'Some Sanctuary artwork could not load. Your plan is safe.':`Opening ${loadStatus.phase??'your'} Sanctuary…`}{loadStatus.status==='error'&&<button onClick={()=>{setLoadStatus({status:'loading'});if(loadStatus.boot)setAttempt(a=>a+1);else gameRef.current?.events.emit(SANCTUARY_EVENTS.retry,null)}}>Retry artwork</button>}</div>}
     {evolutionNotice && <div className={`sanctuary-evolution-toast feature-${evolutionNotice.feature}`} role="status" aria-live="polite"><span>Sanctuary evolved</span><strong>{evolutionNotice.featureLabel}</strong><em>Stage {evolutionNotice.nextStage} · {evolutionNotice.stageName}</em></div>}
     {interactionNotice && <div className="sanctuary-interaction-toast" role="status" aria-live="polite"><span>KONO</span><strong>{interactionNotice.action.title}</strong><em>{interactionNotice.action.hint}</em></div>}
@@ -423,7 +424,6 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
       <b>{state.phaseLabel}</b>
       <em>{state.weatherLabel}</em>
     </div>
-    <details className="sanctuary-accessible-actions"><summary>Sanctuary actions · keyboard & touch</summary><label>Place <select value={landmark} onChange={e=>setLandmark(e.target.value as KonoLandmarkId)}><option value="house">Home</option><option value="garden">Garden</option><option value="cherry">Tree</option><option value="pond">Pond</option><option value="bridge">Bridge</option><option value="mailbox">Mailbox</option><option value="lanterns">Terrace</option></select></label><div>{getKonoActions(landmark,{phase:state.phase,lanternStage:progress.featureStages.lanterns??0,pondStage:progress.featureStages.pond??0}).map(action=><button disabled={loadStatus.status!=='ready'} key={action.id} onClick={()=>gameRef.current?.events.emit(SANCTUARY_EVENTS.action,{kind:'interaction',landmarkId:landmark,actionId:action.id})}>{action.label}</button>)}</div></details>
     {debugEnabled && <aside className="sanctuary-debug-panel">
       <header>
         <strong>World debug</strong>
