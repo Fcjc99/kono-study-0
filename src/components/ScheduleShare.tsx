@@ -36,7 +36,7 @@ export default function ScheduleShare({ data, save }: { data: AppData; save: Pla
   setBusy(true); setError('')
   try {
    const saved = await save(d => importScheduleShare(d, d.activeProfileId, raw))
-   if (saved) { setPreview(null); setRaw(''); setFile(null); setMessage('Added as a new, paused schedule. Open "Weekly schedules & seasons" or the school/college setup above to review it and turn it on.') }
+   if (saved) { setPreview(null); setRaw(''); setFile(null); setMessage('Added as a new, paused schedule. Find it under Work & weekly activities › Your weekly schedules (or the school/college setup) to review it and turn it on.') }
    else setError('Not saved yet. Check the save status above, then try again.')
   } catch (e) { setError(e instanceof Error ? e.message : 'Could not import.') }
   finally { setBusy(false) }
