@@ -1,4 +1,4 @@
--- Automatic backups, and KONO support access.
+-- Automatic backups, and KONO support access. Safe to run more than once.
 --
 -- 1. Every time a signed-in person opens KONO, a copy of their saved plan is kept in
 --    kono_plan_backups (skipped when nothing changed since the last one; newest 30 kept).
@@ -23,14 +23,17 @@ alter table public.kono_plan_backups enable row level security;
 revoke all on public.kono_plan_backups from anon;
 grant select, insert, delete on public.kono_plan_backups to authenticated;
 
+drop policy if exists "KONO users read their own backups" on public.kono_plan_backups;
 create policy "KONO users read their own backups"
 on public.kono_plan_backups for select to authenticated
 using (auth.uid() is not null and owner = auth.uid());
 
+drop policy if exists "KONO users create their own backups" on public.kono_plan_backups;
 create policy "KONO users create their own backups"
 on public.kono_plan_backups for insert to authenticated
 with check (auth.uid() is not null and owner = auth.uid());
 
+drop policy if exists "KONO users delete their own backups" on public.kono_plan_backups;
 create policy "KONO users delete their own backups"
 on public.kono_plan_backups for delete to authenticated
 using (auth.uid() is not null and owner = auth.uid());
@@ -125,10 +128,12 @@ alter table public.kono_admin_audit enable row level security;
 revoke all on public.kono_admin_audit from anon, authenticated;
 grant select on public.kono_admin_audit to authenticated;
 
+drop policy if exists "KONO users see support activity on their own account" on public.kono_admin_audit;
 create policy "KONO users see support activity on their own account"
 on public.kono_admin_audit for select to authenticated
 using (auth.uid() is not null and account_id = auth.uid());
 
+drop policy if exists "KONO admins see all support activity" on public.kono_admin_audit;
 create policy "KONO admins see all support activity"
 on public.kono_admin_audit for select to authenticated
 using (public.kono_is_admin());
