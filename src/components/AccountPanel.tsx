@@ -5,7 +5,7 @@ import { type AppData, localDate } from '../store/model'
 import {APP_VERSION} from '../version'
 type Store=ReturnType<typeof usePlannerRepository>
 export function SaveStatus({store}:{store:Store}){
- return <div className="save-status"><small>Build {APP_VERSION.split('production-')[1]}</small> · <span role="status">{store.support?'Helping: '+store.support.email:store.user?'Account: '+store.user.email:'This device only'} · {store.status}</span>{store.error&&<p role="alert">{store.error} <button onClick={store.repository.export}>Export working copy</button> <button onClick={store.repository.retry}>Retry</button></p>}</div>
+ return <div className="save-status"><small>Build {APP_VERSION.split('production-')[1]} · </small><span role="status"><span className="save-status-account">{store.support?'Helping: '+store.support.email:store.user?'Account: '+store.user.email:'This device only'} · </span>{store.status}</span>{store.error&&<p role="alert">{store.error} <button onClick={store.repository.export}>Export working copy</button> <button onClick={store.repository.retry}>Retry</button></p>}</div>
 }
 export function AccountPanel({store}:{store:Store}){
  const {repository}=store
