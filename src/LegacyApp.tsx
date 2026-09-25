@@ -3,7 +3,7 @@ import type { SanctuaryWeather } from './game/sanctuary/types'
 import { isValidWeatherLocation, normalizeWeatherLocation, type LiveWeatherState } from './game/weather/liveWeather'
 import { notificationsSupported, requestNotificationPermission } from './hooks/useDueNotifications'
 import { createSanctuaryProgress } from './game/progression/progressionEngine'
-import { blankWeek, uid, localDate as iso, type AppData, type ProfileKind, type SettingsData } from './store/model'
+import { uid, localDate as iso, type AppData, type ProfileKind, type SettingsData } from './store/model'
 import SafeNoteBody from './components/SafeNoteBody'
 import './production.css'
 import './App.css'
@@ -72,7 +72,7 @@ export function PlanSettings({data,setData,onDeleteProfile}:{data:AppData;setDat
  const [name,setName]=useState(profile.name)
  const [label,setLabel]=useState('New School Year')
  const [kind,setKind]=useState<ProfileKind>('school')
- const add=(e:FormEvent)=>{e.preventDefault();const id=uid('profile');setData(d=>{const start=iso(new Date()),end=iso(new Date(Date.now()+180*86400000));return {...d,profiles:[...d.profiles,{id,name,label,kind,start,end}],studySeasons:[...d.studySeasons,{id:uid('season'),profileId:id,name:label,start,end,active:true,week:blankWeek()}],sanctuaryProgress:{...d.sanctuaryProgress,[id]:createSanctuaryProgress(id)},activeProfileId:id}})}
+ const add=(e:FormEvent)=>{e.preventDefault();const id=uid('profile');setData(d=>{const start=iso(new Date()),end=iso(new Date(Date.now()+180*86400000));return {...d,profiles:[...d.profiles,{id,name,label,kind,start,end}],sanctuaryProgress:{...d.sanctuaryProgress,[id]:createSanctuaryProgress(id)},activeProfileId:id}})}
  return <div className="settings-stack">
   <section id="profile-settings" className="card"><div className="card-head"><div><span className="eyebrow">Profiles</span><h3>Switch active plan</h3></div></div><div className="profile-grid">{data.profiles.map(p=><button type="button" key={p.id} className={data.activeProfileId===p.id?'active':''} onClick={()=>setData(d=>({...d,activeProfileId:p.id}))}><strong>{p.label}</strong><span>{p.name} · {p.kind}</span><small>{p.start} – {p.end}</small></button>)}</div></section>
   <div className="profile-delete-list">{onDeleteProfile&&data.profiles.map(p=><div className="wb-toolbar" key={p.id}><strong>{p.label}{p.id===data.activeProfileId?' · Active':''}</strong><button disabled={data.profiles.length<2} onClick={()=>onDeleteProfile(p.id)}>Delete plan</button></div>)}<p>Deleting a plan includes its saved work. Keep at least one plan. Export a backup (Import &amp; export) first.</p></div>

@@ -2,6 +2,8 @@ import {useEffect,useRef,useState} from 'react'
 import {type StudySeason} from '../store/model'
 import {addTimetableRows,parseNdaSixDaySchedule,parseWeeklyCollegeSchedule,suggestRotatingClasses,type RotatingImportRow} from '../store/schoolImport'
 import {reportError} from '../store/errorReporter'
+import {suggestSchedule} from '../store/scheduleImport'
+import {dayNames,uid} from '../store/model'
 import {useAiHelper} from '../hooks/useAiHelper'
 import {AiHelperSettings} from './AiHelper'
 export default function SchoolTimetableImport({season,change,onReview}:{season:StudySeason;change:(s:StudySeason)=>void;onReview:()=>void}){
@@ -12,7 +14,13 @@ export default function SchoolTimetableImport({season,change,onReview}:{season:S
  const patch=(id:string,p:Partial<RotatingImportRow>)=>{setRows(rows.map(r=>r.id===id?{...r,...p}:r));}
  const weekly=season.school?.pattern==='weekly'
  const lastClass=season.school!.lastClassDate||season.end
- const find=(value:string,picked=file)=>{try{const nda=season.school!.cycle.length===6&&/6-Day Schedule/i.test(value),found=weekly?parseWeeklyCollegeSchedule(value,season.start,lastClass,season.school!.cycle):nda?parseNdaSixDaySchedule(value,season.start,lastClass):suggestRotatingClasses(value,season.school!.cycle,season.start,lastClass).map(r=>({...r,include:!!(r.day&&r.label&&r.start&&r.end&&r.end>r.start)&&r.kind==='study'}));setRows(found);const classes=found.filter(r=>r.kind==='study').length;setMissed(!classes);setMessage(classes?'Found '+classes+' classes and '+found.filter(r=>r.kind!=='study').length+' schedule blocks. Check them, then continue to your calendar preview.':'KONO couldn’t find classes in this layout. Try “Read with AI helper” below, or add your classes by hand.')
+ // College classes: the table reader first, then the same reader Import & export › Import a schedule uses.
+ const weeklyClasses=(value:string)=>{
+  const table=parseWeeklyCollegeSchedule(value,season.start,lastClass,season.school!.cycle)
+  if(table.length)return table
+  return suggestSchedule(value,season.start,lastClass,'mdy').filter(r=>r.kind==='class'&&r.start&&r.end&&r.end>r.start).flatMap(r=>r.weekdays.map(d=>dayNames[d]).filter(day=>season.school!.cycle.includes(day)).map(day=>({id:uid('import-block'),include:true,day,label:r.title,slot:'',start:r.start,end:r.end,dateStart:season.start,dateEnd:lastClass,kind:'study' as const,location:r.location})))
+ }
+ const find=(value:string,picked=file)=>{try{const nda=season.school!.cycle.length===6&&/6-Day Schedule/i.test(value),found=weekly?weeklyClasses(value):nda?parseNdaSixDaySchedule(value,season.start,lastClass):suggestRotatingClasses(value,season.school!.cycle,season.start,lastClass).map(r=>({...r,include:!!(r.day&&r.label&&r.start&&r.end&&r.end>r.start)&&r.kind==='study'}));setRows(found);const classes=found.filter(r=>r.kind==='study').length;setMissed(!classes);setMessage(classes?'Found '+classes+' classes and '+found.filter(r=>r.kind!=='study').length+' schedule blocks. Check them, then continue to your calendar preview.':'KONO couldn’t find classes in this layout. Try “Read with AI helper” below, or add your classes by hand.')
   // Tell KONO support that a schedule layout wasn't understood: the kind of file and schedule only, never its text.
   if(!classes&&picked)reportError('Schedule upload found no classes ('+(weekly?'weekly college':season.school!.cycle.length+'-day rotation')+')',{detail:'File: '+(/\.pdf$/i.test(picked.name)?'PDF':'photo')+' · text read: '+value.length+' characters · column headings found: '+(/(^|\t)(time|days?)(\t|$)/im.test(value)?'yes':'no')})
  }catch(e){setRows([]);setMessage(e instanceof Error?e.message:'Could not recognize this timetable.')}}

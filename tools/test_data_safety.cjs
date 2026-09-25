@@ -16,7 +16,8 @@ function load(rel){
  modules.set(rel,mod.exports);return mod.exports;
 }
 const model=load('src/store/model.ts'),{PlannerRepository}=load('src/store/repository.ts'),{mergeData}=load('src/store/merge.ts'),progress=load('src/game/progression/progressionEngine.ts'),{writePlan,readPlan,deletePlan}=load('server/database.ts'),server=load('server/index.ts').default;
-const make=()=>{const d=model.createFreshData();d.onboardingComplete=true;return d};
+// New plans start without a schedule; these checks need one to edit.
+const make=()=>{const d=model.createFreshData();d.onboardingComplete=true;const p=d.profiles[0];d.studySeasons=[{id:'season-test',profileId:p.id,name:'Test schedule',start:p.start,end:p.end,active:true,week:model.blankWeek()}];return d};
 function note(d,id){d=clone(d);d.notes.push({id,profileId:d.profiles[0].id,subjectId:'',title:id,body:'Test',created:'2026-09-09T12:00:00Z'});return model.normalizeData(d)}
 const entry=(data,extra={})=>({version:1,revision:1,data,base:clone(data),serverRevision:1,pending:false,backups:[],...extra});
 function setup(d){const r=new PlannerRepository();r.scope='account:A';r.state={...r.state,data:d,ready:true,user:{id:'A',email:'a@example.test',name:'A'},status:'Saved'};r.cache=entry(d);return r}

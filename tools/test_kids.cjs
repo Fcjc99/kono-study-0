@@ -11,6 +11,9 @@ function load(relative){
 }
 const model=load('src/store/model.ts'),kids=load('src/store/kids.ts')
 
+// New plans start without a schedule; tests that add a recurring block give the plan one.
+const seasonOf=d=>{let s=d.studySeasons.find(x=>x.profileId===d.activeProfileId);if(!s){const p=d.profiles.find(x=>x.id===d.activeProfileId);s={id:'season-test',profileId:p.id,name:'Test schedule',start:p.start,end:p.end,active:true,week:model.blankWeek()};d.studySeasons.push(s)}return s}
+
 const tests=[]
 function test(name,fn){tests.push({name,fn})}
 
@@ -111,7 +114,7 @@ test('a kidId belonging to another profile clears to unassigned rather than leak
 test('a recurring class block can carry a kidId the same way it carries a subjectId',()=>{
  const base=model.normalizeData(model.createFreshData())
  const {data,id}=withKid(base,'Emma')
- const season=data.studySeasons.find(s=>s.profileId===data.activeProfileId)
+ const season=seasonOf(data)
  const withBlock={...data,studySeasons:data.studySeasons.map(s=>s.id===season.id?{...s,week:{...s.week,Monday:[{id:'math',label:'Math',start:'09:00',end:'10:00',kind:'study',kidId:id,occurrenceNotes:{}}]}}:s)}
  const normalized=model.normalizeData(withBlock)
  assert.equal(normalized.studySeasons.find(s=>s.id===season.id).week.Monday[0].kidId,id)
@@ -156,7 +159,7 @@ test('kidItemsForDate keeps an untagged item visible under any kid filter, the s
 test('kidItemsForDate includes a kid\'s tagged recurring class occurrence on that date',()=>{
  const base=model.normalizeData(model.createFreshData())
  const {data,id}=withKid(base,'Emma')
- const season=data.studySeasons.find(s=>s.profileId===data.activeProfileId)
+ const season=seasonOf(data)
  let full={...data,studySeasons:data.studySeasons.map(s=>s.id===season.id?{...s,start:'2026-09-01',end:'2026-12-31',week:{...s.week,Monday:[{id:'math',label:'Math',start:'09:00',end:'10:00',kind:'study',kidId:id,occurrenceNotes:{}}]}}:s)}
  full=model.normalizeData(full)
  // 2026-09-21 is a Monday.
@@ -186,7 +189,7 @@ test('kidDueItems drops a kid\'s tagged item while they are in their own tagged 
  const base=model.normalizeData(model.createFreshData())
  const {data,id:emmaId}=withKid(base,'Emma')
  const {data:data2,id:jackId}=withKid(data,'Jack')
- const season=data2.studySeasons.find(s=>s.profileId===data2.activeProfileId)
+ const season=seasonOf(data2)
  let full={
   ...data2,
   studySeasons:data2.studySeasons.map(s=>s.id===season.id?{...s,start:'2026-09-01',end:'2026-12-31',week:{...s.week,Monday:[{id:'math',label:'Math',start:'09:00',end:'10:00',kind:'study',kidId:emmaId,occurrenceNotes:{}}]}}:s),
