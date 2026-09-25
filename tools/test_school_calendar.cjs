@@ -66,4 +66,40 @@ test('Elevator builder reports missing scanned rows without crashing',()=>{const
 test('Elevator builder reports blank scanned course rows without raw label errors',()=>{const courses=Array.from({length:7},(_,i)=>({label:'Course '+(i+1),location:'Room '+(i+1),lunchWave:1}));courses[2]={label:'',location:'',lunchWave:1};assert.throws(()=>buildElevatorWeek(courses),/Course 3 needs a class name/);assert.doesNotThrow(()=>buildElevatorWeek(courses.map((course,i)=>i===2?{...course,label:'Course 3'}:course)))})
 test('Hanover PDF course key fills seven editable courses without student header',()=>{const text='Student Name - Schedule Reference\nCourse Key\nNo.\nClass\nTeacher\nRoom\nCourse Code\nLunch if in 5th Block\n'+Array.from({length:7},(_,i)=>`${i+1}\nCourse ${i+1}\nTeacher Name\nHS${300+i}\n${400+i}-01\nLunch ${(i%3)+1}`).join('\n')+'\nBlock\nTime';const rows=parseHanoverElevatorCourses(text);assert.equal(rows.length,7);assert.equal(rows[0].label,'Course 1');assert.equal(rows[1].lunchWave,2);assert.match(rows[6].location,/HS306/);assert.ok(!JSON.stringify(rows).includes('Student Name'))})
 test('Hanover two-page grid reconstructs the seven base courses and lunch waves',()=>{const order=[1,2,3,7,5,6,4],block=(slot,n,lunch)=>`${slot} | ${slot}:00-${slot}:45\nCourse ${n}\nTeacher ${n}\nHS30${n} | 40${n}-01${lunch?`\nLunch ${lunch}: 11:23-11:52`:''}`,grid='14-Day Elevator Schedule - Page 1\n1A\n'+order.map((n,i)=>block(i+1,n,i===4?2:0)).join('\n')+'\n'+[["2B",6,1],["3A",4,3],["4B",1,2],["5A",2,3],["6B",3,1],["7A",7,2]].map(([d,n,l])=>`${d}\n${block(5,n,l)}`).join('\n');const rows=parseHanoverElevatorCourses(grid);assert.equal(rows.length,7);assert.equal(rows[0].label,'Course 1');assert.equal(rows[3].label,'Course 4');assert.equal(rows[4].lunchWave,2);assert.equal(rows[3].lunchWave,3)})
+test('The AI helper fallback: its answer is checked field by field, and only real classes on real days survive',()=>{
+ const {parseAiClassSchedule,classSchedulePrompt}=load('src/store/aiClassSchedule.ts')
+ const cycle=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+ const raw=JSON.stringify({classes:[
+  {name:'Intro to Ecology',code:'BIOL 1100',days:['Tuesday','thursday'],start:'12:00',end:'13:15',building:'North Hall',room:'235',teacher:'Rivera, Ana'},
+  {name:'Ethics Seminar (Discussion)',code:null,days:['Mon'],start:'9:00',end:'09:50',building:null,room:null,teacher:null},
+  {name:'No time given',days:['Friday'],start:'',end:'10:00'},{name:'Backwards',days:['Friday'],start:'11:00',end:'10:00'},
+  {name:'Made-up day',days:['Funday'],start:'10:00',end:'11:00'},{name:'',days:['Monday'],start:'10:00',end:'11:00'},'junk']})
+ const rows=parseAiClassSchedule(raw,cycle,'2026-08-31','2026-12-21')
+ assert.equal(rows.length,3)
+ assert.equal(rows.filter(r=>r.label==='BIOL 1100 · Intro to Ecology').map(r=>r.day).join(','),'Tuesday,Thursday')
+ assert.equal(rows[0].location,'North Hall 235 · Rivera, Ana');assert.equal(rows[0].dateEnd,'2026-12-21')
+ const discussion=rows.find(r=>r.label==='Ethics Seminar (Discussion)');assert.equal(discussion.day,'Monday');assert.equal(discussion.start,'09:00')
+ assert.throws(()=>parseAiClassSchedule('not json',cycle,'2026-08-31','2026-12-21'),/not valid JSON/)
+ assert.equal(parseAiClassSchedule(JSON.stringify({classes:[{name:'Physics',days:['A day'],start:'08:00',end:'09:24'}]}),['A day','E day'],'2026-09-02','2027-06-17')[0].day,'A day')
+ assert.ok(classSchedulePrompt(['A day','E day'],'Physics 8:00').includes('"A day", "E day"'))
+})
+test('Classes from the PDF importer join a college semester: breaks apply, duplicates are skipped, subjects are shared',()=>{
+ const {addImportedClassesToSeason}=load('src/store/schoolImport.ts')
+ const {data,s}=fixture('weekly');const cycle=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+ s.start='2026-08-31';s.end='2026-12-21';s.school.lastClassDate='2026-12-11';s.school.pattern='weekly';s.school.cycle=cycle;s.week=Object.fromEntries(cycle.map(d=>[d,[]]));s.week.Tuesday.push({id:'kept',label:'Corporate Finance',start:'15:00',end:'16:15',kind:'study',dateStart:'2026-08-31',dateEnd:'2026-12-11'})
+ const row=(title,subject,weekdays,start,end,location)=>({id:randomUUID(),include:true,kind:'class',title,subject,date:'',weekdays,start,end,source:title,location})
+ const rows=[row('Corporate Finance','Corporate Finance',[2,4],'15:00','16:15','245 Beacon Street 102'),row('Ethics Seminar (Lecture)','Ethics Seminar',[2,4],'10:30','11:45','South Hall 204'),row('Ethics Seminar (Discussion)','Ethics Seminar',[1],'12:00','12:50','West Hall 141N')]
+ const {data:next,added,skipped}=addImportedClassesToSeason(data,data.activeProfileId,s.id,rows)
+ const season=next.studySeasons.find(x=>x.id===s.id)
+ assert.equal(next.studySeasons.length,data.studySeasons.length,'no separate schedule was created')
+ assert.equal(skipped,1);assert.equal(season.week.Tuesday.length,2);assert.equal(season.week.Thursday.length,2);assert.equal(season.week.Monday.length,1)
+ assert.equal(season.week.Monday[0].dateEnd,'2026-12-11');assert.equal(season.week.Monday[0].location,'West Hall 141N')
+ const ethics=next.subjects.filter(x=>x.name==='Ethics Seminar');assert.equal(ethics.length,1)
+ assert.equal(season.week.Monday[0].subjectId,ethics[0].id);assert.equal(season.week.Tuesday.find(b=>b.label==='Ethics Seminar (Lecture)').subjectId,ethics[0].id)
+ assert.ok(added>=5)
+ assert.throws(()=>addImportedClassesToSeason(data,data.activeProfileId,'missing',rows),/removed/)
+ const weekdaysOnly=structuredClone(data);weekdaysOnly.studySeasons[0].school.cycle=['Monday','Tuesday','Wednesday','Thursday','Friday']
+ assert.throws(()=>addImportedClassesToSeason(weekdaysOnly,data.activeProfileId,s.id,[row('Saturday Lab','Lab',[6],'09:00','10:00','')]),/isn’t a class day/)
+ assert.equal(JSON.stringify(data.studySeasons[0].week.Monday),'[]','the original plan is untouched')
+})
 console.log(passed+' school-calendar regression groups passed. No user data changed.')

@@ -423,6 +423,98 @@ test('Sanctuary: the island draws, zooms, expands and changes time; Decorate add
  assert.equal(await page.locator('.build-item').count(),1,'the placed item did not survive a reload')
 })
 
+/** A landscape class-schedule PDF like a registrar printout: day, time and building cells wrap onto two lines. */
+function classTablePdf(){
+ const {jsPDF}=require('jspdf'),doc=new jsPDF({orientation:'landscape',unit:'pt',format:'letter'})
+ doc.setFontSize(10);doc.text('Class Schedule',41,60)
+ ;[['Class Name',50],['Teacher',210],['Day',338],['Time',435],['Building',534],['Room',624]].forEach(([t,x])=>doc.text(t,x,114))
+ const cls=(y,name,teacher,days,time,building,room)=>{doc.text(name,50,y);doc.text(teacher,210,y);doc.text(days[0],338,y-6);if(days[1])doc.text(days[1],338,y+6);doc.text(time[0],435,y-(time[1]?6:0));if(time[1])doc.text(time[1],435,y+6);doc.text(building[0],534,y-(building[1]?6:0));if(building[1])doc.text(building[1],534,y+6);doc.text(room,624,y)}
+ cls(160,'Corporate Finance','Okafor, Ben',['Tuesday &','Thursday'],['3:00 PM - 4:15 PM'],['245 Beacon','Street'],'102')
+ cls(212,'Ethics Seminar (Lecture)','Chen, Li',['Tuesday &','Thursday'],['10:30 AM - 11:45','AM'],['South Hall'],'204')
+ cls(264,'Ethics Seminar (Discussion)','Park, Jo',['Monday'],['12:00 PM - 12:50','PM'],['West Hall'],'141N')
+ return {name:'class-schedule.pdf',mimeType:'application/pdf',buffer:Buffer.from(doc.output('arraybuffer'))}
+}
+/** A schedule written as sentences: no table for the built-in reader to follow. */
+function proseSchedulePdf(){
+ const {jsPDF}=require('jspdf'),doc=new jsPDF({unit:'pt',format:'letter'})
+ doc.setFontSize(11);doc.text(['My fall classes','Marine Biology with Dr. Lee meets on Tuesdays and Thursdays from noon until 1:15 in North Hall.','Studio Art is every Friday morning, nine to ten thirty, in the Arts Center.'],50,80)
+ return {name:'my-classes.pdf',mimeType:'application/pdf',buffer:Buffer.from(doc.output('arraybuffer'))}
+}
+
+test('College semester: choose the term, upload the schedule, review, save; a layout KONO can’t read is logged and the AI helper reads it',async({context,page})=>{
+ const cloud=fakeCloud(),aiRequests=[]
+ await signInAs(context,cloud,'alice')
+ await context.route('https://generativelanguage.googleapis.com/**',route=>{
+  const cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'*'}
+  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
+  aiRequests.push(route.request().postData()??'')
+  const classes=[{name:'Marine Biology',code:null,days:['Tuesday','Thursday'],start:'12:00',end:'13:15',building:'North Hall',room:null,teacher:'Dr. Lee'},{name:'Studio Art',code:null,days:['Friday'],start:'09:00',end:'10:30',building:'Arts Center',room:null,teacher:null}]
+  return route.fulfill({status:200,headers:{...cors,'content-type':'application/json'},body:JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({classes})}]}}]})})
+ })
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ await go(page,'Settings')
+ await settingsTab(page,'Schedules')
+ await page.getByRole('button',{name:/^College semester/}).click()
+ await page.getByRole('button',{name:'Boston College · Fall 2026'}).click()
+ // Choosing the term goes straight to uploading classes; its dates and breaks are already filled in.
+ const sections=page.getByRole('navigation',{name:'School setup sections'})
+ assert.equal(await sections.getByRole('button',{name:'3 · Classes'}).getAttribute('aria-pressed'),'true')
+ await page.getByText(/Term dates, breaks and holidays come from the Boston College calendar/).waitFor()
+
+ await page.getByLabel('Class timetable file').setInputFiles(proseSchedulePdf())
+ await page.getByRole('button',{name:'Read timetable & find classes'}).click()
+ await page.getByText(/couldn’t find classes in this layout/).waitFor()
+ for(let i=0;i<20&&!cloud.errors.length;i++)await page.waitForTimeout(250)
+ const logged=cloud.errors.find(e=>e.message==='Schedule upload found no classes (weekly college)')
+ assert.ok(logged,'the unreadable layout was not reported to KONO support')
+ assert.match(logged.detail,/File: PDF · text read: \d+ characters · column headings found: no/)
+ assert.ok(!JSON.stringify(logged).includes('Marine'),'the schedule text leaked into the error log')
+
+ await page.getByText('Set up the AI helper (a free Gemini key works)').click()
+ await page.getByLabel('API key').fill('test-gemini-key')
+ await page.getByRole('button',{name:'Read with AI helper'}).click()
+ await page.getByText('Your AI helper found 3 classes.',{exact:false}).waitFor()
+ assert.equal(aiRequests.length,1);assert.match(aiRequests[0],/Marine Biology with Dr\. Lee/)
+ await page.getByRole('button',{name:'Continue to calendar preview'}).click()
+ await page.getByText(/^3 recurring blocks/).waitFor()
+
+ // Adding more classes later: the same upload, into the same draft.
+ await sections.getByRole('button',{name:'3 · Classes'}).click()
+ await page.getByLabel('Class timetable file').setInputFiles(classTablePdf())
+ await page.getByRole('button',{name:'Read timetable & find classes'}).click()
+ await page.getByText('Found 5 classes and 0 schedule blocks.',{exact:false}).waitFor()
+ await page.getByRole('button',{name:'Continue to calendar preview'}).click()
+ await page.getByText(/^8 recurring blocks/).waitFor()
+ await page.getByLabel('Faculty / program').fill('Carroll School of Management')
+ await page.getByLabel(/I checked the calendar/).check()
+ await page.getByRole('button',{name:'Save & populate my calendar'}).click()
+ await page.getByText(/Schedule saved/).waitFor()
+ for(let i=0;i<40&&!JSON.stringify(cloud.users.alice.plan.data).includes('Ethics Seminar (Discussion)');i++)await page.waitForTimeout(250)
+ const semester=cloud.users.alice.plan.data.studySeasons.find(s=>s.school?.catalogId==='bc-fall-2026')
+ assert.ok(semester,'the semester never reached the account')
+ const monday=semester.week.Monday.find(b=>b.label==='Ethics Seminar (Discussion)')
+ assert.equal(monday.start,'12:00');assert.equal(monday.end,'12:50');assert.equal(monday.location,'West Hall 141N · Park, Jo')
+ assert.equal(semester.week.Tuesday.find(b=>b.label==='Corporate Finance').location,'245 Beacon Street 102 · Okafor, Ben')
+ await page.getByRole('button',{name:'Add classes from a file'}).waitFor()
+
+ // The Import & export PDF importer offers the semester for weekly classes; re-adding them skips duplicates.
+ await settingsTab(page,'Import & export')
+ await page.getByText('Import assignments or dated events from a PDF').click()
+ await page.getByRole('button',{name:'Import PDF'}).click()
+ await page.getByLabel('Choose PDF (up to 20 MB)').setInputFiles(classTablePdf())
+ await page.getByRole('button',{name:'Read selected pages'}).click()
+ await page.getByText('Text is ready').waitFor()
+ await page.getByRole('button',{name:'Find schedule items'}).click()
+ const into=page.getByLabel('Put weekly classes in')
+ await into.waitFor()
+ assert.match(await into.locator('option:checked').innerText(),/Boston College/)
+ for(const box of await page.getByLabel('Add this item').all())await box.check()
+ await page.getByLabel(/I checked the selected subjects/).check()
+ await page.getByRole('button',{name:/Add 3 selected items/}).click()
+ await page.getByText(/0 records added; 5 duplicates skipped\. Classes are in /).waitFor()
+})
+
 async function main(){
  const server=await startServer()
  const onlyArg=process.argv[2]
