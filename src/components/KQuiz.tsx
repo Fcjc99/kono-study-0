@@ -13,6 +13,7 @@ import { buildKQuizSetPdf } from '../store/kquizPdf'
 import { downloadBlob } from '../store/localRepository'
 import KQuizGuide from './KQuizGuide'
 import './kquiz.css'
+import { aiReady } from '../store/aiProvider'
 
 const formatDuration = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 
@@ -54,7 +55,7 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
     finally { saving.current = false; setBusy(false) }
   }
   const needsApiKey = () => {
-    if (apiKey.trim()) return false
+    if (aiReady(apiKey)) return false
     setMessage('Set up the AI helper first (Settings › Import & export).')
     return true
   }

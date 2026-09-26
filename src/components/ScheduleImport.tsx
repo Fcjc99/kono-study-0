@@ -9,6 +9,7 @@ import {reportError} from '../store/errorReporter'
 import './schedule-import.css'
 import {AiHelperStatus} from './AiHelper'
 import {useAiHelper} from '../hooks/useAiHelper'
+import { aiReady, needsAiMessage } from '../store/aiProvider'
 
 // Monday of the current week, as a sane default for "which week is this photo of" -- dateNumber-style
 // UTC-noon anchoring avoids the off-by-one a plain `new Date(dateString)` risks near midnight.
@@ -54,7 +55,7 @@ export default function ScheduleImport({data,save}:{data:AppData;save:PlannerRep
  const readPhoto=async()=>{
   if(!photoFile||busy)return
   if(photoFile.size>8_000_000){setError('Choose a photo under 8 MB.');return}
-  if(!photoApiKey.trim()){setError('Set up the AI helper first (above).');return}
+  if(!aiReady(photoApiKey)){setError(needsAiMessage);return}
   if(!validDate(mondayDate)){setError('Choose the Monday this planner page covers.');return}
   setBusy(true);setPhotoReading(true);setError('');setStatus('Reading the photo…')
   try{

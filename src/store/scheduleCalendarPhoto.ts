@@ -1,7 +1,7 @@
 import { addDays } from './studyScheduler'
 import { uid } from './model'
 import type { ImportRow } from './scheduleImport'
-import { aiFail, callAi, type AiProvider, type PhotoInput } from './aiProvider'
+import { needsAiMessage, aiReady, aiFail, callAi, type AiProvider, type PhotoInput } from './aiProvider'
 
 const fail = aiFail
 
@@ -45,7 +45,7 @@ function parsePlannerPhoto(raw: string): PlannerPhotoItem[] {
 }
 
 export async function readPlannerPhoto(photo: PhotoInput, provider: AiProvider, apiKey: string): Promise<PlannerPhotoItem[]> {
-  if (!apiKey.trim()) fail('Add an API key first.')
+  if (!aiReady(apiKey)) aiFail(needsAiMessage)
   const raw = await callAi(buildPlannerPhotoPrompt(), provider, apiKey.trim(), photo)
   return parsePlannerPhoto(raw)
 }

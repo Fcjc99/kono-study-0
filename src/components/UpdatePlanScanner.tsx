@@ -3,6 +3,7 @@ import { localDate, normalizeData, type AppData, type Kid, type Subject } from '
 import { readAssignmentPhoto, applyAssignmentPhoto, type CreatedItem } from '../store/assignmentPhoto'
 import { AiHelperStatus } from './AiHelper'
 import { useAiHelper } from '../hooks/useAiHelper'
+import { aiReady, needsAiMessage } from '../store/aiProvider'
 
 const kindLabels = { tasks: 'Assignment', exams: 'Exam / project', calendarEvents: 'Event' } as const
 const MAX_PHOTOS = 8
@@ -34,7 +35,7 @@ export default function UpdatePlanScanner({ profileId, subjects, kids, save, clo
   const scan = async () => {
     if (!files.length || busy) return
     if (files.some(f => f.size > 8_000_000)) { setError('Each photo must be under 8 MB.'); return }
-    if (!apiKey.trim()) { setError('Set up the AI helper first (Settings › Import & export).'); return }
+    if (!aiReady(apiKey)) { setError(needsAiMessage); return }
     setBusy(true); setError(''); setStatus(`Reading ${files.length} photo${files.length === 1 ? '' : 's'}…`); setCreatedItems([])
     let before: AppData | undefined, after: AppData | undefined
     try {

@@ -1,5 +1,5 @@
 import { uid } from './model'
-import { aiFail, callAi, type AiProvider, type PhotoInput } from './aiProvider'
+import { needsAiMessage, aiReady, aiFail, callAi, type AiProvider, type PhotoInput } from './aiProvider'
 import { weekdaysFrom } from './classTable'
 import type { RotatingImportRow } from './schoolImport'
 
@@ -47,7 +47,7 @@ export function parseAiClassSchedule(raw: string, cycle: string[], start: string
 }
 
 export async function readClassScheduleWithAi(input: { text?: string; photo?: PhotoInput }, cycle: string[], start: string, end: string, provider: AiProvider, apiKey: string): Promise<RotatingImportRow[]> {
-  if (!apiKey.trim()) aiFail('Add an AI helper key first.')
+  if (!aiReady(apiKey)) aiFail(needsAiMessage)
   if (!input.photo && !input.text?.trim()) aiFail('Nothing was read from this file to send.')
   const rows = parseAiClassSchedule(await callAi(classSchedulePrompt(cycle, input.photo ? undefined : input.text), provider, apiKey.trim(), input.photo), cycle, start, end)
   if (!rows.length) aiFail('The AI helper found no classes with a day and time either. Add them by hand below.')

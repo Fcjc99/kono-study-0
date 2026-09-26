@@ -552,6 +552,35 @@ test('Canvas: a Canvas calendar feed puts assignments in the Planner and quizzes
  await page.getByText('Essay 1').filter({visible:true}).first().waitFor()
 })
 
+test('Built-in AI: a signed-in student with no key of their own gets KONO’s AI, sent with their sign-in',async({context,page})=>{
+ const cloud=fakeCloud(),posts=[]
+ await signInAs(context,cloud,'alice')
+ await context.route(BASE+'api/ai',route=>{
+  const request=route.request()
+  if(request.method()==='GET')return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({enabled:true})})
+  posts.push({auth:request.headers().authorization,body:request.postDataJSON()})
+  const classes=[{name:'Marine Biology',code:null,days:['Tuesday','Thursday'],start:'12:00',end:'13:15',building:'North Hall',room:null,teacher:null}]
+  return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({text:JSON.stringify({classes}),used:1,limit:40})})
+ })
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ await go(page,'Settings')
+ await settingsTab(page,'Import & export')
+ await page.getByText('✓ KONO’s AI is included with your account',{exact:false}).waitFor()
+ await settingsTab(page,'Schedules')
+ await page.getByRole('button',{name:/^College semester/}).click()
+ await page.getByRole('button',{name:'Boston College · Fall 2026'}).click()
+ await page.getByLabel('Class timetable file').setInputFiles(proseSchedulePdf())
+ await page.getByRole('button',{name:'Read timetable & find classes'}).click()
+ await page.getByText(/couldn’t find classes in this layout/).waitFor()
+ assert.equal(await page.getByText('Set up the AI helper (a free Gemini key works)').count(),0,'no key setup is asked for')
+ await page.getByRole('button',{name:'Read with AI helper'}).click()
+ await page.getByText('Your AI helper found 2 classes.',{exact:false}).waitFor()
+ assert.equal(posts.length,1)
+ assert.match(posts[0].auth,/^Bearer .+\..+\..+/,'the request carries the student’s sign-in')
+ assert.match(posts[0].body.prompt,/Marine Biology with Dr\. Lee/)
+})
+
 /** A landscape class-schedule PDF like a registrar printout: day, time and building cells wrap onto two lines. */
 function classTablePdf(){
  const {jsPDF}=require('jspdf'),doc=new jsPDF({orientation:'landscape',unit:'pt',format:'letter'})

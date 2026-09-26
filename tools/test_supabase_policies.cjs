@@ -51,7 +51,7 @@ try{
  `)
  for(const file of fs.readdirSync(path.join(root,'supabase','migrations')).filter(f=>f.endsWith('.sql')).sort())psql(fs.readFileSync(path.join(root,'supabase','migrations',file),'utf8'))
  // People run the newest migration by hand in the Supabase SQL editor, sometimes twice: it must be re-runnable.
- for(const again of ['0004_kono_backups_and_support.sql','0005_kono_nightly_backup_support_setup_errors.sql','0006_kono_feedback.sql'])psql(fs.readFileSync(path.join(root,'supabase','migrations',again),'utf8'))
+ for(const again of ['0004_kono_backups_and_support.sql','0005_kono_nightly_backup_support_setup_errors.sql','0006_kono_feedback.sql','0007_kono_ai_usage.sql'])psql(fs.readFileSync(path.join(root,'supabase','migrations',again),'utf8'))
 
  test('a signed-in person saves their plan and nobody else can read it',()=>{
   assert.equal(save(alice,0,'Alice').revision,1)
@@ -148,6 +148,19 @@ try{
   as(bob,'delete from public.kono_feedback;');assert.equal(psql('select count(*) from public.kono_feedback;'),'1','a regular account can’t clear feedback')
   assert.equal(as(carol,"select message||'|'||user_id||'|'||page from public.kono_feedback;"),'The Friday lab is missing|'+bob+'|Settings')
   as(carol,'delete from public.kono_feedback;');assert.equal(psql('select count(*) from public.kono_feedback;'),'0')
+ })
+
+ test('built-in AI: 40 requests a day per person (400 for support), counted only through kono_ai_take',()=>{
+  for(let i=1;i<=40;i++){const r=JSON.parse(as(bob,'select public.kono_ai_take();'));assert.equal(r.allowed,true);assert.equal(r.used,i)}
+  const over=JSON.parse(as(bob,'select public.kono_ai_take();'));assert.equal(over.allowed,false);assert.equal(over.limit,40)
+  assert.equal(as(bob,'select requests from public.kono_ai_usage;'),'40','a refused request is not counted')
+  assert.equal(JSON.parse(as(alice,'select public.kono_ai_take();')).used,1,'each person has their own count')
+  assert.equal(as(alice,`select count(*) from public.kono_ai_usage where user_id='${bob}';`),'0','people only see their own count')
+  fails(bob,"update public.kono_ai_usage set requests=0;",/permission denied/)
+  fails(bob,"delete from public.kono_ai_usage;",/permission denied/)
+  fails(bob,`insert into public.kono_ai_usage(user_id,requests) values ('${bob}',0);`,/permission denied/)
+  fails(null,'select public.kono_ai_take();',/permission denied/)
+  assert.equal(JSON.parse(as(carol,'select public.kono_ai_take();')).limit,400)
  })
 
  test('deleting your cloud study data also deletes its automatic backups',()=>{
