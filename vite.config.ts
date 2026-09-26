@@ -42,7 +42,7 @@ self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys
 self.addEventListener('push',event=>{
  let d={}
  try{d=event.data?event.data.json():{}}catch{d={title:'KONO',body:event.data?event.data.text():''}}
- event.waitUntil(self.registration.showNotification(d.title||'KONO',{body:d.body||'',tag:d.tag||undefined,icon:'/icons/kono-192.png',badge:'/icons/kono-192.png'}))
+ event.waitUntil(self.registration.showNotification(d.title||'KONO',{body:d.body||'',tag:d.tag||undefined,icon:'/icons/kono-192.png',badge:'/icons/kono-badge.png'}))
 })
 self.addEventListener('notificationclick',event=>{
  event.notification.close()
