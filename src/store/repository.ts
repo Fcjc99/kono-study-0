@@ -261,6 +261,11 @@ export class PlannerRepository {
  /** Feedback goes to KONO support with the page it was sent from; it needs a signed-in account. */
  sendFeedback=async(message:string)=>{if(!this.cloud||!this.state.user)throw Error('Sign in with your email to send feedback.');await this.cloud.sendFeedback({message,page:currentPage(),appVersion:APP_VERSION})}
  adminFeedback=async():Promise<Feedback[]>=>this.requireCloud().adminFeedback()
+ /** Lock-screen reminders need a signed-in account (the queue lives in Supabase). */
+ get canUsePush(){return !!this.cloud&&!!this.state.user&&!this.state.support}
+ savePushDevice=async(sub:{endpoint:string;p256dh:string;auth:string})=>this.requireCloud().savePushDevice(sub)
+ forgetPushDevice=async(endpoint:string)=>this.requireCloud().forgetPushDevice(endpoint)
+ replacePushQueue=async(rows:{sendAt:string;title:string;body:string;tag:string}[])=>{if(this.canUsePush)await this.requireCloud().replacePushQueue(rows)}
  adminDeleteFeedback=async(id:number)=>this.requireCloud().adminDeleteFeedback(id)
  /** Views and edits KONO support made on this account. */
  supportActivity=async():Promise<SupportActivity[]>=>this.cloud&&this.state.user?this.cloud.supportActivity(this.state.user.id):[]

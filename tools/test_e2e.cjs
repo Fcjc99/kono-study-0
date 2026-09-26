@@ -581,6 +581,32 @@ test('Built-in AI: a signed-in student with no key of their own gets KONO’s AI
  assert.match(posts[0].body.prompt,/Marine Biology with Dr\. Lee/)
 })
 
+test('Lock-screen reminders: the Notifications panel explains setup, needs sign-in, and says when the server isn’t ready',async({context,page})=>{
+ await createPlan(page)
+ await go(page,'Settings')
+ await settingsTab(page,'Notifications')
+ const panel=page.locator('.push-settings')
+ await panel.getByRole('heading',{name:'Lock-screen reminders'}).waitFor()
+ await panel.getByText('Sign in with your email',{exact:false}).waitFor()
+ await panel.getByRole('heading',{name:'Install KONO'}).waitFor()
+ const sw=fs.readFileSync(path.join(ROOT,'dist','client','sw.js'),'utf8')
+ assert.match(sw,/addEventListener\('push'/);assert.match(sw,/addEventListener\('notificationclick'/)
+ const manifest=JSON.parse(fs.readFileSync(path.join(ROOT,'dist','client','manifest.webmanifest'),'utf8'))
+ assert.ok(manifest.icons.some(i=>i.src==='/icons/kono-512.png'))
+ assert.ok(fs.existsSync(path.join(ROOT,'dist','client','icons','apple-touch-icon.png')),'the Home Screen icon is published')
+ const signedIn=await freshPage()
+ try{
+  const cloud=fakeCloud()
+  await signInAs(signedIn.context,cloud,'alice')
+  await signedIn.context.route(BASE+'api/push',route=>route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({publicKey:null})}))
+  await signedIn.page.goto(BASE);await heading(signedIn.page,'Sanctuary')
+  await go(signedIn.page,'Settings');await settingsTab(signedIn.page,'Notifications')
+  await signedIn.page.getByRole('button',{name:'Turn on reminders'}).click()
+  await signedIn.page.getByText('Lock-screen reminders aren’t set up on KONO’s server yet.').waitFor()
+  assert.deepEqual(signedIn.errors,[])
+ }finally{await signedIn.context.close()}
+})
+
 /** A landscape class-schedule PDF like a registrar printout: day, time and building cells wrap onto two lines. */
 function classTablePdf(){
  const {jsPDF}=require('jspdf'),doc=new jsPDF({orientation:'landscape',unit:'pt',format:'letter'})

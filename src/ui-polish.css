@@ -76,3 +76,9 @@
 .feedback-box form{display:grid;gap:8px;width:min(520px,100%)}
 .feedback-box:has(form){flex-basis:100%;margin-left:0}
 .support-feedback-text{white-space:pre-wrap;margin:0}
+/* Settings › Notifications: lock-screen reminders and install */
+.push-settings{display:grid;gap:8px}
+.push-settings h3{margin:6px 0 0}
+.push-on{font-weight:700;color:#1f6b45}
+.push-hint{padding:8px 10px;border:1px dashed var(--wb-line);border-radius:12px}
+.push-keys code{word-break:break-all;user-select:all;font-size:.8rem}

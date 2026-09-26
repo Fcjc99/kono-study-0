@@ -51,7 +51,7 @@ try{
  `)
  for(const file of fs.readdirSync(path.join(root,'supabase','migrations')).filter(f=>f.endsWith('.sql')).sort())psql(fs.readFileSync(path.join(root,'supabase','migrations',file),'utf8'))
  // People run the newest migration by hand in the Supabase SQL editor, sometimes twice: it must be re-runnable.
- for(const again of ['0004_kono_backups_and_support.sql','0005_kono_nightly_backup_support_setup_errors.sql','0006_kono_feedback.sql','0007_kono_ai_usage.sql'])psql(fs.readFileSync(path.join(root,'supabase','migrations',again),'utf8'))
+ for(const again of ['0004_kono_backups_and_support.sql','0005_kono_nightly_backup_support_setup_errors.sql','0006_kono_feedback.sql','0007_kono_ai_usage.sql','0008_kono_push_reminders.sql'])psql(fs.readFileSync(path.join(root,'supabase','migrations',again),'utf8'))
 
  test('a signed-in person saves their plan and nobody else can read it',()=>{
   assert.equal(save(alice,0,'Alice').revision,1)
@@ -161,6 +161,32 @@ try{
   fails(bob,`insert into public.kono_ai_usage(user_id,requests) values ('${bob}',0);`,/permission denied/)
   fails(null,'select public.kono_ai_take();',/permission denied/)
   assert.equal(JSON.parse(as(carol,'select public.kono_ai_take();')).limit,400)
+ })
+
+ test('lock-screen reminders: people manage only their own devices and queue; only the server secret can claim them',()=>{
+  as(bob,"insert into public.kono_push_subscriptions(endpoint,p256dh,auth) values ('https://push.example/bob','k','a');")
+  as(alice,"insert into public.kono_push_subscriptions(endpoint,p256dh,auth) values ('https://push.example/alice','k','a');")
+  fails(bob,`insert into public.kono_push_subscriptions(user_id,endpoint,p256dh,auth) values ('${alice}','https://push.example/x','k','a');`,/row-level security/)
+  fails(bob,"insert into public.kono_push_subscriptions(endpoint,p256dh,auth) values ('http://insecure/x','k','a');",/check constraint/)
+  assert.equal(as(bob,'select count(*) from public.kono_push_subscriptions;'),'1','people see only their own devices')
+  as(bob,"insert into public.kono_push_queue(send_at,title,body) values (now()-interval '1 minute','Due today: Essay','ENGL'),(now()+interval '1 day','Tomorrow: quiz',''),(now()-interval '3 hours','Stale','');")
+  as(alice,"insert into public.kono_push_queue(send_at,title) values (now()-interval '1 minute','Alice due');")
+  fails(bob,"insert into public.kono_push_queue(send_at,title) values (now()+interval '30 days','Too far');",/row-level security/)
+  assert.equal(as(alice,'select count(*) from public.kono_push_queue;'),'1','people see only their own reminders')
+  fails(bob,"select public.kono_push_claim('guess');",/permission denied/)
+  fails(null,"select public.kono_push_claim('guess');",/Not allowed/)
+  const secret=psql('select secret from public.kono_push_settings where id=1;')
+  assert.ok(secret.length>=32)
+  fails(bob,'select secret from public.kono_push_settings;',/permission denied/)
+  const claimed=JSON.parse(as(null,`select public.kono_push_claim('${secret}');`))
+  assert.equal(claimed.map(c=>c.title).sort().join(','),'Alice due,Due today: Essay','only due reminders, each to its own person’s device')
+  assert.equal(claimed.find(c=>c.title==='Alice due').endpoint,'https://push.example/alice')
+  assert.equal(as(bob,"select string_agg(title,',') from public.kono_push_queue;"),'Tomorrow: quiz','claimed and stale reminders are gone; future ones stay')
+  assert.equal(JSON.parse(as(null,`select public.kono_push_claim('${secret}');`)).length,0,'nothing is sent twice')
+  as(null,`select public.kono_push_forget('${secret}','https://push.example/bob');`)
+  assert.equal(as(bob,'select count(*) from public.kono_push_subscriptions;'),'0')
+  psql(`insert into public.kono_push_queue(user_id,send_at,title) select '${alice}',now()+interval '1 day','x' from generate_series(1,300);`)
+  fails(alice,"insert into public.kono_push_queue(send_at,title) values (now()+interval '1 day','one too many');",/Too many reminders/)
  })
 
  test('deleting your cloud study data also deletes its automatic backups',()=>{
