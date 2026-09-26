@@ -104,6 +104,16 @@ export class SupabaseRemote{
   const {error}=await this.client.from('kono_push_queue').insert(rows.map(r=>({send_at:r.sendAt,title:r.title,body:r.body,tag:r.tag})))
   if(error)throw new Error(error.message)
  }
+ /** Private subscribe links (migration 0009): the token for one plan, made on request. */
+ async calendarFeedToken(profileId:string,create:boolean):Promise<string|null>{
+  const found=await this.client.from('kono_calendar_feeds').select('token').eq('profile_id',profileId).maybeSingle()
+  if(found.error)throw new Error(/relation|does not exist|schema cache/i.test(found.error.message)?'Calendar links aren’t set up on the server yet.':found.error.message)
+  if(found.data?.token||!create)return (found.data?.token as string|undefined)??null
+  const made=await this.client.from('kono_calendar_feeds').insert({profile_id:profileId}).select('token').single()
+  if(made.error)throw new Error(made.error.message)
+  return made.data.token as string
+ }
+ async deleteCalendarFeed(profileId:string){const {error}=await this.client.from('kono_calendar_feeds').delete().eq('profile_id',profileId);if(error)throw new Error(error.message)}
  /** While set, the plan endpoints below read and write this account through the support functions. */
  private supportTarget:string|null=null
  setSupportTarget(accountId:string|null){this.supportTarget=accountId}

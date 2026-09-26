@@ -43,20 +43,24 @@ function eventLines(event: IcsEvent, stamp: string): string[] {
 
 /** A point-in-time snapshot of one profile's plan as a standard .ics file -- every assignment, exam
  * and calendar event becomes one VEVENT, so any calendar app (Google, Apple, Outlook) can import it
- * as a one-time batch of entries. No live sync: re-download after big changes to refresh it. */
-export function buildIcs(data: AppData, profileId: string): string {
+ * as a one-time batch of entries. No live sync: re-download after big changes to refresh it.
+ * `subscribe`: the version calendar apps keep fetching from a private link (api/ics.ts). It has a
+ * calendar name and leaves out notes, since anyone who has the link can read it. */
+export function buildIcs(data: AppData, profileId: string, options: { subscribe?: boolean } = {}): string {
+  const notes = (text: string) => options.subscribe ? undefined : text || undefined
   const subjectName = new Map(data.subjects.filter(s => s.profileId === profileId).map(s => [s.id, s.name]))
   const stamp = dateStamp()
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//KONO Study Sanctuary//Study Plan Export//EN', 'CALSCALE:GREGORIAN']
+  if (options.subscribe) lines.push('X-WR-CALNAME:' + escapeText('KONO · ' + (data.profiles.find(p => p.id === profileId)?.label ?? 'Study plan')), 'REFRESH-INTERVAL;VALUE=DURATION:PT4H', 'X-PUBLISHED-TTL:PT4H')
 
   for (const t of data.tasks.filter(t => t.profileId === profileId)) {
-    lines.push(...eventLines({ uid: 'task-' + t.id, date: t.due, summary: t.title, description: t.notes || undefined, categories: subjectName.get(t.subjectId) }, stamp))
+    lines.push(...eventLines({ uid: 'task-' + t.id, date: t.due, summary: t.title, description: notes(t.notes), categories: subjectName.get(t.subjectId) }, stamp))
   }
   for (const e of data.exams.filter(e => e.profileId === profileId)) {
-    lines.push(...eventLines({ uid: 'exam-' + e.id, date: e.due, summary: 'Exam: ' + e.title, description: e.notes || undefined, categories: subjectName.get(e.subjectId) }, stamp))
+    lines.push(...eventLines({ uid: 'exam-' + e.id, date: e.due, summary: 'Exam: ' + e.title, description: notes(e.notes), categories: subjectName.get(e.subjectId) }, stamp))
   }
   for (const c of data.calendarEvents.filter(c => c.profileId === profileId)) {
-    lines.push(...eventLines({ uid: 'event-' + c.id, date: c.date, time: c.time, summary: c.title, description: c.notes || undefined, categories: c.subjectId ? subjectName.get(c.subjectId) : undefined }, stamp))
+    lines.push(...eventLines({ uid: 'event-' + c.id, date: c.date, time: c.time, summary: c.title, description: notes(c.notes), categories: c.subjectId ? subjectName.get(c.subjectId) : undefined }, stamp))
   }
 
   lines.push('END:VCALENDAR')

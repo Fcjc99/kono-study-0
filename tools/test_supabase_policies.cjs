@@ -51,7 +51,7 @@ try{
  `)
  for(const file of fs.readdirSync(path.join(root,'supabase','migrations')).filter(f=>f.endsWith('.sql')).sort())psql(fs.readFileSync(path.join(root,'supabase','migrations',file),'utf8'))
  // People run the newest migration by hand in the Supabase SQL editor, sometimes twice: it must be re-runnable.
- for(const again of ['0004_kono_backups_and_support.sql','0005_kono_nightly_backup_support_setup_errors.sql','0006_kono_feedback.sql','0007_kono_ai_usage.sql','0008_kono_push_reminders.sql'])psql(fs.readFileSync(path.join(root,'supabase','migrations',again),'utf8'))
+ for(const again of ['0004_kono_backups_and_support.sql','0005_kono_nightly_backup_support_setup_errors.sql','0006_kono_feedback.sql','0007_kono_ai_usage.sql','0008_kono_push_reminders.sql','0009_kono_calendar_subscribe.sql'])psql(fs.readFileSync(path.join(root,'supabase','migrations',again),'utf8'))
 
  test('a signed-in person saves their plan and nobody else can read it',()=>{
   assert.equal(save(alice,0,'Alice').revision,1)
@@ -187,6 +187,21 @@ try{
   assert.equal(as(bob,'select count(*) from public.kono_push_subscriptions;'),'0')
   psql(`insert into public.kono_push_queue(user_id,send_at,title) select '${alice}',now()+interval '1 day','x' from generate_series(1,300);`)
   fails(alice,"insert into public.kono_push_queue(send_at,title) values (now()+interval '1 day','one too many');",/Too many reminders/)
+ })
+
+ test('calendar subscribe links: people make their own; the feed works only for a live token and only shows that plan',()=>{
+  as(alice,"insert into public.kono_calendar_feeds(profile_id,token) values ('p1','chosen-by-me');")
+  const token=as(alice,"select token from public.kono_calendar_feeds where profile_id='p1';")
+  assert.notEqual(token,'chosen-by-me','the token is always generated');assert.ok(token.length>=64)
+  fails(bob,`insert into public.kono_calendar_feeds(user_id,profile_id) values ('${alice}','p9');`,/row-level security/)
+  assert.equal(as(bob,'select count(*) from public.kono_calendar_feeds;'),'0','people see only their own links')
+  fails(bob,`select public.kono_calendar_feed('${token}');`,/permission denied/)
+  const feed=JSON.parse(as(null,`select public.kono_calendar_feed('${token}');`))
+  assert.equal(feed.profileId,'p1');assert.ok(feed.data.profiles,'the plan comes back for the link’s owner')
+  assert.equal(as(null,"select public.kono_calendar_feed('nope-nope-nope-nope-nope-nope-nope');"),'')
+  assert.equal(as(null,"select public.kono_calendar_feed('short');"),'')
+  as(alice,"delete from public.kono_calendar_feeds where profile_id='p1';")
+  assert.equal(as(null,`select public.kono_calendar_feed('${token}');`),'','a turned-off link stops working')
  })
 
  test('deleting your cloud study data also deletes its automatic backups',()=>{
