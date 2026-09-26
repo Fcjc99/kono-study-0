@@ -16,7 +16,8 @@ export default function CalendarImport({data,save}:{data:AppData;save:PlannerRep
   const result=parseIcs(text,localDate())
   if(!result.events.length&&!result.weekly.length)throw Error('Nothing from today onward was found in this calendar.')
   setParsed(result);setSource(result.calendarName||name);setReceipt(null)
-  setStatus('Found '+result.weekly.length+' weekly repeat'+(result.weekly.length===1?'':'s')+' and '+result.events.length+' event'+(result.events.length===1?'':'s')+' in the next 12 months'+(result.skipped?' ('+result.skipped+' more left out)':'')+'. Untick anything you don’t want, then add them.')
+  const work=result.events.filter(e=>e.as!=='event').length
+  setStatus('Found '+result.weekly.length+' weekly repeat'+(result.weekly.length===1?'':'s')+' and '+result.events.length+' event'+(result.events.length===1?'':'s')+(work?' ('+work+' assignments or exams)':'')+' in the next 12 months'+(result.skipped?' ('+result.skipped+' more left out)':'')+'. Untick anything you don’t want, then add them.')
  }
  const fromFile=async(file:File)=>{
   setError('');setStatus('');setParsed(null)
@@ -29,7 +30,7 @@ export default function CalendarImport({data,save}:{data:AppData;save:PlannerRep
    const response=await fetch('/api/calendar-feed',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:link.trim()})})
    const text=await response.text()
    if(!response.ok){let message='Couldn’t get that calendar. Check the link and try again.';try{message=(JSON.parse(text) as {error?:string}).error||message}catch{/* not JSON: keep the general message */}throw Error(message)}
-   load(text,/icloud/i.test(link)?'Apple Calendar':/google/i.test(link)?'Google Calendar':'Calendar')
+   load(text,/icloud/i.test(link)?'Apple Calendar':/google/i.test(link)?'Google Calendar':/instructure|canvas/i.test(link)?'Canvas':/schoology/i.test(link)?'Schoology':'Calendar')
   }catch(e){setStatus('');setError(e instanceof Error&&e.message!=='Failed to fetch'?e.message:'Couldn’t reach KONO’s server. Check your connection, or use a .ics file instead.')}finally{setBusy(false)}
  }
  const toggleAll=(include:boolean)=>parsed&&setParsed({...parsed,events:parsed.events.map(e=>({...e,include})),weekly:parsed.weekly.map(w=>({...w,include}))})
@@ -39,7 +40,7 @@ export default function CalendarImport({data,save}:{data:AppData;save:PlannerRep
   let before:AppData|undefined,result:ReturnType<typeof applyIcsImport>|undefined
   try{
    const ok=await save(d=>{before=normalizeData(d);result=applyIcsImport(d,profile.id,parsed,source);return result.data})
-   if(ok&&result&&before){setReceipt(result.added?{before,after:result.data}:null);setStatus(result.added+' added'+(result.skipped?', '+result.skipped+' already in your plan':'')+'. One-time events are in your Calendar; weekly repeats are under Settings › Schedules › Your weekly schedules.');setParsed(null)}
+   if(ok&&result&&before){setReceipt(result.added?{before,after:result.data}:null);setStatus(result.added+' added'+(result.skipped?', '+result.skipped+' already in your plan':'')+'. Assignments are in your Planner, exams in Exams, events in your Calendar, and weekly repeats under Settings › Schedules › Your weekly schedules.');setParsed(null)}
    else setError('Not saved yet. Your list is still here.')
   }catch(e){setError(e instanceof Error?e.message:'Could not add these events.')}finally{setBusy(false)}
  }
@@ -48,12 +49,15 @@ export default function CalendarImport({data,save}:{data:AppData;save:PlannerRep
   try{const ok=await save(d=>{if(JSON.stringify(normalizeData(d))!==JSON.stringify(receipt.after))throw Error('Your plan changed since the import. Remove single items from the Calendar instead.');return receipt.before});if(ok){setReceipt(null);setStatus('The calendar import was undone.')}}catch(e){setError(e instanceof Error?e.message:'Could not undo.')}finally{setBusy(false)}
  }
  return <div className="calendar-import">
-  <p>Bring in events from the calendar you already use. Weekly repeats (classes, practice, shifts) become a weekly schedule; everything else in the next 12 months becomes Calendar events. You choose what to add, and importing again only adds what’s new.</p>
+  <p>Bring in the calendar you already use, or your assignments from Canvas, Google Classroom or Schoology. Weekly repeats (classes, practice, shifts) become a weekly schedule, assignments go to your Planner, quizzes and exams to Exams, and everything else in the next 12 months to your Calendar. You choose what to add, and importing again only adds what’s new.</p>
   <fieldset disabled={busy} className="calendar-import-sources">
    <label>Calendar file (.ics)<input type="file" accept=".ics,text/calendar" onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(f)void fromFile(f)}}/></label>
-   <div className="calendar-import-link"><label>Or paste a calendar link<input type="url" inputMode="url" placeholder="https://calendar.google.com/… or webcal://…icloud.com/…" value={link} onChange={e=>setLink(e.target.value)}/></label><button type="button" disabled={!link.trim()} onClick={()=>void fromLink()}>Get calendar</button></div>
+   <div className="calendar-import-link"><label>Or paste a calendar link<input type="url" inputMode="url" placeholder="https://… or webcal://… calendar link" value={link} onChange={e=>setLink(e.target.value)}/></label><button type="button" disabled={!link.trim()} onClick={()=>void fromLink()}>Get calendar</button></div>
    <p className="wb-muted">A calendar link is sent once to KONO’s server to fetch the calendar, and isn’t saved. Anyone with a private calendar link can see that calendar, so don’t share it elsewhere.</p>
   </fieldset>
+  <details><summary>How to get assignments from Canvas</summary><ol><li>In Canvas (on a computer or the website), open <strong>Calendar</strong> from the left menu.</li><li>At the bottom right, click <strong>Calendar Feed</strong> and copy the link.</li><li>Paste it above and tap Get calendar. Assignments land in your Planner and quizzes in Exams, each under its course.</li></ol></details>
+  <details><summary>How to get assignments from Google Classroom</summary><ol><li>Classroom puts due dates in your Google Calendar, in a calendar named after each class.</li><li>On a computer, open calendar.google.com › ⚙ Settings › pick the class calendar under “Settings for other calendars” › <strong>Integrate calendar</strong> › copy <strong>Secret address in iCal format</strong> (or the public address).</li><li>Paste it above. Repeat for each class you want.</li></ol></details>
+  <details><summary>How to get assignments from Schoology</summary><ol><li>In Schoology, open <strong>Calendar</strong>.</li><li>Choose <strong>Export</strong> (or the calendar feed / iCal option) and copy the link.</li><li>Paste it above and tap Get calendar.</li></ol></details>
   <details><summary>How to get it from Google Calendar</summary><ol><li>On a computer, open calendar.google.com › ⚙ Settings › <strong>Import &amp; export</strong> › <strong>Export</strong>. Unzip the download and choose the .ics file above.</li><li>Or, for a link (works from a phone): Settings › under “Settings for my calendars” pick the calendar › <strong>Integrate calendar</strong> › copy <strong>Secret address in iCal format</strong> and paste it above.</li></ol></details>
   <details><summary>How to get it from Apple Calendar</summary><ol><li>On a Mac: Calendar › select the calendar › <strong>File › Export › Export…</strong>, then choose the .ics file above.</li><li>From an iPhone or iPad: Calendar app › <strong>Calendars</strong> › ⓘ next to the calendar › turn on <strong>Public Calendar</strong> › <strong>Share Link</strong> › Copy, and paste it above. You can turn Public Calendar off again after importing.</li></ol></details>
   {status&&<p role="status">{status}</p>}{error&&<p role="alert">{error}</p>}
@@ -61,7 +65,7 @@ export default function CalendarImport({data,save}:{data:AppData;save:PlannerRep
   {parsed&&<div className="calendar-import-review">
    <div className="wb-toolbar"><button type="button" onClick={()=>toggleAll(true)}>Select all</button><button type="button" onClick={()=>toggleAll(false)}>Select none</button></div>
    {!!parsed.weekly.length&&<><h4>Weekly repeats → a weekly schedule “{(source||'Imported calendar')} · weekly”</h4><ul>{parsed.weekly.map(w=><li key={w.key}><label className="wb-check"><input type="checkbox" checked={w.include} onChange={e=>setParsed({...parsed,weekly:parsed.weekly.map(x=>x.key===w.key?{...x,include:e.target.checked}:x)})}/><span><strong>{w.title}</strong> · {w.days.map(d=>dayNames[d].slice(0,3)).join(', ')} · {classTime(w.start)}–{classTime(w.end)}{w.location?' · '+w.location:''}<br/><small className="wb-muted">{dateLabel(w.from)} – {dateLabel(w.until)}{w.skipped.length?' · '+w.skipped.length+' dates cancelled':''}</small></span></label></li>)}</ul></>}
-   {!!parsed.events.length&&<><h4>Events → your Calendar</h4><ul>{parsed.events.map(e=><li key={e.key}><label className="wb-check"><input type="checkbox" checked={e.include} onChange={ev=>setParsed({...parsed,events:parsed.events.map(x=>x.key===e.key?{...x,include:ev.target.checked}:x)})}/><span><strong>{e.title}</strong> · {dateLabel(e.date)}{e.time?' · '+classTime(e.time)+(e.endTime?'–'+classTime(e.endTime):''):' · all day'}{e.location?' · '+e.location:''}</span></label></li>)}</ul></>}
+   {!!parsed.events.length&&<><h4>Assignments, exams and events</h4><ul>{parsed.events.map(e=><li key={e.key}><label className="wb-check"><input type="checkbox" checked={e.include} onChange={ev=>setParsed({...parsed,events:parsed.events.map(x=>x.key===e.key?{...x,include:ev.target.checked}:x)})}/><span><strong>{e.title}</strong> · {dateLabel(e.date)}{e.time?' · '+(e.as==='event'?'':'due ')+classTime(e.time)+(e.endTime&&e.as==='event'?'–'+classTime(e.endTime):''):e.as==='event'?' · all day':''}{e.location?' · '+e.location:''}<br/><small className={'calendar-import-target is-'+e.as}>{e.as==='assignment'?'→ Planner assignment':e.as==='exam'?'→ Exams':'→ Calendar'}{e.course?' · '+e.course:''}</small></span></label></li>)}</ul></>}
    <button type="button" className="primary" disabled={busy||!chosen} onClick={()=>void add()}>{busy?'Adding…':'Add '+chosen+' to my plan'}</button>
   </div>}
  </div>

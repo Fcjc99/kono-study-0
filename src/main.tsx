@@ -41,3 +41,17 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     document.body.appendChild(bar)
   })
 }
+
+/** Vercel Web Analytics: counts visits with no cookies and nothing that identifies a person. The script
+ * only exists where Vercel serves it with analytics turned on, so check before loading it. */
+if (import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    fetch('/_vercel/insights/script.js', { method: 'HEAD' }).then(response => {
+      if (!response.ok || !/javascript/i.test(response.headers.get('content-type') ?? '')) return
+      const script = document.createElement('script')
+      script.defer = true
+      script.src = '/_vercel/insights/script.js'
+      document.head.appendChild(script)
+    }).catch(() => undefined)
+  })
+}

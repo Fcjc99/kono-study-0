@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-export const TERMS_UPDATED = 'September 25, 2026'
+export const TERMS_UPDATED = 'September 26, 2026'
 
 /** Plain-language Terms of Use and Privacy notice, matching what KONO actually does. */
 function LegalText() {
@@ -26,9 +26,10 @@ function LegalText() {
       <li>What you put in your plan: subjects, assignments, notes, exams, schedules, and names/emoji you give to kids in Parent mode.</li>
       <li>Your settings and Sanctuary progress.</li>
       <li>If something goes wrong in the app while you're signed in: the error message, which page you were on, your app version and browser type. Never your notes or plans. Kept for 30 days.</li>
+      <li>Feedback you choose to send, with the page you sent it from, your app version and browser type. KONO support reads it and removes it when it's handled.</li>
     </ul>
     <h4>What KONO doesn't do</h4>
-    <p>No ads, no selling or renting your information, no analytics or tracking tools.</p>
+    <p>No ads, no selling or renting your information, and no tracking across sites. KONO counts page visits with Vercel Web Analytics, which uses no cookies and doesn't identify you.</p>
     <h4>Where it's kept</h4>
     <p>Signed-in plans are stored in KONO's database (Supabase) and in your browser. The site is hosted on Vercel and uses Google Fonts. If you turn on live weather, the location you enter is sent to Open-Meteo. If you add your own AI key, it stays in your browser and the notes you ask about are sent to that AI provider under its terms.</p>
     <h4>Who can see it</h4>

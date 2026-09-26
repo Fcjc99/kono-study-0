@@ -203,7 +203,7 @@ function supabaseHost(){
 }
 function fakeCloud(){
  const named=(name,email)=>{const d=fixture();d.profiles[0].name=name;return {email,admin:false,plan:{revision:3,data:d}}}
- return {users:{alice:named('Alice','alice@example.com'),carol:{...named('Carol','carol@example.com'),admin:true},dave:{email:'dave@example.com',admin:false,plan:{revision:0,data:null}}},me:'alice',calls:[],audit:[],errors:[],nightly:{}}
+ return {users:{alice:named('Alice','alice@example.com'),carol:{...named('Carol','carol@example.com'),admin:true},dave:{email:'dave@example.com',admin:false,plan:{revision:0,data:null}}},me:'alice',calls:[],audit:[],errors:[],feedback:[],nightly:{}}
 }
 const b64=value=>Buffer.from(JSON.stringify(value)).toString('base64url')
 async function signInAs(context,cloud,id){
@@ -234,6 +234,7 @@ async function signInAs(context,cloud,id){
    case '/rest/v1/kono_plan_nightly':{const n=cloud.nightly[cloud.me];return reply(n?[n]:[])}
    case '/rest/v1/rpc/kono_admin_get_nightly':{if(!me.admin)return denied();return reply(cloud.nightly[body.p_owner]??null)}
    case '/rest/v1/kono_client_errors':if(method==='POST'){const rows=Array.isArray(body)?body:[body];for(const r of rows)cloud.errors.push({id:cloud.errors.length+1,user_id:cloud.me,created_at:new Date().toISOString(),...r});return reply([],201)}return reply(me.admin?[...cloud.errors].reverse():[])
+   case '/rest/v1/kono_feedback':{if(method==='POST'){const rows=Array.isArray(body)?body:[body];for(const r of rows)cloud.feedback.push({id:cloud.feedback.length+1,user_id:cloud.me,created_at:new Date().toISOString(),...r});return reply([],201)}if(method==='DELETE'){const id=Number((url.searchParams.get('id')??'').replace('eq.',''));if(me.admin)cloud.feedback=cloud.feedback.filter(f=>f.id!==id);return reply([],204)}return reply(me.admin?[...cloud.feedback].reverse():[])}
    default:return reply([])
   }
  })
@@ -477,7 +478,7 @@ test('Calendar import: a Google/Apple calendar file or link adds weekly repeats 
  await createPlan(page)
  await go(page,'Settings')
  await settingsTab(page,'Import & export')
- await page.getByText('Import from Google Calendar or Apple Calendar').click()
+ await page.getByText('Import from Google Calendar, Apple Calendar, Canvas or Classroom').click()
  await page.getByLabel('Calendar file (.ics)').setInputFiles({name:'sam.ics',mimeType:'text/calendar',buffer:Buffer.from(sampleIcs())})
  await page.getByText('Found 1 weekly repeat and 1 event',{exact:false}).waitFor()
  const review=page.locator('.calendar-import-review')
@@ -499,6 +500,56 @@ test('Calendar import: a Google/Apple calendar file or link adds weekly repeats 
  const card=page.locator('#weekly-schedules').getByRole('article',{name:'Sam school · weekly'})
  await card.waitFor()
  assert.match(await card.innerText(),/Biology lab · Mon, Wed · 2:00 PM–3:30 PM/)
+})
+
+test('Send feedback: a signed-in person sends a note with the page it came from, and KONO support reads and clears it',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ await go(page,'Settings')
+ await page.getByRole('button',{name:'💬 Send feedback'}).click()
+ await page.getByLabel(/What’s working, what’s confusing/).fill('The class upload missed my Friday lab.')
+ await page.getByRole('button',{name:'Send',exact:true}).click()
+ await page.getByText('Thank you! KONO support will read it.').waitFor()
+ assert.equal(cloud.feedback.length,1);assert.equal(cloud.feedback[0].message,'The class upload missed my Friday lab.');assert.equal(cloud.feedback[0].page,'Settings');assert.equal(cloud.feedback[0].user_id,'alice')
+ const support=await freshPage()
+ try{
+  await signInAs(support.context,cloud,'carol')
+  await support.page.goto(BASE);await heading(support.page,'Sanctuary')
+  await go(support.page,'Settings');await settingsTab(support.page,'KONO support')
+  await support.page.getByRole('button',{name:'Show all accounts'}).click()
+  const item=support.page.locator('.support-errors li').filter({hasText:'The class upload missed my Friday lab.'})
+  await item.waitFor()
+  assert.match(await item.innerText(),/alice@example\.com · on Settings/)
+  await item.getByRole('button',{name:'Done — remove'}).click()
+  await item.waitFor({state:'detached'})
+  assert.equal(cloud.feedback.length,0)
+  assert.deepEqual(support.errors,[])
+ }finally{await support.context.close()}
+})
+
+test('Canvas: a Canvas calendar feed puts assignments in the Planner and quizzes in Exams, under their course',async({context,page})=>{
+ const d=new Date(),ymd=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0'),inDays=n=>{const x=new Date(d);x.setDate(d.getDate()+n);return ymd(x)}
+ const feed=['BEGIN:VCALENDAR','X-WR-CALNAME:Canvas','BEGIN:VEVENT','UID:a1','SUMMARY:Essay 1 [ENGL 1010]','DTSTART;VALUE=DATE:'+inDays(4),'URL:https://canvas.bc.edu/courses/1/assignments/2','END:VEVENT','BEGIN:VEVENT','UID:q1','SUMMARY:Chapter 3 quiz [BIOL 1100]','DTSTART;VALUE=DATE:'+inDays(6),'URL:https://canvas.bc.edu/courses/3/quizzes/4','END:VEVENT','END:VCALENDAR'].join('\r\n')
+ await context.route(BASE+'api/calendar-feed',route=>route.fulfill({status:200,headers:{'content-type':'text/calendar'},body:feed}))
+ await createPlan(page)
+ await go(page,'Settings')
+ await settingsTab(page,'Import & export')
+ await page.getByText('Import from Google Calendar, Apple Calendar, Canvas or Classroom').click()
+ await page.getByLabel('Or paste a calendar link').fill('https://canvas.bc.edu/feeds/calendars/user_abc.ics')
+ await page.getByRole('button',{name:'Get calendar'}).click()
+ await page.getByText('(2 assignments or exams)',{exact:false}).waitFor()
+ const review=page.locator('.calendar-import-review')
+ assert.match(await review.innerText(),/Essay 1[\s\S]*→ Planner assignment · ENGL 1010/)
+ assert.match(await review.innerText(),/Chapter 3 quiz[\s\S]*→ Exams · BIOL 1100/)
+ await review.getByRole('button',{name:'Add 2 to my plan'}).click()
+ await page.getByText(/^2 added\./).waitFor()
+ await flushSave(page,'Chapter 3 quiz')
+ await go(page,'Exams')
+ await page.getByText('Chapter 3 quiz').filter({visible:true}).first().waitFor()
+ await go(page,'Planner')
+ await page.getByText('Essay 1').filter({visible:true}).first().waitFor()
 })
 
 /** A landscape class-schedule PDF like a registrar printout: day, time and building cells wrap onto two lines. */
