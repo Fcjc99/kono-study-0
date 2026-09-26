@@ -9,8 +9,8 @@ function load(rel){
  if(modules.has(rel))return modules.get(rel)
  const file=path.join(root,rel),source=fs.readFileSync(file,'utf8')
  const code=ts.transpileModule(source,{fileName:file,compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,mod={exports:{}}
- const requireIn=name=>name==='react'?{}:!name.startsWith('.')?require(path.join(deps,name)):load(path.normalize(path.join(path.dirname(rel),name+'.ts')))
- vm.runInNewContext(code,{module:mod,exports:mod.exports,require:requireIn,crypto:{randomUUID},console,Date,Math,Set,Map,Object,Promise,TextEncoder,structuredClone})
+ const requireIn=name=>name==='react'?{}:!name.startsWith('.')?require(path.join(deps,name)):load(path.normalize(path.join(path.dirname(rel),name.replace(/\.js$/,'')+'.ts')))
+ vm.runInNewContext(code,{module:mod,exports:mod.exports,require:requireIn,crypto:{randomUUID},console,Date,Math,Set,Map,Object,Promise,TextEncoder,structuredClone,process:{env:{}},fetch:(...a)=>globalThis.fakeFetch(...a)})
  modules.set(rel,mod.exports);return mod.exports
 }
 const model=load('src/store/model.ts')
@@ -93,6 +93,35 @@ test('a very long title is folded onto continuation lines starting with a space,
  assert.ok(ics.includes(longTitle.slice(0,10))) // the content itself survives folding intact once unfolded
 })
 
+test('the subscribed-calendar version has a name and refresh hint, and leaves out private notes',()=>{
+ const d=make(),pid=d.activeProfileId
+ d.tasks=[{id:'t1',profileId:pid,subjectId:'',title:'Lab report',due:'2026-09-25',done:false,notes:'Locker code 1234'}]
+ d.exams=[{id:'e1',profileId:pid,subjectId:'',title:'Bio',due:'2026-10-01',done:false,notes:'Private exam note'}]
+ const plain=buildIcs(d,pid),feed=buildIcs(d,pid,{subscribe:true})
+ assert.ok(plain.includes('DESCRIPTION:Locker code 1234'))
+ assert.ok(!feed.includes('DESCRIPTION:'),'no notes in a link anyone with the URL can read')
+ assert.ok(feed.includes('SUMMARY:Lab report\r\n'));assert.ok(feed.includes('SUMMARY:Exam: Bio\r\n'))
+ assert.match(feed,/X-WR-CALNAME:KONO · /);assert.ok(feed.includes('REFRESH-INTERVAL;VALUE=DURATION:PT4H\r\n'))
+ assert.ok(!plain.includes('X-WR-CALNAME'))
+})
+
+test('api/ics: a valid link serves the subscribed calendar; bad or turned-off links get 404 without a database call for bad ones',async()=>{
+ const handler=load('api/ics.ts').default,d=make(),pid=d.activeProfileId,calls=[]
+ d.tasks=[{id:'t1',profileId:pid,subjectId:'',title:'Lab report',due:'2026-09-25',done:false,notes:'Locker code 1234'}]
+ globalThis.fakeFetch=async(url,init)=>{const body=JSON.parse(init.body);calls.push({url,body});return {ok:true,json:async()=>body.p_token==='a'.repeat(48)?{profileId:pid,data:d}:null}}
+ const call=async query=>{const res={code:0,body:'',headers:{},status(c){this.code=c;return this},setHeader(k,v){this.headers[k]=v},send(b){this.body=b}};await handler({method:'GET',query},res);return res}
+ const ok=await call({t:'a'.repeat(48)})
+ assert.equal(ok.code,200);assert.match(ok.headers['content-type'],/text\/calendar/)
+ assert.ok(ok.body.includes('SUMMARY:Lab report'));assert.ok(!ok.body.includes('Locker code'))
+ assert.match(calls[0].url,/\/rest\/v1\/rpc\/kono_calendar_feed$/)
+ assert.equal((await call({t:'b'.repeat(48)})).code,404,'a turned-off link')
+ const before=calls.length
+ for(const t of ['',"x' or 1=1",'A'.repeat(48),'a'.repeat(20)])assert.equal((await call({t})).code,404)
+ assert.equal(calls.length,before,'malformed tokens never reach the database')
+})
+
+;(async()=>{
 let passed=0
-for(const t of tests){try{t.fn();passed++;console.log('PASS',t.name)}catch(e){console.error('FAIL',t.name);console.error(e);process.exitCode=1}}
+for(const t of tests){try{await t.fn();passed++;console.log('PASS',t.name)}catch(e){console.error('FAIL',t.name);console.error(e);process.exitCode=1}}
 console.log(`${passed}/${tests.length} ics-export regression groups passed.`)
+})()

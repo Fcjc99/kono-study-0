@@ -82,3 +82,8 @@
 .push-on{font-weight:700;color:#1f6b45}
 .push-hint{padding:8px 10px;border:1px dashed var(--wb-line);border-radius:12px}
 .push-keys code{word-break:break-all;user-select:all;font-size:.8rem}
+/* Import & export: linked calendars and the subscribe link */
+.linked-calendars ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.linked-calendars li{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--wb-line);border-radius:12px}
+.calendar-subscribe{display:grid;gap:8px}
+.calendar-subscribe input[readonly]{font-size:.85rem}

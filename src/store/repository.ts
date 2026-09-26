@@ -261,6 +261,9 @@ export class PlannerRepository {
  /** Feedback goes to KONO support with the page it was sent from; it needs a signed-in account. */
  sendFeedback=async(message:string)=>{if(!this.cloud||!this.state.user)throw Error('Sign in with your email to send feedback.');await this.cloud.sendFeedback({message,page:currentPage(),appVersion:APP_VERSION})}
  adminFeedback=async():Promise<Feedback[]>=>this.requireCloud().adminFeedback()
+ /** Private links calendar apps subscribe to (migration 0009). */
+ calendarFeedToken=async(profileId:string,create:boolean)=>{if(!this.cloud||!this.state.user)throw Error('Sign in with your email to make a calendar link.');return this.cloud.calendarFeedToken(profileId,create)}
+ deleteCalendarFeed=async(profileId:string)=>this.requireCloud().deleteCalendarFeed(profileId)
  /** Lock-screen reminders need a signed-in account (the queue lives in Supabase). */
  get canUsePush(){return !!this.cloud&&!!this.state.user&&!this.state.support}
  savePushDevice=async(sub:{endpoint:string;p256dh:string;auth:string})=>this.requireCloud().savePushDevice(sub)

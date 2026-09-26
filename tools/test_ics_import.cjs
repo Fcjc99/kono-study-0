@@ -11,7 +11,7 @@ function load(relative){
 }
 let passed=0
 function test(name,fn){return Promise.resolve().then(fn).then(()=>{passed++;console.log('PASS '+name)})}
-const {parseIcs,applyIcsImport,guessKind}=load('src/store/icsImport.ts'),model=load('src/store/model.ts'),{feedUrl,fetchFeed,privateAddress}=load('src/store/calendarFeed.ts')
+const {parseIcs,applyIcsImport,guessKind,syncIcs,linkSeen}=load('src/store/icsImport.ts'),model=load('src/store/model.ts'),{feedUrl,fetchFeed,privateAddress}=load('src/store/calendarFeed.ts')
 const today='2026-09-25'
 // Shaped like a Google Calendar export: CRLF, folded lines, a time zone block, escaped text.
 const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Google Inc//Google Calendar 70.9054//EN','X-WR-CALNAME:Jo\\, fall','BEGIN:VTIMEZONE','TZID:America/New_York','BEGIN:STANDARD','DTSTART:19701101T020000','END:STANDARD','END:VTIMEZONE',
@@ -93,5 +93,45 @@ await test('Canvas and Schoology feeds: assignments go to the Planner, quizzes t
  const officeHours=next.calendarEvents.find(e=>e.title==='Office hours [BIOL 1100]');assert.equal(officeHours.subjectId,'bio')
  assert.equal(applyIcsImport(next,data.activeProfileId,parseIcs(feed,today),'Canvas').added,0,'importing again adds nothing')
 })
-console.log(passed+'/4 calendar-import regression groups passed.')
+await test('A linked calendar stays up to date: new items added, changed dates moved, deleted or unticked ones stay gone',()=>{
+ const feed=(essayDue,extra=[])=>['BEGIN:VCALENDAR','X-WR-CALNAME:Canvas',
+  'BEGIN:VEVENT','UID:essay','SUMMARY:Essay 1 [ENGL 1010]','DTSTART;VALUE=DATE:'+essayDue,'URL:https://canvas.bc.edu/courses/1/assignments/2','END:VEVENT',
+  'BEGIN:VEVENT','UID:quiz','SUMMARY:Quiz 2 [ENGL 1010]','DTSTART;VALUE=DATE:20261009','URL:https://canvas.bc.edu/courses/1/quizzes/3','END:VEVENT',
+  'BEGIN:VEVENT','UID:skip','SUMMARY:Optional reading','DTSTART;VALUE=DATE:20261010','END:VEVENT',
+  'BEGIN:VEVENT','UID:club','SUMMARY:Club meeting','DTSTART:20261010T190000','DTEND:20261010T200000','RRULE:FREQ=MONTHLY;COUNT=2','END:VEVENT',
+  'BEGIN:VEVENT','UID:lab','SUMMARY:Bio lab','DTSTART:20261001T090000','DTEND:20261001T110000','RRULE:FREQ=WEEKLY;COUNT=10','END:VEVENT',
+  ...extra,'END:VCALENDAR'].join('\r\n')
+ const data=model.createFreshData(),pid=data.activeProfileId
+ const first=parseIcs(feed('20261002'),today)
+ first.events=first.events.map(e=>e.title==='Optional reading'?{...e,include:false}:e)
+ const r=applyIcsImport(data,pid,first,'Canvas'),seen=linkSeen(first,r.created)
+ assert.equal(seen.skip,null,'an unticked item is remembered as not wanted')
+ assert.equal(seen.essay.c,'tasks');assert.equal(seen.quiz.c,'exams')
+ // Nothing changed there: nothing changes here, and the plan object is the same one.
+ const same=syncIcs(r.data,pid,parseIcs(feed('20261002'),today),'Canvas',seen)
+ assert.equal(same.added+same.updated,0);assert.equal(same.data,r.data)
+ // The person deletes a club meeting and the quiz in KONO, and the weekly schedule too.
+ let plan=structuredClone(r.data)
+ const clubDates=plan.calendarEvents.filter(e=>e.title==='Club meeting')
+ assert.equal(clubDates.length,2)
+ plan.calendarEvents=plan.calendarEvents.filter(e=>e.id!==clubDates[0].id)
+ plan.exams=plan.exams.filter(e=>e.title!=='Quiz 2')
+ plan.studySeasons=plan.studySeasons.filter(s=>s.name!=='Canvas · weekly')
+ // The teacher moves the essay and posts a new assignment.
+ const moved=syncIcs(plan,pid,parseIcs(feed('20261006',['BEGIN:VEVENT','UID:essay2','SUMMARY:Essay 2 [ENGL 1010]','DTSTART;VALUE=DATE:20261020','URL:https://canvas.bc.edu/courses/1/assignments/4','END:VEVENT']),today),'Canvas',seen)
+ assert.equal(moved.updated,1);assert.equal(moved.added,1)
+ const essays=moved.data.tasks.filter(t=>t.title==='Essay 1')
+ assert.equal(essays.length,1,'moved, not copied');assert.equal(essays[0].due,'2026-10-06')
+ assert.ok(moved.data.tasks.some(t=>t.title==='Essay 2'&&t.due==='2026-10-20'))
+ assert.equal(moved.data.exams.filter(e=>e.title==='Quiz 2').length,0,'a deleted item is not brought back')
+ assert.equal(moved.data.calendarEvents.filter(e=>e.title==='Club meeting').length,1,'a deleted date of a repeat is not brought back')
+ assert.equal(moved.data.calendarEvents.filter(e=>e.title==='Optional reading').length,0,'an unticked item is not added later')
+ assert.equal(moved.data.studySeasons.filter(s=>s.name==='Canvas · weekly').length,0,'a deleted weekly schedule is not brought back')
+ assert.equal(moved.seen.essay2.c,'tasks')
+ // A finished assignment is left where it is.
+ const done=structuredClone(moved.data);done.tasks.find(t=>t.title==='Essay 1').done=true
+ const later=syncIcs(done,pid,parseIcs(feed('20261012'),today),'Canvas',moved.seen)
+ assert.equal(later.updated,0);assert.equal(later.data.tasks.find(t=>t.title==='Essay 1').due,'2026-10-06')
+})
+console.log(passed+'/5 calendar-import regression groups passed.')
 })().catch(e=>{console.error(e);process.exit(1)})

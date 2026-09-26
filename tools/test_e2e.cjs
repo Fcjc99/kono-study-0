@@ -203,7 +203,7 @@ function supabaseHost(){
 }
 function fakeCloud(){
  const named=(name,email)=>{const d=fixture();d.profiles[0].name=name;return {email,admin:false,plan:{revision:3,data:d}}}
- return {users:{alice:named('Alice','alice@example.com'),carol:{...named('Carol','carol@example.com'),admin:true},dave:{email:'dave@example.com',admin:false,plan:{revision:0,data:null}}},me:'alice',calls:[],audit:[],errors:[],feedback:[],nightly:{}}
+ return {users:{alice:named('Alice','alice@example.com'),carol:{...named('Carol','carol@example.com'),admin:true},dave:{email:'dave@example.com',admin:false,plan:{revision:0,data:null}}},me:'alice',calls:[],audit:[],errors:[],feedback:[],nightly:{},feeds:[]}
 }
 const b64=value=>Buffer.from(JSON.stringify(value)).toString('base64url')
 async function signInAs(context,cloud,id){
@@ -235,6 +235,12 @@ async function signInAs(context,cloud,id){
    case '/rest/v1/rpc/kono_admin_get_nightly':{if(!me.admin)return denied();return reply(cloud.nightly[body.p_owner]??null)}
    case '/rest/v1/kono_client_errors':if(method==='POST'){const rows=Array.isArray(body)?body:[body];for(const r of rows)cloud.errors.push({id:cloud.errors.length+1,user_id:cloud.me,created_at:new Date().toISOString(),...r});return reply([],201)}return reply(me.admin?[...cloud.errors].reverse():[])
    case '/rest/v1/kono_feedback':{if(method==='POST'){const rows=Array.isArray(body)?body:[body];for(const r of rows)cloud.feedback.push({id:cloud.feedback.length+1,user_id:cloud.me,created_at:new Date().toISOString(),...r});return reply([],201)}if(method==='DELETE'){const id=Number((url.searchParams.get('id')??'').replace('eq.',''));if(me.admin)cloud.feedback=cloud.feedback.filter(f=>f.id!==id);return reply([],204)}return reply(me.admin?[...cloud.feedback].reverse():[])}
+   case '/rest/v1/kono_calendar_feeds':{
+    const profile=(url.searchParams.get('profile_id')??'').replace('eq.',''),mine=cloud.feeds.filter(f=>f.user_id===cloud.me)
+    if(method==='POST'){const row={user_id:cloud.me,profile_id:body.profile_id,token:'ab12'.repeat(12)};cloud.feeds.push(row);return reply({token:row.token},201)}
+    if(method==='DELETE'){cloud.feeds=cloud.feeds.filter(f=>!(f.user_id===cloud.me&&f.profile_id===profile));return reply([],204)}
+    return reply(mine.filter(f=>f.profile_id===profile).map(f=>({token:f.token})))
+   }
    default:return reply([])
   }
  })
@@ -550,6 +556,64 @@ test('Canvas: a Canvas calendar feed puts assignments in the Planner and quizzes
  await page.getByText('Chapter 3 quiz').filter({visible:true}).first().waitFor()
  await go(page,'Planner')
  await page.getByText('Essay 1').filter({visible:true}).first().waitFor()
+})
+
+test('Linked calendar: a kept-up-to-date Canvas feed adds new assignments and moves changed dates on Check now',async({context,page})=>{
+ const d=new Date(),ymd=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0'),inDays=n=>{const x=new Date(d);x.setDate(d.getDate()+n);return ymd(x)}
+ const item=(uid,title,day,kind)=>['BEGIN:VEVENT','UID:'+uid,'SUMMARY:'+title,'DTSTART;VALUE=DATE:'+day,'URL:https://canvas.bc.edu/courses/1/'+kind+'/'+uid,'END:VEVENT']
+ let feed=['BEGIN:VCALENDAR','X-WR-CALNAME:Canvas',...item('a1','Essay 1 [ENGL 1010]',inDays(4),'assignments'),'END:VCALENDAR'].join('\r\n')
+ await context.route(BASE+'api/calendar-feed',route=>route.fulfill({status:200,headers:{'content-type':'text/calendar'},body:feed}))
+ await createPlan(page)
+ await go(page,'Settings')
+ await settingsTab(page,'Import & export')
+ await page.getByText('Import from Google Calendar, Apple Calendar, Canvas or Classroom').click()
+ await page.getByLabel('Or paste a calendar link').fill('https://canvas.bc.edu/feeds/calendars/user_abc.ics')
+ await page.getByRole('button',{name:'Get calendar'}).click()
+ const review=page.locator('.calendar-import-review')
+ assert.ok(await review.getByLabel(/Keep this calendar up to date/).isChecked(),'keeping a linked calendar up to date is the default')
+ await review.getByRole('button',{name:'Add 1 to my plan'}).click()
+ await page.getByText(/^1 added\./).waitFor()
+ await flushSave(page,'Essay 1')
+ const linked=page.locator('.linked-calendars li').filter({hasText:'Canvas'})
+ await linked.waitFor()
+ assert.match(await linked.innerText(),/Linked\./)
+ assert.equal(await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('kono-linked-calendars:')).length),1,'the private link stays on this device')
+
+ // The teacher moves the essay two days later and posts a quiz.
+ feed=['BEGIN:VCALENDAR','X-WR-CALNAME:Canvas',...item('a1','Essay 1 [ENGL 1010]',inDays(6),'assignments'),...item('q1','Quiz 1 [ENGL 1010]',inDays(8),'quizzes'),'END:VCALENDAR'].join('\r\n')
+ await linked.getByRole('button',{name:'Check now'}).click()
+ await page.getByText('Canvas: 1 new, 1 moved to a new date.').waitFor()
+ await flushSave(page,'Quiz 1')
+ const saved=await page.evaluate(()=>new Promise(resolve=>{const request=indexedDB.open('kono-recovery-and-sync',1);request.onsuccess=()=>{const db=request.result,get=db.transaction('plans').objectStore('plans').get('device');get.onsuccess=()=>{db.close();resolve(JSON.stringify(get.result??null))}}}))
+ const essays=[],walk=v=>{if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object'){if(v.title==='Essay 1'&&typeof v.due==='string')essays.push(v.due);Object.values(v).forEach(walk)}}
+ walk(JSON.parse(saved).data)
+ assert.equal(essays.length,1,'moved, not copied');assert.equal(essays[0].replace(/-/g,''),inDays(6))
+ await linked.getByRole('button',{name:'Check now'}).click()
+ await page.getByText('Canvas: Up to date.').waitFor()
+ await linked.getByRole('button',{name:'Stop'}).click()
+ await linked.waitFor({state:'detached'})
+ await go(page,'Exams')
+ await page.getByText('Quiz 1').filter({visible:true}).first().waitFor()
+})
+
+test('Calendar subscribe link: a signed-in student makes a private link for Google/Apple Calendar and can turn it off',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ await go(page,'Settings')
+ await settingsTab(page,'Import & export')
+ await page.getByText('Show KONO in Google Calendar or Apple Calendar (stays up to date)').click()
+ await page.getByRole('button',{name:'Make my calendar link'}).click()
+ const link=page.getByLabel('Your KONO calendar link')
+ await link.waitFor()
+ assert.equal(await link.inputValue(),BASE.replace(/\/$/,'')+'/api/ics?t='+'ab12'.repeat(12))
+ assert.match(await page.getByRole('link',{name:'Open in Apple Calendar'}).getAttribute('href'),/^webcal:\/\/.*\/api\/ics\?t=(ab12){12}$/)
+ assert.equal(cloud.feeds.length,1);assert.equal(cloud.feeds[0].profile_id,cloud.users.alice.plan.data.activeProfileId)
+ page.once('dialog',dialog=>void dialog.accept())
+ await page.getByRole('button',{name:'Turn off link'}).click()
+ await page.getByRole('button',{name:'Make my calendar link'}).waitFor()
+ assert.equal(cloud.feeds.length,0)
 })
 
 test('Built-in AI: a signed-in student with no key of their own gets KONO’s AI, sent with their sign-in',async({context,page})=>{
