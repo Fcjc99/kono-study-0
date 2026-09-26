@@ -87,3 +87,6 @@
 .linked-calendars li{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--wb-line);border-radius:12px}
 .calendar-subscribe{display:grid;gap:8px}
 .calendar-subscribe input[readonly]{font-size:.85rem}
+/* The KONO emblem in the brand badge (sidebar and phone header), in the badge's text colour. */
+.brand-mark>.brand-logo{display:block;width:72%;max-width:34px;min-width:20px;height:auto;flex:none}
+.workbench .wb-brand>.brand-mark>.brand-logo{width:30px;max-width:none}
