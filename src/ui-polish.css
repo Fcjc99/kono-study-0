@@ -67,3 +67,12 @@
 .weekly-editor fieldset{display:grid;gap:10px;border:0;padding:0;margin:4px 0 0}
 .weekly-editor h4,.weekly-time-form h4{margin:4px 0 0}
 .weekly-add{margin:10px 0}
+.calendar-import-target{font-weight:700;color:var(--wb-muted)}
+.calendar-import-target.is-assignment{color:#2f6b4f}
+.calendar-import-target.is-exam{color:#9a3b3b}
+/* Settings › Send feedback */
+.settings-page-tools{flex-wrap:wrap;gap:8px}
+.feedback-box{margin-left:auto}
+.feedback-box form{display:grid;gap:8px;width:min(520px,100%)}
+.feedback-box:has(form){flex-basis:100%;margin-left:0}
+.support-feedback-text{white-space:pre-wrap;margin:0}

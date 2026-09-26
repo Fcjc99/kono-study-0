@@ -7,6 +7,7 @@ export type ConnectionStatus='pending'|'accepted'|'declined'
 export type ConnectionRow={id:string;requesterId:string;recipientId:string;status:ConnectionStatus;createdAt:string}
 export type AdminAccount={userId:string;email:string;createdAt:string;lastSignInAt:string|null;revision:number|null;updatedAt:string|null;profiles:string;username:string|null}
 export type ClientError={id:number;userId:string|null;message:string;detail:string|null;page:string|null;appVersion:string|null;userAgent:string|null;createdAt:string}
+export type Feedback={id:number;userId:string|null;message:string;page:string|null;appVersion:string|null;userAgent:string|null;createdAt:string}
 export type NightlyBackup={revision:number;savedAt:string;data:unknown}
 export type SupportActivity={id:number;accountId:string;adminId:string|null;action:'view'|'edit';revision:number|null;createdAt:string}
 
@@ -71,6 +72,19 @@ export class SupabaseRemote{
   const {data,error}=await this.client.from('kono_client_errors').select('id,user_id,message,detail,page,app_version,user_agent,created_at').order('id',{ascending:false}).limit(50)
   if(error)throw new Error(error.message)
   return ((data??[]) as {id:number;user_id:string|null;message:string;detail:string|null;page:string|null;app_version:string|null;user_agent:string|null;created_at:string}[]).map(r=>({id:r.id,userId:r.user_id,message:r.message,detail:r.detail,page:r.page,appVersion:r.app_version,userAgent:r.user_agent,createdAt:r.created_at}))
+ }
+ async sendFeedback(entry:{message:string;page?:string;appVersion?:string}){
+  const {error}=await this.client.from('kono_feedback').insert({message:entry.message.trim().slice(0,2000),page:entry.page?.slice(0,200)??null,app_version:entry.appVersion?.slice(0,80)??null,user_agent:navigator.userAgent.slice(0,300)})
+  if(error)throw new Error(/relation|does not exist|schema cache/i.test(error.message)?'Feedback isn’t set up on the server yet.':error.message)
+ }
+ async adminFeedback():Promise<Feedback[]>{
+  const {data,error}=await this.client.from('kono_feedback').select('id,user_id,message,page,app_version,user_agent,created_at').order('id',{ascending:false}).limit(100)
+  if(error)throw new Error(error.message)
+  return ((data??[]) as {id:number;user_id:string|null;message:string;page:string|null;app_version:string|null;user_agent:string|null;created_at:string}[]).map(r=>({id:r.id,userId:r.user_id,message:r.message,page:r.page,appVersion:r.app_version,userAgent:r.user_agent,createdAt:r.created_at}))
+ }
+ async adminDeleteFeedback(id:number){
+  const {error}=await this.client.from('kono_feedback').delete().eq('id',id)
+  if(error)throw new Error(error.message)
  }
  /** While set, the plan endpoints below read and write this account through the support functions. */
  private supportTarget:string|null=null

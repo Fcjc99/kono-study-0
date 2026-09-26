@@ -3,7 +3,7 @@ import { createFreshData, normalizeData, randomId, type AppData } from './model'
 import { commitCache, decodeData, deleteCache, downloadData, exportData, readCache, readLegacy, readRawCache, type CacheEntry, type RecoveryFile } from './localRepository'
 import { captureDeletions } from './workspace'
 import { mergeData, type MergeConflict } from './merge'
-import type {AdminAccount,ClientError,SupabaseRemote,SupportActivity} from './supabaseRemote'
+import type {AdminAccount,ClientError,Feedback,SupabaseRemote,SupportActivity} from './supabaseRemote'
 import {installErrorReporter} from './errorReporter'
 import {APP_VERSION} from '../version'
 import { buildSharedSnapshot } from './peerShare'
@@ -14,6 +14,8 @@ export type SupportTarget={id:string;email:string}
 const SUPPORT_KEY='kono-support-target'
 const readSupportTarget=():SupportTarget|null=>{try{const v=JSON.parse(sessionStorage.getItem(SUPPORT_KEY)??'null') as SupportTarget|null;return v&&typeof v.id==='string'&&typeof v.email==='string'?v:null}catch{return null}}
 const clearSupportTarget=()=>{try{sessionStorage.removeItem(SUPPORT_KEY)}catch{/* storage unavailable */}}
+/** The page someone is on ("Settings"), without the heading's decorations, for error reports and feedback. */
+const currentPage=()=>document.querySelector('#workspace-main h1')?.textContent?.replace(/[^\p{L}\p{N}&' -]+/gu,'').trim()||undefined
 export type RepositoryState={data:AppData;ready:boolean;status:string;error:string;user:User|null;recovery:RecoveryFile[];needsMigration:boolean;conflicts:MergeConflict[];savedAt:string|null;unreadable:boolean;isAdmin:boolean;support:SupportTarget|null}
 const message=(e:unknown)=>e instanceof Error?e.message:'Could not save. Export your working copy before leaving.'
 const content=(data:AppData)=>JSON.stringify({...data,activeProfileId:undefined})
@@ -102,7 +104,7 @@ export class PlannerRepository {
    if(user){
     if(typeof user.id!=='string'||!user.id||user.id.length>200||typeof user.email!=='string')throw new Error('Invalid account response.')
     const cloud=this.cloud
-    if(cloud)installErrorReporter(entry=>cloud.reportError(entry),()=>({page:document.querySelector('#workspace-main h1')?.textContent??undefined,appVersion:APP_VERSION}))
+    if(cloud)installErrorReporter(entry=>cloud.reportError(entry),()=>({page:currentPage(),appVersion:APP_VERSION}))
     const support=this.cloud?readSupportTarget():null
     if(support&&this.cloud&&await this.cloud.isAdmin()){if(this.valid(generation))await this.openSupport(user,support,generation)}
     else{if(support)clearSupportTarget();await this.openAccount(user,generation)}
@@ -236,6 +238,10 @@ export class PlannerRepository {
  downloadNightly=async()=>{if(!this.cloud)throw new Error('Nightly backups need a signed-in account.');const backup=await this.cloud.nightlyBackup();if(!backup)return false;exportData(decodeData(JSON.stringify({version:6,data:backup.data})));return true}
  adminDownloadNightly=async(owner:string)=>{const backup=await this.requireCloud().adminNightly(owner);if(!backup)return null;exportData(decodeData(JSON.stringify({version:6,data:backup.data})));return backup.savedAt}
  adminErrors=async():Promise<ClientError[]>=>this.requireCloud().adminErrors()
+ /** Feedback goes to KONO support with the page it was sent from; it needs a signed-in account. */
+ sendFeedback=async(message:string)=>{if(!this.cloud||!this.state.user)throw Error('Sign in with your email to send feedback.');await this.cloud.sendFeedback({message,page:currentPage(),appVersion:APP_VERSION})}
+ adminFeedback=async():Promise<Feedback[]>=>this.requireCloud().adminFeedback()
+ adminDeleteFeedback=async(id:number)=>this.requireCloud().adminDeleteFeedback(id)
  /** Views and edits KONO support made on this account. */
  supportActivity=async():Promise<SupportActivity[]>=>this.cloud&&this.state.user?this.cloud.supportActivity(this.state.user.id):[]
  adminAccounts=async():Promise<AdminAccount[]>=>this.requireCloud().adminAccounts()

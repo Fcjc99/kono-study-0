@@ -51,7 +51,7 @@ try{
  `)
  for(const file of fs.readdirSync(path.join(root,'supabase','migrations')).filter(f=>f.endsWith('.sql')).sort())psql(fs.readFileSync(path.join(root,'supabase','migrations',file),'utf8'))
  // People run the newest migration by hand in the Supabase SQL editor, sometimes twice: it must be re-runnable.
- for(const again of ['0004_kono_backups_and_support.sql','0005_kono_nightly_backup_support_setup_errors.sql'])psql(fs.readFileSync(path.join(root,'supabase','migrations',again),'utf8'))
+ for(const again of ['0004_kono_backups_and_support.sql','0005_kono_nightly_backup_support_setup_errors.sql','0006_kono_feedback.sql'])psql(fs.readFileSync(path.join(root,'supabase','migrations',again),'utf8'))
 
  test('a signed-in person saves their plan and nobody else can read it',()=>{
   assert.equal(save(alice,0,'Alice').revision,1)
@@ -137,6 +137,17 @@ try{
   fails(null,"insert into public.kono_client_errors(message) values ('anon');",/permission denied/)
   assert.equal(as(bob,'select count(*) from public.kono_client_errors;'),'0')
   assert.equal(as(carol,"select message||'|'||user_id from public.kono_client_errors;"),'Boom|'+bob)
+ })
+
+ test('feedback: people send their own, only KONO support can read and clear it',()=>{
+  as(bob,"insert into public.kono_feedback(message,page) values ('The Friday lab is missing','Settings');")
+  fails(bob,`insert into public.kono_feedback(user_id,message) values ('${alice}','spoof');`,/row-level security/)
+  fails(null,"insert into public.kono_feedback(message) values ('anon');",/permission denied/)
+  fails(bob,"insert into public.kono_feedback(message) values ('');",/check constraint/)
+  assert.equal(as(bob,'select count(*) from public.kono_feedback;'),'0','people can’t read feedback, even their own')
+  as(bob,'delete from public.kono_feedback;');assert.equal(psql('select count(*) from public.kono_feedback;'),'1','a regular account can’t clear feedback')
+  assert.equal(as(carol,"select message||'|'||user_id||'|'||page from public.kono_feedback;"),'The Friday lab is missing|'+bob+'|Settings')
+  as(carol,'delete from public.kono_feedback;');assert.equal(psql('select count(*) from public.kono_feedback;'),'0')
  })
 
  test('deleting your cloud study data also deletes its automatic backups',()=>{

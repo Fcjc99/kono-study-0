@@ -4,7 +4,10 @@ import { blankWeek, dayNames, normalizeData, uid, type AppData, type CalendarEve
  * Weekly repeating events (classes, practice, shifts) become one weekly schedule; everything else in
  * the next twelve months becomes calendar events. Nothing is saved until the person picks what to add. */
 
-export type IcsOneTime = { key: string; include: boolean; title: string; date: string; time?: string; endTime?: string; location?: string }
+/** `as`: where the item lands. Canvas/Schoology assignments become Planner assignments, quizzes and
+ * exams become Exams (under their course), and everything else a Calendar event. */
+export type IcsTarget = 'event' | 'assignment' | 'exam'
+export type IcsOneTime = { key: string; include: boolean; title: string; date: string; time?: string; endTime?: string; location?: string; as: IcsTarget; course?: string }
 export type IcsWeekly = { key: string; include: boolean; title: string; days: number[]; start: string; end: string; from: string; until: string; location?: string; skipped: string[] }
 export type IcsImport = { calendarName: string; events: IcsOneTime[]; weekly: IcsWeekly[]; skipped: number }
 
@@ -115,12 +118,18 @@ export function parseIcs(text: string, today: string, months = 12): IcsImport {
     const endMoment = moment(get('DTEND'))
     let endTime = start.time ? (endMoment?.time && endMoment.date === start.date ? endMoment.time : clockAfter(start.time, duration(get('DURATION')?.value) || 60)) : undefined
     if (endTime && start.time && endTime <= start.time) endTime = undefined
+    const link = get('URL')?.value ?? ''
+    // Canvas titles end with the course in brackets: "Essay 1 [ENGL 1010 Fall 2026]".
+    const bracket = title.match(/^(.*\S)\s*\[([^\]]{2,120})\]$/)
+    const course = bracket ? bracket[2].trim() : undefined
+    const target = targetFor(bracket ? bracket[1] : title, link)
+    const item = { title: bracket && target !== 'event' ? bracket[1] : title, as: target, course }
     const r = get('RECURRENCE-ID') ? null : rule(get('RRULE')?.value)
     const uidValue = get('UID')?.value ?? uid('ics')
     const exdates = new Set([...b.filter(p => p.name === 'EXDATE').flatMap(p => p.value.split(',').map(v => moment({ ...p, value: v })?.date).filter((v): v is string => !!v)), ...(moved.get(uidValue) ?? [])])
     if (!r) {
       if (start.date < today || start.date > windowEnd) continue
-      events.push({ key: uidValue + '@' + start.date, include: true, title, date: start.date, time: start.time, endTime, location })
+      events.push({ key: uidValue + '@' + start.date, include: true, ...item, date: start.date, time: start.time, endTime, location })
       continue
     }
     const dates = occurrences(start.date, r, windowEnd).filter(d => !exdates.has(d))
@@ -131,11 +140,20 @@ export function parseIcs(text: string, today: string, months = 12): IcsImport {
       weekly.push({ key: uidValue, include: true, title, days: (r.byDay.length ? r.byDay : [weekday(start.date)]).sort(), start: start.time, end: endTime, from, until: until < from ? from : until, location, skipped: [...exdates].filter(d => d >= from).sort() })
       continue
     }
-    for (const date of dates) if (date >= today) events.push({ key: uidValue + '@' + date, include: true, title, date, time: start.time, endTime, location })
+    for (const date of dates) if (date >= today) events.push({ key: uidValue + '@' + date, include: true, ...item, date, time: start.time, endTime, location })
   }
   events.sort((a, b) => (a.date + (a.time ?? '')).localeCompare(b.date + (b.time ?? '')))
   if (events.length > MAX_EVENTS) { skipped += events.length - MAX_EVENTS; events.length = MAX_EVENTS }
   return { calendarName, events, weekly, skipped }
+}
+
+/** Assignment and quiz links from Canvas (/assignments/, /quizzes/) and Schoology (/assignment/), or a
+ * title that says so, decide whether an item is homework, a test, or just an event. */
+function targetFor(title: string, link: string): IcsTarget {
+  if (/\/(quizzes|assessment)\b/i.test(link)) return 'exam'
+  if (/\/(assignments?|discussion_topics)\b/i.test(link)) return /\b(exam|midterm|final|quiz|test)\b/i.test(title) ? 'exam' : 'assignment'
+  const kind = guessKind(title)
+  return kind === 'assignment' ? 'assignment' : kind === 'exam' || kind === 'quiz' || kind === 'test' ? 'exam' : 'event'
 }
 
 /** A calendar event's kind from its title: tests and practice show up where students look for them. */
@@ -163,9 +181,25 @@ export function applyIcsImport(data: AppData, profileId: string, parsed: IcsImpo
   if (!events.length && !weekly.length) throw Error('Choose at least one event to add.')
   const next = structuredClone(data)
   let added = 0, skipped = 0
+  // A course named in the calendar ("[BIOL 1100]") matches a subject by name, or becomes one.
+  const subjectFor = (course?: string) => {
+    if (!course) return ''
+    const known = next.subjects.find(s => s.profileId === profileId && (same(s.name, course) || course.toLowerCase().includes(s.name.trim().toLowerCase())))
+    if (known) return known.id
+    const created = { id: uid('subject'), profileId, name: course.slice(0, 200), color: '#4169a8', resources: [] }
+    next.subjects.push(created); return created.id
+  }
   for (const e of events) {
+    const at = e.time ? ' at ' + e.time + (e.endTime ? '–' + e.endTime : '') : ''
+    if (e.as === 'assignment' || e.as === 'exam') {
+      const list = e.as === 'assignment' ? next.tasks : next.exams
+      if (list.some(x => x.profileId === profileId && x.due === e.date && same(x.title, e.title))) { skipped++; continue }
+      const item = { id: uid(e.as === 'assignment' ? 'task' : 'exam'), profileId, subjectId: subjectFor(e.course), title: e.title, due: e.date, done: false, notes: [at ? 'Due' + at : '', e.location ? '📍 ' + e.location : ''].filter(Boolean).join('\n') }
+      if (e.as === 'assignment') next.tasks.push(item); else next.exams.push(item)
+      added++; continue
+    }
     if (next.calendarEvents.some(x => x.profileId === profileId && x.date === e.date && same(x.title, e.title) && (x.time ?? '') === (e.time ?? ''))) { skipped++; continue }
-    next.calendarEvents.push({ id: uid('event'), profileId, date: e.date, title: e.title, kind: guessKind(e.title), notes: e.location ? '📍 ' + e.location : '', time: e.time, endTime: e.endTime })
+    next.calendarEvents.push({ id: uid('event'), profileId, subjectId: e.course ? subjectFor(e.course) : undefined, date: e.date, title: e.title, kind: guessKind(e.title), notes: e.location ? '📍 ' + e.location : '', time: e.time, endTime: e.endTime })
     added++
   }
   if (weekly.length) {
