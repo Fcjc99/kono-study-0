@@ -1,6 +1,6 @@
 import { normalizeData, uid, type AppData, type CalendarEventKind } from './model'
 import { validDate } from './scheduleImport'
-import { aiFail, callAi, type AiProvider, type PhotoInput } from './aiProvider'
+import { needsAiMessage, aiReady, aiFail, callAi, type AiProvider, type PhotoInput } from './aiProvider'
 import { nextKidColor } from './kids'
 
 const fail = aiFail
@@ -103,7 +103,7 @@ function parseAssignmentPhoto(raw: string): AssignmentPhotoItem[] {
 }
 
 export async function readAssignmentPhoto(photo: PhotoInput, provider: AiProvider, apiKey: string, today: string): Promise<AssignmentPhotoItem[]> {
-  if (!apiKey.trim()) fail('Add an API key first.')
+  if (!aiReady(apiKey)) aiFail(needsAiMessage)
   const raw = await callAi(buildAssignmentPhotoPrompt(today), provider, apiKey.trim(), photo)
   return parseAssignmentPhoto(raw)
 }

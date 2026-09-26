@@ -36,6 +36,8 @@ export class SupabaseRemote{
  /** Keeps a copy of the saved cloud plan each time KONO opens (the database skips it when nothing changed). */
  async backupOnOpen(){const {error}=await this.client.rpc('kono_backup_on_open');if(error)throw error}
  /** UI hint only: every support function re-checks kono_admins on the server. */
+ /** The signed-in person's current access token, for KONO's own server functions (built-in AI). */
+ async accessToken(){const {data}=await this.client.auth.getSession();return data.session?.access_token??''}
  async isAdmin(){const {data,error}=await this.client.rpc('kono_is_admin');return !error&&data===true}
  async adminAccounts():Promise<AdminAccount[]>{
   const {data,error}=await this.client.rpc('kono_admin_accounts')

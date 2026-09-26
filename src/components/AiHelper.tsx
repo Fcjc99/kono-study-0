@@ -1,9 +1,10 @@
 import { useAiHelper } from '../hooks/useAiHelper'
 
 export function AiHelperSettings({ profileId }: { profileId: string }) {
-  const { provider, apiKey, setProvider, setApiKey } = useAiHelper(profileId)
+  const { provider, apiKey, setProvider, setApiKey, builtIn } = useAiHelper(profileId)
   return <section className="card ai-helper-settings">
     <h3>AI helper</h3>
+    {builtIn && <p className="ai-builtin-note">✓ <strong>KONO’s AI is included with your account</strong> (40 requests a day). You don’t need a key. Add your own below only if you want more.</p>}
     <p className="wb-muted">K-Quiz, the photo scanner and the handwritten-planner import read your notes with an AI provider you choose. Set your key up once here and all three use it. Calls go straight from this browser to that provider using your own key; it's never sent anywhere else. Google's Gemini has a free tier with no credit card (though on the free tier Google may use your input to improve its models); OpenAI requires billing set up at platform.openai.com.</p>
     <label>Provider<select value={provider} onChange={e => setProvider(e.target.value)}><option value="gemini">Google Gemini (free tier available)</option><option value="openai">OpenAI</option></select></label>
     <label>API key<input type="password" autoComplete="off" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Paste your API key" /></label>
@@ -14,7 +15,8 @@ export function AiHelperSettings({ profileId }: { profileId: string }) {
 /** A one-line "is the AI helper ready" note for a feature that uses it; links to the setting when the
  * feature lives somewhere other than the Import & export tab. */
 export function AiHelperStatus({ profileId, onOpenSettings }: { profileId: string; onOpenSettings?: () => void }) {
-  const { provider, apiKey } = useAiHelper(profileId)
+  const { provider, apiKey, builtIn } = useAiHelper(profileId)
+  if (builtIn && !apiKey.trim()) return <p className="wb-muted ai-helper-status">✓ KONO’s AI is ready (included with your account).</p>
   const where = onOpenSettings ? <button type="button" className="ai-helper-link" onClick={onOpenSettings}>{apiKey.trim() ? 'Change' : 'Set up the AI helper'}</button> : <span>{apiKey.trim() ? '' : 'Add your key in AI helper above.'}</span>
   return <p className="wb-muted ai-helper-status">{apiKey.trim() ? `✓ AI helper ready (${provider === 'openai' ? 'OpenAI' : 'Gemini'}).` : 'Needs the AI helper (a free Gemini key works).'} {where}</p>
 }

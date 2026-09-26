@@ -1,5 +1,5 @@
 import type { KQuizQuestion } from './model'
-import { aiFail, callAi, type AiProvider, type PhotoInput } from './aiProvider'
+import { needsAiMessage, aiReady, aiFail, callAi, type AiProvider, type PhotoInput } from './aiProvider'
 
 export type KQuizProvider = AiProvider
 export type { PhotoInput }
@@ -96,7 +96,7 @@ function parseGenerated(raw: string): GeneratedMaterials {
 }
 
 export async function generateStudyMaterials(transcript: string, provider: KQuizProvider, apiKey: string): Promise<GeneratedMaterials> {
-  if (!apiKey.trim()) fail('Add an API key in Settings first.')
+  if (!aiReady(apiKey)) aiFail(needsAiMessage)
   const raw = await callAi(buildPrompt(transcript), provider, apiKey.trim())
   return parseGenerated(raw)
 }
@@ -121,7 +121,7 @@ function parseAnswer(raw: string): string {
  * adds it to a subject's running list of material; generating a study set happens later, over
  * whichever entries get checked off (see generateStudyMaterials, called with their combined text). */
 export async function transcribePhoto(photo: PhotoInput, provider: KQuizProvider, apiKey: string): Promise<string> {
-  if (!apiKey.trim()) fail('Add an API key in Settings first.')
+  if (!aiReady(apiKey)) aiFail(needsAiMessage)
   const raw = await callAi(buildTranscribePrompt(), provider, apiKey.trim(), photo)
   return parseTranscription(raw)
 }
@@ -129,7 +129,7 @@ export async function transcribePhoto(photo: PhotoInput, provider: KQuizProvider
 /** Answers a question grounded only in the student's own checked notes/lectures — no separate
  * summary or flashcards, just a direct answer, so this stays cheap enough to ask freely. */
 export async function answerFromNotes(context: string, question: string, provider: KQuizProvider, apiKey: string): Promise<string> {
-  if (!apiKey.trim()) fail('Add an API key in Settings first.')
+  if (!aiReady(apiKey)) aiFail(needsAiMessage)
   const raw = await callAi(buildAnswerPrompt(context, question), provider, apiKey.trim())
   return parseAnswer(raw)
 }

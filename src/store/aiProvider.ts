@@ -40,8 +40,22 @@ async function callOpenAI(prompt: string, apiKey: string, photo?: PhotoInput): P
   return text ?? aiFail('OpenAI returned an empty response. Try again.')
 }
 
+/** KONO's built-in AI (the server's own key, for signed-in people with no key of their own). The
+ * repository turns it on after sign-in when the server says it's available. */
+type BuiltIn = (prompt: string, photo?: PhotoInput) => Promise<string>
+let builtIn: BuiltIn | null = null
+const CHANGE = 'kono-built-in-ai'
+export function setBuiltInAi(fn: BuiltIn | null) { builtIn = fn; window.dispatchEvent(new Event(CHANGE)) }
+export const builtInAiAvailable = () => builtIn !== null
+export function onBuiltInAiChange(listener: () => void) { window.addEventListener(CHANGE, listener); return () => window.removeEventListener(CHANGE, listener) }
+/** Ready when the person has their own key, or KONO's built-in AI is on for them. */
+export const aiReady = (apiKey: string) => !!apiKey.trim() || builtIn !== null
+export const needsAiMessage = 'Sign in with your email to use KONO’s AI, or add your own key in Settings › Import & export › AI helper.'
+
 /** Sends a JSON-schema-constrained prompt (optionally with an attached photo) to whichever provider
- * the caller has a key for, and returns the raw response text -- still unparsed/untrusted JSON. */
+ * the caller has a key for — or to KONO's built-in AI when there's no key — and returns the raw
+ * response text, still unparsed/untrusted JSON. */
 export async function callAi(prompt: string, provider: AiProvider, apiKey: string, photo?: PhotoInput): Promise<string> {
+  if (!apiKey.trim()) return builtIn ? builtIn(prompt, photo) : aiFail(needsAiMessage)
   return provider === 'gemini' ? callGemini(prompt, apiKey, photo) : callOpenAI(prompt, apiKey, photo)
 }

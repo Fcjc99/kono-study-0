@@ -31,7 +31,7 @@ function LegalText() {
     <h4>What KONO doesn't do</h4>
     <p>No ads, no selling or renting your information, and no tracking across sites. KONO counts page visits with Vercel Web Analytics, which uses no cookies and doesn't identify you.</p>
     <h4>Where it's kept</h4>
-    <p>Signed-in plans are stored in KONO's database (Supabase) and in your browser. The site is hosted on Vercel and uses Google Fonts. If you turn on live weather, the location you enter is sent to Open-Meteo. If you add your own AI key, it stays in your browser and the notes you ask about are sent to that AI provider under its terms.</p>
+    <p>Signed-in plans are stored in KONO's database (Supabase) and in your browser. The site is hosted on Vercel and uses Google Fonts. If you turn on live weather, the location you enter is sent to Open-Meteo. When you use an AI feature (reading a photo or schedule, K-Quiz questions, asking your notes), the text or photo you choose is sent through KONO's server to OpenAI to get the answer; OpenAI doesn't use it to train its models, and KONO doesn't keep it. Signed-in accounts get a daily number of AI requests. If you add your own AI key instead, it stays in your browser and what you ask about goes straight to that AI provider under its terms.</p>
     <h4>Who can see it</h4>
     <p>You. KONO support can open a plan to help fix a problem; every time that happens it's logged and you can see it under Settings › Import &amp; export › Backups › Support activity. Friends you accept see only the school-related snapshot described in Friends.</p>
     <h4>Backups</h4>

@@ -5,6 +5,8 @@ import { captureDeletions } from './workspace'
 import { mergeData, type MergeConflict } from './merge'
 import type {AdminAccount,ClientError,Feedback,SupabaseRemote,SupportActivity} from './supabaseRemote'
 import {installErrorReporter} from './errorReporter'
+import {setBuiltInAi} from './aiProvider'
+import {shrinkPhoto} from './shrinkPhoto'
 import {APP_VERSION} from '../version'
 import { buildSharedSnapshot } from './peerShare'
 type User={id:string;email:string;name:string}
@@ -105,6 +107,7 @@ export class PlannerRepository {
     if(typeof user.id!=='string'||!user.id||user.id.length>200||typeof user.email!=='string')throw new Error('Invalid account response.')
     const cloud=this.cloud
     if(cloud)installErrorReporter(entry=>cloud.reportError(entry),()=>({page:currentPage(),appVersion:APP_VERSION}))
+    if(user)void this.enableBuiltInAi()
     const support=this.cloud?readSupportTarget():null
     if(support&&this.cloud&&await this.cloud.isAdmin()){if(this.valid(generation))await this.openSupport(user,support,generation)}
     else{if(support)clearSupportTarget();await this.openAccount(user,generation)}
@@ -118,6 +121,23 @@ export class PlannerRepository {
   if(typeof BroadcastChannel!=='undefined'){this.channel=new BroadcastChannel('kono-plan-changes');this.channel.onmessage=()=>{void this.enqueue(g=>this.reloadOtherTab(g)).catch(()=>undefined)}}
   window.addEventListener('online',this.handleOnline);window.addEventListener('focus',this.handleOnline);window.addEventListener('beforeunload',this.warnUnsaved)
   this.timer=window.setInterval(()=>{if(document.visibilityState==='visible')this.retry()},15000)
+ }
+ /** KONO's built-in AI (the server's OpenAI key) for signed-in people without a key of their own. Only
+  * turned on when the server says it's configured; each request carries this person's access token so
+  * the server can check the sign-in and the daily allowance. */
+ private async enableBuiltInAi(){
+  const cloud=this.cloud
+  if(!cloud)return
+  try{const response=await fetch('/api/ai');if(!response.ok||!/json/.test(response.headers.get('content-type')??''))return;const status=await response.json() as {enabled?:boolean};if(!status.enabled)return}catch{return}
+  setBuiltInAi(async(prompt,photo)=>{
+   const token=await cloud.accessToken()
+   if(!token)throw Error('Sign in again to use KONO’s AI.')
+   const small=photo?await shrinkPhoto(photo):undefined
+   const response=await fetch('/api/ai',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+token},body:JSON.stringify({prompt,photo:small})})
+   const body=await response.json().catch(()=>({})) as {text?:string;error?:string}
+   if(!response.ok||!body.text)throw Error(body.error||'KONO’s AI couldn’t answer. Try again in a moment.')
+   return body.text
+  })
  }
  private async openAccount(user:User,generation:number){
   this.undoStack=[];this.redoStack=[];this.scope='account:'+user.id;this.cache=null;this.blocked=false
