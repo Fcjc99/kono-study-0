@@ -88,6 +88,22 @@ export class SupabaseRemote{
   const {error}=await this.client.from('kono_feedback').delete().eq('id',id)
   if(error)throw new Error(error.message)
  }
+ /** Lock-screen reminders (migration 0008): this device's push subscription, and this account's queue. */
+ async savePushDevice(sub:{endpoint:string;p256dh:string;auth:string}){
+  await this.client.from('kono_push_subscriptions').delete().eq('endpoint',sub.endpoint)
+  const {error}=await this.client.from('kono_push_subscriptions').insert(sub)
+  if(error)throw new Error(/relation|does not exist|schema cache/i.test(error.message)?'Reminders aren’t set up on the server yet.':error.message)
+ }
+ async forgetPushDevice(endpoint:string){await this.client.from('kono_push_subscriptions').delete().eq('endpoint',endpoint)}
+ async replacePushQueue(rows:{sendAt:string;title:string;body:string;tag:string}[]){
+  const {data:{session}}=await this.client.auth.getSession()
+  if(!session?.user)return
+  const cleared=await this.client.from('kono_push_queue').delete().eq('user_id',session.user.id)
+  if(cleared.error)throw new Error(cleared.error.message)
+  if(!rows.length)return
+  const {error}=await this.client.from('kono_push_queue').insert(rows.map(r=>({send_at:r.sendAt,title:r.title,body:r.body,tag:r.tag})))
+  if(error)throw new Error(error.message)
+ }
  /** While set, the plan endpoints below read and write this account through the support functions. */
  private supportTarget:string|null=null
  setSupportTarget(accountId:string|null){this.supportTarget=accountId}

@@ -12,6 +12,7 @@ import {syncCurrentTaskCompletion,createSanctuaryProgress} from './game/progress
 import {pickKonoPhrase,konoCelebration,konoStreakMilestone,seededRand,STREAK_MILESTONES,type KonoPhrase} from './store/konoPhrases'
 import {useReducedMotion,useMusicController} from './hooks/useComfort'
 import {useDueNotifications,useTimeBlockNotifications,useFamilyEventNotifications,notificationsSupported} from './hooks/useDueNotifications'
+import {usePushReminders} from './hooks/usePushReminders'
 import {useLiveSanctuaryWeather} from './hooks/useLiveSanctuaryWeather'
 import ClassOccurrenceCard from './components/ClassOccurrenceCard'
 import {classOccurrences,classTime,type ClassOccurrence} from './store/classSchedule'
@@ -54,6 +55,7 @@ import ActionIcon from './components/ActionIcon'
 // Panels that aren't needed on first paint load on demand.
 const ScheduleImport=lazyPanel(()=>import('./components/ScheduleImport'))
 const CalendarImport=lazyPanel(()=>import('./components/CalendarImport'))
+const PushSettings=lazyPanel(()=>import('./components/PushSettings'))
 const ScheduleSetup=lazyPanel(()=>import('./components/ScheduleSetup'))
 const ScheduleShare=lazyPanel(()=>import('./components/ScheduleShare'))
 const Flashcards=lazyPanel(()=>import('./components/Flashcards'))
@@ -243,6 +245,7 @@ function Workspace({store}:{store:Store}){
  const showReviewDigest=!reviewDigestDismissed&&needsReviewEntries.length>0
  const dismissReviewDigest=()=>{setReviewDigestDismissed(true);try{sessionStorage.setItem(reviewDigestKey,today)}catch{/* Best effort; worst case it reappears next reload today. */}}
  const season=data.studySeasons.find(s=>s.profileId===profile.id&&s.active)
+ usePushReminders(data,repository.replacePushQueue,!!store.user&&!store.support)
  const setting=<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>save(d=>({...d,settings:{...d.settings,[key]:value}}))
  // Off by default so a student sharing the app never sees a nav tab meant for a parent managing
  // multiple kids -- turned on from Settings > Family, the same way the schedule-setup flow picker
@@ -462,7 +465,7 @@ function Workspace({store}:{store:Store}){
    {page==='Exams'&&<section className="wb-panel wb-board board-paper"><div className="wb-section-head wb-board-heading"><h2>Your exams</h2><button onClick={()=>create('exams')}>＋ Exam</button></div><div className="wb-note-grid wb-board-canvas">{data.exams.filter(e=>e.profileId===profile.id).sort((a,b)=>a.due.localeCompare(b.due)).map(e=>card('exams',e as unknown as Entry))}{!data.exams.some(e=>e.profileId===profile.id)&&<p className="wb-board-empty">No exams yet. Add a date and what you need to review.</p>}</div><div className="wb-board-tray" aria-hidden="true"><span>✿</span><span>✦</span><span>✿</span></div></section>}
    {page==='Settings'&&<div className="settings-groups"><div className="wb-section-head settings-page-tools"><small>Version {APP_VERSION} · Build {releaseLabel}</small><FeedbackButton store={store}/></div><nav className="subject-section-tabs" aria-label="Settings sections">{[...SETTINGS_TABS,...(store.isAdmin&&!store.support?['KONO support' as const]:[])].map(tab=><button key={tab} aria-current={tab===settingsTab?'page':undefined} onClick={()=>setSettingsTab(tab)}>{tab}</button>)}</nav>
    {settingsTab==='Look & feel'&&<><section className="wb-panel"><Appearance settings={data.settings} setting={setting}/></section><section className="wb-panel"><h2>Sound &amp; motion</h2><SoundMotionSettings data={data} setData={save}/></section><section className="wb-panel"><h2>Sanctuary weather</h2><p>Live, manual or clear weather and your weather location are set right on the Sanctuary, from the weather button next to KONO.</p><button type="button" onClick={openWeather}>Open Sanctuary weather</button></section></>}
-   {settingsTab==='Notifications'&&<section className="wb-panel"><h2>Notifications</h2><ReminderSettings data={data} setData={save}/>{parentMode&&<FamilyReminderSettings data={data} setting={setting}/>}</section>}
+   {settingsTab==='Notifications'&&<section className="wb-panel"><h2>Notifications</h2><PushSettings store={store}/><ReminderSettings data={data} setData={save}/>{parentMode&&<FamilyReminderSettings data={data} setting={setting}/>}</section>}
    {settingsTab==='Family'&&<FamilySettings data={data} setting={setting} patch={patch} navigate={navigate}/>}
    {settingsTab==='Schedules'&&<section className="wb-panel"><ScheduleSetup data={data} save={save} draftKey={draftScope} fetchCatalog={repository.fetchSchoolCatalog} submitCatalogEntry={repository.submitSchoolCatalogEntry}/></section>}
    {settingsTab==='KONO support'&&store.isAdmin&&!store.support&&<section className="wb-panel"><SupportAdminPanel store={store}/></section>}

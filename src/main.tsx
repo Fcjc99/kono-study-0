@@ -5,8 +5,10 @@ import App from './App.tsx'
 import SanctuaryQA from './SanctuaryQA'
 import SanctuaryBuildStudio from './components/SanctuaryBuildStudio'
 import ErrorBoundary from './components/ErrorBoundary'
+import { captureInstallPrompt } from './store/installPrompt'
 
 const params = new URLSearchParams(window.location.search)
+captureInstallPrompt()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

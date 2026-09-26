@@ -26,6 +26,7 @@ function LegalText() {
       <li>What you put in your plan: subjects, assignments, notes, exams, schedules, and names/emoji you give to kids in Parent mode.</li>
       <li>Your settings and Sanctuary progress.</li>
       <li>If something goes wrong in the app while you're signed in: the error message, which page you were on, your app version and browser type. Never your notes or plans. Kept for 30 days.</li>
+      <li>If you turn on lock-screen reminders: your device's push address, and the next week's reminder titles (like “Due today: Essay”) so KONO's server can send them at the right time. Each reminder is removed once sent; turning reminders off removes the device.</li>
       <li>Feedback you choose to send, with the page you sent it from, your app version and browser type. KONO support reads it and removes it when it's handled.</li>
     </ul>
     <h4>What KONO doesn't do</h4>

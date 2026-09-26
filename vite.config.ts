@@ -38,6 +38,16 @@ const RUNTIME_NAME='kono-runtime'
 const PRECACHE=${JSON.stringify(precache)}
 self.addEventListener('install',event=>{event.waitUntil(caches.open(PRECACHE_NAME).then(cache=>cache.addAll(PRECACHE)).then(()=>self.skipWaiting()))})
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==PRECACHE_NAME&&key!==RUNTIME_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim()))})
+// Lock-screen reminders (api/push-send): show them, and open KONO when one is tapped.
+self.addEventListener('push',event=>{
+ let d={}
+ try{d=event.data?event.data.json():{}}catch{d={title:'KONO',body:event.data?event.data.text():''}}
+ event.waitUntil(self.registration.showNotification(d.title||'KONO',{body:d.body||'',tag:d.tag||undefined,icon:'/icons/kono-192.png',badge:'/icons/kono-192.png'}))
+})
+self.addEventListener('notificationclick',event=>{
+ event.notification.close()
+ event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{for(const client of list)if('focus' in client)return client.focus();return self.clients.openWindow('/')}))
+})
 self.addEventListener('fetch',event=>{
  const request=event.request
  if(request.method!=='GET')return
