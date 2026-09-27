@@ -15,3 +15,8 @@
 .elevator-course-card h3{font-size:1rem}
 @media(max-width:700px){.school-flow-steps{grid-template-columns:1fr 1fr}.school-flow-steps span{min-height:38px;font-size:.72rem}.elevator-course-card .wb-form-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.school-setup .wb-form-grid{grid-template-columns:minmax(0,1fr)}.school-setup button{min-height:44px}.school-setup input[type=date],.school-setup input[type=time]{width:100%;box-sizing:border-box}.school-setup .wb-toolbar{gap:.5rem}.school-rule-list{max-height:none}}
+/* Period times for schedules that list periods without clock times. */
+.period-times{display:grid;gap:8px;border:1px solid var(--wb-line,#ddd);border-radius:12px;padding:10px 12px;margin:10px 0}
+.period-times-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.period-times-row strong{min-width:5.5em}
+.period-times-row label{display:flex;align-items:center;gap:6px}

@@ -1,12 +1,20 @@
 import {pdfClassTableText,pdfSixDayTimetableText,pdfTimetableText} from './pdfTimetableText'
 import type {Worker} from 'tesseract.js'
 
+/** pdf.js's legacy build: the modern build calls brand-new browser APIs (Map.getOrInsertComputed,
+ * Math.sumPrecise, Uint8Array.fromBase64…) that many phones don't have yet, which made every scanned
+ * PDF fail ("getOrInsertComputed is not a function"). The legacy build brings its own polyfills, in the
+ * page and in its worker. */
+async function loadPdfjs(){
+ const pdfjs=await import('pdfjs-dist/legacy/build/pdf.mjs'),workerUrl=(await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')).default
+ pdfjs.GlobalWorkerOptions.workerSrc=workerUrl
+ return pdfjs
+}
 export async function readSchedulePdf(file:File,first:number,last:number,signal:AbortSignal,progress:(message:string)=>void,scanAll=true,preserveColumns:boolean|'six-day'|'class-table'|'find-class-table'=false){
  if(file.size>20*1024*1024)throw Error('Choose a PDF smaller than 20 MB. Split a large scan into smaller files.')
  if(!Number.isInteger(first)||!Number.isInteger(last)||first<1||last<first||last-first>=5)throw Error('Read up to five pages at a time.')
  const magic=new TextDecoder().decode(await file.slice(0,5).arrayBuffer());if(magic!=='%PDF-')throw Error('Choose a valid PDF file.')
- const pdfjs=await import('pdfjs-dist'),workerUrl=(await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default
- pdfjs.GlobalWorkerOptions.workerSrc=workerUrl
+ const pdfjs=await loadPdfjs()
  const task=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),useSystemFonts:true})
  let worker:Worker|undefined
  const abort=()=>{void task.destroy();void worker?.terminate()}
@@ -55,4 +63,20 @@ export async function readSchedulePhoto(file:File,signal:AbortSignal,progress:(m
   worker=await createWorker('eng',1,{workerPath:'/ocr/worker.min.js',corePath:'/ocr',langPath:'/ocr',workerBlobURL:false,cacheMethod:'none',logger:m=>{if(!signal.aborted&&m.status==='recognizing text')progress('Reading photo · '+Math.round(m.progress*100)+'%')}})
   check();const text=(await worker.recognize(canvas)).data.text;check();if(text.length>100000)throw Error('Crop this image to the schedule area.');return text
  }finally{signal.removeEventListener('abort',abort);bitmap.close();canvas.width=0;canvas.height=0;await worker?.terminate()}
+}
+/** A PDF that is only a picture (a scan or screenshot saved as PDF) has no text for the AI helper to
+ * read, and a grid loses its columns when its text is recognized. Returns the first page as a JPEG in
+ * that case (null when the page has real text). */
+export async function pdfPageImage(file:File):Promise<{base64:string;mimeType:string}|null>{
+ if(file.size>20*1024*1024)throw Error('Choose a PDF smaller than 20 MB.')
+ const pdfjs=await loadPdfjs()
+ const task=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),useSystemFonts:true})
+ try{
+  const page=await (await task.promise).getPage(1),content=await page.getTextContent()
+  const chars=content.items.reduce((n,item)=>n+('str' in item?item.str.replace(/\s/g,'').length:0),0)
+  if(chars>=40)return null
+  const native=page.getViewport({scale:1}),viewport=page.getViewport({scale:Math.min(3,2000/Math.max(native.width,native.height))}),canvas=document.createElement('canvas')
+  canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height)
+  try{await page.render({canvas,viewport}).promise;return {base64:canvas.toDataURL('image/jpeg',0.85).split(',')[1]??'',mimeType:'image/jpeg'}}finally{canvas.width=0;canvas.height=0}
+ }finally{await task.destroy()}
 }
