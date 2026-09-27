@@ -770,6 +770,58 @@ function proseSchedulePdf(){
  return {name:'my-classes.pdf',mimeType:'application/pdf',buffer:Buffer.from(doc.output('arraybuffer'))}
 }
 
+/** A PDF that is only a picture (a schedule screenshot saved as PDF): one JPEG page, no text at all. */
+function picturePdf(jpeg,width,height){
+ const parts=[],offsets=[],push=s=>{parts.push(Buffer.isBuffer(s)?s:Buffer.from(s,'latin1'))},size=()=>parts.reduce((n,b)=>n+b.length,0)
+ const obj=(n,body)=>{offsets[n]=size();push(n+' 0 obj\n');for(const b of [].concat(body))push(b);push('\nendobj\n')}
+ push('%PDF-1.4\n')
+ obj(1,'<< /Type /Catalog /Pages 2 0 R >>');obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>')
+ obj(3,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${width} ${height}] /Resources << /XObject << /Im1 4 0 R >> >> /Contents 5 0 R >>`)
+ obj(4,[`<< /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`,jpeg,'\nendstream'])
+ const draw=`q ${width} 0 0 ${height} 0 0 cm /Im1 Do Q`;obj(5,`<< /Length ${draw.length} >>\nstream\n${draw}\nendstream`)
+ const xref=size();push(`xref\n0 6\n0000000000 65535 f \n${offsets.slice(1).map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`)
+ return Buffer.concat(parts)
+}
+
+test('Rotating school: Duxbury High’s 7-day rotation takes a picture-only PDF with periods but no times; KONO’s AI reads the picture and each period’s times are entered once',async({context,page})=>{
+ const cloud=fakeCloud(),posts=[]
+ // A stand-in schedule picture (made-up classes) laid out like the real one: D1–D7 columns, P1–P5 rows.
+ const grid=await context.newPage()
+ await grid.setViewportSize({width:700,height:260})
+ await grid.setContent('<table border=1 style="font:14px sans-serif;border-collapse:collapse">'+['<tr><th></th>'+[1,2,3,4,5,6,7].map(d=>'<th>D'+d+'</th>').join('')+'</tr>',...[1,2,3,4,5].map(p=>'<tr><th>P'+p+'</th>'+[1,2,3,4,5,6,7].map(d=>'<td>Class '+((p+d)%7+1)+'</td>').join('')+'</tr>')].join('')+'</table>')
+ const jpeg=await grid.screenshot({type:'jpeg',quality:80});await grid.close()
+ await signInAs(context,cloud,'alice')
+ await context.route(BASE+'api/ai',route=>{
+  const request=route.request()
+  if(request.method()==='GET')return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({enabled:true})})
+  posts.push(request.postDataJSON())
+  const classes=[{name:'Chemistry I',code:'328-03',days:['D1 - Day 1'],start:null,end:null,period:'P1-Period 1',room:'A321',teacher:null},{name:'Spanish III',code:'442-01',days:['D2 -'],start:null,end:null,period:'P1-Period 1',room:'A346',teacher:null},{name:'English 10',code:'022-02',days:['D1'],start:null,end:null,period:'P2-Period 2',room:'A306',teacher:null}]
+  return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({text:JSON.stringify({classes}),used:1,limit:40})})
+ })
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Settings');await settingsTab(page,'Schedules')
+ await page.getByRole('button',{name:/^Rotating school/}).click()
+ await page.getByRole('button',{name:'Duxbury High School · 2026–27 · 7-day rotation'}).click()
+ const sections=page.getByRole('navigation',{name:'School setup sections'})
+ assert.equal(await page.locator('select').filter({has:page.locator('option[value="day-7"]')}).inputValue(),'day-7','the 7-day rotation is chosen')
+ await sections.getByRole('button',{name:'3 · Classes'}).click()
+ await page.getByLabel('Class timetable file').setInputFiles({name:'schedule.pdf',mimeType:'application/pdf',buffer:picturePdf(jpeg,700,260)})
+ await page.getByRole('button',{name:'Read timetable & find classes'}).click()
+ await page.getByRole('button',{name:'Read with AI helper'}).waitFor({timeout:90000})
+ await page.getByRole('button',{name:'Read with AI helper'}).click()
+ await page.getByText('Your AI helper found 3 classes. Your schedule shows periods but no times',{exact:false}).waitFor()
+ assert.equal(posts.length,1);assert.equal(posts[0].photo?.mimeType,'image/jpeg','the picture-only PDF went to the AI as a picture');assert.doesNotMatch(posts[0].prompt,/Schedule text:/)
+ const cont=page.getByRole('button',{name:'Continue to calendar preview'})
+ assert.ok(await cont.isDisabled(),'classes without times can’t continue')
+ await page.getByText('3 selected classes need a start and end time before you continue.').waitFor()
+ await page.getByLabel('Period 1 starts').fill('07:30');await page.getByLabel('Period 1 ends').fill('08:30')
+ await page.getByLabel('Period 2 starts').fill('08:35')
+ assert.ok(await cont.isDisabled(),'one period still needs its end time')
+ await page.getByLabel('Period 2 ends').fill('09:35')
+ await cont.click()
+ await page.getByText(/^3 recurring blocks/).waitFor()
+})
+
 test('College semester: choose the term, upload the schedule, review, save; a layout KONO can’t read is logged and the AI helper reads it',async({context,page})=>{
  const cloud=fakeCloud(),aiRequests=[]
  await signInAs(context,cloud,'alice')

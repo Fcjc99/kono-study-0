@@ -102,4 +102,38 @@ test('Classes from the PDF importer join a college semester: breaks apply, dupli
  assert.throws(()=>addImportedClassesToSeason(weekdaysOnly,data.activeProfileId,s.id,[row('Saturday Lab','Lab',[6],'09:00','10:00','')]),/isn’t a class day/)
  assert.equal(JSON.stringify(data.studySeasons[0].week.Monday),'[]','the original plan is untouched')
 })
+test('Duxbury High School: a 7-day rotation on the district calendar; a periods-only schedule (no clock times) is kept by period, and one set of times per period fills every class',()=>{
+ const {academicTemplate}=load('src/store/academicCatalog.ts'),{parseAiClassSchedule,classSchedulePrompt,periodLabel}=load('src/store/aiClassSchedule.ts'),{addTimetableRows}=load('src/store/schoolImport.ts')
+ const data=model.createFreshData(),dhs=academicTemplate(data.activeProfileId,'duxburyhs-2026')
+ assert.equal(dhs.school.pattern,'rotation');assert.equal(dhs.school.cycle.join(','),'Day 1,Day 2,Day 3,Day 4,Day 5,Day 6,Day 7');assert.equal(dhs.name,'Duxbury High School 2026–27')
+ assert.ok(dhs.school.exceptions.some(e=>e.label==='Thanksgiving recess'),'the district calendar dates come along')
+ assert.equal(academicTemplate(data.activeProfileId,'duxbury-2026').school.pattern,'weekly','the district’s other schools keep the Monday–Friday week')
+ // Step 1 errors say where to go.
+ assert.throws(()=>validateSchool(dhs.school,dhs.start,dhs.end),/In step 1 · School year, choose the student’s grade/)
+ const graded={...dhs.school,grade:'10'};assert.throws(()=>validateSchool(graded,dhs.start,dhs.end),/pick a date you know \(today works\) and which rotation day it is, like Day 3/)
+ validateSchool({...graded,anchorDate:'2026-09-28',anchorDay:'Day 4'},dhs.start,dhs.end)
+ // What the AI returns for the real schedule (columns "D1 - Day 1", "D2 -"…, rows "P1-Period 1"…, no times).
+ const cycle=dhs.school.cycle,prompt=classSchedulePrompt(cycle)
+ assert.match(prompt,/"D1", "D2 -" or "Day 1" are those rotation days/);assert.match(prompt,/set start and end to null; never guess times/)
+ const raw=JSON.stringify({classes:[
+  {name:'Chemistry I',code:'328-03',days:['D1 - Day 1'],start:null,end:null,period:'P1-Period 1',building:null,room:'A321',teacher:'McLeod, Timothy E'},
+  {name:'Chemistry I',code:'328-03',days:['D2 -'],start:null,end:null,period:'P3-Period 3',room:'A321',teacher:'McLeod, Timothy E'},
+  {name:'Spanish III',code:'442-01',days:['Day 2'],start:null,end:null,period:'P1',room:'A346',teacher:'Steen, Katherine M'},
+  {name:'Music Technology I',code:'513-01',days:['D1'],start:null,end:null,period:'Period 2',room:'Tech Rm'},
+  {name:'English 10',code:'022-02',days:['D6'],start:'10:05',end:'11:00',period:'P5'},
+  {name:'Lunch',code:null,days:['D1'],start:null,end:null,period:null}]})
+ const rows=parseAiClassSchedule(raw,cycle,dhs.start,dhs.school.lastClassDate)
+ assert.equal(rows.length,5,'chemistry twice, Spanish, music tech and English; nothing without a time or period')
+ const chem=rows.filter(r=>r.label==='328-03 · Chemistry I');assert.equal(chem.map(r=>r.day+' '+r.slot).join(','),'Day 1 Period 1,Day 2 Period 3')
+ assert.equal(chem[0].slot,'Period 1');assert.equal(chem[0].start,'');assert.equal(chem[0].location,'A321 · McLeod, Timothy E')
+ const english=rows.find(r=>r.label==='022-02 · English 10');assert.equal(english.start,'10:05');assert.equal(english.slot,'022-02','times shown: kept as given')
+ assert.equal(periodLabel('P3-Period 3'),'Period 3');assert.equal(periodLabel('Block A'),'Block A');assert.equal(periodLabel(null),'')
+ const draft={...dhs,school:{...graded,anchorDate:'2026-09-28',anchorDay:'Day 4'}}
+ assert.throws(()=>addTimetableRows(draft,rows),/Check/,'classes without times can’t be added yet')
+ const times={'Period 1':['07:30','08:30'],'Period 2':['08:35','09:35'],'Period 3':['09:40','10:40']}
+ const timed=rows.map(r=>times[r.slot]?{...r,start:times[r.slot][0],end:times[r.slot][1]}:r)
+ const saved=addTimetableRows(draft,timed)
+ assert.equal(saved.week['Day 1'].map(b=>b.start+' '+b.label).sort().join(' | '),'07:30 328-03 · Chemistry I | 08:35 513-01 · Music Technology I')
+ assert.equal(saved.week['Day 2'].map(b=>b.start+' '+b.label).sort().join(' | '),'07:30 442-01 · Spanish III | 09:40 328-03 · Chemistry I');assert.equal(saved.week['Day 6'][0].start,'10:05')
+})
 console.log(passed+' school-calendar regression groups passed. No user data changed.')
