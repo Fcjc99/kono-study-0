@@ -52,7 +52,7 @@ export function validateSchool(c:SchoolCalendar,start:string,end:string){
  if(c.pattern!==undefined&&!['weekly','rotation','elevator'].includes(c.pattern))throw Error('Unknown schedule pattern.')
  if(c.pattern==='weekly'&&JSON.stringify(c.cycle)!==JSON.stringify(dayNames))throw Error('Weekly calendars must use the seven weekdays.')
  for(const value of [c.catalogId,c.catalogRevision,c.program])if(value!==undefined&&!text(value,200))throw Error('Invalid calendar source or program.')
- if(!c.grade.trim())throw Error('In step 1 · School year, choose the student’s grade (for example Grade 10) so grade-specific school dates apply.')
+ if(!c.grade.trim())throw Error('Answer “What grade are you in?” at the top of setup (or Student grade in step 1 · School year) so grade-specific school dates apply.')
  if(!date(start)||!date(end)||end<start||Math.round((Date.parse(end)-Date.parse(start))/86400000)>550)throw Error('A school calendar must cover at most 550 days.')
  if(c.pattern!=='weekly'&&(!date(c.anchorDate)||c.anchorDate<start||c.anchorDate>end||!c.cycle.includes(c.anchorDay)))throw Error('Answer “Which rotation day is it?” at the top of setup: pick a school day you know and its day number, like “September 28 is Day 4”. Your school’s calendar or a teacher can tell you.')
  if(!date(c.lastClassDate)||c.lastClassDate<start||c.lastClassDate>end)throw Error('Last regular class must be inside the school year.')
@@ -91,3 +91,6 @@ export function rotationPreview(s:StudySeason,from:string,count=5):{date:string;
  for(let d=from<s.start?s.start:from;d<=last&&out.length<count;d=addDays(d,1)){const day=schoolDay(s,d);if(day?.cycleDay)out.push({date:d,cycleDay:day.cycleDay})}
  return out
 }
+/** College terms are weekly calendars with a faculty / program; schools that simply run Monday–Friday
+ * (Duxbury Public Schools, Silver Lake…) are weekly too but have no program and need a grade instead. */
+export const isCollegeCalendar=(c:SchoolCalendar|undefined)=>!!c&&c.pattern==='weekly'&&c.program!==undefined
