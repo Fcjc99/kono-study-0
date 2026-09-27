@@ -770,6 +770,30 @@ function proseSchedulePdf(){
  return {name:'my-classes.pdf',mimeType:'application/pdf',buffer:Buffer.from(doc.output('arraybuffer'))}
 }
 
+test('Monday–Friday school (Duxbury Public Schools): KONO asks the grade up front, step 1 has it, and the school saves as a school, not a college',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Settings');await settingsTab(page,'Schedules')
+ await page.getByRole('button',{name:/^Rotating school/}).click()
+ await page.getByRole('button',{name:'Duxbury Public Schools · 2026–27'}).click()
+ const grade=page.getByRole('region',{name:'Your grade'})
+ await grade.getByRole('heading',{name:'What grade are you in?'}).waitFor()
+ assert.equal(await page.getByRole('region',{name:'Rotation day'}).count(),0,'a Monday–Friday school has no rotation question')
+ assert.equal(await page.getByLabel('Student grade').count(),1,'step 1 has the grade');assert.equal(await page.getByLabel('Faculty / program').count(),0,'no college faculty field')
+ await grade.getByRole('combobox').selectOption('11')
+ await grade.waitFor({state:'detached'})
+ assert.equal(await page.getByLabel('Student grade').inputValue(),'11')
+ const sections=page.getByRole('navigation',{name:'School setup sections'})
+ await sections.getByRole('button',{name:'4 · Review'}).click()
+ await page.getByLabel(/I checked the calendar, grade/).check()
+ await page.getByRole('button',{name:'Save & populate my calendar'}).click()
+ await page.getByText('Schedule saved.',{exact:false}).waitFor()
+ const card=page.locator('.school-setup .wb-record').filter({hasText:'Duxbury Public Schools 2026–27'})
+ await card.waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.studySeasons?.some(x=>x.school?.name==='Duxbury Public Schools'&&x.school.grade==='11'),'the school reaches the account')
+})
+
 /** A JPEG's pixel width and height, from its start-of-frame marker. */
 function jpegSize(jpeg){
  for(let i=2;i<jpeg.length;){const marker=jpeg[i+1],length=jpeg.readUInt16BE(i+2);if(marker>=0xc0&&marker<=0xc3)return [jpeg.readUInt16BE(i+7),jpeg.readUInt16BE(i+5)];i+=2+length}
@@ -810,6 +834,7 @@ test('Rotating school: Duxbury High’s 7-day rotation takes a picture-only PDF 
  await page.getByRole('button',{name:'Duxbury High School · 2026–27 · 7-day rotation'}).click()
  const sections=page.getByRole('navigation',{name:'School setup sections'})
  assert.equal(await page.locator('select').filter({has:page.locator('option[value="day-7"]')}).inputValue(),'day-7','the 7-day rotation is chosen')
+ await page.getByRole('region',{name:'Your grade'}).getByRole('combobox').selectOption('10')
  // Asked up front: one known school day and its number, e.g. "September 28 is Day 4".
  const rotation=page.getByRole('region',{name:'Rotation day'})
  await rotation.getByRole('heading',{name:'Which rotation day is it?'}).waitFor()

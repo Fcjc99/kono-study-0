@@ -109,7 +109,7 @@ test('Duxbury High School: a 7-day rotation on the district calendar; a periods-
  assert.ok(dhs.school.exceptions.some(e=>e.label==='Thanksgiving recess'),'the district calendar dates come along')
  assert.equal(academicTemplate(data.activeProfileId,'duxbury-2026').school.pattern,'weekly','the district’s other schools keep the Monday–Friday week')
  // Step 1 errors say where to go.
- assert.throws(()=>validateSchool(dhs.school,dhs.start,dhs.end),/In step 1 · School year, choose the student’s grade/)
+ assert.throws(()=>validateSchool(dhs.school,dhs.start,dhs.end),/Answer “What grade are you in\?” at the top of setup/)
  const graded={...dhs.school,grade:'10'};assert.throws(()=>validateSchool(graded,dhs.start,dhs.end),/Answer “Which rotation day is it\?” at the top of setup/)
  validateSchool({...graded,anchorDate:'2026-09-28',anchorDay:'Day 4'},dhs.start,dhs.end)
  // What the AI returns for the real schedule (columns "D1 - Day 1", "D2 -"…, rows "P1-Period 1"…, no times).
@@ -146,5 +146,17 @@ test('One known day sets the rotation: "September 28 is Day 4" counts forward ov
  assert.equal(rotationPreview(known,'2026-09-28',6).map(p=>p.date.slice(5)+' '+p.cycleDay).join(', '),'09-28 Day 4, 09-29 Day 5, 09-30 Day 6, 10-01 Day 7, 10-02 Day 1, 10-05 Day 2')
  assert.equal(rotationPreview(known,'2026-10-08',3).map(p=>p.date.slice(5)+' '+p.cycleDay).join(', '),'10-08 Day 5, 10-09 Day 6, 10-13 Day 7','Columbus Day is skipped without using up a day')
  assert.equal(schoolDay(known,'2026-09-25').cycleDay,'Day 3','and it counts backwards too')
+})
+test('Monday–Friday schools (Duxbury Public Schools, Silver Lake…) are schools, not colleges: they need a grade, not a faculty, and can be saved',()=>{
+ const {academicTemplate}=load('src/store/academicCatalog.ts'),{isCollegeCalendar}=load('src/store/schoolCalendar.ts')
+ const base=model.createFreshData(),id=base.activeProfileId
+ for(const cat of ['duxbury-2026','silverlake-2026','scituate-2026','plymouth-2026']){
+  const s=academicTemplate(id,cat);assert.equal(s.school.pattern,'weekly');assert.equal(isCollegeCalendar(s.school),false,cat+' is a school')
+  assert.throws(()=>validateSchool(s.school,s.start,s.end),/What grade are you in/)
+  validateSchool({...s.school,grade:'10'},s.start,s.end)
+  const saved=model.normalizeData({...base,studySeasons:[{...s,school:{...s.school,grade:'10'}}]}).studySeasons[0]
+  assert.equal(isCollegeCalendar(saved.school),false,cat+' stays a school after saving')
+ }
+ assert.equal(isCollegeCalendar(academicTemplate(id,'bc-fall-2026').school),true,'a college term is a college');assert.equal(isCollegeCalendar(academicTemplate(id,'duxburyhs-2026').school),false)
 })
 console.log(passed+' school-calendar regression groups passed. No user data changed.')
