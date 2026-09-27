@@ -20,3 +20,10 @@
 .period-times-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
 .period-times-row strong{min-width:5.5em}
 .period-times-row label{display:flex;align-items:center;gap:6px}
+/* "Which rotation day is it?": asked above the setup steps until answered. */
+.rotation-question{display:grid;gap:6px;margin:10px 0;padding:12px 14px;border-radius:14px;border:2px solid var(--wb-accent,#e0705c);background:color-mix(in srgb,var(--wb-accent,#e0705c) 8%,transparent)}
+.rotation-question.is-answered{border-width:1px;border-color:var(--wb-line,#ddd);background:transparent}
+.rotation-question h3,.rotation-question p{margin:0}
+.rotation-question-fields{display:flex;flex-wrap:wrap;align-items:end;gap:8px 12px}
+.rotation-question-fields label{display:grid;gap:4px}
+.rotation-question .link-button{background:none!important;border:0!important;padding:0!important;text-decoration:underline;cursor:pointer;color:inherit!important;font:inherit;box-shadow:none!important;min-height:0!important;transform:none!important}

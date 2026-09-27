@@ -790,6 +790,7 @@ test('Rotating school: Duxbury High’s 7-day rotation takes a picture-only PDF 
  await grid.setViewportSize({width:700,height:260})
  await grid.setContent('<table border=1 style="font:14px sans-serif;border-collapse:collapse">'+['<tr><th></th>'+[1,2,3,4,5,6,7].map(d=>'<th>D'+d+'</th>').join('')+'</tr>',...[1,2,3,4,5].map(p=>'<tr><th>P'+p+'</th>'+[1,2,3,4,5,6,7].map(d=>'<td>Class '+((p+d)%7+1)+'</td>').join('')+'</tr>')].join('')+'</table>')
  const jpeg=await grid.screenshot({type:'jpeg',quality:80});await grid.close()
+ await page.clock.setFixedTime(new Date('2026-09-27T10:00:00')) // a Sunday
  await signInAs(context,cloud,'alice')
  await context.route(BASE+'api/ai',route=>{
   const request=route.request()
@@ -804,6 +805,20 @@ test('Rotating school: Duxbury High’s 7-day rotation takes a picture-only PDF 
  await page.getByRole('button',{name:'Duxbury High School · 2026–27 · 7-day rotation'}).click()
  const sections=page.getByRole('navigation',{name:'School setup sections'})
  assert.equal(await page.locator('select').filter({has:page.locator('option[value="day-7"]')}).inputValue(),'day-7','the 7-day rotation is chosen')
+ // Asked up front: one known school day and its number, e.g. "September 28 is Day 4".
+ const rotation=page.getByRole('region',{name:'Rotation day'})
+ await rotation.getByRole('heading',{name:'Which rotation day is it?'}).waitFor()
+ assert.match(await rotation.innerText(),/For example: Monday, September 28 is Day 4\./,'the example is the next school day')
+ assert.equal(await rotation.getByLabel('School day').inputValue(),'2026-09-28','it suggests the next school day, not a weekend')
+ assert.ok(await rotation.getByRole('button',{name:'Set rotation'}).isDisabled())
+ await rotation.getByLabel('School day').fill('2026-10-12')
+ await rotation.getByRole('combobox').selectOption('Day 4')
+ await rotation.getByText('has no school on this calendar',{exact:false}).waitFor()
+ assert.ok(await rotation.getByRole('button',{name:'Set rotation'}).isDisabled(),'Columbus Day can’t be the known day')
+ await rotation.getByLabel('School day').fill('2026-09-28')
+ await rotation.getByRole('button',{name:'Set rotation'}).click()
+ await rotation.getByText('✓ Monday, September 28 is Day 4.').waitFor()
+ assert.match(await rotation.innerText(),/Coming up: Mon, Sep 28 · Day 4, Tue, Sep 29 · Day 5, Wed, Sep 30 · Day 6, Thu, Oct 1 · Day 7, Fri, Oct 2 · Day 1, Mon, Oct 5 · Day 2\./)
  await sections.getByRole('button',{name:'3 · Classes'}).click()
  await page.getByLabel('Class timetable file').setInputFiles({name:'schedule.pdf',mimeType:'application/pdf',buffer:picturePdf(jpeg,700,260)})
  await page.getByRole('button',{name:'Read timetable & find classes'}).click()

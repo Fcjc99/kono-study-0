@@ -54,7 +54,7 @@ export function validateSchool(c:SchoolCalendar,start:string,end:string){
  for(const value of [c.catalogId,c.catalogRevision,c.program])if(value!==undefined&&!text(value,200))throw Error('Invalid calendar source or program.')
  if(!c.grade.trim())throw Error('In step 1 · School year, choose the student’s grade (for example Grade 10) so grade-specific school dates apply.')
  if(!date(start)||!date(end)||end<start||Math.round((Date.parse(end)-Date.parse(start))/86400000)>550)throw Error('A school calendar must cover at most 550 days.')
- if(c.pattern!=='weekly'&&(!date(c.anchorDate)||c.anchorDate<start||c.anchorDate>end||!c.cycle.includes(c.anchorDay)))throw Error('In step 1 · School year, pick a date you know (today works) and which rotation day it is, like Day 3. Your school’s calendar or a teacher can tell you.')
+ if(c.pattern!=='weekly'&&(!date(c.anchorDate)||c.anchorDate<start||c.anchorDate>end||!c.cycle.includes(c.anchorDay)))throw Error('Answer “Which rotation day is it?” at the top of setup: pick a school day you know and its day number, like “September 28 is Day 4”. Your school’s calendar or a teacher can tell you.')
  if(!date(c.lastClassDate)||c.lastClassDate<start||c.lastClassDate>end)throw Error('Last regular class must be inside the school year.')
  if(!Array.isArray(c.weekdays)||!c.weekdays.length||c.weekdays.some(x=>!Number.isInteger(x)||x<0||x>6)||new Set(c.weekdays).size!==c.weekdays.length||typeof c.snowAdvances!=='boolean')throw Error('Choose the school weekdays and snow-day rule.')
  if(!Array.isArray(c.exceptions)||c.exceptions.length>400)throw Error('Use at most 400 school calendar exceptions.')
@@ -76,4 +76,18 @@ export function validateSchool(c:SchoolCalendar,start:string,end:string){
  const temporary={start,end,school:c} as StudySeason
  const e=schoolException(temporary,c.anchorDate)
  if(c.pattern!=='weekly'&&(!c.weekdays.includes(weekday(c.anchorDate))&&e?.kind!=='makeup'||e?.kind==='holiday'||e?.kind==='snow'))throw Error('The known rotation date must be an open school day.')
+}
+/** The first day with classes on or after `from` (holidays, weekends and breaks skipped); it doesn't
+ * need the rotation to be known yet. */
+export function nextSchoolDate(s:StudySeason,from:string):string|undefined{
+ const last=s.school?.lastClassDate||s.end
+ for(let d=from<s.start?s.start:from;d<=last;d=addDays(d,1)){const day=schoolDay(s,d);if(day&&!day.closed)return d}
+ return undefined
+}
+/** The next `count` days with classes from `from`, with their rotation day, to check a known day against. */
+export function rotationPreview(s:StudySeason,from:string,count=5):{date:string;cycleDay:string}[]{
+ const out:{date:string;cycleDay:string}[]=[],last=s.school?.lastClassDate||s.end
+ if(!s.school?.cycle.includes(s.school.anchorDay))return out
+ for(let d=from<s.start?s.start:from;d<=last&&out.length<count;d=addDays(d,1)){const day=schoolDay(s,d);if(day?.cycleDay)out.push({date:d,cycleDay:day.cycleDay})}
+ return out
 }
