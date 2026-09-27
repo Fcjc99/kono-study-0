@@ -99,3 +99,18 @@
 .week-planner-review{display:grid;gap:10px}
 .week-planner-review h4{margin:4px 0}
 .week-planner-review ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+/* Weekly recap (Sanctuary on Sundays/Mondays, and Planner › Your week so far). */
+.week-recap-panel>summary{cursor:pointer;font-weight:700}
+.week-recap{display:grid;gap:10px;margin-top:6px}
+.week-recap-head small{letter-spacing:.06em;opacity:.75}
+.week-recap-head h3{margin:2px 0 0;font-size:1.15rem}
+.week-recap-tiles{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.week-recap-tiles li{display:grid;justify-items:center;gap:2px;padding:10px 6px;border-radius:14px;background:color-mix(in srgb,var(--wb-accent,#e0705c) 10%,transparent);text-align:center}
+.week-recap-tiles strong{font-size:1.5rem;line-height:1.1}
+.week-recap-tiles small{font-size:.78rem;opacity:.85}
+.week-recap-days{list-style:none;margin:0;padding:0;display:flex;gap:6px}
+.week-recap-days li{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:.8rem;font-weight:700;border:1px solid var(--wb-line,#ddd);opacity:.7}
+.week-recap-days li.is-active{background:var(--wb-accent,#e0705c);color:var(--wb-accent-ink,#fff);border-color:transparent;opacity:1}
+.week-recap-notes,.week-recap-next{margin:0}
+.week-recap .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media (max-width:560px){.week-recap-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
