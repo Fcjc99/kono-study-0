@@ -770,6 +770,11 @@ function proseSchedulePdf(){
  return {name:'my-classes.pdf',mimeType:'application/pdf',buffer:Buffer.from(doc.output('arraybuffer'))}
 }
 
+/** A JPEG's pixel width and height, from its start-of-frame marker. */
+function jpegSize(jpeg){
+ for(let i=2;i<jpeg.length;){const marker=jpeg[i+1],length=jpeg.readUInt16BE(i+2);if(marker>=0xc0&&marker<=0xc3)return [jpeg.readUInt16BE(i+7),jpeg.readUInt16BE(i+5)];i+=2+length}
+ throw new Error('Not a JPEG')
+}
 /** A PDF that is only a picture (a schedule screenshot saved as PDF): one JPEG page, no text at all. */
 function picturePdf(jpeg,width,height){
  const parts=[],offsets=[],push=s=>{parts.push(Buffer.isBuffer(s)?s:Buffer.from(s,'latin1'))},size=()=>parts.reduce((n,b)=>n+b.length,0)
@@ -786,10 +791,11 @@ function picturePdf(jpeg,width,height){
 test('Rotating school: Duxbury High’s 7-day rotation takes a picture-only PDF with periods but no times; KONO’s AI reads the picture and each period’s times are entered once',async({context,page})=>{
  const cloud=fakeCloud(),posts=[]
  // A stand-in schedule picture (made-up classes) laid out like the real one: D1–D7 columns, P1–P5 rows.
- const grid=await context.newPage()
- await grid.setViewportSize({width:700,height:260})
- await grid.setContent('<table border=1 style="font:14px sans-serif;border-collapse:collapse">'+['<tr><th></th>'+[1,2,3,4,5,6,7].map(d=>'<th>D'+d+'</th>').join('')+'</tr>',...[1,2,3,4,5].map(p=>'<tr><th>P'+p+'</th>'+[1,2,3,4,5,6,7].map(d=>'<td>Class '+((p+d)%7+1)+'</td>').join('')+'</tr>')].join('')+'</table>')
- const jpeg=await grid.screenshot({type:'jpeg',quality:80});await grid.close()
+ // Drawn on this test's own page before it opens KONO: a second, background tab can't always be
+ // captured in headless Chromium ("Unable to capture screenshot" in CI).
+ await page.setContent('<table border=1 style="font:14px sans-serif;border-collapse:collapse">'+['<tr><th></th>'+[1,2,3,4,5,6,7].map(d=>'<th>D'+d+'</th>').join('')+'</tr>',...[1,2,3,4,5].map(p=>'<tr><th>P'+p+'</th>'+[1,2,3,4,5,6,7].map(d=>'<td>Class '+((p+d)%7+1)+'</td>').join('')+'</tr>')].join('')+'</table>')
+ const jpeg=await page.locator('table').screenshot({type:'jpeg',quality:80}),[pw,ph]=jpegSize(jpeg)
+ await page.clock.setFixedTime(new Date('2026-09-27T10:00:00')) // a Sunday
  await signInAs(context,cloud,'alice')
  await context.route(BASE+'api/ai',route=>{
   const request=route.request()
@@ -804,8 +810,22 @@ test('Rotating school: Duxbury High’s 7-day rotation takes a picture-only PDF 
  await page.getByRole('button',{name:'Duxbury High School · 2026–27 · 7-day rotation'}).click()
  const sections=page.getByRole('navigation',{name:'School setup sections'})
  assert.equal(await page.locator('select').filter({has:page.locator('option[value="day-7"]')}).inputValue(),'day-7','the 7-day rotation is chosen')
+ // Asked up front: one known school day and its number, e.g. "September 28 is Day 4".
+ const rotation=page.getByRole('region',{name:'Rotation day'})
+ await rotation.getByRole('heading',{name:'Which rotation day is it?'}).waitFor()
+ assert.match(await rotation.innerText(),/For example: Monday, September 28 is Day 4\./,'the example is the next school day')
+ assert.equal(await rotation.getByLabel('School day').inputValue(),'2026-09-28','it suggests the next school day, not a weekend')
+ assert.ok(await rotation.getByRole('button',{name:'Set rotation'}).isDisabled())
+ await rotation.getByLabel('School day').fill('2026-10-12')
+ await rotation.getByRole('combobox').selectOption('Day 4')
+ await rotation.getByText('has no school on this calendar',{exact:false}).waitFor()
+ assert.ok(await rotation.getByRole('button',{name:'Set rotation'}).isDisabled(),'Columbus Day can’t be the known day')
+ await rotation.getByLabel('School day').fill('2026-09-28')
+ await rotation.getByRole('button',{name:'Set rotation'}).click()
+ await rotation.getByText('✓ Monday, September 28 is Day 4.').waitFor()
+ assert.match(await rotation.innerText(),/Coming up: Mon, Sep 28 · Day 4, Tue, Sep 29 · Day 5, Wed, Sep 30 · Day 6, Thu, Oct 1 · Day 7, Fri, Oct 2 · Day 1, Mon, Oct 5 · Day 2\./)
  await sections.getByRole('button',{name:'3 · Classes'}).click()
- await page.getByLabel('Class timetable file').setInputFiles({name:'schedule.pdf',mimeType:'application/pdf',buffer:picturePdf(jpeg,700,260)})
+ await page.getByLabel('Class timetable file').setInputFiles({name:'schedule.pdf',mimeType:'application/pdf',buffer:picturePdf(jpeg,pw,ph)})
  await page.getByRole('button',{name:'Read timetable & find classes'}).click()
  await page.getByRole('button',{name:'Read with AI helper'}).waitFor({timeout:90000})
  await page.getByRole('button',{name:'Read with AI helper'}).click()

@@ -110,7 +110,7 @@ test('Duxbury High School: a 7-day rotation on the district calendar; a periods-
  assert.equal(academicTemplate(data.activeProfileId,'duxbury-2026').school.pattern,'weekly','the district’s other schools keep the Monday–Friday week')
  // Step 1 errors say where to go.
  assert.throws(()=>validateSchool(dhs.school,dhs.start,dhs.end),/In step 1 · School year, choose the student’s grade/)
- const graded={...dhs.school,grade:'10'};assert.throws(()=>validateSchool(graded,dhs.start,dhs.end),/pick a date you know \(today works\) and which rotation day it is, like Day 3/)
+ const graded={...dhs.school,grade:'10'};assert.throws(()=>validateSchool(graded,dhs.start,dhs.end),/Answer “Which rotation day is it\?” at the top of setup/)
  validateSchool({...graded,anchorDate:'2026-09-28',anchorDay:'Day 4'},dhs.start,dhs.end)
  // What the AI returns for the real schedule (columns "D1 - Day 1", "D2 -"…, rows "P1-Period 1"…, no times).
  const cycle=dhs.school.cycle,prompt=classSchedulePrompt(cycle)
@@ -135,5 +135,16 @@ test('Duxbury High School: a 7-day rotation on the district calendar; a periods-
  const saved=addTimetableRows(draft,timed)
  assert.equal(saved.week['Day 1'].map(b=>b.start+' '+b.label).sort().join(' | '),'07:30 328-03 · Chemistry I | 08:35 513-01 · Music Technology I')
  assert.equal(saved.week['Day 2'].map(b=>b.start+' '+b.label).sort().join(' | '),'07:30 442-01 · Spanish III | 09:40 328-03 · Chemistry I');assert.equal(saved.week['Day 6'][0].start,'10:05')
+})
+test('One known day sets the rotation: "September 28 is Day 4" counts forward over weekends and holidays, and the next school day is found without it',()=>{
+ const {academicTemplate}=load('src/store/academicCatalog.ts'),{nextSchoolDate,rotationPreview}=load('src/store/schoolCalendar.ts')
+ const dhs=academicTemplate(model.createFreshData().activeProfileId,'duxburyhs-2026')
+ assert.equal(nextSchoolDate(dhs,'2026-09-26'),'2026-09-28','a Saturday → the Monday, before the rotation is known')
+ assert.equal(nextSchoolDate(dhs,'2026-09-07'),'2026-09-08','Labor Day is skipped');assert.equal(nextSchoolDate(dhs,'2026-08-01'),'2026-09-02','before the year → the first day')
+ assert.equal(rotationPreview(dhs,'2026-09-28').length,0,'no preview until a day is known')
+ const known={...dhs,school:{...dhs.school,anchorDate:'2026-09-28',anchorDay:'Day 4'}}
+ assert.equal(rotationPreview(known,'2026-09-28',6).map(p=>p.date.slice(5)+' '+p.cycleDay).join(', '),'09-28 Day 4, 09-29 Day 5, 09-30 Day 6, 10-01 Day 7, 10-02 Day 1, 10-05 Day 2')
+ assert.equal(rotationPreview(known,'2026-10-08',3).map(p=>p.date.slice(5)+' '+p.cycleDay).join(', '),'10-08 Day 5, 10-09 Day 6, 10-13 Day 7','Columbus Day is skipped without using up a day')
+ assert.equal(schoolDay(known,'2026-09-25').cycleDay,'Day 3','and it counts backwards too')
 })
 console.log(passed+' school-calendar regression groups passed. No user data changed.')
