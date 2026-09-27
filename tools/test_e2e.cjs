@@ -704,6 +704,28 @@ test('Plan my week with KONO’s AI: the AI’s sessions are shown after checkin
  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents?.some(e=>e.planFor==='task:wk-essay'&&e.title==='Outline the essay'),'the AI session reaches the account')
 })
 
+test('Weekly recap: the Sunday card on the Sanctuary page hides until next week, and Planner shares it as a picture',async({context,page})=>{
+ await page.clock.setFixedTime(new Date('2026-09-27T10:00:00'))
+ await createPlan(page)
+ const sunday=page.locator('.week-recap-sunday')
+ await sunday.getByRole('region',{name:'Your week in review'}).waitFor()
+ assert.match(await sunday.innerText(),/YOUR WEEK · SEP 21 – SEP 27/)
+ assert.equal(await sunday.locator('.week-recap-days li').count(),7)
+ await sunday.getByRole('button',{name:'Hide until next week'}).click()
+ await sunday.waitFor({state:'detached'})
+ await page.reload();await heading(page,'Sanctuary')
+ assert.equal(await page.locator('.week-recap-sunday').count(),0,'stays hidden after a reload')
+ await go(page,'Planner')
+ await page.locator('summary',{hasText:'Your week so far'}).click()
+ const card=page.locator('.week-recap-panel .week-recap')
+ await card.waitFor()
+ const [download]=await Promise.all([page.waitForEvent('download'),card.getByRole('button',{name:'Share my week'}).click()])
+ assert.equal(download.suggestedFilename(),'my-kono-week.png')
+ const png=fs.readFileSync(await download.path())
+ assert.equal(png.subarray(1,4).toString(),'PNG');assert.equal(png.readUInt32BE(16),1080);assert.equal(png.readUInt32BE(20),1920)
+ await card.getByText('Saved the picture.',{exact:false}).waitFor()
+})
+
 test('Lock-screen reminders: the Notifications panel explains setup, needs sign-in, and says when the server isn’t ready',async({context,page})=>{
  await createPlan(page)
  await go(page,'Settings')
