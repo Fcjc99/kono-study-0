@@ -645,6 +645,65 @@ test('Built-in AI: a signed-in student with no key of their own gets KONO’s AI
  assert.match(posts[0].body.prompt,/Marine Biology with Dr\. Lee/)
 })
 
+/** A signed-in account whose plan has an essay due in three days (dates relative to today). */
+function weekPlanCloud(){
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,d=new Date();d.setDate(d.getDate()+3)
+ const due=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
+ plan.tasks.push({id:'wk-essay',profileId:plan.activeProfileId,subjectId:'',title:'Week plan essay',due,done:false,notes:'',estimatedMinutes:60})
+ return cloud
+}
+const waitFor=async(check,message)=>{for(let i=0;i<60;i++){if(check())return;await new Promise(r=>setTimeout(r,250))}assert.fail(message)}
+async function openWeekPlanner(page){
+ await go(page,'Planner')
+ await page.locator('summary',{hasText:'Plan my week'}).click()
+ return page.locator('.week-planner')
+}
+
+test('Plan my week: KONO plans study sessions around the schedule, adds them to the Calendar, and can clear them',async({context,page})=>{
+ const cloud=weekPlanCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const panel=await openWeekPlanner(page)
+ await panel.getByText('for a plan made by KONO’s AI',{exact:false}).waitFor()
+ await panel.getByRole('button',{name:'✨ Plan my week'}).click()
+ await panel.getByText(/study sessions? planned\. Untick/).waitFor()
+ assert.doesNotMatch(await panel.getByRole('status').innerText(),/with KONO’s AI/)
+ const review=panel.locator('.week-planner-review')
+ assert.match(await review.innerText(),/Work on Week plan essay[\s\S]*For Week plan essay · due/)
+ await review.getByRole('button',{name:/^Add \d+ sessions? to my Calendar$/}).click()
+ await panel.getByText(/added to your Calendar/).waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.calendarEvents?.some(e=>e.planFor==='task:wk-essay'&&e.kind==='study'&&e.time&&e.endTime),'the planned sessions reach the account')
+ page.once('dialog',dialog=>void dialog.accept())
+ await panel.getByRole('button',{name:/^Clear \d+ planned sessions?$/}).click()
+ await panel.getByText('Earlier planned sessions removed.',{exact:false}).waitFor()
+ await waitFor(()=>!cloud.users.alice.plan.data.calendarEvents.some(e=>e.planFor),'clearing reaches the account')
+})
+
+test('Plan my week with KONO’s AI: the AI’s sessions are shown after checking, and anything it invents is dropped',async({context,page})=>{
+ const cloud=weekPlanCloud(),posts=[]
+ await signInAs(context,cloud,'alice')
+ await context.route(BASE+'api/ai',route=>{
+  const request=route.request()
+  if(request.method()==='GET')return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({enabled:true})})
+  const prompt=request.postDataJSON().prompt;posts.push(prompt)
+  const work=JSON.parse(prompt.match(/Work: (\[.*\])\n/)[1]),free=JSON.parse(prompt.match(/Free times: (\[.*\])$/)[1])
+  const essay=work.find(w=>w.title==='Week plan essay'),slot=free[0]
+  const sessions=[{ref:essay.ref,date:slot.date,start:slot.start,minutes:30,focus:'Outline the essay'},{ref:'task:made-up',date:slot.date,start:slot.start,minutes:30,focus:'Invented work'}]
+  return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({text:JSON.stringify({sessions}),used:1,limit:40})})
+ })
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const panel=await openWeekPlanner(page)
+ await panel.getByRole('button',{name:'✨ Plan my week'}).click()
+ await panel.getByText('1 study session planned with KONO’s AI.',{exact:false}).waitFor()
+ const review=panel.locator('.week-planner-review')
+ assert.match(await review.innerText(),/Outline the essay/);assert.doesNotMatch(await review.innerText(),/Invented work/)
+ assert.match(await review.innerText(),/Didn’t fit this week: Week plan essay \(about 30 min more\)/)
+ assert.equal(posts.length,1);assert.match(posts[0],/"title":"Week plan essay"/)
+ await review.getByRole('button',{name:'Add 1 session to my Calendar'}).click()
+ await panel.getByText('1 study session added to your Calendar.',{exact:false}).waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.calendarEvents?.some(e=>e.planFor==='task:wk-essay'&&e.title==='Outline the essay'),'the AI session reaches the account')
+})
+
 test('Lock-screen reminders: the Notifications panel explains setup, needs sign-in, and says when the server isn’t ready',async({context,page})=>{
  await createPlan(page)
  await go(page,'Settings')

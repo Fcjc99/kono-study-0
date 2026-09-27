@@ -5,7 +5,7 @@ import type { AppData } from './model'
  * (so times are in their time zone) and handed to KONO's server queue (migration 0008):
  * - 7:00 AM: what's due today (assignments and exams), one summary
  * - 7:00 PM: exams and tests tomorrow
- * - 15 minutes before each class, and at the start of each planned study block
+ * - 15 minutes before each class, and at the start of each planned study block and Plan-my-week session
  * - parent mode with family reminders on: 15 minutes before each timed event
  * Past times are skipped; the list is capped so a busy week can't flood anyone. */
 export type Reminder = { sendAt: string; title: string; body: string; tag: string }
@@ -37,7 +37,8 @@ export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
       add(at(date, start, 15), (c.block.kind === 'study' ? 'Class in 15 min: ' : 'In 15 min: ') + c.block.label, [classTime(start), c.block.location].filter(Boolean).join(' · '), 'class-' + c.block.id + '-' + date)
     }
     for (const t of tasks.filter(t => t.due === date && t.plannedTime)) add(at(date, t.plannedTime!), 'Time to start: ' + t.title, t.estimatedMinutes ? `Planned for about ${t.estimatedMinutes} minutes.` : 'This is the time you planned for it.', 'block-' + t.id)
-    if (settings.parentMode && settings.familyEventReminders) for (const e of data.calendarEvents.filter(e => e.profileId === profileId && !e.done && e.date === date && e.time)) add(at(date, e.time!, 15), 'In 15 min: ' + e.title, classTime(e.time!), 'event-' + e.id)
+    for (const e of data.calendarEvents.filter(e => e.profileId === profileId && !e.done && e.date === date && e.time && e.planFor)) add(at(date, e.time!), 'Study time: ' + e.title, [e.endTime ? classTime(e.time!) + '–' + classTime(e.endTime) : classTime(e.time!), e.notes.split('\n')[0]].filter(Boolean).join(' · '), 'study-' + e.id)
+    if (settings.parentMode && settings.familyEventReminders) for (const e of data.calendarEvents.filter(e => e.profileId === profileId && !e.done && e.date === date && e.time && !e.planFor)) add(at(date, e.time!, 15), 'In 15 min: ' + e.title, classTime(e.time!), 'event-' + e.id)
   }
   return out.sort((a, b) => a.sendAt.localeCompare(b.sendAt)).slice(0, MAX)
 }

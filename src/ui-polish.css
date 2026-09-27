@@ -90,3 +90,12 @@
 /* The KONO emblem in the brand badge (sidebar and phone header), in the badge's text colour. */
 .brand-mark>.brand-logo{display:block;width:72%;max-width:34px;min-width:20px;height:auto;flex:none}
 .workbench .wb-brand>.brand-mark>.brand-logo{width:30px;max-width:none}
+/* Plan my week (Planner page). */
+.week-plan-panel>summary{cursor:pointer;font-weight:700}
+.week-planner{display:grid;gap:10px;margin-top:8px}
+.week-planner-hours{display:grid;gap:8px;border:1px solid var(--wb-line,#ddd);border-radius:12px;padding:10px 12px}
+.week-planner-hours>div{display:flex;flex-wrap:wrap;gap:8px 14px}
+.week-planner-hours label{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.week-planner-review{display:grid;gap:10px}
+.week-planner-review h4{margin:4px 0}
+.week-planner-review ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
