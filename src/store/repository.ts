@@ -98,6 +98,11 @@ export class PlannerRepository {
     this.authUnsubscribe=this.cloud.onAuthChange((event,next)=>{
      if(event==='SIGNED_IN'&&next?.id!==this.state.user?.id)window.location.reload()
     })
+    // An installed desktop app shares sign-in with the browser but doesn't hear about it: when the
+    // email link signs in a browser tab, the app window picks it up as soon as it's looked at again.
+    const cloud=this.cloud,recheck=()=>{if(document.visibilityState==='visible'&&!this.state.user)void cloud.session().then(u=>{if(u)window.location.reload()}).catch(()=>{})}
+    window.addEventListener('focus',recheck);document.addEventListener('visibilitychange',recheck)
+    window.addEventListener('storage',e=>{if(e.key?.startsWith('sb-')&&e.key.endsWith('-auth-token'))recheck()})
    }else{
     const response=await fetch('/api/session',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(5000)})
     if(response.ok&&response.headers.get('content-type')?.includes('application/json'))user=(await response.json() as {user:User|null}).user
@@ -333,6 +338,13 @@ export class PlannerRepository {
   const address=email.trim().toLowerCase()
   if(!/^\S+@\S+\.\S+$/.test(address)||address.length>320)throw new Error('Enter a valid email address.')
   await this.cloud.signInWithEmail(address)
+ }
+ verifyEmailCode=async(email:string,code:string)=>{
+  if(!this.cloud)throw new Error('Email sign-in is available on the public KONO site.')
+  const address=email.trim().toLowerCase(),digits=code.replace(/\s/g,'')
+  if(!/^\d{6,10}$/.test(digits))throw new Error('Enter the code from the email: numbers only.')
+  try{await this.cloud.verifyEmailCode(address,digits)}
+  catch(e){throw new Error(/expired|invalid|otp/i.test(e instanceof Error?e.message:'')?'That code didn’t work. It may have expired: send a new email and use the newest code.':'Couldn’t sign in with that code. Check your connection and try again.',{cause:e})}
  }
  deleteAccountData=()=>this.enqueue(async generation=>{
   if(this.state.support)throw new Error('Support can’t delete someone’s plan.')
