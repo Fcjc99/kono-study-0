@@ -6,15 +6,17 @@ export type LunchWave = 1 | 2 | 3
 /** A school's regular bell schedule: the times of each numbered period (or block); when lunch happens
  * inside one of them, which part of that period each lunch wave eats; and a time that always follows one
  * period with the same class (Duxbury High's ASP after Block 5). */
-export type BellSchedule = { periods: [string, string][]; lunch?: { period: number; waves: Record<LunchWave, [string, string]> }; after?: { period: number; label: string; start: string; end: string } }
+export type BellSchedule = { periods: [string, string][]; lunch?: { period: number; waves: Record<LunchWave, [string, string]> }; after?: { period: number; label: string; start: string; end: string }; classes?: number }
 
 /** Duxbury High School: five blocks a day on the 7-day rotation. Lunch is inside Block 4, in three
  * waves, and a class's wave follows the department that teaches it (see duxburyLunchWave). ASP
- * (2:05–2:45) always follows Block 5, with the Block 5 class. */
+ * (2:05–2:45) always follows Block 5, with the Block 5 class. A student has 7 classes that rotate through
+ * the blocks in order: Day 1 is classes 1-2-3-4-5, Day 2 is 6-7-1-2-3, … Day 7 is 3-4-5-6-7. */
 export const duxburyHighBells: BellSchedule = {
   periods: [['08:20', '09:19'], ['09:23', '10:22'], ['10:26', '11:25'], ['11:29', '12:58'], ['13:02', '14:05']],
   lunch: { period: 4, waves: { 1: ['11:29', '11:53'], 2: ['11:54', '12:18'], 3: ['12:34', '12:58'] } },
   after: { period: 5, label: 'ASP', start: '14:05', end: '14:45' },
+  classes: 7,
 }
 
 export const bellScheduleFor = (school?: SchoolCalendar): BellSchedule | undefined =>
@@ -149,4 +151,76 @@ export function periodProblems(rows: PeriodRow[], cycle: string[], bells?: BellS
     }
   }
   return problems
+}
+
+/** At a school where a fixed set of classes rotates through the periods in order, which class (0-based)
+ * meets on the day at `dayIndex` (0-based) in `period` (1-based). */
+export const classIndexFor = (bells: BellSchedule, dayIndex: number, period: number) => (dayIndex * bells.periods.length + period - 1) % (bells.classes ?? bells.periods.length)
+/** Every day's classes in period order, as class numbers from 1: Day 1 → [1,2,3,4,5], Day 2 → [6,7,1,2,3]… */
+export const rotationGrid = (bells: BellSchedule, days: number) => Array.from({ length: days }, (_, d) => bells.periods.map((_, p) => classIndexFor(bells, d, p + 1) + 1))
+
+export type RotationClass = { label: string; location: string; lunchWave: LunchWave }
+const dayIndexOf = (day: string, cycle: string[]) => cycle.indexOf(day)
+
+/** The classes read from a schedule laid out by day and period, put back in class order. Each class is
+ * seen on several days; the name seen most often wins, and any disagreement is reported. */
+export function classesFromRows(rows: { include?: boolean; day: string; label: string; slot: string; location?: string; kind?: string }[], cycle: string[], bells: BellSchedule): { classes: { label: string; location: string }[]; conflicts: string[] } {
+  const count = bells.classes ?? bells.periods.length
+  const seen = Array.from({ length: count }, () => new Map<string, { n: number; location: string }>())
+  for (const r of rows) {
+    const d = dayIndexOf(r.day, cycle), p = periodNumber(r.slot)
+    if (r.include === false || d < 0 || !p || p > bells.periods.length || !r.label.trim()) continue
+    const names = seen[classIndexFor(bells, d, p)], key = r.label.trim(), prev = names.get(key)
+    names.set(key, { n: (prev?.n ?? 0) + 1, location: prev?.location || r.location || '' })
+  }
+  const conflicts: string[] = []
+  const classes = seen.map((names, i) => {
+    const ranked = [...names].sort((a, b) => b[1].n - a[1].n)
+    if (ranked.length > 1) conflicts.push('Class ' + (i + 1) + ' was read as ' + ranked.map(([name]) => name).join(' and ') + '. Check which it is.')
+    return { label: ranked[0]?.[0] ?? '', location: ranked[0]?.[1].location ?? '' }
+  })
+  return { classes, conflicts }
+}
+
+/** The classes already in a saved rotation, in class order (the first-semester class of each period). */
+export function classesFromWeek(season: StudySeason, bells: BellSchedule): { label: string; location: string; lunchWave?: LunchWave }[] {
+  const cycle = season.school?.cycle ?? [], count = bells.classes ?? bells.periods.length
+  const found: { label: string; location: string; lunchWave?: LunchWave; from: string }[] = Array.from({ length: count }, () => ({ label: '', location: '', from: '9999' }))
+  cycle.forEach((day, d) => {
+    for (const b of season.week[day] ?? []) {
+      const p = periodNumber(b.slot)
+      if (!p || (b.kind !== 'study' && b.kind !== 'break')) continue
+      const i = classIndexFor(bells, d, p), from = b.fullYear ? season.start : b.dateStart ?? season.start
+      if (from > found[i].from) continue
+      // The class's lunch is on whichever day it's in the lunch period.
+      const lunch = bells.lunch && p === bells.lunch.period ? (season.week[day] ?? []).find(x => x.slot === 'Lunch' && (x.fullYear ? season.start : x.dateStart ?? season.start) === from)?.label.match(/\d/)?.[0] : undefined
+      const lunchWave = lunch ? Number(lunch) as LunchWave : undefined
+      if (from === found[i].from) { if (lunchWave) found[i].lunchWave = lunchWave; continue }
+      found[i] = { label: b.label, location: b.location ?? '', lunchWave, from }
+    }
+  })
+  return found.map(({ label, location, lunchWave }) => ({ label, location, lunchWave }))
+}
+
+/** All rotation days built from the student's classes: each class in its period with the bell times,
+ * lunch inside the lunch period for whichever class is there that day, and ASP after the last period.
+ * A class named "Free" (or "Open", "Study Hall"…) is a free block rather than a subject. */
+export function buildRotationWeek(season: StudySeason, classes: RotationClass[]): StudySeason {
+  const bells = bellScheduleFor(season.school), count = bells?.classes
+  if (!bells || !count || !season.school) throw Error('This school doesn’t use a class rotation.')
+  if (classes.length !== count) throw Error('Enter all ' + count + ' classes.')
+  const missing = classes.map((c, i) => c.label.trim() ? 0 : i + 1).filter(Boolean)
+  if (missing.length) throw Error('Enter a name for class ' + missing.join(', ') + '. Use “Free” for a free block.')
+  const dateStart = season.start, dateEnd = season.school.lastClassDate || season.end
+  const week = Object.fromEntries(season.school.cycle.map((day, d) => {
+    const blocks: ScheduleBlock[] = []
+    bells.periods.forEach(([start, end], p) => {
+      const c = classes[classIndexFor(bells, d, p + 1)], label = c.label.trim(), free = /^(free|open|free block|study hall|study)$/i.test(label)
+      blocks.push({ id: uid('block'), label, slot: 'Period ' + (p + 1), start, end, kind: free ? 'break' : 'study', location: c.location.trim() || undefined, dateStart, dateEnd, occurrenceNotes: {}, completedDates: [], skippedDates: [] })
+      if (bells.lunch && p + 1 === bells.lunch.period) blocks.push(lunchBlock(bells, c.lunchWave, dateStart, dateEnd))
+      if (bells.after && p + 1 === bells.after.period) blocks.push(afterBlock(bells, label, c.location, dateStart, dateEnd))
+    })
+    return [day, blocks.sort((a, b) => a.start.localeCompare(b.start))]
+  }))
+  return { ...season, week }
 }
