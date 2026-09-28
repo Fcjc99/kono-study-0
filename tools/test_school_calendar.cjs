@@ -166,7 +166,8 @@ test('Duxbury High bell schedule: five blocks fill a periods-only schedule, the 
  const school={...dhs.school,grade:'10',anchorDate:'2026-09-28',anchorDay:'Day 4'},season={...dhs,school}
  const bells=b.bellScheduleFor(school)
  assert.ok(bells,'Duxbury High has a bell schedule');assert.equal(b.bellScheduleFor(academicTemplate(data.activeProfileId,'duxbury-2026').school),undefined,'the district’s other schools don’t')
- assert.equal(bells.periods.map(p=>p.join('–')).join(', '),'08:20–09:19, 09:23–10:22, 10:26–11:25, 11:29–12:58, 13:02–14:45')
+ assert.equal(bells.periods.map(p=>p.join('–')).join(', '),'08:20–09:19, 09:23–10:22, 10:26–11:25, 11:29–12:58, 13:02–14:05')
+ assert.equal(bells.after.label+' '+bells.after.start+'–'+bells.after.end,'ASP 14:05–14:45','ASP always follows Block 5')
  for(const w of [1,2,3]){const [a,z]=bells.lunch.waves[w];assert.ok(a>=bells.periods[3][0]&&z<=bells.periods[3][1]&&a<z,'lunch '+w+' is inside Block 4')}
  assert.match(classSchedulePrompt(school.cycle,undefined,5),/5 periods \(also called blocks\) every day/);assert.doesNotMatch(classSchedulePrompt(school.cycle),/also called blocks/)
  // Lunch waves by department.
@@ -181,23 +182,25 @@ test('Duxbury High bell schedule: five blocks fill a periods-only schedule, the 
   {name:'US History II',days:['D1'],start:null,end:null,period:'P4-Period 4'},
   {name:'English 10',days:['D2'],start:null,end:null,period:'P4'},
   {name:'Spanish III',days:['D1'],start:null,end:null,period:'P1'},
-  {name:'Band',days:['D2'],start:'07:00',end:'07:50',period:'Period 5'}]})
+  {name:'Band',days:['D2'],start:null,end:null,period:'Period 5'},
+  {name:'Jazz Lab',days:['D5'],start:'07:00',end:'07:50',period:null}]})
  const rows=b.applyBells(parseAiClassSchedule(raw,school.cycle,season.start,school.lastClassDate),bells)
  const at=(day,label)=>rows.find(r=>r.day===day&&r.label===label)
  assert.equal(at('Day 1','Chemistry I').start+'–'+at('Day 1','Chemistry I').end,'08:20–09:19')
  assert.equal(at('Day 1','US History II').start+'–'+at('Day 1','US History II').end,'11:29–12:58');assert.equal(at('Day 1','US History II').lunchWave,2)
  assert.equal(at('Day 2','English 10').lunchWave,3);assert.equal(at('Day 1','Chemistry I').lunchWave,undefined,'only Block 4 has lunch')
- assert.equal(at('Day 2','Band').start,'07:00','times on the schedule are kept')
+ assert.equal(at('Day 5','Jazz Lab').start,'07:00','times on the schedule are kept');assert.equal(at('Day 2','Band').start+'–'+at('Day 2','Band').end,'13:02–14:05')
  const problems=b.periodProblems(rows,school.cycle,bells)
  assert.ok(problems.includes('Day 1 has two classes in Period 1. Untick the one that’s wrong.'),problems.join(' / '))
  assert.ok(problems.some(p=>p.startsWith('Day 1 has nothing in Period 2, Period 3, Period 5.')),problems.join(' / '))
  assert.ok(!problems.some(p=>p.startsWith('Day 3')),'a day with no classes read isn’t flagged')
  const chosen=rows.filter(r=>r.label!=='Spanish III')
  assert.ok(!b.periodProblems(chosen,school.cycle,bells).some(p=>/two classes/.test(p)))
- const saved=b.addLunches(addTimetableRows(season,chosen),chosen)
+ const saved=b.addBellBlocks(addTimetableRows(season,chosen),chosen)
  assert.equal(saved.week['Day 1'].map(x=>x.start+' '+x.label).join(' | '),'08:20 Chemistry I | 11:29 US History II | 11:54 Lunch 2')
- assert.equal(saved.week['Day 2'].map(x=>x.start+' '+x.label).join(' | '),'07:00 Band | 11:29 English 10 | 12:34 Lunch 3')
- assert.equal(b.addLunches(saved,chosen).week['Day 1'].length,3,'lunch isn’t added twice')
+ assert.equal(saved.week['Day 2'].map(x=>x.start+' '+x.label).join(' | '),'11:29 English 10 | 12:34 Lunch 3 | 13:02 Band | 14:05 ASP · Band','ASP follows the Block 5 class')
+ const asp=saved.week['Day 2'].find(x=>x.slot==='ASP');assert.equal(asp.kind,'routine','ASP doesn’t become a subject');assert.equal(asp.end,'14:45')
+ assert.equal(b.addBellBlocks(saved,chosen).week['Day 1'].length,3,'lunch isn’t added twice')
  // Second semester: History becomes Economics (a history class, still 2nd lunch) and English becomes
  // Anatomy (science → 1st lunch) from Monday, January 25.
  const data2={...data,studySeasons:[{...saved,active:true}]}
@@ -211,8 +214,12 @@ test('Duxbury High bell schedule: five blocks fill a periods-only schedule, the 
  assert.equal(shown(before),'08:20 Chemistry I | 11:29 US History II | 11:54 Lunch 2')
  assert.equal(shown(after),'08:20 Chemistry I | 11:29 Economics | 11:54 Lunch 2')
  const d2=['2027-01-05','2027-01-06','2027-01-07','2027-01-08','2027-01-11','2027-01-12','2027-01-13','2027-02-01','2027-02-02','2027-02-03','2027-02-04','2027-02-05','2027-02-08','2027-02-09'].filter(d=>day(d)==='Day 2')
- assert.equal(shown(d2[0]),'07:00 Band | 11:29 English 10 | 12:34 Lunch 3')
- assert.equal(shown(d2.find(d=>d>'2027-01-25')),'07:00 Band | 11:29 Anatomy & Physiology | 11:29 Lunch 1','the lunch moved with the new class')
+ assert.equal(shown(d2[0]),'11:29 English 10 | 12:34 Lunch 3 | 13:02 Band | 14:05 ASP · Band')
+ assert.equal(shown(d2.find(d=>d>'2027-01-25')),'11:29 Anatomy & Physiology | 11:29 Lunch 1 | 13:02 Band | 14:05 ASP · Band','the lunch moved with the new class')
+ // A Block 5 class that changes takes ASP with it.
+ const orch=b.switchClass(next,'Band',{label:'Orchestra',from:'2027-01-25'})
+ assert.equal(classOccurrences({...data,studySeasons:[{...orch,active:true}]},d2.find(d=>d>'2027-01-25')).map(o=>o.block.start+' '+o.block.label).join(' | '),'11:29 Anatomy & Physiology | 11:29 Lunch 1 | 13:02 Orchestra | 14:05 ASP · Orchestra')
+ assert.equal(classOccurrences({...data,studySeasons:[{...orch,active:true}]},d2[0]).map(o=>o.block.start+' '+o.block.label).join(' | '),'11:29 English 10 | 12:34 Lunch 3 | 13:02 Band | 14:05 ASP · Band')
  const econ=next.week['Day 1'].find(x=>x.label==='Economics'),hist=next.week['Day 1'].find(x=>x.label==='US History II')
  assert.equal(hist.dateEnd,'2027-01-24');assert.equal(econ.dateStart,'2027-01-25');assert.equal(econ.location,'A210');assert.equal(econ.subjectId,undefined,'the new class gets its own subject on save')
  validateSchool(next.school,next.start,next.end)
@@ -221,6 +228,7 @@ test('Duxbury High bell schedule: five blocks fill a periods-only schedule, the 
  assert.throws(()=>b.switchClass(saved,'Chemistry I',{label:' ',from:'2027-01-25'}),/new class’s name/)
  assert.throws(()=>b.switchClass(saved,'Nope',{label:'Physics',from:'2027-01-25'}),/nothing to change/)
  // A name fixed everywhere.
+ assert.equal(b.renameClass(saved,'Band','Concert Band').week['Day 2'].map(x=>x.label).join(', '),'English 10, Lunch 3, Concert Band, ASP · Concert Band','ASP is renamed too')
  const renamed=b.renameClass(saved,'chemistry i','Chemistry I (Honors)')
  assert.equal(Object.values(renamed.week).flat().filter(x=>x.label==='Chemistry I (Honors)').length,1);assert.equal(saved.week['Day 1'][0].label,'Chemistry I','the original is untouched')
 })

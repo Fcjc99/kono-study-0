@@ -3,15 +3,18 @@ import type { ScheduleBlock, StudySeason } from './model'
 import { uid } from './model'
 
 export type LunchWave = 1 | 2 | 3
-/** A school's regular bell schedule: the times of each numbered period (or block), and, when lunch
- * happens inside one of them, which part of that period each lunch wave eats. */
-export type BellSchedule = { periods: [string, string][]; lunch?: { period: number; waves: Record<LunchWave, [string, string]> } }
+/** A school's regular bell schedule: the times of each numbered period (or block); when lunch happens
+ * inside one of them, which part of that period each lunch wave eats; and a time that always follows one
+ * period with the same class (Duxbury High's ASP after Block 5). */
+export type BellSchedule = { periods: [string, string][]; lunch?: { period: number; waves: Record<LunchWave, [string, string]> }; after?: { period: number; label: string; start: string; end: string } }
 
 /** Duxbury High School: five blocks a day on the 7-day rotation. Lunch is inside Block 4, in three
- * waves, and a class's wave follows the department that teaches it (see duxburyLunchWave). */
+ * waves, and a class's wave follows the department that teaches it (see duxburyLunchWave). ASP
+ * (2:05–2:45) always follows Block 5, with the Block 5 class. */
 export const duxburyHighBells: BellSchedule = {
-  periods: [['08:20', '09:19'], ['09:23', '10:22'], ['10:26', '11:25'], ['11:29', '12:58'], ['13:02', '14:45']],
+  periods: [['08:20', '09:19'], ['09:23', '10:22'], ['10:26', '11:25'], ['11:29', '12:58'], ['13:02', '14:05']],
   lunch: { period: 4, waves: { 1: ['11:29', '11:53'], 2: ['11:54', '12:18'], 3: ['12:34', '12:58'] } },
+  after: { period: 5, label: 'ASP', start: '14:05', end: '14:45' },
 }
 
 export const bellScheduleFor = (school?: SchoolCalendar): BellSchedule | undefined =>
@@ -44,12 +47,19 @@ export function lunchBlock(bells: BellSchedule, wave: LunchWave, dateStart?: str
   return { id: uid('lunch'), label: 'Lunch ' + wave, slot: 'Lunch', start, end, kind: 'break', dateStart, dateEnd, occurrenceNotes: {}, completedDates: [], skippedDates: [] }
 }
 
+/** The time that follows a period with the same class, e.g. "ASP · Chemistry I" in the Chemistry room. */
+export function afterBlock(bells: BellSchedule, classLabel: string, location?: string, dateStart?: string, dateEnd?: string): ScheduleBlock {
+  const a = bells.after!
+  return { id: uid('after'), label: a.label + ' · ' + classLabel.trim(), slot: a.label, start: a.start, end: a.end, kind: 'routine', location: location?.trim() || undefined, dateStart, dateEnd, occurrenceNotes: {}, completedDates: [], skippedDates: [] }
+}
+
 const dayBefore = (iso: string) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10) }
 
 /** A class that changes partway through the year (a semester class): on every rotation day it meets,
  * the old class ends the school day before `from` and the new one takes its period from `from`. Notes
  * and completed days stay with the old class. At a school with lunch waves, the lunch on those days
- * switches to the new class's wave too. */
+ * switches to the new class's wave too, and a period that's always followed by the same class (ASP)
+ * follows the new class. */
 export function switchClass(season: StudySeason, oldLabel: string, next: { label: string; location?: string; from: string; lunchWave?: LunchWave }): StudySeason {
   const label = next.label.trim(), key = oldLabel.trim().toLowerCase()
   if (!label) throw Error('Enter the new class’s name.')
@@ -59,7 +69,7 @@ export function switchClass(season: StudySeason, oldLabel: string, next: { label
   let changed = 0
   for (const [day, blocks] of Object.entries(result.week)) {
     const out: ScheduleBlock[] = []
-    let lunchUntil = ''
+    let lunchUntil = '', afterUntil = ''
     for (const b of blocks) {
       const [start, end] = range(b)
       if (b.label.trim().toLowerCase() !== key || b.kind !== 'study' || next.from <= start || next.from > end) { out.push(b); continue }
@@ -67,13 +77,13 @@ export function switchClass(season: StudySeason, oldLabel: string, next: { label
       out.push({ ...b, fullYear: false, dateStart: start, dateEnd: dayBefore(next.from) })
       out.push({ ...b, id: uid('block'), label, location: next.location?.trim() || undefined, subjectId: undefined, fullYear: false, dateStart: next.from, dateEnd: end, occurrenceNotes: {}, completedDates: [], skippedDates: [] })
       if (bells?.lunch && next.lunchWave && periodNumber(b.slot) === bells.lunch.period) lunchUntil = end
+      if (bells?.after && periodNumber(b.slot) === bells.after.period) afterUntil = end
     }
+    const endAt = (slot: string, kind: ScheduleBlock['kind']) => { for (let i = 0; i < out.length; i++) { const l = out[i], [start, end] = range(l); if (l.slot === slot && l.kind === kind && start < next.from && end >= next.from) out[i] = { ...l, fullYear: false, dateStart: start, dateEnd: dayBefore(next.from) } } }
+    if (afterUntil && bells?.after) { endAt(bells.after.label, 'routine'); out.push(afterBlock(bells, label, next.location, next.from, afterUntil)) }
     // The lunch inside the changed class's period follows the new class.
     if (lunchUntil && bells && next.lunchWave) {
-      for (let i = 0; i < out.length; i++) {
-        const l = out[i], [start, end] = range(l)
-        if (l.slot === 'Lunch' && l.kind === 'break' && start < next.from && end >= next.from) out[i] = { ...l, fullYear: false, dateStart: start, dateEnd: dayBefore(next.from) }
-      }
+      endAt('Lunch', 'break')
       out.push(lunchBlock(bells, next.lunchWave, next.from, lunchUntil))
     }
     result.week[day] = out.sort((a, b) => a.start.localeCompare(b.start))
@@ -84,12 +94,13 @@ export function switchClass(season: StudySeason, oldLabel: string, next: { label
 
 /** Fixes a class's name everywhere it meets (a typo, or a class renamed by the school). */
 export function renameClass(season: StudySeason, oldLabel: string, label: string): StudySeason {
-  const name = label.trim(), key = oldLabel.trim().toLowerCase()
+  const name = label.trim(), key = oldLabel.trim().toLowerCase(), after = bellScheduleFor(season.school)?.after
   if (!name) throw Error('Enter the class’s new name.')
-  return { ...season, week: Object.fromEntries(Object.entries(season.week).map(([day, blocks]) => [day, blocks.map(b => b.label.trim().toLowerCase() === key ? { ...b, label: name } : b)])) }
+  const renamed = (b: ScheduleBlock) => b.label.trim().toLowerCase() === key ? { ...b, label: name } : after && b.slot === after.label && b.label.trim().toLowerCase() === (after.label + ' · ' + key).toLowerCase() ? { ...b, label: after.label + ' · ' + name } : b
+  return { ...season, week: Object.fromEntries(Object.entries(season.week).map(([day, blocks]) => [day, blocks.map(renamed)])) }
 }
 
-type PeriodRow = { include: boolean; day: string; label: string; slot: string; start: string; end: string; dateStart: string; dateEnd: string; kind: string; lunchWave?: LunchWave; lunchSure?: boolean }
+type PeriodRow = { include: boolean; day: string; label: string; slot: string; start: string; end: string; dateStart: string; dateEnd: string; kind: string; location?: string; lunchWave?: LunchWave; lunchSure?: boolean }
 
 /** Imported classes listed by period: each gets its period's bell times (unless it already has times),
  * and a class in the lunch period gets a lunch wave guessed from its department. */
@@ -104,16 +115,20 @@ export function applyBells<R extends PeriodRow>(rows: R[], bells?: BellSchedule)
   })
 }
 
-/** The lunch breaks for the imported classes in the lunch period, one per day and date range. */
-export function addLunches<R extends PeriodRow>(season: StudySeason, rows: R[]): StudySeason {
+/** What the bell schedule adds around the imported classes: the lunch break for each lunch-period
+ * class, and the time that follows a period with the same class (ASP), one per day and date range. */
+export function addBellBlocks<R extends PeriodRow>(season: StudySeason, rows: R[]): StudySeason {
   const bells = bellScheduleFor(season.school)
-  if (!bells?.lunch) return season
+  if (!bells) return season
   const next = structuredClone(season)
+  const add = (day: string, block: ScheduleBlock) => {
+    if (next.week[day].some(b => b.slot === block.slot && b.start === block.start && b.dateStart === block.dateStart && b.dateEnd === block.dateEnd)) return
+    next.week[day] = [...next.week[day], block].sort((a, b) => a.start.localeCompare(b.start))
+  }
   for (const r of rows) {
-    if (!r.include || !r.lunchWave || periodNumber(r.slot) !== bells.lunch.period || !next.week[r.day]) continue
-    const lunch = lunchBlock(bells, r.lunchWave, r.dateStart, r.dateEnd)
-    if (next.week[r.day].some(b => b.slot === 'Lunch' && b.start === lunch.start && b.dateStart === r.dateStart && b.dateEnd === r.dateEnd)) continue
-    next.week[r.day] = [...next.week[r.day], lunch].sort((a, b) => a.start.localeCompare(b.start))
+    if (!r.include || r.kind !== 'study' || !next.week[r.day]) continue
+    if (bells.lunch && r.lunchWave && periodNumber(r.slot) === bells.lunch.period) add(r.day, lunchBlock(bells, r.lunchWave, r.dateStart, r.dateEnd))
+    if (bells.after && periodNumber(r.slot) === bells.after.period) add(r.day, afterBlock(bells, r.label, r.location, r.dateStart, r.dateEnd))
   }
   return next
 }
