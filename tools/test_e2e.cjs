@@ -825,7 +825,7 @@ test('Rotating school: Duxbury High’s 7-day rotation takes a picture-only PDF 
   const request=route.request()
   if(request.method()==='GET')return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({enabled:true})})
   posts.push(request.postDataJSON())
-  const classes=[{name:'Chemistry I',code:'328-03',days:['D1 - Day 1'],start:null,end:null,period:'P1-Period 1',room:'A321',teacher:null},{name:'Spanish III',code:'442-01',days:['D2 -'],start:null,end:null,period:'P1-Period 1',room:'A346',teacher:null},{name:'English 10',code:'022-02',days:['D1'],start:null,end:null,period:'P2-Period 2',room:'A306',teacher:null},{name:'US History II',code:null,days:['D2'],start:null,end:null,period:'P4',room:null,teacher:null}]
+  const classes=[{name:'Chemistry I',code:'328-03',days:['D1 - Day 1'],start:null,end:null,period:'P1-Period 1',room:'A321',teacher:null},{name:'Spanish III',code:'442-01',days:['D2 -'],start:null,end:null,period:'P1-Period 1',room:'A346',teacher:null},{name:'English 10',code:'022-02',days:['D1'],start:null,end:null,period:'P2-Period 2',room:'A306',teacher:null},{name:'US History II',code:null,days:['D2'],start:null,end:null,period:'P4',room:null,teacher:null},{name:'Ceramics',code:null,days:['D1'],start:null,end:null,period:'P5',room:'Art 2',teacher:null}]
   return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({text:JSON.stringify({classes}),used:1,limit:40})})
  })
  await page.goto(BASE);await heading(page,'Sanctuary')
@@ -854,21 +854,24 @@ test('Rotating school: Duxbury High’s 7-day rotation takes a picture-only PDF 
  await page.getByRole('button',{name:'Read timetable & find classes'}).click()
  await page.getByRole('button',{name:'Read with AI helper'}).waitFor({timeout:90000})
  await page.getByRole('button',{name:'Read with AI helper'}).click()
- await page.getByText('Your AI helper found 4 classes. Each period’s times come from Duxbury High School’s bell schedule.',{exact:false}).waitFor()
+ await page.getByText('Your AI helper found 5 classes. Each period’s times come from Duxbury High School’s bell schedule.',{exact:false}).waitFor()
  assert.equal(posts.length,1);assert.equal(posts[0].photo?.mimeType,'image/jpeg','the picture-only PDF went to the AI as a picture');assert.doesNotMatch(posts[0].prompt,/Schedule text:/)
  assert.match(posts[0].prompt,/5 periods \(also called blocks\) every day/)
  // Duxbury High's five blocks fill in the times; each can still be changed.
  assert.equal(await page.getByLabel('Period 1 starts').inputValue(),'08:20');assert.equal(await page.getByLabel('Period 1 ends').inputValue(),'09:19')
  assert.equal(await page.getByLabel('Period 4 starts').inputValue(),'11:29');assert.equal(await page.getByLabel('Period 4 ends').inputValue(),'12:58')
+ assert.equal(await page.getByLabel('Period 5 starts').inputValue(),'13:02');assert.equal(await page.getByLabel('Period 5 ends').inputValue(),'14:05')
+ await page.getByText('ASP (2:05 PM–2:45 PM) always follows Period 5, with your Period 5 class.',{exact:false}).waitFor()
  await page.getByLabel('Period 2 starts').fill('09:25')
  // The Block 4 class sets the lunch wave: history → 2nd lunch.
  const lunch=page.getByRole('group',{name:'Lunch'})
  assert.equal(await lunch.getByLabel('Day 2 lunch').inputValue(),'2')
  assert.match(await lunch.innerText(),/2nd lunch · 11:54 AM–12:18 PM/)
- assert.match(await page.getByRole('list',{name:'Check these days'}).innerText(),/Day 1 has nothing in Period 3, Period 4, Period 5\./)
+ assert.match(await page.getByRole('list',{name:'Check these days'}).innerText(),/Day 1 has nothing in Period 3, Period 4\./)
  const cont=page.getByRole('button',{name:'Continue to calendar preview'})
  await cont.click()
- await page.getByText(/^5 recurring blocks/).waitFor()
+ await page.getByText(/^7 recurring blocks/).waitFor() // 5 classes, a lunch and ASP
+ await page.getByText('ASP · Ceramics · 2:05 PM–2:45 PM',{exact:false}).first().waitFor()
  // Second semester: US History II becomes Economics on every day it meets, lunch included.
  await sections.getByRole('button',{name:'3 · Classes'}).click()
  await page.getByText('Change a class (new semester, or fix a name)').click()
