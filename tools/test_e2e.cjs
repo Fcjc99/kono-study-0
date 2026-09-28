@@ -123,7 +123,7 @@ test('a study note can be moved to Trash and restored',async({page})=>{
 test('every Settings tab opens, and a theme choice survives a reload',async({page})=>{
  await createPlan(page)
  await go(page,'Settings')
- for(const tab of ['Look & feel','Notifications','Family','Schedules','Import & export','Plans & account']){
+ for(const tab of ['Look & feel','Team colors','Notifications','Family','Schedules','Import & export','Plans & account']){
   await settingsTab(page,tab)
   // On-demand panels finish loading (or show their reload fallback) rather than hanging.
   await page.locator('.lazy-panel-loading').first().waitFor({state:'detached'}).catch(()=>{})
@@ -138,6 +138,40 @@ test('every Settings tab opens, and a theme choice survives a reload',async({pag
  await page.reload()
  await mainHeading(page).waitFor()
  assert.equal(await experience(),chosen)
+})
+
+test('Team colors have their own Settings tab: each team sets its jersey, one from Modern switches to Cozy, and the choice survives a reload',async({page})=>{
+ await createPlan(page)
+ await go(page,'Settings')
+ const root=()=>page.evaluate(()=>[document.documentElement.dataset.experience,document.documentElement.dataset.theme,document.documentElement.dataset.team??''].join(' '))
+ // Starting from Modern (fixed colors): picking a team switches to Cozy.
+ await settingsTab(page,'Look & feel')
+ await page.getByRole('button',{name:/Modern/}).first().click()
+ await settingsTab(page,'Team colors')
+ const teams=page.getByRole('group',{name:'Team colors'})
+ assert.equal(await teams.getByRole('button').count(),8)
+ await page.getByText('picking one switches you to Cozy',{exact:false}).waitFor()
+ await teams.getByRole('button',{name:/Hanover High · Navy & Gold/}).click()
+ await page.waitForFunction(()=>document.documentElement.dataset.theme==='hanover')
+ assert.equal(await root(),'cozy hanover dark')
+ assert.equal(await teams.getByRole('button',{pressed:true}).innerText().then(t=>t.split('\n')[0]),'Hanover High · Navy & Gold ✓')
+ await teams.getByRole('button',{name:/Notre Dame Academy/}).click()
+ await page.waitForFunction(()=>document.documentElement.dataset.theme==='nda')
+ assert.equal(await root(),'cozy nda light','Notre Dame Academy is a white (light) jersey')
+ // Look & feel says team colors are on, and a regular palette turns them off.
+ await settingsTab(page,'Look & feel')
+ await page.getByText('You’re using team colors.',{exact:false}).waitFor()
+ await settingsTab(page,'Team colors')
+ await teams.getByRole('button',{name:/Duxbury · Black & Green/}).click()
+ await page.waitForFunction(()=>document.documentElement.dataset.theme==='dragonsblack')
+ await flushSave(page,'"theme":"dragonsblack"')
+ await page.reload()
+ await mainHeading(page).waitFor()
+ assert.equal(await root(),'cozy dragonsblack dark')
+ await go(page,'Settings');await settingsTab(page,'Look & feel')
+ await page.locator('.wb-themes button.theme-ocean').click()
+ await page.waitForFunction(()=>document.documentElement.dataset.theme==='ocean')
+ assert.equal(await root(),'cozy ocean ','a regular palette clears data-team')
 })
 
 test('panels that load on demand (K-Quiz, Flashcards) open without errors',async({page})=>{
@@ -435,7 +469,9 @@ test('Sanctuary: the island draws, zooms, expands and changes time; Decorate add
  await page.locator('.wb-scene-expand').click()
  await page.locator('.wb-island.is-expanded').waitFor({state:'detached'})
  const phase=await page.getByLabel('Sanctuary time').inputValue()
- const other=phase==='morning'?'evening':'morning'
+ // A time whose map isn't loaded yet: near dawn or dusk the island has already loaded the next phase's map
+ // to blend into, so switching to it wouldn't fetch anything (which made this test depend on the clock).
+ const other=['evening','night','afternoon','morning'].find(p=>p!==phase&&!loaded.some(([path])=>path.endsWith(`/terrace-23.0/${p}.webp`)))
  const mapLoaded=page.waitForResponse(r=>r.url().endsWith(`/terrace-23.0/${other}.webp`)&&r.status()===200,{timeout:20000})
  await page.getByLabel('Sanctuary time').selectOption(other)
  await mapLoaded

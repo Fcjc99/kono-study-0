@@ -1,65 +1,71 @@
-/* Team colors: green-and-white palettes for game days. Each works in both Cozy and Simplified.
- *  dragons  · Duxbury Green & White — bright school green on white.
- *  gamehome · Game Day Green, Home — the home jersey: deep green all around, white trim.
- *  gameaway · Game Day Green, Away — the away jersey: white all around, deep green trim and a thin black edge. */
+/* Team colors (Settings › Team colors; the list is in teamThemes.ts). Each works in Cozy and Simplified.
+ * Workspace sets data-team="dark" or "light" next to data-theme:
+ *  dark  · the sidebar and phone header wear the team's main color (--team-head), trimmed in --team-trim.
+ *  light · they stay white, with the team color (--team-stripe) for text and trim.
+ * Per team: --team-stripe (buttons, stripes, accents), --team-trim (the middle line of the jersey stripe),
+ * --team-head / --team-head-top (dark jerseys' phone header) with an optional --team-edge under it, --team-dark
+ * and --team-soft. */
 
-/* Shared variables (Simplified; Cozy adds its sticker colors below). */
-:root[data-theme="dragons"]{--wb-bg:#eef6f0;--wb-surface:#fff;--wb-ink:#173b26;--wb-muted:#4a6754;--wb-accent:#0b7a3b;--wb-accent-ink:#fff;--wb-nav:#0d5a2e;--wb-nav-ink:#fff;--wb-line:#c4dcca;--team-stripe:#0b7a3b;--team-trim:#fff;--team-dark:#0a5a2c;--team-soft:#dcefe3}
-:root[data-theme="gamehome"]{--wb-bg:#dfeae4;--wb-surface:#fff;--wb-ink:#0f2e22;--wb-muted:#3f5d50;--wb-accent:#125740;--wb-accent-ink:#fff;--wb-nav:#0e4332;--wb-nav-ink:#fff;--wb-line:#b5cdc1;--team-stripe:#125740;--team-trim:#fff;--team-dark:#0b3a2b;--team-soft:#d6e8de}
-:root[data-theme="gameaway"]{--wb-bg:#f5f8f6;--wb-surface:#fff;--wb-ink:#0f2e22;--wb-muted:#475c53;--wb-accent:#125740;--wb-accent-ink:#fff;--wb-nav:#fff;--wb-nav-ink:#125740;--wb-line:#d2dfd8;--team-stripe:#125740;--team-trim:#111;--team-dark:#0b3a2b;--team-soft:#e3eee8}
-:root[data-experience='cozy'][data-theme="dragons"]{--wb-bg:#eef6f0;--wb-surface:#fff;--wb-ink:#173b26;--wb-muted:#4a6754;--wb-accent:#0b7a3b;--wb-line:#c4dcca;--wb-nav:#0d5a2e;--wb-nav-ink:#fff;--cute-ink:#0d5a2e;--cute-edge:#b3d6bd;--cute-shadow:#6fa780}
-:root[data-experience='cozy'][data-theme="gamehome"]{--wb-bg:#dfeae4;--wb-surface:#fff;--wb-ink:#0f2e22;--wb-muted:#3f5d50;--wb-accent:#125740;--wb-line:#b5cdc1;--wb-nav:#0e4332;--wb-nav-ink:#fff;--cute-ink:#0e4332;--cute-edge:#a9c7b8;--cute-shadow:#5f8a77}
-:root[data-experience='cozy'][data-theme="gameaway"]{--wb-bg:#f5f8f6;--wb-surface:#fff;--wb-ink:#0f2e22;--wb-muted:#475c53;--wb-accent:#125740;--wb-line:#d2dfd8;--wb-nav:#fff;--wb-nav-ink:#125740;--cute-ink:#125740;--cute-edge:#c9d9d1;--cute-shadow:#8fa89c}
+/* Per team. The second selector outranks Cozy's own palette variables. */
+:root[data-theme="dragons"],:root[data-experience][data-theme="dragons"]{--wb-bg:#eef6f0;--wb-surface:#fff;--wb-ink:#173b26;--wb-muted:#4a6754;--wb-accent:#0b7a3b;--wb-accent-ink:#fff;--wb-nav:#0d5a2e;--wb-nav-ink:#fff;--wb-line:#c4dcca;--cute-ink:#0d5a2e;--cute-edge:#b3d6bd;--cute-shadow:#6fa780;--team-stripe:#0b7a3b;--team-trim:#fff;--team-head-top:#0b7a3b;--team-head:#0a5a2c;--team-dark:#0a5a2c;--team-soft:#dcefe3}
+:root[data-theme="dragonsblack"],:root[data-experience][data-theme="dragonsblack"]{--wb-bg:#eef2ef;--wb-surface:#fff;--wb-ink:#141a16;--wb-muted:#4b5750;--wb-accent:#0b7a3b;--wb-accent-ink:#fff;--wb-nav:#121614;--wb-nav-ink:#fff;--wb-line:#c9d3cc;--cute-ink:#121614;--cute-edge:#b8c9bd;--cute-shadow:#6b7d70;--team-stripe:#0b7a3b;--team-trim:#121614;--team-head-top:#262b28;--team-head:#0c0f0d;--team-edge:#0b7a3b;--team-dark:#0c0f0d;--team-soft:#dcefe3}
+:root[data-theme="hanover"],:root[data-experience][data-theme="hanover"]{--wb-bg:#eceff5;--wb-surface:#fff;--wb-ink:#14213d;--wb-muted:#4a566e;--wb-accent:#1b3564;--wb-accent-ink:#fff;--wb-nav:#14284b;--wb-nav-ink:#fff;--wb-line:#c7cfdd;--cute-ink:#14284b;--cute-edge:#bfc9db;--cute-shadow:#7885a0;--team-stripe:#1b3564;--team-trim:#e0a526;--team-head-top:#1d3968;--team-head:#0e1d38;--team-dark:#0e1d38;--team-soft:#e2e7f1}
+:root[data-theme="nda"],:root[data-experience][data-theme="nda"]{--wb-bg:#f6f7fa;--wb-surface:#fff;--wb-ink:#11203f;--wb-muted:#4c5670;--wb-accent:#0b2a5b;--wb-accent-ink:#fff;--wb-nav:#fff;--wb-nav-ink:#0b2a5b;--wb-line:#d3d9e5;--cute-ink:#0b2a5b;--cute-edge:#cbd3e2;--cute-shadow:#8c98b0;--team-stripe:#0b2a5b;--team-trim:#c9a227;--team-head-top:#fff;--team-head:#fff;--team-dark:#081f45;--team-soft:#e6ebf4}
+:root[data-theme="bc"],:root[data-experience][data-theme="bc"]{--wb-bg:#f5eff0;--wb-surface:#fff;--wb-ink:#2e0d16;--wb-muted:#6a4a52;--wb-accent:#98002e;--wb-accent-ink:#fff;--wb-nav:#7a0025;--wb-nav-ink:#fff;--wb-line:#e0cdd2;--cute-ink:#7a0025;--cute-edge:#dcc4ca;--cute-shadow:#a67a86;--team-stripe:#98002e;--team-trim:#bc9b6a;--team-head-top:#98002e;--team-head:#62001d;--team-dark:#62001d;--team-soft:#f3e3e7}
+:root[data-theme="mcgill"],:root[data-experience][data-theme="mcgill"]{--wb-bg:#fbf1f2;--wb-surface:#fff;--wb-ink:#2b0d10;--wb-muted:#6b4a4e;--wb-accent:#b5121b;--wb-accent-ink:#fff;--wb-nav:#b5121b;--wb-nav-ink:#fff;--wb-line:#ecd0d3;--cute-ink:#9e1018;--cute-edge:#e8c3c7;--cute-shadow:#c47a82;--team-stripe:#b5121b;--team-trim:#fff;--team-head-top:#ed1b2f;--team-head:#a8121f;--team-dark:#8a0e17;--team-soft:#fbe4e6}
+:root[data-theme="gamehome"],:root[data-experience][data-theme="gamehome"]{--wb-bg:#dfeae4;--wb-surface:#fff;--wb-ink:#0f2e22;--wb-muted:#3f5d50;--wb-accent:#125740;--wb-accent-ink:#fff;--wb-nav:#0e4332;--wb-nav-ink:#fff;--wb-line:#b5cdc1;--cute-ink:#0e4332;--cute-edge:#a9c7b8;--cute-shadow:#5f8a77;--team-stripe:#125740;--team-trim:#fff;--team-head-top:#125740;--team-head:#0b3a2b;--team-dark:#0b3a2b;--team-soft:#d6e8de}
+:root[data-theme="gameaway"],:root[data-experience][data-theme="gameaway"]{--wb-bg:#f5f8f6;--wb-surface:#fff;--wb-ink:#0f2e22;--wb-muted:#475c53;--wb-accent:#125740;--wb-accent-ink:#fff;--wb-nav:#fff;--wb-nav-ink:#125740;--wb-line:#d2dfd8;--cute-ink:#125740;--cute-edge:#c9d9d1;--cute-shadow:#8fa89c;--team-stripe:#125740;--team-trim:#111;--team-head-top:#fff;--team-head:#fff;--team-dark:#0b3a2b;--team-soft:#e3eee8}
 
-/* Swatches in Settings › Appearance. */
-.wb-themes .theme-dragons span{background:linear-gradient(90deg,#fff 0 30%,#0b7a3b 30%)!important;box-shadow:inset 0 0 0 1px #0b7a3b}
-.wb-themes .theme-gamehome span{background:linear-gradient(90deg,#125740 0 70%,#fff 70% 85%,#125740 85%)!important}
-.wb-themes .theme-gameaway span{background:linear-gradient(90deg,#fff 0 60%,#125740 60% 80%,#111 80% 86%,#fff 86%)!important;box-shadow:inset 0 0 0 1px #125740}
+/* Swatches in Settings › Team colors. */
+.team-swatch{display:block;height:34px;border-radius:10px;box-shadow:inset 0 0 0 1px #0002}
+.team-swatch.theme-dragons{background:linear-gradient(90deg,#fff 0 30%,#0b7a3b 30%)}
+.team-swatch.theme-dragonsblack{background:linear-gradient(90deg,#121614 0 62%,#0b7a3b 62% 80%,#121614 80%)}
+.team-swatch.theme-hanover{background:linear-gradient(90deg,#14284b 0 62%,#e0a526 62% 80%,#14284b 80%)}
+.team-swatch.theme-nda{background:linear-gradient(90deg,#fff 0 56%,#0b2a5b 56% 76%,#c9a227 76% 84%,#fff 84%)}
+.team-swatch.theme-bc{background:linear-gradient(90deg,#98002e 0 62%,#bc9b6a 62% 80%,#98002e 80%)}
+.team-swatch.theme-mcgill{background:linear-gradient(90deg,#ed1b2f 0 70%,#fff 70% 85%,#ed1b2f 85%)}
+.team-swatch.theme-gamehome{background:linear-gradient(90deg,#125740 0 70%,#fff 70% 85%,#125740 85%)}
+.team-swatch.theme-gameaway{background:linear-gradient(90deg,#fff 0 60%,#125740 60% 80%,#111 80% 86%,#fff 86%)}
+.team-color-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:12px}
+.team-color-grid button{display:grid;gap:6px;text-align:left;padding:12px!important;min-height:0!important}
+.team-color-grid button small{font-weight:500;color:var(--wb-muted)}
 
-/* Cozy: backgrounds, the header's jersey stripe, panels with a team-colored top edge, and green buttons. */
-:root[data-experience='cozy'][data-theme='dragons'] body{background:radial-gradient(circle at 12% 8%,#fff 0,#eaf5ed 38%,#d9ecdf 100%)}
-:root[data-experience='cozy'][data-theme='gamehome'] body{background:radial-gradient(circle at 12% 8%,#f1f7f4 0,#d6e6de 40%,#c1d7cc 100%)}
-:root[data-experience='cozy'][data-theme='gameaway'] body{background:radial-gradient(circle at 12% 8%,#fff 0,#f5f8f6 40%,#e7eeea 100%)}
-:root[data-experience='cozy'][data-theme='dragons'] .workbench{background:linear-gradient(135deg,#f7fcf8,#e6f3ea)}
-:root[data-experience='cozy'][data-theme='gamehome'] .workbench{background:linear-gradient(135deg,#e9f2ed,#d3e3da)}
-:root[data-experience='cozy'][data-theme='gameaway'] .workbench{background:linear-gradient(135deg,#fff,#f1f5f3)}
-:root[data-experience='cozy']:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .sidebar{background:var(--wb-nav)!important;color:var(--wb-nav-ink)}
-:root[data-experience='cozy']:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .wb-header{background:linear-gradient(115deg,#fff,color-mix(in srgb,var(--team-stripe) 14%,#fff));border-color:var(--wb-line);box-shadow:inset 0 -3px 0 var(--team-stripe),inset 0 -6px 0 var(--team-trim),inset 0 -9px 0 var(--team-stripe)}
-:root[data-experience='cozy']:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .wb-panel:not(.wb-board){background:linear-gradient(120deg,#fff,color-mix(in srgb,var(--team-stripe) 6%,#fff));border-color:var(--wb-line);border-top:4px solid var(--team-stripe)}
-:root[data-experience='cozy']:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) :is(.workbench,.wb-dialog) button.primary{background:linear-gradient(color-mix(in srgb,var(--team-stripe) 78%,#fff),var(--team-stripe));border-color:color-mix(in srgb,var(--team-stripe) 80%,#000);color:#fff;box-shadow:inset 0 2px 0 #ffffff50,0 4px 0 color-mix(in srgb,var(--team-stripe) 70%,#000),0 6px 12px #0a2a1e25}
-:root[data-experience='cozy']:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) :is(.workbench,.wb-dialog) button:is([aria-pressed='true'],[aria-current]):not(.wb-calendar>button){background:linear-gradient(#e6f2eb,#c9e2d4);color:#0f3b29;border-color:var(--team-stripe)}
+/* Every team: the jersey stripe under the page header, a team-colored top edge on panels, and the last
+ * default-pink details (header label and flower, action-icon chips, checkboxes). */
+:root[data-team] .wb-header{box-shadow:inset 0 -3px 0 var(--team-stripe),inset 0 -6px 0 var(--team-trim),inset 0 -9px 0 var(--team-stripe)}
+:root[data-team] .wb-panel:not(.wb-board){border-top:4px solid var(--team-stripe)}
+:root[data-team] .wb-header small,:root[data-team] .cozy-heading-flower{color:var(--team-stripe)}
+:root[data-team] .kono-action-icon{background:var(--team-soft)!important;color:var(--team-stripe)!important}
+:root[data-team] input:is([type='checkbox'],[type='radio'],[type='range']){accent-color:var(--team-stripe)}
+:root[data-team] .sidebar .profile-dock,:root[data-team] .sidebar .profile-dock :is(span,strong,small){color:var(--wb-ink)}
+:root[data-team] .sidebar .profile-avatar{background:var(--team-stripe);color:#fff}
+:root[data-team] .sidebar .brand h1{white-space:nowrap}
 
-/* Simplified: the jersey stripe under the header and on panel tops. */
-:root:not([data-experience='cozy']):is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .wb-header{box-shadow:inset 0 -3px 0 var(--team-stripe),inset 0 -6px 0 var(--team-trim),inset 0 -9px 0 var(--team-stripe)}
-:root:not([data-experience='cozy']):is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .wb-panel:not(.wb-board){border-top:4px solid var(--team-stripe)}
+/* Cozy: team backgrounds, header and panels, and team-colored buttons, tab icons and selected states
+ * instead of the default pink (same selector as Cozy's own button rule, one step stronger). */
+:root[data-experience='cozy'][data-team] body{background:radial-gradient(circle at 12% 8%,#fff 0,var(--wb-bg) 40%,color-mix(in srgb,var(--wb-bg) 86%,var(--team-stripe)) 100%)}
+:root[data-experience='cozy'][data-team] .workbench{background:linear-gradient(135deg,color-mix(in srgb,var(--wb-bg) 35%,#fff),var(--wb-bg))}
+:root[data-experience='cozy'][data-team] .sidebar{background:var(--wb-nav)!important;color:var(--wb-nav-ink)}
+:root[data-experience='cozy'][data-team] .wb-header{background:linear-gradient(115deg,#fff,color-mix(in srgb,var(--team-stripe) 14%,#fff));border-color:var(--wb-line)}
+:root[data-experience='cozy'][data-team] .wb-panel:not(.wb-board){background:linear-gradient(120deg,#fff,color-mix(in srgb,var(--team-stripe) 6%,#fff));border-color:var(--wb-line)}
+:root[data-experience='cozy'][data-team] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.kquiz-material-row):not(.kquiz-guide-tabs button):not(.kquiz-folders button){background:linear-gradient(180deg,#fff,var(--team-soft));color:var(--team-dark);box-shadow:inset 0 2px 0 #fff,0 3px 0 color-mix(in srgb,var(--team-stripe) 35%,#fff),0 5px 9px #0a1a2a0c}
+:root[data-experience='cozy'][data-team] :is(.workbench,.wb-dialog) button.primary{background:linear-gradient(color-mix(in srgb,var(--team-stripe) 78%,#fff),var(--team-stripe));border-color:color-mix(in srgb,var(--team-stripe) 80%,#000);color:#fff}
+:root[data-experience='cozy'][data-team] :is(.workbench,.wb-dialog) button:is([aria-pressed='true'],[aria-current]):not(.wb-calendar>button){background:linear-gradient(#fff,var(--team-soft));color:var(--team-dark);border-color:var(--team-stripe)}
+:root[data-experience='cozy'][data-team] :is(button,summary,input,select,textarea):focus-visible{outline-color:var(--team-stripe)}
+@media(hover:hover){:root[data-experience='cozy'][data-team] :is(.workbench,.wb-dialog) button:hover:not(:disabled){border-color:var(--team-stripe)}}
+:root[data-experience='cozy'][data-team] :is(.nav-icon,.mobile-nav button>span),:root[data-experience='cozy'][data-team] :is(.nav-button,.mobile-nav button)>span:first-child{background:linear-gradient(#fff,var(--team-soft));color:var(--team-stripe)}
 
-/* Away: the sidebar is white, so its brand, active tab and dividers use the green instead of white tints. */
-:root[data-theme='gameaway'] .sidebar .brand h1{color:#125740!important}
-:root[data-theme='gameaway'] .sidebar .brand p{color:#3d6b58!important}
-:root[data-theme='gameaway'] .workbench .wb-sidebar nav button[aria-current="page"]{background:#e3eee8;border-color:#125740;color:#0f3b29}
-:root[data-theme='gameaway'] .workbench .wb-sidebar{border-right:3px solid #125740}
+/* Dark jerseys on a phone: the header is the team color with a trim line; the open tab is white. */
+:root[data-experience='cozy'][data-team='dark'] .mobile-desk-header{background:linear-gradient(180deg,var(--team-head-top),var(--team-head));border-bottom:3px solid var(--team-edge,var(--team-trim));box-shadow:0 3px 0 var(--team-head),0 7px 18px #0a1a2a30}
+:root[data-experience='cozy'][data-team='dark'] .mobile-nav button.active{background:linear-gradient(#fff,var(--team-soft))!important;color:var(--team-dark)!important;box-shadow:0 3px 0 var(--team-edge,var(--team-trim))!important}
 
-/* Cozy buttons, tab icons and selected states in team green instead of the default pink. */
-:root[data-experience='cozy']:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.kquiz-material-row):not(.kquiz-guide-tabs button):not(.kquiz-folders button){background:linear-gradient(180deg,#fff,var(--team-soft));color:var(--team-dark);box-shadow:inset 0 2px 0 #fff,0 3px 0 color-mix(in srgb,var(--team-stripe) 35%,#fff),0 5px 9px #0a2a1e0c}
-:root[data-experience='cozy']:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) :is(button,summary,input,select,textarea):focus-visible{outline-color:var(--team-stripe)}
-@media(hover:hover){:root[data-experience='cozy']:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) :is(.workbench,.wb-dialog) button:hover:not(:disabled){border-color:var(--team-stripe)}}
-:root[data-experience='cozy']:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) :is(.nav-icon,.mobile-nav button>span),:root[data-experience='cozy']:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) :is(.nav-button,.mobile-nav button)>span:first-child{background:linear-gradient(#fff,var(--team-soft));color:var(--team-stripe)}
-
-/* Cozy on a phone: the header is the jersey. Home and Duxbury are green with white trim; Away is white with green. */
-:root[data-experience='cozy']:is([data-theme='dragons'],[data-theme='gamehome']) .mobile-desk-header{background:linear-gradient(180deg,var(--team-stripe),var(--team-dark));border-bottom:3px solid #fff;box-shadow:0 3px 0 var(--team-dark),0 7px 18px #0a2a1e30}
-:root[data-experience='cozy']:is([data-theme='dragons'],[data-theme='gamehome']) .mobile-nav button.active{background:linear-gradient(#fff,var(--team-soft))!important;color:var(--team-dark)!important;box-shadow:0 3px 0 #06231a!important}
-:root[data-experience='cozy'][data-theme='gameaway'] .mobile-desk-header{background:#fff;color:#125740;border-bottom:3px solid #125740;box-shadow:0 3px 0 #fff,0 5px 0 #111,0 7px 18px #0a2a1e1c}
-:root[data-experience='cozy'][data-theme='gameaway'] .mobile-desk-header :is(.mobile-brand-lockup h1,.mobile-brand-lockup p,.mobile-week-weather-day){color:#125740}
-:root[data-experience='cozy'][data-theme='gameaway'] .mobile-desk-header .mobile-week-weather-day{background:#1257400d}
-:root[data-experience='cozy'][data-theme='gameaway'] .mobile-nav button{color:#125740!important;background:#12574009!important;border-color:#12574030!important}
-:root[data-experience='cozy'][data-theme='gameaway'] .mobile-nav button.active{background:#125740!important;border-color:#125740!important;color:#fff!important;box-shadow:0 3px 0 #111!important}
-
-/* The last pink details: header label and flower, action-icon chips, checkboxes, and the sidebar profile card. */
-:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .wb-header small{color:var(--team-stripe)}
-:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .cozy-heading-flower{color:var(--team-stripe)}
-:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .kono-action-icon{background:var(--team-soft)!important;color:var(--team-stripe)!important}
-:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) input:is([type='checkbox'],[type='radio'],[type='range']){accent-color:var(--team-stripe)}
-:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .sidebar .profile-dock{color:var(--wb-ink)}
-:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .sidebar .profile-dock :is(span,strong,small){color:var(--wb-ink)}
-:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .sidebar .profile-avatar{background:var(--team-stripe);color:#fff}
-:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .sidebar .brand h1{white-space:nowrap}
+/* Light jerseys: white sidebar and phone header with team-colored text, trim and open tab. */
+:root[data-team='light'] .sidebar .brand h1{color:var(--team-stripe)!important}
+:root[data-team='light'] .sidebar .brand p{color:color-mix(in srgb,var(--team-stripe) 80%,#fff)!important}
+:root[data-team='light'] .workbench .wb-sidebar nav button[aria-current="page"]{background:var(--team-soft);border-color:var(--team-stripe);color:var(--team-dark)}
+:root[data-team='light'] .workbench .wb-sidebar{border-right:3px solid var(--team-stripe)}
+:root[data-experience='cozy'][data-team='light'] .mobile-desk-header{background:#fff;color:var(--team-stripe);border-bottom:3px solid var(--team-stripe);box-shadow:0 3px 0 #fff,0 5px 0 var(--team-trim),0 7px 18px #0a1a2a1c}
+:root[data-experience='cozy'][data-team='light'] .mobile-desk-header :is(.mobile-brand-lockup h1,.mobile-brand-lockup p,.mobile-week-weather-day){color:var(--team-stripe)}
+:root[data-experience='cozy'][data-team='light'] .mobile-desk-header .mobile-week-weather-day{background:color-mix(in srgb,var(--team-stripe) 6%,transparent)}
+:root[data-experience='cozy'][data-team='light'] .mobile-nav button{color:var(--team-stripe)!important;background:color-mix(in srgb,var(--team-stripe) 4%,transparent)!important;border-color:color-mix(in srgb,var(--team-stripe) 20%,transparent)!important}
+:root[data-experience='cozy'][data-team='light'] .mobile-nav button.active{background:var(--team-stripe)!important;border-color:var(--team-stripe)!important;color:#fff!important;box-shadow:0 3px 0 var(--team-trim)!important}

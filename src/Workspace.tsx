@@ -57,6 +57,7 @@ import ActionIcon from './components/ActionIcon'
 import BrandLogo from './components/BrandLogo'
 import {currentStreak as streakFrom,recapDay,weekRecap} from './store/weekRecap'
 import {useLocalSetting} from './hooks/useLocalSetting'
+import {TEAM_THEMES,teamJersey,teamThemeIds} from './teamThemes'
 // Panels that aren't needed on first paint load on demand.
 const ScheduleImport=lazyPanel(()=>import('./components/ScheduleImport'))
 const CalendarImport=lazyPanel(()=>import('./components/CalendarImport'))
@@ -72,7 +73,7 @@ const UpdatePlanScanner=lazyPanel(()=>import('./components/UpdatePlanScanner'))
 const PeerConnections=lazyPanel(()=>import('./components/PeerConnections'))
 
 // Settings tabs, grouped by what a person is trying to do rather than by where each feature was built.
-const SETTINGS_TABS=['Look & feel','Notifications','Family','Schedules','Import & export','Plans & account'] as const
+const SETTINGS_TABS=['Look & feel','Team colors','Notifications','Family','Schedules','Import & export','Plans & account'] as const
 /** 'KONO support' only appears for support accounts; the server enforces the access itself. */
 type SettingsTab=typeof SETTINGS_TABS[number]|'KONO support'
 const pages=['Sanctuary','Planner','Kids','Subjects','Notes','K-Quiz','Exams','Settings','Trash'] as const
@@ -81,9 +82,8 @@ type Store=ReturnType<typeof usePlannerRepository>
 type Edit={key:Collection;entry:Entry;original?:Entry}
 const labels:Record<Collection,string>={tasks:'Assignment',notes:'Note',exams:'Exam / project',calendarEvents:'Event',subjects:'Subject',kids:'Kid',studyPlans:'Study plan',flashcardDecks:'Flashcards',kquizSets:'K-Quiz set',kquizSources:'K-Quiz note',studySeasons:'Schedule'}
 // Team colors are offered in both Cozy and Simplified, under their own heading.
-const teamPalettes=['dragons','gamehome','gameaway'] as const
-const cozyPalettes=['coral','sakura','lavender','mint','honey','zen','floral','ocean',...teamPalettes] as const
-const cozyPalette=(theme:string)=>cozyPalettes.includes(theme as typeof cozyPalettes[number])?theme:'coral'
+const cozyPalettes=['coral','sakura','lavender','mint','honey','zen','floral','ocean']
+const cozyPalette=(theme:string)=>cozyPalettes.includes(theme)||teamThemeIds.includes(theme)?theme:'coral'
 // Modern and Zen Ink are each one opinionated, fully art-directed look rather than a color you
 // pick — they carry their own fixed palette instead of showing the swatch picker.
 const fixedPaletteExperiences:string[]=['modern','sumi']
@@ -117,7 +117,9 @@ const isImportantEntry=(key:Collection,entry:Entry)=>key==='exams'||(key==='note
 
 export default function WorkspaceApp(){
  const store=usePlannerRepository()
- useEffect(()=>{const {experience='cozy',theme}=store.data.settings;document.documentElement.dataset.experience=experience;document.documentElement.dataset.theme=experience==='cozy'?cozyPalette(theme):fixedPaletteExperiences.includes(experience)?experience:theme},[store.data.settings])
+ useEffect(()=>{const {experience='cozy',theme}=store.data.settings,root=document.documentElement;root.dataset.experience=experience;root.dataset.theme=experience==='cozy'?cozyPalette(theme):fixedPaletteExperiences.includes(experience)?experience:theme
+  // Team colors (team-themes.css) key off data-team: "dark" or "light" jersey.
+  const jersey=teamJersey(root.dataset.theme);if(jersey)root.dataset.team=jersey;else delete root.dataset.team},[store.data.settings])
  if(!store.ready)return <main className="startup-card"><h1>KONO</h1><p role="status">Opening your study plan…</p></main>
  // AccountPanel (rendered inside Onboarding) shows its own SaveStatus in context -- a second
  // one floating above the welcome card duplicated the exact same "Build X · This device only"
@@ -475,7 +477,7 @@ function Workspace({store}:{store:Store}){
    {page==='K-Quiz'&&<KQuiz onOpenAiSettings={()=>openSettings('Import & export')} profileId={profile.id} lectures={data.kquizLectures.filter(l=>l.profileId===profile.id)} sets={data.kquizSets.filter(s=>s.profileId===profile.id)} sources={data.kquizSources.filter(s=>s.profileId===profile.id)} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} subjects={subjects} setData={save}/>}
    {page==='Exams'&&<section className="wb-panel wb-board board-paper"><div className="wb-section-head wb-board-heading"><h2>Your exams</h2><button onClick={()=>create('exams')}>＋ Exam</button></div><div className="wb-note-grid wb-board-canvas">{data.exams.filter(e=>e.profileId===profile.id).sort((a,b)=>a.due.localeCompare(b.due)).map(e=>card('exams',e as unknown as Entry))}{!data.exams.some(e=>e.profileId===profile.id)&&<p className="wb-board-empty">No exams yet. Add a date and what you need to review.</p>}</div><div className="wb-board-tray" aria-hidden="true"><span>✿</span><span>✦</span><span>✿</span></div></section>}
    {page==='Settings'&&<div className="settings-groups"><div className="wb-section-head settings-page-tools"><small>Version {APP_VERSION} · Build {releaseLabel}</small><FeedbackButton store={store}/></div><nav className="subject-section-tabs" aria-label="Settings sections">{[...SETTINGS_TABS,...(store.isAdmin&&!store.support?['KONO support' as const]:[])].map(tab=><button key={tab} aria-current={tab===settingsTab?'page':undefined} onClick={()=>setSettingsTab(tab)}>{tab}</button>)}</nav>
-   {settingsTab==='Look & feel'&&<><section className="wb-panel"><Appearance settings={data.settings} setting={setting}/></section><section className="wb-panel"><h2>Sound &amp; motion</h2><SoundMotionSettings data={data} setData={save}/></section><section className="wb-panel"><h2>Sanctuary weather</h2><p>Live, manual or clear weather and your weather location are set right on the Sanctuary, from the weather button next to KONO.</p><button type="button" onClick={openWeather}>Open Sanctuary weather</button></section></>}
+   {settingsTab==='Team colors'&&<section className="wb-panel"><TeamColors settings={data.settings} setting={setting}/></section>}{settingsTab==='Look & feel'&&<><section className="wb-panel"><Appearance settings={data.settings} setting={setting}/></section><section className="wb-panel"><h2>Sound &amp; motion</h2><SoundMotionSettings data={data} setData={save}/></section><section className="wb-panel"><h2>Sanctuary weather</h2><p>Live, manual or clear weather and your weather location are set right on the Sanctuary, from the weather button next to KONO.</p><button type="button" onClick={openWeather}>Open Sanctuary weather</button></section></>}
    {settingsTab==='Notifications'&&<section className="wb-panel"><h2>Notifications</h2><PushSettings store={store}/><ReminderSettings data={data} setData={save}/>{parentMode&&<FamilyReminderSettings data={data} setting={setting}/>}</section>}
    {settingsTab==='Family'&&<FamilySettings data={data} setting={setting} patch={patch} navigate={navigate}/>}
    {settingsTab==='Schedules'&&<section className="wb-panel"><ScheduleSetup data={data} save={save} draftKey={draftScope} fetchCatalog={repository.fetchSchoolCatalog} submitCatalogEntry={repository.submitSchoolCatalogEntry}/></section>}
@@ -823,13 +825,22 @@ function KidAppearanceEditor({kid,patch}:{kid:Kid;patch:(key:Collection,entry:En
   </div>
  </div>
 }
+/** Settings › Team colors: school and team palettes. They work in Cozy and Simplified, so picking one
+ * from Modern or Zen Ink (which have their own fixed colors) switches to Cozy. */
+function TeamColors({settings,setting}:{settings:SettingsData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
+ const fixed=fixedPaletteExperiences.includes(settings.experience??'cozy')
+ const pick=async(id:string)=>{if(fixed&&!await setting('experience','cozy'))return;await setting('theme',id)}
+ return <><h2>Team colors</h2><p>Show your school or team colors across KONO: the sidebar, buttons, headers and the top bar on your phone. They work with the Cozy and Simplified looks{fixed?'; picking one switches you to Cozy':''}.</p>
+  <div className="team-color-grid" role="group" aria-label="Team colors">{TEAM_THEMES.map(t=><button key={t.id} type="button" aria-pressed={!fixed&&settings.theme===t.id} onClick={()=>void pick(t.id)}><span className={'team-swatch theme-'+t.id} aria-hidden="true"/><strong>{t.label}{!fixed&&settings.theme===t.id?' ✓':''}</strong><small>{t.note}</small></button>)}</div>
+  <p className="wb-muted">To go back to a regular palette, pick one in Settings › Look &amp; feel.</p></>
+}
 function Appearance({settings,setting}:{settings:SettingsData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
  const activePalette=settings.experience==='cozy'?cozyPalette(settings.theme):settings.theme
- const paletteLabel=(theme:string)=>({coral:'Coral · Colorful',sakura:'Sakura · Colorful',lavender:'Lavender Dream',mint:'Mint Study',honey:'Honey Desk',zen:'Zen Garden · Minimal',floral:'Floral Chic',ocean:'Ocean Breeze · Beachy',professional:'Professional · Muted',dragons:'Duxbury Green & White',gamehome:'Game Day Green · Home',gameaway:'Game Day Green · Away'}[theme]??theme[0].toUpperCase()+theme.slice(1))
+ const paletteLabel=(theme:string)=>({coral:'Coral · Colorful',sakura:'Sakura · Colorful',lavender:'Lavender Dream',mint:'Mint Study',honey:'Honey Desk',zen:'Zen Garden · Minimal',floral:'Floral Chic',ocean:'Ocean Breeze · Beachy',professional:'Professional · Muted',...Object.fromEntries(TEAM_THEMES.map(t=>[t.id,t.label]))}[theme]??theme[0].toUpperCase()+theme.slice(1))
  const active=settings.experience??'cozy'
  const swatch=(t:string)=><button className={'theme-'+t} key={t} aria-pressed={activePalette===t} onClick={()=>void setting('theme',t)}><span/>{paletteLabel(t)}{activePalette===t?' ✓':''}</button>
  const activeOption=experienceOptions.find(o=>o.id===active)
- return <section className="wb-panel"><h2>Choose your KONO experience</h2><div className="theme-picker-grid">{experienceOptions.map(option=><button key={option.id} type="button" className={'theme-picker-tile experience-'+option.id} aria-pressed={active===option.id} title={option.description} onClick={()=>void setting('experience',option.id)}><ExperienceIcon id={option.id}/><strong>{option.title}</strong></button>)}</div>{activeOption&&<p className="theme-picker-description">{activeOption.description}</p>}{!fixedPaletteExperiences.includes(settings.experience??'cozy')&&<><h3>Color palette</h3><div className="wb-themes">{(settings.experience==='cozy'?cozyPalettes.filter(t=>!(teamPalettes as readonly string[]).includes(t)):['coral','sakura','professional','forest','ocean','midnight','paper']).map(swatch)}</div><h3>Team colors</h3><div className="wb-themes" aria-label="Team colors">{teamPalettes.map(swatch)}</div></>}
+ return <section className="wb-panel"><h2>Choose your KONO experience</h2><div className="theme-picker-grid">{experienceOptions.map(option=><button key={option.id} type="button" className={'theme-picker-tile experience-'+option.id} aria-pressed={active===option.id} title={option.description} onClick={()=>void setting('experience',option.id)}><ExperienceIcon id={option.id}/><strong>{option.title}</strong></button>)}</div>{activeOption&&<p className="theme-picker-description">{activeOption.description}</p>}{!fixedPaletteExperiences.includes(settings.experience??'cozy')&&<><h3>Color palette</h3><div className="wb-themes">{(settings.experience==='cozy'?cozyPalettes:['coral','sakura','professional','forest','ocean','midnight','paper']).map(swatch)}</div>{teamThemeIds.includes(settings.theme)&&<p className="wb-muted">You’re using team colors. Pick a palette here to switch back, or change teams in Settings › Team colors.</p>}</>}
   <div className="wb-form-grid"><label>Text size<select value={settings.textSize??'normal'} onChange={e=>void setting('textSize',e.target.value as SettingsData['textSize'])}><option value="normal">Normal</option><option value="large">Large</option></select></label><label>Spacing<select value={settings.density??'comfortable'} onChange={e=>void setting('density',e.target.value as SettingsData['density'])}><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label><label>Board background<select value={settings.boardStyle??'paper'} onChange={e=>void setting('boardStyle',e.target.value as SettingsData['boardStyle'])}><option value="paper">Cream paper</option><option value="cork">Cork</option><option value="plain">Plain</option></select></label><label className="wb-check"><input type="checkbox" checked={settings.decoration!==false} onChange={e=>void setting('decoration',e.target.checked)}/>Decorative details</label></div><p>Interface themes never recolor your Sanctuary artwork.</p></section>
 }
 
