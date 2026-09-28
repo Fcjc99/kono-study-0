@@ -5,12 +5,13 @@ import type { RotatingImportRow } from './schoolImport'
 
 /** The fallback for class schedules the built-in reader can't follow: the person's own AI helper turns
  * the schedule's text (or photo) into classes, which they still review before anything is saved. */
-export function classSchedulePrompt(cycle: string[], text?: string): string {
+export function classSchedulePrompt(cycle: string[], text?: string, periods?: number): string {
   return `You are reading a student's class schedule${text ? ' (text copied from a PDF; table cells may be split across lines)' : ' from a photo'}. ` +
     `This schedule's days are named: ${cycle.map(d => JSON.stringify(d)).join(', ')}. ` +
     `Columns or rows headed like "D1", "D2 -" or "Day 1" are those rotation days. ` +
     `For every class that meets on a regular day and time, return one entry; list a lecture, discussion, lab or section that meets at a different time as its own entry. ` +
     `If the schedule only shows periods (like "P1-Period 1") and no clock times, return each class with its period and set start and end to null; never guess times. ` +
+    (periods ? `This school has ${periods} periods (also called blocks) every day, numbered 1 to ${periods}, so each day has at most ${periods} classes; return each period as "Period N". ` : '') +
     `Skip lunch, passing time, homeroom or advisory unless it is clearly a class, and skip anything without a day and either a time or a period. ` +
     `Respond with a single JSON object: {"classes": array of {"name": string (the class title), "code": string or null (course code or section, if shown), ` +
     `"days": array of one or more of the day names above, "start": "HH:MM" 24-hour or null, "end": "HH:MM" 24-hour or null, "period": string or null (the period the class meets in, like "Period 1", when shown), ` +
@@ -58,10 +59,10 @@ export function parseAiClassSchedule(raw: string, cycle: string[], start: string
   return rows
 }
 
-export async function readClassScheduleWithAi(input: { text?: string; photo?: PhotoInput }, cycle: string[], start: string, end: string, provider: AiProvider, apiKey: string): Promise<RotatingImportRow[]> {
+export async function readClassScheduleWithAi(input: { text?: string; photo?: PhotoInput }, cycle: string[], start: string, end: string, provider: AiProvider, apiKey: string, periods?: number): Promise<RotatingImportRow[]> {
   if (!aiReady(apiKey)) aiFail(needsAiMessage)
   if (!input.photo && !input.text?.trim()) aiFail('Nothing was read from this file to send.')
-  const rows = parseAiClassSchedule(await callAi(classSchedulePrompt(cycle, input.photo ? undefined : input.text), provider, apiKey.trim(), input.photo), cycle, start, end)
+  const rows = parseAiClassSchedule(await callAi(classSchedulePrompt(cycle, input.photo ? undefined : input.text, periods), provider, apiKey.trim(), input.photo), cycle, start, end)
   if (!rows.length) aiFail('The AI helper found no classes with a day and time either. Add them by hand below.')
   return rows
 }

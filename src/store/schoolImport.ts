@@ -14,7 +14,7 @@ export function suggestSchoolDates(text:string,start:string,end:string):(SchoolE
   return {id:uid('school-date'),include:false,start:from,end:to,kind,label:source.trim().slice(0,200),audience:/senior/i.test(source)?'seniors':'all',source}
  })
 }
-export type RotatingImportRow={id:string;include:boolean;day:string;label:string;slot:string;start:string;end:string;dateStart:string;dateEnd:string;kind:'study'|'break'|'routine'|'hobby';location?:string}
+export type RotatingImportRow={id:string;include:boolean;day:string;label:string;slot:string;start:string;end:string;dateStart:string;dateEnd:string;kind:'study'|'break'|'routine'|'hobby';location?:string;lunchWave?:1|2|3;lunchSure?:boolean}
 
 const ndaRows=[
  ['07:30','07:50','7:30 AM'],['07:50','08:50','7:50 - 8:50 AM'],['08:53','09:53','8:53 - 9:53 AM'],

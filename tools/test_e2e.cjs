@@ -812,7 +812,7 @@ function picturePdf(jpeg,width,height){
  return Buffer.concat(parts)
 }
 
-test('Rotating school: Duxbury High’s 7-day rotation takes a picture-only PDF with periods but no times; KONO’s AI reads the picture and each period’s times are entered once',async({context,page})=>{
+test('Rotating school: Duxbury High’s 7-day rotation takes a picture-only PDF with periods but no times; KONO’s AI reads the picture, the bell schedule fills the times and lunch, and a class can be switched for second semester',async({context,page})=>{
  const cloud=fakeCloud(),posts=[]
  // A stand-in schedule picture (made-up classes) laid out like the real one: D1–D7 columns, P1–P5 rows.
  // Drawn on this test's own page before it opens KONO: a second, background tab can't always be
@@ -825,7 +825,7 @@ test('Rotating school: Duxbury High’s 7-day rotation takes a picture-only PDF 
   const request=route.request()
   if(request.method()==='GET')return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({enabled:true})})
   posts.push(request.postDataJSON())
-  const classes=[{name:'Chemistry I',code:'328-03',days:['D1 - Day 1'],start:null,end:null,period:'P1-Period 1',room:'A321',teacher:null},{name:'Spanish III',code:'442-01',days:['D2 -'],start:null,end:null,period:'P1-Period 1',room:'A346',teacher:null},{name:'English 10',code:'022-02',days:['D1'],start:null,end:null,period:'P2-Period 2',room:'A306',teacher:null}]
+  const classes=[{name:'Chemistry I',code:'328-03',days:['D1 - Day 1'],start:null,end:null,period:'P1-Period 1',room:'A321',teacher:null},{name:'Spanish III',code:'442-01',days:['D2 -'],start:null,end:null,period:'P1-Period 1',room:'A346',teacher:null},{name:'English 10',code:'022-02',days:['D1'],start:null,end:null,period:'P2-Period 2',room:'A306',teacher:null},{name:'US History II',code:null,days:['D2'],start:null,end:null,period:'P4',room:null,teacher:null}]
   return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({text:JSON.stringify({classes}),used:1,limit:40})})
  })
  await page.goto(BASE);await heading(page,'Sanctuary')
@@ -854,17 +854,34 @@ test('Rotating school: Duxbury High’s 7-day rotation takes a picture-only PDF 
  await page.getByRole('button',{name:'Read timetable & find classes'}).click()
  await page.getByRole('button',{name:'Read with AI helper'}).waitFor({timeout:90000})
  await page.getByRole('button',{name:'Read with AI helper'}).click()
- await page.getByText('Your AI helper found 3 classes. Your schedule shows periods but no times',{exact:false}).waitFor()
+ await page.getByText('Your AI helper found 4 classes. Each period’s times come from Duxbury High School’s bell schedule.',{exact:false}).waitFor()
  assert.equal(posts.length,1);assert.equal(posts[0].photo?.mimeType,'image/jpeg','the picture-only PDF went to the AI as a picture');assert.doesNotMatch(posts[0].prompt,/Schedule text:/)
+ assert.match(posts[0].prompt,/5 periods \(also called blocks\) every day/)
+ // Duxbury High's five blocks fill in the times; each can still be changed.
+ assert.equal(await page.getByLabel('Period 1 starts').inputValue(),'08:20');assert.equal(await page.getByLabel('Period 1 ends').inputValue(),'09:19')
+ assert.equal(await page.getByLabel('Period 4 starts').inputValue(),'11:29');assert.equal(await page.getByLabel('Period 4 ends').inputValue(),'12:58')
+ await page.getByLabel('Period 2 starts').fill('09:25')
+ // The Block 4 class sets the lunch wave: history → 2nd lunch.
+ const lunch=page.getByRole('group',{name:'Lunch'})
+ assert.equal(await lunch.getByLabel('Day 2 lunch').inputValue(),'2')
+ assert.match(await lunch.innerText(),/2nd lunch · 11:54 AM–12:18 PM/)
+ assert.match(await page.getByRole('list',{name:'Check these days'}).innerText(),/Day 1 has nothing in Period 3, Period 4, Period 5\./)
  const cont=page.getByRole('button',{name:'Continue to calendar preview'})
- assert.ok(await cont.isDisabled(),'classes without times can’t continue')
- await page.getByText('3 selected classes need a start and end time before you continue.').waitFor()
- await page.getByLabel('Period 1 starts').fill('07:30');await page.getByLabel('Period 1 ends').fill('08:30')
- await page.getByLabel('Period 2 starts').fill('08:35')
- assert.ok(await cont.isDisabled(),'one period still needs its end time')
- await page.getByLabel('Period 2 ends').fill('09:35')
  await cont.click()
- await page.getByText(/^3 recurring blocks/).waitFor()
+ await page.getByText(/^5 recurring blocks/).waitFor()
+ // Second semester: US History II becomes Economics on every day it meets, lunch included.
+ await sections.getByRole('button',{name:'3 · Classes'}).click()
+ await page.getByText('Change a class (new semester, or fix a name)').click()
+ const changes=page.locator('.class-changes')
+ await changes.getByRole('combobox',{name:'Class that changes'}).selectOption('US History II')
+ await changes.getByLabel('New class',{exact:true}).fill('Economics')
+ await changes.getByLabel('New class starts').fill('2027-01-25')
+ assert.equal(await changes.getByLabel('Lunch with the new class').inputValue(),'2','economics is a history class: 2nd lunch')
+ await changes.getByRole('button',{name:'Switch class'}).click()
+ await changes.getByText('Economics takes US History II’s place from 2027-01-25.',{exact:false}).waitFor()
+ await page.getByRole('combobox',{name:'Rotation day'}).selectOption('Day 2')
+ await page.getByRole('heading',{name:'Period 4 · Economics'}).waitFor()
+ assert.match(await page.locator('.wb-record',{has:page.getByRole('heading',{name:'Period 4 · US History II'})}).innerText(),/2026-09-02 – 2027-01-24/)
 })
 
 test('College semester: choose the term, upload the schedule, review, save; a layout KONO can’t read is logged and the AI helper reads it',async({context,page})=>{
