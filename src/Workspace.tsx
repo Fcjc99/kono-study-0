@@ -52,6 +52,7 @@ import './planner-polish.css'
 import './cozy-controls.css'
 import './compact-header.css'
 import './ui-polish.css'
+import './team-themes.css'
 import ActionIcon from './components/ActionIcon'
 import BrandLogo from './components/BrandLogo'
 import {currentStreak as streakFrom,recapDay,weekRecap} from './store/weekRecap'
@@ -79,7 +80,9 @@ type Page=typeof pages[number]
 type Store=ReturnType<typeof usePlannerRepository>
 type Edit={key:Collection;entry:Entry;original?:Entry}
 const labels:Record<Collection,string>={tasks:'Assignment',notes:'Note',exams:'Exam / project',calendarEvents:'Event',subjects:'Subject',kids:'Kid',studyPlans:'Study plan',flashcardDecks:'Flashcards',kquizSets:'K-Quiz set',kquizSources:'K-Quiz note',studySeasons:'Schedule'}
-const cozyPalettes=['coral','sakura','lavender','mint','honey','zen','floral','ocean'] as const
+// Team colors are offered in both Cozy and Simplified, under their own heading.
+const teamPalettes=['dragons','gamehome','gameaway'] as const
+const cozyPalettes=['coral','sakura','lavender','mint','honey','zen','floral','ocean',...teamPalettes] as const
 const cozyPalette=(theme:string)=>cozyPalettes.includes(theme as typeof cozyPalettes[number])?theme:'coral'
 // Modern and Zen Ink are each one opinionated, fully art-directed look rather than a color you
 // pick — they carry their own fixed palette instead of showing the swatch picker.
@@ -822,10 +825,11 @@ function KidAppearanceEditor({kid,patch}:{kid:Kid;patch:(key:Collection,entry:En
 }
 function Appearance({settings,setting}:{settings:SettingsData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
  const activePalette=settings.experience==='cozy'?cozyPalette(settings.theme):settings.theme
- const paletteLabel=(theme:string)=>({coral:'Coral · Colorful',sakura:'Sakura · Colorful',lavender:'Lavender Dream',mint:'Mint Study',honey:'Honey Desk',zen:'Zen Garden · Minimal',floral:'Floral Chic',ocean:'Ocean Breeze · Beachy',professional:'Professional · Muted'}[theme]??theme[0].toUpperCase()+theme.slice(1))
+ const paletteLabel=(theme:string)=>({coral:'Coral · Colorful',sakura:'Sakura · Colorful',lavender:'Lavender Dream',mint:'Mint Study',honey:'Honey Desk',zen:'Zen Garden · Minimal',floral:'Floral Chic',ocean:'Ocean Breeze · Beachy',professional:'Professional · Muted',dragons:'Duxbury Green & White',gamehome:'Game Day Green · Home',gameaway:'Game Day Green · Away'}[theme]??theme[0].toUpperCase()+theme.slice(1))
  const active=settings.experience??'cozy'
+ const swatch=(t:string)=><button className={'theme-'+t} key={t} aria-pressed={activePalette===t} onClick={()=>void setting('theme',t)}><span/>{paletteLabel(t)}{activePalette===t?' ✓':''}</button>
  const activeOption=experienceOptions.find(o=>o.id===active)
- return <section className="wb-panel"><h2>Choose your KONO experience</h2><div className="theme-picker-grid">{experienceOptions.map(option=><button key={option.id} type="button" className={'theme-picker-tile experience-'+option.id} aria-pressed={active===option.id} title={option.description} onClick={()=>void setting('experience',option.id)}><ExperienceIcon id={option.id}/><strong>{option.title}</strong></button>)}</div>{activeOption&&<p className="theme-picker-description">{activeOption.description}</p>}{!fixedPaletteExperiences.includes(settings.experience??'cozy')&&<><h3>Color palette</h3><div className="wb-themes">{(settings.experience==='cozy'?[...cozyPalettes]:['coral','sakura','professional','forest','ocean','midnight','paper']).map(t=><button className={'theme-'+t} key={t} aria-pressed={activePalette===t} onClick={()=>void setting('theme',t)}><span/>{paletteLabel(t)}{activePalette===t?' ✓':''}</button>)}</div></>}
+ return <section className="wb-panel"><h2>Choose your KONO experience</h2><div className="theme-picker-grid">{experienceOptions.map(option=><button key={option.id} type="button" className={'theme-picker-tile experience-'+option.id} aria-pressed={active===option.id} title={option.description} onClick={()=>void setting('experience',option.id)}><ExperienceIcon id={option.id}/><strong>{option.title}</strong></button>)}</div>{activeOption&&<p className="theme-picker-description">{activeOption.description}</p>}{!fixedPaletteExperiences.includes(settings.experience??'cozy')&&<><h3>Color palette</h3><div className="wb-themes">{(settings.experience==='cozy'?cozyPalettes.filter(t=>!(teamPalettes as readonly string[]).includes(t)):['coral','sakura','professional','forest','ocean','midnight','paper']).map(swatch)}</div><h3>Team colors</h3><div className="wb-themes" aria-label="Team colors">{teamPalettes.map(swatch)}</div></>}
   <div className="wb-form-grid"><label>Text size<select value={settings.textSize??'normal'} onChange={e=>void setting('textSize',e.target.value as SettingsData['textSize'])}><option value="normal">Normal</option><option value="large">Large</option></select></label><label>Spacing<select value={settings.density??'comfortable'} onChange={e=>void setting('density',e.target.value as SettingsData['density'])}><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label><label>Board background<select value={settings.boardStyle??'paper'} onChange={e=>void setting('boardStyle',e.target.value as SettingsData['boardStyle'])}><option value="paper">Cream paper</option><option value="cork">Cork</option><option value="plain">Plain</option></select></label><label className="wb-check"><input type="checkbox" checked={settings.decoration!==false} onChange={e=>void setting('decoration',e.target.checked)}/>Decorative details</label></div><p>Interface themes never recolor your Sanctuary artwork.</p></section>
 }
 

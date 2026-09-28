@@ -19,10 +19,13 @@ const PORT = 4319
 const BASE_URL = `http://localhost:${PORT}/`
 // Anything at or above this is at least faintly legible; the real bug measured ~1.0-1.9.
 const FAIL_RATIO = 2.0
+const ONLY_THEMES = process.env.ONLY_THEMES ? process.env.ONLY_THEMES.split(',') : null
+// SHOTS_DIR=some/dir also saves a screenshot of every page it checks, for looking a new theme over.
+const SHOTS_DIR = process.env.SHOTS_DIR || ''
 
 const EXPERIENCES = [
- { experience: 'cozy', palettes: ['coral', 'sakura', 'lavender', 'mint', 'honey', 'zen', 'floral', 'ocean'] },
- { experience: 'simplified', palettes: ['coral', 'sakura', 'professional', 'forest', 'ocean', 'midnight', 'paper'] },
+ { experience: 'cozy', palettes: ['coral', 'sakura', 'lavender', 'mint', 'honey', 'zen', 'floral', 'ocean', 'dragons', 'gamehome', 'gameaway'] },
+ { experience: 'simplified', palettes: ['coral', 'sakura', 'professional', 'forest', 'ocean', 'midnight', 'paper', 'dragons', 'gamehome', 'gameaway'] },
  { experience: 'modern', palettes: [null] },
  { experience: 'sumi', palettes: [null] },
 ]
@@ -193,12 +196,15 @@ async function main() {
 
    for (const { experience, palettes } of EXPERIENCES) {
     for (const theme of palettes) {
+     // ONLY_THEMES=dragons,gamehome checks just those palettes (e.g. after adding one).
+     if (ONLY_THEMES && !ONLY_THEMES.includes(theme)) continue
      await setExperienceAndTheme(page, experience, theme)
      for (const p of PAGES) {
       try {
        if (!(await goTo(page, p))) { navFails.push(`${viewport.name}/${experience}/${theme}/${p}`); continue }
        await page.waitForTimeout(350)
        await scanPage(page, `${viewport.name}/${experience}/${theme}/${p}`, results)
+       if (SHOTS_DIR) await page.screenshot({ path: path.join(SHOTS_DIR, `${viewport.name}-${experience}-${theme}-${p}.png`) })
       } catch (e) {
        navFails.push(`${viewport.name}/${experience}/${theme}/${p} (${String(e.message || e).slice(0, 80)})`)
       }
