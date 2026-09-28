@@ -31,3 +31,14 @@
 .period-problems{margin:8px 0;padding:8px 12px 8px 28px;border-radius:12px;background:color-mix(in srgb,#e0a100 14%,transparent);border:1px solid color-mix(in srgb,#e0a100 45%,transparent)}
 .period-problems li+li{margin-top:4px}
 .class-changes{display:grid;gap:8px}
+.rotating-classes{display:grid;gap:10px}
+.rotating-class-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.rotating-class-list li{border:1px solid var(--wb-line,#ddd);border-radius:12px;padding:8px 10px}
+.rotating-class-list strong{min-width:4.5em}
+.rotating-class-list input{min-width:0;max-width:100%}
+.rotation-grid-wrap{overflow-x:auto;max-width:100%}
+.rotation-grid{border-collapse:collapse;font-size:.9em;width:100%;min-width:560px}
+.rotation-grid td,.rotation-grid th{overflow-wrap:normal;word-break:normal}
+.rotation-grid caption{text-align:left;font-weight:700;padding-bottom:4px}
+.rotation-grid th,.rotation-grid td{border:1px solid var(--wb-line,#ddd);padding:4px 6px;text-align:left;vertical-align:top}
+.rotation-grid small{display:block;opacity:.7;font-size:.82em}

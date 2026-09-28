@@ -232,4 +232,45 @@ test('Duxbury High bell schedule: five blocks fill a periods-only schedule, the 
  const renamed=b.renameClass(saved,'chemistry i','Chemistry I (Honors)')
  assert.equal(Object.values(renamed.week).flat().filter(x=>x.label==='Chemistry I (Honors)').length,1);assert.equal(saved.week['Day 1'][0].label,'Chemistry I','the original is untouched')
 })
+test('Duxbury High 7-class rotation: Day 1 is classes 1-5, Day 2 is 6-7-1-2-3 … Day 7 is 3-7; seven classes build every day with lunch and ASP',()=>{
+ const {academicTemplate}=load('src/store/academicCatalog.ts'),b=load('src/store/bellSchedules.ts')
+ const data=model.createFreshData(),dhs=academicTemplate(data.activeProfileId,'duxburyhs-2026')
+ const season={...dhs,school:{...dhs.school,grade:'10',anchorDate:'2026-09-28',anchorDay:'Day 4'}},bells=b.bellScheduleFor(season.school)
+ assert.equal(bells.classes,7)
+ assert.equal(b.rotationGrid(bells,7).map(r=>r.join('')).join(' '),'12345 67123 45671 23456 71234 56712 34567')
+ // Read from the schedule grid (as the AI returns it), back into class order.
+ const names=['Chemistry I','US History II','English 10','Spanish III','Algebra II','Ceramics','Free']
+ const rows=[]
+ for(let d=0;d<7;d++)for(let p=1;p<=5;p++){const i=b.classIndexFor(bells,d,p);rows.push({include:true,day:'Day '+(d+1),label:names[i],slot:'Period '+p,location:i===0?'A321':''})}
+ const found=b.classesFromRows(rows,season.school.cycle,bells)
+ assert.equal(JSON.stringify(found.classes.map(c=>c.label)),JSON.stringify(names));assert.equal(found.classes[0].location,'A321');assert.equal(found.conflicts.length,0)
+ const partial=b.classesFromRows(rows.filter(r=>r.day==='Day 1'),season.school.cycle,bells)
+ assert.equal(JSON.stringify(partial.classes.map(c=>c.label)),JSON.stringify([...names.slice(0,5),'','']),'Day 1 alone gives classes 1-5')
+ const misread=b.classesFromRows([...rows,{day:'Day 3',label:'Chem I',slot:'Period 5'}],season.school.cycle,bells)
+ assert.equal(misread.classes[0].label,'Chemistry I','the name seen most wins');assert.equal(misread.conflicts.join(' / '),'Class 1 was read as Chemistry I and Chem I. Check which it is.')
+ // Build every day.
+ const classes=names.map(label=>({label,location:label==='Chemistry I'?'A321':'',lunchWave:b.duxburyLunchWave(label).wave}))
+ assert.throws(()=>b.buildRotationWeek(season,classes.slice(0,6)),/all 7 classes/)
+ assert.throws(()=>b.buildRotationWeek(season,classes.map((c,i)=>i===3?{...c,label:' '}:c)),/Enter a name for class 4/)
+ const built=b.buildRotationWeek(season,classes)
+ const day=d=>built.week[d].map(x=>x.start+' '+x.label).join(' | ')
+ assert.equal(day('Day 1'),'08:20 Chemistry I | 09:23 US History II | 10:26 English 10 | 11:29 Spanish III | 11:54 Lunch 2 | 13:02 Algebra II | 14:05 ASP · Algebra II')
+ assert.equal(day('Day 2'),'08:20 Ceramics | 09:23 Free | 10:26 Chemistry I | 11:29 US History II | 11:54 Lunch 2 | 13:02 English 10 | 14:05 ASP · English 10')
+ assert.equal(day('Day 5'),'08:20 Free | 09:23 Chemistry I | 10:26 US History II | 11:29 English 10 | 12:34 Lunch 3 | 13:02 Spanish III | 14:05 ASP · Spanish III')
+ assert.equal(day('Day 7'),'08:20 English 10 | 09:23 Spanish III | 10:26 Algebra II | 11:29 Ceramics | 12:34 Lunch 3 | 13:02 Free | 14:05 ASP · Free')
+ assert.equal(built.week['Day 2'].find(x=>x.label==='Free').kind,'break','a free block isn’t a subject')
+ assert.equal(built.week['Day 2'].find(x=>x.label==='Chemistry I').location,'A321')
+ assert.ok(Object.values(built.week).every(v=>v.length===7),'5 blocks, lunch and ASP every day')
+ // It saves, and shows on the right days: Sept 28 is Day 4, so Sept 29 is Day 5.
+ const saved=model.normalizeData({...data,studySeasons:[{...built,active:true}]})
+ assert.equal(saved.studySeasons[0].week['Day 5'].length,7)
+ assert.equal(classOccurrences(saved,'2026-09-29').filter(o=>o.block.kind==='study').map(o=>o.block.label).join(', '),'Chemistry I, US History II, English 10, Spanish III')
+ // Reopening fills the seven classes back in, lunches included.
+ const again=b.classesFromWeek(built,bells)
+ assert.equal(JSON.stringify(again.map(c=>c.label)),JSON.stringify(names));assert.equal(again[3].lunchWave,2);assert.equal(again[0].lunchWave,1)
+ // A semester switch on a built rotation still works, and reopening shows the first-semester class.
+ const switched=b.switchClass(built,'US History II',{label:'Economics',from:'2027-01-25',lunchWave:2})
+ assert.equal(b.classesFromWeek(switched,bells)[1].label,'US History II')
+ assert.equal(Object.values(switched.week).flat().filter(x=>x.label==='Economics').length,5,'Economics takes all five of its days')
+})
 console.log(passed+' school-calendar regression groups passed. No user data changed.')
