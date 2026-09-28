@@ -27,3 +27,7 @@
 .rotation-question-fields{display:flex;flex-wrap:wrap;align-items:end;gap:8px 12px}
 .rotation-question-fields label{display:grid;gap:4px}
 .rotation-question .link-button{background:none!important;border:0!important;padding:0!important;text-decoration:underline;cursor:pointer;color:inherit!important;font:inherit;box-shadow:none!important;min-height:0!important;transform:none!important}
+.lunch-waves .period-times-row strong{min-width:0;flex:1 1 14em}
+.period-problems{margin:8px 0;padding:8px 12px 8px 28px;border-radius:12px;background:color-mix(in srgb,#e0a100 14%,transparent);border:1px solid color-mix(in srgb,#e0a100 45%,transparent)}
+.period-problems li+li{margin-top:4px}
+.class-changes{display:grid;gap:8px}
