@@ -32,6 +32,12 @@ export class SupabaseRemote{
   const {error}=await this.client.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.origin+'/'}})
   if(error)throw error
  }
+ /** The 6-digit code from the same email: signs in right here, which is how an app on the Home Screen or
+  * desktop signs in (the email's link opens in the browser, which doesn't share the app's sign-in). */
+ async verifyEmailCode(email:string,code:string){
+  const {error}=await this.client.auth.verifyOtp({email,token:code,type:'email'})
+  if(error)throw error
+ }
  async signOut(){const {error}=await this.client.auth.signOut();if(error)throw error}
  /** Keeps a copy of the saved cloud plan each time KONO opens (the database skips it when nothing changed). */
  async backupOnOpen(){const {error}=await this.client.rpc('kono_backup_on_open');if(error)throw error}

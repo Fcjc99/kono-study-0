@@ -206,12 +206,18 @@ function fakeCloud(){
  return {users:{alice:named('Alice','alice@example.com'),carol:{...named('Carol','carol@example.com'),admin:true},dave:{email:'dave@example.com',admin:false,plan:{revision:0,data:null}}},me:'alice',calls:[],audit:[],errors:[],feedback:[],nightly:{},feeds:[]}
 }
 const b64=value=>Buffer.from(JSON.stringify(value)).toString('base64url')
+function sessionFor(cloud,id){
+ const exp=Math.floor(Date.now()/1000)+3600
+ const user={id,aud:'authenticated',role:'authenticated',email:cloud.users[id].email,app_metadata:{},user_metadata:{},created_at:'2026-09-01T00:00:00Z'}
+ return {access_token:b64({alg:'HS256',typ:'JWT'})+'.'+b64({sub:id,exp,role:'authenticated'})+'.sig',token_type:'bearer',expires_in:3600,expires_at:exp,refresh_token:'fake-refresh',user}
+}
 async function signInAs(context,cloud,id){
  cloud.me=id
- const ref=supabaseHost(),exp=Math.floor(Date.now()/1000)+3600
- const user={id,aud:'authenticated',role:'authenticated',email:cloud.users[id].email,app_metadata:{},user_metadata:{},created_at:'2026-09-01T00:00:00Z'}
- const session={access_token:b64({alg:'HS256',typ:'JWT'})+'.'+b64({sub:id,exp,role:'authenticated'})+'.sig',token_type:'bearer',expires_in:3600,expires_at:exp,refresh_token:'fake-refresh',user}
- await context.addInitScript(([key,value])=>localStorage.setItem(key,value),[`sb-${ref}-auth-token`,JSON.stringify(session)])
+ await context.addInitScript(([key,value])=>localStorage.setItem(key,value),[`sb-${supabaseHost()}-auth-token`,JSON.stringify(sessionFor(cloud,id))])
+ await routeCloud(context,cloud)
+}
+/** The fake Supabase: sign-in emails and codes, plans, support, feeds. The code in every sign-in email is 123456. */
+async function routeCloud(context,cloud){
  await context.route(/\.supabase\.co\//,async route=>{
   const request=route.request(),url=new URL(request.url()),method=request.method(),where=url.pathname
   const cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'*'}
@@ -222,6 +228,12 @@ async function signInAs(context,cloud,id){
   const denied=()=>reply({code:'P0001',message:'KONO support access only'},400)
   const saveTo=(owner,expected)=>{if(owner.plan.revision!==expected)return reply({revision:owner.plan.revision,conflict:true});owner.plan={revision:expected+1,data:body.p_data};return reply({revision:owner.plan.revision,conflict:false})}
   switch(where){
+   case '/auth/v1/otp':cloud.emails=[...(cloud.emails??[]),body.email];return reply({})
+   case '/auth/v1/verify':{
+    const id=Object.keys(cloud.users).find(k=>cloud.users[k].email===body.email)
+    if(!id||body.token!=='123456')return reply({code:403,error_code:'otp_expired',msg:'Token has expired or is invalid'},403)
+    cloud.me=id;return reply(sessionFor(cloud,id))
+   }
    case '/rest/v1/rpc/kono_backup_on_open':return reply({backedUp:true,revision:me.plan.revision})
    case '/rest/v1/rpc/kono_is_admin':return reply(me.admin)
    case '/rest/v1/rpc/kono_save_plan':return saveTo(me,body.p_expected_revision)
@@ -331,6 +343,25 @@ test('keyboard: K-Quiz practice questions and flashcards keep focus inside, clos
   await dialog.waitFor({state:'detached'})
   assert.ok(await button.evaluate(el=>el===document.activeElement),`${label}: focus didn't return to the button that opened it`)
  }
+})
+
+test('an app on the Home Screen or desktop signs in with the code from the email, right in the app (the link would open the browser)',async({context,page})=>{
+ const cloud=fakeCloud()
+ await routeCloud(context,cloud)
+ await page.goto(BASE)
+ await page.getByLabel('Email address').fill('Alice@Example.com')
+ await page.getByRole('checkbox',{name:/13 or older/}).check()
+ await page.getByRole('button',{name:'Email me a link to start'}).click()
+ await page.getByText('Using KONO as an app on your Home Screen or desktop? Use the code',{exact:false}).waitFor()
+ assert.deepEqual(cloud.emails,['alice@example.com'])
+ const code=page.getByLabel('Code from the email')
+ await code.fill('000000');await page.getByRole('button',{name:'Sign in with code'}).click()
+ await page.getByText('That code didn’t work. It may have expired',{exact:false}).waitFor()
+ await code.fill('123 456');await page.getByRole('button',{name:'Sign in with code'}).click()
+ await mainHeading(page).waitFor({timeout:20000})
+ const verify=cloud.calls.filter(c=>c.where==='/auth/v1/verify').map(c=>c.body.token+' '+c.body.email+' '+c.body.type)
+ assert.deepEqual(verify,['000000 alice@example.com email','123456 alice@example.com email'])
+ assert.ok(cloud.calls.some(c=>c.where==='/rest/v1/kono_plans'&&c.as==='alice'),'Alice’s plan loaded after signing in with the code')
 })
 
 test('sign-up needs the age and Terms agreement, and the Terms open without ticking the box',async({page})=>{
