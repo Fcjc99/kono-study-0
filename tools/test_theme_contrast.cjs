@@ -15,7 +15,7 @@ const { spawn } = require('child_process')
 const path = require('path')
 
 const ROOT = path.resolve(__dirname, '..')
-const PORT = 4319
+const PORT = Number(process.env.PORT) || 4319
 const BASE_URL = `http://localhost:${PORT}/`
 // Anything at or above this is at least faintly legible; the real bug measured ~1.0-1.9.
 const FAIL_RATIO = 2.0
@@ -23,9 +23,11 @@ const ONLY_THEMES = process.env.ONLY_THEMES ? process.env.ONLY_THEMES.split(',')
 // SHOTS_DIR=some/dir also saves a screenshot of every page it checks, for looking a new theme over.
 const SHOTS_DIR = process.env.SHOTS_DIR || ''
 
+// Team colors live on their own Settings tab (see teamThemes.ts).
+const TEAM = ['dragons', 'dragonsblack', 'hanover', 'nda', 'bc', 'mcgill', 'gamehome', 'gameaway']
 const EXPERIENCES = [
- { experience: 'cozy', palettes: ['coral', 'sakura', 'lavender', 'mint', 'honey', 'zen', 'floral', 'ocean', 'dragons', 'gamehome', 'gameaway'] },
- { experience: 'simplified', palettes: ['coral', 'sakura', 'professional', 'forest', 'ocean', 'midnight', 'paper', 'dragons', 'gamehome', 'gameaway'] },
+ { experience: 'cozy', palettes: ['coral', 'sakura', 'lavender', 'mint', 'honey', 'zen', 'floral', 'ocean', ...TEAM] },
+ { experience: 'simplified', palettes: ['coral', 'sakura', 'professional', 'forest', 'ocean', 'midnight', 'paper', ...TEAM] },
  { experience: 'modern', palettes: [null] },
  { experience: 'sumi', palettes: [null] },
 ]
@@ -149,7 +151,15 @@ async function setExperienceAndTheme(page, experience, theme) {
  const experienceLabel = EXPERIENCE_LABELS[experience] ?? (experience[0].toUpperCase() + experience.slice(1))
  await clickVisibleByName(page, experienceLabel)
  await page.waitForTimeout(400)
- if (theme) {
+ if (theme && TEAM.includes(theme)) {
+  await clickVisibleByName(page, 'Team colors')
+  await page.waitForTimeout(300)
+  const tile = page.locator('.team-color-grid button', { has: page.locator(`.team-swatch.theme-${theme}`) })
+  if (!(await tile.count())) throw new Error(`Team colors tile for ${theme} not found`)
+  await tile.click()
+  await page.waitForTimeout(400)
+  await clickVisibleByName(page, 'Look & feel')
+ } else if (theme) {
   const swatch = page.locator(`.wb-themes button.theme-${theme}`)
   if (await swatch.count()) {
    await swatch.scrollIntoViewIfNeeded()
