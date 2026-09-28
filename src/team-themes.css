@@ -53,3 +53,13 @@
 :root[data-experience='cozy'][data-theme='gameaway'] .mobile-desk-header .mobile-week-weather-day{background:#1257400d}
 :root[data-experience='cozy'][data-theme='gameaway'] .mobile-nav button{color:#125740!important;background:#12574009!important;border-color:#12574030!important}
 :root[data-experience='cozy'][data-theme='gameaway'] .mobile-nav button.active{background:#125740!important;border-color:#125740!important;color:#fff!important;box-shadow:0 3px 0 #111!important}
+
+/* The last pink details: header label and flower, action-icon chips, checkboxes, and the sidebar profile card. */
+:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .wb-header small{color:var(--team-stripe)}
+:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .cozy-heading-flower{color:var(--team-stripe)}
+:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .kono-action-icon{background:var(--team-soft)!important;color:var(--team-stripe)!important}
+:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) input:is([type='checkbox'],[type='radio'],[type='range']){accent-color:var(--team-stripe)}
+:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .sidebar .profile-dock{color:var(--wb-ink)}
+:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .sidebar .profile-dock :is(span,strong,small){color:var(--wb-ink)}
+:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .sidebar .profile-avatar{background:var(--team-stripe);color:#fff}
+:root:is([data-theme='dragons'],[data-theme='gamehome'],[data-theme='gameaway']) .sidebar .brand h1{white-space:nowrap}
