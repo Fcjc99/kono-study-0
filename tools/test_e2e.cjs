@@ -469,7 +469,9 @@ test('Sanctuary: the island draws, zooms, expands and changes time; Decorate add
  await page.locator('.wb-scene-expand').click()
  await page.locator('.wb-island.is-expanded').waitFor({state:'detached'})
  const phase=await page.getByLabel('Sanctuary time').inputValue()
- const other=phase==='morning'?'evening':'morning'
+ // A time whose map isn't loaded yet: near dawn or dusk the island has already loaded the next phase's map
+ // to blend into, so switching to it wouldn't fetch anything (which made this test depend on the clock).
+ const other=['evening','night','afternoon','morning'].find(p=>p!==phase&&!loaded.some(([path])=>path.endsWith(`/terrace-23.0/${p}.webp`)))
  const mapLoaded=page.waitForResponse(r=>r.url().endsWith(`/terrace-23.0/${other}.webp`)&&r.status()===200,{timeout:20000})
  await page.getByLabel('Sanctuary time').selectOption(other)
  await mapLoaded
