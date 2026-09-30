@@ -41,9 +41,9 @@ export async function syncLinked(profileId: string, calendar: LinkedCalendar, cu
     const parsed = parseIcs(await fetchCalendar(calendar.url), localDate())
     const preview = syncIcs(current(), profileId, parsed, calendar.name, calendar.seen)
     let seen = preview.seen
-    if (preview.added || preview.updated) {
+    if (preview.added || preview.updated || preview.tagged) {
       const ok = await save(d => { const r = syncIcs(d, profileId, parsed, calendar.name, calendar.seen); seen = r.seen; return r.data })
-      result = ok ? [preview.added ? preview.added + ' new' : '', preview.updated ? preview.updated + ' moved to a new date' : ''].filter(Boolean).join(', ') + '.' : 'Not saved yet; will try again.'
+      result = ok ? (preview.added || preview.updated ? [preview.added ? preview.added + ' new' : '', preview.updated ? preview.updated + ' moved to a new date' : ''].filter(Boolean).join(', ') + '.' : result) : 'Not saved yet; will try again.'
       if (!ok) seen = calendar.seen
     }
     linkCalendar(profileId, { ...calendar, seen, lastSynced: new Date().toISOString(), lastResult: result })

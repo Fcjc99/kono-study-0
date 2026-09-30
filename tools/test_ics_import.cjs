@@ -49,7 +49,7 @@ await test('Adding: events land in the Calendar, weekly repeats in one weekly sc
  assert.ok(season);assert.equal(season.week.Tuesday.length,1);assert.equal(season.week.Thursday.length,1)
  assert.equal(season.week.Tuesday[0].skippedDates.join(','),'2026-10-06,2026-11-24');assert.equal(season.week.Thursday[0].skippedDates.length,0)
  assert.equal(season.week.Tuesday[0].location,'North Hall 235, Room B');assert.equal(season.week.Tuesday[0].dateEnd,'2026-12-11')
- const dentist=first.data.calendarEvents.find(e=>e.title==='Dentist appointment');assert.equal(dentist.kind,'appointment');assert.equal(dentist.time,'09:00');assert.equal(dentist.endTime,'10:00')
+ const dentist=first.data.calendarEvents.find(e=>e.title==='Dentist appointment');assert.equal(dentist.kind,'appointment');assert.equal(dentist.source,'calendar','a Google calendar is a calendar source');assert.equal(dentist.time,'09:00');assert.equal(dentist.endTime,'10:00')
  assert.equal(first.added,r.events.length+1)
  const again=applyIcsImport(first.data,data.activeProfileId,parseIcs(ics,today),r.calendarName)
  assert.equal(again.added,0);assert.equal(again.skipped,r.events.length+1)
@@ -91,6 +91,8 @@ await test('Canvas and Schoology feeds: assignments go to the Planner, quizzes t
  const quiz=next.exams.find(x=>x.title==='Chapter 3 quiz');assert.equal(quiz.subjectId,'bio','an existing subject is reused');assert.equal(quiz.due,'2026-10-05')
  assert.ok(next.tasks.some(t=>t.title==='Lab report due'&&t.notes.includes('Due at 12:00')))
  const officeHours=next.calendarEvents.find(e=>e.title==='Office hours [BIOL 1100]');assert.equal(officeHours.subjectId,'bio')
+ assert.deepEqual([task.source,quiz.source,officeHours.source],['canvas','canvas','canvas'],'everything from a class site is marked as Canvas')
+ assert.equal(model.normalizeData(next).tasks.find(t=>t.title==='Essay 1').source,'canvas','the source survives saving')
  assert.equal(applyIcsImport(next,data.activeProfileId,parseIcs(feed,today),'Canvas').added,0,'importing again adds nothing')
 })
 await test('A linked calendar stays up to date: new items added, changed dates moved, deleted or unticked ones stay gone',()=>{
@@ -128,10 +130,24 @@ await test('A linked calendar stays up to date: new items added, changed dates m
  assert.equal(moved.data.calendarEvents.filter(e=>e.title==='Optional reading').length,0,'an unticked item is not added later')
  assert.equal(moved.data.studySeasons.filter(s=>s.name==='Canvas · weekly').length,0,'a deleted weekly schedule is not brought back')
  assert.equal(moved.seen.essay2.c,'tasks')
+ // Items linked before sources were recorded get theirs on the next sync, and it's saved.
+ const untagged=structuredClone(moved.data);for(const t of untagged.tasks)delete t.source
+ const tagged=syncIcs(untagged,pid,parseIcs(feed('20261006'),today),'Canvas',moved.seen)
+ assert.equal(tagged.updated,0);assert.ok(tagged.tagged>0);assert.equal(tagged.data.tasks.find(t=>t.title==='Essay 1').source,'canvas')
  // A finished assignment is left where it is.
  const done=structuredClone(moved.data);done.tasks.find(t=>t.title==='Essay 1').done=true
  const later=syncIcs(done,pid,parseIcs(feed('20261012'),today),'Canvas',moved.seen)
  assert.equal(later.updated,0);assert.equal(later.data.tasks.find(t=>t.title==='Essay 1').due,'2026-10-06')
 })
-console.log(passed+'/5 calendar-import regression groups passed.')
+await test('Planner source chips: each item belongs to one source, and only sources in the plan get a chip',()=>{
+ const {entrySource,classSource,sourcesInPlan}=load('src/store/plannerSources.ts')
+ assert.equal(entrySource('tasks',{source:'canvas'}),'canvas');assert.equal(entrySource('calendarEvents',{source:'calendar',kind:'sports'}),'calendar','the import source wins')
+ assert.equal(entrySource('calendarEvents',{kind:'sports'}),'sports');assert.equal(entrySource('tasks',{}),'mine');assert.equal(entrySource('notes',{source:'kquiz'}),'mine')
+ assert.equal(classSource({season:{school:{name:'Duxbury High School'}}}),'school');assert.equal(classSource({season:{category:'sports'}}),'sports');assert.equal(classSource({season:{}}),'mine')
+ const data=model.createFreshData();assert.equal(sourcesInPlan(data).join(),'mine')
+ data.tasks.push({id:'t',profileId:data.activeProfileId,subjectId:'',title:'Essay',due:'2026-10-01',done:false,notes:'',source:'canvas'})
+ data.calendarEvents.push({id:'e',profileId:'someone-else',date:'2026-10-01',title:'Game',kind:'sports',notes:''})
+ assert.equal(sourcesInPlan(data).join(),'canvas,mine','another profile’s sports don’t add a chip')
+})
+console.log(passed+'/6 calendar-import regression groups passed.')
 })().catch(e=>{console.error(e);process.exit(1)})
