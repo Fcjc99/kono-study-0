@@ -1,4 +1,4 @@
-/** Team colors (Settings › Team colors). Each works in Cozy and Simplified. A "dark" jersey paints the
+/** Team colors (Settings › Look & feel › Team colors). Each works in Cozy and Simplified. A "dark" jersey paints the
  * sidebar and phone header in the team's main color; a "light" one keeps them white with team-colored
  * trim. The colors themselves live in team-themes.css. */
 export const TEAM_THEMES = [
