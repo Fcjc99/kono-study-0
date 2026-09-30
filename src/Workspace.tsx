@@ -29,14 +29,13 @@ import {lazyPanel} from './lazyPanel'
 import {AccountBanners,AccountPanel,BackupPanel,Onboarding,RecoveryScreen,SaveStatus,SupportAdminPanel,FeedbackButton} from './components/AccountPanel'
 import {AiHelperSettings} from './components/AiHelper'
 import GardenCard from './components/GardenCard'
-import StudyPlanner from './components/StudyPlanner'
+import './components/StudyPlanner.css'
 import './components/kquiz.css'
 import CommandPalette from './components/CommandPalette'
 import MusicPlayer from './components/MusicPlayer'
 import SafeNoteBody from './components/SafeNoteBody'
 import VoiceInputButton from './components/VoiceInputButton'
 import FocusSession, {type FocusRequest} from './components/FocusSession'
-import SanctuaryBuild from './components/SanctuaryBuild'
 import SanctuaryDecorLayer from './components/SanctuaryDecorLayer'
 import './components/peer-connections.css'
 import {NavIcon,WeekWeather} from './components/Sidebar'
@@ -78,6 +77,9 @@ const Flashcards=lazyPanel(()=>import('./components/Flashcards'))
 const KQuiz=lazyPanel(()=>import('./components/KQuiz'))
 const UpdatePlanScanner=lazyPanel(()=>import('./components/UpdatePlanScanner'))
 const PeerConnections=lazyPanel(()=>import('./components/PeerConnections'))
+// Only shown on the Planner page and in Decorate, so not part of the startup download.
+const StudyPlanner=lazyPanel(()=>import('./components/StudyPlanner'))
+const SanctuaryBuild=lazyPanel(()=>import('./components/SanctuaryBuild'))
 
 // Settings tabs, grouped by what a person is trying to do rather than by where each feature was built.
 const SETTINGS_TABS=['Look & feel','Notifications','Family','Schedules','Import & export','Plans & account'] as const
