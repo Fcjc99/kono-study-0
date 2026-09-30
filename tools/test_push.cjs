@@ -33,6 +33,28 @@ assert.ok(rows.every((r,i)=>i===0||rows[i-1].sendAt<=r.sendAt),'in time order')
 const late=buildReminders(data,new Date('2026-09-28T08:50:00'));assert.ok(!late.some(r=>r.tag==='class-b1-2026-09-28'),'a class that already started is skipped');assert.ok(!late.some(r=>r.tag==='due-2026-09-28'))
 console.log('PASS reminder planner: morning summary, exam eve, classes 15 min before, study blocks, skipped/breaks/past left out')
 
+{
+ // A rotating school: Duxbury High's 7-day rotation, with Monday September 28 as Day 4.
+ const {academicTemplate}=load('src/store/academicCatalog.ts'),b=load('src/store/bellSchedules.ts')
+ const plan=model.createFreshData(),dhs=academicTemplate(plan.activeProfileId,'duxburyhs-2026')
+ const season={...dhs,active:true,school:{...dhs.school,grade:'10',anchorDate:'2026-09-28',anchorDay:'Day 4'}}
+ const names=['Chemistry I','US History II','English 10','Spanish III','Algebra II','Ceramics','Free']
+ plan.studySeasons=[b.buildRotationWeek(season,names.map(label=>({label,location:'',lunchWave:1})))]
+ const week=buildReminders(plan,new Date('2026-09-28T06:00:00')),eve=week.filter(r=>r.tag.startsWith('rotation-'))
+ const monday=eve.find(r=>new Date(r.sendAt).getDate()===28)
+ assert.equal(monday.title,'Tomorrow is Day 5');assert.equal(new Date(monday.sendAt).getHours()*60+new Date(monday.sendAt).getMinutes(),19*60+30)
+ // Day 5 is classes 7-1-2-3-4 and class 7 is a free block, so the first class is Chemistry I in Block 2.
+ assert.equal(monday.body,'First class: Chemistry I at 9:23 AM')
+ assert.ok(!eve.some(r=>new Date(r.sendAt).getDay()===6),'no reminder the evening before a Sunday')
+ assert.equal(eve.find(r=>new Date(r.sendAt).getDay()===0).title,'Tomorrow is Day 2','Sunday evening: Friday was Day 1, so Monday is Day 2')
+ // Columbus Day (Monday, October 12) is a school holiday: the evening before says so.
+ const holiday=buildReminders(plan,new Date('2026-10-10T08:00:00')).find(r=>r.tag.startsWith('rotation-')&&new Date(r.sendAt).getDate()===11)
+ assert.equal(holiday.title,'No school tomorrow');assert.match(holiday.body,/Columbus|Indigenous/)
+ // A weekly (Monday–Friday) school gets no rotation reminder.
+ assert.ok(!rows.some(r=>r.tag.startsWith('rotation-')))
+ console.log('PASS rotating school: the evening before says which day tomorrow is and its first class, or that there is no school')
+}
+
 ;(async()=>{
  const sent=[],forgotten=[]
  const due=[{endpoint:'https://push/a',p256dh:'k',auth:'a',title:'Due today: Essay',body:'ENGL',tag:'due'},{endpoint:'https://push/gone',p256dh:'k',auth:'a',title:'One',body:'',tag:null},{endpoint:'https://push/gone',p256dh:'k',auth:'a',title:'Two',body:'',tag:null},{endpoint:'https://push/flaky',p256dh:'k',auth:'a',title:'Three',body:'',tag:null}]
