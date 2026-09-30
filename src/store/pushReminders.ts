@@ -4,6 +4,7 @@ import { schoolDay } from './schoolCalendar'
 
 /** The next week of lock-screen reminders for the active plan, worked out on the person's own device
  * (so times are in their time zone) and handed to KONO's server queue (migration 0008):
+ * - 6:55 AM on Mondays: the week ahead, everything due through Sunday
  * - 7:00 AM: what's due today (assignments and exams), one summary
  * - 7:00 PM: exams and tests tomorrow
  * - 7:30 PM, rotating schools: which day tomorrow is and its first class, or that there's no school
@@ -29,6 +30,16 @@ export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
   for (let i = 0; i < days; i++) {
     const day = new Date(now); day.setDate(now.getDate() + i)
     const date = dateOf(day), next = new Date(day); next.setDate(day.getDate() + 1)
+    if (day.getDay() === 1) {
+      // Monday morning: the whole week at a glance, so nothing due on Thursday is a surprise.
+      const sunday = new Date(day); sunday.setDate(day.getDate() + 6)
+      const last = dateOf(sunday), inWeek = (d: string) => d >= date && d <= last
+      const weekday = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' })
+      const weekTasks = tasks.filter(t => inWeek(t.due)), weekExams = exams.filter(e => inWeek(e.due))
+      const items = [...weekTasks, ...weekExams].sort((a, b) => a.due.localeCompare(b.due)).map(x => x.title + ' (' + weekday(x.due) + ')')
+      const count = (n: number, one: string, many: string) => n ? n + ' ' + (n === 1 ? one : many) : ''
+      if (items.length) add(at(date, '06:55'), 'This week: ' + [count(weekTasks.length, 'assignment', 'assignments'), count(weekExams.length, 'exam', 'exams')].filter(Boolean).join(', '), list(items), 'week-' + date)
+    }
     const due = [...tasks.filter(t => t.due === date).map(t => t.title), ...exams.filter(e => e.due === date).map(e => e.title)]
     if (due.length) add(at(date, '07:00'), due.length === 1 ? 'Due today: ' + due[0] : due.length + ' things due today', list(due), 'due-' + date)
     const tomorrow = exams.filter(e => e.due === dateOf(next))

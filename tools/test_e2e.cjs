@@ -610,6 +610,35 @@ function sampleIcs(){
   'BEGIN:VEVENT','UID:dentist@example','SUMMARY:Dentist appointment','DTSTART:'+ymd(next)+'T090000','DTEND:'+ymd(next)+'T100000','END:VEVENT','END:VCALENDAR'].join('\r\n')
 }
 
+test('Getting started: a new plan shows three steps; each opens the right place, ticks off when done or skipped, and Hide keeps it hidden',async({page})=>{
+ await createPlan(page)
+ const card=page.getByRole('region',{name:'Getting started'})
+ await card.getByText('0 of 3 done').waitFor()
+ // Add my school opens Add to my calendar at the school setup.
+ await card.getByRole('button',{name:'Add my school',exact:true}).click()
+ await page.getByRole('region',{name:'Add to my calendar'}).getByRole('heading',{name:/My school schedule/}).waitFor()
+ await go(page,'Sanctuary')
+ await card.getByRole('button',{name:'Skip: Add your school or classes'}).click()
+ await card.getByText('1 of 3 done').waitFor()
+ // Linking a calendar ticks off step 2 by itself.
+ await card.getByRole('button',{name:'Link a calendar',exact:true}).click()
+ await page.getByLabel('Calendar file (.ics)').setInputFiles({name:'sam.ics',mimeType:'text/calendar',buffer:Buffer.from(sampleIcs())})
+ await page.locator('.calendar-import-review').getByRole('button',{name:'Add 2 to my plan'}).click()
+ await page.getByText(/^2 added\./).waitFor()
+ await go(page,'Sanctuary')
+ await card.getByText('2 of 3 done').waitFor()
+ assert.match(await card.innerText(),/Link Canvas or your Google calendar\s*Done/)
+ // Turn on reminders goes to Settings › Notifications.
+ await card.getByRole('button',{name:'Turn on reminders',exact:true}).click()
+ await heading(page,'Settings')
+ await page.getByText('Get a notification even when KONO is closed',{exact:false}).waitFor()
+ await go(page,'Sanctuary')
+ await card.getByRole('button',{name:'Hide'}).click()
+ await card.waitFor({state:'detached'})
+ await page.reload();await heading(page,'Sanctuary')
+ assert.equal(await page.getByRole('region',{name:'Getting started'}).count(),0,'stays hidden after a reload')
+})
+
 test('Calendar import: a Google/Apple calendar file or link adds weekly repeats and events, and importing again adds nothing new',async({context,page})=>{
  const requests=[]
  await context.route(BASE+'api/calendar-feed',route=>{requests.push(route.request().postDataJSON());return route.fulfill({status:200,headers:{'content-type':'text/calendar'},body:sampleIcs()})})

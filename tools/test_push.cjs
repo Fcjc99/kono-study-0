@@ -31,6 +31,12 @@ assert.ok(find('Due today: Bio quiz'),'an exam day also gets the morning note')
 assert.ok(rows.every(r=>new Date(r.sendAt)>now),'nothing in the past')
 assert.ok(rows.every((r,i)=>i===0||rows[i-1].sendAt<=r.sendAt),'in time order')
 const late=buildReminders(data,new Date('2026-09-28T08:50:00'));assert.ok(!late.some(r=>r.tag==='class-b1-2026-09-28'),'a class that already started is skipped');assert.ok(!late.some(r=>r.tag==='due-2026-09-28'))
+// Monday morning: the week ahead, in due-date order.
+const week=rows.find(r=>r.tag==='week-2026-09-28')
+assert.ok(week,'a Monday summary');assert.equal(week.title,'This week: 2 assignments, 1 exam')
+assert.equal(week.body,'Lab report (Mon), Read ch. 4 (Mon), Bio quiz (Wed)');assert.equal(new Date(week.sendAt).getHours()*60+new Date(week.sendAt).getMinutes(),6*60+55)
+assert.equal(rows.filter(r=>r.tag.startsWith('week-')).length,1,'only on Mondays')
+const quiet=model.createFreshData();assert.ok(!buildReminders(quiet,now).some(r=>r.tag.startsWith('week-')),'nothing due: no Monday summary')
 console.log('PASS reminder planner: morning summary, exam eve, classes 15 min before, study blocks, skipped/breaks/past left out')
 
 {
