@@ -229,6 +229,23 @@ export class SupabaseRemote{
   if(error)throw new Error(error.message)
   return (data??[]).map(r=>({id:r.id,requesterId:r.requester_id,recipientId:r.recipient_id,status:r.status as ConnectionStatus,createdAt:r.created_at}))
  }
+ /** One assignment or exam for a connected classmate (see src/store/itemShare.ts for what's in it). */
+ async shareItem(recipientId:string,kind:'task'|'exam',item:unknown):Promise<void>{
+  const user=await this.requireUser('Sign in to share with classmates.')
+  const {error}=await this.client.from('kono_shared_items').insert({sender_id:user.id,recipient_id:recipientId,kind,item})
+  if(error)throw new Error(error.message.includes('row-level security')?'You can only share with classmates you’re connected to, and up to 50 can wait for them at once.':error.message)
+ }
+ async sharedWithMe():Promise<{id:string;senderId:string;kind:'task'|'exam';item:unknown;createdAt:string}[]>{
+  const user=await this.requireUser()
+  const {data,error}=await this.client.from('kono_shared_items').select('id,sender_id,kind,item,created_at').eq('recipient_id',user.id).order('created_at').limit(50)
+  if(error)throw new Error(error.message)
+  return (data??[]).map(r=>({id:r.id,senderId:r.sender_id,kind:r.kind,item:r.item,createdAt:r.created_at}))
+ }
+ async clearSharedItem(id:string):Promise<void>{
+  await this.requireUser()
+  const {error}=await this.client.from('kono_shared_items').delete().eq('id',id)
+  if(error)throw new Error(error.message)
+ }
  /** Best-effort: never the full plan, only a pruned school-related snapshot (see src/store/peerShare.ts). */
  async publishSharedSnapshot(snapshot:unknown):Promise<void>{
   const {data:{session},error:sessionError}=await this.client.auth.getSession()

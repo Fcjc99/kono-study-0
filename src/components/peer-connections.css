@@ -11,3 +11,17 @@
 .peer-friend-day{padding:8px 10px;border:1px solid var(--wb-line);border-radius:10px;background:var(--wb-bg)}
 .peer-friend-day ul{margin:4px 0 0;padding-left:18px}
 .peer-friend-island{max-width:420px;margin:0 0 14px}
+/* Assignment/exam editor › Share with a classmate, and "Shared with you" on the Sanctuary and Planner. */
+.share-classmate-toggle{display:grid;gap:10px;justify-items:start;margin:6px 0}
+.share-classmate{display:grid;gap:10px;width:100%;padding:12px;border:1px solid var(--wb-line);border-radius:12px;background:var(--wb-bg)}
+.share-classmate-preview{display:grid;gap:2px;min-width:0}
+.share-classmate-preview small{opacity:.75;text-transform:uppercase;letter-spacing:.06em;font-size:.72rem}
+.share-classmate-preview p,.shared-with-me li p{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.9rem;opacity:.85}
+.share-classmate-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.share-classmate-list li{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--wb-line);border-radius:10px;background:var(--wb-surface)}
+.share-classmate-list li>span:first-child{display:grid;min-width:0}
+.share-classmate-list li>:last-child{margin-left:auto}
+.shared-with-me ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.shared-with-me li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 12px;padding:10px 12px;border:1px solid var(--wb-line,#e2d8cc);border-radius:12px}
+.shared-with-me li>div:first-child{display:grid;gap:2px;min-width:0;flex:1 1 220px}
+.shared-with-me li small{opacity:.75}
