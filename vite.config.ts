@@ -22,8 +22,11 @@ function precacheList(manifest:Record<string,ManifestChunk>):string[]{
   }
   walk(entryKey)
   // Panels split out of the startup bundle (src/lazyPanel.tsx) still open offline: precache them in
-  // the background. Heavy engines and importers (Phaser, PDF, OCR, sign-in) stay runtime-cached only.
+  // the background. Heavy importers (PDF, OCR) stay runtime-cached only.
   for(const dep of manifest[entryKey].dynamicImports??[])if(dep.startsWith('src/components/'))walk(dep)
+  // Opening KONO offline also needs the sign-in code (a signed-in student's plan is under their
+  // account) and the Sanctuary island, the first page. PDF, OCR and the rest stay runtime-cached.
+  for(const dep of ['src/store/supabaseRemote.ts','src/game/scenes/Stage0Scene.ts'])walk(dep)
   return [...files]
 }
 function writeServiceWorker(outDir:string){
@@ -54,11 +57,13 @@ self.addEventListener('fetch',event=>{
  const url=new URL(request.url)
  if(url.origin!==self.location.origin||url.pathname.startsWith('/api/'))return
  if(request.mode==='navigate'){
-  event.respondWith(fetch(request).catch(()=>caches.match('/',{cacheName:PRECACHE_NAME})))
+  event.respondWith(fetch(request).catch(()=>caches.match('/',{cacheName:PRECACHE_NAME,ignoreVary:true})))
   return
  }
  event.respondWith((async()=>{
-  const cached=await caches.match(request,{cacheName:PRECACHE_NAME})??await caches.match(request,{cacheName:RUNTIME_NAME})
+  // ignoreVary: module scripts are requested with an Origin header and precached without one, so a
+  // "Vary: Origin" response would otherwise never match offline. Same-origin files don't vary by it.
+  const cached=await caches.match(request,{cacheName:PRECACHE_NAME,ignoreVary:true})??await caches.match(request,{cacheName:RUNTIME_NAME,ignoreVary:true})
   if(cached){event.waitUntil(fetch(request).then(response=>{if(response.ok)caches.open(RUNTIME_NAME).then(cache=>cache.put(request,response))}).catch(()=>{}));return cached}
   try{
    const response=await fetch(request)
@@ -68,7 +73,7 @@ self.addEventListener('fetch',event=>{
    }
    return response
   }catch(error){
-   const fallback=await caches.match(request,{cacheName:RUNTIME_NAME})
+   const fallback=await caches.match(request,{cacheName:RUNTIME_NAME,ignoreVary:true})
    if(fallback)return fallback
    throw error
   }

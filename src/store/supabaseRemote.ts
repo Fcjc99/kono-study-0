@@ -1,4 +1,4 @@
-import {createClient,type AuthChangeEvent,type Session,type SupabaseClient} from '@supabase/supabase-js'
+import {createClient,isAuthRetryableFetchError,type AuthChangeEvent,type Session,type SupabaseClient} from '@supabase/supabase-js'
 
 export type CloudUser={id:string;email:string;name:string}
 export type SharedCatalogRow={id:string;label:string;kind:'school'|'college';town?:string|null;data:unknown;source?:string|null;url?:string|null;created_at?:string}
@@ -13,17 +13,45 @@ export type SupportActivity={id:number;accountId:string;adminId:string|null;acti
 
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}})
 const failure=(message='Cloud storage is temporarily unavailable.')=>json({error:message},503)
+/** An expired sign-in refreshes over the network, and supabase-js keeps retrying for up to 30s with no
+ * signal. KONO doesn't wait that long: past this, it opens from what's saved on the device instead. */
+const SESSION_WAIT_MS=4000
 
 export class SupabaseRemote{
  private client:SupabaseClient
- constructor(url:string,key:string){this.client=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}
+ private storageKey:string
+ constructor(url:string,key:string){
+  this.client=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})
+  this.storageKey='sb-'+new URL(url).hostname.split('.')[0]+'-auth-token'
+ }
+ /** The session, or 'offline' when there's no signal or it can't be checked in time. */
+ private async currentSession():Promise<{session:Session|null;error:unknown}|'offline'>{
+  if(typeof navigator!=='undefined'&&navigator.onLine===false)return 'offline'
+  let timer=0
+  const late=new Promise<'offline'>(resolve=>{timer=window.setTimeout(()=>resolve('offline'),SESSION_WAIT_MS)})
+  const result=await Promise.race([this.client.auth.getSession().then(({data,error})=>({session:data.session,error})),late])
+  clearTimeout(timer)
+  if(result!=='offline'&&result.error&&isAuthRetryableFetchError(result.error))return 'offline'
+  return result
+ }
+ /** Who was signed in on this device, from the saved sign-in, without checking it's still valid. */
+ private savedUser():CloudUser|null{
+  try{const saved=JSON.parse(localStorage.getItem(this.storageKey)??'null') as Session|null;return saved?.user?.id?this.user(saved):null}catch{return null}
+ }
  private user(session:Session|null):CloudUser|null{
   const user=session?.user
   if(!user)return null
   const metadata=user.user_metadata as Record<string,unknown>|undefined
   return {id:user.id,email:user.email??'',name:typeof metadata?.full_name==='string'?metadata.full_name:typeof metadata?.name==='string'?metadata.name:''}
  }
- async session(){const {data,error}=await this.client.auth.getSession();if(error)throw error;return this.user(data.session)}
+ /** With no signal, a signed-in student still opens their own account (from the device copy); the
+  * sign-in is checked and refreshed once the signal is back. */
+ async session(){
+  const result=await this.currentSession()
+  if(result==='offline')return this.savedUser()
+  if(result.error)throw result.error
+  return this.user(result.session)
+ }
  onAuthChange(callback:(event:AuthChangeEvent,user:CloudUser|null)=>void){
   const {data}=this.client.auth.onAuthStateChange((event,session)=>callback(event,this.user(session)))
   return()=>data.subscription.unsubscribe()
@@ -214,7 +242,9 @@ export class SupabaseRemote{
   return data?.data??null
  }
  async request(path:string,init:RequestInit|undefined,accountId:string):Promise<Response>{
-  const {data:{session},error:sessionError}=await this.client.auth.getSession()
+  const result=await this.currentSession()
+  if(result==='offline')return failure('No connection. Your changes are kept on this device.')
+  const {session,error:sessionError}=result
   if(sessionError)return failure('Could not verify your session. Try again.')
   if(!session?.user)return json({error:'Sign in to access your study data.'},401)
   if(session.user.id!==accountId)return json({error:'The signed-in account changed. Reload KONO before continuing.'},401)

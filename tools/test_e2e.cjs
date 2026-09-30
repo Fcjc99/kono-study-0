@@ -318,6 +318,7 @@ async function signInAs(context,cloud,id){
 async function routeCloud(context,cloud){
  await context.route(/\.supabase\.co\//,async route=>{
   const request=route.request(),url=new URL(request.url()),method=request.method(),where=url.pathname
+  if(cloud.offline)return route.abort('internetdisconnected')
   const cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'*'}
   if(method==='OPTIONS')return route.fulfill({status:204,headers:cors})
   const body=request.postData()?JSON.parse(request.postData()):null,me=cloud.users[cloud.me]
@@ -326,6 +327,7 @@ async function routeCloud(context,cloud){
   const denied=()=>reply({code:'P0001',message:'KONO support access only'},400)
   const saveTo=(owner,expected)=>{if(owner.plan.revision!==expected)return reply({revision:owner.plan.revision,conflict:true});owner.plan={revision:expected+1,data:body.p_data};return reply({revision:owner.plan.revision,conflict:false})}
   switch(where){
+   case '/auth/v1/token':return reply(sessionFor(cloud,cloud.me))
    case '/auth/v1/otp':cloud.emails=[...(cloud.emails??[]),body.email];return reply({})
    case '/auth/v1/verify':{
     const id=Object.keys(cloud.users).find(k=>cloud.users[k].email===body.email)
@@ -1243,6 +1245,44 @@ test('College semester: choose the term, upload the schedule, review, save; a la
  await page.getByLabel(/I checked the selected subjects/).check()
  await page.getByRole('button',{name:/Add 3 selected items/}).click()
  await page.getByText(/0 records added; 5 duplicates skipped\. Classes are in /).waitFor()
+})
+
+test('offline: the Home Screen app opens with no signal, shows the plan, keeps a new assignment on the device, and uploads it when the signal is back',async()=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,now=new Date()
+ const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')
+ plan.tasks.push({id:'offline-known',profileId:plan.activeProfileId,subjectId:'',title:'Due today (from the account)',due:today,done:false,notes:''})
+ const {context,page,errors}=await freshPage({serviceWorkers:'allow'})
+ try{
+  await signInAs(context,cloud,'alice')
+  await page.goto(BASE)
+  await heading(page,'Sanctuary')
+  // First visit: KONO installs itself for offline use.
+  await page.waitForFunction(()=>navigator.serviceWorker?.controller!==null&&navigator.serviceWorker?.controller!==undefined,null,{timeout:20000}).catch(async()=>{await page.reload();await page.waitForFunction(()=>!!navigator.serviceWorker.controller,null,{timeout:20000})})
+  await page.waitForFunction(()=>caches.keys().then(keys=>keys.some(k=>k.startsWith('kono-precache-'))),null,{timeout:20000})
+  await page.waitForFunction(()=>document.querySelector('.save-status [role=status]')?.textContent?.includes('alice@example.com'))
+  // No signal: reopen KONO.
+  cloud.offline=true
+  await context.setOffline(true)
+  // The sign-in has also expired overnight (they last an hour) and can't be refreshed with no signal.
+  await context.addInitScript(([key,value])=>localStorage.setItem(key,value),[`sb-${supabaseHost()}-auth-token`,JSON.stringify({...sessionFor(cloud,'alice'),expires_at:Math.floor(Date.now()/1000)-600})])
+  const opened=Date.now()
+  await page.reload()
+  await heading(page,'Sanctuary')
+  assert.ok(Date.now()-opened<9000,'opening with no signal took '+(Date.now()-opened)+'ms')
+  await page.waitForFunction(()=>document.querySelector('.save-status [role=status]')?.textContent?.includes('alice@example.com'))
+  await go(page,'Planner')
+  await page.getByText('Due today (from the account)').filter({visible:true}).first().waitFor()
+  await addFromMenu(page,'tasks','Written with no signal (e2e)')
+  await page.getByText('Written with no signal (e2e)').filter({visible:true}).first().waitFor()
+  await page.waitForFunction(()=>/offline|kept on this device|sync pending|unavailable/i.test(document.querySelector('.save-status [role=status]')?.textContent??''))
+  assert.ok(!JSON.stringify(cloud.users.alice.plan.data).includes('Written with no signal (e2e)'))
+  // Signal back: it reaches the account without doing anything.
+  cloud.offline=false
+  await context.setOffline(false)
+  for(let i=0;i<80&&!JSON.stringify(cloud.users.alice.plan.data).includes('Written with no signal (e2e)');i++)await page.waitForTimeout(250)
+  assert.ok(JSON.stringify(cloud.users.alice.plan.data).includes('Written with no signal (e2e)'),'the assignment written offline never reached the account')
+  assert.deepEqual(errors,[])
+ }finally{await context.close()}
 })
 
 async function main(){
