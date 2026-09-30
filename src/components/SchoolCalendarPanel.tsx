@@ -24,10 +24,10 @@ import {buildElevatorWeek,hanoverElevatorCycle,parseHanoverElevatorCourses,type 
  * `onSaved` runs after a guided setup is saved (Planner › Add to my calendar closes and shows the Planner). */
 export default function SchoolCalendarPanel({data,save,draftKey,flow='school',fetchCatalog,submitCatalogEntry,onSaved}:{flow?:'school'|'college';onSaved?:()=>void;data:AppData;save:PlannerRepository['update'];draftKey:string;fetchCatalog:PlannerRepository['fetchSchoolCatalog'];submitCatalogEntry:PlannerRepository['submitSchoolCatalogEntry']}){
  const schools=data.studySeasons.filter(s=>s.school&&s.profileId===data.activeProfileId&&(flow==='college')===isCollegeCalendar(s.school))
- const [shared,setShared]=useState<SharedCatalogRow[]|null>(null),[sharedError,setSharedError]=useState('')
- useEffect(()=>{let live=true;fetchCatalog().then(rows=>{if(live)setShared(rows)}).catch(()=>{if(live)setSharedError('Community catalog is unavailable right now. Your own calendars are unaffected.')});return()=>{live=false}},[fetchCatalog])
+ const [shared,setShared]=useState<SharedCatalogRow[]|null>(null),[sharedError,setSharedError]=useState(''),[catalogVersion,setCatalogVersion]=useState(0)
+ useEffect(()=>{let live=true;fetchCatalog().then(rows=>{if(live)setShared(rows)}).catch(()=>{if(live)setSharedError('Community catalog is unavailable right now. Your own calendars are unaffected.')});return()=>{live=false}},[fetchCatalog,catalogVersion])
  const [draft,setDraft]=useDraftState<StudySeason|null>(draftKey+':draft',null),[base,setBase]=useDraftState<StudySeason|null>(draftKey+':base',null)
- const [step,setStep]=useDraftState(draftKey+':step','year'),[guided,setGuided]=useDraftState(draftKey+':guided',false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(''),[reviewed,setReviewed]=useState(false),[makeSubjects,setMakeSubjects]=useState(true)
+ const [invite,setInvite]=useState<StudySeason|null>(null),[step,setStep]=useDraftState(draftKey+':step','year'),[guided,setGuided]=useDraftState(draftKey+':guided',false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(''),[reviewed,setReviewed]=useState(false),[makeSubjects,setMakeSubjects]=useState(true)
  const begin=(s:StudySeason,first='year',guide=false)=>{setDraft(structuredClone(s));setBase(schools.find(x=>x.id===s.id)??null);setStep(first);setGuided(guide);setReviewed(false);setError('');setMessage('')}
  const change=(next:StudySeason)=>{setDraft(next);setReviewed(false)}
  const config=(patch:Partial<SchoolCalendar>)=>{if(draft?.school)change({...draft,school:{...draft.school,...patch}})}
@@ -53,13 +53,14 @@ export default function SchoolCalendarPanel({data,save,draftKey,flow='school',fe
     result.studySeasons=result.studySeasons.filter(s=>s.id!==next.id).map(s=>s.profileId===next.profileId&&s.school&&next.active&&s.start<=next.end&&s.end>=next.start?{...s,active:false}:s)
     result.studySeasons.push(next);return normalizeData(result)
    })
-   if(ok){setDraft(null);setBase(null);setGuided(false);setMessage('Schedule saved. Calendar and Today now follow its classes and exceptions.');if(guided)onSaved?.()}else setError('Not saved yet. Your draft is still here.')
+   if(ok){setDraft(null);setBase(null);setGuided(false);setMessage('Schedule saved. Calendar and Today now follow its classes and exceptions.');if(!next.school!.catalogId&&!base)setInvite(next);if(guided)onSaved?.()}else setError('Not saved yet. Your draft is still here.')
   }catch(e){setError(e instanceof Error?e.message:'Could not save school calendar.')}finally{setBusy(false)}
  }
  return <section className="wb-panel school-setup"><div className="wb-section-head"><div><small>{flow==='college'?'YOUR COLLEGE TERM':'YOUR SCHOOL YEAR'}</small><h2>{flow==='college'?'College semester':'School calendar & rotation'}</h2></div></div>
  {!guided&&<p>{flow==='college'?'Choose a term calendar, then add or import your weekly classes. Breaks and special replacement weekdays are applied automatically.':'Choose your school calendar, then add the classes for each rotation day. Holidays pause the cycle; snow days can skip a turn.'}</p>}
+ {!draft&&invite&&<ShareCalendarForm season={invite} submitCatalogEntry={submitCatalogEntry} invite onShared={()=>setCatalogVersion(v=>v+1)} onDone={()=>setInvite(null)}/>}
  {!draft&&<><FindSchool flow={flow} shared={shared} sharedError={sharedError} onCatalog={id=>flow==='college'?begin(academicTemplate(data.activeProfileId,id),'classes'):begin(academicTemplate(data.activeProfileId,id),'questions',true)} onShared={row=>{try{begin(catalogRowToSeason(data.activeProfileId,row),flow==='college'?'year':'questions',flow!=='college')}catch(e){setSharedError(e instanceof Error?e.message:'Could not use this shared calendar.')}}} onBlank={()=>{const s=schoolPreset(data.activeProfileId,'blank');if(flow==='college'){s.name='My college semester';s.week=Object.fromEntries(dayNames.map(d=>[d,[]]));s.school={...s.school!,pattern:'weekly',name:'My college',grade:'other',program:'',cycle:[...dayNames],anchorDay:'Wednesday'}}begin(s)}}/>
- {schools.map(s=><article className="wb-record" key={s.id}><h3>{s.name}</h3><p>{s.start} – {s.end} · {s.active?'Active':'Inactive'} · {s.school!.cycle.join(' / ')}</p><button className="primary" onClick={()=>begin(s,'classes')}>Add classes from a file</button><button onClick={()=>begin(s)}>Edit school calendar / classes</button><button onClick={()=>begin(s,'classes')}>Change a class (new semester)</button><button onClick={()=>{if(window.confirm('Move this school schedule to Trash? Assignments and subjects stay.'))void save(d=>({...d,studySeasons:d.studySeasons.filter(x=>x.id!==s.id||x.profileId!==data.activeProfileId)}))}}>Move school schedule to Trash</button><p className="wb-muted">To stop showing this schedule, uncheck Active in setup. The full schedule remains available when inactive.</p><ShareCalendarForm season={s} submitCatalogEntry={submitCatalogEntry}/></article>)}</>}
+ {schools.map(s=><article className="wb-record" key={s.id}><h3>{s.name}</h3><p>{s.start} – {s.end} · {s.active?'Active':'Inactive'} · {s.school!.cycle.join(' / ')}</p><button className="primary" onClick={()=>begin(s,'classes')}>Add classes from a file</button><button onClick={()=>begin(s)}>Edit school calendar / classes</button><button onClick={()=>begin(s,'classes')}>Change a class (new semester)</button><button onClick={()=>{if(window.confirm('Move this school schedule to Trash? Assignments and subjects stay.'))void save(d=>({...d,studySeasons:d.studySeasons.filter(x=>x.id!==s.id||x.profileId!==data.activeProfileId)}))}}>Move school schedule to Trash</button><p className="wb-muted">To stop showing this schedule, uncheck Active in setup. The full schedule remains available when inactive.</p><ShareCalendarForm season={s} submitCatalogEntry={submitCatalogEntry} onShared={()=>setCatalogVersion(v=>v+1)}/></article>)}</>}
  {draft?.school&&guided&&<div className="school-guide">
   <ol className="school-guide-steps" aria-label="Setup steps">{[['find','Find your school'],['questions','Quick questions'],['classes','Your classes']].map(([id,label],i)=><li key={id} aria-current={(step==='review'?'classes':step)===id?'step':undefined}>{i+1} · {label}</li>)}</ol>
   <fieldset disabled={busy}>
@@ -167,23 +168,32 @@ function SchoolSource({season,onAdd}:{season:StudySeason;onAdd:(rows:SchoolExcep
  {rows.length>0&&<><label className="wb-check"><input type="checkbox" checked={review} onChange={e=>setReview(e.target.checked)}/>I checked all selected dates against the original.</label><button disabled={!review||!rows.some(r=>r.include)} onClick={()=>{const selected=rows.filter(r=>r.include).map(({id,start,end,kind,label,audience})=>({id,start,end,kind,label,audience}));try{validateSchool({...season.school!,exceptions:[...season.school!.exceptions,...selected]},season.start,season.end);onAdd(selected);setRows([]);setText('');setFile(null);setMessage('Added to your draft only. Review and save in step 4.')}catch(e){setMessage(e instanceof Error?e.message:'Check imported dates.')}}}>Add reviewed dates to draft</button></>}
  </details>
 }
-function ShareCalendarForm({season,submitCatalogEntry}:{season:StudySeason;submitCatalogEntry:PlannerRepository['submitSchoolCatalogEntry']}){
- const [open,setOpen]=useState(false),[label,setLabel]=useState(season.name),[town,setTown]=useState(''),[source,setSource]=useState(''),[url,setUrl]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('')
+/** Shares a school's calendar so classmates can search for it and pick it. `invite` shows it open, right after
+ * someone sets up a school KONO didn't have, with a Not now. */
+function ShareCalendarForm({season,submitCatalogEntry,invite=false,onShared,onDone}:{season:StudySeason;submitCatalogEntry:PlannerRepository['submitSchoolCatalogEntry'];invite?:boolean;onShared?:()=>void;onDone?:()=>void}){
+ const [open,setOpen]=useState(invite),[shared,setShared]=useState(false),[label,setLabel]=useState(season.name),[town,setTown]=useState(''),[source,setSource]=useState(''),[url,setUrl]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('')
  const submit=async()=>{
   if(busy)return;setBusy(true);setError('');setMessage('')
   try{
    const entry=seasonToCatalogEntry(season,{label,town,source,url})
    await submitCatalogEntry(entry)
-   setMessage('Shared. Thanks — other KONO users can now find this calendar in the community catalog.')
+   setShared(true);onShared?.();setMessage('Shared. Classmates can now search for '+entry.label+' when they set up their school.')
   }catch(e){setError(e instanceof Error?e.message:'Could not share this calendar.')}finally{setBusy(false)}
  }
- return <details className="share-calendar-form" open={open} onToggle={e=>setOpen(e.currentTarget.open)}><summary>Share this calendar with the community</summary>
-  <p className="wb-muted">Only the calendar itself is shared — dates, holidays and the rotation pattern. Your own classes, subjects, assignments and notes are never included.</p>
+ const why=<p className="wb-muted">Only the school calendar is shared: dates, days off and the rotation. Your classes, grade, assignments and notes never are.</p>
+ if(invite)return <section className="share-calendar-form share-invite" aria-label="Share with classmates"><h3>Share {season.school?.name||season.name} with classmates?</h3><p>Then anyone at your school can just search for it and pick it, instead of setting it up again.</p>{why}
+  {!shared&&<><label>Name shown to others<input maxLength={200} value={label} onChange={e=>setLabel(e.target.value)}/></label>
+  <label>Town (optional)<input maxLength={200} placeholder="Marshfield, MA" value={town} onChange={e=>setTown(e.target.value)}/></label>
+  <div className="wb-toolbar"><button className="primary" disabled={busy||!label.trim()} onClick={()=>void submit()}>{busy?'Sharing…':'Share with classmates'}</button><button onClick={onDone}>Not now</button></div></>}
+  {message&&<p role="status">{message}</p>}{error&&<p role="alert">{error}</p>}{shared&&<button onClick={onDone}>Done</button>}
+ </section>
+ return <details className="share-calendar-form" open={open} onToggle={e=>setOpen(e.currentTarget.open)}><summary>Share this school’s calendar with classmates</summary>
+  {why}
   <label>Name shown to others<input maxLength={200} value={label} onChange={e=>setLabel(e.target.value)}/></label>
   <label>Town (optional)<input maxLength={200} placeholder="Marshfield, MA" value={town} onChange={e=>setTown(e.target.value)}/></label>
   <label>Source (optional)<input maxLength={500} placeholder="District 2026-27 calendar" value={source} onChange={e=>setSource(e.target.value)}/></label>
   <label>Source link (optional)<input maxLength={500} placeholder="https://…" value={url} onChange={e=>setUrl(e.target.value)}/></label>
-  <button className="primary" disabled={busy||!label.trim()} onClick={()=>void submit()}>{busy?'Sharing…':'Share to community catalog'}</button>
+  <button className="primary" disabled={busy||!label.trim()||shared} onClick={()=>void submit()}>{busy?'Sharing…':'Share with classmates'}</button>
   {message&&<p role="status">{message}</p>}{error&&<p role="alert">{error}</p>}
  </details>
 }

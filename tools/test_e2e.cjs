@@ -301,7 +301,7 @@ function supabaseHost(){
 }
 function fakeCloud(){
  const named=(name,email)=>{const d=fixture();d.profiles[0].name=name;return {email,admin:false,plan:{revision:3,data:d}}}
- return {users:{alice:named('Alice','alice@example.com'),carol:{...named('Carol','carol@example.com'),admin:true},dave:{email:'dave@example.com',admin:false,plan:{revision:0,data:null}}},me:'alice',calls:[],audit:[],errors:[],feedback:[],nightly:{},feeds:[]}
+ return {users:{alice:named('Alice','alice@example.com'),carol:{...named('Carol','carol@example.com'),admin:true},dave:{email:'dave@example.com',admin:false,plan:{revision:0,data:null}}},me:'alice',calls:[],audit:[],errors:[],feedback:[],nightly:{},feeds:[],catalog:[]}
 }
 const b64=value=>Buffer.from(JSON.stringify(value)).toString('base64url')
 function sessionFor(cloud,id){
@@ -341,6 +341,7 @@ async function routeCloud(context,cloud){
    case '/rest/v1/kono_plans':return reply([{revision:me.plan.revision,data:me.plan.data}])
    case '/rest/v1/kono_admin_audit':return reply(me.admin?cloud.audit:cloud.audit.filter(a=>a.account_id===cloud.me))
    case '/rest/v1/kono_shared_snapshots':return reply([],201)
+   case '/rest/v1/kono_school_catalog':{if(method==='POST'){const rows=Array.isArray(body)?body:[body];for(const r of rows)cloud.catalog.push({...r,created_at:new Date().toISOString()});return reply([],201)}return reply(cloud.catalog)}
    case '/rest/v1/kono_plan_nightly':{const n=cloud.nightly[cloud.me];return reply(n?[n]:[])}
    case '/rest/v1/rpc/kono_admin_get_nightly':{if(!me.admin)return denied();return reply(cloud.nightly[body.p_owner]??null)}
    case '/rest/v1/kono_client_errors':if(method==='POST'){const rows=Array.isArray(body)?body:[body];for(const r of rows)cloud.errors.push({id:cloud.errors.length+1,user_id:cloud.me,created_at:new Date().toISOString(),...r});return reply([],201)}return reply(me.admin?[...cloud.errors].reverse():[])
@@ -1003,6 +1004,41 @@ test('School setup guide: find the school, answer the grade, save, and land on t
  assert.equal(await page.getByLabel('Student grade').inputValue(),'11')
  assert.equal(await page.getByLabel('Faculty / program').count(),0,'no college faculty field')
  assert.equal(await page.getByRole('navigation',{name:'School setup sections'}).count(),1,'the full editor has all four sections')
+})
+
+test('Share with classmates: after setting up a school KONO doesn’t have, a student shares its calendar (never their classes or grade) and it shows up in Find your school',async({context,page})=>{
+ const cloud=fakeCloud()
+ await page.clock.setFixedTime(new Date('2026-09-27T10:00:00')) // a Sunday
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await addToCalendar(page,'My school schedule')
+ await page.getByRole('button',{name:'My school isn’t listed'}).click()
+ await page.getByLabel('School name').fill('Pembroke High School')
+ await page.getByRole('region',{name:'Your grade'}).getByRole('combobox').selectOption('9')
+ const rotation=page.getByRole('region',{name:'Rotation day'})
+ if(await rotation.getByRole('button',{name:'Set rotation'}).count()){
+  await rotation.getByRole('combobox').selectOption({index:1})
+  await rotation.getByRole('button',{name:'Set rotation'}).click()
+ }
+ await page.getByRole('navigation',{name:'School setup sections'}).getByRole('button',{name:'4 · Review'}).click()
+ await page.getByLabel(/I checked the calendar, grade/).check()
+ await page.getByRole('button',{name:'Save & populate my calendar'}).click()
+ // Saved: KONO offers to share it.
+ const invite=page.getByRole('region',{name:'Share with classmates'})
+ await invite.getByRole('heading',{name:'Share Pembroke High School with classmates?'}).waitFor()
+ await invite.getByLabel('Name shown to others').fill('Pembroke High School 2026–27')
+ await invite.getByLabel('Town (optional)').fill('Pembroke, MA')
+ await invite.getByRole('button',{name:'Share with classmates'}).click()
+ await invite.getByText('Shared. Classmates can now search for Pembroke High School 2026–27',{exact:false}).waitFor()
+ assert.equal(cloud.catalog.length,1)
+ const shared=cloud.catalog[0]
+ assert.equal(shared.kind,'school');assert.equal(shared.town,'Pembroke, MA')
+ assert.equal(shared.data.school.grade,'','the grade is never shared');assert.equal(shared.data.week,undefined,'classes are never shared')
+ await invite.getByRole('button',{name:'Done'}).click()
+ await invite.waitFor({state:'detached'})
+ // The next student at that school just searches for it.
+ await page.getByRole('searchbox',{name:'Search for your school'}).fill('pembroke')
+ await page.getByRole('button',{name:/^Pembroke High School 2026–27\s*Shared by a KONO user · Pembroke, MA/}).waitFor()
 })
 
 /** A JPEG's pixel width and height, from its start-of-frame marker. */
