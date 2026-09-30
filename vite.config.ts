@@ -93,6 +93,20 @@ export default defineConfig(({isSsrBuild,command})=>({
   publicDir:command==='serve'?(process.env.KONO_ASSET_SOURCE??'public'):false,
   plugins: [react(),sites(),ocrAssets(Boolean(isSsrBuild)),...(command==='serve'?[localApi()]:[]),{
     name:'kono-production-assets',
+    // The sign-in code is needed before KONO can open (a signed-in plan lives in the account), but it's
+    // a dynamic import, so the browser only asks for it once the main script has run. Preloading it
+    // downloads it alongside the main script instead of after.
+    // The stylesheet moves from <head> to just after the splash in #root: a stylesheet only holds back
+    // the page after it, so the splash paints at once instead of after the CSS download. The app's
+    // script still waits for the stylesheet before it runs, so nothing shows unstyled.
+    transformIndexHtml:{order:'post',handler(html,ctx){
+      if(!ctx.bundle)return html
+      const chunk=Object.values(ctx.bundle).find(c=>c.type==='chunk'&&c.facadeModuleId?.endsWith('/src/store/supabaseRemote.ts'))
+      if(chunk)html=html.replace('</head>',`  <link rel="modulepreload" crossorigin fetchpriority="low" href="/${chunk.fileName}">\n  </head>`)
+      const sheet=html.match(/\s*<link rel="stylesheet" crossorigin href="\/assets\/[^"]+\.css">/)
+      if(sheet&&html.includes('<div id="root">'))html=html.replace(sheet[0],'').replace(/(<div id="root">[\s\S]*?<\/div>)/,'$1\n    '+sheet[0].trim())
+      return html
+    }},
     resolveId(id){if(id==='virtual:kono-shell')return '\0virtual:kono-shell'},
     load(id){if(id==='\0virtual:kono-shell')return 'export default '+JSON.stringify(command==='serve'?'':readFileSync('dist/client/index.html','utf8'))},
     closeBundle(){

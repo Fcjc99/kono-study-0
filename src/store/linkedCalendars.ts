@@ -1,5 +1,5 @@
 import { localDate, type AppData } from './model'
-import { parseIcs, syncIcs, type LinkedSeen } from './icsImport'
+import type { LinkedSeen } from './icsImport'
 
 /** Calendars someone chose to keep up to date (a Canvas feed, Google's secret address, an iCloud link).
  * The links are private, so they stay in this browser only; KONO checks them when it opens (at most
@@ -38,7 +38,9 @@ export async function fetchCalendar(url: string): Promise<string> {
 export async function syncLinked(profileId: string, calendar: LinkedCalendar, current: () => AppData, save: (fn: (d: AppData) => AppData) => Promise<boolean>) {
   let result = 'Up to date.'
   try {
-    const parsed = parseIcs(await fetchCalendar(calendar.url), localDate())
+    // The calendar reader is only needed when a linked calendar is checked, not to open KONO.
+    const [{ parseIcs, syncIcs }, text] = await Promise.all([import('./icsImport'), fetchCalendar(calendar.url)])
+    const parsed = parseIcs(text, localDate())
     const preview = syncIcs(current(), profileId, parsed, calendar.name, calendar.seen)
     let seen = preview.seen
     if (preview.added || preview.updated || preview.tagged) {

@@ -10,6 +10,19 @@ import { captureInstallPrompt } from './store/installPrompt'
 const params = new URLSearchParams(window.location.search)
 captureInstallPrompt()
 
+/** KONO's Google Fonts (DM Sans, Newsreader, Caveat; the Zen pair for Zen Ink). Added from here rather
+ * than a CSS @import so they never hold up the first paint: the page shows in the system font and
+ * swaps when they arrive. Font files only download for the faces a theme actually uses. */
+for (const href of [
+  'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600&family=Caveat:wght@600;700&display=swap',
+  'https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap',
+]) {
+  const link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.href = href
+  document.head.append(link)
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>{params.get('page') === 'build' ? <SanctuaryBuildStudio /> : import.meta.env.DEV && params.has('sanctuaryQA') ? <SanctuaryQA /> : <App />}</ErrorBoundary>
