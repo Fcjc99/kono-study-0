@@ -430,7 +430,7 @@ function Workspace({store}:{store:Store}){
  const closeAdd=()=>{setAddOpen(false);setAddChoice(null)}
  const setupProps={data,save,fetchCatalog:repository.fetchSchoolCatalog,submitCatalogEntry:repository.submitSchoolCatalogEntry}
  const addChoices:AddChoice[]=[
-  {id:'school',icon:'🏫',title:'My school schedule',note:'Middle or high school: pick your school, then upload your class schedule.',render:()=><ScheduleSetup {...setupProps} draftKey={draftScope} only="school"/>},
+  {id:'school',icon:'🏫',title:'My school schedule',note:'Middle or high school: pick your school, then upload your class schedule.',render:()=><ScheduleSetup {...setupProps} draftKey={draftScope} only="school" onSaved={closeAdd}/>},
   {id:'college',icon:'🎓',title:'My college classes',note:'Pick your college term, then upload or type your weekly classes.',render:()=><ScheduleSetup {...setupProps} draftKey={draftScope} only="college"/>},
   {id:'link',icon:'🔗',title:'A calendar link',note:'Google, Apple or Outlook calendars, Canvas, Classroom or Schoology.',render:()=><CalendarImport data={data} save={save}/>},
   {id:'photos',icon:'📸',title:'Photos or screenshots',note:'A planner page, whiteboard, syllabus or a screenshot of dates.',render:()=><UpdatePlanScanner profileId={profile.id} subjects={subjects} kids={profileKids} save={save} onOpenAiSettings={()=>openSettings('Import & export')}/>},

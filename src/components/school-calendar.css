@@ -42,3 +42,23 @@
 .rotation-grid caption{text-align:left;font-weight:700;padding-bottom:4px}
 .rotation-grid th,.rotation-grid td{border:1px solid var(--wb-line,#ddd);padding:4px 6px;text-align:left;vertical-align:top}
 .rotation-grid small{display:block;opacity:.7;font-size:.82em}
+/* Guided school setup: find your school → quick questions → your classes. */
+.school-guide-steps{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 14px;padding:0}
+.school-guide-steps li{padding:8px 10px;border-radius:12px;border:1px solid var(--wb-line,#ddd);font-size:.85rem;font-weight:700;text-align:center;opacity:.7}
+.school-guide-steps li[aria-current=step]{opacity:1;border:2px solid var(--wb-accent,#e0705c);background:color-mix(in srgb,var(--wb-accent,#e0705c) 8%,transparent)}
+.school-guide-more{margin-top:18px;padding-top:12px;border-top:1px solid var(--wb-line,#ddd)}
+.find-school{display:grid;gap:10px;margin:10px 0 18px}
+.find-school h3{margin:0}
+.find-school input[type=search]{width:100%;box-sizing:border-box;font-size:1rem;padding:10px 12px}
+.find-school-results{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;max-height:24rem;overflow-y:auto}
+.find-school-results button{width:100%;text-align:left;display:grid;gap:2px}
+.find-school-results small{font-weight:400;opacity:.75}
+.find-school-missing{justify-self:start}
+/* One upload button: the file picker styled as the button itself. */
+.schedule-upload{position:relative;display:inline-grid;gap:2px;justify-items:start;padding:12px 18px;border-radius:14px;border:2px dashed var(--wb-accent,#e0705c);font-weight:800;cursor:pointer;margin:6px 0}
+.schedule-upload small{font-weight:400;opacity:.75}
+.schedule-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.schedule-upload:focus-within{outline:3px solid var(--wb-accent,#e0705c);outline-offset:2px}
+.class-grid td span{display:block}
+.class-grid td span+span{margin-top:4px;padding-top:4px;border-top:1px dashed var(--wb-line,#ddd)}
+@media(max-width:600px){.school-guide-steps{gap:4px}.school-guide-steps li{padding:6px 4px;font-size:.72rem}.class-grid th[scope=row]{white-space:nowrap}}

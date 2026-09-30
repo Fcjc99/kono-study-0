@@ -14,14 +14,15 @@ export default function RotatingClasses({season,bells,change,onReview}:{season:S
  const count=bells.classes!,cycle=season.school!.cycle,grid=rotationGrid(bells,cycle.length)
  const [classes,setClasses]=useState<RotationClass[]>(()=>{const saved=classesFromWeek(season,bells);return saved.some(c=>c.label)?saved.map(c=>({label:c.label,location:c.location,lunchWave:c.lunchWave??duxburyLunchWave(c.label).wave})):blank(count)})
  const [guessed,setGuessed]=useState<boolean[]>(()=>Array(count).fill(false))
- const [file,setFile]=useState<File|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[conflicts,setConflicts]=useState<string[]>([]),[error,setError]=useState('')
+ const [file,setFile]=useState<File|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[conflicts,setConflicts]=useState<string[]>([]),[error,setError]=useState(''),[tried,setTried]=useState(false)
  const ai=useAiHelper(season.profileId),cancel=useRef<AbortController|null>(null)
  useEffect(()=>()=>cancel.current?.abort(),[])
  const set=(i:number,p:Partial<RotationClass>)=>{setClasses(classes.map((c,j)=>j===i?{...c,...p}:c));if(p.lunchWave)setGuessed(guessed.map((g,j)=>j===i?false:g))}
  const rename=(i:number,label:string)=>{const guess=duxburyLunchWave(label);setClasses(classes.map((c,j)=>j===i?{...c,label,lunchWave:guess.wave}:c));setGuessed(guessed.map((g,j)=>j===i?!guess.sure:g))}
  const lunchPeriod=bells.lunch?.period,after=bells.after
- const read=async()=>{
-  if(!file||busy)return
+ const read=async(file:File)=>{
+  if(busy)return
+  setTried(true)
   const controller=new AbortController();cancel.current=controller
   setBusy(true);setError('');setConflicts([]);setMessage('Reading your schedule…')
   try{
@@ -56,8 +57,8 @@ export default function RotatingClasses({season,bells,change,onReview}:{season:S
   <div className="wb-record">
    <strong>Read them from your schedule</strong>
    <p className="wb-muted">A PDF or photo of your schedule. It goes to KONO’s AI to find your classes; it isn’t saved. Crop out anything personal first.</p>
-   <input aria-label="Schedule file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" disabled={busy} onChange={e=>{setFile(e.target.files?.[0]??null);setMessage('');setError('')}}/>
-   {ai.ready?<button type="button" disabled={busy||!file} onClick={()=>void read()}>{busy?'Reading…':'Find my classes'}</button>:<details><summary>Set up the AI helper to read your schedule</summary><AiHelperSettings profileId={season.profileId}/></details>}
+   <label className="schedule-upload">Upload my schedule<small>PDF, photo or screenshot</small><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" disabled={busy} onChange={e=>{const picked=e.target.files?.[0]??null;e.target.value='';setFile(picked);setTried(false);setMessage('');setError('');if(picked&&ai.ready)void read(picked)}}/></label>
+   {!ai.ready?<details><summary>Set up the AI helper to read your schedule</summary><AiHelperSettings profileId={season.profileId}/></details>:file&&!tried&&<button type="button" disabled={busy} onClick={()=>void read(file)}>Find my classes</button>}
    {message&&<p role="status">{message}</p>}
    {conflicts.length>0&&<ul className="period-problems" aria-label="Check these classes">{conflicts.map(c=><li key={c}>{c}</li>)}</ul>}
   </div>
