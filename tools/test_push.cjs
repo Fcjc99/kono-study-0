@@ -61,6 +61,33 @@ console.log('PASS reminder planner: morning summary, exam eve, classes 15 min be
  console.log('PASS rotating school: the evening before says which day tomorrow is and its first class, or that there is no school')
 }
 
+{
+ // Homework the night before, and (parent mode) the family's week ahead on Sunday evening.
+ const plan=model.createFreshData(),pid=plan.activeProfileId
+ plan.subjects.push({id:'eng',profileId:pid,name:'English',color:'#000',resources:[]})
+ plan.kids.push({id:'k1',profileId:pid,name:'Maya',color:'#7ca982',emoji:'🦊'},{id:'k2',profileId:pid,name:'Theo',color:'#d9908c'})
+ plan.tasks.push(
+  {id:'h1',profileId:pid,subjectId:'eng',kidId:'k1',title:'Essay outline',due:'2026-10-05',done:false,notes:''},
+  {id:'h2',profileId:pid,subjectId:'',kidId:'k2',title:'Math sheet',due:'2026-10-06',done:false,notes:''},
+  {id:'h3',profileId:pid,subjectId:'',title:'Permission slip',due:'2026-10-06',done:false,notes:''},
+  {id:'h4',profileId:pid,subjectId:'',kidId:'k1',title:'Finished already',due:'2026-10-06',done:true,notes:''})
+ plan.exams.push({id:'x1',profileId:pid,subjectId:'',kidId:'k2',title:'Spelling test',due:'2026-10-08',done:false,notes:''})
+ const sunday=new Date('2026-10-04T09:00:00')
+ const rows=buildReminders(plan,sunday),tagged=t=>rows.find(r=>r.tag===t)
+ const one=tagged('homework-2026-10-04')
+ assert.equal(one.title,'Due tomorrow: Essay outline');assert.equal(one.body,'English')
+ assert.equal(new Date(one.sendAt).getHours()*60+new Date(one.sendAt).getMinutes(),19*60+5)
+ const two=tagged('homework-2026-10-05');assert.equal(two.title,'2 assignments due tomorrow');assert.equal(two.body,'Math sheet, Permission slip','done work is left out')
+ assert.ok(!rows.some(r=>r.tag==='homework-2026-10-06'),'nothing due Wednesday: no reminder Tuesday night')
+ assert.ok(!rows.some(r=>r.tag.startsWith('family-week-')),'only in parent mode')
+ plan.settings.parentMode=true
+ const family=buildReminders(plan,sunday).find(r=>r.tag==='family-week-2026-10-04')
+ assert.equal(family.title,'Family week ahead');assert.equal(new Date(family.sendAt).getHours(),18);assert.equal(new Date(family.sendAt).getDay(),0)
+ assert.equal(family.body,'🦊 Maya: 1 due · Theo: 2 due · Everyone: 1 due · Tests: Spelling test (Thu)')
+ assert.equal(buildReminders(plan,sunday).filter(r=>r.tag.startsWith('family-week-')).length,1,'once a week')
+ console.log('PASS the night before: still-open homework due tomorrow at 7:05 PM; parents get the family week ahead on Sunday at 6 PM')
+}
+
 ;(async()=>{
  const sent=[],forgotten=[]
  const due=[{endpoint:'https://push/a',p256dh:'k',auth:'a',title:'Due today: Essay',body:'ENGL',tag:'due'},{endpoint:'https://push/gone',p256dh:'k',auth:'a',title:'One',body:'',tag:null},{endpoint:'https://push/gone',p256dh:'k',auth:'a',title:'Two',body:'',tag:null},{endpoint:'https://push/flaky',p256dh:'k',auth:'a',title:'Three',body:'',tag:null}]

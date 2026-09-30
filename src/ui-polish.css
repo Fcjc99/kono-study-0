@@ -195,3 +195,6 @@
 .getting-started.is-compact small{opacity:.75;font-size:.72rem;letter-spacing:.04em}
 /* The "due soon" line wraps on phones instead of cutting off. */
 @media (max-width:600px){.login-digest.is-slim summary{white-space:normal}}
+/* Look & feel › Dark mode */
+.dark-mode-choice{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+.dark-mode-choice button[aria-pressed='true']{outline:2px solid var(--wb-accent);outline-offset:1px;font-weight:700}

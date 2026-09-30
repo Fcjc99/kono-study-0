@@ -1,0 +1,38 @@
+/* Dark mode: on when Look & feel › Dark mode is "Dark", or "Match my phone" and the phone is in dark
+ * mode (Workspace sets html[data-dark]). Every palette keeps its own accent; the page, cards, text and
+ * lines switch to a dark set. Checked with `DARK=1 npm run test:visual` (tools/test_theme_contrast.cjs),
+ * which flags any text that ends up unreadable against what's behind it. Loaded after every other
+ * stylesheet, and :root[data-dark][data-experience][data-theme] outranks each palette's own tokens. */
+:root[data-dark]{color-scheme:dark}
+:root[data-dark][data-experience][data-theme]{
+ --wb-bg:#16131a;--wb-surface:#221d27;--wb-ink:#f1ebf0;--wb-muted:#c3b8c2;--wb-line:#473d49;
+ --wb-nav:#0f0d12;--wb-nav-ink:#f1ebf0;
+}
+:root[data-dark] body{background:var(--wb-bg)}
+
+/* Cozy and the other looks paint many surfaces with fixed "paper" colors (cream, blush, pastel). In
+ * dark mode those become dark cards; the paper look stays in borders and the accent. */
+:root[data-dark]{--dark-raised:#2c2631;--dark-sunk:#1b171f}
+:root[data-dark] .workbench,:root[data-dark] .workbench[data-experience]{background:var(--wb-bg)!important;color:var(--wb-ink)}
+:root[data-dark] .workbench :is(
+ .wb-header,.wb-panel:not(.wb-board),.wb-record:not(.wb-sticky):not(.wb-record-notes),.wb-notice,.wb-dialog,dialog,.card,.task,.task-row-v2,.cozy-task-row,
+ .planner-day-sheet,.planner-day-paper,.planner-day-board,.week-grid,.week-grid-row,.week-grid-day,.week-grid-allday-cell,.week-recap,.week-recap-tiles li,
+ .board-ribbon,.memory-board-header,.getting-started-steps li,.overdue-card li,.shared-with-me li,.save-to-email-banner,.save-status,.schedule-filter-row,
+ .planner-settings-link,.today-schedule-compact,.subject-workspace,.subject-manager,.calendar-shell,.month-grid,.calendar-grid,.season-card,.profile-dock,
+ .team-color-grid button,.theme-picker-tile,.customizer-group,.kquiz-choice,.kquiz-material-row,.focus-session,.study-planner,.subject-quick-add,.tasks-card,
+ .wb-calendar,.wb-board-heading,.mobile-desk-header,.mobile-profile-chip,.tomorrow-extra-list,.page-hero,.settings-hero,.illustrated-hero,.sanctuary-banner,.share-classmate,.share-classmate-list li,.peer-list li,.rotation-grid,.class-grid
+){background:var(--wb-surface)!important;background-image:none!important;color:var(--wb-ink)!important;border-color:var(--wb-line)!important;box-shadow:none}
+:root[data-dark] .workbench :is(.week-grid-slot,.week-grid-gutter,.week-grid-head button){background:transparent!important;color:var(--wb-ink)!important}
+:root[data-dark] .workbench :is(input,select,textarea){background:var(--dark-sunk)!important;color:var(--wb-ink)!important;border-color:var(--wb-line)!important}
+:root[data-dark] .workbench button:not(.primary):not(.active):not([aria-current='page']):not([aria-pressed='true']):not(.week-item):not([class*='swatch']):not(.theme-picker-tile):not(.kid-border-swatch){background:var(--dark-raised)!important;background-image:none!important;color:var(--wb-ink)!important;border-color:var(--wb-line)!important}
+:root[data-dark] .workbench :is(.wb-muted,small):not(:is(.active,[aria-current='page'],[aria-pressed='true'],.wb-sticky,.kono-sticky,.wb-record-notes,.week-item) *){color:var(--wb-muted)}
+:root[data-dark] .workbench :is(.memory-board-empty,.memory-board-empty strong,.memory-board-empty p){color:var(--wb-muted)!important}
+/* Headings are a fixed dark brown in Cozy. Sticky notes keep their own paper and ink, so they're left alone. */
+:root[data-dark] .workbench :is(h1,h2,h3,h4,h5,legend,summary):not(:is(.wb-sticky,.kono-sticky,.memory-note,.cozy-pin-mini,.wb-note-paper,[style*='--note-paper']) *){color:var(--wb-ink)!important}
+/* Items on the week grid: a dark tint of their own color. */
+:root[data-dark] .workbench .week-grid .week-item{background:color-mix(in srgb,var(--item-color,var(--wb-accent)) 32%,var(--wb-surface))!important;color:var(--wb-ink)!important}
+/* Fixed dark label colors in some looks (Sakura's board ribbon, Zen Ink's tabs). */
+:root[data-dark] .workbench .board-ribbon :is(strong,small,span){color:var(--wb-ink)!important}
+/* Zen Ink's accent is a dark indigo made for paper; on a dark page it needs to be lighter. */
+:root[data-dark][data-experience='sumi'][data-theme]{--wb-accent:#9fb4cf;--wb-accent-ink:#16131a}
+:root[data-dark] .workbench .week-grid-head .is-today strong{color:var(--wb-accent-ink,#16131a)!important}

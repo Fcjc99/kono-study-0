@@ -22,6 +22,8 @@ const FAIL_RATIO = 2.0
 const ONLY_THEMES = process.env.ONLY_THEMES ? process.env.ONLY_THEMES.split(',') : null
 // SHOTS_DIR=some/dir also saves a screenshot of every page it checks, for looking a new theme over.
 const SHOTS_DIR = process.env.SHOTS_DIR || ''
+// DARK=1 runs everything with the device in dark mode (Look & feel › Dark mode defaults to "Match my phone").
+const DARK = !!process.env.DARK
 
 // Team colors have their own section in Look & feel (see teamThemes.ts).
 const TEAM = ['dragons', 'dragonsblack', 'hanover', 'nda', 'bc', 'mcgill', 'gamehome', 'gameaway']
@@ -71,6 +73,7 @@ function contrast(fg, bg) {
 }
 
 async function scanPage(page, label, results) {
+ if (DARK) label = 'dark/' + label
  const found = await page.evaluate(() => {
   function getEffectiveBg(el) {
    let node = el
@@ -195,7 +198,7 @@ async function main() {
   const results = []
   const navFails = []
   for (const viewport of VIEWPORTS) {
-   const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } })
+   const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height }, colorScheme: DARK ? 'dark' : 'light' })
    await page.goto(BASE_URL, { waitUntil: 'networkidle' })
    await page.waitForTimeout(600)
    const demoBtn = page.getByRole('button', { name: 'Try a small demo instead' })

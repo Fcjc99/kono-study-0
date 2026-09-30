@@ -7,7 +7,8 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="A calm study planner with assignments, colorful notes, and a growing pixel-art sanctuary." />
-    <meta name="theme-color" content="#794d3d" />
+    <meta name="theme-color" content="#794d3d" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16131a" media="(prefers-color-scheme: dark)" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="KONO" />
@@ -15,7 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <title>KONO — Study Sanctuary</title>
     <!-- Splash colors only; KONO's stylesheet (after the splash) overrides them with the theme. -->
-    <style>body{margin:0;min-height:100vh;background:linear-gradient(135deg,#edf4ec,#f7f3eb)}</style>
+    <style>body{margin:0;min-height:100vh;background:linear-gradient(135deg,#edf4ec,#f7f3eb)}@media (prefers-color-scheme:dark){body{background:#16131a}#root main{color:#f1ebf0!important}}</style>
   </head>
   <body>
     <!-- Shown the moment the page arrives, until KONO's code has downloaded and replaces it. -->

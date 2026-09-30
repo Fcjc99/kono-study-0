@@ -7,6 +7,8 @@ import { schoolDay } from './schoolCalendar'
  * - 6:55 AM on Mondays: the week ahead, everything due through Sunday
  * - 7:00 AM: what's due today (assignments and exams), one summary
  * - 7:00 PM: exams and tests tomorrow
+ * - 7:05 PM: assignments due tomorrow that aren't done yet
+ * - parent mode, 6:00 PM on Sundays: the family's week ahead, per kid
  * - 7:30 PM, rotating schools: which day tomorrow is and its first class, or that there's no school
  * - 15 minutes before each class, and at the start of each planned study block and Plan-my-week session
  * - parent mode with family reminders on: 15 minutes before each timed event
@@ -44,6 +46,24 @@ export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
     if (due.length) add(at(date, '07:00'), due.length === 1 ? 'Due today: ' + due[0] : due.length + ' things due today', list(due), 'due-' + date)
     const tomorrow = exams.filter(e => e.due === dateOf(next))
     if (tomorrow.length) add(at(date, '19:00'), tomorrow.length === 1 ? 'Tomorrow: ' + tomorrow[0].title : tomorrow.length + ' exams or tests tomorrow', tomorrow.length === 1 ? (subject(tomorrow[0].subjectId) ?? 'Good luck — a little review tonight helps.') : list(tomorrow.map(e => e.title)), 'exam-' + date)
+    // Homework the night before: still-open assignments due tomorrow (done ones drop off when the queue is rebuilt).
+    const homework = tasks.filter(t => t.due === dateOf(next))
+    if (homework.length) add(at(date, '19:05'), homework.length === 1 ? 'Due tomorrow: ' + homework[0].title : homework.length + ' assignments due tomorrow', homework.length === 1 ? (subject(homework[0].subjectId) ?? 'Still open. A few minutes tonight gets it done.') : list(homework.map(t => t.title)), 'homework-' + date)
+    // Parent mode: Sunday evening, what each kid has coming up Monday–Sunday (untagged work counts as the family's).
+    if (settings.parentMode && day.getDay() === 0) {
+      const first = dateOf(next), last = new Date(next); last.setDate(next.getDate() + 6)
+      const inWeek = (d: string) => d >= first && d <= dateOf(last)
+      const weekday = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' })
+      const items = [...tasks.filter(t => inWeek(t.due)).map(t => ({ ...t, exam: false })), ...exams.filter(e => inWeek(e.due)).map(e => ({ ...e, exam: true }))]
+      if (items.length) {
+        const kids = data.kids.filter(k => k.profileId === profileId)
+        const who = (kidId?: string) => kids.find(k => k.id === kidId)
+        const groups = [...kids.map(k => ({ name: (k.emoji ? k.emoji + ' ' : '') + k.name, list: items.filter(i => i.kidId === k.id) })), { name: kids.length ? 'Everyone' : '', list: items.filter(i => !who(i.kidId)) }].filter(g => g.list.length)
+        const tests = items.filter(i => i.exam).sort((a, b) => a.due.localeCompare(b.due)).map(i => i.title + ' (' + weekday(i.due) + ')')
+        const counts = groups.map(g => (g.name ? g.name + ': ' : '') + g.list.length + ' due').join(' · ')
+        add(at(date, '18:00'), 'Family week ahead', counts + (tests.length ? ' · Tests: ' + list(tests) : ''), 'family-week-' + date)
+      }
+    }
     // A rotating school (Day 1–7, A/E…): nobody can work out tomorrow's day in their head, so say it the evening before.
     for (const s of data.studySeasons.filter(s => s.profileId === profileId && s.active && s.school && s.school.pattern !== 'weekly')) {
       const day2 = dateOf(next), t = schoolDay(s, day2)
