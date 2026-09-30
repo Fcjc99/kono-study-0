@@ -344,6 +344,17 @@ async function routeCloud(context,cloud){
    case '/rest/v1/kono_admin_audit':return reply(me.admin?cloud.audit:cloud.audit.filter(a=>a.account_id===cloud.me))
    case '/rest/v1/kono_shared_snapshots':return reply([],201)
    case '/rest/v1/kono_school_catalog':{if(method==='POST'){const rows=Array.isArray(body)?body:[body];for(const r of rows)cloud.catalog.push({...r,created_at:new Date().toISOString()});return reply([],201)}return reply(cloud.catalog)}
+   case '/rest/v1/kono_connections':{if(method!=='GET')return reply([],201);return reply((cloud.connections??[]).filter(c=>c.requester_id===cloud.me||c.recipient_id===cloud.me))}
+   case '/rest/v1/kono_profiles':{
+    const ids=(url.searchParams.get('user_id')??'').replace(/^(eq\.|in\.\()/,'').replace(/\)$/,'').split(',')
+    return reply(Object.entries(cloud.profiles??{}).filter(([id])=>ids.includes(id)).map(([id,p])=>({user_id:id,username:p.username,display_name:p.displayName})))
+   }
+   case '/rest/v1/kono_shared_items':{
+    cloud.shared??=[]
+    if(method==='POST'){const rows=Array.isArray(body)?body:[body];for(const r of rows)cloud.shared.push({id:'share-'+(cloud.shared.length+1)+'-'+Date.now(),created_at:new Date().toISOString(),...r});return reply([],201)}
+    if(method==='DELETE'){const id=(url.searchParams.get('id')??'').replace('eq.','');cloud.shared=cloud.shared.filter(r=>!(r.id===id&&(r.recipient_id===cloud.me||r.sender_id===cloud.me)));return reply([],204)}
+    return reply(cloud.shared.filter(r=>r.recipient_id===cloud.me))
+   }
    case '/rest/v1/kono_plan_nightly':{const n=cloud.nightly[cloud.me];return reply(n?[n]:[])}
    case '/rest/v1/rpc/kono_admin_get_nightly':{if(!me.admin)return denied();return reply(cloud.nightly[body.p_owner]??null)}
    case '/rest/v1/kono_client_errors':if(method==='POST'){const rows=Array.isArray(body)?body:[body];for(const r of rows)cloud.errors.push({id:cloud.errors.length+1,user_id:cloud.me,created_at:new Date().toISOString(),...r});return reply([],201)}return reply(me.admin?[...cloud.errors].reverse():[])
@@ -1245,6 +1256,50 @@ test('College semester: choose the term, upload the schedule, review, save; a la
  await page.getByLabel(/I checked the selected subjects/).check()
  await page.getByRole('button',{name:/Add 3 selected items/}).click()
  await page.getByText(/0 records added; 5 duplicates skipped\. Classes are in /).waitFor()
+})
+
+test('Share with a classmate: a student sends an exam from its editor to a connected classmate, who adds it to their plan from “Shared with you”',async({context,page})=>{
+ const cloud=fakeCloud()
+ cloud.connections=[{id:'c1',requester_id:'alice',recipient_id:'carol',status:'accepted',created_at:'2026-09-20T00:00:00Z'}]
+ cloud.profiles={alice:{username:'alice',displayName:'Alice'},carol:{username:'carol',displayName:'Carol'}}
+ cloud.users.carol.plan.data.exams=[]
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ assert.equal(await page.getByRole('region',{name:'Shared with you'}).count(),0,'nothing shared yet: no card')
+ await go(page,'Exams')
+ await page.locator('article').filter({hasText:'Cell biology test'}).first().getByRole('button',{name:'Edit'}).click()
+ const editor=page.locator('dialog[open]')
+ await editor.getByRole('button',{name:'Share with a classmate'}).click()
+ const panel=editor.getByRole('region',{name:'Share with a classmate'})
+ await panel.getByText('They’ll get').waitFor()
+ await panel.getByText(/Exam · due .* · Biology/).waitFor()
+ await panel.getByRole('button',{name:'Send to Carol'}).click()
+ await panel.getByText('Sent ✓').waitFor()
+ assert.equal(cloud.shared.length,1)
+ const sent=cloud.shared[0]
+ assert.equal(sent.sender_id,'alice');assert.equal(sent.recipient_id,'carol');assert.equal(sent.kind,'exam')
+ assert.deepEqual(Object.keys(sent.item).sort(),['due','notes','subject','title'],'only the shown fields are sent')
+ assert.equal(sent.item.title,'Cell biology test');assert.equal(sent.item.subject,'Biology')
+
+ const other=await freshPage()
+ try{
+  await signInAs(other.context,cloud,'carol')
+  await other.page.goto(BASE)
+  await heading(other.page,'Sanctuary')
+  const inbox=other.page.getByRole('region',{name:'Shared with you'})
+  await inbox.getByText('Alice shared an exam').waitFor()
+  await inbox.getByText('Cell biology test').waitFor()
+  await inbox.getByRole('button',{name:'Add to my plan: Cell biology test'}).click()
+  await inbox.getByText('Added “Cell biology test” to your plan.').waitFor()
+  assert.equal(cloud.shared.length,0,'added items are cleared')
+  await go(other.page,'Exams')
+  await other.page.getByText('Cell biology test').filter({visible:true}).first().waitFor()
+  await waitFor(()=>JSON.stringify(cloud.users.carol.plan.data.exams).includes('Shared by Alice.'),'the added exam never reached Carol’s account')
+  const exam=cloud.users.carol.plan.data.exams.find(e=>e.title==='Cell biology test')
+  assert.equal(exam.subjectId,'sub-bio','matched to Carol’s own Biology')
+  assert.deepEqual(other.errors,[])
+ }finally{await other.context.close()}
 })
 
 test('offline: the Home Screen app opens with no signal, shows the plan, keeps a new assignment on the device, and uploads it when the signal is back',async()=>{

@@ -3,7 +3,8 @@ import { createFreshData, normalizeData, randomId, type AppData } from './model'
 import { commitCache, decodeData, deleteCache, downloadData, exportData, readCache, readLegacy, readRawCache, type CacheEntry, type RecoveryFile } from './localRepository'
 import { captureDeletions } from './workspace'
 import { mergeData, type MergeConflict } from './merge'
-import type {AdminAccount,ClientError,Feedback,SupabaseRemote,SupportActivity} from './supabaseRemote'
+import type {AdminAccount,ClassmateProfile,ClientError,Feedback,SupabaseRemote,SupportActivity} from './supabaseRemote'
+import {readSharedItem,type ReceivedItem,type ShareKind,type SharedItem} from './itemShare'
 import {installErrorReporter} from './errorReporter'
 import {setBuiltInAi} from './aiProvider'
 import {shrinkPhoto} from './shrinkPhoto'
@@ -312,6 +313,21 @@ export class PlannerRepository {
   return {rows,profiles}
  }
  fetchFriendSnapshot=async(ownerId:string)=>this.requireCloud().fetchSharedSnapshot(ownerId)
+ /** Accepted connections only: the classmates something can be shared with. */
+ classmates=async():Promise<ClassmateProfile[]>=>{
+  const {rows,profiles}=await this.listConnections(),myId=this.state.user?.id??''
+  return rows.filter(r=>r.status==='accepted').map(r=>profiles[r.requesterId===myId?r.recipientId:r.requesterId]).filter((p):p is ClassmateProfile=>!!p)
+ }
+ shareItem=async(recipientId:string,kind:ShareKind,item:SharedItem)=>this.requireCloud().shareItem(recipientId,kind,item)
+ /** What classmates have shared with this account, checked, with who sent each. */
+ sharedWithMe=async():Promise<{items:ReceivedItem[];senders:Record<string,ClassmateProfile>}>=>{
+  if(!this.cloud||!this.state.user)return {items:[],senders:{}}
+  const rows=await this.cloud.sharedWithMe()
+  const items=rows.flatMap(r=>{const item=readSharedItem(r.item);return item&&(r.kind==='task'||r.kind==='exam')?[{id:r.id,senderId:r.senderId,kind:r.kind,item,createdAt:r.createdAt}]:[]})
+  const senders=items.length?await this.cloud.profilesFor([...new Set(items.map(i=>i.senderId))]):{}
+  return {items,senders}
+ }
+ clearSharedItem=async(id:string)=>this.requireCloud().clearSharedItem(id)
  /** A plan kept in this browser from before signing in (device-only mode), if there is one. */
  deviceCopy=()=>this.state.user&&!this.state.support?this.migration:null
  importPreview=(raw:string)=>decodeData(raw)
