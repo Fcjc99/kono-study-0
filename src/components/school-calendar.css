@@ -62,3 +62,6 @@
 .class-grid td span{display:block}
 .class-grid td span+span{margin-top:4px;padding-top:4px;border-top:1px dashed var(--wb-line,#ddd)}
 @media(max-width:600px){.school-guide-steps{gap:4px}.school-guide-steps li{padding:6px 4px;font-size:.72rem}.class-grid th[scope=row]{white-space:nowrap}}
+/* "Share … with classmates?" right after setting up a school KONO didn't have. */
+.share-invite{display:grid;gap:8px;margin:0 0 16px;border:2px solid var(--wb-accent,#e0705c)!important;border-radius:14px;background:color-mix(in srgb,var(--wb-accent,#e0705c) 6%,transparent)}
+.share-invite h3,.share-invite p{margin:0}
