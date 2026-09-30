@@ -113,4 +113,25 @@ test('Lock-screen reminders: each planned session sends "Study time" when it sta
  assert.ok(r);assert.equal(r.title,'Study time: '+first.title);assert.match(r.body,/–.* · For /)
  const at=new Date(r.sendAt);assert.equal(String(at.getHours()).padStart(2,'0')+':'+String(at.getMinutes()).padStart(2,'0'),first.time)
 })
-console.log(passed+'/6 plan-my-week regression groups passed.')
+test('Week drag and drop: events move keeping their length; an assignment gets a planned time on its day, a study session before it, and asks before moving its due date; exams get study time before',()=>{
+ const {weekDrop}=load('src/store/weekDrop.ts')
+ const ev=weekDrop('calendarEvents',{id:'e',title:'Tutoring',time:'15:00',endTime:'16:30'},'2026-10-01','10:00','p')
+ assert.equal(ev.kind,'patch');assert.equal(JSON.stringify(ev.changes),JSON.stringify({date:'2026-10-01',time:'10:00',endTime:'11:30'}))
+ const task={id:'t1',title:'Math worksheet',due:'2026-10-01',estimatedMinutes:45,subjectId:'math'}
+ const same=weekDrop('tasks',task,'2026-10-01','15:00','p');assert.equal(same.kind,'patch');assert.equal(same.changes.plannedTime,'15:00')
+ const before=weekDrop('tasks',task,'2026-09-29','16:00','p');assert.equal(before.kind,'session')
+ assert.equal(before.event.title,'Work on Math worksheet');assert.equal(before.event.planFor,'task:t1');assert.equal(before.event.kind,'study')
+ assert.equal(before.event.endTime,'16:45','as long as the assignment is estimated');assert.equal(before.event.subjectId,'math');assert.equal(before.event.date,'2026-09-29')
+ const after=weekDrop('tasks',task,'2026-10-03','09:00','p');assert.equal(after.kind,'move-due');assert.equal(after.changes.due,'2026-10-03');assert.match(after.question,/Math worksheet/)
+ const exam={id:'x1',title:'Bio test',due:'2026-10-02'}
+ const study=weekDrop('exams',exam,'2026-09-30','19:00','p');assert.equal(study.kind,'session');assert.equal(study.event.title,'Study for Bio test');assert.equal(study.event.endTime,'20:00');assert.equal(study.event.planFor,'exam:x1')
+ assert.equal(weekDrop('exams',exam,'2026-10-02','08:00','p').kind,'none','nothing to plan on the exam day itself')
+ assert.equal(weekDrop('notes',{id:'n'},'2026-10-02','08:00','p').kind,'none')
+ // A late-evening session never runs past midnight.
+ assert.equal(weekDrop('tasks',{...task,estimatedMinutes:120},'2026-09-29','23:00','p').event.endTime,'23:59')
+ // It saves: the session passes the plan's own checks.
+ const data=model.createFreshData();data.tasks.push({...task,profileId:data.activeProfileId,subjectId:'',done:false,notes:''})
+ const session=weekDrop('tasks',{...task,subjectId:''},'2026-09-29','16:00',data.activeProfileId).event
+ assert.equal(model.normalizeData({...data,calendarEvents:[session]}).calendarEvents[0].planFor,'task:t1')
+})
+console.log(passed+'/7 plan-my-week regression groups passed.')

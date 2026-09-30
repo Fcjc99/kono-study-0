@@ -4,6 +4,7 @@ import {buildRotationWeek,classesFromRows,classesFromWeek,duxburyLunchWave,rotat
 import {classTime} from '../store/classSchedule'
 import {useAiHelper} from '../hooks/useAiHelper'
 import {AiHelperSettings} from './AiHelper'
+import {reportError} from '../store/errorReporter'
 
 const blank=(n:number):RotationClass[]=>Array.from({length:n},()=>({label:'',location:'',lunchWave:3}))
 
@@ -39,8 +40,14 @@ export default function RotatingClasses({season,bells,change,onReview}:{season:S
    setGuessed(found.classes.map(c=>!duxburyLunchWave(c.label).sure))
    setConflicts(found.conflicts)
    const empty=found.classes.filter(c=>!c.label).length
+   // Tell KONO support when a schedule is only partly read: the school and counts, never the classes.
+   if(empty)reportError('Rotating-school upload found only '+(count-empty)+' of '+count+' classes',{detail:'File: '+(pdf?'PDF':'photo')+' · school: '+season.school!.name})
    setMessage('Found '+(count-empty)+' of your '+count+' classes. Check each one against your schedule'+(empty?' and fill in the missing '+(empty===1?'one':'ones'):'')+', then build your days.')
-  }catch(e){setMessage('');setError(e instanceof Error?e.message:'Could not read this schedule.')}finally{setBusy(false)}
+  }catch(e){
+   const why=e instanceof Error?e.message:'Could not read this schedule.'
+   setMessage('');setError(why)
+   if(/found no classes|couldn’t match/i.test(why))reportError('Rotating-school upload found no classes',{detail:'File: '+(/\.pdf$/i.test(file.name)?'PDF':'photo')+' · school: '+season.school!.name})
+  }finally{setBusy(false)}
  }
  const build=()=>{
   setError('')
