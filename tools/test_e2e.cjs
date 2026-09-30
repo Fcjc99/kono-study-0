@@ -123,7 +123,7 @@ test('a study note can be moved to Trash and restored',async({page})=>{
 test('every Settings tab opens, and a theme choice survives a reload',async({page})=>{
  await createPlan(page)
  await go(page,'Settings')
- for(const tab of ['Look & feel','Team colors','Notifications','Family','Schedules','Import & export','Plans & account']){
+ for(const tab of ['Look & feel','Notifications','Family','Schedules','Import & export','Plans & account']){
   await settingsTab(page,tab)
   // On-demand panels finish loading (or show their reload fallback) rather than hanging.
   await page.locator('.lazy-panel-loading').first().waitFor({state:'detached'}).catch(()=>{})
@@ -140,14 +140,13 @@ test('every Settings tab opens, and a theme choice survives a reload',async({pag
  assert.equal(await experience(),chosen)
 })
 
-test('Team colors have their own Settings tab: each team sets its jersey, one from Modern switches to Cozy, and the choice survives a reload',async({page})=>{
+test('Team colors have their own section in Look & feel: each team sets its jersey, one from Modern switches to Cozy, and the choice survives a reload',async({page})=>{
  await createPlan(page)
  await go(page,'Settings')
  const root=()=>page.evaluate(()=>[document.documentElement.dataset.experience,document.documentElement.dataset.theme,document.documentElement.dataset.team??''].join(' '))
  // Starting from Modern (fixed colors): picking a team switches to Cozy.
  await settingsTab(page,'Look & feel')
  await page.getByRole('button',{name:/Modern/}).first().click()
- await settingsTab(page,'Team colors')
  const teams=page.getByRole('group',{name:'Team colors'})
  assert.equal(await teams.getByRole('button').count(),8)
  await page.getByText('picking one switches you to Cozy',{exact:false}).waitFor()
@@ -159,9 +158,7 @@ test('Team colors have their own Settings tab: each team sets its jersey, one fr
  await page.waitForFunction(()=>document.documentElement.dataset.theme==='nda')
  assert.equal(await root(),'cozy nda light','Notre Dame Academy is a white (light) jersey')
  // Look & feel says team colors are on, and a regular palette turns them off.
- await settingsTab(page,'Look & feel')
  await page.getByText('You’re using team colors.',{exact:false}).waitFor()
- await settingsTab(page,'Team colors')
  await teams.getByRole('button',{name:/Duxbury · Black & Green/}).click()
  await page.waitForFunction(()=>document.documentElement.dataset.theme==='dragonsblack')
  await flushSave(page,'"theme":"dragonsblack"')
@@ -713,8 +710,11 @@ test('Built-in AI: a signed-in student with no key of their own gets KONO’s AI
 })
 
 /** A signed-in account whose plan has an essay due in three days (dates relative to today). */
+// Plan-my-week tests run on a fixed Monday morning: the shared fixture has fixed dates (like its Cell
+// biology test), so on a real clock the week's work and free time drift from day to day.
+const WEEK_PLAN_NOW='2026-09-28T08:00:00'
 function weekPlanCloud(){
- const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,d=new Date();d.setDate(d.getDate()+3)
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,d=new Date(WEEK_PLAN_NOW);d.setDate(d.getDate()+3)
  const due=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
  plan.tasks.push({id:'wk-essay',profileId:plan.activeProfileId,subjectId:'',title:'Week plan essay',due,done:false,notes:'',estimatedMinutes:60})
  return cloud
@@ -728,6 +728,7 @@ async function openWeekPlanner(page){
 
 test('Plan my week: KONO plans study sessions around the schedule, adds them to the Calendar, and can clear them',async({context,page})=>{
  const cloud=weekPlanCloud()
+ await page.clock.setFixedTime(new Date(WEEK_PLAN_NOW))
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  const panel=await openWeekPlanner(page)
@@ -748,6 +749,7 @@ test('Plan my week: KONO plans study sessions around the schedule, adds them to 
 
 test('Plan my week with KONO’s AI: the AI’s sessions are shown after checking, and anything it invents is dropped',async({context,page})=>{
  const cloud=weekPlanCloud(),posts=[]
+ await page.clock.setFixedTime(new Date(WEEK_PLAN_NOW))
  await signInAs(context,cloud,'alice')
  await context.route(BASE+'api/ai',route=>{
   const request=route.request()

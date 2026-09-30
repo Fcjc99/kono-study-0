@@ -23,7 +23,7 @@ const ONLY_THEMES = process.env.ONLY_THEMES ? process.env.ONLY_THEMES.split(',')
 // SHOTS_DIR=some/dir also saves a screenshot of every page it checks, for looking a new theme over.
 const SHOTS_DIR = process.env.SHOTS_DIR || ''
 
-// Team colors live on their own Settings tab (see teamThemes.ts).
+// Team colors have their own section in Look & feel (see teamThemes.ts).
 const TEAM = ['dragons', 'dragonsblack', 'hanover', 'nda', 'bc', 'mcgill', 'gamehome', 'gameaway']
 const EXPERIENCES = [
  { experience: 'cozy', palettes: ['coral', 'sakura', 'lavender', 'mint', 'honey', 'zen', 'floral', 'ocean', ...TEAM] },
@@ -152,13 +152,10 @@ async function setExperienceAndTheme(page, experience, theme) {
  await clickVisibleByName(page, experienceLabel)
  await page.waitForTimeout(400)
  if (theme && TEAM.includes(theme)) {
-  await clickVisibleByName(page, 'Team colors')
-  await page.waitForTimeout(300)
   const tile = page.locator('.team-color-grid button', { has: page.locator(`.team-swatch.theme-${theme}`) })
   if (!(await tile.count())) throw new Error(`Team colors tile for ${theme} not found`)
   await tile.click()
   await page.waitForTimeout(400)
-  await clickVisibleByName(page, 'Look & feel')
  } else if (theme) {
   const swatch = page.locator(`.wb-themes button.theme-${theme}`)
   if (await swatch.count()) {
