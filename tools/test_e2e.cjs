@@ -630,7 +630,9 @@ test('Send feedback: a signed-in person sends a note with the page it came from,
 })
 
 test('Canvas: a Canvas calendar feed puts assignments in the Planner and quizzes in Exams, under their course',async({context,page})=>{
- const d=new Date(),ymd=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0'),inDays=n=>{const x=new Date(d);x.setDate(d.getDate()+n);return ymd(x)}
+ // A fixed Monday, so the essay (due in 4 days) is in this week's view whatever day the tests run.
+ await page.clock.setFixedTime(new Date(WEEK_PLAN_NOW))
+ const d=new Date(WEEK_PLAN_NOW),ymd=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0'),inDays=n=>{const x=new Date(d);x.setDate(d.getDate()+n);return ymd(x)}
  const feed=['BEGIN:VCALENDAR','X-WR-CALNAME:Canvas','BEGIN:VEVENT','UID:a1','SUMMARY:Essay 1 [ENGL 1010]','DTSTART;VALUE=DATE:'+inDays(4),'URL:https://canvas.bc.edu/courses/1/assignments/2','END:VEVENT','BEGIN:VEVENT','UID:q1','SUMMARY:Chapter 3 quiz [BIOL 1100]','DTSTART;VALUE=DATE:'+inDays(6),'URL:https://canvas.bc.edu/courses/3/quizzes/4','END:VEVENT','END:VCALENDAR'].join('\r\n')
  await context.route(BASE+'api/calendar-feed',route=>route.fulfill({status:200,headers:{'content-type':'text/calendar'},body:feed}))
  await createPlan(page)
@@ -732,6 +734,51 @@ test('Built-in AI: a signed-in student with no key of their own gets KONO’s AI
  assert.equal(posts.length,1)
  assert.match(posts[0].auth,/^Bearer .+\..+\..+/,'the request carries the student’s sign-in')
  assert.match(posts[0].body.prompt,/Marine Biology with Dr\. Lee/)
+})
+
+test('Planner › Week: the week by default, items at their hour, source chips hide a whole source, and tapping an empty hour adds something then',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.settings.parentMode=false // a student: an empty hour opens the event editor (parents get the quick add)
+ plan.calendarEvents.push(
+  {id:'wk-canvas',profileId:pid,date:'2026-09-29',time:'15:00',endTime:'16:00',title:'Quiz review session',kind:'study',notes:'',source:'canvas'},
+  {id:'wk-google',profileId:pid,date:'2026-09-30',time:'09:00',endTime:'10:00',title:'Dentist appointment',kind:'appointment',notes:'',source:'calendar'},
+  {id:'wk-sports',profileId:pid,date:'2026-10-01',time:'17:00',endTime:'18:30',title:'Soccer practice',kind:'sports',notes:''})
+ await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Planner')
+ assert.equal(await page.getByLabel('Calendar view').inputValue(),'week','Week is the default on a computer')
+ const week=page.getByRole('region',{name:'Week'})
+ await week.getByRole('button',{name:/^Quiz review session · 3:00 PM–4:00 PM/}).waitFor()
+ await week.getByRole('button',{name:/^Soccer practice · 5:00 PM–6:30 PM/}).waitFor()
+ // Source chips: hiding Canvas hides only what came from Canvas, and stays hidden after a reload.
+ const chips=page.getByRole('group',{name:'Show on calendar'})
+ assert.deepEqual(await chips.getByRole('button').allInnerTexts(),['Canvas','Google','Sports','Mine'])
+ const canvas=chips.getByRole('button',{name:'Canvas'})
+ await canvas.click()
+ assert.equal(await canvas.getAttribute('aria-pressed'),'false')
+ await week.getByRole('button',{name:/^Quiz review session/}).waitFor({state:'detached'})
+ assert.equal(await week.getByRole('button',{name:/^Dentist appointment/}).count(),1,'other sources stay')
+ await page.reload();await page.locator('#workspace-main h1').waitFor();await go(page,'Planner')
+ await week.getByRole('button',{name:/^Soccer practice/}).waitFor()
+ assert.equal(await week.getByRole('button',{name:/^Quiz review session/}).count(),0,'still hidden after a reload')
+ await chips.getByRole('button',{name:'Canvas'}).click()
+ await week.getByRole('button',{name:/^Quiz review session/}).waitFor()
+ // Tap an empty hour: a new event starts then, for an hour.
+ await week.getByRole('button',{name:'Add at 10:00 AM on Oct 2, 2026'}).click()
+ const editor=page.getByRole('dialog',{name:'New Event'})
+ assert.equal(await editor.getByLabel('Start time (optional)').inputValue(),'10:00')
+ assert.equal(await editor.getByLabel('End time (optional)').inputValue(),'11:00')
+ assert.equal(await editor.getByLabel('Date').inputValue(),'2026-10-02')
+ await editor.getByLabel('Title').fill('Tutoring')
+ await editor.getByRole('button',{name:'Save'}).click()
+ await week.getByRole('button',{name:/^Tutoring · 10:00 AM–11:00 AM · Oct 2, 2026/}).waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.some(e=>e.title==='Tutoring'&&e.date==='2026-10-02'&&e.time==='10:00'),'the new event reaches the account')
+ // The next week, and Month still works.
+ await page.getByRole('button',{name:'Next week'}).click()
+ await page.getByRole('heading',{name:/^Oct 4 – Oct 10/}).waitFor()
+ await page.getByLabel('Calendar view').selectOption('month')
+ assert.equal(await page.getByRole('region',{name:'Week'}).count(),0)
 })
 
 /** A signed-in account whose plan has an essay due in three days (dates relative to today). */

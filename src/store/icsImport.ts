@@ -1,4 +1,4 @@
-import { blankWeek, dayNames, normalizeData, uid, type AppData, type CalendarEventKind, type ScheduleBlock } from './model'
+import { blankWeek, dayNames, normalizeData, uid, type AppData, type CalendarEventKind, type ItemSource, type ScheduleBlock } from './model'
 
 /** Reading a calendar file (.ics) exported from Google Calendar, Apple Calendar or Outlook.
  * Weekly repeating events (classes, practice, shifts) become one weekly schedule; everything else in
@@ -175,6 +175,12 @@ const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLow
 /** Adds the chosen items to the active plan: one-time events as calendar events, weekly repeats as one
  * weekly schedule named after the calendar. Items already in the plan are skipped, so importing the
  * same calendar again only adds what's new. */
+/** A class site's feed (its name says so, or its items carry a course like "[BIOL 1100]") or an
+ * ordinary calendar. Shown as the Planner's Canvas and Google/Apple chips. */
+export function icsSource(parsed: IcsImport, sourceName: string): ItemSource {
+  return /canvas|instructure|schoology|classroom|blackboard|brightspace|moodle/i.test(sourceName) || parsed.events.some(e => e.course) ? 'canvas' : 'calendar'
+}
+
 export function applyIcsImport(data: AppData, profileId: string, parsed: IcsImport, sourceName: string) {
   if (data.activeProfileId !== profileId) throw Error('Your plan changed. Reopen the calendar import.')
   const events = parsed.events.filter(e => e.include), weekly = parsed.weekly.filter(w => w.include)
@@ -182,6 +188,7 @@ export function applyIcsImport(data: AppData, profileId: string, parsed: IcsImpo
   const next = structuredClone(data)
   let added = 0, skipped = 0
   const created: Record<string, LinkedItem> = {}
+  const source = icsSource(parsed, sourceName)
   // A course named in the calendar ("[BIOL 1100]") matches a subject by name, or becomes one.
   const subjectFor = (course?: string) => {
     if (!course) return ''
@@ -196,7 +203,7 @@ export function applyIcsImport(data: AppData, profileId: string, parsed: IcsImpo
       const list = e.as === 'assignment' ? next.tasks : next.exams
       const existing = list.find(x => x.profileId === profileId && x.due === e.date && same(x.title, e.title))
       if (existing) { created[e.key] = { c: e.as === 'assignment' ? 'tasks' : 'exams', id: existing.id }; skipped++; continue }
-      const item = { id: uid(e.as === 'assignment' ? 'task' : 'exam'), profileId, subjectId: subjectFor(e.course), title: e.title, due: e.date, done: false, notes: [at ? 'Due' + at : '', e.location ? '📍 ' + e.location : ''].filter(Boolean).join('\n') }
+      const item = { id: uid(e.as === 'assignment' ? 'task' : 'exam'), profileId, subjectId: subjectFor(e.course), title: e.title, due: e.date, done: false, source, notes: [at ? 'Due' + at : '', e.location ? '📍 ' + e.location : ''].filter(Boolean).join('\n') }
       if (e.as === 'assignment') next.tasks.push(item); else next.exams.push(item)
       created[e.key] = { c: e.as === 'assignment' ? 'tasks' : 'exams', id: item.id }
       added++; continue
@@ -204,7 +211,7 @@ export function applyIcsImport(data: AppData, profileId: string, parsed: IcsImpo
     const existingEvent = next.calendarEvents.find(x => x.profileId === profileId && x.date === e.date && same(x.title, e.title) && (x.time ?? '') === (e.time ?? ''))
     if (existingEvent) { created[e.key] = { c: 'calendarEvents', id: existingEvent.id }; skipped++; continue }
     const eventId = uid('event')
-    next.calendarEvents.push({ id: eventId, profileId, subjectId: e.course ? subjectFor(e.course) : undefined, date: e.date, title: e.title, kind: guessKind(e.title), notes: e.location ? '📍 ' + e.location : '', time: e.time, endTime: e.endTime })
+    next.calendarEvents.push({ id: eventId, profileId, source, subjectId: e.course ? subjectFor(e.course) : undefined, date: e.date, title: e.title, kind: guessKind(e.title), notes: e.location ? '📍 ' + e.location : '', time: e.time, endTime: e.endTime })
     created[e.key] = { c: 'calendarEvents', id: eventId }
     added++
   }
@@ -254,8 +261,10 @@ export function linkSeen(parsed: IcsImport, created: Record<string, LinkedItem>)
 
 export function syncIcs(data: AppData, profileId: string, parsed: IcsImport, sourceName: string, seen: LinkedSeen) {
   const next = structuredClone(data)
-  let updated = 0
+  let updated = 0, tagged = 0
   const fresh: IcsOneTime[] = []
+  // Items linked before sources were recorded get theirs on the next sync.
+  const source = icsSource(parsed, sourceName), tag = (item: { source?: ItemSource }) => { if (!item.source) { item.source = source; tagged++ } }
   for (const e of parsed.events) {
     const k = seenKey(e)
     if (!(k in seen)) { fresh.push({ ...e, include: true }); continue }
@@ -263,17 +272,19 @@ export function syncIcs(data: AppData, profileId: string, parsed: IcsImport, sou
     if (!ref) continue
     if (ref.c === 'calendarEvents') {
       const item = next.calendarEvents.find(x => x.id === ref.id && x.profileId === profileId)
+      if (item) tag(item)
       if (item && !item.done && (item.date !== e.date || (item.time ?? '') !== (e.time ?? ''))) { item.date = e.date; item.time = e.time; item.endTime = e.endTime; updated++ }
     } else {
       const item = (ref.c === 'tasks' ? next.tasks : next.exams).find(x => x.id === ref.id && x.profileId === profileId)
+      if (item) tag(item)
       if (item && !item.done && item.due !== e.date) { item.due = e.date; updated++ }
     }
   }
   const weekly = parsed.weekly.filter(w => !(weeklyKey(w) in seen)).map(w => ({ ...w, include: true }))
   const nextSeen: LinkedSeen = { ...seen }
   for (const w of weekly) nextSeen[weeklyKey(w)] = null
-  if (!fresh.length && !weekly.length) return { data: updated ? normalizeData(next) : data, added: 0, updated, seen: nextSeen }
+  if (!fresh.length && !weekly.length) return { data: updated || tagged ? normalizeData(next) : data, added: 0, updated, tagged, seen: nextSeen }
   const result = applyIcsImport(next, profileId, { ...parsed, events: fresh, weekly }, sourceName)
   for (const e of fresh) nextSeen[seenKey(e)] = result.created[e.key] ?? null
-  return { data: result.data, added: result.added, updated, seen: nextSeen }
+  return { data: result.data, added: result.added, updated, tagged, seen: nextSeen }
 }

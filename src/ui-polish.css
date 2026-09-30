@@ -124,3 +124,34 @@
 .planner-settings-link .wb-toolbar{margin-left:auto}
 .add-moved{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:12px 0}
 .add-moved p{margin:0;flex:1 1 260px}
+/* Planner › source chips: show or hide everything from one source. */
+.planner-source-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.planner-source-chips .source-chip{min-height:32px!important;padding:4px 12px!important;border-radius:999px!important;font-size:.85rem;font-weight:700;border:1.5px solid var(--wb-line,#d8cfc4)!important;background:transparent!important;box-shadow:none!important;transform:none!important;opacity:.55;text-decoration:line-through}
+.planner-source-chips .source-chip[aria-pressed=true]{opacity:1;text-decoration:none;background:color-mix(in srgb,var(--wb-accent,#e0705c) 14%,transparent)!important;border-color:var(--wb-accent,#e0705c)!important}
+/* Planner › Week: seven days side by side on an hour grid. */
+.week-grid-nav h3{margin:0;font-size:1rem}
+.week-grid-hint{margin:0 0 6px;font-size:.82rem}
+.week-grid{border:1px solid var(--wb-line,#e2d8cc);border-radius:14px;overflow:hidden;margin-bottom:14px;font-size:.8rem}
+.week-grid-row{display:grid;grid-template-columns:56px repeat(7,minmax(0,1fr))}
+.week-grid-gutter{font-size:.7rem;opacity:.7;padding:4px 6px;text-align:right}
+.week-grid-head{border-bottom:1px solid var(--wb-line,#e2d8cc)}
+.week-grid-head button{display:grid;justify-items:center;gap:0;padding:6px 2px!important;min-height:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;transform:none!important}
+.week-grid-head button strong{font-size:1.05rem}
+.week-grid-head button.is-today strong{background:var(--wb-accent,#e0705c);color:#fff;border-radius:999px;min-width:1.8em;padding:0 .3em}
+.week-grid-head button[aria-pressed=true]{background:color-mix(in srgb,var(--wb-accent,#e0705c) 10%,transparent)!important}
+.week-grid-allday{border-bottom:1px solid var(--wb-line,#e2d8cc);min-height:30px}
+.week-grid-allday-cell{display:grid;align-content:start;gap:2px;padding:3px 2px;border-left:1px solid var(--wb-line,#eee4d8);min-width:0}
+.week-grid-body{max-height:560px;overflow-y:auto}
+.week-grid-hours span{display:block;height:var(--hour);line-height:1;padding-top:2px}
+.week-grid-day{position:relative;border-left:1px solid var(--wb-line,#eee4d8);min-width:0}
+.week-grid-day.is-selected{background:color-mix(in srgb,var(--wb-accent,#e0705c) 5%,transparent)}
+.week-grid-slot{position:absolute;left:0;right:0;height:var(--hour);border:0!important;border-top:1px dashed color-mix(in srgb,var(--wb-line,#e2d8cc) 70%,transparent)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;transform:none!important;min-height:0!important;padding:0!important;cursor:copy}
+.week-grid-slot span{opacity:0;font-size:1rem}
+.week-grid-slot:hover span,.week-grid-slot:focus-visible span{opacity:.6}
+.week-grid .week-item{display:block;width:100%;text-align:left;min-height:0!important;padding:2px 5px!important;border-radius:6px!important;border:0!important;border-left:3px solid var(--item-color)!important;background:color-mix(in srgb,var(--item-color) 18%,var(--wb-paper,#fff))!important;color:inherit;font-size:.74rem!important;font-weight:600;letter-spacing:0;line-height:1.2;box-shadow:none!important;transform:none!important;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.week-grid .week-item.is-important{border-left-color:#d24864!important}
+.week-grid .week-item-timed{position:absolute;white-space:normal;z-index:1;display:block}
+.week-grid .week-item-timed small{display:block;font-weight:400;opacity:.75;font-size:.66rem}
+@media(max-width:700px){.week-grid-row{grid-template-columns:34px repeat(7,minmax(0,1fr))}.week-grid-gutter{padding:2px;font-size:.6rem}.week-grid .week-item{font-size:.62rem!important;padding:1px 2px!important}.week-grid .week-item-timed small{display:none}}
+.week-grid-allday-cell .week-item{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.week-grid-hours span{white-space:nowrap}
