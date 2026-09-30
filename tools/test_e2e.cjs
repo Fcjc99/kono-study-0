@@ -1302,6 +1302,47 @@ test('Share with a classmate: a student sends an exam from its editor to a conne
  }finally{await other.context.close()}
 })
 
+test('Overdue: past-due assignments show one card with Done, Move to today, Move all and Later; on phones the island comes before Getting started',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.tasks.push({id:'old-sheet',profileId:pid,subjectId:'',title:'Old worksheet',due:'2026-09-01',done:false,notes:''},{id:'old-map',profileId:pid,subjectId:'',title:'Map quiz review',due:'2026-09-10',done:false,notes:''})
+ const now=new Date(),today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ const card=page.getByRole('region',{name:'Overdue'})
+ await card.getByRole('heading',{name:'3 assignments are overdue'}).waitFor()
+ await card.getByRole('button',{name:'Done: Old worksheet'}).click()
+ await card.getByRole('heading',{name:'2 assignments are overdue'}).waitFor()
+ await card.getByRole('button',{name:'Move to today: Map quiz review'}).click()
+ await card.getByRole('heading',{name:'1 assignment is overdue'}).waitFor()
+ await card.getByRole('button',{name:'Later'}).click()
+ await card.waitFor({state:'detached'})
+ await page.reload();await heading(page,'Sanctuary')
+ assert.equal(await page.getByRole('region',{name:'Overdue'}).count(),0,'Later hides it for the rest of today')
+ await page.evaluate(id=>localStorage.removeItem('kono-overdue-hidden:'+id),pid)
+ await page.reload();await heading(page,'Sanctuary')
+ await card.getByRole('heading',{name:'1 assignment is overdue'}).waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.tasks.find(t=>t.id==='old-map')?.due===today,'the move never reached the account')
+ cloud.users.alice.plan.data.tasks.push({id:'old-lab',profileId:pid,subjectId:'',title:'Late lab',due:'2026-09-12',done:false,notes:''})
+ cloud.users.alice.plan.revision++
+ await page.reload();await heading(page,'Sanctuary')
+ await card.getByRole('heading',{name:'2 assignments are overdue'}).waitFor()
+ await card.getByRole('button',{name:'Move all to today'}).click()
+ await card.waitFor({state:'detached'})
+ await waitFor(()=>{const d=cloud.users.alice.plan.data;return d.tasks.find(t=>t.id==='old-sheet')?.done===true&&['Read chapter 3','Late lab'].every(title=>d.tasks.find(t=>t.title===title)?.due===today)},'the changes never reached the account')
+
+ const phone=await freshPage({viewport:{width:375,height:667},isMobile:true,hasTouch:true})
+ try{
+  await createPlan(phone.page)
+  const start=phone.page.getByRole('region',{name:'Getting started'})
+  await start.getByText(/SET UP KONO · \d of 3 done/).waitFor()
+  assert.ok(await phone.page.evaluate(()=>{const island=document.querySelector('.wb-island'),start=document.querySelector('.getting-started');return !!island&&!!start&&!!(island.compareDocumentPosition(start)&Node.DOCUMENT_POSITION_FOLLOWING)}),'the island comes first on phones')
+  await start.getByRole('button',{name:'Show all setup steps'}).click()
+  await start.getByRole('heading',{name:'Set up KONO in a few minutes'}).waitFor()
+  assert.deepEqual(phone.errors,[])
+ }finally{await phone.context.close()}
+})
+
 test('offline: the Home Screen app opens with no signal, shows the plan, keeps a new assignment on the device, and uploads it when the signal is back',async()=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,now=new Date()
  const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')

@@ -184,3 +184,14 @@
 .getting-started-steps li.is-done .getting-started-mark{background:var(--wb-accent,#e0705c);color:#fff}
 .getting-started .link-button{background:none!important;border:0!important;box-shadow:none!important;text-decoration:underline;min-height:0!important;padding:4px!important}
 @media(max-width:600px){.getting-started-steps li{grid-template-columns:auto 1fr}.getting-started-steps li .wb-toolbar{grid-column:1/-1}}
+/* Overdue assignments (Sanctuary and Planner). */
+.overdue-card ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.overdue-card li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:10px 12px;border:1px solid var(--wb-line,#e2d8cc);border-left:4px solid #c2553a;border-radius:12px}
+.overdue-card li>div:first-child{display:grid;gap:2px;min-width:0;flex:1 1 200px}
+.overdue-card li small{opacity:.75}
+/* Getting started on phones: one row under the island. */
+.getting-started.is-compact{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:10px 12px}
+.getting-started.is-compact>div:first-child{display:grid;gap:2px;min-width:0;flex:1 1 180px}
+.getting-started.is-compact small{opacity:.75;font-size:.72rem;letter-spacing:.04em}
+/* The "due soon" line wraps on phones instead of cutting off. */
+@media (max-width:600px){.login-digest.is-slim summary{white-space:normal}}

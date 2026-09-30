@@ -20,9 +20,9 @@ export default function SharedWithMe({repository,data,save}:{repository:PlannerR
   try{
    const from=nameOf(senders[r.senderId])
    if(!await save(d=>addSharedItem(d,r.kind,r.item,from)))throw Error('Couldn’t add it to your plan. Try again.')
-   setMessage('Added “'+r.item.title+'” to your plan.')
    // Already in the plan now, so if this fails it just shows as "Already in your plan" next time.
    await clear(r.id).catch(()=>undefined)
+   setMessage('Added “'+r.item.title+'” to your plan.')
   }catch(e){setMessage(e instanceof Error?e.message:'Couldn’t add it.')}
   finally{setBusy('')}
  }
