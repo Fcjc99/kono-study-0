@@ -114,3 +114,13 @@
 .week-recap-notes,.week-recap-next{margin:0}
 .week-recap .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media (max-width:560px){.week-recap-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Planner › ＋ Add to my calendar (AddToCalendar.tsx). */
+.add-to-calendar-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:12px}
+.add-to-calendar-choices button{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;row-gap:2px;align-items:center;text-align:left;padding:14px!important;min-height:0!important}
+.add-to-calendar-choices button>span{grid-row:1/3;font-size:1.7rem;line-height:1}
+.add-to-calendar-choices button small{font-weight:500;color:var(--wb-muted);line-height:1.3}
+.add-to-calendar-tool>.schedule-setup>.wb-panel{box-shadow:none;border:0;padding:0;background:transparent}
+.planner-settings-link .wb-toolbar{margin-left:auto}
+.add-moved{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:12px 0}
+.add-moved p{margin:0;flex:1 1 260px}

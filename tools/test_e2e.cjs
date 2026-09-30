@@ -52,8 +52,15 @@ async function settingsTab(page,name){
  await tab.click()
  await page.waitForFunction(n=>[...document.querySelectorAll('nav[aria-label="Settings sections"] button')].some(el=>el.textContent===n&&el.getAttribute('aria-current')==='page'),name)
 }
+/** Planner › ＋ Add to my calendar, then one of its choices. */
+async function addToCalendar(page,choice){
+ await go(page,'Planner')
+ await page.getByRole('button',{name:'＋ Add to my calendar'}).click()
+ await page.getByRole('group',{name:'What do you have?'}).getByRole('button',{name:new RegExp('^'+choice.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'))}).click()
+ await page.getByRole('region',{name:'Add to my calendar'}).getByRole('heading',{name:new RegExp(choice.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$')}).waitFor()
+}
 async function addFromMenu(page,type,title,extra){
- await page.getByRole('button',{name:'＋ Add'}).click()
+ await page.getByRole('button',{name:'＋ Add',exact:true}).click()
  const chooser=page.getByRole('dialog',{name:'Add to your plan'})
  await chooser.getByLabel('Add type').selectOption(type)
  await chooser.getByRole('button',{name:'Continue'}).click()
@@ -118,6 +125,31 @@ test('a study note can be moved to Trash and restored',async({page})=>{
  await row.getByRole('button',{name:'Restore'}).click()
  await go(page,'Notes')
  await page.getByText('Mitochondria facts (e2e)').first().waitFor()
+})
+
+test('Planner › ＋ Add to my calendar: one place to start, each choice opens its tool, and Settings points there',async({page})=>{
+ await createPlan(page)
+ await go(page,'Planner')
+ await page.getByRole('button',{name:'＋ Add to my calendar'}).click()
+ const hub=page.getByRole('region',{name:'Add to my calendar'}),choices=hub.getByRole('group',{name:'What do you have?'})
+ assert.equal(await choices.getByRole('button').count(),7)
+ const opens={'My school schedule':'School calendar & rotation','My college classes':'College semester','A calendar link':'Or paste a calendar link','Photos or screenshots':null,'A PDF of dates':'Import PDF','A weekly activity':null,'A sports season':null}
+ for(const [choice,expect] of Object.entries(opens)){
+  await choices.getByRole('button',{name:new RegExp('^'+choice)}).click()
+  await hub.getByRole('heading',{name:new RegExp(choice+'$')}).waitFor()
+  await hub.locator('.lazy-panel-loading').first().waitFor({state:'detached'}).catch(()=>{})
+  assert.equal(await hub.locator('.lazy-panel-error').count(),0,choice+' failed to load')
+  if(expect)assert.ok(await hub.getByText(expect,{exact:false}).first().count(),choice+' opened the wrong tool')
+  await hub.getByRole('button',{name:'← Other options'}).click()
+ }
+ await hub.getByRole('button',{name:'Done'}).click()
+ await hub.waitFor({state:'detached'})
+ await page.locator('summary',{hasText:'Plan my week'}).waitFor()
+ // Import & export points to the hub instead of repeating the importers.
+ await go(page,'Settings');await settingsTab(page,'Import & export')
+ assert.equal(await page.getByText('Import from Google Calendar, Apple Calendar, Canvas or Classroom').count(),0)
+ await page.locator('.add-moved').getByRole('button',{name:'＋ Add to my calendar'}).click()
+ await heading(page,'Planner');await hub.waitFor()
 })
 
 test('every Settings tab opens, and a theme choice survives a reload',async({page})=>{
@@ -546,9 +578,7 @@ test('Calendar import: a Google/Apple calendar file or link adds weekly repeats 
  const requests=[]
  await context.route(BASE+'api/calendar-feed',route=>{requests.push(route.request().postDataJSON());return route.fulfill({status:200,headers:{'content-type':'text/calendar'},body:sampleIcs()})})
  await createPlan(page)
- await go(page,'Settings')
- await settingsTab(page,'Import & export')
- await page.getByText('Import from Google Calendar, Apple Calendar, Canvas or Classroom').click()
+ await addToCalendar(page,'A calendar link')
  await page.getByLabel('Calendar file (.ics)').setInputFiles({name:'sam.ics',mimeType:'text/calendar',buffer:Buffer.from(sampleIcs())})
  await page.getByText('Found 1 weekly repeat and 1 event',{exact:false}).waitFor()
  const review=page.locator('.calendar-import-review')
@@ -566,7 +596,7 @@ test('Calendar import: a Google/Apple calendar file or link adds weekly repeats 
  await page.locator('.calendar-import-review').getByRole('button',{name:'Add 2 to my plan'}).click()
  await page.getByText('0 added, 2 already in your plan',{exact:false}).waitFor()
 
- await settingsTab(page,'Schedules')
+ await go(page,'Settings');await settingsTab(page,'Schedules')
  const card=page.locator('#weekly-schedules').getByRole('article',{name:'Sam school · weekly'})
  await card.waitFor()
  assert.match(await card.innerText(),/Biology lab · Mon, Wed · 2:00 PM–3:30 PM/)
@@ -604,9 +634,7 @@ test('Canvas: a Canvas calendar feed puts assignments in the Planner and quizzes
  const feed=['BEGIN:VCALENDAR','X-WR-CALNAME:Canvas','BEGIN:VEVENT','UID:a1','SUMMARY:Essay 1 [ENGL 1010]','DTSTART;VALUE=DATE:'+inDays(4),'URL:https://canvas.bc.edu/courses/1/assignments/2','END:VEVENT','BEGIN:VEVENT','UID:q1','SUMMARY:Chapter 3 quiz [BIOL 1100]','DTSTART;VALUE=DATE:'+inDays(6),'URL:https://canvas.bc.edu/courses/3/quizzes/4','END:VEVENT','END:VCALENDAR'].join('\r\n')
  await context.route(BASE+'api/calendar-feed',route=>route.fulfill({status:200,headers:{'content-type':'text/calendar'},body:feed}))
  await createPlan(page)
- await go(page,'Settings')
- await settingsTab(page,'Import & export')
- await page.getByText('Import from Google Calendar, Apple Calendar, Canvas or Classroom').click()
+ await addToCalendar(page,'A calendar link')
  await page.getByLabel('Or paste a calendar link').fill('https://canvas.bc.edu/feeds/calendars/user_abc.ics')
  await page.getByRole('button',{name:'Get calendar'}).click()
  await page.getByText('(2 assignments or exams)',{exact:false}).waitFor()
@@ -628,9 +656,7 @@ test('Linked calendar: a kept-up-to-date Canvas feed adds new assignments and mo
  let feed=['BEGIN:VCALENDAR','X-WR-CALNAME:Canvas',...item('a1','Essay 1 [ENGL 1010]',inDays(4),'assignments'),'END:VCALENDAR'].join('\r\n')
  await context.route(BASE+'api/calendar-feed',route=>route.fulfill({status:200,headers:{'content-type':'text/calendar'},body:feed}))
  await createPlan(page)
- await go(page,'Settings')
- await settingsTab(page,'Import & export')
- await page.getByText('Import from Google Calendar, Apple Calendar, Canvas or Classroom').click()
+ await addToCalendar(page,'A calendar link')
  await page.getByLabel('Or paste a calendar link').fill('https://canvas.bc.edu/feeds/calendars/user_abc.ics')
  await page.getByRole('button',{name:'Get calendar'}).click()
  const review=page.locator('.calendar-import-review')
@@ -1013,9 +1039,8 @@ test('College semester: choose the term, upload the schedule, review, save; a la
  assert.equal(semester.week.Tuesday.find(b=>b.label==='Corporate Finance').location,'245 Beacon Street 102 · Okafor, Ben')
  await page.getByRole('button',{name:'Add classes from a file'}).waitFor()
 
- // The Import & export PDF importer offers the semester for weekly classes; re-adding them skips duplicates.
- await settingsTab(page,'Import & export')
- await page.getByText('Import assignments or dated events from a PDF').click()
+ // The PDF importer (Planner › Add to my calendar) offers the semester for weekly classes; re-adding them skips duplicates.
+ await addToCalendar(page,'A PDF of dates')
  await page.getByRole('button',{name:'Import PDF'}).click()
  await page.getByLabel('Choose PDF (up to 20 MB)').setInputFiles(classTablePdf())
  await page.getByRole('button',{name:'Read selected pages'}).click()
