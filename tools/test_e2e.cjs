@@ -811,12 +811,12 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  await week.getByRole('button',{name:/^Tutoring · 10:00 AM–11:00 AM · Oct 2, 2026/}).waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.some(e=>e.title==='Tutoring'&&e.date==='2026-10-02'&&e.time==='10:00'),'the new event reaches the account')
  // Drag and drop: an event moves to another hour, keeping its length.
- await week.getByRole('button',{name:/^Tutoring · 10:00 AM/}).dragTo(week.getByRole('button',{name:'Add at 1:00 PM on Oct 2, 2026'}))
+ await dragOnto(page,week.getByRole('button',{name:/^Tutoring · 10:00 AM/}),week.getByRole('button',{name:'Add at 1:00 PM on Oct 2, 2026'}))
  await week.getByRole('button',{name:/^Tutoring · 1:00 PM–2:00 PM/}).waitFor()
  // An assignment dropped on an earlier day gets a study session then; on its due day, a planned time.
- await week.getByRole('button',{name:'Math worksheet',exact:true}).dragTo(week.getByRole('button',{name:'Add at 4:00 PM on Sep 29, 2026'}))
+ await dragOnto(page,week.getByRole('button',{name:'Math worksheet',exact:true}),week.getByRole('button',{name:'Add at 4:00 PM on Sep 29, 2026'}))
  await week.getByRole('button',{name:/^Work on Math worksheet · 4:00 PM–5:00 PM · Sep 29, 2026/}).waitFor()
- await week.getByRole('button',{name:'Math worksheet',exact:true}).dragTo(week.getByRole('button',{name:'Add at 3:00 PM on Oct 1, 2026'}))
+ await dragOnto(page,week.getByRole('button',{name:'Math worksheet',exact:true}),week.getByRole('button',{name:'Add at 3:00 PM on Oct 1, 2026'}))
  await week.getByRole('button',{name:/^Math worksheet · 3:00 PM–4:00 PM · Oct 1, 2026/}).waitFor()
  await waitFor(()=>{const d=cloud.users.alice.plan.data;return d.tasks.find(t=>t.id==='wk-hw')?.plannedTime==='15:00'&&d.calendarEvents.some(e=>e.planFor==='task:wk-hw'&&e.date==='2026-09-29'&&e.time==='16:00')},'the planned time and the study session reach the account')
  // The next week, and Month still works.
@@ -826,6 +826,15 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  assert.equal(await page.getByRole('region',{name:'Week'}).count(),0)
 })
 
+/** Drag one element onto another with real drag events and one shared DataTransfer. Playwright's
+ * dragTo moves the mouse, which can miss the drop when the page scrolls between the two. */
+async function dragOnto(page,source,target){
+ const data=await page.evaluateHandle(()=>new DataTransfer())
+ await source.scrollIntoViewIfNeeded();await source.dispatchEvent('dragstart',{dataTransfer:data})
+ await target.scrollIntoViewIfNeeded()
+ for(const type of ['dragenter','dragover','drop'])await target.dispatchEvent(type,{dataTransfer:data})
+ await source.dispatchEvent('dragend',{dataTransfer:data}).catch(()=>{})
+}
 /** A signed-in account whose plan has an essay due in three days (dates relative to today). */
 // Plan-my-week tests run on a fixed Monday morning: the shared fixture has fixed dates (like its Cell
 // biology test), so on a real clock the week's work and free time drift from day to day.
