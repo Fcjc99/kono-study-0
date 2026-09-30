@@ -255,6 +255,41 @@ test('phone-sized screens have no sideways scrolling on the main pages',async({c
  }finally{await phone.context.close()}
 })
 
+test('iPhone SE: no sideways scrolling, no zoom-on-tap inputs, a one-line save box, and three days in Week',async({context,page})=>{
+ await context.close()
+ const phone=await freshPage({viewport:{width:375,height:667},isMobile:true,hasTouch:true})
+ try{
+  const p=phone.page
+  await createPlan(p)
+  // The save-to-email box is one line on a phone and opens to the form when tapped.
+  const box=p.getByRole('region',{name:'Save your plan to your email'})
+  await box.getByText('Only saved on this device.').waitFor()
+  assert.ok((await box.boundingBox()).height<90,'the save box stays one line on a phone')
+  await box.getByRole('button',{name:'Back it up'}).click()
+  await box.getByLabel('Email address').waitFor()
+  for(const name of ['Sanctuary','Planner','Notes','Exams','Settings']){
+   await go(p,name)
+   await p.waitForTimeout(300)
+   const found=await p.evaluate(()=>{
+    const over=document.documentElement.scrollWidth-document.documentElement.clientWidth
+    const small=[...document.querySelectorAll('input,select,textarea')].filter(el=>el.offsetParent&&!['checkbox','radio','range','color','file','hidden'].includes(el.type)&&parseFloat(getComputedStyle(el).fontSize)<16).map(el=>el.getAttribute('aria-label')||el.name||el.type)
+    return {over,small}
+   })
+   assert.ok(found.over<=1,`${name} scrolls sideways by ${found.over}px on an iPhone SE`)
+   assert.deepEqual(found.small,[],`${name} has inputs under 16px, so iOS zooms in when they're tapped`)
+  }
+  // Week shows three days from the selected one, and the arrows move by three.
+  await go(p,'Planner')
+  assert.equal(await p.getByLabel('Calendar view').inputValue(),'week')
+  const week=p.getByRole('region',{name:'Week'})
+  assert.equal(await week.locator('.week-grid-head button').count(),3)
+  const first=await week.locator('.week-grid-head button').first().getAttribute('aria-label')
+  await p.getByRole('button',{name:'Next days'}).click()
+  assert.notEqual(await week.locator('.week-grid-head button').first().getAttribute('aria-label'),first)
+  assert.deepEqual(phone.errors,[])
+ }finally{await phone.context.close()}
+})
+
 // ---------------------------------------------------------------- signed-in flows against a fake Supabase
 // Answers the auth/REST/RPC calls KONO makes from in-memory state, so account features can be exercised
 // in the real UI without a live project. The SQL behind these calls is tested in test_supabase_policies.cjs.

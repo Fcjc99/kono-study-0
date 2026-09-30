@@ -5,6 +5,7 @@ import { rememberTermsAcceptance, rememberedTermsAcceptance } from '../store/ter
 import type { usePlannerRepository } from '../store/repository'
 import { type AppData, localDate } from '../store/model'
 import {APP_VERSION} from '../version'
+import { useSmallScreen } from '../hooks/useComfort'
 type Store=ReturnType<typeof usePlannerRepository>
 export function SaveStatus({store}:{store:Store}){
  // Routine "Saved…" states are quiet (hidden on small screens); anything needing attention always shows.
@@ -79,10 +80,13 @@ const SNOOZE_KEY='kono-save-to-email-snoozed-until'
 /** Top-of-page account notices: who you're helping in support mode, or a nudge to save a device-only plan to an email account. */
 export function AccountBanners({store}:{store:Store}){
  const [snoozed,setSnoozed]=useState(()=>{try{return Number(localStorage.getItem(SNOOZE_KEY)??0)>Date.now()}catch{return false}})
+ // On an iPhone the full explanation and form took half the screen on every page: one line until tapped.
+ const phone=useSmallScreen(),[open,setOpen]=useState(false)
  const [error,setError]=useState('')
  if(store.support)return <div className="support-banner" role="status"><p><strong>KONO support:</strong> you’re working in <strong>{store.support.email}</strong>’s plan. Changes save to their account, and they can see that support opened and changed it.</p><button type="button" onClick={()=>{setError('');store.repository.exitSupport().catch(e=>setError(e instanceof Error?e.message:'Could not exit yet.'))}}>Exit support</button>{error&&<p role="alert">{error}</p>}</div>
  if(!store.ready||store.user||snoozed||store.repository.signInProvider!=='email')return null
  const snooze=()=>{try{localStorage.setItem(SNOOZE_KEY,String(Date.now()+86_400_000))}catch{/* storage unavailable */}setSnoozed(true)}
+ if(phone&&!open)return <section className="save-to-email-banner is-compact" aria-label="Save your plan to your email"><p><strong>Only saved on this device.</strong></p><button type="button" className="primary" onClick={()=>setOpen(true)}>Back it up</button><button type="button" className="save-to-email-later" onClick={snooze}>Later</button></section>
  return <section className="save-to-email-banner" aria-label="Save your plan to your email"><p><strong>Your plan is only saved in this browser.</strong> If this browser’s data is cleared, it’s gone. Save it to your email so it’s backed up and on every device you sign in on.</p><EmailSignIn store={store} button="Save to my email"/><button type="button" className="save-to-email-later" onClick={snooze}>Remind me tomorrow</button></section>
 }
 const when=(value:string|null)=>value?new Date(value).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}):'never'

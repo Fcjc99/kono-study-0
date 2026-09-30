@@ -36,7 +36,7 @@
  .workbench .wb-scene-toolbar .wb-scene-expand{grid-area:expand;justify-self:end;width:40px!important;min-width:40px!important;min-height:38px!important;padding:0!important;display:inline-flex!important;align-items:center;justify-content:center;font-size:1.05rem}
  .workbench .wb-scene-toolbar .wb-scene-time{grid-area:time;justify-self:start}
  .workbench .wb-scene-toolbar .wb-scene-time{gap:4px!important;min-width:0}
- .workbench .wb-scene-toolbar .wb-scene-time select{min-height:36px!important;max-width:128px;font-size:.85rem!important;padding:0 26px 0 8px!important}
+ .workbench .wb-scene-toolbar .wb-scene-time select{min-height:36px!important;max-width:118px;font-size:16px!important;padding:0 22px 0 6px!important}
  .workbench .wb-scene-toolbar .wb-stats-strip{grid-area:stats;justify-self:end;flex-wrap:nowrap!important;gap:6px!important}
  .workbench .wb-scene-toolbar .wb-stat{padding:4px 9px!important;white-space:nowrap;gap:4px!important}
  .workbench .wb-scene-toolbar .wb-stat-streak small{order:-1}

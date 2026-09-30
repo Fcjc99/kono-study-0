@@ -31,7 +31,7 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,dayLabel}
   return placed
  }
  const weekday=(day:string)=>new Date(day+'T12:00:00').toLocaleDateString(undefined,{weekday:'short'})
- return <div className="week-grid" role="region" aria-label="Week">
+ return <div className="week-grid" role="region" aria-label="Week" style={{'--days':days.length} as CSSProperties}>
   <div className="week-grid-row week-grid-head"><span className="week-grid-gutter" aria-hidden="true"/>{days.map(day=><button type="button" key={day} aria-pressed={day===selected} aria-label={dayLabel(day)} className={day===todayIso?'is-today':''} onClick={()=>onSelect(day)}><small>{weekday(day)}</small><strong>{Number(day.slice(-2))}</strong></button>)}</div>
   <div className="week-grid-row week-grid-allday"><span className="week-grid-gutter">All day</span>{days.map(day=><div key={day} className="week-grid-allday-cell">{allDay.filter(i=>i.day===day).map(i=><button type="button" key={i.id} className={'week-item'+(i.important?' is-important':'')} style={{'--item-color':i.color} as CSSProperties} onClick={()=>onSelect(day)}>{i.important?'★ ':''}{i.title}</button>)}</div>)}</div>
   <div className="week-grid-row week-grid-body" style={{'--hour':HOUR+'px'} as CSSProperties}>
