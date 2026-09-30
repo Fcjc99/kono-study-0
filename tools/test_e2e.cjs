@@ -771,13 +771,14 @@ test('Built-in AI: a signed-in student with no key of their own gets KONO’s AI
  assert.match(posts[0].body.prompt,/Marine Biology with Dr\. Lee/)
 })
 
-test('Planner › Week: the week by default, items at their hour, source chips hide a whole source, and tapping an empty hour adds something then',async({context,page})=>{
+test('Planner › Week: the week by default, items at their hour, source chips hide a whole source, tapping an empty hour adds something then, and dragging plans it',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  plan.settings.parentMode=false // a student: an empty hour opens the event editor (parents get the quick add)
  plan.calendarEvents.push(
   {id:'wk-canvas',profileId:pid,date:'2026-09-29',time:'15:00',endTime:'16:00',title:'Quiz review session',kind:'study',notes:'',source:'canvas'},
   {id:'wk-google',profileId:pid,date:'2026-09-30',time:'09:00',endTime:'10:00',title:'Dentist appointment',kind:'appointment',notes:'',source:'calendar'},
   {id:'wk-sports',profileId:pid,date:'2026-10-01',time:'17:00',endTime:'18:30',title:'Soccer practice',kind:'sports',notes:''})
+ plan.tasks.push({id:'wk-hw',profileId:pid,subjectId:'',title:'Math worksheet',due:'2026-10-01',done:false,notes:''})
  await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
@@ -809,6 +810,15 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  await editor.getByRole('button',{name:'Save'}).click()
  await week.getByRole('button',{name:/^Tutoring · 10:00 AM–11:00 AM · Oct 2, 2026/}).waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.some(e=>e.title==='Tutoring'&&e.date==='2026-10-02'&&e.time==='10:00'),'the new event reaches the account')
+ // Drag and drop: an event moves to another hour, keeping its length.
+ await dragOnto(page,week.getByRole('button',{name:/^Tutoring · 10:00 AM/}),week.getByRole('button',{name:'Add at 1:00 PM on Oct 2, 2026'}))
+ await week.getByRole('button',{name:/^Tutoring · 1:00 PM–2:00 PM/}).waitFor()
+ // An assignment dropped on an earlier day gets a study session then; on its due day, a planned time.
+ await dragOnto(page,week.getByRole('button',{name:'Math worksheet',exact:true}),week.getByRole('button',{name:'Add at 4:00 PM on Sep 29, 2026'}))
+ await week.getByRole('button',{name:/^Work on Math worksheet · 4:00 PM–5:00 PM · Sep 29, 2026/}).waitFor()
+ await dragOnto(page,week.getByRole('button',{name:'Math worksheet',exact:true}),week.getByRole('button',{name:'Add at 3:00 PM on Oct 1, 2026'}))
+ await week.getByRole('button',{name:/^Math worksheet · 3:00 PM–4:00 PM · Oct 1, 2026/}).waitFor()
+ await waitFor(()=>{const d=cloud.users.alice.plan.data;return d.tasks.find(t=>t.id==='wk-hw')?.plannedTime==='15:00'&&d.calendarEvents.some(e=>e.planFor==='task:wk-hw'&&e.date==='2026-09-29'&&e.time==='16:00')},'the planned time and the study session reach the account')
  // The next week, and Month still works.
  await page.getByRole('button',{name:'Next week'}).click()
  await page.getByRole('heading',{name:/^Oct 4 – Oct 10/}).waitFor()
@@ -816,6 +826,15 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  assert.equal(await page.getByRole('region',{name:'Week'}).count(),0)
 })
 
+/** Drag one element onto another with real drag events and one shared DataTransfer. Playwright's
+ * dragTo moves the mouse, which can miss the drop when the page scrolls between the two. */
+async function dragOnto(page,source,target){
+ const data=await page.evaluateHandle(()=>new DataTransfer())
+ await source.scrollIntoViewIfNeeded();await source.dispatchEvent('dragstart',{dataTransfer:data})
+ await target.scrollIntoViewIfNeeded()
+ for(const type of ['dragenter','dragover','drop'])await target.dispatchEvent(type,{dataTransfer:data})
+ await source.dispatchEvent('dragend',{dataTransfer:data}).catch(()=>{})
+}
 /** A signed-in account whose plan has an essay due in three days (dates relative to today). */
 // Plan-my-week tests run on a fixed Monday morning: the shared fixture has fixed dates (like its Cell
 // biology test), so on a real clock the week's work and free time drift from day to day.
@@ -1113,7 +1132,7 @@ test('College semester: choose the term, upload the schedule, review, save; a la
  for(let i=0;i<20&&!cloud.errors.length;i++)await page.waitForTimeout(250)
  const logged=cloud.errors.find(e=>e.message==='Schedule upload found no classes (weekly college)')
  assert.ok(logged,'the unreadable layout was not reported to KONO support')
- assert.match(logged.detail,/File: PDF · text read: \d+ characters · column headings found: no/)
+ assert.match(logged.detail,/File: PDF · text read: \d+ characters · column headings found: no · school: Boston College/)
  assert.ok(!JSON.stringify(logged).includes('Marine'),'the schedule text leaked into the error log')
 
  await page.getByText('Set up the AI helper (a free Gemini key works)').click()

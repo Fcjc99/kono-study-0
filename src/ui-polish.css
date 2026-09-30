@@ -171,3 +171,6 @@
 .save-to-email-banner.is-compact{flex-wrap:nowrap;gap:8px;padding:8px 10px;margin-bottom:12px}
 .save-to-email-banner.is-compact p{flex:1;min-width:0;margin:0;font-size:.9rem}
 .save-to-email-banner.is-compact button{flex:none;min-height:36px;padding:6px 12px}
+/* Planner › Week: where a dragged assignment or event will land. */
+.week-grid .week-item[draggable=true]{cursor:grab}
+.week-grid .week-grid-slot.is-drop-target,.week-grid .week-grid-allday-cell.is-drop-target{background:color-mix(in srgb,var(--wb-accent,#e0705c) 18%,transparent)!important;outline:2px dashed var(--wb-accent,#e0705c);outline-offset:-2px}

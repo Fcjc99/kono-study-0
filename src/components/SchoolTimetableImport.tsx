@@ -33,7 +33,7 @@ export default function SchoolTimetableImport({season,change,onReview}:{season:S
  }
  const find=(value:string,picked:File|null=file):number=>{try{const nda=season.school!.cycle.length===6&&/6-Day Schedule/i.test(value),found=weekly?weeklyClasses(value):nda?parseNdaSixDaySchedule(value,season.start,lastClass):suggestRotatingClasses(value,season.school!.cycle,season.start,lastClass).map(r=>({...r,include:!!(r.day&&r.label&&r.start&&r.end&&r.end>r.start)&&r.kind==='study'}));setRows(applyBells(found,bells));const classes=found.filter(r=>r.kind==='study').length;setMissed(!classes);setMessage(classes?'Found '+classes+' classes and '+found.filter(r=>r.kind!=='study').length+' schedule blocks. Check them, then continue to your calendar preview.':'KONO couldn’t find classes in this layout. Try “Read with AI helper” below, or add your classes by hand.')
   // Tell KONO support that a schedule layout wasn't understood: the kind of file and schedule only, never its text.
-  if(!classes&&picked)reportError('Schedule upload found no classes ('+(weekly?'weekly college':season.school!.cycle.length+'-day rotation')+')',{detail:'File: '+(/\.pdf$/i.test(picked.name)?'PDF':'photo')+' · text read: '+value.length+' characters · column headings found: '+(/(^|\t)(time|days?)(\t|$)/im.test(value)?'yes':'no')})
+  if(!classes&&picked)reportError('Schedule upload found no classes ('+(weekly?'weekly college':season.school!.cycle.length+'-day rotation')+')',{detail:'File: '+(/\.pdf$/i.test(picked.name)?'PDF':'photo')+' · text read: '+value.length+' characters · column headings found: '+(/(^|\t)(time|days?)(\t|$)/im.test(value)?'yes':'no')+' · school: '+season.school!.name})
   return classes
  }catch(e){setRows([]);setMessage(e instanceof Error?e.message:'Could not recognize this timetable.');return 0}}
  // One upload: KONO's own reader goes first, on this device. If it finds no classes and the AI helper is
@@ -51,7 +51,12 @@ export default function SchoolTimetableImport({season,change,onReview}:{season:S
    const photo=pdfPicture??(file&&!/\.pdf$/i.test(file.name)?{base64:await new Promise<string>((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]??'');r.onerror=()=>reject(new Error('Could not read that photo.'));r.readAsDataURL(file)}),mimeType:file.type||'image/jpeg'}:undefined)
    const read=await readClassScheduleWithAi({text,photo},season.school!.cycle,season.start,lastClass,ai.provider,ai.apiKey,bells?.periods.length),found=applyBells(read,bells)
    setRows(found);setMissed(false);setMessage('Your AI helper found '+found.length+' classes. '+(read.some(r=>!r.start)?bells?'Each period’s times come from '+season.school!.name+'’s bell schedule. ':'Your schedule shows periods but no times, so enter each period’s times below. ':'')+'Check each one against your schedule, then continue.')
-  }catch(e){setMessage(e instanceof Error?e.message:'The AI helper could not read this schedule.')}
+  }catch(e){
+   const why=e instanceof Error?e.message:'The AI helper could not read this schedule.'
+   setMessage(why)
+   // KONO's reader and the AI both came up empty: which kind of schedule and school, never its contents.
+   if(/found no classes/i.test(why))reportError('Schedule upload: the AI found no classes either ('+(weekly?'weekly college':season.school!.cycle.length+'-day rotation')+')',{detail:'File: '+(file&&!/\.pdf$/i.test(file.name)?'photo':'PDF')+' · school: '+season.school!.name})
+  }
  }
  const add=()=>{
   try{
