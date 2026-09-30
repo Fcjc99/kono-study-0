@@ -24,7 +24,7 @@ export default function PushSettings({ store }: { store: Store }) {
   }
   return <section className="card push-settings">
     <h3>Lock-screen reminders</h3>
-    <p>Get a notification even when KONO is closed: what’s due at 7 AM, exams the evening before, 15 minutes before each class or planned study time, and for a rotating school, which day tomorrow is (or that there’s no school). Turn them on for each phone or computer you use.</p>
+    <p>Get a notification even when KONO is closed: what’s due at 7 AM (and the week ahead on Monday mornings), exams the evening before, 15 minutes before each class or planned study time, and for a rotating school, which day tomorrow is (or that there’s no school). Turn them on for each phone or computer you use.</p>
     {support === 'install-first' && <p className="push-hint">On iPhone and iPad, reminders work once KONO is on your Home Screen: tap <strong>Share</strong> <span aria-hidden="true">⎋</span> › <strong>Add to Home Screen</strong>, open KONO from there, and turn reminders on.</p>}
     {support === 'unsupported' && <p className="wb-muted">This browser can’t show reminders when KONO is closed. Try Chrome, Edge, Firefox or Safari.</p>}
     {support === 'ok' && !signedIn && <p className="wb-muted">Sign in with your email (Plans &amp; account) to turn on lock-screen reminders.</p>}
