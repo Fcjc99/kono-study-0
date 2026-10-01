@@ -264,3 +264,9 @@
 .kono-mood-face{position:relative;flex:0 0 44px;width:44px;height:44px}
 .kono-mood-face[data-costume]::after{content:attr(data-costume);position:absolute;top:-8px;right:-6px;font-size:1.05rem;transform:rotate(14deg);filter:drop-shadow(0 1px 1px #0003)}
 .kono-season{margin:0;padding:6px 10px;border-radius:10px;background:color-mix(in srgb,#f08a24 14%,var(--wb-surface));font-size:.86rem;line-height:1.35}
+/* Assignment editor › Steps: each step has its own day; "Break into steps" fills them in. */
+.wb-subtasks li{flex-wrap:wrap}
+.wb-subtasks li .wb-check{flex:1 1 160px;min-width:0}
+.wb-step-date{flex:0 0 auto;width:auto;max-width:150px;padding:4px 6px;font-size:.85rem}
+.break-into-steps{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin:6px 0}
+.break-into-steps p{margin:0}

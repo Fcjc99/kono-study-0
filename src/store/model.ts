@@ -21,7 +21,8 @@ export type KidBorderGlow='off'|'soft'|'strong'
  * (0.25-3); borderExtras shows the floating particles (hearts, leaves, rocket, waves...). */
 export type Kid={id:string;profileId:string;name:string;color:string;emoji?:string;borderStyle?:KidBorderStyle;borderColors?:[string,string];borderSpeed?:number;borderGlow?:KidBorderGlow;borderExtras?:boolean}
 export const KID_BORDER_SPEED={min:.25,max:3}
-export type Subtask={id:string;title:string;done:boolean}
+/** One step of an assignment; `due` is the day to do it (project steps, see store/projectSteps). */
+export type Subtask={id:string;title:string;done:boolean;due?:string}
 /** Where an imported item came from, for the Planner's source chips: a class site's feed (Canvas,
  * Schoology, Classroom) or a calendar (Google, Apple, Outlook). Items added in KONO have none. */
 export type ItemSource='canvas'|'calendar'
@@ -209,7 +210,7 @@ export function normalizeData(raw:unknown):AppData {
   return {id:id(p.id,'study ID'),profileId,subjectId:subject(p.subjectId,profileId),title,unit:choice(p.unit,studyUnits,'chapter'),total:integer(p.total,'study workload',1000),start,end,weekdays,timeZone}
  })
  const studyById=new Map(studyPlans.map(p=>[p.id,p])),seenUnits=new Map<string,Set<number>>()
- const subtasks=(v:unknown):Subtask[]|undefined=>{if(v===undefined)return undefined;return list(v,'subtasks',50).map(s=>({id:id(s.id,'subtask ID'),title:str(s.title,'subtask title',300),done:bool(s.done)}))}
+ const subtasks=(v:unknown):Subtask[]|undefined=>{if(v===undefined)return undefined;return list(v,'subtasks',50).map(s=>({id:id(s.id,'subtask ID'),title:str(s.title,'subtask title',300),done:bool(s.done),...(s.due!==undefined&&s.due!==''?{due:date(s.due,'step date')}:{})}))}
  const tasks:Task[]=taskInput.map(t=>{const profileId=owner(t.profileId);const result:Task={id:id(t.id,'task ID'),profileId,subjectId:subject(t.subjectId,profileId),kidId:kidRef(t.kidId,profileId),title:str(t.title,'task title',1000),due:date(t.due,'task date'),done:bool(t.done),notes:str(t.notes??'','task notes',100000),completedAt:optional(t.completedAt,'completion timestamp',40),subtasks:subtasks(t.subtasks),recurringId:optional(t.recurringId,'recurring series ID',150),needsReview:bool(t.needsReview),estimatedMinutes:t.estimatedMinutes===undefined?undefined:integer(t.estimatedMinutes,'estimated minutes',600),plannedTime:t.plannedTime===undefined?undefined:clockTime(t.plannedTime),...itemSource(t.source),...webLink(t.link),...photoIds(t.photos)}
   if(t.studyPlanId!==undefined){
    const plan=studyById.get(id(t.studyPlanId,'study reference'));if(!plan||plan.profileId!==profileId)return fail('study task ownership')
