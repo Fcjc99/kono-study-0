@@ -291,3 +291,24 @@
 .ask-kono-foot{flex-wrap:wrap}
 .ask-kono-mic.is-listening{animation:kono-mood-hop 1s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){.ask-kono-mic.is-listening{animation:none}}
+
+/* Phone check-up: nothing smaller than about 10px to read, and the small chips easy to tap. */
+@media (max-width:720px){
+ /* "Sanctuary" shows as "Home" here (Sidebar.tsx) so the labels fit at a readable size. */
+ :root[data-experience='cozy'] .mobile-nav button small{font-size:.6rem!important;letter-spacing:-.02em!important;font-weight:700}
+ :root[data-experience='cozy'] .mobile-brand-lockup p{font-size:.6rem;letter-spacing:.08em}
+ html[data-theme='coral'] .mobile-profile-chip>small{font-size:10.5px}
+ .week-grid-gutter{font-size:.68rem}
+ .week-grid .week-item{font-size:.7rem!important}
+ .week-grid-allday .week-item{min-height:28px!important}
+ .kono-sticky-subject{font-size:10px!important}
+ .week-grid-row{grid-template-columns:42px repeat(var(--days,7),minmax(0,1fr))!important}
+ html[data-theme='coral'] .sakura-memory-board .board-ribbon small{font-size:10px!important}
+ html[data-theme='coral'] .sakura-memory-board .board-tray,html[data-theme='coral'] .sakura-memory-board .board-link{font-size:11px!important}
+}
+@media (max-width:380px){:root[data-experience='cozy'] .mobile-nav button small{font-size:.55rem!important}}
+:root[data-experience='cozy'] .mobile-nav.is-crowded button small{font-size:.52rem!important}
+.eyebrow{font-size:11px}
+.workbench .kono-weather-chip,.workbench[data-experience] .kono-weather-chip{min-height:32px!important}
+/* On the page itself (not a card), so it sits on the page's own background in dark mode too. */
+.schedule-filter-row,.planner-settings-link{background:transparent}
