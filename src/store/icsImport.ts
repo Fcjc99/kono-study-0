@@ -181,7 +181,11 @@ export function icsSource(parsed: IcsImport, sourceName: string): ItemSource {
   return /canvas|instructure|schoology|classroom|blackboard|brightspace|moodle/i.test(sourceName) || parsed.events.some(e => e.course) ? 'canvas' : 'calendar'
 }
 
-export function applyIcsImport(data: AppData, profileId: string, parsed: IcsImport, sourceName: string) {
+/** For a parent's calendar import: whose calendar it is (every item gets that kid), and whether it's a
+ * team or activity calendar (its events count as sports, its weekly repeats go in a sports schedule). */
+export type IcsFor = { kidId?: string; team?: boolean }
+
+export function applyIcsImport(data: AppData, profileId: string, parsed: IcsImport, sourceName: string, who: IcsFor = {}) {
   if (data.activeProfileId !== profileId) throw Error('Your plan changed. Reopen the calendar import.')
   const events = parsed.events.filter(e => e.include), weekly = parsed.weekly.filter(w => w.include)
   if (!events.length && !weekly.length) throw Error('Choose at least one event to add.')
@@ -189,6 +193,8 @@ export function applyIcsImport(data: AppData, profileId: string, parsed: IcsImpo
   let added = 0, skipped = 0
   const created: Record<string, LinkedItem> = {}
   const source = icsSource(parsed, sourceName)
+  const kidId = who.kidId && next.kids.some(k => k.id === who.kidId && k.profileId === profileId) ? who.kidId : undefined
+  const forKid = kidId ? { kidId } : {}
   // A course named in the calendar ("[BIOL 1100]") matches a subject by name, or becomes one.
   const subjectFor = (course?: string) => {
     if (!course) return ''
@@ -203,7 +209,7 @@ export function applyIcsImport(data: AppData, profileId: string, parsed: IcsImpo
       const list = e.as === 'assignment' ? next.tasks : next.exams
       const existing = list.find(x => x.profileId === profileId && x.due === e.date && same(x.title, e.title))
       if (existing) { created[e.key] = { c: e.as === 'assignment' ? 'tasks' : 'exams', id: existing.id }; skipped++; continue }
-      const item = { id: uid(e.as === 'assignment' ? 'task' : 'exam'), profileId, subjectId: subjectFor(e.course), title: e.title, due: e.date, done: false, source, notes: [at ? 'Due' + at : '', e.location ? '📍 ' + e.location : ''].filter(Boolean).join('\n') }
+      const item = { id: uid(e.as === 'assignment' ? 'task' : 'exam'), profileId, subjectId: subjectFor(e.course), ...forKid, title: e.title, due: e.date, done: false, source, notes: [at ? 'Due' + at : '', e.location ? '📍 ' + e.location : ''].filter(Boolean).join('\n') }
       if (e.as === 'assignment') next.tasks.push(item); else next.exams.push(item)
       created[e.key] = { c: e.as === 'assignment' ? 'tasks' : 'exams', id: item.id }
       added++; continue
@@ -211,14 +217,15 @@ export function applyIcsImport(data: AppData, profileId: string, parsed: IcsImpo
     const existingEvent = next.calendarEvents.find(x => x.profileId === profileId && x.date === e.date && same(x.title, e.title) && (x.time ?? '') === (e.time ?? ''))
     if (existingEvent) { created[e.key] = { c: 'calendarEvents', id: existingEvent.id }; skipped++; continue }
     const eventId = uid('event')
-    next.calendarEvents.push({ id: eventId, profileId, source, subjectId: e.course ? subjectFor(e.course) : undefined, date: e.date, title: e.title, kind: guessKind(e.title), notes: e.location ? '📍 ' + e.location : '', time: e.time, endTime: e.endTime })
+    const kind = guessKind(e.title)
+    next.calendarEvents.push({ id: eventId, profileId, source, subjectId: e.course ? subjectFor(e.course) : undefined, ...forKid, date: e.date, title: e.title, kind: who.team && kind === 'other' ? 'sports' : kind, notes: e.location ? '📍 ' + e.location : '', time: e.time, endTime: e.endTime })
     created[e.key] = { c: 'calendarEvents', id: eventId }
     added++
   }
   if (weekly.length) {
     const name = (sourceName.trim() || 'Imported calendar') + ' · weekly'
     let season = next.studySeasons.find(s => s.profileId === profileId && !s.school && s.name === name)
-    if (!season) { season = { id: uid('season'), profileId, name, start: weekly.reduce((m, w) => w.from < m ? w.from : m, weekly[0].from), end: weekly.reduce((m, w) => w.until > m ? w.until : m, weekly[0].until), active: true, week: blankWeek() }; next.studySeasons.push(season) }
+    if (!season) { season = { id: uid('season'), profileId, name, ...(who.team ? { category: 'sports' as const } : {}), start: weekly.reduce((m, w) => w.from < m ? w.from : m, weekly[0].from), end: weekly.reduce((m, w) => w.until > m ? w.until : m, weekly[0].until), active: true, week: blankWeek() }; next.studySeasons.push(season) }
     for (const w of weekly) {
       season.start = w.from < season.start ? w.from : season.start
       season.end = w.until > season.end ? w.until : season.end
@@ -226,7 +233,7 @@ export function applyIcsImport(data: AppData, profileId: string, parsed: IcsImpo
       for (const d of w.days) {
         const day = dayNames[d], blocks = season.week[day] ?? (season.week[day] = [])
         if (blocks.some(b => same(b.label, w.title) && b.start === w.start && b.end === w.end && (b.dateStart ?? season!.start) <= w.until && (b.dateEnd ?? season!.end) >= w.from)) continue
-        const block: ScheduleBlock = { id: uid('block'), label: w.title, start: w.start, end: w.end, kind: 'routine', dateStart: w.from, dateEnd: w.until, location: w.location, skippedDates: w.skipped.filter(x => weekday(x) === d), occurrenceNotes: {} }
+        const block: ScheduleBlock = { id: uid('block'), label: w.title, start: w.start, end: w.end, kind: 'routine', dateStart: w.from, dateEnd: w.until, location: w.location, skippedDates: w.skipped.filter(x => weekday(x) === d), occurrenceNotes: {}, ...forKid }
         blocks.push(block); newDays++
       }
       // Counted per repeat, like the list the person ticked, not per weekday.
@@ -259,7 +266,7 @@ export function linkSeen(parsed: IcsImport, created: Record<string, LinkedItem>)
   return seen
 }
 
-export function syncIcs(data: AppData, profileId: string, parsed: IcsImport, sourceName: string, seen: LinkedSeen) {
+export function syncIcs(data: AppData, profileId: string, parsed: IcsImport, sourceName: string, seen: LinkedSeen, who: IcsFor = {}) {
   const next = structuredClone(data)
   let updated = 0, tagged = 0
   const fresh: IcsOneTime[] = []
@@ -284,7 +291,7 @@ export function syncIcs(data: AppData, profileId: string, parsed: IcsImport, sou
   const nextSeen: LinkedSeen = { ...seen }
   for (const w of weekly) nextSeen[weeklyKey(w)] = null
   if (!fresh.length && !weekly.length) return { data: updated || tagged ? normalizeData(next) : data, added: 0, updated, tagged, seen: nextSeen }
-  const result = applyIcsImport(next, profileId, { ...parsed, events: fresh, weekly }, sourceName)
+  const result = applyIcsImport(next, profileId, { ...parsed, events: fresh, weekly }, sourceName, who)
   for (const e of fresh) nextSeen[seenKey(e)] = result.created[e.key] ?? null
   return { data: result.data, added: result.added, updated, tagged, seen: nextSeen }
 }

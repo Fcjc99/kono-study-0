@@ -536,7 +536,7 @@ function Workspace({store}:{store:Store}){
  const addChoices:AddChoice[]=[
   {id:'school',icon:'🏫',title:'My school schedule',note:'Middle or high school: pick your school, then upload your class schedule.',render:()=><ScheduleSetup {...setupProps} draftKey={draftScope} only="school" onSaved={closeAdd}/>},
   {id:'college',icon:'🎓',title:'My college classes',note:'Pick your college term, then upload or type your weekly classes.',render:()=><ScheduleSetup {...setupProps} draftKey={draftScope} only="college"/>},
-  {id:'link',icon:'🔗',title:'A calendar link',note:'Google, Apple or Outlook calendars, Canvas, Classroom or Schoology.',render:()=><CalendarImport data={data} save={save}/>},
+  {id:'link',icon:'🔗',title:'A calendar link',note:'Google, Apple or Outlook calendars, Canvas, Classroom, Schoology, or a team app like TeamSnap or GameChanger.',render:()=><CalendarImport data={data} save={save}/>},
   {id:'photos',icon:'📸',title:'Photos or screenshots',note:'A planner page, whiteboard, syllabus or a screenshot of dates.',render:()=><UpdatePlanScanner profileId={profile.id} subjects={subjects} kids={profileKids} save={save} onOpenAiSettings={()=>openSettings('Import & export')}/>},
   {id:'pdf',icon:'📄',title:'A PDF of dates',note:'A syllabus, assignment list or class calendar as a PDF.',render:()=><ScheduleImport data={data} save={save}/>},
   {id:'weekly',icon:'🔁',title:'A weekly activity',note:'Work, lessons, clubs or anything on the same days each week.',render:()=><ScheduleSetup {...setupProps} draftKey={draftScope} only="manual"/>},
