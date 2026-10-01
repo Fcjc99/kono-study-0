@@ -2,6 +2,8 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { currentPushSubscription, isIos, pushSupport, turnOffPush, turnOnPush } from '../store/pushDevice'
 import { canInstall, onInstallChange, promptInstall } from '../store/installPrompt'
 import type { usePlannerRepository } from '../store/repository'
+import { APP_BADGE_SETTING, appBadgeSupported } from '../store/appBadge'
+import { useLocalSetting } from '../hooks/useLocalSetting'
 
 type Store = ReturnType<typeof usePlannerRepository>
 
@@ -13,6 +15,7 @@ export default function PushSettings({ store }: { store: Store }) {
   const installed = typeof window !== 'undefined' && window.matchMedia?.('(display-mode: standalone)').matches
   useEffect(() => { void currentPushSubscription().then(s => setOn(!!s)).catch(() => setOn(false)) }, [])
   const signedIn = store.repository.canUsePush
+  const [badge, setBadge] = useLocalSetting(APP_BADGE_SETTING, 'on')
   const turnOn = async () => {
     setBusy(true); setError(''); setStatus('')
     try { await turnOnPush(store.repository); setOn(true); setStatus('Reminders are on for this device. The first ones arrive at their times — nothing to do now.') }
@@ -30,6 +33,9 @@ export default function PushSettings({ store }: { store: Store }) {
     {support === 'ok' && !signedIn && <p className="wb-muted">Sign in with your email (Plans &amp; account) to turn on lock-screen reminders.</p>}
     {support === 'ok' && signedIn && <div className="wb-toolbar">{on ? <><span className="push-on">✓ On for this device</span><button type="button" disabled={busy} onClick={() => void turnOff()}>Turn off</button></> : <button type="button" className="primary" disabled={busy || on === null} onClick={() => void turnOn()}>{busy ? 'Turning on…' : 'Turn on reminders'}</button>}</div>}
     {status && <p role="status">{status}</p>}{error && <p role="alert">{error}</p>}
+    {(appBadgeSupported() || isIos()) && <><h3>Number on the app icon</h3>
+    <label className="app-badge-setting"><input type="checkbox" checked={badge === 'on'} onChange={e => setBadge(e.target.checked ? 'on' : 'off')} /> Show how many things are due today (and late) on KONO’s icon</label>
+    {isIos() && <p className="wb-muted">On iPhone and iPad this works for KONO on your Home Screen once reminders are turned on.</p>}</>}
     <h3>Install KONO</h3>
     {installed ? <p className="wb-muted">✓ KONO is installed on this device.</p> : installable ? <><p>Add KONO to your home screen or dock so it opens like an app.</p><button type="button" onClick={() => void promptInstall()}>Install KONO</button></> : isIos() ? <p>Tap <strong>Share</strong> › <strong>Add to Home Screen</strong> in Safari to put KONO on your Home Screen.</p> : <p className="wb-muted">In Chrome or Edge, use the install icon in the address bar (or the menu › Install KONO). On Android, the menu › Add to Home screen.</p>}
   </section>

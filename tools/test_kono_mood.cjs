@@ -72,4 +72,20 @@ test('every sticker is a placeable island decoration with its own picture',()=>{
  for(const s of STICKERS){const a=BUILD_ASSET_BY_ID['sticker-'+s.id];assert.ok(a,s.id);assert.equal(a.category,'stickers');assert.equal(a.src,stickerSrc(s.emoji));assert.match(a.src,/^data:image\/svg\+xml,/)}
 })
 
+const {nextUpList}=load('src/store/nextUp.ts')
+test('What should I do now: late first, then today, tomorrow, then big work early in the week; steps point at the next one',()=>{
+ const t=(id,due,extra={})=>({id,title:id,due,done:false,...extra})
+ const list=nextUpList([t('small-fri','2026-10-02',{estimatedMinutes:15}),t('big-mon','2026-10-05',{estimatedMinutes:90}),t('tomorrow','2026-10-01'),t('today',wed),t('late','2026-09-28'),t('older-late','2026-09-25'),t('far','2026-10-20'),t('done',wed,{done:true})],wed)
+ assert.deepEqual(list.map(i=>i.id),['older-late','late','today','tomorrow','big-mon','small-fri'])
+ assert.match(list[0].why,/late/)
+ assert.equal(list[2].why,'It’s due today.')
+ assert.match(list[4].why,/big one/)
+ assert.equal(list[4].minutes,90)
+ assert.equal(list[5].minutes,15)
+ assert.equal(list[2].minutes,25,'no estimate: a 25-minute focus')
+ const steps=nextUpList([t('essay',wed,{subtasks:[{title:'Outline',done:true},{title:'Draft',done:false}]})],wed)
+ assert.equal(steps[0].step,'Draft')
+ assert.deepEqual(nextUpList([],wed),[])
+})
+
 console.log(passed+' KONO mood and sticker groups passed')
