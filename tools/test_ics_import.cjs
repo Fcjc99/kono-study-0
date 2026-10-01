@@ -149,5 +149,33 @@ await test('Planner source chips: each item belongs to one source, and only sour
  data.calendarEvents.push({id:'e',profileId:'someone-else',date:'2026-10-01',title:'Game',kind:'sports',notes:''})
  assert.equal(sourcesInPlan(data).join(),'canvas,mine','another profile’s sports don’t add a chip')
 })
-console.log(passed+'/6 calendar-import regression groups passed.')
+await test('A parent’s team calendar: every item is tagged with the kid, games and practices count as sports, and later syncs keep doing it',()=>{
+ const data=model.createFreshData(),pid=data.activeProfileId
+ data.kids.push({id:'kid-emma',profileId:pid,name:'Emma',color:'#e86a5c'})
+ const team=['BEGIN:VCALENDAR','VERSION:2.0','X-WR-CALNAME:Hawks U12','BEGIN:VEVENT','UID:p@t','SUMMARY:Hawks practice','DTSTART:20261006T163000','DTEND:20261006T180000','RRULE:FREQ=WEEKLY;COUNT=8;BYDAY=TU,TH','END:VEVENT',
+  'BEGIN:VEVENT','UID:g1@t','SUMMARY:Hawks vs Lions','DTSTART:20261010T090000','DTEND:20261010T103000','LOCATION:Riverside Park','END:VEVENT',
+  'BEGIN:VEVENT','UID:pic@t','SUMMARY:Team photos','DTSTART:20261003T100000','END:VEVENT','END:VCALENDAR'].join('\r\n')
+ const r=parseIcs(team,today)
+ const first=applyIcsImport(data,pid,r,'Hawks U12',{kidId:'kid-emma',team:true})
+ const events=first.data.calendarEvents.filter(e=>e.profileId===pid)
+ assert.equal(events.map(e=>e.title+':'+e.kind+':'+e.kidId).sort().join('|'),'Hawks vs Lions:sports:kid-emma|Team photos:sports:kid-emma')
+ const season=first.data.studySeasons.find(x=>x.name==='Hawks U12 · weekly')
+ assert.equal(season.category,'sports')
+ const blocks=Object.values(season.week).flat()
+ assert.ok(blocks.length>=2&&blocks.every(b=>b.kidId==='kid-emma'),'practices are Emma’s')
+ // The coach adds a game later; the next sync tags it too.
+ const later=parseIcs(team.replace('END:VCALENDAR',['BEGIN:VEVENT','UID:g2@t','SUMMARY:Hawks vs Owls','DTSTART:20261017T090000','END:VEVENT','END:VCALENDAR'].join('\r\n')),today)
+ const synced=syncIcs(first.data,pid,later,'Hawks U12',linkSeen(r,first.created),{kidId:'kid-emma',team:true})
+ assert.equal(synced.added,1)
+ const owls=synced.data.calendarEvents.find(e=>e.title==='Hawks vs Owls')
+ assert.equal(owls.kidId,'kid-emma');assert.equal(owls.kind,'sports')
+ // Without the options, nothing changes from before.
+ const plain=applyIcsImport(data,pid,parseIcs(team,today),'Hawks U12')
+ assert.equal(plain.data.calendarEvents.find(e=>e.title==='Team photos').kind,'other')
+ assert.equal(plain.data.calendarEvents.find(e=>e.title==='Team photos').kidId,undefined)
+ // A kid from someone else's profile is ignored rather than attached.
+ const stranger=applyIcsImport(data,pid,parseIcs(team,today),'Hawks U12',{kidId:'kid-nobody'})
+ assert.equal(stranger.data.calendarEvents.find(e=>e.title==='Hawks vs Lions').kidId,undefined)
+})
+console.log(passed+'/7 calendar-import regression groups passed.')
 })().catch(e=>{console.error(e);process.exit(1)})

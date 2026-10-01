@@ -88,11 +88,13 @@ function suggestLines(text:string,start:string,end:string,order:'mdy'|'dmy'):Imp
  }
  return rows
 }
-export type ScheduleImportOptions={eventKind?:CalendarEventKind;seasonName?:string;category?:StudySeason['category'];blockKind?:ScheduleBlock['kind']}
+/** `kidId`: in parent mode, the kid every imported item belongs to (a team's games, say). */
+export type ScheduleImportOptions={eventKind?:CalendarEventKind;seasonName?:string;category?:StudySeason['category'];blockKind?:ScheduleBlock['kind'];kidId?:string}
 export function applyScheduleImport(data:AppData,profileId:string,rows:ImportRow[],start:string,end:string,options:ScheduleImportOptions={}){
  if(data.activeProfileId!==profileId)throw Error('Your profile changed. Reopen the importer.')
  const selected=rows.filter(r=>r.include);if(!selected.length||selected.length>100)throw Error('Select between 1 and 100 reviewed items.')
  const next=structuredClone(data);let added=0,skipped=0
+ const forKid=options.kidId&&next.kids.some(k=>k.id===options.kidId&&k.profileId===profileId)?{kidId:options.kidId}:{}
  const season={id:uid('season'),profileId,name:options.seasonName??'Imported schedule',start,end,active:true,week:blankWeek(),category:options.category}
  const subjectFor=(name:string)=>{if(!name.trim())return '';const known=next.subjects.find(s=>s.profileId===profileId&&clean(s.name)===clean(name));if(known)return known.id;const id=uid('subject');next.subjects.push({id,profileId,name:name.trim(),color:'#4169a8',resources:[]});added++;return id}
  for(const row of selected){
@@ -107,12 +109,12 @@ export function applyScheduleImport(data:AppData,profileId:string,rows:ImportRow
   if(row.kind==='class'){
    for(const d of new Set(row.weekdays)){
     const day=dayNames[d],duplicate=[...next.studySeasons,season].some(s=>s.profileId===profileId&&(s.week[day]??[]).some(b=>clean(b.label)===clean(row.title)&&b.subjectId===subjectId&&b.start===row.start&&b.end===row.end&&(b.dateStart??s.start)===start&&(b.dateEnd??s.end)===end))
-    if(duplicate){skipped++;continue}season.week[day].push({id:uid('block'),label:row.title.trim(),subjectId,start:row.start,end:row.end,dateStart:start,dateEnd:end,kind:options.blockKind??'study',occurrenceNotes:{},...(row.location?.trim()?{location:row.location.trim().slice(0,160)}:{})});added++
+    if(duplicate){skipped++;continue}season.week[day].push({id:uid('block'),label:row.title.trim(),subjectId,start:row.start,end:row.end,dateStart:start,dateEnd:end,kind:options.blockKind??'study',occurrenceNotes:{},...forKid,...(row.location?.trim()?{location:row.location.trim().slice(0,160)}:{})});added++
    }
   }else{
    const key=row.kind==='exam'?'exams':row.kind==='task'?'tasks':'calendarEvents'
    if(next[key].some(item=>item.profileId===profileId&&clean(item.title)===clean(row.title)&&item.subjectId===subjectId&&('due' in item?item.due:item.date)===row.date)){skipped++;continue}
-   const item={id:uid(row.kind),profileId,subjectId,title:row.title.trim(),done:false,notes:''}
+   const item={id:uid(row.kind),profileId,subjectId,...forKid,title:row.title.trim(),done:false,notes:''}
    if(key==='calendarEvents')next.calendarEvents.push({...item,date:row.date,kind:options.eventKind??'other'})
    else next[key].push({...item,due:row.date})
    added++

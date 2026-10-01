@@ -5,6 +5,9 @@ import {classTime} from '../store/classSchedule'
 import {applyIcsImport,linkSeen,parseIcs,type IcsImport} from '../store/icsImport'
 import {fetchCalendar,linkCalendar,linkedSnapshot,onLinkedChange,parseLinked,syncLinked,unlinkCalendar} from '../store/linkedCalendars'
 
+/** The team app a calendar link comes from, by its address (its calendar is then a team calendar). */
+const teamApp=(url:string)=>/teamsnap/i.test(url)?'TeamSnap':/gc\.com|gamechanger/i.test(url)?'GameChanger':/sportsengine|sportngin/i.test(url)?'SportsEngine':/leagueapps/i.test(url)?'LeagueApps':/teamsideline/i.test(url)?'TeamSideline':/heja/i.test(url)?'Heja':/spond/i.test(url)?'Spond':/byga/i.test(url)?'BYGA':null
+
 const dateLabel=(iso:string)=>new Date(iso+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})
 
 /** Import from Google Calendar or Apple Calendar: a .ics file, or the calendar's subscription link. */
@@ -12,6 +15,10 @@ export default function CalendarImport({data,save}:{data:AppData;save:PlannerRep
  const profile=data.profiles.find(p=>p.id===data.activeProfileId)!
  const [parsed,setParsed]=useState<IcsImport|null>(null),[source,setSource]=useState(''),[link,setLink]=useState('')
  const [fromUrl,setFromUrl]=useState(''),[keep,setKeep]=useState(true)
+ // Parent mode: whose calendar this is; anyone: a team or activity calendar (practices and games).
+ const kids=data.settings.parentMode===true?data.kids.filter(k=>k.profileId===profile.id):[]
+ const [kidId,setKidId]=useState(''),[team,setTeam]=useState(false)
+ const who={kidId:kids.some(k=>k.id===kidId)?kidId:undefined,team}
  const linkedRaw=useSyncExternalStore(onLinkedChange,()=>linkedSnapshot(profile.id),()=>'[]'),linked=useMemo(()=>parseLinked(linkedRaw),[linkedRaw])
  const [busy,setBusy]=useState(false),[status,setStatus]=useState(''),[error,setError]=useState('')
  const [receipt,setReceipt]=useState<{before:AppData;after:AppData}|null>(null)
@@ -32,7 +39,9 @@ export default function CalendarImport({data,save}:{data:AppData;save:PlannerRep
   try{
    const text=await fetchCalendar(link.trim())
    setFromUrl(link.trim())
-   load(text,/icloud/i.test(link)?'Apple Calendar':/google/i.test(link)?'Google Calendar':/instructure|canvas/i.test(link)?'Canvas':/schoology/i.test(link)?'Schoology':'Calendar')
+   const app=teamApp(link)
+   if(app)setTeam(true)
+   load(text,app??(/icloud/i.test(link)?'Apple Calendar':/google/i.test(link)?'Google Calendar':/instructure|canvas/i.test(link)?'Canvas':/schoology/i.test(link)?'Schoology':'Calendar'))
   }catch(e){setStatus('');setError(e instanceof Error&&e.message!=='Failed to fetch'?e.message:'Couldn’t reach KONO’s server. Check your connection, or use a .ics file instead.')}finally{setBusy(false)}
  }
  const toggleAll=(include:boolean)=>parsed&&setParsed({...parsed,events:parsed.events.map(e=>({...e,include})),weekly:parsed.weekly.map(w=>({...w,include}))})
@@ -41,8 +50,8 @@ export default function CalendarImport({data,save}:{data:AppData;save:PlannerRep
   if(!parsed||busy||!chosen)return;setBusy(true);setError('')
   let before:AppData|undefined,result:ReturnType<typeof applyIcsImport>|undefined
   try{
-   const ok=await save(d=>{before=normalizeData(d);result=applyIcsImport(d,profile.id,parsed,source);return result.data})
-   if(ok&&result&&before&&fromUrl&&keep){linkCalendar(profile.id,{url:fromUrl,name:source,seen:linkSeen(parsed,result.created),lastSynced:new Date().toISOString(),lastResult:'Linked.'});setLink('')}
+   const ok=await save(d=>{before=normalizeData(d);result=applyIcsImport(d,profile.id,parsed,source,who);return result.data})
+   if(ok&&result&&before&&fromUrl&&keep){linkCalendar(profile.id,{url:fromUrl,name:source,seen:linkSeen(parsed,result.created),lastSynced:new Date().toISOString(),lastResult:'Linked.',...who});setLink('')}
    if(ok&&result&&before){setReceipt(result.added?{before,after:result.data}:null);setStatus(result.added+' added'+(result.skipped?', '+result.skipped+' already in your plan':'')+'. Assignments are in your Planner, exams in Exams, events in your Calendar, and weekly repeats under Settings › Schedules › Your weekly schedules.');setParsed(null)}
    else setError('Not saved yet. Your list is still here.')
   }catch(e){setError(e instanceof Error?e.message:'Could not add these events.')}finally{setBusy(false)}
@@ -52,13 +61,14 @@ export default function CalendarImport({data,save}:{data:AppData;save:PlannerRep
   try{const ok=await save(d=>{if(JSON.stringify(normalizeData(d))!==JSON.stringify(receipt.after))throw Error('Your plan changed since the import. Remove single items from the Calendar instead.');return receipt.before});if(ok){setReceipt(null);setStatus('The calendar import was undone.')}}catch(e){setError(e instanceof Error?e.message:'Could not undo.')}finally{setBusy(false)}
  }
  return <div className="calendar-import">
-  <p>Bring in the calendar you already use, or your assignments from Canvas, Google Classroom or Schoology. Weekly repeats (classes, practice, shifts) become a weekly schedule, assignments go to your Planner, quizzes and exams to Exams, and everything else in the next 12 months to your Calendar. You choose what to add, and importing again only adds what’s new.</p>
+  <p>Bring in the calendar you already use, your assignments from Canvas, Google Classroom or Schoology, or a team’s schedule from TeamSnap, GameChanger, SportsEngine and other team apps. Weekly repeats (classes, practice, shifts) become a weekly schedule, assignments go to your Planner, quizzes and exams to Exams, and everything else in the next 12 months to your Calendar. You choose what to add, and importing again only adds what’s new.</p>
   <fieldset disabled={busy} className="calendar-import-sources">
    <label>Calendar file (.ics)<input type="file" accept=".ics,text/calendar" onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(f)void fromFile(f)}}/></label>
    <div className="calendar-import-link"><label>Or paste a calendar link<input type="url" inputMode="url" placeholder="https://… or webcal://… calendar link" value={link} onChange={e=>setLink(e.target.value)}/></label><button type="button" disabled={!link.trim()} onClick={()=>void fromLink()}>Get calendar</button></div>
    <p className="wb-muted">A calendar link is sent once to KONO’s server to fetch the calendar, and isn’t saved. Anyone with a private calendar link can see that calendar, so don’t share it elsewhere.</p>
   </fieldset>
-  {linked.length>0&&<div className="linked-calendars"><h4>Kept up to date on this device</h4><ul>{linked.map(c=><li key={c.url}><span><strong>{c.name||'Calendar'}</strong><br/><small className="wb-muted">{c.lastSynced?'Checked '+new Date(c.lastSynced).toLocaleString()+(c.lastResult?' · '+c.lastResult:''):'Not checked yet'}</small></span><span className="wb-toolbar"><button type="button" disabled={busy} onClick={()=>{setBusy(true);void syncLinked(profile.id,c,()=>data,save).then(r=>setStatus(c.name+': '+r)).finally(()=>setBusy(false))}}>Check now</button><button type="button" onClick={()=>unlinkCalendar(profile.id,c.url)}>Stop</button></span></li>)}</ul></div>}
+  {linked.length>0&&<div className="linked-calendars"><h4>Kept up to date on this device</h4><ul>{linked.map(c=><li key={c.url}><span><strong>{c.name||'Calendar'}</strong>{c.kidId&&<small> · {data.kids.find(k=>k.id===c.kidId)?.name??'a kid'}</small>}{c.team&&<small> · team</small>}<br/><small className="wb-muted">{c.lastSynced?'Checked '+new Date(c.lastSynced).toLocaleString()+(c.lastResult?' · '+c.lastResult:''):'Not checked yet'}</small></span><span className="wb-toolbar"><button type="button" disabled={busy} onClick={()=>{setBusy(true);void syncLinked(profile.id,c,()=>data,save).then(r=>setStatus(c.name+': '+r)).finally(()=>setBusy(false))}}>Check now</button><button type="button" onClick={()=>unlinkCalendar(profile.id,c.url)}>Stop</button></span></li>)}</ul></div>}
+  <details><summary>How to follow a team’s schedule (TeamSnap, GameChanger, SportsEngine…)</summary><ol><li>In the team app, open the team’s <strong>Schedule</strong> and look for <strong>Sync to calendar</strong>, <strong>Subscribe</strong> or <strong>Export calendar</strong>. Most team apps have it on the Schedule screen or in the team’s settings, and some only show it on their website. Copy the link it gives you; it often starts with webcal://.</li><li>Paste it above and tap Get calendar.{kids.length>0?' Pick whose team it is, so every practice and game is tagged with their name.':''}</li><li>Leave “Keep this calendar up to date” on: when the coach adds a game or moves a practice, KONO picks it up.</li></ol></details>
   <details><summary>How to get assignments from Canvas</summary><ol><li>In Canvas (on a computer or the website), open <strong>Calendar</strong> from the left menu.</li><li>At the bottom right, click <strong>Calendar Feed</strong> and copy the link.</li><li>Paste it above and tap Get calendar. Assignments land in your Planner and quizzes in Exams, each under its course.</li></ol></details>
   <details><summary>How to get assignments from Google Classroom</summary><ol><li>Classroom puts due dates in your Google Calendar, in a calendar named after each class.</li><li>On a computer, open calendar.google.com › ⚙ Settings › pick the class calendar under “Settings for other calendars” › <strong>Integrate calendar</strong> › copy <strong>Secret address in iCal format</strong> (or the public address).</li><li>Paste it above. Repeat for each class you want.</li></ol></details>
   <details><summary>How to get assignments from Schoology</summary><ol><li>In Schoology, open <strong>Calendar</strong>.</li><li>Choose <strong>Export</strong> (or the calendar feed / iCal option) and copy the link.</li><li>Paste it above and tap Get calendar.</li></ol></details>
@@ -70,6 +80,7 @@ export default function CalendarImport({data,save}:{data:AppData;save:PlannerRep
    <div className="wb-toolbar"><button type="button" onClick={()=>toggleAll(true)}>Select all</button><button type="button" onClick={()=>toggleAll(false)}>Select none</button></div>
    {!!parsed.weekly.length&&<><h4>Weekly repeats → a weekly schedule “{(source||'Imported calendar')} · weekly”</h4><ul>{parsed.weekly.map(w=><li key={w.key}><label className="wb-check"><input type="checkbox" checked={w.include} onChange={e=>setParsed({...parsed,weekly:parsed.weekly.map(x=>x.key===w.key?{...x,include:e.target.checked}:x)})}/><span><strong>{w.title}</strong> · {w.days.map(d=>dayNames[d].slice(0,3)).join(', ')} · {classTime(w.start)}–{classTime(w.end)}{w.location?' · '+w.location:''}<br/><small className="wb-muted">{dateLabel(w.from)} – {dateLabel(w.until)}{w.skipped.length?' · '+w.skipped.length+' dates cancelled':''}</small></span></label></li>)}</ul></>}
    {!!parsed.events.length&&<><h4>Assignments, exams and events</h4><ul>{parsed.events.map(e=><li key={e.key}><label className="wb-check"><input type="checkbox" checked={e.include} onChange={ev=>setParsed({...parsed,events:parsed.events.map(x=>x.key===e.key?{...x,include:ev.target.checked}:x)})}/><span><strong>{e.title}</strong> · {dateLabel(e.date)}{e.time?' · '+(e.as==='event'?'':'due ')+classTime(e.time)+(e.endTime&&e.as==='event'?'–'+classTime(e.endTime):''):e.as==='event'?' · all day':''}{e.location?' · '+e.location:''}<br/><small className={'calendar-import-target is-'+e.as}>{e.as==='assignment'?'→ Planner assignment':e.as==='exam'?'→ Exams':'→ Calendar'}{e.course?' · '+e.course:''}</small></span></label></li>)}</ul></>}
+   <div className="calendar-import-who">{kids.length>0&&<label>Whose calendar is this?<select value={kidId} onChange={e=>setKidId(e.target.value)}><option value="">Everyone / not one kid</option>{kids.map(k=><option key={k.id} value={k.id}>{k.emoji?k.emoji+' ':''}{k.name}</option>)}</select></label>}<label className="wb-check"><input type="checkbox" checked={team} onChange={e=>setTeam(e.target.checked)}/>It’s a team or activity calendar (practices and games show as sports)</label></div>
    {fromUrl&&<label className="wb-check"><input type="checkbox" checked={keep} onChange={e=>setKeep(e.target.checked)}/>Keep this calendar up to date: KONO checks it when you open the app and adds new items (and moves ones whose date changed).</label>}
    <button type="button" className="primary" disabled={busy||!chosen} onClick={()=>void add()}>{busy?'Adding…':'Add '+chosen+' to my plan'}</button>
   </div>}

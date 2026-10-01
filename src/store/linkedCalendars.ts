@@ -4,7 +4,8 @@ import type { LinkedSeen } from './icsImport'
 /** Calendars someone chose to keep up to date (a Canvas feed, Google's secret address, an iCloud link).
  * The links are private, so they stay in this browser only; KONO checks them when it opens (at most
  * every 6 hours) and adds new items, and moves ones whose date changed. */
-export type LinkedCalendar = { url: string; name: string; lastSynced?: string; lastResult?: string; seen: LinkedSeen }
+/** `kidId`/`team`: a parent's calendar for one kid or a team (see icsImport's IcsFor); new items keep getting them. */
+export type LinkedCalendar = { url: string; name: string; lastSynced?: string; lastResult?: string; seen: LinkedSeen; kidId?: string; team?: boolean }
 
 const key = (profileId: string) => 'kono-linked-calendars:' + profileId
 const CHANGE = 'kono-linked-calendars'
@@ -41,10 +42,11 @@ export async function syncLinked(profileId: string, calendar: LinkedCalendar, cu
     // The calendar reader is only needed when a linked calendar is checked, not to open KONO.
     const [{ parseIcs, syncIcs }, text] = await Promise.all([import('./icsImport'), fetchCalendar(calendar.url)])
     const parsed = parseIcs(text, localDate())
-    const preview = syncIcs(current(), profileId, parsed, calendar.name, calendar.seen)
+    const who = { kidId: calendar.kidId, team: calendar.team }
+    const preview = syncIcs(current(), profileId, parsed, calendar.name, calendar.seen, who)
     let seen = preview.seen
     if (preview.added || preview.updated || preview.tagged) {
-      const ok = await save(d => { const r = syncIcs(d, profileId, parsed, calendar.name, calendar.seen); seen = r.seen; return r.data })
+      const ok = await save(d => { const r = syncIcs(d, profileId, parsed, calendar.name, calendar.seen, who); seen = r.seen; return r.data })
       result = ok ? (preview.added || preview.updated ? [preview.added ? preview.added + ' new' : '', preview.updated ? preview.updated + ' moved to a new date' : ''].filter(Boolean).join(', ') + '.' : result) : 'Not saved yet; will try again.'
       if (!ok) seen = calendar.seen
     }

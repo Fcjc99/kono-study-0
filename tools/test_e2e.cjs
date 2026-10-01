@@ -1583,6 +1583,33 @@ test('Project steps: "Break into steps" asks KONO’s AI for dated steps, they c
  await now.getByText('Today’s step for this project.',{exact:false}).waitFor()
 })
 
+test('Team calendar for a parent: a TeamSnap webcal link is a team calendar, the parent picks whose team it is, every game is tagged with that kid and counts as sports, and the link stays followed',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.settings.parentMode=true
+ const requests=[]
+ const feed=['BEGIN:VCALENDAR','X-WR-CALNAME:Hawks U12','BEGIN:VEVENT','UID:g1','SUMMARY:Hawks vs Lions','DTSTART:20261010T090000','DTEND:20261010T103000','LOCATION:Riverside Park','END:VEVENT','BEGIN:VEVENT','UID:pic','SUMMARY:Team photos','DTSTART:20261003T100000','END:VEVENT','END:VCALENDAR'].join('\r\n')
+ await context.route(BASE+'api/calendar-feed',route=>{requests.push(route.request().postDataJSON());return route.fulfill({status:200,headers:{'content-type':'text/calendar'},body:feed})})
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ await addToCalendar(page,'A calendar link')
+ await page.getByText('How to follow a team’s schedule (TeamSnap, GameChanger, SportsEngine…)').waitFor()
+ await page.getByLabel('Or paste a calendar link').fill('webcal://go.teamsnap.com/ical/abc123.ics')
+ await page.getByRole('button',{name:'Get calendar'}).click()
+ const review=page.locator('.calendar-import-review')
+ await review.waitFor()
+ assert.equal(requests[0].url,'webcal://go.teamsnap.com/ical/abc123.ics')
+ assert.equal(await review.getByLabel('It’s a team or activity calendar (practices and games show as sports)').isChecked(),true,'a TeamSnap link is a team calendar')
+ await review.getByLabel('Whose calendar is this?').selectOption('kid-emma')
+ await review.getByRole('button',{name:'Add 2 to my plan'}).click()
+ await page.getByText(/^2 added\./).waitFor()
+ await waitFor(()=>{const e=cloud.users.alice.plan.data.calendarEvents.filter(x=>x.profileId===pid&&/Hawks vs Lions|Team photos/.test(x.title));return e.length===2&&e.every(x=>x.kidId==='kid-emma'&&x.kind==='sports')},'the team’s events never reached the account tagged with Emma as sports')
+ const linked=page.locator('.linked-calendars')
+ await linked.getByText('Hawks U12').waitFor()
+ assert.match(await linked.innerText(),/Hawks U12 · Emma · team/)
+})
+
 test('offline: the Home Screen app opens with no signal, shows the plan, keeps a new assignment on the device, and uploads it when the signal is back',async()=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,now=new Date()
  const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')

@@ -19,23 +19,29 @@ const homeAwayOf=(title:string):'HOME'|'AWAY'|null=>{
 export default function SportsSetup({data,save,draftKey}:{data:AppData;save:PlannerRepository['update'];draftKey:string}){
  const [tab,setTab]=useDraftState(draftKey+':tab','practice')
  const [sport,setSport]=useDraftState(draftKey+':sport','')
+ // Parent mode: whose team this is, so every practice and game is tagged with that kid.
+ const kids=data.settings.parentMode===true?data.kids.filter(k=>k.profileId===data.activeProfileId):[]
+ const [kidPick,setKidPick]=useDraftState(draftKey+':kid','')
+ const kidId=kids.some(k=>k.id===kidPick)?kidPick:undefined
  return <section className="wb-panel school-setup"><div className="wb-section-head"><div><small>YOUR SPORTS SCHEDULE</small><h2>Sports</h2></div></div>
  <p>Add recurring practices, then add or upload your games/matches schedule. Sports items show in Calendar and Planner, and can be viewed on their own or together with academics.</p>
  <label>What sport?<input placeholder="Soccer, Track, Swim…" maxLength={200} value={sport} onChange={e=>setSport(e.target.value)}/></label>
+ {kids.length>0&&<label>Whose team?<select value={kidId??''} onChange={e=>setKidPick(e.target.value)}><option value="">Everyone / not one kid</option>{kids.map(k=><option key={k.id} value={k.id}>{k.emoji?k.emoji+' ':''}{k.name}</option>)}</select></label>}
+ <p className="wb-muted">Does the team use an app like TeamSnap or GameChanger? Use <strong>A calendar link</strong> instead, and games and practice changes come in by themselves.</p>
  <div className="wb-toolbar" role="group" aria-label="Sports setup sections">{[['practice','Practices'],['games','Games & matches']].map(([id,label])=><button key={id} aria-pressed={tab===id} onClick={()=>setTab(id)}>{label}</button>)}</div>
- <div hidden={tab!=='practice'}><SportsPractice data={data} save={save} draftKey={draftKey+':practice'} sport={sport}/></div>
- <div hidden={tab!=='games'}><SportsGames data={data} save={save} draftKey={draftKey+':games'} sport={sport}/></div>
+ <div hidden={tab!=='practice'}><SportsPractice data={data} save={save} draftKey={draftKey+':practice'} sport={sport} kidId={kidId}/></div>
+ <div hidden={tab!=='games'}><SportsGames data={data} save={save} draftKey={draftKey+':games'} sport={sport} kidId={kidId}/></div>
  </section>
 }
 
-function SportsPractice({data,save,draftKey,sport}:{data:AppData;save:PlannerRepository['update'];draftKey:string;sport:string}){
+function SportsPractice({data,save,draftKey,sport,kidId}:{data:AppData;save:PlannerRepository['update'];draftKey:string;sport:string;kidId?:string}){
  const profile=data.profiles.find(p=>p.id===data.activeProfileId)!
  const initial:WeeklyClassInput={title:sport.trim()||'Practice',subjectId:'',activity:true,location:'',weekdays:[],start:'15:30',end:'17:00',first:localDate(),last:profile.end<localDate()?localDate():profile.end,blockKind:'hobby',category:'sports'}
  const [input,setInput]=useDraftState(draftKey,initial),[allow,setAllow]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('')
  const change=(patch:Partial<WeeklyClassInput>)=>{setInput({...input,...patch});setAllow(false);setMessage('')}
  let dates:string[]=[],conflicts:string[]=[]
  try{dates=weeklyClassDates(input);conflicts=weeklyConflicts(data,input)}catch{/* Validation is shown on submit, not before the student starts. */}
- const submit=async()=>{if(busy)return;setBusy(true);setMessage('');try{const ok=await save(d=>addWeeklyClass(d,data.activeProfileId,{...input,blockKind:'hobby',category:'sports'},allow));if(ok){setInput({...input,weekdays:[]});setAllow(false);setMessage('Added to Calendar, Planner and Today. Add another day and time for a different practice schedule.')}else setMessage('Not saved yet. Your draft is still here.')}catch(e){setMessage(e instanceof Error?e.message:'Could not save practice schedule.')}finally{setBusy(false)}}
+ const submit=async()=>{if(busy)return;setBusy(true);setMessage('');try{const ok=await save(d=>addWeeklyClass(d,data.activeProfileId,{...input,kidId,blockKind:'hobby',category:'sports'},allow));if(ok){setInput({...input,weekdays:[]});setAllow(false);setMessage('Added to Calendar, Planner and Today. Add another day and time for a different practice schedule.')}else setMessage('Not saved yet. Your draft is still here.')}catch(e){setMessage(e instanceof Error?e.message:'Could not save practice schedule.')}finally{setBusy(false)}}
  return <form className="wb-panel school-setup" onSubmit={e=>{e.preventDefault();void submit()}}><fieldset disabled={busy}><h3>Recurring practices</h3><p>Name your team or sport, then set the days and times practice repeats. Add several entries if practice times change during the season.</p>
  <label>Team / practice name<input placeholder="Soccer practice" required maxLength={200} value={input.title} onChange={e=>change({title:e.target.value})}/></label>
  <WeekdayPicker weekdays={input.weekdays} onChange={weekdays=>change({weekdays})} label="Repeat on weekdays"/>
@@ -45,7 +51,7 @@ function SportsPractice({data,save,draftKey,sport}:{data:AppData;save:PlannerRep
  <button type="submit" className="primary" disabled={!!conflicts.length&&!allow}>{busy?'Saving…':'Add to my calendar'}</button>{message&&<p role="status">{message}</p>}</fieldset></form>
 }
 
-function SportsGames({data,save,draftKey,sport}:{data:AppData;save:PlannerRepository['update'];draftKey:string;sport:string}){
+function SportsGames({data,save,draftKey,sport,kidId}:{data:AppData;save:PlannerRepository['update'];draftKey:string;sport:string;kidId?:string}){
  const profile=data.profiles.find(p=>p.id===data.activeProfileId)!
  const [file,setFile]=useState<File|null>(null),[text,setText]=useDraftState(draftKey+':text',''),[rows,setRows]=useDraftState<ImportRow[]>(draftKey+':rows',[])
  // A season upload usually happens partway through the season, so games already played (a date
@@ -71,7 +77,7 @@ function SportsGames({data,save,draftKey,sport}:{data:AppData;save:PlannerReposi
  const suggestions=()=>{setRows(suggestSchedule(text,start,end,order));setReviewed(false);setStatus('Review every suggestion — check the type on each row. Unrecognized lines stay in the source text; add missing games manually.')}
  const commit=async()=>{
   if(busy||!reviewed)return;setBusy(true);setError('')
-  try{const seasonName=(sport.trim()||'Sports')+' season';const saved=await save(current=>applyScheduleImport(current,profile.id,rows,start,end,{eventKind:'sports',category:'sports',blockKind:'hobby',seasonName}).data);if(saved){setStatus('Games added. Find them in your Calendar and Planner, tagged as sports.');setRows([]);setReviewed(false);setText('');setFile(null)}else setError('Not saved yet. Your reviewed items remain here; check the save status before retrying.')}catch(e){setError(e instanceof Error?e.message:'Could not import.')}finally{setBusy(false)}
+  try{const seasonName=(sport.trim()||'Sports')+' season';const saved=await save(current=>applyScheduleImport(current,profile.id,rows,start,end,{eventKind:'sports',category:'sports',blockKind:'hobby',seasonName,kidId}).data);if(saved){setStatus('Games added. Find them in your Calendar and Planner, tagged as sports.');setRows([]);setReviewed(false);setText('');setFile(null)}else setError('Not saved yet. Your reviewed items remain here; check the save status before retrying.')}catch(e){setError(e instanceof Error?e.message:'Could not import.')}finally{setBusy(false)}
  }
  const seasonGames=data.calendarEvents.filter(e=>e.profileId===profile.id&&e.kind==='sports'&&e.date>=start&&e.date<=end).sort((a,b)=>a.date.localeCompare(b.date))
  const record=seasonGames.reduce((tally,g)=>{if(!g.result)return tally;const outcome=matchOutcome(g.result);return {...tally,[outcome]:tally[outcome]+1}},{win:0,loss:0,tie:0})
