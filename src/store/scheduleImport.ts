@@ -1,23 +1,11 @@
 import {blankWeek,dayNames,normalizeData,uid,type AppData,type CalendarEventKind,type ScheduleBlock,type StudySeason} from './model'
 import {classColumns,classTableRow,type ClassColumns} from './classTable'
+import {dateFrom,validDate} from './dateText'
+export {dateFrom,validDate}
 
 export type ImportRow={id:string;include:boolean;kind:'class'|'exam'|'task'|'event'|'subject';title:string;subject:string;date:string;weekdays:number[];start:string;end:string;source:string;location?:string}
-export const validDate=(s:string)=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s
 const clean=(s:string)=>s.trim().replace(/\s+/g,' ').toLowerCase()
 const time=(h:string,m:string|undefined,period:string|undefined)=>{let hour=Number(h);if(period){if(hour<1||hour>12)return '';hour=hour%12+(period.toLowerCase()==='pm'?12:0)}else if(hour<0||hour>23)return '';const minute=Number(m??0);return minute<60?String(hour).padStart(2,'0')+':'+String(minute).padStart(2,'0'):''}
-export function dateFrom(line:string,start:string,end:string,order:'mdy'|'dmy'){
- const iso=line.match(/\b\d{4}-\d{2}-\d{2}\b/);if(iso)return validDate(iso[0])?iso[0]:''
- const numeric=line.match(/\b(\d{1,2})[/.](\d{1,2})(?:[/.](\d{4}))?\b/)
- const named=line.match(/\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?\b/i)
- if(!numeric&&!named)return ''
- const month=named?['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(named[1].slice(0,3).toLowerCase())+1:Number(numeric![order==='mdy'?1:2])
- const day=Number(named?named[2]:numeric![order==='mdy'?2:1]),year=named?.[3]??numeric?.[3]
- const build=(y:string)=>y+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')
- if(year)return validDate(build(year))?build(year):''
- if(!validDate(start)||!validDate(end))return ''
- const candidates=[...new Set([start.slice(0,4),end.slice(0,4)])].map(build).filter(d=>validDate(d)&&d>=start&&d<=end)
- return candidates.length===1?candidates[0]:''
-}
 const WEEKDAY_PATTERN='\\b(?:Sun(?:day)?|Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|MWF|TTh)\\b'
 const startsRecord=(line:string,start:string,end:string,order:'mdy'|'dmy')=>new RegExp(WEEKDAY_PATTERN,'i').test(line)||!!dateFrom(line,start,end,order)
 /** Table-style exports (a sports schedule copied from a scheduling site, or its screenshot/PDF read

@@ -1,4 +1,4 @@
-import {Fragment,useEffect,useMemo,useRef,useState,type CSSProperties,type DragEvent,type FormEvent,type PointerEvent,type ReactNode,type TouchEvent} from 'react'
+import {Fragment,useEffect,useMemo,useRef,useState,type CSSProperties,type DragEvent,type FormEvent,type PointerEvent,type ReactNode,type SetStateAction,type TouchEvent} from 'react'
 import {deleteProfile} from './store/deleteProfile'
 import {usePlannerRepository} from './store/repository'
 import {uid,localDate,dayNames,eventCategory,matchOutcome,type AppData,type SettingsData,type Task,type Subtask,type CalendarEventKind,type MatchResult,type Kid,type KidBorderStyle,type KidBorderGlow,KID_BORDER_SPEED} from './store/model'
@@ -30,24 +30,35 @@ import './components/schedule-import.css'
 import './components/school-calendar.css'
 import './components/sports-setup.css'
 import {schoolDayLabels} from './store/schoolCalendar'
-import {PlanSettings,WeatherSettings,SoundMotionSettings,ReminderSettings,StickyNoteView} from './LegacyApp'
+import {StickyNoteView} from './LegacyApp'
 import Sidebar from './components/Sidebar'
 import {lazyPanel} from './lazyPanel'
-import {AccountBanners,AccountPanel,BackupPanel,Onboarding,RecoveryScreen,SaveStatus,SupportAdminPanel,FeedbackButton} from './components/AccountPanel'
-import {AiHelperSettings} from './components/AiHelper'
+import type {LiveWeatherState} from './game/weather/liveWeather'
+type SettingsProps={data:AppData;setData:(action:SetStateAction<AppData>)=>Promise<boolean>}
+const PlanSettings=lazyPanel<SettingsProps&{onDeleteProfile?:(id:string)=>void}>(()=>import('./SettingsPanels').then(m=>({default:m.PlanSettings})))
+const WeatherSettings=lazyPanel<SettingsProps&{weatherState:LiveWeatherState}>(()=>import('./SettingsPanels').then(m=>({default:m.WeatherSettings})))
+const SoundMotionSettings=lazyPanel<SettingsProps>(()=>import('./SettingsPanels').then(m=>({default:m.SoundMotionSettings})))
+const ReminderSettings=lazyPanel<SettingsProps>(()=>import('./SettingsPanels').then(m=>({default:m.ReminderSettings})))
+import {AccountBanners,Onboarding,RecoveryScreen,SaveStatus} from './components/AccountPanel'
+type StoreProps={store:ReturnType<typeof usePlannerRepository>}
+const AccountPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.AccountPanel})))
+const BackupPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.BackupPanel})))
+const SupportAdminPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.SupportAdminPanel})))
+const FeedbackButton=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.FeedbackButton})))
+const AiHelperSettings=lazyPanel<{profileId:string}>(()=>import('./components/AiHelper').then(m=>({default:m.AiHelperSettings})))
 import GardenCard from './components/GardenCard'
 import './components/StudyPlanner.css'
 import './components/kquiz.css'
-import CommandPalette from './components/CommandPalette'
+const CommandPalette=lazyPanel(()=>import('./components/CommandPalette'))
 import MusicPlayer from './components/MusicPlayer'
 import SafeNoteBody from './components/SafeNoteBody'
 import VoiceInputButton from './components/VoiceInputButton'
-import FocusSession, {type FocusRequest} from './components/FocusSession'
+import type {FocusRequest} from './components/FocusSession'
+const FocusSession=lazyPanel(()=>import('./components/FocusSession'))
 import SanctuaryDecorLayer from './components/SanctuaryDecorLayer'
 import './components/peer-connections.css'
 import {NavIcon,WeekWeather} from './components/Sidebar'
 import {downloadData} from './store/localRepository'
-import {buildIcs} from './store/icsExport'
 import {findOpenSlots} from './store/timeBlocking'
 import {APP_VERSION} from './version'
 import './workbench.css'
@@ -64,13 +75,14 @@ import ActionIcon from './components/ActionIcon'
 import BrandLogo from './components/BrandLogo'
 import {currentStreak as streakFrom,recapDay,weekRecap} from './store/weekRecap'
 import {useLocalSetting} from './hooks/useLocalSetting'
-import WeekGrid,{type WeekItem} from './components/WeekGrid'
+import type {WeekItem} from './components/WeekGrid'
+const WeekGrid=lazyPanel(()=>import('./components/WeekGrid'))
 import GettingStarted,{type StartStep} from './components/GettingStarted'
 import OverdueCard from './components/OverdueCard'
 import QuickAddBox from './components/QuickAddBox'
 import SwipeRow from './components/SwipeRow'
-import AssignmentPhotos from './components/AssignmentPhotos'
-import AddFromSiri from './components/AddFromSiri'
+const AssignmentPhotos=lazyPanel(()=>import('./components/AssignmentPhotos'))
+const AddFromSiri=lazyPanel(()=>import('./components/AddFromSiri'))
 import {uploadPendingPhotos,type PhotoCloud} from './store/photoStore'
 import type {QuickAddGuess} from './store/quickAdd'
 import {readLinked} from './store/linkedCalendars'
@@ -620,7 +632,7 @@ function Workspace({store}:{store:Store}){
    {settingsTab==='Schedules'&&<section className="wb-panel"><ScheduleSetup data={data} save={save} draftKey={draftScope} fetchCatalog={repository.fetchSchoolCatalog} submitCatalogEntry={repository.submitSchoolCatalogEntry}/></section>}
    {settingsTab==='KONO support'&&store.isAdmin&&!store.support&&<section className="wb-panel"><SupportAdminPanel store={store}/></section>}
    {settingsTab==='Import & export'&&<AddFromSiri/>}
-   {settingsTab==='Import & export'&&<section className="wb-panel"><h2>Import &amp; export</h2><div id="ai-helper"><AiHelperSettings profileId={profile.id}/></div><div className="wb-notice add-moved"><p><strong>Adding schedules and calendars</strong> (photos, PDFs, calendar links, Canvas and Classroom) now all start from the Planner.</p><button type="button" className="primary" onClick={()=>openAdd()}>＋ Add to my calendar</button></div><details><summary>Share a schedule with someone else</summary><ScheduleShare data={data} save={save}/></details><details><summary>Show KONO in Google Calendar or Apple Calendar (stays up to date)</summary><CalendarSubscribe store={store} profileId={profile.id} planLabel={profile.label}/></details><details><summary>Export to your calendar app</summary><p>Download every assignment, exam and event in {profile.label} as a calendar file, then import or add it in Google Calendar, Apple Calendar, or Outlook. This is a one-time snapshot -- re-download it after making big changes to keep your calendar app in sync.</p><button type="button" onClick={()=>downloadData(buildIcs(data,profile.id),(profile.label||'kono-plan').toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.ics','text/calendar')}>Download calendar (.ics)</button></details><BackupPanel store={store}/></section>}
+   {settingsTab==='Import & export'&&<section className="wb-panel"><h2>Import &amp; export</h2><div id="ai-helper"><AiHelperSettings profileId={profile.id}/></div><div className="wb-notice add-moved"><p><strong>Adding schedules and calendars</strong> (photos, PDFs, calendar links, Canvas and Classroom) now all start from the Planner.</p><button type="button" className="primary" onClick={()=>openAdd()}>＋ Add to my calendar</button></div><details><summary>Share a schedule with someone else</summary><ScheduleShare data={data} save={save}/></details><details><summary>Show KONO in Google Calendar or Apple Calendar (stays up to date)</summary><CalendarSubscribe store={store} profileId={profile.id} planLabel={profile.label}/></details><details><summary>Export to your calendar app</summary><p>Download every assignment, exam and event in {profile.label} as a calendar file, then import or add it in Google Calendar, Apple Calendar, or Outlook. This is a one-time snapshot -- re-download it after making big changes to keep your calendar app in sync.</p><button type="button" onClick={()=>void import('./store/icsExport').then(({buildIcs})=>downloadData(buildIcs(data,profile.id),(profile.label||'kono-plan').toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.ics','text/calendar'))}>Download calendar (.ics)</button></details><BackupPanel store={store}/></section>}
    {settingsTab==='Plans & account'&&<><section className="wb-panel"><AccountPanel store={store}/></section><section className="wb-panel"><h2>Plans</h2><PlanSettings data={data} setData={save} onDeleteProfile={id=>{const p=data.profiles.find(x=>x.id===id);if(!p)return;setConfirmation({text:'Delete plan “'+p.label+'” and all its subjects, assignments, notes, schedules and Sanctuary progress? This does not delete your account or other plans. Export a backup first. Plan deletion is not kept in Trash.',action:()=>void run(()=>save(d=>deleteProfile(d,id)),'Plan deleted. Other plans were kept.')})}}/></section><section className="wb-panel"><h2>Friends</h2>{store.user?<PeerConnections repository={repository} myUserId={store.user.id} reducedMotion={reduced}/>:<p>Sign in with a KONO account to connect with classmates and share your classes.</p>}</section></>}
    </div>}
    {page==='Trash'&&<section className="wb-panel"><h2>Recently removed</h2><p>Restore items here, even after a reload. Undo/Redo covers the last 30 changes in this session. Signed-in Trash syncs with your account.</p>{data.trash.filter(t=>t.profileId===profile.id).map(t=><article className="wb-record" key={t.id}><h3>{t.title}</h3><p>{labels[t.collection as Collection]??'Schedule block'} · Removed {new Date(t.deletedAt).toLocaleString()}</p><div className="wb-toolbar"><button onClick={()=>void run(()=>save(d=>restoreEntry(d,t.id)),'Restored.')}>Restore</button><button onClick={()=>{setConfirmation({text:'Permanently delete “'+t.title+'” from Trash? Older backups may still contain it.',action:()=>void run(()=>save(d=>({...d,trash:d.trash.filter(x=>x.id!==t.id)})),'Removed from Trash.')})}}>Delete permanently</button></div></article>)}{!data.trash.some(t=>t.profileId===profile.id)&&<p>Trash is empty.</p>}</section>}

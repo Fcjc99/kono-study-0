@@ -1,4 +1,4 @@
-import {dateFrom} from './scheduleImport'
+import {dateFrom} from './dateText'
 
 /** "＋ Add" › Type it: one line like "bio worksheet due fri" or "math test thursday at 9" becomes an
  * assignment or exam with its class, date and (for assignments) a planned time. What's left after
