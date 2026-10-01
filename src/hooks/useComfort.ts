@@ -10,6 +10,8 @@ const mediaHook=(query:string)=>{
 export const usePhoneWidth=mediaHook('(max-width: 600px)')
 /** A phone either way up: narrow, or short when turned sideways. For things that shouldn't take up the screen. */
 export const useSmallScreen=mediaHook('(max-width: 600px), (max-height: 500px)')
+/** The phone or computer is set to dark mode (iPhone: Settings › Display & Brightness). */
+export const usePrefersDark=mediaHook('(prefers-color-scheme: dark)')
 export function useReducedMotion(settings:SettingsData){
  const system=useSyncExternalStore(subscribeMotion,readMotion,()=>false)
  return settings.motionPreference==='full'?false:settings.motionPreference==='reduced'?true:settings.motionPreference==='system'?system:settings.reducedMotion||system

@@ -1343,6 +1343,34 @@ test('Overdue: past-due assignments show one card with Done, Move to today, Move
  }finally{await phone.context.close()}
 })
 
+test('Dark mode: follows a phone set to dark by default; Light and Dark in Look & feel override it and stay after a reload',async()=>{
+ const dark=await freshPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,colorScheme:'dark'})
+ try{
+  const page=dark.page,isDark=()=>page.evaluate(()=>document.documentElement.dataset.dark==='true')
+  await createPlan(page)
+  assert.equal(await isDark(),true,'a phone in dark mode gets KONO in dark')
+  assert.equal(await page.evaluate(()=>getComputedStyle(document.querySelector('.workbench')).backgroundColor),'rgb(22, 19, 26)')
+  await go(page,'Settings')
+  const choice=page.getByRole('group',{name:'Dark mode'})
+  await choice.getByRole('button',{name:'☀️ Light'}).click()
+  await page.waitForFunction(()=>!document.documentElement.dataset.dark)
+  await flushSave(page,'"darkMode":"light"')
+  await page.reload();await heading(page,'Settings')
+  assert.equal(await isDark(),false,'Light stays light on a dark phone')
+  await page.getByRole('group',{name:'Dark mode'}).getByRole('button',{name:'📱 Match my phone'}).click()
+  await page.waitForFunction(()=>document.documentElement.dataset.dark==='true')
+  assert.deepEqual(dark.errors,[])
+ }finally{await dark.context.close()}
+ const light=await freshPage()
+ try{
+  await createPlan(light.page)
+  assert.equal(await light.page.evaluate(()=>document.documentElement.dataset.dark),undefined,'a light device stays light')
+  await go(light.page,'Settings')
+  await light.page.getByRole('group',{name:'Dark mode'}).getByRole('button',{name:'🌙 Dark'}).click()
+  await light.page.waitForFunction(()=>document.documentElement.dataset.dark==='true')
+ }finally{await light.context.close()}
+})
+
 test('offline: the Home Screen app opens with no signal, shows the plan, keeps a new assignment on the device, and uploads it when the signal is back',async()=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,now=new Date()
  const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')

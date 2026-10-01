@@ -10,7 +10,7 @@ import {classifyVoiceInput} from './store/voiceIntake'
 import {useSpeechToText} from './hooks/useSpeechToText'
 import {syncCurrentTaskCompletion,createSanctuaryProgress} from './game/progression/progressionEngine'
 import {pickKonoPhrase,konoCelebration,konoStreakMilestone,seededRand,STREAK_MILESTONES,type KonoPhrase} from './store/konoPhrases'
-import {useReducedMotion,useMusicController,usePhoneWidth} from './hooks/useComfort'
+import {useReducedMotion,useMusicController,usePhoneWidth,usePrefersDark} from './hooks/useComfort'
 import {useDueNotifications,useTimeBlockNotifications,useFamilyEventNotifications,notificationsSupported} from './hooks/useDueNotifications'
 import {usePushReminders} from './hooks/usePushReminders'
 import {useLinkedCalendars} from './hooks/useLinkedCalendars'
@@ -52,6 +52,7 @@ import './cozy-controls.css'
 import './compact-header.css'
 import './ui-polish.css'
 import './team-themes.css'
+import './dark-mode.css'
 import ActionIcon from './components/ActionIcon'
 import BrandLogo from './components/BrandLogo'
 import {currentStreak as streakFrom,recapDay,weekRecap} from './store/weekRecap'
@@ -133,6 +134,9 @@ export default function WorkspaceApp(){
  useEffect(()=>{const {experience='cozy',theme}=store.data.settings,root=document.documentElement;root.dataset.experience=experience;root.dataset.theme=experience==='cozy'?cozyPalette(theme):fixedPaletteExperiences.includes(experience)?experience:theme
   // Team colors (team-themes.css) key off data-team: "dark" or "light" jersey.
   const jersey=teamJersey(root.dataset.theme);if(jersey)root.dataset.team=jersey;else delete root.dataset.team},[store.data.settings])
+ // Dark mode (dark-mode.css): always, never, or following the phone's own setting.
+ const phoneDark=usePrefersDark(),darkMode=store.data.settings.darkMode??'phone',dark=darkMode==='dark'||(darkMode==='phone'&&phoneDark)
+ useEffect(()=>{const root=document.documentElement;if(dark)root.dataset.dark='true';else delete root.dataset.dark},[dark])
  if(!store.ready)return <main className="startup-card"><h1>KONO</h1><p role="status">Opening your study plan…</p></main>
  // AccountPanel (rendered inside Onboarding) shows its own SaveStatus in context -- a second
  // one floating above the welcome card duplicated the exact same "Build X · This device only"
@@ -918,6 +922,8 @@ function Appearance({settings,setting}:{settings:SettingsData;setting:<K extends
  const swatch=(t:string)=><button className={'theme-'+t} key={t} aria-pressed={activePalette===t} onClick={()=>void setting('theme',t)}><span/>{paletteLabel(t)}{activePalette===t?' ✓':''}</button>
  const activeOption=experienceOptions.find(o=>o.id===active)
  return <section className="wb-panel"><h2>Choose your KONO experience</h2><div className="theme-picker-grid">{experienceOptions.map(option=><button key={option.id} type="button" className={'theme-picker-tile experience-'+option.id} aria-pressed={active===option.id} title={option.description} onClick={()=>void setting('experience',option.id)}><ExperienceIcon id={option.id}/><strong>{option.title}</strong></button>)}</div>{activeOption&&<p className="theme-picker-description">{activeOption.description}</p>}{!fixedPaletteExperiences.includes(settings.experience??'cozy')&&<><h3>Color palette</h3><div className="wb-themes">{(settings.experience==='cozy'?cozyPalettes:['coral','sakura','professional','forest','ocean','midnight','paper']).map(swatch)}</div>{teamThemeIds.includes(settings.theme)&&<p className="wb-muted">You’re using team colors. Pick a palette here to switch back, or change teams under Team colors below.</p>}</>}
+  <h3>Dark mode</h3><div className="dark-mode-choice" role="group" aria-label="Dark mode">{([['light','☀️ Light'],['phone','📱 Match my phone'],['dark','🌙 Dark']] as const).map(([id,label])=><button key={id} type="button" aria-pressed={(settings.darkMode??'phone')===id} onClick={()=>void setting('darkMode',id)}>{label}</button>)}</div>
+  <p className="wb-muted">“Match my phone” turns dark when your phone or computer is set to dark mode (on iPhone: Settings › Display &amp; Brightness).</p>
   <div className="wb-form-grid"><label>Text size<select value={settings.textSize??'normal'} onChange={e=>void setting('textSize',e.target.value as SettingsData['textSize'])}><option value="normal">Normal</option><option value="large">Large</option></select></label><label>Spacing<select value={settings.density??'comfortable'} onChange={e=>void setting('density',e.target.value as SettingsData['density'])}><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label><label>Board background<select value={settings.boardStyle??'paper'} onChange={e=>void setting('boardStyle',e.target.value as SettingsData['boardStyle'])}><option value="paper">Cream paper</option><option value="cork">Cork</option><option value="plain">Plain</option></select></label><label className="wb-check"><input type="checkbox" checked={settings.decoration!==false} onChange={e=>void setting('decoration',e.target.checked)}/>Decorative details</label></div><p>Interface themes never recolor your Sanctuary artwork.</p></section>
 }
 
