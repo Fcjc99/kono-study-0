@@ -51,4 +51,15 @@ test('adding puts it in the active plan under the subject with the same name, sa
  assert.equal(exam.tasks.length,d.tasks.length)
 })
 
-console.log(`${passed}/3 item-sharing groups passed.`)
+test('links and photo ids on assignments and exams are kept when the plan is saved and loaded; anything else is dropped',()=>{
+ const d=plan(),id=d.activeProfileId
+ d.tasks[0].link='https://docs.google.com/document/d/abc';d.tasks[0].photos=['photo-1234abcd','not-a-photo','photo-5678efgh']
+ d.exams.push({id:'ex',profileId:id,subjectId:'chem',title:'Unit test',due:'2026-10-05',done:false,notes:'',link:'javascript:alert(1)',photos:['photo-aaaa1111']})
+ const back=model.normalizeData(JSON.parse(JSON.stringify(d)))
+ assert.equal(back.tasks[0].link,'https://docs.google.com/document/d/abc')
+ assert.equal(back.tasks[0].photos.join(),'photo-1234abcd,photo-5678efgh')
+ const exam=back.exams.find(e=>e.id==='ex')
+ assert.equal(exam.link,undefined,'only http(s) links');assert.equal(exam.photos.join(),'photo-aaaa1111')
+ assert.equal(JSON.stringify(share.sharePayload(back,back.tasks[0])).includes('photo-'),false,'photos and links are never shared with classmates')
+})
+console.log(`${passed}/4 item-sharing groups passed.`)

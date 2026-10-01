@@ -48,6 +48,14 @@ try{
   alter default privileges in schema public grant all on sequences to anon, authenticated;
   alter default privileges in schema public grant execute on functions to anon, authenticated;
   insert into auth.users(id,email) values ('${alice}','alice@example.com'),('${bob}','bob@example.com'),('${carol}','carol@example.com'),('${dave}','dave@example.com');
+  -- Just enough of Supabase Storage for the photo bucket's policies (migration 0011).
+  create schema storage;
+  create table storage.buckets(id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
+  create table storage.objects(id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets(id), name text not null, owner uuid default auth.uid());
+  create function storage.foldername(name text) returns text[] language sql immutable as $$ select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
+  alter table storage.objects enable row level security;
+  grant usage on schema storage to anon, authenticated;
+  grant select, insert, update, delete on storage.objects to anon, authenticated;
  `)
  for(const file of fs.readdirSync(path.join(root,'supabase','migrations')).filter(f=>f.endsWith('.sql')).sort())psql(fs.readFileSync(path.join(root,'supabase','migrations',file),'utf8'))
  // People run the newest migration by hand in the Supabase SQL editor, sometimes twice: it must be re-runnable.
@@ -229,6 +237,20 @@ try{
   as(carol,`delete from public.kono_connections where requester_id='${carol}';`)
   as(dave,`delete from public.kono_shared_items where recipient_id='${dave}';`)
   fails(carol,`insert into public.kono_shared_items(sender_id,recipient_id,kind,item) values ('${carol}','${dave}','task','{"title":"After unfriending"}'::jsonb);`,/row-level security/)
+ })
+
+ test('assignment photos: each account reads and writes only its own folder in a private bucket',()=>{
+  assert.equal(psql("select public::text||' '||file_size_limit from storage.buckets where id='kono-photos';"),'false 3145728')
+  as(alice,`insert into storage.objects(bucket_id,name) values ('kono-photos','${alice}/photo-abc123.jpg');`)
+  fails(alice,`insert into storage.objects(bucket_id,name) values ('kono-photos','${bob}/photo-sneaky.jpg');`,/row-level security/)
+  fails(alice,"insert into storage.objects(bucket_id,name) values ('kono-photos','photo-at-the-top.jpg');",/row-level security/)
+  assert.equal(as(alice,"select count(*) from storage.objects;"),'1')
+  assert.equal(as(bob,"select count(*) from storage.objects;"),'0','nobody else can see them')
+  assert.equal(as(null,"select count(*) from storage.objects;"),'0','or anyone signed out')
+  as(bob,"delete from storage.objects;")
+  assert.equal(psql("select count(*) from storage.objects;"),'1','someone else’s delete removes nothing')
+  as(alice,"delete from storage.objects;")
+  assert.equal(psql("select count(*) from storage.objects;"),'0')
  })
 
  test('deleting your cloud study data also deletes its automatic backups',()=>{
