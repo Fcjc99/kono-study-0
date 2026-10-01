@@ -1,4 +1,4 @@
-import {dateFrom} from './scheduleImport'
+import {dateFrom} from './dateText'
 import type {Collection} from './workspace'
 import type {CalendarEventKind} from './model'
 
