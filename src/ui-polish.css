@@ -198,3 +198,22 @@
 /* Look & feel › Dark mode */
 .dark-mode-choice{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
 .dark-mode-choice button[aria-pressed='true']{outline:2px solid var(--wb-accent);outline-offset:1px;font-weight:700}
+/* "＋ Add" › Type it */
+.quick-add-box{display:grid;gap:8px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--wb-line,#e2d8cc)}
+.quick-add-box label{display:grid;gap:6px;font-weight:700}
+.quick-add-preview{display:grid;gap:2px;margin:0;min-height:2.6em}
+.quick-add-preview span{opacity:.8}
+.quick-add-or{margin:0 0 6px;font-weight:700}
+/* Phones: swipe an assignment right for Done, left for Tomorrow. */
+.swipe-row{position:relative;touch-action:pan-y;border-radius:14px}
+.swipe-row-card{position:relative;z-index:1;transition:transform .18s ease}
+.swipe-row.is-swiping-left .swipe-row-card,.swipe-row.is-swiping-right .swipe-row-card{transition:none}
+.swipe-row-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-radius:14px;font-weight:800;opacity:0}
+.swipe-row.is-swiping-right .swipe-row-hint{opacity:1;background:#2e8b57;color:#fff}
+.swipe-row.is-swiping-left .swipe-row-hint{opacity:1;background:#b8742a;color:#fff;justify-content:flex-end}
+.swipe-row.is-swiping-right .swipe-row-hint span:last-child:not(:first-child),.swipe-row.is-swiping-left .swipe-row-hint span:first-child:not(:last-child){display:none}
+.swipe-row.is-armed .swipe-row-hint{filter:brightness(1.12)}
+@media (prefers-reduced-motion:reduce){.swipe-row-card{transition:none}}
+/* Weekend: Get ready for Monday */
+.weekend-card .weekend-due{display:grid;gap:8px;margin:6px 0}
+.weekend-card .weekend-tests{margin:8px 0 0}

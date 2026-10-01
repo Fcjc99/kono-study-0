@@ -1371,6 +1371,50 @@ test('Dark mode: follows a phone set to dark by default; Light and Dark in Look 
  }finally{await light.context.close()}
 })
 
+/** A finger swipe across an element: touchstart, a few touchmoves, touchend (phones only). */
+async function swipe(locator,dx){
+ await locator.evaluate((el,dx)=>{const r=el.getBoundingClientRect(),x0=r.left+r.width/2,y=r.top+r.height/2
+  const fire=(type,x)=>{const t=new Touch({identifier:1,target:el,clientX:x,clientY:y});el.dispatchEvent(new TouchEvent(type,{bubbles:true,cancelable:true,touches:type==='touchend'?[]:[t],targetTouches:type==='touchend'?[]:[t],changedTouches:[t]}))}
+  fire('touchstart',x0);for(let i=1;i<=6;i++)fire('touchmove',x0+dx*i/6);fire('touchend',x0+dx)},dx)
+}
+test('Weekend, quick add and swipe: Saturday leads with Monday; "bio worksheet due fri" becomes a Biology assignment; on a phone, swipe right finishes and left moves to tomorrow',async({context,page})=>{
+ const SATURDAY='2026-10-03T10:00:00'
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.tasks.push({id:'mon-read',profileId:pid,subjectId:'sub-bio',title:'Monday reading',due:'2026-10-05',done:false,notes:''},{id:'mon-lab',profileId:pid,subjectId:'',title:'Lab sheet',due:'2026-10-05',done:false,notes:''})
+ plan.exams.push({id:'wed-quiz',profileId:pid,subjectId:'sub-bio',title:'Unit quiz',due:'2026-10-07',done:false,notes:''})
+ await page.clock.setFixedTime(new Date(SATURDAY))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ const weekend=page.getByRole('region',{name:'Get ready for Monday'})
+ await weekend.getByText('Monday reading').first().waitFor()
+ await weekend.getByText('Tests this week:').waitFor()
+ assert.match(await weekend.locator('.weekend-tests').innerText(),/Unit quiz \(Wed\)/)
+
+ await page.getByRole('button',{name:'＋ Add',exact:true}).click()
+ const chooser=page.getByRole('dialog',{name:'Add to your plan'})
+ await chooser.getByLabel('Type it').fill('bio worksheet due fri at 4')
+ await chooser.getByText('Assignment: Worksheet').waitFor()
+ assert.match(await chooser.locator('.quick-add-preview').innerText(),/Biology · Fri, Oct 9 · 4:00 PM/)
+ await chooser.getByRole('button',{name:'Add',exact:true}).click()
+ await chooser.waitFor({state:'detached'})
+ await waitFor(()=>cloud.users.alice.plan.data.tasks.some(t=>t.title==='Worksheet'&&t.subjectId==='sub-bio'&&t.due==='2026-10-09'&&t.plannedTime==='16:00'),'the quick-added assignment never reached the account')
+
+ const phone=await freshPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true})
+ try{
+  await phone.page.clock.setFixedTime(new Date(SATURDAY))
+  await signInAs(phone.context,cloud,'alice')
+  await phone.page.goto(BASE)
+  await heading(phone.page,'Sanctuary')
+  const card=title=>phone.page.getByRole('region',{name:'Get ready for Monday'}).locator('.swipe-row').filter({hasText:title}).first()
+  await swipe(card('Monday reading'),150)
+  await waitFor(()=>cloud.users.alice.plan.data.tasks.find(t=>t.id==='mon-read')?.done===true,'swipe right never finished it')
+  await swipe(card('Lab sheet'),-150)
+  await waitFor(()=>cloud.users.alice.plan.data.tasks.find(t=>t.id==='mon-lab')?.due==='2026-10-04','swipe left never moved it to tomorrow')
+  assert.deepEqual(phone.errors,[])
+ }finally{await phone.context.close()}
+})
+
 test('offline: the Home Screen app opens with no signal, shows the plan, keeps a new assignment on the device, and uploads it when the signal is back',async()=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,now=new Date()
  const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')
