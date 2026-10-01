@@ -1547,6 +1547,42 @@ test('Halloween on the island: in October KONO wears a pumpkin, a banner counts 
  assert.equal(await palette.getByText('Friendly ghost').count(),0,'unearned event stickers leave with the event')
 })
 
+test('Project steps: "Break into steps" asks KONO’s AI for dated steps, they can be changed and reach the account, and "What should I do now?" brings up today’s step',async({context,page})=>{
+ const cloud=fakeCloud(),prompts=[]
+ await context.route(BASE+'api/ai',route=>{
+  const request=route.request()
+  if(request.method()==='GET')return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({enabled:true})})
+  prompts.push(request.postDataJSON().prompt)
+  const steps=[{title:'Find three sources',date:'2026-09-30'},{title:'Write your thesis and outline',date:'2026-10-04'},{title:'Write the draft',date:'2026-10-08'}]
+  return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({text:JSON.stringify({steps}),used:1,limit:40})})
+ })
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ await page.getByRole('button',{name:'＋ Add',exact:true}).click()
+ const chooser=page.getByRole('dialog',{name:'Add to your plan'})
+ await chooser.getByLabel('Type it').fill('history essay due 10/12')
+ await chooser.getByRole('button',{name:'Edit details'}).click()
+ const editor=page.locator('dialog[open]')
+ await editor.getByRole('button',{name:'✨ Break into steps'}).click()
+ await editor.getByText('KONO’s AI suggested these steps.',{exact:false}).waitFor()
+ assert.match(prompts[0],/essay/i)
+ assert.match(prompts[0],/It is due 2026-10-12/)
+ assert.equal(await editor.getByLabel('Day for Find three sources').inputValue(),'2026-09-30')
+ await editor.getByLabel('Day for Write the draft').fill('2026-10-09')
+ assert.equal(await editor.getByRole('button',{name:'✨ Break into steps'}).count(),0,'only offered while there are no steps')
+ await editor.getByRole('button',{name:'Save',exact:true}).click()
+ await editor.waitFor({state:'detached'})
+ await waitFor(()=>{const t=cloud.users.alice.plan.data.tasks.find(x=>/essay/i.test(x.title));return t?.subtasks?.map(st=>st.title+'@'+st.due).join('|')==='Find three sources@2026-09-30|Write your thesis and outline@2026-10-04|Write the draft@2026-10-09'},'the dated steps never reached the account')
+ await page.getByRole('button',{name:'▶ What should I do now?'}).click()
+ const now=page.getByRole('region',{name:'What to do now'})
+ await now.getByRole('heading',{name:'Read chapter 3'}).waitFor()
+ await now.getByRole('button',{name:'Something else'}).click()
+ await now.getByText('Next step: Find three sources').waitFor()
+ await now.getByText('Today’s step for this project.',{exact:false}).waitFor()
+})
+
 test('offline: the Home Screen app opens with no signal, shows the plan, keeps a new assignment on the device, and uploads it when the signal is back',async()=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,now=new Date()
  const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')

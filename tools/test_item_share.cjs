@@ -62,4 +62,13 @@ test('links and photo ids on assignments and exams are kept when the plan is sav
  assert.equal(exam.link,undefined,'only http(s) links');assert.equal(exam.photos.join(),'photo-aaaa1111')
  assert.equal(JSON.stringify(share.sharePayload(back,back.tasks[0])).includes('photo-'),false,'photos and links are never shared with classmates')
 })
-console.log(`${passed}/4 item-sharing groups passed.`)
+test('a project step keeps its day when the plan is saved and loaded; a bad day is refused',()=>{
+ const d=plan()
+ d.tasks[0].subtasks=[{id:'st-a',title:'Outline',done:false,due:'2026-10-04'},{id:'st-b',title:'Draft',done:false}]
+ const back=model.normalizeData(JSON.parse(JSON.stringify(d)))
+ assert.equal(back.tasks[0].subtasks[0].due,'2026-10-04')
+ assert.equal('due' in back.tasks[0].subtasks[1],false,'a step without a day stays without one')
+ d.tasks[0].subtasks[0].due='next week'
+ assert.throws(()=>model.normalizeData(JSON.parse(JSON.stringify(d))))
+})
+console.log(`${passed}/5 item-sharing groups passed.`)

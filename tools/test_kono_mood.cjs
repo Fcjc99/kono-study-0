@@ -119,4 +119,38 @@ test('What should I do now: late first, then today, tomorrow, then big work earl
  assert.equal(nextUpList([],wed,[{id:'x',title:'Quiz',due:wed,done:false}]).map(i=>i.title).join(','),['Study for Quiz'].join(','))
 })
 
+const {templateSteps,stepDays,parseSteps,suggestSteps}=load('src/store/projectSteps.ts')
+test('project steps: a template for the kind of work, spread from today to the day before it’s due',()=>{
+ const essay=templateSteps('History essay',wed,'2026-10-12')
+ assert.equal(essay.map(s=>s.title).join('|'),'Pick your topic and gather sources|Make an outline|Write the first draft|Revise and edit|Read it over one last time')
+ assert.equal(essay.map(s=>s.due).join(','),'2026-09-30,2026-10-03,2026-10-06,2026-10-08,2026-10-11')
+ assert.equal(templateSteps('Science fair poster',wed,'2026-10-07')[0].title,'Plan it and list what you need')
+ assert.equal(templateSteps('Read chapters 4-6',wed,'2026-10-07')[0].title,'Read the first part')
+ assert.equal(templateSteps('Math packet',wed,'2026-10-07').length,3)
+ const tight=templateSteps('English essay',wed,'2026-10-01')
+ assert.equal(tight.length,2,'one day of room: keep the first and last step')
+ assert.equal(tight.map(s=>s.title+'@'+s.due).join('|'),'Pick your topic and gather sources@2026-09-30|Read it over one last time@2026-09-30')
+ assert.equal(stepDays(3,wed,wed).join(','),[wed,wed,wed].join(','),'due today: everything today')
+})
+
+test('project steps from the AI are checked: dates kept between today and the due date, in order, at least 2 steps',()=>{
+ const raw='```json\n{"steps":[{"title":"Draft","date":"2026-10-05"},{"title":"Research  sources","date":"2026-09-01"},{"title":"Edit","date":"2026-12-01"},{"date":"2026-10-02"}]}\n```'
+ const steps=parseSteps(raw,wed,'2026-10-10')
+ assert.equal(steps.map(s=>s.title+'@'+s.due).join('|'),'Research sources@2026-09-30|Draft@2026-10-05|Edit@2026-10-10')
+ assert.throws(()=>parseSteps('{"steps":[{"title":"One","date":"2026-10-01"}]}',wed,'2026-10-10'))
+ assert.throws(()=>parseSteps('not json',wed,'2026-10-10'))
+})
+
+const {nextUpList:nextUp2}=load('src/store/nextUp.ts')
+test('a project’s step planned for today comes up today, even when the project is due later',()=>{
+ const project={id:'essay',title:'History essay',due:'2026-10-12',done:false,subtasks:[{title:'Outline',done:true,due:'2026-09-29'},{title:'Draft',done:false,due:wed}]}
+ const list=nextUp2([project,{id:'tmr',title:'Worksheet',due:'2026-10-01',done:false}],wed)
+ assert.equal(list.map(i=>i.id).join(','),'essay,tmr')
+ assert.equal(list[0].step,'Draft')
+ assert.equal(list[0].why,'Today’s step for this project.')
+ const behind=nextUp2([{...project,subtasks:[{title:'Outline',done:false,due:'2026-09-28'}]}],wed)
+ assert.match(behind[0].why,/planned for Monday, so it’s a little behind/)
+ assert.equal(nextUp2([{...project,due:'2026-10-30',subtasks:[{title:'Outline',done:false,due:'2026-10-20'}]}],wed).length,0,'nothing this week')
+})
+
 console.log(passed+' KONO mood and sticker groups passed')
