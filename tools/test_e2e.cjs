@@ -1520,6 +1520,33 @@ test('What should I do now and the app icon number: late work first, "Something 
  await until(async()=>await badge()===0,'turning it off should clear the icon')
 })
 
+test('Halloween on the island: in October KONO wears a pumpkin, a banner counts the 4 spooky stickers, finishing work earns the Pumpkin, and it goes on the island',async({context,page})=>{
+ const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
+ await page.clock.setFixedTime(new Date('2026-10-02T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ const today=page.getByRole('region',{name:'KONO today'})
+ await today.getByText('Spooky season on the island! Earn 4 special stickers until Oct 31: 0 of 4 so far.',{exact:false}).waitFor()
+ assert.equal(await today.locator('.kono-mood-face').getAttribute('data-costume'),'🎃')
+ await today.getByRole('button',{name:'Your stickers: 2 of 16 earned'}).waitFor()
+ await page.waitForTimeout(900)
+ await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
+ await page.getByRole('status').filter({hasText:'New sticker: 🎃 Pumpkin! Put it on your island in Decorate › Stickers.'}).waitFor()
+ await today.getByText('1 of 4 so far.',{exact:false}).waitFor()
+ await today.getByRole('button',{name:'Your stickers: 3 of 16 earned'}).click()
+ const palette=page.locator('.build-palette')
+ await palette.getByLabel('Friendly ghost, locked. Study 3 days in a row in October.').waitFor()
+ await palette.getByRole('button',{name:'Add Pumpkin'}).click()
+ await waitFor(()=>(cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[]).some(p=>p.assetId==='sticker-halloween-pumpkin'),'the pumpkin never reached the island')
+ await page.clock.setFixedTime(new Date('2026-11-05T15:00:00'))
+ await page.reload();await heading(page,'Sanctuary')
+ assert.equal(await today.locator('.kono-season').count(),0,'the event is over')
+ await today.getByRole('button',{name:'Your stickers: 3 of 13 earned'}).click()
+ await palette.getByRole('button',{name:'Add Pumpkin'}).waitFor()
+ assert.equal(await palette.getByText('Friendly ghost').count(),0,'unearned event stickers leave with the event')
+})
+
 test('offline: the Home Screen app opens with no signal, shows the plan, keeps a new assignment on the device, and uploads it when the signal is back',async()=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,now=new Date()
  const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')
