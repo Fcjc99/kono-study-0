@@ -1,11 +1,11 @@
 import {useEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent} from 'react'
-import {uid, type AppData, type BuildPlacement, type SignTextFont} from '../store/model'
+import {localDate, uid, type AppData, type BuildPlacement, type SignTextFont} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
 import {BUILD_ASSETS, BUILD_ASSET_BY_ID, BUILD_CATEGORIES, BUILD_CATEGORY_LABELS, SIGN_TEXT_DEFAULTS, buildAssetSrc, buildItemStyle, signTextStyle, type BuildAsset, type BuildCategory} from '../game/data/buildAssets'
 import {useResolvedDayPhase} from '../hooks/useResolvedDayPhase'
 import type {PhaseMode} from '../game/sanctuary/types'
 import DecorateDebugHUD from './DecorateDebugHUD'
-import {STICKERS} from '../store/stickers'
+import {STICKERS,stickerOffered} from '../store/stickers'
 import './sanctuary-build.css'
 
 const nextRotation=(r:0|90|180|270):0|90|180|270=>r===0?90:r===90?180:r===180?270:0
@@ -27,7 +27,7 @@ const STICKER_HOW:Record<string,string>=Object.fromEntries(STICKERS.map(s=>['sti
 /** A sticker (Decorate › Stickers) is placeable once it's earned; everything else always is. */
 const isLocked=(assetId:string,earned:Set<string>)=>assetId.startsWith('sticker-')&&!earned.has(assetId.slice(8))
 
-export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCategory}:{data:AppData;save:PlannerRepository['update'];phase:PhaseMode;earned?:Set<string>;startCategory?:BuildCategory}){
+export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCategory,today=localDate()}:{data:AppData;save:PlannerRepository['update'];phase:PhaseMode;earned?:Set<string>;startCategory?:BuildCategory;today?:string}){
  const profileId=data.activeProfileId
  const resolvedPhase=useResolvedDayPhase(phase)
  const assetSrc=(asset:BuildAsset):string=>buildAssetSrc(asset,resolvedPhase)
@@ -254,8 +254,8 @@ export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCa
    })()}
    <p className="wb-muted">Tap an item to add it to your island, or drag it on to choose where it lands. Drag a placed item anywhere to move it, or tap it once to select it — then use the controls above to resize, skew, rotate, mirror, duplicate, or remove it. A few items (like signs and the chalkboard) let you write your own text on them, too. Place as many of anything as you like.</p>
    <nav ref={tabsRef} className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}</nav>
-   {category==='stickers'&&<p className="build-sticker-note">Earn stickers by keeping up with your work. {STICKERS.filter(t=>earned.has(t.id)).length} of {STICKERS.length} earned.</p>}
-   <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category).map(a=>isLocked(a.id,earned)?
+   {category==='stickers'&&<p className="build-sticker-note">Earn stickers by keeping up with your work. {STICKERS.filter(t=>earned.has(t.id)).length} of {STICKERS.filter(t=>stickerOffered(t.id,earned,today)).length} earned.</p>}
+   <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category&&(!a.id.startsWith('sticker-')||stickerOffered(a.id.slice(8),earned,today))).map(a=>isLocked(a.id,earned)?
     <div key={a.id} className="build-palette-item is-locked" aria-label={a.label+', locked. '+STICKER_HOW[a.id]}><span className="build-palette-thumb"><img src={assetSrc(a)} alt="" draggable={false}/><i aria-hidden="true">🔒</i></span><small>{STICKER_HOW[a.id]}</small></div>:
     <div role="button" tabIndex={0} draggable key={a.id} className="build-palette-item" onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={()=>placeDefault(a.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();placeDefault(a.id)}}} aria-label={'Add '+a.label}><span className="build-palette-thumb"><img src={assetSrc(a)} alt="" draggable={false}/></span><small>{a.label}</small></div>
    )}</div>

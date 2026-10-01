@@ -5,9 +5,10 @@ import type { Note, Task } from '../store/model'
 type WakeLockSentinelLike = { release: () => Promise<void> }
 type NavigatorWithWakeLock = Navigator & { wakeLock?: { request: (type: 'screen') => Promise<WakeLockSentinelLike> } }
 
-export type FocusRequest={taskId:string;estimatedMinutes?:number;requestId:number}
+/** `label` is for studying with no assignment behind it ("Study for Cell biology test"); taskId is then ''. */
+export type FocusRequest={taskId:string;estimatedMinutes?:number;requestId:number;label?:string}
 export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey='kono-focus-draft',focusRequest,onFocusActiveChange}:{draftKey?:string;tasks:Task[];notes:Note[];onComplete:(id:string)=>void;onSaveNote:(body:string)=>void|Promise<boolean>;focusRequest?:FocusRequest|null;onFocusActiveChange?:(active:boolean)=>void}){
- const [taskId,setTaskId]=useState(''),[draft,setDraft]=useDraftState(draftKey,'')
+ const [taskId,setTaskId]=useState(''),[studyLabel,setStudyLabel]=useState(''),[draft,setDraft]=useDraftState(draftKey,'')
  const [duration,setDuration]=useDraftState(draftKey+':duration',25*60)
  const [remaining,setRemaining]=useState(duration),[until,setUntil]=useState<number|null>(null),[now,setNow]=useState(0)
  const [lockPreferred,setLockPreferred]=useDraftState(draftKey+':lock',false)
@@ -22,12 +23,13 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey
  if(focusRequest&&handledRequestId!==focusRequest.requestId){
   setHandledRequestId(focusRequest.requestId)
   setTaskId(focusRequest.taskId)
+  setStudyLabel(focusRequest.label??'')
   if(focusRequest.estimatedMinutes){const secs=focusRequest.estimatedMinutes*60;setDuration(secs);setRemaining(secs)}
  }
  // Opening the <details> is a real DOM side effect (and needs the ref committed), so it stays in an
  // effect rather than joining the state adjustment above.
  useEffect(()=>{if(focusRequest&&rootRef.current)rootRef.current.open=true},[focusRequest])
- const task=tasks.find(t=>t.id===taskId&&!t.done)??tasks.filter(t=>!t.done).sort((a,b)=>a.due.localeCompare(b.due))[0]
+ const task=studyLabel?undefined:tasks.find(t=>t.id===taskId&&!t.done)??tasks.filter(t=>!t.done).sort((a,b)=>a.due.localeCompare(b.due))[0]
  const seconds=until===null?remaining:Math.max(0,Math.ceil((until-now)/1000)),finished=until!==null&&seconds===0
  const progress=duration>0?Math.min(1,Math.max(0,1-seconds/duration)):0
  // The running timer, not the locked overlay, is what makes KONO sit with you on the island (see
@@ -64,7 +66,7 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey
  return <details className="card focus-session" ref={rootRef}><summary>Focus session · one task at a time</summary>
   {locked?<div className="focus-lock-overlay">
    <span className="eyebrow">Focus lock</span>
-   <h2>{task?.title??'Focus session'}</h2>
+   <h2>{task?.title??(studyLabel||'Focus session')}</h2>
    <span role="timer" aria-label="Focus time remaining" className="focus-lock-timer">{mm}:{ss}</span>
    <div className="focus-progress-track" aria-hidden="true"><i style={{width:`${progress*100}%`}}/></div>
    <p>{task?.notes||'Take the next small step.'}</p>
@@ -72,7 +74,7 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey
    <button className="primary" onClick={pause}>Pause &amp; exit focus lock</button>
   </div>:<>
   <p>A quiet task-and-notes space. The optional timer stays on this device and stops when you leave the Sanctuary. It never completes assignments for you.</p>
-  <div className="focus-session-grid"><div><label>Assignment<select value={task?.id??''} onChange={e=>setTaskId(e.target.value)}>{!task&&<option value="">No unfinished assignments</option>}{tasks.filter(t=>!t.done).map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select></label>{task&&<><h3>{task.title}</h3><p>{task.notes||'Take the next small step.'}</p><button onClick={()=>onComplete(task.id)}>Complete this assignment</button></>}<div className="focus-timer"><span role="timer" aria-label="Focus time remaining">{mm}:{ss}</span><div className="focus-progress-track" aria-hidden="true"><i style={{width:`${progress*100}%`}}/></div>{until===null&&<div className="focus-timer-set"><label>Minutes<input type="number" min={0} max={180} value={Math.floor(remaining/60)} onChange={e=>setCustomDuration(Number(e.target.value)||0,remaining%60)}/></label><label>Seconds<input type="number" min={0} max={59} value={remaining%60} onChange={e=>setCustomDuration(Math.floor(remaining/60),Number(e.target.value)||0)}/></label></div>}{until===null?<button onClick={start} disabled={remaining===0}>Start timer</button>:!finished?<button onClick={pause}>Pause</button>:<p role="status">Session complete. Take a short break.</p>}<button onClick={reset}>Reset timer</button></div><label className="wb-check"><input type="checkbox" checked={lockPreferred} onChange={e=>setLockPreferred(e.target.checked)}/>Lock this device to the timer</label><p className="wb-muted">Can't lock your phone or computer itself — only this browser tab. Starting the timer goes full screen and keeps the screen from sleeping until it ends. Press Esc or the pause button any time to leave.</p></div><div><label>Quick study note<textarea value={draft} onChange={e=>setDraft(e.target.value)} maxLength={100000}/></label><button disabled={!draft.trim()} onClick={async()=>{const saved=await onSaveNote(draft.trim());if(saved===true)setDraft('')}}>Save study note</button>{notes.slice(0,2).map(note=><article key={note.id}><strong>{note.title}</strong><p>{note.body.replace(/<[^>]*>/g,'').slice(0,250)}</p></article>)}</div></div>
+  <div className="focus-session-grid"><div><label>Assignment<select value={task?.id??''} onChange={e=>{setStudyLabel('');setTaskId(e.target.value)}}>{!task&&<option value="">{studyLabel||'No unfinished assignments'}</option>}{tasks.filter(t=>!t.done).map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select></label>{!task&&studyLabel&&<h3>{studyLabel}</h3>}{task&&<><h3>{task.title}</h3><p>{task.notes||'Take the next small step.'}</p><button onClick={()=>onComplete(task.id)}>Complete this assignment</button></>}<div className="focus-timer"><span role="timer" aria-label="Focus time remaining">{mm}:{ss}</span><div className="focus-progress-track" aria-hidden="true"><i style={{width:`${progress*100}%`}}/></div>{until===null&&<div className="focus-timer-set"><label>Minutes<input type="number" min={0} max={180} value={Math.floor(remaining/60)} onChange={e=>setCustomDuration(Number(e.target.value)||0,remaining%60)}/></label><label>Seconds<input type="number" min={0} max={59} value={remaining%60} onChange={e=>setCustomDuration(Math.floor(remaining/60),Number(e.target.value)||0)}/></label></div>}{until===null?<button onClick={start} disabled={remaining===0}>Start timer</button>:!finished?<button onClick={pause}>Pause</button>:<p role="status">Session complete. Take a short break.</p>}<button onClick={reset}>Reset timer</button></div><label className="wb-check"><input type="checkbox" checked={lockPreferred} onChange={e=>setLockPreferred(e.target.checked)}/>Lock this device to the timer</label><p className="wb-muted">Can't lock your phone or computer itself — only this browser tab. Starting the timer goes full screen and keeps the screen from sleeping until it ends. Press Esc or the pause button any time to leave.</p></div><div><label>Quick study note<textarea value={draft} onChange={e=>setDraft(e.target.value)} maxLength={100000}/></label><button disabled={!draft.trim()} onClick={async()=>{const saved=await onSaveNote(draft.trim());if(saved===true)setDraft('')}}>Save study note</button>{notes.slice(0,2).map(note=><article key={note.id}><strong>{note.title}</strong><p>{note.body.replace(/<[^>]*>/g,'').slice(0,250)}</p></article>)}</div></div>
   </>}
  </details>
 }

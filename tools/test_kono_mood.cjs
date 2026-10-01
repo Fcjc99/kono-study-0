@@ -72,11 +72,37 @@ test('every sticker is a placeable island decoration with its own picture',()=>{
  for(const s of STICKERS){const a=BUILD_ASSET_BY_ID['sticker-'+s.id];assert.ok(a,s.id);assert.equal(a.category,'stickers');assert.equal(a.src,stickerSrc(s.emoji));assert.match(a.src,/^data:image\/svg\+xml,/)}
 })
 
+const {seasonOn,stickerOffered,SEASONS}=load('src/store/stickers.ts')
+test('island events: Halloween in October and snow days across New Year, with stickers only earnable during them and kept after',()=>{
+ assert.equal(seasonOn('2026-09-30'),null)
+ assert.equal(seasonOn('2026-10-01').id,'halloween')
+ assert.equal(seasonOn('2026-10-31').id,'halloween')
+ assert.equal(seasonOn('2026-11-01'),null)
+ assert.equal(seasonOn('2026-12-01').id,'winter')
+ assert.equal(seasonOn('2027-01-06').id,'winter')
+ assert.equal(seasonOn('2027-01-07'),null)
+ const oct={...none,today:'2026-10-20'}
+ const got=h=>[...earnedStickers({...oct,...h})].filter(id=>id.startsWith('halloween-')).sort().join(',')
+ assert.equal(got({tasks:[task('2026-10-05',true,'2026-10-02')]}),'halloween-candy,halloween-pumpkin')
+ assert.equal(got({tasks:[task('2026-09-29',true,'2026-09-29')]}),'','September doesn’t count')
+ assert.equal(got({completionDates:{'2026-09-30':1,'2026-10-01':1,'2026-10-02':1}}),'','the streak has to be 3 October days')
+ assert.equal(got({completionDates:{'2026-10-01':1,'2026-10-02':1,'2026-10-03':1}}),'halloween-ghost')
+ assert.equal(got({tasks:Array.from({length:10},()=>task('2026-10-09',true,'2026-10-09'))}),'halloween-bat,halloween-pumpkin')
+ const winter=[...earnedStickers({...none,today:'2027-01-03',tasks:[task('2027-01-02',true,'2027-01-02')]})].filter(id=>id.startsWith('winter-'))
+ assert.deepEqual(winter,['winter-snowman'],'the event runs across New Year')
+ // In Decorate: offered during the event, or once earned; everyday stickers always.
+ assert.ok(stickerOffered('streak-3',new Set(),'2026-06-01'))
+ assert.ok(stickerOffered('halloween-pumpkin',new Set(),'2026-10-10'))
+ assert.ok(!stickerOffered('halloween-pumpkin',new Set(),'2026-11-10'))
+ assert.ok(stickerOffered('halloween-pumpkin',new Set(['halloween-pumpkin']),'2026-11-10'),'earned ones stay')
+ for(const season of SEASONS)for(const t of season.stickers)assert.ok(BUILD_ASSET_BY_ID['sticker-'+t.id],t.id)
+})
+
 const {nextUpList}=load('src/store/nextUp.ts')
 test('What should I do now: late first, then today, tomorrow, then big work early in the week; steps point at the next one',()=>{
  const t=(id,due,extra={})=>({id,title:id,due,done:false,...extra})
  const list=nextUpList([t('small-fri','2026-10-02',{estimatedMinutes:15}),t('big-mon','2026-10-05',{estimatedMinutes:90}),t('tomorrow','2026-10-01'),t('today',wed),t('late','2026-09-28'),t('older-late','2026-09-25'),t('far','2026-10-20'),t('done',wed,{done:true})],wed)
- assert.deepEqual(list.map(i=>i.id),['older-late','late','today','tomorrow','big-mon','small-fri'])
+ assert.equal(list.map(i=>i.id).join(','),['older-late','late','today','tomorrow','big-mon','small-fri'].join(','))
  assert.match(list[0].why,/late/)
  assert.equal(list[2].why,'It’s due today.')
  assert.match(list[4].why,/big one/)
@@ -85,7 +111,12 @@ test('What should I do now: late first, then today, tomorrow, then big work earl
  assert.equal(list[2].minutes,25,'no estimate: a 25-minute focus')
  const steps=nextUpList([t('essay',wed,{subtasks:[{title:'Outline',done:true},{title:'Draft',done:false}]})],wed)
  assert.equal(steps[0].step,'Draft')
- assert.deepEqual(nextUpList([],wed),[])
+ assert.equal(nextUpList([],wed).length,0)
+ const withTest=nextUpList([t('late','2026-09-28'),t('today',wed),t('tomorrow','2026-10-01')],wed,[{id:'bio-test',title:'Bio test',due:'2026-10-01',done:false},{id:'far-test',title:'Far test',due:'2026-10-09',done:false}])
+ assert.equal(withTest.map(i=>i.title).join(','),['late','today','Study for Bio test','tomorrow'].join(','),'a test tomorrow comes right after today’s work')
+ assert.equal(withTest[2].exam,true)
+ assert.equal(withTest[2].why,'The test is tomorrow.')
+ assert.equal(nextUpList([],wed,[{id:'x',title:'Quiz',due:wed,done:false}]).map(i=>i.title).join(','),['Study for Quiz'].join(','))
 })
 
 console.log(passed+' KONO mood and sticker groups passed')

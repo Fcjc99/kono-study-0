@@ -260,3 +260,7 @@
 .kono-mood.is-sleepy img{opacity:.85}
 @keyframes kono-mood-hop{0%,100%{transform:translateY(0)}40%{transform:translateY(-6px) rotate(-4deg)}60%{transform:translateY(-3px) rotate(4deg)}}
 @media(prefers-reduced-motion:reduce){.kono-mood.is-celebrate img{animation:none}}
+/* Island events (store/stickers SEASONS): a banner in KONO today, and KONO wears the event's emoji. */
+.kono-mood-face{position:relative;flex:0 0 44px;width:44px;height:44px}
+.kono-mood-face[data-costume]::after{content:attr(data-costume);position:absolute;top:-8px;right:-6px;font-size:1.05rem;transform:rotate(14deg);filter:drop-shadow(0 1px 1px #0003)}
+.kono-season{margin:0;padding:6px 10px;border-radius:10px;background:color-mix(in srgb,#f08a24 14%,var(--wb-surface));font-size:.86rem;line-height:1.35}
