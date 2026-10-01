@@ -48,3 +48,10 @@
  * own native pixel size instead of the small icon this list needs. */
 .build-palette-thumb img{display:block;height:100%!important;width:auto!important;max-width:78px!important;object-fit:contain}
 .build-palette-item small{font-size:.62rem;text-align:center;line-height:1.1;max-width:76px}
+/* Decorate › Stickers: unearned ones show greyed with a lock and how to earn them. */
+.build-sticker-note{margin:4px 0;font-size:.82rem;color:var(--wb-muted)}
+.build-palette-item.is-locked{cursor:default}
+.build-palette-item.is-locked small{color:var(--wb-muted)}
+.build-palette-item.is-locked .build-palette-thumb{position:relative}
+.build-palette-item.is-locked img{filter:grayscale(1) opacity(.7)}
+.build-palette-item.is-locked i{position:absolute;inset:auto 0 0 auto;font-style:normal;font-size:.9rem}
