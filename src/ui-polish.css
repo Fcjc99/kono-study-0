@@ -217,3 +217,10 @@
 /* Weekend: Get ready for Monday */
 .weekend-card .weekend-due{display:grid;gap:8px;margin:6px 0}
 .weekend-card .weekend-tests{margin:8px 0 0}
+/* One-tap actions confirm here, with Undo (hides after 7 seconds). */
+.undo-toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;max-width:min(560px,calc(100vw - 24px));padding:10px 10px 10px 16px;border-radius:14px;background:#2a2430;color:#fff;box-shadow:0 10px 30px #0004;font-weight:600;animation:undo-in .18s ease-out}
+.undo-toast span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.undo-toast button{min-height:36px;padding:4px 14px;border-radius:10px;border:0;background:#ffd166;color:#2a2430;font-weight:800}
+.undo-toast .undo-toast-close{background:transparent;color:#fff;padding:4px 8px}
+@keyframes undo-in{from{opacity:0;transform:translate(-50%,8px)}}
+@media (prefers-reduced-motion:reduce){.undo-toast{animation:none}}

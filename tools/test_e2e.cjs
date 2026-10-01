@@ -1398,6 +1398,7 @@ test('Weekend, quick add and swipe: Saturday leads with Monday; "bio worksheet d
  assert.match(await chooser.locator('.quick-add-preview').innerText(),/Biology · Fri, Oct 9 · 4:00 PM/)
  await chooser.getByRole('button',{name:'Add',exact:true}).click()
  await chooser.waitFor({state:'detached'})
+ await page.locator('.undo-toast').getByText('Added “Worksheet”',{exact:false}).waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.tasks.some(t=>t.title==='Worksheet'&&t.subjectId==='sub-bio'&&t.due==='2026-10-09'&&t.plannedTime==='16:00'),'the quick-added assignment never reached the account')
 
  const phone=await freshPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true})
@@ -1411,6 +1412,12 @@ test('Weekend, quick add and swipe: Saturday leads with Monday; "bio worksheet d
   await waitFor(()=>cloud.users.alice.plan.data.tasks.find(t=>t.id==='mon-read')?.done===true,'swipe right never finished it')
   await swipe(card('Lab sheet'),-150)
   await waitFor(()=>cloud.users.alice.plan.data.tasks.find(t=>t.id==='mon-lab')?.due==='2026-10-04','swipe left never moved it to tomorrow')
+  // Every one-tap action confirms in a bar at the bottom with Undo.
+  const bar=phone.page.locator('.undo-toast')
+  await bar.getByText('Moved “Lab sheet” to tomorrow.').waitFor()
+  await bar.getByRole('button',{name:'Undo'}).click()
+  await bar.waitFor({state:'detached'})
+  await waitFor(()=>cloud.users.alice.plan.data.tasks.find(t=>t.id==='mon-lab')?.due==='2026-10-05','Undo never put it back on Monday')
   assert.deepEqual(phone.errors,[])
  }finally{await phone.context.close()}
 })
