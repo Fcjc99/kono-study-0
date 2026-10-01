@@ -44,7 +44,8 @@ async function createPlan(page){
 const mainHeading=page=>page.locator('#workspace-main h1').first()
 async function heading(page,name){await page.waitForFunction(n=>document.querySelector('#workspace-main h1')?.textContent?.startsWith(n),name)}
 async function go(page,name){
- await page.locator('nav button:visible, nav a:visible').filter({hasText:name}).first().click()
+ // By visible text or by name: on phones the Sanctuary tab reads "Home" but is still named Sanctuary.
+ await page.locator('nav button:visible, nav a:visible').filter({hasText:name}).or(page.locator(`nav button:visible[aria-label="${name}"]`)).first().click()
  await heading(page,name)
 }
 async function settingsTab(page,name){
@@ -1670,6 +1671,26 @@ test('Ask KONO: KONO greets and asks what you want to know, answers today, this 
  await kono.getByRole('button',{name:'Close'}).click()
  await kono.waitFor({state:'detached'})
  await page.getByRole('button',{name:'▶ What should I do now?'}).waitFor()
+})
+
+test('Phone check-up: on a 375px phone no page scrolls sideways, every tab label fits (Sanctuary reads Home), and the hour column fits "10 AM"',async()=>{
+ const phone=await freshPage({viewport:{width:375,height:740},isMobile:true,hasTouch:true})
+ try{
+  await createPlan(phone.page)
+  const p=phone.page
+  const nav=p.locator('nav.mobile-nav')
+  assert.equal(await nav.locator('button.active small').innerText(),'Home')
+  assert.deepEqual(await nav.locator('button small').evaluateAll(s=>s.filter(x=>x.scrollWidth>x.clientWidth).map(x=>x.textContent)),[],'a tab label is cut off')
+  for(const name of ['Sanctuary','Planner','Subjects','Notes','K-Quiz','Exams','Settings']){
+   await go(p,name)
+   await p.waitForTimeout(300)
+   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),name+' scrolls sideways')
+  }
+  await go(p,'Planner')
+  const hours=p.locator('.week-grid-hours span')
+  if(await hours.count())assert.deepEqual(await hours.evaluateAll(s=>s.filter(x=>x.scrollWidth>x.clientWidth+1).map(x=>x.textContent)),[],'an hour label is cut off')
+  assert.deepEqual(phone.errors,[])
+ }finally{await phone.context.close()}
 })
 
 test('offline: the Home Screen app opens with no signal, shows the plan, keeps a new assignment on the device, and uploads it when the signal is back',async()=>{

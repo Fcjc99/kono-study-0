@@ -17,8 +17,8 @@
 :root[data-dark] .workbench :is(
  .wb-header,.wb-panel:not(.wb-board),.wb-record:not(.wb-sticky):not(.wb-record-notes),.wb-notice,.wb-dialog,dialog,.card,.task,.task-row-v2,.cozy-task-row,
  .planner-day-sheet,.planner-day-paper,.planner-day-board,.week-grid,.week-grid-row,.week-grid-day,.week-grid-allday-cell,.week-recap,.week-recap-tiles li,
- .board-ribbon,.memory-board-header,.getting-started-steps li,.overdue-card li,.shared-with-me li,.save-to-email-banner,.save-status,.schedule-filter-row,
- .planner-settings-link,.today-schedule-compact,.subject-workspace,.subject-manager,.calendar-shell,.month-grid,.calendar-grid,.season-card,.profile-dock,
+ .board-ribbon,.memory-board-header,.getting-started-steps li,.overdue-card li,.shared-with-me li,.save-to-email-banner,.save-status,
+.today-schedule-compact,.subject-workspace,.subject-manager,.calendar-shell,.month-grid,.calendar-grid,.season-card,.profile-dock,
  .team-color-grid button,.theme-picker-tile,.customizer-group,.kquiz-choice,.kquiz-material-row,.focus-session,.study-planner,.subject-quick-add,.tasks-card,
  .wb-calendar,.wb-board-heading,.mobile-desk-header,.mobile-profile-chip,.tomorrow-extra-list,.page-hero,.settings-hero,.illustrated-hero,.sanctuary-banner,.share-classmate,.share-classmate-list li,.peer-list li,.rotation-grid,.class-grid
 ){background:var(--wb-surface)!important;background-image:none!important;color:var(--wb-ink)!important;border-color:var(--wb-line)!important;box-shadow:none}
