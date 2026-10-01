@@ -1610,6 +1610,31 @@ test('Team calendar for a parent: a TeamSnap webcal link is a team calendar, the
  assert.match(await linked.innerText(),/Hawks U12 · Emma · team/)
 })
 
+test('School heads-up: a week before Thanksgiving the Sanctuary says there is an early release and two days off, Got it hides it, and it stays hidden after a reload',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+ plan.studySeasons.push({id:'riverside',profileId:pid,name:'Riverside Middle',start:'2026-09-01',end:'2027-06-20',active:true,week:Object.fromEntries(days.map(d=>[d,[]])),
+  school:{pattern:'weekly',name:'Riverside Middle',grade:'7',cycle:days,anchorDate:'2026-09-01',anchorDay:'Tuesday',weekdays:[1,2,3,4,5],snowAdvances:false,lastClassDate:'2027-06-15',exceptions:[
+   {id:'x1',start:'2026-11-26',end:'2026-11-27',kind:'holiday',label:'Thanksgiving recess',audience:'all'},
+   {id:'x2',start:'2026-11-25',end:'2026-11-25',kind:'half',label:'Early release',audience:'all'},
+   {id:'x3',start:'2026-12-24',end:'2026-12-31',kind:'holiday',label:'Winter recess',audience:'all'}]}})
+ await page.clock.setFixedTime(new Date('2026-11-19T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ const notice=page.locator('.school-heads-up')
+ await notice.getByText('📅 Coming up at school').waitFor()
+ assert.equal(await notice.locator('li').evaluateAll(li=>li.map(x=>x.textContent).join(' | ')),'Early release Wed, Nov 25 · Riverside Middle | No school Thu, Nov 26 – Fri, Nov 27 · Thanksgiving recess · Riverside Middle')
+ assert.ok(!(await notice.innerText()).includes('Winter'),'only the next week')
+ await go(page,'Planner')
+ await page.locator('.school-heads-up').getByText('No school Thu, Nov 26 – Fri, Nov 27').waitFor()
+ await page.locator('.school-heads-up').getByRole('button',{name:'Got it'}).click()
+ await page.locator('.school-heads-up').waitFor({state:'detached'})
+ await page.reload();await heading(page,'Planner')
+ await go(page,'Sanctuary')
+ assert.equal(await page.locator('.school-heads-up').count(),0,'Got it keeps them hidden on this device')
+})
+
 test('offline: the Home Screen app opens with no signal, shows the plan, keeps a new assignment on the device, and uploads it when the signal is back',async()=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,now=new Date()
  const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')
