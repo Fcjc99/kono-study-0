@@ -1,4 +1,4 @@
-export type KonoPhrase={kind:'greeting'|'reminder'|'affirmation'|'fact'|'celebration'|'milestone';text:string}
+export type KonoPhrase={kind:'greeting'|'reminder'|'affirmation'|'fact'|'celebration'|'milestone'|'sticker';text:string}
 
 /** Checked with .includes(), not a threshold -- a streak only ever equals one of these on the exact
  * day it's first reached, so this doubles as "is this a day worth celebrating." */

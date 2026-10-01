@@ -1455,6 +1455,39 @@ test('Add from Siri or the share sheet, links and photos: /?add=… starts quick
  assert.equal(await page.locator('dialog[open] .assignment-photo-thumb').count(),0)
 })
 
+test('KONO today and stickers: KONO is worried about late work and sleepy late at night; a new sticker gets a speech bubble, opens in Decorate › Stickers and goes on the island; locked ones say how to earn them',async({context,page})=>{
+ const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ const today=page.getByRole('region',{name:'KONO today'})
+ await today.getByText('KONO is a little worried about 1 late assignment. One at a time?').waitFor()
+ await today.getByRole('button',{name:'Your stickers: 2 of 12 earned'}).waitFor()
+ await page.waitForTimeout(900)
+ assert.equal(await page.getByText(/New sticker/).count(),0,'the first look on a device only notes what is already earned')
+ await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
+ await today.getByText('Nothing due today. KONO is having a cup of tea.').waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.tasks.find(t=>t.title==='Read chapter 3')?.done===true,'the finished assignment never reached the account')
+ const plan=cloud.users.alice.plan.data
+ plan.tasks.push({id:'early-essay',profileId:pid,subjectId:'',title:'Essay draft',due:'2026-10-05',done:true,completedAt:'2026-09-30T14:00:00.000Z',notes:''})
+ cloud.users.alice.plan.revision++
+ await page.reload();await heading(page,'Sanctuary')
+ await page.getByRole('status').filter({hasText:'New sticker: 🐦 Early bird! Put it on your island in Decorate › Stickers.'}).waitFor()
+ await today.getByRole('button',{name:'Your stickers: 3 of 12 earned'}).click()
+ const palette=page.locator('.build-palette')
+ await page.getByRole('navigation',{name:'Decoration categories'}).getByRole('button',{name:'Stickers',exact:true}).and(page.locator('[aria-current="page"]')).waitFor()
+ await page.getByText('3 of 12 earned.').waitFor()
+ assert.equal(await palette.getByRole('button',{name:'Add Gem'}).count(),0,'a locked sticker can’t be placed')
+ await palette.getByLabel('Gem, locked. Finish 100 assignments.').waitFor()
+ await palette.getByRole('button',{name:'Add Early bird'}).click()
+ await waitFor(()=>(cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[]).some(p=>p.assetId==='sticker-early-bird'),'the sticker never reached the island')
+ await page.clock.setFixedTime(new Date('2026-09-30T23:15:00'))
+ await page.reload();await heading(page,'Sanctuary')
+ await today.getByText('It’s late. KONO is curled up for the night. Sleep well!').waitFor()
+ assert.match(await today.locator('img').getAttribute('src'),/sleep\.webp$/)
+})
+
 test('offline: the Home Screen app opens with no signal, shows the plan, keeps a new assignment on the device, and uploads it when the signal is back',async()=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,now=new Date()
  const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')
