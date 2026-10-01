@@ -274,3 +274,20 @@
 .school-heads-up{align-items:center;justify-content:flex-start;border-color:#2f7d6d}
 .school-heads-up>div{display:flex;flex-direction:column;gap:2px;margin-right:auto}
 .school-heads-up ul{margin:6px 0 0;padding-left:18px}
+/* KONO today: the two actions side by side, and the "Ask KONO" panel (components/AskKono). */
+.kono-mood-actions{display:flex;gap:8px;flex-wrap:wrap}
+.kono-mood-actions>button{flex:1 1 150px;font-weight:700}
+.ask-kono{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--wb-line);border-radius:12px;background:var(--wb-surface)}
+.ask-kono-head{display:flex;align-items:flex-start;gap:10px}
+.ask-kono-head img{width:48px;height:48px;flex:0 0 48px;object-fit:contain}
+.ask-kono-bubble{flex:1;display:flex;flex-direction:column;gap:3px;margin:0;padding:10px 12px;border-radius:14px 14px 14px 4px;background:color-mix(in srgb,var(--wb-accent,#c987a2) 12%,var(--wb-surface));line-height:1.35}
+.ask-kono-bubble strong{font-size:1rem}
+.ask-kono-heard{margin:0;font-size:.82rem;color:var(--wb-muted)}
+.ask-kono-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:6px}
+.ask-kono-choices button{padding-inline:10px;font-size:.92rem}
+.ask-kono-choices button{text-align:left}
+.ask-kono-type{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.ask-kono-type label{flex:1 1 180px}
+.ask-kono-foot{flex-wrap:wrap}
+.ask-kono-mic.is-listening{animation:kono-mood-hop 1s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.ask-kono-mic.is-listening{animation:none}}

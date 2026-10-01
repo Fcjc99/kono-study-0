@@ -153,4 +153,45 @@ test('a project’s step planned for today comes up today, even when the project
  assert.equal(nextUp2([{...project,due:'2026-10-30',subtasks:[{title:'Outline',done:false,due:'2026-10-20'}]}],wed).length,0,'nothing this week')
 })
 
+const askKono=load('src/store/askKono.ts'),modelForAsk=load('src/store/model.ts')
+test('Ask KONO understands today, tomorrow, this week and "when is … due"',()=>{
+ const q=t=>{const r=askKono.readQuestion(t);return r.kind+(r.query?':'+r.query:'')}
+ assert.equal(q("What's my schedule today?"),'today')
+ assert.equal(q('what do I have tomorrow'),'tomorrow')
+ assert.equal(q('what is due this week'),'week')
+ assert.equal(q('When is my bio essay due?'),'due:bio essay')
+ assert.equal(q('when is the math test'),'due:math test')
+ assert.equal(q('  '),'unknown')
+ assert.equal(q('when is it due'),'unknown','nothing to look for')
+})
+
+test('Ask KONO answers a day (classes in order, events, tests, due, no school), the week, and when something is due',()=>{
+ const d=modelForAsk.createFreshData(),pid=d.activeProfileId
+ d.subjects.push({id:'bio',profileId:pid,name:'Biology',color:'#4169a8',resources:[]})
+ const week=modelForAsk.blankWeek()
+ week.Wednesday=[{id:'b2',label:'Algebra',start:'10:15',end:'11:00',kind:'study'},{id:'b1',label:'Biology',start:'09:00',end:'09:50',kind:'study',location:'Room 235'},{id:'l',label:'Lunch',start:'12:00',end:'12:30',kind:'break'}]
+ d.studySeasons=[{id:'s',profileId:pid,name:'Fall',start:'2026-09-01',end:'2026-12-20',active:true,week}]
+ d.tasks.push({id:'t1',profileId:pid,subjectId:'bio',title:'Lab report',due:wed,done:false,notes:''},{id:'t2',profileId:pid,subjectId:'bio',title:'Ecology essay',due:'2026-10-09',done:false,notes:''},{id:'t3',profileId:pid,subjectId:'',title:'Old worksheet',due:'2026-09-25',done:false,notes:''})
+ d.exams.push({id:'e1',profileId:pid,subjectId:'bio',title:'Cell biology test',due:'2026-10-02',done:false,notes:''})
+ d.calendarEvents.push({id:'ev',profileId:pid,date:wed,title:'Soccer practice',kind:'sports',notes:'',time:'16:30'})
+ const today=askKono.dayAnswer(d,wed,wed)
+ assert.equal(today.lines.join(' | '),'9:00 AM · Biology (Room 235) | 10:15 AM · Algebra | 4:30 PM · Soccer practice | ✎ Due: Lab report | ⚠ Late: Old worksheet')
+ assert.match(today.speech,/^Today, Wednesday, September 30\. You have 2 classes\. Biology at 9:00 AM and Algebra at 10:15 AM\. Also, Soccer practice at 4:30 PM\. Due today: Lab report\. And one late assignment: Old worksheet\.$/)
+ const thu=askKono.answer(d,{kind:'tomorrow'},wed)
+ assert.equal(thu.lines.join(' | '),'Nothing on the plan.')
+ assert.match(thu.speech,/Nothing is on your plan tomorrow/)
+ const week2=askKono.weekAnswer(d,wed)
+ assert.equal(week2.lines.join(' | '),'Today: Lab report | Friday: ★ Cell biology test')
+ assert.match(week2.speech,/^2 things are due this week\./)
+ assert.equal(askKono.dueAnswer(d,'bio essay',wed).speech,'Ecology essay is due Friday, October 9, in 9 days.','bio matches the Biology class')
+ assert.equal(askKono.dueAnswer(d,'cell test',wed).speech,'Cell biology test is on Friday, October 2, in 2 days.')
+ assert.equal(askKono.dueAnswer(d,'lab',wed).speech,'Lab report is due today.')
+ assert.equal(askKono.dueAnswer(d,'worksheet',wed).speech,'Old worksheet was due Friday, September 25, so it’s late.')
+ assert.equal(askKono.dueAnswer(d,'soccer',wed).speech,'Soccer practice is today at 4:30 PM.')
+ assert.match(askKono.dueAnswer(d,'piano',wed).speech,/couldn’t find/)
+ // Parent mode: kid names in front.
+ d.settings.parentMode=true;d.kids.push({id:'kid-a',profileId:pid,name:'Emma',color:'#e86a5c'});d.calendarEvents[0].kidId='kid-a'
+ assert.match(askKono.dayAnswer(d,wed,wed).speech,/Emma: Soccer practice at 4:30 PM/)
+})
+
 console.log(passed+' KONO mood and sticker groups passed')
