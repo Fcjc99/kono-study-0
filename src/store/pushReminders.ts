@@ -1,6 +1,7 @@
 import { classOccurrences, classTime } from './classSchedule'
 import type { AppData } from './model'
 import { schoolDay } from './schoolCalendar'
+import { changeDetail, changeTitle, schoolChanges } from './schoolHeadsUp'
 
 /** The next week of lock-screen reminders for the active plan, worked out on the person's own device
  * (so times are in their time zone) and handed to KONO's server queue (migration 0008):
@@ -10,6 +11,7 @@ import { schoolDay } from './schoolCalendar'
  * - 7:05 PM: assignments due tomorrow that aren't done yet
  * - parent mode, 6:00 PM on Sundays: the family's week ahead, per kid
  * - 7:30 PM, rotating schools: which day tomorrow is and its first class, or that there's no school
+ * - 6:30 PM a week before a school day off or early release; for other schools, 7:30 PM the evening before too
  * - 15 minutes before each class, and at the start of each planned study block and Plan-my-week session
  * - parent mode with family reminders on: 15 minutes before each timed event
  * Past times are skipped; the list is capped so a busy week can't flood anyone. */
@@ -63,6 +65,15 @@ export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
         const counts = groups.map(g => (g.name ? g.name + ': ' : '') + g.list.length + ' due').join(' · ')
         add(at(date, '18:00'), 'Family week ahead', counts + (tests.length ? ' · Tests: ' + list(tests) : ''), 'family-week-' + date)
       }
+    }
+    // School days off and early releases: a week ahead so there's time to plan, and the evening before
+    // (rotating schools already get both from the 7:30 PM line below: "No school tomorrow", "Tomorrow is Day 3 · Early release").
+    const weekOut = new Date(day); weekOut.setDate(day.getDate() + 7)
+    for (const c of schoolChanges(data, profileId, dateOf(weekOut), dateOf(weekOut))) add(at(date, '18:30'), 'Next week: ' + changeTitle(c), changeDetail(c) || 'From your school calendar.', 'school-week-' + c.key)
+    for (const c of schoolChanges(data, profileId, dateOf(next), dateOf(next))) {
+      const season = data.studySeasons.find(s => c.key.startsWith(s.id + ':'))
+      if (season?.school?.pattern !== 'weekly') continue
+      add(at(date, '19:30'), c.kind === 'off' ? (c.days > 1 ? 'No school tomorrow through ' + new Date(c.end + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long' }) : 'No school tomorrow') : 'Early release tomorrow', changeDetail(c) || 'From your school calendar.', 'school-eve-' + c.key)
     }
     // A rotating school (Day 1–7, A/E…): nobody can work out tomorrow's day in their head, so say it the evening before.
     for (const s of data.studySeasons.filter(s => s.profileId === profileId && s.active && s.school && s.school.pattern !== 'weekly')) {

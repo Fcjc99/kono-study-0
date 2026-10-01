@@ -62,6 +62,33 @@ console.log('PASS reminder planner: morning summary, exam eve, classes 15 min be
 }
 
 {
+ // School days off and early releases: a week ahead for every school, and the evening before for a
+ // Monday–Friday school too (a rotating one already says "No school tomorrow" / "Tomorrow is Day 3 · …").
+ const {academicTemplate}=load('src/store/academicCatalog.ts'),{schoolChanges,changeTitle,changeDetail}=load('src/store/schoolHeadsUp.ts')
+ const plan=model.createFreshData(),pid=plan.activeProfileId,dhs=academicTemplate(pid,'duxburyhs-2026')
+ const rotation={...dhs,active:true,school:{...dhs.school,grade:'10',anchorDate:'2026-09-28',anchorDay:'Day 4'}}
+ plan.studySeasons=[rotation]
+ const fall=schoolChanges(plan,pid,'2026-11-20','2026-11-30')
+ assert.equal(fall.map(c=>c.kind+':'+c.start+'..'+c.end).join(' '),'early:2026-11-25..2026-11-25 off:2026-11-26..2026-11-27','Thanksgiving is one run; the weekend is not a day off')
+ assert.equal(changeTitle(fall[1]),'No school Thu, Nov 26 – Fri, Nov 27')
+ assert.equal(changeDetail(fall[1]),'Thanksgiving recess · Duxbury High School')
+ assert.equal(schoolChanges(plan,pid,'2027-02-15','2027-02-15')[0].days,5,'February break, Monday to Friday')
+ assert.equal(schoolChanges(plan,pid,'2027-02-17','2027-02-20').length,0,'a break already under way is not announced again')
+ const week=buildReminders(plan,new Date('2026-11-18T08:00:00'))
+ const ahead=week.filter(r=>r.tag.startsWith('school-week-'))
+ assert.equal(ahead.map(r=>new Date(r.sendAt).getDate()+' '+r.title).join(' | '),'18 Next week: Early release Wed, Nov 25 | 19 Next week: No school Thu, Nov 26 – Fri, Nov 27')
+ assert.equal(new Date(ahead[0].sendAt).getHours()*60+new Date(ahead[0].sendAt).getMinutes(),18*60+30)
+ assert.equal(week.filter(r=>r.tag.startsWith('school-eve-')).length,0,'a rotating school gets the evening before from its own reminder')
+ // The same calendar as a plain Monday–Friday school.
+ plan.studySeasons=[{...rotation,school:{...rotation.school,pattern:'weekly',cycle:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']}}]
+ const eve=buildReminders(plan,new Date('2026-11-23T08:00:00')).filter(r=>r.tag.startsWith('school-eve-'))
+ assert.equal(eve.map(r=>new Date(r.sendAt).getDate()+' '+r.title).join(' | '),'24 Early release tomorrow | 25 No school tomorrow through Friday')
+ assert.equal(eve[1].body,'Thanksgiving recess · Duxbury High School')
+ assert.equal(new Date(eve[0].sendAt).getHours(),19)
+ console.log('PASS school days off and early releases: one run per break, a week ahead at 6:30 PM, and the evening before for a weekly school')
+}
+
+{
  // Homework the night before, and (parent mode) the family's week ahead on Sunday evening.
  const plan=model.createFreshData(),pid=plan.activeProfileId
  plan.subjects.push({id:'eng',profileId:pid,name:'English',color:'#000',resources:[]})

@@ -270,3 +270,7 @@
 .wb-step-date{flex:0 0 auto;width:auto;max-width:150px;padding:4px 6px;font-size:.85rem}
 .break-into-steps{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin:6px 0}
 .break-into-steps p{margin:0}
+/* Sanctuary / Planner: school days off and early releases in the next week (store/schoolHeadsUp). */
+.school-heads-up{align-items:center;justify-content:flex-start;border-color:#2f7d6d}
+.school-heads-up>div{display:flex;flex-direction:column;gap:2px;margin-right:auto}
+.school-heads-up ul{margin:6px 0 0;padding-left:18px}

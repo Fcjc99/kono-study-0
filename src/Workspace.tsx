@@ -11,6 +11,7 @@ import {useSpeechToText} from './hooks/useSpeechToText'
 import {syncCurrentTaskCompletion,createSanctuaryProgress} from './game/progression/progressionEngine'
 import {konoMood} from './store/konoMood'
 import {nextUpList} from './store/nextUp'
+import {changeDetail,changeTitle,schoolChanges} from './store/schoolHeadsUp'
 import {APP_BADGE_SETTING,showAppBadge} from './store/appBadge'
 import NextUp from './components/NextUp'
 import BreakIntoSteps from './components/BreakIntoSteps'
@@ -266,6 +267,9 @@ function Workspace({store}:{store:Store}){
  // Stickers earned from the plan's history (Decorate › Stickers).
  const earned=earnedStickers({tasks:ownTasks,exams:ownExams,studySessions:data.calendarEvents.filter(e=>e.profileId===profile.id&&e.kind==='study'&&e.subjectId).map(e=>({subjectId:e.subjectId??'',date:e.date})),completionDates:sanctuaryProgress.completionDates,today})
  const earnedKey=STICKERS.filter(t=>earned.has(t.id)).map(t=>t.id).join(',')
+ // School days off and early releases in the next week (store/schoolHeadsUp); "Got it" hides each one on this device.
+ const [schoolSeen,setSchoolSeen]=useLocalSetting('kono-school-heads-up:'+profile.id,'')
+ const schoolAhead=schoolChanges(data,profile.id,addDays(today,1),addDays(today,7)).filter(c=>!schoolSeen.split('|').includes(c.key))
  const offeredStickers=STICKERS.filter(t=>stickerOffered(t.id,earned,today)).length,islandEvent=seasonOn(today)
  // The app icon's number: due today plus late (Settings › Notifications can turn it off on this device).
  const [appBadge]=useLocalSetting(APP_BADGE_SETTING,'on')
@@ -572,6 +576,7 @@ function Workspace({store}:{store:Store}){
    {message&&<p role="status" className="wb-notice">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></p>}
    {undoToast&&<div className="undo-toast" role="status" key={undoToast.at}><span>{undoToast.text}</span>{repository.canUndo&&<button type="button" onClick={()=>{setUndoToast(null);void run(repository.undo,'Undone.')}}>Undo</button>}<button type="button" className="undo-toast-close" aria-label="Dismiss" onClick={()=>setUndoToast(null)}>×</button></div>}
    {showDigest&&(page==='Sanctuary'||page==='Planner')&&<div className="wb-notice login-digest is-slim" role="status"><details><summary><strong>{dueSoon.length} due by {new Date(addDays(today,3)+'T12:00:00').toLocaleDateString(undefined,{weekday:'short'})}</strong>{dueSoon.length===1&&<span className="digest-inline"> · {dueSoon[0].title}</span>}</summary><ul>{dueSoon.slice(0,5).map(t=><li key={t.id}>{t.title} · {dateLabel(t.due)}</li>)}</ul>{dueSoon.length>5&&<small>+{dueSoon.length-5} more</small>}</details><button onClick={dismissDigest}>Got it</button></div>}
+   {(page==='Sanctuary'||page==='Planner')&&schoolAhead.length>0&&<div className="wb-notice school-heads-up" role="status"><div><strong>📅 Coming up at school</strong><ul>{schoolAhead.map(c=><li key={c.key}><b>{changeTitle(c)}</b>{changeDetail(c)?' · '+changeDetail(c):''}</li>)}</ul></div><button onClick={()=>setSchoolSeen([...schoolSeen.split('|').filter(Boolean).slice(-30),...schoolAhead.map(c=>c.key)].join('|'))}>Got it</button></div>}
    {showCrunch&&<div className="wb-notice crunch-digest" role="status"><div><strong>{crunchDays.length===1?'A busy day is':'Busy days are'} coming up</strong><ul>{crunchDays.slice(0,3).map(([day,list])=><li key={day}>{dateLabel(day)}: {list.length} thing{list.length===1?'':'s'} due{list.filter(i=>i.kind==='exam').length>1?' (multiple exams)':''}</li>)}</ul>{crunchDays.length>3&&<small>+{crunchDays.length-3} more busy day{crunchDays.length-3===1?'':'s'}</small>}</div><button onClick={dismissCrunch}>Got it</button></div>}
    {showReviewDigest&&<div className="wb-notice review-digest" role="status"><div><strong>{needsReviewEntries.length} item{needsReviewEntries.length===1?'':'s'} from a scanned photo need{needsReviewEntries.length===1?'s':''} a check</strong><small>Added automatically — make sure each one is correct.</small></div><button className="primary" onClick={()=>setReviewOpen(true)}>Review now</button><button onClick={dismissReviewDigest}>Later</button></div>}
    {hasDraft&&!editor&&<div className="wb-notice">You have an unfinished draft.<button onClick={()=>{try{const draft=JSON.parse(localStorage.getItem(draftScope)??'null') as Edit;if(!draft||!collections.includes(draft.key)||draft.entry.profileId!==profile.id)throw Error('Invalid draft');setEditor(draft)}catch{setMessage('This draft could not be opened.')}}}>Resume draft</button><button onClick={()=>{setConfirmation({text:'Discard this unfinished draft?',action:()=>{localStorage.removeItem(draftScope);localStorage.removeItem(draftScope+':assignment-dates');setHasDraft(false)}})}}>Discard draft</button></div>}
