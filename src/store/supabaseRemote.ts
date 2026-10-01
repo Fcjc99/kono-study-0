@@ -246,6 +246,17 @@ export class SupabaseRemote{
   const {error}=await this.client.from('kono_shared_items').delete().eq('id',id)
   if(error)throw new Error(error.message)
  }
+ /** Photos on assignments and exams (src/store/photoStore.ts): one private folder per account. */
+ async uploadPhoto(id:string,blob:Blob):Promise<void>{
+  const user=await this.requireUser()
+  const {error}=await this.client.storage.from('kono-photos').upload(user.id+'/'+id+'.jpg',blob,{contentType:'image/jpeg',upsert:true})
+  if(error)throw new Error(error.message)
+ }
+ async downloadPhoto(id:string):Promise<Blob|null>{
+  const user=await this.requireUser()
+  const {data,error}=await this.client.storage.from('kono-photos').download(user.id+'/'+id+'.jpg')
+  return error?null:data
+ }
  /** Best-effort: never the full plan, only a pruned school-related snapshot (see src/store/peerShare.ts). */
  async publishSharedSnapshot(snapshot:unknown):Promise<void>{
   const {data:{session},error:sessionError}=await this.client.auth.getSession()

@@ -5,6 +5,7 @@ import { captureDeletions } from './workspace'
 import { mergeData, type MergeConflict } from './merge'
 import type {AdminAccount,ClassmateProfile,ClientError,Feedback,SupabaseRemote,SupportActivity} from './supabaseRemote'
 import {readSharedItem,type ReceivedItem,type ShareKind,type SharedItem} from './itemShare'
+import type {PhotoCloud} from './photoStore'
 import {installErrorReporter} from './errorReporter'
 import {setBuiltInAi} from './aiProvider'
 import {shrinkPhoto} from './shrinkPhoto'
@@ -328,6 +329,8 @@ export class PlannerRepository {
   return {items,senders}
  }
  clearSharedItem=async(id:string)=>this.requireCloud().clearSharedItem(id)
+ /** Where photos go besides this device: the signed-in account's private folder (not while helping someone). */
+ photoCloud=():PhotoCloud|null=>{const cloud=this.cloud;return cloud&&this.state.user&&!this.state.support?{upload:(id,blob)=>cloud.uploadPhoto(id,blob),download:id=>cloud.downloadPhoto(id)}:null}
  /** A plan kept in this browser from before signing in (device-only mode), if there is one. */
  deviceCopy=()=>this.state.user&&!this.state.support?this.migration:null
  importPreview=(raw:string)=>decodeData(raw)
