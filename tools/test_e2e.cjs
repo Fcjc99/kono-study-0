@@ -1488,6 +1488,38 @@ test('KONO today and stickers: KONO is worried about late work and sleepy late a
  assert.match(await today.locator('img').getAttribute('src'),/sleep\.webp$/)
 })
 
+test('What should I do now and the app icon number: late work first, "Something else" steps on, "Already done" finishes it, Start opens a focus sized to it; the icon shows due today plus late, and Settings can turn it off',async({context,page})=>{
+ const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
+ cloud.users.alice.plan.data.tasks.push({id:'lab-today',profileId:pid,subjectId:'',title:'Lab report',due:'2026-09-30',done:false,notes:'',estimatedMinutes:40})
+ await context.addInitScript(()=>{window.__badges=[];navigator.setAppBadge=n=>{window.__badges.push(n);return Promise.resolve()};navigator.clearAppBadge=()=>{window.__badges.push(0);return Promise.resolve()}})
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ const badge=()=>page.evaluate(()=>window.__badges.at(-1))
+ const until=async(check,message)=>{for(let k=0;k<60;k++){if(await check())return;await page.waitForTimeout(250)}assert.fail(message)}
+ await until(async()=>await badge()===2,'the icon should count the late assignment and the one due today')
+ await page.getByRole('button',{name:'▶ What should I do now?'}).click()
+ const now=page.getByRole('region',{name:'What to do now'})
+ await now.getByRole('heading',{name:'Read chapter 3'}).waitFor()
+ await now.getByText('DO THIS NOW · 1 of 2').waitFor()
+ await now.getByText(/It’s late/).waitFor()
+ await now.getByRole('button',{name:'Something else'}).click()
+ await now.getByRole('heading',{name:'Lab report'}).waitFor()
+ await now.getByText('It’s due today. About 40 minutes.').waitFor()
+ await now.getByRole('button',{name:'Already done'}).click()
+ await now.getByRole('heading',{name:'Read chapter 3'}).waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.tasks.find(t=>t.id==='lab-today')?.done===true,'Already done never reached the account')
+ await until(async()=>await badge()===1,'the icon should drop to 1')
+ await now.getByRole('button',{name:'Start a 30-minute focus'}).click()
+ await now.waitFor({state:'detached'})
+ await until(()=>page.evaluate(()=>document.querySelector('details.sanctuary-focus')?.open===true),'the focus session never opened')
+ await go(page,'Settings')
+ await settingsTab(page,'Notifications')
+ await page.getByLabel('Show how many things are due today (and late) on KONO’s icon').uncheck()
+ await until(async()=>await badge()===0,'turning it off should clear the icon')
+})
+
 test('offline: the Home Screen app opens with no signal, shows the plan, keeps a new assignment on the device, and uploads it when the signal is back',async()=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,now=new Date()
  const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')
