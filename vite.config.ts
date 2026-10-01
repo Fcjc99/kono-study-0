@@ -40,7 +40,7 @@ const PRECACHE_NAME='kono-precache-'+VERSION
 const RUNTIME_NAME='kono-runtime'
 const PRECACHE=${JSON.stringify(precache)}
 self.addEventListener('install',event=>{event.waitUntil(caches.open(PRECACHE_NAME).then(cache=>cache.addAll(PRECACHE)).then(()=>self.skipWaiting()))})
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==PRECACHE_NAME&&key!==RUNTIME_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim()))})
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==PRECACHE_NAME&&key!==RUNTIME_NAME&&key!=='kono-voice').map(key=>caches.delete(key)))).then(()=>self.clients.claim()))})
 // Lock-screen reminders (api/push-send): show them, and open KONO when one is tapped.
 self.addEventListener('push',event=>{
  let d={}
