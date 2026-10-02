@@ -201,6 +201,8 @@ export class KonoMascotSystem {
 
     this.sprite.on('pointerdown', () => {
       this.beginReaction(Math.random() < 0.35 ? 'kono-excited' : 'kono-happy', this.scene.time.now + 1_250)
+      // A pat counts toward KONO's "happy" meter (store/konoCare), outside the scene.
+      this.scene.game.events.emit?.(SANCTUARY_EVENTS.petted)
     })
 
     this.scene.game.events.on(SANCTUARY_EVENTS.interaction, this.handleInteraction, this)

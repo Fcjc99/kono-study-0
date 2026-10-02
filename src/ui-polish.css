@@ -263,6 +263,24 @@
 /* Island events (store/stickers SEASONS): a banner in KONO today, and KONO wears the event's emoji. */
 .kono-mood-face{position:relative;flex:0 0 44px;width:44px;height:44px}
 .kono-mood-face[data-costume]::after{content:attr(data-costume);position:absolute;top:-8px;right:-6px;font-size:1.05rem;transform:rotate(14deg);filter:drop-shadow(0 1px 1px #0003)}
+/* Taking care of KONO: tap the face to pet; one slim row of meters and a Feed chip only when a snack is
+   waiting. Reactions happen in place (the face and the line), so nothing pops up over the Sanctuary. */
+.kono-mood .kono-mood-row button.kono-mood-face{padding:0;border:0;background:none;border-radius:50%;cursor:pointer;min-height:0;min-width:0;box-shadow:none;transform:none}
+button.kono-mood-face:focus-visible{outline:2px solid var(--accent,#6d8f6b);outline-offset:2px}
+.kono-mood-face.is-reacting img{animation:kono-hop .55s ease-out}
+.kono-mood-face.is-reacting::before{content:'♡';position:absolute;top:-10px;left:-4px;font-size:.9rem;color:#e0607a;animation:kono-heart 1.4s ease-out forwards;pointer-events:none}
+@keyframes kono-hop{0%{transform:translateY(0) scale(1)}35%{transform:translateY(-6px) scale(1.06)}70%{transform:translateY(0) scale(.98)}100%{transform:none}}
+@keyframes kono-heart{0%{opacity:0;transform:translateY(4px)}25%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
+.kono-care{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;font-size:.78rem}
+.kono-care-meter{display:inline-flex;align-items:center;gap:3px;flex:1 1 40px;max-width:120px;min-width:0}
+.kono-care-bar{flex:1;height:6px;border-radius:999px;background:color-mix(in srgb,currentColor 14%,transparent);overflow:hidden}
+.kono-care-bar i{display:block;height:100%;border-radius:inherit;background:#e9a94b;transition:width .6s ease}
+.kono-care-meter.is-rested .kono-care-bar i{background:#8c9de0}
+.kono-care-meter.is-happy .kono-care-bar i{background:#e57c93}
+.kono-mood .kono-care .kono-feed{margin-left:auto;padding:3px 10px;min-height:30px;font-size:.8rem;line-height:1.2;border-radius:999px;white-space:nowrap}
+.kono-care .kono-feed small{opacity:.75}
+.kono-care-hint{margin-left:auto;opacity:.7}
+@media (prefers-reduced-motion:reduce){.kono-mood-face.is-reacting img,.kono-mood-face.is-reacting::before{animation:none}.kono-care-bar i{transition:none}}
 .kono-season{margin:0;padding:6px 10px;border-radius:10px;background:color-mix(in srgb,#f08a24 14%,var(--wb-surface));font-size:.86rem;line-height:1.35}
 /* Assignment editor › Steps: each step has its own day; "Break into steps" fills them in. */
 .wb-subtasks li{flex-wrap:wrap}

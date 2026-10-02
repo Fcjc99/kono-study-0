@@ -6,6 +6,7 @@ export function deleteProfile(data:AppData,id:string):AppData{
  const profiles=data.profiles.filter(p=>p.id!==id)
  const progress={...data.sanctuaryProgress};delete progress[id]
  const decor={...data.sanctuaryDecor};delete decor[id]
+ const care={...data.konoCare};delete care[id]
  const locations={...data.settings.sanctuaryWeatherLocations};delete locations[id]
  const zips={...data.settings.sanctuaryZipCodes};delete zips[id]
  return normalizeData({...data,profiles,activeProfileId:data.activeProfileId===id?profiles[0].id:data.activeProfileId,
@@ -13,6 +14,6 @@ export function deleteProfile(data:AppData,id:string):AppData{
  exams:data.exams.filter(x=>x.profileId!==id),subjects:data.subjects.filter(x=>x.profileId!==id),
  calendarEvents:data.calendarEvents.filter(x=>x.profileId!==id),studyPlans:data.studyPlans.filter(x=>x.profileId!==id),
  studySeasons:data.studySeasons.filter(x=>x.profileId!==id),flashcardDecks:data.flashcardDecks.filter(x=>x.profileId!==id),
- trash:data.trash.filter(x=>x.profileId!==id),sanctuaryProgress:progress,sanctuaryDecor:decor,
+ trash:data.trash.filter(x=>x.profileId!==id),sanctuaryProgress:progress,sanctuaryDecor:decor,konoCare:care,
  settings:{...data.settings,sanctuaryWeatherLocations:locations,sanctuaryZipCodes:zips}})
 }

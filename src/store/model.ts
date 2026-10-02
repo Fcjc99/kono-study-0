@@ -7,6 +7,7 @@ import { dateInZone, studyDates, studyUnits } from './studyScheduler'
 import {validateSchool,type SchoolCalendar} from './schoolCalendar'
 import type { FlashcardDeck } from './flashcards'
 import { srsInitial } from './spacedRepetition'
+import { readCareState, type KonoCareState } from './konoCare'
 
 export type ProfileKind='summer'|'school'|'college'|'custom'
 export type Profile={id:string;name:string;label:string;kind:ProfileKind;start:string;end:string;progressEpoch?:string;color?:string}
@@ -80,7 +81,7 @@ export type KQuizPracticeTest={questions:KQuizQuestion[]}
  * FlashcardDeck in flashcardDecks, referenced by id, so practicing them reuses the same deck UI and
  * spaced-repetition state the rest of KONO already has, rather than a second parallel flashcard system. */
 export type KQuizSet={id:string;profileId:string;subjectId:string;lectureId?:string;title:string;createdAt:string;summary?:string;studyGuide?:string;flashcardDeckId?:string;practiceTest?:KQuizPracticeTest}
-export type AppData={schemaVersion:6;trash:TrashEntry[];profiles:Profile[];activeProfileId:string;subjects:Subject[];kids:Kid[];tasks:Task[];exams:Exam[];notes:Note[];calendarEvents:CalendarEvent[];studySeasons:StudySeason[];studyPlans:StudyPlan[];flashcardDecks:FlashcardDeck[];kquizLectures:KQuizLecture[];kquizSets:KQuizSet[];kquizSources:KQuizSource[];settings:SettingsData;sanctuaryProgress:Record<string,SanctuaryProgressState>;sanctuaryDecor:Record<string,SanctuaryDecorState>;onboardingComplete?:boolean}
+export type AppData={schemaVersion:6;trash:TrashEntry[];profiles:Profile[];activeProfileId:string;subjects:Subject[];kids:Kid[];tasks:Task[];exams:Exam[];notes:Note[];calendarEvents:CalendarEvent[];studySeasons:StudySeason[];studyPlans:StudyPlan[];flashcardDecks:FlashcardDeck[];kquizLectures:KQuizLecture[];kquizSets:KQuizSet[];kquizSources:KQuizSource[];settings:SettingsData;sanctuaryProgress:Record<string,SanctuaryProgressState>;sanctuaryDecor:Record<string,SanctuaryDecorState>;konoCare:Record<string,KonoCareState>;onboardingComplete?:boolean}
 
 export const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as const
 export const blankWeek=():WeekSchedule=>Object.fromEntries(dayNames.map(day=>[day,[]]))
@@ -99,7 +100,7 @@ export const localDate=(date=new Date())=>`${date.getFullYear()}-${String(date.g
 export const defaultSettings:SettingsData={experience:'cozy',textSize:'normal',density:'comfortable',darkMode:'phone',decoration:true,boardStyle:'paper',theme:'coral',themeVersion:4,sound:true,ambient:true,reminders:false,browserNotifications:false,familyEventReminders:false,familyTileBorders:true,familyTileAvatars:true,loginDigest:true,scheduleShowAcademic:true,scheduleShowSports:true,scheduleShowAppointments:true,parentMode:false,reducedMotion:false,motionPreference:'system',sanctuaryWeather:'clear',sanctuaryWeatherMode:'clear',sanctuaryZipCodes:{},sanctuaryWeatherLocations:{}}
 export function createFreshData():AppData {
  const id=uid('profile'),start=localDate(),end=localDate(new Date(Date.now()+180*86400000))
- return {schemaVersion:6,trash:[],profiles:[{id,name:'Learner',label:'My study plan',kind:'custom',start,end,progressEpoch:uid('epoch')}],activeProfileId:id,subjects:[],kids:[],tasks:[],exams:[],notes:[],calendarEvents:[],studyPlans:[],flashcardDecks:[],kquizLectures:[],kquizSets:[],kquizSources:[],studySeasons:[],settings:{...defaultSettings},sanctuaryProgress:{[id]:createSanctuaryProgress(id)},sanctuaryDecor:{[id]:{profileId:id,placements:[]}},onboardingComplete:false}
+ return {schemaVersion:6,trash:[],profiles:[{id,name:'Learner',label:'My study plan',kind:'custom',start,end,progressEpoch:uid('epoch')}],activeProfileId:id,subjects:[],kids:[],tasks:[],exams:[],notes:[],calendarEvents:[],studyPlans:[],flashcardDecks:[],kquizLectures:[],kquizSets:[],kquizSources:[],studySeasons:[],settings:{...defaultSettings},sanctuaryProgress:{[id]:createSanctuaryProgress(id)},sanctuaryDecor:{[id]:{profileId:id,placements:[]}},konoCare:{[id]:{profileId:id,log:[]}},onboardingComplete:false}
 }
 
 type Obj=Record<string,unknown>
@@ -310,9 +311,12 @@ export function normalizeData(raw:unknown):AppData {
   const placements=[...list(d.placements??[],'placements',300).map(placement),...migrateLegacyStyle(d,'home'),...migrateLegacyStyle(d,'pond'),...migrateLegacyStyle(d,'tree')]
   return [p.id,{profileId:p.id,placements}]
  }))
+ // KONO's care log (store/konoCare): anything unreadable is dropped, never a reason to refuse the plan.
+ const care=object(raw.konoCare)?raw.konoCare:{}
+ const konoCare:Record<string,KonoCareState>=Object.fromEntries(profiles.map(p=>[p.id,readCareState(care[p.id],p.id)]))
  const activeProfileId=typeof raw.activeProfileId==='string'&&pids.has(raw.activeProfileId)?raw.activeProfileId:profiles[0].id
  const trash:TrashEntry[]=list(raw.trash??[],'trash',2000).map(t=>({id:id(t.id,'trash ID'),profileId:owner(t.profileId),collection:exactChoice(t.collection,['tasks','notes','exams','calendarEvents','subjects','kids','studyPlans','flashcardDecks','kquizSets','kquizSources','studySeasons','scheduleBlocks'],'notes'),title:str(t.title,'trash title',1000),payload:str(t.payload,'trash payload',1000000),deletedAt:str(t.deletedAt,'deleted at',40)}))
- return {schemaVersion:6,trash,profiles,activeProfileId,subjects,kids,tasks,exams,notes,calendarEvents,studySeasons,studyPlans,flashcardDecks,kquizLectures,kquizSets,kquizSources,settings,sanctuaryProgress,sanctuaryDecor,onboardingComplete:bool(raw.onboardingComplete,true)}
+ return {schemaVersion:6,trash,profiles,activeProfileId,subjects,kids,tasks,exams,notes,calendarEvents,studySeasons,studyPlans,flashcardDecks,kquizLectures,kquizSets,kquizSources,settings,sanctuaryProgress,sanctuaryDecor,konoCare,onboardingComplete:bool(raw.onboardingComplete,true)}
 }
 
 export function assertProfileWrite(before:AppData,after:AppData,profileId:string):AppData {
@@ -320,6 +324,7 @@ export function assertProfileWrite(before:AppData,after:AppData,profileId:string
  if(JSON.stringify(before.profiles)!==JSON.stringify(after.profiles)||JSON.stringify(before.settings)!==JSON.stringify(after.settings)||after.activeProfileId!==before.activeProfileId)throw new Error('This editor cannot change account settings or another plan.')
  for(const profile of before.profiles)if(profile.id!==profileId&&JSON.stringify(before.sanctuaryProgress[profile.id])!==JSON.stringify(after.sanctuaryProgress[profile.id]))throw new Error('This edit belongs to another plan.')
  for(const profile of before.profiles)if(profile.id!==profileId&&JSON.stringify(before.sanctuaryDecor[profile.id])!==JSON.stringify(after.sanctuaryDecor[profile.id]))throw new Error('This edit belongs to another plan.')
+ for(const profile of before.profiles)if(profile.id!==profileId&&JSON.stringify(before.konoCare[profile.id])!==JSON.stringify(after.konoCare[profile.id]))throw new Error('This edit belongs to another plan.')
  for(const key of ['subjects','kids','tasks','notes','exams','calendarEvents','studySeasons','studyPlans','flashcardDecks','kquizLectures','kquizSets','kquizSources','trash'] as const){
   const oldOther=before[key].filter(r=>r.profileId!==profileId)
   const newOther=after[key].filter(r=>r.profileId!==profileId)

@@ -28,6 +28,21 @@ function sqlite(){
  return{prepare(sql){return{bind(...args){return{sql,args,first:async()=>db.prepare(sql).get(...args)??null,all:async()=>({success:true,results:db.prepare(sql).all(...args)})}}}},async batch(statements){db.exec('BEGIN');try{const result=statements.map(s=>{const stmt=db.prepare(s.sql);return{success:true,results:stmt.columns().length?stmt.all(...s.args):(stmt.run(...s.args),[])}});db.exec('COMMIT');return result}catch(e){db.exec('ROLLBACK');throw e}}};
 }
 const tests=[];function test(name,fn){tests.push({name,fn})}
+test('KONO care log: two devices feeding and patting KONO at the same time merge cleanly, and a garbled log never blocks the plan',async()=>{
+ const d=model.normalizeData(make()),pid=d.activeProfileId
+ assert.equal(JSON.stringify(d.konoCare[pid]),JSON.stringify({profileId:pid,log:[]}),'every plan starts with an empty care log')
+ const left=clone(d),right=clone(d)
+ left.konoCare[pid].log.push({id:'care-1',kind:'feed',at:'2026-09-30T15:00:00.000Z',taskId:'t1'})
+ right.konoCare[pid].log.push({id:'care-2',kind:'pet',at:'2026-09-30T15:01:00.000Z'})
+ const merged=mergeData(d,left,right)
+ assert.equal(merged.conflicts.length,0)
+ assert.equal(merged.data.konoCare[pid].log.map(e=>e.id).sort().join(),'care-1,care-2')
+ const odd=clone(d);odd.konoCare={[pid]:{log:[{id:'x',kind:'dance'},'junk',{id:'ok',kind:'pet',at:'2026-09-30T15:00:00Z'}]},ghost:{log:[]}}
+ const read=model.normalizeData(odd)
+ assert.equal(read.konoCare[pid].log.map(e=>e.id).join(),'ok');assert.equal(read.konoCare.ghost,undefined,'care for a plan that doesn’t exist is dropped')
+ const old=clone(d);delete old.konoCare
+ assert.equal(model.normalizeData(old).konoCare[pid].log.length,0,'a save from before KONO care opens fine')
+});
 test('unchanged verified cloud revision clears connecting/offline status without a write',async()=>{
  const r=setup(make());let writes=0;hooks.commitCache=async()=>{writes++;throw Error('must not write')}
  r.state.status='Connecting';r.state.error='Previous network failure'
