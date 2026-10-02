@@ -12,6 +12,9 @@ const NOVELTY = /\b(albert|bad news|bahh|bells|boing|bubbles|cellos|good news|je
 /** iPhone, iPad and iPod (iPadOS reports itself as a Mac, but with a touch screen). */
 export const isAppleMobile = (ua: string, platform = '', touchPoints = 0) => /iPhone|iPad|iPod/.test(ua) || (platform === 'MacIntel' && touchPoints > 1)
 
+/** This device is an iPhone or iPad (always its own voices, never KONO's natural one). */
+export const onAppleMobile = () => typeof navigator !== 'undefined' && isAppleMobile(navigator.userAgent, navigator.platform, navigator.maxTouchPoints)
+
 /** 3 Premium, 2 Enhanced or another natural-sounding voice, 1 Google, 0 standard, negative for novelty voices. */
 export function voiceQuality(v: VoiceInfo) {
   const id = v.name + ' ' + (v.voiceURI ?? '')

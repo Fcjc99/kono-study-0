@@ -1804,6 +1804,52 @@ test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in th
  assert.ok(await value('Full')>fullBefore,'the meters come from the saved log after a reload')
 })
 
+test('Bedtime and wake-up: in the evening KONO can be tucked in and says tomorrow’s plan out loud, sleeps until morning (pats just get a "shh"), and in the morning Wake up reads today’s plan, all inside the card',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.calendarEvents.push({id:'soccer',profileId:pid,title:'Soccer practice',date:'2026-10-01',time:'17:00',kind:'personal',done:false,notes:''})
+ plan.tasks.push({id:'dinner',profileId:pid,subjectId:'',title:'Math homework',due:'2026-09-30',done:true,completedAt:'2026-09-30T18:00:00.000Z',notes:''})
+ await context.addInitScript(()=>{window.__spoken=[];window.SpeechSynthesisUtterance=class{constructor(text){this.text=text}};Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{speak:u=>window.__spoken.push(u.text),cancel(){},getVoices:()=>[]}})})
+ await page.clock.setFixedTime(new Date('2026-09-30T21:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const today=page.getByRole('region',{name:'KONO today'}),care=today.getByRole('group',{name:'How KONO is doing'})
+ assert.equal(await care.getByRole('button',{name:'Wake up'}).count(),0,'no wake-up in the evening')
+ const dialogs=await page.getByRole('dialog').count()
+ // Dinner before bed: with a snack waiting and KONO hungry, the one chip is Feed; once fed, Tuck in.
+ assert.equal(await care.getByRole('button',{name:'Tuck in'}).count(),0)
+ const feed=care.getByRole('button',{name:/^Feed KONO/}),tuck=care.getByRole('button',{name:'Tuck in'})
+ for(let meals=0;;meals++){
+  // After each snack the card re-renders: wait until it shows the next chip, then decide.
+  await feed.or(tuck).first().waitFor()
+  if(await tuck.count())break
+  assert.ok(meals<5,'KONO should be full enough for bed after a few snacks')
+  const before=(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).length
+  await feed.click()
+  await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).length>before,'the snack never reached the account')
+ }
+ assert.equal(await care.getByRole('button').count(),1,'one action chip at a time')
+ await care.getByRole('button',{name:'Tuck in'}).click()
+ await today.getByText(/^Goodnight! 🌙 Tomorrow: .*Soccer practice at 5:00 PM.*\.$/).waitFor()
+ await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).some(e=>e.kind==='sleep'),'the tuck-in never reached the account')
+ const spoken=await page.evaluate(()=>window.__spoken.slice())
+ assert.ok(spoken.some(t=>/^Goodnight! Tomorrow: /.test(t)),'KONO says goodnight out loud: '+JSON.stringify(spoken))
+ assert.equal(await page.getByRole('dialog').count(),dialogs,'nothing opens')
+ await page.reload();await heading(page,'Sanctuary')
+ await today.getByText('KONO is fast asleep. Sweet dreams! 🌙').waitFor()
+ assert.equal(await care.getByRole('button',{name:'Tuck in'}).count(),0,'already tucked in')
+ assert.equal(await care.getByRole('button',{name:/^Feed KONO/}).count(),0,'no snacks while KONO sleeps')
+ assert.equal(await care.getByRole('meter',{name:'Sleeping'}).count(),1)
+ await today.getByRole('button',{name:'Pet KONO'}).click()
+ await today.getByText('Shh… KONO is sleeping. 💤').waitFor()
+ await page.clock.setFixedTime(new Date('2026-10-01T07:30:00'))
+ await page.reload();await heading(page,'Sanctuary')
+ await care.getByRole('button',{name:'Wake up'}).click()
+ await today.getByText(/^Good morning! ☀️ Today: .*Soccer practice at 5:00 PM.*\.$/).waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.konoCare[pid].log.some(e=>e.kind==='wake'),'the wake-up never reached the account')
+ assert.equal(await care.getByRole('button',{name:'Wake up'}).count(),0,'once a day')
+ assert.ok((await page.evaluate(()=>window.__spoken.slice())).some(t=>/^Good morning! Today: /.test(t)))
+})
+
 test('Planner daily page matches Today’s schedule: the day’s classes as compact cards, the rest under "Also today", ‹ › to step days, and "Back to today" only once you’ve moved away',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  plan.calendarEvents.push({id:'soccer',profileId:pid,title:'Soccer practice',date:'2026-09-28',time:'17:00',kind:'personal',done:false,notes:''})

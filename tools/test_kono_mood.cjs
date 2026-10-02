@@ -194,4 +194,18 @@ test('Ask KONO answers a day (classes in order, events, tests, due, no school), 
  assert.match(askKono.dayAnswer(d,wed,wed).speech,/Emma: Soccer practice at 4:30 PM/)
 })
 
+test('KONO’s good morning / goodnight sum up a day in one sentence',()=>{
+ const d=modelForAsk.createFreshData(),pid=d.activeProfileId
+ const week=modelForAsk.blankWeek()
+ week.Wednesday=[{id:'b2',label:'Algebra',start:'10:15',end:'11:00',kind:'study'},{id:'b1',label:'Biology',start:'09:00',end:'09:50',kind:'study'}]
+ week.Thursday=[{id:'b3',label:'Art',start:'08:30',end:'09:20',kind:'study'}]
+ d.studySeasons=[{id:'s',profileId:pid,name:'Fall',start:'2026-09-01',end:'2026-12-20',active:true,week}]
+ d.tasks.push({id:'t1',profileId:pid,subjectId:'',title:'Lab report',due:'2026-09-30',done:false,notes:''})
+ d.exams.push({id:'e1',profileId:pid,subjectId:'',title:'Cell biology test',due:'2026-09-30',done:false,notes:''},{id:'e2',profileId:pid,subjectId:'',title:'Spanish',due:'2026-10-01',done:false,notes:''})
+ d.calendarEvents.push({id:'ev',profileId:pid,date:'2026-09-30',title:'Soccer practice',kind:'sports',notes:'',time:'16:30'})
+ assert.equal(askKono.dayGlance(d,'2026-09-30'),'2 classes, starting with Biology at 9:00 AM, the Cell biology test, Lab report is due and Soccer practice at 4:30 PM.')
+ assert.equal(askKono.dayGlance(d,'2026-10-01'),'Art at 8:30 AM and the Spanish test.')
+ assert.equal(askKono.dayGlance(d,'2026-10-03'),'nothing on the plan.')
+})
+
 console.log(passed+' KONO mood and sticker groups passed')

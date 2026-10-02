@@ -6,7 +6,9 @@
  * What's saved is a short log of feedings and pats (AppData.konoCare), one entry each with its own
  * ID, so two devices adding to it at the same time merge cleanly. Everything else is worked out from
  * that log, finished assignments and the clock. */
-export type CareEvent={id:string;kind:'feed'|'pet';at:string;taskId?:string}
+export type CareKind='feed'|'pet'|'sleep'|'wake'
+export type CareEvent={id:string;kind:CareKind;at:string;taskId?:string}
+const KINDS:CareKind[]=['feed','pet','sleep','wake']
 export type KonoCareState={profileId:string;log:CareEvent[]}
 export type KonoMeters={full:number;rested:number;happy:number;asleep:boolean;away:boolean}
 export type Treat={id:string;emoji:string;name:string}
@@ -60,7 +62,7 @@ export function restedAt(now:Date){
 export function careMeters(log:CareEvent[],tasks:Done[],now:Date,away=false):KonoMeters{
  const end=now.getTime(),start=end-2*DAY
  const done=tasks.map(t=>time(t.completedAt)).filter(t=>Number.isFinite(t)&&t<=end)
- const {rested,asleep}=restedAt(now)
+ const clock=restedAt(now),rested=clock.rested,asleep=clock.asleep||bedtime(log,now).tucked
  if(away)return {full:65,rested,happy:75,asleep,away:true}
  type Step={at:number;full:number;happy:number}
  const steps:Step[]=[
@@ -81,6 +83,8 @@ export function addCareEvent(state:KonoCareState|undefined,profileId:string,even
  const since=now.getTime()-LOG_DAYS*DAY
  const log=(state?.log??[]).filter(e=>time(e.at)>=since)
  if(event.kind==='pet'){const lastPet=Math.max(-Infinity,...log.filter(e=>e.kind==='pet').map(e=>time(e.at)));if(now.getTime()-lastPet<PET_EVERY_MS)return {profileId,log}}
+ if(event.kind==='sleep'&&bedtime(log,now).tucked)return {profileId,log}
+ if(event.kind==='wake'&&!bedtime(log,now).canWake)return {profileId,log}
  if(event.kind==='feed'&&event.taskId&&log.some(e=>e.kind==='feed'&&e.taskId===event.taskId))return {profileId,log}
  return {profileId,log:[...log,event].slice(-LOG_MAX)}
 }
@@ -92,8 +96,8 @@ export function readCareState(raw:unknown,profileId:string):KonoCareState{
  const log=(Array.isArray(value.log)?value.log:[]).flatMap((e:unknown)=>{
   if(!e||typeof e!=='object')return []
   const x=e as Record<string,unknown>
-  if(typeof x.id!=='string'||!x.id||x.id.length>150||(x.kind!=='feed'&&x.kind!=='pet')||typeof x.at!=='string'||!Number.isFinite(Date.parse(x.at)))return []
-  const event:CareEvent={id:x.id,kind:x.kind,at:new Date(x.at).toISOString()}
+  if(typeof x.id!=='string'||!x.id||x.id.length>150||!KINDS.includes(x.kind as CareKind)||typeof x.at!=='string'||!Number.isFinite(Date.parse(x.at)))return []
+  const event:CareEvent={id:x.id,kind:x.kind as CareKind,at:new Date(x.at).toISOString()}
   if(typeof x.taskId==='string'&&x.taskId&&x.taskId.length<=150)event.taskId=x.taskId
   return [event]
  }).slice(-LOG_MAX)
@@ -107,3 +111,19 @@ export const PET_LINES=['KONO giggles and wiggles happily.','KONO leans into the
 export const AWAY_DAYS=3
 export const isAwayVisit=(lastVisit:number,now:Date)=>Number.isFinite(lastVisit)&&lastVisit>0&&now.getTime()-lastVisit>AWAY_DAYS*DAY
 export const AWAY_LINE='KONO just got back from a little trip and missed you! 🧳'
+
+/** Bedtime and wake-up. From 7 PM KONO can be tucked in (once a night); it then sleeps until morning
+ * and the island goes dark. From 6 AM until noon KONO can be woken (once a day) and says what's
+ * on today. A night runs 7 PM to 6 AM and belongs to the evening's date. */
+export const localDay=(d:Date)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
+export const nightOf=(d:Date)=>{const x=new Date(d.getTime());if(x.getHours()<6)x.setDate(x.getDate()-1);return localDay(x)}
+const isNight=(d:Date)=>d.getHours()>=19||d.getHours()<6
+export function bedtime(log:CareEvent[],now:Date){
+ const night=isNight(now),tonight=nightOf(now)
+ const lastSleep=log.filter(e=>e.kind==='sleep'&&isNight(new Date(e.at))&&nightOf(new Date(e.at))===tonight).map(e=>time(e.at)).sort((a,b)=>b-a)[0]
+ const tucked=night&&lastSleep!==undefined&&!log.some(e=>e.kind==='wake'&&time(e.at)>lastSleep)
+ const h=now.getHours(),morning=h>=6&&h<12
+ const wokeToday=log.some(e=>e.kind==='wake'&&localDay(new Date(e.at))===localDay(now))
+ return {tucked,canTuck:night&&!tucked,canWake:morning&&!wokeToday}
+}
+export const ASLEEP_LINE='KONO is fast asleep. Sweet dreams! 🌙'
