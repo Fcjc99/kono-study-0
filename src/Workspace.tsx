@@ -307,7 +307,9 @@ function Workspace({store}:{store:Store}){
  // KONO's wardrobe and daily wish (store/konoWardrobe; Decorate › Wardrobe).
  const wardrobe=wardrobeStats(sanctuaryProgress.totalCredits,ownTasks,careLog),unlockedOutfitIds=unlockedOutfits(wardrobe)
  const worn=wornOutfit(careLog,unlockedOutfitIds)
- const wearOutfit=(id:OutfitId|null)=>{const now=new Date();logEvent({id:uid('care'),kind:'wear',at:now.toISOString(),item:id??''},now)}
+ // Each change of outfit is saved as later than the one before (even within the same millisecond),
+ // so the latest pick always wins.
+ const wearOutfit=(id:OutfitId|null)=>{const now=new Date(),last=Math.max(-Infinity,...careLog.filter(e=>e.kind==='wear').map(e=>Date.parse(e.at)).filter(Number.isFinite));const at=new Date(Math.max(now.getTime(),last+1));logEvent({id:uid('care'),kind:'wear',at:at.toISOString(),item:id??''},now)}
  // A focus session ran all the way down: KONO, who read beside you, shares something it found
  // (store/konoFinds). Placed like a sticker from Decorate › Finds.
  const found=foundCounts(careLog)

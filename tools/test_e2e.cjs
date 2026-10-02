@@ -1879,6 +1879,7 @@ test('Wardrobe and daily wish: finishing work grants KONO’s wish, which earns 
  if(process.env.KONO_SHOTS){await today.screenshot({path:process.env.KONO_SHOTS+'/wardrobe-card.png'});await wardrobe.screenshot({path:process.env.KONO_SHOTS+'/wardrobe-panel.png'})}
  await wardrobe.getByRole('button',{name:'Take off Cozy beanie'}).click()
  await today.locator('.kono-mood-face img.kono-outfit').waitFor({state:'detached'})
+ await waitFor(()=>cloud.users.alice.plan.data.konoCare[pid].log.some(e=>e.kind==='wear'&&e.item===''),'taking it off never reached the account')
  await page.reload();await heading(page,'Sanctuary')
  assert.equal(await today.locator('.kono-mood-face img.kono-outfit').count(),0,'taken off stays off')
 })
