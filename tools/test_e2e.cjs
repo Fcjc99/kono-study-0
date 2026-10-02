@@ -1763,6 +1763,47 @@ test('Ask KONO on iPhone: always the device’s own voice, a Premium one when it
  }
 })
 
+test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in the card, a pat makes KONO happy, and both reach the account without anything popping up',async({context,page})=>{
+ const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ const today=page.getByRole('region',{name:'KONO today'}),care=today.getByRole('group',{name:'How KONO is doing'})
+ assert.equal(await today.getByText('KONO just got back from a little trip',{exact:false}).count(),0,'the first visit ever isn’t a homecoming')
+ await page.evaluate(pid=>localStorage.setItem('kono-last-visit:'+pid,String(Date.now()-5*86_400_000)),pid)
+ await page.reload();await heading(page,'Sanctuary')
+ await today.getByText('KONO just got back from a little trip and missed you! 🧳').waitFor()
+ await page.reload();await heading(page,'Sanctuary')
+ await today.getByText('KONO is a little worried about 1 late assignment. One at a time?').waitFor()
+ assert.deepEqual(await care.getByRole('meter').evaluateAll(m=>m.map(x=>x.getAttribute('aria-label'))),['Full','Rested','Happy'])
+ const value=name=>care.getByRole('meter',{name}).getAttribute('aria-value'+'now').then(Number)
+ const feed=care.getByRole('button',{name:/^Feed KONO/})
+ const snacksBefore=await feed.count()
+ await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
+ await feed.waitFor()
+ const dialogsBefore=await page.getByRole('dialog').count()
+ const fullBefore=await value('Full'),happyBefore=await value('Happy')
+ await feed.click()
+ await today.getByText(/^Yum! .+ KONO loved the .+\. Thank you!$/).waitFor()
+ await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).some(e=>e.kind==='feed'),'the feeding never reached the account')
+ const fed=cloud.users.alice.plan.data.konoCare[pid].log.find(e=>e.kind==='feed')
+ assert.equal(cloud.users.alice.plan.data.tasks.find(t=>t.id===fed.taskId)?.done,true,'KONO eats the snack from finished work')
+ assert.ok(await value('Full')>fullBefore,'a snack fills KONO up')
+ if(!snacksBefore)assert.equal(await feed.count(),0,'the one snack is eaten, so the chip goes away')
+ await today.getByRole('button',{name:'Pet KONO'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.konoCare[pid].log.some(e=>e.kind==='pet'),'the pat never reached the account')
+ await today.getByText(/KONO (giggles|leans|does a happy)/).waitFor()
+ assert.ok(await value('Happy')>happyBefore,'pats and snacks make KONO happier')
+ await today.getByRole('button',{name:'Pet KONO'}).click()
+ await page.waitForTimeout(500)
+ assert.equal(cloud.users.alice.plan.data.konoCare[pid].log.filter(e=>e.kind==='pet').length,1,'lots of taps still count as one pat for ten minutes')
+ assert.equal(await page.getByRole('dialog').count(),dialogsBefore,'caring for KONO never opens anything')
+ if(process.env.KONO_SHOTS){await today.screenshot({path:process.env.KONO_SHOTS+'/care-desktop.png'});await page.setViewportSize({width:375,height:800});await today.screenshot({path:process.env.KONO_SHOTS+'/care-phone.png'});await page.setViewportSize({width:1280,height:900})}
+ await page.reload();await heading(page,'Sanctuary')
+ assert.ok(await value('Full')>fullBefore,'the meters come from the saved log after a reload')
+})
+
 test('Phone check-up: on a 375px phone no page scrolls sideways, every tab label fits (Sanctuary reads Home), and the hour column fits "10 AM"',async()=>{
  const phone=await freshPage({viewport:{width:375,height:740},isMobile:true,hasTouch:true})
  try{

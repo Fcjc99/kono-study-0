@@ -76,6 +76,8 @@ interface GardenCardProps {
   /** True for the duration of an active Focus Session -- KONO heads to the cherry tree and settles
    * into a reading pose as a quiet companion instead of wandering, then resumes as normal once false. */
   focusCompanionActive?: boolean
+  /** Called when KONO is tapped on the island (a pat for the care meters). */
+  onKonoPet?: () => void
 }
 
 const initialState: SanctuaryState = {
@@ -108,7 +110,9 @@ const formatDebugTime = (minutes: number) => {
 const debugFromUrl = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sanctuaryDebug') === '1'
 
-export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused, celebrateSignal, focusCompanionActive }: GardenCardProps) {
+export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused, celebrateSignal, focusCompanionActive, onKonoPet }: GardenCardProps) {
+  const onPetRef = useRef(onKonoPet)
+  useEffect(() => { onPetRef.current = onKonoPet }, [onKonoPet])
   const containerRef = useRef<HTMLDivElement | null>(null)
   const gameRef = useRef<PhaserGameHandle | null>(null)
   const visibleRef = useRef(true)
@@ -218,6 +222,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
 
       const handleLoad=(payload:{status:string;phase?:string;boot?:boolean})=>{if(!disposed)setLoadStatus(payload)}
       game.events.on(SANCTUARY_EVENTS.load,handleLoad)
+      game.events.on(SANCTUARY_EVENTS.petted,()=>{if(!disposed)onPetRef.current?.()})
       const handleState = (payload: SanctuaryState) => {
         if (debugEnabledRef.current) {
           setState(payload)
