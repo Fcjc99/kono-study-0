@@ -25,6 +25,8 @@ export const FINDS:Find[]=[
  {id:'pumpkin',name:'Tiny pumpkin',tier:'seasonal',season:'halloween'},
  {id:'snowflake',name:'Snowflake',tier:'seasonal',season:'winter'},
  {id:'candy-heart',name:'Candy heart',tier:'seasonal',season:'valentine'},
+ {id:'blossom',name:'Cherry blossom',tier:'seasonal',season:'spring'},
+ {id:'diploma',name:'Tiny diploma',tier:'seasonal',season:'semester'},
 ]
 export const findSrc=(id:string)=>'/garden/finds/'+id+'.webp'
 /** Sessions shorter than this don't bring a find (so tapping start and stop doesn't count). */
@@ -42,7 +44,8 @@ export const findsOffered=(found:Map<string,number>,today:string)=>FINDS.filter(
 
 /** What KONO finds after `minutes` of focus. `roll` (0–1, from the session's end time) decides the
  * tier; within a tier KONO prefers something not found yet. In season a seasonal find not found yet
- * can turn up (a tiny pumpkin in October, a snowflake in winter, a candy heart in Valentine's week). */
+ * can turn up (a tiny pumpkin in October, a snowflake in winter, a candy heart in Valentine's week, a cherry
+ * blossom in spring, a tiny diploma at the end of the semester). */
 export function findFor(minutes:number,roll:number,found:Map<string,number>,today:string):Find|null{
  if(minutes<MIN_FIND_MINUTES)return null
  const seasonal=FINDS.filter(f=>f.season&&inSeasonWindow(f.season,today)&&!found.has(f.id))

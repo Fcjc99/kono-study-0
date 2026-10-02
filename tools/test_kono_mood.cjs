@@ -211,13 +211,14 @@ test('KONO’s good morning / goodnight sum up a day in one sentence',()=>{
 const wardrobeMod=load('src/store/konoWardrobe.ts'),careMod=load('src/store/konoCare.ts')
 test('Wardrobe: outfits unlock by finished work and granted wishes; seasonal outfits (Halloween, winter, Valentine’s) count only in their season and show only then or once earned',()=>{
  const w=wardrobeMod,ids=set=>[...set].sort().join(',')
- const S=(h=0,wi=0,v=0)=>({halloween:h,winter:wi,valentine:v})
+ const S=(h=0,wi=0,v=0,sp=0,se=0)=>({halloween:h,winter:wi,valentine:v,spring:sp,semester:se})
  const st=(finished,wishes,sf=S(),sw=S())=>({finished,wishes,seasonFinished:sf,seasonWishes:sw})
  assert.equal(ids(w.unlockedOutfits(st(0,0))),'')
  assert.equal(ids(w.unlockedOutfits(st(5,1))),'beanie,bow')
  assert.equal(ids(w.unlockedOutfits(st(50,14))),'beanie,bow,chef,crown,flowers,gradcap,sunhat,wizard')
  assert.equal(ids(w.unlockedOutfits(st(6,3,S(6),S(3)))),'beanie,bow,frankenstein,ghost,sunhat,witch')
  assert.equal(ids(w.unlockedOutfits(st(3,2,S(0,3),S(0,0,2)))),'beanie,earmuffs,heartband')
+ assert.equal(ids(w.unlockedOutfits(st(5,3,S(0,0,0,0,5),S(0,0,0,3)))),'beanie,bow,bunnyears,partyhat,sunhat')
  const none=new Set()
  assert.equal(w.outfitsOffered(none,'2026-10-15').length,11,'October: the everyday outfits and the Halloween costumes')
  assert.equal(w.outfitsOffered(none,'2026-11-02').length,8,'November: seasonal outfits are hidden…')
@@ -225,6 +226,9 @@ test('Wardrobe: outfits unlock by finished work and granted wishes; seasonal out
  assert.deepEqual([...w.outfitsOffered(none,'2026-12-20').filter(o=>o.season).map(o=>o.id)],['earmuffs'],'December: earmuffs')
  assert.deepEqual([...w.outfitsOffered(none,'2027-02-10').filter(o=>o.season).map(o=>o.id)],['earmuffs','heartband'],'Valentine’s week: earmuffs and the heart headband')
  assert.equal(w.outfitHow(w.OUTFITS.find(o=>o.id==='witch')),'Finish 2 assignments in October.')
+ assert.deepEqual([...w.outfitsOffered(none,'2027-04-10').filter(o=>o.season).map(o=>o.id)],['bunnyears'],'spring: bunny ears')
+ assert.deepEqual([...w.outfitsOffered(none,'2027-06-01').filter(o=>o.season).map(o=>o.id)],['partyhat'],'end of semester: the party hat')
+ assert.equal(w.outfitHow(w.OUTFITS.find(o=>o.id==='partyhat')),'Finish 5 assignments at the end of the semester (May 21 – June 20).')
  assert.equal(w.outfitHow(w.OUTFITS.find(o=>o.id==='heartband')),'Grant 2 of KONO’s wishes during Valentine’s week (February 1–14).')
  const tasks=[{due:'2026-10-02',done:true,completedAt:'2026-10-02T15:00:00'},{due:'2026-09-02',done:true,completedAt:'2026-09-02T15:00:00'},{due:'2027-01-10',done:true,completedAt:'2027-01-10T15:00:00'}]
  const log=[{id:'wish-2026-10-02',kind:'wish',at:'2026-10-02T12:00:00.000Z'},{id:'wish-2026-09-20',kind:'wish',at:'2026-09-20T12:00:00.000Z'},{id:'wish-2026-10-02',kind:'wish',at:'2026-10-02T12:00:00.000Z'},{id:'wish-2027-02-03',kind:'wish',at:'2027-02-03T12:00:00.000Z'}]
@@ -279,6 +283,9 @@ test('Focus finds: 10+ minutes finds something, longer sessions find rarer thing
  assert.equal(tier(15,0.1,new Map([['snowflake',1]]),'2027-02-10'),'candy-heart')
  assert.equal(f.findHow(f.FINDS.find(x=>x.id==='snowflake')),'Found on focus sessions between December 1 and February 14.')
  assert.deepEqual([...f.findsOffered(none,'2026-12-20').filter(x=>x.season).map(x=>x.id)],['snowflake'])
+ assert.equal(tier(15,0.1,none,'2027-04-10'),'blossom','spring can bring a cherry blossom')
+ assert.equal(tier(15,0.1,none,'2027-06-01'),'diploma','the end of the semester can bring a tiny diploma')
+ assert.equal(tier(15,0.1,none,'2027-07-01')&&f.FINDS.find(x=>x.id===tier(15,0.1,none,'2027-07-01')).season,undefined,'summer: no seasonal find')
  const r1=f.rollFrom(1759330800000),r2=f.rollFrom(1759330800000);assert.equal(r1,r2);assert.ok(r1>=0&&r1<1)
  const counts=f.foundCounts([{id:'a',kind:'find',at:'2026-10-01T10:00:00Z',item:'acorn'},{id:'b',kind:'find',at:'2026-10-02T10:00:00Z',item:'acorn'},{id:'c',kind:'pet',at:'2026-10-02T10:00:00Z'}])
  assert.equal(counts.get('acorn'),2)
@@ -291,11 +298,15 @@ test('Focus finds: 10+ minutes finds something, longer sessions find rarer thing
 })
 
 const seasonMod=load('src/game/sanctuary/season.ts')
-test('the island’s seasons: Halloween all October, snow from December 1 to February 14 with hearts in Valentine’s week, and a Valentine’s sticker event',()=>{
+test('the island’s seasons: Halloween all October, snow from December 1 to February 14 with hearts in Valentine’s week, spring blossom, the end of the semester, and their sticker events',()=>{
  const at=day=>seasonMod.islandSeason(new Date(day+'T12:00:00'))
  assert.equal(at('2026-09-30'),null);assert.equal(at('2026-10-01'),'halloween');assert.equal(at('2026-10-31'),'halloween')
  assert.equal(at('2026-11-30'),null);assert.equal(at('2026-12-01'),'winter');assert.equal(at('2027-01-20'),'winter')
  assert.equal(at('2027-02-01'),'valentine');assert.equal(at('2027-02-14'),'valentine');assert.equal(at('2027-02-15'),null)
+ assert.equal(at('2027-03-19'),null);assert.equal(at('2027-03-20'),'spring');assert.equal(at('2027-05-20'),'spring')
+ assert.equal(at('2027-05-21'),'semester');assert.equal(at('2027-06-20'),'semester');assert.equal(at('2027-06-21'),null);assert.equal(at('2027-08-01'),null)
+ assert.equal(seasonMod.islandMapPath('morning','spring'),'/garden/terrace-23.0/spring/morning');assert.equal(seasonMod.islandMapPath('morning','semester'),'/garden/terrace-23.0/semester/morning')
+ assert.equal(seasonOn('2027-04-02').id,'spring');assert.equal(seasonOn('2027-06-02').id,'semester')
  assert.equal(seasonMod.islandMapPath('night','valentine'),'/garden/terrace-23.0/winter/night','Valentine’s week uses the winter island')
  assert.equal(seasonMod.islandMapPath('night',null),'/garden/terrace-23.0/night')
  assert.equal(seasonOn('2027-02-10').id,'valentine');assert.equal(seasonOn('2027-02-15'),null)
