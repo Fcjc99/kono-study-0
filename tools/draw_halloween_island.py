@@ -488,6 +488,8 @@ def composite(base, layer, phase):
     rgb = props[..., :3]
     lit = rgb * np.array(tint)[None, None, :]
     rgb = lit * (1 - glow_mask * glow_strength) + rgb * glow_mask * glow_strength
+    # Lit-up parts (carved faces, flames, the brew) shine brighter than their painted color at night.
+    rgb = np.clip(rgb * (1 + 0.6 * glow_mask * glow_strength) + glow_mask * 0.06 * glow_strength, 0, 1)
     alpha = props[..., 3:4]
     out = base * (1 - alpha) + rgb * alpha
     if glow_strength:
