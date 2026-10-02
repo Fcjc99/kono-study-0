@@ -140,7 +140,21 @@ def witch():
     d.rectangle((19, 23, 25, 29), fill=B); d.rectangle((21, 25, 23, 27), fill=V)
     return finish(im, {K[:3]: K2}, {K[:3]: KD}), {'width': 0.8, 'sink': 0.22}
 
-OUTFITS = {'beanie': beanie, 'sunhat': sunhat, 'gradcap': gradcap, 'flowers': flowercrown, 'wizard': wizard, 'crown': crown, 'bow': bow, 'chef': chef, 'witch': witch}
+def headband():
+    """Exam day: a study headband (worn by itself on test days, not in the wardrobe)."""
+    W, W2, WD, R, R2 = rgb(250, 248, 242), rgb(255, 255, 255), rgb(214, 208, 198), rgb(226, 70, 84), rgb(250, 120, 130)
+    im = blank(46, 16); d = ImageDraw.Draw(im)
+    d.rectangle((1, 4, 38, 10), fill=W)
+    for x in range(3, 38, 5): d.point((x, 9), fill=WD)
+    # a little red heart on the front
+    d.rectangle((17, 5, 18, 6), fill=R); d.rectangle((21, 5, 22, 6), fill=R); d.rectangle((17, 6, 22, 7), fill=R); d.rectangle((18, 8, 21, 8), fill=R); d.point((19, 9), fill=R); d.point((20, 9), fill=R)
+    # the knot and two tails flying off the side
+    d.ellipse((36, 3, 41, 10), fill=W)
+    d.polygon([(40, 6), (45, 1), (45, 4), (41, 8)], fill=W)
+    d.polygon([(40, 8), (45, 12), (43, 14), (39, 10)], fill=W)
+    return finish(im, {W[:3]: W2, R[:3]: R2}, {W[:3]: WD}), {'width': 0.8, 'sink': 0.62}
+
+OUTFITS = {'headband': headband, 'beanie': beanie, 'sunhat': sunhat, 'gradcap': gradcap, 'flowers': flowercrown, 'wizard': wizard, 'crown': crown, 'bow': bow, 'chef': chef, 'witch': witch}
 
 # --- KONO's finds (focus sessions): 16x16-cell treasures with the same outline and shading.
 FIND_DIR = os.path.join(ROOT, 'public/garden/finds')

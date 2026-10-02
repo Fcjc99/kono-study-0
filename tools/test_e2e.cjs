@@ -1604,18 +1604,20 @@ test('Halloween island: all of October the island has its spooky look (with its 
 
 test('Halloween on the island: in October KONO wears a pumpkin, a banner counts the 4 spooky stickers, finishing work earns the Pumpkin, and it goes on the island',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
+ // No test that day (on a test day KONO wears its study headband instead of the pumpkin).
+ for(const e of cloud.users.alice.plan.data.exams)e.due='2026-10-20'
  await page.clock.setFixedTime(new Date('2026-10-02T15:00:00'))
  await signInAs(context,cloud,'alice')
  await page.goto(BASE)
  await heading(page,'Sanctuary')
  const today=page.getByRole('region',{name:'KONO today'})
- await today.getByText('Spooky season on the island! Earn 4 special stickers until Oct 31: 0 of 4 so far.',{exact:false}).waitFor()
+ await today.getByText('Spooky season: 0/4 special stickers until Oct 31',{exact:false}).waitFor()
  assert.equal(await today.locator('.kono-mood-face').getAttribute('data-costume'),'🎃')
  await today.getByRole('button',{name:'Your stickers: 2 of 16 earned'}).waitFor()
  await page.waitForTimeout(900)
  await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
  await page.getByRole('status').filter({hasText:'New sticker: 🎃 Pumpkin! Put it on your island in Decorate › Stickers.'}).waitFor()
- await today.getByText('1 of 4 so far.',{exact:false}).waitFor()
+ await today.getByText('Spooky season: 1/4 special stickers',{exact:false}).waitFor()
  await today.getByRole('button',{name:'Your stickers: 3 of 16 earned'}).click()
  const palette=page.locator('.build-palette')
  await palette.getByLabel('Friendly ghost, locked. Study 3 days in a row in October.').waitFor()
@@ -1751,9 +1753,9 @@ test('Sanctuary: KONO today is a slim bar on top of the island, and Decorate ope
  await page.goto(BASE);await heading(page,'Sanctuary')
  const bar=page.getByRole('region',{name:'KONO today'}),island=page.locator('.wb-island')
  const b=await bar.boundingBox(),i=await island.boundingBox(),docY=await page.evaluate(()=>scrollY)
- assert.ok(b.height<150,'the KONO bar is slim: '+b.height+'px')
- assert.ok(b.y+b.height<=i.y+1,'the KONO bar sits right above the island')
  if(process.env.KONO_SHOTS){await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar.png',clip:{x:b.x-10,y:b.y+docY-10,width:b.width+20,height:b.height+200}});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);const pb=await bar.evaluate(e=>{const r=e.getBoundingClientRect();return {y:r.top+scrollY,height:r.height}});await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar-phone.png',clip:{x:0,y:Math.max(0,pb.y-10),width:390,height:pb.height+160}});await page.setViewportSize({width:1280,height:900});await page.waitForTimeout(400)}
+ assert.ok(b.height<160,'the KONO bar is slim (two short rows, even with a note from KONO): '+b.height+'px')
+ assert.ok(b.y+b.height<=i.y+1,'the KONO bar sits right above the island')
  await page.getByRole('button',{name:'Decorate'}).click()
  const nav=page.getByRole('navigation',{name:'Decoration categories'})
  for(const cat of ['Homes','Trees','Ponds']){await nav.getByRole('button',{name:cat,exact:true}).click();await page.locator('.build-palette [role=button][aria-label^="Add "]').first().click()}
@@ -1802,6 +1804,43 @@ test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assign
  await week.getByRole('button',{name:/^Lab report · Sep 28, 2026/}).waitFor()
  await week.getByRole('button',{name:/^Tutoring · 4:30 PM–5:30 PM · Sep 28, 2026/}).waitFor()
  await week.getByRole('button',{name:/^★ Spanish quiz|^Spanish quiz · Sep 29, 2026/}).first().waitFor()
+})
+
+test('KONO’s notes: good luck the evening before a test, the study headband on test day, How did it go? after it (answered once), and one gentle nudge a day, all in the KONO bar',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.exams.push({id:'bio-quiz',profileId:pid,subjectId:'',title:'Bio quiz',due:'2026-10-08',done:false,notes:''})
+ await page.clock.setFixedTime(new Date('2026-10-07T18:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const bar=page.getByRole('region',{name:'KONO today'}),note=bar.locator('.kono-note')
+ await note.getByText('🍀 Good luck on Bio quiz tomorrow! You’ve got this.').waitFor()
+ const dialogs=await page.getByRole('dialog').count()
+ // Test day: KONO wears its study headband.
+ await page.clock.setFixedTime(new Date('2026-10-08T09:00:00'))
+ await page.reload();await heading(page,'Sanctuary')
+ await note.getByText(/^💪 Bio quiz is today\./).waitFor()
+ await bar.locator('.kono-mood-face img.kono-outfit[src$="headband.webp"]').waitFor()
+ // After it: How did it go?
+ await page.clock.setFixedTime(new Date('2026-10-08T16:00:00'))
+ await page.reload();await heading(page,'Sanctuary')
+ await note.getByText('How did Bio quiz go?').waitFor()
+ if(process.env.KONO_SHOTS)await bar.screenshot({path:process.env.KONO_SHOTS+'/kono-note-ask.png'})
+ await note.getByRole('button',{name:'Good'}).click()
+ await bar.getByText(/^Yay! I knew you could do it!/).waitFor()
+ await bar.getByText('How did Bio quiz go?').waitFor({state:'detached'})
+ await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).some(e=>e.id==='exam-bio-quiz'&&e.item==='good'),'the answer reaches the account')
+ // The next morning: not asked again, and the day’s one nudge instead.
+ await page.clock.setFixedTime(new Date('2026-10-09T09:00:00'))
+ await page.reload();await heading(page,'Sanctuary')
+ await note.getByText(/^📌 .+ Start with \d+ minutes\?/).waitFor()
+ assert.equal(await bar.getByText('How did Bio quiz go?').count(),0)
+ await note.getByRole('button',{name:'Not now'}).click()
+ await note.waitFor({state:'detached'})
+ await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).some(e=>e.id==='nudge-2026-10-09'&&e.item==='later'),'Not now reaches the account')
+ await page.reload();await heading(page,'Sanctuary')
+ await bar.locator('.kono-mood-face').waitFor()
+ assert.equal(await bar.locator('.kono-note').count(),0,'one nudge a day')
+ assert.equal(await page.getByRole('dialog').count(),dialogs,'nothing pops up')
 })
 
 test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in the card, a pat makes KONO happy, and both reach the account without anything popping up',async({context,page})=>{
