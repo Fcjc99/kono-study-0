@@ -3,7 +3,10 @@ small grid (one cell = one of KONO's art pixels), given KONO's brown outline and
 then scaled up 4x with hard edges. It also measures where KONO's head is in every pose, so one
 outfit image fits them all (public/garden/kono/outfits/fit.json).
 
-Run: python3 tools/draw_kono_outfits.py  [--preview out.png]"""
+It also draws the little treasures KONO finds during focus sessions (public/garden/finds), in the same
+style.
+
+Run: python3 tools/draw_kono_outfits.py  [--preview out.png] [--finds-preview out.png]"""
 import json, sys, os
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -138,6 +141,96 @@ def witch():
     return finish(im, {K[:3]: K2}, {K[:3]: KD}), {'width': 0.8, 'sink': 0.22}
 
 OUTFITS = {'beanie': beanie, 'sunhat': sunhat, 'gradcap': gradcap, 'flowers': flowercrown, 'wizard': wizard, 'crown': crown, 'bow': bow, 'chef': chef, 'witch': witch}
+
+# --- KONO's finds (focus sessions): 16x16-cell treasures with the same outline and shading.
+FIND_DIR = os.path.join(ROOT, 'public/garden/finds')
+
+def icon(draw, light=None, dark=None, size=18):
+    im = blank(size, size); draw(ImageDraw.Draw(im), im)
+    return finish(im, light, dark)
+
+def pebble():
+    G, G2, GD = rgb(164, 160, 170), rgb(196, 192, 200), rgb(124, 120, 132)
+    return icon(lambda d, im: (d.ellipse((2, 6, 15, 15), fill=G), d.point([(6, 9), (11, 12)], fill=GD)), {G[:3]: G2}, {G[:3]: GD})
+def acorn(cap=(132, 88, 52), nut=(196, 132, 72), shine=(230, 176, 110)):
+    C, N = rgb(*cap), rgb(*nut)
+    def draw(d, im):
+        d.ellipse((4, 7, 13, 17), fill=N)
+        d.ellipse((2, 4, 15, 10), fill=C)
+        d.rectangle((8, 1, 9, 4), fill=C)
+        for x in range(4, 14, 2): d.point((x, 7), fill=tuple(max(0, c - 30) for c in cap) + (255,))
+    return icon(draw, {N[:3]: rgb(*shine)}, {N[:3]: tuple(max(0, c - 40) for c in nut) + (255,)})
+def leaf():
+    O, O2, OD = rgb(232, 120, 52), rgb(248, 166, 80), rgb(192, 82, 36)
+    def draw(d, im):
+        d.polygon([(8, 0), (10, 4), (15, 3), (13, 8), (17, 10), (12, 12), (9, 16), (6, 12), (1, 10), (5, 8), (3, 3), (7, 4)], fill=O)
+        d.line((9, 6, 9, 17), fill=OD)
+    return icon(draw, {O[:3]: O2}, {O[:3]: OD})
+def feather():
+    W, W2, B = rgb(236, 232, 246), rgb(255, 255, 255), rgb(150, 170, 220)
+    def draw(d, im):
+        d.ellipse((5, 1, 12, 15), fill=W)
+        d.line((8, 3, 9, 17), fill=B)
+        for y in (5, 8, 11): d.point([(6, y), (11, y + 1)], fill=B)
+    return icon(draw, {W[:3]: W2}, {})
+def shell():
+    P, P2, PD = rgb(246, 176, 170), rgb(255, 214, 206), rgb(214, 126, 128)
+    def draw(d, im):
+        d.pieslice((1, 3, 16, 18), 180, 360, fill=P)
+        d.rectangle((6, 10, 11, 14), fill=P)
+        for x in (4, 7, 10, 13): d.line((8, 12, x, 5), fill=PD)
+    return icon(draw, {P[:3]: P2}, {P[:3]: PD})
+def clover():
+    G, G2, GD = rgb(96, 180, 96), rgb(140, 214, 120), rgb(60, 136, 70)
+    def draw(d, im):
+        for box in ((3, 2, 9, 8), (9, 2, 15, 8), (3, 8, 9, 14), (9, 8, 15, 14)): d.ellipse(box, fill=G)
+        d.line((9, 12, 12, 17), fill=GD)
+    return icon(draw, {G[:3]: G2}, {G[:3]: GD})
+def pinecone():
+    B, B2, BD = rgb(150, 98, 58), rgb(186, 132, 82), rgb(112, 70, 40)
+    def draw(d, im):
+        d.ellipse((4, 2, 13, 17), fill=B)
+        for y in range(4, 16, 3):
+            for x in range(5, 13, 3): d.point([(x, y), (x + 1, y + 1)], fill=BD)
+        d.rectangle((8, 0, 9, 2), fill=rgb(90, 140, 70))
+    return icon(draw, {B[:3]: B2}, {B[:3]: BD})
+def seaglass():
+    T, T2, TD = rgb(120, 206, 196), rgb(186, 238, 230), rgb(76, 160, 158)
+    return icon(lambda d, im: (d.polygon([(3, 6), (9, 2), (15, 5), (14, 13), (7, 16), (2, 12)], fill=T), d.point([(6, 6), (7, 5)], fill=rgb(240, 255, 252))), {T[:3]: T2}, {T[:3]: TD})
+def mushroom():
+    R, R2, RD, S = rgb(222, 74, 74), rgb(244, 120, 110), rgb(176, 48, 56), rgb(246, 236, 220)
+    def draw(d, im):
+        d.rectangle((6, 9, 11, 16), fill=S)
+        d.pieslice((1, 1, 16, 16), 180, 360, fill=R)
+        for x, y in ((5, 5), (11, 4), (8, 7)): d.ellipse((x - 1, y - 1, x + 1, y + 1), fill=rgb(255, 250, 240))
+    return icon(draw, {R[:3]: R2}, {R[:3]: RD})
+def crystal():
+    V, V2, VD = rgb(170, 130, 236), rgb(214, 190, 255), rgb(120, 84, 192)
+    def draw(d, im):
+        d.polygon([(8, 0), (13, 5), (12, 15), (5, 15), (3, 5)], fill=V)
+        d.polygon([(13, 7), (16, 10), (15, 16), (12, 16)], fill=V)
+        d.line((8, 1, 8, 14), fill=V2)
+    return icon(draw, {V[:3]: V2}, {V[:3]: VD})
+def golden_acorn(): return acorn(cap=(214, 160, 50), nut=(248, 204, 74), shine=(255, 240, 160))
+def star():
+    Y, Y2, YD = rgb(252, 212, 72), rgb(255, 240, 150), rgb(220, 164, 40)
+    pts = []
+    import math
+    for i in range(10):
+        r = 8 if i % 2 == 0 else 3.6; a = -math.pi / 2 + i * math.pi / 5
+        pts.append((8.5 + r * math.cos(a), 9 + r * math.sin(a)))
+    return icon(lambda d, im: d.polygon(pts, fill=Y), {Y[:3]: Y2}, {Y[:3]: YD})
+def pumpkin():
+    O, O2, OD, G = rgb(240, 132, 40), rgb(252, 176, 80), rgb(200, 96, 30), rgb(96, 140, 60)
+    def draw(d, im):
+        d.ellipse((1, 5, 10, 16), fill=O); d.ellipse((7, 5, 16, 16), fill=O); d.ellipse((4, 4, 13, 17), fill=O)
+        d.line((8, 6, 8, 15), fill=OD)
+        d.rectangle((8, 1, 9, 4), fill=G)
+    return icon(draw, {O[:3]: O2}, {O[:3]: OD})
+
+FINDS = {'pebble': pebble, 'acorn': acorn, 'leaf': leaf, 'feather': feather, 'shell': shell, 'clover': clover,
+         'pinecone': pinecone, 'seaglass': seaglass, 'mushroom': mushroom, 'crystal': crystal,
+         'golden-acorn': golden_acorn, 'star': star, 'pumpkin': pumpkin}
 
 # --- Costumes that wrap around KONO's shape (a ghost sheet, Frankenstein's hair and bolts) are drawn
 # for each pose from that pose's own silhouette, at full pose size.
@@ -325,13 +418,21 @@ def main():
             costume.save(os.path.join(OUT_DIR, cid, name + '.webp'), lossless=True)
         fits[cid] = {'full': True, 'sink': 0, 'px': [0, 0], 'skip': ['pond']}
     write_ts(heads, fits)
+    os.makedirs(FIND_DIR, exist_ok=True)
+    for fid, fn in FINDS.items(): fn().save(os.path.join(FIND_DIR, fid + '.webp'), lossless=True)
     # The build only ships files listed in tools/public-allowlist.json: keep the outfit art listed.
     allow_path = os.path.join(ROOT, 'tools/public-allowlist.json')
-    allow = [p for p in json.load(open(allow_path)) if not p.startswith('/garden/kono/outfits/')]
-    art = sorted('/' + os.path.relpath(os.path.join(d, f), os.path.join(ROOT, 'public')).replace(os.sep, '/') for d, _, fs in os.walk(OUT_DIR) for f in fs if f.endswith('.webp'))
+    allow = [p for p in json.load(open(allow_path)) if not p.startswith(('/garden/kono/outfits/', '/garden/finds/'))]
+    art = sorted('/' + os.path.relpath(os.path.join(d, f), os.path.join(ROOT, 'public')).replace(os.sep, '/') for base in (OUT_DIR, FIND_DIR) for d, _, fs in os.walk(base) for f in fs if f.endswith('.webp'))
     at = max((i for i, p in enumerate(allow) if p.startswith('/garden/kono/')), default=len(allow) - 1) + 1
     allow = allow[:at] + art + allow[at:]
     json.dump(allow, open(allow_path, 'w'), indent=1); open(allow_path, 'a').write('\n')
+    if '--finds-preview' in sys.argv:
+        out = sys.argv[sys.argv.index('--finds-preview') + 1]
+        sheet = Image.new('RGBA', (100 * len(FINDS), 120), (250, 244, 236, 255))
+        for i, fid in enumerate(FINDS):
+            im = Image.open(os.path.join(FIND_DIR, fid + '.webp')); sheet.alpha_composite(im, (i * 100 + (100 - im.width) // 2, (120 - im.height) // 2))
+        sheet.save(out)
     if '--preview' in sys.argv:
         preview(sys.argv[sys.argv.index('--preview') + 1], heads, fits)
 

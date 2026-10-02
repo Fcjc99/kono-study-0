@@ -7,6 +7,7 @@ import type {PhaseMode} from '../game/sanctuary/types'
 import DecorateDebugHUD from './DecorateDebugHUD'
 import {STICKERS,stickerOffered} from '../store/stickers'
 import {outfitHow,outfitProgress,type Outfit,type OutfitId,type WardrobeStats} from '../store/konoWardrobe'
+import {FINDS,findHow,findsOffered} from '../store/konoFinds'
 import KonoFace from './KonoFace'
 
 /** Decorate › Wardrobe: KONO's outfits (store/konoWardrobe). */
@@ -30,7 +31,11 @@ const clampCoord=(v:number):number=>Math.min(PLACEMENT_MAX,Math.max(PLACEMENT_MI
 
 const STICKER_HOW:Record<string,string>=Object.fromEntries(STICKERS.map(s=>['sticker-'+s.id,s.how]))
 /** A sticker (Decorate › Stickers) is placeable once it's earned; everything else always is. */
-const isLocked=(assetId:string,earned:Set<string>)=>assetId.startsWith('sticker-')&&!earned.has(assetId.slice(8))
+const FIND_HOW:Record<string,string>=Object.fromEntries(FINDS.map(f=>['find-'+f.id,findHow(f)]))
+/** Stickers and finds are earned: locked until store/stickers or store/konoFinds says so (`earned` holds
+ * sticker IDs and "find-" asset IDs). */
+const isLocked=(assetId:string,earned:Set<string>)=>assetId.startsWith('sticker-')?!earned.has(assetId.slice(8)):assetId.startsWith('find-')&&!earned.has(assetId)
+const lockedHow=(assetId:string)=>STICKER_HOW[assetId]??FIND_HOW[assetId]??''
 
 export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCategory,today=localDate(),wardrobe}:{data:AppData;save:PlannerRepository['update'];phase:PhaseMode;earned?:Set<string>;startCategory?:BuildCategory;today?:string;wardrobe?:WardrobeProps}){
  const profileId=data.activeProfileId
@@ -39,6 +44,7 @@ export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCa
  const decorFor=(d:AppData)=>d.sanctuaryDecor[profileId]??{profileId,placements:[]}
  const decor=decorFor(data)
  const [category,setCategory]=useState<BuildCategory|null>(startCategory??BUILD_CATEGORIES[0]??null)
+ const offeredFinds=new Set(findsOffered(new Map([...earned].filter(id=>id.startsWith('find-')).map(id=>[id.slice(5),1])),today).map(f=>'find-'+f.id))
  const [selected,setSelected]=useState<string|null>(null)
  const [busy,setBusy]=useState(false),[message,setMessage]=useState('')
  const canvasRef=useRef<HTMLDivElement|null>(null)
@@ -259,13 +265,14 @@ export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCa
    })()}
    <p className="wb-muted">Tap an item to add it to your island, or drag it on to choose where it lands. Drag a placed item anywhere to move it, or tap it once to select it — then use the controls above to resize, skew, rotate, mirror, duplicate, or remove it. A few items (like signs and the chalkboard) let you write your own text on them, too. Place as many of anything as you like.</p>
    <nav ref={tabsRef} className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}{wardrobe&&<button type="button" aria-current={category==='wardrobe'?'page':undefined} onClick={()=>{setCategory('wardrobe');setSelected(null)}}>Wardrobe</button>}</nav>
+   {category==='finds'&&<p className="build-sticker-note">Treasures KONO brings back from your focus sessions. Longer sessions find rarer things. {FINDS.filter(f=>earned.has('find-'+f.id)).length} of {offeredFinds.size} found.</p>}
    {category==='stickers'&&<p className="build-sticker-note">Earn stickers by keeping up with your work. {STICKERS.filter(t=>earned.has(t.id)).length} of {STICKERS.filter(t=>stickerOffered(t.id,earned,today)).length} earned.</p>}
    {category==='wardrobe'&&wardrobe?<><p className="build-sticker-note">Outfits for KONO, earned by finishing work and granting KONO’s daily wish. Tap one to put it on. {wardrobe.unlocked.size} of {wardrobe.offered.length} earned.</p>
     <div className="build-palette kono-wardrobe">{wardrobe.offered.map(o=>{const has=wardrobe.unlocked.has(o.id),on=wardrobe.worn===o.id
      return has?<button type="button" key={o.id} className={'build-palette-item kono-wardrobe-item'+(on?' is-worn':'')} aria-pressed={on} aria-label={(on?'Take off ':'Wear ')+o.name} onClick={()=>wardrobe.onWear(on?null:o.id)}><span className="kono-face-box"><KonoFace pose="/garden/kono/idle.webp" outfit={o.id} size={64}/></span><small>{o.name}{on&&' ✓'}</small></button>
       :<div key={o.id} className="build-palette-item kono-wardrobe-item is-locked" aria-label={o.name+', locked. '+outfitHow(o)}><span className="kono-face-box"><KonoFace pose="/garden/kono/idle.webp" outfit={o.id} size={64}/><i aria-hidden="true">🔒</i></span><small>{outfitHow(o)} {outfitProgress(o,wardrobe.stats)}/{o.count}</small></div>})}</div></>:
-      <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category&&(!a.id.startsWith('sticker-')||stickerOffered(a.id.slice(8),earned,today))).map(a=>isLocked(a.id,earned)?
-    <div key={a.id} className="build-palette-item is-locked" aria-label={a.label+', locked. '+STICKER_HOW[a.id]}><span className="build-palette-thumb"><img src={assetSrc(a)} alt="" draggable={false}/><i aria-hidden="true">🔒</i></span><small>{STICKER_HOW[a.id]}</small></div>:
+      <div className="build-palette">{BUILD_ASSETS.filter(a=>a.category===category&&(!a.id.startsWith('sticker-')||stickerOffered(a.id.slice(8),earned,today))&&(!a.id.startsWith('find-')||offeredFinds.has(a.id))).map(a=>isLocked(a.id,earned)?
+    <div key={a.id} className="build-palette-item is-locked" aria-label={a.label+', locked. '+lockedHow(a.id)}><span className="build-palette-thumb"><img src={assetSrc(a)} alt="" draggable={false}/><i aria-hidden="true">🔒</i></span><small>{lockedHow(a.id)}</small></div>:
     <div role="button" tabIndex={0} draggable key={a.id} className="build-palette-item" onDragStart={e=>{e.dataTransfer.setData('text/plain',a.id);e.dataTransfer.effectAllowed='copy'}} onClick={()=>placeDefault(a.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();placeDefault(a.id)}}} aria-label={'Add '+a.label}><span className="build-palette-thumb"><img src={assetSrc(a)} alt="" draggable={false}/></span><small>{a.label}</small></div>
    )}</div>}
   </section>

@@ -251,4 +251,31 @@ test('Daily wish: finish today’s work (up to 3), get ahead, or be tucked in; p
  assert.equal(careMod.readCareState({log:[{id:'w',kind:'wear',at:'2026-10-03T10:00:00Z',item:'ghost'}]},'p').log[0].item,'ghost')
 })
 
+const findsMod=load('src/store/konoFinds.ts')
+test('Focus finds: 10+ minutes finds something, longer sessions find rarer things, new finds come first, and October can bring a pumpkin',()=>{
+ const f=findsMod,none=new Map(),tier=(m,roll,found=none,day='2026-09-15')=>f.findFor(m,roll,found,day)?.id
+ assert.equal(f.findFor(9,0.9,none,'2026-09-15'),null,'too short for a find')
+ const of=(id)=>f.FINDS.find(x=>x.id===id).tier
+ assert.equal(of(tier(10,0.99)),'common','10 minutes: something common')
+ assert.equal(of(tier(25,0.1)),'common');assert.equal(of(tier(25,0.6)),'uncommon')
+ assert.equal(of(tier(45,0.45)),'uncommon');assert.equal(of(tier(60,0.9)),'rare')
+ const allCommonButLeaf=new Map(f.FINDS.filter(x=>x.tier==='common'&&x.id!=='leaf').map(x=>[x.id,1]))
+ assert.equal(tier(15,0.3,allCommonButLeaf),'leaf','something not found yet comes first')
+ const everyCommon=new Map(f.FINDS.filter(x=>x.tier==='common').map(x=>[x.id,1]))
+ assert.equal(of(tier(15,0.3,everyCommon)),'common','with everything found, a repeat is fine')
+ assert.equal(tier(15,0.1,none,'2026-10-15'),'pumpkin','October can bring a pumpkin')
+ assert.notEqual(tier(15,0.1,new Map([['pumpkin',1]]),'2026-10-15'),'pumpkin','only one pumpkin hunt')
+ assert.equal(f.findsOffered(none,'2026-11-02').some(x=>x.id==='pumpkin'),false)
+ assert.equal(f.findsOffered(new Map([['pumpkin',1]]),'2026-11-02').some(x=>x.id==='pumpkin'),true)
+ const r1=f.rollFrom(1759330800000),r2=f.rollFrom(1759330800000);assert.equal(r1,r2);assert.ok(r1>=0&&r1<1)
+ const counts=f.foundCounts([{id:'a',kind:'find',at:'2026-10-01T10:00:00Z',item:'acorn'},{id:'b',kind:'find',at:'2026-10-02T10:00:00Z',item:'acorn'},{id:'c',kind:'pet',at:'2026-10-02T10:00:00Z'}])
+ assert.equal(counts.get('acorn'),2)
+ assert.equal(f.foundLine(f.FINDS.find(x=>x.id==='acorn'),25),'KONO found an acorn while you focused for 25 minutes! It’s in Decorate › Finds.')
+ // Finds stay in the collection past the month-long trim.
+ const now=new Date('2026-12-15T12:00:00Z')
+ const s=careMod.addCareEvent({profileId:'p',log:[{id:'a',kind:'find',at:'2026-09-01T10:00:00.000Z',item:'star'}]},'p',{id:'p',kind:'pet',at:now.toISOString()},now)
+ assert.equal(s.log.map(e=>e.id).join(),'a,p')
+ assert.equal(careMod.readCareState({log:[{id:'a',kind:'find',at:'2026-09-01T10:00:00Z',item:'star'}]},'p').log[0].item,'star')
+})
+
 console.log(passed+' KONO mood and sticker groups passed')

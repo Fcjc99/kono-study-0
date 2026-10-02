@@ -7,7 +7,7 @@ type NavigatorWithWakeLock = Navigator & { wakeLock?: { request: (type: 'screen'
 
 /** `label` is for studying with no assignment behind it ("Study for Cell biology test"); taskId is then ''. */
 export type FocusRequest={taskId:string;estimatedMinutes?:number;requestId:number;label?:string}
-export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey='kono-focus-draft',focusRequest,onFocusActiveChange}:{draftKey?:string;tasks:Task[];notes:Note[];onComplete:(id:string)=>void;onSaveNote:(body:string)=>void|Promise<boolean>;focusRequest?:FocusRequest|null;onFocusActiveChange?:(active:boolean)=>void}){
+export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey='kono-focus-draft',focusRequest,onFocusActiveChange,onSessionComplete}:{draftKey?:string;tasks:Task[];notes:Note[];onComplete:(id:string)=>void;onSaveNote:(body:string)=>void|Promise<boolean>;focusRequest?:FocusRequest|null;onFocusActiveChange?:(active:boolean)=>void;onSessionComplete?:(minutes:number)=>void}){
  const [taskId,setTaskId]=useState(''),[studyLabel,setStudyLabel]=useState(''),[draft,setDraft]=useDraftState(draftKey,'')
  const [duration,setDuration]=useDraftState(draftKey+':duration',25*60)
  const [remaining,setRemaining]=useState(duration),[until,setUntil]=useState<number|null>(null),[now,setNow]=useState(0)
@@ -37,6 +37,10 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey
  // or the timer simply finishing, matching this component's own definition of an active session.
  const focusActive=until!==null&&!finished
  useEffect(()=>{onFocusActiveChange?.(focusActive)},[focusActive,onFocusActiveChange])
+ // The timer ran all the way down (not paused or reset): KONO brings a find (store/konoFinds). Once per
+ // run of the timer, for the minutes it was set to.
+ const reportedRef=useRef<number|null>(null)
+ useEffect(()=>{if(finished&&until!==null&&reportedRef.current!==until){reportedRef.current=until;onSessionComplete?.(Math.round(duration/60))}},[finished,until,duration,onSessionComplete])
  const releaseLock=()=>{
   setLocked(false)
   void wakeLockRef.current?.release().catch(()=>undefined)

@@ -172,7 +172,15 @@
 .save-to-email-banner.is-compact p{flex:1;min-width:0;margin:0;font-size:.9rem}
 .save-to-email-banner.is-compact button{flex:none;min-height:36px;padding:6px 12px}
 /* Planner › Week: where a dragged assignment or event will land. */
-.week-grid .week-item[draggable=true]{cursor:grab}
+/* Moving and stretching on the week (components/WeekGrid): press and hold on a phone, so no callout or text selection. */
+.week-grid .week-item.is-movable{cursor:grab;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.week-grid.is-dragging,.week-grid.is-dragging *{cursor:grabbing!important}
+.week-grid .week-item.is-dragging{opacity:.35}
+.week-item-ghost{position:absolute;left:2px;right:2px;z-index:3;border-radius:6px;border:2px dashed var(--item-color,var(--wb-accent,#e0705c));background:color-mix(in srgb,var(--item-color,#e0705c) 26%,var(--wb-paper,#fff));font-size:.68rem;font-weight:700;padding:2px 4px;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.15);overflow:hidden;white-space:nowrap}
+.week-grid .week-item-grip{position:absolute;left:0;right:0;bottom:0;height:9px;cursor:ns-resize;touch-action:none}
+.week-grid .week-item-grip::after{content:'';position:absolute;left:50%;bottom:2px;width:18px;height:3px;margin-left:-9px;border-radius:2px;background:var(--item-color);opacity:0;transition:opacity .15s}
+.week-grid .week-item:is(:hover,:focus-visible) .week-item-grip::after{opacity:.7}
+@media(pointer:coarse){.week-grid .week-item-grip{height:12px}.week-grid .week-item-grip::after{opacity:.45}}
 .week-grid .week-grid-slot.is-drop-target,.week-grid .week-grid-allday-cell.is-drop-target{background:color-mix(in srgb,var(--wb-accent,#e0705c) 18%,transparent)!important;outline:2px dashed var(--wb-accent,#e0705c);outline-offset:-2px}
 /* Sanctuary › Getting started. */
 .getting-started-steps{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
@@ -274,6 +282,7 @@ button.kono-mood-face:focus-visible{outline:2px solid var(--accent,#6d8f6b);outl
 /* KONO's outfit (Decorate › Wardrobe) over the face picture, placed by components/KonoFace. */
 .kono-mood-face,.kono-face-box{position:relative;overflow:visible}
 .kono-mood .kono-outfit,.kono-face-box .kono-outfit{position:absolute;max-width:none;flex:none;object-fit:fill;image-rendering:pixelated;pointer-events:none}
+.kono-mood .kono-find-icon{display:inline-block;width:28px;height:28px;flex:none;margin-left:6px;vertical-align:middle;image-rendering:pixelated}
 .kono-wish{margin:6px 0 0;font-size:.78rem;opacity:.8}
 .kono-wish.is-granted{opacity:.6}
 .kono-wardrobe .kono-wardrobe-item{background:none;border:0;cursor:pointer}
@@ -342,3 +351,11 @@ button.kono-mood-face:focus-visible{outline:2px solid var(--accent,#6d8f6b);outl
 .workbench .kono-weather-chip,.workbench[data-experience] .kono-weather-chip{min-height:32px!important}
 /* On the page itself (not a card), so it sits on the page's own background in dark mode too. */
 .schedule-filter-row,.planner-settings-link{background:transparent}
+/* Repeating events (EntryEditor): the repeat picker and, for one of a series, which of it a change goes to. */
+.wb-event-repeat{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end}
+.wb-event-repeat p{grid-column:1/-1;margin:0;font-size:.82rem}
+.wb-event-series{border:1px solid var(--wb-line,#e2d8cc);border-radius:10px;padding:8px 10px;display:grid;gap:4px}
+.wb-event-series legend{font-size:.85rem;font-weight:600;padding:0 4px}
+.wb-event-series .wb-check{margin:0!important;padding:3px 0!important;min-height:0!important}
+.wb-repeat-mark{opacity:.6;font-weight:400}
+.week-class-sheet .wb-class{margin:0}

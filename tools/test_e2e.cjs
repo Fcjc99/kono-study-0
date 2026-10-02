@@ -815,7 +815,7 @@ test('Built-in AI: a signed-in student with no key of their own gets KONO’s AI
  assert.match(posts[0].body.prompt,/Marine Biology with Dr\. Lee/)
 })
 
-test('Planner › Week: the week by default, items at their hour, source chips hide a whole source, tapping an empty hour adds something then, and dragging plans it',async({context,page})=>{
+test('Planner › Week: the week by default, items at their hour, source chips hide a whole source, tapping an empty hour adds something then, tapping an item opens it right there, dragging moves it in 15-minute steps, and its bottom edge stretches it',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  plan.settings.parentMode=false // a student: an empty hour opens the event editor (parents get the quick add)
  plan.calendarEvents.push(
@@ -854,22 +854,79 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  await editor.getByRole('button',{name:'Save'}).click()
  await week.getByRole('button',{name:/^Tutoring · 10:00 AM–11:00 AM · Oct 2, 2026/}).waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.some(e=>e.title==='Tutoring'&&e.date==='2026-10-02'&&e.time==='10:00'),'the new event reaches the account')
- // Drag and drop: an event moves to another hour, keeping its length.
- await dragOnto(page,week.getByRole('button',{name:/^Tutoring · 10:00 AM/}),week.getByRole('button',{name:'Add at 1:00 PM on Oct 2, 2026'}))
+ // Tapping an event opens its editor right on the calendar (no scrolling down to the daily page).
+ await week.getByRole('button',{name:/^Tutoring · 10:00 AM/}).click()
+ const tutoring=page.getByRole('dialog',{name:'Edit Event'})
+ assert.equal(await tutoring.getByLabel('Title').inputValue(),'Tutoring')
+ await tutoring.getByRole('button',{name:'Close dialog'}).click()
+ await tutoring.waitFor({state:'detached'})
+ // Tapping a class opens its card (notes, skip, add for this class).
+ await week.getByRole('button',{name:/^Biology · 9:00 AM–10:00 AM/}).click()
+ const biology=page.getByRole('dialog',{name:/Sep 28, 2026/})
+ await biology.getByRole('heading',{name:'Biology',level:3}).waitFor()
+ await biology.getByRole('button',{name:'Close dialog'}).click()
+ // Dragging: an event moves to another time, keeping its length, in 15-minute steps.
+ await weekDrag(page,week.getByRole('button',{name:/^Tutoring · 10:00 AM/}),week.getByRole('button',{name:'Add at 1:00 PM on Oct 2, 2026'}))
  await week.getByRole('button',{name:/^Tutoring · 1:00 PM–2:00 PM/}).waitFor()
+ await weekDrag(page,week.getByRole('button',{name:/^Tutoring · 1:00 PM/}),week.getByRole('button',{name:'Add at 2:00 PM on Oct 2, 2026'}),-22)
+ await week.getByRole('button',{name:/^Tutoring · 1:30 PM–2:30 PM/}).waitFor()
+ // Its bottom edge stretches it: drag the grip down to 4:00 PM.
+ const grip=week.getByRole('button',{name:/^Tutoring · 1:30 PM/}).locator('.week-item-grip')
+ await weekDrag(page,grip,week.getByRole('button',{name:'Add at 4:00 PM on Oct 2, 2026'}),-3,{fromBottom:true,shot:'week-stretch.png'})
+ await week.getByRole('button',{name:/^Tutoring · 1:30 PM–4:00 PM/}).waitFor()
+ await waitFor(()=>{const e=cloud.users.alice.plan.data.calendarEvents.find(x=>x.title==='Tutoring');return e?.time==='13:30'&&e.endTime==='16:00'},'the moved and stretched event reaches the account')
+ // A tap that's really a drag doesn't open the editor.
+ assert.equal(await page.getByRole('dialog').count(),0)
  // An assignment dropped on an earlier day gets a study session then; on its due day, a planned time.
- await dragOnto(page,week.getByRole('button',{name:'Math worksheet',exact:true}),week.getByRole('button',{name:'Add at 4:00 PM on Sep 29, 2026'}))
+ await weekDrag(page,week.getByRole('button',{name:/^Math worksheet · Oct 1, 2026/}),week.getByRole('button',{name:'Add at 4:00 PM on Sep 29, 2026'}))
  await week.getByRole('button',{name:/^Work on Math worksheet · 4:00 PM–5:00 PM · Sep 29, 2026/}).waitFor()
- await dragOnto(page,week.getByRole('button',{name:'Math worksheet',exact:true}),week.getByRole('button',{name:'Add at 3:00 PM on Oct 1, 2026'}))
+ await weekDrag(page,week.getByRole('button',{name:/^Math worksheet · Oct 1, 2026/}),week.getByRole('button',{name:'Add at 3:00 PM on Oct 1, 2026'}))
  await week.getByRole('button',{name:/^Math worksheet · 3:00 PM–4:00 PM · Oct 1, 2026/}).waitFor()
- await waitFor(()=>{const d=cloud.users.alice.plan.data;return d.tasks.find(t=>t.id==='wk-hw')?.plannedTime==='15:00'&&d.calendarEvents.some(e=>e.planFor==='task:wk-hw'&&e.date==='2026-09-29'&&e.time==='16:00')},'the planned time and the study session reach the account')
+ // Stretching a planned assignment sets how long the work takes.
+ await weekDrag(page,week.getByRole('button',{name:/^Math worksheet · 3:00 PM/}).locator('.week-item-grip'),week.getByRole('button',{name:'Add at 5:00 PM on Oct 1, 2026'}),-22,{fromBottom:true})
+ await week.getByRole('button',{name:/^Math worksheet · 3:00 PM–4:30 PM · Oct 1, 2026/}).waitFor()
+ await waitFor(()=>{const d=cloud.users.alice.plan.data,t=d.tasks.find(t=>t.id==='wk-hw');return t?.plannedTime==='15:00'&&t.estimatedMinutes===90&&d.calendarEvents.some(e=>e.planFor==='task:wk-hw'&&e.date==='2026-09-29'&&e.time==='16:00')},'the planned time, its length and the study session reach the account')
+ // Repeat: Tutoring every week until Oct 23 adds three more, linked as one series.
+ await week.getByRole('button',{name:/^Tutoring · 1:30 PM/}).click()
+ const repeatEditor=page.getByRole('dialog',{name:'Edit Event'})
+ await repeatEditor.getByLabel('Repeat').selectOption('weekly')
+ await repeatEditor.getByLabel('Until').fill('2026-10-23')
+ await repeatEditor.getByText(/^Adds 3 more: /).waitFor()
+ if(process.env.KONO_SHOTS)await repeatEditor.screenshot({path:process.env.KONO_SHOTS+'/event-repeat.png'})
+ await repeatEditor.getByRole('button',{name:'Save'}).click()
+ await repeatEditor.waitFor({state:'detached'})
+ await waitFor(()=>{const list=cloud.users.alice.plan.data.calendarEvents.filter(e=>e.title==='Tutoring');return list.length===4&&new Set(list.map(e=>e.recurringId)).size===1&&list[0].recurringId&&list.map(e=>e.date).sort().join()==='2026-10-02,2026-10-09,2026-10-16,2026-10-23'&&list.every(e=>e.time==='13:30'&&e.endTime==='16:00')},'the repeats reach the account as one series')
  // The next week, and Month still works.
  await page.getByRole('button',{name:'Next week'}).click()
  await page.getByRole('heading',{name:/^Oct 4 – Oct 10/}).waitFor()
+ // A change to one of the series can go to the ones after it too.
+ await week.getByRole('button',{name:/^Tutoring · 1:30 PM–4:00 PM · Oct 9, 2026/}).click()
+ const seriesEditor=page.getByRole('dialog',{name:'Edit Event'})
+ await seriesEditor.getByText('This repeats (4 dates). Save changes to:').waitFor()
+ assert.equal(await seriesEditor.getByLabel('Repeat').count(),0,'one already in a series has no Repeat picker')
+ await seriesEditor.getByLabel('Title').fill('Math tutoring')
+ await seriesEditor.getByLabel('This and the ones after it').check()
+ if(process.env.KONO_SHOTS)await seriesEditor.screenshot({path:process.env.KONO_SHOTS+'/event-series.png'})
+ await seriesEditor.getByRole('button',{name:'Save'}).click()
+ await week.getByRole('button',{name:/^Math tutoring · 1:30 PM–4:00 PM · Oct 9, 2026/}).waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.filter(e=>e.recurringId).map(e=>e.date+' '+e.title).sort().join()==='2026-10-02 Tutoring,2026-10-09 Math tutoring,2026-10-16 Math tutoring,2026-10-23 Math tutoring','only this and the later ones changed')
  await page.getByLabel('Calendar view').selectOption('month')
  assert.equal(await page.getByRole('region',{name:'Week'}).count(),0)
 })
 
+/** Planner › Week: drag `source` with the mouse so its top lands `dy` px below the top of `target`
+ * (an hour's "Add at" slot), as a student would. With `fromBottom` it grabs the bottom edge (a stretch
+ * grip) and lets go at that spot. */
+async function weekDrag(page,source,target,dy=0,{fromBottom=false,shot=''}={}){
+ await target.scrollIntoViewIfNeeded();await source.scrollIntoViewIfNeeded()
+ const a=await source.boundingBox(),b=await target.boundingBox()
+ const grabY=fromBottom?a.y+a.height-3:a.y+3
+ await page.mouse.move(a.x+a.width/2,grabY);await page.mouse.down()
+ const toX=b.x+b.width/2,toY=b.y+dy+(fromBottom?0:3)
+ for(let i=1;i<=8;i++)await page.mouse.move(a.x+a.width/2+(toX-a.x-a.width/2)*i/8,grabY+(toY-grabY)*i/8)
+ if(shot&&process.env.KONO_SHOTS)await page.getByRole('region',{name:'Week'}).screenshot({path:process.env.KONO_SHOTS+'/'+shot})
+ await page.mouse.up()
+}
 /** Drag one element onto another with real drag events and one shared DataTransfer. Playwright's
  * dragTo moves the mouse, which can miss the drop when the page scrolls between the two. */
 async function dragOnto(page,source,target){
@@ -1879,8 +1936,40 @@ test('Wardrobe and daily wish: finishing work grants KONO’s wish, which earns 
  if(process.env.KONO_SHOTS){await today.screenshot({path:process.env.KONO_SHOTS+'/wardrobe-card.png'});await wardrobe.screenshot({path:process.env.KONO_SHOTS+'/wardrobe-panel.png'})}
  await wardrobe.getByRole('button',{name:'Take off Cozy beanie'}).click()
  await today.locator('.kono-mood-face img.kono-outfit').waitFor({state:'detached'})
+ await waitFor(()=>cloud.users.alice.plan.data.konoCare[pid].log.some(e=>e.kind==='wear'&&e.item===''),'taking it off never reached the account')
  await page.reload();await heading(page,'Sanctuary')
  assert.equal(await today.locator('.kono-mood-face img.kono-outfit').count(),0,'taken off stays off')
+})
+
+test('Focus finds: when a focus session runs all the way down, KONO (who read beside you) shares a find in its line; it unlocks in Decorate › Finds and can go on the island',async({context,page})=>{
+ const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
+ await page.clock.install({time:new Date('2026-09-15T15:00:00')})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const today=page.getByRole('region',{name:'KONO today'})
+ const outer=page.locator('details.sanctuary-focus')
+ await outer.locator(':scope > summary').click()
+ const focus=outer.locator('details.focus-session')
+ await focus.locator(':scope > summary').click()
+ await focus.getByLabel('Minutes').fill('25');await focus.getByLabel('Seconds').fill('0')
+ await focus.getByRole('button',{name:'Start timer'}).click()
+ await page.clock.runFor(25*60*1000+3000)
+ await focus.getByText('Session complete. Take a short break.').waitFor()
+ await today.getByText(/^KONO found an? .+ while you focused for 25 minutes! It’s in Decorate › Finds\.$/).waitFor()
+ await today.locator('img.kono-find-icon').waitFor()
+ if(process.env.KONO_SHOTS)await today.screenshot({path:process.env.KONO_SHOTS+'/find-card.png'})
+ await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).some(e=>e.kind==='find'),'the find never reached the account')
+ const find=cloud.users.alice.plan.data.konoCare[pid].log.find(e=>e.kind==='find').item
+ assert.ok(['pebble','acorn','leaf','feather','shell','clover','pinecone','seaglass','mushroom'].includes(find),'25 minutes finds something common or uncommon, not '+find)
+ assert.equal(cloud.users.alice.plan.data.konoCare[pid].log.filter(e=>e.kind==='find').length,1,'one find per session')
+ await page.getByRole('button',{name:'Decorate'}).click()
+ await page.getByRole('navigation',{name:'Decoration categories'}).getByRole('button',{name:'Finds',exact:true}).click()
+ await page.getByText('1 of 12 found.',{exact:false}).waitFor()
+ await page.locator('.build-palette').getByLabel('Fallen star, locked. Found on focus sessions of 45+ minutes.').waitFor()
+ assert.equal(await page.locator('.build-palette').getByLabel(/Tiny pumpkin/).count(),0,'the October find only shows in October')
+ if(process.env.KONO_SHOTS)await page.locator('.build-palette').screenshot({path:process.env.KONO_SHOTS+'/finds-palette.png'})
+ await page.locator('.build-palette').getByRole('button',{name:/^Add /}).first().click()
+ await waitFor(()=>(cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[]).some(p=>p.assetId==='find-'+find),'the find never went on the island')
 })
 
 test('Planner daily page matches Today’s schedule: the day’s classes as compact cards, the rest under "Also today", ‹ › to step days, and "Back to today" only once you’ve moved away',async({context,page})=>{
@@ -1906,6 +1995,47 @@ test('Planner daily page matches Today’s schedule: the day’s classes as comp
  await calendar.getByRole('button',{name:'↩ Back to today'}).click()
  await day.getByRole('heading',{name:'Today · Sep 28, 2026'}).waitFor()
  assert.equal(await calendar.getByRole('button',{name:'↩ Back to today'}).count(),0)
+})
+
+test('Planner › Week on a phone: press and hold moves an event, a quick swipe still scrolls, and a tap opens it',async()=>{
+ const phone=await freshPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true})
+ try{
+  const {context,page}=phone,cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+  plan.settings.parentMode=false
+  plan.calendarEvents.push({id:'ph-piano',profileId:pid,date:'2026-09-29',time:'15:00',endTime:'16:00',title:'Piano lesson',kind:'activity',notes:''})
+  await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
+  await signInAs(context,cloud,'alice')
+  await page.goto(BASE);await heading(page,'Sanctuary')
+  await go(page,'Planner')
+  const week=page.getByRole('region',{name:'Week'})
+  await page.getByText('Press and hold to move something').waitFor()
+  const piano=()=>week.getByRole('button',{name:/^Piano lesson · /})
+  const cdp=await context.newCDPSession(page)
+  const touch=(type,x,y)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:type==='touchEnd'?[]:[{x:Math.round(x),y:Math.round(y)}]})
+  const slot=week.getByRole('button',{name:'Add at 5:00 PM on Sep 29, 2026'})
+  await slot.scrollIntoViewIfNeeded();await piano().scrollIntoViewIfNeeded()
+  // A quick swipe that starts on the event scrolls; it doesn't move the event.
+  let a=await piano().boundingBox()
+  await touch('touchStart',a.x+a.width/2,a.y+5)
+  for(let i=1;i<=5;i++)await touch('touchMove',a.x+a.width/2,a.y+5+i*15)
+  await touch('touchEnd')
+  await page.waitForTimeout(300)
+  await week.getByRole('button',{name:/^Piano lesson · 3:00 PM–4:00 PM/}).waitFor()
+  // Press and hold, then drag: it moves (in 15-minute steps) to 5:00 PM.
+  await slot.scrollIntoViewIfNeeded();await piano().scrollIntoViewIfNeeded()
+  a=await piano().boundingBox();const b=await slot.boundingBox()
+  await touch('touchStart',a.x+a.width/2,a.y+5)
+  await page.waitForTimeout(450)
+  for(let i=1;i<=8;i++)await touch('touchMove',a.x+a.width/2,a.y+5+(b.y+5-a.y-5)*i/8)
+  await touch('touchEnd')
+  await week.getByRole('button',{name:/^Piano lesson · 5:00 PM–6:00 PM/}).waitFor()
+  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.find(e=>e.id==='ph-piano')?.time==='17:00','the move reaches the account')
+  assert.equal(await page.getByRole('dialog').count(),0,'a drag doesn’t open the editor')
+  // A tap opens it to edit.
+  await piano().tap()
+  await page.getByRole('dialog',{name:'Edit Event'}).getByLabel('Title').waitFor()
+  assert.deepEqual(phone.errors,[])
+ }finally{await phone.context.close()}
 })
 
 test('Phone check-up: on a 375px phone no page scrolls sideways, every tab label fits (Sanctuary reads Home), and the hour column fits "10 AM"',async()=>{
