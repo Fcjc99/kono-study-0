@@ -1673,6 +1673,96 @@ test('Ask KONO: KONO greets and asks what you want to know, answers today, this 
  await page.getByRole('button',{name:'▶ What should I do now?'}).waitFor()
 })
 
+test('Ask KONO’s natural voice: off iPhone it reads answers in KONO’s voice, replays without asking again, falls back to the device voice when it’s off or the day’s 40 are used',async({context,page})=>{
+ const cloud=fakeCloud(),asked=[]
+ let refuse=false
+ await context.route(BASE+'api/ai',route=>route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({enabled:true})}))
+ await context.route(BASE+'api/voice',route=>{
+  const request=route.request()
+  asked.push({text:request.postDataJSON().text,auth:request.headers().authorization})
+  if(refuse)return route.fulfill({status:429,headers:{'content-type':'application/json'},body:JSON.stringify({error:'resting',used:40,limit:40})})
+  return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({audio:'SUQz',type:'audio/mpeg',used:asked.length,limit:40})})
+ })
+ await context.addInitScript(()=>{
+  window.__spoken=[];window.__played=0
+  window.SpeechSynthesisUtterance=class{constructor(text){this.text=text}}
+  Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{speak:u=>window.__spoken.push(u.text),cancel(){},getVoices:()=>[]}})
+  HTMLMediaElement.prototype.play=function(){window.__played++;return Promise.resolve()}
+  HTMLMediaElement.prototype.pause=function(){}
+ })
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ const until=async(check,message)=>{for(let k=0;k<40;k++){if(await check())return;await page.waitForTimeout(250)}assert.fail(message)}
+ const played=()=>page.evaluate(()=>window.__played),spoken=()=>page.evaluate(()=>window.__spoken.slice())
+ await page.getByRole('button',{name:'🗣️ Ask KONO'}).click()
+ const kono=page.getByRole('dialog',{name:'Ask KONO'})
+ await until(async()=>await played()===1,'the greeting plays in KONO’s natural voice')
+ assert.match(asked[0].text,/What do you want to know\?$/);assert.match(asked[0].auth,/^Bearer /)
+ await kono.getByRole('button',{name:'✨ Natural voice'}).waitFor()
+ assert.equal(await kono.getByRole('button',{name:'✨ Natural voice'}).getAttribute('aria-pressed'),'true')
+ await kono.getByRole('button',{name:'📅 Today’s schedule'}).click()
+ await until(async()=>await played()===2,'the answer plays')
+ assert.match(asked[1].text,/^Today, Wednesday, September 30\./)
+ await kono.getByRole('button',{name:'🔊 Say it again'}).click()
+ await until(async()=>await played()===3,'say it again plays')
+ assert.equal(asked.length,2,'"Say it again" replays the clip without asking the server')
+ assert.deepEqual(await spoken(),[],'nothing used the device voice')
+ await kono.getByRole('button',{name:'Close'}).click()
+ await page.getByRole('button',{name:'🗣️ Ask KONO'}).click()
+ await until(async()=>await played()===4,'the greeting plays again')
+ assert.equal(asked.length,2,'the greeting is kept on the device, so it isn’t counted again')
+ await kono.getByRole('button',{name:'✨ Natural voice'}).click()
+ assert.equal(await kono.getByRole('button',{name:'✨ Natural voice'}).getAttribute('aria-pressed'),'false')
+ await kono.getByRole('button',{name:'🌙 Tomorrow'}).click()
+ await until(async()=>(await spoken()).some(t=>/^Tomorrow, Thursday, October 1\./.test(t)),'with Natural voice off, the device voice answers')
+ assert.equal(asked.length,2)
+ await kono.getByRole('button',{name:'✨ Natural voice'}).click()
+ refuse=true
+ await kono.getByRole('button',{name:'🗓️ This week'}).click()
+ await until(async()=>(await spoken()).some(t=>/due this week/.test(t)),'over the day’s allowance, KONO keeps talking in the device voice')
+ assert.equal(asked.length,3)
+ await kono.getByRole('button',{name:'📅 Today’s schedule'}).click()
+ await until(async()=>(await spoken()).some(t=>/^Today, Wednesday/.test(t)),'today is answered in the device voice')
+ assert.equal(asked.length,3,'after a no, KONO doesn’t keep asking the server')
+})
+
+test('Ask KONO on iPhone: always the device’s own voice, a Premium one when it’s there, never the server; without one it shows how to download it',async()=>{
+ const iphone='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
+ for(const premium of [true,false]){
+  const phone=await freshPage({userAgent:iphone,viewport:{width:390,height:844},isMobile:true,hasTouch:true})
+  try{
+   const {context,page}=phone,cloud=fakeCloud()
+   let voiceCalls=0
+   await context.route(BASE+'api/ai',route=>route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({enabled:true})}))
+   await context.route(BASE+'api/voice',route=>{voiceCalls++;return route.fulfill({status:500,body:'{}'})})
+   await context.addInitScript(premium=>{
+    window.__spoken=[]
+    const voices=[{name:'Albert',lang:'en-US',voiceURI:'com.apple.speech.synthesis.voice.Albert'},{name:'Samantha',lang:'en-US',voiceURI:'com.apple.voice.compact.en-US.Samantha'}]
+    if(premium)voices.push({name:'Ava (Premium)',lang:'en-US',voiceURI:'com.apple.voice.premium.en-US.Ava'})
+    window.SpeechSynthesisUtterance=class{constructor(text){this.text=text}}
+    Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{speak:u=>window.__spoken.push({text:u.text,voice:u.voice?.name}),cancel(){},getVoices:()=>voices,addEventListener(){},removeEventListener(){}}})
+   },premium)
+   await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+   await signInAs(context,cloud,'alice')
+   await page.goto(BASE)
+   await heading(page,'Sanctuary')
+   await page.getByRole('button',{name:'🗣️ Ask KONO'}).click()
+   const kono=page.getByRole('dialog',{name:'Ask KONO'})
+   await kono.getByRole('button',{name:'📅 Today’s schedule'}).click()
+   await kono.getByText('Today · Wednesday, September 30').waitFor()
+   const spoken=await page.evaluate(()=>window.__spoken.slice())
+   assert.ok(spoken.length>=2,'greeting and answer are spoken')
+   assert.deepEqual([...new Set(spoken.map(s=>s.voice))],[premium?'Ava (Premium)':'Samantha'],'the best voice on the phone, never a novelty one')
+   assert.equal(voiceCalls,0,'an iPhone never asks the server for a voice')
+   assert.equal(await kono.getByRole('button',{name:'✨ Natural voice'}).count(),0)
+   assert.equal(await kono.getByText('Make KONO sound more natural').count(),premium?0:1)
+   if(!premium){await kono.getByText('Make KONO sound more natural').click();await kono.getByText('Spoken Content',{exact:false}).waitFor()}
+  }finally{await phone.context.close()}
+ }
+})
+
 test('Phone check-up: on a 375px phone no page scrolls sideways, every tab label fits (Sanctuary reads Home), and the hour column fits "10 AM"',async()=>{
  const phone=await freshPage({viewport:{width:375,height:740},isMobile:true,hasTouch:true})
  try{

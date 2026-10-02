@@ -8,6 +8,7 @@ import {readSharedItem,type ReceivedItem,type ShareKind,type SharedItem} from '.
 import type {PhotoCloud} from './photoStore'
 import {installErrorReporter} from './errorReporter'
 import {setBuiltInAi} from './aiProvider'
+import {setNaturalVoice} from './konoVoice'
 import {shrinkPhoto} from './shrinkPhoto'
 import {APP_VERSION} from '../version'
 import { buildSharedSnapshot } from './peerShare'
@@ -144,6 +145,16 @@ export class PlannerRepository {
    const body=await response.json().catch(()=>({})) as {text?:string;error?:string}
    if(!response.ok||!body.text)throw Error(body.error||'KONO’s AI couldn’t answer. Try again in a moment.')
    return body.text
+  })
+  // Ask KONO's natural voice (api/voice) shares the server's key; its allowance is separate.
+  setNaturalVoice(async text=>{
+   const token=await cloud.accessToken()
+   if(!token)throw Object.assign(Error('Sign in again.'),{status:401})
+   const response=await fetch('/api/voice',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+token},body:JSON.stringify({text})})
+   const body=await response.json().catch(()=>({})) as {audio?:string;type?:string;error?:string}
+   if(!response.ok||!body.audio)throw Object.assign(Error(body.error||'KONO’s voice couldn’t answer.'),{status:response.status})
+   const bytes=Uint8Array.from(atob(body.audio),c=>c.charCodeAt(0))
+   return new Blob([bytes],{type:body.type||'audio/mpeg'})
   })
  }
  private async openAccount(user:User,generation:number){

@@ -59,7 +59,7 @@ try{
  `)
  for(const file of fs.readdirSync(path.join(root,'supabase','migrations')).filter(f=>f.endsWith('.sql')).sort())psql(fs.readFileSync(path.join(root,'supabase','migrations',file),'utf8'))
  // People run the newest migration by hand in the Supabase SQL editor, sometimes twice: it must be re-runnable.
- for(const again of ['0004_kono_backups_and_support.sql','0005_kono_nightly_backup_support_setup_errors.sql','0006_kono_feedback.sql','0007_kono_ai_usage.sql','0008_kono_push_reminders.sql','0009_kono_calendar_subscribe.sql'])psql(fs.readFileSync(path.join(root,'supabase','migrations',again),'utf8'))
+ for(const again of ['0004_kono_backups_and_support.sql','0005_kono_nightly_backup_support_setup_errors.sql','0006_kono_feedback.sql','0007_kono_ai_usage.sql','0008_kono_push_reminders.sql','0009_kono_calendar_subscribe.sql','0012_kono_voice_usage.sql'])psql(fs.readFileSync(path.join(root,'supabase','migrations',again),'utf8'))
 
  test('a signed-in person saves their plan and nobody else can read it',()=>{
   assert.equal(save(alice,0,'Alice').revision,1)
@@ -169,6 +169,20 @@ try{
   fails(bob,`insert into public.kono_ai_usage(user_id,requests) values ('${bob}',0);`,/permission denied/)
   fails(null,'select public.kono_ai_take();',/permission denied/)
   assert.equal(JSON.parse(as(carol,'select public.kono_ai_take();')).limit,400)
+ })
+
+ test('Ask KONO’s natural voice: its own 40 clips a day (400 for support), separate from the AI requests',()=>{
+  const aiBefore=as(bob,'select requests from public.kono_ai_usage;')
+  for(let i=1;i<=40;i++){const r=JSON.parse(as(bob,'select public.kono_voice_take();'));assert.equal(r.allowed,true);assert.equal(r.used,i)}
+  const over=JSON.parse(as(bob,'select public.kono_voice_take();'));assert.equal(over.allowed,false);assert.equal(over.limit,40)
+  assert.equal(as(bob,'select clips from public.kono_voice_usage;'),'40','a refused clip is not counted')
+  assert.equal(as(bob,'select requests from public.kono_ai_usage;'),aiBefore,'listening never uses up AI requests')
+  assert.equal(JSON.parse(as(alice,'select public.kono_voice_take();')).used,1,'each person has their own count')
+  assert.equal(as(alice,`select count(*) from public.kono_voice_usage where user_id='${bob}';`),'0','people only see their own count')
+  fails(bob,'update public.kono_voice_usage set clips=0;',/permission denied/)
+  fails(bob,`insert into public.kono_voice_usage(user_id,clips) values ('${bob}',0);`,/permission denied/)
+  fails(null,'select public.kono_voice_take();',/permission denied/)
+  assert.equal(JSON.parse(as(carol,'select public.kono_voice_take();')).limit,400)
  })
 
  test('lock-screen reminders: people manage only their own devices and queue; only the server secret can claim them',()=>{
