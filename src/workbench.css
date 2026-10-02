@@ -228,9 +228,14 @@ html[data-theme] .brand:has(.kono-weather-chip):after,html[data-theme] .sidebar:
  * happen. Sticking the backdrop and hotspot layer (not the whole stage, which also holds the palette
  * and would just get pinned in place at whatever height it happens to be) keeps the island in view
  * while the controls below scroll freely. --wb-sticky-top lets a theme with its own sticky header
- * (see cozy-controls.css's .mobile-desk-header) push this down far enough to clear it. */
-.wb-island:has(.wb-sanctuary-backdrop.is-decorating) .wb-sanctuary-backdrop,
-.wb-island:has(.wb-sanctuary-backdrop.is-decorating) .build-hotspot-layer{position:sticky;top:var(--wb-sticky-top,8px);z-index:3}
+ * (see cozy-controls.css's .mobile-desk-header) push this down far enough to clear it.
+ * The island art (in .wb-sanctuary-zoom-wrap) and the hotspot layer are siblings in the stage, so
+ * they stick together; sticking the backdrop itself did nothing (its own wrapper is no taller than
+ * it), which left the placed decorations pinned on screen while the island scrolled away under them.
+ * Only while an item is selected (being adjusted): browsing the palette, a stuck island would cover
+ * the very items scrolled to (Decorate › Stickers opened from the KONO card lands there). */
+.wb-island:has(.build-hotspot-layer.has-selection) .wb-sanctuary-zoom-wrap,
+.wb-island:has(.build-hotspot-layer.has-selection) .build-hotspot-layer{position:sticky;top:var(--wb-sticky-top,8px);z-index:3;align-self:start}
 /* Generic, theme-token-driven version of Sidebar's .mobile-week-weather -- that component was
  * originally only ever rendered inside Cozy's own dark mobile header (see cozy-controls.css, which
  * still owns the light-on-dark styling for that one spot), so it had no reason to work on a normal

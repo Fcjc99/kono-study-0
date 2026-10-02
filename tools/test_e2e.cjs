@@ -533,6 +533,8 @@ test('Sanctuary: the island draws, zooms, expands and changes time; Decorate add
  const loaded=[];page.on('response',r=>{const u=new URL(r.url());if(/\/garden\/(terrace-23\.0|kono)\//.test(u.pathname))loaded.push([u.pathname,r.status()])})
  await createPlan(page)
  const ready=()=>page.waitForFunction(()=>!document.querySelector('.sanctuary-load-status'),null,{timeout:30000})
+ // The island loads once it's on screen (for a new plan it's just below Getting started).
+ await page.locator('.wb-island').scrollIntoViewIfNeeded()
  await ready()
  // The canvas has real artwork on it (a blank canvas encodes to a tiny image).
  await page.waitForFunction(()=>{const c=document.querySelector('.sanctuary-viewport canvas');return !!c&&c.width>100&&c.toDataURL('image/png').length>60000},null,{timeout:20000})
@@ -1557,7 +1559,7 @@ test('What should I do now and the app icon number: late work first, "Something 
  const badge=()=>page.evaluate(()=>window.__badges.at(-1))
  const until=async(check,message)=>{for(let k=0;k<60;k++){if(await check())return;await page.waitForTimeout(250)}assert.fail(message)}
  await until(async()=>await badge()===2,'the icon should count the late assignment and the one due today')
- await page.getByRole('button',{name:'▶ What should I do now?'}).click()
+ await page.getByRole('button',{name:'What should I do now?'}).click()
  const now=page.getByRole('region',{name:'What to do now'})
  await now.getByRole('heading',{name:'Read chapter 3'}).waitFor()
  await now.getByText('DO THIS NOW · 1 of 2').waitFor()
@@ -1633,7 +1635,7 @@ test('Project steps: "Break into steps" asks KONO’s AI for dated steps, they c
  await editor.getByRole('button',{name:'Save',exact:true}).click()
  await editor.waitFor({state:'detached'})
  await waitFor(()=>{const t=cloud.users.alice.plan.data.tasks.find(x=>/essay/i.test(x.title));return t?.subtasks?.map(st=>st.title+'@'+st.due).join('|')==='Find three sources@2026-09-30|Write your thesis and outline@2026-10-04|Write the draft@2026-10-09'},'the dated steps never reached the account')
- await page.getByRole('button',{name:'▶ What should I do now?'}).click()
+ await page.getByRole('button',{name:'What should I do now?'}).click()
  const now=page.getByRole('region',{name:'What to do now'})
  await now.getByRole('heading',{name:'Read chapter 3'}).waitFor()
  await now.getByRole('button',{name:'Something else'}).click()
@@ -1693,131 +1695,91 @@ test('School heads-up: a week before Thanksgiving the Sanctuary says there is an
  assert.equal(await page.locator('.school-heads-up').count(),0,'Got it keeps them hidden on this device')
 })
 
-test('Ask KONO: KONO greets and asks what you want to know, answers today, this week and "when is … due" on screen and out loud, and Quiet stops the voice',async({context,page})=>{
+test('Ask KONO: KONO greets and asks what you want to know and answers today, this week and "when is … due" on screen only (KONO doesn’t talk)',async({context,page})=>{
  const cloud=fakeCloud()
- await context.addInitScript(()=>{window.__spoken=[];window.SpeechSynthesisUtterance=class{constructor(text){this.text=text}};Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{speak:u=>window.__spoken.push(u.text),cancel(){}}})})
+ await context.addInitScript(()=>{window.__spoken=[];window.SpeechSynthesisUtterance=class{constructor(text){this.text=text}};Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{speak:u=>window.__spoken.push(u.text),cancel(){},getVoices:()=>[]}})})
  await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
  await signInAs(context,cloud,'alice')
  await page.goto(BASE)
  await heading(page,'Sanctuary')
- const spoken=()=>page.evaluate(()=>window.__spoken.slice())
- const lastSpoken=async()=>(await spoken()).at(-1)
- const until=async(check,message)=>{for(let k=0;k<40;k++){if(await check())return;await page.waitForTimeout(250)}assert.fail(message)}
- await page.getByRole('button',{name:'🗣️ Ask KONO'}).click()
+ await page.getByRole('button',{name:'Ask KONO',exact:true}).click()
  const kono=page.getByRole('dialog',{name:'Ask KONO'})
  await kono.getByText('What do you want to know?',{exact:false}).waitFor()
- await until(async()=>/What do you want to know\?$/.test(await lastSpoken()??''),'KONO should ask out loud')
  await kono.getByRole('button',{name:'📅 Today’s schedule'}).click()
  await kono.getByText('Today · Wednesday, September 30').waitFor()
  await kono.getByText('⚠ Late: Emma: Read chapter 3').waitFor()
- await until(async()=>/^Today, Wednesday, September 30\./.test(await lastSpoken()??''),'today should be read out loud')
  await kono.getByRole('button',{name:'🗓️ This week'}).click()
  await kono.getByText('Friday: ★ Cell biology test').waitFor()
  await kono.getByRole('button',{name:'⏰ When is something due?'}).click()
  await kono.getByLabel('What’s it called?').fill('chapter 3')
  await kono.getByRole('button',{name:'Ask',exact:true}).click()
  await kono.getByText('Read chapter 3 was due Friday, September 25, so it’s late.').waitFor()
- await until(async()=>(await lastSpoken())==='Read chapter 3 was due Friday, September 25, so it’s late.','the answer should be read out loud')
- const before=(await spoken()).length
- await kono.getByRole('button',{name:'🔇 Quiet'}).click()
- await kono.getByRole('button',{name:'🗓️ This week'}).click()
- await kono.getByText('Friday: ★ Cell biology test').waitFor()
  await page.waitForTimeout(300)
- assert.equal((await spoken()).length,before,'Quiet means no voice')
- await kono.getByRole('button',{name:'🔊 Talk'}).waitFor()
+ assert.deepEqual(await page.evaluate(()=>window.__spoken.slice()),[],'KONO doesn’t talk')
+ for(const name of [/Talk/,/Quiet/,/Natural voice/,/Say it again/])assert.equal(await kono.getByRole('button',{name}).count(),0)
  await kono.getByRole('button',{name:'Close'}).click()
  await kono.waitFor({state:'detached'})
- await page.getByRole('button',{name:'▶ What should I do now?'}).waitFor()
+ await page.getByRole('button',{name:'What should I do now?'}).waitFor()
 })
 
-test('Ask KONO’s natural voice: off iPhone it reads answers in KONO’s voice, replays without asking again, falls back to the device voice when it’s off or the day’s 40 are used',async({context,page})=>{
- const cloud=fakeCloud(),asked=[]
- let refuse=false
- await context.route(BASE+'api/ai',route=>route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({enabled:true})}))
- await context.route(BASE+'api/voice',route=>{
-  const request=route.request()
-  asked.push({text:request.postDataJSON().text,auth:request.headers().authorization})
-  if(refuse)return route.fulfill({status:429,headers:{'content-type':'application/json'},body:JSON.stringify({error:'resting',used:40,limit:40})})
-  return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({audio:'SUQz',type:'audio/mpeg',used:asked.length,limit:40})})
- })
- await context.addInitScript(()=>{
-  window.__spoken=[];window.__played=0
-  window.SpeechSynthesisUtterance=class{constructor(text){this.text=text}}
-  Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{speak:u=>window.__spoken.push(u.text),cancel(){},getVoices:()=>[]}})
-  HTMLMediaElement.prototype.play=function(){window.__played++;return Promise.resolve()}
-  HTMLMediaElement.prototype.pause=function(){}
- })
- await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+test('Sanctuary: KONO today is a slim bar on top of the island, and Decorate opened from its sticker button keeps the decorations on the island',async({context,page})=>{
+ const cloud=fakeCloud()
+ await page.clock.setFixedTime(new Date('2026-10-02T15:00:00'))
  await signInAs(context,cloud,'alice')
- await page.goto(BASE)
- await heading(page,'Sanctuary')
- const until=async(check,message)=>{for(let k=0;k<40;k++){if(await check())return;await page.waitForTimeout(250)}assert.fail(message)}
- const played=()=>page.evaluate(()=>window.__played),spoken=()=>page.evaluate(()=>window.__spoken.slice())
- await page.getByRole('button',{name:'🗣️ Ask KONO'}).click()
- const kono=page.getByRole('dialog',{name:'Ask KONO'})
- await until(async()=>await played()===1,'the greeting plays in KONO’s natural voice')
- assert.match(asked[0].text,/What do you want to know\?$/);assert.match(asked[0].auth,/^Bearer /)
- await kono.getByRole('button',{name:'✨ Natural voice'}).waitFor()
- assert.equal(await kono.getByRole('button',{name:'✨ Natural voice'}).getAttribute('aria-pressed'),'true')
- await kono.getByRole('button',{name:'📅 Today’s schedule'}).click()
- await until(async()=>await played()===2,'the answer plays')
- assert.match(asked[1].text,/^Today, Wednesday, September 30\./)
- await kono.getByRole('button',{name:'🔊 Say it again'}).click()
- await until(async()=>await played()===3,'say it again plays')
- assert.equal(asked.length,2,'"Say it again" replays the clip without asking the server')
- assert.deepEqual(await spoken(),[],'nothing used the device voice')
- await kono.getByRole('button',{name:'Close'}).click()
- await page.getByRole('button',{name:'🗣️ Ask KONO'}).click()
- await until(async()=>await played()===4,'the greeting plays again')
- assert.equal(asked.length,2,'the greeting is kept on the device, so it isn’t counted again')
- await kono.getByRole('button',{name:'✨ Natural voice'}).click()
- assert.equal(await kono.getByRole('button',{name:'✨ Natural voice'}).getAttribute('aria-pressed'),'false')
- await kono.getByRole('button',{name:'🌙 Tomorrow'}).click()
- await until(async()=>(await spoken()).some(t=>/^Tomorrow, Thursday, October 1\./.test(t)),'with Natural voice off, the device voice answers')
- assert.equal(asked.length,2)
- await kono.getByRole('button',{name:'✨ Natural voice'}).click()
- refuse=true
- await kono.getByRole('button',{name:'🗓️ This week'}).click()
- await until(async()=>(await spoken()).some(t=>/due this week/.test(t)),'over the day’s allowance, KONO keeps talking in the device voice')
- assert.equal(asked.length,3)
- await kono.getByRole('button',{name:'📅 Today’s schedule'}).click()
- await until(async()=>(await spoken()).some(t=>/^Today, Wednesday/.test(t)),'today is answered in the device voice')
- assert.equal(asked.length,3,'after a no, KONO doesn’t keep asking the server')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const bar=page.getByRole('region',{name:'KONO today'}),island=page.locator('.wb-island')
+ const b=await bar.boundingBox(),i=await island.boundingBox(),docY=await page.evaluate(()=>scrollY)
+ assert.ok(b.height<150,'the KONO bar is slim: '+b.height+'px')
+ assert.ok(b.y+b.height<=i.y+1,'the KONO bar sits right above the island')
+ if(process.env.KONO_SHOTS){await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar.png',clip:{x:b.x-10,y:b.y+docY-10,width:b.width+20,height:b.height+200}});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);const pb=await bar.evaluate(e=>{const r=e.getBoundingClientRect();return {y:r.top+scrollY,height:r.height}});await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar-phone.png',clip:{x:0,y:Math.max(0,pb.y-10),width:390,height:pb.height+160}});await page.setViewportSize({width:1280,height:900});await page.waitForTimeout(400)}
+ await page.getByRole('button',{name:'Decorate'}).click()
+ const nav=page.getByRole('navigation',{name:'Decoration categories'})
+ for(const cat of ['Homes','Trees','Ponds']){await nav.getByRole('button',{name:cat,exact:true}).click();await page.locator('.build-palette [role=button][aria-label^="Add "]').first().click()}
+ await page.getByRole('button',{name:'Your island'}).click()
+ await bar.getByRole('button',{name:/^Your stickers/}).click()
+ await page.getByText(/^Earn stickers by keeping up with your work/).waitFor()
+ await page.waitForTimeout(600)
+ const aligned=async why=>{const art=await page.locator('.wb-sanctuary-zoom-wrap').boundingBox(),layer=await page.locator('.build-hotspot-layer').boundingBox();assert.ok(Math.abs(art.y-layer.y)<2&&Math.abs(art.x-layer.x)<2&&Math.abs(art.height-layer.height)<8,why+': the decorations layer '+JSON.stringify(layer)+' left the island '+JSON.stringify(art))}
+ await aligned('opened from the sticker button')
+ await page.mouse.wheel(0,500);await page.waitForTimeout(300)
+ await aligned('after scrolling down to the palette')
+ if(process.env.KONO_SHOTS)await page.screenshot({path:process.env.KONO_SHOTS+'/decorate-stickers.png'})
 })
 
-test('Ask KONO on iPhone: always the device’s own voice, a Premium one when it’s there, never the server; without one it shows how to download it',async()=>{
- const iphone='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
- for(const premium of [true,false]){
-  const phone=await freshPage({userAgent:iphone,viewport:{width:390,height:844},isMobile:true,hasTouch:true})
-  try{
-   const {context,page}=phone,cloud=fakeCloud()
-   let voiceCalls=0
-   await context.route(BASE+'api/ai',route=>route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({enabled:true})}))
-   await context.route(BASE+'api/voice',route=>{voiceCalls++;return route.fulfill({status:500,body:'{}'})})
-   await context.addInitScript(premium=>{
-    window.__spoken=[]
-    const voices=[{name:'Albert',lang:'en-US',voiceURI:'com.apple.speech.synthesis.voice.Albert'},{name:'Samantha',lang:'en-US',voiceURI:'com.apple.voice.compact.en-US.Samantha'}]
-    if(premium)voices.push({name:'Ava (Premium)',lang:'en-US',voiceURI:'com.apple.voice.premium.en-US.Ava'})
-    window.SpeechSynthesisUtterance=class{constructor(text){this.text=text}}
-    Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{speak:u=>window.__spoken.push({text:u.text,voice:u.voice?.name}),cancel(){},getVoices:()=>voices,addEventListener(){},removeEventListener(){}}})
-   },premium)
-   await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
-   await signInAs(context,cloud,'alice')
-   await page.goto(BASE)
-   await heading(page,'Sanctuary')
-   await page.getByRole('button',{name:'🗣️ Ask KONO'}).click()
-   const kono=page.getByRole('dialog',{name:'Ask KONO'})
-   await kono.getByRole('button',{name:'📅 Today’s schedule'}).click()
-   await kono.getByText('Today · Wednesday, September 30').waitFor()
-   const spoken=await page.evaluate(()=>window.__spoken.slice())
-   assert.ok(spoken.length>=2,'greeting and answer are spoken')
-   assert.deepEqual([...new Set(spoken.map(s=>s.voice))],[premium?'Ava (Premium)':'Samantha'],'the best voice on the phone, never a novelty one')
-   assert.equal(voiceCalls,0,'an iPhone never asks the server for a voice')
-   assert.equal(await kono.getByRole('button',{name:'✨ Natural voice'}).count(),0)
-   assert.equal(await kono.getByText('Make KONO sound more natural').count(),premium?0:1)
-   if(!premium){await kono.getByText('Make KONO sound more natural').click();await kono.getByText('Spoken Content',{exact:false}).waitFor()}
-  }finally{await phone.context.close()}
- }
+test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assignment, test or event for that day right in the card, and it shows on the Planner calendar',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
+ plan.settings.parentMode=false
+ await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const todayCard=page.locator('section.today-schedule-compact').filter({has:page.getByRole('heading',{name:'Today’s schedule'})})
+ const tomorrowCard=page.locator('section.tomorrow-schedule')
+ const dialogs=await page.getByRole('dialog').count()
+ await todayCard.getByRole('button',{name:'Add for today'}).click()
+ const todayForm=todayCard.getByRole('form',{name:'Add for today'})
+ await todayForm.getByLabel('What to add for today').fill('Lab report')
+ await todayForm.getByRole('button',{name:'Add',exact:true}).click()
+ await todayCard.getByText('Lab report').first().waitFor()
+ await todayForm.getByLabel('What to add for today').fill('Tutoring')
+ await todayForm.getByRole('radio',{name:'Event'}).click()
+ await todayForm.getByLabel('Time').fill('16:30')
+ await todayForm.getByRole('button',{name:'Add',exact:true}).click()
+ await todayCard.getByText('Tutoring').first().waitFor()
+ if(process.env.KONO_SHOTS)await todayCard.screenshot({path:process.env.KONO_SHOTS+'/quick-day.png'})
+ await todayForm.getByRole('button',{name:'Done'}).click()
+ await tomorrowCard.getByRole('button',{name:'Add for tomorrow'}).click()
+ const tomorrowForm=tomorrowCard.getByRole('form',{name:'Add for tomorrow'})
+ await tomorrowForm.getByLabel('What to add for tomorrow').fill('Spanish quiz')
+ assert.equal(await tomorrowForm.getByRole('radio',{name:'Test'}).getAttribute('aria-checked'),'true','a quiz is a test')
+ await tomorrowForm.getByRole('button',{name:'Add',exact:true}).click()
+ await tomorrowCard.getByText('Spanish quiz').first().waitFor()
+ assert.equal(await page.getByRole('dialog').count(),dialogs,'nothing pops up')
+ await waitFor(()=>{const d=cloud.users.alice.plan.data;return d.tasks.some(t=>t.title==='Lab report'&&t.due==='2026-09-28')&&d.calendarEvents.some(e=>e.title==='Tutoring'&&e.date==='2026-09-28'&&e.time==='16:30'&&e.endTime==='17:30')&&d.exams.some(e=>e.title==='Spanish quiz'&&e.due==='2026-09-29')},'the three reach the account')
+ await go(page,'Planner')
+ const week=page.getByRole('region',{name:'Week'})
+ await week.getByRole('button',{name:/^Lab report · Sep 28, 2026/}).waitFor()
+ await week.getByRole('button',{name:/^Tutoring · 4:30 PM–5:30 PM · Sep 28, 2026/}).waitFor()
+ await week.getByRole('button',{name:/^★ Spanish quiz|^Spanish quiz · Sep 29, 2026/}).first().waitFor()
 })
 
 test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in the card, a pat makes KONO happy, and both reach the account without anything popping up',async({context,page})=>{
@@ -1861,7 +1823,7 @@ test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in th
  assert.ok(await value('Full')>fullBefore,'the meters come from the saved log after a reload')
 })
 
-test('Bedtime and wake-up: in the evening KONO can be tucked in and says tomorrow’s plan out loud, sleeps until morning (pats just get a "shh"), and in the morning Wake up reads today’s plan, all inside the card',async({context,page})=>{
+test('Bedtime and wake-up: in the evening KONO can be tucked in and shows tomorrow’s plan (without talking), sleeps until morning (pats just get a "shh"), and in the morning Wake up shows today’s plan, all inside the card',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  plan.calendarEvents.push({id:'soccer',profileId:pid,title:'Soccer practice',date:'2026-10-01',time:'17:00',kind:'personal',done:false,notes:''})
  plan.tasks.push({id:'dinner',profileId:pid,subjectId:'',title:'Math homework',due:'2026-09-30',done:true,completedAt:'2026-09-30T18:00:00.000Z',notes:''})
@@ -1888,10 +1850,10 @@ test('Bedtime and wake-up: in the evening KONO can be tucked in and says tomorro
  }
  assert.equal(await care.getByRole('button').count(),1,'one action chip at a time')
  await care.getByRole('button',{name:'Tuck in'}).click()
- await today.getByText(/^Goodnight! 🌙 Tomorrow: .*Soccer practice at 5:00 PM.*\.$/).waitFor()
+ await today.locator('p[aria-live]',{hasText:/^Goodnight! 🌙 Tomorrow: .*Soccer practice at 5:00 PM.*\.$/}).waitFor()
  await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).some(e=>e.kind==='sleep'),'the tuck-in never reached the account')
  const spoken=await page.evaluate(()=>window.__spoken.slice())
- assert.ok(spoken.some(t=>/^Goodnight! Tomorrow: /.test(t)),'KONO says goodnight out loud: '+JSON.stringify(spoken))
+ assert.deepEqual(spoken,[],'KONO doesn’t talk')
  assert.equal(await page.getByRole('dialog').count(),dialogs,'nothing opens')
  await page.reload();await heading(page,'Sanctuary')
  await today.getByText('KONO is fast asleep. Sweet dreams! 🌙').waitFor()
@@ -1903,10 +1865,10 @@ test('Bedtime and wake-up: in the evening KONO can be tucked in and says tomorro
  await page.clock.setFixedTime(new Date('2026-10-01T07:30:00'))
  await page.reload();await heading(page,'Sanctuary')
  await care.getByRole('button',{name:'Wake up'}).click()
- await today.getByText(/^Good morning! ☀️ Today: .*Soccer practice at 5:00 PM.*\.$/).waitFor()
+ await today.locator('p[aria-live]',{hasText:/^Good morning! ☀️ Today: .*Soccer practice at 5:00 PM.*\.$/}).waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.konoCare[pid].log.some(e=>e.kind==='wake'),'the wake-up never reached the account')
  assert.equal(await care.getByRole('button',{name:'Wake up'}).count(),0,'once a day')
- assert.ok((await page.evaluate(()=>window.__spoken.slice())).some(t=>/^Good morning! Today: /.test(t)))
+ assert.deepEqual(await page.evaluate(()=>window.__spoken.slice()),[],'KONO doesn’t talk')
 })
 
 test('Wardrobe and daily wish: finishing work grants KONO’s wish, which earns the beanie; KONO wears it in the card from Decorate › Wardrobe; Halloween costumes show in October with how to earn them',async({context,page})=>{

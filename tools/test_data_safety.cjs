@@ -280,6 +280,9 @@ test('saved office/journal/dashboard/zine/arcade experiences (retired) migrate t
 test('repository Undo and Redo preserve independent newer records',async()=>{
 const d=make(),r=setup(d);r.scheduleSync=()=>{};await r.update(x=>note(x,'first'));assert.equal(r.canUndo,true);await r.undo();assert.equal(r.getSnapshot().data.notes.length,0);assert.equal(r.canRedo,true);await r.redo();assert.equal(r.getSnapshot().data.notes[0].id,'first');r.state={...r.state,data:note(r.state.data,'remote')};await r.undo();assert.equal(r.state.data.notes.length,1);assert.equal(r.state.data.notes[0].id,'remote');
 });
+test('Undo steps over saves KONO makes by itself (a granted wish), so it takes back the student’s own last change',async()=>{
+const d=make(),r=setup(d);r.scheduleSync=()=>{};await r.update(x=>note(x,'mine'));await r.update(x=>note(x,'kono-wish'),{undoable:false});await r.undo();const ids=r.getSnapshot().data.notes.map(n=>n.id);assert.equal(JSON.stringify(ids),'["kono-wish"]','Undo took back the student’s note and kept KONO’s save: '+JSON.stringify(ids));assert.equal(r.canUndo,false)
+});
 test('repeated reopen complete delete restore never awards the same task twice',()=>{
 const w=load('src/store/workspace.ts'),d=make(),pid=d.activeProfileId;d.tasks=[{id:'one',profileId:pid,subjectId:'',title:'One',due:'2026-09-09',done:false,notes:''}];let next=w.completeTask(d,'one',true);for(let i=0;i<3;i++){next=w.completeTask(next,'one',false);next=w.completeTask(next,'one',true)}assert.equal(next.sanctuaryProgress[pid].totalCredits,1);const removed=model.normalizeData(w.captureDeletions(next,w.removeEntry(next,'tasks','one')));next=w.restoreEntry(removed,removed.trash[0].id);assert.equal(next.sanctuaryProgress[pid].totalCredits,1);
 });

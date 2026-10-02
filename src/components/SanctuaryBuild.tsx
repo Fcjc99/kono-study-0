@@ -210,7 +210,7 @@ export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCa
  const selectedPlacement=decor.placements.find(p=>p.id===selected)??null
 
  return <>
-  <div ref={canvasRef} className="build-hotspot-layer" onDragOver={e=>e.preventDefault()} onDrop={onCanvasDrop}>
+  <div ref={canvasRef} className={'build-hotspot-layer'+(selected?' has-selection':'')} onDragOver={e=>e.preventDefault()} onDrop={onCanvasDrop}>
    {decor.placements.map(p=>{
     const asset=BUILD_ASSET_BY_ID[p.assetId]
     if(!asset)return null
