@@ -950,6 +950,9 @@ function weekPlanCloud(){
  plan.tasks.push({id:'wk-essay',profileId:plan.activeProfileId,subjectId:'',title:'Week plan essay',due,done:false,notes:'',estimatedMinutes:60})
  return cloud
 }
+// The island only loads while it's on screen (GardenCard pauses it otherwise), and the page can still
+// shift as it settles, so keep it in view while waiting for it to finish.
+const islandLoaded=page=>page.waitForFunction(()=>{const island=document.querySelector('.wb-island'),r=island?.getBoundingClientRect();if(island&&(r.bottom<0||r.top>innerHeight))island.scrollIntoView({block:'center'});return island&&!document.querySelector('.sanctuary-load-status')},null,{timeout:30000,polling:250})
 const waitFor=async(check,message)=>{for(let i=0;i<60;i++){if(check())return;await new Promise(r=>setTimeout(r,250))}assert.fail(message)}
 async function openWeekPlanner(page){
  await go(page,'Planner')
@@ -1588,16 +1591,14 @@ test('Halloween island: all of October the island has its spooky look (with its 
  await page.clock.setFixedTime(new Date('2026-10-15T21:30:00'))
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
- await page.locator('.wb-island').scrollIntoViewIfNeeded()
- await page.waitForFunction(()=>!document.querySelector('.sanctuary-load-status'),null,{timeout:30000})
+ await islandLoaded(page)
  assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween/night.webp'&&st===200),'the Halloween night island loads: '+JSON.stringify(maps))
  assert.ok(!maps.some(([p])=>p==='/garden/terrace-23.0/night.webp'),'not the regular one')
  if(process.env.KONO_SHOTS){await page.waitForTimeout(6000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/halloween-island-night.png'})}
  maps.length=0
  await page.clock.setFixedTime(new Date('2026-11-02T21:30:00'))
  await page.reload();await heading(page,'Sanctuary')
- await page.locator('.wb-island').scrollIntoViewIfNeeded()
- await page.waitForFunction(()=>!document.querySelector('.sanctuary-load-status'),null,{timeout:30000})
+ await islandLoaded(page)
  assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/night.webp'&&st===200),'in November the regular island is back: '+JSON.stringify(maps))
  assert.ok(!maps.some(([p])=>p.includes('/halloween/')))
 })
@@ -1752,6 +1753,8 @@ test('Sanctuary: KONO today is a slim bar on top of the island, and Decorate ope
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  const bar=page.getByRole('region',{name:'KONO today'}),island=page.locator('.wb-island')
+ // Measured together once the page has settled (late content above can still move both for a moment).
+ await page.waitForFunction(()=>{const b=document.querySelector('.kono-bar')?.getBoundingClientRect(),i=document.querySelector('.wb-island')?.getBoundingClientRect();return b&&i&&b.bottom<=i.top+1},null,{timeout:5000,polling:200}).catch(()=>undefined)
  const b=await bar.boundingBox(),i=await island.boundingBox(),docY=await page.evaluate(()=>scrollY)
  if(process.env.KONO_SHOTS){await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar.png',clip:{x:b.x-10,y:b.y+docY-10,width:b.width+20,height:b.height+200}});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);const pb=await bar.evaluate(e=>{const r=e.getBoundingClientRect();return {y:r.top+scrollY,height:r.height}});await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar-phone.png',clip:{x:0,y:Math.max(0,pb.y-10),width:390,height:pb.height+160}});await page.setViewportSize({width:1280,height:900});await page.waitForTimeout(400)}
  assert.ok(b.height<160,'the KONO bar is slim (two short rows, even with a note from KONO): '+b.height+'px')
@@ -1843,6 +1846,35 @@ test('KONO’s notes: good luck the evening before a test, the study headband on
  assert.equal(await page.getByRole('dialog').count(),dialogs,'nothing pops up')
 })
 
+test('KONO’s taps: coming back after a while gets a wave, a tap right after finishing something is a high five, three quick taps tickle, and the Feed button knows this week’s favorite snack',async({context,page})=>{
+ const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId,now=new Date('2026-10-12T16:00:00')
+ for(const e of cloud.users.alice.plan.data.exams)e.due='2026-10-20'
+ await page.clock.setFixedTime(now)
+ await context.addInitScript(([key,value])=>{if(!sessionStorage.getItem('seeded')){localStorage.setItem(key,value);sessionStorage.setItem('seeded','1')}},['kono-last-visit:'+pid,String(now.getTime()-3*3_600_000)])
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const bar=page.getByRole('region',{name:'KONO today'}),face=bar.getByRole('button',{name:'Pet KONO'})
+ // Back after three hours: a wave hello.
+ await bar.getByText('👋 Welcome back! KONO missed you.').waitFor()
+ await bar.locator('.kono-react.is-wave').waitFor()
+ await bar.getByText('👋 Welcome back! KONO missed you.').waitFor({state:'detached',timeout:8000})
+ // Finish something, then tap KONO: a high five (once for it).
+ await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.tasks.find(t=>t.title==='Read chapter 3')?.done===true,'finished')
+ await page.waitForTimeout(600)
+ await face.click()
+ await bar.getByText('✋ High five! Nice work on Read chapter 3!').waitFor()
+ await bar.locator('.kono-react.is-highfive').waitFor()
+ // The Feed button says what this week's favorite is.
+ assert.match(await bar.locator('.kono-feed').getAttribute('title'),/favorite this week/)
+ await page.waitForTimeout(3800)
+ // Three quick taps: a tickle.
+ for(let i=0;i<3;i++)await face.click({delay:20})
+ await bar.getByText(/^(Hehe! That tickles!|Ahaha! Stop, stop!|KONO giggles and wiggles all over!)/).waitFor()
+ await bar.locator('.kono-mood-face.is-tickle').waitFor()
+ if(process.env.KONO_SHOTS)await bar.screenshot({path:process.env.KONO_SHOTS+'/kono-tickle.png'})
+})
+
 test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in the card, a pat makes KONO happy, and both reach the account without anything popping up',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
  await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
@@ -1873,7 +1905,8 @@ test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in th
  if(!snacksBefore)assert.equal(await feed.count(),0,'the one snack is eaten, so the chip goes away')
  await today.getByRole('button',{name:'Pet KONO'}).click()
  await waitFor(()=>cloud.users.alice.plan.data.konoCare[pid].log.some(e=>e.kind==='pet'),'the pat never reached the account')
- await today.getByText(/KONO (giggles|leans|does a happy)/).waitFor()
+ // (Work was just finished, so this tap is a high five; it still counts as a pat.)
+ await today.getByText(/KONO (giggles|leans|does a happy)|^✋ High five!/).waitFor()
  assert.ok(await value('Happy')>happyBefore,'pats and snacks make KONO happier')
  await today.getByRole('button',{name:'Pet KONO'}).click()
  await page.waitForTimeout(500)

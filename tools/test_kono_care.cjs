@@ -5,7 +5,7 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),asse
 const root=path.resolve(__dirname,'..')
 const mod={exports:{}}
 vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(root,'src/store/konoCare.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module:mod,exports:mod.exports,Date,Math,Number,Set,Array,Object,JSON,Infinity})
-const {pantry,careMeters,restedAt,addCareEvent,readCareState,treatFor,isAwayVisit,bedtime,nightOf,FLOOR,TREAT_DAYS}=mod.exports
+const {pantry,careMeters,restedAt,addCareEvent,readCareState,treatFor,isAwayVisit,bedtime,nightOf,favoriteSnack,fedLine,FLOOR,TREAT_DAYS}=mod.exports
 let passed=0
 const test=(name,fn)=>{fn();passed++;console.log('PASS '+name)}
 const at=(iso)=>new Date(iso)
@@ -92,4 +92,15 @@ test('bedtime: tuck in from 7 PM once a night, asleep until morning, then Wake u
  assert.equal(bedtime(s.log,t('2026-10-01T20:00:00')).canTuck,true,'a new night')
  assert.equal(readCareState({log:[{id:'a',kind:'sleep',at:'2026-09-30T21:00:00Z'},{id:'b',kind:'wake',at:'2026-10-01T07:00:00Z'}]},'p1').log.length,2)
 })
-console.log(passed+'/7 KONO care groups passed.')
+test('a favorite snack each week: the same all week on every device, extra happy when KONO eats it',()=>{
+ const mon=favoriteSnack('2026-10-05'),week=['2026-10-06','2026-10-08','2026-10-11'].map(d=>favoriteSnack(d).id)
+ assert.ok(week.every(id=>id===mon.id),'Monday to Sunday share one favorite')
+ const weeks=new Set(Array.from({length:12},(_,i)=>{const d=new Date('2026-09-07T12:00:00');d.setDate(d.getDate()+7*i);return favoriteSnack(d.toISOString().slice(0,10)).id}))
+ assert.ok(weeks.size>=3,'it changes from week to week')
+ const fav=favoriteSnack('2026-09-30'),other=['onigiri','dumpling','dango','strawberry','cookie','peach'].find(id=>id!==fav.id)
+ const fed=item=>careMeters([{id:'f',kind:'feed',at:'2026-09-30T14:00:00.000Z',taskId:'t',item}],[],at('2026-09-30T15:00:00')).happy
+ assert.ok(fed(fav.id)>fed(other)+5,'the favorite makes KONO happier')
+ assert.match(fedLine(fav,true),/favorite this week/)
+ assert.equal(readCareState({log:[{id:'f',kind:'feed',at:'2026-09-30T14:00:00.000Z',taskId:'t',item:fav.id}]},'p').log[0].item,fav.id,'what was eaten is kept')
+})
+console.log(passed+'/8 KONO care groups passed.')

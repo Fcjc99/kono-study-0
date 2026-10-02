@@ -43,6 +43,14 @@ export function treatFor(task:Done):Treat{
 const time=(iso:string|undefined)=>{const t=iso?Date.parse(iso):NaN;return Number.isFinite(t)?t:NaN}
 const fedIds=(log:CareEvent[])=>new Set(log.filter(e=>e.kind==='feed'&&e.taskId).map(e=>e.taskId!))
 
+/** KONO's favorite snack this week (Monday to Sunday): one of the everyday snacks, the same on every
+ * device. Eating it makes KONO extra happy, and KONO picks it first when it's in the pantry. */
+export function favoriteSnack(day:string):Treat{
+ const d=new Date(day+'T12:00:00');d.setDate(d.getDate()-((d.getDay()+6)%7))
+ return SNACKS[hash('fav'+localDay(d))%SNACKS.length]
+}
+const isFavorite=(e:CareEvent)=>e.kind==='feed'&&!!e.item&&e.item===favoriteSnack(localDay(new Date(e.at))).id
+
 /** Snacks waiting to be eaten: work finished in the last two weeks that KONO hasn't eaten yet, oldest first. */
 export function pantry(tasks:Done[],log:CareEvent[],now:Date):PantryItem[]{
  const fed=fedIds(log),since=now.getTime()-TREAT_DAYS*DAY
@@ -69,7 +77,7 @@ export function careMeters(log:CareEvent[],tasks:Done[],now:Date,away=false):Kon
  if(away)return {full:65,rested,happy:75,asleep,away:true}
  type Step={at:number;full:number;happy:number}
  const steps:Step[]=[
-  ...log.filter(e=>e.kind==='feed').map(e=>({at:time(e.at),full:25,happy:4})),
+  ...log.filter(e=>e.kind==='feed').map(e=>({at:time(e.at),full:25,happy:isFavorite(e)?14:4})),
   ...log.filter(e=>e.kind==='pet').map(e=>({at:time(e.at),full:0,happy:6})),
   ...done.map(at=>({at,full:0,happy:10})),
  ].filter(s=>s.at>start&&s.at<=end).sort((a,b)=>a.at-b.at)
@@ -110,14 +118,20 @@ export function readCareState(raw:unknown,profileId:string):KonoCareState{
   if(typeof x.id!=='string'||!x.id||x.id.length>150||!KINDS.includes(x.kind as CareKind)||typeof x.at!=='string'||!Number.isFinite(Date.parse(x.at)))return []
   const event:CareEvent={id:x.id,kind:x.kind as CareKind,at:new Date(x.at).toISOString()}
   if(typeof x.taskId==='string'&&x.taskId&&x.taskId.length<=150)event.taskId=x.taskId
-  if(['wear','find','exam','nudge'].includes(event.kind)&&typeof x.item==='string'&&x.item.length<=40)event.item=x.item
+  if(['wear','find','exam','nudge','feed'].includes(event.kind)&&typeof x.item==='string'&&x.item.length<=40)event.item=x.item
   return [event]
  }).slice(-LOG_MAX)
  return {profileId,log}
 }
 
 /** What KONO says after being fed or patted, shown in place of the day's line for a moment. */
-export const fedLine=(treat:Treat)=>'Yum! '+treat.emoji+' KONO loved the '+treat.name+'. Thank you!'
+export const fedLine=(treat:Treat,favorite=false)=>favorite?'😍 A '+treat.name+'! '+treat.emoji+' KONO’s favorite this week! KONO does a happy dance.':'Yum! '+treat.emoji+' KONO loved the '+treat.name+'. Thank you!'
+/** Three quick taps tickle KONO; a tap right after finishing something is a high five. */
+export const TICKLE_LINES=['Hehe! That tickles! 😆','Ahaha! Stop, stop! 😂','KONO giggles and wiggles all over! 🤭']
+export const highFiveLine=(title:string)=>'✋ High five! Nice work on '+title+'!'
+export const HELLO_LINE='👋 Welcome back! KONO missed you.'
+/** A tap counts as a high five this long after finishing something. */
+export const HIGH_FIVE_MS=3*60_000
 export const PET_LINES=['KONO giggles and wiggles happily.','KONO leans into the pat. ♡','KONO does a happy little spin!']
 /** A visit after this many days away is a homecoming. */
 export const AWAY_DAYS=3
