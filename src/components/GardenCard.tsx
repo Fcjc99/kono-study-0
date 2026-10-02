@@ -9,6 +9,7 @@ import type { BuildPlacement } from '../store/model'
 import type { EvolutionMilestonePayload } from '../game/evolution/EvolutionCoordinator'
 import type { KonoContextAction, KonoInteractionSummary } from '../game/systems/KonoInteractionSystem'
 import { APP_VERSION } from '../version'
+import { islandMapPath, islandSeason } from '../game/sanctuary/season'
 
 interface SanctuaryState {
   phase: DayPhase
@@ -218,6 +219,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
             bootingGame.registry.set('sanctuaryProgress', current.progress)
             bootingGame.registry.set('sanctuaryDecorations', current.decorations)
             bootingGame.registry.set('sanctuaryOutfit', current.outfit)
+            bootingGame.registry.set('sanctuarySeason', islandSeason(new Date()))
           },
         },
       }) as unknown as PhaserGameHandle
@@ -427,7 +429,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
   }
 
   return <article className="sanctuary-card" aria-label="KONO Living Sanctuary">
-    <div ref={containerRef} className="sanctuary-viewport" role="img" aria-label={`${state.phaseLabel} sanctuary, ${state.weatherLabel.toLowerCase()} weather`} style={loadStatus.status!=='ready'?{backgroundImage:`url(/garden/terrace-23.0/${phase==='auto'?autoPhase:phase}-poster.webp)`}:undefined} />
+    <div ref={containerRef} className="sanctuary-viewport" role="img" aria-label={`${state.phaseLabel} sanctuary, ${state.weatherLabel.toLowerCase()} weather`} style={loadStatus.status!=='ready'?{backgroundImage:`url(${islandMapPath(phase==='auto'?autoPhase:phase,islandSeason(new Date()))}-poster.webp)`}:undefined} />
     {loadStatus.status!=='ready'&&<div className="sanctuary-load-status" role="status">{loadStatus.status==='error'?'Some Sanctuary artwork could not load. Your plan is safe.':`Opening ${loadStatus.phase??'your'} Sanctuary…`}{loadStatus.status==='error'&&<button onClick={()=>{setLoadStatus({status:'loading'});if(loadStatus.boot)setAttempt(a=>a+1);else gameRef.current?.events.emit(SANCTUARY_EVENTS.retry,null)}}>Retry artwork</button>}</div>}
     {evolutionNotice && <div className={`sanctuary-evolution-toast feature-${evolutionNotice.feature}`} role="status" aria-live="polite"><span>Sanctuary evolved</span><strong>{evolutionNotice.featureLabel}</strong><em>Stage {evolutionNotice.nextStage} · {evolutionNotice.stageName}</em></div>}
     {interactionNotice && <div className="sanctuary-interaction-toast" role="status" aria-live="polite"><span>KONO</span><strong>{interactionNotice.action.title}</strong><em>{interactionNotice.action.hint}</em></div>}
