@@ -4,7 +4,8 @@ import { RenderLayers } from '../engine/RenderLayers'
 import type { DayPhase } from '../sanctuary/types'
 
 /** The island in October (see sanctuary/season.ts): the map itself is the Halloween one (drawn by
- * tools/draw_halloween_island.py); this adds what moves. Jack-o'-lanterns, candles and the cauldron
+ * tools/draw_halloween_island.py, its props painted like the island's decorations); this adds what
+ * moves, painted softly to match. Jack-o'-lanterns, candles and the cauldron
  * flicker in the evening and at night, bats cross the sky, low fog drifts over the grass, autumn
  * leaves fall in the day, and now and then a friendly ghost floats up from a gravestone at night.
  * With reduced motion only the (still) glows and fog are shown. */
@@ -13,26 +14,71 @@ type Point = { x: number; y: number }
 const GLOW_ALPHA: Record<DayPhase, number> = { morning: 0, afternoon: 0, evening: 0.55, night: 0.85 }
 const FOG_ALPHA: Record<DayPhase, number> = { morning: 0.12, afternoon: 0, evening: 0.16, night: 0.22 }
 const LEAF_TINTS = [0xe0782c, 0xc84a26, 0xf0b040, 0xa8642c]
-const BAT_PIXELS = [
-  // wings up
-  ['x.........x', 'xx.......xx', '.xxx.x.xxx.', '..xxxxxxx..', '...xx.xx...', '...........'],
-  // wings down
-  ['...........', '....x.x....', '..xxxxxxx..', '.xxxxxxxxx.', 'xx.xx.xx.xx', 'x.........x'],
-]
-const GHOST_PIXELS = ['...oooo...', '..owwwwo..', '.owwwwwwo.', '.owkwwkwo.', '.owwwwwwo.', '.owwmmwwo.', '.owwwwwwo.', '.owwwwwwo.', '.owowwowo.', '.o.o..o.o.']
-
-function pixelTexture(scene: Phaser.Scene, key: string, rows: string[], colors: Record<string, string>, unit: number): void {
+/** A friendly ghost, painted softly like the island's decorations (no hard pixels): a rounded sheet
+ * with a wavy hem, a lavender shadow, little eyes and blush. 30x34 px. */
+function ghostTexture(scene: Phaser.Scene, key: string): void {
   if (scene.textures.exists(key)) return
-  const w = Math.max(...rows.map(r => r.length)) * unit, h = rows.length * unit
+  const w = 30, h = 34
   const texture = scene.textures.createCanvas(key, w, h)
   if (!texture) return
   const ctx = texture.context
-  rows.forEach((row, y) => [...row].forEach((ch, x) => {
-    const color = colors[ch]
-    if (!color) return
-    ctx.fillStyle = color
-    ctx.fillRect(x * unit, y * unit, unit, unit)
-  }))
+  ctx.beginPath()
+  ctx.moveTo(3, 18)
+  ctx.bezierCurveTo(3, 6, 9, 2, 15, 2)
+  ctx.bezierCurveTo(21, 2, 27, 6, 27, 18)
+  ctx.lineTo(27, 29)
+  for (let k = 0; k < 4; k++) { const x = 27 - k * 6; ctx.quadraticCurveTo(x - 1.5, 33, x - 3, 29); ctx.quadraticCurveTo(x - 4.5, 25.5, x - 6, 29) }
+  ctx.closePath()
+  const body = ctx.createLinearGradient(8, 2, 22, 32)
+  body.addColorStop(0, '#ffffff')
+  body.addColorStop(0.6, '#f2eefc')
+  body.addColorStop(1, '#cfc6e6')
+  ctx.fillStyle = body
+  ctx.fill()
+  ctx.lineWidth = 1.4
+  ctx.strokeStyle = 'rgba(96, 82, 120, 0.75)'
+  ctx.stroke()
+  ctx.fillStyle = '#3a2f48'
+  ctx.beginPath(); ctx.ellipse(11, 15, 1.8, 2.4, 0, 0, Math.PI * 2); ctx.ellipse(19, 15, 1.8, 2.4, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath(); ctx.arc(11.6, 14.2, 0.7, 0, Math.PI * 2); ctx.arc(19.6, 14.2, 0.7, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = 'rgba(240, 140, 160, 0.6)'
+  ctx.beginPath(); ctx.ellipse(8.5, 19, 2, 1.2, 0, 0, Math.PI * 2); ctx.ellipse(21.5, 19, 2, 1.2, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.strokeStyle = '#3a2f48'; ctx.lineWidth = 1
+  ctx.beginPath(); ctx.arc(15, 18.5, 1.8, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke()
+  texture.refresh()
+}
+
+/** A little bat (two flap frames), soft-edged: a round body, ears and bezier wings. 34x18 px. */
+function batTexture(scene: Phaser.Scene, key: string, wingsUp: boolean): void {
+  if (scene.textures.exists(key)) return
+  const w = 34, h = 18
+  const texture = scene.textures.createCanvas(key, w, h)
+  if (!texture) return
+  const ctx = texture.context
+  const tip = wingsUp ? 1 : 16, mid = wingsUp ? 6 : 12
+  ctx.fillStyle = '#4a3a5e'
+  for (const side of [-1, 1]) {
+    ctx.beginPath()
+    ctx.moveTo(17, 9)
+    ctx.quadraticCurveTo(17 + side * 8, mid - 4, 17 + side * 16, tip)
+    ctx.quadraticCurveTo(17 + side * 13, mid + 1, 17 + side * 11, mid + 3)
+    ctx.quadraticCurveTo(17 + side * 8, mid + 1, 17 + side * 6, mid + 4)
+    ctx.quadraticCurveTo(17 + side * 4, 10, 17, 11)
+    ctx.closePath()
+    ctx.fill()
+    ctx.lineWidth = 1
+    ctx.strokeStyle = 'rgba(170, 150, 200, 0.75)'
+    ctx.stroke()
+  }
+  const body = ctx.createRadialGradient(16, 8, 1, 17, 10, 6)
+  body.addColorStop(0, '#6a5680')
+  body.addColorStop(1, '#2e2238')
+  ctx.fillStyle = body
+  ctx.beginPath(); ctx.ellipse(17, 10, 4, 4.6, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.moveTo(14, 7); ctx.lineTo(14.6, 3.6); ctx.lineTo(16, 6.4); ctx.moveTo(20, 7); ctx.lineTo(19.4, 3.6); ctx.lineTo(18, 6.4); ctx.fill()
+  ctx.fillStyle = '#ffe28a'
+  ctx.beginPath(); ctx.arc(15.6, 9.4, 0.8, 0, Math.PI * 2); ctx.arc(18.4, 9.4, 0.8, 0, Math.PI * 2); ctx.fill()
   texture.refresh()
 }
 
@@ -88,8 +134,9 @@ export class HalloweenSystem {
     glowTexture(this.scene, 'hw-glow-orange', '255,150,50')
     glowTexture(this.scene, 'hw-glow-green', '140,255,110')
     fogTexture(this.scene, 'hw-fog')
-    BAT_PIXELS.forEach((rows, i) => pixelTexture(this.scene, 'hw-bat-' + i, rows, { x: '#241a2e' }, 3))
-    pixelTexture(this.scene, 'hw-ghost', GHOST_PIXELS, { o: '#5a5470', w: '#f6f3ff', k: '#2a2238', m: '#e88aa0' }, 3)
+    batTexture(this.scene, 'hw-bat-0', true)
+    batTexture(this.scene, 'hw-bat-1', false)
+    ghostTexture(this.scene, 'hw-ghost')
     for (const g of HALLOWEEN_ISLAND.glows) {
       const image = this.scene.add.image(0, 0, g.kind === 'cauldron' ? 'hw-glow-green' : 'hw-glow-orange')
         .setDepth(RenderLayers.lightingShade + 0.05).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0)
