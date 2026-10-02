@@ -203,9 +203,52 @@ test('KONO’s good morning / goodnight sum up a day in one sentence',()=>{
  d.tasks.push({id:'t1',profileId:pid,subjectId:'',title:'Lab report',due:'2026-09-30',done:false,notes:''})
  d.exams.push({id:'e1',profileId:pid,subjectId:'',title:'Cell biology test',due:'2026-09-30',done:false,notes:''},{id:'e2',profileId:pid,subjectId:'',title:'Spanish',due:'2026-10-01',done:false,notes:''})
  d.calendarEvents.push({id:'ev',profileId:pid,date:'2026-09-30',title:'Soccer practice',kind:'sports',notes:'',time:'16:30'})
- assert.equal(askKono.dayGlance(d,'2026-09-30'),'2 classes, starting with Biology at 9:00 AM, the Cell biology test, Lab report is due and Soccer practice at 4:30 PM.')
- assert.equal(askKono.dayGlance(d,'2026-10-01'),'Art at 8:30 AM and the Spanish test.')
- assert.equal(askKono.dayGlance(d,'2026-10-03'),'nothing on the plan.')
+ assert.equal(load('src/store/dayGlance.ts').dayGlance(d,'2026-09-30'),'2 classes, starting with Biology at 9:00 AM, the Cell biology test, Lab report is due and Soccer practice at 4:30 PM.')
+ assert.equal(load('src/store/dayGlance.ts').dayGlance(d,'2026-10-01'),'Art at 8:30 AM and the Spanish test.')
+ assert.equal(load('src/store/dayGlance.ts').dayGlance(d,'2026-10-03'),'nothing on the plan.')
+})
+
+const wardrobeMod=load('src/store/konoWardrobe.ts'),careMod=load('src/store/konoCare.ts')
+test('Wardrobe: outfits unlock by finished work and granted wishes; Halloween costumes count only October and show only then or once earned',()=>{
+ const w=wardrobeMod,ids=set=>[...set].sort().join(',')
+ assert.equal(ids(w.unlockedOutfits({finished:0,wishes:0,octoberFinished:0,octoberWishes:0})),'')
+ assert.equal(ids(w.unlockedOutfits({finished:5,wishes:1,octoberFinished:0,octoberWishes:0})),'beanie,bow')
+ assert.equal(ids(w.unlockedOutfits({finished:50,wishes:14,octoberFinished:0,octoberWishes:0})),'beanie,bow,chef,crown,flowers,gradcap,sunhat,wizard')
+ assert.equal(ids(w.unlockedOutfits({finished:6,wishes:3,octoberFinished:6,octoberWishes:3})),'beanie,bow,frankenstein,ghost,sunhat,witch')
+ const none=new Set()
+ assert.equal(w.outfitsOffered(none,'2026-10-15').length,11,'October: every outfit shows')
+ assert.equal(w.outfitsOffered(none,'2026-11-02').length,8,'November: Halloween costumes are hidden…')
+ assert.equal(w.outfitsOffered(new Set(['ghost']),'2026-11-02').some(o=>o.id==='ghost'),true,'…unless earned')
+ assert.equal(w.outfitHow(w.OUTFITS.find(o=>o.id==='witch')),'Finish 2 assignments in October.')
+ const tasks=[{due:'2026-10-02',done:true,completedAt:'2026-10-02T15:00:00'},{due:'2026-09-02',done:true,completedAt:'2026-09-02T15:00:00'}]
+ const log=[{id:'wish-2026-10-02',kind:'wish',at:'2026-10-02T12:00:00.000Z'},{id:'wish-2026-09-20',kind:'wish',at:'2026-09-20T12:00:00.000Z'},{id:'wish-2026-10-02',kind:'wish',at:'2026-10-02T12:00:00.000Z'}]
+ const stats=w.wardrobeStats(9,tasks,log)
+ assert.equal([stats.finished,stats.wishes,stats.octoberFinished,stats.octoberWishes].join(),'9,2,1,1','the same wish saved twice counts once')
+ const unlocked=w.unlockedOutfits({finished:5,wishes:1,octoberFinished:0,octoberWishes:0})
+ assert.equal(w.wornOutfit([{id:'a',kind:'wear',at:'2026-10-01T10:00:00Z',item:'bow'},{id:'b',kind:'wear',at:'2026-10-01T11:00:00Z',item:'beanie'}],unlocked),'beanie','the latest pick')
+ assert.equal(w.wornOutfit([{id:'a',kind:'wear',at:'2026-10-01T10:00:00Z',item:''}],unlocked),null,'taken off')
+ assert.equal(w.wornOutfit([{id:'a',kind:'wear',at:'2026-10-01T10:00:00Z',item:'crown'}],unlocked),null,'not earned: not worn')
+})
+
+test('Daily wish: finish today’s work (up to 3), get ahead, or be tucked in; progress counts what was finished today',()=>{
+ const w=wardrobeMod,t='2026-10-02'
+ const due=(n,done=0)=>Array.from({length:n},(_,i)=>({due:t,done:i<done,completedAt:i<done?t+'T15:00:00':undefined}))
+ assert.equal(JSON.stringify(w.todaysWish(due(5),[],t)),JSON.stringify({kind:'finish',goal:3}))
+ assert.equal(JSON.stringify(w.todaysWish(due(1),[],t)),JSON.stringify({kind:'finish',goal:1}))
+ assert.equal(w.todaysWish([{due:'2026-10-05',done:false}],[],t).kind,'ahead')
+ assert.equal(w.todaysWish([],[],t).kind,'bedtime')
+ assert.equal(w.wishProgress({kind:'finish',goal:3},[...due(3,2),{due:'2026-09-20',done:true,completedAt:t+'T09:00:00'}],[],t),3,'late work finished today counts too')
+ assert.equal(w.wishProgress({kind:'ahead',goal:1},[{due:'2026-10-05',done:true,completedAt:t+'T10:00:00'}],[],t),1)
+ assert.equal(w.wishProgress({kind:'bedtime',goal:1},[],[{id:'s',kind:'sleep',at:t+'T21:00:00'}],t),1)
+ assert.equal(w.wishText({kind:'finish',goal:2}),'finish 2 things today')
+ assert.equal(JSON.stringify(w.wishEvent(t)),JSON.stringify({id:'wish-2026-10-02',kind:'wish',at:'2026-10-02T12:00:00.000Z'}),'the same entry on every device')
+ // Old entries are trimmed after a month, but granted wishes and the outfit KONO has on stay.
+ const now=new Date('2026-12-15T12:00:00Z')
+ let s={profileId:'p',log:[w.wishEvent('2026-10-02'),{id:'w',kind:'wear',at:'2026-10-03T10:00:00.000Z',item:'beanie'},{id:'p1',kind:'pet',at:'2026-10-03T10:00:00.000Z'}]}
+ s=careMod.addCareEvent(s,'p',{id:'p2',kind:'pet',at:now.toISOString()},now)
+ assert.equal(s.log.map(e=>e.id).join(),'wish-2026-10-02,w,p2')
+ assert.equal(careMod.addCareEvent(s,'p',w.wishEvent('2026-10-02'),now).log.length,3,'a wish is saved once')
+ assert.equal(careMod.readCareState({log:[{id:'w',kind:'wear',at:'2026-10-03T10:00:00Z',item:'ghost'}]},'p').log[0].item,'ghost')
 })
 
 console.log(passed+' KONO mood and sticker groups passed')

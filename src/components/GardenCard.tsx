@@ -78,6 +78,8 @@ interface GardenCardProps {
   focusCompanionActive?: boolean
   /** Called when KONO is tapped on the island (a pat for the care meters). */
   onKonoPet?: () => void
+  /** The outfit KONO is wearing (Decorate › Wardrobe), or null. */
+  outfit?: string | null
 }
 
 const initialState: SanctuaryState = {
@@ -110,7 +112,7 @@ const formatDebugTime = (minutes: number) => {
 const debugFromUrl = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sanctuaryDebug') === '1'
 
-export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused, celebrateSignal, focusCompanionActive, onKonoPet }: GardenCardProps) {
+export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused, celebrateSignal, focusCompanionActive, onKonoPet, outfit = null }: GardenCardProps) {
   const onPetRef = useRef(onKonoPet)
   useEffect(() => { onPetRef.current = onKonoPet }, [onKonoPet])
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -120,8 +122,8 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
   const syncPauseStateRef = useRef<(() => void) | null>(null)
   const debugEnabledRef = useRef(debugFromUrl())
   const lastCanvasSizeRef = useRef({ width: 0, height: 0 })
-  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, decorations })
-  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,decorations}},[phase,weather,reducedMotion,progress,decorations])
+  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, decorations, outfit })
+  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,decorations,outfit}},[phase,weather,reducedMotion,progress,decorations,outfit])
   useEffect(()=>{pausedRef.current=!!paused;syncPauseStateRef.current?.()},[paused])
 
   const [state, setState] = useState<SanctuaryState>(initialState)
@@ -215,6 +217,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
             bootingGame.registry.set('sanctuaryQuality', 'auto')
             bootingGame.registry.set('sanctuaryProgress', current.progress)
             bootingGame.registry.set('sanctuaryDecorations', current.decorations)
+            bootingGame.registry.set('sanctuaryOutfit', current.outfit)
           },
         },
       }) as unknown as PhaserGameHandle
@@ -379,6 +382,11 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
   useEffect(() => {
     gameRef.current?.events.emit(SANCTUARY_EVENTS.focusCompanion, Boolean(focusCompanionActive))
   }, [focusCompanionActive])
+
+  useEffect(() => {
+    gameRef.current?.registry.set('sanctuaryOutfit', outfit)
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.outfit, outfit)
+  }, [outfit])
 
   const updateDebugTime = (minutes: number) => {
     setDebugMinutes(minutes)
