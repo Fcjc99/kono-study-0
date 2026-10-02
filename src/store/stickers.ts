@@ -28,6 +28,18 @@ export const SEASONS:Season[]=[
   {id:'valentine-chocolate',emoji:'🍫',label:'Chocolate',how:'Finish an assignment 2 days early during Valentine’s week.',rule:'early'},
   {id:'valentine-rose',emoji:'🌹',label:'Rose',how:'Finish 10 assignments during Valentine’s week.',rule:'finish-10'},
  ]},
+ {id:'spring',label:'Spring bloom',emoji:'🌸',from:'03-20',to:'05-20',until:'May 20',stickers:[
+  {id:'spring-tulip',emoji:'🌷',label:'Tulip',how:'Finish an assignment in spring (March 20 – May 20).',rule:'finish'},
+  {id:'spring-chick',emoji:'🐣',label:'Chick',how:'Study 3 days in a row in spring.',rule:'streak-3'},
+  {id:'spring-butterfly',emoji:'🦋',label:'Butterfly',how:'Finish an assignment 2 days early in spring.',rule:'early'},
+  {id:'spring-blossom',emoji:'🌸',label:'Blossom',how:'Finish 10 assignments in spring.',rule:'finish-10'},
+ ]},
+ {id:'semester',label:'Last stretch',emoji:'🎓',from:'05-21',to:'06-20',until:'Jun 20',stickers:[
+  {id:'semester-balloon',emoji:'🎈',label:'Balloon',how:'Finish an assignment at the end of the semester (May 21 – June 20).',rule:'finish'},
+  {id:'semester-party',emoji:'🎉',label:'Party popper',how:'Study 3 days in a row at the end of the semester.',rule:'streak-3'},
+  {id:'semester-scroll',emoji:'📜',label:'Diploma',how:'Finish an assignment 2 days early at the end of the semester.',rule:'early'},
+  {id:'semester-sun',emoji:'☀️',label:'Summer sun',how:'Finish 10 assignments at the end of the semester.',rule:'finish-10'},
+ ]},
 ]
 const inSeason=(season:Season,date:string)=>{const md=date.slice(5);return season.from<=season.to?md>=season.from&&md<=season.to:md>=season.from||md<=season.to}
 /** The island event running on this date, if any. */

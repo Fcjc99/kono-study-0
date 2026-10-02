@@ -6,9 +6,10 @@ import {inSeasonWindow,SEASON_IDS,SEASON_WINDOWS,type SeasonId} from './seasonWi
  * assignments (the island's lifetime count, so it never goes down) and granting KONO's daily wishes.
  * KONO wears one outfit at a time, on the island and in the KONO today card; the art and how it sits
  * on every pose come from tools/draw_kono_outfits.py. */
-export type OutfitId='beanie'|'bow'|'sunhat'|'chef'|'flowers'|'gradcap'|'wizard'|'crown'|'witch'|'ghost'|'frankenstein'|'earmuffs'|'heartband'
+export type OutfitId='beanie'|'bow'|'sunhat'|'chef'|'flowers'|'gradcap'|'wizard'|'crown'|'witch'|'ghost'|'frankenstein'|'earmuffs'|'heartband'|'bunnyears'|'partyhat'
 /** How an outfit is earned: assignments finished or wishes granted, ever, or (seasonal outfits: the
- * Halloween costumes, winter earmuffs, the Valentine's heart headband) during that season, any year.
+ * Halloween costumes, winter earmuffs, the Valentine's heart headband, spring bunny ears, the end of
+ * semester's party hat) during that season, any year.
  * Seasonal outfits only show in the wardrobe in their season, or once earned (store/seasonWindows). */
 export type Outfit={id:OutfitId;name:string;by:'finished'|'wishes';count:number;season?:SeasonId}
 export type WardrobeStats={finished:number;wishes:number;seasonFinished:Record<SeasonId,number>;seasonWishes:Record<SeasonId,number>}
@@ -27,6 +28,8 @@ export const OUTFITS:Outfit[]=[
  {id:'frankenstein',name:'Frankenstein',by:'wishes',count:3,season:'halloween'},
  {id:'earmuffs',name:'Fluffy earmuffs',by:'finished',count:3,season:'winter'},
  {id:'heartband',name:'Heart headband',by:'wishes',count:2,season:'valentine'},
+ {id:'bunnyears',name:'Bunny ears',by:'wishes',count:3,season:'spring'},
+ {id:'partyhat',name:'Party hat',by:'finished',count:5,season:'semester'},
 ]
 export const outfitHow=(o:Outfit)=>{
  const when=o.season?' '+SEASON_WINDOWS[o.season].when:''

@@ -33,6 +33,7 @@ import { KonoMascotSystem } from '../systems/KonoMascotSystem'
 import { HalloweenSystem } from '../systems/HalloweenSystem'
 import { VisitorSystem } from '../systems/VisitorSystem'
 import { WinterSystem } from '../systems/WinterSystem'
+import { SpringSystem } from '../systems/SpringSystem'
 import { islandMapPath, isIslandSeason, type IslandSeason } from '../sanctuary/season'
 import { mascotObstacles } from '../data/buildAssets'
 import type { BuildPlacement } from '../../store/model'
@@ -81,6 +82,7 @@ export default class Stage0Scene extends Phaser.Scene {
   private konoMascot!: KonoMascotSystem
   private halloween: HalloweenSystem | null = null
   private winter: WinterSystem | null = null
+  private spring: SpringSystem | null = null
   private visitor: VisitorSystem | null = null
   private season: IslandSeason | null = null
   private fluid!: FluidSystem
@@ -199,6 +201,10 @@ export default class Stage0Scene extends Phaser.Scene {
     if (this.season === 'winter' || this.season === 'valentine') {
       this.winter = new WinterSystem(this)
       this.winter.create(this.blend.dominant, this.settings.reducedMotion, this.season === 'valentine')
+    }
+    if (this.season === 'spring' || this.season === 'semester') {
+      this.spring = new SpringSystem(this)
+      this.spring.create(this.blend.dominant, this.settings.reducedMotion, this.season)
     }
     this.visitor = new VisitorSystem(this)
     this.visitor.create(this.registry.get('sanctuaryVisitor') ?? null, this.blend.dominant, this.settings.reducedMotion)
@@ -369,6 +375,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.konoMascot.setReducedMotion(reducedMotion)
     this.halloween?.setReducedMotion(reducedMotion)
     this.winter?.setReducedMotion(reducedMotion)
+    this.spring?.setReducedMotion(reducedMotion)
     this.visitor?.setReducedMotion(reducedMotion)
     this.evolutionCoordinator.setReducedMotion(reducedMotion)
     this.rescheduleAmbientSystems()
@@ -473,6 +480,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.konoMascot?.setPhase(nextBlend.dominant)
     this.halloween?.setPhase(nextBlend.dominant)
     this.winter?.setPhase(nextBlend.dominant)
+    this.spring?.setPhase(nextBlend.dominant)
     this.visitor?.setPhase(nextBlend.dominant)
     this.emitState()
   }
@@ -707,6 +715,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.konoMascot.resize(this.sceneBounds)
     this.halloween?.resize(this.sceneBounds)
     this.winter?.resize(this.sceneBounds)
+    this.spring?.resize(this.sceneBounds)
     this.visitor?.resize(this.sceneBounds)
     this.evolutionCoordinator.resize(this.sceneBounds)
   }
@@ -761,6 +770,8 @@ export default class Stage0Scene extends Phaser.Scene {
     this.halloween?.destroy()
     this.winter?.destroy()
     this.winter = null
+    this.spring?.destroy()
+    this.spring = null
     this.visitor?.destroy()
     this.visitor = null
     this.fluid.destroy()

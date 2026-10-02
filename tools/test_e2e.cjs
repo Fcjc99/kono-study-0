@@ -532,13 +532,13 @@ test('signed in: last night\'s backup downloads, and app errors reach KONO suppo
 test('Sanctuary: the island draws, zooms, expands and changes time; Decorate adds, duplicates, removes and keeps items',async({page})=>{
  const loaded=[];page.on('response',r=>{const u=new URL(r.url());if(/\/garden\/(terrace-23\.0|kono)\//.test(u.pathname))loaded.push([u.pathname,r.status()])})
  await createPlan(page)
- const ready=()=>page.waitForFunction(()=>!document.querySelector('.sanctuary-load-status'),null,{timeout:30000})
- // The island loads once it's on screen (for a new plan it's just below Getting started).
- await page.locator('.wb-island').scrollIntoViewIfNeeded()
+ // The island loads once it's on screen (for a new plan it's just below Getting started): islandLoaded
+ // keeps it in view while it does.
+ const ready=()=>islandLoaded(page)
  await ready()
  // The canvas has real artwork on it (a blank canvas encodes to a tiny image).
  await page.waitForFunction(()=>{const c=document.querySelector('.sanctuary-viewport canvas');return !!c&&c.width>100&&c.toDataURL('image/png').length>60000},null,{timeout:20000})
- assert.ok(loaded.some(([path,status])=>/terrace-23\.0\/(halloween\/)?\w+\.webp$/.test(path)&&status===200),'the island map did not load')
+ assert.ok(loaded.some(([path,status])=>/terrace-23\.0\/((halloween|winter|spring|semester)\/)?\w+\.webp$/.test(path)&&status===200),'the island map did not load (whatever the season)')
  assert.ok(loaded.every(([,status])=>status===200),'a Sanctuary image failed to load: '+JSON.stringify(loaded.filter(([,st])=>st!==200)))
  const zoom=page.getByRole('group',{name:'Zoom island'})
  await zoom.getByRole('button',{name:'Zoom in'}).click()
@@ -1635,6 +1635,29 @@ test('Winter island: from December 1 the island is under snow (with its own quic
  await islandLoaded(page)
  assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/afternoon.webp'&&st===200),'after Valentine’s week the regular island is back: '+JSON.stringify(maps))
  assert.ok(!maps.some(([p])=>p.includes('/winter/')))
+})
+test('Spring and the end of the semester: from March 20 the island blooms (Spring bloom stickers, bunny ears), from May 21 it’s the festive last stretch (Last stretch stickers, a party hat), and from June 21 it’s the regular island',async({context,page})=>{
+ const cloud=fakeCloud(),maps=[]
+ page.on('response',r=>{const u=new URL(r.url());if(/\/garden\/terrace-23\.0\//.test(u.pathname))maps.push([u.pathname,r.status()])})
+ const visit=async(time,folder,banner,outfit)=>{
+  maps.length=0
+  await page.clock.setFixedTime(new Date(time))
+  if(page.url().startsWith('http'))await page.reload();else await page.goto(BASE)
+  await heading(page,'Sanctuary')
+  await islandLoaded(page)
+  assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/'+folder+'afternoon.webp'&&st===200),time+': '+JSON.stringify(maps))
+  if(!banner)return
+  await page.getByText(banner).waitFor()
+  if(process.env.KONO_SHOTS)await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/'+folder.replace('/','')+'-island.png'})
+  await page.getByRole('button',{name:'Decorate'}).click()
+  await page.getByRole('navigation',{name:'Decoration categories'}).getByRole('button',{name:'Wardrobe',exact:true}).click()
+  await page.getByLabel(outfit).waitFor()
+ }
+ await signInAs(context,cloud,'alice')
+ await visit('2027-04-10T15:00:00','spring/',/Spring bloom: 0\/4 special stickers until May 20/,'Bunny ears, locked. Grant 3 of KONO’s wishes in spring (March 20 – May 20).')
+ await visit('2027-06-01T15:00:00','semester/',/Last stretch: 0\/4 special stickers until Jun 20/,'Party hat, locked. Finish 5 assignments at the end of the semester (May 21 – June 20).')
+ await visit('2027-07-01T15:00:00','',null,null)
+ assert.ok(!maps.some(([p])=>/\/(spring|semester)\//.test(p)),'summer is the regular island')
 })
 test('Halloween on the island: in October KONO wears a pumpkin, a banner counts the 4 spooky stickers, finishing work earns the Pumpkin, and it goes on the island',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId

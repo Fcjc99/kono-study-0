@@ -40,6 +40,8 @@ export const OUTFIT_FITS:Record<string,OutfitFit>={
   witch: {px: [176, 144], sink: 0.22, nudge: 0},
   earmuffs: {px: [184, 88], sink: 0.62, nudge: 0},
   heartband: {px: [160, 104], sink: 0.42, nudge: 0},
+  bunnyears: {px: [136, 128], sink: 0.3, nudge: 0},
+  partyhat: {px: [104, 128], sink: 0.34, nudge: 0.04},
   ghost: {px: [0, 0], sink: 0, nudge: 0, full: true, skip: ["pond"]},
   frankenstein: {px: [0, 0], sink: 0, nudge: 0, full: true, skip: ["pond"]},
 }
