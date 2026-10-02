@@ -2056,6 +2056,36 @@ test('Island visitors: after a good week a friend comes to visit (saved once for
  await page.locator('.build-palette').getByRole('button',{name:/^Add /}).first().click()
  await waitFor(()=>(data().sanctuaryDecor?.[pid]?.placements??[]).some(p=>p.assetId==='friend-'+friend),'the friend never went on the island')
 })
+test('Stamp card: a stamp for each day something gets finished; the 7th fills the card, KONO announces a present, and it can go on the island from Decorate › Presents',async({context,page})=>{
+ const cloud=fakeCloud(),data=()=>cloud.users.alice.plan.data,pid=data().activeProfileId
+ for(const e of data().exams)e.due='2026-10-20'
+ Object.assign(data().sanctuaryProgress[pid].completionDates,{'2026-09-26':1,'2026-09-29':2,'2026-10-01':1,'2026-10-05':1,'2026-10-08':3})
+ await page.clock.setFixedTime(new Date('2026-10-12T16:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const stampsButton=page.getByRole('button',{name:/^Stamp card: /})
+ assert.equal(await stampsButton.getAttribute('aria-label'),'Stamp card: 6 of 7 stamps')
+ if(process.env.KONO_SHOTS){await page.getByRole('region',{name:'KONO today'}).screenshot({path:process.env.KONO_SHOTS+'/stamps-strip.png'});await page.setViewportSize({width:375,height:812});await page.waitForTimeout(400);await page.getByRole('region',{name:'KONO today'}).screenshot({path:process.env.KONO_SHOTS+'/stamps-strip-phone.png'});await page.setViewportSize({width:1280,height:900});await page.waitForTimeout(300)}
+ // Finishing something today is the 7th stamp: the card is full and KONO has a present.
+ await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
+ const bar=page.getByRole('region',{name:'KONO today'})
+ await bar.getByText('🎁 Your stamp card is full! KONO wrapped a present for you: a kite. It’s in Decorate › Presents.').waitFor({timeout:20000})
+ await bar.locator('img.kono-find-icon').waitFor()
+ assert.equal(await stampsButton.getAttribute('aria-label'),'Stamp card: 7 of 7 stamps')
+ await stampsButton.click()
+ const card=page.getByRole('group',{name:'Stamp card: 7 of 7 stamps'})
+ await card.waitFor()
+ assert.equal(await card.locator('li.is-stamped').count(),7)
+ await page.getByText('1 of 8 opened.',{exact:false}).waitFor()
+ await page.locator('.build-palette').getByLabel('Balloons, locked. Opens with stamp card 2.').waitFor()
+ if(process.env.KONO_SHOTS)await page.locator('.wb-island').screenshot({path:process.env.KONO_SHOTS+'/stamps-presents.png'})
+ await page.locator('.build-palette').getByRole('button',{name:/^Add /}).first().click()
+ await waitFor(()=>(data().sanctuaryDecor?.[pid]?.placements??[]).some(p=>p.assetId==='present-kite'),'the kite never went on the island')
+ // Announced once: back again, no second announcement.
+ await page.reload();await heading(page,'Sanctuary')
+ await page.waitForTimeout(1500)
+ assert.equal(await bar.getByText(/stamp card is full/).count(),0)
+})
 test('Planner daily page matches Today’s schedule: the day’s classes as compact cards, the rest under "Also today", ‹ › to step days, and "Back to today" only once you’ve moved away',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  plan.calendarEvents.push({id:'soccer',profileId:pid,title:'Soccer practice',date:'2026-09-28',time:'17:00',kind:'personal',done:false,notes:''})

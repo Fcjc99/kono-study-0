@@ -11,6 +11,7 @@ import { SIGN_ASSETS, signAssetTexturePath } from './signAssets'
 import { STICKERS, stickerSrc } from '../../store/stickers'
 import { FINDS, findSrc } from '../../store/konoFinds'
 import { FRIENDS, friendSrc } from '../../store/konoFriends'
+import { PRESENTS, presentSrc } from '../../store/konoStamps'
 
 export type BuildCategory=string
 export type BuildLayer='ground'|'ground-detail'|'terrain'|'water-feature'|'water-decor'|'water-or-bridge'|'bridge'|'border'|'decor'|'structure'|'wildlife-water'|'light-overlay'
@@ -22,8 +23,8 @@ export type BuildSurface='grass'|'water'|'water-edge'|'water-gap'|'cliff-edge'|'
  * have one; everything else is plain decoration with no writable surface. */
 export type BuildAsset={id:string;label:string;category:BuildCategory;categoryLabel:string;src:string|Record<DayPhase,string>;width:number;height:number;defaultScale:number;anchor:{x:number;y:number};surface:BuildSurface;layer:BuildLayer;rotatable:boolean;flippable:boolean;signArea?:{x:number;y:number;width:number;height:number}}
 
-export const BUILD_CATEGORIES:BuildCategory[]=['homes','ponds','trees','paths','bridges','lights','study','signs','stickers','finds','friends']
-export const BUILD_CATEGORY_LABELS:Record<BuildCategory,string>={homes:'Homes',ponds:'Ponds',trees:'Trees',paths:'Paths & Roads',bridges:'Bridges & Water',lights:'Lights & Lanterns',study:'Study Decor',signs:'Signs',stickers:'Stickers',finds:'Finds',friends:'Friends'}
+export const BUILD_CATEGORIES:BuildCategory[]=['homes','ponds','trees','paths','bridges','lights','study','signs','stickers','finds','friends','presents']
+export const BUILD_CATEGORY_LABELS:Record<BuildCategory,string>={homes:'Homes',ponds:'Ponds',trees:'Trees',paths:'Paths & Roads',bridges:'Bridges & Water',lights:'Lights & Lanterns',study:'Study Decor',signs:'Signs',stickers:'Stickers',finds:'Finds',friends:'Friends',presents:'Presents'}
 
 const phaseSrc=(pathFor:(phase:DayPhase)=>string):Record<DayPhase,string>=>({
  morning:pathFor('morning'),
@@ -234,7 +235,24 @@ const friendAssets:BuildAsset[]=FRIENDS.map(friend=>({
  flippable:true,
 }))
 
-export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets,...lightAssets,...studyDecorAssets,...signAssets,...stickerAssets,...findAssets,...friendAssets]
+// The stamp card's presents (store/konoStamps): one for every 7 days with something finished.
+const presentAssets:BuildAsset[]=PRESENTS.map(present=>({
+ id:'present-'+present.id,
+ label:present.name,
+ category:'presents',
+ categoryLabel:'Presents',
+ src:presentSrc(present.id),
+ width:84,
+ height:84,
+ defaultScale:1,
+ anchor:{x:0.5,y:0.92},
+ surface:'grass',
+ layer:'decor',
+ rotatable:false,
+ flippable:true,
+}))
+
+export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets,...lightAssets,...studyDecorAssets,...signAssets,...stickerAssets,...findAssets,...friendAssets,...presentAssets]
 export const BUILD_ASSET_BY_ID:Record<string,BuildAsset>=Object.fromEntries(BUILD_ASSETS.map(a=>[a.id,a]))
 
 /** A placed item's box/transform, shared by the interactive Decorate editor and the read-only

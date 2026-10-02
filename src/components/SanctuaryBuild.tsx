@@ -9,6 +9,7 @@ import {STICKERS,stickerOffered} from '../store/stickers'
 import {outfitHow,outfitProgress,type Outfit,type OutfitId,type WardrobeStats} from '../store/konoWardrobe'
 import {FINDS,findHow,findsOffered} from '../store/konoFinds'
 import {FRIENDS,friendHow} from '../store/konoFriends'
+import {CARD_SIZE,PRESENTS,presentHow,type StampCard} from '../store/konoStamps'
 import KonoFace from './KonoFace'
 
 /** Decorate › Wardrobe: KONO's outfits (store/konoWardrobe). */
@@ -32,13 +33,24 @@ const clampCoord=(v:number):number=>Math.min(PLACEMENT_MAX,Math.max(PLACEMENT_MI
 
 const STICKER_HOW:Record<string,string>=Object.fromEntries(STICKERS.map(s=>['sticker-'+s.id,s.how]))
 /** A sticker (Decorate › Stickers) is placeable once it's earned; everything else always is. */
-const FIND_HOW:Record<string,string>=Object.fromEntries([...FINDS.map(f=>['find-'+f.id,findHow(f)]),...FRIENDS.map(f=>['friend-'+f.id,friendHow(f)])])
-/** Stickers, finds and friends are earned: locked until store/stickers, store/konoFinds or
- * store/konoFriends says so (`earned` holds sticker IDs and "find-"/"friend-" asset IDs). */
-const isLocked=(assetId:string,earned:Set<string>)=>assetId.startsWith('sticker-')?!earned.has(assetId.slice(8)):(assetId.startsWith('find-')||assetId.startsWith('friend-'))&&!earned.has(assetId)
+const FIND_HOW:Record<string,string>=Object.fromEntries([...FINDS.map(f=>['find-'+f.id,findHow(f)]),...FRIENDS.map(f=>['friend-'+f.id,friendHow(f)]),...PRESENTS.map(p=>['present-'+p.id,presentHow(p)])])
+/** Stickers, finds, friends and presents are earned: locked until store/stickers, store/konoFinds,
+ * store/konoFriends or store/konoStamps says so (`earned` holds sticker IDs and "find-"/"friend-"/
+ * "present-" asset IDs). */
+const isLocked=(assetId:string,earned:Set<string>)=>assetId.startsWith('sticker-')?!earned.has(assetId.slice(8)):/^(find|friend|present)-/.test(assetId)&&!earned.has(assetId)
+const dayLabel=(day:string)=>new Date(day+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})
+/** Decorate › Presents: the stamp card being filled, one paw stamp per day something got finished. */
+function StampCardView({stamps}:{stamps:StampCard}){
+ const full=stamps.stamped.length===CARD_SIZE
+ return <div className="stamp-card" role="group" aria-label={'Stamp card: '+stamps.stamped.length+' of '+CARD_SIZE+' stamps'}>
+  <ol>{Array.from({length:CARD_SIZE},(_,i)=>{const day=stamps.stamped[i];return <li key={i} className={day?'is-stamped':''} title={day?dayLabel(day):undefined}>{day?<><span aria-hidden="true">🐾</span><span className="sr-only">Stamped {dayLabel(day)}</span></>:<span className="stamp-slot-number" aria-hidden="true">{i+1}</span>}</li>})}</ol>
+  <p>{full?'Card full! KONO has something for you. Your next stamp starts a new card.'
+   :'A stamp for each day you finish something. Missed days don’t count against you. '+(stamps.next?(CARD_SIZE-stamps.stamped.length)+' more for the '+stamps.next.name.toLowerCase()+'.':'Every present is open: full cards now get a hug from KONO.')}</p>
+ </div>
+}
 const lockedHow=(assetId:string)=>STICKER_HOW[assetId]??FIND_HOW[assetId]??''
 
-export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCategory,today=localDate(),wardrobe}:{data:AppData;save:PlannerRepository['update'];phase:PhaseMode;earned?:Set<string>;startCategory?:BuildCategory;today?:string;wardrobe?:WardrobeProps}){
+export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCategory,today=localDate(),wardrobe,stamps}:{data:AppData;save:PlannerRepository['update'];phase:PhaseMode;earned?:Set<string>;startCategory?:BuildCategory;today?:string;wardrobe?:WardrobeProps;stamps?:StampCard}){
  const profileId=data.activeProfileId
  const resolvedPhase=useResolvedDayPhase(phase)
  const assetSrc=(asset:BuildAsset):string=>buildAssetSrc(asset,resolvedPhase)
@@ -266,6 +278,7 @@ export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCa
    })()}
    <p className="wb-muted">Tap an item to add it to your island, or drag it on to choose where it lands. Drag a placed item anywhere to move it, or tap it once to select it — then use the controls above to resize, skew, rotate, mirror, duplicate, or remove it. A few items (like signs and the chalkboard) let you write your own text on them, too. Place as many of anything as you like.</p>
    <nav ref={tabsRef} className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}{wardrobe&&<button type="button" aria-current={category==='wardrobe'?'page':undefined} onClick={()=>{setCategory('wardrobe');setSelected(null)}}>Wardrobe</button>}</nav>
+   {category==='presents'&&<>{stamps&&<StampCardView stamps={stamps}/>}<p className="build-sticker-note">Presents from KONO, one for every full stamp card. {PRESENTS.filter(p=>earned.has('present-'+p.id)).length} of {PRESENTS.length} opened.</p></>}
    {category==='friends'&&<p className="build-sticker-note">Friends who came to visit after a good week. Once met, they can live on your island. {FRIENDS.filter(f=>earned.has('friend-'+f.id)).length} of {FRIENDS.length} met.</p>}
    {category==='finds'&&<p className="build-sticker-note">Treasures KONO brings back from your focus sessions. Longer sessions find rarer things. {FINDS.filter(f=>earned.has('find-'+f.id)).length} of {offeredFinds.size} found.</p>}
    {category==='stickers'&&<p className="build-sticker-note">Earn stickers by keeping up with your work. {STICKERS.filter(t=>earned.has(t.id)).length} of {STICKERS.filter(t=>stickerOffered(t.id,earned,today)).length} earned.</p>}
