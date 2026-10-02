@@ -203,7 +203,9 @@ export class PlannerRepository {
   this.notify({data:saved.data,status:saved.pending?'Saved locally — sync pending':this.state.support?'Saved to their account':this.state.user?'Saved to your account':'Saved on this device',savedAt:new Date().toISOString(),error:''})
   this.channel?.postMessage({scope:this.scope})
  }
- update=(action:SetStateAction<AppData>)=>{
+ /** `undoable:false` is for saves KONO makes by itself (a granted wish, a find), which Undo should
+  * step over: Undo always takes back the student's own last change. */
+ update=(action:SetStateAction<AppData>,{undoable=true}:{undoable?:boolean}={})=>{
   if(!this.state.ready||this.blocked||this.state.needsMigration)return Promise.resolve(false)
   let saved=false
   return this.enqueue(async generation=>{
@@ -217,7 +219,7 @@ export class PlannerRepository {
    this.scheduleSync()
    saved=this.valid(generation)
    if(saved&&before.activeProfileId!==data.activeProfileId){this.undoStack=[];this.redoStack=[]}
-   else if(saved&&!this.historyMove){this.undoStack.push({before,after:this.state.data});if(this.undoStack.length>30)this.undoStack.shift();this.redoStack=[];this.notify({})}
+   else if(saved&&!this.historyMove&&undoable){this.undoStack.push({before,after:this.state.data});if(this.undoStack.length>30)this.undoStack.shift();this.redoStack=[];this.notify({})}
   }).then(()=>saved).catch(()=>false)
  }
  private async reloadOtherTab(generation:number){

@@ -359,3 +359,34 @@ button.kono-mood-face:focus-visible{outline:2px solid var(--accent,#6d8f6b);outl
 .wb-event-series .wb-check{margin:0!important;padding:3px 0!important;min-height:0!important}
 .wb-repeat-mark{opacity:.6;font-weight:400}
 .week-class-sheet .wb-class{margin:0}
+/* KONO today as a slim bar attached to the top of the island (Workspace): one row on a computer, two
+ * short rows on a phone; the wish and any island season sit in a small line under it. */
+.kono-mood.kono-bar{padding:6px 10px;gap:3px;margin:0 0 8px}
+.kono-bar .kono-mood-row{gap:8px;flex-wrap:wrap}
+.kono-bar .kono-mood-face,.kono-bar .kono-mood-face>img:first-child{flex:0 0 40px;width:40px;height:40px}
+.kono-bar .kono-mood-row>p{flex:1 1 200px;min-width:0;font-size:.88rem}
+.kono-bar .kono-care{margin:0;flex:0 1 auto;flex-wrap:nowrap;gap:6px}
+.kono-bar .kono-care-meter{flex:0 0 58px}
+.kono-mood.kono-bar .kono-care .kono-feed{margin-left:2px;min-height:30px!important;padding:3px 10px!important;font-size:.8rem!important}
+.kono-bar-tools{display:flex;gap:6px;flex:0 0 auto;align-items:center}
+.kono-mood .kono-bar-tools button{padding:3px 10px!important;min-height:30px!important;font-size:.8rem!important;border-radius:999px!important;white-space:nowrap;font-weight:700}
+.kono-bar-notes{margin:0;display:flex;flex-wrap:wrap;gap:2px 14px;font-size:.76rem;line-height:1.35;opacity:.85}
+.kono-bar-notes .kono-wish{margin:0;font-size:inherit}
+.kono-bar .kono-season{padding:0;background:none;border-radius:0;font-size:inherit}
+.kono-bar .kono-care-hint{margin:0}
+.kono-bar .ask-kono,.kono-bar .next-up{margin-top:6px}
+@media(max-width:700px){
+ .kono-bar .kono-mood-row>p{flex-basis:calc(100% - 52px)}
+ .kono-bar .kono-care{flex:1 1 auto}
+ .kono-bar .kono-care-meter{flex:1 1 40px}
+}
+/* Sanctuary › Today's / Tomorrow's schedule › "＋ Add" (components/QuickDayAdd). */
+.quick-day-add{display:grid;gap:6px;margin:4px 0 10px;padding:8px;border:1px dashed var(--wb-line,#e2d8cc);border-radius:12px}
+.quick-day-add>input{width:100%}
+.quick-day-add-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.quick-day-kinds{display:inline-flex;gap:4px;flex-wrap:wrap}
+.quick-day-kinds button{padding:3px 10px!important;min-height:30px!important;border-radius:999px!important;font-size:.8rem!important}
+.quick-day-kinds button[aria-checked=true]{background:var(--wb-accent,#e0705c)!important;color:#fff!important;border-color:transparent!important}
+.quick-day-time{display:inline-flex!important;align-items:center;gap:4px;font-size:.8rem;margin:0}
+.quick-day-time input{width:auto;min-height:30px;padding:2px 6px}
+.quick-day-hint{margin:0;font-size:.78rem}
