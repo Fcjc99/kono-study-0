@@ -6,10 +6,11 @@
  * What's saved is a short log of feedings and pats (AppData.konoCare), one entry each with its own
  * ID, so two devices adding to it at the same time merge cleanly. Everything else is worked out from
  * that log, finished assignments and the clock. */
-export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'
-/** `item` is the outfit put on for a 'wear' entry ("" = taking it off); see store/konoWardrobe. */
+export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'|'find'
+/** `item` is the outfit put on for a 'wear' entry ("" = taking it off; store/konoWardrobe), or what KONO
+ * found for a 'find' entry (store/konoFinds). */
 export type CareEvent={id:string;kind:CareKind;at:string;taskId?:string;item?:string}
-const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear']
+const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear','find']
 export type KonoCareState={profileId:string;log:CareEvent[]}
 export type KonoMeters={full:number;rested:number;happy:number;asleep:boolean;away:boolean}
 export type Treat={id:string;emoji:string;name:string}
@@ -82,9 +83,11 @@ export function careMeters(log:CareEvent[],tasks:Done[],now:Date,away=false):Kon
  * ten minutes of the last one isn't saved. */
 export function addCareEvent(state:KonoCareState|undefined,profileId:string,event:CareEvent,now:Date):KonoCareState{
  const since=now.getTime()-LOG_DAYS*DAY,all=state?.log??[]
- // Granted wishes count toward outfits for good, and the outfit KONO has on stays on: both are kept.
+ // Granted wishes count toward outfits for good, finds stay in the collection, and the outfit KONO has
+ // on stays on: all three are kept.
  const lastWear=all.filter(e=>e.kind==='wear').sort((a,b)=>a.at.localeCompare(b.at)).at(-1)
- const log=all.filter(e=>e.kind==='wish'||e===lastWear||time(e.at)>=since)
+ const kept=(e:CareEvent)=>e.kind==='wish'||e.kind==='find'
+ const log=all.filter(e=>kept(e)||e===lastWear||time(e.at)>=since)
  if(event.kind==='wish'&&log.some(e=>e.id===event.id))return {profileId,log}
  if(event.kind==='pet'){const lastPet=Math.max(-Infinity,...log.filter(e=>e.kind==='pet').map(e=>time(e.at)));if(now.getTime()-lastPet<PET_EVERY_MS)return {profileId,log}}
  if(event.kind==='sleep'&&bedtime(log,now).tucked)return {profileId,log}
@@ -92,7 +95,7 @@ export function addCareEvent(state:KonoCareState|undefined,profileId:string,even
  if(event.kind==='feed'&&event.taskId&&log.some(e=>e.kind==='feed'&&e.taskId===event.taskId))return {profileId,log}
  const next=[...log,event]
  // Over the cap: drop the oldest everyday entries, never wishes or what KONO is wearing.
- while(next.length>LOG_MAX){const i=next.findIndex(e=>e.kind!=='wish'&&e!==event&&!(e.kind==='wear'&&event.kind!=='wear'&&e===lastWear));if(i<0)break;next.splice(i,1)}
+ while(next.length>LOG_MAX){const i=next.findIndex(e=>!kept(e)&&e!==event&&!(e.kind==='wear'&&event.kind!=='wear'&&e===lastWear));if(i<0)break;next.splice(i,1)}
  return {profileId,log:next}
 }
 
@@ -106,7 +109,7 @@ export function readCareState(raw:unknown,profileId:string):KonoCareState{
   if(typeof x.id!=='string'||!x.id||x.id.length>150||!KINDS.includes(x.kind as CareKind)||typeof x.at!=='string'||!Number.isFinite(Date.parse(x.at)))return []
   const event:CareEvent={id:x.id,kind:x.kind as CareKind,at:new Date(x.at).toISOString()}
   if(typeof x.taskId==='string'&&x.taskId&&x.taskId.length<=150)event.taskId=x.taskId
-  if(event.kind==='wear'&&typeof x.item==='string'&&x.item.length<=40)event.item=x.item
+  if((event.kind==='wear'||event.kind==='find')&&typeof x.item==='string'&&x.item.length<=40)event.item=x.item
   return [event]
  }).slice(-LOG_MAX)
  return {profileId,log}

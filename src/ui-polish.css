@@ -274,6 +274,7 @@ button.kono-mood-face:focus-visible{outline:2px solid var(--accent,#6d8f6b);outl
 /* KONO's outfit (Decorate › Wardrobe) over the face picture, placed by components/KonoFace. */
 .kono-mood-face,.kono-face-box{position:relative;overflow:visible}
 .kono-mood .kono-outfit,.kono-face-box .kono-outfit{position:absolute;max-width:none;flex:none;object-fit:fill;image-rendering:pixelated;pointer-events:none}
+.kono-mood .kono-find-icon{display:inline-block;width:28px;height:28px;flex:none;margin-left:6px;vertical-align:middle;image-rendering:pixelated}
 .kono-wish{margin:6px 0 0;font-size:.78rem;opacity:.8}
 .kono-wish.is-granted{opacity:.6}
 .kono-wardrobe .kono-wardrobe-item{background:none;border:0;cursor:pointer}

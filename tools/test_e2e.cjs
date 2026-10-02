@@ -1883,6 +1883,37 @@ test('Wardrobe and daily wish: finishing work grants KONO’s wish, which earns 
  assert.equal(await today.locator('.kono-mood-face img.kono-outfit').count(),0,'taken off stays off')
 })
 
+test('Focus finds: when a focus session runs all the way down, KONO (who read beside you) shares a find in its line; it unlocks in Decorate › Finds and can go on the island',async({context,page})=>{
+ const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
+ await page.clock.install({time:new Date('2026-09-15T15:00:00')})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const today=page.getByRole('region',{name:'KONO today'})
+ const outer=page.locator('details.sanctuary-focus')
+ await outer.locator(':scope > summary').click()
+ const focus=outer.locator('details.focus-session')
+ await focus.locator(':scope > summary').click()
+ await focus.getByLabel('Minutes').fill('25');await focus.getByLabel('Seconds').fill('0')
+ await focus.getByRole('button',{name:'Start timer'}).click()
+ await page.clock.runFor(25*60*1000+3000)
+ await focus.getByText('Session complete. Take a short break.').waitFor()
+ await today.getByText(/^KONO found an? .+ while you focused for 25 minutes! It’s in Decorate › Finds\.$/).waitFor()
+ await today.locator('img.kono-find-icon').waitFor()
+ if(process.env.KONO_SHOTS)await today.screenshot({path:process.env.KONO_SHOTS+'/find-card.png'})
+ await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).some(e=>e.kind==='find'),'the find never reached the account')
+ const find=cloud.users.alice.plan.data.konoCare[pid].log.find(e=>e.kind==='find').item
+ assert.ok(['pebble','acorn','leaf','feather','shell','clover','pinecone','seaglass','mushroom'].includes(find),'25 minutes finds something common or uncommon, not '+find)
+ assert.equal(cloud.users.alice.plan.data.konoCare[pid].log.filter(e=>e.kind==='find').length,1,'one find per session')
+ await page.getByRole('button',{name:'Decorate'}).click()
+ await page.getByRole('navigation',{name:'Decoration categories'}).getByRole('button',{name:'Finds',exact:true}).click()
+ await page.getByText('1 of 12 found.',{exact:false}).waitFor()
+ await page.locator('.build-palette').getByLabel('Fallen star, locked. Found on focus sessions of 45+ minutes.').waitFor()
+ assert.equal(await page.locator('.build-palette').getByLabel(/Tiny pumpkin/).count(),0,'the October find only shows in October')
+ if(process.env.KONO_SHOTS)await page.locator('.build-palette').screenshot({path:process.env.KONO_SHOTS+'/finds-palette.png'})
+ await page.locator('.build-palette').getByRole('button',{name:/^Add /}).first().click()
+ await waitFor(()=>(cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[]).some(p=>p.assetId==='find-'+find),'the find never went on the island')
+})
+
 test('Planner daily page matches Today’s schedule: the day’s classes as compact cards, the rest under "Also today", ‹ › to step days, and "Back to today" only once you’ve moved away',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  plan.calendarEvents.push({id:'soccer',profileId:pid,title:'Soccer practice',date:'2026-09-28',time:'17:00',kind:'personal',done:false,notes:''})

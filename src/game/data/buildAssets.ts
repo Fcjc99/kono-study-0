@@ -9,6 +9,7 @@ import { LIGHT_ASSETS, lightAssetTexturePath } from './lightAssets'
 import { STUDY_DECOR_ASSETS, studyDecorAssetTexturePath } from './studyDecorAssets'
 import { SIGN_ASSETS, signAssetTexturePath } from './signAssets'
 import { STICKERS, stickerSrc } from '../../store/stickers'
+import { FINDS, findSrc } from '../../store/konoFinds'
 
 export type BuildCategory=string
 export type BuildLayer='ground'|'ground-detail'|'terrain'|'water-feature'|'water-decor'|'water-or-bridge'|'bridge'|'border'|'decor'|'structure'|'wildlife-water'|'light-overlay'
@@ -20,8 +21,8 @@ export type BuildSurface='grass'|'water'|'water-edge'|'water-gap'|'cliff-edge'|'
  * have one; everything else is plain decoration with no writable surface. */
 export type BuildAsset={id:string;label:string;category:BuildCategory;categoryLabel:string;src:string|Record<DayPhase,string>;width:number;height:number;defaultScale:number;anchor:{x:number;y:number};surface:BuildSurface;layer:BuildLayer;rotatable:boolean;flippable:boolean;signArea?:{x:number;y:number;width:number;height:number}}
 
-export const BUILD_CATEGORIES:BuildCategory[]=['homes','ponds','trees','paths','bridges','lights','study','signs','stickers']
-export const BUILD_CATEGORY_LABELS:Record<BuildCategory,string>={homes:'Homes',ponds:'Ponds',trees:'Trees',paths:'Paths & Roads',bridges:'Bridges & Water',lights:'Lights & Lanterns',study:'Study Decor',signs:'Signs',stickers:'Stickers'}
+export const BUILD_CATEGORIES:BuildCategory[]=['homes','ponds','trees','paths','bridges','lights','study','signs','stickers','finds']
+export const BUILD_CATEGORY_LABELS:Record<BuildCategory,string>={homes:'Homes',ponds:'Ponds',trees:'Trees',paths:'Paths & Roads',bridges:'Bridges & Water',lights:'Lights & Lanterns',study:'Study Decor',signs:'Signs',stickers:'Stickers',finds:'Finds'}
 
 const phaseSrc=(pathFor:(phase:DayPhase)=>string):Record<DayPhase,string>=>({
  morning:pathFor('morning'),
@@ -198,7 +199,24 @@ const stickerAssets:BuildAsset[]=STICKERS.map(item=>({
  flippable:false,
 }))
 
-export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets,...lightAssets,...studyDecorAssets,...signAssets,...stickerAssets]
+// KONO's finds from focus sessions (store/konoFinds): like stickers, only the ones found can be placed.
+const findAssets:BuildAsset[]=FINDS.map(item=>({
+ id:'find-'+item.id,
+ label:item.name,
+ category:'finds',
+ categoryLabel:'Finds',
+ src:findSrc(item.id),
+ width:72,
+ height:72,
+ defaultScale:1,
+ anchor:{x:0.5,y:0.9},
+ surface:'grass',
+ layer:'decor',
+ rotatable:true,
+ flippable:true,
+}))
+
+export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets,...lightAssets,...studyDecorAssets,...signAssets,...stickerAssets,...findAssets]
 export const BUILD_ASSET_BY_ID:Record<string,BuildAsset>=Object.fromEntries(BUILD_ASSETS.map(a=>[a.id,a]))
 
 /** A placed item's box/transform, shared by the interactive Decorate editor and the read-only
