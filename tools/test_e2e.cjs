@@ -950,6 +950,9 @@ function weekPlanCloud(){
  plan.tasks.push({id:'wk-essay',profileId:plan.activeProfileId,subjectId:'',title:'Week plan essay',due,done:false,notes:'',estimatedMinutes:60})
  return cloud
 }
+// The island only loads while it's on screen (GardenCard pauses it otherwise), and the page can still
+// shift as it settles, so keep it in view while waiting for it to finish.
+const islandLoaded=page=>page.waitForFunction(()=>{const island=document.querySelector('.wb-island'),r=island?.getBoundingClientRect();if(island&&(r.bottom<0||r.top>innerHeight))island.scrollIntoView({block:'center'});return island&&!document.querySelector('.sanctuary-load-status')},null,{timeout:30000,polling:250})
 const waitFor=async(check,message)=>{for(let i=0;i<60;i++){if(check())return;await new Promise(r=>setTimeout(r,250))}assert.fail(message)}
 async function openWeekPlanner(page){
  await go(page,'Planner')
@@ -1588,16 +1591,14 @@ test('Halloween island: all of October the island has its spooky look (with its 
  await page.clock.setFixedTime(new Date('2026-10-15T21:30:00'))
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
- await page.locator('.wb-island').scrollIntoViewIfNeeded()
- await page.waitForFunction(()=>!document.querySelector('.sanctuary-load-status'),null,{timeout:30000})
+ await islandLoaded(page)
  assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween/night.webp'&&st===200),'the Halloween night island loads: '+JSON.stringify(maps))
  assert.ok(!maps.some(([p])=>p==='/garden/terrace-23.0/night.webp'),'not the regular one')
  if(process.env.KONO_SHOTS){await page.waitForTimeout(6000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/halloween-island-night.png'})}
  maps.length=0
  await page.clock.setFixedTime(new Date('2026-11-02T21:30:00'))
  await page.reload();await heading(page,'Sanctuary')
- await page.locator('.wb-island').scrollIntoViewIfNeeded()
- await page.waitForFunction(()=>!document.querySelector('.sanctuary-load-status'),null,{timeout:30000})
+ await islandLoaded(page)
  assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/night.webp'&&st===200),'in November the regular island is back: '+JSON.stringify(maps))
  assert.ok(!maps.some(([p])=>p.includes('/halloween/')))
 })
@@ -1752,6 +1753,8 @@ test('Sanctuary: KONO today is a slim bar on top of the island, and Decorate ope
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  const bar=page.getByRole('region',{name:'KONO today'}),island=page.locator('.wb-island')
+ // Measured together once the page has settled (late content above can still move both for a moment).
+ await page.waitForFunction(()=>{const b=document.querySelector('.kono-bar')?.getBoundingClientRect(),i=document.querySelector('.wb-island')?.getBoundingClientRect();return b&&i&&b.bottom<=i.top+1},null,{timeout:5000,polling:200}).catch(()=>undefined)
  const b=await bar.boundingBox(),i=await island.boundingBox(),docY=await page.evaluate(()=>scrollY)
  if(process.env.KONO_SHOTS){await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar.png',clip:{x:b.x-10,y:b.y+docY-10,width:b.width+20,height:b.height+200}});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);const pb=await bar.evaluate(e=>{const r=e.getBoundingClientRect();return {y:r.top+scrollY,height:r.height}});await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar-phone.png',clip:{x:0,y:Math.max(0,pb.y-10),width:390,height:pb.height+160}});await page.setViewportSize({width:1280,height:900});await page.waitForTimeout(400)}
  assert.ok(b.height<160,'the KONO bar is slim (two short rows, even with a note from KONO): '+b.height+'px')
