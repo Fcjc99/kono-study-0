@@ -1,7 +1,7 @@
 """Draws the island's Halloween look (October): the four time-of-day maps recolored for autumn
 (golden-orange grass, red and orange bushes, a lilac-to-pumpkin sky, a harvest moon at night) with
 pumpkins, jack-o'-lanterns, cute gravestones, a scarecrow, a haystack, a cauldron, leaf piles and
-cobwebs drawn on in the island's own pixel style. Jack-o'-lanterns and the cauldron glow in the
+cobwebs painted in the style of the island's decorations (tools/painted_props.py). Jack-o'-lanterns and the cauldron glow in the
 evening and at night.
 
 Writes public/garden/terrace-23.0/halloween/<phase>.webp (+ <phase>-poster.webp, the small picture
@@ -17,6 +17,9 @@ import sys
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import painted_props as pp  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'public', 'garden', 'terrace-23.0')
@@ -418,37 +421,53 @@ def spooky_tree():
     return Image.fromarray(px), (lx, ly + 3)
 
 
+PAINTED = {
+    'jack': lambda i: pp.jack(seed=3 + i), 'pumpkin': lambda i: pp.pumpkin(30, seed=i), 'pumpkin_big': lambda i: pp.pumpkin(40, seed=5 + i),
+    'grave': lambda i: pp.gravestone(seed=i), 'cross': lambda i: pp.gravestone(cross=True, seed=2 + i), 'hay': lambda i: pp.haystack(seed=i),
+    'scarecrow': lambda i: pp.scarecrow(seed=i), 'cauldron': lambda i: pp.cauldron(seed=i), 'leaves': lambda i: pp.leaf_pile(seed=i),
+    'boo': lambda i: pp.boo_sign(seed=i), 'candle': lambda i: pp.candle(seed=i),
+}
+
+
+def soft_shadow(layer, x, y, half_w, half_h, alpha=70):
+    """A soft contact shadow under a prop (blurred, so it sits on the grass like the island's own art)."""
+    pad = int(half_w + 12)
+    sh = Image.new('L', (pad * 2, pad * 2), 0)
+    ImageDraw.Draw(sh).ellipse([pad - half_w, pad - half_h, pad + half_w, pad + half_h], fill=alpha)
+    sh = sh.filter(ImageFilter.GaussianBlur(max(2, half_h * 0.8)))
+    tint = Image.new('RGBA', sh.size, (40, 26, 16, 0))
+    tint.putalpha(sh)
+    layer.img.alpha_composite(tint, (int(x - pad), int(y - pad)))
+
+
+def place(layer, img, glow, x, y):
+    """Put a painted prop on the layer with its bottom middle at map (x, y); its glow goes in the glow mask."""
+    ox, oy = int(round(x - img.width / 2)), int(round(y - img.height))
+    layer.img.alpha_composite(img, (ox, oy))
+    g = layer.glow.crop((ox, oy, ox + glow.width, oy + glow.height))
+    layer.glow.paste(Image.fromarray(np.maximum(np.asarray(g), np.asarray(glow))), (ox, oy))
+    return ox, oy
+
+
 def draw_props(w, h):
+    """The Halloween props, painted in the style of the island's decorations (tools/painted_props.py)."""
+    pp.ZOOM = 1.3
     layer = Layer(w, h)
     glows = []
-    tree, (lx, ly) = spooky_tree()
+    tree, tree_glow, (lx, ly) = pp.spooky_tree()
     tx, ty = TREE_AT
-    big = tree.resize((tree.width * U, tree.height * U), Image.NEAREST)
-    ox, oy = int(tx - big.width / 2), int(ty - big.height)
-    layer.d.ellipse([tx - 70, ty - 8, tx + 70, ty + 10], fill=(30, 20, 10, 60))
-    layer.img.alpha_composite(big, (ox, oy))
-    lantern = Image.new('L', (U * 3, U * 3), 255)
-    layer.glow.paste(lantern, (ox + (lx - 1) * U, oy + (ly - 1) * U))
-    glows.append({'kind': 'tree-lantern', 'x': round((ox + lx * U) / w, 4), 'y': round((oy + ly * U) / h, 4), 'r': round(U * 9 / w, 4)})
-    for kind, x, y in PROPS:
-        rows, pal, glow_keys = SPRITES[kind]
-        sw, sh = max(len(r) for r in rows), len(rows)
-        ox, oy = x / U - sw / 2, y / U - sh  # (x, y) is the sprite's bottom middle
-        # A soft shadow under it.
-        layer.d.ellipse([x - sw * U * 0.45, y - U * 1.2, x + sw * U * 0.45, y + U * 1.4], fill=(30, 20, 10, 70))
-        layer.shape(ox, oy, rows, pal, glow_keys)
-        if glow_keys:
-            glows.append({'kind': kind, 'x': round(x / w, 4), 'y': round((y - sh * U * 0.45) / h, 4), 'r': round(sw * U * 2.2 / w, 4)})
+    soft_shadow(layer, tx, ty, 70, 9)
+    ox, oy = place(layer, tree, tree_glow, tx, ty + 4)
+    glows.append({'kind': 'tree-lantern', 'x': round((ox + lx * pp.ZOOM) / w, 4), 'y': round((oy + ly * pp.ZOOM) / h, 4), 'r': round(U * 9 / w, 4)})
+    for i, (kind, x, y) in enumerate(PROPS):
+        img, glow = PAINTED[kind](i)
+        if kind != 'leaves':
+            soft_shadow(layer, x, y - 2, img.width * 0.38, max(4, img.width * 0.08))
+        place(layer, img, glow, x, y + 3)
+        if kind in ('jack', 'cauldron', 'candle'):
+            glows.append({'kind': kind, 'x': round(x / w, 4), 'y': round((y - img.height * 0.45) / h, 4), 'r': round(img.width * 1.1 / w, 4)})
     for cx, cy, size in WEBS:
-        web = Image.new('RGBA', (size * 2, size * 2), (0, 0, 0, 0))
-        wd = ImageDraw.Draw(web)
-        c = (235, 235, 245, 200)
-        for k in range(8):
-            ang = math.pi * k / 4
-            wd.line([size, size, size + math.cos(ang) * size, size + math.sin(ang) * size], fill=c, width=1)
-        for ring in (0.35, 0.6, 0.85):
-            pts = [(size + math.cos(math.pi * k / 4) * size * ring, size + math.sin(math.pi * k / 4) * size * ring) for k in range(9)]
-            wd.line(pts, fill=c, width=1)
+        web = pp.cobweb(size)
         layer.img.alpha_composite(web, (int(cx - size), int(cy - size)))
     return layer, glows
 
@@ -469,6 +488,8 @@ def composite(base, layer, phase):
     rgb = props[..., :3]
     lit = rgb * np.array(tint)[None, None, :]
     rgb = lit * (1 - glow_mask * glow_strength) + rgb * glow_mask * glow_strength
+    # Lit-up parts (carved faces, flames, the brew) shine brighter than their painted color at night.
+    rgb = np.clip(rgb * (1 + 0.6 * glow_mask * glow_strength) + glow_mask * 0.06 * glow_strength, 0, 1)
     alpha = props[..., 3:4]
     out = base * (1 - alpha) + rgb * alpha
     if glow_strength:
