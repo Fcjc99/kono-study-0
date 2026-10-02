@@ -1823,9 +1823,11 @@ test('Bedtime and wake-up: in the evening KONO can be tucked in and says tomorro
   await feed.or(tuck).first().waitFor()
   if(await tuck.count())break
   assert.ok(meals<5,'KONO should be full enough for bed after a few snacks')
-  const before=(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).length
+  // Wait for this snack itself (KONO's daily wish is saved around now too), so the next look at the
+  // chip sees the card after the meal.
+  const meals0=(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).filter(e=>e.kind==='feed').length
   await feed.click()
-  await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).length>before,'the snack never reached the account')
+  await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).filter(e=>e.kind==='feed').length>meals0,'the snack never reached the account')
  }
  assert.equal(await care.getByRole('button').count(),1,'one action chip at a time')
  await care.getByRole('button',{name:'Tuck in'}).click()
@@ -1848,6 +1850,37 @@ test('Bedtime and wake-up: in the evening KONO can be tucked in and says tomorro
  await waitFor(()=>cloud.users.alice.plan.data.konoCare[pid].log.some(e=>e.kind==='wake'),'the wake-up never reached the account')
  assert.equal(await care.getByRole('button',{name:'Wake up'}).count(),0,'once a day')
  assert.ok((await page.evaluate(()=>window.__spoken.slice())).some(t=>/^Good morning! Today: /.test(t)))
+})
+
+test('Wardrobe and daily wish: finishing work grants KONO’s wish, which earns the beanie; KONO wears it in the card from Decorate › Wardrobe; Halloween costumes show in October with how to earn them',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.tasks.push({id:'quiz-prep',profileId:pid,subjectId:'',title:'Quiz prep',due:'2026-10-01',done:false,notes:''})
+ await page.clock.setFixedTime(new Date('2026-10-01T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const today=page.getByRole('region',{name:'KONO today'})
+ await today.getByText('✨ KONO wishes you’d finish one thing today').waitFor()
+ const dialogs=await page.getByRole('dialog').count()
+ await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
+ await today.getByText('✨ KONO’s wish came true! Thank you!').waitFor()
+ await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).some(e=>e.id==='wish-2026-10-01'&&e.kind==='wish'),'the granted wish never reached the account')
+ await today.getByText('✨ Today’s wish came true.').waitFor()
+ await today.getByText('🎁 New outfit for KONO: Cozy beanie! Try it on in Decorate › Wardrobe.').waitFor({timeout:15000})
+ assert.equal(await page.getByRole('dialog').count(),dialogs,'nothing pops up')
+ await page.getByRole('button',{name:'Decorate'}).click()
+ await page.getByRole('navigation',{name:'Decoration categories'}).getByRole('button',{name:'Wardrobe'}).click()
+ const wardrobe=page.locator('.kono-wardrobe')
+ await wardrobe.getByLabel('Witch hat, locked. Finish 2 assignments in October.').waitFor()
+ await wardrobe.getByLabel(/^Ghost costume, locked/).waitFor()
+ await wardrobe.getByLabel('Frankenstein, locked. Grant 3 of KONO’s wishes in October.').waitFor()
+ await wardrobe.getByRole('button',{name:'Wear Cozy beanie'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.konoCare[pid].log.some(e=>e.kind==='wear'&&e.item==='beanie'),'the outfit never reached the account')
+ await today.locator('.kono-mood-face img.kono-outfit[src$="beanie.webp"]').waitFor()
+ if(process.env.KONO_SHOTS){await today.screenshot({path:process.env.KONO_SHOTS+'/wardrobe-card.png'});await wardrobe.screenshot({path:process.env.KONO_SHOTS+'/wardrobe-panel.png'})}
+ await wardrobe.getByRole('button',{name:'Take off Cozy beanie'}).click()
+ await today.locator('.kono-mood-face img.kono-outfit').waitFor({state:'detached'})
+ await page.reload();await heading(page,'Sanctuary')
+ assert.equal(await today.locator('.kono-mood-face img.kono-outfit').count(),0,'taken off stays off')
 })
 
 test('Planner daily page matches Today’s schedule: the day’s classes as compact cards, the rest under "Also today", ‹ › to step days, and "Back to today" only once you’ve moved away',async({context,page})=>{

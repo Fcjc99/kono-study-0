@@ -271,6 +271,18 @@ button.kono-mood-face:focus-visible{outline:2px solid var(--accent,#6d8f6b);outl
 .kono-mood-face.is-reacting::before{content:'♡';position:absolute;top:-10px;left:-4px;font-size:.9rem;color:#e0607a;animation:kono-heart 1.4s ease-out forwards;pointer-events:none}
 @keyframes kono-hop{0%{transform:translateY(0) scale(1)}35%{transform:translateY(-6px) scale(1.06)}70%{transform:translateY(0) scale(.98)}100%{transform:none}}
 @keyframes kono-heart{0%{opacity:0;transform:translateY(4px)}25%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
+/* KONO's outfit (Decorate › Wardrobe) over the face picture, placed by components/KonoFace. */
+.kono-mood-face,.kono-face-box{position:relative;overflow:visible}
+.kono-mood .kono-outfit,.kono-face-box .kono-outfit{position:absolute;max-width:none;flex:none;object-fit:fill;image-rendering:pixelated;pointer-events:none}
+.kono-wish{margin:6px 0 0;font-size:.78rem;opacity:.8}
+.kono-wish.is-granted{opacity:.6}
+.kono-wardrobe .kono-wardrobe-item{background:none;border:0;cursor:pointer}
+.kono-wardrobe .kono-face-box{display:block;width:64px;height:64px;margin:6px auto 0}
+.kono-wardrobe .kono-face-box>img:first-child{width:64px;height:64px;object-fit:contain}
+.kono-wardrobe .is-worn .kono-face-box{outline:2px solid var(--wb-accent,#c06b8a);outline-offset:3px;border-radius:12px}
+.kono-wardrobe .is-locked .kono-face-box>img{filter:grayscale(1) opacity(.55)}
+.kono-wardrobe .kono-face-box>i{position:absolute;right:-4px;bottom:-2px;font-size:.85rem;font-style:normal}
+.kono-wardrobe .kono-wardrobe-item{display:grid;justify-items:center;gap:4px}
 .kono-care{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;font-size:.78rem}
 .kono-care-meter{display:inline-flex;align-items:center;gap:3px;flex:1 1 40px;max-width:120px;min-width:0}
 .kono-care-bar{flex:1;height:6px;border-radius:999px;background:color-mix(in srgb,currentColor 14%,transparent);overflow:hidden}

@@ -6,10 +6,12 @@ import type { DayPhase, SanctuaryWeather } from '../sanctuary/types'
 import type { KonoContextAction, KonoLandmarkId } from './KonoInteractionSystem'
 import { PHASE_LIGHT } from './sanctuaryLighting'
 import type { MascotObstacle } from '../data/buildAssets'
+import { OUTFIT_FITS, POSE_HEADS, outfitBox, outfitSrcFor } from '../data/konoOutfits'
 
 const SOURCE_HEIGHT = 1_086
 const MASCOT_HEIGHT_RATIO = 0.064
 const ASSET_ROOT = '/garden/kono'
+const outfitKey = (outfit: string, pose: string) => 'kono-outfit-' + outfit + (pose ? '-' + pose : '')
 
 const WALK_FRAMES = {
   down: ['kono-walk-down-01', 'kono-walk-down-02', 'kono-walk-down-03'],
@@ -162,6 +164,9 @@ export class KonoMascotSystem {
   private destinationNode: NavNodeId | null = null
   private obstacles: MascotObstacle[] = []
   private focusCompanion = false
+  // KONO's outfit (Decorate › Wardrobe): drawn over the sprite at the same scale, placed for each pose.
+  private outfitImage: Phaser.GameObjects.Image | null = null
+  private outfitId: string | null = null
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
@@ -208,6 +213,8 @@ export class KonoMascotSystem {
     this.scene.game.events.on(SANCTUARY_EVENTS.interaction, this.handleInteraction, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.celebrate, this.celebrate, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.focusCompanion, this.setFocusCompanion, this)
+    this.scene.game.events.on(SANCTUARY_EVENTS.outfit, this.setOutfit, this)
+    this.setOutfit((this.scene.registry?.get('sanctuaryOutfit') as string | null | undefined) ?? null)
     if (phase === 'night') this.enterNightSleep()
     else this.pickWanderTarget(this.scene.time.now + 1_200)
     this.applyLighting()
@@ -384,6 +391,8 @@ export class KonoMascotSystem {
     this.scene.game.events.off(SANCTUARY_EVENTS.interaction, this.handleInteraction, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.celebrate, this.celebrate, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.focusCompanion, this.setFocusCompanion, this)
+    this.scene.game.events.off(SANCTUARY_EVENTS.outfit, this.setOutfit, this)
+    this.outfitImage?.destroy()
     this.sprite?.removeAllListeners()
     this.sprite?.destroy()
     this.shadow?.destroy()
@@ -531,6 +540,35 @@ export class KonoMascotSystem {
     this.currentTexture = texture
     this.sprite.setTexture(texture)
     this.applySpriteScale()
+    this.placeOutfit()
+  }
+
+  /** Put an outfit on (null takes it off). Its pictures load the first time it's worn. */
+  setOutfit(id: string | null): void {
+    this.outfitId = id && OUTFIT_FITS[id] ? id : null
+    if (!this.outfitId) { this.outfitImage?.setVisible(false); return }
+    const outfit = this.outfitId
+    const keys = OUTFIT_FITS[outfit].full ? Object.keys(POSE_HEADS).map(pose => [outfitKey(outfit, pose), outfitSrcFor(outfit, pose)]) : [[outfitKey(outfit, ''), outfitSrcFor(outfit, '')]]
+    const missing = keys.filter(([key]) => !this.scene.textures.exists(key))
+    if (!missing.length) { this.placeOutfit(); return }
+    missing.forEach(([key, src]) => this.scene.load.image(key, src))
+    this.scene.load.once(Phaser.Loader.Events.COMPLETE, () => this.placeOutfit())
+    this.scene.load.start()
+  }
+
+  private placeOutfit(): void {
+    if (!this.sprite) return
+    const pose = this.currentTexture.replace(/^kono-/, '')
+    const box = this.outfitId ? outfitBox(pose, this.outfitId) : null
+    const key = this.outfitId ? outfitKey(this.outfitId, OUTFIT_FITS[this.outfitId].full ? pose : '') : ''
+    if (!box || !this.scene.textures.exists(key)) { this.outfitImage?.setVisible(false); return }
+    if (!this.outfitImage) this.outfitImage = this.scene.add.image(0, 0, key).setOrigin(0, 0)
+    const s = this.sprite.scaleX, w = this.sprite.width, h = this.sprite.height
+    this.outfitImage.setTexture(key).setVisible(true).setScale(s)
+      .setPosition(this.sprite.x + (box.x - 0.5 * w) * s, this.sprite.y + (box.y - 0.88 * h) * s)
+      .setDepth(this.sprite.depth + 0.001)
+    const [tl, tr, bl, br] = PHASE_LIGHT[this.phase].kono
+    this.outfitImage.setTint(tl, tr, bl, br)
   }
 
   private enterNightSleep(): void {
@@ -550,6 +588,7 @@ export class KonoMascotSystem {
     if (!this.sprite) return
     const [tl, tr, bl, br] = PHASE_LIGHT[this.phase].kono
     this.sprite.setTint(tl, tr, bl, br)
+    this.placeOutfit()
     this.shadow?.setAlpha(this.phase === 'night' ? .22 : this.phase === 'evening' ? .48 : .36)
   }
 
@@ -575,5 +614,6 @@ export class KonoMascotSystem {
     this.sprite.setDepth(RenderLayers.critters + 0.30 + this.position.y * 0.12)
     this.shadow.setDepth(RenderLayers.critters + 0.17 + this.position.y * 0.12)
     this.applySpriteScale()
+    this.placeOutfit()
   }
 }
