@@ -181,3 +181,13 @@
  .wb-class-compact>.wb-class-note,.wb-class-compact>.wb-class-editor,.wb-class-compact>p[role="status"]{margin:8px 4px 0}
  .wb-class-due{margin:7px 3px 2px}
 }
+/* Daily page: the date between ‹ › day arrows (same layout as the Sanctuary's Today's schedule below it). */
+.planner-day-nav{display:flex;align-items:center;gap:10px;margin-top:4px}
+.planner-day-nav h3{flex:1;margin:0;text-align:center}
+.planner-day-nav button{flex:0 0 auto;min-width:40px;padding:4px 10px}
+.planner-day-paper .planner-date-tools{margin:14px 0 0}
+.planner-day-board .tomorrow-extra-list{margin-top:10px}
+.planner-day-board>.tomorrow-extra-list:first-child{margin-top:0}
+/* No frame around the day's list (matching Today's schedule); it still lights up as a drop target. */
+.planner-day-paper .planner-day-board{margin-top:10px;padding:0;border:0;background:none}
+.planner-day-paper .planner-day-board.drop-target{padding:6px}

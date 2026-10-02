@@ -1804,6 +1804,31 @@ test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in th
  assert.ok(await value('Full')>fullBefore,'the meters come from the saved log after a reload')
 })
 
+test('Planner daily page matches Today’s schedule: the day’s classes as compact cards, the rest under "Also today", ‹ › to step days, and "Back to today" only once you’ve moved away',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.calendarEvents.push({id:'soccer',profileId:pid,title:'Soccer practice',date:'2026-09-28',time:'17:00',kind:'personal',done:false,notes:''})
+ await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const sanctuaryClass=await page.locator('.today-schedule-compact').first().locator('.today-schedule-list > *').first().getAttribute('class')
+ await go(page,'Planner');await heading(page,'Planner')
+ const day=page.locator('.planner-day-paper')
+ await day.getByRole('heading',{name:'Today · Sep 28, 2026'}).waitFor()
+ const board=day.getByRole('region',{name:'Plan for Sep 28, 2026'})
+ assert.equal(await board.locator('.today-schedule-list > *').first().getAttribute('class'),sanctuaryClass,'the same class card as the Sanctuary')
+ await board.getByText('Biology').first().waitFor()
+ await board.locator('.tomorrow-extra-list').getByText('Also today').waitFor()
+ await board.getByText('Soccer practice').waitFor()
+ assert.equal(await day.getByText('Drag an item here',{exact:false}).count(),0)
+ const calendar=page.locator('.cozy-calendar-shell')
+ assert.equal(await calendar.getByRole('button',{name:'↩ Back to today'}).count(),0,'already on today: no Back to today button')
+ await day.getByRole('button',{name:'Next day'}).click()
+ await day.getByRole('heading',{name:'Sep 29, 2026'}).waitFor()
+ await calendar.getByRole('button',{name:'↩ Back to today'}).click()
+ await day.getByRole('heading',{name:'Today · Sep 28, 2026'}).waitFor()
+ assert.equal(await calendar.getByRole('button',{name:'↩ Back to today'}).count(),0)
+})
+
 test('Phone check-up: on a 375px phone no page scrolls sideways, every tab label fits (Sanctuary reads Home), and the hour column fits "10 AM"',async()=>{
  const phone=await freshPage({viewport:{width:375,height:740},isMobile:true,hasTouch:true})
  try{
