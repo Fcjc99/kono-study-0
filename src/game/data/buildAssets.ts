@@ -12,6 +12,7 @@ import { STICKERS, stickerSrc } from '../../store/stickers'
 import { FINDS, findSrc } from '../../store/konoFinds'
 import { FRIENDS, friendSrc } from '../../store/konoFriends'
 import { PRESENTS, presentSrc } from '../../store/konoStamps'
+import { GIFTS, giftSrc } from '../../store/konoBond'
 
 export type BuildCategory=string
 export type BuildLayer='ground'|'ground-detail'|'terrain'|'water-feature'|'water-decor'|'water-or-bridge'|'bridge'|'border'|'decor'|'structure'|'wildlife-water'|'light-overlay'
@@ -252,7 +253,24 @@ const presentAssets:BuildAsset[]=PRESENTS.map(present=>({
  flippable:true,
 }))
 
-export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets,...lightAssets,...studyDecorAssets,...signAssets,...stickerAssets,...findAssets,...friendAssets,...presentAssets]
+// Friendship gifts (store/konoBond): one for each bond heart from 3 on, next to the presents.
+const giftAssets:BuildAsset[]=GIFTS.map(gift=>({
+ id:'gift-'+gift.id,
+ label:gift.name,
+ category:'presents',
+ categoryLabel:'Presents',
+ src:giftSrc(gift.id),
+ width:84,
+ height:84,
+ defaultScale:1,
+ anchor:{x:0.5,y:0.92},
+ surface:'grass',
+ layer:'decor',
+ rotatable:false,
+ flippable:true,
+}))
+
+export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets,...lightAssets,...studyDecorAssets,...signAssets,...stickerAssets,...findAssets,...friendAssets,...presentAssets,...giftAssets]
 export const BUILD_ASSET_BY_ID:Record<string,BuildAsset>=Object.fromEntries(BUILD_ASSETS.map(a=>[a.id,a]))
 
 /** A placed item's box/transform, shared by the interactive Decorate editor and the read-only

@@ -57,14 +57,15 @@ test('rested follows the day: fresh in the morning, sleepier toward bedtime, asl
 test('the log: a pat counts once per ten minutes, a snack can’t be eaten twice, and old entries are dropped',()=>{
  let s=addCareEvent(undefined,'p1',{id:'1',kind:'pet',at:now.toISOString()},now)
  s=addCareEvent(s,'p1',{id:'2',kind:'pet',at:now.toISOString()},new Date(now.getTime()+5*60_000))
- assert.equal(s.log.length,1)
+ const pats=()=>s.log.filter(e=>e.kind==='pet').length
+ assert.equal(pats(),1)
  s=addCareEvent(s,'p1',{id:'3',kind:'pet',at:now.toISOString()},new Date(now.getTime()+11*60_000))
- assert.equal(s.log.length,2)
+ assert.equal(pats(),2)
  s=addCareEvent(s,'p1',{id:'4',kind:'feed',at:now.toISOString(),taskId:'a'},now)
  s=addCareEvent(s,'p1',{id:'5',kind:'feed',at:now.toISOString(),taskId:'a'},now)
  assert.equal(s.log.filter(e=>e.kind==='feed').length,1)
  const later=new Date(now.getTime()+31*86_400_000)
- assert.equal(addCareEvent(s,'p1',{id:'6',kind:'pet',at:later.toISOString()},later).log.map(e=>e.id).join(),'6','a month later only the new pat is kept')
+ assert.equal(addCareEvent(s,'p1',{id:'6',kind:'pet',at:later.toISOString()},later).log.filter(e=>e.kind!=='bond').map(e=>e.id).join(),'6','a month later only the new pat is kept (and the days KONO was cared for, store/konoBond)')
 })
 
 test('reading a saved log: odd or broken entries are dropped quietly, never an error',()=>{
@@ -79,7 +80,7 @@ test('bedtime: tuck in from 7 PM once a night, asleep until morning, then Wake u
  assert.equal(bedtime([],t('2026-09-30T21:00:00')).canTuck,true)
  let s=addCareEvent(undefined,'p1',{id:'s1',kind:'sleep',at:t('2026-09-30T21:00:00').toISOString()},t('2026-09-30T21:00:00'))
  s=addCareEvent(s,'p1',{id:'s2',kind:'sleep',at:t('2026-09-30T21:05:00').toISOString()},t('2026-09-30T21:05:00'))
- assert.equal(s.log.length,1,'one tuck-in a night')
+ assert.equal(s.log.filter(e=>e.kind==='sleep').length,1,'one tuck-in a night')
  for(const at of ['2026-09-30T23:00:00','2026-10-01T03:00:00']){const b=bedtime(s.log,t(at));assert.equal(b.tucked,true,at);assert.equal(b.canTuck,false)}
  assert.equal(careMeters(s.log,[],t('2026-09-30T21:30:00')).asleep,true,'tucked in early: asleep already')
  assert.equal(nightOf(t('2026-10-01T02:00:00')),'2026-09-30','after midnight still belongs to the evening before')
@@ -87,7 +88,7 @@ test('bedtime: tuck in from 7 PM once a night, asleep until morning, then Wake u
  assert.equal(morning.tucked,false);assert.equal(morning.canWake,true)
  s=addCareEvent(s,'p1',{id:'w1',kind:'wake',at:t('2026-10-01T07:30:00').toISOString()},t('2026-10-01T07:30:00'))
  assert.equal(bedtime(s.log,t('2026-10-01T08:00:00')).canWake,false,'one wake-up a day')
- assert.equal(addCareEvent(s,'p1',{id:'w2',kind:'wake',at:t('2026-10-01T08:00:00').toISOString()},t('2026-10-01T08:00:00')).log.length,2)
+ assert.equal(addCareEvent(s,'p1',{id:'w2',kind:'wake',at:t('2026-10-01T08:00:00').toISOString()},t('2026-10-01T08:00:00')).log.filter(e=>e.kind!=='bond').length,2)
  assert.equal(bedtime(s.log,t('2026-10-01T13:00:00')).canWake,false,'not after noon')
  assert.equal(bedtime(s.log,t('2026-10-01T20:00:00')).canTuck,true,'a new night')
  assert.equal(readCareState({log:[{id:'a',kind:'sleep',at:'2026-09-30T21:00:00Z'},{id:'b',kind:'wake',at:'2026-10-01T07:00:00Z'}]},'p1').log.length,2)
