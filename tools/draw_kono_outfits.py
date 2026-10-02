@@ -157,7 +157,30 @@ def headband():
     d.polygon([(40, 8), (45, 12), (43, 14), (39, 10)], fill=W)
     return finish(im, {W[:3]: W2, R[:3]: R2}, {W[:3]: WD}), {'width': 0.8, 'sink': 0.62}
 
-OUTFITS = {'headband': headband, 'beanie': beanie, 'sunhat': sunhat, 'gradcap': gradcap, 'flowers': flowercrown, 'wizard': wizard, 'crown': crown, 'bow': bow, 'chef': chef, 'witch': witch}
+def earmuffs():
+    """Winter: fluffy earmuffs on a band over the top of the head."""
+    B, B2, BD, F, F2, FD = rgb(120, 150, 210), rgb(160, 186, 236), rgb(84, 110, 170), rgb(250, 246, 250), rgb(255, 255, 255), rgb(214, 206, 222)
+    im = blank(46, 22); d = ImageDraw.Draw(im)
+    d.arc((6, 1, 39, 30), 200, 340, fill=B, width=3)
+    for x0 in (0, 33):
+        d.ellipse((x0, 8, x0 + 12, 21), fill=F)
+        for k in range(4): d.point((x0 + 3 + k * 2, 11 + (k % 2) * 4), fill=FD)
+    return finish(im, {F[:3]: F2, B[:3]: B2}, {F[:3]: FD, B[:3]: BD}), {'width': 0.98, 'sink': 0.62}
+
+def heartband():
+    """Valentine's week: a headband with two hearts bobbing on springs."""
+    K, K2, KD, P, P2, PD = rgb(232, 90, 130), rgb(250, 140, 170), rgb(190, 60, 100), rgb(244, 84, 120), rgb(255, 150, 176), rgb(200, 50, 86)
+    im = blank(40, 26); d = ImageDraw.Draw(im)
+    d.arc((2, 15, 37, 40), 200, 340, fill=K, width=3)
+    for cx, top in ((11, 0), (28, 1)):
+        # spring
+        for y in range(top + 8, 18, 2): d.point((cx + (1 if (y // 2) % 2 else -1), y), fill=rgb(150, 150, 170))
+        # heart
+        d.ellipse((cx - 5, top, cx, top + 5), fill=P); d.ellipse((cx, top, cx + 5, top + 5), fill=P)
+        d.polygon([(cx - 5, top + 3), (cx + 5, top + 3), (cx, top + 9)], fill=P)
+    return finish(im, {K[:3]: K2, P[:3]: P2}, {K[:3]: KD, P[:3]: PD}), {'width': 0.72, 'sink': 0.42}
+
+OUTFITS = {'headband': headband, 'beanie': beanie, 'sunhat': sunhat, 'gradcap': gradcap, 'flowers': flowercrown, 'wizard': wizard, 'crown': crown, 'bow': bow, 'chef': chef, 'witch': witch, 'earmuffs': earmuffs, 'heartband': heartband}
 
 # --- KONO's finds (focus sessions): 16x16-cell treasures with the same outline and shading.
 FIND_DIR = os.path.join(ROOT, 'public/garden/finds')
@@ -245,9 +268,27 @@ def pumpkin():
         d.rectangle((8, 1, 9, 4), fill=G)
     return icon(draw, {O[:3]: O2}, {O[:3]: OD})
 
+def snowflake():
+    B, B2, BD = rgb(150, 200, 246), rgb(226, 244, 255), rgb(100, 150, 214)
+    def draw(d, im):
+        c = 8
+        for dx, dy in ((0, -7), (0, 7), (-6, -4), (6, 4), (-6, 4), (6, -4)):
+            d.line((c + 1, c + 1, c + 1 + dx, c + 1 + dy), fill=B, width=2)
+            mx, my = c + 1 + dx * 0.6, c + 1 + dy * 0.6
+            d.point([(round(mx - dy * 0.25), round(my + dx * 0.25)), (round(mx + dy * 0.25), round(my - dx * 0.25))], fill=B)
+        d.ellipse((c - 1, c - 1, c + 3, c + 3), fill=B2)
+    return icon(draw, {B[:3]: B2}, {B[:3]: BD})
+def candy_heart():
+    P, P2, PD = rgb(250, 168, 196), rgb(255, 210, 226), rgb(220, 120, 160)
+    def draw(d, im):
+        d.ellipse((1, 3, 9, 11), fill=P); d.ellipse((8, 3, 16, 11), fill=P)
+        d.polygon([(1, 8), (16, 8), (8.5, 16)], fill=P)
+        d.line((5, 9, 12, 9), fill=rgb(214, 70, 110)); d.line((6, 11, 11, 11), fill=rgb(214, 70, 110))
+    return icon(draw, {P[:3]: P2}, {P[:3]: PD})
+
 FINDS = {'pebble': pebble, 'acorn': acorn, 'leaf': leaf, 'feather': feather, 'shell': shell, 'clover': clover,
          'pinecone': pinecone, 'seaglass': seaglass, 'mushroom': mushroom, 'crystal': crystal,
-         'golden-acorn': golden_acorn, 'star': star, 'pumpkin': pumpkin}
+         'golden-acorn': golden_acorn, 'star': star, 'pumpkin': pumpkin, 'snowflake': snowflake, 'candy-heart': candy_heart}
 
 # --- KONO's friends (island visitors after a good week): 30x26-cell animals, same outline and shading.
 FRIEND_DIR = os.path.join(ROOT, 'public/garden/friends')
