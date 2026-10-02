@@ -246,6 +246,110 @@ FINDS = {'pebble': pebble, 'acorn': acorn, 'leaf': leaf, 'feather': feather, 'sh
          'pinecone': pinecone, 'seaglass': seaglass, 'mushroom': mushroom, 'crystal': crystal,
          'golden-acorn': golden_acorn, 'star': star, 'pumpkin': pumpkin}
 
+# --- KONO's friends (island visitors after a good week): 30x26-cell animals, same outline and shading.
+FRIEND_DIR = os.path.join(ROOT, 'public/garden/friends')
+
+def friend(draw, light=None, dark=None):
+    im = blank(30, 26); draw(ImageDraw.Draw(im), im)
+    return finish(im, light, dark)
+
+def eyes(d, *pts, c=(40, 28, 30)):
+    for x, y in pts: d.rectangle((x, y, x + 1, y + 1), fill=rgb(*c)); d.point((x, y), fill=rgb(255, 255, 255))
+
+def cat():
+    O, O2, OD, C, P = rgb(240, 160, 80), rgb(252, 196, 120), rgb(204, 120, 52), rgb(252, 236, 210), rgb(240, 140, 150)
+    def draw(d, im):
+        d.ellipse((7, 11, 22, 25), fill=O)                      # body
+        d.line((21, 22, 27, 18), fill=O, width=2); d.line((27, 18, 27, 12), fill=O, width=2)  # tail
+        d.ellipse((6, 3, 21, 16), fill=O)                       # head
+        d.polygon([(7, 7), (8, 0), (12, 4)], fill=O); d.polygon([(20, 7), (19, 0), (15, 4)], fill=O)
+        d.point([(8, 3), (19, 3)], fill=P)
+        d.ellipse((10, 15, 17, 24), fill=C)                     # chest
+        for x in (9, 12, 15, 18): d.line((x, 4, x, 6), fill=OD)
+        eyes(d, (9, 9), (16, 9)); d.point((13, 12), fill=P); d.point((14, 12), fill=P)
+    return friend(draw, {O[:3]: O2}, {O[:3]: OD})
+
+def duck():
+    W, W2, WD, B, Bd = rgb(252, 248, 236), rgb(255, 255, 255), rgb(214, 206, 190), rgb(248, 160, 50), rgb(214, 120, 30)
+    def draw(d, im):
+        d.ellipse((4, 12, 26, 25), fill=W)                      # body
+        d.polygon([(24, 14), (29, 11), (26, 18)], fill=W)       # tail
+        d.ellipse((5, 2, 17, 14), fill=W)                       # head
+        d.polygon([(0, 8), (6, 7), (6, 11), (1, 10)], fill=B); d.line((1, 9, 5, 9), fill=Bd)
+        d.ellipse((12, 15, 22, 21), fill=WD)                    # wing
+        eyes(d, (8, 6))
+    return friend(draw, {W[:3]: W2}, {W[:3]: WD})
+
+def frog():
+    G, G2, GD, Y = rgb(110, 190, 90), rgb(150, 220, 120), rgb(70, 140, 60), rgb(220, 236, 160)
+    def draw(d, im):
+        d.ellipse((3, 9, 26, 25), fill=G)                       # body
+        d.ellipse((4, 3, 12, 11), fill=G); d.ellipse((17, 3, 25, 11), fill=G)   # eye bumps
+        d.ellipse((8, 15, 21, 24), fill=Y)                      # belly
+        d.ellipse((6, 5, 10, 9), fill=rgb(255, 255, 255)); d.ellipse((19, 5, 23, 9), fill=rgb(255, 255, 255))
+        d.rectangle((7, 6, 8, 8), fill=rgb(40, 28, 30)); d.rectangle((20, 6, 21, 8), fill=rgb(40, 28, 30))
+        d.arc((9, 9, 20, 15), 20, 160, fill=GD)                 # smile
+        d.point([(7, 13), (22, 13)], fill=rgb(240, 150, 150))
+    return friend(draw, {G[:3]: G2}, {G[:3]: GD})
+
+def bunny():
+    W, W2, WD, P = rgb(244, 240, 236), rgb(255, 255, 255), rgb(206, 198, 196), rgb(244, 170, 186)
+    def draw(d, im):
+        d.ellipse((8, 0, 13, 13), fill=W); d.ellipse((16, 0, 21, 13), fill=W)   # ears
+        d.line((10, 2, 10, 10), fill=P); d.line((18, 2, 18, 10), fill=P)
+        d.ellipse((6, 15, 24, 25), fill=W)                      # body
+        d.ellipse((7, 7, 22, 19), fill=W)                       # head
+        d.ellipse((22, 18, 27, 23), fill=W2)                    # tail
+        eyes(d, (10, 12), (17, 12)); d.point((14, 15), fill=P)
+    return friend(draw, {W[:3]: W2}, {W[:3]: WD})
+
+def hedgehog():
+    S, S2, SD, F, Fd = rgb(150, 104, 70), rgb(186, 136, 96), rgb(110, 74, 48), rgb(244, 220, 184), rgb(214, 184, 148)
+    def draw(d, im):
+        for x in range(6, 27, 3): d.polygon([(x, 12), (x + 2, 3 + (x % 4)), (x + 4, 12)], fill=S)   # spikes
+        d.ellipse((6, 8, 28, 25), fill=S)                       # back
+        d.ellipse((1, 12, 15, 25), fill=F)                      # face
+        d.point((1, 18), fill=rgb(40, 28, 30)); d.point((2, 18), fill=rgb(40, 28, 30))
+        eyes(d, (6, 16)); d.point((9, 20), fill=rgb(240, 150, 150))
+    return friend(draw, {S[:3]: S2, F[:3]: rgb(255, 236, 206)}, {S[:3]: SD, F[:3]: Fd})
+
+def fox():
+    O, O2, OD, W = rgb(236, 120, 50), rgb(250, 160, 80), rgb(196, 86, 30), rgb(252, 244, 230)
+    def draw(d, im):
+        d.ellipse((17, 12, 29, 25), fill=O); d.ellipse((24, 18, 29, 25), fill=W)   # bushy tail, white tip
+        d.ellipse((6, 12, 22, 25), fill=O)                      # body
+        d.ellipse((10, 16, 17, 25), fill=W)                     # chest
+        d.polygon([(4, 9), (13, 3), (22, 9), (13, 17)], fill=O) # head
+        d.polygon([(5, 6), (6, 0), (10, 4)], fill=O); d.polygon([(21, 6), (20, 0), (16, 4)], fill=O)
+        d.polygon([(8, 11), (13, 16), (18, 11), (13, 13)], fill=W)
+        eyes(d, (9, 8), (16, 8)); d.point((13, 15), fill=rgb(40, 28, 30))
+    return friend(draw, {O[:3]: O2}, {O[:3]: OD})
+
+def owl():
+    B, B2, BD, C, Y = rgb(156, 112, 80), rgb(190, 146, 108), rgb(116, 80, 56), rgb(244, 226, 196), rgb(250, 190, 70)
+    def draw(d, im):
+        d.ellipse((6, 4, 24, 25), fill=B)                       # body
+        d.polygon([(7, 7), (8, 0), (12, 5)], fill=B); d.polygon([(23, 7), (22, 0), (18, 5)], fill=B)   # ear tufts
+        d.ellipse((10, 14, 20, 24), fill=C)                     # belly
+        for y in (17, 20): d.point([(13, y), (15, y), (17, y)], fill=rgb(200, 170, 130))
+        d.ellipse((8, 6, 15, 13), fill=Y); d.ellipse((15, 6, 22, 13), fill=Y)   # eye rings
+        d.rectangle((10, 8, 12, 10), fill=rgb(40, 28, 30)); d.rectangle((17, 8, 19, 10), fill=rgb(40, 28, 30))
+        d.polygon([(14, 12), (16, 12), (15, 15)], fill=rgb(220, 140, 50))
+    return friend(draw, {B[:3]: B2}, {B[:3]: BD})
+
+def turtle():
+    S, S2, SD, K, K2 = rgb(110, 160, 90), rgb(150, 196, 120), rgb(70, 116, 60), rgb(170, 200, 120), rgb(200, 226, 150)
+    def draw(d, im):
+        d.ellipse((1, 13, 8, 20), fill=K)                       # head
+        for x in (6, 20): d.ellipse((x, 19, x + 5, 25), fill=K) # legs
+        d.ellipse((5, 6, 28, 23), fill=S)                       # shell
+        d.rectangle((5, 17, 28, 21), fill=SD)
+        for cx, cy in ((12, 12), (19, 10), (23, 15), (15, 16)): d.ellipse((cx - 2, cy - 2, cx + 2, cy + 2), fill=S2)
+        eyes(d, (3, 15))
+    return friend(draw, {S[:3]: S2, K[:3]: K2}, {S[:3]: SD})
+
+FRIENDS = {'cat': cat, 'duck': duck, 'frog': frog, 'bunny': bunny, 'hedgehog': hedgehog, 'fox': fox, 'owl': owl, 'turtle': turtle}
+
 # --- Costumes that wrap around KONO's shape (a ghost sheet, Frankenstein's hair and bolts) are drawn
 # for each pose from that pose's own silhouette, at full pose size.
 def fur_mask(img):
@@ -434,13 +538,21 @@ def main():
     write_ts(heads, fits)
     os.makedirs(FIND_DIR, exist_ok=True)
     for fid, fn in FINDS.items(): fn().save(os.path.join(FIND_DIR, fid + '.webp'), lossless=True)
+    os.makedirs(FRIEND_DIR, exist_ok=True)
+    for fid, fn in FRIENDS.items(): fn().save(os.path.join(FRIEND_DIR, fid + '.webp'), lossless=True)
     # The build only ships files listed in tools/public-allowlist.json: keep the outfit art listed.
     allow_path = os.path.join(ROOT, 'tools/public-allowlist.json')
-    allow = [p for p in json.load(open(allow_path)) if not p.startswith(('/garden/kono/outfits/', '/garden/finds/'))]
-    art = sorted('/' + os.path.relpath(os.path.join(d, f), os.path.join(ROOT, 'public')).replace(os.sep, '/') for base in (OUT_DIR, FIND_DIR) for d, _, fs in os.walk(base) for f in fs if f.endswith('.webp'))
+    allow = [p for p in json.load(open(allow_path)) if not p.startswith(('/garden/kono/outfits/', '/garden/finds/', '/garden/friends/'))]
+    art = sorted('/' + os.path.relpath(os.path.join(d, f), os.path.join(ROOT, 'public')).replace(os.sep, '/') for base in (OUT_DIR, FIND_DIR, FRIEND_DIR) for d, _, fs in os.walk(base) for f in fs if f.endswith('.webp'))
     at = max((i for i, p in enumerate(allow) if p.startswith('/garden/kono/')), default=len(allow) - 1) + 1
     allow = allow[:at] + art + allow[at:]
     json.dump(allow, open(allow_path, 'w'), indent=1); open(allow_path, 'a').write('\n')
+    if '--friends-preview' in sys.argv:
+        out = sys.argv[sys.argv.index('--friends-preview') + 1]
+        sheet = Image.new('RGBA', (140 * len(FRIENDS), 130), (250, 244, 236, 255))
+        for i, fid in enumerate(FRIENDS):
+            im = Image.open(os.path.join(FRIEND_DIR, fid + '.webp')); sheet.alpha_composite(im, (i * 140 + (140 - im.width) // 2, (130 - im.height) // 2))
+        sheet.save(out)
     if '--finds-preview' in sys.argv:
         out = sys.argv[sys.argv.index('--finds-preview') + 1]
         sheet = Image.new('RGBA', (100 * len(FINDS), 120), (250, 244, 236, 255))

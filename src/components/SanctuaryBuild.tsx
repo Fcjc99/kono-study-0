@@ -8,6 +8,7 @@ import DecorateDebugHUD from './DecorateDebugHUD'
 import {STICKERS,stickerOffered} from '../store/stickers'
 import {outfitHow,outfitProgress,type Outfit,type OutfitId,type WardrobeStats} from '../store/konoWardrobe'
 import {FINDS,findHow,findsOffered} from '../store/konoFinds'
+import {FRIENDS,friendHow} from '../store/konoFriends'
 import KonoFace from './KonoFace'
 
 /** Decorate › Wardrobe: KONO's outfits (store/konoWardrobe). */
@@ -31,10 +32,10 @@ const clampCoord=(v:number):number=>Math.min(PLACEMENT_MAX,Math.max(PLACEMENT_MI
 
 const STICKER_HOW:Record<string,string>=Object.fromEntries(STICKERS.map(s=>['sticker-'+s.id,s.how]))
 /** A sticker (Decorate › Stickers) is placeable once it's earned; everything else always is. */
-const FIND_HOW:Record<string,string>=Object.fromEntries(FINDS.map(f=>['find-'+f.id,findHow(f)]))
-/** Stickers and finds are earned: locked until store/stickers or store/konoFinds says so (`earned` holds
- * sticker IDs and "find-" asset IDs). */
-const isLocked=(assetId:string,earned:Set<string>)=>assetId.startsWith('sticker-')?!earned.has(assetId.slice(8)):assetId.startsWith('find-')&&!earned.has(assetId)
+const FIND_HOW:Record<string,string>=Object.fromEntries([...FINDS.map(f=>['find-'+f.id,findHow(f)]),...FRIENDS.map(f=>['friend-'+f.id,friendHow(f)])])
+/** Stickers, finds and friends are earned: locked until store/stickers, store/konoFinds or
+ * store/konoFriends says so (`earned` holds sticker IDs and "find-"/"friend-" asset IDs). */
+const isLocked=(assetId:string,earned:Set<string>)=>assetId.startsWith('sticker-')?!earned.has(assetId.slice(8)):(assetId.startsWith('find-')||assetId.startsWith('friend-'))&&!earned.has(assetId)
 const lockedHow=(assetId:string)=>STICKER_HOW[assetId]??FIND_HOW[assetId]??''
 
 export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCategory,today=localDate(),wardrobe}:{data:AppData;save:PlannerRepository['update'];phase:PhaseMode;earned?:Set<string>;startCategory?:BuildCategory;today?:string;wardrobe?:WardrobeProps}){
@@ -265,6 +266,7 @@ export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCa
    })()}
    <p className="wb-muted">Tap an item to add it to your island, or drag it on to choose where it lands. Drag a placed item anywhere to move it, or tap it once to select it — then use the controls above to resize, skew, rotate, mirror, duplicate, or remove it. A few items (like signs and the chalkboard) let you write your own text on them, too. Place as many of anything as you like.</p>
    <nav ref={tabsRef} className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}{wardrobe&&<button type="button" aria-current={category==='wardrobe'?'page':undefined} onClick={()=>{setCategory('wardrobe');setSelected(null)}}>Wardrobe</button>}</nav>
+   {category==='friends'&&<p className="build-sticker-note">Friends who came to visit after a good week. Once met, they can live on your island. {FRIENDS.filter(f=>earned.has('friend-'+f.id)).length} of {FRIENDS.length} met.</p>}
    {category==='finds'&&<p className="build-sticker-note">Treasures KONO brings back from your focus sessions. Longer sessions find rarer things. {FINDS.filter(f=>earned.has('find-'+f.id)).length} of {offeredFinds.size} found.</p>}
    {category==='stickers'&&<p className="build-sticker-note">Earn stickers by keeping up with your work. {STICKERS.filter(t=>earned.has(t.id)).length} of {STICKERS.filter(t=>stickerOffered(t.id,earned,today)).length} earned.</p>}
    {category==='wardrobe'&&wardrobe?<><p className="build-sticker-note">Outfits for KONO, earned by finishing work and granting KONO’s daily wish. Tap one to put it on. {wardrobe.unlocked.size} of {wardrobe.offered.length} earned.</p>

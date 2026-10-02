@@ -31,6 +31,7 @@ import { CritterSystem } from '../systems/CritterSystem'
 import { KonoInteractionSystem, type KonoLandmarkId } from '../systems/KonoInteractionSystem'
 import { KonoMascotSystem } from '../systems/KonoMascotSystem'
 import { HalloweenSystem } from '../systems/HalloweenSystem'
+import { VisitorSystem } from '../systems/VisitorSystem'
 import { islandMapPath, type IslandSeason } from '../sanctuary/season'
 import { mascotObstacles } from '../data/buildAssets'
 import type { BuildPlacement } from '../../store/model'
@@ -78,6 +79,7 @@ export default class Stage0Scene extends Phaser.Scene {
   private konoInteractions!: KonoInteractionSystem
   private konoMascot!: KonoMascotSystem
   private halloween: HalloweenSystem | null = null
+  private visitor: VisitorSystem | null = null
   private season: IslandSeason | null = null
   private fluid!: FluidSystem
   private clouds!: CloudSystem
@@ -192,6 +194,8 @@ export default class Stage0Scene extends Phaser.Scene {
       this.halloween = new HalloweenSystem(this)
       this.halloween.create(this.blend.dominant, this.settings.reducedMotion)
     }
+    this.visitor = new VisitorSystem(this)
+    this.visitor.create(this.registry.get('sanctuaryVisitor') ?? null, this.blend.dominant, this.settings.reducedMotion)
     this.evolutionCoordinator = new EvolutionCoordinator(
       this,
       (change, animate) => this.applyEvolutionChange(change, animate),
@@ -357,6 +361,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.konoInteractions.setReducedMotion(reducedMotion)
     this.konoMascot.setReducedMotion(reducedMotion)
     this.halloween?.setReducedMotion(reducedMotion)
+    this.visitor?.setReducedMotion(reducedMotion)
     this.evolutionCoordinator.setReducedMotion(reducedMotion)
     this.rescheduleAmbientSystems()
   }
@@ -459,6 +464,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.critters.setPhase(nextBlend.dominant)
     this.konoMascot?.setPhase(nextBlend.dominant)
     this.halloween?.setPhase(nextBlend.dominant)
+    this.visitor?.setPhase(nextBlend.dominant)
     this.emitState()
   }
 
@@ -691,6 +697,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.konoInteractions.resize(this.sceneBounds)
     this.konoMascot.resize(this.sceneBounds)
     this.halloween?.resize(this.sceneBounds)
+    this.visitor?.resize(this.sceneBounds)
     this.evolutionCoordinator.resize(this.sceneBounds)
   }
 
@@ -742,6 +749,8 @@ export default class Stage0Scene extends Phaser.Scene {
     this.konoInteractions.destroy()
     this.konoMascot.destroy()
     this.halloween?.destroy()
+    this.visitor?.destroy()
+    this.visitor = null
     this.fluid.destroy()
     this.clouds.destroy()
     this.atmosphere.destroy()
