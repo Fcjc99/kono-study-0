@@ -532,13 +532,13 @@ test('signed in: last night\'s backup downloads, and app errors reach KONO suppo
 test('Sanctuary: the island draws, zooms, expands and changes time; Decorate adds, duplicates, removes and keeps items',async({page})=>{
  const loaded=[];page.on('response',r=>{const u=new URL(r.url());if(/\/garden\/(terrace-23\.0|kono)\//.test(u.pathname))loaded.push([u.pathname,r.status()])})
  await createPlan(page)
- const ready=()=>page.waitForFunction(()=>!document.querySelector('.sanctuary-load-status'),null,{timeout:30000})
- // The island loads once it's on screen (for a new plan it's just below Getting started).
- await page.locator('.wb-island').scrollIntoViewIfNeeded()
+ // The island loads once it's on screen (for a new plan it's just below Getting started): islandLoaded
+ // keeps it in view while it does.
+ const ready=()=>islandLoaded(page)
  await ready()
  // The canvas has real artwork on it (a blank canvas encodes to a tiny image).
  await page.waitForFunction(()=>{const c=document.querySelector('.sanctuary-viewport canvas');return !!c&&c.width>100&&c.toDataURL('image/png').length>60000},null,{timeout:20000})
- assert.ok(loaded.some(([path,status])=>/terrace-23\.0\/(halloween\/)?\w+\.webp$/.test(path)&&status===200),'the island map did not load')
+ assert.ok(loaded.some(([path,status])=>/terrace-23\.0\/((halloween|winter|spring|semester)\/)?\w+\.webp$/.test(path)&&status===200),'the island map did not load (whatever the season)')
  assert.ok(loaded.every(([,status])=>status===200),'a Sanctuary image failed to load: '+JSON.stringify(loaded.filter(([,st])=>st!==200)))
  const zoom=page.getByRole('group',{name:'Zoom island'})
  await zoom.getByRole('button',{name:'Zoom in'}).click()
