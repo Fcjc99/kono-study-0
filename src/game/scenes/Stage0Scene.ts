@@ -30,6 +30,8 @@ import { GARDEN_STAGE_NAMES, GardenEvolutionSystem } from '../systems/GardenEvol
 import { CritterSystem } from '../systems/CritterSystem'
 import { KonoInteractionSystem, type KonoLandmarkId } from '../systems/KonoInteractionSystem'
 import { KonoMascotSystem } from '../systems/KonoMascotSystem'
+import { HalloweenSystem } from '../systems/HalloweenSystem'
+import { islandMapPath, type IslandSeason } from '../sanctuary/season'
 import { mascotObstacles } from '../data/buildAssets'
 import type { BuildPlacement } from '../../store/model'
 import { EvolutionCoordinator, type EvolutionStageChange } from '../evolution/EvolutionCoordinator'
@@ -63,7 +65,7 @@ interface SanctuaryStatePayload {
 
 const PHASE_VARIANTS = ['01', '02', '03', '04']
 
-const terraceMapTextureKey = (phase: DayPhase): string => `stage0-${phase}-terrace`
+const terraceMapTextureKey = (phase: DayPhase, season: IslandSeason | null = null): string => `stage0-${phase}-terrace${season ? '-' + season : ''}`
 
 
 export default class Stage0Scene extends Phaser.Scene {
@@ -75,6 +77,8 @@ export default class Stage0Scene extends Phaser.Scene {
   private critters!: CritterSystem
   private konoInteractions!: KonoInteractionSystem
   private konoMascot!: KonoMascotSystem
+  private halloween: HalloweenSystem | null = null
+  private season: IslandSeason | null = null
   private fluid!: FluidSystem
   private clouds!: CloudSystem
   private atmosphere!: AtmosphereSystem
@@ -110,7 +114,7 @@ export default class Stage0Scene extends Phaser.Scene {
     return keys
   }
   private enqueuePhaseAssets(phase:DayPhase):void{
-    this.load.image(terraceMapTextureKey(phase),`/garden/terrace-23.0/${phase}.webp`)
+    this.load.image(terraceMapTextureKey(phase,this.season),islandMapPath(phase,this.season)+'.webp')
   }
 
   constructor() {
@@ -151,7 +155,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.world.setQuality(this.settings.quality, this.scale.width)
     this.createGeneratedTextures()
 
-    this.baseA = this.add.image(this.scale.width / 2, this.scale.height / 2, terraceMapTextureKey(this.paintedPhase)).setOrigin(0.5).setDepth(RenderLayers.background)
+    this.baseA = this.add.image(this.scale.width / 2, this.scale.height / 2, terraceMapTextureKey(this.paintedPhase,this.season)).setOrigin(0.5).setDepth(RenderLayers.background)
     this.lighting = new LightingSystem(this)
     this.lighting.create(this.settings.reducedMotion)
     this.weatherSystem = new WeatherSystem(this)
@@ -184,6 +188,10 @@ export default class Stage0Scene extends Phaser.Scene {
     this.konoMascot = new KonoMascotSystem(this)
     this.konoMascot.create(this.settings.reducedMotion, this.blend.dominant)
     this.konoMascot.setObstacles(mascotObstacles(this.decorations))
+    if (this.season === 'halloween') {
+      this.halloween = new HalloweenSystem(this)
+      this.halloween.create(this.blend.dominant, this.settings.reducedMotion)
+    }
     this.evolutionCoordinator = new EvolutionCoordinator(
       this,
       (change, animate) => this.applyEvolutionChange(change, animate),
@@ -216,6 +224,7 @@ export default class Stage0Scene extends Phaser.Scene {
     const quality = this.registry.get('sanctuaryQuality')
     const progress = this.registry.get('sanctuaryProgress')
     const decorations = this.registry.get('sanctuaryDecorations')
+    this.season = this.registry.get('sanctuarySeason') === 'halloween' ? 'halloween' : null
 
     if (isPhaseMode(phaseMode)) this.settings.phaseMode = phaseMode
     if (isSanctuaryWeather(weather)) this.settings.weather = weather
@@ -347,6 +356,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.critters.setReducedMotion(reducedMotion)
     this.konoInteractions.setReducedMotion(reducedMotion)
     this.konoMascot.setReducedMotion(reducedMotion)
+    this.halloween?.setReducedMotion(reducedMotion)
     this.evolutionCoordinator.setReducedMotion(reducedMotion)
     this.rescheduleAmbientSystems()
   }
@@ -448,6 +458,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.vegetation.setPhase(nextBlend.dominant)
     this.critters.setPhase(nextBlend.dominant)
     this.konoMascot?.setPhase(nextBlend.dominant)
+    this.halloween?.setPhase(nextBlend.dominant)
     this.emitState()
   }
 
@@ -457,7 +468,7 @@ export default class Stage0Scene extends Phaser.Scene {
     // baked into each stage/phase Sanctuary PNG. No separate terrace sprite, alpha patch,
     // phase veil, tint, recolor, glow, or other lighting overlay is rendered at runtime.
     this.paintedPhase = phase
-    this.baseA.setTexture(terraceMapTextureKey(phase)).setAlpha(1)
+    this.baseA.setTexture(terraceMapTextureKey(phase,this.season)).setAlpha(1)
     this.fitBackgrounds()
     this.positionWorldEffects()
   }
@@ -679,6 +690,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.critters.resize(this.sceneBounds)
     this.konoInteractions.resize(this.sceneBounds)
     this.konoMascot.resize(this.sceneBounds)
+    this.halloween?.resize(this.sceneBounds)
     this.evolutionCoordinator.resize(this.sceneBounds)
   }
 
@@ -729,6 +741,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.ambientSprites.clear()
     this.konoInteractions.destroy()
     this.konoMascot.destroy()
+    this.halloween?.destroy()
     this.fluid.destroy()
     this.clouds.destroy()
     this.atmosphere.destroy()

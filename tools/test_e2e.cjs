@@ -538,7 +538,7 @@ test('Sanctuary: the island draws, zooms, expands and changes time; Decorate add
  await ready()
  // The canvas has real artwork on it (a blank canvas encodes to a tiny image).
  await page.waitForFunction(()=>{const c=document.querySelector('.sanctuary-viewport canvas');return !!c&&c.width>100&&c.toDataURL('image/png').length>60000},null,{timeout:20000})
- assert.ok(loaded.some(([path,status])=>/terrace-23\.0\/\w+\.webp$/.test(path)&&status===200),'the island map did not load')
+ assert.ok(loaded.some(([path,status])=>/terrace-23\.0\/(halloween\/)?\w+\.webp$/.test(path)&&status===200),'the island map did not load')
  assert.ok(loaded.every(([,status])=>status===200),'a Sanctuary image failed to load: '+JSON.stringify(loaded.filter(([,st])=>st!==200)))
  const zoom=page.getByRole('group',{name:'Zoom island'})
  await zoom.getByRole('button',{name:'Zoom in'}).click()
@@ -552,8 +552,10 @@ test('Sanctuary: the island draws, zooms, expands and changes time; Decorate add
  const phase=await page.getByLabel('Sanctuary time').inputValue()
  // A time whose map isn't loaded yet: near dawn or dusk the island has already loaded the next phase's map
  // to blend into, so switching to it wouldn't fetch anything (which made this test depend on the clock).
- const other=['evening','night','afternoon','morning'].find(p=>p!==phase&&!loaded.some(([path])=>path.endsWith(`/terrace-23.0/${p}.webp`)))
- const mapLoaded=page.waitForResponse(r=>r.url().endsWith(`/terrace-23.0/${other}.webp`)&&r.status()===200,{timeout:20000})
+ // (In October it's the Halloween island's map: see game/sanctuary/season.ts.)
+ const map=p=>new RegExp(`/terrace-23\\.0/(halloween/)?${p}\\.webp$`)
+ const other=['evening','night','afternoon','morning'].find(p=>p!==phase&&!loaded.some(([path])=>map(p).test(path)))
+ const mapLoaded=page.waitForResponse(r=>map(other).test(new URL(r.url()).pathname)&&r.status()===200,{timeout:20000})
  await page.getByLabel('Sanctuary time').selectOption(other)
  await mapLoaded
  await ready()
@@ -1578,6 +1580,26 @@ test('What should I do now and the app icon number: late work first, "Something 
  await settingsTab(page,'Notifications')
  await page.getByLabel('Show how many things are due today (and late) on KONO’s icon').uncheck()
  await until(async()=>await badge()===0,'turning it off should clear the icon')
+})
+
+test('Halloween island: all of October the island has its spooky look (with its own quick picture while it loads), and in November it is back to normal',async({context,page})=>{
+ const cloud=fakeCloud(),maps=[]
+ page.on('response',r=>{const u=new URL(r.url());if(/\/garden\/terrace-23\.0\//.test(u.pathname))maps.push([u.pathname,r.status()])})
+ await page.clock.setFixedTime(new Date('2026-10-15T21:30:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.locator('.wb-island').scrollIntoViewIfNeeded()
+ await page.waitForFunction(()=>!document.querySelector('.sanctuary-load-status'),null,{timeout:30000})
+ assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween/night.webp'&&st===200),'the Halloween night island loads: '+JSON.stringify(maps))
+ assert.ok(!maps.some(([p])=>p==='/garden/terrace-23.0/night.webp'),'not the regular one')
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(6000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/halloween-island-night.png'})}
+ maps.length=0
+ await page.clock.setFixedTime(new Date('2026-11-02T21:30:00'))
+ await page.reload();await heading(page,'Sanctuary')
+ await page.locator('.wb-island').scrollIntoViewIfNeeded()
+ await page.waitForFunction(()=>!document.querySelector('.sanctuary-load-status'),null,{timeout:30000})
+ assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/night.webp'&&st===200),'in November the regular island is back: '+JSON.stringify(maps))
+ assert.ok(!maps.some(([p])=>p.includes('/halloween/')))
 })
 
 test('Halloween on the island: in October KONO wears a pumpkin, a banner counts the 4 spooky stickers, finishing work earns the Pumpkin, and it goes on the island',async({context,page})=>{
