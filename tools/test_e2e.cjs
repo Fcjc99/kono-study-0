@@ -2076,7 +2076,7 @@ test('Stamp card: a stamp for each day something gets finished; the 7th fills th
  const card=page.getByRole('group',{name:'Stamp card: 7 of 7 stamps'})
  await card.waitFor()
  assert.equal(await card.locator('li.is-stamped').count(),7)
- await page.getByText('1 of 8 opened.',{exact:false}).waitFor()
+ await page.getByText('(1 of 8 opened)',{exact:false}).waitFor()
  await page.locator('.build-palette').getByLabel('Balloons, locked. Opens with stamp card 2.').waitFor()
  if(process.env.KONO_SHOTS)await page.locator('.wb-island').screenshot({path:process.env.KONO_SHOTS+'/stamps-presents.png'})
  await page.locator('.build-palette').getByRole('button',{name:/^Add /}).first().click()
@@ -2085,6 +2085,30 @@ test('Stamp card: a stamp for each day something gets finished; the 7th fills th
  await page.reload();await heading(page,'Sanctuary')
  await page.waitForTimeout(1500)
  assert.equal(await bar.getByText(/stamp card is full/).count(),0)
+})
+test('Bond hearts: KONO’s bond grows with what you do together; at 2 hearts a pat sends up a little heart, and reaching 3 brings a friendship gift for the island',async({context,page})=>{
+ const cloud=fakeCloud(),data=()=>cloud.users.alice.plan.data,pid=data().activeProfileId
+ for(const e of data().exams)e.due='2026-10-20'
+ // 9 earlier days of caring for KONO (27) and one thing finished (1): 2 hearts, 2 short of the 3rd.
+ data().konoCare={...data().konoCare,[pid]:{profileId:pid,log:Array.from({length:9},(_,i)=>({id:'bond-2026-09-1'+i,kind:'bond',at:'2026-09-1'+i+'T12:00:00.000Z'}))}}
+ await page.clock.setFixedTime(new Date('2026-10-12T16:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const bar=page.getByRole('region',{name:'KONO today'})
+ // Today's first pat marks a day of care (+3): the 3rd heart.
+ await bar.getByRole('button',{name:'Pet KONO'}).click()
+ await bar.getByText(/^💗 (KONO snuggles closer|KONO beams at you|A happy little heart floats up)/).waitFor()
+ await bar.locator('.kono-react.is-heart').waitFor()
+ await bar.getByText('💗 You and KONO are now Pals! KONO made you a heart cushion. It’s in Decorate › Presents.').waitFor({timeout:20000})
+ await waitFor(()=>(data().konoCare?.[pid]?.log??[]).some(e=>e.id==='bond-2026-10-12'),'the day of care never reached the account')
+ if(process.env.KONO_SHOTS)await bar.screenshot({path:process.env.KONO_SHOTS+'/bond-bar.png'})
+ await bar.getByRole('button',{name:/^Stamp card: /}).click()
+ await page.getByRole('group',{name:'Bond with KONO: 3 of 10 hearts, Pals'}).waitFor()
+ await page.getByText('(1 of 8)',{exact:false}).waitFor()
+ await page.locator('.build-palette').getByLabel('Heart lantern, locked. A friendship gift at 4 hearts.').waitFor()
+ if(process.env.KONO_SHOTS)await page.locator('.build-palette').evaluate(e=>e.closest('.wb-island,.wb-sanctuary-stage')?.scrollIntoView()).then(()=>page.screenshot({path:process.env.KONO_SHOTS+'/bond-presents.png'}))
+ await page.locator('.build-palette').getByRole('button',{name:'Add Heart cushion'}).click()
+ await waitFor(()=>(data().sanctuaryDecor?.[pid]?.placements??[]).some(p=>p.assetId==='gift-cushion'),'the cushion never went on the island')
 })
 test('Planner daily page matches Today’s schedule: the day’s classes as compact cards, the rest under "Also today", ‹ › to step days, and "Back to today" only once you’ve moved away',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId

@@ -10,6 +10,7 @@ import {outfitHow,outfitProgress,type Outfit,type OutfitId,type WardrobeStats} f
 import {FINDS,findHow,findsOffered} from '../store/konoFinds'
 import {FRIENDS,friendHow} from '../store/konoFriends'
 import {CARD_SIZE,PRESENTS,presentHow,type StampCard} from '../store/konoStamps'
+import {GIFTS,giftHow,MAX_HEARTS,type BondLevel} from '../store/konoBond'
 import KonoFace from './KonoFace'
 
 /** Decorate › Wardrobe: KONO's outfits (store/konoWardrobe). */
@@ -33,12 +34,19 @@ const clampCoord=(v:number):number=>Math.min(PLACEMENT_MAX,Math.max(PLACEMENT_MI
 
 const STICKER_HOW:Record<string,string>=Object.fromEntries(STICKERS.map(s=>['sticker-'+s.id,s.how]))
 /** A sticker (Decorate › Stickers) is placeable once it's earned; everything else always is. */
-const FIND_HOW:Record<string,string>=Object.fromEntries([...FINDS.map(f=>['find-'+f.id,findHow(f)]),...FRIENDS.map(f=>['friend-'+f.id,friendHow(f)]),...PRESENTS.map(p=>['present-'+p.id,presentHow(p)])])
+const FIND_HOW:Record<string,string>=Object.fromEntries([...FINDS.map(f=>['find-'+f.id,findHow(f)]),...FRIENDS.map(f=>['friend-'+f.id,friendHow(f)]),...PRESENTS.map(p=>['present-'+p.id,presentHow(p)]),...GIFTS.map(g=>['gift-'+g.id,giftHow(g)])])
 /** Stickers, finds, friends and presents are earned: locked until store/stickers, store/konoFinds,
- * store/konoFriends or store/konoStamps says so (`earned` holds sticker IDs and "find-"/"friend-"/
- * "present-" asset IDs). */
-const isLocked=(assetId:string,earned:Set<string>)=>assetId.startsWith('sticker-')?!earned.has(assetId.slice(8)):/^(find|friend|present)-/.test(assetId)&&!earned.has(assetId)
+ * store/konoFriends, store/konoStamps or store/konoBond says so (`earned` holds sticker IDs and
+ * "find-"/"friend-"/"present-"/"gift-" asset IDs). */
+const isLocked=(assetId:string,earned:Set<string>)=>assetId.startsWith('sticker-')?!earned.has(assetId.slice(8)):/^(find|friend|present|gift)-/.test(assetId)&&!earned.has(assetId)
 const dayLabel=(day:string)=>new Date(day+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})
+/** Decorate › Presents: KONO's bond hearts, how close you two are (only ever grows). */
+function BondView({bond}:{bond:BondLevel}){
+ return <div className="kono-bond" role="group" aria-label={'Bond with KONO: '+bond.level+' of '+MAX_HEARTS+' hearts, '+bond.title}>
+  <p className="kono-bond-hearts" aria-hidden="true">{Array.from({length:MAX_HEARTS},(_,i)=><span key={i} className={i<bond.level?'is-full':''}>{i<bond.level?'💗':'🤍'}</span>)}</p>
+  <p><strong>{bond.title}</strong> · {bond.next===null?'The closest friends there are. ♡':(bond.next-bond.points)+' more for the next heart.'} Your bond grows with everything you do together: finishing work, caring for KONO, wishes, finds and visits.</p>
+ </div>
+}
 /** Decorate › Presents: the stamp card being filled, one paw stamp per day something got finished. */
 function StampCardView({stamps}:{stamps:StampCard}){
  const full=stamps.stamped.length===CARD_SIZE
@@ -50,7 +58,7 @@ function StampCardView({stamps}:{stamps:StampCard}){
 }
 const lockedHow=(assetId:string)=>STICKER_HOW[assetId]??FIND_HOW[assetId]??''
 
-export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCategory,today=localDate(),wardrobe,stamps}:{data:AppData;save:PlannerRepository['update'];phase:PhaseMode;earned?:Set<string>;startCategory?:BuildCategory;today?:string;wardrobe?:WardrobeProps;stamps?:StampCard}){
+export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCategory,today=localDate(),wardrobe,stamps,bond}:{data:AppData;save:PlannerRepository['update'];phase:PhaseMode;earned?:Set<string>;startCategory?:BuildCategory;today?:string;wardrobe?:WardrobeProps;stamps?:StampCard;bond?:BondLevel}){
  const profileId=data.activeProfileId
  const resolvedPhase=useResolvedDayPhase(phase)
  const assetSrc=(asset:BuildAsset):string=>buildAssetSrc(asset,resolvedPhase)
@@ -278,7 +286,7 @@ export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCa
    })()}
    <p className="wb-muted">Tap an item to add it to your island, or drag it on to choose where it lands. Drag a placed item anywhere to move it, or tap it once to select it — then use the controls above to resize, skew, rotate, mirror, duplicate, or remove it. A few items (like signs and the chalkboard) let you write your own text on them, too. Place as many of anything as you like.</p>
    <nav ref={tabsRef} className="build-category-tabs" aria-label="Decoration categories">{BUILD_CATEGORIES.map(c=><button type="button" key={c} aria-current={category===c?'page':undefined} onClick={()=>{setCategory(c);setSelected(null)}}>{BUILD_CATEGORY_LABELS[c]}</button>)}{wardrobe&&<button type="button" aria-current={category==='wardrobe'?'page':undefined} onClick={()=>{setCategory('wardrobe');setSelected(null)}}>Wardrobe</button>}</nav>
-   {category==='presents'&&<>{stamps&&<StampCardView stamps={stamps}/>}<p className="build-sticker-note">Presents from KONO, one for every full stamp card. {PRESENTS.filter(p=>earned.has('present-'+p.id)).length} of {PRESENTS.length} opened.</p></>}
+   {category==='presents'&&<>{stamps&&<StampCardView stamps={stamps}/>}{bond&&<BondView bond={bond}/>}<p className="build-sticker-note">Presents from KONO: one for every full stamp card ({PRESENTS.filter(p=>earned.has('present-'+p.id)).length} of {PRESENTS.length} opened), and a friendship gift for each heart from 3 on ({GIFTS.filter(g=>earned.has('gift-'+g.id)).length} of {GIFTS.length}).</p></>}
    {category==='friends'&&<p className="build-sticker-note">Friends who came to visit after a good week. Once met, they can live on your island. {FRIENDS.filter(f=>earned.has('friend-'+f.id)).length} of {FRIENDS.length} met.</p>}
    {category==='finds'&&<p className="build-sticker-note">Treasures KONO brings back from your focus sessions. Longer sessions find rarer things. {FINDS.filter(f=>earned.has('find-'+f.id)).length} of {offeredFinds.size} found.</p>}
    {category==='stickers'&&<p className="build-sticker-note">Earn stickers by keeping up with your work. {STICKERS.filter(t=>earned.has(t.id)).length} of {STICKERS.filter(t=>stickerOffered(t.id,earned,today)).length} earned.</p>}

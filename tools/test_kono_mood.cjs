@@ -246,8 +246,8 @@ test('Daily wish: finish today’s work (up to 3), get ahead, or be tucked in; p
  const now=new Date('2026-12-15T12:00:00Z')
  let s={profileId:'p',log:[w.wishEvent('2026-10-02'),{id:'w',kind:'wear',at:'2026-10-03T10:00:00.000Z',item:'beanie'},{id:'p1',kind:'pet',at:'2026-10-03T10:00:00.000Z'}]}
  s=careMod.addCareEvent(s,'p',{id:'p2',kind:'pet',at:now.toISOString()},now)
- assert.equal(s.log.map(e=>e.id).join(),'wish-2026-10-02,w,p2')
- assert.equal(careMod.addCareEvent(s,'p',w.wishEvent('2026-10-02'),now).log.length,3,'a wish is saved once')
+ assert.equal(s.log.map(e=>e.id).join(),'wish-2026-10-02,w,p2,bond-2026-12-15','(the pat also marks a day KONO was cared for: store/konoBond)')
+ assert.equal(careMod.addCareEvent(s,'p',w.wishEvent('2026-10-02'),now).log.length,4,'a wish is saved once')
  assert.equal(careMod.readCareState({log:[{id:'w',kind:'wear',at:'2026-10-03T10:00:00Z',item:'ghost'}]},'p').log[0].item,'ghost')
 })
 
@@ -274,7 +274,7 @@ test('Focus finds: 10+ minutes finds something, longer sessions find rarer thing
  // Finds stay in the collection past the month-long trim.
  const now=new Date('2026-12-15T12:00:00Z')
  const s=careMod.addCareEvent({profileId:'p',log:[{id:'a',kind:'find',at:'2026-09-01T10:00:00.000Z',item:'star'}]},'p',{id:'p',kind:'pet',at:now.toISOString()},now)
- assert.equal(s.log.map(e=>e.id).join(),'a,p')
+ assert.equal(s.log.filter(e=>e.kind!=='bond').map(e=>e.id).join(),'a,p')
  assert.equal(careMod.readCareState({log:[{id:'a',kind:'find',at:'2026-09-01T10:00:00Z',item:'star'}]},'p').log[0].item,'star')
 })
 

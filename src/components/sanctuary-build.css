@@ -63,3 +63,8 @@
 .stamp-card li:nth-child(even).is-stamped{transform:rotate(7deg)}
 .stamp-card p{margin:8px 0 0;font-size:.82rem;color:var(--wb-muted)}
 .stamp-card .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* Decorate › Presents: KONO's bond hearts (store/konoBond). */
+.kono-bond{margin:6px 0 2px;padding:8px 12px;border-radius:16px;background:color-mix(in srgb,#e0607a 6%,var(--wb-card,#fff))}
+.kono-bond-hearts{margin:0;display:flex;flex-wrap:wrap;gap:2px;font-size:1.1rem;line-height:1.2}
+.kono-bond-hearts span:not(.is-full){opacity:.55}
+.kono-bond p:last-child{margin:4px 0 0;font-size:.82rem;color:var(--wb-muted)}

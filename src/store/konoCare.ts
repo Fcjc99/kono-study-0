@@ -6,12 +6,12 @@
  * What's saved is a short log of feedings and pats (AppData.konoCare), one entry each with its own
  * ID, so two devices adding to it at the same time merge cleanly. Everything else is worked out from
  * that log, finished assignments and the clock. */
-export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'|'find'|'exam'|'nudge'|'visit'
+export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'|'find'|'exam'|'nudge'|'visit'|'bond'
 /** `item` is the outfit put on for a 'wear' entry ("" = taking it off; store/konoWardrobe), what KONO
  * found for a 'find' entry (store/konoFinds), how a test went for an 'exam' entry, or what was done with
  * the day's nudge for a 'nudge' entry (store/konoNotes). */
 export type CareEvent={id:string;kind:CareKind;at:string;taskId?:string;item?:string}
-const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear','find','exam','nudge','visit']
+const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear','find','exam','nudge','visit','bond']
 export type KonoCareState={profileId:string;log:CareEvent[]}
 export type KonoMeters={full:number;rested:number;happy:number;asleep:boolean;away:boolean}
 export type Treat={id:string;emoji:string;name:string}
@@ -92,17 +92,20 @@ export function careMeters(log:CareEvent[],tasks:Done[],now:Date,away=false):Kon
  * ten minutes of the last one isn't saved. */
 export function addCareEvent(state:KonoCareState|undefined,profileId:string,event:CareEvent,now:Date):KonoCareState{
  const since=now.getTime()-LOG_DAYS*DAY,all=state?.log??[]
- // Granted wishes count toward outfits for good, finds and friends stay in the collection, and the outfit
- // KONO has on stays on: all are kept.
+ // Granted wishes count toward outfits for good, finds and friends stay in the collection, days KONO was
+ // cared for count toward the bond (store/konoBond), and the outfit KONO has on stays on: all are kept.
  const lastWear=all.filter(e=>e.kind==='wear').sort((a,b)=>a.at.localeCompare(b.at)).at(-1)
- const kept=(e:CareEvent)=>e.kind==='wish'||e.kind==='find'||e.kind==='visit'
+ const kept=(e:CareEvent)=>e.kind==='wish'||e.kind==='find'||e.kind==='visit'||e.kind==='bond'
  const log=all.filter(e=>kept(e)||e===lastWear||time(e.at)>=since)
- if((event.kind==='wish'||event.kind==='exam'||event.kind==='nudge'||event.kind==='visit')&&log.some(e=>e.id===event.id))return {profileId,log}
+ if((event.kind==='wish'||event.kind==='exam'||event.kind==='nudge'||event.kind==='visit'||event.kind==='bond')&&log.some(e=>e.id===event.id))return {profileId,log}
  if(event.kind==='pet'){const lastPet=Math.max(-Infinity,...log.filter(e=>e.kind==='pet').map(e=>time(e.at)));if(now.getTime()-lastPet<PET_EVERY_MS)return {profileId,log}}
  if(event.kind==='sleep'&&bedtime(log,now).tucked)return {profileId,log}
  if(event.kind==='wake'&&!bedtime(log,now).canWake)return {profileId,log}
  if(event.kind==='feed'&&event.taskId&&log.some(e=>e.kind==='feed'&&e.taskId===event.taskId))return {profileId,log}
- const next=[...log,event]
+ // The first feeding, pat, tuck-in or wake-up of a day also marks a day KONO was cared for, with a fixed
+ // ID so two devices mark the same day once.
+ const careDay=bondEventId(localDay(now))
+ const next=['feed','pet','sleep','wake'].includes(event.kind)&&!log.some(e=>e.id===careDay)?[...log,event,{id:careDay,kind:'bond' as const,at:event.at}]:[...log,event]
  // Over the cap: drop the oldest everyday entries, never wishes or what KONO is wearing.
  while(next.length>LOG_MAX){const i=next.findIndex(e=>!kept(e)&&e!==event&&!(e.kind==='wear'&&event.kind!=='wear'&&e===lastWear));if(i<0)break;next.splice(i,1)}
  return {profileId,log:next}
@@ -141,6 +144,7 @@ export const AWAY_LINE='KONO just got back from a little trip and missed you! ðŸ
 /** Bedtime and wake-up. From 7 PM KONO can be tucked in (once a night); it then sleeps until morning
  * and the island goes dark. From 6 AM until noon KONO can be woken (once a day) and says what's
  * on today. A night runs 7 PM to 6 AM and belongs to the evening's date. */
+export const bondEventId=(day:string)=>'bond-'+day
 export const localDay=(d:Date)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
 export const nightOf=(d:Date)=>{const x=new Date(d.getTime());if(x.getHours()<6)x.setDate(x.getDate()-1);return localDay(x)}
 const isNight=(d:Date)=>d.getHours()>=19||d.getHours()<6

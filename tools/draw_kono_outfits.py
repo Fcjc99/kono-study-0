@@ -6,9 +6,10 @@ outfit image fits them all (public/garden/kono/outfits/fit.json).
 It also draws the little treasures KONO finds during focus sessions (public/garden/finds), in the same
 style.
 
-It draws KONO's friends (public/garden/friends) and the stamp-card presents (public/garden/presents) too.
+It draws KONO's friends (public/garden/friends), the stamp-card presents (public/garden/presents) and the
+bond hearts' friendship gifts (public/garden/gifts) too.
 
-Run: python3 tools/draw_kono_outfits.py  [--preview out.png] [--finds-preview out.png] [--friends-preview out.png] [--presents-preview out.png]"""
+Run: python3 tools/draw_kono_outfits.py  [--preview out.png] [--finds-preview out.png] [--friends-preview out.png] [--presents-preview out.png] [--gifts-preview out.png]"""
 import json, sys, os
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -439,6 +440,86 @@ def telescope():
 
 PRESENTS = {'kite': kite, 'balloons': balloons, 'teddy': teddy, 'musicbox': musicbox, 'snowglobe': snowglobe, 'basket': basket, 'sailboat': sailboat, 'telescope': telescope}
 
+# --- KONO's friendship gifts (one for each bond heart from 3 on): 24x24-cell keepsakes, same style.
+GIFT_DIR = os.path.join(ROOT, 'public/garden/gifts')
+
+def heart_shape(d, x, y, s, fill):
+    """A pixel heart about s cells wide with its top-left at (x, y)."""
+    r = s // 4
+    d.ellipse((x, y, x + 2 * r + 1, y + 2 * r + 1), fill=fill)
+    d.ellipse((x + 2 * r, y, x + 4 * r + 1, y + 2 * r + 1), fill=fill)
+    d.polygon([(x, y + r + 1), (x + 4 * r + 1, y + r + 1), (x + 2 * r + 0.5, y + 4 * r + 1)], fill=fill)
+
+PINK, PINK2, PINKD = rgb(240, 110, 150), rgb(252, 160, 190), rgb(200, 70, 112)
+def cushion():
+    def draw(d, im):
+        d.rounded_rectangle((1, 5, 22, 21), radius=5, fill=rgb(246, 196, 214))
+        heart_shape(d, 6, 8, 12, PINK)
+        for x, y in ((1, 5), (22, 5), (1, 21), (22, 21)): d.point((x, y), fill=rgb(250, 206, 80))
+    return keepsake(draw, {rgb(246, 196, 214)[:3]: rgb(255, 226, 236), PINK[:3]: PINK2}, {rgb(246, 196, 214)[:3]: rgb(222, 160, 184)})
+def lantern():
+    def draw(d, im):
+        d.line((11, 0, 11, 3), fill=rgb(120, 90, 70))
+        d.rectangle((7, 3, 16, 5), fill=rgb(150, 106, 72))
+        d.rounded_rectangle((5, 5, 18, 20), radius=4, fill=rgb(255, 214, 150))
+        heart_shape(d, 7, 8, 9, PINK)
+        d.rectangle((7, 20, 16, 22), fill=rgb(150, 106, 72))
+    return keepsake(draw, {rgb(255, 214, 150)[:3]: rgb(255, 240, 200)}, {rgb(255, 214, 150)[:3]: rgb(236, 176, 110)})
+def plushie():
+    P, P2, PD = rgb(246, 196, 160), rgb(255, 224, 196), rgb(214, 156, 120)
+    def draw(d, im):
+        for x, y in ((3, 4), (8, 1), (14, 1), (19, 4), (2, 10), (20, 10)): d.ellipse((x - 2, y - 2, x + 2, y + 2), fill=P)
+        d.ellipse((2, 2, 21, 21), fill=P)
+        d.ellipse((5, 20, 9, 23), fill=PD); d.ellipse((14, 20, 18, 23), fill=PD)
+        eyes(d, (7, 10), (14, 10))
+        d.point([(5, 14), (18, 14)], fill=rgb(240, 140, 150)); d.point([(6, 14), (17, 14)], fill=rgb(240, 140, 150))
+        d.line((10, 15, 13, 15), fill=rgb(120, 70, 60))
+        d.rectangle((1, 16, 4, 18), fill=PINK); d.rectangle((19, 16, 22, 18), fill=PINK)
+    return keepsake(draw, {P[:3]: P2}, {P[:3]: PD})
+def bench():
+    W, W2, WD = rgb(196, 140, 92), rgb(222, 176, 126), rgb(150, 100, 62)
+    def draw(d, im):
+        d.rectangle((1, 6, 22, 9), fill=W); d.rectangle((1, 11, 22, 13), fill=W)
+        d.rectangle((0, 15, 23, 17), fill=W)
+        for x in (2, 20): d.rectangle((x, 6, x + 1, 23), fill=WD)
+        heart_shape(d, 9, 0, 6, PINK)
+    return keepsake(draw, {W[:3]: W2}, {W[:3]: WD})
+def wishjar():
+    G, G2 = rgb(200, 230, 240), rgb(236, 250, 255)
+    def draw(d, im):
+        d.rectangle((7, 0, 16, 3), fill=rgb(196, 140, 92))
+        d.rounded_rectangle((3, 3, 20, 23), radius=5, fill=G)
+        import math
+        for i, (x, y) in enumerate(((7, 9), (13, 7), (16, 13), (9, 15), (12, 19), (6, 19), (16, 19))):
+            d.point((x, y), fill=rgb(255, 220, 90)); d.point([(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)], fill=rgb(255, 240, 160))
+        d.line((4, 6, 4, 12), fill=G2)
+    return keepsake(draw, {G[:3]: G2}, {G[:3]: rgb(160, 200, 214)})
+def frame():
+    F, F2, FD = rgb(214, 160, 80), rgb(240, 200, 120), rgb(170, 120, 56)
+    def draw(d, im):
+        d.rectangle((1, 1, 22, 22), fill=F)
+        d.rectangle((4, 4, 19, 19), fill=rgb(200, 232, 246))
+        d.rectangle((4, 15, 19, 19), fill=rgb(150, 210, 120))
+        d.ellipse((4, 10, 10, 16), fill=rgb(246, 196, 160)); eyes(d, (5, 12), (8, 12))
+        d.ellipse((13, 9, 19, 17), fill=rgb(250, 222, 196)); d.pieslice((13, 8, 19, 14), 180, 360, fill=rgb(110, 72, 52)); eyes(d, (14, 12), (17, 12))
+        heart_shape(d, 9, 4, 5, PINK)
+    return keepsake(draw, {F[:3]: F2}, {F[:3]: FD})
+def arch():
+    def draw(d, im):
+        d.arc((1, 1, 22, 30), 180, 360, fill=rgb(110, 180, 100), width=3)
+        d.rectangle((1, 15, 3, 23), fill=rgb(110, 180, 100)); d.rectangle((20, 15, 22, 23), fill=rgb(110, 180, 100))
+        for x, y in ((2, 9), (6, 3), (11, 1), (17, 3), (21, 9), (2, 17), (21, 17)): heart_shape(d, x - 2, y - 2, 5, PINK)
+    return keepsake(draw, {PINK[:3]: PINK2}, {PINK[:3]: PINKD})
+def golden():
+    Y, Y2, YD = rgb(250, 200, 70), rgb(255, 236, 150), rgb(214, 156, 40)
+    def draw(d, im):
+        heart_shape(d, 2, 1, 20, Y)
+        d.rectangle((8, 19, 15, 21), fill=rgb(170, 120, 56)); d.rectangle((6, 21, 17, 23), fill=rgb(150, 100, 50))
+        d.point([(6, 5), (7, 4), (5, 6)], fill=rgb(255, 255, 240))
+    return keepsake(draw, {Y[:3]: Y2}, {Y[:3]: YD})
+
+GIFTS = {'cushion': cushion, 'lantern': lantern, 'plushie': plushie, 'bench': bench, 'wishjar': wishjar, 'frame': frame, 'arch': arch, 'golden': golden}
+
 # --- Costumes that wrap around KONO's shape (a ghost sheet, Frankenstein's hair and bolts) are drawn
 # for each pose from that pose's own silhouette, at full pose size.
 def fur_mask(img):
@@ -631,18 +712,21 @@ def main():
     for fid, fn in FRIENDS.items(): fn().save(os.path.join(FRIEND_DIR, fid + '.webp'), lossless=True)
     os.makedirs(PRESENT_DIR, exist_ok=True)
     for pid, fn in PRESENTS.items(): fn().save(os.path.join(PRESENT_DIR, pid + '.webp'), lossless=True)
+    os.makedirs(GIFT_DIR, exist_ok=True)
+    for gid, fn in GIFTS.items(): fn().save(os.path.join(GIFT_DIR, gid + '.webp'), lossless=True)
     # The build only ships files listed in tools/public-allowlist.json: keep the outfit art listed.
     allow_path = os.path.join(ROOT, 'tools/public-allowlist.json')
-    allow = [p for p in json.load(open(allow_path)) if not p.startswith(('/garden/kono/outfits/', '/garden/finds/', '/garden/friends/', '/garden/presents/'))]
-    art = sorted('/' + os.path.relpath(os.path.join(d, f), os.path.join(ROOT, 'public')).replace(os.sep, '/') for base in (OUT_DIR, FIND_DIR, FRIEND_DIR, PRESENT_DIR) for d, _, fs in os.walk(base) for f in fs if f.endswith('.webp'))
+    allow = [p for p in json.load(open(allow_path)) if not p.startswith(('/garden/kono/outfits/', '/garden/finds/', '/garden/friends/', '/garden/presents/', '/garden/gifts/'))]
+    art = sorted('/' + os.path.relpath(os.path.join(d, f), os.path.join(ROOT, 'public')).replace(os.sep, '/') for base in (OUT_DIR, FIND_DIR, FRIEND_DIR, PRESENT_DIR, GIFT_DIR) for d, _, fs in os.walk(base) for f in fs if f.endswith('.webp'))
     at = max((i for i, p in enumerate(allow) if p.startswith('/garden/kono/')), default=len(allow) - 1) + 1
     allow = allow[:at] + art + allow[at:]
     json.dump(allow, open(allow_path, 'w'), indent=1); open(allow_path, 'a').write('\n')
-    if '--presents-preview' in sys.argv:
-        out = sys.argv[sys.argv.index('--presents-preview') + 1]
-        sheet = Image.new('RGBA', (120 * len(PRESENTS), 130), (250, 244, 236, 255))
-        for i, pid in enumerate(PRESENTS):
-            im = Image.open(os.path.join(PRESENT_DIR, pid + '.webp')); sheet.alpha_composite(im, (i * 120 + (120 - im.width) // 2, (130 - im.height) // 2))
+    for flag, items, folder in (('--presents-preview', PRESENTS, PRESENT_DIR), ('--gifts-preview', GIFTS, GIFT_DIR)):
+        if flag not in sys.argv: continue
+        out = sys.argv[sys.argv.index(flag) + 1]
+        sheet = Image.new('RGBA', (120 * len(items), 130), (250, 244, 236, 255))
+        for i, pid in enumerate(items):
+            im = Image.open(os.path.join(folder, pid + '.webp')).convert('RGBA'); sheet.alpha_composite(im, (i * 120 + (120 - im.width) // 2, (130 - im.height) // 2))
         sheet.save(out)
     if '--friends-preview' in sys.argv:
         out = sys.argv[sys.argv.index('--friends-preview') + 1]

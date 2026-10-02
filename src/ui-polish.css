@@ -406,3 +406,7 @@ button.kono-mood-face:focus-visible{outline:2px solid var(--accent,#6d8f6b);outl
 .kono-mood .kono-feed.is-favorite{box-shadow:inset 0 0 0 2px color-mix(in srgb,#e0607a 55%,transparent)!important}
 .kono-fav{color:#e0607a;font-weight:800}
 @media(prefers-reduced-motion:reduce){.kono-mood-face.is-tickle img,.kono-react,.kono-react.is-wave{animation:none}}
+/* Bond hearts (store/konoBond): from 2 hearts a pat sends up a little heart. */
+.kono-react.is-heart{animation:kono-react-pop .4s ease-out both,kono-heart-float 1.4s .3s ease-out both}
+@keyframes kono-heart-float{to{transform:translateY(-14px);opacity:0}}
+@media(prefers-reduced-motion:reduce){.kono-react.is-heart{animation:none}}
