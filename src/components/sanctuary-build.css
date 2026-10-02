@@ -55,3 +55,11 @@
 .build-palette-item.is-locked .build-palette-thumb{position:relative}
 .build-palette-item.is-locked img{filter:grayscale(1) opacity(.7)}
 .build-palette-item.is-locked i{position:absolute;inset:auto 0 0 auto;font-style:normal;font-size:.9rem}
+/* Decorate › Presents: KONO's stamp card (store/konoStamps), a paw stamp per day something got finished. */
+.stamp-card{margin:6px 0 2px;padding:10px 12px;border-radius:16px;border:2px dashed color-mix(in srgb,var(--wb-accent,#c987a2) 45%,transparent);background:color-mix(in srgb,var(--wb-accent,#c987a2) 7%,var(--wb-card,#fff))}
+.stamp-card ol{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:0;padding:0;list-style:none}
+.stamp-card li{aspect-ratio:1;max-width:46px;width:100%;justify-self:center;display:grid;place-items:center;border-radius:50%;border:2px dotted color-mix(in srgb,var(--wb-muted,#8a7a80) 55%,transparent);font-size:.78rem;color:var(--wb-muted)}
+.stamp-card li.is-stamped{border:2px solid color-mix(in srgb,#e0607a 70%,transparent);background:color-mix(in srgb,#e0607a 12%,transparent);font-size:1.25rem;transform:rotate(-8deg)}
+.stamp-card li:nth-child(even).is-stamped{transform:rotate(7deg)}
+.stamp-card p{margin:8px 0 0;font-size:.82rem;color:var(--wb-muted)}
+.stamp-card .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

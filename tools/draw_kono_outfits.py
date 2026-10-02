@@ -6,7 +6,9 @@ outfit image fits them all (public/garden/kono/outfits/fit.json).
 It also draws the little treasures KONO finds during focus sessions (public/garden/finds), in the same
 style.
 
-Run: python3 tools/draw_kono_outfits.py  [--preview out.png] [--finds-preview out.png]"""
+It draws KONO's friends (public/garden/friends) and the stamp-card presents (public/garden/presents) too.
+
+Run: python3 tools/draw_kono_outfits.py  [--preview out.png] [--finds-preview out.png] [--friends-preview out.png] [--presents-preview out.png]"""
 import json, sys, os
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -350,6 +352,93 @@ def turtle():
 
 FRIENDS = {'cat': cat, 'duck': duck, 'frog': frog, 'bunny': bunny, 'hedgehog': hedgehog, 'fox': fox, 'owl': owl, 'turtle': turtle}
 
+# --- KONO's presents (one for every 7 stamps on the stamp card): 24x24-cell keepsakes, same style.
+PRESENT_DIR = os.path.join(ROOT, 'public/garden/presents')
+
+def keepsake(draw, light=None, dark=None):
+    im = blank(24, 24); draw(ImageDraw.Draw(im), im)
+    return finish(im, light, dark)
+
+def kite():
+    R, R2, RD, Y, B = rgb(236, 92, 110), rgb(250, 140, 150), rgb(196, 60, 84), rgb(252, 210, 90), rgb(110, 170, 230)
+    def draw(d, im):
+        d.polygon([(11, 0), (19, 7), (11, 16), (4, 7)], fill=R)
+        d.polygon([(11, 0), (19, 7), (11, 7)], fill=Y)
+        d.polygon([(4, 7), (11, 16), (11, 7)], fill=B)
+        d.line((11, 16, 13, 19), fill=RD); d.line((13, 19, 10, 22), fill=RD)
+        for x, y in ((13, 19), (10, 22)): d.rectangle((x - 1, y - 1, x + 1, y), fill=Y)
+    return keepsake(draw, {R[:3]: R2}, {R[:3]: RD})
+def balloons():
+    P, P2, PD, T, T2, Y, Y2 = rgb(240, 120, 160), rgb(252, 170, 200), rgb(204, 80, 124), rgb(110, 200, 200), rgb(170, 232, 228), rgb(250, 206, 80), rgb(255, 236, 150)
+    def draw(d, im):
+        S = rgb(150, 120, 110)
+        d.line((6, 10, 11, 22), fill=S); d.line((17, 9, 12, 22), fill=S); d.line((12, 12, 12, 22), fill=S)
+        d.ellipse((1, 1, 10, 11), fill=P); d.ellipse((13, 0, 22, 10), fill=T); d.ellipse((7, 4, 16, 14), fill=Y)
+        d.rectangle((10, 21, 13, 23), fill=rgb(236, 92, 110))
+    return keepsake(draw, {P[:3]: P2, T[:3]: T2, Y[:3]: Y2}, {P[:3]: PD})
+def teddy():
+    B, B2, BD, M = rgb(196, 140, 92), rgb(222, 176, 126), rgb(160, 106, 64), rgb(244, 214, 176)
+    def draw(d, im):
+        d.ellipse((3, 0, 8, 5), fill=B); d.ellipse((15, 0, 20, 5), fill=B)
+        d.ellipse((4, 1, 19, 13), fill=B)
+        d.ellipse((5, 11, 18, 23), fill=B)
+        d.ellipse((1, 13, 6, 19), fill=B); d.ellipse((17, 13, 22, 19), fill=B)
+        d.ellipse((8, 15, 15, 21), fill=M); d.ellipse((9, 7, 14, 12), fill=M)
+        d.rectangle((11, 8, 12, 9), fill=rgb(70, 44, 36))
+        eyes(d, (8, 5), (14, 5))
+        d.rectangle((8, 11, 15, 12), fill=rgb(236, 92, 110))
+    return keepsake(draw, {B[:3]: B2}, {B[:3]: BD})
+def musicbox():
+    W, W2, WD, G, P = rgb(214, 150, 110), rgb(236, 184, 140), rgb(170, 108, 76), rgb(250, 206, 80), rgb(246, 180, 200)
+    def draw(d, im):
+        d.rectangle((2, 12, 21, 22), fill=W)
+        d.polygon([(2, 12), (21, 12), (19, 4), (4, 4)], fill=P)
+        d.rectangle((2, 11, 21, 12), fill=G)
+        d.rectangle((9, 15, 14, 19), fill=G)
+        d.line((22, 16, 23, 16), fill=G); d.rectangle((23, 14, 23, 18), fill=G)
+        d.ellipse((10, 0, 13, 3), fill=rgb(255, 250, 244))
+    return keepsake(draw, {W[:3]: W2}, {W[:3]: WD})
+def snowglobe():
+    G, G2, BS, BS2, BSD = rgb(186, 226, 246), rgb(232, 248, 255), rgb(150, 96, 70), rgb(186, 128, 92), rgb(112, 70, 50)
+    def draw(d, im):
+        d.ellipse((2, 0, 21, 19), fill=G)
+        d.polygon([(11, 6), (15, 13), (7, 13)], fill=rgb(80, 160, 100)); d.polygon([(11, 9), (16, 16), (6, 16)], fill=rgb(80, 160, 100))
+        d.rectangle((3, 16, 20, 17), fill=rgb(255, 255, 255))
+        for x, y in ((6, 5), (15, 4), (17, 9), (5, 11), (10, 3)): d.point((x, y), fill=rgb(255, 255, 255))
+        d.rectangle((3, 18, 20, 23), fill=BS)
+        d.line((5, 20, 18, 20), fill=rgb(250, 206, 80))
+    return keepsake(draw, {G[:3]: G2, BS[:3]: BS2}, {BS[:3]: BSD})
+def basket():
+    W, W2, WD, R = rgb(206, 156, 92), rgb(232, 192, 128), rgb(164, 116, 62), rgb(228, 80, 86)
+    def draw(d, im):
+        d.arc((4, 0, 19, 16), 180, 360, fill=WD, width=2)
+        d.polygon([(1, 9), (22, 9), (20, 22), (3, 22)], fill=W)
+        for y in (13, 17): d.line((3, y, 20, y), fill=WD)
+        for x in range(4, 21, 4): d.line((x, 10, x, 21), fill=WD)
+        for x in range(1, 23, 4): d.rectangle((x, 8, x + 1, 10), fill=R); d.rectangle((x + 2, 8, x + 3, 10), fill=rgb(255, 250, 244))
+        d.ellipse((14, 4, 19, 9), fill=rgb(222, 60, 70)); d.point((16, 3), fill=rgb(90, 140, 70))
+    return keepsake(draw, {W[:3]: W2}, {W[:3]: WD})
+def sailboat():
+    H, H2, HD, S, S2 = rgb(120, 168, 230), rgb(166, 204, 246), rgb(80, 124, 196), rgb(250, 246, 236), rgb(255, 255, 255)
+    def draw(d, im):
+        d.line((11, 1, 11, 16), fill=rgb(150, 106, 72))
+        d.polygon([(12, 2), (20, 15), (12, 15)], fill=S)
+        d.polygon([(10, 5), (10, 15), (4, 15)], fill=rgb(246, 180, 200))
+        d.polygon([(1, 16), (22, 16), (18, 22), (5, 22)], fill=H)
+        d.rectangle((12, 1, 15, 2), fill=rgb(236, 92, 110))
+    return keepsake(draw, {H[:3]: H2, S[:3]: S2}, {H[:3]: HD})
+def telescope():
+    T, T2, TD, L = rgb(110, 120, 200), rgb(160, 168, 236), rgb(76, 82, 156), rgb(250, 206, 80)
+    def draw(d, im):
+        d.line((8, 14, 3, 23), fill=rgb(150, 106, 72), width=2); d.line((12, 14, 12, 23), fill=rgb(150, 106, 72), width=2); d.line((14, 14, 19, 23), fill=rgb(150, 106, 72), width=2)
+        d.polygon([(2, 12), (19, 2), (22, 7), (5, 16)], fill=T)
+        d.polygon([(17, 3), (20, 1), (23, 6), (20, 8)], fill=L)
+        d.line((9, 9, 11, 12), fill=L)
+        d.ellipse((9, 11, 13, 15), fill=TD)
+    return keepsake(draw, {T[:3]: T2}, {T[:3]: TD})
+
+PRESENTS = {'kite': kite, 'balloons': balloons, 'teddy': teddy, 'musicbox': musicbox, 'snowglobe': snowglobe, 'basket': basket, 'sailboat': sailboat, 'telescope': telescope}
+
 # --- Costumes that wrap around KONO's shape (a ghost sheet, Frankenstein's hair and bolts) are drawn
 # for each pose from that pose's own silhouette, at full pose size.
 def fur_mask(img):
@@ -540,13 +629,21 @@ def main():
     for fid, fn in FINDS.items(): fn().save(os.path.join(FIND_DIR, fid + '.webp'), lossless=True)
     os.makedirs(FRIEND_DIR, exist_ok=True)
     for fid, fn in FRIENDS.items(): fn().save(os.path.join(FRIEND_DIR, fid + '.webp'), lossless=True)
+    os.makedirs(PRESENT_DIR, exist_ok=True)
+    for pid, fn in PRESENTS.items(): fn().save(os.path.join(PRESENT_DIR, pid + '.webp'), lossless=True)
     # The build only ships files listed in tools/public-allowlist.json: keep the outfit art listed.
     allow_path = os.path.join(ROOT, 'tools/public-allowlist.json')
-    allow = [p for p in json.load(open(allow_path)) if not p.startswith(('/garden/kono/outfits/', '/garden/finds/', '/garden/friends/'))]
-    art = sorted('/' + os.path.relpath(os.path.join(d, f), os.path.join(ROOT, 'public')).replace(os.sep, '/') for base in (OUT_DIR, FIND_DIR, FRIEND_DIR) for d, _, fs in os.walk(base) for f in fs if f.endswith('.webp'))
+    allow = [p for p in json.load(open(allow_path)) if not p.startswith(('/garden/kono/outfits/', '/garden/finds/', '/garden/friends/', '/garden/presents/'))]
+    art = sorted('/' + os.path.relpath(os.path.join(d, f), os.path.join(ROOT, 'public')).replace(os.sep, '/') for base in (OUT_DIR, FIND_DIR, FRIEND_DIR, PRESENT_DIR) for d, _, fs in os.walk(base) for f in fs if f.endswith('.webp'))
     at = max((i for i, p in enumerate(allow) if p.startswith('/garden/kono/')), default=len(allow) - 1) + 1
     allow = allow[:at] + art + allow[at:]
     json.dump(allow, open(allow_path, 'w'), indent=1); open(allow_path, 'a').write('\n')
+    if '--presents-preview' in sys.argv:
+        out = sys.argv[sys.argv.index('--presents-preview') + 1]
+        sheet = Image.new('RGBA', (120 * len(PRESENTS), 130), (250, 244, 236, 255))
+        for i, pid in enumerate(PRESENTS):
+            im = Image.open(os.path.join(PRESENT_DIR, pid + '.webp')); sheet.alpha_composite(im, (i * 120 + (120 - im.width) // 2, (130 - im.height) // 2))
+        sheet.save(out)
     if '--friends-preview' in sys.argv:
         out = sys.argv[sys.argv.index('--friends-preview') + 1]
         sheet = Image.new('RGBA', (140 * len(FRIENDS), 130), (250, 244, 236, 255))
