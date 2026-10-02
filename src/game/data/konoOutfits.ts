@@ -28,6 +28,7 @@ export const POSE_HEADS:Record<string,PoseHead>={
 /** Each outfit's size in sprite pixels (drawn at KONO's own pixel size), how far it sinks into the fluffy
  * top (share of its height) and any sideways nudge (share of the head's width). */
 export const OUTFIT_FITS:Record<string,OutfitFit>={
+  headband: {px: [184, 64], sink: 0.62, nudge: 0},
   beanie: {px: [144, 104], sink: 0.48, nudge: 0},
   sunhat: {px: [200, 88], sink: 0.38, nudge: 0},
   gradcap: {px: [176, 96], sink: 0.4, nudge: 0},
