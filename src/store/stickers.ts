@@ -22,6 +22,12 @@ export const SEASONS:Season[]=[
   {id:'winter-cookie',emoji:'🍪',label:'Cookie',how:'Finish an assignment 2 days early between December 1 and January 6.',rule:'early'},
   {id:'winter-snowflake',emoji:'❄️',label:'Snowflake',how:'Finish 10 assignments between December 1 and January 6.',rule:'finish-10'},
  ]},
+ {id:'valentine',label:'Valentine’s week',emoji:'💝',from:'02-01',to:'02-14',until:'Feb 14',stickers:[
+  {id:'valentine-heart',emoji:'💗',label:'Heart',how:'Finish an assignment during Valentine’s week (February 1–14).',rule:'finish'},
+  {id:'valentine-card',emoji:'💌',label:'Love note',how:'Study 3 days in a row during Valentine’s week.',rule:'streak-3'},
+  {id:'valentine-chocolate',emoji:'🍫',label:'Chocolate',how:'Finish an assignment 2 days early during Valentine’s week.',rule:'early'},
+  {id:'valentine-rose',emoji:'🌹',label:'Rose',how:'Finish 10 assignments during Valentine’s week.',rule:'finish-10'},
+ ]},
 ]
 const inSeason=(season:Season,date:string)=>{const md=date.slice(5);return season.from<=season.to?md>=season.from&&md<=season.to:md>=season.from||md<=season.to}
 /** The island event running on this date, if any. */

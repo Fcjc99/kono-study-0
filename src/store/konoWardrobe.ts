@@ -1,15 +1,17 @@
 import type {CareEvent} from './konoCare'
 import {addDays} from './studyScheduler'
+import {inSeasonWindow,SEASON_IDS,SEASON_WINDOWS,type SeasonId} from './seasonWindows'
 
 /** KONO's wardrobe (Decorate › Wardrobe) and daily wish. Outfits are earned two ways: finishing
  * assignments (the island's lifetime count, so it never goes down) and granting KONO's daily wishes.
  * KONO wears one outfit at a time, on the island and in the KONO today card; the art and how it sits
  * on every pose come from tools/draw_kono_outfits.py. */
-export type OutfitId='beanie'|'bow'|'sunhat'|'chef'|'flowers'|'gradcap'|'wizard'|'crown'|'witch'|'ghost'|'frankenstein'
-/** How an outfit is earned: assignments finished or wishes granted, ever, or (Halloween costumes) in
- * an October. Halloween costumes only show in the wardrobe in October, or once earned. */
-export type Outfit={id:OutfitId;name:string;by:'finished'|'wishes';count:number;october?:boolean}
-export type WardrobeStats={finished:number;wishes:number;octoberFinished:number;octoberWishes:number}
+export type OutfitId='beanie'|'bow'|'sunhat'|'chef'|'flowers'|'gradcap'|'wizard'|'crown'|'witch'|'ghost'|'frankenstein'|'earmuffs'|'heartband'
+/** How an outfit is earned: assignments finished or wishes granted, ever, or (seasonal outfits: the
+ * Halloween costumes, winter earmuffs, the Valentine's heart headband) during that season, any year.
+ * Seasonal outfits only show in the wardrobe in their season, or once earned (store/seasonWindows). */
+export type Outfit={id:OutfitId;name:string;by:'finished'|'wishes';count:number;season?:SeasonId}
+export type WardrobeStats={finished:number;wishes:number;seasonFinished:Record<SeasonId,number>;seasonWishes:Record<SeasonId,number>}
 
 export const OUTFITS:Outfit[]=[
  {id:'beanie',name:'Cozy beanie',by:'wishes',count:1},
@@ -20,27 +22,29 @@ export const OUTFITS:Outfit[]=[
  {id:'gradcap',name:'Graduation cap',by:'finished',count:25},
  {id:'wizard',name:'Wizard hat',by:'wishes',count:14},
  {id:'crown',name:'Golden crown',by:'finished',count:50},
- {id:'witch',name:'Witch hat',by:'finished',count:2,october:true},
- {id:'ghost',name:'Ghost costume',by:'finished',count:6,october:true},
- {id:'frankenstein',name:'Frankenstein',by:'wishes',count:3,october:true},
+ {id:'witch',name:'Witch hat',by:'finished',count:2,season:'halloween'},
+ {id:'ghost',name:'Ghost costume',by:'finished',count:6,season:'halloween'},
+ {id:'frankenstein',name:'Frankenstein',by:'wishes',count:3,season:'halloween'},
+ {id:'earmuffs',name:'Fluffy earmuffs',by:'finished',count:3,season:'winter'},
+ {id:'heartband',name:'Heart headband',by:'wishes',count:2,season:'valentine'},
 ]
 export const outfitHow=(o:Outfit)=>{
- const when=o.october?' in October':''
+ const when=o.season?' '+SEASON_WINDOWS[o.season].when:''
  return o.by==='finished'?'Finish '+o.count+' assignments'+when+'.':o.count===1?'Grant KONO’s wish once'+when+'.':'Grant '+o.count+' of KONO’s wishes'+when+'.'
 }
-const progressOf=(o:Outfit,s:WardrobeStats)=>o.october?(o.by==='finished'?s.octoberFinished:s.octoberWishes):(o.by==='finished'?s.finished:s.wishes)
+const progressOf=(o:Outfit,s:WardrobeStats)=>o.season?(o.by==='finished'?s.seasonFinished[o.season]:s.seasonWishes[o.season])??0:(o.by==='finished'?s.finished:s.wishes)
 export const outfitProgress=(o:Outfit,s:WardrobeStats)=>Math.min(o.count,progressOf(o,s))
 export function unlockedOutfits(s:WardrobeStats):Set<OutfitId>{
  return new Set(OUTFITS.filter(o=>progressOf(o,s)>=o.count).map(o=>o.id))
 }
-/** What the wardrobe shows: everything, except Halloween costumes outside October unless earned. */
-export const outfitsOffered=(unlocked:Set<OutfitId>,today:string)=>OUTFITS.filter(o=>!o.october||today.slice(5,7)==='10'||unlocked.has(o.id))
+/** What the wardrobe shows: everything, except seasonal outfits outside their season unless earned. */
+export const outfitsOffered=(unlocked:Set<OutfitId>,today:string)=>OUTFITS.filter(o=>!o.season||inSeasonWindow(o.season,today)||unlocked.has(o.id))
 /** The counts outfits are earned by. `finished` is the island's lifetime count (it never goes down). */
 export function wardrobeStats(finished:number,tasks:Item[],log:CareEvent[]):WardrobeStats{
  const wishDays=[...new Set(log.filter(e=>e.kind==='wish').map(e=>e.id.slice(5)))]
- return {finished,wishes:wishDays.length,
-  octoberFinished:tasks.filter(t=>t.done&&t.completedAt&&localDay(t.completedAt).slice(5,7)==='10').length,
-  octoberWishes:wishDays.filter(d=>d.slice(5,7)==='10').length}
+ const doneDays=tasks.filter(t=>t.done&&t.completedAt).map(t=>localDay(t.completedAt!))
+ const per=(days:string[])=>Object.fromEntries(SEASON_IDS.map(id=>[id,days.filter(d=>inSeasonWindow(id,d)).length])) as Record<SeasonId,number>
+ return {finished,wishes:wishDays.length,seasonFinished:per(doneDays),seasonWishes:per(wishDays)}
 }
 /** The outfit KONO has on: the latest pick ("" means none), if it's still unlocked. */
 export function wornOutfit(log:CareEvent[],unlocked:Set<OutfitId>):OutfitId|null{

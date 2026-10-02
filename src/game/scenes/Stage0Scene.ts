@@ -32,7 +32,8 @@ import { KonoInteractionSystem, type KonoLandmarkId } from '../systems/KonoInter
 import { KonoMascotSystem } from '../systems/KonoMascotSystem'
 import { HalloweenSystem } from '../systems/HalloweenSystem'
 import { VisitorSystem } from '../systems/VisitorSystem'
-import { islandMapPath, type IslandSeason } from '../sanctuary/season'
+import { WinterSystem } from '../systems/WinterSystem'
+import { islandMapPath, isIslandSeason, type IslandSeason } from '../sanctuary/season'
 import { mascotObstacles } from '../data/buildAssets'
 import type { BuildPlacement } from '../../store/model'
 import { EvolutionCoordinator, type EvolutionStageChange } from '../evolution/EvolutionCoordinator'
@@ -79,6 +80,7 @@ export default class Stage0Scene extends Phaser.Scene {
   private konoInteractions!: KonoInteractionSystem
   private konoMascot!: KonoMascotSystem
   private halloween: HalloweenSystem | null = null
+  private winter: WinterSystem | null = null
   private visitor: VisitorSystem | null = null
   private season: IslandSeason | null = null
   private fluid!: FluidSystem
@@ -194,6 +196,10 @@ export default class Stage0Scene extends Phaser.Scene {
       this.halloween = new HalloweenSystem(this)
       this.halloween.create(this.blend.dominant, this.settings.reducedMotion)
     }
+    if (this.season === 'winter' || this.season === 'valentine') {
+      this.winter = new WinterSystem(this)
+      this.winter.create(this.blend.dominant, this.settings.reducedMotion, this.season === 'valentine')
+    }
     this.visitor = new VisitorSystem(this)
     this.visitor.create(this.registry.get('sanctuaryVisitor') ?? null, this.blend.dominant, this.settings.reducedMotion)
     this.evolutionCoordinator = new EvolutionCoordinator(
@@ -228,7 +234,8 @@ export default class Stage0Scene extends Phaser.Scene {
     const quality = this.registry.get('sanctuaryQuality')
     const progress = this.registry.get('sanctuaryProgress')
     const decorations = this.registry.get('sanctuaryDecorations')
-    this.season = this.registry.get('sanctuarySeason') === 'halloween' ? 'halloween' : null
+    const season = this.registry.get('sanctuarySeason')
+    this.season = isIslandSeason(season) ? season : null
 
     if (isPhaseMode(phaseMode)) this.settings.phaseMode = phaseMode
     if (isSanctuaryWeather(weather)) this.settings.weather = weather
@@ -361,6 +368,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.konoInteractions.setReducedMotion(reducedMotion)
     this.konoMascot.setReducedMotion(reducedMotion)
     this.halloween?.setReducedMotion(reducedMotion)
+    this.winter?.setReducedMotion(reducedMotion)
     this.visitor?.setReducedMotion(reducedMotion)
     this.evolutionCoordinator.setReducedMotion(reducedMotion)
     this.rescheduleAmbientSystems()
@@ -464,6 +472,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.critters.setPhase(nextBlend.dominant)
     this.konoMascot?.setPhase(nextBlend.dominant)
     this.halloween?.setPhase(nextBlend.dominant)
+    this.winter?.setPhase(nextBlend.dominant)
     this.visitor?.setPhase(nextBlend.dominant)
     this.emitState()
   }
@@ -697,6 +706,7 @@ export default class Stage0Scene extends Phaser.Scene {
     this.konoInteractions.resize(this.sceneBounds)
     this.konoMascot.resize(this.sceneBounds)
     this.halloween?.resize(this.sceneBounds)
+    this.winter?.resize(this.sceneBounds)
     this.visitor?.resize(this.sceneBounds)
     this.evolutionCoordinator.resize(this.sceneBounds)
   }
@@ -749,6 +759,8 @@ export default class Stage0Scene extends Phaser.Scene {
     this.konoInteractions.destroy()
     this.konoMascot.destroy()
     this.halloween?.destroy()
+    this.winter?.destroy()
+    this.winter = null
     this.visitor?.destroy()
     this.visitor = null
     this.fluid.destroy()

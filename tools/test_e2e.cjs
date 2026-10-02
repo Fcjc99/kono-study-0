@@ -1603,6 +1603,39 @@ test('Halloween island: all of October the island has its spooky look (with its 
  assert.ok(!maps.some(([p])=>p.includes('/halloween/')))
 })
 
+test('Winter island: from December 1 the island is under snow (with its own quick picture), Valentine’s week keeps the snow and brings its own stickers, and KONO’s winter earmuffs and heart headband show in the wardrobe',async({context,page})=>{
+ const cloud=fakeCloud(),maps=[]
+ page.on('response',r=>{const u=new URL(r.url());if(/\/garden\/terrace-23\.0\//.test(u.pathname))maps.push([u.pathname,r.status()])})
+ await page.clock.setFixedTime(new Date('2026-12-15T21:30:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await islandLoaded(page)
+ assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/winter/night.webp'&&st===200),'the winter night island loads: '+JSON.stringify(maps))
+ assert.ok(!maps.some(([p])=>p==='/garden/terrace-23.0/night.webp'),'not the regular one')
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(5000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/winter-island-night.png'})}
+ await page.getByRole('button',{name:'Decorate'}).click()
+ await page.getByRole('navigation',{name:'Decoration categories'}).getByRole('button',{name:'Wardrobe',exact:true}).click()
+ await page.getByLabel('Fluffy earmuffs, locked. Finish 3 assignments between December 1 and February 14.').waitFor()
+ assert.equal(await page.getByLabel(/^Heart headband/).count(),0,'the heart headband waits for Valentine’s week')
+ // Valentine's week: still the winter island, with Valentine's stickers.
+ maps.length=0
+ await page.clock.setFixedTime(new Date('2027-02-10T15:00:00'))
+ await page.reload();await heading(page,'Sanctuary')
+ await islandLoaded(page)
+ assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/winter/afternoon.webp'&&st===200),'Valentine’s week keeps the snow: '+JSON.stringify(maps))
+ await page.getByText(/Valentine’s week: 0\/4 special stickers until Feb 14/).waitFor()
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(4000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/valentine-island.png'})}
+ await page.getByRole('button',{name:'Decorate'}).click()
+ await page.getByRole('navigation',{name:'Decoration categories'}).getByRole('button',{name:'Wardrobe',exact:true}).click()
+ await page.getByLabel('Heart headband, locked. Grant 2 of KONO’s wishes during Valentine’s week (February 1–14).').waitFor()
+ // After February 14 it's the regular island again.
+ maps.length=0
+ await page.clock.setFixedTime(new Date('2027-02-20T15:00:00'))
+ await page.reload();await heading(page,'Sanctuary')
+ await islandLoaded(page)
+ assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/afternoon.webp'&&st===200),'after Valentine’s week the regular island is back: '+JSON.stringify(maps))
+ assert.ok(!maps.some(([p])=>p.includes('/winter/')))
+})
 test('Halloween on the island: in October KONO wears a pumpkin, a banner counts the 4 spooky stickers, finishing work earns the Pumpkin, and it goes on the island',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
  // No test that day (on a test day KONO wears its study headband instead of the pumpkin).
