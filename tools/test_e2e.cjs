@@ -1843,6 +1843,35 @@ test('KONO’s notes: good luck the evening before a test, the study headband on
  assert.equal(await page.getByRole('dialog').count(),dialogs,'nothing pops up')
 })
 
+test('KONO’s taps: coming back after a while gets a wave, a tap right after finishing something is a high five, three quick taps tickle, and the Feed button knows this week’s favorite snack',async({context,page})=>{
+ const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId,now=new Date('2026-10-12T16:00:00')
+ for(const e of cloud.users.alice.plan.data.exams)e.due='2026-10-20'
+ await page.clock.setFixedTime(now)
+ await context.addInitScript(([key,value])=>{if(!sessionStorage.getItem('seeded')){localStorage.setItem(key,value);sessionStorage.setItem('seeded','1')}},['kono-last-visit:'+pid,String(now.getTime()-3*3_600_000)])
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const bar=page.getByRole('region',{name:'KONO today'}),face=bar.getByRole('button',{name:'Pet KONO'})
+ // Back after three hours: a wave hello.
+ await bar.getByText('👋 Welcome back! KONO missed you.').waitFor()
+ await bar.locator('.kono-react.is-wave').waitFor()
+ await bar.getByText('👋 Welcome back! KONO missed you.').waitFor({state:'detached',timeout:8000})
+ // Finish something, then tap KONO: a high five (once for it).
+ await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.tasks.find(t=>t.title==='Read chapter 3')?.done===true,'finished')
+ await page.waitForTimeout(600)
+ await face.click()
+ await bar.getByText('✋ High five! Nice work on Read chapter 3!').waitFor()
+ await bar.locator('.kono-react.is-highfive').waitFor()
+ // The Feed button says what this week's favorite is.
+ assert.match(await bar.locator('.kono-feed').getAttribute('title'),/favorite this week/)
+ await page.waitForTimeout(3800)
+ // Three quick taps: a tickle.
+ for(let i=0;i<3;i++)await face.click({delay:20})
+ await bar.getByText(/^(Hehe! That tickles!|Ahaha! Stop, stop!|KONO giggles and wiggles all over!)/).waitFor()
+ await bar.locator('.kono-mood-face.is-tickle').waitFor()
+ if(process.env.KONO_SHOTS)await bar.screenshot({path:process.env.KONO_SHOTS+'/kono-tickle.png'})
+})
+
 test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in the card, a pat makes KONO happy, and both reach the account without anything popping up',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
  await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
@@ -1873,7 +1902,8 @@ test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in th
  if(!snacksBefore)assert.equal(await feed.count(),0,'the one snack is eaten, so the chip goes away')
  await today.getByRole('button',{name:'Pet KONO'}).click()
  await waitFor(()=>cloud.users.alice.plan.data.konoCare[pid].log.some(e=>e.kind==='pet'),'the pat never reached the account')
- await today.getByText(/KONO (giggles|leans|does a happy)/).waitFor()
+ // (Work was just finished, so this tap is a high five; it still counts as a pat.)
+ await today.getByText(/KONO (giggles|leans|does a happy)|^✋ High five!/).waitFor()
  assert.ok(await value('Happy')>happyBefore,'pats and snacks make KONO happier')
  await today.getByRole('button',{name:'Pet KONO'}).click()
  await page.waitForTimeout(500)

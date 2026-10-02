@@ -395,3 +395,14 @@ button.kono-mood-face:focus-visible{outline:2px solid var(--accent,#6d8f6b);outl
 .kono-note-choices{display:inline-flex;gap:4px}
 .kono-mood .kono-note-choices button{padding:1px 8px!important;min-height:24px!important;line-height:1.1!important;font-size:.8rem!important;border-radius:999px!important}
 .kono-note.is-ask .kono-note-choices button{font-size:.95rem!important;padding:0 6px!important}
+/* KONO's taps (Workspace petKono): three quick taps tickle (a wiggle), a tap right after finishing
+ * something is a high five, and coming back after a while gets a wave. */
+.kono-mood-face.is-tickle img{animation:kono-wiggle .45s ease-in-out 3}
+@keyframes kono-wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+.kono-react{position:absolute;right:-12px;top:-8px;font-size:1.05rem;line-height:1;pointer-events:none;animation:kono-react-pop 1.2s ease-out both}
+.kono-react.is-wave{transform-origin:70% 90%;animation:kono-react-pop .4s ease-out both,kono-wave 1.2s .3s ease-in-out 2}
+@keyframes kono-react-pop{0%{transform:scale(.3);opacity:0}35%{transform:scale(1.3);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes kono-wave{0%,100%{transform:rotate(0)}25%,75%{transform:rotate(-22deg)}50%{transform:rotate(18deg)}}
+.kono-mood .kono-feed.is-favorite{box-shadow:inset 0 0 0 2px color-mix(in srgb,#e0607a 55%,transparent)!important}
+.kono-fav{color:#e0607a;font-weight:800}
+@media(prefers-reduced-motion:reduce){.kono-mood-face.is-tickle img,.kono-react,.kono-react.is-wave{animation:none}}
