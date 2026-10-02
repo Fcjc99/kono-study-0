@@ -2028,6 +2028,34 @@ test('Focus finds: when a focus session runs all the way down, KONO (who read be
  await waitFor(()=>(cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[]).some(p=>p.assetId==='find-'+find),'the find never went on the island')
 })
 
+test('Island visitors: after a good week a friend comes to visit (saved once for the day), KONO says so in its line, and it can then live on the island from Decorate › Friends',async({context,page})=>{
+ const cloud=fakeCloud(),data=()=>cloud.users.alice.plan.data,pid=data().activeProfileId
+ for(const [i,day] of ['2026-09-10','2026-09-11','2026-09-13'].entries())data().tasks.push({id:'week-'+i,profileId:pid,subjectId:'',title:'Week work '+i,due:day,done:true,notes:'',completedAt:day+'T18:00:00.000Z',needsReview:false})
+ await page.clock.setFixedTime(new Date('2026-09-15T15:00:00'))
+ const art=page.waitForResponse(r=>/\/garden\/friends\/[a-z]+\.webp$/.test(r.url())&&r.status()===200)
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const bar=page.getByRole('region',{name:'KONO today'})
+ await bar.getByText(/^\S+ \w+ the \w+ came to visit the island! A good week brings friends\. Find them in Decorate › Friends\.$/).waitFor()
+ await bar.locator('img.kono-find-icon').waitFor()
+ await art
+ if(process.env.KONO_SHOTS){await page.locator('.wb-island').scrollIntoViewIfNeeded();await page.waitForTimeout(1500);await page.locator('.wb-island').screenshot({path:process.env.KONO_SHOTS+'/visitor-island.png'});await bar.screenshot({path:process.env.KONO_SHOTS+'/visitor-bar.png'})}
+ await waitFor(()=>(data().konoCare?.[pid]?.log??[]).some(e=>e.id==='visit-2026-09-15'),'the visit never reached the account')
+ const friend=data().konoCare[pid].log.find(e=>e.kind==='visit').item
+ assert.ok(['cat','duck','frog','bunny','hedgehog','turtle'].includes(friend),'a good week brings an everyday friend, not '+friend)
+ // Back again the same day: the same friend, not announced or saved twice.
+ await page.reload();await heading(page,'Sanctuary')
+ await page.waitForTimeout(1500)
+ assert.equal(await bar.getByText(/came to visit the island/).count(),0,'announced once')
+ assert.equal(data().konoCare[pid].log.filter(e=>e.kind==='visit').length,1,'saved once')
+ await page.getByRole('button',{name:'Decorate'}).click()
+ await page.getByRole('navigation',{name:'Decoration categories'}).getByRole('button',{name:'Friends',exact:true}).click()
+ await page.getByText('1 of 8 met.',{exact:false}).waitFor()
+ await page.locator('.build-palette').getByLabel('Hoot the owl, locked. Visits after a great week (6+ things done, none late).').waitFor()
+ if(process.env.KONO_SHOTS)await page.locator('.build-palette').screenshot({path:process.env.KONO_SHOTS+'/friends-palette.png'})
+ await page.locator('.build-palette').getByRole('button',{name:/^Add /}).first().click()
+ await waitFor(()=>(data().sanctuaryDecor?.[pid]?.placements??[]).some(p=>p.assetId==='friend-'+friend),'the friend never went on the island')
+})
 test('Planner daily page matches Today’s schedule: the day’s classes as compact cards, the rest under "Also today", ‹ › to step days, and "Back to today" only once you’ve moved away',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  plan.calendarEvents.push({id:'soccer',profileId:pid,title:'Soccer practice',date:'2026-09-28',time:'17:00',kind:'personal',done:false,notes:''})
