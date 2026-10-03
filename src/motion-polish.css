@@ -62,7 +62,7 @@ html[data-motion=full] .cozy-complete[aria-pressed=true]{animation:check-pop .42
 @media(max-width:600px){.workbench[data-page=sanctuary] .login-digest{display:none}}
 
 /* ── Celebrations (src/delight.ts): petals and hearts float above everything, then remove themselves ── */
-.delight-particle{position:fixed;z-index:2147483000;pointer-events:none;font-size:18px;line-height:1;will-change:transform,opacity}
+.delight-particle{position:fixed;z-index:2147483000;pointer-events:none;font-size:24px;font-weight:700;line-height:1;will-change:transform,opacity}
 .delight-particle.is-petal{color:var(--wb-accent,#e0685a);text-shadow:0 1px 0 #fff8}
 .delight-particle.is-petal:nth-child(3n){color:#f0b43c}.delight-particle.is-petal:nth-child(3n+1){color:#5fbf8a}
 .delight-particle.is-heart{font-size:20px}
@@ -84,3 +84,21 @@ html[data-motion=full] .wb-toolbar .primary.is-inviting{animation:add-invite 2.2
  .workbench:not([data-experience=modern]) .sheet-handle{display:block;position:absolute;top:0;left:50%;width:40px;height:5px;margin-left:-20px;border-radius:5px;background:currentColor;opacity:.22}
  html[data-motion=full] .workbench:not([data-experience=modern]) .wb-dialog[open]{animation:sheet-up .34s cubic-bezier(.2,1,.3,1)}
 }
+
+/* ── Streak: confetti at milestones (delight.ts), and the 🔥 grows a little with every day ── */
+.delight-confetti{position:fixed;top:0;z-index:2147483000;width:9px;height:14px;border-radius:2px;pointer-events:none}
+.wb-stat-streak .wb-stat-short>span[aria-hidden]{display:inline-block;transform-origin:50% 90%;transform:scale(calc(1 + var(--streak,0) * .025))}
+@keyframes flame{0%,100%{rotate:-4deg}50%{rotate:5deg}}
+html[data-motion=full] .wb-stat-streak .wb-stat-short>span[aria-hidden]{animation:flame 1.6s ease-in-out infinite}
+
+/* ── Empty boards: KONO sits with a book or a cup of tea instead of a bare line of text ── */
+.kono-empty-art{display:block;width:72px;height:auto;margin:0 auto 8px;image-rendering:pixelated;filter:drop-shadow(0 4px 4px #0002)}
+@keyframes empty-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+html[data-motion=full] .kono-empty-art{animation:empty-bob 3s ease-in-out infinite}
+
+/* ── The light follows the island's time of day: a soft wash behind the pages (never in dark mode) ── */
+html:not([data-dark])[data-daypart] body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;transition:background 1.2s ease}
+html:not([data-dark])[data-daypart=morning] body::before{background:radial-gradient(120% 70% at 85% 0%,#fff3d6aa,transparent 60%)}
+html:not([data-dark])[data-daypart=afternoon] body::before{background:radial-gradient(120% 70% at 85% 0%,#fff9eccc,transparent 60%)}
+html:not([data-dark])[data-daypart=evening] body::before{background:radial-gradient(120% 80% at 80% 0%,#ffd2bfaa,transparent 60%),linear-gradient(#ffe7dc55,transparent 40%)}
+html:not([data-dark])[data-daypart=night] body::before{background:radial-gradient(120% 80% at 80% 0%,#d8d4f5aa,transparent 60%),linear-gradient(#e4e0fb66,transparent 45%)}

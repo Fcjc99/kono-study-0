@@ -37,6 +37,9 @@ test('the stylesheet fits in 85 KB gzipped and imports nothing from other sites 
 test('a splash is in the page itself and the stylesheet comes after it, so something shows before any download finishes',()=>{
  const root=html.indexOf('<div id="root">'),sheet=html.indexOf('<link rel="stylesheet"')
  assert.ok(root>0&&sheet>root,'the stylesheet should come after #root')
+ // …after #root closes, not inside it: React replaces #root's contents, which would drop the sheet.
+ // (vite.config.ts finds the splash's end at its first </div>, so the splash itself has no <div>.)
+ assert.equal((html.slice(root,sheet).match(/<div/g)??[]).length,1,'the splash has a <div> inside, so the stylesheet landed inside #root')
  assert.match(html.slice(root,sheet),/Opening your study plan/)
  assert.ok(!html.slice(0,html.indexOf('</head>')).includes('rel="stylesheet"'),'a stylesheet in <head> holds back the splash')
 })

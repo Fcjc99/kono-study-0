@@ -16,11 +16,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <title>KONO — Study Sanctuary</title>
     <!-- Splash colors only; KONO's stylesheet (after the splash) overrides them with the theme. -->
-    <style>body{margin:0;min-height:100vh;background:linear-gradient(135deg,#edf4ec,#f7f3eb)}@media (prefers-color-scheme:dark){body{background:#16131a}#root main{color:#f1ebf0!important}}</style>
+    <style>body{margin:0;min-height:100vh;background:linear-gradient(135deg,#edf4ec,#f7f3eb)}@media (prefers-color-scheme:dark){body{background:#16131a}#root main{color:#f1ebf0!important}}
+    /* Loading skeleton: soft shapes where KONO's pages will be, shimmering until the code arrives. */
+    .kono-skel{display:grid;gap:14px;margin-top:22px}.kono-skel i{display:block;height:18px;border-radius:12px;background:linear-gradient(90deg,#0000000d 25%,#ffffff99 50%,#0000000d 75%) 0 0/300% 100%;animation:kono-shimmer 1.4s ease-in-out infinite}
+    .kono-skel i:nth-child(1){height:96px;border-radius:20px}.kono-skel i:nth-child(2){width:72%}.kono-skel i:nth-child(3){height:180px;border-radius:24px}.kono-skel i:nth-child(4){width:46%}
+    @keyframes kono-shimmer{from{background-position:100% 0}to{background-position:0 0}}
+    @media (prefers-color-scheme:dark){.kono-skel i{background-image:linear-gradient(90deg,#ffffff0d 25%,#ffffff22 50%,#ffffff0d 75%)}}
+    @media (prefers-reduced-motion:reduce){.kono-skel i{animation:none}}</style>
   </head>
   <body>
     <!-- Shown the moment the page arrives, until KONO's code has downloaded and replaces it. -->
-    <div id="root"><main style="max-width:880px;margin:8vh auto;padding:24px;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#24322a"><h1 style="margin:0 0 8px;letter-spacing:.08em">KONO</h1><p role="status" style="margin:0;opacity:.75">Opening your study plan…</p></main></div>
+    <div id="root"><main style="max-width:880px;margin:8vh auto;padding:24px;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#24322a"><h1 style="margin:0 0 8px;letter-spacing:.08em">KONO</h1><p role="status" style="margin:0;opacity:.75">Opening your study plan…</p><section class="kono-skel" aria-hidden="true"><i></i><i></i><i></i><i></i></section></main></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

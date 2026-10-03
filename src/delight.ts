@@ -24,10 +24,10 @@ function particle(text:string,x:number,y:number,className:string){
 }
 
 /** A ring of petals and sparkles bursting out from a point. */
-export function burst(x:number,y:number,count=12){
+export function burst(x:number,y:number,count=16){
  if(!motionOn())return
  for(let i=0;i<count;i++){
-  const angle=(i/count)*Math.PI*2+Math.random()*.4,dist=46+Math.random()*44
+  const angle=(i/count)*Math.PI*2+Math.random()*.4,dist=60+Math.random()*60
   const el=particle(PETALS[i%PETALS.length],x,y,'is-petal')
   el.animate([
    {transform:'translate(-50%,-50%) scale(.4)',opacity:1},
@@ -80,4 +80,22 @@ export function stagger(container:Element|null){
  if(!motionOn()||!container)return
  const items=[...container.children].filter((el):el is HTMLElement=>el instanceof HTMLElement&&el.offsetHeight>0&&getComputedStyle(el).position!=='fixed').slice(0,10)
  items.forEach((el,i)=>el.animate([{opacity:0,transform:'translateY(14px)'},{opacity:1,transform:'none'}],{duration:420,delay:i*55,easing:'cubic-bezier(.22,1,.36,1)',fill:'backwards'}))
+}
+
+/** A streak milestone: paper confetti drifts down across the whole screen. */
+export function confetti(pieces=70){
+ if(!motionOn())return
+ const colors=['#f6766a','#ffc857','#6fcf97','#7cc4f5','#c59cf2','#ff9ec4']
+ for(let i=0;i<pieces;i++){
+  const el=document.createElement('span'),x=Math.random()*innerWidth,drift=(Math.random()-.5)*160,spin=Math.random()*720-360
+  el.className='delight-confetti';el.setAttribute('aria-hidden','true')
+  el.style.left=x+'px';el.style.background=colors[i%colors.length]
+  if(i%3===0)el.style.borderRadius='50%'
+  document.body.appendChild(el)
+  el.animate([
+   {transform:'translate(0,-20px) rotate(0)',opacity:1},
+   {transform:`translate(${drift}px,${innerHeight*.9}px) rotate(${spin}deg)`,opacity:1,offset:.85},
+   {transform:`translate(${drift*1.1}px,${innerHeight+30}px) rotate(${spin*1.2}deg)`,opacity:0},
+  ],{duration:1800+Math.random()*1400,delay:Math.random()*500,easing:'cubic-bezier(.25,.6,.4,1)',fill:'backwards'}).finished.finally(()=>el.remove())
+ }
 }
