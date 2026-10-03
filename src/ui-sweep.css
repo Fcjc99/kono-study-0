@@ -1,0 +1,112 @@
+/* Whole-app tidy-up (October 2026). Loaded last, so these settle the places where older palette
+ * styles or per-feature rules disagreed with the rest of the app. */
+
+/* One button size everywhere: the legacy Sakura palette shrank primary/secondary buttons to 12px,
+ * so "＋ Add to my calendar" sat tiny next to 16px neighbours. */
+html :is(.workbench,.wb-dialog) button:is(.primary,.secondary){font-size:inherit}
+/* Headings inside the older .card panels used the Sakura display serif with tight tracking, which
+ * read as cramped next to every other heading. */
+:root .workbench .card :is(h2,h3,h4){font-family:inherit;letter-spacing:normal;font-weight:750}
+.workbench .push-settings>p{font-size:.95rem}
+
+/* Look & feel: palettes as an even grid, name over a short note. */
+.workbench .wb-themes{grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+.workbench .wb-themes button{align-content:start;gap:4px;padding:10px;min-height:0;line-height:1.2}
+.workbench .wb-themes button span{height:26px;margin-bottom:4px}
+.workbench .wb-themes button strong{font-size:.92rem}
+.workbench .wb-themes button small{font-size:.74rem;font-weight:500;color:var(--wb-muted)}
+.workbench .wb-themes [aria-pressed="true"]{outline:3px solid var(--wb-accent);outline-offset:2px}
+/* Team colors: smaller cards, two across on a phone. */
+.workbench .team-color-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.workbench .team-color-grid button{gap:4px;padding:10px!important;line-height:1.2}
+.workbench .team-color-grid .team-swatch{height:20px;margin-bottom:4px}
+.workbench .team-color-grid button strong{font-size:.88rem}
+.workbench .team-color-grid button small{font-size:.72rem}
+
+@media(max-width:760px){
+ /* Settings sections: a 3×2 grid of compact tabs instead of three rows of big buttons. */
+ .workbench .settings-groups>.subject-section-tabs{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:10px 0;margin-bottom:12px}
+ .workbench .settings-groups>.subject-section-tabs button{padding:6px 4px;font-size:.78rem;line-height:1.15;border-radius:12px}
+ .workbench .settings-page-tools{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 0 6px;flex-wrap:nowrap}
+ .workbench .settings-page-tools>small{font-size:.68rem;min-width:0}
+ .workbench .settings-page-tools button{font-size:.85rem;padding:6px 12px;white-space:nowrap}
+ .workbench .wb-themes{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .workbench .team-color-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+.workbench .settings-page-tools{flex-wrap:wrap}.workbench .settings-page-tools .feedback-box:has(form){flex-basis:100%}
+
+/* Settings rows (Sound & motion, Notifications): text on the left, control on the right; on a
+ * narrow screen a select drops below its text instead of squeezing it into one word per line. */
+.workbench .settings-list label>div{flex:1 1 210px;min-width:0}
+.workbench .settings-list label>input[type=checkbox]{flex:0 0 auto}
+.workbench .settings-list label>select{flex:0 1 220px;min-width:0}
+.workbench .settings-list>h3{margin:4px 0 2px}
+.workbench .push-list{margin:0 0 4px;padding-left:1.15em;display:grid;gap:3px;font-size:.92rem;color:var(--wb-muted)}
+.workbench .app-badge-setting{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid var(--wb-line);border-bottom:1px solid var(--wb-line)}
+.workbench .app-badge-setting>span{display:grid;gap:3px;min-width:0}
+.workbench .app-badge-setting small{color:var(--wb-muted);font-size:.85rem}
+.workbench .app-badge-setting input{flex:0 0 auto}
+
+/* Backups: Export and Import as two matching buttons (the file picker hides inside its label). */
+.workbench .account-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.workbench .account-actions>.button-link{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:9px 16px;border:1px solid var(--wb-line);border-radius:14px;background:var(--wb-surface);color:var(--wb-ink);font-size:inherit!important;font-weight:650;cursor:pointer}
+:root[data-experience='cozy'] .workbench .account-actions>.button-link{border-radius:16px;border-color:var(--cute-edge);background:linear-gradient(180deg,#fffdfb,#ffedf4);color:var(--cute-ink);box-shadow:inset 0 2px 0 #fff,0 3px 0 #dcb6c5,0 5px 9px #78465a0c}
+.workbench .account-actions>.button-link input{position:absolute;inset:0;width:100%;height:100%;min-height:0;opacity:0;cursor:pointer}
+.workbench .account-actions>.button-link:focus-within{outline:3px solid var(--wb-accent);outline-offset:2px}
+/* Loose disclosures directly in a settings panel get the same card as the ones inside Backups. */
+.workbench .wb-panel>details{margin:10px 0;padding:12px 16px;border:1px solid var(--wb-line);border-radius:14px;background:var(--wb-surface)}
+.workbench .wb-panel>details>summary{font-weight:750;min-height:0;cursor:pointer}
+.workbench .wb-panel>details[open]>summary{margin-bottom:10px}
+
+/* Friends: each field keeps a usable width and wraps to its own line on a phone (they were
+ * squeezed side by side until the labels overlapped). */
+.workbench .peer-form label{flex:1 1 210px;min-width:min(100%,210px)}
+.workbench .peer-form>button{flex:0 0 auto}
+.workbench .profile-form .primary{white-space:nowrap}
+
+@media(max-width:760px){
+ /* Island toolbar on a phone: the clock icon and roomy chips pushed "Live time" under the streak
+  * chip. The select still says what it is. */
+ .workbench .wb-scene-toolbar .wb-scene-time>span[aria-hidden]{display:none}
+ .workbench .wb-scene-toolbar .wb-stat{padding:4px 6px!important}
+ .workbench .wb-scene-toolbar .wb-stats-strip{gap:4px!important}
+}
+
+/* Buttons under a pinned note or exam: one size (Duplicate was smaller than its neighbours). */
+.workbench .cozy-note-record>.wb-toolbar{align-items:center;gap:6px;margin-top:8px}
+.workbench .cozy-note-record>.wb-toolbar>button{margin-top:0;font-size:.875rem}
+
+@media(max-width:760px){
+ /* Today's / Tomorrow's schedule: title on its own line, then the buttons in one row (they were
+  * stacked beside the title, and "Open in Planner" ran off the card). */
+ .workbench .today-schedule-compact>.wb-section-head{flex-wrap:wrap!important;row-gap:8px}
+ .workbench .today-schedule-compact>.wb-section-head>.wb-toolbar{flex-wrap:nowrap;width:100%;gap:6px}
+ .workbench .today-schedule-compact>.wb-section-head>.wb-toolbar>.wb-collapse-toggle{margin-left:auto}
+}
+
+/* Kids page: a short roster (avatar, name, Edit, trash) instead of big pills that wrapped on phones. */
+.workbench .kid-roster{list-style:none;margin:12px 0;padding:0;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
+.workbench .kid-roster>li{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 10px;border:1px solid var(--wb-line);border-left:4px solid var(--kid-color);border-radius:12px;background:var(--wb-surface)}
+.workbench .kid-roster>li>strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.workbench .kid-roster>li>button{flex:0 0 auto;font-size:.875rem;padding:6px 12px}
+.workbench .kid-roster>li>.kid-roster-remove{padding:6px 10px}
+@media(max-width:760px){.workbench .family-calendar>.wb-section-head>.wb-toolbar{flex-wrap:nowrap;gap:6px}.workbench .family-calendar>.wb-section-head>.wb-toolbar>button{font-size:.875rem;padding:6px 10px}}
+
+@media(max-width:760px){
+ /* Planner: the page title already says what this is; the two buttons share one row. */
+ .workbench .planner-settings-link>span{display:none}
+ .workbench .planner-settings-link>.wb-toolbar{margin-left:0;width:100%;flex-wrap:nowrap;gap:8px}
+ .workbench .planner-settings-link>.wb-toolbar>button{flex:1 1 0;white-space:nowrap;font-size:.9rem;padding:8px 10px}
+}
+
+/* Daily-page rows: the pin is a small dot at the left edge, never the full push-pin graphic that
+ * landed on top of the title (the Sakura palette positions every .push-pin with !important). */
+.workbench .cozy-pin-mini{position:relative}
+.workbench .cozy-pin-mini>.push-pin.pin-mini{position:absolute!important;left:6px!important;top:50%!important;right:auto!important;width:8px!important;height:8px!important;margin:0!important;transform:translateY(-50%)!important;border:0!important;border-radius:50%;background:#d9828a!important;box-shadow:none!important}
+.workbench .cozy-pin-mini.priority-record>.push-pin.pin-mini{background:#c94061!important}
+.workbench .cozy-pin-mini>.push-pin.pin-mini::before,.workbench .cozy-pin-mini>.push-pin.pin-mini::after{content:none;display:none}
+/* Every look lays settings rows out the same way (some used a two-column grid, some stacked the
+ * checkbox under its text); a select wraps below its text only when there isn't room. */
+:root .workbench .settings-list label{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 14px}
+@media(max-width:760px){.workbench .theme-picker-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.workbench .theme-picker-tile strong{font-size:.66rem}}
+@media(max-width:760px){.workbench .wb-scene-toolbar .wb-scene-time select{max-width:134px}}

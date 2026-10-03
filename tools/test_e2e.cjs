@@ -631,11 +631,16 @@ function sampleIcs(){
 test('Getting started: a new plan shows three steps; each opens the right place, ticks off when done or skipped, and Hide keeps it hidden',async({page})=>{
  await createPlan(page)
  const card=page.getByRole('region',{name:'Getting started'})
+ // It starts as one row with the next step; All steps opens the full list.
+ await card.getByText('SET UP KONO · 0 of 3 done').waitFor()
+ const allSteps=()=>card.getByRole('button',{name:'Show all setup steps'}).click()
+ await allSteps()
  await card.getByText('0 of 3 done').waitFor()
  // Add my school opens Add to my calendar at the school setup.
  await card.getByRole('button',{name:'Add my school',exact:true}).click()
  await page.getByRole('region',{name:'Add to my calendar'}).getByRole('heading',{name:/My school schedule/}).waitFor()
  await go(page,'Sanctuary')
+ await allSteps()
  await card.getByRole('button',{name:'Skip: Add your school or classes'}).click()
  await card.getByText('1 of 3 done').waitFor()
  // Linking a calendar ticks off step 2 by itself.
@@ -644,6 +649,7 @@ test('Getting started: a new plan shows three steps; each opens the right place,
  await page.locator('.calendar-import-review').getByRole('button',{name:'Add 2 to my plan'}).click()
  await page.getByText(/^2 added\./).waitFor()
  await go(page,'Sanctuary')
+ await allSteps()
  await card.getByText('2 of 3 done').waitFor()
  assert.match(await card.innerText(),/Link Canvas or your Google calendar\s*Done/)
  // Turn on reminders goes to Settings › Notifications.
@@ -651,6 +657,7 @@ test('Getting started: a new plan shows three steps; each opens the right place,
  await heading(page,'Settings')
  await page.getByText('Get a notification even when KONO is closed',{exact:false}).waitFor()
  await go(page,'Sanctuary')
+ await allSteps()
  await card.getByRole('button',{name:'Hide'}).click()
  await card.waitFor({state:'detached'})
  await page.reload();await heading(page,'Sanctuary')
@@ -1842,12 +1849,14 @@ test('Sanctuary: KONO today is a slim bar on top of the island, and Decorate ope
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  const bar=page.getByRole('region',{name:'KONO today'}),island=page.locator('.wb-island')
- // Measured together once the page has settled (late content above can still move both for a moment).
- await page.waitForFunction(()=>{const b=document.querySelector('.kono-bar')?.getBoundingClientRect(),i=document.querySelector('.wb-island')?.getBoundingClientRect();return b&&i&&b.bottom<=i.top+1},null,{timeout:5000,polling:200}).catch(()=>undefined)
+ // Measured together, in one read, once the page has settled: late content above (the setup row,
+ // KONO's line, lazily loaded cards) can still move both for a moment, and two separate reads can
+ // straddle that move. Settled = the same positions on two polls in a row.
+ const above=await page.waitForFunction(()=>{const b=document.querySelector('.kono-bar')?.getBoundingClientRect(),i=document.querySelector('.wb-island')?.getBoundingClientRect();if(!b||!i)return false;const key=Math.round(b.bottom)+':'+Math.round(i.top),w=window;const settled=w.__konoBarKey===key;w.__konoBarKey=key;return settled&&{gap:i.top-b.bottom}},null,{timeout:10000,polling:250}).then(h=>h.jsonValue())
  const b=await bar.boundingBox(),i=await island.boundingBox(),docY=await page.evaluate(()=>scrollY)
  if(process.env.KONO_SHOTS){await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar.png',clip:{x:b.x-10,y:b.y+docY-10,width:b.width+20,height:b.height+200}});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);const pb=await bar.evaluate(e=>{const r=e.getBoundingClientRect();return {y:r.top+scrollY,height:r.height}});await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar-phone.png',clip:{x:0,y:Math.max(0,pb.y-10),width:390,height:pb.height+160}});await page.setViewportSize({width:1280,height:900});await page.waitForTimeout(400)}
  assert.ok(b.height<160,'the KONO bar is slim (two short rows, even with a note from KONO): '+b.height+'px')
- assert.ok(b.y+b.height<=i.y+1,'the KONO bar sits right above the island')
+ assert.ok(above.gap>=-1,'the KONO bar sits right above the island: '+above.gap+'px')
  await page.getByRole('button',{name:'Decorate'}).click()
  const nav=page.getByRole('navigation',{name:'Decoration categories'})
  for(const cat of ['Homes','Trees','Ponds']){await nav.getByRole('button',{name:cat,exact:true}).click();await page.locator('.build-palette [role=button][aria-label^="Add "]').first().click()}
@@ -2295,7 +2304,7 @@ test('Planner › Week on a phone: press and hold moves an event, a quick swipe 
   await page.goto(BASE);await heading(page,'Sanctuary')
   await go(page,'Planner')
   const week=page.getByRole('region',{name:'Week'})
-  await page.getByText('Press and hold to move something').waitFor()
+  await page.getByText('Hold to move; drag the bottom edge',{exact:false}).waitFor()
   const piano=()=>week.getByRole('button',{name:/^Piano lesson · /})
   const cdp=await context.newCDPSession(page)
   const touch=(type,x,y)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:type==='touchEnd'?[]:[{x:Math.round(x),y:Math.round(y)}]})
