@@ -1,0 +1,29 @@
+/* Break-time games with KONO (BreakGames.tsx), shown in the focus card after a session finishes. */
+.break-games{margin:12px 0;padding:12px;border:1px solid var(--line,var(--wb-line));border-radius:16px;background:var(--surface,var(--wb-surface))}
+.break-games header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:8px}
+.break-games header strong{margin-right:auto}
+.break-games header [role=timer]{font-variant-numeric:tabular-nums;font-size:.9rem;color:var(--wb-muted,inherit)}
+.break-games header button{min-height:36px!important;margin:0!important}
+.break-game-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.break-game-list button{display:grid;gap:2px;justify-items:start;text-align:left;margin:0!important;padding:10px 12px;border-radius:14px}
+.break-game-list button>span{font-size:1.6rem;line-height:1}
+.break-game-list small{font-size:.75rem;opacity:.8}
+.break-game-list .break-best{opacity:1;font-weight:700}
+.break-result,.break-over{margin:4px 0 10px;font-weight:700}
+.break-game-status{display:flex;justify-content:space-between;margin:0 0 8px;font-variant-numeric:tabular-nums}
+.snack-catch{position:relative;height:300px;max-width:420px;margin:0 auto;overflow:hidden;border-radius:14px;background:linear-gradient(#cfe8ff,#eaf6e2 72%,#b9dc9a 72%);touch-action:none;cursor:pointer}
+.snack-catch:focus-visible{outline:3px solid var(--accent,#c987a2);outline-offset:2px}
+.snack-catch .snack{position:absolute;transform:translate(-50%,-50%);font-size:1.6rem;pointer-events:none}
+.snack-catch-kono{position:absolute;bottom:4%;left:50%;width:64px;transform:translateX(-50%);image-rendering:pixelated;pointer-events:none}
+.memory-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:360px;margin:0 auto}
+.memory-card{aspect-ratio:1;margin:0!important;padding:0!important;min-height:0!important;border-radius:12px;font-size:1.4rem;font-weight:800;display:grid;place-items:center}
+.memory-card img{width:70%;height:70%;object-fit:contain;image-rendering:pixelated}
+.memory-card.is-matched{opacity:.6}
+.peekaboo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:330px;margin:0 auto}
+.peekaboo-bush{position:relative;aspect-ratio:1;margin:0!important;padding:0!important;min-height:0!important;border-radius:50% 50% 14px 14px;overflow:hidden;background:#d8efc8!important}
+.peekaboo-bush img{position:absolute;left:50%;bottom:18%;width:62%;transform:translateX(-50%);image-rendering:pixelated;animation:peekaboo-up .18s ease-out}
+.peekaboo-leaves{position:absolute;left:0;right:0;bottom:-4px;font-size:2.4rem;line-height:1;text-align:center;pointer-events:none}
+.peekaboo-boop{position:absolute;left:50%;top:20%;transform:translateX(-50%);font-size:1.4rem;animation:peekaboo-boop .6s ease-out both}
+@keyframes peekaboo-up{from{transform:translate(-50%,40%)}to{transform:translate(-50%,0)}}
+@keyframes peekaboo-boop{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-24px)}}
+@media(prefers-reduced-motion:reduce){.peekaboo-bush img,.peekaboo-boop{animation:none}}
