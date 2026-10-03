@@ -24,7 +24,7 @@
 ){background:var(--wb-surface)!important;background-image:none!important;color:var(--wb-ink)!important;border-color:var(--wb-line)!important;box-shadow:none}
 :root[data-dark] .workbench :is(.week-grid-slot,.week-grid-gutter,.week-grid-head button){background:transparent!important;color:var(--wb-ink)!important}
 :root[data-dark] .workbench :is(input,select,textarea){background:var(--dark-sunk)!important;color:var(--wb-ink)!important;border-color:var(--wb-line)!important}
-:root[data-dark] .workbench button:not(.primary):not(.active):not([aria-current='page']):not([aria-pressed='true']):not(.week-item):not([class*='swatch']):not(.theme-picker-tile):not(.kid-border-swatch){background:var(--dark-raised)!important;background-image:none!important;color:var(--wb-ink)!important;border-color:var(--wb-line)!important}
+:root[data-dark] .workbench button:not(.primary):not(.active):not([aria-current='page']):not([aria-pressed='true']):not(.week-item):not([class*='swatch']):not(.theme-picker-tile):not([class*='kid-look-']){background:var(--dark-raised)!important;background-image:none!important;color:var(--wb-ink)!important;border-color:var(--wb-line)!important}
 :root[data-dark] .workbench :is(.wb-muted,small):not(:is(.active,[aria-current='page'],[aria-pressed='true'],.wb-sticky,.kono-sticky,.wb-record-notes,.week-item) *){color:var(--wb-muted)}
 :root[data-dark] .workbench :is(.memory-board-empty,.memory-board-empty strong,.memory-board-empty p){color:var(--wb-muted)!important}
 /* Headings are a fixed dark brown in Cozy. Sticky notes keep their own paper and ink, so they're left alone. */

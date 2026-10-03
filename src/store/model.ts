@@ -12,16 +12,13 @@ import { readCareState, type KonoCareState } from './konoCare'
 export type ProfileKind='summer'|'school'|'college'|'custom'
 export type Profile={id:string;name:string;label:string;kind:ProfileKind;start:string;end:string;progressEpoch?:string;color?:string}
 export type Subject={id:string;profileId:string;name:string;color:string;teacher?:string;room?:string;resources:string[]}
+/** How a kid's tiles are outlined, always in the kid's own color. Simple, still borders (no animation). */
+export const KID_BORDER_STYLES=['solid','bold','stripe','soft','dashed','dotted','double','glow'] as const
+export type KidBorderStyle=typeof KID_BORDER_STYLES[number]
 /** A kid is a lightweight tag within one shared family calendar/profile -- not its own Profile. Any
  * task/exam/calendarEvent/class block can carry a kidId the same way it already carries a subjectId,
  * so "whose is this" filters and colors the same way "which subject is this" already does. */
-export const KID_BORDER_STYLES=['cute','sports','modern','unique','space','garden','ocean','neon'] as const
-export type KidBorderStyle=typeof KID_BORDER_STYLES[number]
-export type KidBorderGlow='off'|'soft'|'strong'
-/** borderColors overrides the style's two theme colors; borderSpeed multiplies animation speed
- * (0.25-3); borderExtras shows the floating particles (hearts, leaves, rocket, waves...). */
-export type Kid={id:string;profileId:string;name:string;color:string;emoji?:string;borderStyle?:KidBorderStyle;borderColors?:[string,string];borderSpeed?:number;borderGlow?:KidBorderGlow;borderExtras?:boolean}
-export const KID_BORDER_SPEED={min:.25,max:3}
+export type Kid={id:string;profileId:string;name:string;color:string;emoji?:string;borderStyle?:KidBorderStyle}
 /** One step of an assignment; `due` is the day to do it (project steps, see store/projectSteps). */
 export type Subtask={id:string;title:string;done:boolean;due?:string}
 /** Where an imported item came from, for the Planner's source chips: a class site's feed (Canvas,
@@ -188,17 +185,14 @@ export function normalizeData(raw:unknown):AppData {
  const subject=(v:unknown,profileId:string)=>{if(v===undefined||v==='')return '';const key=id(v,'subject reference'),mapped=remap.get(`${key}:${profileId}`)??key;const known=subjects.find(s=>s.id===mapped);if(known&&known.profileId!==profileId)return fail('subject belongs to another profile');return mapped}
  // 40 chars comfortably covers a multi-codepoint emoji (skin-tone modifiers, ZWJ family/couple
  // sequences can run well past a handful of UTF-16 units) without accepting arbitrary text.
- // Border style and its tuning (colors/speed/glow/extras below) are cosmetic, so they never fail the whole load: a save from before the redesign
- // carries one of the old six values (map it to its closest new style), and a value this build
- // doesn't know -- e.g. a style added in a newer build and synced from another device -- falls back
- // to the default rather than resetting someone's plan.
- const legacyBorderStyle:Record<string,KidBorderStyle>={solid:'modern',glow:'modern',dashed:'sports',sparkle:'cute',rainbow:'cute',fire:'unique'}
- const borderStyle=(v:unknown):KidBorderStyle=>{const s=typeof v==='string'?legacyBorderStyle[v]??v:v;return KID_BORDER_STYLES.includes(s as KidBorderStyle)?s as KidBorderStyle:'modern'}
- const hex=(v:unknown)=>typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v)
- const borderColors=(v:unknown):[string,string]|undefined=>Array.isArray(v)&&v.length===2&&hex(v[0])&&hex(v[1])?[v[0],v[1]]:undefined
- const borderSpeed=(v:unknown)=>typeof v==='number'&&Number.isFinite(v)?Math.min(KID_BORDER_SPEED.max,Math.max(KID_BORDER_SPEED.min,v)):1
- const borderGlow=(v:unknown):KidBorderGlow=>v==='off'||v==='strong'?v:'soft'
- const kids:Kid[]=list(raw.kids??[],'kids',500).map(k=>({id:id(k.id,'kid ID'),profileId:owner(k.profileId),name:str(k.name,'kid name',200),color:color(k.color,'#7ca982'),emoji:optional(k.emoji,'kid emoji',40),borderStyle:borderStyle(k.borderStyle),borderColors:borderColors(k.borderColors),borderSpeed:borderSpeed(k.borderSpeed),borderGlow:borderGlow(k.borderGlow),borderExtras:k.borderExtras!==false}))
+ // Border style is cosmetic, so it never fails the whole load. A save from before a redesign carries
+ // a retired value (the first six animated styles, then the eight animated themes that followed):
+ // each maps to its closest simple style. A value this build doesn't know -- e.g. a style added in a
+ // newer build and synced from another device -- falls back to the default rather than resetting
+ // someone's plan. The old animation tuning (borderColors/Speed/Glow/Extras) is simply dropped.
+ const legacyBorderStyle:Record<string,KidBorderStyle>={sparkle:'glow',rainbow:'glow',fire:'bold',cute:'soft',sports:'stripe',modern:'solid',unique:'double',space:'bold',garden:'soft',ocean:'glow',neon:'glow'}
+ const borderStyle=(v:unknown):KidBorderStyle=>{const s=typeof v==='string'?legacyBorderStyle[v]??v:v;return KID_BORDER_STYLES.includes(s as KidBorderStyle)?s as KidBorderStyle:'solid'}
+ const kids:Kid[]=list(raw.kids??[],'kids',500).map(k=>({id:id(k.id,'kid ID'),profileId:owner(k.profileId),name:str(k.name,'kid name',200),color:color(k.color,'#7ca982'),emoji:optional(k.emoji,'kid emoji',40),borderStyle:borderStyle(k.borderStyle)}))
  // A kid tag is cosmetic, unlike a subject reference -- a stale or cross-profile kidId (e.g. from a
  // kid deleted elsewhere) just clears back to unassigned rather than failing the whole save.
  const kidRef=(v:unknown,profileId:string):string|undefined=>{if(v===undefined||v==='')return undefined;const key=str(v,'kid reference',150);const known=kids.find(k=>k.id===key);return known&&known.profileId===profileId?key:undefined}

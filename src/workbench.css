@@ -263,128 +263,16 @@ html[data-theme] .brand:has(.kono-weather-chip):after,html[data-theme] .sidebar:
  * takes on whichever kid the event is tagged to, the same color as their chip everywhere else. */
 .wb-family-event{position:relative;display:flex;flex-direction:column;gap:4px;border:2px solid var(--kid-color,var(--wb-line));border-radius:10px;padding:8px 10px;margin:8px 0;background:var(--wb-surface);min-width:0;overflow-wrap:anywhere}
 .wb-family-event.is-complete .wb-family-event-info>h3{text-decoration:line-through;opacity:.65}
-/* Per-kid border flair (see the Kids page's Appearance panel). A kid-styled tile renders a
- * .kid-border-fx layer (KidBorderFx) sitting exactly over its border, holding, in paint order:
- *   b -- a blurred copy of the ring, so every style actually glows (and breathes);
- *   s -- the crisp ring itself;
- *   i x5 -- particles that ride around the border on an offset-path (leaves, bubbles, a rocket...).
- * DOM order does the layering. fx is a z-index:0 stacking context -- the same paint layer an unindexed
- * positioned element gets, so neighbouring tiles' "More actions" menus still sit above it -- which keeps
- * any z-index used inside it local. The ring is the padding+mask-composite trick: a gradient box
- * cut down to a ring exactly --kid-ring thick. Spinning rings animate a registered angle property
- * so the gradient sweeps around a non-square tile instead of the element rotating.
- * Reduced motion: the global [data-motion=reduced] rule freezes every animation; the travelling
- * particles are hidden outright, since frozen they would all pile up at one corner. */
-@property --kid-border-angle{syntax:'<angle>';inherits:false;initial-value:0deg}
-@property --kid-border-angle-b{syntax:'<angle>';inherits:false;initial-value:0deg}
-@keyframes kid-border-angle-spin{to{--kid-border-angle:360deg}}
-@keyframes kid-border-angle-back{from{--kid-border-angle-b:360deg}to{--kid-border-angle-b:0deg}}
-.wb-family-event{--kid-ring:5px}.kid-border-swatch>span{--kid-ring:3px}
-.wb-family-event:is(.kid-border-cute,.kid-border-sports,.kid-border-modern,.kid-border-unique,.kid-border-space,.kid-border-garden,.kid-border-ocean,.kid-border-neon),.kid-border-swatch:is(.kid-border-cute,.kid-border-sports,.kid-border-modern,.kid-border-unique,.kid-border-space,.kid-border-garden,.kid-border-ocean,.kid-border-neon)>span{border-width:var(--kid-ring)}
-.wb-family-event:is(.kid-border-cute,.kid-border-sports,.kid-border-space,.kid-border-garden,.kid-border-ocean,.kid-border-neon),.kid-border-swatch:is(.kid-border-cute,.kid-border-sports,.kid-border-space,.kid-border-garden,.kid-border-ocean,.kid-border-neon)>span{border-color:transparent}
-.kid-border-fx{position:absolute;inset:calc(-1*var(--kid-ring));border-radius:inherit;pointer-events:none;z-index:0}
-.kid-border-fx>s{position:absolute;inset:0;border-radius:inherit}
-.kid-border-fx>b{position:absolute;inset:calc(-1*var(--kid-ring));border-radius:inherit}
-.kid-border-fx>b{filter:blur(8px) saturate(1.5);animation:kid-fx-breathe calc(2.6s/var(--kid-speed,1)) ease-in-out infinite}
-@keyframes kid-fx-breathe{0%,100%{opacity:.5}50%{opacity:1}}
-.kid-border-fx>b::before{content:'';position:absolute;inset:0;border-radius:inherit}
-.kid-border-swatch>span::before{content:'';position:absolute;inset:calc(-1*var(--kid-ring));border-radius:inherit}
-.kid-border-fx>s,.kid-border-fx>b::before,.kid-border-swatch>span::before{padding:var(--kid-ring);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
-.kid-border-fx>b::before{padding:calc(2*var(--kid-ring))}
-.kid-border-swatch:is(.kid-border-unique)>span::before{content:none}
-.kid-border-fx>i{position:absolute;top:0;left:0;display:none;font-style:normal;font-size:1.1rem;line-height:1;offset-path:inset(calc(var(--kid-ring)/2) round 12px);offset-rotate:0deg;animation:kid-fx-travel var(--kid-fx-dur,calc(10s/var(--kid-speed,1))) linear infinite;animation-delay:calc(var(--p,0)*var(--kid-fx-dur,calc(10s/var(--kid-speed,1)))*-1)}
-.kid-border-fx>i::before{display:block}
-.kid-border-fx>i:nth-of-type(2){--p:.2}.kid-border-fx>i:nth-of-type(3){--p:.4}.kid-border-fx>i:nth-of-type(4){--p:.6}.kid-border-fx>i:nth-of-type(5){--p:.8}.kid-border-fx>i:nth-of-type(6){--p:.1}.kid-border-fx>i:nth-of-type(7){--p:.3}.kid-border-fx>i:nth-of-type(8){--p:.5}
-@keyframes kid-fx-travel{from{offset-distance:0%}to{offset-distance:100%}}
-@supports not (offset-path:inset(0 round 1px)){.kid-border-fx>i{display:none!important}}
-html[data-motion=reduced] .kid-border-fx>i{display:none!important}
-@media(prefers-reduced-motion:reduce){html:not([data-motion=full]) .kid-border-fx>i{display:none!important}}
-@keyframes kid-fx-twinkle{0%,100%{opacity:.25;transform:scale(.6) rotate(0)}50%{opacity:1;transform:scale(1.2) rotate(45deg)}}
-/* Cute: a pastel swirl, with hearts and sparkles bouncing around it. */
-.kid-border-cute{--kid-fx-dur:calc(9s/var(--kid-speed,1))}
-.kid-border-cute .kid-border-fx>s,.kid-border-cute .kid-border-fx>b::before,.kid-border-swatch.kid-border-cute>span::before{background:conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,#ff8ec7),var(--kid-ring-a-soft,#ffd3e8),var(--kid-ring-b-soft,#c9a9ff),var(--kid-ring-b,#9ecbff),var(--kid-ring-a,#ff8ec7));animation:kid-border-angle-spin calc(3.5s/var(--kid-speed,1)) linear infinite}
-.kid-border-cute .kid-border-fx>i:nth-of-type(-n+4){display:block}
-.kid-border-cute .kid-border-fx>i::before{content:'💗';animation:kid-fx-bob calc(1.2s/var(--kid-speed,1)) ease-in-out infinite}
-.kid-border-cute .kid-border-fx>i:nth-of-type(even)::before{content:'✨';font-size:.9rem;animation-name:kid-fx-twinkle}
-@keyframes kid-fx-bob{0%,100%{transform:translateY(0) scale(.85)}50%{transform:translateY(-3px) scale(1.15)}}
-/* Sports: marching stripes, with two balls rolling laps. */
-.kid-border-sports{--kid-fx-dur:calc(5s/var(--kid-speed,1))}
-.kid-border-sports .kid-border-fx>s,.kid-border-sports .kid-border-fx>b::before,.kid-border-swatch.kid-border-sports>span::before{background:repeating-linear-gradient(45deg,var(--kid-ring-a,var(--kid-color,#b47e75)) 0 8px,var(--kid-ring-b,#fff) 8px 16px) 0 0/22px 22px;animation:kid-border-sports-march calc(.9s/var(--kid-speed,1)) linear infinite}
-.kid-border-swatch.kid-border-sports>span::before{background:repeating-linear-gradient(45deg,var(--kid-ring-a,var(--kid-color,#b47e75)) 0 6px,var(--kid-ring-b,#fff) 6px 12px) 0 0/17px 17px}
-@keyframes kid-border-sports-march{to{background-position:22px 0}}
-.kid-border-sports .kid-border-fx>i:nth-of-type(-n+2){display:block}
-.kid-border-sports .kid-border-fx>i:nth-of-type(2){--p:.5}
-.kid-border-sports .kid-border-fx>i::before{content:'⚽';animation:kid-fx-spin calc(.5s/var(--kid-speed,1)) linear infinite}
-.kid-border-sports .kid-border-fx>i:nth-of-type(2)::before{content:'🏀'}
-@keyframes kid-fx-spin{to{transform:rotate(360deg)}}
-/* Modern: a bright beam sweeps the kid-colored border, trailing its own glow. */
-.kid-border-modern .kid-border-fx>s,.kid-border-modern .kid-border-fx>b::before,.kid-border-swatch.kid-border-modern>span::before{background:conic-gradient(from var(--kid-border-angle),transparent 0deg 290deg,var(--kid-ring-b-soft,color-mix(in srgb,var(--kid-color,#b47e75) 55%,#fff)) 325deg,var(--kid-ring-b,#fff) 348deg,transparent 360deg);animation:kid-border-angle-spin calc(2.2s/var(--kid-speed,1)) linear infinite}
-/* Unique: the tile's own outline wobbles like a blob, haloed by a slow rainbow glow. */
-.wb-family-event.kid-border-unique,.kid-border-swatch.kid-border-unique>span{animation:kid-border-unique-wobble calc(4s/var(--kid-speed,1)) ease-in-out infinite}
-@keyframes kid-border-unique-wobble{0%,100%{border-radius:10px 26px 14px 30px/22px 12px 28px 14px}25%{border-radius:30px 14px 26px 10px/14px 28px 12px 22px}50%{border-radius:14px 30px 10px 26px/28px 14px 22px 12px}75%{border-radius:26px 10px 30px 14px/12px 22px 14px 28px}}
-.wb-family-event:is(.kid-border-modern,.kid-border-unique),.kid-border-swatch:is(.kid-border-modern,.kid-border-unique)>span{border-color:var(--kid-ring-a,var(--kid-color,#b47e75))}
-.kid-border-unique .kid-border-fx>s{display:none}
-.kid-border-unique .kid-border-fx>b{filter:blur(8px) saturate(1.6)}
-.kid-border-unique .kid-border-fx>b::before{background:conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,var(--kid-color,#b47e75)),var(--kid-ring-b,#ff7ad9),var(--kid-ring-a-soft,#7ad7ff),var(--kid-ring-b-soft,#ffe27a),var(--kid-ring-a,var(--kid-color,#b47e75)));animation:kid-border-angle-spin calc(4s/var(--kid-speed,1)) linear infinite}
-/* Space: a shooting star sweeps a starry navy ring while planets, moons and space rocks drift slowly
- * around the frame, bobbing and turning as they float. */
-.kid-border-space{--kid-fx-dur:calc(28s/var(--kid-speed,1))}
-.kid-border-space .kid-border-fx>s,.kid-border-space .kid-border-fx>b::before,.kid-border-swatch.kid-border-space>span::before{background:conic-gradient(from var(--kid-border-angle),transparent 0deg 250deg,var(--kid-ring-a,#6f8cff) 325deg,#fff 356deg,transparent 360deg),radial-gradient(circle,#fff 0 .7px,transparent 1.2px) 0 0/23px 17px,radial-gradient(circle,#cfd8ff 0 .6px,transparent 1.1px) 11px 8px/31px 13px,var(--kid-ring-b,#1f2456);animation:kid-border-angle-spin calc(3.2s/var(--kid-speed,1)) linear infinite}
-.kid-border-space .kid-border-fx>i:nth-of-type(-n+6){display:block}
-.kid-border-space .kid-border-fx>i:nth-of-type(1){--p:0}.kid-border-space .kid-border-fx>i:nth-of-type(2){--p:.17}.kid-border-space .kid-border-fx>i:nth-of-type(3){--p:.33}.kid-border-space .kid-border-fx>i:nth-of-type(4){--p:.5}.kid-border-space .kid-border-fx>i:nth-of-type(5){--p:.67}.kid-border-space .kid-border-fx>i:nth-of-type(6){--p:.83}
-.kid-border-space .kid-border-fx>i::before{content:'🪐';font-size:1.25rem;animation:kid-fx-float calc(4s/var(--kid-speed,1)) ease-in-out infinite}
-.kid-border-space .kid-border-fx>i:nth-of-type(2)::before{content:'🌙';animation-delay:calc(-1s/var(--kid-speed,1))}
-.kid-border-space .kid-border-fx>i:nth-of-type(3)::before{content:'🪨';font-size:.9rem;animation-delay:calc(-2s/var(--kid-speed,1))}
-.kid-border-space .kid-border-fx>i:nth-of-type(4)::before{content:'🌍';font-size:1.05rem;animation-delay:calc(-3s/var(--kid-speed,1))}
-.kid-border-space .kid-border-fx>i:nth-of-type(5)::before{content:'✦';font-size:.9rem;color:#ffd76a;text-shadow:0 0 6px #ffd76a;animation:kid-fx-twinkle calc(1.6s/var(--kid-speed,1)) ease-in-out infinite}
-.kid-border-space .kid-border-fx>i:nth-of-type(6)::before{content:'🪨';font-size:.75rem;animation-delay:calc(-1.5s/var(--kid-speed,1))}
-@keyframes kid-fx-float{0%,100%{transform:translateY(0) rotate(-10deg)}50%{transform:translateY(-4px) rotate(10deg)}}
-/* Garden: flowers and sprouts grow out of the border and sway as a breeze passes along it, while a
- * leaf and a petal blow around the frame. Each plant sits at a fixed spot on the border path;
- * offset-rotate:auto turns it to face outward on every edge and offset-anchor plants its base on the
- * border line. Each plant's sway is delayed by its position, so the gust visibly travels. */
-.kid-border-garden{--kid-fx-dur:calc(9s/var(--kid-speed,1))}
-.kid-border-garden .kid-border-fx>s,.kid-border-garden .kid-border-fx>b::before,.kid-border-swatch.kid-border-garden>span::before{background:conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,#3f8f3a),var(--kid-ring-b,#74c466),var(--kid-ring-a,#3f8f3a),var(--kid-ring-b-soft,#a9dc90),var(--kid-ring-a,#3f8f3a));animation:kid-border-angle-spin calc(16s/var(--kid-speed,1)) linear infinite}
-.kid-border-garden .kid-border-fx>i{display:block}
-.kid-border-garden .kid-border-fx>i:nth-of-type(-n+6){animation:none;offset-rotate:auto;offset-anchor:50% 100%;offset-distance:calc(var(--g)*100%);font-size:1.2rem}
-.kid-border-garden .kid-border-fx>i:nth-of-type(1){--g:.04}.kid-border-garden .kid-border-fx>i:nth-of-type(2){--g:.13}.kid-border-garden .kid-border-fx>i:nth-of-type(3){--g:.24}.kid-border-garden .kid-border-fx>i:nth-of-type(4){--g:.36}.kid-border-garden .kid-border-fx>i:nth-of-type(5){--g:.58}.kid-border-garden .kid-border-fx>i:nth-of-type(6){--g:.78}
-.kid-border-garden .kid-border-fx>i:nth-of-type(-n+6)::before{content:'🌷';transform-origin:50% 100%;animation:kid-fx-sway calc(2.6s/var(--kid-speed,1)) ease-in-out infinite;animation-delay:calc(var(--g)*-2.6s/var(--kid-speed,1))}
-.kid-border-garden .kid-border-fx>i:nth-of-type(2)::before{content:'🌱'}.kid-border-garden .kid-border-fx>i:nth-of-type(3)::before{content:'🌼'}.kid-border-garden .kid-border-fx>i:nth-of-type(4)::before{content:'🌿'}.kid-border-garden .kid-border-fx>i:nth-of-type(5)::before{content:'🌸'}.kid-border-garden .kid-border-fx>i:nth-of-type(6)::before{content:'🌻'}
-@keyframes kid-fx-sway{0%,100%{transform:rotate(-10deg)}30%{transform:rotate(16deg)}60%{transform:rotate(-4deg)}}
-.kid-border-garden .kid-border-fx>i:nth-of-type(7){--p:.3;font-size:.9rem}.kid-border-garden .kid-border-fx>i:nth-of-type(8){--p:.8;font-size:.8rem}
-.kid-border-garden .kid-border-fx>i:nth-of-type(n+7)::before{content:'🍃';animation:kid-fx-flutter calc(1.4s/var(--kid-speed,1)) ease-in-out infinite}
-.kid-border-garden .kid-border-fx>i:nth-of-type(8)::before{content:'🌸';animation-delay:calc(-.7s/var(--kid-speed,1))}
-@keyframes kid-fx-flutter{0%,100%{transform:translate(0,0) rotate(-20deg)}25%{transform:translate(2px,-3px) rotate(10deg)}50%{transform:translate(-1px,-5px) rotate(28deg)}75%{transform:translate(-3px,-2px) rotate(-6deg)}}
-/* Ocean: a swell rolls clockwise around all four edges of a flowing-water ring, with bubbles drifting
- * by. Each edge is a filled wave shape used as a mask over the water colors (so custom colors apply),
- * its crests poking just outside the frame; each edge's mask scrolls along that edge, so the waves
- * travel around the tile. */
-.kid-border-ocean{--kid-fx-dur:calc(11s/var(--kid-speed,1));--kid-wave-h:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='12'%3E%3Cpath d='M0 12V7Q7 0 14 7T28 7V12Z'/%3E%3C/svg%3E");--kid-wave-v:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='28'%3E%3Cpath d='M0 0H5Q12 7 5 14T5 28H0Z'/%3E%3C/svg%3E")}
-.kid-border-ocean .kid-border-fx>s,.kid-border-ocean .kid-border-fx>b::before,.kid-border-swatch.kid-border-ocean>span::before{background:repeating-conic-gradient(from var(--kid-border-angle-b),#ffffff55 0deg 3deg,transparent 3deg 20deg),repeating-conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,#0d6eaf) 0deg,var(--kid-ring-b,#44b8ea) 16deg,var(--kid-ring-a,#0d6eaf) 32deg);animation:kid-border-angle-spin calc(6s/var(--kid-speed,1)) linear infinite,kid-border-angle-back calc(4s/var(--kid-speed,1)) linear infinite}
-.kid-border-ocean .kid-border-fx>i:nth-of-type(-n+4){display:block;offset-path:none;top:-7px;left:14px;right:14px;height:12px;background:linear-gradient(to top,var(--kid-ring-a,#0d6eaf),var(--kid-ring-b,#44b8ea) 55%,#eafcff);-webkit-mask:var(--kid-wave-h) 0 0/28px 12px repeat-x;mask:var(--kid-wave-h) 0 0/28px 12px repeat-x;animation:kid-fx-wave-x calc(1.8s/var(--kid-speed,1)) linear infinite}
-.kid-border-ocean .kid-border-fx>i:nth-of-type(3){top:auto;bottom:-7px;transform:scaleY(-1);animation-direction:reverse}
-.kid-border-ocean .kid-border-fx>i:nth-of-type(even):nth-of-type(-n+4){top:14px;bottom:14px;left:auto;right:-7px;width:12px;height:auto;background:linear-gradient(to right,var(--kid-ring-a,#0d6eaf),var(--kid-ring-b,#44b8ea) 55%,#eafcff);-webkit-mask:var(--kid-wave-v) 0 0/12px 28px repeat-y;mask:var(--kid-wave-v) 0 0/12px 28px repeat-y;animation-name:kid-fx-wave-y}
-.kid-border-ocean .kid-border-fx>i:nth-of-type(4):nth-of-type(-n+4){right:auto;left:-7px;transform:scaleX(-1);animation-direction:reverse}
-@keyframes kid-fx-wave-x{to{-webkit-mask-position:28px 0;mask-position:28px 0}}
-@keyframes kid-fx-wave-y{to{-webkit-mask-position:0 28px;mask-position:0 28px}}
-.kid-border-ocean .kid-border-fx>i:nth-of-type(5),.kid-border-ocean .kid-border-fx>i:nth-of-type(6){display:block}.kid-border-ocean .kid-border-fx>i:nth-of-type(6){--p:.5}
-.kid-border-ocean .kid-border-fx>i:nth-of-type(n+5)::before{content:'';width:9px;height:9px;border-radius:50%;border:2px solid #8fdcff;background:#ffffff40;animation:kid-fx-bubble calc(1.8s/var(--kid-speed,1)) ease-in-out infinite}
-.kid-border-ocean .kid-border-fx>i:nth-of-type(6)::before{width:6px;height:6px;animation-delay:calc(-.9s/var(--kid-speed,1))}
-@keyframes kid-fx-bubble{0%{transform:translateY(3px) scale(.6);opacity:0}30%{opacity:1}100%{transform:translateY(-10px) scale(1.1);opacity:0}}
-/* Neon: marquee bulbs chase in discrete steps (steps(30) over 360deg = one 12deg segment per step)
- * inside a flickering tube glow. */
-.kid-border-neon .kid-border-fx>s,.kid-border-neon .kid-border-fx>b::before,.kid-border-swatch.kid-border-neon>span::before{background:repeating-conic-gradient(from var(--kid-border-angle),var(--kid-ring-a,#ff3fd0) 0deg 12deg,var(--kid-ring-b,#2fe6ff) 12deg 24deg,var(--kid-ring-mid,#8a3cff) 24deg 36deg);animation:kid-border-angle-spin calc(6s/var(--kid-speed,1)) steps(30) infinite}
-.kid-border-neon .kid-border-fx>b{filter:blur(8px) saturate(1.6);animation:kid-fx-flicker calc(3s/var(--kid-speed,1)) linear infinite}
-@keyframes kid-fx-flicker{0%,17%,23%,58%,66%,100%{opacity:1}20%,62%{opacity:.25}}
-/* Per-kid tuning, set inline on the tile (kidBorderStyle in Workspace.tsx): --kid-speed scales every
- * duration above; --kid-ring-a/-b replace the style's two theme colors, with -soft/-mid variants
- * derived here. While a/b are unset these derived values are invalid, so each var() falls back to
- * the theme color. Glow and extras are classes. */
-.wb-family-event,.kid-appearance-editor{--kid-ring-a-soft:color-mix(in srgb,var(--kid-ring-a) 45%,#fff);--kid-ring-b-soft:color-mix(in srgb,var(--kid-ring-b) 45%,#fff);--kid-ring-mid:color-mix(in srgb,var(--kid-ring-a),var(--kid-ring-b))}
-.kid-glow-off .kid-border-fx>b{display:none}
-.kid-glow-strong .kid-border-fx>b{filter:blur(12px) saturate(1.8) brightness(1.1)}
-.kid-glow-strong .kid-border-fx>b::before{padding:calc(3*var(--kid-ring))}
-.kid-extras-off .kid-border-fx>i,.kid-extras-off .kid-border-fx::before,.kid-extras-off .kid-border-fx::after{display:none!important}
+/* Per-kid border styles (see the Kids page's Appearance panel): simple, still outlines in the kid's
+ * own color. "solid" is the plain default every untagged tile also gets. The same classes draw the
+ * little samples on the panel's style buttons (.kid-look-border-sample). */
+.wb-family-event.kid-border-bold,.kid-look-border-sample.kid-border-bold{border-width:4px}
+.wb-family-event.kid-border-stripe,.kid-look-border-sample.kid-border-stripe{border-color:color-mix(in srgb,var(--kid-color,var(--wb-line)) 35%,var(--wb-line));border-left:6px solid var(--kid-color,var(--wb-line))}
+.wb-family-event.kid-border-soft,.kid-look-border-sample.kid-border-soft{border-color:color-mix(in srgb,var(--kid-color,var(--wb-line)) 45%,transparent);background:color-mix(in srgb,var(--kid-color,var(--wb-line)) 10%,var(--wb-surface))}
+.wb-family-event.kid-border-dashed,.kid-look-border-sample.kid-border-dashed{border-style:dashed}
+.wb-family-event.kid-border-dotted,.kid-look-border-sample.kid-border-dotted{border-style:dotted;border-width:3px}
+.wb-family-event.kid-border-double,.kid-look-border-sample.kid-border-double{border-style:double;border-width:5px}
+.wb-family-event.kid-border-glow,.kid-look-border-sample.kid-border-glow{box-shadow:0 0 0 3px color-mix(in srgb,var(--kid-color,var(--wb-line)) 18%,transparent),0 3px 12px color-mix(in srgb,var(--kid-color,var(--wb-line)) 35%,transparent)}
 .wb-family-event-main{display:flex;align-items:flex-start;gap:10px}
 .wb-family-event-time{flex:0 0 4.6em;display:flex;flex-direction:column;font-variant-numeric:tabular-nums;line-height:1.25;color:var(--kid-color,var(--wb-ink))}
 .wb-family-event-start{font-weight:700;font-size:.78rem}
@@ -414,26 +302,31 @@ html[data-motion=reduced] .kid-border-fx>i{display:none!important}
 .family-notify-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
 .family-event-reminder-toggle{margin-top:8px}
 .kid-appearance-toggles{display:flex;flex-direction:column;gap:8px;margin:14px 0;padding:12px;border:1px solid var(--wb-line);border-radius:10px;background:var(--wb-surface)}
-.kid-appearance-editor{margin:18px 0;padding:14px;border:2px solid var(--kid-color,var(--wb-line));border-radius:14px;background:var(--wb-surface)}
-.kid-appearance-head{display:flex;align-items:center;gap:8px;font-size:1.05rem;margin-bottom:10px}
-.kid-appearance-preview{pointer-events:none;margin-bottom:12px}
-.kid-emoji-custom{display:flex;align-items:flex-end;gap:8px;margin:8px 0;flex-wrap:wrap}
-.kid-emoji-custom label{flex:1;min-width:160px;display:flex;flex-direction:column;gap:4px;font-size:.85rem}
-.kid-color-grid{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
-.kid-color-grid button{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
-.kid-color-grid button[aria-pressed="true"]{border-color:var(--wb-ink,#2f2942)}
-.kid-color-custom{display:flex;align-items:center;gap:6px;font-size:.85rem}
-.kid-border-grid{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
-.kid-border-swatch{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 8px;border-radius:10px;border:1px solid var(--wb-line);background:var(--wb-surface);cursor:pointer;font-size:.7rem;color:inherit}
-.kid-border-swatch[aria-pressed="true"]{outline:2px solid var(--kid-color,var(--wb-accent));outline-offset:1px}
-.kid-border-swatch>span{display:block;position:relative;width:30px;height:22px;border-radius:6px;border:2px solid var(--kid-color,var(--wb-line))}
-.kid-border-tuning{display:flex;flex-direction:column;gap:10px;margin:12px 0 4px;padding:12px;border:1px solid var(--wb-line);border-radius:10px}
-.kid-border-speed{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.85rem}
-.kid-border-speed input{flex:1;min-width:140px}.kid-border-speed output{min-width:3ch;font-variant-numeric:tabular-nums}
-.kid-border-glow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.85rem}.kid-border-glow>span{margin-right:4px}
-.kid-border-glow button[aria-pressed="true"]{outline:2px solid var(--kid-color,var(--wb-accent));outline-offset:1px}
-.kid-border-colors{display:flex;gap:16px;flex-wrap:wrap}.kid-border-colors label{display:flex;align-items:center;gap:6px;font-size:.85rem}
-.kid-border-reset{align-self:flex-start;font-size:.8rem}
+.kid-look>p{margin:0 0 12px}
+.kid-look-tabs{display:flex;gap:6px;overflow-x:auto;margin:0 0 14px;padding:2px 2px 6px;scrollbar-width:thin}
+:root .wb-dialog .kid-look .kid-look-tab{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-height:44px;padding:5px 14px 5px 5px;border:1px solid var(--wb-line);border-radius:999px;background:var(--wb-surface);color:var(--wb-ink);font-weight:600;box-shadow:none}
+:root .wb-dialog .kid-look .kid-look-tab[aria-selected="true"]{border-color:var(--kid-color);background:color-mix(in srgb,var(--kid-color) 14%,var(--wb-surface));box-shadow:inset 0 0 0 1px var(--kid-color)}
+.kid-look-avatar{display:inline-grid;place-items:center;flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:color-mix(in srgb,var(--kid-color) 22%,var(--wb-surface));box-shadow:inset 0 0 0 2px var(--kid-color);font-size:1.05rem;font-weight:700;line-height:1;color:var(--wb-ink)}
+.kid-look-editor{padding:14px;border:1px solid var(--wb-line);border-radius:14px;background:var(--wb-surface)}
+.kid-look-editor .kid-look-preview{pointer-events:none;margin:0 0 4px;padding:10px 12px}
+:root .wb-dialog .kid-look .kid-look-label{margin:16px 0 8px;font-family:inherit;line-height:1.2;font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--wb-muted)}
+:root .wb-dialog .kid-look .kid-look-emoji{display:flex;align-items:center;gap:8px}
+.kid-look-emoji .kid-look-avatar{width:44px;height:44px;font-size:1.4rem}
+.kid-look-emoji input{flex:1;min-width:0;width:auto}
+.wb-dialog .kid-look-emoji button{flex:0 0 auto;padding-inline:16px}
+:root .wb-dialog .kid-look .kid-look-link{min-height:32px;margin-top:4px;padding:4px 2px;border:0;background:none;box-shadow:none;color:var(--wb-muted);font-size:.85rem;font-weight:500;text-decoration:underline;text-underline-offset:2px}
+.kid-look-colors{display:flex;flex-wrap:wrap;gap:10px}
+:root .wb-dialog .kid-look .kid-look-color{position:relative;display:block;flex:0 0 auto;width:36px;height:36px;min-height:0;padding:0;border:0;border-radius:50%;background:var(--swatch);box-shadow:inset 0 0 0 1px #0000001f;cursor:pointer}
+:root .wb-dialog .kid-look .kid-look-color:is([aria-checked="true"],.is-picked){box-shadow:0 0 0 2px var(--wb-surface),0 0 0 4px var(--swatch)}
+:root .wb-dialog .kid-look .kid-look-color:is([aria-checked="true"],.is-picked)::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-weight:800;font-size:1rem;text-shadow:0 1px 2px #0006}
+.kid-look-color-custom{background:conic-gradient(#f87171,#fbbf24,#a3e635,#34d399,#38bdf8,#818cf8,#e879f9,#f87171)!important}
+.kid-look-color-custom.is-picked{background:var(--swatch)!important}
+.kid-look-color-custom input{position:absolute;inset:0;width:100%;height:100%;min-height:0;padding:0;border:0;opacity:0;cursor:pointer}
+.kid-look-borders{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+:root .wb-dialog .kid-look .kid-look-border{display:flex;flex-direction:column;align-items:center;gap:7px;min-height:0;padding:12px 4px 9px;border:1px solid var(--wb-line);border-radius:12px;background:var(--wb-surface);color:var(--wb-ink);font-size:.8rem;font-weight:600;box-shadow:none;line-height:1.15;text-align:center}
+:root .wb-dialog .kid-look .kid-look-border[aria-checked="true"]{border-color:var(--kid-color);background:color-mix(in srgb,var(--kid-color) 10%,var(--wb-surface));box-shadow:inset 0 0 0 1px var(--kid-color)}
+.kid-look-border-sample{display:block;width:40px;height:26px;border:2px solid var(--kid-color);border-radius:7px;background:var(--wb-surface)}
+@media(max-width:420px){.kid-look-editor{padding:12px}.kid-look-borders{gap:6px}:root .wb-dialog .kid-look .kid-look-border{font-size:.74rem;padding-inline:2px}.kid-look-border-sample{width:34px}}
 .family-kid-list{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}
 .workbench .family-kid-chip{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--wb-line);border-radius:999px;background:var(--wb-surface)}
 .family-kid-swatch{display:block;width:12px;height:12px;border-radius:50%;background:var(--kid-color,var(--wb-accent))}

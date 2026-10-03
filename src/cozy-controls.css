@@ -8,7 +8,7 @@
 :root[data-experience='cozy'][data-theme='zen']{--wb-bg:#f2f0ea;--wb-surface:#fbfaf7;--wb-ink:#302b24;--wb-muted:#6e6659;--wb-accent:#7c8a6e;--wb-line:#ddd6c6;--wb-nav:#3d3a30;--cute-ink:#3d3a30;--cute-edge:#ccc4ae;--cute-shadow:#a89c81}
 :root[data-experience='cozy'][data-theme='floral']{--wb-bg:#fdf2f6;--wb-surface:#fffbfc;--wb-ink:#4a2f3d;--wb-muted:#7c5d6c;--wb-accent:#c9587a;--wb-line:#f0d3de;--wb-nav:#5c3346;--cute-ink:#6a3550;--cute-edge:#e8b8cf;--cute-shadow:#c98aa8}
 :root[data-experience='cozy'][data-theme='ocean']{--wb-bg:#eaf6f6;--wb-surface:#fbfffe;--wb-ink:#123a44;--wb-muted:#4a7078;--wb-accent:#1c9aa1;--wb-line:#bfe4e2;--wb-nav:#0e4a52;--cute-ink:#0e4a52;--cute-edge:#a8dcd8;--cute-shadow:#6fb8b3}
-:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.kquiz-material-row):not(.kquiz-guide-tabs button):not(.kquiz-folders button){
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.kquiz-material-row):not(.kquiz-guide-tabs button):not(.kquiz-folders button):not([class*='kid-look-']){
  border-radius:16px;border-color:var(--cute-edge);background:linear-gradient(180deg,#fffdfb,#ffedf4);color:var(--cute-ink);font-weight:650;min-height:44px;
  box-shadow:inset 0 2px 0 #fff,0 3px 0 #dcb6c5,0 5px 9px #78465a0c;
  transition:box-shadow .14s ease,background-color .14s ease,translate .14s ease;
