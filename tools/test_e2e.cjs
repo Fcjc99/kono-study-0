@@ -1849,12 +1849,14 @@ test('Sanctuary: KONO today is a slim bar on top of the island, and Decorate ope
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  const bar=page.getByRole('region',{name:'KONO today'}),island=page.locator('.wb-island')
- // Measured together once the page has settled (late content above can still move both for a moment).
- await page.waitForFunction(()=>{const b=document.querySelector('.kono-bar')?.getBoundingClientRect(),i=document.querySelector('.wb-island')?.getBoundingClientRect();return b&&i&&b.bottom<=i.top+1},null,{timeout:5000,polling:200}).catch(()=>undefined)
+ // Measured together, in one read, once the page has settled: late content above (the setup row,
+ // KONO's line, lazily loaded cards) can still move both for a moment, and two separate reads can
+ // straddle that move. Settled = the same positions on two polls in a row.
+ const above=await page.waitForFunction(()=>{const b=document.querySelector('.kono-bar')?.getBoundingClientRect(),i=document.querySelector('.wb-island')?.getBoundingClientRect();if(!b||!i)return false;const key=Math.round(b.bottom)+':'+Math.round(i.top),w=window;const settled=w.__konoBarKey===key;w.__konoBarKey=key;return settled&&{gap:i.top-b.bottom}},null,{timeout:10000,polling:250}).then(h=>h.jsonValue())
  const b=await bar.boundingBox(),i=await island.boundingBox(),docY=await page.evaluate(()=>scrollY)
  if(process.env.KONO_SHOTS){await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar.png',clip:{x:b.x-10,y:b.y+docY-10,width:b.width+20,height:b.height+200}});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);const pb=await bar.evaluate(e=>{const r=e.getBoundingClientRect();return {y:r.top+scrollY,height:r.height}});await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar-phone.png',clip:{x:0,y:Math.max(0,pb.y-10),width:390,height:pb.height+160}});await page.setViewportSize({width:1280,height:900});await page.waitForTimeout(400)}
  assert.ok(b.height<160,'the KONO bar is slim (two short rows, even with a note from KONO): '+b.height+'px')
- assert.ok(b.y+b.height<=i.y+1,'the KONO bar sits right above the island')
+ assert.ok(above.gap>=-1,'the KONO bar sits right above the island: '+above.gap+'px')
  await page.getByRole('button',{name:'Decorate'}).click()
  const nav=page.getByRole('navigation',{name:'Decoration categories'})
  for(const cat of ['Homes','Trees','Ponds']){await nav.getByRole('button',{name:cat,exact:true}).click();await page.locator('.build-palette [role=button][aria-label^="Add "]').first().click()}
