@@ -38,14 +38,14 @@ test('values from a newer build in every enum field fall back to defaults instea
  d.studySeasons[0].week.Monday[0].kind=future
  d.studySeasons[0].category=future
  d.sanctuaryDecor[d.activeProfileId].placements[0].textFont=future
- d.kids[0].borderStyle=future;d.kids[0].borderGlow=future
+ d.kids[0].borderStyle=future
  Object.assign(d.settings,{experience:future,theme:future,textSize:future,density:future,boardStyle:future,motionPreference:future,sanctuaryWeather:future,sanctuaryWeatherMode:future})
  const n=model.normalizeData(d),s=n.settings
  assert.equal(n.profiles[0].kind,'custom')
  assert.equal(n.calendarEvents[0].kind,'other')
  assert.equal(n.notes[0].size,'medium');assert.equal(n.notes[0].font,'rounded')
  assert.equal(n.studySeasons[0].week.Monday[0].kind,'study')
- assert.equal(n.kids[0].borderStyle,'modern');assert.equal(n.kids[0].borderGlow,'soft')
+ assert.equal(n.kids[0].borderStyle,'solid')
  assert.equal(s.textSize,'normal');assert.equal(s.density,'comfortable');assert.equal(s.boardStyle,'paper')
  // Everything that wasn't touched survives.
  assert.equal(n.tasks.length,snapshot().tasks.length);assert.equal(n.tasks[0].title,'Read chapter 3')
@@ -61,7 +61,7 @@ test('color formats this build does not know fall back instead of failing the lo
 
 test('a kid border value retired in #129 migrates instead of resetting the plan (the Sept 2026 incident)',()=>{
  const d=snapshot();d.kids[0].borderStyle='fire'
- assert.equal(model.normalizeData(d).kids[0].borderStyle,'unique')
+ assert.equal(model.normalizeData(d).kids[0].borderStyle,'bold')
 })
 
 test('Trash stays strict about which collection an item restores into -- guessing would misplace data',()=>{

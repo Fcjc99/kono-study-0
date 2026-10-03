@@ -1751,6 +1751,39 @@ test('Team calendar for a parent: a TeamSnap webcal link is a team calendar, the
  assert.match(await linked.innerText(),/Hawks U12 · Emma · team/)
 })
 
+test('Kids\' appearance: one kid at a time, a saved animated border becomes its closest simple style, and the emoji, color and border a parent picks reach the account and the Planner tile',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.calendarEvents.push({id:'leo-swim',profileId:pid,date:'2026-10-02',title:'Swim lesson',kind:'activity',notes:'',kidId:'kid-leo',time:'16:00'})
+ await page.clock.setFixedTime(new Date('2026-10-02T09:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE)
+ await heading(page,'Sanctuary')
+ await go(page,'Kids')
+ await page.getByRole('button',{name:'🎨 Appearance'}).click()
+ const panel=page.getByRole('dialog',{name:'Kids\' appearance'})
+ const tabs=panel.getByRole('tablist',{name:'Kids'})
+ assert.equal(await tabs.getByRole('tab').count(),2)
+ assert.equal(await tabs.getByRole('tab',{name:/Emma/}).getAttribute('aria-selected'),'true')
+ // Emma was saved under the animated "ocean" border, which is now the calm Glow.
+ assert.equal(await panel.getByRole('radiogroup',{name:'Emma\'s border style'}).getByRole('radio',{checked:true}).innerText(),'Glow')
+ assert.equal(await panel.getByRole('radiogroup',{name:'Leo\'s border style'}).count(),0,'only the selected kid is shown')
+ await tabs.getByRole('tab',{name:/Leo/}).click()
+ await panel.getByRole('radiogroup',{name:'Leo\'s border style'}).getByRole('radio',{name:'Dotted'}).click()
+ await panel.getByRole('radiogroup',{name:'Leo\'s color'}).getByRole('radio',{name:'#5da8a1'}).click()
+ await panel.getByLabel('Leo\'s emoji').fill('🦁')
+ await panel.getByRole('button',{name:'Use',exact:true}).click()
+ await panel.getByRole('img',{name:'Leo\'s tile preview'}).getByText('🦁 Leo').waitFor()
+ await waitFor(()=>{const k=cloud.users.alice.plan.data.kids.find(x=>x.id==='kid-leo');return k.borderStyle==='dotted'&&k.color==='#5da8a1'&&k.emoji==='🦁'&&!('borderSpeed' in k)},'Leo\'s new look never reached the account')
+ await panel.getByRole('button',{name:'Close dialog'}).click()
+ await go(page,'Planner')
+ await page.getByLabel('Calendar view').selectOption('agenda')
+ const tile=page.locator('.wb-family-event').filter({hasText:'Swim lesson'})
+ await tile.waitFor()
+ assert.match(await tile.getAttribute('class'),/kid-border-dotted/)
+ assert.equal(await tile.evaluate(el=>getComputedStyle(el).borderTopStyle),'dotted')
+ assert.equal(await tile.locator('.kid-border-fx').count(),0,'no animated layer on a kid\'s tile any more')
+})
+
 test('School heads-up: a week before Thanksgiving the Sanctuary says there is an early release and two days off, Got it hides it, and it stays hidden after a reload',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']

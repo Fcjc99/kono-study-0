@@ -43,47 +43,38 @@ test('a kid with no emoji normalizes to undefined, not a forced default',()=>{
  assert.equal(normalized.kids[0].emoji,undefined)
 })
 
-test('a kid\'s borderStyle defaults to modern and every current style round-trips',()=>{
+test('a kid\'s borderStyle defaults to solid and every current style round-trips',()=>{
  const base=model.createFreshData()
  const {data}=withKid(base,'Emma')
- assert.equal(model.normalizeData(data).kids[0].borderStyle,'modern')
+ assert.equal(model.normalizeData(data).kids[0].borderStyle,'solid')
+ assert.deepEqual([...model.KID_BORDER_STYLES],['solid','bold','stripe','soft','dashed','dotted','double','glow'])
  for(const style of model.KID_BORDER_STYLES){
   assert.equal(model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:style}]}).kids[0].borderStyle,style)
  }
 })
 
-test('border tuning (colors, speed, glow, extras) round-trips and defaults sensibly',()=>{
+test('the retired animation tuning (colors, speed, glow, extras) is dropped from a saved kid',()=>{
  const base=model.createFreshData()
  const {data}=withKid(base,'Emma')
- const plain=model.normalizeData(data).kids[0]
- assert.deepEqual([plain.borderColors,plain.borderSpeed,plain.borderGlow,plain.borderExtras],[undefined,1,'soft',true])
- const tuned=model.normalizeData({...data,kids:[{...data.kids[0],borderColors:['#112233','#aabbcc'],borderSpeed:2.5,borderGlow:'strong',borderExtras:false}]}).kids[0]
- assert.equal(JSON.stringify([tuned.borderColors,tuned.borderSpeed,tuned.borderGlow,tuned.borderExtras]),JSON.stringify([['#112233','#aabbcc'],2.5,'strong',false]))
+ const k=model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:'ocean',borderColors:['#112233','#aabbcc'],borderSpeed:2.5,borderGlow:'strong',borderExtras:false}]}).kids[0]
+ assert.deepEqual(Object.keys(k).sort(),['borderStyle','color','emoji','id','name','profileId'])
+ assert.equal(k.borderStyle,'glow')
 })
 
-test('malformed border tuning is dropped or clamped instead of failing the whole load',()=>{
+test('an unknown borderStyle (e.g. synced from a newer build) falls back to solid instead of failing the whole load',()=>{
  const base=model.createFreshData()
  const {data}=withKid(base,'Emma')
- const k=model.normalizeData({...data,kids:[{...data.kids[0],borderColors:['red','url(x)'],borderSpeed:99,borderGlow:'blinding',borderExtras:'yes'}]}).kids[0]
- assert.deepEqual([k.borderColors,k.borderSpeed,k.borderGlow,k.borderExtras],[undefined,3,'soft',true])
- assert.equal(model.normalizeData({...data,kids:[{...data.kids[0],borderSpeed:-4}]}).kids[0].borderSpeed,.25)
- assert.equal(model.normalizeData({...data,kids:[{...data.kids[0],borderColors:['#112233']}]}).kids[0].borderColors,undefined)
+ assert.equal(model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:'not-a-style'}]}).kids[0].borderStyle,'solid')
+ assert.equal(model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:42}]}).kids[0].borderStyle,'solid')
 })
 
-test('an unknown borderStyle (e.g. synced from a newer build) falls back to modern instead of failing the whole load',()=>{
+test('a kid saved under any retired border style migrates to the closest simple one instead of failing the whole load',()=>{
  const base=model.createFreshData()
  const {data}=withKid(base,'Emma')
- assert.equal(model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:'not-a-style'}]}).kids[0].borderStyle,'modern')
- assert.equal(model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:42}]}).kids[0].borderStyle,'modern')
-})
-
-test('a kid saved under one of the retired border styles migrates to a new one instead of failing the whole load',()=>{
- const base=model.createFreshData()
- const {data}=withKid(base,'Emma')
- const migrated={solid:'modern',dashed:'sports',glow:'modern',sparkle:'cute',fire:'unique',rainbow:'cute'}
+ const migrated={sparkle:'glow',rainbow:'glow',fire:'bold',cute:'soft',sports:'stripe',modern:'solid',unique:'double',space:'bold',garden:'soft',ocean:'glow',neon:'glow',solid:'solid',dashed:'dashed',glow:'glow'}
  for(const [legacy,expected] of Object.entries(migrated)){
   const normalized=model.normalizeData({...data,kids:[{...data.kids[0],borderStyle:legacy}]})
-  assert.equal(normalized.kids[0].borderStyle,expected)
+  assert.equal(normalized.kids[0].borderStyle,expected,legacy)
  }
 })
 
