@@ -2166,6 +2166,66 @@ test('Bond hearts: KONO’s bond grows with what you do together; at 2 hearts a 
  await page.locator('.build-palette').getByRole('button',{name:'Add Heart cushion'}).click()
  await waitFor(()=>(data().sanctuaryDecor?.[pid]?.placements??[]).some(p=>p.assetId==='gift-cushion'),'the cushion never went on the island')
 })
+test('Break games: after a focus session KONO offers a break game; Peekaboo, Memory match and Snack catch each play through, keep a best score, and the games stop when the five-minute break is over',async({context,page})=>{
+ const cloud=fakeCloud()
+ await page.clock.install({time:new Date('2026-09-15T15:00:00')})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const outer=page.locator('details.sanctuary-focus')
+ await outer.locator(':scope > summary').click()
+ const focus=outer.locator('details.focus-session')
+ await focus.locator(':scope > summary').click()
+ assert.equal(await focus.getByRole('button',{name:/Break game with KONO/}).count(),0,'no games while studying')
+ await focus.getByLabel('Minutes').fill('0');await focus.getByLabel('Seconds').fill('5')
+ await focus.getByRole('button',{name:'Start timer'}).click()
+ await page.clock.runFor(8000)
+ await focus.getByText('Session complete. Take a short break.').waitFor()
+ await focus.getByRole('button',{name:'🎮 Break game with KONO'}).click()
+ const games=focus.getByRole('region',{name:'Break games with KONO'})
+ await games.getByRole('timer',{name:'Break time left'}).filter({hasText:'Break: 5:00'}).waitFor()
+ // Peekaboo: thirty seconds of KONO popping out of bushes.
+ await games.getByRole('button',{name:/Peekaboo/}).click()
+ await games.locator('.peekaboo-grid').waitFor()
+ let boops=0
+ for(let i=0;i<40&&boops<3;i++){await page.clock.runFor(300);const up=games.getByRole('button',{name:'Boop KONO!'});if(await up.count()){await up.click();boops++}}
+ assert.ok(boops>=1,'KONO popped up to be booped')
+ await page.clock.fastForward(31000);await page.clock.runFor(500)
+ await games.getByText(new RegExp('^You booped KONO '+boops+' times?! 🌿 New best! 🎉$')).waitFor()
+ await games.getByText('Best: '+boops+' boops').waitFor()
+ // Memory match: find all 6 pairs.
+ await games.getByRole('button',{name:/Memory match/}).click()
+ const cards=games.locator('.memory-card')
+ await cards.first().waitFor()
+ const known=new Map(),matched=new Set()
+ const label=async i=>cards.nth(i).getAttribute('aria-label')
+ for(let i=0;i<12;i++){
+  if(matched.has(i))continue
+  await cards.nth(i).click();const a=await label(i)
+  const twin=[...known.entries()].find(([j,name])=>name===a&&j!==i&&!matched.has(j))
+  let j=twin?twin[0]:[...Array(12).keys()].find(k=>k!==i&&!matched.has(k)&&!known.has(k))
+  if(j===undefined)break
+  await cards.nth(j).click();const b=await label(j)
+  known.set(i,a);known.set(j,b)
+  if(a===b){matched.add(i);matched.add(j)}
+  await page.clock.runFor(900)
+  if(a!==b){const pair=[...known.entries()].find(([k,name])=>name===a&&k!==i&&!matched.has(k));if(pair){await cards.nth(i).click();await cards.nth(pair[0]).click();matched.add(i);matched.add(pair[0]);await page.clock.runFor(900)}}
+ }
+ for(const [i,name] of known)if(!matched.has(i)){const pair=[...known.entries()].find(([k,n])=>n===name&&k!==i&&!matched.has(k));if(pair){await cards.nth(i).click();await cards.nth(pair[0]).click();matched.add(i);matched.add(pair[0]);await page.clock.runFor(900)}}
+ await games.getByText(/^All pairs found in \d+ moves! 🧠 New best! 🎉$/).waitFor()
+ // Snack catch: thirty seconds of falling snacks.
+ await games.getByRole('button',{name:/Snack catch/}).click()
+ await games.getByRole('application',{name:/Snack catch/}).waitFor()
+ if(process.env.KONO_SHOTS){await page.clock.runFor(4000);await games.screenshot({path:process.env.KONO_SHOTS+'/break-catch.png'})}
+ await page.clock.fastForward(31000);await page.clock.runFor(500)
+ await games.getByText(/^KONO caught \d+ snacks?! 😋/).waitFor()
+ if(process.env.KONO_SHOTS)await games.screenshot({path:process.env.KONO_SHOTS+'/break-games.png'})
+ // The break ends after five minutes (jumped to, rather than stepped through frame by frame).
+ await page.clock.fastForward(5*60_000);await page.clock.runFor(1500)
+ await games.getByText('That was a nice reset! KONO’s ready for the next session when you are. 📚').waitFor()
+ assert.equal(await games.getByRole('button',{name:/Peekaboo/}).count(),0,'no more games after the break')
+ await games.getByRole('button',{name:'Close'}).click()
+ assert.equal(await focus.getByRole('region',{name:'Break games with KONO'}).count(),0)
+})
 test('Planner daily page matches Today’s schedule: the day’s classes as compact cards, the rest under "Also today", ‹ › to step days, and "Back to today" only once you’ve moved away',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  plan.calendarEvents.push({id:'soccer',profileId:pid,title:'Soccer practice',date:'2026-09-28',time:'17:00',kind:'personal',done:false,notes:''})
