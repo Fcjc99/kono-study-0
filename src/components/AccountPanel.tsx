@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { Suspense, lazy, useState, type FormEvent } from 'react'
 import { TermsCheckbox } from './Legal'
 import { rememberTermsAcceptance, rememberedTermsAcceptance } from '../store/termsConsent'
 import type { usePlannerRepository } from '../store/repository'
@@ -7,6 +7,8 @@ import {APP_VERSION} from '../version'
 import { useSmallScreen } from '../hooks/useComfort'
 import { lazyPanel } from '../lazyPanel'
 type Store=ReturnType<typeof usePlannerRepository>
+/** The signed-out welcome screen, with its animations, loads only for people who see it. */
+const Landing=lazy(()=>import('./Landing'))
 /** Account & data (also under the welcome form): Settings-only code, loaded when it's shown. */
 const AccountPanel=lazyPanel<{store:Store}>(()=>import('./AccountSettings').then(m=>({default:m.AccountPanel})))
 export function SaveStatus({store}:{store:Store}){
@@ -47,7 +49,7 @@ export function Onboarding({store}:{store:Store}){
  const submit=(e:FormEvent)=>{e.preventDefault();if(!name.trim()||!label.trim()||(!store.support&&!agreed))return;const termsAcceptedAt=store.support?undefined:rememberedTermsAcceptance()??rememberTermsAcceptance();store.repository.update(d=>({...d,onboardingComplete:true,settings:{...d.settings,termsAcceptedAt:termsAcceptedAt??d.settings.termsAcceptedAt},profiles:d.profiles.map(p=>p.id===profile.id?{...p,name:name.trim(),label:label.trim()}:p)}))}
  const demo=()=>void store.repository.update(d=>({...d,onboardingComplete:true,notes:[...d.notes,{id:'demo-note-'+profile.id,profileId:profile.id,subjectId:'',title:'Welcome to your board',body:'Edit this note, change its color, or move it to Trash. Your own work starts here.',created:new Date().toISOString(),pinned:true}],tasks:[...d.tasks,{id:'demo-task-'+profile.id,profileId:profile.id,subjectId:'',title:'Try completing an assignment',due:localDate(),done:false,notes:'This optional demo task can be edited, reopened, or removed.'}]}))
  // Plans live in an account tied to your email, so they can't be lost with a browser. The demo stays on this device.
- if(store.repository.signInProvider==='email'&&!store.user&&!deviceStart)return <main className="onboarding page-stack"><section className="card"><span className="eyebrow">Welcome to KONO</span><h1>A little space for steady progress.</h1><p>Sign in with your email to start your plan. It’s saved to your account, backed up automatically every time you open KONO, and there on any device you sign in on. No password: we email you a link.</p><EmailSignIn store={store} button="Email me a link to start" onUseDevice={()=>setDeviceStart(true)} requireTerms/><p className="onboarding-demo">Just looking around? <button type="button" onClick={demo}>Try a small demo instead</button> <small>The demo is saved on this device only.</small></p></section></main>
+ if(store.repository.signInProvider==='email'&&!store.user&&!deviceStart)return <Suspense fallback={<main className="startup-card"><h1>KONO</h1><p role="status">Opening KONO…</p></main>}><Landing store={store} onUseDevice={()=>setDeviceStart(true)} onDemo={demo}/></Suspense>
  return <main className="onboarding page-stack"><form className="card" onSubmit={submit}><span className="eyebrow">Welcome to KONO</span><h1>A little space for steady progress.</h1>{store.support?<p className="onboarding-account">Setting up a plan for <strong>{store.support.email}</strong>. Use their name; everything you add saves to their account.</p>:store.user&&<p className="onboarding-account">Signed in as <strong>{store.user.email}</strong>. Your plan saves to this account.</p>}<p>Start with your own plan. Add subjects, small assignments and notes; your Sanctuary grows as you finish work.</p><label>Your name<input required maxLength={200} value={name} onChange={e=>setName(e.target.value)} autoComplete="given-name"/></label><label>Plan name<input required maxLength={200} value={label} onChange={e=>setLabel(e.target.value)}/></label>{!store.support&&<TermsCheckbox checked={agreed} onChange={setAgreed}/>}<button className="primary" disabled={store.needsMigration}>{store.support?'Create their study plan':'Create my study plan'}</button><button type="button" disabled={store.needsMigration} onClick={demo}>Try a small demo instead</button></form>{!store.support&&<AccountPanel store={store}/>}</main>
 }
 const SNOOZE_KEY='kono-save-to-email-snoozed-until'

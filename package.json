@@ -72,6 +72,7 @@
     "@tesseract.js-data/eng": "1.0.0",
     "drizzle-orm": "^0.45.2",
     "jspdf": "^4.2.1",
+    "motion": "^14.0.0",
     "pdfjs-dist": "6.3.289",
     "phaser": "^4.2.1",
     "react": "^19.2.7",
