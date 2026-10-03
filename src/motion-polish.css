@@ -60,3 +60,27 @@ html[data-motion=full] .cozy-complete[aria-pressed=true]{animation:check-pop .42
 /* ── Phone Home: the KONO bar already says what's due, so the "due by" strip only shows on Planner
  * there. That frees a row so the island starts higher on the screen. ── */
 @media(max-width:600px){.workbench[data-page=sanctuary] .login-digest{display:none}}
+
+/* ── Celebrations (src/delight.ts): petals and hearts float above everything, then remove themselves ── */
+.delight-particle{position:fixed;z-index:2147483000;pointer-events:none;font-size:18px;line-height:1;will-change:transform,opacity}
+.delight-particle.is-petal{color:var(--wb-accent,#e0685a);text-shadow:0 1px 0 #fff8}
+.delight-particle.is-petal:nth-child(3n){color:#f0b43c}.delight-particle.is-petal:nth-child(3n+1){color:#5fbf8a}
+.delight-particle.is-heart{font-size:20px}
+
+/* "Done this week" pops each time the count changes (the number is re-keyed on its value). */
+@keyframes count-pop{0%{transform:scale(1)}40%{transform:scale(1.35);color:#2f9a5b}100%{transform:scale(1)}}
+html[data-motion=full] .wb-stat-count{display:inline-block;animation:count-pop .5s cubic-bezier(.3,1.4,.5,1)}
+
+/* ＋ Add breathes gently while there's nothing on the list, so a new student knows where to start. */
+@keyframes add-invite{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--wb-accent,#e0685a) 45%,transparent)}50%{box-shadow:0 0 0 9px color-mix(in srgb,var(--wb-accent,#e0685a) 0%,transparent)}}
+html[data-motion=full] .wb-toolbar .primary.is-inviting{animation:add-invite 2.2s ease-in-out infinite}
+
+/* ── Phones: dialogs are sheets from the bottom; drag the top edge down to close (Modal.tsx) ── */
+.sheet-handle{display:none}
+@keyframes sheet-up{from{transform:translateY(100%)}to{transform:none}}
+@media(max-width:600px){
+ .workbench:not([data-experience=modern]) .wb-dialog{margin:auto 0 0;width:100%;max-width:100%;max-height:92dvh;border-radius:22px 22px 0 0;border-bottom:0;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+ .workbench:not([data-experience=modern]) .wb-dialog>header{position:relative;padding-top:14px;touch-action:none;cursor:grab}
+ .workbench:not([data-experience=modern]) .sheet-handle{display:block;position:absolute;top:0;left:50%;width:40px;height:5px;margin-left:-20px;border-radius:5px;background:currentColor;opacity:.22}
+ html[data-motion=full] .workbench:not([data-experience=modern]) .wb-dialog[open]{animation:sheet-up .34s cubic-bezier(.2,1,.3,1)}
+}
