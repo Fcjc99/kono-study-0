@@ -1,0 +1,62 @@
+/* Motion & polish layer: the landing screen, and the small moving touches added with Motion
+ * (motion/react). Loaded last so it can refine earlier sheets without !important. Every animated
+ * piece also respects the comfort setting: Motion reads it through <MotionConfig>, and the CSS-only
+ * touches sit behind prefers-reduced-motion / html[data-motion]. */
+
+/* ── Landing ─────────────────────────────────────────────────────────────── */
+.onboarding.landing{max-width:1160px;min-height:100vh;margin:0 auto;padding:clamp(20px,5vw,56px) clamp(16px,4vw,40px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:clamp(24px,5vw,64px);align-items:center}
+.landing-copy{display:grid;gap:14px;align-content:center}
+.landing-copy .eyebrow{color:var(--wb-accent,#d4574a);font-size:.74rem;letter-spacing:.16em}
+.landing .landing-copy h1{margin:0;font-family:Newsreader,Georgia,serif;font-weight:600;font-size:clamp(2.3rem,5.2vw,3.9rem);line-height:1.02;letter-spacing:-.02em;color:inherit;text-wrap:balance}
+.landing-lede{margin:0;max-width:46ch;font-size:1.06rem;line-height:1.55;color:inherit;opacity:.82}
+.landing-points{list-style:none;margin:4px 0 2px;padding:0;display:grid;gap:8px}
+.landing-points li{display:flex;align-items:center;gap:10px;font-weight:600;font-size:.95rem;color:inherit}
+.landing-points li span{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:color-mix(in srgb,var(--wb-accent,#d4574a) 12%,var(--wb-surface,#fff));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--wb-accent,#d4574a) 18%,transparent)}
+.landing-form{padding:18px 18px 8px;border-radius:20px;background:var(--wb-surface,#fffaf6);border:1px solid var(--wb-line,#ecd3cc);box-shadow:0 1px 0 #fff8 inset,0 18px 40px -24px color-mix(in srgb,var(--wb-accent,#d4574a) 45%,transparent)}
+.landing-form .email-sign-in{display:grid;gap:10px;margin:0;padding:0;background:none;border:0;box-shadow:none}
+.landing-form label{margin:0!important}
+.landing-form input[type=email]{width:100%;min-height:48px;font-size:1rem}
+.landing-form .primary{width:100%;min-height:50px;font-size:1rem;border-radius:14px;transition:transform .15s ease,box-shadow .2s ease,filter .2s ease}
+.landing-form .primary:hover:not(:disabled){transform:translateY(-1px);filter:saturate(1.08)}
+.landing-form .primary:active:not(:disabled){transform:translateY(1px) scale(.99)}
+.landing .onboarding-demo{margin:2px 0 0;font-size:.95rem}
+.landing-demo{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:8px 18px;border-radius:999px;border:1.5px solid color-mix(in srgb,var(--wb-accent,#d4574a) 45%,transparent);background:transparent;color:var(--wb-accent,#c2493d);font-weight:700;cursor:pointer}
+.landing-demo:hover{background:color-mix(in srgb,var(--wb-accent,#d4574a) 9%,transparent)}
+.landing-demo:focus-visible{outline:3px solid color-mix(in srgb,var(--wb-accent,#d4574a) 55%,transparent);outline-offset:2px}
+.landing-art{position:relative;margin:0;aspect-ratio:4/3;border-radius:32px;overflow:visible}
+.landing-island{display:block;width:100%;height:100%;object-fit:cover;border-radius:32px;box-shadow:0 40px 80px -40px #5b88b8aa,0 2px 0 #fff inset}
+.landing-art::after{content:'';position:absolute;inset:0;border-radius:32px;box-shadow:inset 0 0 0 1px #ffffff66;pointer-events:none}
+.landing-kono{position:absolute;left:38%;top:30%;width:clamp(56px,11%,96px);height:auto;image-rendering:pixelated;filter:drop-shadow(0 6px 6px #0003);cursor:grab}
+.landing-chip{position:absolute;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:14px;background:#fffdfb;color:#3d2a26;font-weight:700;font-size:.88rem;box-shadow:0 14px 30px -12px #3d2a2655,0 0 0 1px #0000000d;white-space:nowrap}
+.landing-chip b{display:grid;place-items:center;width:24px;height:24px;border-radius:8px;font-size:.8rem}
+.landing-chip.is-done{left:-14px;bottom:18%}.landing-chip.is-done b{background:#dff3e4;color:#2f7a45}
+.landing-chip.is-streak{right:-12px;top:12%}.landing-chip.is-streak b{background:#ffe9d6}
+@media(max-width:900px){
+ .onboarding.landing{grid-template-columns:1fr;min-height:0;padding-top:20px}
+ .landing-art{order:-1;max-width:560px;width:100%;justify-self:center;aspect-ratio:16/10}
+ .landing-chip.is-done{left:8px;bottom:10px}.landing-chip.is-streak{right:8px;top:10px}
+ .landing-copy h1{font-size:clamp(2rem,8.5vw,2.6rem)}
+}
+@media(max-width:600px){.landing-points{display:none}.landing-chip{font-size:.78rem;padding:7px 10px}}
+
+/* ── Navigation: a mark that slides to the current tab (NavIndicator), and a small pop on its icon ── */
+.nav-button,.mobile-nav button{position:relative}
+.nav-indicator{position:absolute;left:4px;top:22%;bottom:22%;width:4px;border-radius:4px;background:currentColor;opacity:.85;pointer-events:none}
+.mobile-nav .nav-indicator{left:50%;top:auto;bottom:2px;width:16px;height:3px;margin-left:-8px}
+@keyframes nav-pop{0%{transform:scale(.82)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+html[data-motion=full] :is(.nav-button.active .nav-icon,.mobile-nav button.active>span){animation:nav-pop .38s cubic-bezier(.3,1.4,.5,1)}
+
+/* ── Gentle press feedback on buttons ── */
+html[data-motion=full] .workbench button:not(:disabled):active{transform:scale(.97)}
+
+/* ── Dialogs ease in; checking off an assignment pops ── */
+@keyframes dialog-in{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes backdrop-in{from{opacity:0}to{opacity:1}}
+@keyframes check-pop{0%{transform:scale(.7)}55%{transform:scale(1.25)}100%{transform:scale(1)}}
+html[data-motion=full] .wb-dialog[open]{animation:dialog-in .28s cubic-bezier(.2,1,.4,1)}
+html[data-motion=full] .wb-dialog[open]::backdrop{animation:backdrop-in .2s ease}
+html[data-motion=full] .cozy-complete[aria-pressed=true]{animation:check-pop .42s cubic-bezier(.3,1.4,.5,1)}
+
+/* ── Phone Home: the KONO bar already says what's due, so the "due by" strip only shows on Planner
+ * there. That frees a row so the island starts higher on the screen. ── */
+@media(max-width:600px){.workbench[data-page=sanctuary] .login-digest{display:none}}
