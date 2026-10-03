@@ -4,6 +4,8 @@ import { isValidWeatherLocation, normalizeWeatherLocation, type LiveWeatherState
 import { notificationsSupported, requestNotificationPermission } from './hooks/useDueNotifications'
 import { createSanctuaryProgress } from './game/progression/progressionEngine'
 import { uid, localDate as iso, type AppData, type ProfileKind, type SettingsData } from './store/model'
+import { useLocalSetting } from './hooks/useLocalSetting'
+import { BABBLE_SETTING, babble } from './konoBabble'
 
 /** Settings panels (plans, weather, sound & motion, reminders). Settings-only, so they load when shown. */
 type SetAppData=(action:SetStateAction<AppData>)=>Promise<boolean>
@@ -45,7 +47,8 @@ export function WeatherSettings({data,setData,weatherState}:{data:AppData;setDat
 /** Sounds and motion: part of how KONO looks and feels. */
 export function SoundMotionSettings({data,setData}:{data:AppData;setData:SetAppData}){
  const updateSetting=settingUpdater(setData)
- return <section className="card settings-list"><label><div><strong>Completion sound</strong><small>Play your uploaded confirmation sound when a task is checked off, with a tiny buzz on phones that support it</small></div><input type="checkbox" checked={data.settings.sound} onChange={e=>updateSetting('sound',e.target.checked)}/></label><label><div><strong>Ambient sound</strong><small>Soft piano and sanctuary ambience</small></div><input type="checkbox" checked={data.settings.ambient} onChange={e=>updateSetting('ambient',e.target.checked)}/></label><label><div><strong>Motion preference</strong><small>Applies to the Sanctuary and interface</small></div><select value={data.settings.motionPreference??'system'} onChange={e=>updateSetting('motionPreference',e.target.value as SettingsData['motionPreference'])}><option value="system">Follow device</option><option value="reduced">Reduced motion</option><option value="full">Full animation</option></select></label></section>
+ const [chatter,setChatter]=useLocalSetting(BABBLE_SETTING,'off')
+ return <section className="card settings-list"><label><div><strong>KONO’s chatter</strong><small>Soft little blips when KONO says something to you (on this device)</small></div><input type="checkbox" checked={chatter==='on'} onChange={e=>{setChatter(e.target.checked?'on':'off');if(e.target.checked)babble('Hi there, friend!')}}/></label><label><div><strong>Completion sound</strong><small>Play your uploaded confirmation sound when a task is checked off, with a tiny buzz on phones that support it</small></div><input type="checkbox" checked={data.settings.sound} onChange={e=>updateSetting('sound',e.target.checked)}/></label><label><div><strong>Ambient sound</strong><small>Soft piano and sanctuary ambience</small></div><input type="checkbox" checked={data.settings.ambient} onChange={e=>updateSetting('ambient',e.target.checked)}/></label><label><div><strong>Motion preference</strong><small>Applies to the Sanctuary and interface</small></div><select value={data.settings.motionPreference??'system'} onChange={e=>updateSetting('motionPreference',e.target.value as SettingsData['motionPreference'])}><option value="system">Follow device</option><option value="reduced">Reduced motion</option><option value="full">Full animation</option></select></label></section>
 }
 /** Reminders while KONO is open, the due-soon summary, and browser notifications. */
 export function ReminderSettings({data,setData}:{data:AppData;setData:SetAppData}){

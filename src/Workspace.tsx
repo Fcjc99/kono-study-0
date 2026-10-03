@@ -21,7 +21,8 @@ import {presentLine,presentSrc,stampCard,CARD_SIZE} from './store/konoStamps'
 import {friendSrc,friendsMet,visitEvent,visitEventId,visitLine,visitorToday} from './store/konoFriends'
 import {konoNote,moodLine,MOODS,noteText,examEventId,nudgeEventId,testDay,testsFrom,type Mood,type Test} from './store/konoNotes'
 import {changeDetail,changeTitle,schoolChanges} from './store/schoolHeadsUp'
-import {APP_BADGE_SETTING,showAppBadge} from './store/appBadge'
+import {APP_BADGE_SETTING,rememberBadgeChoice,showAppBadge} from './store/appBadge'
+import {BABBLE_SETTING,babble} from './konoBabble'
 import NextUp from './components/NextUp'
 import {earnedStickers,seasonOn,stickerOffered,STICKERS} from './store/stickers'
 import {pickKonoPhrase,konoCelebration,konoStreakMilestone,seededRand,STREAK_MILESTONES,type KonoPhrase} from './store/konoPhrases'
@@ -51,6 +52,8 @@ const SoundMotionSettings=lazyPanel<SettingsProps>(()=>import('./SettingsPanels'
 const ReminderSettings=lazyPanel<SettingsProps>(()=>import('./SettingsPanels').then(m=>({default:m.ReminderSettings})))
 import {AccountBanners,Onboarding,RecoveryScreen,SaveStatus} from './components/AccountPanel'
 type StoreProps={store:ReturnType<typeof usePlannerRepository>}
+/** The three-step welcome on a brand-new plan; only new students download it. */
+const WelcomeTour=lazyPanel<{onAdd:()=>void;onDone:()=>void}>(()=>import('./components/WelcomeTour'))
 const AccountPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.AccountPanel})))
 const BackupPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.BackupPanel})))
 const SupportAdminPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.SupportAdminPanel})))
@@ -392,6 +395,7 @@ function Workspace({store}:{store:Store}){
  const [appBadge]=useLocalSetting(APP_BADGE_SETTING,'on')
  const badgeCount=appBadge==='on'?tasks.filter(t=>!t.done&&t.due<=today).length+ownExams.filter(e=>!e.done&&e.due===today).length:0
  useEffect(()=>{showAppBadge(badgeCount)},[badgeCount])
+ useEffect(()=>{rememberBadgeChoice(appBadge==='on')},[appBadge])
  useDueNotifications(Boolean(data.settings.browserNotifications),dueNotifyItems,today)
  const [focusRequest,setFocusRequest]=useState<FocusRequest|null>(null)
  const sanctuaryFocusRef=useRef<HTMLDetailsElement>(null)
@@ -556,6 +560,14 @@ function Workspace({store}:{store:Store}){
  // celebrateSignal prop) -- bumped at the exact same moment the speech-bubble phrase above is set,
  // so the physical reaction and the phrase always fire together rather than drifting out of sync.
  const [celebrateSignal,setCelebrateSignal]=useState<number|null>(null)
+ // KONO's chatter (Settings › Look & feel): soft blips whenever KONO answers something you did.
+ const [babbleOn]=useLocalSetting(BABBLE_SETTING,'off')
+ // The welcome tour: once per plan on this device, and only while the plan is brand new (nothing ever
+ // finished, at most the demo's one assignment), so people already using KONO never see it.
+ const [tourDone,setTourDone]=useLocalSetting('kono-tour-done:'+profile.id,'')
+ const showTour=!tourDone&&!Object.keys(sanctuaryProgress.completionDates).length&&ownTasks.length<=1
+ const chatterLine=careMoment?.line??konoPhrase?.text
+ useEffect(()=>{if(babbleOn==='on'&&chatterLine)babble(chatterLine)},[careMoment?.at,konoPhrase]) // eslint-disable-line react-hooks/exhaustive-deps -- once per new line
  useEffect(()=>{
   if(wishGranted||wishDone<wish.goal)return
   // Saved and announced together (saving changes the plan, which would cancel a separate timer).
@@ -773,6 +785,7 @@ function Workspace({store}:{store:Store}){
    {page==='Sanctuary'&&<>
     {classmatesOn&&<SharedWithMe repository={repository} data={data} save={save}/>}
     {overdueCard}
+    {showTour&&<WelcomeTour onAdd={()=>setAdding(true)} onDone={()=>setTourDone('1')}/>}
     {!onPhone&&!startSkipped.has('all')&&<GettingStarted compact steps={startSteps} onSkip={skipStart} onHide={()=>skipStart('all')}/>}
     {/* KONO today: one slim bar attached to the top of the island. KONO, its line, how it's doing, one
         care action, stickers, and "do next" / "ask". The day's wish (and an island season) sit in a small

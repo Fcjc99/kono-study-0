@@ -102,3 +102,20 @@ html:not([data-dark])[data-daypart=morning] body::before{background:radial-gradi
 html:not([data-dark])[data-daypart=afternoon] body::before{background:radial-gradient(120% 70% at 85% 0%,#fff9eccc,transparent 60%)}
 html:not([data-dark])[data-daypart=evening] body::before{background:radial-gradient(120% 80% at 80% 0%,#ffd2bfaa,transparent 60%),linear-gradient(#ffe7dc55,transparent 40%)}
 html:not([data-dark])[data-daypart=night] body::before{background:radial-gradient(120% 80% at 80% 0%,#d8d4f5aa,transparent 60%),linear-gradient(#e4e0fb66,transparent 45%)}
+
+/* ── Welcome tour (WelcomeTour.tsx): a card in the page, and a soft glowing ring on what it's about ── */
+.welcome-tour{position:relative;display:flex;gap:16px;align-items:flex-start;padding:18px 20px;border:2px solid color-mix(in srgb,var(--wb-accent,#e0685a) 35%,transparent);background:linear-gradient(135deg,color-mix(in srgb,var(--wb-accent,#e0685a) 8%,var(--wb-surface,#fff)),var(--wb-surface,#fff))}
+.welcome-tour-kono{width:64px;height:auto;flex:0 0 auto;image-rendering:pixelated;filter:drop-shadow(0 4px 4px #0002)}
+.welcome-tour-copy{display:grid;gap:4px;min-width:0}
+.welcome-tour-copy small{font-size:.72rem;letter-spacing:.12em;font-weight:700;color:var(--wb-accent,#c2493d)}
+.welcome-tour-copy strong{font-size:1.15rem}
+.welcome-tour-copy p{margin:0 0 6px}
+.welcome-tour-dots{position:absolute;right:16px;top:16px;display:flex;gap:5px}
+.welcome-tour-dots i{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.2;transition:opacity .2s,transform .2s}
+.welcome-tour-dots i.is-on{opacity:.75;transform:scale(1.25)}
+[data-tour-focus]{outline:3px solid color-mix(in srgb,var(--wb-accent,#e0685a) 70%,transparent);outline-offset:4px;border-radius:inherit}
+@keyframes tour-ring{0%,100%{outline-offset:4px}50%{outline-offset:8px}}
+html[data-motion=full] [data-tour-focus]{animation:tour-ring 1.6s ease-in-out infinite}
+@keyframes tour-kono-in{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:1;transform:none}}
+html[data-motion=full] .welcome-tour-kono{animation:tour-kono-in .4s cubic-bezier(.3,1.4,.5,1)}
+@media(max-width:600px){.welcome-tour{padding:14px}.welcome-tour-kono{width:48px}}

@@ -628,6 +628,23 @@ function sampleIcs(){
   'BEGIN:VEVENT','UID:dentist@example','SUMMARY:Dentist appointment','DTSTART:'+ymd(next)+'T090000','DTEND:'+ymd(next)+'T100000','END:VEVENT','END:VCALENDAR'].join('\r\n')
 }
 
+test('Welcome tour: a new plan gets three steps (the island, KONO, adding work), the last opens Add, and it stays done after a reload',async({page})=>{
+ await createPlan(page)
+ const tour=page.getByRole('region',{name:'Welcome to KONO'})
+ await tour.getByText('This is your island').waitFor()
+ await tour.getByRole('button',{name:'Okay'}).click()
+ await tour.getByText('Meet KONO').waitFor()
+ assert.equal(await page.locator('.kono-bar[data-tour-focus]').count(),1,'KONO’s bar is lit up on the KONO step')
+ await tour.getByRole('button',{name:'Okay'}).click()
+ await tour.getByRole('button',{name:'＋ Add my first assignment'}).click()
+ await page.getByRole('dialog',{name:'Add to your plan'}).waitFor()
+ assert.equal(await tour.count(),0,'the tour closes once it hands over to Add')
+ await page.keyboard.press('Escape')
+ await page.reload();await heading(page,'Sanctuary')
+ await page.locator('.kono-bar').waitFor()
+ assert.equal(await page.getByRole('region',{name:'Welcome to KONO'}).count(),0,'the tour doesn’t come back')
+})
+
 test('Getting started: a new plan shows three steps; each opens the right place, ticks off when done or skipped, and Hide keeps it hidden',async({page})=>{
  await createPlan(page)
  const card=page.getByRole('region',{name:'Getting started'})
