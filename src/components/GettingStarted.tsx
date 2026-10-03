@@ -4,7 +4,8 @@ export type StartStep={id:string;title:string;note:string;done:boolean;action:st
 
 /** Sanctuary › Getting started: the few things that make KONO useful, for someone new. Each step ticks
  * itself off when it's done (or skipped), and the card goes away when they all are, or on Hide.
- * `compact` (phones) shows just the next step on one row, so the island stays near the top. */
+ * `compact` shows just the next step on one row (All steps opens the full list), so the island stays
+ * near the top. */
 export default function GettingStarted({steps,onSkip,onHide,compact=false}:{steps:StartStep[];onSkip:(id:string)=>void;onHide:()=>void;compact?:boolean}){
  const [expanded,setExpanded]=useState(false)
  const left=steps.filter(s=>!s.done)
