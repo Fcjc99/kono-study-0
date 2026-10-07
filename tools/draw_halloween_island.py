@@ -1,4 +1,8 @@
-"""Draws the island's Halloween look (October): the four time-of-day maps recolored for autumn
+"""Shared helpers for the seasonal islands (tools/draw_winter_island.py and draw_spring_island.py import
+its color helpers and sprite drawing). Its own Halloween maps are retired: October is now one night
+picture, drawn by tools/draw_halloween_night.py, so running this file does nothing.
+
+Originally: draws the island's Halloween look (October): the four time-of-day maps recolored for autumn
 (golden-orange grass, red and orange bushes, a lilac-to-pumpkin sky, a harvest moon at night) with
 pumpkins, jack-o'-lanterns, cute gravestones, a scarecrow, a haystack, a cauldron, leaf piles and
 cobwebs painted in the style of the island's decorations (tools/painted_props.py). Jack-o'-lanterns and the cauldron glow in the
@@ -541,4 +545,4 @@ def main():
         f.write('\n')
 
 if __name__ == '__main__':
-    main()
+    print('Retired: October is one night picture now. Run tools/draw_halloween_night.py instead.')

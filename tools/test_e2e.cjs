@@ -531,6 +531,8 @@ test('signed in: last night\'s backup downloads, and app errors reach KONO suppo
 
 test('Sanctuary: the island draws, zooms, expands and changes time; Decorate adds, duplicates, removes and keeps items',async({page})=>{
  const loaded=[];page.on('response',r=>{const u=new URL(r.url());if(/\/garden\/(terrace-23\.0|kono)\//.test(u.pathname))loaded.push([u.pathname,r.status()])})
+ // Mid-September: each time of day has its own map (in October the island is one Halloween night picture).
+ await page.clock.setFixedTime(new Date('2026-09-16T15:00:00'))
  await createPlan(page)
  // The island loads once it's on screen (for a new plan it's just below Getting started): islandLoaded
  // keeps it in view while it does.
@@ -552,8 +554,7 @@ test('Sanctuary: the island draws, zooms, expands and changes time; Decorate add
  const phase=await page.getByLabel('Sanctuary time').inputValue()
  // A time whose map isn't loaded yet: near dawn or dusk the island has already loaded the next phase's map
  // to blend into, so switching to it wouldn't fetch anything (which made this test depend on the clock).
- // (In October it's the Halloween island's map: see game/sanctuary/season.ts.)
- const map=p=>new RegExp(`/terrace-23\\.0/(halloween/)?${p}\\.webp$`)
+ const map=p=>new RegExp(`/terrace-23\\.0/${p}\\.webp$`)
  const other=['evening','night','afternoon','morning'].find(p=>p!==phase&&!loaded.some(([path])=>map(p).test(path)))
  const mapLoaded=page.waitForResponse(r=>map(other).test(new URL(r.url()).pathname)&&r.status()===200,{timeout:20000})
  await page.getByLabel('Sanctuary time').selectOption(other)
@@ -1609,14 +1610,15 @@ test('What should I do now and the app icon number: late work first, "Something 
  await until(async()=>await badge()===0,'turning it off should clear the icon')
 })
 
-test('Halloween island: all of October the island has its spooky look (with its own quick picture while it loads), and in November it is back to normal',async({context,page})=>{
+test('Halloween island: all of October the island is the Halloween night picture with its full moon, even in the afternoon (with its own quick picture while it loads), and in November it is back to normal',async({context,page})=>{
  const cloud=fakeCloud(),maps=[]
  page.on('response',r=>{const u=new URL(r.url());if(/\/garden\/terrace-23\.0\//.test(u.pathname))maps.push([u.pathname,r.status()])})
- await page.clock.setFixedTime(new Date('2026-10-15T21:30:00'))
+ await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  await islandLoaded(page)
- assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween/night.webp'&&st===200),'the Halloween night island loads: '+JSON.stringify(maps))
+ assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween/night.webp'&&st===200),'the Halloween night island loads, even at 3 PM: '+JSON.stringify(maps))
+ assert.ok(!maps.some(([p])=>/\/terrace-23\.0\/(halloween\/)?(morning|afternoon|evening)\.webp$/.test(p)),'no daytime map in October: '+JSON.stringify(maps))
  assert.ok(!maps.some(([p])=>p==='/garden/terrace-23.0/night.webp'),'not the regular one')
  if(process.env.KONO_SHOTS){await page.waitForTimeout(6000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/halloween-island-night.png'})}
  maps.length=0
@@ -1682,6 +1684,23 @@ test('Spring and the end of the semester: from March 20 the island blooms (Sprin
  await visit('2027-06-01T15:00:00','semester/',/Last stretch: 0\/4 special stickers until Jun 20/,'Party hat, locked. Finish 5 assignments at the end of the semester (May 21 – June 20).')
  await visit('2027-07-01T15:00:00','',null,null)
  assert.ok(!maps.some(([p])=>/\/(spring|semester)\//.test(p)),'summer is the regular island')
+})
+test('Decorate › Halloween: a pumpkin house, a spooky tree, a pumpkin patch, a cauldron, a scarecrow and a jack-o’-lantern lamp, painted for every time of day, go on the island and stay',async({context,page})=>{
+ const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId,art=[]
+ page.on('response',r=>{const u=new URL(r.url());if(u.pathname.includes('/registered-22.8.6/halloween/'))art.push([u.pathname,r.status()])})
+ await page.clock.setFixedTime(new Date('2026-10-02T21:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('button',{name:'Decorate'}).click()
+ await page.getByRole('navigation',{name:'Decoration categories'}).getByRole('button',{name:'Halloween',exact:true}).click()
+ const palette=page.locator('.build-palette')
+ for(const name of ['Pumpkin House','Spooky Tree','Pumpkin Patch','Bubbling Cauldron','Scarecrow','Jack-o’-Lantern Lamp'])await palette.getByRole('button',{name:'Add '+name}).waitFor()
+ await palette.getByRole('button',{name:'Add Pumpkin House'}).click()
+ await palette.getByRole('button',{name:'Add Spooky Tree'}).click()
+ await waitFor(()=>{const ids=(cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[]).map(p=>p.assetId);return ids.includes('halloween-pumpkin-house')&&ids.includes('halloween-spooky-tree')},'the Halloween pieces never reached the island')
+ await waitFor(()=>art.some(([p])=>p.endsWith('/pumpkin-house/night.png')),'the night art for the pumpkin house never loaded: '+JSON.stringify(art))
+ assert.ok(art.every(([,st])=>st===200),'a Halloween picture failed to load: '+JSON.stringify(art))
+ if(process.env.KONO_SHOTS){await page.getByRole('button',{name:'Your island'}).click();await page.waitForTimeout(2500);await page.locator('.wb-island').screenshot({path:process.env.KONO_SHOTS+'/halloween-decor-island.png'})}
 })
 test('Halloween on the island: in October KONO wears a pumpkin, a banner counts the 4 spooky stickers, finishing work earns the Pumpkin, and it goes on the island',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
@@ -1991,6 +2010,26 @@ test('KONO’s taps: coming back after a while gets a wave, a tap right after fi
  if(process.env.KONO_SHOTS)await bar.screenshot({path:process.env.KONO_SHOTS+'/kono-tickle.png'})
 })
 
+test('KONO on the island: when it is hungry and there is a snack it says so in a thought bubble, feeding it there (the snack drops in and gets eaten) clears it, and the meter shows +N',async({context,page})=>{
+ const cloud=fakeCloud()
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const care=page.getByRole('region',{name:'KONO today'}).getByRole('group',{name:'How KONO is doing'})
+ await islandLoaded(page)
+ await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
+ const full=Number(await care.getByRole('meter',{name:'Full'}).getAttribute('aria-valuenow'))
+ assert.ok(full<40,'KONO starts out hungry here: '+full)
+ const snack=await care.getByRole('button',{name:/^Feed KONO/}).locator('span[aria-hidden]').first().textContent()
+ await page.locator(`.wb-island[data-kono-need="${snack}"]`).waitFor()
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(1500);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/kono-need.png'})}
+ // (Phaser's tweens run on Date.now, so the clock has to move for the snack to drop.)
+ if(process.env.KONO_SHOTS)await page.clock.setSystemTime(new Date('2026-09-30T15:00:05'))
+ await care.getByRole('button',{name:/^Feed KONO/}).click()
+ await care.locator('.kono-care-meter.is-full .kono-care-gain').waitFor({timeout:3000})
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(150);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/kono-feed-1.png'});await page.waitForTimeout(450);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/kono-feed-2.png'})}
+ await page.locator(`.wb-island[data-kono-need="${snack}"]`).waitFor({state:'detached'})
+})
 test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in the card, a pat makes KONO happy, and both reach the account without anything popping up',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
  await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
@@ -2014,6 +2053,7 @@ test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in th
  const fullBefore=await value('Full'),happyBefore=await value('Happy')
  await feed.click()
  await today.getByText(/^Yum! .+ KONO loved the .+\. Thank you!$/).waitFor()
+ await care.locator('.kono-care-meter.is-full .kono-care-gain').filter({hasText:/^\+\d+$/}).waitFor({timeout:3000})
  await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).some(e=>e.kind==='feed'),'the feeding never reached the account')
  const fed=cloud.users.alice.plan.data.konoCare[pid].log.find(e=>e.kind==='feed')
  assert.equal(cloud.users.alice.plan.data.tasks.find(t=>t.id===fed.taskId)?.done,true,'KONO eats the snack from finished work')

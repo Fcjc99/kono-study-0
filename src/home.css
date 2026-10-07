@@ -16,3 +16,17 @@
  * buttons as the bottom strip inside the same border. Focus session follows right under it. */
 .workbench[data-page=sanctuary] .wb-island:not(.is-expanded){margin-bottom:0;padding:10px 12px 12px;border:1px solid var(--wb-line,#eee1d6);border-bottom:0;border-radius:24px 24px 0 0;background:var(--wb-surface,#fffdf9)}
 .workbench[data-page=sanctuary] .wb-island:not(.is-expanded)+.kono-bar{margin-top:0!important;border:1px solid var(--wb-line,#eee1d6)!important;border-top:1px dashed var(--wb-line,#eee1d6)!important;border-radius:0 0 24px 24px!important;box-shadow:0 22px 44px -34px #8a5a4266!important}
+
+/* KONO's meters answer back: "+N" floats up when one rises (the bar gives a little pulse), and a low
+ * one breathes softly so it's noticed without nagging. */
+.kono-care-meter{position:relative}
+.kono-care-gain{position:absolute;right:0;top:-4px;font-size:.72rem;font-weight:800;color:#b5651d;pointer-events:none;animation:kono-gain 1.5s ease-out forwards}
+.kono-care-meter.is-happy .kono-care-gain{color:#c4506c}
+.kono-care-meter.is-rested .kono-care-gain{color:#5a6cc0}
+@keyframes kono-gain{0%{opacity:0;transform:translateY(4px) scale(.8)}15%{opacity:1;transform:translateY(0) scale(1.1)}100%{opacity:0;transform:translateY(-14px) scale(1)}}
+.kono-care-meter.is-up .kono-care-bar{animation:kono-bar-up .6s ease-out}
+@keyframes kono-bar-up{40%{transform:scaleY(1.7);box-shadow:0 0 0 2px #ffd58a88}}
+.kono-care-meter.is-low>span[aria-hidden]{animation:kono-low 2.4s ease-in-out infinite}
+@keyframes kono-low{50%{transform:scale(1.18);filter:drop-shadow(0 0 3px #f2a65a)}}
+html[data-motion=reduced] .kono-care-gain,html[data-motion=reduced] .kono-care-meter.is-up .kono-care-bar,html[data-motion=reduced] .kono-care-meter.is-low>span[aria-hidden]{animation:none}
+@media (prefers-reduced-motion:reduce){.kono-care-gain,.kono-care-meter.is-up .kono-care-bar,.kono-care-meter.is-low>span[aria-hidden]{animation:none}}
