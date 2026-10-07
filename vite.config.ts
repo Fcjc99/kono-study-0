@@ -40,12 +40,20 @@ const PRECACHE_NAME='kono-precache-'+VERSION
 const RUNTIME_NAME='kono-runtime'
 const PRECACHE=${JSON.stringify(precache)}
 self.addEventListener('install',event=>{event.waitUntil(caches.open(PRECACHE_NAME).then(cache=>cache.addAll(PRECACHE)).then(()=>self.skipWaiting()))})
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==PRECACHE_NAME&&key!==RUNTIME_NAME&&key!=='kono-voice').map(key=>caches.delete(key)))).then(()=>self.clients.claim()))})
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==PRECACHE_NAME&&key!==RUNTIME_NAME&&key!=='kono-voice'&&key!=='kono-prefs').map(key=>caches.delete(key)))).then(()=>self.clients.claim()))})
 // Lock-screen reminders (api/push-send): show them, and open KONO when one is tapped.
+// The 7 AM "due today" reminder also puts that count on the app icon, so it's right each morning even
+// before KONO is opened ("Due today: X" is 1, "3 things due today" is 3). The open app keeps it current
+// after that, and writes kono-prefs/badge-off when the person turns the number off (store/appBadge.ts).
+const morningBadge=d=>{
+ if(!String(d.tag||'').startsWith('due-')||typeof self.navigator.setAppBadge!=='function')return Promise.resolve()
+ const count=Number((String(d.title||'').match(/^(\\d+) things due today/)||[])[1]||1)
+ return caches.open('kono-prefs').then(cache=>cache.match('/badge-off')).then(off=>off?undefined:self.navigator.setAppBadge(count)).catch(()=>{})
+}
 self.addEventListener('push',event=>{
  let d={}
  try{d=event.data?event.data.json():{}}catch{d={title:'KONO',body:event.data?event.data.text():''}}
- event.waitUntil(self.registration.showNotification(d.title||'KONO',{body:d.body||'',tag:d.tag||undefined,icon:'/icons/kono-192.png',badge:'/icons/kono-badge.png'}))
+ event.waitUntil(Promise.all([self.registration.showNotification(d.title||'KONO',{body:d.body||'',tag:d.tag||undefined,icon:'/icons/kono-192.png',badge:'/icons/kono-badge.png'}),morningBadge(d)]))
 })
 self.addEventListener('notificationclick',event=>{
  event.notification.close()

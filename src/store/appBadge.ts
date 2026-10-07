@@ -11,3 +11,9 @@ export function showAppBadge(count:number){
  const done=count>0?nav.setAppBadge?.(count):nav.clearAppBadge?.()
  void done?.catch(()=>undefined)
 }
+
+/** Tells the service worker whether the morning reminder may set the number while KONO is closed. */
+export function rememberBadgeChoice(on:boolean){
+ if(typeof caches==='undefined')return
+ void caches.open('kono-prefs').then(cache=>on?cache.delete('/badge-off').then(()=>undefined):cache.put('/badge-off',new Response('1'))).catch(()=>undefined)
+}

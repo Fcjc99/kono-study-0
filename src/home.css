@@ -1,0 +1,63 @@
+/* Home (the Sanctuary page): a greeting, then KONO + the island beside "Your day", then the week.
+ * Loaded last. Colors come from the theme's tokens so every palette and dark mode follow along. */
+
+/* The page title stays for screen readers and links; the greeting does its job on screen. */
+.workbench[data-page=sanctuary] .wb-header .wb-title-row h1{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.workbench[data-page=sanctuary] .wb-header>div>small{display:none}
+/* "Your day" lists what's due, so the separate due strip isn't needed here (it stays on Planner). */
+.workbench[data-page=sanctuary] .login-digest{display:none}
+
+.home-greeting{margin:4px 2px 18px}
+.home-hello{margin:0;font-family:Newsreader,Georgia,serif;font-weight:600;font-size:clamp(1.7rem,3.2vw,2.4rem);line-height:1.1;letter-spacing:-.01em;color:var(--wb-ink,#3b2a25)}
+.home-summary{margin:6px 0 0;color:var(--wb-muted,#8a7469);font-size:1rem}
+
+.home-hero{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(290px,1fr);gap:22px;align-items:start;margin-bottom:22px}
+.home-hero-main{min-width:0}
+.home-hero-main>.wb-island{border-radius:26px;overflow:hidden;box-shadow:0 30px 60px -36px #4b6d8c99}
+@media(max-width:1100px){.home-hero{grid-template-columns:1fr}}
+
+.home-label{display:block;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--wb-muted,#8a7469)}
+
+.workbench .home-today{display:flex;flex-direction:column;gap:12px;margin:0;padding:20px;border-radius:26px;border:1px solid var(--wb-line,#eee1d6);background:var(--wb-surface,#fffdf9);box-shadow:0 22px 44px -34px #8a5a4266}
+.home-next{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:18px;background:color-mix(in srgb,#6f9c7e 12%,var(--wb-surface,#fff));border:1px solid color-mix(in srgb,#6f9c7e 25%,transparent)}
+.home-next-time{min-width:58px;text-align:center;font-weight:700;color:#3d6b4f}
+.home-next strong,.home-due strong{display:block;font-size:1rem;color:var(--wb-ink,#3b2a25)}
+.home-next small,.home-due small{color:var(--wb-muted,#8a7469);font-size:.84rem}
+.home-due{list-style:none;margin:0;padding:0}
+.home-due li{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px dashed var(--wb-line,#eee1d6)}
+.home-due li:last-child{border-bottom:0}
+.home-due li>div{min-width:0;flex:1}
+.home-due strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:root[data-experience] .workbench button.home-check{flex:0 0 auto;width:26px!important;height:26px!important;min-height:26px!important;min-width:26px!important;padding:0!important;border-radius:50%;border:2px solid color-mix(in srgb,var(--wb-ink,#3b2a25) 25%,transparent)!important;background:transparent!important;box-shadow:none!important;transition:background .2s,border-color .2s}
+:root[data-experience] .workbench button.home-check:hover{border-color:#6f9c7e!important;background:color-mix(in srgb,#6f9c7e 15%,transparent)!important}
+.home-tag{flex:0 0 auto;font-size:.75rem;font-weight:700;padding:4px 9px;border-radius:9px;background:color-mix(in srgb,var(--wb-accent,#e8735f) 14%,transparent);color:var(--wb-accent,#cf5a46)}
+.home-tag.is-late{background:#c2493d;color:#fff}
+.home-clear{display:flex;align-items:center;gap:12px;margin:0;color:var(--wb-muted,#8a7469)}
+.home-clear img{width:52px;image-rendering:pixelated}
+.workbench .home-more{align-self:flex-start}
+:root[data-experience] .workbench button.home-focus{display:flex;align-items:center;gap:12px;width:100%;margin-top:4px;padding:14px 16px;border:0!important;border-radius:18px;background:linear-gradient(135deg,#3b2a25,#5a3e33)!important;color:#fff!important;text-align:left;box-shadow:0 14px 26px -16px #3b2a25aa!important}
+:root[data-experience] .workbench .home-focus strong{display:block;font-size:1rem;color:#fff}
+:root[data-experience] .workbench .home-focus small{color:#ffffffbf}
+.home-focus i{margin-left:auto;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:var(--wb-accent,#e8735f);font-style:normal;box-shadow:0 6px 16px #e8735f66}
+
+.workbench .home-week{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin:0 0 22px;padding:18px 22px;border-radius:24px;border:1px solid var(--wb-line,#eee1d6);background:var(--wb-surface,#fffdf9)}
+.home-week strong{display:block;margin-top:4px;font-family:Newsreader,Georgia,serif;font-size:1.35rem;color:var(--wb-ink,#3b2a25)}
+.home-week-bars{display:flex;align-items:flex-end;gap:10px;flex:1;max-width:420px;height:80px}
+.home-week-bars span{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:.75rem;font-weight:600;color:var(--wb-muted,#8a7469)}
+.home-week-bars i{width:100%;border-radius:8px;background:color-mix(in srgb,var(--wb-ink,#3b2a25) 9%,transparent)}
+.home-week-bars .has-work i{background:linear-gradient(color-mix(in srgb,var(--wb-accent,#e8735f) 65%,#fff),var(--wb-accent,#e8735f))}
+.home-week-bars .is-today{color:var(--wb-ink,#3b2a25)}
+
+/* KONO's bar runs across the top as one band; the island and your day sit side by side under it. */
+.workbench[data-page=sanctuary] .kono-bar{margin-bottom:14px}
+
+/* The rest of Home shares one card look. */
+.workbench[data-page=sanctuary] .wb-panel{border-radius:24px}
+
+@media(max-width:600px){
+ .home-greeting{margin:2px 2px 12px}
+ .home-hero{gap:14px;margin-bottom:14px}
+ .workbench .home-today{padding:16px;border-radius:22px}
+ .workbench .home-week{padding:14px 16px;gap:14px}
+ .home-week-bars{height:64px;gap:6px}
+}
