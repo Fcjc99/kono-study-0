@@ -1,8 +1,8 @@
-import {Fragment,useEffect,useMemo,useRef,useState,type CSSProperties,type DragEvent,type FormEvent,type PointerEvent,type ReactNode,type SetStateAction,type TouchEvent} from 'react'
+import {Fragment,Suspense,lazy,useEffect,useMemo,useRef,useState,type CSSProperties,type DragEvent,type PointerEvent,type ReactNode,type SetStateAction,type TouchEvent} from 'react'
 import {deleteProfile} from './store/deleteProfile'
 import {usePlannerRepository} from './store/repository'
-import {uid,localDate,dayNames,eventCategory,type AppData,type SettingsData,type Task,type Subtask,type CalendarEventKind,type Kid,type KidBorderStyle} from './store/model'
-import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems,KID_COLORS} from './store/kids'
+import {uid,localDate,dayNames,eventCategory,type AppData,type SettingsData,type Task,type Subtask,type CalendarEventKind,type Kid} from './store/model'
+import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems} from './store/kids'
 import {collections,records,titleOf,equal,removeEntry,restoreEntry,completeTask,type Collection,type Entry} from './store/workspace'
 import {calendarTasks,addDays} from './store/studyScheduler'
 import {planExamReview} from './store/examReview'
@@ -27,7 +27,7 @@ import NextUp from './components/NextUp'
 import {earnedStickers,seasonOn,stickerOffered,STICKERS} from './store/stickers'
 import {pickKonoPhrase,konoCelebration,konoStreakMilestone,seededRand,STREAK_MILESTONES,type KonoPhrase} from './store/konoPhrases'
 import {useReducedMotion,useMusicController,usePhoneWidth,usePrefersDark} from './hooks/useComfort'
-import {useDueNotifications,useTimeBlockNotifications,useFamilyEventNotifications,notificationsSupported} from './hooks/useDueNotifications'
+import {useDueNotifications,useTimeBlockNotifications,useFamilyEventNotifications} from './hooks/useDueNotifications'
 import {usePushReminders} from './hooks/usePushReminders'
 import {useLinkedCalendars} from './hooks/useLinkedCalendars'
 import {useLiveSanctuaryWeather} from './hooks/useLiveSanctuaryWeather'
@@ -53,7 +53,9 @@ const ReminderSettings=lazyPanel<SettingsProps>(()=>import('./SettingsPanels').t
 import {AccountBanners,Onboarding,RecoveryScreen,SaveStatus} from './components/AccountPanel'
 type StoreProps={store:ReturnType<typeof usePlannerRepository>}
 /** The three-step welcome on a brand-new plan; only new students download it. */
-const WelcomeTour=lazyPanel<{onAdd:()=>void;onDone:()=>void}>(()=>import('./components/WelcomeTour'))
+const WelcomeTour=lazy(()=>import('./components/WelcomeTour'))
+/** Holds the tour's place while its code loads, so nothing below jumps when it arrives. */
+const TourPlaceholder=()=><section className="wb-panel welcome-tour is-loading" aria-hidden="true"/>
 const AccountPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.AccountPanel})))
 const BackupPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.BackupPanel})))
 const SupportAdminPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.SupportAdminPanel})))
@@ -109,7 +111,7 @@ import {readLinked} from './store/linkedCalendars'
 import {currentPushSubscription} from './store/pushDevice'
 import {weekDrop} from './store/weekDrop'
 import {PLANNER_SOURCES,classSource,entrySource,sourcesInPlan,type PlannerSource} from './store/plannerSources'
-import {TEAM_THEMES,teamJersey,teamThemeIds} from './teamThemes'
+import {teamJersey} from './teamThemes'
 import AddToCalendar,{type AddChoice,type AddChoiceId} from './components/AddToCalendar'
 // Panels that aren't needed on first paint load on demand.
 const ScheduleImport=lazyPanel(()=>import('./components/ScheduleImport'))
@@ -132,26 +134,13 @@ const EntryEditor=lazyPanel(()=>import('./components/EntryEditor'))
 const QuickDayAdd=lazyPanel(()=>import('./components/QuickDayAdd'))
 const SharedWithMe=lazyPanel(()=>import('./components/SharedWithMe'))
 
-// Settings tabs, grouped by what a person is trying to do rather than by where each feature was built.
-const SETTINGS_TABS=['Look & feel','Notifications','Family','Schedules','Import & export','Plans & account'] as const
-/** 'KONO support' only appears for support accounts; the server enforces the access itself. */
-type SettingsTab=typeof SETTINGS_TABS[number]|'KONO support'
-const pages=['Sanctuary','Planner','Kids','Subjects','Notes','K-Quiz','Exams','Settings','Trash'] as const
-type Page=typeof pages[number]
 type Store=ReturnType<typeof usePlannerRepository>
-// Team colors are offered in both Cozy and Simplified, under their own heading.
-const cozyPalettes=['coral','sakura','lavender','mint','honey','zen','floral','ocean']
-const cozyPalette=(theme:string)=>cozyPalettes.includes(theme)||teamThemeIds.includes(theme)?theme:'coral'
-// Modern and Zen Ink are each one opinionated, fully art-directed look rather than a color you
-// pick — they carry their own fixed palette instead of showing the swatch picker.
-const fixedPaletteExperiences:string[]=['modern','sumi']
-const experienceOptions=[
- {id:'cozy',title:'Cozy',glyph:'🌸',description:'Notebook tabs, colorful pinned papers and gentle movement.'},
- {id:'simplified',title:'Simplified',glyph:'▢',description:'A compact workspace with straightforward cards and bottom navigation.'},
- {id:'modern',title:'Modern',glyph:'⚪',description:'Clean, minimal and spacious — off-white surfaces, quiet type and a single accent, in the spirit of apple.com.'},
- {id:'sumi',title:'Zen Ink',glyph:'⛩️',description:'Sumi ink and washi paper — muted indigo and charcoal, hairline rules and quiet type, in the spirit of Japanese ink-wash art.'},
-] as const
-function ExperienceIcon({id}:{id:string}){return <span className="theme-picker-glyph" aria-hidden="true">{experienceOptions.find(o=>o.id===id)?.glyph??'✦'}</span>}
+import {SETTINGS_TABS,cozyPalette,fixedPaletteExperiences,own,pages,type Page,type SettingsTab} from './workspaceShared'
+import type * as Screens from './WorkspaceSettings'
+type PropsOf<K extends keyof typeof Screens>=Parameters<(typeof Screens)[K]>[0]
+/** The Kids page, the family settings and Look & feel load the first time they're shown. */
+const screen=<K extends 'KidsPage'|'FamilySettings'|'FamilyReminderSettings'|'QuickFamilyAdd'|'TeamColors'|'Appearance'>(name:K)=>lazyPanel<PropsOf<K>>(()=>import('./WorkspaceSettings').then(m=>({default:m[name] as unknown as (props:PropsOf<K>)=>ReactNode})))
+const KidsPage=screen('KidsPage'),FamilySettings=screen('FamilySettings'),FamilyReminderSettings=screen('FamilyReminderSettings'),QuickFamilyAdd=screen('QuickFamilyAdd'),TeamColors=screen('TeamColors'),Appearance=screen('Appearance')
 // A quick "how much of tonight's/today's work is done" readout — assignments only (exams already get
 // their own countdown/reminders, and appointments aren't something you "complete"). Always renders
 // (with a "nothing due" caption at zero) so the feature reads as present, not silently missing.
@@ -174,7 +163,6 @@ const pageFromURL=():Page=>pages.find(p=>p.toLowerCase()===new URL(location.href
 const dateLabel=(date:string)=>new Date(date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})
 const daysUntil=(date:string,from=localDate())=>Math.round((new Date(date+'T12:00:00').getTime()-new Date(from+'T12:00:00').getTime())/86400000)
 const countdown=(date:string,done=false,from=localDate())=>{if(done)return 'Completed';const days=daysUntil(date,from);return days===0?'Due today':days===1?'Due tomorrow':days>1?days+' days left':Math.abs(days)+' day'+(days===-1?'':'s')+' overdue'}
-const own=(data:AppData,key:Collection)=>records(data,key).filter(r=>r.profileId===data.activeProfileId)
 const eventKind=(entry:Entry)=>String(entry.kind??'').toLowerCase()
 const entryDate=(entry:Entry)=>String(entry.due??entry.date??'')
 const isAssignmentKind=(entry:Entry)=>['homework','assignment','assignments'].includes(eventKind(entry))
@@ -570,9 +558,10 @@ function Workspace({store}:{store:Store}){
  // KONO's chatter (Settings › Look & feel): soft blips whenever KONO answers something you did.
  const [babbleOn]=useLocalSetting(BABBLE_SETTING,'off')
  // The welcome tour: once per plan on this device, and only while the plan is brand new (nothing ever
- // finished, at most the demo's one assignment), so people already using KONO never see it.
+ // finished, at most the demo's one assignment, no tests or classes yet), so people already using KONO
+ // never see it.
  const [tourDone,setTourDone]=useLocalSetting('kono-tour-done:'+profile.id,'')
- const showTour=!tourDone&&!Object.keys(sanctuaryProgress.completionDates).length&&ownTasks.length<=1
+ const showTour=!tourDone&&!Object.keys(sanctuaryProgress.completionDates).length&&ownTasks.length<=1&&!ownExams.length&&!subjects.length
  // Home: the greeting line, the "Your day" card (next class, what's due, a focus session) and the week's bars.
  const clock=new Date(),nowTime=clock.toTimeString().slice(0,5),hour=clock.getHours()
  const greeting=(hour<12?'Good morning':hour<18?'Good afternoon':'Good evening')+', '+profile.name
@@ -816,7 +805,7 @@ function Workspace({store}:{store:Store}){
     <div className="home-greeting"><p className="home-hello">{greeting}</p><p className="home-summary">{new Date(today+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})} · {daySummary}</p></div>
     {classmatesOn&&<SharedWithMe repository={repository} data={data} save={save}/>}
     {overdueCard}
-    {showTour&&<WelcomeTour onAdd={()=>setAdding(true)} onDone={()=>setTourDone('1')}/>}
+    {showTour&&<Suspense fallback={<TourPlaceholder/>}><WelcomeTour onAdd={()=>setAdding(true)} onDone={()=>setTourDone('1')}/></Suspense>}
     {/* KONO today: one slim bar attached to the top of the island. KONO, its line, how it's doing, one
         care action, stickers, and "do next" / "ask". The day's wish (and an island season) sit in a small
         line under it; Ask KONO and What should I do now? open below the bar when asked. */}
@@ -1045,136 +1034,3 @@ function Calendar({data,tasks,date,selectDate,create,render,renderClass,reschedu
   {quickAdd&&<Modal title={'Add for '+dateLabel(quickAdd.date)} close={()=>setQuickAdd(null)}>{kids.length?<QuickFamilyAdd kids={kids} time={quickAdd.time} onCancel={()=>setQuickAdd(null)} onSave={async payload=>{if(await quickAddEvent(quickAdd.date,payload))setQuickAdd(null)}}/>:<><p className="wb-muted">No kids added yet.</p><button type="button" onClick={()=>{setQuickAdd(null);navigate('Kids')}}>Manage kids</button></>}</Modal>}
   </section>
 }
-const QUICK_KIND_OPTIONS=[['sports','Sports'],['appointment','Appointment'],['personal','Event']] as const
-// The fast path parent mode promises: kid, type, a short title and an optional time -- no subject
-// picker, notes, voice input or multi-date repeat. Saves straight to calendarEvents (see
-// quickAddFamilyEvent) rather than opening the full EntryEditor.
-function QuickFamilyAdd({kids,time:startAt,onCancel,onSave}:{kids:Kid[];time?:string;onCancel:()=>void;onSave:(payload:{title:string;kind:CalendarEventKind;kidId?:string;time?:string;endTime?:string})=>Promise<void>}){
- const [title,setTitle]=useState(''),[kidId,setKidId]=useState(kids[0]?.id??''),[kind,setKind]=useState<CalendarEventKind>('appointment'),[time,setTime]=useState(startAt??''),[endTime,setEndTime]=useState(startAt?String(Math.min(23,Number(startAt.slice(0,2))+1)).padStart(2,'0')+startAt.slice(2):''),[busy,setBusy]=useState(false),[error,setError]=useState('')
- const submit=async(e:FormEvent)=>{
-  e.preventDefault();if(busy||!title.trim())return
-  setBusy(true);setError('')
-  try{await onSave({title:title.trim(),kind,kidId:kidId||undefined,time:time||undefined,endTime:endTime||undefined})}catch(e){setError(e instanceof Error?e.message:'Could not save.')}finally{setBusy(false)}
- }
- return <form onSubmit={submit} className="quick-family-add"><fieldset disabled={busy}>
-  <label>Kid<select autoFocus value={kidId} onChange={e=>setKidId(e.target.value)}><option value="">Whole family</option>{kids.map(k=><option key={k.id} value={k.id}>{(k.emoji?k.emoji+' ':'')+k.name}</option>)}</select></label>
-  <label>Type<select value={kind} onChange={e=>setKind(e.target.value as CalendarEventKind)}>{QUICK_KIND_OPTIONS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
-  <label>What is it?<input required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Soccer practice, Dentist…"/></label>
-  <label>Start time (optional)<input type="time" value={time} onChange={e=>setTime(e.target.value)}/></label>
-  <label>End time (optional)<input type="time" value={endTime} onChange={e=>setEndTime(e.target.value)}/></label>
-  {error&&<p role="alert">{error}</p>}
-  <div className="wb-toolbar"><button className="primary" type="submit">{busy?'Adding…':'Add'}</button><button type="button" onClick={onCancel}>Cancel</button></div>
- </fieldset></form>
-}
-// A per-kid tag list for the one shared family calendar -- add each kid once here with a color and
-// emoji, then tag any assignment, exam, class or event with them from its own editor (see
-// EntryEditor's Kid picker and the recurring-class editors) and filter the Planner calendar by kid
-// there, the same way subjects already work. Kids are ordinary generic collection entries (see
-// store/workspace.ts), so create/edit/remove below reuse the app's existing undo/redo and Trash.
-// Settings › Family. A solo student only ever sees the Parent mode switch here; everything else
-// appears once it's on.
-function FamilySettings({data,setting,patch,navigate}:{data:AppData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>;navigate:(page:Page)=>void}){
- const [lookOpen,setLookOpen]=useState(false)
- const parentMode=data.settings.parentMode===true
- return <section className="wb-panel family-settings"><h2>Family</h2>
-  <label className="wb-check"><input type="checkbox" checked={parentMode} onChange={e=>void setting('parentMode',e.target.checked)}/>Parent mode: show the Kids tab</label>
-  <p className="theme-picker-description">Turn this on if you're a parent managing more than one kid on a shared device. It adds a Kids tab for tagging assignments, exams, classes and events with a kid — and a kid filter on your calendar — the same way subjects already work. Off by default, so it stays out of the way if you're not a parent.</p>
-  {parentMode&&<>
-  <div className="kid-appearance-toggles">
-   <label className="wb-check"><input type="checkbox" checked={data.settings.familyTileBorders!==false} onChange={e=>void setting('familyTileBorders',e.target.checked)}/>Color-code event tiles by kid</label>
-   <label className="wb-check"><input type="checkbox" checked={data.settings.familyTileAvatars!==false} onChange={e=>void setting('familyTileAvatars',e.target.checked)}/>Show each kid's emoji and name on their tiles</label>
-  </div>
-   <div className="wb-toolbar"><button type="button" onClick={()=>navigate('Kids')}>Manage kids</button><button type="button" onClick={()=>setLookOpen(true)}>🎨 Kids' appearance</button></div>
-   {lookOpen&&<KidAppearancePanel data={data} patch={patch} close={()=>setLookOpen(false)}/>}
-  </>}
- </section>
-}
-// Settings › Notifications, parent mode only. Family reminders ride on browser notifications.
-function FamilyReminderSettings({data,setting}:{data:AppData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
- const notifyOn=Boolean(data.settings.browserNotifications)&&notificationsSupported()&&Notification.permission==='granted'
- return <section className="card settings-list family-reminder-settings"><h3>Family</h3>
-  <label><div><strong>Kids' event reminders</strong><small>Remind me 15 minutes before a kid's event starts or ends. {notifyOn?'Notifications are labeled with each kid\'s name.':'Turn on Browser notifications above to use this.'}</small></div><input type="checkbox" disabled={!notifyOn} checked={Boolean(data.settings.familyEventReminders)} onChange={e=>void setting('familyEventReminders',e.target.checked)}/></label>
- </section>
-}
-function KidsPage({data,create,edit,remove,patch,openSettings}:{openSettings:(tab:SettingsTab)=>void;data:AppData;create:(key:Collection)=>void;edit:(key:Collection,entry:Entry)=>void;remove:(key:Collection,entry:Entry)=>void;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
- const [appearanceOpen,setAppearanceOpen]=useState(false)
- const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
- return <section className="wb-panel family-calendar">
-  <div className="wb-section-head"><div><small>ONE SHARED CALENDAR</small><h2>Kids</h2></div><div className="wb-toolbar"><button type="button" onClick={()=>setAppearanceOpen(true)}>🎨 Appearance</button><button onClick={()=>create('kids')}>＋ Add a kid</button></div></div>
-  <p className="wb-muted">Add each kid once, then tag any assignment, exam, class or event with them from its own editor and filter your Planner calendar by kid — the same way you already filter by subject. Pick their emoji and color under Appearance.</p>
-  {kids.length>0&&<ul className="kid-roster" aria-label="Kids">
-   {kids.map(k=><li key={k.id} style={{'--kid-color':k.color} as CSSProperties}><KidAvatar kid={k}/><strong>{k.name}</strong><button type="button" onClick={()=>edit('kids',k as unknown as Entry)}>Edit</button><button type="button" className="kid-roster-remove" aria-label={'Move '+k.name+' to Trash'} title="Move to Trash" onClick={()=>remove('kids',k as unknown as Entry)}>🗑</button></li>)}
-  </ul>}
-  {!kids.length&&<p className="wb-muted">No kids added yet. Add one to start tagging their assignments, exams, classes and events on your calendar.</p>}
-  <p className="wb-muted">Reminders for your kids' events, and the family-wide look switches, live in Settings: <button type="button" className="link-button" onClick={()=>openSettings('Notifications')}>Notifications</button> · <button type="button" className="link-button" onClick={()=>openSettings('Family')}>Family</button></p>
-  {appearanceOpen&&<KidAppearancePanel data={data} patch={patch} close={()=>setAppearanceOpen(false)}/>}
- </section>
-}
-// A dedicated page for how kids look on their tiles, kept separate from the plain add/edit-kid form
-// (see EntryEditor) and from the general Settings/Appearance page (theme, text size) -- both of those
-// are used by every profile, including a solo student's own personal plan with no kids at all, and
-// this one is reached only from the Kids page, itself hidden unless parent mode is on. One kid at a
-// time (tabs along the top), so the panel stays short however many kids there are.
-function KidAppearancePanel({data,patch,close}:{data:AppData;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>;close:()=>void}){
- const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
- const [selectedId,setSelectedId]=useState(kids[0]?.id)
- const kid=kids.find(k=>k.id===selectedId)??kids[0]
- return <Modal title="Kids' appearance" close={close}>
-  <div className="kid-look">
-   <p className="wb-muted">How each kid's events look in the Planner and on the Sanctuary. Changes save as you go.</p>
-   {!kid&&<p className="wb-muted">Add a kid first (close this and use "＋ Add a kid"), then come back here to pick how they look.</p>}
-   {kids.length>1&&<div className="kid-look-tabs" role="tablist" aria-label="Kids">{kids.map(k=><button type="button" role="tab" key={k.id} id={'kid-look-tab-'+k.id} aria-controls="kid-look-editor" aria-selected={k.id===kid?.id} className="kid-look-tab" style={{'--kid-color':k.color} as CSSProperties} onClick={()=>setSelectedId(k.id)}><KidAvatar kid={k}/>{k.name}</button>)}</div>}
-   {kid&&<KidAppearanceEditor key={kid.id} kid={kid} patch={patch} tabbed={kids.length>1}/>}
-  </div>
- </Modal>
-}
-const KidAvatar=({kid}:{kid:Kid})=><span className="kid-look-avatar" style={{'--kid-color':kid.color} as CSSProperties} aria-hidden="true">{kid.emoji||kid.name.trim().charAt(0).toUpperCase()||'?'}</span>
-const BORDER_STYLE_OPTIONS:[KidBorderStyle,string][]=[['solid','Classic'],['bold','Bold'],['stripe','Stripe'],['soft','Soft'],['dashed','Dashed'],['dotted','Dotted'],['double','Double'],['glow','Glow']]
-function KidAppearanceEditor({kid,patch,tabbed}:{kid:Kid;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>;tabbed:boolean}){
- const [customEmoji,setCustomEmoji]=useState('')
- const borderStyle=kid.borderStyle??'solid'
- const change=(changes:Partial<Kid>)=>void patch('kids',kid as unknown as Entry,changes as Partial<Entry>)
- const customColor=!(KID_COLORS as readonly string[]).includes(kid.color)
- const applyEmoji=()=>{const e=customEmoji.trim();if(!e)return;change({emoji:e});setCustomEmoji('')}
- return <div id="kid-look-editor" className="kid-look-editor" style={{'--kid-color':kid.color} as CSSProperties} {...(tabbed?{role:'tabpanel','aria-labelledby':'kid-look-tab-'+kid.id}:{})}>
-  <div className={'wb-family-event kid-border-'+borderStyle+' kid-look-preview'} aria-label={kid.name+"'s tile preview"} role="img"><div className="wb-family-event-main"><div className="wb-family-event-time"><span className="wb-family-event-start">3:30 PM</span><span className="wb-family-event-end">–5:00 PM</span></div><div className="wb-family-event-info"><small>{(kid.emoji?kid.emoji+' ':'')+kid.name}</small><h3>Soccer practice</h3></div></div></div>
-  <h3 className="kid-look-label">Emoji</h3>
-  <form className="kid-look-emoji" onSubmit={e=>{e.preventDefault();applyEmoji()}}>
-   <KidAvatar kid={kid}/>
-   <input aria-label={kid.name+"'s emoji"} maxLength={40} placeholder={kid.emoji?'Type or paste a new one':'Type or paste an emoji'} value={customEmoji} onChange={ev=>setCustomEmoji(ev.target.value)}/>
-   <button type="submit" disabled={!customEmoji.trim()}>Use</button>
-  </form>
-  {kid.emoji&&<button type="button" className="kid-look-link" onClick={()=>change({emoji:undefined})}>Remove emoji</button>}
-  <h3 className="kid-look-label">Color</h3>
-  <div className="kid-look-colors" role="radiogroup" aria-label={kid.name+"'s color"}>
-   {KID_COLORS.map(c=><button type="button" role="radio" key={c} className="kid-look-color" aria-checked={kid.color===c} aria-label={c} style={{'--swatch':c} as CSSProperties} onClick={()=>change({color:c})}/>)}
-   <label className={'kid-look-color kid-look-color-custom'+(customColor?' is-picked':'')} style={customColor?{'--swatch':kid.color} as CSSProperties:undefined} title="Pick any color"><input type="color" aria-label={'Custom color for '+kid.name} value={kid.color} onChange={e=>change({color:e.target.value})}/></label>
-  </div>
-  <h3 className="kid-look-label">Border</h3>
-  <div className="kid-look-borders" role="radiogroup" aria-label={kid.name+"'s border style"}>
-   {BORDER_STYLE_OPTIONS.map(([value,label])=><button type="button" role="radio" key={value} className="kid-look-border" aria-checked={borderStyle===value} onClick={()=>change({borderStyle:value})}><span className={'kid-look-border-sample kid-border-'+value} aria-hidden="true"/>{label}</button>)}
-  </div>
- </div>
-}
-/** Look & feel › Team colors: school and team palettes. They work in Cozy and Simplified, so picking one
- * from Modern or Zen Ink (which have their own fixed colors) switches to Cozy. */
-function TeamColors({settings,setting}:{settings:SettingsData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
- const fixed=fixedPaletteExperiences.includes(settings.experience??'cozy')
- const pick=async(id:string)=>{if(fixed&&!await setting('experience','cozy'))return;await setting('theme',id)}
- return <><h2>Team colors</h2><p>Show your school or team colors across KONO: the sidebar, buttons, headers and the top bar on your phone. They work with the Cozy and Simplified looks{fixed?'; picking one switches you to Cozy':''}.</p>
-  <div className="team-color-grid" role="group" aria-label="Team colors">{TEAM_THEMES.map(t=><button key={t.id} type="button" aria-pressed={!fixed&&settings.theme===t.id} onClick={()=>void pick(t.id)}><span className={'team-swatch theme-'+t.id} aria-hidden="true"/><strong>{t.label}{!fixed&&settings.theme===t.id?' ✓':''}</strong><small>{t.note}</small></button>)}</div>
-  <p className="wb-muted">To go back to a regular palette, pick one under Color palette above.</p></>
-}
-function Appearance({settings,setting}:{settings:SettingsData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
- const activePalette=settings.experience==='cozy'?cozyPalette(settings.theme):settings.theme
- const paletteLabel=(theme:string)=>({coral:'Coral · Colorful',sakura:'Sakura · Colorful',lavender:'Lavender Dream',mint:'Mint Study',honey:'Honey Desk',zen:'Zen Garden · Minimal',floral:'Floral Chic',ocean:'Ocean Breeze · Beachy',professional:'Professional · Muted',...Object.fromEntries(TEAM_THEMES.map(t=>[t.id,t.label]))}[theme]??theme[0].toUpperCase()+theme.slice(1))
- const active=settings.experience??'cozy'
- const swatch=(t:string)=>{const [name,note]=paletteLabel(t).split(' · ');return <button className={'theme-'+t} key={t} aria-pressed={activePalette===t} onClick={()=>void setting('theme',t)}><span/><strong>{name}</strong>{note&&<small>{note}</small>}</button>}
- const activeOption=experienceOptions.find(o=>o.id===active)
- return <section className="wb-panel"><h2>Choose your KONO experience</h2><div className="theme-picker-grid">{experienceOptions.map(option=><button key={option.id} type="button" className={'theme-picker-tile experience-'+option.id} aria-pressed={active===option.id} title={option.description} onClick={()=>void setting('experience',option.id)}><ExperienceIcon id={option.id}/><strong>{option.title}</strong></button>)}</div>{activeOption&&<p className="theme-picker-description">{activeOption.description}</p>}{!fixedPaletteExperiences.includes(settings.experience??'cozy')&&<><h3>Color palette</h3><div className="wb-themes">{(settings.experience==='cozy'?cozyPalettes:['coral','sakura','professional','forest','ocean','midnight','paper']).map(swatch)}</div>{teamThemeIds.includes(settings.theme)&&<p className="wb-muted">You’re using team colors. Pick a palette here to switch back, or change teams under Team colors below.</p>}</>}
-  <h3>Dark mode</h3><div className="dark-mode-choice" role="group" aria-label="Dark mode">{([['light','☀️ Light'],['phone','📱 Match my phone'],['dark','🌙 Dark']] as const).map(([id,label])=><button key={id} type="button" aria-pressed={(settings.darkMode??'phone')===id} onClick={()=>void setting('darkMode',id)}>{label}</button>)}</div>
-  <p className="wb-muted">“Match my phone” turns dark when your phone or computer is set to dark mode (on iPhone: Settings › Display &amp; Brightness).</p>
-  <div className="wb-form-grid"><label>Text size<select value={settings.textSize??'normal'} onChange={e=>void setting('textSize',e.target.value as SettingsData['textSize'])}><option value="normal">Normal</option><option value="large">Large</option></select></label><label>Spacing<select value={settings.density??'comfortable'} onChange={e=>void setting('density',e.target.value as SettingsData['density'])}><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label><label>Board background<select value={settings.boardStyle??'paper'} onChange={e=>void setting('boardStyle',e.target.value as SettingsData['boardStyle'])}><option value="paper">Cream paper</option><option value="cork">Cork</option><option value="plain">Plain</option></select></label><label className="wb-check"><input type="checkbox" checked={settings.decoration!==false} onChange={e=>void setting('decoration',e.target.checked)}/>Decorative details</label></div><p>Interface themes never recolor your Sanctuary artwork.</p></section>
-}
-
-
