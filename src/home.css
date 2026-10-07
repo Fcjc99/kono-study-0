@@ -1,5 +1,6 @@
-/* Home (the Sanctuary page): KONO's bar sits on the island window as one card, then today's schedule
- * and the rest. Loaded after the older sheets. Colors come from the theme's tokens. */
+/* Home (the Sanctuary page): the island window with KONO's bar under it as one card, then Focus
+ * session, today's schedule and the rest. Loaded after the older sheets. Colors come from the theme's
+ * tokens. */
 
 /* The page title stays for screen readers and links; KONO's line greets you on screen. */
 .workbench[data-page=sanctuary] .wb-header .wb-title-row h1{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
@@ -11,7 +12,7 @@
 /* The rest of Home shares one card look. */
 .workbench[data-page=sanctuary] .wb-panel{border-radius:24px}
 
-/* KONO's bar and the island are one card: KONO's line and health bars are its top strip, the island
- * window sits right under them. */
-.workbench[data-page=sanctuary] .kono-bar{margin-bottom:0!important;border-bottom-left-radius:0!important;border-bottom-right-radius:0!important;border-bottom:1px dashed var(--wb-line,#eee1d6)!important;box-shadow:none!important}
-.workbench[data-page=sanctuary] .kono-bar+.wb-island:not(.is-expanded){margin-top:0;padding:10px 12px 12px;border:1px solid var(--wb-line,#eee1d6);border-top:0;border-radius:0 0 24px 24px;background:var(--wb-surface,#fffdf9);box-shadow:0 22px 44px -34px #8a5a4266}
+/* The island and KONO's bar are one card: the island window on top, KONO's line, health bars and
+ * buttons as the bottom strip inside the same border. Focus session follows right under it. */
+.workbench[data-page=sanctuary] .wb-island:not(.is-expanded){margin-bottom:0;padding:10px 12px 12px;border:1px solid var(--wb-line,#eee1d6);border-bottom:0;border-radius:24px 24px 0 0;background:var(--wb-surface,#fffdf9)}
+.workbench[data-page=sanctuary] .wb-island:not(.is-expanded)+.kono-bar{margin-top:0!important;border:1px solid var(--wb-line,#eee1d6)!important;border-top:1px dashed var(--wb-line,#eee1d6)!important;border-radius:0 0 24px 24px!important;box-shadow:0 22px 44px -34px #8a5a4266!important}
