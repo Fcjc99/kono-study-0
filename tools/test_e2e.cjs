@@ -1888,7 +1888,7 @@ test('Sanctuary: KONO today is a slim bar on top of the island, and Decorate ope
  if(process.env.KONO_SHOTS)await page.screenshot({path:process.env.KONO_SHOTS+'/decorate-stickers.png'})
 })
 
-test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assignment, test or event for that day right in the card, and it shows on the Planner calendar',async({context,page})=>{
+test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assignment, test or lesson for that day right in the card (Type is a dropdown), and it shows on the Planner calendar',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
  plan.settings.parentMode=false
  await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
@@ -1903,7 +1903,7 @@ test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assign
  await todayForm.getByRole('button',{name:'Add',exact:true}).click()
  await todayCard.getByText('Lab report').first().waitFor()
  await todayForm.getByLabel('What to add for today').fill('Tutoring')
- await todayForm.getByRole('radio',{name:'Event'}).click()
+ await todayForm.getByLabel('Type').selectOption({label:'Lesson'})
  await todayForm.getByLabel('Time').fill('16:30')
  await todayForm.getByRole('button',{name:'Add',exact:true}).click()
  await todayCard.getByText('Tutoring').first().waitFor()
@@ -1912,11 +1912,11 @@ test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assign
  await tomorrowCard.getByRole('button',{name:'Add for tomorrow'}).click()
  const tomorrowForm=tomorrowCard.getByRole('form',{name:'Add for tomorrow'})
  await tomorrowForm.getByLabel('What to add for tomorrow').fill('Spanish quiz')
- assert.equal(await tomorrowForm.getByRole('radio',{name:'Test'}).getAttribute('aria-checked'),'true','a quiz is a test')
+ assert.equal(await tomorrowForm.getByLabel('Type').evaluate(el=>el.options[el.selectedIndex].text),'Test','a quiz is a test')
  await tomorrowForm.getByRole('button',{name:'Add',exact:true}).click()
  await tomorrowCard.getByText('Spanish quiz').first().waitFor()
  assert.equal(await page.getByRole('dialog').count(),dialogs,'nothing pops up')
- await waitFor(()=>{const d=cloud.users.alice.plan.data;return d.tasks.some(t=>t.title==='Lab report'&&t.due==='2026-09-28')&&d.calendarEvents.some(e=>e.title==='Tutoring'&&e.date==='2026-09-28'&&e.time==='16:30'&&e.endTime==='17:30')&&d.exams.some(e=>e.title==='Spanish quiz'&&e.due==='2026-09-29')},'the three reach the account')
+ await waitFor(()=>{const d=cloud.users.alice.plan.data;return d.tasks.some(t=>t.title==='Lab report'&&t.due==='2026-09-28')&&d.calendarEvents.some(e=>e.title==='Tutoring'&&e.kind==='lesson'&&e.date==='2026-09-28'&&e.time==='16:30'&&e.endTime==='17:30')&&d.exams.some(e=>e.title==='Spanish quiz'&&e.due==='2026-09-29')},'the three reach the account')
  await go(page,'Planner')
  const week=page.getByRole('region',{name:'Week'})
  await week.getByRole('button',{name:/^Lab report · Sep 28, 2026/}).waitFor()

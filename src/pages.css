@@ -20,7 +20,7 @@
 :root .workbench[data-experience='cozy'] .wb-board:not(.board-plain)>.wb-toolbar{background:transparent!important;border-bottom:1px solid var(--wb-line,#eee1d6)!important;color:var(--wb-ink,#3b2a25)!important;border-radius:0!important}
 :root .workbench[data-experience='cozy'] .wb-board .wb-board-canvas,
 :root .workbench[data-experience='cozy'] .wb-board .wb-board-empty,
-:root .workbench[data-experience='cozy'] .memory-board-canvas{background-color:color-mix(in srgb,var(--wb-ink,#3b2a25) 3%,var(--wb-surface,#fffdf9))!important;background-image:radial-gradient(color-mix(in srgb,var(--wb-ink,#3b2a25) 11%,transparent) 1px,transparent 1.2px)!important;background-size:16px 16px!important;color:var(--wb-ink,#3b2a25)!important}
+:root .workbench[data-experience='cozy'] .memory-board-canvas,:root .workbench[data-experience='cozy'] .restored-board-pair .memory-board-canvas{background-color:color-mix(in srgb,var(--wb-ink,#3b2a25) 3%,var(--wb-surface,#fffdf9))!important;background-image:radial-gradient(color-mix(in srgb,var(--wb-ink,#3b2a25) 11%,transparent) 1px,transparent 1.2px)!important;background-size:16px 16px!important;color:var(--wb-ink,#3b2a25)!important}
 :root .workbench[data-experience='cozy'] .wb-board-tray,
 :root .workbench[data-experience='cozy'] .restored-board-pair .board-tray{background:transparent!important;border-top:1px solid var(--wb-line,#eee1d6)!important;color:var(--wb-muted,#8a7469)!important}
 
@@ -28,3 +28,7 @@
  .workbench[data-experience='cozy'] .wb-panel:not(.wb-board){border-radius:20px}
  :root .workbench[data-experience='cozy'] .wb-board:not(.board-plain),:root .workbench[data-experience='cozy'] .restored-board-pair .memory-board-frame{border-radius:20px!important}
 }
+
+/* Today's / Tomorrow's schedule › ＋ Add: the Type dropdown sits beside Time. */
+.quick-day-type{display:inline-flex!important;align-items:center;gap:6px;font-size:.8rem;margin:0}
+.quick-day-type select{width:auto;min-height:30px;padding:2px 8px}
