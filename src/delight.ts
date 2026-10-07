@@ -1,17 +1,9 @@
-/** Small celebratory touches (sparkles, hearts, hops, a stagger as a page opens), drawn with the Web
- * Animations API so they cost no library. Each does nothing when motion is reduced: the comfort
+/** Celebrations (petals when work is done, hearts for KONO), drawn with the Web Animations API so they
+ * cost no library. Loaded on its own after KONO opens (Workspace); motionCore.ts has the startup part. Each does nothing when motion is reduced: the comfort
  * setting or the device's reduce-motion choice (html[data-motion], set in Workspace). */
 
-const motionOn=()=>document.documentElement.dataset.motion==='full'&&typeof Element.prototype.animate==='function'
+import {hop,lastTap,motionOn} from './motionCore'
 const PETALS=['✿','✦','❀','★','✧']
-
-/** Where the last tap or click landed, so a celebration can start from the button that caused it. */
-let lastPoint:{x:number;y:number;target:Element|null}|null=null
-export function trackPointer(){
- const onDown=(e:PointerEvent)=>{lastPoint={x:e.clientX,y:e.clientY,target:e.target as Element|null}}
- window.addEventListener('pointerdown',onDown,{capture:true,passive:true})
- return()=>window.removeEventListener('pointerdown',onDown,{capture:true})
-}
 
 function particle(text:string,x:number,y:number,className:string){
  const el=document.createElement('span')
@@ -51,19 +43,10 @@ export function floatHearts(target:Element|null,count=3){
  }
 }
 
-/** A happy little jump. */
-export function hop(target:Element|null){
- if(!motionOn()||!target)return
- target.animate([
-  {transform:'translateY(0) scale(1)'},{transform:'translateY(-12px) scale(1.06,.96)',offset:.35},
-  {transform:'translateY(0) scale(.96,1.05)',offset:.7},{transform:'translateY(0) scale(1)'},
- ],{duration:520,easing:'cubic-bezier(.3,1.4,.5,1)'})
-}
-
 /** Finishing an assignment: petals burst from where it was tapped and its card glows and settles. */
 export function celebrateDone(){
  if(!motionOn())return
- const point=lastPoint
+ const point=lastTap()
  const card=point?.target?.closest('.cozy-task-row,.wb-record,.overdue-card li,.swipe-row,article')
  const r=card?.getBoundingClientRect()
  const x=point&&point.x>0?point.x:r?r.left+28:innerWidth/2,y=point&&point.y>0?point.y:r?r.top+r.height/2:innerHeight/2
@@ -75,27 +58,3 @@ export function celebrateDone(){
  hop(document.querySelector('.kono-mood-face > :first-child'))
 }
 
-/** The page's cards ease in one after another. Fixed-position bits (the undo bar) are left alone. */
-export function stagger(container:Element|null){
- if(!motionOn()||!container)return
- const items=[...container.children].filter((el):el is HTMLElement=>el instanceof HTMLElement&&el.offsetHeight>0&&getComputedStyle(el).position!=='fixed').slice(0,10)
- items.forEach((el,i)=>el.animate([{opacity:0,transform:'translateY(14px)'},{opacity:1,transform:'none'}],{duration:420,delay:i*55,easing:'cubic-bezier(.22,1,.36,1)',fill:'backwards'}))
-}
-
-/** A streak milestone: paper confetti drifts down across the whole screen. */
-export function confetti(pieces=70){
- if(!motionOn())return
- const colors=['#f6766a','#ffc857','#6fcf97','#7cc4f5','#c59cf2','#ff9ec4']
- for(let i=0;i<pieces;i++){
-  const el=document.createElement('span'),x=Math.random()*innerWidth,drift=(Math.random()-.5)*160,spin=Math.random()*720-360
-  el.className='delight-confetti';el.setAttribute('aria-hidden','true')
-  el.style.left=x+'px';el.style.background=colors[i%colors.length]
-  if(i%3===0)el.style.borderRadius='50%'
-  document.body.appendChild(el)
-  el.animate([
-   {transform:'translate(0,-20px) rotate(0)',opacity:1},
-   {transform:`translate(${drift}px,${innerHeight*.9}px) rotate(${spin}deg)`,opacity:1,offset:.85},
-   {transform:`translate(${drift*1.1}px,${innerHeight+30}px) rotate(${spin*1.2}deg)`,opacity:0},
-  ],{duration:1800+Math.random()*1400,delay:Math.random()*500,easing:'cubic-bezier(.25,.6,.4,1)',fill:'backwards'}).finished.finally(()=>el.remove())
- }
-}

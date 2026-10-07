@@ -2,7 +2,7 @@
  * with Web Audio so there's no sound file to download. Off unless turned on in Settings › Look & feel.
  * Browsers only allow sound after a tap, so it plays for KONO's replies to you, not on its own. */
 
-export const BABBLE_SETTING='kono-babble'
+export {BABBLE_SETTING} from './konoBabbleSetting'
 let context:AudioContext|null=null
 
 export function babble(text:string){

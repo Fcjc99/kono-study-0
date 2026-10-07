@@ -22,7 +22,7 @@ import {friendSrc,friendsMet,visitEvent,visitEventId,visitLine,visitorToday} fro
 import {konoNote,moodLine,MOODS,noteText,examEventId,nudgeEventId,testDay,testsFrom,type Mood,type Test} from './store/konoNotes'
 import {changeDetail,changeTitle,schoolChanges} from './store/schoolHeadsUp'
 import {APP_BADGE_SETTING,rememberBadgeChoice,showAppBadge} from './store/appBadge'
-import {BABBLE_SETTING,babble} from './konoBabble'
+import {BABBLE_SETTING} from './konoBabbleSetting'
 import NextUp from './components/NextUp'
 import {earnedStickers,seasonOn,stickerOffered,STICKERS} from './store/stickers'
 import {pickKonoPhrase,konoCelebration,konoStreakMilestone,seededRand,STREAK_MILESTONES,type KonoPhrase} from './store/konoPhrases'
@@ -84,7 +84,12 @@ import './team-themes.css'
 import './dark-mode.css'
 import './ui-sweep.css'
 import './motion-polish.css'
-import {confetti,celebrateDone,floatHearts,hop,stagger,trackPointer} from './delight'
+import './home.css'
+import {hop,stagger,trackPointer} from './motionCore'
+/** Petals and hearts load in their own file, fetched shortly after KONO opens. */
+const effects=()=>import('./delight')
+const celebrateDone=()=>void effects().then(m=>m.celebrateDone()).catch(()=>undefined)
+const floatHearts=(el:Element|null)=>void effects().then(m=>m.floatHearts(el)).catch(()=>undefined)
 import ActionIcon from './components/ActionIcon'
 import BrandLogo from './components/BrandLogo'
 import {currentStreak as streakFrom,recapDay,weekRecap} from './store/weekRecap'
@@ -476,6 +481,7 @@ function Workspace({store}:{store:Store}){
  const pageScope=useRef<HTMLDivElement>(null)
  useEffect(()=>{stagger(pageScope.current)},[page])
  useEffect(trackPointer,[])
+ useEffect(()=>{const t=window.setTimeout(()=>void effects().catch(()=>undefined),1500);return()=>window.clearTimeout(t)},[])
  // The app's light follows the island's time of day (a soft tint behind the pages; motion-polish.css).
  useEffect(()=>{const hour=new Date().getHours(),part=islandPhase!=='auto'?islandPhase:hour<11?'morning':hour<17?'afternoon':hour<20?'evening':'night';document.documentElement.dataset.daypart=part},[islandPhase,today])
  // KONO hops when something new lands in the plan.
@@ -566,8 +572,19 @@ function Workspace({store}:{store:Store}){
  // finished, at most the demo's one assignment), so people already using KONO never see it.
  const [tourDone,setTourDone]=useLocalSetting('kono-tour-done:'+profile.id,'')
  const showTour=!tourDone&&!Object.keys(sanctuaryProgress.completionDates).length&&ownTasks.length<=1
+ // Home: the greeting line, the "Your day" card (next class, what's due, a focus session) and the week's bars.
+ const clock=new Date(),nowTime=clock.toTimeString().slice(0,5),hour=clock.getHours()
+ const greeting=(hour<12?'Good morning':hour<18?'Good afternoon':'Good evening')+', '+profile.name
+ const dueNow=tasks.filter(t=>!t.done&&t.due<=today).sort((a,b)=>a.due.localeCompare(b.due))
+ const examsToday=ownExams.filter(e=>!e.done&&e.due===today)
+ const nextTest=ownExams.filter(e=>!e.done&&e.due>today&&e.due<=addDays(today,7)).sort((a,b)=>a.due.localeCompare(b.due))[0]
+ const nextClass=scheduleClasses(today).filter(c=>!c.timePending&&(c.displayEnd??c.block.end)>nowTime).sort((a,b)=>(a.displayStart??a.block.start).localeCompare(b.displayStart??b.block.start))[0]
+ const daySummary=[dueNow.length?dueNow.length+' due today':'Nothing due today',examsToday.length?examsToday.length===1?examsToday[0].title+' today':examsToday.length+' tests today':'',nextTest?nextTest.title+' '+new Date(nextTest.due+'T12:00:00').toLocaleDateString(undefined,{weekday:'long'}):''].filter(Boolean).join(' · ')
+ const weekMonday=addDays(today,-((new Date(today+'T12:00:00').getDay()+6)%7))
+ const weekBars=Array.from({length:7},(_,i)=>{const day=addDays(weekMonday,i);return {day,count:ownTasks.filter(t=>t.done&&t.completedAt&&localDate(new Date(t.completedAt))===day).length}})
+ const weekMax=Math.max(1,...weekBars.map(b=>b.count))
  const chatterLine=careMoment?.line??konoPhrase?.text
- useEffect(()=>{if(babbleOn==='on'&&chatterLine)babble(chatterLine)},[careMoment?.at,konoPhrase]) // eslint-disable-line react-hooks/exhaustive-deps -- once per new line
+ useEffect(()=>{if(babbleOn==='on'&&chatterLine)void import('./konoBabble').then(m=>m.babble(chatterLine)).catch(()=>undefined)},[careMoment?.at,konoPhrase]) // eslint-disable-line react-hooks/exhaustive-deps -- once per new line
  useEffect(()=>{
   if(wishGranted||wishDone<wish.goal)return
   // Saved and announced together (saving changes the plan, which would cancel a separate timer).
@@ -655,7 +672,7 @@ function Workspace({store}:{store:Store}){
    // can't race the "today's list is cleared" celebration below for the same click.
    const extendsStreak=(sanctuaryProgress.completionDates[today]??0)===0
    const resultingStreak=extendsStreak?currentStreak+1:currentStreak
-   if(extendsStreak&&STREAK_MILESTONES.includes(resultingStreak))confetti()
+   if(extendsStreak&&STREAK_MILESTONES.includes(resultingStreak))void import('./confetti').then(m=>m.confetti()).catch(()=>undefined)
    setKonoPhrase(extendsStreak&&STREAK_MILESTONES.includes(resultingStreak)?konoStreakMilestone(resultingStreak):konoCelebration())
    setCelebrateSignal(Date.now())
   }}return saved},entry.done?'Assignment reopened.':'Done: '+titleOf(entry),!entry.done);return}const field=key==='notes'?'completed':'done';void patch(key,entry,{[field]:!entry[field]})}
@@ -783,10 +800,10 @@ function Workspace({store}:{store:Store}){
    {showReviewDigest&&<div className="wb-notice review-digest" role="status"><div><strong>{needsReviewEntries.length} item{needsReviewEntries.length===1?'':'s'} from a scanned photo need{needsReviewEntries.length===1?'s':''} a check</strong><small>Added automatically — make sure each one is correct.</small></div><button className="primary" onClick={()=>setReviewOpen(true)}>Review now</button><button onClick={dismissReviewDigest}>Later</button></div>}
    {hasDraft&&!editor&&<div className="wb-notice">You have an unfinished draft.<button onClick={()=>{try{const draft=JSON.parse(localStorage.getItem(draftScope)??'null') as Edit;if(!draft||!collections.includes(draft.key)||draft.entry.profileId!==profile.id)throw Error('Invalid draft');setEditor(draft)}catch{setMessage('This draft could not be opened.')}}}>Resume draft</button><button onClick={()=>{setConfirmation({text:'Discard this unfinished draft?',action:()=>{localStorage.removeItem(draftScope);localStorage.removeItem(draftScope+':assignment-dates');setHasDraft(false)}})}}>Discard draft</button></div>}
    {page==='Sanctuary'&&<>
+    <div className="home-greeting"><p className="home-hello">{greeting}</p><p className="home-summary">{new Date(today+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})} · {daySummary}</p></div>
     {classmatesOn&&<SharedWithMe repository={repository} data={data} save={save}/>}
     {overdueCard}
     {showTour&&<WelcomeTour onAdd={()=>setAdding(true)} onDone={()=>setTourDone('1')}/>}
-    {!onPhone&&!startSkipped.has('all')&&<GettingStarted compact steps={startSteps} onSkip={skipStart} onHide={()=>skipStart('all')}/>}
     {/* KONO today: one slim bar attached to the top of the island. KONO, its line, how it's doing, one
         care action, stickers, and "do next" / "ask". The day's wish (and an island season) sit in a small
         line under it; Ask KONO and What should I do now? open below the bar when asked. */}
@@ -804,8 +821,20 @@ function Workspace({store}:{store:Store}){
      <p className="kono-bar-notes">{note&&<span className={'kono-note is-'+note.kind} role="status">{noteText(note)}{note.kind==='ask'&&<span className="kono-note-choices" role="group" aria-label={'How did '+note.test.title+' go?'}>{MOODS.map(m=><button type="button" key={m.mood} aria-label={m.label} title={m.label} onClick={()=>answerTest(note.test,m.mood)}>{m.emoji}</button>)}</span>}{note.kind==='nudge'&&<span className="kono-note-choices"><button type="button" onClick={()=>{answerNudge(true);startFocusSession(note.item.exam?'':note.item.id,note.item.minutes,note.item.exam?note.item.title:undefined)}}>Start</button><button type="button" onClick={()=>answerNudge(false)}>Not now</button></span>}</span>}<span className={'kono-wish'+(wishGranted?' is-granted':'')}>{wishGranted?'✨ Today’s wish came true.':'✨ KONO wishes you’d '+wishText(wish)+(wish.goal>1?' · '+wishDone+'/'+wish.goal:'')}</span>{!note&&!snacks.length&&meters.full<45&&!bed.tucked&&<span className="kono-care-hint">🍙 Finish something to earn KONO a snack</span>}{islandEvent&&<span className="kono-season">{islandEvent.emoji} <strong>{islandEvent.label}:</strong> {islandEvent.stickers.filter(t=>earned.has(t.id)).length}/{islandEvent.stickers.length} special stickers until {islandEvent.until}</span>}</p>
      {askOpen&&<AskKono data={data} today={today} name={profile.name} pose={konoPose} onClose={()=>setAskOpen(false)}/>}{nextUpOpen&&<NextUp items={nextUpList(tasks,today,ownExams)} onClose={()=>setNextUpOpen(false)} onStart={item=>{setNextUpOpen(false);startFocusSession(item.exam?'':item.id,item.minutes,item.exam?item.title:undefined)}} onDone={item=>void run(()=>save(d=>completeTask(d,item.id)),'Done: '+item.title,true)}/>}
     </section>
+    <div className="home-hero"><div className="home-hero-main">
     <section className={'wb-island '+(expanded?'is-expanded':'')}><div className="wb-scene-toolbar"><div className="wb-scene-left"><nav className="island-mode-tabs" aria-label="Sanctuary view"><button aria-current={islandMode==='view'?'page':undefined} onClick={()=>setIslandMode('view')}>Your island</button><button aria-current={islandMode==='decorate'?'page':undefined} onClick={()=>{setDecorateStart(undefined);setIslandMode('decorate')}}>Decorate</button></nav>{islandMode==='view'&&<div className="wb-stats-strip" role="group" aria-label="Study streak and weekly progress"><div className="wb-stat wb-stat-streak" style={{'--streak':Math.min(currentStreak,30)} as CSSProperties}><strong>{currentStreak}</strong><small><span className="wb-stat-long">day streak</span><span className="wb-stat-short"><span aria-hidden="true">🔥</span><span className="wb-btn-label">day streak</span></span></small></div><div className="wb-stat"><strong key={weekDone} className="wb-stat-count">{weekTotal>0?weekDone+'/'+weekTotal:'—'}</strong><small><span className="wb-stat-long">{weekTotal>0?'done this week':'nothing due this week'}</span><span className="wb-stat-short">{weekTotal>0?'done':'none due'}</span></small></div></div>}</div><div className="wb-scene-controls"><label className="wb-scene-time" title="Sanctuary time"><span aria-hidden="true">🕐</span><select aria-label="Sanctuary time" value={phase} onChange={e=>setPhase(e.target.value as typeof phase)}>{['auto','morning','afternoon','evening','night'].map(p=><option key={p} value={p}>{p==='auto'?'Live time':p[0].toUpperCase()+p.slice(1)}</option>)}</select></label>{islandMode==='view'&&<div className="wb-island-zoom" role="group" aria-label="Zoom island"><button type="button" onClick={()=>setIslandZoom(z=>Math.max(MIN_ISLAND_ZOOM,+(z-0.25).toFixed(2)))} disabled={islandZoom<=MIN_ISLAND_ZOOM} aria-label="Zoom out">−</button><span aria-live="polite">{Math.round(islandZoom*100)}%</span><button type="button" onClick={()=>setIslandZoom(z=>Math.min(MAX_ISLAND_ZOOM,+(z+0.25).toFixed(2)))} disabled={islandZoom>=MAX_ISLAND_ZOOM} aria-label="Zoom in">＋</button>{islandZoom!==1&&<button type="button" onClick={resetIslandView}>Reset</button>}</div>}<button type="button" className="wb-scene-expand" title={expanded?'Close full screen':'Expand'} onClick={()=>setExpanded(v=>!v)}><span aria-hidden="true">{expanded?'✕':'⤢'}</span><span className="wb-btn-label">{expanded?'Close full screen':'Expand'}</span></button></div></div><div className="wb-sanctuary-stage"><div ref={islandStageRef} className="wb-sanctuary-zoom-wrap" onTouchStart={onIslandTouchStart} onTouchMove={onIslandTouchMove} onTouchEnd={onIslandTouchEnd} onPointerDown={onIslandPointerDown} onPointerMove={onIslandPointerMove} onPointerUp={onIslandPointerUp} onPointerCancel={onIslandPointerUp}><div className={'wb-sanctuary-zoom'+(islandMode==='view'&&islandZoom!==1?' is-zoomed':'')} style={islandMode==='view'?{transform:`translate(${islandPan.x}px, ${islandPan.y}px) scale(${islandZoom})`}:undefined}><div className={'wb-sanctuary-backdrop'+(islandMode==='decorate'?' is-decorating':'')}><GardenCard phase={islandPhase} weather={weather.weather} reducedMotion={reduced} progress={sanctuaryProgress} decorations={data.sanctuaryDecor[profile.id]?.placements} paused={islandMode==='decorate'} celebrateSignal={celebrateSignal} focusCompanionActive={focusCompanionActive} onKonoPet={petKono} outfit={shownOutfit} visitor={visitor?.id??null}/></div>{islandMode==='view'&&<SanctuaryDecorLayer data={data} phase={islandPhase}/>}</div></div>{islandMode==='decorate'&&<SanctuaryBuild data={data} save={save} phase={phase} earned={decorEarned} today={today} startCategory={decorateStart} wardrobe={{offered:outfitsOffered(unlockedOutfitIds,today),unlocked:unlockedOutfitIds,worn,stats:wardrobe,onWear:wearOutfit}} stamps={stamps} bond={bond}/>}</div></section>
-    {onPhone&&!startSkipped.has('all')&&<GettingStarted compact steps={startSteps} onSkip={skipStart} onHide={()=>skipStart('all')}/>}
+    </div>
+    <section className="wb-panel home-today" aria-label="Your day">
+     {nextClass&&<><small className="home-label">Up next</small><div className="home-next"><span className="home-next-time">{classTime(nextClass.displayStart??nextClass.block.start)}</span><div><strong>{nextClass.block.label}</strong><small>{[subjects.find(sub=>sub.id===nextClass.block.subjectId)?.room,'until '+classTime(nextClass.displayEnd??nextClass.block.end)].filter(Boolean).join(' · ')}</small></div></div></>}
+     <small className="home-label">{dueNow.length?'Due today':'Today'}</small>
+     {dueNow.length?<ul className="home-due">{dueNow.slice(0,4).map(t=><li key={t.id}><button type="button" className="home-check" aria-label={'Check off '+t.title} onClick={()=>toggle('tasks',t as unknown as Entry)}/><div><strong>{t.title}</strong><small>{subjects.find(sub=>sub.id===t.subjectId)?.name??'Assignment'}</small></div><span className={'home-tag'+(t.due<today?' is-late':'')}>{t.due<today?'Late':'Today'}</span></li>)}</ul>
+      :<p className="home-clear"><img src="/garden/kono/tea.webp" alt="" aria-hidden="true"/>Nothing due today. KONO says enjoy it!</p>}
+     {dueNow.length>4&&<button type="button" className="link-button home-more" onClick={()=>navigate('Planner')}>+{dueNow.length-4} more in the Planner</button>}
+     <button type="button" className="home-focus" onClick={()=>startFocusSession(dueNow[0]?.id??'',25)}><span><strong>Start a focus session</strong><small>25 min · KONO reads beside you</small></span><i aria-hidden="true">▶</i></button>
+    </section>
+    </div>
+    <section className="wb-panel home-week" aria-label="This week"><div><small className="home-label">This week</small><strong>{weekBars.reduce((n,b)=>n+b.count,0)} finished</strong></div><div className="home-week-bars">{weekBars.map(b=><span key={b.day} className={(b.day===today?'is-today ':'')+(b.count?'has-work':'')} title={dateLabel(b.day)+': '+b.count+' finished'}><i style={{height:Math.max(8,b.count/weekMax*56)+'px'}}/>{new Date(b.day+'T12:00:00').toLocaleDateString(undefined,{weekday:'narrow'})}</span>)}</div></section>
+    {/* Setup steps come after the island and your day, on every screen size. */}{!startSkipped.has('all')&&<GettingStarted compact steps={startSteps} onSkip={skipStart} onHide={()=>skipStart('all')}/>}
     {recap&&recapDay(today)&&recapHiddenFor!==recap.from&&<div className="wb-panel week-recap-sunday"><WeekRecap recap={recap} onPlanWeek={openWeekPlan} onDismiss={()=>setRecapHiddenFor(recap.from)}/></div>}
     {tasks.some(t=>!t.done&&t.due<=tomorrow)&&<section className="wb-panel due-tomorrow-panel"><div className="wb-section-head"><div><small>PLAN AHEAD</small><h2>Assignments due tomorrow</h2></div><button onClick={()=>create('tasks',tomorrow)}>＋ Assignment</button></div>{tasks.filter(t=>!t.done&&t.due===tomorrow).map(t=>card('tasks',t as unknown as Entry))}{!tasks.some(t=>!t.done&&t.due===tomorrow)&&<p>Nothing is due tomorrow.</p>}<details><summary>Due today & overdue · {tasks.filter(t=>!t.done&&t.due<=today).length}</summary>{tasks.filter(t=>!t.done&&t.due<=today).sort((a,b)=>a.due.localeCompare(b.due)).map(t=>card('tasks',t as unknown as Entry))}</details></section>}
     <details ref={sanctuaryFocusRef} className="wb-panel sanctuary-focus"><summary>Focus session</summary><FocusSession draftKey={draftScope+':focus'} tasks={tasks} notes={notes} focusRequest={focusRequest} onComplete={id=>void run(()=>save(d=>completeTask(d,id)),'Assignment completed.')} onSaveNote={body=>save(d=>({...d,notes:[...d.notes,{id:uid('note'),profileId:profile.id,subjectId:'',title:'Study session',body,created:new Date().toISOString(),pinned:true}]}))} onFocusActiveChange={setFocusCompanionActive} onSessionComplete={focusDone}/></details>
