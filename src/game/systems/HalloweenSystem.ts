@@ -3,14 +3,16 @@ import { HALLOWEEN_MOON } from '../data/halloweenIsland'
 import { RenderLayers } from '../engine/RenderLayers'
 import type { DayPhase } from '../sanctuary/types'
 
-/** The island in October (see sanctuary/season.ts): one Halloween night picture all day (drawn by
- * tools/draw_halloween_night.py, the island's own art under a violet sky and a big full moon); this adds
- * what moves. The moon's glow breathes, bats cross the sky (often in front of the moon), low fog drifts
- * over the grass, a few autumn leaves fall, and now and then a friendly ghost floats up from the grass.
- * With reduced motion only the (still) moon glow and fog are shown. */
+/** The island in October (see sanctuary/season.ts): the Halloween island's own picture for each time of
+ * day (tools/import_halloween_island.py); this adds what moves. Autumn leaves fall in the day; in the
+ * evening and at night bats cross the sky (at night often past the moon, whose glow breathes), low fog
+ * drifts over the grass, and now and then a friendly ghost floats up. With reduced motion only the
+ * (still) moon glow and fog are shown. */
 type Point = { x: number; y: number }
 
 const LEAF_TINTS = [0xe0782c, 0xc84a26, 0xf0b040, 0xa8642c]
+const MOON_ALPHA: Record<DayPhase, number> = { morning: 0, afternoon: 0, evening: 0, night: 0.38 }
+const FOG_ALPHA: Record<DayPhase, number> = { morning: 0.1, afternoon: 0, evening: 0.14, night: 0.2 }
 /** Where a ghost can float up from: open grass, away from the hill and the cliffs. */
 const GHOST_SPOTS: Point[] = [{ x: 0.3, y: 0.55 }, { x: 0.44, y: 0.62 }, { x: 0.6, y: 0.5 }, { x: 0.72, y: 0.62 }, { x: 0.36, y: 0.42 }]
 /** A friendly ghost, painted softly like the island's decorations (no hard pixels): a rounded sheet
@@ -117,6 +119,7 @@ export class HalloweenSystem {
   private readonly scene: Phaser.Scene
   private bounds = new Phaser.Geom.Rectangle()
   private reducedMotion = false
+  private phase: DayPhase = 'afternoon'
   private moonGlow: Phaser.GameObjects.Image | null = null
   private moonTween?: Phaser.Tweens.Tween
   private fog: { image: Phaser.GameObjects.Image; at: Point; tween?: Phaser.Tweens.Tween }[] = []
@@ -127,18 +130,18 @@ export class HalloweenSystem {
     this.scene = scene
   }
 
-  /** The picture is night all day, so the time of day doesn't change what's shown. */
-  create(_phase: DayPhase, reducedMotion: boolean): void {
+  create(phase: DayPhase, reducedMotion: boolean): void {
+    this.phase = phase
     this.reducedMotion = reducedMotion
     glowTexture(this.scene, 'hw-glow-moon', '255,214,160')
     fogTexture(this.scene, 'hw-fog')
     batTexture(this.scene, 'hw-bat-0', true)
     batTexture(this.scene, 'hw-bat-1', false)
     ghostTexture(this.scene, 'hw-ghost')
-    this.moonGlow = this.scene.add.image(0, 0, 'hw-glow-moon').setDepth(RenderLayers.lightingShade + 0.05).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.35)
+    this.moonGlow = this.scene.add.image(0, 0, 'hw-glow-moon').setDepth(RenderLayers.lightingShade + 0.05).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0)
     const fogAt: Point[] = [{ x: 0.3, y: 0.62 }, { x: 0.62, y: 0.7 }, { x: 0.78, y: 0.5 }, { x: 0.45, y: 0.45 }]
     for (const at of fogAt) {
-      const image = this.scene.add.image(0, 0, 'hw-fog').setDepth(RenderLayers.atmosphereBack + 0.1).setAlpha(0.2)
+      const image = this.scene.add.image(0, 0, 'hw-fog').setDepth(RenderLayers.atmosphereBack + 0.1).setAlpha(0)
       this.fog.push({ image, at })
     }
     this.timers.push(this.scene.time.addEvent({ delay: 2400, loop: true, callback: () => this.spawnBat() }))
@@ -159,7 +162,11 @@ export class HalloweenSystem {
     this.animate()
   }
 
-  setPhase(_phase?: DayPhase): void {} // eslint-disable-line @typescript-eslint/no-unused-vars
+  setPhase(phase: DayPhase): void {
+    if (phase === this.phase) return
+    this.phase = phase
+    this.animate()
+  }
 
   setReducedMotion(reducedMotion: boolean): void {
     this.reducedMotion = reducedMotion
@@ -172,15 +179,16 @@ export class HalloweenSystem {
   private animate(): void {
     this.moonTween?.remove()
     this.moonTween = undefined
+    const moon = MOON_ALPHA[this.phase], fog = FOG_ALPHA[this.phase]
     if (this.moonGlow) {
-      this.moonGlow.setAlpha(0.35)
-      if (!this.reducedMotion) this.moonTween = this.scene.tweens.add({ targets: this.moonGlow, alpha: { from: 0.26, to: 0.42 }, duration: 3600, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
+      this.moonGlow.setAlpha(moon)
+      if (moon && !this.reducedMotion) this.moonTween = this.scene.tweens.add({ targets: this.moonGlow, alpha: { from: moon * 0.7, to: moon * 1.1 }, duration: 3600, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
     }
     for (const f of this.fog) {
       f.tween?.remove()
       f.tween = undefined
-      f.image.setX(this.px(f.at))
-      if (!this.reducedMotion && this.bounds.width) {
+      f.image.setX(this.px(f.at)).setAlpha(fog)
+      if (fog && !this.reducedMotion && this.bounds.width) {
         const shift = this.bounds.width * 0.05
         f.tween = this.scene.tweens.add({ targets: f.image, x: { from: this.px(f.at) - shift, to: this.px(f.at) + shift }, duration: Phaser.Math.Between(9000, 14000), yoyo: true, repeat: -1, ease: 'Sine.InOut' })
       }
@@ -195,9 +203,11 @@ export class HalloweenSystem {
 
   private spawnBat(): void {
     if (this.reducedMotion || !this.bounds.width || this.movers.size > 12) return
+    // Bats come out in the evening and at night (and once in a while in the afternoon).
+    if (this.phase === 'morning' || (this.phase === 'afternoon' && Math.random() > 0.15)) return
     const fromLeft = Math.random() < 0.5
-    // About half fly past the moon, so they show up as silhouettes against it.
-    const nearMoon = Math.random() < 0.5
+    // At night about half fly past the moon, so they show up as silhouettes against it.
+    const nearMoon = this.phase === 'night' && Math.random() < 0.5
     const y0 = nearMoon ? this.py(HALLOWEEN_MOON) + this.bounds.width * HALLOWEEN_MOON.r * Phaser.Math.FloatBetween(-0.6, 0.6) : this.bounds.y + this.bounds.height * Phaser.Math.FloatBetween(0.04, 0.3)
     const x0 = fromLeft ? this.bounds.x - 30 : this.bounds.right + 30
     const x1 = fromLeft ? this.bounds.right + 30 : this.bounds.x - 30
@@ -214,7 +224,7 @@ export class HalloweenSystem {
   }
 
   private spawnLeaf(): void {
-    if (this.reducedMotion || !this.bounds.width || this.movers.size > 12) return
+    if (this.reducedMotion || !this.bounds.width || this.movers.size > 12 || this.phase === 'night') return
     if (!this.scene.textures.exists('leaf-01')) return
     const x0 = this.bounds.x + this.bounds.width * Phaser.Math.FloatBetween(0.12, 0.88)
     const y0 = this.bounds.y + this.bounds.height * Phaser.Math.FloatBetween(0.08, 0.3)
@@ -228,7 +238,7 @@ export class HalloweenSystem {
   }
 
   private spawnGhost(): void {
-    if (this.reducedMotion || !this.bounds.width) return
+    if (this.reducedMotion || !this.bounds.width || this.phase !== 'night') return
     const at = Phaser.Utils.Array.GetRandom(GHOST_SPOTS)
     const scale = Math.max(0.7, this.bounds.width / 1100)
     const ghost = this.track(this.scene.add.image(this.px(at), this.py(at), 'hw-ghost').setDepth(RenderLayers.critters + 0.1).setScale(scale).setAlpha(0))

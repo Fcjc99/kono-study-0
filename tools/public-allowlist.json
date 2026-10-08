@@ -742,8 +742,6 @@
  "/garden/terrace-23.0/afternoon-poster.webp",
  "/garden/terrace-23.0/evening-poster.webp",
  "/garden/terrace-23.0/night-poster.webp",
- "/garden/terrace-23.0/halloween/night.webp",
- "/garden/terrace-23.0/halloween/night-poster.webp",
  "/garden/terrace-23.0/winter/morning.webp",
  "/garden/terrace-23.0/winter/morning-poster.webp",
  "/garden/terrace-23.0/winter/afternoon.webp",
@@ -835,5 +833,13 @@
  "/garden/registered-22.8.6/halloween/spell-book/morning.webp",
  "/garden/registered-22.8.6/halloween/spell-book/afternoon.webp",
  "/garden/registered-22.8.6/halloween/spell-book/evening.webp",
- "/garden/registered-22.8.6/halloween/spell-book/night.webp"
+ "/garden/registered-22.8.6/halloween/spell-book/night.webp",
+ "/garden/terrace-23.0/halloween/morning.webp",
+ "/garden/terrace-23.0/halloween/morning-poster.webp",
+ "/garden/terrace-23.0/halloween/afternoon.webp",
+ "/garden/terrace-23.0/halloween/afternoon-poster.webp",
+ "/garden/terrace-23.0/halloween/evening.webp",
+ "/garden/terrace-23.0/halloween/evening-poster.webp",
+ "/garden/terrace-23.0/halloween/night.webp",
+ "/garden/terrace-23.0/halloween/night-poster.webp"
 ]

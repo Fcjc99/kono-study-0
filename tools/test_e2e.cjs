@@ -1610,16 +1610,19 @@ test('What should I do now and the app icon number: late work first, "Something 
  await until(async()=>await badge()===0,'turning it off should clear the icon')
 })
 
-test('Halloween island: all of October the island is the Halloween night picture with its full moon, even in the afternoon (with its own quick picture while it loads), and in November it is back to normal',async({context,page})=>{
+test('Halloween island: all of October the island is the Halloween island, with its own picture for each time of day (and its own quick picture while it loads), and in November it is back to normal',async({context,page})=>{
  const cloud=fakeCloud(),maps=[]
  page.on('response',r=>{const u=new URL(r.url());if(/\/garden\/terrace-23\.0\//.test(u.pathname))maps.push([u.pathname,r.status()])})
  await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  await islandLoaded(page)
- assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween/night.webp'&&st===200),'the Halloween night island loads, even at 3 PM: '+JSON.stringify(maps))
- assert.ok(!maps.some(([p])=>/\/terrace-23\.0\/(halloween\/)?(morning|afternoon|evening)\.webp$/.test(p)),'no daytime map in October: '+JSON.stringify(maps))
- assert.ok(!maps.some(([p])=>p==='/garden/terrace-23.0/night.webp'),'not the regular one')
+ assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween/afternoon.webp'&&st===200),'the Halloween afternoon island loads at 3 PM: '+JSON.stringify(maps))
+ assert.ok(!maps.some(([p])=>/^\/garden\/terrace-23\.0\/(morning|afternoon|evening|night)\.webp$/.test(p)),'not the regular one: '+JSON.stringify(maps))
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(3000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/halloween-island-afternoon.png'})}
+ maps.length=0
+ await page.getByLabel('Sanctuary time').selectOption('night')
+ await waitFor(()=>maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween/night.webp'&&st===200),'the Halloween night island never loaded: '+JSON.stringify(maps))
  if(process.env.KONO_SHOTS){await page.waitForTimeout(6000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/halloween-island-night.png'})}
  maps.length=0
  await page.clock.setFixedTime(new Date('2026-11-02T21:30:00'))
