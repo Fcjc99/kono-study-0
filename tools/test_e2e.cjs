@@ -540,7 +540,7 @@ test('Sanctuary: the island draws, zooms, expands and changes time; Decorate add
  await ready()
  // The canvas has real artwork on it (a blank canvas encodes to a tiny image).
  await page.waitForFunction(()=>{const c=document.querySelector('.sanctuary-viewport canvas');return !!c&&c.width>100&&c.toDataURL('image/png').length>60000},null,{timeout:20000})
- assert.ok(loaded.some(([path,status])=>/terrace-23\.0\/((halloween|winter|spring|semester)\/)?\w+\.webp$/.test(path)&&status===200),'the island map did not load (whatever the season)')
+ assert.ok(loaded.some(([path,status])=>/terrace-23\.0\/((halloween-v2|winter|spring|semester)\/)?\w+\.webp$/.test(path)&&status===200),'the island map did not load (whatever the season)')
  assert.ok(loaded.every(([,status])=>status===200),'a Sanctuary image failed to load: '+JSON.stringify(loaded.filter(([,st])=>st!==200)))
  const zoom=page.getByRole('group',{name:'Zoom island'})
  await zoom.getByRole('button',{name:'Zoom in'}).click()
@@ -1617,19 +1617,19 @@ test('Halloween island: all of October the island is the Halloween island, with 
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  await islandLoaded(page)
- assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween/afternoon.webp'&&st===200),'the Halloween afternoon island loads at 3 PM: '+JSON.stringify(maps))
+ assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween-v2/afternoon.webp'&&st===200),'the Halloween afternoon island loads at 3 PM: '+JSON.stringify(maps))
  assert.ok(!maps.some(([p])=>/^\/garden\/terrace-23\.0\/(morning|afternoon|evening|night)\.webp$/.test(p)),'not the regular one: '+JSON.stringify(maps))
  if(process.env.KONO_SHOTS){await page.waitForTimeout(3000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/halloween-island-afternoon.png'})}
  maps.length=0
  await page.getByLabel('Sanctuary time').selectOption('night')
- await waitFor(()=>maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween/night.webp'&&st===200),'the Halloween night island never loaded: '+JSON.stringify(maps))
+ await waitFor(()=>maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween-v2/night.webp'&&st===200),'the Halloween night island never loaded: '+JSON.stringify(maps))
  if(process.env.KONO_SHOTS){await page.waitForTimeout(6000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/halloween-island-night.png'})}
  maps.length=0
  await page.clock.setFixedTime(new Date('2026-11-02T21:30:00'))
  await page.reload();await heading(page,'Sanctuary')
  await islandLoaded(page)
  assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/night.webp'&&st===200),'in November the regular island is back: '+JSON.stringify(maps))
- assert.ok(!maps.some(([p])=>p.includes('/halloween/')))
+ assert.ok(!maps.some(([p])=>p.includes('/halloween')))
 })
 
 test('Winter island: from December 1 the island is under snow (with its own quick picture), Valentine’s week keeps the snow and brings its own stickers, and KONO’s winter earmuffs and heart headband show in the wardrobe',async({context,page})=>{

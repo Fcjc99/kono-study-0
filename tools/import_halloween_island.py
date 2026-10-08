@@ -2,7 +2,7 @@
 source pictures: halloween_sanctuary_morning.png, _noon.png (the afternoon), _evening.png and _night.png,
 each 1448 x 1086 and drawn on the regular island's exact footprint.
 
-Writes public/garden/terrace-23.0/halloween/<phase>.webp and <phase>-poster.webp (the small picture shown
+Writes public/garden/terrace-23.0/halloween-v2/<phase>.webp and <phase>-poster.webp (the small picture shown
 while the island loads), and src/game/data/halloweenIsland.ts (where the night picture's moon is, so the
 island can glow it).
 
@@ -17,7 +17,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(ROOT, 'public', 'garden', 'terrace-23.0', 'halloween')
+OUT = os.path.join(ROOT, 'public', 'garden', 'terrace-23.0', 'halloween-v2')
 TS_OUT = os.path.join(ROOT, 'src', 'game', 'data', 'halloweenIsland.ts')
 ALLOWLIST = os.path.join(ROOT, 'tools', 'public-allowlist.json')
 SOURCES = {'morning': 'morning', 'afternoon': 'noon', 'evening': 'evening', 'night': 'night'}
@@ -59,8 +59,8 @@ def main():
         f.write('export const HALLOWEEN_MOON=' + json.dumps(moon) + ' as const\n')
     with open(ALLOWLIST) as f:
         files = json.load(f)
-    files = [p for p in files if not p.startswith('/garden/terrace-23.0/halloween/')]
-    files += ['/garden/terrace-23.0/halloween/%s%s.webp' % (p, s) for p in SOURCES for s in ('', '-poster')]
+    files = [p for p in files if not p.startswith('/garden/terrace-23.0/halloween-v2/')]
+    files += ['/garden/terrace-23.0/halloween-v2/%s%s.webp' % (p, s) for p in SOURCES for s in ('', '-poster')]
     with open(ALLOWLIST, 'w') as f:
         json.dump(files, f, indent=1)
         f.write('\n')
