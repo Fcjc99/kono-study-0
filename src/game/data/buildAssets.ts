@@ -137,26 +137,30 @@ const treeAssets:BuildAsset[]=TREE_STYLES.map(style=>{
  }
 })
 
-// Halloween (tools/draw_halloween_decor.py): the pumpkin house and spooky tree fit like the other homes and
-// trees; the rest have their own width on the island.
-const halloweenAssets:BuildAsset[]=HALLOWEEN_DECOR.map(item=>{
- const scale=item.size==='home'?contentScale(item.contentWidth,item.contentHeight,HOME_BOX):item.size==='tree'?contentScale(item.contentWidth,item.contentHeight,TREE_BOX):item.size/item.width
- return {
-  id:'halloween-'+item.id,
-  label:item.label,
-  category:'halloween',
-  categoryLabel:'Halloween',
-  src:phaseSrc(phase=>halloweenDecorTexturePath(item.id,phase)),
-  width:item.width*scale,
-  height:item.height*scale,
-  defaultScale:1,
-  anchor:{x:0.5,y:item.anchorY},
-  surface:'grass',
-  layer:'decor',
-  rotatable:false,
-  flippable:true,
- }
-})
+// Halloween (tools/import_halloween_decor.py): the pumpkin house and the tree fit like the other homes and
+// trees; the rest have their own width on the island. The sign has a panel to write on, like the Signs.
+const halloweenSize=(item:typeof HALLOWEEN_DECOR[number])=>{
+ const scale=item.size==='home'?contentScale(item.contentWidth,item.contentHeight,HOME_BOX):item.size==='tree'?contentScale(item.contentWidth,item.contentHeight,TREE_BOX):item.size/item.contentWidth
+ return {width:item.width*scale,height:item.height*scale}
+}
+const halloweenAssets:BuildAsset[]=HALLOWEEN_DECOR.map(item=>({
+ id:'halloween-'+item.id,
+ label:item.label,
+ category:'halloween',
+ categoryLabel:'Halloween',
+ src:phaseSrc(phase=>halloweenDecorTexturePath(item.id,phase)),
+ ...halloweenSize(item),
+ defaultScale:1,
+ anchor:{x:0.5,y:item.anchorY},
+ surface:'grass',
+ layer:'decor',
+ rotatable:false,
+ flippable:true,
+ ...(item.signArea?{signArea:item.signArea}:{}),
+}))
+/** The Spooky season stickers (store/stickers) are pictures from the Halloween set rather than emoji. */
+const HALLOWEEN_STICKER_ART:Record<string,string>={'halloween-pumpkin':'jack-o-lantern-trio','halloween-ghost':'ghost-friend','halloween-candy':'candy-basket','halloween-bat':'bat-roost'}
+const stickerArt=(stickerId:string)=>{const item=HALLOWEEN_DECOR.find(d=>d.id===HALLOWEEN_STICKER_ART[stickerId]);return item?{src:phaseSrc(phase=>halloweenDecorTexturePath(item.id,phase)),...halloweenSize(item),anchor:{x:0.5,y:item.anchorY}}:null}
 
 const lightAssets:BuildAsset[]=LIGHT_ASSETS.map(light=>({
  id:'light-'+light.id,
@@ -222,6 +226,7 @@ const stickerAssets:BuildAsset[]=STICKERS.map(item=>({
  layer:'decor',
  rotatable:true,
  flippable:false,
+ ...stickerArt(item.id),
 }))
 
 // KONO's finds from focus sessions (store/konoFinds): like stickers, only the ones found can be placed.

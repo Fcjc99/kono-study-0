@@ -1685,7 +1685,7 @@ test('Spring and the end of the semester: from March 20 the island blooms (Sprin
  await visit('2027-07-01T15:00:00','',null,null)
  assert.ok(!maps.some(([p])=>/\/(spring|semester)\//.test(p)),'summer is the regular island')
 })
-test('Decorate › Halloween: a pumpkin house, a spooky tree, a pumpkin patch, a cauldron, a scarecrow and a jack-o’-lantern lamp, painted for every time of day, go on the island and stay',async({context,page})=>{
+test('Decorate › Halloween: all 16 pieces (a pumpkin house, an autumn tree, a writable sign and the rest), with art for every time of day, go on the island and stay; the sign takes text',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId,art=[]
  page.on('response',r=>{const u=new URL(r.url());if(u.pathname.includes('/registered-22.8.6/halloween/'))art.push([u.pathname,r.status()])})
  await page.clock.setFixedTime(new Date('2026-10-02T21:00:00'))
@@ -1694,11 +1694,15 @@ test('Decorate › Halloween: a pumpkin house, a spooky tree, a pumpkin patch, a
  await page.getByRole('button',{name:'Decorate'}).click()
  await page.getByRole('navigation',{name:'Decoration categories'}).getByRole('button',{name:'Halloween',exact:true}).click()
  const palette=page.locator('.build-palette')
- for(const name of ['Pumpkin House','Spooky Tree','Pumpkin Patch','Bubbling Cauldron','Scarecrow','Jack-o’-Lantern Lamp'])await palette.getByRole('button',{name:'Add '+name}).waitFor()
+ const names=['Pumpkin House','Autumn Spooky Tree','Pumpkin Patch','Bubbling Cauldron','Scarecrow','Jack-o’-Lantern Lamp','Halloween Sign','Study Corner Treats','Jack-o’-Lantern Trio','Candy Basket','Mossy Gravestone','Bat Roost','Hay Bales & Pumpkins','Ghost Friend','Autumn Fence Garland','Spell Book & Candles']
+ for(const name of names)await palette.getByRole('button',{name:'Add '+name,exact:true}).waitFor()
+ assert.equal(await palette.getByRole('button',{name:/^Add /}).count(),names.length,'just the new Halloween set')
  await palette.getByRole('button',{name:'Add Pumpkin House'}).click()
- await palette.getByRole('button',{name:'Add Spooky Tree'}).click()
- await waitFor(()=>{const ids=(cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[]).map(p=>p.assetId);return ids.includes('halloween-pumpkin-house')&&ids.includes('halloween-spooky-tree')},'the Halloween pieces never reached the island')
- await waitFor(()=>art.some(([p])=>p.endsWith('/pumpkin-house/night.png')),'the night art for the pumpkin house never loaded: '+JSON.stringify(art))
+ await palette.getByRole('button',{name:'Add Autumn Spooky Tree'}).click()
+ await palette.getByRole('button',{name:'Add Halloween Sign'}).click()
+ await page.getByLabel('Sign text').fill('Boo! 🎃')
+ await waitFor(()=>{const ps=cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[];return ['halloween-pumpkin-house','halloween-spooky-tree'].every(id=>ps.some(p=>p.assetId===id))&&ps.some(p=>p.assetId==='halloween-sign'&&p.text==='Boo! 🎃')},'the Halloween pieces (and the sign’s text) never reached the island')
+ await waitFor(()=>art.some(([p])=>p.endsWith('/pumpkin-house/night.webp')),'the night art for the pumpkin house never loaded: '+JSON.stringify(art))
  assert.ok(art.every(([,st])=>st===200),'a Halloween picture failed to load: '+JSON.stringify(art))
  if(process.env.KONO_SHOTS){await page.getByRole('button',{name:'Your island'}).click();await page.waitForTimeout(2500);await page.locator('.wb-island').screenshot({path:process.env.KONO_SHOTS+'/halloween-decor-island.png'})}
 })
