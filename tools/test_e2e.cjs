@@ -1701,7 +1701,7 @@ test('Decorate › Halloween: all 16 pieces (a pumpkin house, an autumn tree, a 
  await palette.getByRole('button',{name:'Add Autumn Spooky Tree'}).click()
  await palette.getByRole('button',{name:'Add Halloween Sign'}).click()
  await page.getByLabel('Sign text').fill('Boo! 🎃')
- await waitFor(()=>{const ps=cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[];return ['halloween-pumpkin-house','halloween-spooky-tree'].every(id=>ps.some(p=>p.assetId===id))&&ps.some(p=>p.assetId==='halloween-sign'&&p.text==='Boo! 🎃')},'the Halloween pieces (and the sign’s text) never reached the island')
+ await waitFor(()=>{const ps=cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[];return ['halloween-pumpkin-house','halloween-spooky-tree'].every(id=>ps.some(p=>p.assetId===id))&&ps.some(p=>p.assetId==='halloween-sign'&&p.text==='Boo! 🎃')},'the Halloween pieces (and the sign’s text) never reached the island: '+JSON.stringify((cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[]).map(p=>[p.assetId,p.text])))
  await waitFor(()=>art.some(([p])=>p.endsWith('/pumpkin-house/night.webp')),'the night art for the pumpkin house never loaded: '+JSON.stringify(art))
  assert.ok(art.every(([,st])=>st===200),'a Halloween picture failed to load: '+JSON.stringify(art))
  if(process.env.KONO_SHOTS){await page.getByRole('button',{name:'Your island'}).click();await page.waitForTimeout(2500);await page.locator('.wb-island').screenshot({path:process.env.KONO_SHOTS+'/halloween-decor-island.png'})}

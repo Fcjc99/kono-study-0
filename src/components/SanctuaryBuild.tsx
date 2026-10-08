@@ -67,7 +67,7 @@ export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCa
  const [category,setCategory]=useState<BuildCategory|null>(startCategory??BUILD_CATEGORIES[0]??null)
  const offeredFinds=new Set(findsOffered(new Map([...earned].filter(id=>id.startsWith('find-')).map(id=>[id.slice(5),1])),today).map(f=>'find-'+f.id))
  const [selected,setSelected]=useState<string|null>(null)
- const [busy,setBusy]=useState(false),[message,setMessage]=useState('')
+ const [message,setMessage]=useState('')
  const canvasRef=useRef<HTMLDivElement|null>(null)
  const tabsRef=useRef<HTMLElement|null>(null)
  // Opened from the Sanctuary's sticker count: bring the Stickers tab into view on a narrow screen.
@@ -91,11 +91,12 @@ export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCa
   const current=decorFor(d)
   return {...d,sanctuaryDecor:{...d.sanctuaryDecor,[profileId]:{profileId,placements:current.placements,...patch}}}
  }
- const commit=async(placements:BuildPlacement[])=>{
-  if(busy)return;setBusy(true);setMessage('')
-  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');return withCurrent(d,{placements})});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
+ // Each change applies to the placements as saved at that moment (not to the copy this render saw), so
+ // quick taps, or a sign's text saved while an earlier change is still saving, never undo each other.
+ const commit=async(change:(placements:BuildPlacement[])=>BuildPlacement[])=>{
+  setMessage('')
+  try{const ok=await save(d=>{if(d.activeProfileId!==profileId)throw Error('Your profile changed. Reopen this page.');return withCurrent(d,{placements:change(decorFor(d).placements)})});if(!ok)setMessage('Not saved yet. Check the save status and try again.')}
   catch(e){setMessage(e instanceof Error?e.message:'Could not save.')}
-  finally{setBusy(false)}
  }
 
  const fractionFromEvent=(e:{clientX:number;clientY:number}):{x:number;y:number}=>{
@@ -108,7 +109,7 @@ export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCa
   if(isLocked(assetId,earned))return
   const asset=BUILD_ASSET_BY_ID[assetId]
   const placement:BuildPlacement={id:uid('placement'),assetId,x,y,rotation:0,scale:asset?.defaultScale??1,skewX:0,flipX:false}
-  void commit([...decor.placements,placement])
+  void commit(ps=>[...ps,placement])
   setSelected(placement.id)
  }
  // Tapping a palette item drops it straight onto the island instead of requiring a separate "now tap
@@ -136,16 +137,16 @@ export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCa
   const {x,y}=fractionFromEvent(e)
   place(assetId,x,y)
  }
- const rotateSelected=()=>{if(selected)void commit(decor.placements.map(p=>p.id===selected?{...p,rotation:nextRotation(p.rotation)}:p))}
- const mirrorSelected=()=>{if(selected)void commit(decor.placements.map(p=>p.id===selected?{...p,flipX:!p.flipX}:p))}
+ const rotateSelected=()=>{if(selected)void commit(ps=>ps.map(p=>p.id===selected?{...p,rotation:nextRotation(p.rotation)}:p))}
+ const mirrorSelected=()=>{if(selected)void commit(ps=>ps.map(p=>p.id===selected?{...p,flipX:!p.flipX}:p))}
  const duplicateSelected=()=>{
   const source=decor.placements.find(p=>p.id===selected)
   if(!source)return
   const copy:BuildPlacement={...source,id:uid('placement'),x:Math.min(0.96,source.x+0.04),y:Math.min(0.96,source.y+0.04)}
-  void commit([...decor.placements,copy])
+  void commit(ps=>[...ps,copy])
   setSelected(copy.id)
  }
- const removeSelected=()=>{if(selected){void commit(decor.placements.filter(p=>p.id!==selected));setSelected(null)}}
+ const removeSelected=()=>{if(selected){void commit(ps=>ps.filter(p=>p.id!==selected));setSelected(null)}}
  // Committing on every slider tick would fight the in-flight-save guard in `commit` (it silently
  // drops a call while a previous save is still pending), so dragging felt sticky/laggy. Update the
  // visible value instantly via local state and only persist once the user pauses.
@@ -153,34 +154,34 @@ export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCa
   if(!selected)return
   setLiveScale({id:selected,value:scale})
   window.clearTimeout(scaleCommitTimer.current)
-  scaleCommitTimer.current=window.setTimeout(()=>{void commit(decor.placements.map(p=>p.id===selected?{...p,scale}:p))},150)
+  scaleCommitTimer.current=window.setTimeout(()=>{void commit(ps=>ps.map(p=>p.id===selected?{...p,scale}:p))},150)
  }
  const setSelectedSkew=(skewX:number)=>{
   if(!selected)return
   setLiveSkew({id:selected,value:skewX})
   window.clearTimeout(skewCommitTimer.current)
-  skewCommitTimer.current=window.setTimeout(()=>{void commit(decor.placements.map(p=>p.id===selected?{...p,skewX}:p))},150)
+  skewCommitTimer.current=window.setTimeout(()=>{void commit(ps=>ps.map(p=>p.id===selected?{...p,skewX}:p))},150)
  }
  const setSelectedText=(text:string)=>{
   if(!selected)return
   setLiveText({id:selected,value:text})
   window.clearTimeout(textCommitTimer.current)
-  textCommitTimer.current=window.setTimeout(()=>{void commit(decor.placements.map(p=>p.id===selected?{...p,text}:p))},400)
+  textCommitTimer.current=window.setTimeout(()=>{void commit(ps=>ps.map(p=>p.id===selected?{...p,text}:p))},400)
  }
  const setSelectedTextSize=(textSize:number)=>{
   if(!selected)return
   setLiveTextSize({id:selected,value:textSize})
   window.clearTimeout(textSizeCommitTimer.current)
-  textSizeCommitTimer.current=window.setTimeout(()=>{void commit(decor.placements.map(p=>p.id===selected?{...p,textSize}:p))},150)
+  textSizeCommitTimer.current=window.setTimeout(()=>{void commit(ps=>ps.map(p=>p.id===selected?{...p,textSize}:p))},150)
  }
  const setSelectedTextColor=(textColor:string)=>{
   if(!selected)return
   setLiveTextColor({id:selected,value:textColor})
-  void commit(decor.placements.map(p=>p.id===selected?{...p,textColor}:p))
+  void commit(ps=>ps.map(p=>p.id===selected?{...p,textColor}:p))
  }
  const setSelectedTextFont=(textFont:SignTextFont)=>{
   if(!selected)return
-  void commit(decor.placements.map(p=>p.id===selected?{...p,textFont}:p))
+  void commit(ps=>ps.map(p=>p.id===selected?{...p,textFont}:p))
  }
  const itemPointerDown=(e:ReactPointerEvent<HTMLButtonElement>,placement:BuildPlacement)=>{
   e.stopPropagation()
@@ -202,7 +203,7 @@ export default function SanctuaryBuild({data,save,phase,earned=new Set(),startCa
   if(!dragStart.current)return
   const moved=dragStart.current.moved,finalPos=dragPos
   dragStart.current=null;setDragId(null);setDragPos(null)
-  if(moved&&finalPos){void commit(decor.placements.map(p=>p.id===placement.id?{...p,x:finalPos.x,y:finalPos.y}:p));setSelected(placement.id)}
+  if(moved&&finalPos){void commit(ps=>ps.map(p=>p.id===placement.id?{...p,x:finalPos.x,y:finalPos.y}:p));setSelected(placement.id)}
   else setSelected(sel=>sel===placement.id?null:placement.id)
  }
 
