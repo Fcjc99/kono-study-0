@@ -78,7 +78,11 @@ interface GardenCardProps {
    * into a reading pose as a quiet companion instead of wandering, then resumes as normal once false. */
   focusCompanionActive?: boolean
   /** Called when KONO is tapped on the island (a pat for the care meters). */
-  onKonoPet?: () => void
+  onKonoPet?: (tapAt: number) => void
+  /** What KONO would like right now, shown in a thought bubble on the island (a snack emoji, a heart), or null. */
+  konoNeed?: string | null
+  /** A fresh value feeds KONO on the island: the snack drops in and gets eaten. */
+  feedSignal?: { at: number; icon: string } | null
   /** The outfit KONO is wearing (Decorate › Wardrobe), or null. */
   outfit?: string | null
   /** The friend visiting the island today (store/konoFriends), or null. */
@@ -115,7 +119,7 @@ const formatDebugTime = (minutes: number) => {
 const debugFromUrl = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sanctuaryDebug') === '1'
 
-export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused, celebrateSignal, focusCompanionActive, onKonoPet, outfit = null, visitor = null }: GardenCardProps) {
+export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused, celebrateSignal, focusCompanionActive, onKonoPet, konoNeed = null, feedSignal = null, outfit = null, visitor = null }: GardenCardProps) {
   const onPetRef = useRef(onKonoPet)
   useEffect(() => { onPetRef.current = onKonoPet }, [onKonoPet])
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -125,8 +129,8 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
   const syncPauseStateRef = useRef<(() => void) | null>(null)
   const debugEnabledRef = useRef(debugFromUrl())
   const lastCanvasSizeRef = useRef({ width: 0, height: 0 })
-  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, decorations, outfit, visitor })
-  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,decorations,outfit,visitor}},[phase,weather,reducedMotion,progress,decorations,outfit,visitor])
+  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, decorations, outfit, visitor, konoNeed })
+  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,decorations,outfit,visitor,konoNeed}},[phase,weather,reducedMotion,progress,decorations,outfit,visitor,konoNeed])
   useEffect(()=>{pausedRef.current=!!paused;syncPauseStateRef.current?.()},[paused])
 
   const [state, setState] = useState<SanctuaryState>(initialState)
@@ -222,6 +226,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
             bootingGame.registry.set('sanctuaryDecorations', current.decorations)
             bootingGame.registry.set('sanctuaryOutfit', current.outfit)
             bootingGame.registry.set('sanctuaryVisitor', current.visitor)
+            bootingGame.registry.set('sanctuaryNeed', current.konoNeed)
             bootingGame.registry.set('sanctuarySeason', islandSeason(new Date()))
           },
         },
@@ -230,7 +235,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
 
       const handleLoad=(payload:{status:string;phase?:string;boot?:boolean})=>{if(!disposed)setLoadStatus(payload)}
       game.events.on(SANCTUARY_EVENTS.load,handleLoad)
-      game.events.on(SANCTUARY_EVENTS.petted,()=>{if(!disposed)onPetRef.current?.()})
+      game.events.on(SANCTUARY_EVENTS.petted,(tapAt?:number)=>{if(!disposed)onPetRef.current?.(tapAt??Date.now())})
       const handleState = (payload: SanctuaryState) => {
         if (debugEnabledRef.current) {
           setState(payload)
@@ -387,6 +392,16 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
   useEffect(() => {
     gameRef.current?.events.emit(SANCTUARY_EVENTS.focusCompanion, Boolean(focusCompanionActive))
   }, [focusCompanionActive])
+
+  useEffect(() => {
+    gameRef.current?.registry.set('sanctuaryNeed', konoNeed)
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.need, konoNeed)
+  }, [konoNeed])
+
+  useEffect(() => {
+    if (!feedSignal) return
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.feed, feedSignal)
+  }, [feedSignal])
 
   useEffect(() => {
     gameRef.current?.registry.set('sanctuaryOutfit', outfit)

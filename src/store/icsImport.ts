@@ -163,6 +163,7 @@ export function guessKind(title: string): CalendarEventKind {
   if (/\bquiz\b/.test(t)) return 'quiz'
   if (/\btest\b/.test(t)) return 'test'
   if (/\b(due|assignment|homework|essay|paper|project)\b/.test(t)) return 'assignment'
+  if (/\blessons?\b/.test(t)) return 'lesson'
   if (/\b(game|match|practice|meet|tournament|scrimmage)\b/.test(t)) return 'sports'
   if (/\b(shift|work)\b/.test(t)) return 'work'
   if (/\b(doctor|dentist|appointment|appt|orthodontist|therapy)\b/.test(t)) return 'appointment'

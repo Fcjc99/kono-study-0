@@ -57,7 +57,7 @@ await test('Adding: events land in the Calendar, weekly repeats in one weekly sc
  const none={...r,events:r.events.map(e=>({...e,include:false})),weekly:r.weekly.map(w=>({...w,include:false}))}
  assert.throws(()=>applyIcsImport(data,data.activeProfileId,none,'x'),/at least one/)
  assert.throws(()=>parseIcs('hello',today),/isn’t a calendar file/)
- assert.equal(guessKind('Bio midterm'),'exam');assert.equal(guessKind('Soccer practice'),'sports');assert.equal(guessKind('Coffee with Sam'),'other')
+ assert.equal(guessKind('Bio midterm'),'exam');assert.equal(guessKind('Soccer practice'),'sports');assert.equal(guessKind('Coffee with Sam'),'other');assert.equal(guessKind('Piano lesson'),'lesson');assert.equal(guessKind('Swim lessons'),'lesson')
 })
 await test('Calendar links: public https only (school Canvas domains too), private networks refused, redirects checked',async()=>{
  assert.equal(feedUrl('webcal://p52-caldav.icloud.com/published/2/abc').href,'https://p52-caldav.icloud.com/published/2/abc')

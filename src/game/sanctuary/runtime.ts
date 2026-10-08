@@ -20,6 +20,8 @@ export const SANCTUARY_EVENTS = {
   celebrate: 'sanctuary:kono-celebrate',
   focusCompanion: 'sanctuary:kono-focus-companion',
   petted: 'sanctuary:kono-petted',
+  need: 'sanctuary:kono-need',
+  feed: 'sanctuary:kono-feed',
   outfit: 'sanctuary:kono-outfit',
   visitor: 'sanctuary:visitor',
   state: 'sanctuary:state',

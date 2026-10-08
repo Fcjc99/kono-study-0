@@ -13,6 +13,7 @@ import { FINDS, findSrc } from '../../store/konoFinds'
 import { FRIENDS, friendSrc } from '../../store/konoFriends'
 import { PRESENTS, presentSrc } from '../../store/konoStamps'
 import { GIFTS, giftSrc } from '../../store/konoBond'
+import { HALLOWEEN_DECOR, halloweenDecorTexturePath } from './halloweenDecor'
 
 export type BuildCategory=string
 export type BuildLayer='ground'|'ground-detail'|'terrain'|'water-feature'|'water-decor'|'water-or-bridge'|'bridge'|'border'|'decor'|'structure'|'wildlife-water'|'light-overlay'
@@ -24,8 +25,8 @@ export type BuildSurface='grass'|'water'|'water-edge'|'water-gap'|'cliff-edge'|'
  * have one; everything else is plain decoration with no writable surface. */
 export type BuildAsset={id:string;label:string;category:BuildCategory;categoryLabel:string;src:string|Record<DayPhase,string>;width:number;height:number;defaultScale:number;anchor:{x:number;y:number};surface:BuildSurface;layer:BuildLayer;rotatable:boolean;flippable:boolean;signArea?:{x:number;y:number;width:number;height:number}}
 
-export const BUILD_CATEGORIES:BuildCategory[]=['homes','ponds','trees','paths','bridges','lights','study','signs','stickers','finds','friends','presents']
-export const BUILD_CATEGORY_LABELS:Record<BuildCategory,string>={homes:'Homes',ponds:'Ponds',trees:'Trees',paths:'Paths & Roads',bridges:'Bridges & Water',lights:'Lights & Lanterns',study:'Study Decor',signs:'Signs',stickers:'Stickers',finds:'Finds',friends:'Friends',presents:'Presents'}
+export const BUILD_CATEGORIES:BuildCategory[]=['homes','ponds','trees','halloween','paths','bridges','lights','study','signs','stickers','finds','friends','presents']
+export const BUILD_CATEGORY_LABELS:Record<BuildCategory,string>={homes:'Homes',ponds:'Ponds',trees:'Trees',halloween:'Halloween',paths:'Paths & Roads',bridges:'Bridges & Water',lights:'Lights & Lanterns',study:'Study Decor',signs:'Signs',stickers:'Stickers',finds:'Finds',friends:'Friends',presents:'Presents'}
 
 const phaseSrc=(pathFor:(phase:DayPhase)=>string):Record<DayPhase,string>=>({
  morning:pathFor('morning'),
@@ -136,6 +137,31 @@ const treeAssets:BuildAsset[]=TREE_STYLES.map(style=>{
  }
 })
 
+// Halloween (tools/import_halloween_decor.py): the pumpkin house and the tree fit like the other homes and
+// trees; the rest have their own width on the island. The sign has a panel to write on, like the Signs.
+const halloweenSize=(item:typeof HALLOWEEN_DECOR[number])=>{
+ const scale=item.size==='home'?contentScale(item.contentWidth,item.contentHeight,HOME_BOX):item.size==='tree'?contentScale(item.contentWidth,item.contentHeight,TREE_BOX):item.size/item.contentWidth
+ return {width:item.width*scale,height:item.height*scale}
+}
+const halloweenAssets:BuildAsset[]=HALLOWEEN_DECOR.map(item=>({
+ id:'halloween-'+item.id,
+ label:item.label,
+ category:'halloween',
+ categoryLabel:'Halloween',
+ src:phaseSrc(phase=>halloweenDecorTexturePath(item.id,phase)),
+ ...halloweenSize(item),
+ defaultScale:1,
+ anchor:{x:0.5,y:item.anchorY},
+ surface:'grass',
+ layer:'decor',
+ rotatable:false,
+ flippable:true,
+ ...(item.signArea?{signArea:item.signArea}:{}),
+}))
+/** The Spooky season stickers (store/stickers) are pictures from the Halloween set rather than emoji. */
+const HALLOWEEN_STICKER_ART:Record<string,string>={'halloween-pumpkin':'jack-o-lantern-trio','halloween-ghost':'ghost-friend','halloween-candy':'candy-basket','halloween-bat':'bat-roost'}
+const stickerArt=(stickerId:string)=>{const item=HALLOWEEN_DECOR.find(d=>d.id===HALLOWEEN_STICKER_ART[stickerId]);return item?{src:phaseSrc(phase=>halloweenDecorTexturePath(item.id,phase)),...halloweenSize(item),anchor:{x:0.5,y:item.anchorY}}:null}
+
 const lightAssets:BuildAsset[]=LIGHT_ASSETS.map(light=>({
  id:'light-'+light.id,
  label:light.label,
@@ -200,6 +226,7 @@ const stickerAssets:BuildAsset[]=STICKERS.map(item=>({
  layer:'decor',
  rotatable:true,
  flippable:false,
+ ...stickerArt(item.id),
 }))
 
 // KONO's finds from focus sessions (store/konoFinds): like stickers, only the ones found can be placed.
@@ -270,7 +297,7 @@ const giftAssets:BuildAsset[]=GIFTS.map(gift=>({
  flippable:true,
 }))
 
-export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...roadAssets,...bridgeAssets,...lightAssets,...studyDecorAssets,...signAssets,...stickerAssets,...findAssets,...friendAssets,...presentAssets,...giftAssets]
+export const BUILD_ASSETS:BuildAsset[]=[...homeAssets,...pondAssets,...treeAssets,...halloweenAssets,...roadAssets,...bridgeAssets,...lightAssets,...studyDecorAssets,...signAssets,...stickerAssets,...findAssets,...friendAssets,...presentAssets,...giftAssets]
 export const BUILD_ASSET_BY_ID:Record<string,BuildAsset>=Object.fromEntries(BUILD_ASSETS.map(a=>[a.id,a]))
 
 /** A placed item's box/transform, shared by the interactive Decorate editor and the read-only

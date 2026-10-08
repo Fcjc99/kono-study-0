@@ -1,8 +1,8 @@
-import {Fragment,useEffect,useMemo,useRef,useState,type CSSProperties,type DragEvent,type FormEvent,type PointerEvent,type ReactNode,type SetStateAction,type TouchEvent} from 'react'
+import {Fragment,Suspense,lazy,useEffect,useMemo,useRef,useState,type CSSProperties,type DragEvent,type PointerEvent,type ReactNode,type SetStateAction,type TouchEvent} from 'react'
 import {deleteProfile} from './store/deleteProfile'
 import {usePlannerRepository} from './store/repository'
-import {uid,localDate,dayNames,eventCategory,type AppData,type SettingsData,type Task,type Subtask,type CalendarEventKind,type Kid,type KidBorderStyle} from './store/model'
-import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems,KID_COLORS} from './store/kids'
+import {uid,localDate,dayNames,eventCategory,type AppData,type SettingsData,type Task,type Subtask,type CalendarEventKind,type Kid} from './store/model'
+import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems} from './store/kids'
 import {collections,records,titleOf,equal,removeEntry,restoreEntry,completeTask,type Collection,type Entry} from './store/workspace'
 import {calendarTasks,addDays} from './store/studyScheduler'
 import {planExamReview} from './store/examReview'
@@ -10,7 +10,7 @@ import {classifyVoiceInput} from './store/voiceIntake'
 import {useSpeechToText} from './hooks/useSpeechToText'
 import {syncCurrentTaskCompletion,createSanctuaryProgress} from './game/progression/progressionEngine'
 import {konoMood} from './store/konoMood'
-import {addCareEvent,ASLEEP_LINE,AWAY_LINE,bedtime,careMeters,favoriteSnack,fedLine,HELLO_LINE,HIGH_FIVE_MS,highFiveLine,isAwayVisit,pantry,PET_LINES,TICKLE_LINES,type CareEvent} from './store/konoCare'
+import {addCareEvent,ASLEEP_LINE,AWAY_LINE,bedtime,careMeters,favoriteSnack,fedLine,HELLO_LINE,HIGH_FIVE_MS,highFiveLine,isAwayVisit,pantry,PET_EVERY_MS,PET_LINES,TICKLE_LINES,type CareEvent} from './store/konoCare'
 import {dayGlance} from './store/dayGlance'
 import {OUTFITS,outfitsOffered,todaysWish,unlockedOutfits,wardrobeStats,wishEvent,wishGrantedOn,wishProgress,wishText,wornOutfit,type OutfitId} from './store/konoWardrobe'
 import KonoFace from './components/KonoFace'
@@ -27,7 +27,7 @@ import NextUp from './components/NextUp'
 import {earnedStickers,seasonOn,stickerOffered,STICKERS} from './store/stickers'
 import {pickKonoPhrase,konoCelebration,konoStreakMilestone,seededRand,STREAK_MILESTONES,type KonoPhrase} from './store/konoPhrases'
 import {useReducedMotion,useMusicController,usePhoneWidth,usePrefersDark} from './hooks/useComfort'
-import {useDueNotifications,useTimeBlockNotifications,useFamilyEventNotifications,notificationsSupported} from './hooks/useDueNotifications'
+import {useDueNotifications,useTimeBlockNotifications,useFamilyEventNotifications} from './hooks/useDueNotifications'
 import {usePushReminders} from './hooks/usePushReminders'
 import {useLinkedCalendars} from './hooks/useLinkedCalendars'
 import {useLiveSanctuaryWeather} from './hooks/useLiveSanctuaryWeather'
@@ -53,7 +53,9 @@ const ReminderSettings=lazyPanel<SettingsProps>(()=>import('./SettingsPanels').t
 import {AccountBanners,Onboarding,RecoveryScreen,SaveStatus} from './components/AccountPanel'
 type StoreProps={store:ReturnType<typeof usePlannerRepository>}
 /** The three-step welcome on a brand-new plan; only new students download it. */
-const WelcomeTour=lazyPanel<{onAdd:()=>void;onDone:()=>void}>(()=>import('./components/WelcomeTour'))
+const WelcomeTour=lazy(()=>import('./components/WelcomeTour'))
+/** Holds the tour's place while its code loads, so nothing below jumps when it arrives. */
+const TourPlaceholder=()=><section className="wb-panel welcome-tour is-loading" aria-hidden="true"/>
 const AccountPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.AccountPanel})))
 const BackupPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.BackupPanel})))
 const SupportAdminPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.SupportAdminPanel})))
@@ -85,6 +87,7 @@ import './dark-mode.css'
 import './ui-sweep.css'
 import './motion-polish.css'
 import './home.css'
+import './pages.css'
 import {hop,stagger,trackPointer} from './motionCore'
 /** Petals and hearts load in their own file, fetched shortly after KONO opens. */
 const effects=()=>import('./delight')
@@ -108,7 +111,7 @@ import {readLinked} from './store/linkedCalendars'
 import {currentPushSubscription} from './store/pushDevice'
 import {weekDrop} from './store/weekDrop'
 import {PLANNER_SOURCES,classSource,entrySource,sourcesInPlan,type PlannerSource} from './store/plannerSources'
-import {TEAM_THEMES,teamJersey,teamThemeIds} from './teamThemes'
+import {teamJersey} from './teamThemes'
 import AddToCalendar,{type AddChoice,type AddChoiceId} from './components/AddToCalendar'
 // Panels that aren't needed on first paint load on demand.
 const ScheduleImport=lazyPanel(()=>import('./components/ScheduleImport'))
@@ -131,26 +134,13 @@ const EntryEditor=lazyPanel(()=>import('./components/EntryEditor'))
 const QuickDayAdd=lazyPanel(()=>import('./components/QuickDayAdd'))
 const SharedWithMe=lazyPanel(()=>import('./components/SharedWithMe'))
 
-// Settings tabs, grouped by what a person is trying to do rather than by where each feature was built.
-const SETTINGS_TABS=['Look & feel','Notifications','Family','Schedules','Import & export','Plans & account'] as const
-/** 'KONO support' only appears for support accounts; the server enforces the access itself. */
-type SettingsTab=typeof SETTINGS_TABS[number]|'KONO support'
-const pages=['Sanctuary','Planner','Kids','Subjects','Notes','K-Quiz','Exams','Settings','Trash'] as const
-type Page=typeof pages[number]
 type Store=ReturnType<typeof usePlannerRepository>
-// Team colors are offered in both Cozy and Simplified, under their own heading.
-const cozyPalettes=['coral','sakura','lavender','mint','honey','zen','floral','ocean']
-const cozyPalette=(theme:string)=>cozyPalettes.includes(theme)||teamThemeIds.includes(theme)?theme:'coral'
-// Modern and Zen Ink are each one opinionated, fully art-directed look rather than a color you
-// pick — they carry their own fixed palette instead of showing the swatch picker.
-const fixedPaletteExperiences:string[]=['modern','sumi']
-const experienceOptions=[
- {id:'cozy',title:'Cozy',glyph:'🌸',description:'Notebook tabs, colorful pinned papers and gentle movement.'},
- {id:'simplified',title:'Simplified',glyph:'▢',description:'A compact workspace with straightforward cards and bottom navigation.'},
- {id:'modern',title:'Modern',glyph:'⚪',description:'Clean, minimal and spacious — off-white surfaces, quiet type and a single accent, in the spirit of apple.com.'},
- {id:'sumi',title:'Zen Ink',glyph:'⛩️',description:'Sumi ink and washi paper — muted indigo and charcoal, hairline rules and quiet type, in the spirit of Japanese ink-wash art.'},
-] as const
-function ExperienceIcon({id}:{id:string}){return <span className="theme-picker-glyph" aria-hidden="true">{experienceOptions.find(o=>o.id===id)?.glyph??'✦'}</span>}
+import {SETTINGS_TABS,cozyPalette,fixedPaletteExperiences,own,pages,type Page,type SettingsTab} from './workspaceShared'
+import type * as Screens from './WorkspaceSettings'
+type PropsOf<K extends keyof typeof Screens>=Parameters<(typeof Screens)[K]>[0]
+/** The Kids page, the family settings and Look & feel load the first time they're shown. */
+const screen=<K extends 'KidsPage'|'FamilySettings'|'FamilyReminderSettings'|'QuickFamilyAdd'|'TeamColors'|'Appearance'>(name:K)=>lazyPanel<PropsOf<K>>(()=>import('./WorkspaceSettings').then(m=>({default:m[name] as unknown as (props:PropsOf<K>)=>ReactNode})))
+const KidsPage=screen('KidsPage'),FamilySettings=screen('FamilySettings'),FamilyReminderSettings=screen('FamilyReminderSettings'),QuickFamilyAdd=screen('QuickFamilyAdd'),TeamColors=screen('TeamColors'),Appearance=screen('Appearance')
 // A quick "how much of tonight's/today's work is done" readout — assignments only (exams already get
 // their own countdown/reminders, and appointments aren't something you "complete"). Always renders
 // (with a "nothing due" caption at zero) so the feature reads as present, not silently missing.
@@ -173,7 +163,6 @@ const pageFromURL=():Page=>pages.find(p=>p.toLowerCase()===new URL(location.href
 const dateLabel=(date:string)=>new Date(date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})
 const daysUntil=(date:string,from=localDate())=>Math.round((new Date(date+'T12:00:00').getTime()-new Date(from+'T12:00:00').getTime())/86400000)
 const countdown=(date:string,done=false,from=localDate())=>{if(done)return 'Completed';const days=daysUntil(date,from);return days===0?'Due today':days===1?'Due tomorrow':days>1?days+' days left':Math.abs(days)+' day'+(days===-1?'':'s')+' overdue'}
-const own=(data:AppData,key:Collection)=>records(data,key).filter(r=>r.profileId===data.activeProfileId)
 const eventKind=(entry:Entry)=>String(entry.kind??'').toLowerCase()
 const entryDate=(entry:Entry)=>String(entry.due??entry.date??'')
 const isAssignmentKind=(entry:Entry)=>['homework','assignment','assignments'].includes(eventKind(entry))
@@ -200,7 +189,7 @@ function Workspace({store}:{store:Store}){
  const profile=data.profiles.find(p=>p.id===data.activeProfileId)??data.profiles[0]
  const [page,setPage]=useState<Page>(pageFromURL),[more,setMore]=useState(false),[search,setSearch]=useState(false),[adding,setAdding]=useState(()=>!!readIncoming()),[incoming]=useState(readIncoming),[scanningPlan,setScanningPlan]=useState(false),[editor,setEditor]=useState<Edit|null>(null),[message,setMessage]=useState('')
  const [planRequest,setPlanRequest]=useState(0)
- const [addKind,setAddKind]=useState<'tasks'|'exams'|'notes'>('tasks')
+ const [addKind,setAddKind]=useState<'tasks'|'exams'|'notes'|'lesson'>('tasks')
  const [confirmation,setConfirmation]=useState<{text:string;action:()=>void}|null>(null)
  const [phase,setPhase]=useState<'auto'|'morning'|'afternoon'|'evening'|'night'>('auto'),[expanded,setExpanded]=useState(false)
  const [quickDayOpen,setQuickDayOpen]=useState<'today'|'tomorrow'|null>(null)
@@ -308,6 +297,10 @@ function Workspace({store}:{store:Store}){
  useEffect(()=>{try{localStorage.setItem(visitKey,String(Date.now()))}catch{/* Storage unavailable: no homecoming line. */}},[visitKey,today])
  const meters=careMeters(careLog,ownTasks,careNow,awayVisit&&!careLog.some(e=>Date.parse(e.at)>careNow.getTime()-3_600_000)),snacks=pantry(ownTasks,careLog,careNow)
  const [careMoment,setCareMoment]=useState<CareMomentValue|null>(null)
+ // A meter going up shows its "+N" for a moment (and the bar gives a little pulse).
+ const prevMeters=useRef(meters),[meterGain,setMeterGain]=useState<{key:string;n:number;at:number}[]>([])
+ useEffect(()=>{const prev=prevMeters.current;prevMeters.current=meters;const gains=(['full','rested','happy'] as const).filter(k=>meters[k]-prev[k]>=3).map(k=>({key:k,n:Math.round(meters[k]-prev[k]),at:Date.now()}));if(gains.length)setMeterGain(gains)},[meters.full,meters.rested,meters.happy])// eslint-disable-line react-hooks/exhaustive-deps
+ useEffect(()=>{if(!meterGain.length)return;const timer=window.setTimeout(()=>setMeterGain([]),1600);return ()=>window.clearTimeout(timer)},[meterGain])
  useEffect(()=>{if(!careMoment)return;const timer=window.setTimeout(()=>setCareMoment(null),careMoment.ms??2800);return ()=>window.clearTimeout(timer)},[careMoment])
  // KONO's own news (a wish come true, a new outfit) waits its turn: it shows once KONO's line is free,
  // so it never cuts off something the student just did.
@@ -365,18 +358,20 @@ function Workspace({store}:{store:Store}){
   const next=nextSnack;if(!next)return
   const now=new Date(),fav=next.treat.id===favorite.id
   void save(d=>({...d,konoCare:{...d.konoCare,[profile.id]:addCareEvent(d.konoCare[profile.id],profile.id,{id:uid('care'),kind:'feed',at:now.toISOString(),taskId:next.taskId,item:next.treat.id},now)}}))
-  setCareMoment({line:fedLine(next.treat,fav),pose:'/garden/kono/excited.webp',at:now.getTime(),ms:fav?5000:2800,react:fav?'tickle':undefined});setCelebrateSignal(now.getTime())
+  setCareMoment({line:fedLine(next.treat,fav),pose:'/garden/kono/excited.webp',at:now.getTime(),ms:fav?5000:2800,react:fav?'tickle':undefined});setFeedSignal({at:now.getTime(),icon:next.treat.emoji})
  }
+ // The island's KONO eats it too (GardenCard's feedSignal): the snack drops in and gets eaten.
+ const [feedSignal,setFeedSignal]=useState<{at:number;icon:string}|null>(null)
  const tapTimes=useRef<number[]>([]),highFived=useRef(new Set<string>())
- const petKono=(tapAt=0)=>{
+ const petKono=(tapAt=0,onIsland=false)=>{
   const now=new Date()
-  if(!bed.tucked&&tapAt>0){const face=document.querySelector('.kono-mood-face > :first-child');hop(face);floatHearts(face)}
+  if(!bed.tucked&&tapAt>0&&!onIsland){const face=document.querySelector('.kono-mood-face > :first-child');hop(face);floatHearts(face)}
   if(bed.tucked){setCareMoment({line:'Shh… KONO is sleeping. 💤',pose:'/garden/kono/sleep.webp',at:now.getTime()});return}
   // Every tap gets a reaction; a pat is saved at most every ten minutes (see addCareEvent).
   const pat={id:uid('care'),kind:'pet' as const,at:now.toISOString()}
   if(addCareEvent(data.konoCare?.[profile.id],profile.id,pat,now).log.some(e=>e.id===pat.id))void save(d=>({...d,konoCare:{...d.konoCare,[profile.id]:addCareEvent(d.konoCare[profile.id],profile.id,pat,now)}}))
   // Three quick taps tickle; a tap just after finishing something is a high five (once per thing).
-  // (tapAt is the click's own time; a pat on the island itself doesn't tickle.)
+  // (tapAt is the tap's own time, on the bar's face or on the island.)
   if(tapAt>0)tapTimes.current=[...tapTimes.current.filter(t=>tapAt-t<1500),tapAt]
   if(tapAt>0&&tapTimes.current.length>=3){tapTimes.current=[];setCareMoment({line:TICKLE_LINES[now.getSeconds()%TICKLE_LINES.length],pose:'/garden/kono/excited.webp',at:now.getTime(),react:'tickle'});return}
   const justDone=ownTasks.filter(t=>t.done&&t.completedAt&&now.getTime()-Date.parse(t.completedAt)<HIGH_FIVE_MS&&!highFived.current.has(t.id)).sort((a,b)=>String(b.completedAt).localeCompare(String(a.completedAt)))[0]
@@ -385,6 +380,11 @@ function Workspace({store}:{store:Store}){
   if(bond.level>=HEART_PATS_AT){setCareMoment({line:PAT_HEART_LINES[now.getSeconds()%PAT_HEART_LINES.length],pose:'/garden/kono/happy.webp',at:now.getTime(),react:'heart'});return}
   setCareMoment({line:PET_LINES[now.getSeconds()%PET_LINES.length],pose:'/garden/kono/happy.webp',at:now.getTime()})
  }
+ // What KONO would like, in a thought bubble on the island: its next snack when it's hungry (a tap on
+ // KONO there feeds it), or a heart when it'd like a pat (not again for ten minutes after one).
+ const lastPat=Math.max(0,...careLog.filter(e=>e.kind==='pet').map(e=>Date.parse(e.at)).filter(Number.isFinite))
+ const konoNeed=bed.tucked||meters.away?null:meters.full<40&&nextSnack?nextSnack.treat.emoji:meters.happy<45&&careNow.getTime()-lastPat>PET_EVERY_MS?'💗':null
+ const islandPat=(tapAt:number)=>{if(!bed.tucked&&meters.full<40&&nextSnack){feedKono();return}petKono(tapAt,true)}
  const konoPose=careMoment?.pose??(bed.tucked?'/garden/kono/sleep.webp':meters.away?'/garden/kono/happy.webp':mood.pose),konoLine=careMoment?.line??(bed.tucked?ASLEEP_LINE:meters.away?AWAY_LINE:mood.line)
  // Stickers earned from the plan's history (Decorate › Stickers).
  const earned=earnedStickers({tasks:ownTasks,exams:ownExams,studySessions:data.calendarEvents.filter(e=>e.profileId===profile.id&&e.kind==='study'&&e.subjectId).map(e=>({subjectId:e.subjectId??'',date:e.date})),completionDates:sanctuaryProgress.completionDates,today})
@@ -524,7 +524,7 @@ function Workspace({store}:{store:Store}){
   const end=item.time?String(Math.min(23,Number(item.time.slice(0,2))+1)).padStart(2,'0')+item.time.slice(2):undefined
   void run(()=>save(d=>item.key==='tasks'?{...d,tasks:[...d.tasks,{...base,due:date,...(item.time?{plannedTime:item.time}:{})}]}
    :item.key==='exams'?{...d,exams:[...d.exams,{...base,due:date}]}
-   :{...d,calendarEvents:[...d.calendarEvents,{...base,date,kind:'personal',...(item.time?{time:item.time,endTime:end}:{})}]}),'Added “'+item.title+'” for '+dateLabel(date)+'.',true)
+   :{...d,calendarEvents:[...d.calendarEvents,{...base,date,kind:item.eventKind??'personal',...(item.time?{time:item.time,endTime:end}:{})}]}),'Added “'+item.title+'” for '+dateLabel(date)+'.',true)
  }
  const quickAddFamilyEvent=async(date:string,payload:{title:string;kind:CalendarEventKind;kidId?:string;time?:string;endTime?:string}):Promise<boolean>=>{
   try{
@@ -569,20 +569,22 @@ function Workspace({store}:{store:Store}){
  // KONO's chatter (Settings › Look & feel): soft blips whenever KONO answers something you did.
  const [babbleOn]=useLocalSetting(BABBLE_SETTING,'off')
  // The welcome tour: once per plan on this device, and only while the plan is brand new (nothing ever
- // finished, at most the demo's one assignment), so people already using KONO never see it.
+ // finished, at most the demo's one assignment, no tests or classes yet), so people already using KONO
+ // never see it.
  const [tourDone,setTourDone]=useLocalSetting('kono-tour-done:'+profile.id,'')
- const showTour=!tourDone&&!Object.keys(sanctuaryProgress.completionDates).length&&ownTasks.length<=1
- // Home: the greeting line, the "Your day" card (next class, what's due, a focus session) and the week's bars.
- const clock=new Date(),nowTime=clock.toTimeString().slice(0,5),hour=clock.getHours()
- const greeting=(hour<12?'Good morning':hour<18?'Good afternoon':'Good evening')+', '+profile.name
- const dueNow=tasks.filter(t=>!t.done&&t.due<=today).sort((a,b)=>a.due.localeCompare(b.due))
- const examsToday=ownExams.filter(e=>!e.done&&e.due===today)
- const nextTest=ownExams.filter(e=>!e.done&&e.due>today&&e.due<=addDays(today,7)).sort((a,b)=>a.due.localeCompare(b.due))[0]
- const nextClass=scheduleClasses(today).filter(c=>!c.timePending&&(c.displayEnd??c.block.end)>nowTime).sort((a,b)=>(a.displayStart??a.block.start).localeCompare(b.displayStart??b.block.start))[0]
- const daySummary=[dueNow.length?dueNow.length+' due today':'Nothing due today',examsToday.length?examsToday.length===1?examsToday[0].title+' today':examsToday.length+' tests today':'',nextTest?nextTest.title+' '+new Date(nextTest.due+'T12:00:00').toLocaleDateString(undefined,{weekday:'long'}):''].filter(Boolean).join(' · ')
- const weekMonday=addDays(today,-((new Date(today+'T12:00:00').getDay()+6)%7))
- const weekBars=Array.from({length:7},(_,i)=>{const day=addDays(weekMonday,i);return {day,count:ownTasks.filter(t=>t.done&&t.completedAt&&localDate(new Date(t.completedAt))===day).length}})
- const weekMax=Math.max(1,...weekBars.map(b=>b.count))
+ const showTour=!tourDone&&!Object.keys(sanctuaryProgress.completionDates).length&&ownTasks.length<=1&&!ownExams.length&&!subjects.length
+ // Every page but Home gets a one-line summary under its name in the header.
+ const plural=(n:number,one:string,many=one+'s')=>n+' '+(n===1?one:many)
+ const weekEnd=addDays(today,6),dueThisWeek=tasks.filter(t=>!t.done&&t.due>=today&&t.due<=weekEnd).length,lateCount=tasks.filter(t=>!t.done&&t.due<today).length
+ const openExams=ownExams.filter(e=>!e.done&&e.due>=today).sort((a,b)=>a.due.localeCompare(b.due)),daysTo=(d:string)=>Math.round((Date.parse(d+'T12:00:00')-Date.parse(today+'T12:00:00'))/86400000)
+ const pageSummary:Partial<Record<Page,string>>={
+  Planner:[dueThisWeek?plural(dueThisWeek,'thing')+' due this week':'Nothing due this week',lateCount?lateCount+' late':''].filter(Boolean).join(' · '),
+  Subjects:subjects.length?plural(subjects.length,'class','classes'):'Add your classes to keep each one’s work together',
+  Notes:notes.length?plural(notes.length,'note')+(notes.some(n=>n.pinned)?' · '+notes.filter(n=>n.pinned).length+' pinned':''):'Ideas, study notes and reminders',
+  Exams:openExams.length?(openExams[0].title+' '+(daysTo(openExams[0].due)===0?'is today':daysTo(openExams[0].due)===1?'is tomorrow':'in '+daysTo(openExams[0].due)+' days')+(openExams.length>1?' · '+(openExams.length-1)+' more coming up':'')):'No tests coming up',
+  'K-Quiz':'Turn lectures and notes into practice questions',
+  Settings:'How KONO looks, sounds and reminds you',
+ }
  const chatterLine=careMoment?.line??konoPhrase?.text
  useEffect(()=>{if(babbleOn==='on'&&chatterLine)void import('./konoBabble').then(m=>m.babble(chatterLine)).catch(()=>undefined)},[careMoment?.at,konoPhrase]) // eslint-disable-line react-hooks/exhaustive-deps -- once per new line
  useEffect(()=>{
@@ -790,7 +792,7 @@ function Workspace({store}:{store:Store}){
  return <div className={'workbench density-'+(data.settings.density??'comfortable')+' text-'+(data.settings.textSize??'normal')} data-page={page.toLowerCase()} data-experience={experience} data-decoration={data.settings.decoration!==false}>
   <a className="skip-link" href="#workspace-main">Skip to content</a>
   {experience==='cozy'?<div className="cozy-navigation"><Sidebar view={page==='Trash'?'Notes':page} onView={navigate} profile={profile.name} schoolYear={profile.label} profiles={data.profiles} activeProfileId={profile.id} onProfileChange={id=>void save(d=>({...d,activeProfileId:id}))} weekWeather={weather.reading?.daily??[]} weatherLocation={data.settings.sanctuaryWeatherLocations[profile.id]} music={music} parentMode={parentMode} weatherChip={weatherChip}/></div>:<aside className="wb-sidebar"><div className="wb-brand-row"><a className="wb-brand" href="?page=sanctuary" onClick={e=>{e.preventDefault();navigate('Sanctuary')}}><span className="brand-mark" aria-hidden="true"><BrandLogo/><i>✿</i></span><strong>KONO<small>Study Sanctuary</small></strong></a>{weatherChip}</div><div className="wb-tabs-label">Notebook tabs</div><nav aria-label="Main navigation">{visiblePages.map(p=><button key={p} aria-current={page===p?'page':undefined} onClick={()=>navigate(p)}><span className="wb-nav-icon">{p==='Trash'?<span aria-hidden="true">↶</span>:<NavIcon name={p} experience={experience}/>}</span><span>{p}</span></button>)}</nav><div className="sidebar-music-slot"><MusicPlayer controller={music} compact/></div><label className="wb-profile"><span className="wb-profile-title">{profile.label}</span>Study profile<select value={profile.id} onChange={e=>void save(d=>({...d,activeProfileId:e.target.value}))}>{data.profiles.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}</select></label></aside>}
-  <main id="workspace-main"><AccountBanners store={store}/><header className="wb-header"><div><small>{profile.label}</small><div className="wb-title-row"><h1>{page}{experience==='cozy'&&<span className="cozy-heading-flower" aria-hidden="true">❀</span>}</h1>{page==='Sanctuary'&&weather.reading&&weather.reading.daily.length>0&&<div className="wb-header-weather"><WeekWeather days={weather.reading.daily} location={data.settings.sanctuaryWeatherLocations[profile.id]}/></div>}</div><SaveStatus store={store}/></div><div className="wb-toolbar">{needsReviewEntries.length>0&&<button type="button" className="needs-review-nav-badge" onClick={()=>setReviewOpen(true)}>🚩 {needsReviewEntries.length} to review</button>}<button className="wb-history-btn" title="Undo" disabled={!repository.canUndo} onClick={()=>void run(repository.undo,'Undone. Earned progress is kept.')}><ActionIcon name="undo"/><span className="wb-btn-label">Undo</span></button><button className="wb-history-btn" title="Redo" disabled={!repository.canRedo} onClick={()=>void run(repository.redo,'Redone.')}><ActionIcon name="redo"/><span className="wb-btn-label">Redo</span></button><button className="wb-icon-able" title="Search" onClick={()=>setSearch(true)}><ActionIcon name="search"/><span className="wb-btn-label">Search</span></button>{experience==='cozy'&&<button className="wb-icon-able" title="Trash" onClick={()=>navigate('Trash')}><ActionIcon name="trash"/><span className="wb-btn-label">Trash</span></button>}<button className={'primary'+(ownTasks.some(t=>!t.done)?'':' is-inviting')} onClick={()=>setAdding(true)}>＋ Add</button>{voiceSupported&&<button className={'voice-add-button'+(voiceListening?' is-listening':'')} onClick={toggleVoiceAdd} aria-pressed={voiceListening} aria-label={voiceListening?'Stop voice input':'Add by voice'} title="Speak an assignment, exam, note or appointment — it opens in the right editor to review"><span className="kono-mic-face" aria-hidden="true"><img src={voiceListening?'/garden/kono/excited.webp':mood.pose} alt=""/></span>{voiceListening?'Listening…':''}</button>}</div>{konoPhrase&&<div className="kono-speech-bubble" role="status"><img src={konoPhrase.kind==='sticker'||konoPhrase.kind==='milestone'||konoPhrase.kind==='celebration'?'/garden/kono/excited.webp':mood.pose} alt="" aria-hidden="true"/><p>{konoPhrase.text}</p><button type="button" aria-label="Dismiss" onClick={()=>setKonoPhrase(null)}>×</button></div>}{voiceError&&<p role="alert" className="voice-add-error">{voiceError}</p>}</header>
+  <main id="workspace-main"><AccountBanners store={store}/><header className="wb-header"><div><small>{profile.label}</small><div className="wb-title-row"><h1>{page}{experience==='cozy'&&<span className="cozy-heading-flower" aria-hidden="true">❀</span>}</h1>{page==='Sanctuary'&&weather.reading&&weather.reading.daily.length>0&&<div className="wb-header-weather"><WeekWeather days={weather.reading.daily} location={data.settings.sanctuaryWeatherLocations[profile.id]}/></div>}</div>{page!=='Sanctuary'&&pageSummary[page]&&<p className="wb-page-summary">{pageSummary[page]}</p>}<SaveStatus store={store}/></div><div className="wb-toolbar">{needsReviewEntries.length>0&&<button type="button" className="needs-review-nav-badge" onClick={()=>setReviewOpen(true)}>🚩 {needsReviewEntries.length} to review</button>}<button className="wb-history-btn" title="Undo" disabled={!repository.canUndo} onClick={()=>void run(repository.undo,'Undone. Earned progress is kept.')}><ActionIcon name="undo"/><span className="wb-btn-label">Undo</span></button><button className="wb-history-btn" title="Redo" disabled={!repository.canRedo} onClick={()=>void run(repository.redo,'Redone.')}><ActionIcon name="redo"/><span className="wb-btn-label">Redo</span></button><button className="wb-icon-able" title="Search" onClick={()=>setSearch(true)}><ActionIcon name="search"/><span className="wb-btn-label">Search</span></button>{experience==='cozy'&&<button className="wb-icon-able" title="Trash" onClick={()=>navigate('Trash')}><ActionIcon name="trash"/><span className="wb-btn-label">Trash</span></button>}<button className={'primary'+(ownTasks.some(t=>!t.done)?'':' is-inviting')} onClick={()=>setAdding(true)}>＋ Add</button>{voiceSupported&&<button className={'voice-add-button'+(voiceListening?' is-listening':'')} onClick={toggleVoiceAdd} aria-pressed={voiceListening} aria-label={voiceListening?'Stop voice input':'Add by voice'} title="Speak an assignment, exam, note or appointment — it opens in the right editor to review"><span className="kono-mic-face" aria-hidden="true"><img src={voiceListening?'/garden/kono/excited.webp':mood.pose} alt=""/></span>{voiceListening?'Listening…':''}</button>}</div>{konoPhrase&&<div className="kono-speech-bubble" role="status"><img src={konoPhrase.kind==='sticker'||konoPhrase.kind==='milestone'||konoPhrase.kind==='celebration'?'/garden/kono/excited.webp':mood.pose} alt="" aria-hidden="true"/><p>{konoPhrase.text}</p><button type="button" aria-label="Dismiss" onClick={()=>setKonoPhrase(null)}>×</button></div>}{voiceError&&<p role="alert" className="voice-add-error">{voiceError}</p>}</header>
    <div ref={pageScope} className="wb-page">
    {message&&<p role="status" className="wb-notice">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></p>}
    {undoToast&&<div className="undo-toast" role="status" key={undoToast.at}><span>{undoToast.text}</span>{repository.canUndo&&<button type="button" onClick={()=>{setUndoToast(null);void run(repository.undo,'Undone.')}}>Undo</button>}<button type="button" className="undo-toast-close" aria-label="Dismiss" onClick={()=>setUndoToast(null)}>×</button></div>}
@@ -800,16 +802,16 @@ function Workspace({store}:{store:Store}){
    {showReviewDigest&&<div className="wb-notice review-digest" role="status"><div><strong>{needsReviewEntries.length} item{needsReviewEntries.length===1?'':'s'} from a scanned photo need{needsReviewEntries.length===1?'s':''} a check</strong><small>Added automatically — make sure each one is correct.</small></div><button className="primary" onClick={()=>setReviewOpen(true)}>Review now</button><button onClick={dismissReviewDigest}>Later</button></div>}
    {hasDraft&&!editor&&<div className="wb-notice">You have an unfinished draft.<button onClick={()=>{try{const draft=JSON.parse(localStorage.getItem(draftScope)??'null') as Edit;if(!draft||!collections.includes(draft.key)||draft.entry.profileId!==profile.id)throw Error('Invalid draft');setEditor(draft)}catch{setMessage('This draft could not be opened.')}}}>Resume draft</button><button onClick={()=>{setConfirmation({text:'Discard this unfinished draft?',action:()=>{localStorage.removeItem(draftScope);localStorage.removeItem(draftScope+':assignment-dates');setHasDraft(false)}})}}>Discard draft</button></div>}
    {page==='Sanctuary'&&<>
-    <div className="home-greeting"><p className="home-hello">{greeting}</p><p className="home-summary">{new Date(today+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})} · {daySummary}</p></div>
     {classmatesOn&&<SharedWithMe repository={repository} data={data} save={save}/>}
     {overdueCard}
-    {showTour&&<WelcomeTour onAdd={()=>setAdding(true)} onDone={()=>setTourDone('1')}/>}
-    {/* KONO today: one slim bar attached to the top of the island. KONO, its line, how it's doing, one
-        care action, stickers, and "do next" / "ask". The day's wish (and an island season) sit in a small
-        line under it; Ask KONO and What should I do now? open below the bar when asked. */}
+    {showTour&&<Suspense fallback={<TourPlaceholder/>}><WelcomeTour onAdd={()=>setAdding(true)} onDone={()=>setTourDone('1')}/></Suspense>}
+    <section className={'wb-island '+(expanded?'is-expanded':'')} data-kono-need={konoNeed??undefined}><div className="wb-scene-toolbar"><div className="wb-scene-left"><nav className="island-mode-tabs" aria-label="Sanctuary view"><button aria-current={islandMode==='view'?'page':undefined} onClick={()=>setIslandMode('view')}>Your island</button><button aria-current={islandMode==='decorate'?'page':undefined} onClick={()=>{setDecorateStart(undefined);setIslandMode('decorate')}}>Decorate</button></nav>{islandMode==='view'&&<div className="wb-stats-strip" role="group" aria-label="Study streak and weekly progress"><div className="wb-stat wb-stat-streak" style={{'--streak':Math.min(currentStreak,30)} as CSSProperties}><strong>{currentStreak}</strong><small><span className="wb-stat-long">day streak</span><span className="wb-stat-short"><span aria-hidden="true">🔥</span><span className="wb-btn-label">day streak</span></span></small></div><div className="wb-stat"><strong key={weekDone} className="wb-stat-count">{weekTotal>0?weekDone+'/'+weekTotal:'—'}</strong><small><span className="wb-stat-long">{weekTotal>0?'done this week':'nothing due this week'}</span><span className="wb-stat-short">{weekTotal>0?'done':'none due'}</span></small></div></div>}</div><div className="wb-scene-controls"><label className="wb-scene-time" title="Sanctuary time"><span aria-hidden="true">🕐</span><select aria-label="Sanctuary time" value={phase} onChange={e=>setPhase(e.target.value as typeof phase)}>{['auto','morning','afternoon','evening','night'].map(p=><option key={p} value={p}>{p==='auto'?'Live time':p[0].toUpperCase()+p.slice(1)}</option>)}</select></label>{islandMode==='view'&&<div className="wb-island-zoom" role="group" aria-label="Zoom island"><button type="button" onClick={()=>setIslandZoom(z=>Math.max(MIN_ISLAND_ZOOM,+(z-0.25).toFixed(2)))} disabled={islandZoom<=MIN_ISLAND_ZOOM} aria-label="Zoom out">−</button><span aria-live="polite">{Math.round(islandZoom*100)}%</span><button type="button" onClick={()=>setIslandZoom(z=>Math.min(MAX_ISLAND_ZOOM,+(z+0.25).toFixed(2)))} disabled={islandZoom>=MAX_ISLAND_ZOOM} aria-label="Zoom in">＋</button>{islandZoom!==1&&<button type="button" onClick={resetIslandView}>Reset</button>}</div>}<button type="button" className="wb-scene-expand" title={expanded?'Close full screen':'Expand'} onClick={()=>setExpanded(v=>!v)}><span aria-hidden="true">{expanded?'✕':'⤢'}</span><span className="wb-btn-label">{expanded?'Close full screen':'Expand'}</span></button></div></div><div className="wb-sanctuary-stage"><div ref={islandStageRef} className="wb-sanctuary-zoom-wrap" onTouchStart={onIslandTouchStart} onTouchMove={onIslandTouchMove} onTouchEnd={onIslandTouchEnd} onPointerDown={onIslandPointerDown} onPointerMove={onIslandPointerMove} onPointerUp={onIslandPointerUp} onPointerCancel={onIslandPointerUp}><div className={'wb-sanctuary-zoom'+(islandMode==='view'&&islandZoom!==1?' is-zoomed':'')} style={islandMode==='view'?{transform:`translate(${islandPan.x}px, ${islandPan.y}px) scale(${islandZoom})`}:undefined}><div className={'wb-sanctuary-backdrop'+(islandMode==='decorate'?' is-decorating':'')}><GardenCard phase={islandPhase} weather={weather.weather} reducedMotion={reduced} progress={sanctuaryProgress} decorations={data.sanctuaryDecor[profile.id]?.placements} paused={islandMode==='decorate'} celebrateSignal={celebrateSignal} focusCompanionActive={focusCompanionActive} onKonoPet={islandPat} konoNeed={konoNeed} feedSignal={feedSignal} outfit={shownOutfit} visitor={visitor?.id??null}/></div>{islandMode==='view'&&<SanctuaryDecorLayer data={data} phase={islandPhase}/>}</div></div>{islandMode==='decorate'&&<SanctuaryBuild data={data} save={save} phase={phase} earned={decorEarned} today={today} startCategory={decorateStart} wardrobe={{offered:outfitsOffered(unlockedOutfitIds,today),unlocked:unlockedOutfitIds,worn,stats:wardrobe,onWear:wearOutfit}} stamps={stamps} bond={bond}/>}</div></section>
+    {/* KONO today: the bottom strip of the island card, inside its border. KONO, its line, how it's
+        doing, one care action, stickers, and "do next" / "ask". The day's wish (and an island season)
+        sit in a small line under it; Ask KONO and What should I do now? open below when asked. */}
     <section className={'wb-panel kono-mood kono-bar is-'+mood.id} aria-label="KONO today"><div className="kono-mood-row"><button type="button" className={'kono-mood-face'+(careMoment&&!careMoment.pose.includes('sleep')?' is-reacting':'')+(careMoment?.react?' is-'+careMoment.react:'')} data-costume={shownOutfit?undefined:islandEvent?.emoji} aria-label="Pet KONO" onClick={e=>petKono(e.timeStamp)}><KonoFace imgKey={careMoment?.at} pose={konoPose} outfit={shownOutfit} size={40}/>{careMoment?.react&&careMoment.react!=='tickle'&&<span key={careMoment.at} className={'kono-react is-'+careMoment.react} aria-hidden="true">{careMoment.react==='wave'?'👋':careMoment.react==='heart'?'💗':'✋'}</span>}</button><p aria-live="polite">{konoLine}{careMoment?.icon&&<img className="kono-find-icon" src={careMoment.icon} alt=""/>}</p>
      <div className="kono-care" role="group" aria-label="How KONO is doing">
-      {([['full','🍙','Full'],['rested','💤',meters.asleep?'Sleeping':'Rested'],['happy','💛','Happy']] as const).map(([key,icon,label])=><span key={key} className={'kono-care-meter is-'+key} role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={meters[key]} title={label+': '+meters[key]+'%'+(key==='full'?' · Finished work earns KONO snacks.':'')}><span aria-hidden="true">{icon}</span><span className="kono-care-bar"><i style={{width:meters[key]+'%'}}/></span></span>)}
+      {([['full','🍙','Full'],['rested','💤',meters.asleep?'Sleeping':'Rested'],['happy','💛','Happy']] as const).map(([key,icon,label])=><span key={key} className={'kono-care-meter is-'+key+(meters[key]<35&&!(key==='rested'&&meters.asleep)?' is-low':'')+(meterGain.some(g=>g.key===key)?' is-up':'')} role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={meters[key]} title={label+': '+meters[key]+'%'+(key==='full'?' · Finished work earns KONO snacks.':'')}><span aria-hidden="true">{icon}</span><span className="kono-care-bar"><i style={{width:meters[key]+'%'}}/></span>{meterGain.filter(g=>g.key===key).map(g=><b key={g.at} className="kono-care-gain" aria-hidden="true">+{g.n}</b>)}</span>)}
       {/* One action at a time: Wake up in the morning; in the evening dinner first (while KONO is hungry
           and there's a snack), then Tuck in; otherwise Feed when there's a snack. */}
       {bed.tucked?null:bed.canWake?<button type="button" className="kono-feed kono-wake" onClick={wakeUp}><span aria-hidden="true">☀️</span> Wake up</button>
@@ -821,23 +823,10 @@ function Workspace({store}:{store:Store}){
      <p className="kono-bar-notes">{note&&<span className={'kono-note is-'+note.kind} role="status">{noteText(note)}{note.kind==='ask'&&<span className="kono-note-choices" role="group" aria-label={'How did '+note.test.title+' go?'}>{MOODS.map(m=><button type="button" key={m.mood} aria-label={m.label} title={m.label} onClick={()=>answerTest(note.test,m.mood)}>{m.emoji}</button>)}</span>}{note.kind==='nudge'&&<span className="kono-note-choices"><button type="button" onClick={()=>{answerNudge(true);startFocusSession(note.item.exam?'':note.item.id,note.item.minutes,note.item.exam?note.item.title:undefined)}}>Start</button><button type="button" onClick={()=>answerNudge(false)}>Not now</button></span>}</span>}<span className={'kono-wish'+(wishGranted?' is-granted':'')}>{wishGranted?'✨ Today’s wish came true.':'✨ KONO wishes you’d '+wishText(wish)+(wish.goal>1?' · '+wishDone+'/'+wish.goal:'')}</span>{!note&&!snacks.length&&meters.full<45&&!bed.tucked&&<span className="kono-care-hint">🍙 Finish something to earn KONO a snack</span>}{islandEvent&&<span className="kono-season">{islandEvent.emoji} <strong>{islandEvent.label}:</strong> {islandEvent.stickers.filter(t=>earned.has(t.id)).length}/{islandEvent.stickers.length} special stickers until {islandEvent.until}</span>}</p>
      {askOpen&&<AskKono data={data} today={today} name={profile.name} pose={konoPose} onClose={()=>setAskOpen(false)}/>}{nextUpOpen&&<NextUp items={nextUpList(tasks,today,ownExams)} onClose={()=>setNextUpOpen(false)} onStart={item=>{setNextUpOpen(false);startFocusSession(item.exam?'':item.id,item.minutes,item.exam?item.title:undefined)}} onDone={item=>void run(()=>save(d=>completeTask(d,item.id)),'Done: '+item.title,true)}/>}
     </section>
-    <div className="home-hero"><div className="home-hero-main">
-    <section className={'wb-island '+(expanded?'is-expanded':'')}><div className="wb-scene-toolbar"><div className="wb-scene-left"><nav className="island-mode-tabs" aria-label="Sanctuary view"><button aria-current={islandMode==='view'?'page':undefined} onClick={()=>setIslandMode('view')}>Your island</button><button aria-current={islandMode==='decorate'?'page':undefined} onClick={()=>{setDecorateStart(undefined);setIslandMode('decorate')}}>Decorate</button></nav>{islandMode==='view'&&<div className="wb-stats-strip" role="group" aria-label="Study streak and weekly progress"><div className="wb-stat wb-stat-streak" style={{'--streak':Math.min(currentStreak,30)} as CSSProperties}><strong>{currentStreak}</strong><small><span className="wb-stat-long">day streak</span><span className="wb-stat-short"><span aria-hidden="true">🔥</span><span className="wb-btn-label">day streak</span></span></small></div><div className="wb-stat"><strong key={weekDone} className="wb-stat-count">{weekTotal>0?weekDone+'/'+weekTotal:'—'}</strong><small><span className="wb-stat-long">{weekTotal>0?'done this week':'nothing due this week'}</span><span className="wb-stat-short">{weekTotal>0?'done':'none due'}</span></small></div></div>}</div><div className="wb-scene-controls"><label className="wb-scene-time" title="Sanctuary time"><span aria-hidden="true">🕐</span><select aria-label="Sanctuary time" value={phase} onChange={e=>setPhase(e.target.value as typeof phase)}>{['auto','morning','afternoon','evening','night'].map(p=><option key={p} value={p}>{p==='auto'?'Live time':p[0].toUpperCase()+p.slice(1)}</option>)}</select></label>{islandMode==='view'&&<div className="wb-island-zoom" role="group" aria-label="Zoom island"><button type="button" onClick={()=>setIslandZoom(z=>Math.max(MIN_ISLAND_ZOOM,+(z-0.25).toFixed(2)))} disabled={islandZoom<=MIN_ISLAND_ZOOM} aria-label="Zoom out">−</button><span aria-live="polite">{Math.round(islandZoom*100)}%</span><button type="button" onClick={()=>setIslandZoom(z=>Math.min(MAX_ISLAND_ZOOM,+(z+0.25).toFixed(2)))} disabled={islandZoom>=MAX_ISLAND_ZOOM} aria-label="Zoom in">＋</button>{islandZoom!==1&&<button type="button" onClick={resetIslandView}>Reset</button>}</div>}<button type="button" className="wb-scene-expand" title={expanded?'Close full screen':'Expand'} onClick={()=>setExpanded(v=>!v)}><span aria-hidden="true">{expanded?'✕':'⤢'}</span><span className="wb-btn-label">{expanded?'Close full screen':'Expand'}</span></button></div></div><div className="wb-sanctuary-stage"><div ref={islandStageRef} className="wb-sanctuary-zoom-wrap" onTouchStart={onIslandTouchStart} onTouchMove={onIslandTouchMove} onTouchEnd={onIslandTouchEnd} onPointerDown={onIslandPointerDown} onPointerMove={onIslandPointerMove} onPointerUp={onIslandPointerUp} onPointerCancel={onIslandPointerUp}><div className={'wb-sanctuary-zoom'+(islandMode==='view'&&islandZoom!==1?' is-zoomed':'')} style={islandMode==='view'?{transform:`translate(${islandPan.x}px, ${islandPan.y}px) scale(${islandZoom})`}:undefined}><div className={'wb-sanctuary-backdrop'+(islandMode==='decorate'?' is-decorating':'')}><GardenCard phase={islandPhase} weather={weather.weather} reducedMotion={reduced} progress={sanctuaryProgress} decorations={data.sanctuaryDecor[profile.id]?.placements} paused={islandMode==='decorate'} celebrateSignal={celebrateSignal} focusCompanionActive={focusCompanionActive} onKonoPet={petKono} outfit={shownOutfit} visitor={visitor?.id??null}/></div>{islandMode==='view'&&<SanctuaryDecorLayer data={data} phase={islandPhase}/>}</div></div>{islandMode==='decorate'&&<SanctuaryBuild data={data} save={save} phase={phase} earned={decorEarned} today={today} startCategory={decorateStart} wardrobe={{offered:outfitsOffered(unlockedOutfitIds,today),unlocked:unlockedOutfitIds,worn,stats:wardrobe,onWear:wearOutfit}} stamps={stamps} bond={bond}/>}</div></section>
-    </div>
-    <section className="wb-panel home-today" aria-label="Your day">
-     {nextClass&&<><small className="home-label">Up next</small><div className="home-next"><span className="home-next-time">{classTime(nextClass.displayStart??nextClass.block.start)}</span><div><strong>{nextClass.block.label}</strong><small>{[subjects.find(sub=>sub.id===nextClass.block.subjectId)?.room,'until '+classTime(nextClass.displayEnd??nextClass.block.end)].filter(Boolean).join(' · ')}</small></div></div></>}
-     <small className="home-label">{dueNow.length?'Due today':'Today'}</small>
-     {dueNow.length?<ul className="home-due">{dueNow.slice(0,4).map(t=><li key={t.id}><button type="button" className="home-check" aria-label={'Check off '+t.title} onClick={()=>toggle('tasks',t as unknown as Entry)}/><div><strong>{t.title}</strong><small>{subjects.find(sub=>sub.id===t.subjectId)?.name??'Assignment'}</small></div><span className={'home-tag'+(t.due<today?' is-late':'')}>{t.due<today?'Late':'Today'}</span></li>)}</ul>
-      :<p className="home-clear"><img src="/garden/kono/tea.webp" alt="" aria-hidden="true"/>Nothing due today. KONO says enjoy it!</p>}
-     {dueNow.length>4&&<button type="button" className="link-button home-more" onClick={()=>navigate('Planner')}>+{dueNow.length-4} more in the Planner</button>}
-     <button type="button" className="home-focus" onClick={()=>startFocusSession(dueNow[0]?.id??'',25)}><span><strong>Start a focus session</strong><small>25 min · KONO reads beside you</small></span><i aria-hidden="true">▶</i></button>
-    </section>
-    </div>
-    <section className="wb-panel home-week" aria-label="This week"><div><small className="home-label">This week</small><strong>{weekBars.reduce((n,b)=>n+b.count,0)} finished</strong></div><div className="home-week-bars">{weekBars.map(b=><span key={b.day} className={(b.day===today?'is-today ':'')+(b.count?'has-work':'')} title={dateLabel(b.day)+': '+b.count+' finished'}><i style={{height:Math.max(8,b.count/weekMax*56)+'px'}}/>{new Date(b.day+'T12:00:00').toLocaleDateString(undefined,{weekday:'narrow'})}</span>)}</div></section>
-    {/* Setup steps come after the island and your day, on every screen size. */}{!startSkipped.has('all')&&<GettingStarted compact steps={startSteps} onSkip={skipStart} onHide={()=>skipStart('all')}/>}
+    <details ref={sanctuaryFocusRef} className="wb-panel sanctuary-focus"><summary>Focus session</summary><FocusSession draftKey={draftScope+':focus'} tasks={tasks} notes={notes} focusRequest={focusRequest} onComplete={id=>void run(()=>save(d=>completeTask(d,id)),'Assignment completed.')} onSaveNote={body=>save(d=>({...d,notes:[...d.notes,{id:uid('note'),profileId:profile.id,subjectId:'',title:'Study session',body,created:new Date().toISOString(),pinned:true}]}))} onFocusActiveChange={setFocusCompanionActive} onSessionComplete={focusDone}/></details>
+    {/* Setup steps come after the island card and Focus session, on every screen size. */}{!startSkipped.has('all')&&<GettingStarted compact steps={startSteps} onSkip={skipStart} onHide={()=>skipStart('all')}/>}
     {recap&&recapDay(today)&&recapHiddenFor!==recap.from&&<div className="wb-panel week-recap-sunday"><WeekRecap recap={recap} onPlanWeek={openWeekPlan} onDismiss={()=>setRecapHiddenFor(recap.from)}/></div>}
     {tasks.some(t=>!t.done&&t.due<=tomorrow)&&<section className="wb-panel due-tomorrow-panel"><div className="wb-section-head"><div><small>PLAN AHEAD</small><h2>Assignments due tomorrow</h2></div><button onClick={()=>create('tasks',tomorrow)}>＋ Assignment</button></div>{tasks.filter(t=>!t.done&&t.due===tomorrow).map(t=>card('tasks',t as unknown as Entry))}{!tasks.some(t=>!t.done&&t.due===tomorrow)&&<p>Nothing is due tomorrow.</p>}<details><summary>Due today & overdue · {tasks.filter(t=>!t.done&&t.due<=today).length}</summary>{tasks.filter(t=>!t.done&&t.due<=today).sort((a,b)=>a.due.localeCompare(b.due)).map(t=>card('tasks',t as unknown as Entry))}</details></section>}
-    <details ref={sanctuaryFocusRef} className="wb-panel sanctuary-focus"><summary>Focus session</summary><FocusSession draftKey={draftScope+':focus'} tasks={tasks} notes={notes} focusRequest={focusRequest} onComplete={id=>void run(()=>save(d=>completeTask(d,id)),'Assignment completed.')} onSaveNote={body=>save(d=>({...d,notes:[...d.notes,{id:uid('note'),profileId:profile.id,subjectId:'',title:'Study session',body,created:new Date().toISOString(),pinned:true}]}))} onFocusActiveChange={setFocusCompanionActive} onSessionComplete={focusDone}/></details>
     <div className="schedule-filter-row"><span>Show</span>{scheduleViewPicker}</div>
     {weekend&&<section className="wb-panel weekend-card" aria-label="Get ready for Monday"><div className="wb-section-head"><div><small>WEEKEND · {dateLabel(monday)}</small><h2>Get ready for Monday</h2></div><div className="wb-toolbar"><button onClick={()=>{setSelectedDate(monday);navigate('Planner')}}>Open Monday</button><button onClick={openWeekPlan}>✨ Plan my week</button></div></div>
      {mondayWork.length>0?<div className="weekend-due"><strong>Due Monday</strong>{mondayWork.map(t=>card('tasks',t as unknown as Entry))}</div>:<p>Nothing is due Monday.</p>}
@@ -874,7 +863,7 @@ function Workspace({store}:{store:Store}){
   <div className="wb-music-bar"><MusicPlayer controller={music} compact/></div>
   {confirmation&&<Modal title="Confirm change" close={()=>setConfirmation(null)}><p>{confirmation.text}</p><button onClick={()=>{confirmation.action();setConfirmation(null)}}>Confirm</button><button onClick={()=>setConfirmation(null)}>Cancel</button></Modal>}
   {more&&<Modal title="More" close={()=>setMore(false)}>{(['Kids','Subjects','K-Quiz','Exams','Settings','Trash'] as Page[]).filter(p=>p!=='Kids'||parentMode).map(p=><button key={p} onClick={()=>navigate(p)}>{p}</button>)}<label>Study profile<select value={profile.id} onChange={e=>void save(d=>({...d,activeProfileId:e.target.value}))}>{data.profiles.map(p=><option value={p.id} key={p.id}>{p.label}</option>)}</select></label></Modal>}
-  {adding&&<Modal title="Add to your plan" close={()=>setAdding(false)}><QuickAddBox subjects={data.subjects.filter(s=>s.profileId===profile.id)} today={localDate()} initialText={incoming?.text} link={incoming?.link} onAdd={quickAdd} onEdit={g=>create(g.key,g.due,g.subjectId,{title:g.title,...(g.time?{plannedTime:g.time}:{}),...(g.link?{link:g.link}:{})})}/><div className="quick-add-choice"><p className="quick-add-or">Or pick a type:</p><label>What are you adding?<select aria-label="Add type" value={addKind} onChange={e=>setAddKind(e.target.value as typeof addKind)}><option value="tasks">Homework</option><option value="exams">Exam or test</option><option value="notes">Study note</option></select></label><p className="wb-muted">Exams appear on the countdown board. Study notes are pinned to your bulletin board.</p><button className="primary" onClick={()=>create(addKind)}>Continue</button></div><button type="button" className="update-entire-plan-button" onClick={()=>{setAdding(false);setScanningPlan(true)}}>📷 Update entire plan — scan notes or a syllabus</button><details className="add-more-choices"><summary>More ways to add</summary><div>{(['studyPlans','calendarEvents','subjects',...(parentMode?['kids'] as const:[])] as Collection[]).map(key=><button key={key} onClick={()=>create(key)}>{labels[key]}</button>)}</div></details></Modal>}
+  {adding&&<Modal title="Add to your plan" close={()=>setAdding(false)}><QuickAddBox subjects={data.subjects.filter(s=>s.profileId===profile.id)} today={localDate()} initialText={incoming?.text} link={incoming?.link} onAdd={quickAdd} onEdit={g=>create(g.key,g.due,g.subjectId,{title:g.title,...(g.time?{plannedTime:g.time}:{}),...(g.link?{link:g.link}:{})})}/><div className="quick-add-choice"><p className="quick-add-or">Or pick a type:</p><label>What are you adding?<select aria-label="Add type" value={addKind} onChange={e=>setAddKind(e.target.value as typeof addKind)}><option value="tasks">Homework</option><option value="exams">Exam or test</option><option value="lesson">Lesson</option><option value="notes">Study note</option></select></label><p className="wb-muted">Exams appear on the countdown board. Study notes are pinned to your bulletin board.</p><button className="primary" onClick={()=>addKind==='lesson'?create('calendarEvents',today,subject,{kind:'lesson'}):create(addKind)}>Continue</button></div><button type="button" className="update-entire-plan-button" onClick={()=>{setAdding(false);setScanningPlan(true)}}>📷 Update entire plan — scan notes or a syllabus</button><details className="add-more-choices"><summary>More ways to add</summary><div>{(['studyPlans','calendarEvents','subjects',...(parentMode?['kids'] as const:[])] as Collection[]).map(key=><button key={key} onClick={()=>create(key)}>{labels[key]}</button>)}</div></details></Modal>}
   {weatherOpen&&<Modal title="Sanctuary weather" close={()=>setWeatherOpen(false)}><WeatherSettings data={data} setData={save} weatherState={weather}/></Modal>}
   {scanningPlan&&<Modal title="Update entire plan" close={()=>setScanningPlan(false)}><UpdatePlanScanner profileId={profile.id} subjects={subjects} kids={profileKids} save={save} close={()=>setScanningPlan(false)} onOpenAiSettings={()=>{setScanningPlan(false);openSettings('Import & export')}}/></Modal>}
   {reviewOpen&&<Modal title="Needs review" close={()=>setReviewOpen(false)}><p className="wb-muted">Added automatically from a scanned photo. Check each one — confirming it (or just opening and saving it) clears the flag.</p>{needsReviewEntries.length===0?<p>All caught up.</p>:<>{needsReviewEntries.length>1&&<button type="button" className="primary" onClick={()=>void confirmAllReviews()}>Confirm all {needsReviewEntries.length} items</button>}{needsReviewEntries.map(({key,entry})=>card(key,entry))}</>}</Modal>}
@@ -1032,136 +1021,3 @@ function Calendar({data,tasks,date,selectDate,create,render,renderClass,reschedu
   {quickAdd&&<Modal title={'Add for '+dateLabel(quickAdd.date)} close={()=>setQuickAdd(null)}>{kids.length?<QuickFamilyAdd kids={kids} time={quickAdd.time} onCancel={()=>setQuickAdd(null)} onSave={async payload=>{if(await quickAddEvent(quickAdd.date,payload))setQuickAdd(null)}}/>:<><p className="wb-muted">No kids added yet.</p><button type="button" onClick={()=>{setQuickAdd(null);navigate('Kids')}}>Manage kids</button></>}</Modal>}
   </section>
 }
-const QUICK_KIND_OPTIONS=[['sports','Sports'],['appointment','Appointment'],['personal','Event']] as const
-// The fast path parent mode promises: kid, type, a short title and an optional time -- no subject
-// picker, notes, voice input or multi-date repeat. Saves straight to calendarEvents (see
-// quickAddFamilyEvent) rather than opening the full EntryEditor.
-function QuickFamilyAdd({kids,time:startAt,onCancel,onSave}:{kids:Kid[];time?:string;onCancel:()=>void;onSave:(payload:{title:string;kind:CalendarEventKind;kidId?:string;time?:string;endTime?:string})=>Promise<void>}){
- const [title,setTitle]=useState(''),[kidId,setKidId]=useState(kids[0]?.id??''),[kind,setKind]=useState<CalendarEventKind>('appointment'),[time,setTime]=useState(startAt??''),[endTime,setEndTime]=useState(startAt?String(Math.min(23,Number(startAt.slice(0,2))+1)).padStart(2,'0')+startAt.slice(2):''),[busy,setBusy]=useState(false),[error,setError]=useState('')
- const submit=async(e:FormEvent)=>{
-  e.preventDefault();if(busy||!title.trim())return
-  setBusy(true);setError('')
-  try{await onSave({title:title.trim(),kind,kidId:kidId||undefined,time:time||undefined,endTime:endTime||undefined})}catch(e){setError(e instanceof Error?e.message:'Could not save.')}finally{setBusy(false)}
- }
- return <form onSubmit={submit} className="quick-family-add"><fieldset disabled={busy}>
-  <label>Kid<select autoFocus value={kidId} onChange={e=>setKidId(e.target.value)}><option value="">Whole family</option>{kids.map(k=><option key={k.id} value={k.id}>{(k.emoji?k.emoji+' ':'')+k.name}</option>)}</select></label>
-  <label>Type<select value={kind} onChange={e=>setKind(e.target.value as CalendarEventKind)}>{QUICK_KIND_OPTIONS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
-  <label>What is it?<input required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Soccer practice, Dentist…"/></label>
-  <label>Start time (optional)<input type="time" value={time} onChange={e=>setTime(e.target.value)}/></label>
-  <label>End time (optional)<input type="time" value={endTime} onChange={e=>setEndTime(e.target.value)}/></label>
-  {error&&<p role="alert">{error}</p>}
-  <div className="wb-toolbar"><button className="primary" type="submit">{busy?'Adding…':'Add'}</button><button type="button" onClick={onCancel}>Cancel</button></div>
- </fieldset></form>
-}
-// A per-kid tag list for the one shared family calendar -- add each kid once here with a color and
-// emoji, then tag any assignment, exam, class or event with them from its own editor (see
-// EntryEditor's Kid picker and the recurring-class editors) and filter the Planner calendar by kid
-// there, the same way subjects already work. Kids are ordinary generic collection entries (see
-// store/workspace.ts), so create/edit/remove below reuse the app's existing undo/redo and Trash.
-// Settings › Family. A solo student only ever sees the Parent mode switch here; everything else
-// appears once it's on.
-function FamilySettings({data,setting,patch,navigate}:{data:AppData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>;navigate:(page:Page)=>void}){
- const [lookOpen,setLookOpen]=useState(false)
- const parentMode=data.settings.parentMode===true
- return <section className="wb-panel family-settings"><h2>Family</h2>
-  <label className="wb-check"><input type="checkbox" checked={parentMode} onChange={e=>void setting('parentMode',e.target.checked)}/>Parent mode: show the Kids tab</label>
-  <p className="theme-picker-description">Turn this on if you're a parent managing more than one kid on a shared device. It adds a Kids tab for tagging assignments, exams, classes and events with a kid — and a kid filter on your calendar — the same way subjects already work. Off by default, so it stays out of the way if you're not a parent.</p>
-  {parentMode&&<>
-  <div className="kid-appearance-toggles">
-   <label className="wb-check"><input type="checkbox" checked={data.settings.familyTileBorders!==false} onChange={e=>void setting('familyTileBorders',e.target.checked)}/>Color-code event tiles by kid</label>
-   <label className="wb-check"><input type="checkbox" checked={data.settings.familyTileAvatars!==false} onChange={e=>void setting('familyTileAvatars',e.target.checked)}/>Show each kid's emoji and name on their tiles</label>
-  </div>
-   <div className="wb-toolbar"><button type="button" onClick={()=>navigate('Kids')}>Manage kids</button><button type="button" onClick={()=>setLookOpen(true)}>🎨 Kids' appearance</button></div>
-   {lookOpen&&<KidAppearancePanel data={data} patch={patch} close={()=>setLookOpen(false)}/>}
-  </>}
- </section>
-}
-// Settings › Notifications, parent mode only. Family reminders ride on browser notifications.
-function FamilyReminderSettings({data,setting}:{data:AppData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
- const notifyOn=Boolean(data.settings.browserNotifications)&&notificationsSupported()&&Notification.permission==='granted'
- return <section className="card settings-list family-reminder-settings"><h3>Family</h3>
-  <label><div><strong>Kids' event reminders</strong><small>Remind me 15 minutes before a kid's event starts or ends. {notifyOn?'Notifications are labeled with each kid\'s name.':'Turn on Browser notifications above to use this.'}</small></div><input type="checkbox" disabled={!notifyOn} checked={Boolean(data.settings.familyEventReminders)} onChange={e=>void setting('familyEventReminders',e.target.checked)}/></label>
- </section>
-}
-function KidsPage({data,create,edit,remove,patch,openSettings}:{openSettings:(tab:SettingsTab)=>void;data:AppData;create:(key:Collection)=>void;edit:(key:Collection,entry:Entry)=>void;remove:(key:Collection,entry:Entry)=>void;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
- const [appearanceOpen,setAppearanceOpen]=useState(false)
- const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
- return <section className="wb-panel family-calendar">
-  <div className="wb-section-head"><div><small>ONE SHARED CALENDAR</small><h2>Kids</h2></div><div className="wb-toolbar"><button type="button" onClick={()=>setAppearanceOpen(true)}>🎨 Appearance</button><button onClick={()=>create('kids')}>＋ Add a kid</button></div></div>
-  <p className="wb-muted">Add each kid once, then tag any assignment, exam, class or event with them from its own editor and filter your Planner calendar by kid — the same way you already filter by subject. Pick their emoji and color under Appearance.</p>
-  {kids.length>0&&<ul className="kid-roster" aria-label="Kids">
-   {kids.map(k=><li key={k.id} style={{'--kid-color':k.color} as CSSProperties}><KidAvatar kid={k}/><strong>{k.name}</strong><button type="button" onClick={()=>edit('kids',k as unknown as Entry)}>Edit</button><button type="button" className="kid-roster-remove" aria-label={'Move '+k.name+' to Trash'} title="Move to Trash" onClick={()=>remove('kids',k as unknown as Entry)}>🗑</button></li>)}
-  </ul>}
-  {!kids.length&&<p className="wb-muted">No kids added yet. Add one to start tagging their assignments, exams, classes and events on your calendar.</p>}
-  <p className="wb-muted">Reminders for your kids' events, and the family-wide look switches, live in Settings: <button type="button" className="link-button" onClick={()=>openSettings('Notifications')}>Notifications</button> · <button type="button" className="link-button" onClick={()=>openSettings('Family')}>Family</button></p>
-  {appearanceOpen&&<KidAppearancePanel data={data} patch={patch} close={()=>setAppearanceOpen(false)}/>}
- </section>
-}
-// A dedicated page for how kids look on their tiles, kept separate from the plain add/edit-kid form
-// (see EntryEditor) and from the general Settings/Appearance page (theme, text size) -- both of those
-// are used by every profile, including a solo student's own personal plan with no kids at all, and
-// this one is reached only from the Kids page, itself hidden unless parent mode is on. One kid at a
-// time (tabs along the top), so the panel stays short however many kids there are.
-function KidAppearancePanel({data,patch,close}:{data:AppData;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>;close:()=>void}){
- const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
- const [selectedId,setSelectedId]=useState(kids[0]?.id)
- const kid=kids.find(k=>k.id===selectedId)??kids[0]
- return <Modal title="Kids' appearance" close={close}>
-  <div className="kid-look">
-   <p className="wb-muted">How each kid's events look in the Planner and on the Sanctuary. Changes save as you go.</p>
-   {!kid&&<p className="wb-muted">Add a kid first (close this and use "＋ Add a kid"), then come back here to pick how they look.</p>}
-   {kids.length>1&&<div className="kid-look-tabs" role="tablist" aria-label="Kids">{kids.map(k=><button type="button" role="tab" key={k.id} id={'kid-look-tab-'+k.id} aria-controls="kid-look-editor" aria-selected={k.id===kid?.id} className="kid-look-tab" style={{'--kid-color':k.color} as CSSProperties} onClick={()=>setSelectedId(k.id)}><KidAvatar kid={k}/>{k.name}</button>)}</div>}
-   {kid&&<KidAppearanceEditor key={kid.id} kid={kid} patch={patch} tabbed={kids.length>1}/>}
-  </div>
- </Modal>
-}
-const KidAvatar=({kid}:{kid:Kid})=><span className="kid-look-avatar" style={{'--kid-color':kid.color} as CSSProperties} aria-hidden="true">{kid.emoji||kid.name.trim().charAt(0).toUpperCase()||'?'}</span>
-const BORDER_STYLE_OPTIONS:[KidBorderStyle,string][]=[['solid','Classic'],['bold','Bold'],['stripe','Stripe'],['soft','Soft'],['dashed','Dashed'],['dotted','Dotted'],['double','Double'],['glow','Glow']]
-function KidAppearanceEditor({kid,patch,tabbed}:{kid:Kid;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>;tabbed:boolean}){
- const [customEmoji,setCustomEmoji]=useState('')
- const borderStyle=kid.borderStyle??'solid'
- const change=(changes:Partial<Kid>)=>void patch('kids',kid as unknown as Entry,changes as Partial<Entry>)
- const customColor=!(KID_COLORS as readonly string[]).includes(kid.color)
- const applyEmoji=()=>{const e=customEmoji.trim();if(!e)return;change({emoji:e});setCustomEmoji('')}
- return <div id="kid-look-editor" className="kid-look-editor" style={{'--kid-color':kid.color} as CSSProperties} {...(tabbed?{role:'tabpanel','aria-labelledby':'kid-look-tab-'+kid.id}:{})}>
-  <div className={'wb-family-event kid-border-'+borderStyle+' kid-look-preview'} aria-label={kid.name+"'s tile preview"} role="img"><div className="wb-family-event-main"><div className="wb-family-event-time"><span className="wb-family-event-start">3:30 PM</span><span className="wb-family-event-end">–5:00 PM</span></div><div className="wb-family-event-info"><small>{(kid.emoji?kid.emoji+' ':'')+kid.name}</small><h3>Soccer practice</h3></div></div></div>
-  <h3 className="kid-look-label">Emoji</h3>
-  <form className="kid-look-emoji" onSubmit={e=>{e.preventDefault();applyEmoji()}}>
-   <KidAvatar kid={kid}/>
-   <input aria-label={kid.name+"'s emoji"} maxLength={40} placeholder={kid.emoji?'Type or paste a new one':'Type or paste an emoji'} value={customEmoji} onChange={ev=>setCustomEmoji(ev.target.value)}/>
-   <button type="submit" disabled={!customEmoji.trim()}>Use</button>
-  </form>
-  {kid.emoji&&<button type="button" className="kid-look-link" onClick={()=>change({emoji:undefined})}>Remove emoji</button>}
-  <h3 className="kid-look-label">Color</h3>
-  <div className="kid-look-colors" role="radiogroup" aria-label={kid.name+"'s color"}>
-   {KID_COLORS.map(c=><button type="button" role="radio" key={c} className="kid-look-color" aria-checked={kid.color===c} aria-label={c} style={{'--swatch':c} as CSSProperties} onClick={()=>change({color:c})}/>)}
-   <label className={'kid-look-color kid-look-color-custom'+(customColor?' is-picked':'')} style={customColor?{'--swatch':kid.color} as CSSProperties:undefined} title="Pick any color"><input type="color" aria-label={'Custom color for '+kid.name} value={kid.color} onChange={e=>change({color:e.target.value})}/></label>
-  </div>
-  <h3 className="kid-look-label">Border</h3>
-  <div className="kid-look-borders" role="radiogroup" aria-label={kid.name+"'s border style"}>
-   {BORDER_STYLE_OPTIONS.map(([value,label])=><button type="button" role="radio" key={value} className="kid-look-border" aria-checked={borderStyle===value} onClick={()=>change({borderStyle:value})}><span className={'kid-look-border-sample kid-border-'+value} aria-hidden="true"/>{label}</button>)}
-  </div>
- </div>
-}
-/** Look & feel › Team colors: school and team palettes. They work in Cozy and Simplified, so picking one
- * from Modern or Zen Ink (which have their own fixed colors) switches to Cozy. */
-function TeamColors({settings,setting}:{settings:SettingsData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
- const fixed=fixedPaletteExperiences.includes(settings.experience??'cozy')
- const pick=async(id:string)=>{if(fixed&&!await setting('experience','cozy'))return;await setting('theme',id)}
- return <><h2>Team colors</h2><p>Show your school or team colors across KONO: the sidebar, buttons, headers and the top bar on your phone. They work with the Cozy and Simplified looks{fixed?'; picking one switches you to Cozy':''}.</p>
-  <div className="team-color-grid" role="group" aria-label="Team colors">{TEAM_THEMES.map(t=><button key={t.id} type="button" aria-pressed={!fixed&&settings.theme===t.id} onClick={()=>void pick(t.id)}><span className={'team-swatch theme-'+t.id} aria-hidden="true"/><strong>{t.label}{!fixed&&settings.theme===t.id?' ✓':''}</strong><small>{t.note}</small></button>)}</div>
-  <p className="wb-muted">To go back to a regular palette, pick one under Color palette above.</p></>
-}
-function Appearance({settings,setting}:{settings:SettingsData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
- const activePalette=settings.experience==='cozy'?cozyPalette(settings.theme):settings.theme
- const paletteLabel=(theme:string)=>({coral:'Coral · Colorful',sakura:'Sakura · Colorful',lavender:'Lavender Dream',mint:'Mint Study',honey:'Honey Desk',zen:'Zen Garden · Minimal',floral:'Floral Chic',ocean:'Ocean Breeze · Beachy',professional:'Professional · Muted',...Object.fromEntries(TEAM_THEMES.map(t=>[t.id,t.label]))}[theme]??theme[0].toUpperCase()+theme.slice(1))
- const active=settings.experience??'cozy'
- const swatch=(t:string)=>{const [name,note]=paletteLabel(t).split(' · ');return <button className={'theme-'+t} key={t} aria-pressed={activePalette===t} onClick={()=>void setting('theme',t)}><span/><strong>{name}</strong>{note&&<small>{note}</small>}</button>}
- const activeOption=experienceOptions.find(o=>o.id===active)
- return <section className="wb-panel"><h2>Choose your KONO experience</h2><div className="theme-picker-grid">{experienceOptions.map(option=><button key={option.id} type="button" className={'theme-picker-tile experience-'+option.id} aria-pressed={active===option.id} title={option.description} onClick={()=>void setting('experience',option.id)}><ExperienceIcon id={option.id}/><strong>{option.title}</strong></button>)}</div>{activeOption&&<p className="theme-picker-description">{activeOption.description}</p>}{!fixedPaletteExperiences.includes(settings.experience??'cozy')&&<><h3>Color palette</h3><div className="wb-themes">{(settings.experience==='cozy'?cozyPalettes:['coral','sakura','professional','forest','ocean','midnight','paper']).map(swatch)}</div>{teamThemeIds.includes(settings.theme)&&<p className="wb-muted">You’re using team colors. Pick a palette here to switch back, or change teams under Team colors below.</p>}</>}
-  <h3>Dark mode</h3><div className="dark-mode-choice" role="group" aria-label="Dark mode">{([['light','☀️ Light'],['phone','📱 Match my phone'],['dark','🌙 Dark']] as const).map(([id,label])=><button key={id} type="button" aria-pressed={(settings.darkMode??'phone')===id} onClick={()=>void setting('darkMode',id)}>{label}</button>)}</div>
-  <p className="wb-muted">“Match my phone” turns dark when your phone or computer is set to dark mode (on iPhone: Settings › Display &amp; Brightness).</p>
-  <div className="wb-form-grid"><label>Text size<select value={settings.textSize??'normal'} onChange={e=>void setting('textSize',e.target.value as SettingsData['textSize'])}><option value="normal">Normal</option><option value="large">Large</option></select></label><label>Spacing<select value={settings.density??'comfortable'} onChange={e=>void setting('density',e.target.value as SettingsData['density'])}><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label><label>Board background<select value={settings.boardStyle??'paper'} onChange={e=>void setting('boardStyle',e.target.value as SettingsData['boardStyle'])}><option value="paper">Cream paper</option><option value="cork">Cork</option><option value="plain">Plain</option></select></label><label className="wb-check"><input type="checkbox" checked={settings.decoration!==false} onChange={e=>void setting('decoration',e.target.checked)}/>Decorative details</label></div><p>Interface themes never recolor your Sanctuary artwork.</p></section>
-}
-
-

@@ -66,10 +66,14 @@ test('a week on time, a test done, and studying for a test ahead',()=>{
  assert.equal(ids({exams:[exam],studySessions:[{subjectId:'bio',date:'2026-10-02'}]}),'','still ahead, not studied yet')
 })
 
-test('every sticker is a placeable island decoration with its own picture',()=>{
+test('every sticker is a placeable island decoration with its own picture (the Spooky season ones use the Halloween set’s art)',()=>{
  assert.ok(BUILD_CATEGORIES.includes('stickers'))
  assert.equal(new Set(STICKERS.map(s=>s.id)).size,STICKERS.length)
- for(const s of STICKERS){const a=BUILD_ASSET_BY_ID['sticker-'+s.id];assert.ok(a,s.id);assert.equal(a.category,'stickers');assert.equal(a.src,stickerSrc(s.emoji));assert.match(a.src,/^data:image\/svg\+xml,/)}
+ for(const s of STICKERS){
+  const a=BUILD_ASSET_BY_ID['sticker-'+s.id];assert.ok(a,s.id);assert.equal(a.category,'stickers')
+  if(s.season==='halloween'){for(const phase of ['morning','afternoon','evening','night'])assert.match(a.src[phase],new RegExp('^/garden/registered-22\\.8\\.6/halloween/[a-z-]+/'+phase+'\\.webp$'),s.id)}
+  else{assert.equal(a.src,stickerSrc(s.emoji));assert.match(a.src,/^data:image\/svg\+xml,/)}
+ }
 })
 
 const {seasonOn,stickerOffered,SEASONS}=load('src/store/stickers.ts')

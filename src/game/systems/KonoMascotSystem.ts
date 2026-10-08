@@ -167,6 +167,11 @@ export class KonoMascotSystem {
   // KONO's outfit (Decorate › Wardrobe): drawn over the sprite at the same scale, placed for each pose.
   private outfitImage: Phaser.GameObjects.Image | null = null
   private outfitId: string | null = null
+  // What KONO would like (a snack, a pat), in a thought bubble over its head; and quick taps for tickles.
+  private needBubble: Phaser.GameObjects.Container | null = null
+  private needIcon = ''
+  private taps: number[] = []
+  private tickleTween: Phaser.Tweens.Tween | null = null
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
@@ -206,15 +211,22 @@ export class KonoMascotSystem {
 
     this.sprite.on('pointerdown', () => {
       this.beginReaction(Math.random() < 0.35 ? 'kono-excited' : 'kono-happy', this.scene.time.now + 1_250)
-      // A pat counts toward KONO's "happy" meter (store/konoCare), outside the scene.
-      this.scene.game.events.emit?.(SANCTUARY_EVENTS.petted)
+      const now = this.scene.time.now
+      this.taps = [...this.taps.filter(t => now - t < 1_500), now]
+      if (this.taps.length >= 3) { this.taps = []; this.tickle() } else this.floatUp(this.phase === 'night' ? '💤' : '💗')
+      // A pat counts toward KONO's "happy" meter (store/konoCare), outside the scene. The wall-clock time
+      // lets three quick taps count as a tickle there too.
+      this.scene.game.events.emit?.(SANCTUARY_EVENTS.petted, Date.now())
     })
 
     this.scene.game.events.on(SANCTUARY_EVENTS.interaction, this.handleInteraction, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.celebrate, this.celebrate, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.focusCompanion, this.setFocusCompanion, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.outfit, this.setOutfit, this)
+    this.scene.game.events.on(SANCTUARY_EVENTS.need, this.setNeed, this)
+    this.scene.game.events.on(SANCTUARY_EVENTS.feed, this.feed, this)
     this.setOutfit((this.scene.registry?.get('sanctuaryOutfit') as string | null | undefined) ?? null)
+    this.setNeed((this.scene.registry?.get('sanctuaryNeed') as string | null | undefined) ?? null)
     if (phase === 'night') this.enterNightSleep()
     else this.pickWanderTarget(this.scene.time.now + 1_200)
     this.applyLighting()
@@ -392,6 +404,10 @@ export class KonoMascotSystem {
     this.scene.game.events.off(SANCTUARY_EVENTS.celebrate, this.celebrate, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.focusCompanion, this.setFocusCompanion, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.outfit, this.setOutfit, this)
+    this.scene.game.events.off(SANCTUARY_EVENTS.need, this.setNeed, this)
+    this.scene.game.events.off(SANCTUARY_EVENTS.feed, this.feed, this)
+    this.tickleTween?.remove()
+    this.needBubble?.destroy()
     this.outfitImage?.destroy()
     this.sprite?.removeAllListeners()
     this.sprite?.destroy()
@@ -543,6 +559,98 @@ export class KonoMascotSystem {
     this.placeOutfit()
   }
 
+  /** Where KONO's head is, for the bubble, hearts and snacks. */
+  private headPoint(): { x: number; y: number } {
+    if (!this.sprite) return { x: 0, y: 0 }
+    return { x: this.sprite.x, y: this.sprite.y - this.sprite.displayHeight * 0.88 }
+  }
+
+  private emoji(text: string, size: number): Phaser.GameObjects.Text {
+    return this.scene.add.text(0, 0, text, { fontSize: Math.round(size) + 'px', fontFamily: 'system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif', padding: { x: 2, y: 2 } }).setOrigin(0.5)
+  }
+
+  /** A little heart (or Zzz) floats up from KONO's head. */
+  private floatUp(text: string): void {
+    if (!this.sprite || this.reducedMotion) return
+    const head = this.headPoint(), size = Math.max(16, this.sprite.displayHeight * 0.5)
+    const icon = this.emoji(text, size).setPosition(head.x + Phaser.Math.Between(-6, 6), head.y).setDepth(this.sprite.depth + 0.02)
+    this.scene.tweens.add({ targets: icon, y: head.y - size * 2.2, x: icon.x + Phaser.Math.Between(-10, 10), alpha: { from: 1, to: 0 }, scale: { from: 0.7, to: 1.15 }, duration: 1_100, ease: 'Sine.Out', onComplete: () => icon.destroy() })
+  }
+
+  /** Three quick taps: KONO wiggles and giggles. */
+  private tickle(): void {
+    if (!this.sprite || this.phase === 'night') return
+    this.beginReaction('kono-excited', this.scene.time.now + 1_400)
+    this.floatUp('😆')
+    if (this.reducedMotion) return
+    this.tickleTween?.remove()
+    this.sprite.setAngle(0)
+    this.tickleTween = this.scene.tweens.add({ targets: this.sprite, angle: { from: -9, to: 9 }, duration: 90, yoyo: true, repeat: 5, ease: 'Sine.InOut', onComplete: () => this.sprite?.setAngle(0) })
+  }
+
+  /** What KONO would like right now (a snack emoji when hungry, a heart when it'd like a pat), shown in a
+   * thought bubble over its head; null hides it. Set from the KONO bar (Workspace › konoNeed). */
+  setNeed(icon: string | null): void {
+    const next = icon ?? ''
+    if (next === this.needIcon && this.needBubble) return
+    this.needIcon = next
+    this.needBubble?.destroy()
+    this.needBubble = null
+    if (!next) return
+    const size = 22
+    const bubble = this.scene.add.graphics()
+    bubble.fillStyle(0xffffff, 0.95).lineStyle(2, 0x8a5a42, 0.55)
+    bubble.fillRoundedRect(-size * 0.95, -size * 0.95, size * 1.9, size * 1.75, size * 0.8).strokeRoundedRect(-size * 0.95, -size * 0.95, size * 1.9, size * 1.75, size * 0.8)
+    bubble.fillCircle(-size * 0.35, size * 1.05, 4).strokeCircle(-size * 0.35, size * 1.05, 4)
+    bubble.fillCircle(-size * 0.6, size * 1.5, 2.4).strokeCircle(-size * 0.6, size * 1.5, 2.4)
+    const glyph = this.emoji(next, size * 0.95).setPosition(0, -size * 0.08)
+    this.needBubble = this.scene.add.container(0, 0, [bubble, glyph]).setDepth(RenderLayers.critters + 0.6)
+    if (!this.reducedMotion) this.scene.tweens.add({ targets: glyph, y: { from: -size * 0.14, to: size * 0.02 }, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' })
+    this.placeNeed()
+  }
+
+  private placeNeed(): void {
+    if (!this.needBubble || !this.sprite) return
+    const head = this.headPoint(), scale = Phaser.Math.Clamp(this.sprite.displayHeight / 42, 0.8, 1.5)
+    this.needBubble.setScale(scale).setPosition(head.x + 26 * scale, head.y - 18 * scale)
+    // Sleeping KONO isn't asking for anything.
+    this.needBubble.setVisible(this.phase !== 'night' || this.needIcon === '💤')
+  }
+
+  /** Feeding (Workspace › Feed KONO): the snack drops down to KONO, three bites, crumbs, and a happy heart. */
+  feed(payload: { icon?: string } | null): void {
+    if (!this.sprite) return
+    const icon = payload?.icon || '🍙'
+    this.beginReaction('kono-excited', this.scene.time.now + 2_200)
+    const head = this.headPoint(), size = Math.max(24, this.sprite.displayHeight * 0.8)
+    const mouthY = head.y + this.sprite.displayHeight * 0.42
+    const snack = this.emoji(icon, size).setPosition(head.x, head.y - size * 2.4).setDepth(this.sprite.depth + 0.03)
+    if (this.reducedMotion) {
+      snack.setPosition(head.x, mouthY)
+      this.scene.time.delayedCall(900, () => { snack.destroy(); this.floatUp('💛') })
+      return
+    }
+    // The bubble steps aside while KONO eats.
+    this.needBubble?.setAlpha(0)
+    const bite = (n: number): void => {
+      if (n === 3) {
+        snack.destroy(); this.floatUp('💛'); this.scene.time.delayedCall(220, () => this.floatUp('✨'))
+        if (this.needBubble) this.scene.tweens.add({ targets: this.needBubble, alpha: 1, duration: 300, delay: 600 })
+        return
+      }
+      this.crumbs(head.x, mouthY)
+      this.scene.tweens.add({ targets: snack, scale: [0.7, 0.42, 0][n], duration: 150, ease: 'Back.In', onComplete: () => this.scene.time.delayedCall(170, () => bite(n + 1)) })
+    }
+    this.scene.tweens.add({ targets: snack, y: mouthY - size * 0.25, duration: 560, ease: 'Bounce.Out', onComplete: () => this.scene.time.delayedCall(140, () => bite(0)) })
+  }
+
+  private crumbs(x: number, y: number): void {
+    for (let i = 0; i < 4; i++) {
+      const c = this.scene.add.circle(x + Phaser.Math.Between(-5, 5), y, Phaser.Math.FloatBetween(1.6, 3), 0xf3d29a).setDepth((this.sprite?.depth ?? 0) + 0.04)
+      this.scene.tweens.add({ targets: c, x: c.x + Phaser.Math.Between(-16, 16), y: y + Phaser.Math.Between(6, 14), alpha: 0, duration: 420, ease: 'Quad.Out', onComplete: () => c.destroy() })
+    }
+  }
+
   /** Put an outfit on (null takes it off). Its pictures load the first time it's worn. */
   setOutfit(id: string | null): void {
     this.outfitId = id && OUTFIT_FITS[id] ? id : null
@@ -615,5 +723,6 @@ export class KonoMascotSystem {
     this.shadow.setDepth(RenderLayers.critters + 0.17 + this.position.y * 0.12)
     this.applySpriteScale()
     this.placeOutfit()
+    this.placeNeed()
   }
 }

@@ -531,6 +531,8 @@ test('signed in: last night\'s backup downloads, and app errors reach KONO suppo
 
 test('Sanctuary: the island draws, zooms, expands and changes time; Decorate adds, duplicates, removes and keeps items',async({page})=>{
  const loaded=[];page.on('response',r=>{const u=new URL(r.url());if(/\/garden\/(terrace-23\.0|kono)\//.test(u.pathname))loaded.push([u.pathname,r.status()])})
+ // Mid-September: each time of day has its own map (in October the island is one Halloween night picture).
+ await page.clock.setFixedTime(new Date('2026-09-16T15:00:00'))
  await createPlan(page)
  // The island loads once it's on screen (for a new plan it's just below Getting started): islandLoaded
  // keeps it in view while it does.
@@ -538,7 +540,7 @@ test('Sanctuary: the island draws, zooms, expands and changes time; Decorate add
  await ready()
  // The canvas has real artwork on it (a blank canvas encodes to a tiny image).
  await page.waitForFunction(()=>{const c=document.querySelector('.sanctuary-viewport canvas');return !!c&&c.width>100&&c.toDataURL('image/png').length>60000},null,{timeout:20000})
- assert.ok(loaded.some(([path,status])=>/terrace-23\.0\/((halloween|winter|spring|semester)\/)?\w+\.webp$/.test(path)&&status===200),'the island map did not load (whatever the season)')
+ assert.ok(loaded.some(([path,status])=>/terrace-23\.0\/((halloween-v2|winter|spring|semester)\/)?\w+\.webp$/.test(path)&&status===200),'the island map did not load (whatever the season)')
  assert.ok(loaded.every(([,status])=>status===200),'a Sanctuary image failed to load: '+JSON.stringify(loaded.filter(([,st])=>st!==200)))
  const zoom=page.getByRole('group',{name:'Zoom island'})
  await zoom.getByRole('button',{name:'Zoom in'}).click()
@@ -552,8 +554,7 @@ test('Sanctuary: the island draws, zooms, expands and changes time; Decorate add
  const phase=await page.getByLabel('Sanctuary time').inputValue()
  // A time whose map isn't loaded yet: near dawn or dusk the island has already loaded the next phase's map
  // to blend into, so switching to it wouldn't fetch anything (which made this test depend on the clock).
- // (In October it's the Halloween island's map: see game/sanctuary/season.ts.)
- const map=p=>new RegExp(`/terrace-23\\.0/(halloween/)?${p}\\.webp$`)
+ const map=p=>new RegExp(`/terrace-23\\.0/${p}\\.webp$`)
  const other=['evening','night','afternoon','morning'].find(p=>p!==phase&&!loaded.some(([path])=>map(p).test(path)))
  const mapLoaded=page.waitForResponse(r=>map(other).test(new URL(r.url()).pathname)&&r.status()===200,{timeout:20000})
  await page.getByLabel('Sanctuary time').selectOption(other)
@@ -1609,22 +1610,26 @@ test('What should I do now and the app icon number: late work first, "Something 
  await until(async()=>await badge()===0,'turning it off should clear the icon')
 })
 
-test('Halloween island: all of October the island has its spooky look (with its own quick picture while it loads), and in November it is back to normal',async({context,page})=>{
+test('Halloween island: all of October the island is the Halloween island, with its own picture for each time of day (and its own quick picture while it loads), and in November it is back to normal',async({context,page})=>{
  const cloud=fakeCloud(),maps=[]
  page.on('response',r=>{const u=new URL(r.url());if(/\/garden\/terrace-23\.0\//.test(u.pathname))maps.push([u.pathname,r.status()])})
- await page.clock.setFixedTime(new Date('2026-10-15T21:30:00'))
+ await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  await islandLoaded(page)
- assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween/night.webp'&&st===200),'the Halloween night island loads: '+JSON.stringify(maps))
- assert.ok(!maps.some(([p])=>p==='/garden/terrace-23.0/night.webp'),'not the regular one')
+ assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween-v2/afternoon.webp'&&st===200),'the Halloween afternoon island loads at 3 PM: '+JSON.stringify(maps))
+ assert.ok(!maps.some(([p])=>/^\/garden\/terrace-23\.0\/(morning|afternoon|evening|night)\.webp$/.test(p)),'not the regular one: '+JSON.stringify(maps))
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(3000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/halloween-island-afternoon.png'})}
+ maps.length=0
+ await page.getByLabel('Sanctuary time').selectOption('night')
+ await waitFor(()=>maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween-v2/night.webp'&&st===200),'the Halloween night island never loaded: '+JSON.stringify(maps))
  if(process.env.KONO_SHOTS){await page.waitForTimeout(6000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/halloween-island-night.png'})}
  maps.length=0
  await page.clock.setFixedTime(new Date('2026-11-02T21:30:00'))
  await page.reload();await heading(page,'Sanctuary')
  await islandLoaded(page)
  assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/night.webp'&&st===200),'in November the regular island is back: '+JSON.stringify(maps))
- assert.ok(!maps.some(([p])=>p.includes('/halloween/')))
+ assert.ok(!maps.some(([p])=>p.includes('/halloween')))
 })
 
 test('Winter island: from December 1 the island is under snow (with its own quick picture), Valentine’s week keeps the snow and brings its own stickers, and KONO’s winter earmuffs and heart headband show in the wardrobe',async({context,page})=>{
@@ -1682,6 +1687,27 @@ test('Spring and the end of the semester: from March 20 the island blooms (Sprin
  await visit('2027-06-01T15:00:00','semester/',/Last stretch: 0\/4 special stickers until Jun 20/,'Party hat, locked. Finish 5 assignments at the end of the semester (May 21 – June 20).')
  await visit('2027-07-01T15:00:00','',null,null)
  assert.ok(!maps.some(([p])=>/\/(spring|semester)\//.test(p)),'summer is the regular island')
+})
+test('Decorate › Halloween: all 16 pieces (a pumpkin house, an autumn tree, a writable sign and the rest), with art for every time of day, go on the island and stay; the sign takes text',async({context,page})=>{
+ const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId,art=[]
+ page.on('response',r=>{const u=new URL(r.url());if(u.pathname.includes('/registered-22.8.6/halloween/'))art.push([u.pathname,r.status()])})
+ await page.clock.setFixedTime(new Date('2026-10-02T21:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('button',{name:'Decorate'}).click()
+ await page.getByRole('navigation',{name:'Decoration categories'}).getByRole('button',{name:'Halloween',exact:true}).click()
+ const palette=page.locator('.build-palette')
+ const names=['Pumpkin House','Autumn Spooky Tree','Pumpkin Patch','Bubbling Cauldron','Scarecrow','Jack-o’-Lantern Lamp','Halloween Sign','Study Corner Treats','Jack-o’-Lantern Trio','Candy Basket','Mossy Gravestone','Bat Roost','Hay Bales & Pumpkins','Ghost Friend','Autumn Fence Garland','Spell Book & Candles']
+ for(const name of names)await palette.getByRole('button',{name:'Add '+name,exact:true}).waitFor()
+ assert.equal(await palette.getByRole('button',{name:/^Add /}).count(),names.length,'just the new Halloween set')
+ await palette.getByRole('button',{name:'Add Pumpkin House'}).click()
+ await palette.getByRole('button',{name:'Add Autumn Spooky Tree'}).click()
+ await palette.getByRole('button',{name:'Add Halloween Sign'}).click()
+ await page.getByLabel('Sign text').fill('Boo! 🎃')
+ await waitFor(()=>{const ps=cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[];return ['halloween-pumpkin-house','halloween-spooky-tree'].every(id=>ps.some(p=>p.assetId===id))&&ps.some(p=>p.assetId==='halloween-sign'&&p.text==='Boo! 🎃')},'the Halloween pieces (and the sign’s text) never reached the island: '+JSON.stringify((cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[]).map(p=>[p.assetId,p.text])))
+ await waitFor(()=>art.some(([p])=>p.endsWith('/pumpkin-house/night.webp')),'the night art for the pumpkin house never loaded: '+JSON.stringify(art))
+ assert.ok(art.every(([,st])=>st===200),'a Halloween picture failed to load: '+JSON.stringify(art))
+ if(process.env.KONO_SHOTS){await page.getByRole('button',{name:'Your island'}).click();await page.waitForTimeout(2500);await page.locator('.wb-island').screenshot({path:process.env.KONO_SHOTS+'/halloween-decor-island.png'})}
 })
 test('Halloween on the island: in October KONO wears a pumpkin, a banner counts the 4 spooky stickers, finishing work earns the Pumpkin, and it goes on the island',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
@@ -1860,7 +1886,7 @@ test('Ask KONO: KONO greets and asks what you want to know and answers today, th
  await page.getByRole('button',{name:'What should I do now?'}).waitFor()
 })
 
-test('Sanctuary: KONO today is a slim bar on top of the island, and Decorate opened from its sticker button keeps the decorations on the island',async({context,page})=>{
+test('Sanctuary: KONO today is a slim bar right under the island window, inside the island card, with Focus session after it; Decorate opened from its sticker button keeps the decorations on the island',async({context,page})=>{
  const cloud=fakeCloud()
  await page.clock.setFixedTime(new Date('2026-10-02T15:00:00'))
  await signInAs(context,cloud,'alice')
@@ -1869,11 +1895,12 @@ test('Sanctuary: KONO today is a slim bar on top of the island, and Decorate ope
  // Measured together, in one read, once the page has settled: late content above (the setup row,
  // KONO's line, lazily loaded cards) can still move both for a moment, and two separate reads can
  // straddle that move. Settled = the same positions on two polls in a row.
- const above=await page.waitForFunction(()=>{const b=document.querySelector('.kono-bar')?.getBoundingClientRect(),i=document.querySelector('.wb-island')?.getBoundingClientRect();if(!b||!i)return false;const key=Math.round(b.bottom)+':'+Math.round(i.top),w=window;const settled=w.__konoBarKey===key;w.__konoBarKey=key;return settled&&{gap:i.top-b.bottom}},null,{timeout:10000,polling:250}).then(h=>h.jsonValue())
+ const above=await page.waitForFunction(()=>{const b=document.querySelector('.kono-bar')?.getBoundingClientRect(),i=document.querySelector('.wb-island')?.getBoundingClientRect(),f=document.querySelector('.sanctuary-focus')?.getBoundingClientRect();if(!b||!i||!f)return false;const key=Math.round(b.top)+':'+Math.round(i.bottom)+':'+Math.round(f.top),w=window;const settled=w.__konoBarKey===key;w.__konoBarKey=key;return settled&&{gap:b.top-i.bottom,focusGap:f.top-b.bottom}},null,{timeout:10000,polling:250}).then(h=>h.jsonValue())
  const b=await bar.boundingBox(),i=await island.boundingBox(),docY=await page.evaluate(()=>scrollY)
  if(process.env.KONO_SHOTS){await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar.png',clip:{x:b.x-10,y:b.y+docY-10,width:b.width+20,height:b.height+200}});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);const pb=await bar.evaluate(e=>{const r=e.getBoundingClientRect();return {y:r.top+scrollY,height:r.height}});await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar-phone.png',clip:{x:0,y:Math.max(0,pb.y-10),width:390,height:pb.height+160}});await page.setViewportSize({width:1280,height:900});await page.waitForTimeout(400)}
  assert.ok(b.height<160,'the KONO bar is slim (two short rows, even with a note from KONO): '+b.height+'px')
- assert.ok(above.gap>=-1,'the KONO bar sits right above the island: '+above.gap+'px')
+ assert.ok(Math.abs(above.gap)<=1,'the KONO bar sits right under the island window, in the same card: '+above.gap+'px')
+ assert.ok(above.focusGap>=-1&&above.focusGap<60,'Focus session comes right after the KONO bar: '+above.focusGap+'px')
  await page.getByRole('button',{name:'Decorate'}).click()
  const nav=page.getByRole('navigation',{name:'Decoration categories'})
  for(const cat of ['Homes','Trees','Ponds']){await nav.getByRole('button',{name:cat,exact:true}).click();await page.locator('.build-palette [role=button][aria-label^="Add "]').first().click()}
@@ -1888,7 +1915,7 @@ test('Sanctuary: KONO today is a slim bar on top of the island, and Decorate ope
  if(process.env.KONO_SHOTS)await page.screenshot({path:process.env.KONO_SHOTS+'/decorate-stickers.png'})
 })
 
-test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assignment, test or event for that day right in the card, and it shows on the Planner calendar',async({context,page})=>{
+test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assignment, test or lesson for that day right in the card (Type is a dropdown), and it shows on the Planner calendar',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
  plan.settings.parentMode=false
  await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
@@ -1903,7 +1930,7 @@ test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assign
  await todayForm.getByRole('button',{name:'Add',exact:true}).click()
  await todayCard.getByText('Lab report').first().waitFor()
  await todayForm.getByLabel('What to add for today').fill('Tutoring')
- await todayForm.getByRole('radio',{name:'Event'}).click()
+ await todayForm.getByLabel('Type').selectOption({label:'Lesson'})
  await todayForm.getByLabel('Time').fill('16:30')
  await todayForm.getByRole('button',{name:'Add',exact:true}).click()
  await todayCard.getByText('Tutoring').first().waitFor()
@@ -1912,11 +1939,11 @@ test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assign
  await tomorrowCard.getByRole('button',{name:'Add for tomorrow'}).click()
  const tomorrowForm=tomorrowCard.getByRole('form',{name:'Add for tomorrow'})
  await tomorrowForm.getByLabel('What to add for tomorrow').fill('Spanish quiz')
- assert.equal(await tomorrowForm.getByRole('radio',{name:'Test'}).getAttribute('aria-checked'),'true','a quiz is a test')
+ assert.equal(await tomorrowForm.getByLabel('Type').evaluate(el=>el.options[el.selectedIndex].text),'Test','a quiz is a test')
  await tomorrowForm.getByRole('button',{name:'Add',exact:true}).click()
  await tomorrowCard.getByText('Spanish quiz').first().waitFor()
  assert.equal(await page.getByRole('dialog').count(),dialogs,'nothing pops up')
- await waitFor(()=>{const d=cloud.users.alice.plan.data;return d.tasks.some(t=>t.title==='Lab report'&&t.due==='2026-09-28')&&d.calendarEvents.some(e=>e.title==='Tutoring'&&e.date==='2026-09-28'&&e.time==='16:30'&&e.endTime==='17:30')&&d.exams.some(e=>e.title==='Spanish quiz'&&e.due==='2026-09-29')},'the three reach the account')
+ await waitFor(()=>{const d=cloud.users.alice.plan.data;return d.tasks.some(t=>t.title==='Lab report'&&t.due==='2026-09-28')&&d.calendarEvents.some(e=>e.title==='Tutoring'&&e.kind==='lesson'&&e.date==='2026-09-28'&&e.time==='16:30'&&e.endTime==='17:30')&&d.exams.some(e=>e.title==='Spanish quiz'&&e.due==='2026-09-29')},'the three reach the account')
  await go(page,'Planner')
  const week=page.getByRole('region',{name:'Week'})
  await week.getByRole('button',{name:/^Lab report · Sep 28, 2026/}).waitFor()
@@ -1990,6 +2017,26 @@ test('KONO’s taps: coming back after a while gets a wave, a tap right after fi
  if(process.env.KONO_SHOTS)await bar.screenshot({path:process.env.KONO_SHOTS+'/kono-tickle.png'})
 })
 
+test('KONO on the island: when it is hungry and there is a snack it says so in a thought bubble, feeding it there (the snack drops in and gets eaten) clears it, and the meter shows +N',async({context,page})=>{
+ const cloud=fakeCloud()
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const care=page.getByRole('region',{name:'KONO today'}).getByRole('group',{name:'How KONO is doing'})
+ await islandLoaded(page)
+ await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
+ const full=Number(await care.getByRole('meter',{name:'Full'}).getAttribute('aria-valuenow'))
+ assert.ok(full<40,'KONO starts out hungry here: '+full)
+ const snack=await care.getByRole('button',{name:/^Feed KONO/}).locator('span[aria-hidden]').first().textContent()
+ await page.locator(`.wb-island[data-kono-need="${snack}"]`).waitFor()
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(1500);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/kono-need.png'})}
+ // (Phaser's tweens run on Date.now, so the clock has to move for the snack to drop.)
+ if(process.env.KONO_SHOTS)await page.clock.setSystemTime(new Date('2026-09-30T15:00:05'))
+ await care.getByRole('button',{name:/^Feed KONO/}).click()
+ await care.locator('.kono-care-meter.is-full .kono-care-gain').waitFor({timeout:3000})
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(150);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/kono-feed-1.png'});await page.waitForTimeout(450);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/kono-feed-2.png'})}
+ await page.locator(`.wb-island[data-kono-need="${snack}"]`).waitFor({state:'detached'})
+})
 test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in the card, a pat makes KONO happy, and both reach the account without anything popping up',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
  await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
@@ -2013,6 +2060,7 @@ test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in th
  const fullBefore=await value('Full'),happyBefore=await value('Happy')
  await feed.click()
  await today.getByText(/^Yum! .+ KONO loved the .+\. Thank you!$/).waitFor()
+ await care.locator('.kono-care-meter.is-full .kono-care-gain').filter({hasText:/^\+\d+$/}).waitFor({timeout:3000})
  await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).some(e=>e.kind==='feed'),'the feeding never reached the account')
  const fed=cloud.users.alice.plan.data.konoCare[pid].log.find(e=>e.kind==='feed')
  assert.equal(cloud.users.alice.plan.data.tasks.find(t=>t.id===fed.taskId)?.done,true,'KONO eats the snack from finished work')

@@ -1,5 +1,6 @@
 /** The island's seasonal look, read from the day it's opened:
- * - all of October it's the Halloween island (tools/draw_halloween_island.py, game/systems/HalloweenSystem);
+ * - all of October it's the Halloween island, one picture per time of day (tools/import_halloween_island.py,
+ *   game/systems/HalloweenSystem);
  * - from December 1 to February 14 it's the winter island under snow (tools/draw_winter_island.py,
  *   game/systems/WinterSystem), and Valentine's week (February 1-14) adds floating hearts;
  * - from March 20 to May 20 it's the spring island in blossom, and from May 21 to June 20 the end of
@@ -19,5 +20,6 @@ export const islandSeason = (date: Date): IslandSeason | null => {
 const SEASONS: IslandSeason[] = ['halloween', 'winter', 'valentine', 'spring', 'semester']
 export const isIslandSeason = (value: unknown): value is IslandSeason => SEASONS.includes(value as IslandSeason)
 /** Valentine's week shares the winter island's maps. */
-const MAP_FOLDER: Record<IslandSeason, string> = { halloween: 'halloween', winter: 'winter', valentine: 'winter', spring: 'spring', semester: 'semester' }
+// (halloween-v2: the current Halloween island; a new folder so no browser keeps showing a saved older one.)
+const MAP_FOLDER: Record<IslandSeason, string> = { halloween: 'halloween-v2', winter: 'winter', valentine: 'winter', spring: 'spring', semester: 'semester' }
 export const islandMapPath = (phase: string, season: IslandSeason | null) => '/garden/terrace-23.0/' + (season ? MAP_FOLDER[season] + '/' : '') + phase

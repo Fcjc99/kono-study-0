@@ -56,7 +56,7 @@ test('the island shows a small picture first (the full one and Phaser load behin
  const card=fs.readFileSync(path.join(ROOT,'src','components','GardenCard.tsx'),'utf8')
  assert.match(card,/-poster\.webp/)
  // The seasonal islands (Halloween, winter, spring, end of semester) have their own pictures too.
- for(const folder of ['','halloween','winter','spring','semester'])for(const phase of ['morning','afternoon','evening','night']){
+ for(const folder of ['','halloween-v2','winter','spring','semester'])for(const phase of ['morning','afternoon','evening','night']){
   const file=path.join(CLIENT,'garden','terrace-23.0',folder,phase+'-poster.webp')
   assert.ok(fs.existsSync(file),(folder?folder+' ':'')+phase+' poster missing from the build (tools/public-allowlist.json)')
   assert.ok(fs.statSync(file).size<=60*1024,(folder?folder+' ':'')+phase+' poster is '+kb(fs.statSync(file).size))
