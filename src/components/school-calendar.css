@@ -65,3 +65,4 @@
 /* "Share … with classmates?" right after setting up a school KONO didn't have. */
 .share-invite{display:grid;gap:8px;margin:0 0 16px;border:2px solid var(--wb-accent,#e0705c)!important;border-radius:14px;background:color-mix(in srgb,var(--wb-accent,#e0705c) 6%,transparent)}
 .share-invite h3,.share-invite p{margin:0}
+.rotation-grid .rotation-key{display:block;font-size:.72em;opacity:.6;font-weight:700}

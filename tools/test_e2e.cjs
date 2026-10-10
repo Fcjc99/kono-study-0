@@ -1199,11 +1199,11 @@ function picturePdf(jpeg,width,height){
  return Buffer.concat(parts)
 }
 
-test('Duxbury Middle School: a 14-day rotation; KONO’s AI reads a D1–D14 × P1–P5 + ASP schedule, each period’s times are set once (ASP too), and all 14 days are saved',async({context,page})=>{
+test('Duxbury Middle School: the school’s 14-day Rotation of Periods (1a–7b, five blocks a day) with its bell times, lunch waves and ASP; KONO’s AI reads a Grade 6 schedule into 7 periods (Period 2 and 6 alternate on b days), and all 14 days are saved',async({context,page})=>{
  const cloud=fakeCloud(),posts=[]
  await page.clock.setFixedTime(new Date('2026-10-10T10:00:00')) // a Saturday
  await signInAs(context,cloud,'alice')
- // The AI's answer for a Grade 6 schedule like the district's (D1–D14 columns, P1–P5 and ASP rows): one entry per class and period.
+ // The AI's answer for a Grade 6 schedule (D1–D14 columns, P1–P5 and ASP rows): one entry per class and period.
  const C={LW:['602-01','Literacy/Writing','B158'],CH:['657-01','Chorus 6','PAC'],GEO:['610-03','Geography and Ancient Civilizations I','B148'],PE:['690-01','Physical Education/Health 6','D178'],LR:['601-05','Literacy/Reading','B159'],MA:['621-01','MATH 6','B146'],SCI:['630-02','Science 6','B139'],ST:['786-10','STEM 6','B307'],FR:['662-02','French - Grade 6','B250']}
  const grid=['LW PE SCI GEO MA','CH LR LW FR SCI','GEO MA ST LR LW','PE SCI GEO MA CH','LR LW FR SCI GEO','MA ST LR LW PE','SCI GEO MA CH LR','LW FR SCI GEO MA','ST LR LW PE SCI','GEO MA CH LR LW','FR SCI GEO MA ST','LR LW PE SCI GEO','MA CH LR LW FR','SCI GEO MA ST LR'].map(r=>r.split(' '))
  const byClassPeriod=new Map()
@@ -1227,23 +1227,31 @@ test('Duxbury Middle School: a 14-day rotation; KONO’s AI reads a D1–D14 × 
  await rotation.getByRole('button',{name:'Set rotation'}).click()
  await rotation.getByText('✓ Tuesday, October 13 is Day 1.').waitFor()
  await page.getByRole('button',{name:'Next: your classes'}).click()
- // A schedule PDF whose text KONO's own reader can't follow (periods, no times), so the AI reads it.
+ const mine=page.getByRole('region',{name:'Your classes'})
+ await mine.getByRole('heading',{name:'Your 7 periods'}).waitFor()
+ assert.match(await mine.innerText(),/Day 1 is 1a-2a-3a-4a-5a, Day 2 is 6a-7a-1b-2b-3b/)
  const {jsPDF}=require('jspdf'),doc=new jsPDF({orientation:'landscape',unit:'pt',format:'letter'})
  doc.setFontSize(8);doc.text(['D1 - Day 1   D2 - Day 2   D3 -   D4 -   …   D14 -','P1-Period1   602-01 Literacy/Writing   657-01 Chorus 6   610-03 Geography …','ASP-Academic Support Period   ASP6-01 Academic Support Period Gr. 6 …'],40,60)
- await page.getByLabel('Upload my schedule').setInputFiles({name:'schedule.pdf',mimeType:'application/pdf',buffer:Buffer.from(doc.output('arraybuffer'))})
- await page.getByText(/Your AI helper found \d+ classes\./).waitFor({timeout:90000})
- assert.equal(posts.length,1);assert.match(posts[0].prompt,/"ASP-Academic Support Period", is a period too/)
- const times=page.getByRole('group',{name:'Period times'})
- for(const [p,[a,b]] of [['Period 1',['07:45','08:41']],['Period 2',['08:45','09:41']],['Period 3',['09:45','10:41']],['Period 4',['10:45','12:11']],['Period 5',['12:15','13:11']],['ASP',['13:15','14:00']]]){await times.getByLabel(p+' starts').fill(a);await times.getByLabel(p+' ends').fill(b)}
- const found=page.getByRole('table',{name:'What KONO found'})
- assert.match(await found.getByRole('row',{name:/^Day 11/}).innerText(),/French - Grade 6/)
- await page.getByRole('button',{name:'Continue to calendar preview'}).click()
+ await mine.getByLabel('Upload my schedule').setInputFiles({name:'schedule.pdf',mimeType:'application/pdf',buffer:Buffer.from(doc.output('arraybuffer'))})
+ await mine.getByText('Found 7 of your 7 periods.',{exact:false}).waitFor({timeout:90000})
+ assert.equal(posts.length,1);assert.match(posts[0].prompt,/5 periods \(also called blocks\) every day/);assert.match(posts[0].prompt,/Each day also has "ASP"/)
+ assert.equal(await mine.getByLabel('Period 1 name').inputValue(),'602-01 · Literacy/Writing')
+ assert.equal(await mine.getByLabel('Different class on 1b days').isChecked(),false,'Literacy/Writing is the same on 1a and 1b')
+ assert.equal(await mine.getByLabel('Different class on 6b days').isChecked(),true);assert.equal(await mine.getByLabel('Period 6b name').inputValue(),'786-10 · STEM 6')
+ assert.equal(await mine.getByLabel('Period 2b name').inputValue(),'662-02 · French - Grade 6')
+ assert.equal(await mine.getByLabel('ASP name').inputValue(),'ASP6-01 · Academic Support Period Gr. 6')
+ await mine.getByLabel('Period 4 lunch').selectOption('2')
+ const days=mine.getByRole('table',{name:'Your days'})
+ assert.match(await days.locator('thead').innerText(),/Block 4\s+11:29 AM\s+ASP\s+1:02 PM\s+Block 5\s+1:46 PM/)
+ assert.match(await days.getByRole('row',{name:/^Day 11/}).innerText(),/French - Grade 6[\s\S]+Science 6[\s\S]+Geography[\s\S]+MATH 6[\s\S]+ASP6-01[\s\S]+STEM 6/)
+ if(process.env.KONO_SHOTS){await mine.screenshot({path:process.env.KONO_SHOTS+'/dms-periods.png'})}
+ await mine.getByRole('button',{name:'Build all 14 days'}).click()
  await page.getByRole('button',{name:'Save to my calendar'}).click()
  await page.getByRole('region',{name:'Add to my calendar'}).waitFor({state:'detached'})
- await waitFor(()=>{const s=cloud.users.alice.plan.data.studySeasons?.find(x=>x.school?.name==='Duxbury Middle School');return s&&Object.values(s.week).flat().length===84},'all 14 days (5 periods and ASP) reach the account')
+ await waitFor(()=>{const s=cloud.users.alice.plan.data.studySeasons?.find(x=>x.school?.name==='Duxbury Middle School');return s&&Object.values(s.week).flat().length===14*7},'all 14 days (5 blocks, lunch and ASP) reach the account')
  const saved=cloud.users.alice.plan.data.studySeasons.find(x=>x.school?.name==='Duxbury Middle School')
- assert.equal(saved.week['Day 1'].map(b=>b.label).join(' | '),'602-01 · Literacy/Writing | 690-01 · Physical Education/Health 6 | 630-02 · Science 6 | 610-03 · Geography and Ancient Civilizations I | 621-01 · MATH 6 | ASP6-01 · Academic Support Period Gr. 6')
- assert.equal(saved.week['Day 14'].find(b=>b.slot==='ASP').start,'13:15')
+ assert.equal(saved.week['Day 1'].map(b=>b.start+' '+b.label).join(' | '),'08:20 602-01 · Literacy/Writing | 09:23 690-01 · Physical Education/Health 6 | 10:26 630-02 · Science 6 | 11:29 610-03 · Geography and Ancient Civilizations I | 12:00 Lunch 2 | 13:02 ASP6-01 · Academic Support Period Gr. 6 | 13:46 621-01 · MATH 6')
+ assert.ok(saved.week['Day 4'].some(b=>b.label==='Lunch 1'),'Day 4 has Period 5a (MATH 6) in Block 4, whose lunch stays 1st: only Period 4’s was changed')
 })
 
 test('Rotating school: Duxbury High’s 7 classes rotate through 5 blocks; KONO’s AI reads a picture-only PDF into the 7 classes, every day is built with bell times, lunch and ASP, and a class can be switched for second semester',async({context,page})=>{
