@@ -4,7 +4,7 @@ import { RenderLayers } from '../engine/RenderLayers'
 import type { DayPhase } from '../sanctuary/types'
 
 /** The island in October (see sanctuary/season.ts): the Halloween island's own picture for each time of
- * day (tools/import_halloween_island.py); this adds what moves. Autumn leaves fall in the day; in the
+ * day (tools/import_season_island.py); this adds what moves. Autumn leaves fall in the day; in the
  * evening and at night bats cross the sky (at night often past the moon, whose glow breathes), low fog
  * drifts over the grass, and now and then a friendly ghost floats up. With reduced motion only the
  * (still) moon glow and fog are shown. */

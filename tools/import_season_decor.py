@@ -1,13 +1,16 @@
-"""Imports the Halloween decoration art (Decorate › Halloween) from the generated source pictures: each
-one is cut out of its white background (soft, unmixed edges), trimmed, scaled to the pack's size, and
-given the pack's four times of day (morning, afternoon, evening and night, graded like the existing art).
-Lit things (jack-o'-lantern faces, lantern and window light, candle flames, the cauldron's brew) keep
-their light in the evening and at night, with a soft glow around them.
+"""Imports a season's decoration art (Decorate › <season name>) from generated source pictures, using the
+pack's manifest in tools/season_packs/<season>.json (what each piece is called, its source file and its size).
+Each picture is cut out of its white background (soft, unmixed edges), trimmed, scaled down, and given the
+four times of day (morning, afternoon, evening and night, graded like the existing art). Lit things
+(jack-o'-lantern faces, lamps and windows, candle flames, a cauldron's brew, and string-light bulbs on
+pieces marked "bulbs") keep their light in the evening and at night, with a soft glow around them.
 
-Writes public/garden/registered-22.8.6/halloween/<id>/<phase>.webp and src/game/data/halloweenDecor.ts.
-Run: python3 tools/import_halloween_decor.py THEME_DIR FILLER_DIR [--preview FILE]
-(the folders unzipped from 15_halloween_theme_generated_sources_v1.zip and
-16_halloween_filler_theme_generated_sources_v1.zip).
+Writes public/garden/registered-22.8.6/<season>/<id>/<phase>.webp and src/game/data/<season>Decor.ts,
+and lists the pictures in tools/public-allowlist.json.
+Run: python3 -I tools/import_season_decor.py tools/season_packs/<season>.json SOURCE_DIR [SOURCE_DIR ...] [--preview FILE]
+(each source picture is looked up by its file name in the given folders; see docs/seasonal-art-spec.md).
+Manifest pieces: {"id", "label", "file", "size": "home" | "tree" | width on the 1448-wide island,
+"paleGround": true if it stands on a whitish ground patch, "bulbs": true if it has string lights}.
 """
 import json
 import os
@@ -18,8 +21,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(ROOT, 'public', 'garden', 'registered-22.8.6', 'halloween')
-TS_OUT = os.path.join(ROOT, 'src', 'game', 'data', 'halloweenDecor.ts')
+DECOR_ROOT = os.path.join(ROOT, 'public', 'garden', 'registered-22.8.6')
 ALLOWLIST = os.path.join(ROOT, 'tools', 'public-allowlist.json')
 PHASES = ['morning', 'afternoon', 'evening', 'night']
 MAX_SIDE = 640
@@ -31,29 +33,6 @@ GRADE = {
     'night': [(0.46, -0.028), (0.422, 0.101), (0.392, 0.195)],
 }
 GLOW = {'morning': 0.0, 'afternoon': 0.0, 'evening': 0.6, 'night': 1.0}
-
-# id, label, source file, size ('home'/'tree' fit like those, or the art's width on the 1448-wide island)
-DECOR = [
-    ('pumpkin-house', 'Pumpkin House', 'halloween_01_pumpkin_house.png', 'home'),
-    ('spooky-tree', 'Autumn Spooky Tree', 'halloween_02_autumn_spooky_tree.png', 'tree'),
-    ('pumpkin-patch', 'Pumpkin Patch', 'halloween_03_pumpkin_patch.png', 300),
-    ('cauldron', 'Bubbling Cauldron', 'halloween_04_bubbling_cauldron.png', 200),
-    ('scarecrow', 'Scarecrow', 'halloween_05_scarecrow.png', 190),
-    ('lantern-post', 'Jack-o’-Lantern Lamp', 'halloween_06_jack_o_lantern_lamp.png', 150),
-    ('sign', 'Halloween Sign', 'halloween_07_writable_sign.png', 280),
-    ('study-candy', 'Study Corner Treats', 'halloween_08_study_candy_decor.png', 210),
-    ('jack-o-lantern-trio', 'Jack-o’-Lantern Trio', 'halloween2_01_jack_o_lantern_trio.png', 200),
-    ('candy-basket', 'Candy Basket', 'halloween2_02_candy_basket.png', 150),
-    ('gravestone', 'Mossy Gravestone', 'halloween2_03_mossy_gravestone_cluster.png', 210),
-    ('bat-roost', 'Bat Roost', 'halloween2_04_bat_roost_perch.png', 180),
-    ('hay-bale', 'Hay Bales & Pumpkins', 'halloween2_05_hay_bale_pumpkins.png', 190),
-    ('ghost-friend', 'Ghost Friend', 'halloween2_06_ghost_friend_lantern.png', 140),
-    ('fence-garland', 'Autumn Fence Garland', 'halloween2_07_autumn_fence_garland.png', 280),
-    ('spell-book', 'Spell Book & Candles', 'halloween2_08_spell_book_candles.png', 200),
-]
-
-
-PALE_GROUND = {'fence-garland', 'bat-roost'}
 
 
 def cut_out(rgb, pale_ground=False):
@@ -122,7 +101,7 @@ def cut_out(rgb, pale_ground=False):
     return color, alpha
 
 
-def lit_mask(color, alpha):
+def lit_mask(color, alpha, bulbs=False):
     """What gives off light: bright warm-yellow (carved faces, lamps, windows, flames) and the bright
     green brew. Kept small and soft so leaves and pumpkin skin don't glow."""
     r, g, b = color[..., 0], color[..., 1], color[..., 2]
@@ -130,7 +109,10 @@ def lit_mask(color, alpha):
     sat = (mx - mn) / np.maximum(mx, 1e-3)
     warm = (r > 0.98) & (g > 0.84) & (b < 0.45) & (sat > 0.55)
     brew = (g > 0.82) & (r < 0.75) & (b < 0.6) & (sat > 0.4)
-    m = (warm | brew) & (alpha > 0.9)
+    m = warm | brew
+    if bulbs:
+        m |= (r > 0.97) & (g > 0.85) & (b > 0.45) & (b < 0.85) & (sat > 0.15) & (sat < 0.55)
+    m &= alpha > 0.9
     # Only clusters: a lone bright leaf edge pixel shouldn't light up.
     mi = Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(5))
     return np.asarray(mi.filter(ImageFilter.GaussianBlur(1.5))).astype(float) / 255.0
@@ -181,19 +163,37 @@ def old_sign_area(color, alpha):
     return {'x': round((x0 + pad_x) / W, 4), 'y': round((y0 + pad_y) / H, 4), 'width': round((x1 - x0 - 2 * pad_x) / W, 4), 'height': round((y1 - y0 - 2 * pad_y) / H, 4)}
 
 
+def find_source(dirs, name):
+    for d in dirs:
+        path = os.path.join(d, name)
+        if os.path.exists(path):
+            return path
+    raise SystemExit('%s is not in %s' % (name, ', '.join(dirs)))
+
+
+def camel(season):
+    parts = season.split('-')
+    return parts[0] + ''.join(p.title() for p in parts[1:])
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     preview = sys.argv[sys.argv.index('--preview') + 1] if '--preview' in sys.argv else None
     if preview in args:
         args.remove(preview)
-    theme, filler = args[0], args[1]
-    if os.path.isdir(OUT):
-        shutil.rmtree(OUT)
+    with open(args[0]) as f:
+        pack = json.load(f)
+    season, dirs = pack['season'], args[1:]
+    out = os.path.join(DECOR_ROOT, season)
+    name, const, ts_type = camel(season), season.replace('-', '_').upper() + '_DECOR', camel(season)[0].upper() + camel(season)[1:] + 'Decor'
+    ts_out = os.path.join(ROOT, 'src', 'game', 'data', name + 'Decor.ts')
+    if os.path.isdir(out):
+        shutil.rmtree(out)
     entries, previews = [], []
-    for ident, label, name, size in DECOR:
-        path = os.path.join(theme if name.startswith('halloween_') else filler, name)
-        rgb = np.asarray(Image.open(path).convert('RGB'))
-        color, alpha = cut_out(rgb, pale_ground=ident in PALE_GROUND)
+    for piece in pack['decor']:
+        ident, label, size = piece['id'], piece['label'], piece['size']
+        rgb = np.asarray(Image.open(find_source(dirs, piece['file'])).convert('RGB'))
+        color, alpha = cut_out(rgb, pale_ground=piece.get('paleGround', False))
         ys, xs = np.nonzero(alpha > 0.04)
         m = 12
         y0, y1, x0, x1 = max(0, ys.min() - m), min(alpha.shape[0], ys.max() + 1 + m), max(0, xs.min() - m), min(alpha.shape[1], xs.max() + 1 + m)
@@ -206,8 +206,8 @@ def main():
             im = im.resize((round(W * k), round(H * k)), Image.LANCZOS).convert('RGBA')
             arr = np.asarray(im).astype(float) / 255.0
             color, alpha = arr[..., :3], arr[..., 3]
-        lit = lit_mask(color, alpha)
-        folder = os.path.join(OUT, ident)
+        lit = lit_mask(color, alpha, bulbs=piece.get('bulbs', False))
+        folder = os.path.join(out, ident)
         os.makedirs(folder, exist_ok=True)
         imgs = {}
         for phase in PHASES:
@@ -218,7 +218,7 @@ def main():
         entry = {'id': ident, 'label': label, 'width': int(W), 'height': int(H),
                  'contentWidth': int(cxs.max() - cxs.min() + 1), 'contentHeight': int(cys.max() - cys.min() + 1),
                  'anchorY': round(float(cys.max() + 1) / H - 0.04, 4), 'size': size}
-        if ident == 'sign':
+        if ident == 'sign' or piece.get('sign'):
             entry['signArea'] = sign_area(color, alpha)
         entries.append(entry)
         previews.append(imgs)
@@ -238,21 +238,23 @@ def main():
                 im.thumbnail((cell - 16, cell - 16))
                 sheet.alpha_composite(im, ((i % cols) * cell + (cell - im.width) // 2, ((i // cols) * 2 + k) * cell + (cell - im.height) // 2))
         sheet.convert('RGB').save(preview)
-    with open(TS_OUT, 'w') as f:
-        f.write('// Generated by tools/import_halloween_decor.py; do not edit by hand.\n')
-        f.write('/** Decorate › Halloween. width/height are the picture in px; content* the painted part; anchorY where it\n')
+    with open(ts_out, 'w') as f:
+        f.write('// Generated by tools/import_season_decor.py from tools/season_packs/%s.json; do not edit by hand.\n' % season)
+        f.write('/** Decorate › %s. width' % pack['name'] + '/height are the picture in px; content* the painted part; anchorY where it\n')
         f.write(" * meets the ground; size is 'home' or 'tree' (fitted like those) or its width on the 1448-wide island;\n")
         f.write(' * signArea (the sign only) is the blank panel a player can write on. */\n')
-        f.write("export type HalloweenDecor={id:string;label:string;width:number;height:number;contentWidth:number;contentHeight:number;anchorY:number;size:'home'|'tree'|number;signArea?:{x:number;y:number;width:number;height:number}}\n")
-        f.write('export const HALLOWEEN_DECOR:HalloweenDecor[]=' + json.dumps(entries, ensure_ascii=False, separators=(',', ':')) + '\n')
-        f.write("export const halloweenDecorTexturePath=(id:string,phase:string):string=>`/garden/registered-22.8.6/halloween/${id}/${phase}.webp`\n")
+        f.write("export type %s={" % ts_type + "id:string;label:string;width:number;height:number;contentWidth:number;contentHeight:number;anchorY:number;size:'home'|'tree'|number;signArea?:{x:number;y:number;width:number;height:number}}\n")
+        f.write('export const %s:%s[]=' % (const, ts_type) + json.dumps(entries, ensure_ascii=False, separators=(',', ':')) + '\n')
+        f.write('export const %sDecorTexturePath=(id:string,phase:string):string=>`/garden/registered-22.8.6/%s/${id}/${phase}.webp`\n' % (name, season))
     with open(ALLOWLIST) as f:
         files = json.load(f)
-    files = [p for p in files if not p.startswith('/garden/registered-22.8.6/halloween/')]
-    files += ['/garden/registered-22.8.6/halloween/%s/%s.webp' % (e['id'], p) for e in entries for p in PHASES]
+    files = [p for p in files if not p.startswith('/garden/registered-22.8.6/%s/' % season)]
+    files += ['/garden/registered-22.8.6/%s/%s/%s.webp' % (season, e['id'], p) for e in entries for p in PHASES]
     with open(ALLOWLIST, 'w') as f:
         json.dump(files, f, indent=1)
         f.write('\n')
+
+
 
 
 if __name__ == '__main__':

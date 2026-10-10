@@ -40,10 +40,24 @@ html[data-motion=reduced] .kono-care-gain,html[data-motion=reduced] .kono-care-m
 @media(max-width:600px){
  .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-island-zoom{display:none!important}
  .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-expand .wb-btn-label{display:none}
+ /* Phones: smaller tabs so the row fits; if it still doesn't, the time and expand controls drop below
+    instead of sliding over the tabs. */
+ .workbench[data-page=sanctuary] .wb-scene-toolbar{flex-wrap:wrap!important;row-gap:6px!important}
+ .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-left,.workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-controls{flex:0 0 auto;min-width:auto}
+ .workbench[data-page=sanctuary] .wb-scene-toolbar .island-mode-tabs{gap:4px!important}
+ .workbench[data-page=sanctuary] .wb-scene-toolbar .island-mode-tabs button{min-height:36px!important;padding:0 10px!important;font-size:.82rem!important}
+ .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-time select{max-width:140px!important;padding:0 24px 0 10px!important}
+ .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-expand{width:36px!important;min-width:36px!important;min-height:36px!important;padding:0!important}
 }
 
 /* Setup, until it's done: a chip in Home's toolbar that opens the steps. */
 .setup-chip{display:inline-flex!important;align-items:center;gap:6px;border-radius:999px!important;padding:0 14px!important;font-weight:700;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 12%,var(--wb-surface,#fffdf9))!important}
+.setup-chip-kono{white-space:pre}
+/* Phones: "✨ Set up · 0/3" (KONO stays in the button's name) so Search, ＋ Add and ⋯ keep their room. */
+@media(max-width:520px){
+ .workbench .wb-header>.wb-toolbar>.setup-chip{flex:0 1 auto!important;min-width:0;padding:0 10px!important;font-size:.85rem;white-space:nowrap;overflow:hidden}
+ .setup-chip-kono{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+}
 .setup-chip.is-open{box-shadow:inset 0 0 0 2px var(--wb-accent,#c76b8f)!important}
 
 /* Your day: one card, Today / Tomorrow. */

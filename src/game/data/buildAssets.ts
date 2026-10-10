@@ -137,7 +137,7 @@ const treeAssets:BuildAsset[]=TREE_STYLES.map(style=>{
  }
 })
 
-// Halloween (tools/import_halloween_decor.py): the pumpkin house and the tree fit like the other homes and
+// Halloween (tools/import_season_decor.py with tools/season_packs/halloween.json): the pumpkin house and the tree fit like the other homes and
 // trees; the rest have their own width on the island. The sign has a panel to write on, like the Signs.
 const halloweenSize=(item:typeof HALLOWEEN_DECOR[number])=>{
  const scale=item.size==='home'?contentScale(item.contentWidth,item.contentHeight,HOME_BOX):item.size==='tree'?contentScale(item.contentWidth,item.contentHeight,TREE_BOX):item.size/item.contentWidth

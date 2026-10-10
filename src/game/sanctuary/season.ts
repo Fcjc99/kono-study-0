@@ -1,5 +1,5 @@
 /** The island's seasonal look, read from the day it's opened:
- * - all of October it's the Halloween island, one picture per time of day (tools/import_halloween_island.py,
+ * - all of October it's the Halloween island, one picture per time of day (tools/import_season_island.py,
  *   game/systems/HalloweenSystem);
  * - from December 1 to February 14 it's the winter island under snow (tools/draw_winter_island.py,
  *   game/systems/WinterSystem), and Valentine's week (February 1-14) adds floating hearts;
