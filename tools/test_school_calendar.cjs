@@ -169,6 +169,7 @@ test('Duxbury Middle School: a 14-day rotation (D1–D14); a Grade 6 schedule wi
  const built=buildRotationWeek({...dms,school},found.classes.map(c=>({...c,lunchWave:1})),{label:'ASP6-01 · Academic Support Period Gr. 6',location:'B159'})
  assert.equal(built.week['Day 11'].map(b=>b.start+' '+b.label).join(' | '),'08:20 662-02 · French - Grade 6 | 09:23 630-02 · Science 6 | 10:26 610-03 · Geography and Ancient Civilizations I | 11:29 621-01 · MATH 6 | 11:29 Lunch 1 | 13:02 ASP6-01 · Academic Support Period Gr. 6 | 13:46 786-10 · STEM 6')
  assert.equal(Object.values(built.week).flat().length,14*7,'5 blocks, lunch and ASP every day')
+ same(Object.values(built.week).map(d=>d.filter(b=>b.kind==='study').length),Array(14).fill(5),'5 classes a day; ASP and lunch aren’t classes')
  assert.throws(()=>buildRotationWeek({...dms,school},found.classes.map((c,i)=>i===11?{...c,label:''}:{...c,lunchWave:1})),/Enter a name for period 6b\./)
  const saved=addTimetableRows({...dms,school},timed.map(r=>r.slot==='ASP'?{...r,start:'13:02',end:'13:42'}:r))
  const day=n=>saved.week['Day '+n].map(b=>b.label).join(' | ')

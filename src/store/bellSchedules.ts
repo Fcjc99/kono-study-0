@@ -250,8 +250,8 @@ export function buildRotationWeek(season: StudySeason, classes: RotationClass[],
       if (bells.lunch && p + 1 === bells.lunch.period) blocks.push(lunchBlock(bells, c.lunchWave, dateStart, dateEnd))
       if (bells.after && p + 1 === bells.after.period) blocks.push(afterBlock(bells, label, c.location, dateStart, dateEnd))
     })
-    // A period of its own (Duxbury Middle's ASP): the same class every day.
-    if (bells.own) blocks.push({ id: uid('block'), label: own?.label.trim() || bells.own.name, slot: bells.own.label, start: bells.own.start, end: bells.own.end, kind: 'study', location: own?.location.trim() || undefined, dateStart, dateEnd, occurrenceNotes: {}, completedDates: [], skippedDates: [] })
+    // A period of its own (Duxbury Middle's ASP): the same every day, and not one of the day's 5 classes.
+    if (bells.own) blocks.push({ id: uid('block'), label: own?.label.trim() || bells.own.name, slot: bells.own.label, start: bells.own.start, end: bells.own.end, kind: 'routine', location: own?.location.trim() || undefined, dateStart, dateEnd, occurrenceNotes: {}, completedDates: [], skippedDates: [] })
     return [day, blocks.sort((a, b) => a.start.localeCompare(b.start))]
   }))
   return { ...season, week }
