@@ -1,5 +1,5 @@
-import {records,type Collection} from './store/workspace'
-import type {AppData} from './store/model'
+import {records,type Collection,type Entry} from './store/workspace'
+import {localDate,type AppData} from './store/model'
 import {teamThemeIds} from './teamThemes'
 
 /* Shared by the workspace and its settings screens (WorkspaceSettings.tsx, which loads on demand). */
@@ -22,3 +22,12 @@ export const experienceOptions=[
  {id:'sumi',title:'Zen Ink',glyph:'⛩️',description:'Sumi ink and washi paper — muted indigo and charcoal, hairline rules and quiet type, in the spirit of Japanese ink-wash art.'},
 ] as const
 export const own=(data:AppData,key:Collection)=>records(data,key).filter(r=>r.profileId===data.activeProfileId)
+
+// Dates and kinds of planner entries (Home, the Planner calendar and record cards).
+export const dateLabel=(date:string)=>new Date(date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})
+export const daysUntil=(date:string,from=localDate())=>Math.round((new Date(date+'T12:00:00').getTime()-new Date(from+'T12:00:00').getTime())/86400000)
+export const countdown=(date:string,done=false,from=localDate())=>{if(done)return 'Completed';const days=daysUntil(date,from);return days===0?'Due today':days===1?'Due tomorrow':days>1?days+' days left':Math.abs(days)+' day'+(days===-1?'':'s')+' overdue'}
+export const eventKind=(entry:Entry)=>String(entry.kind??'').toLowerCase()
+export const entryDate=(entry:Entry)=>String(entry.due??entry.date??'')
+export const isAssignmentKind=(entry:Entry)=>['homework','assignment','assignments'].includes(eventKind(entry))
+export const isImportantEntry=(key:Collection,entry:Entry)=>key==='exams'||(key==='notes'&&['exam','project','test','quiz'].includes(eventKind(entry)))||(key==='calendarEvents'&&['exam','test','quiz','project','assignment'].includes(eventKind(entry)))
