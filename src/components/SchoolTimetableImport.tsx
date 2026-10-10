@@ -18,7 +18,8 @@ export default function SchoolTimetableImport({season,change,onReview}:{season:S
  // Schedules that list "Period 1…5" without clock times: one set of times per period fills every class in it.
  // A school KONO knows the bell schedule for (Duxbury High) gets them filled in, plus each class's lunch wave.
  const bells=bellScheduleFor(season.school)
- const periods=[...new Set(rows.filter(r=>periodNumber(r.slot)).map(r=>r.slot))].sort((a,b)=>periodNumber(a)-periodNumber(b))
+ // Numbered periods, then any other untimed row the schedule has (like Duxbury Middle's ASP), each set once.
+ const periods=[...new Set(rows.filter(r=>periodNumber(r.slot)||(r.slot&&rows.some(x=>x.slot===r.slot&&(!x.start||!x.end)))).map(r=>r.slot))].sort((a,b)=>(periodNumber(a)||99)-(periodNumber(b)||99))
  const lunchRows=bells?.lunch?rows.filter(r=>r.include&&r.kind==='study'&&periodNumber(r.slot)===bells.lunch!.period):[]
  const problems=bells||periods.length?periodProblems(rows,season.school!.cycle,bells):[]
  const setPeriod=(period:string,key:'start'|'end',value:string)=>setRows(rows.map(r=>r.slot===period?{...r,[key]:value}:r))

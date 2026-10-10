@@ -1,12 +1,13 @@
 import {uid,dayNames,type StudySeason} from './model'
 import type {SchoolException} from './schoolCalendar'
 import {hanoverElevatorCycle} from './elevatorSchedule'
-export function schoolPreset(profileId:string,preset:'blank'|'marshfield'|'nda'|'hanover'|'silverlake'|'duxbury'|'duxburyhs'|'scituate'|'plymouth'):StudySeason{
- const nda=preset==='nda',hanover=preset==='hanover',silverlake=preset==='silverlake',dhs=preset==='duxburyhs',duxbury=preset==='duxbury'||dhs,scituate=preset==='scituate',plymouth=preset==='plymouth'
- // Duxbury High School runs a seven-day rotation (Day 1–Day 7) on the district calendar; the district's
+export function schoolPreset(profileId:string,preset:'blank'|'marshfield'|'nda'|'hanover'|'silverlake'|'duxbury'|'duxburyhs'|'duxburyms'|'scituate'|'plymouth'):StudySeason{
+ const nda=preset==='nda',hanover=preset==='hanover',silverlake=preset==='silverlake',dhs=preset==='duxburyhs',dms=preset==='duxburyms',duxbury=preset==='duxbury'||dhs||dms,scituate=preset==='scituate',plymouth=preset==='plymouth'
+ // Duxbury High School runs a seven-day rotation (Day 1–Day 7) and Duxbury Middle School a fourteen-day
+ // one (D1–D14, five periods and an Academic Support Period) on the district calendar; the district's
  // other schools follow the regular Monday–Friday week.
- const weeklyPreset=silverlake||(duxbury&&!dhs)||scituate||plymouth
- const cycle=hanover?[...hanoverElevatorCycle]:nda?Array.from({length:6},(_,i)=>'Day '+(i+1)):dhs?Array.from({length:7},(_,i)=>'Day '+(i+1)):weeklyPreset?[...dayNames]:['A day','E day']
+ const weeklyPreset=silverlake||(duxbury&&!dhs&&!dms)||scituate||plymouth
+ const cycle=hanover?[...hanoverElevatorCycle]:nda?Array.from({length:6},(_,i)=>'Day '+(i+1)):dhs?Array.from({length:7},(_,i)=>'Day '+(i+1)):dms?Array.from({length:14},(_,i)=>'Day '+(i+1)):weeklyPreset?[...dayNames]:['A day','E day']
  const start=hanover?'2026-08-31':nda?'2026-09-09':plymouth?'2026-08-27':'2026-09-02'
  const end=hanover?'2027-06-23':nda?'2027-06-11':(silverlake||scituate)?'2027-06-25':duxbury?'2027-06-24':plymouth?'2027-06-23':preset==='marshfield'?'2027-06-18':'2027-06-17'
  const exceptions:SchoolException[]=[]
@@ -67,8 +68,8 @@ export function schoolPreset(profileId:string,preset:'blank'|'marshfield'|'nda'|
   add('2027-06-16','2027-06-17','notice','Make-up days, if necessary')
   add('2027-06-21','2027-06-23','notice','Make-up days, if necessary')
  }
- const name=preset==='blank'?'My school year':hanover?'Hanover High School 2026–27':nda?'NDA 2026–27':silverlake?'Silver Lake Regional 2026–27':dhs?'Duxbury High School 2026–27':duxbury?'Duxbury Public Schools 2026–27':scituate?'Scituate Public Schools 2026–27':plymouth?'Plymouth Public Schools 2026–27':'Marshfield 2026–27'
- const schoolName=preset==='blank'?'My school':hanover?'Hanover High School':nda?'Notre Dame Academy':silverlake?'Silver Lake Regional School District':dhs?'Duxbury High School':duxbury?'Duxbury Public Schools':scituate?'Scituate Public Schools':plymouth?'Plymouth Public Schools':'Marshfield'
+ const name=preset==='blank'?'My school year':hanover?'Hanover High School 2026–27':nda?'NDA 2026–27':silverlake?'Silver Lake Regional 2026–27':dhs?'Duxbury High School 2026–27':dms?'Duxbury Middle School 2026–27':duxbury?'Duxbury Public Schools 2026–27':scituate?'Scituate Public Schools 2026–27':plymouth?'Plymouth Public Schools 2026–27':'Marshfield 2026–27'
+ const schoolName=preset==='blank'?'My school':hanover?'Hanover High School':nda?'Notre Dame Academy':silverlake?'Silver Lake Regional School District':dhs?'Duxbury High School':dms?'Duxbury Middle School':duxbury?'Duxbury Public Schools':scituate?'Scituate Public Schools':plymouth?'Plymouth Public Schools':'Marshfield'
  const lastClassDate=hanover?'2027-06-15':nda?'2027-06-02':silverlake?'2027-06-21':duxbury?'2027-06-16':scituate?'2027-06-18':plymouth?'2027-06-15':'2027-06-17'
  return {id:uid('school'),profileId,name,start,end,active:true,week:Object.fromEntries(cycle.map(d=>[d,[]])),school:{pattern:hanover?'elevator':weeklyPreset?'weekly':'rotation',name:schoolName,grade:'',cycle,anchorDate:start,anchorDay:hanover?'1A':weeklyPreset?dayNames[new Date(start+'T12:00:00Z').getUTCDay()]:'',weekdays:[1,2,3,4,5],snowAdvances:hanover||weeklyPreset?false:true,lastClassDate,exceptions}}
 }

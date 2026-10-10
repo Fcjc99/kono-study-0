@@ -9,10 +9,10 @@ export function classSchedulePrompt(cycle: string[], text?: string, periods?: nu
   return `You are reading a student's class schedule${text ? ' (text copied from a PDF; table cells may be split across lines)' : ' from a photo'}. ` +
     `This schedule's days are named: ${cycle.map(d => JSON.stringify(d)).join(', ')}. ` +
     `Columns or rows headed like "D1", "D2 -" or "Day 1" are those rotation days. ` +
-    `For every class that meets on a regular day and time, return one entry; list a lecture, discussion, lab or section that meets at a different time as its own entry. ` +
+    `For every class that meets on a regular day and time, return one entry; when a class meets in the same period (or at the same time) on several days, return it once with all those days; list a lecture, discussion, lab or section that meets at a different time as its own entry. ` +
     `If the schedule only shows periods (like "P1-Period 1") and no clock times, return each class with its period and set start and end to null; never guess times. ` +
     (periods ? `This school has ${periods} periods (also called blocks) every day, numbered 1 to ${periods}, so each day has at most ${periods} classes; return each period as "Period N". ` : '') +
-    `Skip lunch, passing time, homeroom or advisory unless it is clearly a class, and skip anything without a day and either a time or a period. ` +
+    `A row that isn't numbered but has a class in it every day, like "ASP-Academic Support Period", is a period too: return its classes with that row's heading as the period. Skip lunch, passing time, homeroom or advisory unless it is clearly a class, and skip anything without a day and either a time or a period. ` +
     `Respond with a single JSON object: {"classes": array of {"name": string (the class title), "code": string or null (course code or section, if shown), ` +
     `"days": array of one or more of the day names above, "start": "HH:MM" 24-hour or null, "end": "HH:MM" 24-hour or null, "period": string or null (the period the class meets in, like "Period 1", when shown), ` +
     `"building": string or null, "room": string or null, "teacher": string or null}}. Output ONLY the JSON object, no other text.` +
@@ -24,11 +24,13 @@ const clock = (value: unknown) => {
   if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) return ''
   return m[1].padStart(2, '0') + ':' + m[2]
 }
-/** "P1", "Period 1", "P1-Period 1" → "Period 1"; other labels (like "Block A") are kept as written. */
+/** "P1", "Period 1", "P1-Period 1" → "Period 1"; "ASP-Academic Support Period" → "ASP" (a short code before
+ * its name); other labels (like "Block A") are kept as written. */
 export function periodLabel(value: unknown): string {
   if (typeof value !== 'string' || !value.trim()) return ''
   const m = value.match(/\b(?:p(?:er(?:iod)?)?)\s*-?\s*(\d{1,2})\b/i)
-  return m ? 'Period ' + Number(m[1]) : value.replace(/\s+/g, ' ').trim().slice(0, 30)
+  const code = value.match(/^\s*([A-Z]{2,5})\s*-\s*[A-Za-z]/)
+  return m ? 'Period ' + Number(m[1]) : code ? code[1] : value.replace(/\s+/g, ' ').trim().slice(0, 30)
 }
 /** "D3", "D3 -", "Day 3" → "Day 3" when the rotation has it. */
 const rotationDay = (value: string, cycle: string[]) => { const m = value.match(/^\s*d(?:ay)?\s*-?\s*(\d{1,2})\b/i); return m && cycle.includes('Day ' + Number(m[1])) ? ['Day ' + Number(m[1])] : undefined }
@@ -42,7 +44,8 @@ export function parseAiClassSchedule(raw: string, cycle: string[], start: string
   if (!Array.isArray(classes)) aiFail('The AI response was not in the expected format. Try again.')
   const byName = new Map(cycle.map(day => [day.toLowerCase(), day]))
   const rows: RotatingImportRow[] = []
-  for (const item of (classes as unknown[]).slice(0, 60)) {
+  // Up to 14 rotation days × 8 periods, one entry per class and period (a 14-day middle-school matrix is 84).
+  for (const item of (classes as unknown[]).slice(0, 120)) {
     if (!item || typeof item !== 'object') continue
     const c = item as Record<string, unknown>
     const name = words(c.name, 200), code = words(c.code, 30), from = clock(c.start), to = clock(c.end), period = periodLabel(c.period)

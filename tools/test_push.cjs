@@ -47,8 +47,18 @@ assert.equal(rows.filter(r=>r.tag.startsWith('week-')).length,1,'only on Mondays
  assert.equal(buildReminders(pet,now).filter(r=>r.tag.startsWith('kono-')).length,0,'off means off')
  assert.equal(model.normalizeData?model.normalizeData(JSON.parse(JSON.stringify(pet))).settings.konoNotes:false,false,'the setting is saved')
  assert.equal(buildReminders(model.createFreshData(),now).filter(r=>r.tag.startsWith('kono-')).length,0,'no care log, no notes')}
+{// Work shifts: nothing arrives mid-shift, and a long shift gets a heads-up the evening before.
+ const job=model.createFreshData(),jid=job.activeProfileId
+ job.studySeasons=[{id:'w',profileId:jid,name:'Cafe · work',start:'2026-09-01',end:'2026-12-20',active:true,week:{...model.blankWeek(),Monday:[{id:'wm',label:'Cafe',start:'15:00',end:'19:00',kind:'routine'}],Wednesday:[{id:'ww',label:'Cafe',start:'12:00',end:'18:00',kind:'routine'}]}}]
+ job.tasks.push({id:'j1',profileId:jid,subjectId:'',title:'Essay',due:'2026-09-28',done:false,notes:'',plannedTime:'16:00'},{id:'j2',profileId:jid,subjectId:'',title:'Lab',due:'2026-10-01',done:false,notes:''})
+ const r=buildReminders(job,now),start=r.find(x=>x.title==='Time to start: Essay')
+ assert.equal(new Date(start.sendAt).getHours(),19,'a reminder that falls in a shift waits until the shift ends')
+ const eve=r.find(x=>x.tag==='shift-2026-09-30');assert.ok(eve,'a heads-up before a 6-hour shift with work due')
+ assert.equal(new Date(eve.sendAt).toDateString(),new Date('2026-09-29T12:00:00').toDateString());assert.equal(new Date(eve.sendAt).getHours()*60+new Date(eve.sendAt).getMinutes(),19*60+10)
+ assert.match(eve.body,/^Cafe 12:00 PM–6:00 PM\. Due by Thu: Lab\./)
+ assert.ok(!r.some(x=>x.tag==='shift-2026-09-28'),'no heads-up for a shift whose evening before has passed')}
 const quiet=model.createFreshData();assert.ok(!buildReminders(quiet,now).some(r=>r.tag.startsWith('week-')),'nothing due: no Monday summary')
-console.log('PASS reminder planner: morning summary, exam eve, classes 15 min before, study blocks, skipped/breaks/past left out')
+console.log('PASS reminder planner: work shifts respected, morning summary, exam eve, classes 15 min before, study blocks, skipped/breaks/past left out')
 
 {
  // A rotating school: Duxbury High's 7-day rotation, with Monday September 28 as Day 4.

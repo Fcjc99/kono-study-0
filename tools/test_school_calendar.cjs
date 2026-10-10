@@ -136,6 +136,32 @@ test('Duxbury High School: a 7-day rotation on the district calendar; a periods-
  assert.equal(saved.week['Day 1'].map(b=>b.start+' '+b.label).sort().join(' | '),'07:30 328-03 · Chemistry I | 08:35 513-01 · Music Technology I')
  assert.equal(saved.week['Day 2'].map(b=>b.start+' '+b.label).sort().join(' | '),'07:30 442-01 · Spanish III | 09:40 328-03 · Chemistry I');assert.equal(saved.week['Day 6'][0].start,'10:05')
 })
+test('Duxbury Middle School: a 14-day rotation (D1–D14); a Grade 6 schedule with five periods and the Academic Support Period builds every day once each period’s times are set',()=>{
+ const {academicTemplate}=load('src/store/academicCatalog.ts'),{parseAiClassSchedule,classSchedulePrompt,periodLabel}=load('src/store/aiClassSchedule.ts'),{addTimetableRows}=load('src/store/schoolImport.ts')
+ const data=model.createFreshData(),dms=academicTemplate(data.activeProfileId,'duxburyms-2026')
+ assert.equal(dms.school.pattern,'rotation');assert.equal(dms.school.cycle.length,14);assert.equal(dms.school.cycle[13],'Day 14');assert.equal(dms.school.name,'Duxbury Middle School')
+ assert.ok(dms.school.exceptions.some(e=>/Duxbury Middle School only/.test(e.label)),'the district calendar, with the middle school’s own dates')
+ const school={...dms.school,grade:'6',anchorDate:'2026-10-13',anchorDay:'Day 1'};validateSchool(school,dms.start,dms.end)
+ assert.match(classSchedulePrompt(school.cycle),/"ASP-Academic Support Period", is a period too/)
+ assert.equal(periodLabel('ASP-Academic Support Period'),'ASP');assert.equal(periodLabel('P4-Period 4'),'Period 4')
+ // The schedule picture, cell by cell (rows P1–P5, columns D1–D14), as the AI returns it.
+ const C={LW:['602-01','Literacy/Writing','B158','Guilloy, L; Dale, J'],CH:['657-01','Chorus 6','PAC','Judge, R; Schmetterer, S'],GEO:['610-03','Geography and Ancient Civilizations I','B148','Martin, Courtney L'],PE:['690-01','Physical Education/Health 6','D178','D’Andrea, Joseph NMN'],LR:['601-05','Literacy/Reading','B159','Burns, Deborah E'],MA:['621-01','MATH 6','B146','Sullivan, Jessica M'],SCI:['630-02','Science 6','B139','Casale-McCarthy, Aimee M'],ST:['786-10','STEM 6','B307','Winters, Liam P'],FR:['662-02','French - Grade 6','B250','Staffa, Max L'],ASP:['ASP6-01','Academic Support Period Gr. 6','B159','Burns, Deborah E']}
+ const grid=['LW PE SCI GEO MA','CH LR LW FR SCI','GEO MA ST LR LW','PE SCI GEO MA CH','LR LW FR SCI GEO','MA ST LR LW PE','SCI GEO MA CH LR','LW FR SCI GEO MA','ST LR LW PE SCI','GEO MA CH LR LW','FR SCI GEO MA ST','LR LW PE SCI GEO','MA CH LR LW FR','SCI GEO MA ST LR'].map(r=>r.split(' '))
+ const classes=[]
+ grid.forEach((row,d)=>{const day=d<2?'D'+(d+1)+' - Day '+(d+1):'D'+(d+1)+' -';row.forEach((k,p)=>classes.push({name:C[k][1],code:C[k][0],days:[day],start:null,end:null,period:'P'+(p+1)+'-Period '+(p+1),building:null,room:C[k][2],teacher:C[k][3]}));classes.push({name:C.ASP[1],code:C.ASP[0],days:[day],start:null,end:null,period:'ASP-Academic Support Period',building:null,room:C.ASP[2],teacher:C.ASP[3]})})
+ const rows=parseAiClassSchedule(JSON.stringify({classes}),school.cycle,dms.start,school.lastClassDate)
+ assert.equal(rows.length,84,'14 days × (5 periods + ASP)')
+ assert.equal(rows.filter(r=>r.slot==='ASP').length,14);assert.ok(rows.every(r=>!r.start&&!r.end),'no times on the schedule, so none are guessed')
+ const times={'Period 1':['07:45','08:41'],'Period 2':['08:45','09:41'],'Period 3':['09:45','10:41'],'Period 4':['10:45','12:11'],'Period 5':['12:15','13:11'],ASP:['13:15','14:00']}
+ const saved=addTimetableRows({...dms,school},rows.map(r=>({...r,start:times[r.slot][0],end:times[r.slot][1]})))
+ const day=n=>saved.week['Day '+n].map(b=>b.label).join(' | ')
+ assert.equal(day(1),'602-01 · Literacy/Writing | 690-01 · Physical Education/Health 6 | 630-02 · Science 6 | 610-03 · Geography and Ancient Civilizations I | 621-01 · MATH 6 | ASP6-01 · Academic Support Period Gr. 6')
+ assert.equal(day(11),'662-02 · French - Grade 6 | 630-02 · Science 6 | 610-03 · Geography and Ancient Civilizations I | 621-01 · MATH 6 | 786-10 · STEM 6 | ASP6-01 · Academic Support Period Gr. 6')
+ assert.equal(day(14).split(' | ')[3],'786-10 · STEM 6');assert.equal(saved.week['Day 13'][4].location,'B250 · Staffa, Max L')
+ assert.equal(Object.values(saved.week).flat().length,84)
+ // Day 1 is Tuesday October 13 (Monday the 12th is a holiday); the next school day is Day 2.
+ const {schoolDay}=load('src/store/schoolCalendar.ts');assert.equal(schoolDay(saved,'2026-10-13').cycleDay,'Day 1');assert.equal(schoolDay(saved,'2026-10-14').cycleDay,'Day 2')
+})
 test('One known day sets the rotation: "September 28 is Day 4" counts forward over weekends and holidays, and the next school day is found without it',()=>{
  const {academicTemplate}=load('src/store/academicCatalog.ts'),{nextSchoolDate,rotationPreview}=load('src/store/schoolCalendar.ts')
  const dhs=academicTemplate(model.createFreshData().activeProfileId,'duxburyhs-2026')
