@@ -152,8 +152,25 @@ test('Duxbury Middle School: a 14-day rotation (D1–D14); a Grade 6 schedule wi
  const rows=parseAiClassSchedule(JSON.stringify({classes}),school.cycle,dms.start,school.lastClassDate)
  assert.equal(rows.length,84,'14 days × (5 periods + ASP)')
  assert.equal(rows.filter(r=>r.slot==='ASP').length,14);assert.ok(rows.every(r=>!r.start&&!r.end),'no times on the schedule, so none are guessed')
- const times={'Period 1':['07:45','08:41'],'Period 2':['08:45','09:41'],'Period 3':['09:45','10:41'],'Period 4':['10:45','12:11'],'Period 5':['12:15','13:11'],ASP:['13:15','14:00']}
- const saved=addTimetableRows({...dms,school},rows.map(r=>({...r,start:times[r.slot][0],end:times[r.slot][1]})))
+ const same=(x,y,m)=>assert.equal(JSON.stringify(x),JSON.stringify(y),m)
+ // The school's DMS Schedule: block times, lunch waves in Block 4, ASP between Blocks 4 and 5.
+ const {applyBells,bellScheduleFor,buildRotationWeek,classesFromRows,rotationGrid}=load('src/store/bellSchedules.ts'),bells=bellScheduleFor(school)
+ same(bells.periods.map(p=>p.join('–')),['08:20–09:19','09:23–10:22','10:26–11:25','11:29–12:58','13:46–14:45'])
+ same(bells.lunch.waves[2],['12:00','12:26']);same([bells.own.start,bells.own.end],['13:02','13:42'])
+ assert.match(classSchedulePrompt(school.cycle,undefined,5,['ASP']),/at most 5 classes in them; return each period as "Period N"\. Each day also has "ASP" \(its own row, with a class in it\)/)
+ const timed=applyBells(rows,bells)
+ assert.equal(timed.find(r=>r.day==='Day 1'&&r.slot==='Period 1').start,'08:20');assert.equal(timed.find(r=>r.day==='Day 9'&&r.slot==='Period 4').end,'12:58')
+ // The rotation table: 7 periods with a and b meetings; the schedule's classes land on it exactly.
+ same(rotationGrid(bells,14)[1].map(n=>bells.keys[n-1]),['6a','7a','1b','2b','3b']);same(rotationGrid(bells,14)[13].map(n=>bells.keys[n-1]),['3b','4b','5b','6b','7b'])
+ const found=classesFromRows(rows,school.cycle,bells)
+ same(found.conflicts,[],'every meeting of a period is the same class on the schedule')
+ const by=k=>found.classes[bells.keys.indexOf(k)].label
+ assert.equal(by('1a'),'602-01 · Literacy/Writing');assert.equal(by('1b'),'602-01 · Literacy/Writing');assert.equal(by('2a'),'690-01 · Physical Education/Health 6');assert.equal(by('2b'),'662-02 · French - Grade 6');assert.equal(by('6a'),'657-01 · Chorus 6');assert.equal(by('6b'),'786-10 · STEM 6')
+ const built=buildRotationWeek({...dms,school},found.classes.map(c=>({...c,lunchWave:1})),{label:'ASP6-01 · Academic Support Period Gr. 6',location:'B159'})
+ assert.equal(built.week['Day 11'].map(b=>b.start+' '+b.label).join(' | '),'08:20 662-02 · French - Grade 6 | 09:23 630-02 · Science 6 | 10:26 610-03 · Geography and Ancient Civilizations I | 11:29 621-01 · MATH 6 | 11:29 Lunch 1 | 13:02 ASP6-01 · Academic Support Period Gr. 6 | 13:46 786-10 · STEM 6')
+ assert.equal(Object.values(built.week).flat().length,14*7,'5 blocks, lunch and ASP every day')
+ assert.throws(()=>buildRotationWeek({...dms,school},found.classes.map((c,i)=>i===11?{...c,label:''}:{...c,lunchWave:1})),/Enter a name for period 6b\./)
+ const saved=addTimetableRows({...dms,school},timed.map(r=>r.slot==='ASP'?{...r,start:'13:02',end:'13:42'}:r))
  const day=n=>saved.week['Day '+n].map(b=>b.label).join(' | ')
  assert.equal(day(1),'602-01 · Literacy/Writing | 690-01 · Physical Education/Health 6 | 630-02 · Science 6 | 610-03 · Geography and Ancient Civilizations I | 621-01 · MATH 6 | ASP6-01 · Academic Support Period Gr. 6')
  assert.equal(day(11),'662-02 · French - Grade 6 | 630-02 · Science 6 | 610-03 · Geography and Ancient Civilizations I | 621-01 · MATH 6 | 786-10 · STEM 6 | ASP6-01 · Academic Support Period Gr. 6')

@@ -6,7 +6,19 @@ export type LunchWave = 1 | 2 | 3
 /** A school's regular bell schedule: the times of each numbered period (or block); when lunch happens
  * inside one of them, which part of that period each lunch wave eats; and a time that always follows one
  * period with the same class (Duxbury High's ASP after Block 5). */
-export type BellSchedule = { periods: [string, string][]; lunch?: { period: number; waves: Record<LunchWave, [string, string]> }; after?: { period: number; label: string; start: string; end: string }; classes?: number }
+export type BellSchedule = {
+  periods: [string, string][]; extraRows?: string[]
+  lunch?: { period: number; waves: Record<LunchWave, [string, string]> }
+  /** Lunch waves follow the department of the lunch-period class (Duxbury High), so a wave can be guessed. */
+  lunchByDepartment?: boolean
+  after?: { period: number; label: string; start: string; end: string }
+  /** A period of its own between blocks, with one class every day (Duxbury Middle's ASP). */
+  own?: { label: string; name: string; start: string; end: string }
+  classes?: number
+  /** When classes don't simply take turns in order: which class key meets in each block, day by day
+   * (Duxbury Middle: "1a", "6b"…), and every key in class order. */
+  rotation?: string[][]; keys?: string[]
+}
 
 /** Duxbury High School: five blocks a day on the 7-day rotation. Lunch is inside Block 4, in three
  * waves, and a class's wave follows the department that teaches it (see duxburyLunchWave). ASP
@@ -17,10 +29,27 @@ export const duxburyHighBells: BellSchedule = {
   lunch: { period: 4, waves: { 1: ['11:29', '11:53'], 2: ['11:54', '12:18'], 3: ['12:34', '12:58'] } },
   after: { period: 5, label: 'ASP', start: '14:05', end: '14:45' },
   classes: 7,
+  lunchByDepartment: true,
+}
+
+/** Duxbury Middle School (the school's DMS Schedule): five blocks a day on the 14-day rotation, lunch inside
+ * Block 4 in three waves, and the Academic Support Period (ASP, 1:02–1:42) between Blocks 4 and 5. Seven
+ * periods take turns through the blocks, each with an "a" and a "b" meeting (often the same class; some
+ * periods alternate two classes, like Chorus on 6a and STEM on 6b), in the order of the school's Rotation
+ * of Periods table. */
+const DMS_ROTATION = ['1a 2a 3a 4a 5a', '6a 7a 1b 2b 3b', '4b 5b 6b 7b 1a', '2a 3a 4a 5a 6a', '7a 1b 2b 3b 4b', '5b 6b 7b 1a 2a', '3a 4a 5a 6a 7a', '1b 2b 3b 4b 5b', '6b 7b 1a 2a 3a', '4a 5a 6a 7a 1b', '2b 3b 4b 5b 6b', '7b 1a 2a 3a 4a', '5a 6a 7a 1b 2b', '3b 4b 5b 6b 7b'].map(day => day.split(' '))
+export const duxburyMiddleBells: BellSchedule = {
+  periods: [['08:20', '09:19'], ['09:23', '10:22'], ['10:26', '11:25'], ['11:29', '12:58'], ['13:46', '14:45']],
+  lunch: { period: 4, waves: { 1: ['11:29', '11:55'], 2: ['12:00', '12:26'], 3: ['12:32', '12:58'] } },
+  own: { label: 'ASP', name: 'Academic Support Period', start: '13:02', end: '13:42' },
+  extraRows: ['ASP'],
+  classes: 14,
+  rotation: DMS_ROTATION,
+  keys: [1, 2, 3, 4, 5, 6, 7].flatMap(n => [n + 'a', n + 'b']),
 }
 
 export const bellScheduleFor = (school?: SchoolCalendar): BellSchedule | undefined =>
-  school?.pattern === 'rotation' && school.name === 'Duxbury High School' ? duxburyHighBells : undefined
+  school?.pattern !== 'rotation' ? undefined : school.name === 'Duxbury High School' ? duxburyHighBells : school.name === 'Duxbury Middle School' ? duxburyMiddleBells : undefined
 
 /** "Period 4" or "Block 4" → 4. */
 export const periodNumber = (slot?: string) => { const m = slot?.match(/^(?:Period|Block) (\d{1,2})$/); return m ? Number(m[1]) : 0 }
@@ -41,7 +70,7 @@ export function duxburyLunchWave(className: string): { wave: LunchWave; sure: bo
   if (wave2.test(name)) return { wave: 2, sure: true }
   return { wave: 3, sure: wave3.test(name) }
 }
-export const lunchWaveFor = (school: SchoolCalendar | undefined, className: string) => bellScheduleFor(school) ? duxburyLunchWave(className) : undefined
+export const lunchWaveFor = (school: SchoolCalendar | undefined, className: string) => bellScheduleFor(school)?.lunchByDepartment ? duxburyLunchWave(className) : undefined
 
 /** The lunch shown on a school day: a "Lunch N" break inside the lunch period, for the same dates as the class it's in. */
 export function lunchBlock(bells: BellSchedule, wave: LunchWave, dateStart?: string, dateEnd?: string): ScheduleBlock {
@@ -112,7 +141,7 @@ export function applyBells<R extends PeriodRow>(rows: R[], bells?: BellSchedule)
     const times = periodTimes(bells, r.slot)
     if (!times) return r
     const timed = r.start && r.end ? r : { ...r, start: times[0], end: times[1] }
-    if (bells.lunch && periodNumber(r.slot) === bells.lunch.period && r.kind === 'study' && !r.lunchWave) { const guess = duxburyLunchWave(r.label); return { ...timed, lunchWave: guess.wave, lunchSure: guess.sure } }
+    if (bells.lunch && periodNumber(r.slot) === bells.lunch.period && r.kind === 'study' && !r.lunchWave) { const guess = bells.lunchByDepartment ? duxburyLunchWave(r.label) : { wave: 1 as LunchWave, sure: false }; return { ...timed, lunchWave: guess.wave, lunchSure: guess.sure } }
     return timed
   })
 }
@@ -155,7 +184,7 @@ export function periodProblems(rows: PeriodRow[], cycle: string[], bells?: BellS
 
 /** At a school where a fixed set of classes rotates through the periods in order, which class (0-based)
  * meets on the day at `dayIndex` (0-based) in `period` (1-based). */
-export const classIndexFor = (bells: BellSchedule, dayIndex: number, period: number) => (dayIndex * bells.periods.length + period - 1) % (bells.classes ?? bells.periods.length)
+export const classIndexFor = (bells: BellSchedule, dayIndex: number, period: number) => bells.rotation && bells.keys ? bells.keys.indexOf(bells.rotation[dayIndex % bells.rotation.length][period - 1]) : (dayIndex * bells.periods.length + period - 1) % (bells.classes ?? bells.periods.length)
 /** Every day's classes in period order, as class numbers from 1: Day 1 → [1,2,3,4,5], Day 2 → [6,7,1,2,3]… */
 export const rotationGrid = (bells: BellSchedule, days: number) => Array.from({ length: days }, (_, d) => bells.periods.map((_, p) => classIndexFor(bells, d, p + 1) + 1))
 
@@ -204,13 +233,14 @@ export function classesFromWeek(season: StudySeason, bells: BellSchedule): { lab
 
 /** All rotation days built from the student's classes: each class in its period with the bell times,
  * lunch inside the lunch period for whichever class is there that day, and ASP after the last period.
- * A class named "Free" (or "Open", "Study Hall"…) is a free block rather than a subject. */
-export function buildRotationWeek(season: StudySeason, classes: RotationClass[]): StudySeason {
+ * A class named "Free" (or "Open", "Study Hall"…) is a free block rather than a subject. A school with a
+ * period of its own (ASP) gets it every day, with the class given for it. */
+export function buildRotationWeek(season: StudySeason, classes: RotationClass[], own?: { label: string; location: string }): StudySeason {
   const bells = bellScheduleFor(season.school), count = bells?.classes
   if (!bells || !count || !season.school) throw Error('This school doesn’t use a class rotation.')
   if (classes.length !== count) throw Error('Enter all ' + count + ' classes.')
-  const missing = classes.map((c, i) => c.label.trim() ? 0 : i + 1).filter(Boolean)
-  if (missing.length) throw Error('Enter a name for class ' + missing.join(', ') + '. Use “Free” for a free block.')
+  const missing = classes.map((c, i) => c.label.trim() ? '' : bells.keys ? bells.keys[i] : String(i + 1)).filter(Boolean)
+  if (missing.length) throw Error('Enter a name for ' + (bells.keys ? 'period ' : 'class ') + missing.join(', ') + '. Use “Free” for a free block.')
   const dateStart = season.start, dateEnd = season.school.lastClassDate || season.end
   const week = Object.fromEntries(season.school.cycle.map((day, d) => {
     const blocks: ScheduleBlock[] = []
@@ -220,7 +250,15 @@ export function buildRotationWeek(season: StudySeason, classes: RotationClass[])
       if (bells.lunch && p + 1 === bells.lunch.period) blocks.push(lunchBlock(bells, c.lunchWave, dateStart, dateEnd))
       if (bells.after && p + 1 === bells.after.period) blocks.push(afterBlock(bells, label, c.location, dateStart, dateEnd))
     })
+    // A period of its own (Duxbury Middle's ASP): the same class every day.
+    if (bells.own) blocks.push({ id: uid('block'), label: own?.label.trim() || bells.own.name, slot: bells.own.label, start: bells.own.start, end: bells.own.end, kind: 'study', location: own?.location.trim() || undefined, dateStart, dateEnd, occurrenceNotes: {}, completedDates: [], skippedDates: [] })
     return [day, blocks.sort((a, b) => a.start.localeCompare(b.start))]
   }))
   return { ...season, week }
+}
+
+/** The class in a school's own period (ASP) in a saved rotation, if it's been built. */
+export function ownClassFromWeek(season: StudySeason, bells: BellSchedule): { label: string; location: string } | undefined {
+  const b = bells.own && Object.values(season.week).flat().find(x => x.slot === bells.own!.label)
+  return b ? { label: b.label, location: b.location ?? '' } : undefined
 }
