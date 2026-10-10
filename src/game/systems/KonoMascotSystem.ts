@@ -139,6 +139,8 @@ const textureForAction = (action: KonoContextAction): ReactionTexture => {
   return 'kono-excited'
 }
 
+export type KonoMood = { full: number; rested: number; happy: number; asleep: boolean }
+
 export class KonoMascotSystem {
   private readonly scene: Phaser.Scene
   private sprite!: Phaser.GameObjects.Image
@@ -172,6 +174,11 @@ export class KonoMascotSystem {
   private needIcon = ''
   private taps: number[] = []
   private tickleTween: Phaser.Tweens.Tween | null = null
+  // How KONO is doing (the KONO bar's meters), so it acts on it now and then: naps when tired, wonders
+  // about food when hungry, bounces when it's very happy.
+  private mood: KonoMood | null = null
+  private nextMoodAt = 0
+  private hopY = 0
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
@@ -225,6 +232,9 @@ export class KonoMascotSystem {
     this.scene.game.events.on(SANCTUARY_EVENTS.outfit, this.setOutfit, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.need, this.setNeed, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.feed, this.feed, this)
+    this.scene.game.events.on(SANCTUARY_EVENTS.mood, this.setMood, this)
+    this.setMood((this.scene.registry?.get('sanctuaryMood') as KonoMood | null | undefined) ?? null)
+    this.nextMoodAt = this.scene.time.now + 8_000
     this.setOutfit((this.scene.registry?.get('sanctuaryOutfit') as string | null | undefined) ?? null)
     this.setNeed((this.scene.registry?.get('sanctuaryNeed') as string | null | undefined) ?? null)
     if (phase === 'night') this.enterNightSleep()
@@ -302,6 +312,14 @@ export class KonoMascotSystem {
       this.reactionTexture = null
       this.forcedTarget = false
       this.nextWanderAt = timeMs + Phaser.Math.Between(900, 1_800)
+    }
+
+    if (!this.focusCompanion && !this.forcedTarget && timeMs >= this.nextMoodAt) {
+      this.nextMoodAt = timeMs + Phaser.Math.Between(14_000, 24_000)
+      if (this.moodMoment(timeMs)) {
+        this.positionVisuals()
+        return
+      }
     }
 
     const activeTarget = this.route[0] ?? this.target
@@ -406,6 +424,7 @@ export class KonoMascotSystem {
     this.scene.game.events.off(SANCTUARY_EVENTS.outfit, this.setOutfit, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.need, this.setNeed, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.feed, this.feed, this)
+    this.scene.game.events.off(SANCTUARY_EVENTS.mood, this.setMood, this)
     this.tickleTween?.remove()
     this.needBubble?.destroy()
     this.outfitImage?.destroy()
@@ -557,6 +576,34 @@ export class KonoMascotSystem {
     this.sprite.setTexture(texture)
     this.applySpriteScale()
     this.placeOutfit()
+  }
+
+  setMood(mood: KonoMood | null): void {
+    this.mood = mood
+  }
+
+  /** Now and then KONO shows how it's doing: a nap when it's tired, a hungry look when it wants a snack,
+   * a happy bounce when it's very happy. Returns whether it did something. */
+  private moodMoment(timeMs: number): boolean {
+    const mood = this.mood
+    if (!mood || mood.asleep || this.phase === 'night') return false
+    if (mood.rested < 35) {
+      this.beginReaction('kono-sleep', timeMs + 3_600)
+      this.floatUp('💤')
+      return true
+    }
+    if (mood.full < 35) {
+      this.beginReaction('kono-question', timeMs + 2_200)
+      this.floatUp('🍙')
+      return true
+    }
+    if (mood.happy >= 80) {
+      this.beginReaction('kono-excited', timeMs + 1_500)
+      this.floatUp('✨')
+      if (!this.reducedMotion) this.scene.tweens.add({ targets: this, hopY: { from: 0, to: -Math.max(6, (this.sprite?.displayHeight ?? 40) * 0.22) }, duration: 170, yoyo: true, repeat: 1, ease: 'Sine.Out', onComplete: () => { this.hopY = 0 } })
+      return true
+    }
+    return false
   }
 
   /** Where KONO's head is, for the bubble, hearts and snacks. */
@@ -717,7 +764,7 @@ export class KonoMascotSystem {
     if (!this.bounds.width || !this.sprite) return
     const x = this.bounds.left + this.bounds.width * this.position.x
     const y = this.bounds.top + this.bounds.height * this.position.y
-    this.sprite.setPosition(Math.round(x), Math.round(y))
+    this.sprite.setPosition(Math.round(x), Math.round(y + this.hopY))
     this.shadow.setPosition(Math.round(x), Math.round(y + this.bounds.height * 0.006))
     this.sprite.setDepth(RenderLayers.critters + 0.30 + this.position.y * 0.12)
     this.shadow.setDepth(RenderLayers.critters + 0.17 + this.position.y * 0.12)

@@ -5,7 +5,7 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),asse
 const root=path.resolve(__dirname,'..')
 const mod={exports:{}}
 vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(root,'src/store/konoCare.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module:mod,exports:mod.exports,Date,Math,Number,Set,Array,Object,JSON,Infinity})
-const {pantry,careMeters,restedAt,addCareEvent,readCareState,treatFor,isAwayVisit,bedtime,nightOf,favoriteSnack,fedLine,FLOOR,TREAT_DAYS}=mod.exports
+const {pantry,careMeters,restedAt,restedFor,addCareEvent,readCareState,treatFor,isAwayVisit,bedtime,nightOf,favoriteSnack,fedLine,FLOOR,TREAT_DAYS,ALL_TREATS,tasted,tasteEventId,tasteLine,nextPlayAt,PLAY_EVERY_MS}=mod.exports
 let passed=0
 const test=(name,fn)=>{fn();passed++;console.log('PASS '+name)}
 const at=(iso)=>new Date(iso)
@@ -104,4 +104,42 @@ test('a favorite snack each week: the same all week on every device, extra happy
  assert.match(fedLine(fav,true),/favorite this week/)
  assert.equal(readCareState({log:[{id:'f',kind:'feed',at:'2026-09-30T14:00:00.000Z',taskId:'t',item:fav.id}]},'p').log[0].item,fav.id,'what was eaten is kept')
 })
-console.log(passed+'/8 KONO care groups passed.')
+test('play time: a game with KONO makes it happier (and a bit hungry), and counts once an hour',()=>{
+ const base=careMeters([],[],now),played=careMeters([{id:'g',kind:'play',at:hoursAgo(0.1)}],[],now)
+ assert.ok(played.happy>=base.happy+10,'playing makes KONO happy: '+base.happy+' -> '+played.happy)
+ assert.ok(played.full<=base.full,'and a little hungry')
+ const once=addCareEvent(undefined,'p',{id:'g1',kind:'play',at:now.toISOString()},now)
+ assert.equal(once.log.filter(e=>e.kind==='play').length,1)
+ const again=addCareEvent(once,'p',{id:'g2',kind:'play',at:new Date(now.getTime()+20*60_000).toISOString()},new Date(now.getTime()+20*60_000))
+ assert.equal(again.log.filter(e=>e.kind==='play').length,1,'twenty minutes later it doesn’t count again')
+ assert.equal(nextPlayAt(once.log),now.getTime()+PLAY_EVERY_MS)
+ assert.ok(once.log.some(e=>e.kind==='bond'),'playing marks a day of care')
+})
+
+test('snack book: each kind of snack KONO tries is remembered for good (one entry per kind)',()=>{
+ const first=addCareEvent(undefined,'p',{id:tasteEventId('dango'),kind:'taste',at:now.toISOString(),item:'dango'},now)
+ const twice=addCareEvent(first,'p',{id:tasteEventId('dango'),kind:'taste',at:now.toISOString(),item:'dango'},now)
+ assert.equal(twice.log.filter(e=>e.kind==='taste').length,1)
+ const later=new Date(now.getTime()+90*24*3_600_000)
+ const kept=addCareEvent(twice,'p',{id:'p1',kind:'pet',at:later.toISOString()},later)
+ assert.deepEqual([...tasted(kept.log)],['dango'],'tried snacks are never forgotten')
+ assert.equal(ALL_TREATS.length,9)
+ assert.match(tasteLine(ALL_TREATS.find(t=>t.id==='dango'),3),/^✨ New snack! 🍡 KONO tried a dango for the first time\. \(3 of 9 snacks tried\)$/)
+ assert.equal(readCareState({log:[{id:'taste-cake',kind:'taste',at:'2026-09-30T14:00:00.000Z',item:'cake'}]},'p').log[0].item,'cake')
+})
+
+test('rest follows bedtime: tucked in by 10:30 PM wakes fully rested (and in a good mood), late or no tuck-in wakes groggier',()=>{
+ const morning=at('2026-10-01T08:00:00')
+ const early=[{id:'s',kind:'sleep',at:'2026-09-30T21:00:00'},{id:'w',kind:'wake',at:'2026-10-01T07:30:00'}].map(e=>({...e,at:new Date(e.at).toISOString()}))
+ const late=[{id:'s',kind:'sleep',at:'2026-09-30T23:30:00'},{id:'w',kind:'wake',at:'2026-10-01T07:30:00'}].map(e=>({...e,at:new Date(e.at).toISOString()}))
+ const none=[]
+ const r=log=>restedFor(log,morning).rested
+ assert.ok(r(early)>r(late)&&r(late)>r(none),'early '+r(early)+' > late '+r(late)+' > none '+r(none))
+ assert.ok(r(early)>=95)
+ const evening=at('2026-10-01T20:00:00')
+ assert.ok(restedFor(early,evening).rested<r(early),'sleepier by evening')
+ assert.ok(restedFor(none,evening).rested>=FLOOR.rested,'never below the floor')
+ assert.equal(restedFor(none,at('2026-10-01T23:00:00')).asleep,true,'asleep at night either way')
+ assert.ok(careMeters(early,[],morning).happy>careMeters(late,[],morning).happy,'an early night puts KONO in a good mood')
+})
+console.log(passed+'/11 KONO care groups passed.')

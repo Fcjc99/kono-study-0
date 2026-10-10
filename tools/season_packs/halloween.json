@@ -1,0 +1,23 @@
+{
+ "season": "halloween",
+ "name": "Halloween",
+ "sources": "15_halloween_theme_generated_sources_v1.zip and 16_halloween_filler_theme_generated_sources_v1.zip",
+ "decor": [
+  {"id": "pumpkin-house", "label": "Pumpkin House", "file": "halloween_01_pumpkin_house.png", "size": "home"},
+  {"id": "spooky-tree", "label": "Autumn Spooky Tree", "file": "halloween_02_autumn_spooky_tree.png", "size": "tree"},
+  {"id": "pumpkin-patch", "label": "Pumpkin Patch", "file": "halloween_03_pumpkin_patch.png", "size": 300},
+  {"id": "cauldron", "label": "Bubbling Cauldron", "file": "halloween_04_bubbling_cauldron.png", "size": 200},
+  {"id": "scarecrow", "label": "Scarecrow", "file": "halloween_05_scarecrow.png", "size": 190},
+  {"id": "lantern-post", "label": "Jack-o’-Lantern Lamp", "file": "halloween_06_jack_o_lantern_lamp.png", "size": 150},
+  {"id": "sign", "label": "Halloween Sign", "file": "halloween_07_writable_sign.png", "size": 280},
+  {"id": "study-candy", "label": "Study Corner Treats", "file": "halloween_08_study_candy_decor.png", "size": 210},
+  {"id": "jack-o-lantern-trio", "label": "Jack-o’-Lantern Trio", "file": "halloween2_01_jack_o_lantern_trio.png", "size": 200},
+  {"id": "candy-basket", "label": "Candy Basket", "file": "halloween2_02_candy_basket.png", "size": 150},
+  {"id": "gravestone", "label": "Mossy Gravestone", "file": "halloween2_03_mossy_gravestone_cluster.png", "size": 210},
+  {"id": "bat-roost", "label": "Bat Roost", "file": "halloween2_04_bat_roost_perch.png", "size": 180, "paleGround": true},
+  {"id": "hay-bale", "label": "Hay Bales & Pumpkins", "file": "halloween2_05_hay_bale_pumpkins.png", "size": 190},
+  {"id": "ghost-friend", "label": "Ghost Friend", "file": "halloween2_06_ghost_friend_lantern.png", "size": 140},
+  {"id": "fence-garland", "label": "Autumn Fence Garland", "file": "halloween2_07_autumn_fence_garland.png", "size": 280, "paleGround": true, "bulbs": true},
+  {"id": "spell-book", "label": "Spell Book & Candles", "file": "halloween2_08_spell_book_candles.png", "size": 200}
+ ]
+}

@@ -2,8 +2,13 @@ import type { AppData } from '../store/model'
 import { buildAssetSrc, buildItemStyle, resolvePlacements, signTextStyle } from '../game/data/buildAssets'
 import { useResolvedDayPhase } from '../hooks/useResolvedDayPhase'
 import type { PhaseMode } from '../game/sanctuary/types'
-import DecorateDebugHUD from './DecorateDebugHUD'
+import { Suspense, lazy } from 'react'
 import './sanctuary-build.css'
+
+// The ?debug=1 readout loads only when asked for.
+const DecorateDebugHUD = lazy(() => import('./DecorateDebugHUD'))
+const debugOn = (() => { try { return new URLSearchParams(location.search).get('debug') === '1' } catch { return false } })()
+const DebugHUD = () => debugOn ? <Suspense fallback={null}><DecorateDebugHUD mode="view" /></Suspense> : null
 
 /**
  * Read-only twin of the placement layer SanctuaryBuild draws while editing — everything placed in
@@ -14,7 +19,7 @@ export default function SanctuaryDecorLayer({ data, phase }: { data: AppData; ph
   const profileId = data.activeProfileId
   const resolvedPhase = useResolvedDayPhase(phase)
   const placements = data.sanctuaryDecor[profileId]?.placements ?? []
-  if (!placements.length) return <DecorateDebugHUD mode="view" />
+  if (!placements.length) return <DebugHUD />
   return <>
     <div className="build-hotspot-layer is-view" aria-hidden="true">
       {resolvePlacements(placements).map(({ placement: p, asset }) => {
@@ -25,6 +30,6 @@ export default function SanctuaryDecorLayer({ data, phase }: { data: AppData; ph
         </div>
       })}
     </div>
-    <DecorateDebugHUD mode="view" />
+    <DebugHUD />
   </>
 }

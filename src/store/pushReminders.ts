@@ -2,6 +2,7 @@ import { classOccurrences, classTime } from './classSchedule'
 import type { AppData } from './model'
 import { schoolDay } from './schoolCalendar'
 import { changeDetail, changeTitle, schoolChanges } from './schoolHeadsUp'
+import { careMeters, pantry } from './konoCare'
 
 /** The next week of lock-screen reminders for the active plan, worked out on the person's own device
  * (so times are in their time zone) and handed to KONO's server queue (migration 0008):
@@ -14,6 +15,8 @@ import { changeDetail, changeTitle, schoolChanges } from './schoolHeadsUp'
  * - 6:30 PM a week before a school day off or early release; for other schools, 7:30 PM the evening before too
  * - 15 minutes before each class, and at the start of each planned study block and Plan-my-week session
  * - parent mode with family reminders on: 15 minutes before each timed event
+ * - KONO's notes (on unless turned off in Settings › Notifications), 4:30 PM, at most one a day for the
+ *   next three days: KONO is getting hungry, or misses you, as its meters will stand then
  * Past times are skipped; the list is capped so a busy week can't flood anyone. */
 export type Reminder = { sendAt: string; title: string; body: string; tag: string }
 
@@ -96,6 +99,18 @@ export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
     for (const t of tasks.filter(t => t.due === date && t.plannedTime)) add(at(date, t.plannedTime!), 'Time to start: ' + t.title, t.estimatedMinutes ? `Planned for about ${t.estimatedMinutes} minutes.` : 'This is the time you planned for it.', 'block-' + t.id)
     for (const e of data.calendarEvents.filter(e => e.profileId === profileId && !e.done && e.date === date && e.time && e.planFor)) add(at(date, e.time!), 'Study time: ' + e.title, [e.endTime ? classTime(e.time!) + '–' + classTime(e.endTime) : classTime(e.time!), e.notes.split('\n')[0]].filter(Boolean).join(' · '), 'study-' + e.id)
     if (settings.parentMode && settings.familyEventReminders) for (const e of data.calendarEvents.filter(e => e.profileId === profileId && !e.done && e.date === date && e.time && !e.planFor)) add(at(date, e.time!, 15), 'In 15 min: ' + e.title, classTime(e.time!), 'event-' + e.id)
+  }
+  // KONO's notes: the meters are worked out from the care log alone, so they can be looked ahead.
+  const care = data.konoCare?.[profileId]?.log ?? []
+  if (settings.konoNotes !== false && care.length) {
+    const ownTasks = data.tasks.filter(t => t.profileId === profileId)
+    for (let i = 0; i < 3; i++) {
+      const day = new Date(now); day.setDate(now.getDate() + i)
+      const when = at(dateOf(day), '16:30'), meters = careMeters(care, ownTasks, when)
+      if (meters.asleep) continue
+      if (meters.full < 35) add(when, 'KONO is getting hungry 🍙', pantry(ownTasks, care, when).length ? 'A snack from your finished work is waiting. Stop by to feed KONO.' : 'Finish something today to earn KONO a snack.', 'kono-' + dateOf(day))
+      else if (meters.happy < 40) add(when, 'KONO misses you 💛', 'Stop by the island for a pat or a quick game.', 'kono-' + dateOf(day))
+    }
   }
   return out.sort((a, b) => a.sendAt.localeCompare(b.sendAt)).slice(0, MAX)
 }

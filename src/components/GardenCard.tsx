@@ -83,6 +83,8 @@ interface GardenCardProps {
   konoNeed?: string | null
   /** A fresh value feeds KONO on the island: the snack drops in and gets eaten. */
   feedSignal?: { at: number; icon: string } | null
+  /** How KONO is doing (the KONO bar's meters), so the island's KONO naps, looks hungry or bounces now and then. */
+  konoMood?: { full: number; rested: number; happy: number; asleep: boolean } | null
   /** The outfit KONO is wearing (Decorate › Wardrobe), or null. */
   outfit?: string | null
   /** The friend visiting the island today (store/konoFriends), or null. */
@@ -119,7 +121,7 @@ const formatDebugTime = (minutes: number) => {
 const debugFromUrl = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sanctuaryDebug') === '1'
 
-export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused, celebrateSignal, focusCompanionActive, onKonoPet, konoNeed = null, feedSignal = null, outfit = null, visitor = null }: GardenCardProps) {
+export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused, celebrateSignal, focusCompanionActive, onKonoPet, konoNeed = null, feedSignal = null, konoMood = null, outfit = null, visitor = null }: GardenCardProps) {
   const onPetRef = useRef(onKonoPet)
   useEffect(() => { onPetRef.current = onKonoPet }, [onKonoPet])
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -129,8 +131,8 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
   const syncPauseStateRef = useRef<(() => void) | null>(null)
   const debugEnabledRef = useRef(debugFromUrl())
   const lastCanvasSizeRef = useRef({ width: 0, height: 0 })
-  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, decorations, outfit, visitor, konoNeed })
-  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,decorations,outfit,visitor,konoNeed}},[phase,weather,reducedMotion,progress,decorations,outfit,visitor,konoNeed])
+  const bootSettingsRef = useRef({ phase, weather, reducedMotion, progress, decorations, outfit, visitor, konoNeed, konoMood })
+  useEffect(()=>{bootSettingsRef.current={phase,weather,reducedMotion,progress,decorations,outfit,visitor,konoNeed,konoMood}},[phase,weather,reducedMotion,progress,decorations,outfit,visitor,konoNeed,konoMood])
   useEffect(()=>{pausedRef.current=!!paused;syncPauseStateRef.current?.()},[paused])
 
   const [state, setState] = useState<SanctuaryState>(initialState)
@@ -227,6 +229,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
             bootingGame.registry.set('sanctuaryOutfit', current.outfit)
             bootingGame.registry.set('sanctuaryVisitor', current.visitor)
             bootingGame.registry.set('sanctuaryNeed', current.konoNeed)
+            bootingGame.registry.set('sanctuaryMood', current.konoMood)
             bootingGame.registry.set('sanctuarySeason', islandSeason(new Date()))
           },
         },
@@ -397,6 +400,12 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
     gameRef.current?.registry.set('sanctuaryNeed', konoNeed)
     gameRef.current?.events.emit(SANCTUARY_EVENTS.need, konoNeed)
   }, [konoNeed])
+
+  const moodKey = konoMood ? [konoMood.full, konoMood.rested, konoMood.happy, konoMood.asleep].join() : ''
+  useEffect(() => {
+    gameRef.current?.registry.set('sanctuaryMood', konoMood)
+    gameRef.current?.events.emit(SANCTUARY_EVENTS.mood, konoMood)
+  }, [moodKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!feedSignal) return

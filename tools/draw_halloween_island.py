@@ -1,6 +1,6 @@
 """Shared helpers for the seasonal islands (tools/draw_winter_island.py and draw_spring_island.py import
 its color helpers and sprite drawing). Its own Halloween maps are retired: October's island now comes from
-the provided pictures (tools/import_halloween_island.py), so running this file does nothing.
+the provided pictures (tools/import_season_island.py), so running this file does nothing.
 
 Originally: draws the island's Halloween look (October): the four time-of-day maps recolored for autumn
 (golden-orange grass, red and orange bushes, a lilac-to-pumpkin sky, a harvest moon at night) with
@@ -545,4 +545,4 @@ def main():
         f.write('\n')
 
 if __name__ == '__main__':
-    print('Retired: run tools/import_halloween_island.py with the Halloween sanctuary pictures instead.')
+    print('Retired: run tools/import_season_island.py with the Halloween sanctuary pictures instead.')

@@ -10,7 +10,7 @@ import {cozyPalette,cozyPalettes,experienceOptions,fixedPaletteExperiences,type 
 /* The Kids page, the family settings and Look & feel (experience, palettes, team colors). These load
  * the first time one of them is shown, so they stay out of KONO's startup download. */
 function ExperienceIcon({id}:{id:string}){return <span className="theme-picker-glyph" aria-hidden="true">{experienceOptions.find(o=>o.id===id)?.glyph??'✦'}</span>}
-const QUICK_KIND_OPTIONS=[['sports','Sports'],['appointment','Appointment'],['personal','Event']] as const
+const QUICK_KIND_OPTIONS=[['sports','Sports'],['lesson','Lesson'],['appointment','Appointment'],['work','Work'],['personal','Event']] as const
 // The fast path parent mode promises: kid, type, a short title and an optional time -- no subject
 // picker, notes, voice input or multi-date repeat. Saves straight to calendarEvents (see
 // quickAddFamilyEvent) rather than opening the full EntryEditor.
@@ -24,7 +24,7 @@ export function QuickFamilyAdd({kids,time:startAt,onCancel,onSave}:{kids:Kid[];t
  return <form onSubmit={submit} className="quick-family-add"><fieldset disabled={busy}>
   <label>Kid<select autoFocus value={kidId} onChange={e=>setKidId(e.target.value)}><option value="">Whole family</option>{kids.map(k=><option key={k.id} value={k.id}>{(k.emoji?k.emoji+' ':'')+k.name}</option>)}</select></label>
   <label>Type<select value={kind} onChange={e=>setKind(e.target.value as CalendarEventKind)}>{QUICK_KIND_OPTIONS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
-  <label>What is it?<input required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Soccer practice, Dentist…"/></label>
+  <label>What is it?<input required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Soccer practice, Dentist, Work shift…"/></label>
   <label>Start time (optional)<input type="time" value={time} onChange={e=>setTime(e.target.value)}/></label>
   <label>End time (optional)<input type="time" value={endTime} onChange={e=>setEndTime(e.target.value)}/></label>
   {error&&<p role="alert">{error}</p>}

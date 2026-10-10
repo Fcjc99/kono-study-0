@@ -6,12 +6,12 @@
  * What's saved is a short log of feedings and pats (AppData.konoCare), one entry each with its own
  * ID, so two devices adding to it at the same time merge cleanly. Everything else is worked out from
  * that log, finished assignments and the clock. */
-export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'|'find'|'exam'|'nudge'|'visit'|'bond'
+export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'|'find'|'exam'|'nudge'|'visit'|'bond'|'play'|'taste'
 /** `item` is the outfit put on for a 'wear' entry ("" = taking it off; store/konoWardrobe), what KONO
  * found for a 'find' entry (store/konoFinds), how a test went for an 'exam' entry, or what was done with
  * the day's nudge for a 'nudge' entry (store/konoNotes). */
 export type CareEvent={id:string;kind:CareKind;at:string;taskId?:string;item?:string}
-const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear','find','exam','nudge','visit','bond']
+const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear','find','exam','nudge','visit','bond','play','taste']
 export type KonoCareState={profileId:string;log:CareEvent[]}
 export type KonoMeters={full:number;rested:number;happy:number;asleep:boolean;away:boolean}
 export type Treat={id:string;emoji:string;name:string}
@@ -24,6 +24,10 @@ const HOUR=3_600_000,DAY=24*HOUR
 export const TREAT_DAYS=14,LOG_DAYS=30,LOG_MAX=600
 /** A pat counts toward "happy" once every ten minutes (more taps still get a reaction). */
 export const PET_EVERY_MS=10*60_000
+/** Play time with KONO (a break game from KONO's corner) counts once an hour. */
+export const PLAY_EVERY_MS=60*60_000
+export const nextPlayAt=(log:CareEvent[])=>Math.max(-Infinity,...log.filter(e=>e.kind==='play').map(e=>time(e.at)))+PLAY_EVERY_MS
+export const PLAY_LINES=['That was so fun! KONO is all smiles. 💛','KONO wants a rematch later! 😄','Best. Game. Ever! KONO bounces around. ✨']
 export const FLOOR={full:20,rested:25,happy:30} as const
 
 const SNACKS:Treat[]=[
@@ -32,6 +36,12 @@ const SNACKS:Treat[]=[
 ]
 /** Fancier snacks for big work: an hour or more, or a project with steps. */
 const FEASTS:Treat[]=[{id:'bento',emoji:'🍱',name:'bento box'},{id:'cake',emoji:'🍰',name:'slice of cake'},{id:'boba',emoji:'🧋',name:'boba tea'}]
+/** Every snack KONO can have, for the snack book in KONO's corner. */
+export const ALL_TREATS:Treat[]=[...SNACKS,...FEASTS]
+/** A snack KONO tried for the first time (kept for good, one per kind of snack). */
+export const tasteEventId=(treatId:string)=>'taste-'+treatId
+export const tasted=(log:CareEvent[])=>new Set(log.filter(e=>e.kind==='taste'&&e.item).map(e=>e.item!))
+export const tasteLine=(treat:Treat,count:number)=>'✨ New snack! '+treat.emoji+' KONO tried '+(treat.name==='boba tea'?'':'a ')+treat.name+' for the first time. ('+count+' of '+ALL_TREATS.length+' snacks tried)'
 
 const hash=(text:string)=>{let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 export function treatFor(task:Done):Treat{
@@ -59,7 +69,29 @@ export function pantry(tasks:Done[],log:CareEvent[],now:Date):PantryItem[]{
   .map(t=>({taskId:t.id,treat:treatFor(t)}))
 }
 
-/** Rested follows the day: fresh in the morning, sleepier toward bedtime, asleep from 10 PM to 6 AM. */
+/** Rested follows bedtime. A night KONO was tucked in by 10:30 PM it wakes fully rested; tucked in
+ * later, a little less; not tucked in at all, it wakes groggy. Through the day it gets sleepier (about
+ * 4 an hour from waking, never below the floor), and it sleeps from 10 PM to 6 AM, or from tuck-in. */
+export const EARLY_BED_HOUR=22.5
+const hourOf=(d:Date)=>d.getHours()+d.getMinutes()/60
+/** How last night went: tucked in (and when), so the morning knows how rested KONO is. */
+export function lastNight(log:CareEvent[],now:Date){
+ const yesterday=new Date(now.getTime());yesterday.setDate(yesterday.getDate()-1)
+ const night=now.getHours()<6?nightOf(yesterday):localDay(yesterday)
+ const sleep=log.filter(e=>e.kind==='sleep'&&nightOf(new Date(e.at))===night).map(e=>new Date(e.at)).sort((a,b)=>a.getTime()-b.getTime())[0]
+ if(!sleep)return {tucked:false,early:false}
+ const h=hourOf(sleep),early=h>=19&&h<=EARLY_BED_HOUR
+ return {tucked:true,early}
+}
+export function restedFor(log:CareEvent[],now:Date){
+ const h=hourOf(now)
+ if(h>=22||h<6||bedtime(log,now).tucked)return restedAt(now)
+ const night=lastNight(log,now),start=night.early?100:night.tucked?88:75
+ const woke=log.filter(e=>e.kind==='wake'&&localDay(new Date(e.at))===localDay(now)).map(e=>hourOf(new Date(e.at)))[0]
+ const from=Math.max(6,Math.min(woke??7,12))
+ return {rested:Math.round(Math.max(FLOOR.rested,Math.min(100,start-Math.max(0,h-from)*4))),asleep:false}
+}
+/** The clock alone (no bedtime): fresh in the morning, sleepier toward bedtime, asleep from 10 PM to 6 AM. */
 export function restedAt(now:Date){
  const h=now.getHours()+now.getMinutes()/60
  if(h>=22||h<6){const slept=h>=22?h-22:h+2;return {rested:Math.round(FLOOR.rested+(100-FLOOR.rested)*slept/8),asleep:true}}
@@ -73,17 +105,21 @@ export function restedAt(now:Date){
 export function careMeters(log:CareEvent[],tasks:Done[],now:Date,away=false):KonoMeters{
  const end=now.getTime(),start=end-2*DAY
  const done=tasks.map(t=>time(t.completedAt)).filter(t=>Number.isFinite(t)&&t<=end)
- const clock=restedAt(now),rested=clock.rested,asleep=clock.asleep||bedtime(log,now).tucked
+ const clock=restedFor(log,now),rested=clock.rested,asleep=clock.asleep||bedtime(log,now).tucked
  if(away)return {full:65,rested,happy:75,asleep,away:true}
  type Step={at:number;full:number;happy:number}
  const steps:Step[]=[
   ...log.filter(e=>e.kind==='feed').map(e=>({at:time(e.at),full:25,happy:isFavorite(e)?14:4})),
   ...log.filter(e=>e.kind==='pet').map(e=>({at:time(e.at),full:0,happy:6})),
+  // Playing makes KONO happy, and a little hungry.
+  ...log.filter(e=>e.kind==='play').map(e=>({at:time(e.at),full:-6,happy:12})),
+  // Waking up after an early night: a good mood to start the day.
+  ...log.filter(e=>e.kind==='wake'&&lastNight(log,new Date(e.at)).early).map(e=>({at:time(e.at),full:0,happy:10})),
   ...done.map(at=>({at,full:0,happy:10})),
  ].filter(s=>s.at>start&&s.at<=end).sort((a,b)=>a.at-b.at)
  let full=60,happy=60,at=start
  const drift=(until:number)=>{const hours=(until-at)/HOUR;full=Math.max(FLOOR.full,full-3*hours);happy=Math.max(FLOOR.happy,happy-2*hours);at=until}
- for(const s of steps){drift(s.at);full=Math.min(100,full+s.full);happy=Math.min(100,happy+s.happy)}
+ for(const s of steps){drift(s.at);full=Math.max(FLOOR.full,Math.min(100,full+s.full));happy=Math.min(100,happy+s.happy)}
  drift(end)
  return {full:Math.round(full),rested,happy:Math.round(happy),asleep,away:false}
 }
@@ -95,9 +131,10 @@ export function addCareEvent(state:KonoCareState|undefined,profileId:string,even
  // Granted wishes count toward outfits for good, finds and friends stay in the collection, days KONO was
  // cared for count toward the bond (store/konoBond), and the outfit KONO has on stays on: all are kept.
  const lastWear=all.filter(e=>e.kind==='wear').sort((a,b)=>a.at.localeCompare(b.at)).at(-1)
- const kept=(e:CareEvent)=>e.kind==='wish'||e.kind==='find'||e.kind==='visit'||e.kind==='bond'
+ const kept=(e:CareEvent)=>e.kind==='wish'||e.kind==='find'||e.kind==='visit'||e.kind==='bond'||e.kind==='taste'
  const log=all.filter(e=>kept(e)||e===lastWear||time(e.at)>=since)
- if((event.kind==='wish'||event.kind==='exam'||event.kind==='nudge'||event.kind==='visit'||event.kind==='bond')&&log.some(e=>e.id===event.id))return {profileId,log}
+ if((event.kind==='wish'||event.kind==='exam'||event.kind==='nudge'||event.kind==='visit'||event.kind==='bond'||event.kind==='taste')&&log.some(e=>e.id===event.id))return {profileId,log}
+ if(event.kind==='play'&&now.getTime()<nextPlayAt(log))return {profileId,log}
  if(event.kind==='pet'){const lastPet=Math.max(-Infinity,...log.filter(e=>e.kind==='pet').map(e=>time(e.at)));if(now.getTime()-lastPet<PET_EVERY_MS)return {profileId,log}}
  if(event.kind==='sleep'&&bedtime(log,now).tucked)return {profileId,log}
  if(event.kind==='wake'&&!bedtime(log,now).canWake)return {profileId,log}
@@ -105,7 +142,7 @@ export function addCareEvent(state:KonoCareState|undefined,profileId:string,even
  // The first feeding, pat, tuck-in or wake-up of a day also marks a day KONO was cared for, with a fixed
  // ID so two devices mark the same day once.
  const careDay=bondEventId(localDay(now))
- const next=['feed','pet','sleep','wake'].includes(event.kind)&&!log.some(e=>e.id===careDay)?[...log,event,{id:careDay,kind:'bond' as const,at:event.at}]:[...log,event]
+ const next=['feed','pet','sleep','wake','play'].includes(event.kind)&&!log.some(e=>e.id===careDay)?[...log,event,{id:careDay,kind:'bond' as const,at:event.at}]:[...log,event]
  // Over the cap: drop the oldest everyday entries, never wishes or what KONO is wearing.
  while(next.length>LOG_MAX){const i=next.findIndex(e=>!kept(e)&&e!==event&&!(e.kind==='wear'&&event.kind!=='wear'&&e===lastWear));if(i<0)break;next.splice(i,1)}
  return {profileId,log:next}
@@ -121,7 +158,7 @@ export function readCareState(raw:unknown,profileId:string):KonoCareState{
   if(typeof x.id!=='string'||!x.id||x.id.length>150||!KINDS.includes(x.kind as CareKind)||typeof x.at!=='string'||!Number.isFinite(Date.parse(x.at)))return []
   const event:CareEvent={id:x.id,kind:x.kind as CareKind,at:new Date(x.at).toISOString()}
   if(typeof x.taskId==='string'&&x.taskId&&x.taskId.length<=150)event.taskId=x.taskId
-  if(['wear','find','exam','nudge','feed','visit'].includes(event.kind)&&typeof x.item==='string'&&x.item.length<=40)event.item=x.item
+  if(['wear','find','exam','nudge','feed','visit','taste'].includes(event.kind)&&typeof x.item==='string'&&x.item.length<=40)event.item=x.item
   return [event]
  }).slice(-LOG_MAX)
  return {profileId,log}

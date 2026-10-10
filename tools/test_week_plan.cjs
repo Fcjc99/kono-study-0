@@ -134,4 +134,12 @@ test('Week drag and drop: events move keeping their length; an assignment gets a
  const session=weekDrop('tasks',{...task,subjectId:''},'2026-09-29','16:00',data.activeProfileId).event
  assert.equal(model.normalizeData({...data,calendarEvents:[session]}).calendarEvents[0].planFor,'task:t1')
 })
-console.log(passed+'/7 plan-my-week regression groups passed.')
+test('work shifts (a weekly routine) are busy time, so study sessions go around them',()=>{
+ const {addWeeklyClass}=load('src/store/weeklyClass.ts')
+ const data=model.createFreshData(),pid=data.activeProfileId
+ const withShift=addWeeklyClass(data,pid,{title:'Cafe',subjectId:'',activity:true,blockKind:'routine',location:'',weekdays:[2],start:'16:00',end:'20:00',first:'2026-09-28',last:'2026-12-31'},false)
+ const busy=wp.busyTimes(withShift,'2026-09-29')
+ assert.ok(busy.some(([a,b])=>a===wp.toMinutes('16:00')&&b===wp.toMinutes('20:00')),'Tuesday 4–8 PM is busy: '+JSON.stringify(busy))
+ assert.equal(wp.busyTimes(withShift,'2026-09-30').length,0,'Wednesday is free')
+})
+console.log(passed+'/8 plan-my-week regression groups passed.')
