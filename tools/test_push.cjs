@@ -36,6 +36,17 @@ const week=rows.find(r=>r.tag==='week-2026-09-28')
 assert.ok(week,'a Monday summary');assert.equal(week.title,'This week: 2 assignments, 1 exam')
 assert.equal(week.body,'Lab report (Mon), Read ch. 4 (Mon), Bio quiz (Wed)');assert.equal(new Date(week.sendAt).getHours()*60+new Date(week.sendAt).getMinutes(),6*60+55)
 assert.equal(rows.filter(r=>r.tag.startsWith('week-')).length,1,'only on Mondays')
+// KONO's notes: when KONO will be hungry or lonely at 4:30 PM, one a day, and they can be turned off.
+{const pet=model.createFreshData(),pid=pet.activeProfileId
+ pet.konoCare={[pid]:{profileId:pid,log:[{id:'f',kind:'feed',at:'2026-09-27T12:00:00.000Z',taskId:'x'}]}}
+ const notes=buildReminders(pet,now).filter(r=>r.tag.startsWith('kono-'))
+ assert.ok(notes.length>=1&&notes.length<=3,'up to one KONO note a day for three days: '+notes.length)
+ assert.match(notes[0].title,/^KONO (is getting hungry 🍙|misses you 💛)$/)
+ assert.ok(notes.every(r=>new Date(r.sendAt).getHours()===16&&new Date(r.sendAt).getMinutes()===30))
+ pet.settings.konoNotes=false
+ assert.equal(buildReminders(pet,now).filter(r=>r.tag.startsWith('kono-')).length,0,'off means off')
+ assert.equal(model.normalizeData?model.normalizeData(JSON.parse(JSON.stringify(pet))).settings.konoNotes:false,false,'the setting is saved')
+ assert.equal(buildReminders(model.createFreshData(),now).filter(r=>r.tag.startsWith('kono-')).length,0,'no care log, no notes')}
 const quiet=model.createFreshData();assert.ok(!buildReminders(quiet,now).some(r=>r.tag.startsWith('week-')),'nothing due: no Monday summary')
 console.log('PASS reminder planner: morning summary, exam eve, classes 15 min before, study blocks, skipped/breaks/past left out')
 

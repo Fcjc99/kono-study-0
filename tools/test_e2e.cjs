@@ -2021,7 +2021,9 @@ test('KONO’s taps: coming back after a while gets a wave, a tap right after fi
  await bar.getByText('✋ High five! Nice work on Read chapter 3!').waitFor()
  await bar.locator('.kono-react.is-highfive').waitFor()
  // The Feed button says what this week's favorite is.
- assert.match(await cornerOf(page).locator('.kono-feed').getAttribute('title'),/favorite this week/)
+ await closeCorner(page)
+ assert.match(await bar.locator('.kono-care .kono-feed').getAttribute('title'),/favorite this week/)
+ await openCorner(page)
  await page.waitForTimeout(3800)
  // Three quick taps: a tickle.
  for(let i=0;i<3;i++)await face.click({delay:20})
@@ -2049,6 +2051,42 @@ test('KONO on the island: when it is hungry and there is a snack it says so in a
  await care.locator('.kono-care-meter.is-full .kono-care-gain').waitFor({timeout:3000})
  if(process.env.KONO_SHOTS){await page.waitForTimeout(150);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/kono-feed-1.png'});await page.waitForTimeout(450);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/kono-feed-2.png'})}
  await page.locator(`.wb-island[data-kono-need="${snack}"]`).waitFor({state:'detached'})
+})
+test('KONO’s corner: the snack tray feeds the snack you pick (a new kind goes in the snack book), Play with KONO opens a game, makes KONO happier and waits an hour, and KONO’s notes can be turned off',async({context,page})=>{
+ const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.tasks.find(t=>t.title==='Read chapter 3')?.done===true,'finished')
+ const corner=await openCorner(page),tray=corner.getByRole('region',{name:'Snacks'})
+ await tray.getByLabel('Snack book: 0 of 9 snacks tried').waitFor()
+ const snack=tray.getByRole('button',{name:/^Feed KONO a /}).first()
+ const name=(await snack.getAttribute('aria-label')).replace(/^Feed KONO a /,'').replace(/ \(its favorite this week\)|, \d+ left/g,'')
+ await snack.click()
+ await page.getByRole('region',{name:'KONO today'}).locator('p[aria-live]',{hasText:/^(Yum!|😍)/}).waitFor()
+ await waitFor(()=>{const log=cloud.users.alice.plan.data.konoCare?.[pid]?.log??[];return log.some(e=>e.kind==='feed')&&log.some(e=>e.kind==='taste')},'the meal and the new snack never reached the account')
+ await tray.getByLabel('Snack book: 1 of 9 snacks tried').waitFor()
+ await page.getByRole('region',{name:'KONO today'}).locator('p[aria-live]',{hasText:'✨ New snack! '}).waitFor({timeout:12000})
+ assert.ok(name.length>2,'picked '+name)
+ // Play: once an hour.
+ const happy=()=>corner.getByRole('meter',{name:'Happy'}).getAttribute('aria-valuenow').then(Number)
+ const before=await happy()
+ await corner.getByRole('button',{name:'Play with KONO'}).click()
+ await corner.getByRole('region',{name:'Break games with KONO'}).waitFor()
+ await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).some(e=>e.kind==='play'),'play time never reached the account')
+ await page.waitForFunction(b=>Number(document.querySelector('.kono-corner [role=meter][aria-label=Happy]')?.getAttribute('aria-valuenow'))>b,before)
+ await corner.getByRole('region',{name:'Break games with KONO'}).getByRole('button',{name:'Close'}).click()
+ await corner.getByRole('button',{name:/^Play again at /}).waitFor()
+ assert.equal(await corner.getByRole('button',{name:/Play again at/}).isDisabled(),true,'once an hour')
+ if(process.env.KONO_SHOTS)await corner.screenshot({path:process.env.KONO_SHOTS+'/kono-corner-snacks.png'})
+ await closeCorner(page)
+ // KONO's notes: on by default, and can be turned off.
+ await go(page,'Settings');await settingsTab(page,'Notifications')
+ const notes=page.getByRole('checkbox',{name:/KONO’s notes/})
+ assert.equal(await notes.isChecked(),true)
+ await notes.uncheck()
+ await waitFor(()=>cloud.users.alice.plan.data.settings.konoNotes===false,'the setting never reached the account')
 })
 test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in the card, a pat makes KONO happy, and both reach the account without anything popping up',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId

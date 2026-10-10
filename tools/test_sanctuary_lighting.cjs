@@ -12,9 +12,17 @@ assert.equal(s.objects[1].key,'kono-sleep');assert.deepEqual(k.getNormalizedPosi
 k.handleInteraction({type:'start',action:{landmarkId:'lanterns',id:'tea',phase:'night'}});k.update(601000,1,{phase:'night'});assert.deepEqual(k.getNormalizedPosition(),asleep);
 k.setPhase('morning');k.update(603000,1,{phase:'morning'});assert.notEqual(s.objects[1].key,'kono-sleep');
 k.setPhase('night');assert.equal(s.objects[1].key,'kono-sleep');
+// KONO acts on its mood now and then: a nap when it's tired, a hungry look, a happy bounce.
+{const ms=scene(),mk=new KonoMascotSystem(ms);mk.create(false,'afternoon');mk.resize(new Rect(0,0,1448,1086))
+ mk.setMood({full:80,rested:20,happy:60,asleep:false})
+ mk.update(20000,0.016,{phase:'afternoon'});assert.equal(ms.objects[1].key,'kono-sleep','a tired KONO naps in the day')
+ mk.setMood({full:20,rested:80,happy:60,asleep:false})
+ mk.update(60000,0.016,{phase:'afternoon'});assert.equal(ms.objects[1].key,'kono-question','a hungry KONO wonders about food')
+ mk.setMood({full:80,rested:80,happy:50,asleep:false})
+ mk.update(100000,0.016,{phase:'afternoon'});assert.notEqual(ms.objects[1].key,'kono-sleep','a well KONO just goes about its day')}
 const {LightingSystem}=load(path.join(root,'src/game/systems/LightingSystem.ts'));
 const gs=scene(),lighting=new LightingSystem(gs);lighting.create(false);lighting.resize(new Rect(0,0,1448,1086));const env={ambientLight:1,darkness:0,warmth:0,coolness:0,lanternStrength:0,starVisibility:0,haze:0,waterHighlight:1,precipitation:0,cloudCover:0};
 lighting.update(0,.1,{...env,phase:'evening'});assert(gs.objects[0].alpha>0);assert.equal(gs.objects[1].alpha,0);
 lighting.update(0,.1,{...env,phase:'night'});assert.equal(gs.objects[0].alpha,0);assert(gs.objects[1].alpha>0);
 lighting.update(0,.1,{...env,phase:'afternoon'});assert(gs.objects.every(o=>o.alpha===0));
-console.log('PASS: persistent night sleep, no click/interaction wakeups, morning wake, shaded Kono; sun/moon/day transitions.');
+console.log('PASS: persistent night sleep, no click/interaction wakeups, morning wake, shaded Kono, mood naps and hungry looks; sun/moon/day transitions.');
