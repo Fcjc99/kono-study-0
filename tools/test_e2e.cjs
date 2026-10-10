@@ -120,7 +120,7 @@ test('a study note can be moved to Trash and restored',async({page})=>{
  await note.getByRole('button',{name:'Delete note'}).click()
  await page.getByRole('button',{name:'Confirm'}).click()
  await page.getByText('Mitochondria facts (e2e)').first().waitFor({state:'hidden'})
- await page.getByRole('button',{name:'Trash'}).first().click()
+ await headerMenu(page,'Trash')
  await heading(page,'Trash')
  const row=page.locator('li, article, tr, .wb-panel > div').filter({hasText:'Mitochondria facts (e2e)'}).last()
  await row.getByRole('button',{name:'Restore'}).click()
@@ -133,8 +133,8 @@ test('Planner › ＋ Add to my calendar: one place to start, each choice opens 
  await go(page,'Planner')
  await page.getByRole('button',{name:'＋ Add to my calendar'}).click()
  const hub=page.getByRole('region',{name:'Add to my calendar'}),choices=hub.getByRole('group',{name:'What do you have?'})
- assert.equal(await choices.getByRole('button').count(),7)
- const opens={'My school schedule':'School calendar & rotation','My college classes':'College semester','A calendar link':'Or paste a calendar link','Photos or screenshots':null,'A PDF of dates':'Import PDF','A weekly activity':null,'A sports season':null}
+ assert.equal(await choices.getByRole('button').count(),8)
+ const opens={'My school schedule':'School calendar & rotation','My college classes':'College semester','A calendar link':'Or paste a calendar link','Photos or screenshots':null,'A PDF of dates':'Import PDF','A weekly activity':null,'My work schedule':'Add my shifts','A sports season':null}
  for(const [choice,expect] of Object.entries(opens)){
   await choices.getByRole('button',{name:new RegExp('^'+choice)}).click()
   await hub.getByRole('heading',{name:new RegExp(choice+'$')}).waitFor()
@@ -145,7 +145,7 @@ test('Planner › ＋ Add to my calendar: one place to start, each choice opens 
  }
  await hub.getByRole('button',{name:'Done'}).click()
  await hub.waitFor({state:'detached'})
- await page.locator('summary',{hasText:'Plan my week'}).waitFor()
+ await page.locator('details.planner-more').waitFor()
  // Import & export points to the hub instead of repeating the importers.
  await go(page,'Settings');await settingsTab(page,'Import & export')
  assert.equal(await page.getByText('Import from Google Calendar, Apple Calendar, Canvas or Classroom').count(),0)
@@ -980,13 +980,16 @@ function weekPlanCloud(){
 // shift as it settles, so keep it in view while waiting for it to finish.
 const islandLoaded=page=>page.waitForFunction(()=>{const island=document.querySelector('.wb-island'),r=island?.getBoundingClientRect();if(island&&(r.bottom<0||r.top>innerHeight))island.scrollIntoView({block:'center'});return island&&!document.querySelector('.sanctuary-load-status')},null,{timeout:30000,polling:250})
 /** KONO's corner: tap KONO's face in the KONO bar; it opens over the page. */
+/** The top bar's ⋯ menu (Undo, Redo, voice, Trash) and the Planner's ⋯ menu (Plan my week, …). */
+const headerMenu=async(page,name)=>{const menu=page.locator('details.header-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
+const plannerMenu=async(page,name)=>{const menu=page.locator('details.planner-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
 const cornerOf=page=>page.getByRole('dialog',{name:'KONO’s corner'})
 const openCorner=async page=>{const d=cornerOf(page);if(!await d.isVisible())await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:'Open KONO’s corner'}).click();await d.waitFor();return d}
 const closeCorner=async page=>{const d=cornerOf(page);if(await d.isVisible()){await d.getByRole('button',{name:'Close dialog'}).click();await d.waitFor({state:'detached'})}}
 const waitFor=async(check,message)=>{for(let i=0;i<60;i++){if(check())return;await new Promise(r=>setTimeout(r,250))}assert.fail(message)}
 async function openWeekPlanner(page){
  await go(page,'Planner')
- await page.locator('summary',{hasText:'Plan my week'}).click()
+ await plannerMenu(page,'✨ Plan my week')
  return page.locator('.week-planner')
 }
 
@@ -1049,7 +1052,7 @@ test('Weekly recap: the Sunday card on the Sanctuary page hides until next week,
  await page.reload();await heading(page,'Sanctuary')
  assert.equal(await page.locator('.week-recap-sunday').count(),0,'stays hidden after a reload')
  await go(page,'Planner')
- await page.locator('summary',{hasText:'Your week so far'}).click()
+ await plannerMenu(page,'📊 Your week so far')
  const card=page.locator('.week-recap-panel .week-recap')
  await card.waitFor()
  const [download]=await Promise.all([page.waitForEvent('download'),card.getByRole('button',{name:'Share my week'}).click()])
@@ -1134,7 +1137,7 @@ test('School setup guide: find the school, answer the grade, save, and land on t
  await page.getByRole('button',{name:'＋ Add to my calendar'}).waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.studySeasons?.some(x=>x.school?.name==='Duxbury Public Schools'&&x.school.grade==='11'),'the school reaches the account')
  // My schedules opens the full editor, with the grade in step 1 and no college fields.
- await page.getByRole('button',{name:'My schedules'}).click()
+ await plannerMenu(page,'My schedules')
  await page.getByRole('button',{name:/^Rotating school/}).click()
  const card=page.locator('.school-setup .wb-record').filter({hasText:'Duxbury Public Schools 2026–27'})
  await card.getByRole('button',{name:'Edit school calendar / classes'}).click()
@@ -1262,7 +1265,7 @@ test('Rotating school: Duxbury High’s 7 classes rotate through 5 blocks; KONO�
  await page.getByRole('region',{name:'Add to my calendar'}).waitFor({state:'detached'})
  await waitFor(()=>{const s=cloud.users.alice.plan.data.studySeasons?.find(x=>x.school?.name==='Duxbury High School');return s&&Object.values(s.week).flat().length===49},'all 7 days (5 blocks, lunch, ASP) reach the account')
  // Second semester, from My schedules: US History II becomes Economics on every day it meets, lunch included.
- await page.getByRole('button',{name:'My schedules'}).click()
+ await plannerMenu(page,'My schedules')
  await page.getByRole('button',{name:/^Rotating school/}).click()
  await page.locator('.school-setup .wb-record').filter({hasText:'Duxbury High School'}).getByRole('button',{name:'Change a class (new semester)'}).click()
  assert.equal(await mine.getByLabel('Class 4 lunch').inputValue(),'3','reopening keeps the classes and lunches')
@@ -1942,6 +1945,30 @@ test('Planner › ＋ Add to this date: Lesson and Work open a new event already
   await editor.waitFor({state:'detached'})
   await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.some(e=>e.title===title&&e.kind===kind),title+' never reached the account as a '+kind)
  }
+})
+test('My work schedule: weekly shifts go on the calendar from the Planner’s ⋯ menu, Plan my week treats them as busy, and they can be removed',async({context,page})=>{
+ const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
+ await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Planner')
+ await plannerMenu(page,'💼 My work schedule')
+ const setup=page.getByRole('region',{name:'My work schedule'})
+ await setup.getByLabel('Job').fill('Cafe')
+ const days=setup.getByRole('group',{name:'Shift days'})
+ await days.getByLabel('Tuesday').check();await days.getByLabel('Thursday').check()
+ await setup.getByLabel('Starts at').fill('16:00');await setup.getByLabel('Ends at').fill('20:00')
+ await setup.getByRole('button',{name:'Add my shifts'}).click()
+ await setup.getByRole('status').filter({hasText:'Your shifts are on the calendar'}).waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.studySeasons.some(s=>s.profileId===pid&&s.name==='Cafe · work'&&s.week.Tuesday?.[0]?.start==='16:00'&&s.week.Thursday?.[0]?.end==='20:00'&&s.week.Tuesday[0].kind==='routine'),'the shifts never reached the account')
+ await setup.getByRole('list',{name:'Your work shifts'}).getByText('Cafe').waitFor()
+ await page.getByRole('region',{name:'Add to my calendar'}).getByRole('button',{name:'Done'}).click()
+ // Tuesday's calendar shows the shift.
+ await page.locator('.wb-week-grid, .week-grid, [class*=week]').filter({hasText:'Cafe'}).first().waitFor()
+ // Remove it again.
+ await plannerMenu(page,'💼 My work schedule')
+ await page.getByRole('region',{name:'My work schedule'}).getByRole('button',{name:'Remove Cafe'}).click()
+ await waitFor(()=>!cloud.users.alice.plan.data.studySeasons.some(s=>s.name==='Cafe · work'),'the shifts were never removed')
 })
 test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assignment, test or lesson for that day right in the card (Type is a dropdown), and it shows on the Planner calendar',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data

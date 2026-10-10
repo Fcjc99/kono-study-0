@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react'
 
-export type AddChoiceId='school'|'college'|'link'|'photos'|'pdf'|'weekly'|'sports'
+export type AddChoiceId='school'|'college'|'link'|'photos'|'pdf'|'weekly'|'sports'|'work'
 export type AddChoice={id:AddChoiceId;icon:string;title:string;note:string;render:()=>ReactNode}
 
 /** Planner › ＋ Add to my calendar: one place to start for anything that goes on the calendar. It asks
