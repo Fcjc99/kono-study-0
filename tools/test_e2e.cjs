@@ -1199,6 +1199,53 @@ function picturePdf(jpeg,width,height){
  return Buffer.concat(parts)
 }
 
+test('Duxbury Middle School: a 14-day rotation; KONO’s AI reads a D1–D14 × P1–P5 + ASP schedule, each period’s times are set once (ASP too), and all 14 days are saved',async({context,page})=>{
+ const cloud=fakeCloud(),posts=[]
+ await page.clock.setFixedTime(new Date('2026-10-10T10:00:00')) // a Saturday
+ await signInAs(context,cloud,'alice')
+ // The AI's answer for a Grade 6 schedule like the district's (D1–D14 columns, P1–P5 and ASP rows): one entry per class and period.
+ const C={LW:['602-01','Literacy/Writing','B158'],CH:['657-01','Chorus 6','PAC'],GEO:['610-03','Geography and Ancient Civilizations I','B148'],PE:['690-01','Physical Education/Health 6','D178'],LR:['601-05','Literacy/Reading','B159'],MA:['621-01','MATH 6','B146'],SCI:['630-02','Science 6','B139'],ST:['786-10','STEM 6','B307'],FR:['662-02','French - Grade 6','B250']}
+ const grid=['LW PE SCI GEO MA','CH LR LW FR SCI','GEO MA ST LR LW','PE SCI GEO MA CH','LR LW FR SCI GEO','MA ST LR LW PE','SCI GEO MA CH LR','LW FR SCI GEO MA','ST LR LW PE SCI','GEO MA CH LR LW','FR SCI GEO MA ST','LR LW PE SCI GEO','MA CH LR LW FR','SCI GEO MA ST LR'].map(r=>r.split(' '))
+ const byClassPeriod=new Map()
+ grid.forEach((row,d)=>row.forEach((k,p)=>{const key=k+' '+(p+1);byClassPeriod.set(key,[...(byClassPeriod.get(key)??[]),'D'+(d+1)])}))
+ const classes=[...byClassPeriod].map(([key,days])=>{const [k,p]=key.split(' ');return {name:C[k][1],code:C[k][0],days,start:null,end:null,period:'P'+p+'-Period '+p,building:null,room:C[k][2],teacher:null}})
+ classes.push({name:'Academic Support Period Gr. 6',code:'ASP6-01',days:grid.map((_,d)=>'D'+(d+1)),start:null,end:null,period:'ASP-Academic Support Period',building:null,room:'B159',teacher:'Burns, Deborah E'})
+ await context.route(BASE+'api/ai',route=>{
+  const request=route.request()
+  if(request.method()==='GET')return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({enabled:true})})
+  posts.push(request.postDataJSON())
+  return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({text:JSON.stringify({classes}),used:1,limit:40})})
+ })
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await addToCalendar(page,'My school schedule')
+ await page.getByRole('searchbox',{name:'Search for your school'}).fill('duxbury middle')
+ await page.getByRole('button',{name:'Duxbury Middle School · 2026–27 · 14-day rotation'}).click()
+ await page.getByRole('region',{name:'Your grade'}).getByRole('combobox').selectOption('6')
+ const rotation=page.getByRole('region',{name:'Rotation day'})
+ await rotation.getByLabel('School day').fill('2026-10-13')
+ await rotation.getByRole('combobox').selectOption('Day 1')
+ await rotation.getByRole('button',{name:'Set rotation'}).click()
+ await rotation.getByText('✓ Tuesday, October 13 is Day 1.').waitFor()
+ await page.getByRole('button',{name:'Next: your classes'}).click()
+ // A schedule PDF whose text KONO's own reader can't follow (periods, no times), so the AI reads it.
+ const {jsPDF}=require('jspdf'),doc=new jsPDF({orientation:'landscape',unit:'pt',format:'letter'})
+ doc.setFontSize(8);doc.text(['D1 - Day 1   D2 - Day 2   D3 -   D4 -   …   D14 -','P1-Period1   602-01 Literacy/Writing   657-01 Chorus 6   610-03 Geography …','ASP-Academic Support Period   ASP6-01 Academic Support Period Gr. 6 …'],40,60)
+ await page.getByLabel('Upload my schedule').setInputFiles({name:'schedule.pdf',mimeType:'application/pdf',buffer:Buffer.from(doc.output('arraybuffer'))})
+ await page.getByText(/Your AI helper found \d+ classes\./).waitFor({timeout:90000})
+ assert.equal(posts.length,1);assert.match(posts[0].prompt,/"ASP-Academic Support Period", is a period too/)
+ const times=page.getByRole('group',{name:'Period times'})
+ for(const [p,[a,b]] of [['Period 1',['07:45','08:41']],['Period 2',['08:45','09:41']],['Period 3',['09:45','10:41']],['Period 4',['10:45','12:11']],['Period 5',['12:15','13:11']],['ASP',['13:15','14:00']]]){await times.getByLabel(p+' starts').fill(a);await times.getByLabel(p+' ends').fill(b)}
+ const found=page.getByRole('table',{name:'What KONO found'})
+ assert.match(await found.getByRole('row',{name:/^Day 11/}).innerText(),/French - Grade 6/)
+ await page.getByRole('button',{name:'Continue to calendar preview'}).click()
+ await page.getByRole('button',{name:'Save to my calendar'}).click()
+ await page.getByRole('region',{name:'Add to my calendar'}).waitFor({state:'detached'})
+ await waitFor(()=>{const s=cloud.users.alice.plan.data.studySeasons?.find(x=>x.school?.name==='Duxbury Middle School');return s&&Object.values(s.week).flat().length===84},'all 14 days (5 periods and ASP) reach the account')
+ const saved=cloud.users.alice.plan.data.studySeasons.find(x=>x.school?.name==='Duxbury Middle School')
+ assert.equal(saved.week['Day 1'].map(b=>b.label).join(' | '),'602-01 · Literacy/Writing | 690-01 · Physical Education/Health 6 | 630-02 · Science 6 | 610-03 · Geography and Ancient Civilizations I | 621-01 · MATH 6 | ASP6-01 · Academic Support Period Gr. 6')
+ assert.equal(saved.week['Day 14'].find(b=>b.slot==='ASP').start,'13:15')
+})
+
 test('Rotating school: Duxbury High’s 7 classes rotate through 5 blocks; KONO’s AI reads a picture-only PDF into the 7 classes, every day is built with bell times, lunch and ASP, and a class can be switched for second semester',async({context,page})=>{
  const cloud=fakeCloud(),posts=[]
  // A stand-in schedule picture (made-up classes) laid out like the real one: D1–D7 columns, P1–P5 rows.
@@ -2074,8 +2121,9 @@ test('KONO’s taps: coming back after a while gets a wave, a tap right after fi
  assert.match(await bar.locator('.kono-care .kono-feed').getAttribute('title'),/favorite this week/)
  await openCorner(page)
  await page.waitForTimeout(3800)
- // Three quick taps: a tickle.
- for(let i=0;i<3;i++)await face.click({delay:20})
+ // Three quick taps: a tickle. (force: each tap makes KONO hop, and waiting for the hop to settle can
+ // stretch three taps past the 1.5 seconds a tickle needs on a busy machine.)
+ for(let i=0;i<3;i++)await face.click({delay:20,force:true})
  await bar.getByText(/^(Hehe! That tickles!|Ahaha! Stop, stop!|KONO giggles and wiggles all over!)/).waitFor()
  await bar.locator('.kono-mood-face.is-tickle').waitFor()
  if(process.env.KONO_SHOTS)await bar.screenshot({path:process.env.KONO_SHOTS+'/kono-tickle.png'})

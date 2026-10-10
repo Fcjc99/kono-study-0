@@ -7,6 +7,7 @@ export const academicCatalog=[
  {id:'hanover-2026',label:'Hanover High · Elevator 2026–27',kind:'school',revision:'2026-09-10',source:'Hanover calendar and elevator schedule supplied for 2026–27',url:''},
  {id:'silverlake-2026',label:'Silver Lake Regional · 2026–27',kind:'school',revision:'2026-09-12',source:'District-issued 2026-2027 School Calendar PDF (Silver Lake Regional School District & Superintendency Union #31)',url:''},
  {id:'duxbury-2026',label:'Duxbury Public Schools · 2026–27',kind:'school',revision:'2026-09-12',source:'District-issued 2026-2027 School Calendar PDF (Duxbury Public Schools)',url:''},
+ {id:'duxburyms-2026',label:'Duxbury Middle School · 2026–27 · 14-day rotation',kind:'school',revision:'2026-10-10',source:'District-issued 2026-2027 School Calendar PDF (Duxbury Public Schools); 14-day rotation from a Grade 6 schedule',url:''},
  {id:'duxburyhs-2026',label:'Duxbury High School · 2026–27 · 7-day rotation',kind:'school',revision:'2026-09-12',source:'District-issued 2026-2027 School Calendar PDF (Duxbury Public Schools)',url:''},
  {id:'scituate-2026',label:'Scituate Public Schools · 2026–27',kind:'school',revision:'2026-09-12',source:'District-issued 2026-2027 Calendar PDF (Scituate Public Schools, approved 11.17.25)',url:''},
  {id:'plymouth-2026',label:'Plymouth Public Schools · 2026–27',kind:'school',revision:'2026-09-12',source:'District-issued Academic Year 2026-2027 Calendar PDF (Plymouth Public Schools)',url:''},
@@ -19,7 +20,7 @@ export function academicTemplate(profileId:string,id:string):StudySeason{
  const record=academicCatalog.find(r=>r.id===id)
  if(!record)throw Error('Unknown academic calendar.')
  if(record.kind==='school'){
-  const preset=id==='marshfield-2026'?'marshfield':id==='hanover-2026'?'hanover':id==='silverlake-2026'?'silverlake':id==='duxbury-2026'?'duxbury':id==='duxburyhs-2026'?'duxburyhs':id==='scituate-2026'?'scituate':id==='plymouth-2026'?'plymouth':'nda'
+  const preset=id==='marshfield-2026'?'marshfield':id==='hanover-2026'?'hanover':id==='silverlake-2026'?'silverlake':id==='duxbury-2026'?'duxbury':id==='duxburyhs-2026'?'duxburyhs':id==='duxburyms-2026'?'duxburyms':id==='scituate-2026'?'scituate':id==='plymouth-2026'?'plymouth':'nda'
   const s=schoolPreset(profileId,preset)
   return {...s,school:{...s.school!,catalogId:record.id,catalogRevision:record.revision}}
  }

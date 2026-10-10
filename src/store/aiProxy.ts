@@ -36,7 +36,7 @@ export async function handleAi(token: string, body: unknown, deps: AiDeps): Prom
   const ai = await deps.fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: 'Bearer ' + deps.openaiKey },
-    body: JSON.stringify({ model: deps.model || 'gpt-4o-mini', response_format: { type: 'json_object' }, max_tokens: 4000, messages: [{ role: 'user', content }] }),
+    body: JSON.stringify({ model: deps.model || 'gpt-4o-mini', response_format: { type: 'json_object' }, max_tokens: 8000, messages: [{ role: 'user', content }] }),
   })
   if (!ai.ok) return reply(502, { error: ai.status === 429 ? 'KONO’s AI is busy right now. Try again in a minute.' : `The AI service had a problem (${ai.status}). Try again in a moment.` })
   const data = await ai.json() as { choices?: { message?: { content?: string } }[] }
