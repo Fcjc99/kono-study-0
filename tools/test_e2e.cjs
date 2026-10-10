@@ -1926,6 +1926,23 @@ test('Sanctuary: KONO today is a slim bar right under the island window, inside 
  if(process.env.KONO_SHOTS)await page.screenshot({path:process.env.KONO_SHOTS+'/decorate-stickers.png'})
 })
 
+test('Planner › ＋ Add to this date: Lesson and Work open a new event already set to that type, and save to the calendar',async({context,page})=>{
+ const cloud=fakeCloud()
+ await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Planner')
+ for(const [button,kind,title] of [['Lesson','lesson','Piano lesson'],['Work','work','Cafe shift']]){
+  if(!await page.locator('details.planner-add-menu').evaluate(d=>d.open))await page.locator('details.planner-add-menu > summary').click()
+  await page.locator('details.planner-add-menu').getByRole('button',{name:button,exact:true}).click()
+  const editor=page.getByRole('dialog',{name:'New Event'})
+  assert.equal(await editor.getByLabel('Event type').inputValue(),kind)
+  await editor.getByLabel('Title').fill(title)
+  await editor.getByRole('button',{name:'Save'}).click()
+  await editor.waitFor({state:'detached'})
+  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.some(e=>e.title===title&&e.kind===kind),title+' never reached the account as a '+kind)
+ }
+})
 test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assignment, test or lesson for that day right in the card (Type is a dropdown), and it shows on the Planner calendar',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
  plan.settings.parentMode=false

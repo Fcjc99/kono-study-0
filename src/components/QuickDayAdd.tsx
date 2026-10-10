@@ -3,13 +3,13 @@ import {parseQuickAdd} from '../store/quickAdd'
 import type {CalendarEventKind} from '../store/model'
 
 /** Sanctuary › Today's / Tomorrow's schedule › "＋ Add": one line for that day, right in the card. It
- * becomes an assignment or test due that day, or a lesson, appointment, practice or other event (at a
+ * becomes an assignment or test due that day, or a lesson, appointment, practice, work shift or other event (at a
  * time, if given), and shows up in the card and on the Planner calendar like anything else. The class and a time in the words are picked
  * up too ("bio worksheet", "math test at 3"). */
 export type QuickDayItem={key:'tasks'|'exams'|'calendarEvents';title:string;subjectId:string;time?:string;eventKind?:CalendarEventKind}
 /** The Type choices: an assignment, a test, or one kind of calendar event. */
 type Kind='tasks'|'exams'|`event:${CalendarEventKind}`
-const KINDS:[Kind,string][]=[['tasks','Assignment'],['exams','Test'],['event:lesson','Lesson'],['event:appointment','Appointment'],['event:sports','Practice or game'],['event:personal','Event']]
+const KINDS:[Kind,string][]=[['tasks','Assignment'],['exams','Test'],['event:lesson','Lesson'],['event:appointment','Appointment'],['event:sports','Practice or game'],['event:work','Work'],['event:personal','Event']]
 
 export default function QuickDayAdd({date,dayName,subjects,onAdd,onClose}:{date:string;dayName:string;subjects:{id:string;name:string}[];onAdd:(item:QuickDayItem)=>void;onClose:()=>void}){
  const [text,setText]=useState(''),[picked,setPicked]=useState<Kind|null>(null),[time,setTime]=useState('')
