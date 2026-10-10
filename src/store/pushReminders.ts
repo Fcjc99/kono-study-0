@@ -3,6 +3,7 @@ import type { AppData } from './model'
 import { schoolDay } from './schoolCalendar'
 import { changeDetail, changeTitle, schoolChanges } from './schoolHeadsUp'
 import { careMeters, pantry } from './konoCare'
+import { shiftAt, shiftMinutes, shiftsOn } from './workShifts'
 
 /** The next week of lock-screen reminders for the active plan, worked out on the person's own device
  * (so times are in their time zone) and handed to KONO's server queue (migration 0008):
@@ -17,6 +18,9 @@ import { careMeters, pantry } from './konoCare'
  * - parent mode with family reminders on: 15 minutes before each timed event
  * - KONO's notes (on unless turned off in Settings › Notifications), 4:30 PM, at most one a day for the
  *   next three days: KONO is getting hungry, or misses you, as its meters will stand then
+ * - 7:10 PM before a long work shift (4 hours or more), when something is due that day or the next:
+ *   the shift, and what's due, so there's time to get a head start
+ * Nothing arrives during a work shift: a reminder that would is sent when the shift ends.
  * Past times are skipped; the list is capped so a busy week can't flood anyone. */
 export type Reminder = { sendAt: string; title: string; body: string; tag: string }
 
@@ -31,7 +35,10 @@ export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
   // Turning reminders on for a device is the opt-in, so the in-app reminder toggle doesn't gate these.
   const profileId = data.activeProfileId, settings = data.settings
   const out: Reminder[] = []
-  const add = (when: Date, title: string, body: string, tag: string) => { if (when > now) out.push({ sendAt: when.toISOString(), title: cut(title, 120), body: cut(body, 300), tag: cut(tag, 120) }) }
+  const add = (time: Date, title: string, body: string, tag: string) => {
+    const shift = shiftAt(data, time), when = shift ? at(shift.date, shift.end) : time
+    if (when > now) out.push({ sendAt: when.toISOString(), title: cut(title, 120), body: cut(body, 300), tag: cut(tag, 120) })
+  }
   const tasks = data.tasks.filter(t => t.profileId === profileId && !t.done), exams = data.exams.filter(e => e.profileId === profileId && !e.done)
   const subject = (id: string) => data.subjects.find(s => s.id === id)?.name
   for (let i = 0; i < days; i++) {
@@ -52,6 +59,12 @@ export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
     const tomorrow = exams.filter(e => e.due === dateOf(next))
     if (tomorrow.length) add(at(date, '19:00'), tomorrow.length === 1 ? 'Tomorrow: ' + tomorrow[0].title : tomorrow.length + ' exams or tests tomorrow', tomorrow.length === 1 ? (subject(tomorrow[0].subjectId) ?? 'Good luck — a little review tonight helps.') : list(tomorrow.map(e => e.title)), 'exam-' + date)
     // Homework the night before: still-open assignments due tomorrow (done ones drop off when the queue is rebuilt).
+    // The evening before a long shift: what's due around it, while there's still time tonight.
+    const shifts = shiftsOn(data, dateOf(next)), after = new Date(next); after.setDate(next.getDate() + 1)
+    if (shifts.reduce((sum, s) => sum + shiftMinutes(s), 0) >= 240) {
+      const soon = [...tasks, ...exams].filter(x => x.due === dateOf(next) || x.due === dateOf(after)).map(x => x.title)
+      if (soon.length) add(at(date, '19:10'), 'Long shift tomorrow 💼', shifts.map(s => s.job + ' ' + classTime(s.start) + '–' + classTime(s.end)).join(', ') + '. Due by ' + after.toLocaleDateString(undefined, { weekday: 'short' }) + ': ' + list(soon) + '. A head start tonight helps.', 'shift-' + dateOf(next))
+    }
     const homework = tasks.filter(t => t.due === dateOf(next))
     if (homework.length) add(at(date, '19:05'), homework.length === 1 ? 'Due tomorrow: ' + homework[0].title : homework.length + ' assignments due tomorrow', homework.length === 1 ? (subject(homework[0].subjectId) ?? 'Still open. A few minutes tonight gets it done.') : list(homework.map(t => t.title)), 'homework-' + date)
     // Parent mode: Sunday evening, what each kid has coming up Monday–Sunday (untagged work counts as the family's).

@@ -10,7 +10,7 @@ import {classifyVoiceInput} from './store/voiceIntake'
 import {useSpeechToText} from './hooks/useSpeechToText'
 import {syncCurrentTaskCompletion,createSanctuaryProgress} from './game/progression/progressionEngine'
 import {konoMood} from './store/konoMood'
-import {addCareEvent,ALL_TREATS,ASLEEP_LINE,AWAY_LINE,bedtime,careMeters,favoriteSnack,fedLine,HELLO_LINE,HIGH_FIVE_MS,highFiveLine,isAwayVisit,nextPlayAt,pantry,PET_EVERY_MS,PET_LINES,PLAY_LINES,tasted,tasteEventId,tasteLine,TICKLE_LINES,type CareEvent} from './store/konoCare'
+import {addCareEvent,ALL_TREATS,treatFor,type Treat,ASLEEP_LINE,AWAY_LINE,bedtime,careMeters,favoriteSnack,fedLine,HELLO_LINE,HIGH_FIVE_MS,highFiveLine,isAwayVisit,nextPlayAt,pantry,PET_EVERY_MS,PET_LINES,PLAY_LINES,tasted,tasteEventId,tasteLine,TICKLE_LINES,type CareEvent} from './store/konoCare'
 import {dayGlance} from './store/dayGlance'
 import {OUTFITS,outfitsOffered,todaysWish,unlockedOutfits,wardrobeStats,wishEvent,wishGrantedOn,wishProgress,wishText,wornOutfit,type OutfitId} from './store/konoWardrobe'
 import KonoFace from './components/KonoFace'
@@ -110,6 +110,7 @@ import type {QuickAddGuess} from './store/quickAdd'
 import {readLinked} from './store/linkedCalendars'
 import {currentPushSubscription} from './store/pushDevice'
 import {weekDrop} from './store/weekDrop'
+import {shiftAt} from './store/workShifts'
 import {teamJersey} from './teamThemes'
 import AddToCalendar,{type AddChoice,type AddChoiceId} from './components/AddToCalendar'
 // Panels that aren't needed on first paint load on demand.
@@ -121,6 +122,7 @@ const PushSettings=lazyPanel(()=>import('./components/PushSettings'))
 const CalendarSubscribe=lazyPanel(()=>import('./components/CalendarSubscribe'))
 const ScheduleSetup=lazyPanel(()=>import('./components/ScheduleSetup'))
 const WorkSetup=lazyPanel(()=>import('./components/WorkSetup'))
+const WeekAhead=lazyPanel(()=>import('./components/WeekAhead'))
 const ScheduleShare=lazyPanel(()=>import('./components/ScheduleShare'))
 const Flashcards=lazyPanel(()=>import('./components/Flashcards'))
 const KQuiz=lazyPanel(()=>import('./components/KQuiz'))
@@ -149,6 +151,10 @@ const readIncoming=()=>{
  const link=(q.get('url')||joined.match(/https?:\/\/\S+/)?.[0]||'').slice(0,2000),text=joined.replace(/https?:\/\/\S+/g,' ').replace(/\s+/g,' ').trim().slice(0,300)
  return text||link?{text,link}:null
 }
+// The installed app's shortcuts (public/manifest.webmanifest): ?view=today opens the Today view, ?new=1
+// opens ＋ Add empty.
+const urlFlag=(name:string)=>{try{return new URL(location.href).searchParams.has(name)}catch{return false}}
+const installedApp=()=>{try{return window.matchMedia?.('(display-mode: standalone)').matches||(navigator as Navigator&{standalone?:boolean}).standalone===true}catch{return false}}
 const pageFromURL=():Page=>pages.find(p=>p.toLowerCase()===new URL(location.href).searchParams.get('page'))??'Sanctuary'
 
 export default function WorkspaceApp(){
@@ -170,7 +176,11 @@ function Workspace({store}:{store:Store}){
  const {data,repository}=store,save=repository.update
  const experience=data.settings.experience??'cozy'
  const profile=data.profiles.find(p=>p.id===data.activeProfileId)??data.profiles[0]
- const [page,setPage]=useState<Page>(pageFromURL),[more,setMore]=useState(false),[search,setSearch]=useState(false),[adding,setAdding]=useState(()=>!!readIncoming()),[incoming]=useState(readIncoming),[scanningPlan,setScanningPlan]=useState(false),[editor,setEditor]=useState<Edit|null>(null),[message,setMessage]=useState('')
+ const [page,setPage]=useState<Page>(pageFromURL),[more,setMore]=useState(false),[search,setSearch]=useState(false),[adding,setAdding]=useState(()=>!!readIncoming()||urlFlag('new')),[incoming]=useState(readIncoming),[scanningPlan,setScanningPlan]=useState(false),[editor,setEditor]=useState<Edit|null>(null),[message,setMessage]=useState('')
+ // Today view: just KONO and today's list, the island one tap away. The installed app opens to it on a
+ // phone (unless turned off on this device), and so does its Today shortcut.
+ const [openToToday,setOpenToToday]=useLocalSetting('kono-open-to-today','1')
+ const [quickToday,setQuickToday]=useState(()=>urlFlag('view')||(installedApp()&&window.innerWidth<=700&&openToToday==='1'))
  const [planRequest,setPlanRequest]=useState(0)
  // Planner: the calendar first; Plan my week, Your week so far and the study planner open from its ⋯ menu.
  const [recapOpen,setRecapOpen]=useState(false),plannerMoreRef=useRef<HTMLDetailsElement>(null)
@@ -317,7 +327,9 @@ function Workspace({store}:{store:Store}){
  // KONO's notes (store/konoNotes): good luck the evening before a test, the study headband on test day,
  // "How did it go?" after it, and otherwise one gentle nudge a day. One at a time, in the KONO bar.
  const tests=testsFrom(ownExams,data.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done))
- const nudges=nextUpList(tasks,today,ownExams).filter(i=>i.exam||(tasks.find(t=>t.id===i.id)?.due??'9')<=addDays(today,2))
+ // No "start now" nudge while you're at work (store/workShifts).
+ const atWork=shiftAt(data,careNow)
+ const nudges=atWork?[]:nextUpList(tasks,today,ownExams).filter(i=>i.exam||(tasks.find(t=>t.id===i.id)?.due??'9')<=addDays(today,2))
  const note=konoNote(tests,nudges,careLog,today,careNow.getHours())
  const shownOutfit=testDay(tests,today)?'headband':worn
  const answerTest=(test:Test,mood:Mood)=>{const now=new Date();logEvent({id:examEventId(test),kind:'exam',at:now.toISOString(),item:mood},now);announce({line:moodLine(mood,test.title),pose:mood==='good'?'/garden/kono/excited.webp':'/garden/kono/happy.webp',at:now.getTime(),ms:7000});if(mood==='good')setCelebrateSignal(now.getTime())}
@@ -449,7 +461,7 @@ function Workspace({store}:{store:Store}){
  usePushReminders(data,repository.replacePushQueue,!!store.user&&!store.support)
  // Classmate sharing (Friends in Settings) needs an account; never while KONO support is helping someone.
  const classmatesOn=!!store.user&&!store.support
- useEffect(()=>{if(!incoming)return;const u=new URL(location.href);for(const k of ['add','title','text','url'])u.searchParams.delete(k);history.replaceState(null,'',u.toString())},[incoming])
+ useEffect(()=>{if(!incoming&&!urlFlag('new')&&!urlFlag('view'))return;const u=new URL(location.href);for(const k of ['add','title','text','url','new','view'])u.searchParams.delete(k);history.replaceState(null,'',u.toString())},[incoming])
  // Photos on assignments go to the account's private folder when signed in; ones taken offline catch up.
  const photoCloud=useMemo(()=>repository.photoCloud(),[repository]) // Workspace remounts when the account changes
  useEffect(()=>{if(!photoCloud)return;const sync=()=>void uploadPendingPhotos(photoCloud);sync();window.addEventListener('online',sync);return()=>window.removeEventListener('online',sync)},[photoCloud])
@@ -468,6 +480,7 @@ function Workspace({store}:{store:Store}){
  const scheduleViewPicker=<div className="schedule-view-picker" role="group" aria-label="Schedule view"><label><input type="checkbox" checked={showAcademic} onChange={e=>void setting('scheduleShowAcademic',e.target.checked)}/> Academics</label><label><input type="checkbox" checked={showSports} onChange={e=>void setting('scheduleShowSports',e.target.checked)}/> Sports</label><label><input type="checkbox" checked={showAppointments} onChange={e=>void setting('scheduleShowAppointments',e.target.checked)}/> Appointments</label></div>
  const navigate=(next:Page)=>{const url=new URL(location.href);url.searchParams.set('page',next.toLowerCase());history.pushState(null,'',url);setPage(next);setMore(false);if(next!=='Planner')setAddOpen(false);window.scrollTo({top:0})}
  const startFocusSession=(taskId:string,estimatedMinutes?:number,label?:string)=>{
+  setQuickToday(false)
   navigate('Sanctuary')
   setFocusRequest({taskId,estimatedMinutes,requestId:Date.now(),label})
   requestAnimationFrame(()=>{
@@ -499,21 +512,25 @@ function Workspace({store}:{store:Store}){
  useEffect(()=>{if(ownTasks.length>taskCount.current)hop(document.querySelector('.kono-mood-face > :first-child'));taskCount.current=ownTasks.length},[ownTasks.length])
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();setSearch(v=>!v)}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[])
  // undo: a one-tap action (done, swipe, quick add, overdue) confirms in a bar at the bottom with Undo.
- const run=async(action:()=>Promise<boolean>,success:string,undo=false)=>{try{const ok=await action();if(ok&&undo){setMessage('');setUndoToast(t=>({text:success,at:(t?.at??0)+1}))}else setMessage(ok?success:'Not saved yet. Check the save status; your working copy is preserved.')}catch(e){setMessage(e instanceof Error?e.message:'Could not finish. Your work is preserved.')}}
- const [undoToast,setUndoToast]=useState<{text:string;at:number}|null>(null)
- useEffect(()=>{if(!undoToast)return;const t=window.setTimeout(()=>setUndoToast(null),7000);return()=>window.clearTimeout(t)},[undoToast])
+ // snackFor: a just-finished assignment, whose snack the toast offers to feed KONO right away.
+ const run=async(action:()=>Promise<boolean>,success:string,undo=false,snackFor?:string)=>{try{const ok=await action();if(ok&&undo){setMessage('');const done=snackFor?data.tasks.find(t=>t.id===snackFor):undefined,snack=done?{taskId:done.id,treat:treatFor({...done,done:true})}:undefined;setUndoToast(t=>({text:success,at:(t?.at??0)+1,...(snack?{snack}:{})}))}else setMessage(ok?success:'Not saved yet. Check the save status; your working copy is preserved.')}catch(e){setMessage(e instanceof Error?e.message:'Could not finish. Your work is preserved.')}}
+ const [undoToast,setUndoToast]=useState<{text:string;at:number;snack?:{taskId:string;treat:Treat}}|null>(null)
+ useEffect(()=>{if(!undoToast)return;const t=window.setTimeout(()=>setUndoToast(null),undoToast.snack?10000:7000);return()=>window.clearTimeout(t)},[undoToast])
  // Past their due date and not done (study-plan units move forward on their own, so never show here).
  const onPhone=usePhoneWidth()
+ const showQuick=quickToday&&page==='Sanctuary'
+ // Sundays and Mondays: last week's full review, unless hidden (the week-ahead card then sums it up).
+ const reviewShown=!!recap&&recapDay(today)&&recapHiddenFor!==recap.from
+ const openDecorate=()=>{setQuickToday(false);setIslandMode('decorate')}
  // Weekend mode: on Saturday and Sunday the Sanctuary leads with Monday's work and the week's tests.
  const dow=new Date(localDate()+'T12:00:00').getDay(),weekend=dow===0||dow===6,monday=addDays(localDate(),dow===6?2:1)
  const mondayWork=weekend?tasks.filter(t=>!t.done&&t.due===monday):[]
- const weekTests=weekend?data.exams.filter(e=>e.profileId===profile.id&&!e.done&&e.due>=monday&&e.due<=addDays(monday,4)).sort((a,b)=>a.due.localeCompare(b.due)):[]
  const [overdueHiddenOn,setOverdueHiddenOn]=useLocalSetting('kono-overdue-hidden:'+profile.id,'')
  const overdue=overdueHiddenOn===localDate()?[]:tasks.filter(t=>!t.done&&t.due<localDate()).sort((a,b)=>a.due.localeCompare(b.due))
  const moveToToday=(ids:string[])=>void run(()=>save(d=>({...d,tasks:d.tasks.map(t=>ids.includes(t.id)&&t.profileId===profile.id?{...t,due:localDate(),plannedTime:undefined}:t)})),ids.length===1?'Moved to today.':ids.length+' assignments moved to today.',true)
  // "＋ Add" › Type it: saves the assignment or exam exactly as the preview showed it.
  const quickAdd=(g:QuickAddGuess&{link?:string})=>{setAdding(false);const id=uid(g.key);void run(()=>save(d=>g.key==='tasks'?{...d,tasks:[...d.tasks,{id,profileId:profile.id,subjectId:g.subjectId,title:g.title,due:g.due,done:false,notes:'',...(g.time?{plannedTime:g.time}:{}),...(g.link?{link:g.link}:{})}]}:{...d,exams:[...d.exams,{id,profileId:profile.id,subjectId:g.subjectId,title:g.title,due:g.due,done:false,notes:'',...(g.link?{link:g.link}:{})}]}),'Added “'+g.title+'” for '+dateLabel(g.due)+'.',true)}
- const overdueCard=<OverdueCard tasks={overdue} subjectName={id=>data.subjects.find(s=>s.id===id)?.name??''} onDone={id=>void run(async()=>{const saved=await save(d=>completeTask(d,id));if(saved)celebrateDone();return saved},'Assignment completed.',true)} onMove={moveToToday} onLater={()=>setOverdueHiddenOn(localDate())}/>
+ const overdueCard=<OverdueCard tasks={overdue} subjectName={id=>data.subjects.find(s=>s.id===id)?.name??''} onDone={id=>void run(async()=>{const saved=await save(d=>completeTask(d,id));if(saved)celebrateDone();return saved},'Assignment completed.',true,id)} onMove={moveToToday} onLater={()=>setOverdueHiddenOn(localDate())}/>
  const openEditor=(edit:Edit)=>{if(hasDraft&&!editor){try{const old=JSON.parse(localStorage.getItem(draftScope)??'null') as Edit;if(old?.entry?.id===edit.entry.id){if(old.original&&edit.original&&!equal(old.original,edit.original)&&equal(old.entry,old.original)){localStorage.removeItem(draftScope);setHasDraft(false);setEditor(edit);return}setEditor(old);return}}catch{/* Offer a clear replacement choice. */}setConfirmation({text:'You have an unfinished edit. Discard it and open this item? Cancel keeps your draft; use Resume draft to finish it.',action:()=>{localStorage.removeItem(draftScope);localStorage.removeItem(draftScope+':assignment-dates');setHasDraft(false);setEditor(edit)}});return}setEditor(edit)}
  const create=(key:Collection,date=today,subjectId=subject,seed:Partial<Entry>={} )=>{
   setAdding(false)
@@ -674,7 +691,7 @@ function Workspace({store}:{store:Store}){
    if(extendsStreak&&STREAK_MILESTONES.includes(resultingStreak))void import('./confetti').then(m=>m.confetti()).catch(()=>undefined)
    setKonoPhrase(extendsStreak&&STREAK_MILESTONES.includes(resultingStreak)?konoStreakMilestone(resultingStreak):konoCelebration())
    setCelebrateSignal(Date.now())
-  }}return saved},entry.done?'Assignment reopened.':'Done: '+titleOf(entry),!entry.done);return}const field=key==='notes'?'completed':'done';void patch(key,entry,{[field]:!entry[field]})}
+  }}return saved},entry.done?'Assignment reopened.':'Done: '+titleOf(entry),!entry.done,entry.done?undefined:entry.id);return}const field=key==='notes'?'completed':'done';void patch(key,entry,{[field]:!entry[field]})}
  const remove=(key:Collection,entry:Entry)=>setConfirmation({text:'Move “'+titleOf(entry)+'” to Trash?'+(key==='subjects'?' Its assignments and notes remain available.':entry.studyPlanId?' Restoring this unit returns an independent assignment.':''),action:()=>void run(()=>save(d=>removeEntry(d,key,entry.id)),'Moved to Trash. You can restore it later.')})
  const inSeriesOf=(key:Collection,entry:Entry)=>entry.recurringId&&(key==='tasks'||key==='calendarEvents')?(records(data,key) as Entry[]).filter(r=>r.profileId===entry.profileId&&r.recurringId===entry.recurringId):[]
  const removeSeries=(key:Collection,entry:Entry)=>{const recurringId=String(entry.recurringId??''),count=inSeriesOf(key,entry).length;if(!recurringId)return;setConfirmation({text:'Move all '+count+' dates in this series to Trash? Each is trashed independently, so you can restore just one later if you change your mind.',action:()=>void run(()=>save(d=>({...d,[key]:(records(d,key) as Entry[]).filter(r=>!(r.profileId===entry.profileId&&r.recurringId===recurringId))})),'Series moved to Trash.')})}
@@ -798,7 +815,7 @@ function Workspace({store}:{store:Store}){
     </div></details></div>{konoPhrase&&<div className="kono-speech-bubble" role="status"><img src={konoPhrase.kind==='sticker'||konoPhrase.kind==='milestone'||konoPhrase.kind==='celebration'?'/garden/kono/excited.webp':mood.pose} alt="" aria-hidden="true"/><p>{konoPhrase.text}</p><button type="button" aria-label="Dismiss" onClick={()=>setKonoPhrase(null)}>×</button></div>}{voiceError&&<p role="alert" className="voice-add-error">{voiceError}</p>}</header>
    <div ref={pageScope} className="wb-page">
    {message&&<p role="status" className="wb-notice">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></p>}
-   {undoToast&&<div className="undo-toast" role="status" key={undoToast.at}><span>{undoToast.text}</span>{repository.canUndo&&<button type="button" onClick={()=>{setUndoToast(null);void run(repository.undo,'Undone.')}}>Undo</button>}<button type="button" className="undo-toast-close" aria-label="Dismiss" onClick={()=>setUndoToast(null)}>×</button></div>}
+   {undoToast&&<div className={'undo-toast'+(undoToast.snack?' has-snack':'')} role="status" key={undoToast.at}><span>{undoToast.text}{undoToast.snack&&meters.asleep&&<small className="undo-toast-snack"> · KONO earned {undoToast.snack.treat.emoji} for the morning</small>}</span>{undoToast.snack&&!meters.asleep&&<button type="button" className="undo-toast-feed" aria-label={'Feed KONO the '+undoToast.snack.treat.name+' you earned'} onClick={()=>{const id=undoToast.snack!.taskId;setUndoToast(null);feedKono(id)}}><span aria-hidden="true">{undoToast.snack.treat.emoji}</span> Feed KONO</button>}{repository.canUndo&&<button type="button" onClick={()=>{setUndoToast(null);void run(repository.undo,'Undone.')}}>Undo</button>}<button type="button" className="undo-toast-close" aria-label="Dismiss" onClick={()=>setUndoToast(null)}>×</button></div>}
    {showDigest&&(page==='Sanctuary'||page==='Planner')&&<div className="wb-notice login-digest is-slim" role="status"><details><summary><strong>{dueSoon.length} due by {new Date(addDays(today,3)+'T12:00:00').toLocaleDateString(undefined,{weekday:'short'})}</strong>{dueSoon.length===1&&<span className="digest-inline"> · {dueSoon[0].title}</span>}</summary><ul>{dueSoon.slice(0,5).map(t=><li key={t.id}>{t.title} · {dateLabel(t.due)}</li>)}</ul>{dueSoon.length>5&&<small>+{dueSoon.length-5} more</small>}</details><button onClick={dismissDigest}>Got it</button></div>}
    {(page==='Sanctuary'||page==='Planner')&&schoolAhead.length>0&&<div className="wb-notice school-heads-up" role="status"><div><strong>📅 Coming up at school</strong><ul>{schoolAhead.map(c=><li key={c.key}><b>{changeTitle(c)}</b>{changeDetail(c)?' · '+changeDetail(c):''}</li>)}</ul></div><button onClick={()=>setSchoolSeen([...schoolSeen.split('|').filter(Boolean).slice(-30),...schoolAhead.map(c=>c.key)].join('|'))}>Got it</button></div>}
    {showCrunch&&<div className="wb-notice crunch-digest" role="status"><div><strong>{crunchDays.length===1?'A busy day is':'Busy days are'} coming up</strong><ul>{crunchDays.slice(0,3).map(([day,list])=><li key={day}>{dateLabel(day)}: {list.length} thing{list.length===1?'':'s'} due{list.filter(i=>i.kind==='exam').length>1?' (multiple exams)':''}</li>)}</ul>{crunchDays.length>3&&<small>+{crunchDays.length-3} more busy day{crunchDays.length-3===1?'':'s'}</small>}</div><button onClick={dismissCrunch}>Got it</button></div>}
@@ -807,7 +824,8 @@ function Workspace({store}:{store:Store}){
    {page==='Sanctuary'&&<>
     {classmatesOn&&<SharedWithMe repository={repository} data={data} save={save}/>}
     {showTour&&<Suspense fallback={<TourPlaceholder/>}><WelcomeTour onAdd={()=>setAdding(true)} onDone={()=>setTourDone('1')}/></Suspense>}
-    <section className={'wb-island '+(expanded?'is-expanded':'')} data-kono-need={konoNeed??undefined}><div className="wb-scene-toolbar"><div className="wb-scene-left"><nav className="island-mode-tabs" aria-label="Sanctuary view"><button aria-current={islandMode==='view'?'page':undefined} onClick={()=>setIslandMode('view')}>Your island</button><button aria-current={islandMode==='decorate'?'page':undefined} onClick={()=>{setDecorateStart(undefined);setIslandMode('decorate')}}>Decorate</button></nav></div><div className="wb-scene-controls"><label className="wb-scene-time" title="Sanctuary time"><span aria-hidden="true">🕐</span><select aria-label="Sanctuary time" value={phase} onChange={e=>setPhase(e.target.value as typeof phase)}>{['auto','morning','afternoon','evening','night'].map(p=><option key={p} value={p}>{p==='auto'?'Live time':p[0].toUpperCase()+p.slice(1)}</option>)}</select></label>{islandMode==='view'&&<div className="wb-island-zoom" role="group" aria-label="Zoom island"><button type="button" onClick={()=>setIslandZoom(z=>Math.max(MIN_ISLAND_ZOOM,+(z-0.25).toFixed(2)))} disabled={islandZoom<=MIN_ISLAND_ZOOM} aria-label="Zoom out">−</button><span aria-live="polite">{Math.round(islandZoom*100)}%</span><button type="button" onClick={()=>setIslandZoom(z=>Math.min(MAX_ISLAND_ZOOM,+(z+0.25).toFixed(2)))} disabled={islandZoom>=MAX_ISLAND_ZOOM} aria-label="Zoom in">＋</button>{islandZoom!==1&&<button type="button" onClick={resetIslandView}>Reset</button>}</div>}<button type="button" className="wb-scene-expand" title={expanded?'Close full screen':'Expand'} onClick={()=>setExpanded(v=>!v)}><span aria-hidden="true">{expanded?'✕':'⤢'}</span><span className="wb-btn-label">{expanded?'Close full screen':'Expand'}</span></button></div></div><div className="wb-sanctuary-stage"><div ref={islandStageRef} className="wb-sanctuary-zoom-wrap" onTouchStart={onIslandTouchStart} onTouchMove={onIslandTouchMove} onTouchEnd={onIslandTouchEnd} onPointerDown={onIslandPointerDown} onPointerMove={onIslandPointerMove} onPointerUp={onIslandPointerUp} onPointerCancel={onIslandPointerUp}><div className={'wb-sanctuary-zoom'+(islandMode==='view'&&islandZoom!==1?' is-zoomed':'')} style={islandMode==='view'?{transform:`translate(${islandPan.x}px, ${islandPan.y}px) scale(${islandZoom})`}:undefined}><div className={'wb-sanctuary-backdrop'+(islandMode==='decorate'?' is-decorating':'')}><GardenCard phase={islandPhase} weather={weather.weather} reducedMotion={reduced} progress={sanctuaryProgress} decorations={data.sanctuaryDecor[profile.id]?.placements} paused={islandMode==='decorate'} celebrateSignal={celebrateSignal} focusCompanionActive={focusCompanionActive} onKonoPet={islandPat} konoNeed={konoNeed} feedSignal={feedSignal} konoMood={meters.away?null:{full:meters.full,rested:meters.rested,happy:meters.happy,asleep:meters.asleep}} outfit={shownOutfit} visitor={visitor?.id??null}/></div>{islandMode==='view'&&<SanctuaryDecorLayer data={data} phase={islandPhase}/>}</div></div>{islandMode==='decorate'&&<SanctuaryBuild data={data} save={save} phase={phase} earned={decorEarned} today={today} startCategory={decorateStart} wardrobe={{offered:outfitsOffered(unlockedOutfitIds,today),unlocked:unlockedOutfitIds,worn,stats:wardrobe,onWear:wearOutfit}} stamps={stamps} bond={bond}/>}</div></section>
+    {showQuick?<section className="wb-panel quick-today" aria-label="Today view"><div><small>{new Date(today+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</small><h2>Today</h2></div><button type="button" onClick={()=>setQuickToday(false)}><span aria-hidden="true">🏝</span> Open your island</button>{installedApp()&&<label className="wb-check quick-today-pref"><input type="checkbox" checked={openToToday==='1'} onChange={e=>setOpenToToday(e.target.checked?'1':'0')}/>Open the app to Today</label>}</section>
+    :<section className={'wb-island '+(expanded?'is-expanded':'')} data-kono-need={konoNeed??undefined}><div className="wb-scene-toolbar"><div className="wb-scene-left"><nav className="island-mode-tabs" aria-label="Sanctuary view"><button aria-current={islandMode==='view'?'page':undefined} onClick={()=>setIslandMode('view')}>Your island</button><button aria-current={islandMode==='decorate'?'page':undefined} onClick={()=>{setDecorateStart(undefined);openDecorate()}}>Decorate</button></nav></div><div className="wb-scene-controls"><label className="wb-scene-time" title="Sanctuary time"><span aria-hidden="true">🕐</span><select aria-label="Sanctuary time" value={phase} onChange={e=>setPhase(e.target.value as typeof phase)}>{['auto','morning','afternoon','evening','night'].map(p=><option key={p} value={p}>{p==='auto'?'Live time':p[0].toUpperCase()+p.slice(1)}</option>)}</select></label>{islandMode==='view'&&<div className="wb-island-zoom" role="group" aria-label="Zoom island"><button type="button" onClick={()=>setIslandZoom(z=>Math.max(MIN_ISLAND_ZOOM,+(z-0.25).toFixed(2)))} disabled={islandZoom<=MIN_ISLAND_ZOOM} aria-label="Zoom out">−</button><span aria-live="polite">{Math.round(islandZoom*100)}%</span><button type="button" onClick={()=>setIslandZoom(z=>Math.min(MAX_ISLAND_ZOOM,+(z+0.25).toFixed(2)))} disabled={islandZoom>=MAX_ISLAND_ZOOM} aria-label="Zoom in">＋</button>{islandZoom!==1&&<button type="button" onClick={resetIslandView}>Reset</button>}</div>}<button type="button" className="wb-scene-expand" title={expanded?'Close full screen':'Expand'} onClick={()=>setExpanded(v=>!v)}><span aria-hidden="true">{expanded?'✕':'⤢'}</span><span className="wb-btn-label">{expanded?'Close full screen':'Expand'}</span></button></div></div><div className="wb-sanctuary-stage"><div ref={islandStageRef} className="wb-sanctuary-zoom-wrap" onTouchStart={onIslandTouchStart} onTouchMove={onIslandTouchMove} onTouchEnd={onIslandTouchEnd} onPointerDown={onIslandPointerDown} onPointerMove={onIslandPointerMove} onPointerUp={onIslandPointerUp} onPointerCancel={onIslandPointerUp}><div className={'wb-sanctuary-zoom'+(islandMode==='view'&&islandZoom!==1?' is-zoomed':'')} style={islandMode==='view'?{transform:`translate(${islandPan.x}px, ${islandPan.y}px) scale(${islandZoom})`}:undefined}><div className={'wb-sanctuary-backdrop'+(islandMode==='decorate'?' is-decorating':'')}><GardenCard phase={islandPhase} weather={weather.weather} reducedMotion={reduced} progress={sanctuaryProgress} decorations={data.sanctuaryDecor[profile.id]?.placements} paused={islandMode==='decorate'} celebrateSignal={celebrateSignal} focusCompanionActive={focusCompanionActive} onKonoPet={islandPat} konoNeed={konoNeed} feedSignal={feedSignal} konoMood={meters.away?null:{full:meters.full,rested:meters.rested,happy:meters.happy,asleep:meters.asleep}} outfit={shownOutfit} visitor={visitor?.id??null}/></div>{islandMode==='view'&&<SanctuaryDecorLayer data={data} phase={islandPhase}/>}</div></div>{islandMode==='decorate'&&<SanctuaryBuild data={data} save={save} phase={phase} earned={decorEarned} today={today} startCategory={decorateStart} wardrobe={{offered:outfitsOffered(unlockedOutfitIds,today),unlocked:unlockedOutfitIds,worn,stats:wardrobe,onWear:wearOutfit}} stamps={stamps} bond={bond}/>}</div></section>}
     {/* KONO today: the bottom strip of the island card, inside its border. KONO, its line, how it's
         doing, one care action, stickers, and "do next" / "ask". The day's wish (and an island season)
         sit in a small line under it; Ask KONO and What should I do now? open below when asked. */}
@@ -830,21 +848,18 @@ function Workspace({store}:{store:Store}){
       asleep={meters.asleep} playAt={nextPlayAt(careLog)} onPlay={playKono} now={careNow.getTime()}
       streak={currentStreak} week={{done:weekDone,total:weekTotal}}
       tiles={[
-       {id:'stickers',icon:'🏅',label:'Stickers',detail:earned.size+' of '+offeredStickers+' earned',ariaLabel:'Your stickers: '+earned.size+' of '+offeredStickers+' earned',onOpen:()=>{setDecorateStart('stickers');setIslandMode('decorate')}},
-       {id:'stamps',icon:'🐾',label:'Stamp card',detail:stamps.stamped.length+' of '+CARD_SIZE+' stamps',ariaLabel:'Stamp card: '+stamps.stamped.length+' of '+CARD_SIZE+' stamps',onOpen:()=>{setDecorateStart('presents');setIslandMode('decorate')}},
-       {id:'wardrobe',icon:'🎀',label:'Wardrobe',detail:unlockedOutfitIds.size+' of '+outfitsOffered(unlockedOutfitIds,today).length+' outfits',onOpen:()=>{setDecorateStart('wardrobe');setIslandMode('decorate')}},
-       {id:'bond',icon:'💗',label:'Bond',detail:bond.level+' heart'+(bond.level===1?'':'s')+' · '+bond.title,onOpen:()=>{setDecorateStart('presents');setIslandMode('decorate')}},
+       {id:'stickers',icon:'🏅',label:'Stickers',detail:earned.size+' of '+offeredStickers+' earned',ariaLabel:'Your stickers: '+earned.size+' of '+offeredStickers+' earned',onOpen:()=>{setDecorateStart('stickers');openDecorate()}},
+       {id:'stamps',icon:'🐾',label:'Stamp card',detail:stamps.stamped.length+' of '+CARD_SIZE+' stamps',ariaLabel:'Stamp card: '+stamps.stamped.length+' of '+CARD_SIZE+' stamps',onOpen:()=>{setDecorateStart('presents');openDecorate()}},
+       {id:'wardrobe',icon:'🎀',label:'Wardrobe',detail:unlockedOutfitIds.size+' of '+outfitsOffered(unlockedOutfitIds,today).length+' outfits',onOpen:()=>{setDecorateStart('wardrobe');openDecorate()}},
+       {id:'bond',icon:'💗',label:'Bond',detail:bond.level+' heart'+(bond.level===1?'':'s')+' · '+bond.title,onOpen:()=>{setDecorateStart('presents');openDecorate()}},
       ]}
       notes={<>{islandEvent&&<span className="kono-season">{islandEvent.emoji} <strong>{islandEvent.label}:</strong> {islandEvent.stickers.filter(t=>earned.has(t.id)).length}/{islandEvent.stickers.length} special stickers until {islandEvent.until}</span>}</>}/></Suspense>}
-     {askOpen&&<AskKono data={data} today={today} name={profile.name} pose={konoPose} onClose={()=>setAskOpen(false)}/>}{nextUpOpen&&<NextUp items={nextUpList(tasks,today,ownExams)} onClose={()=>setNextUpOpen(false)} onStart={item=>{setNextUpOpen(false);startFocusSession(item.exam?'':item.id,item.minutes,item.exam?item.title:undefined)}} onDone={item=>void run(()=>save(d=>completeTask(d,item.id)),'Done: '+item.title,true)}/>}
+     {askOpen&&<AskKono data={data} today={today} name={profile.name} pose={konoPose} onClose={()=>setAskOpen(false)}/>}{nextUpOpen&&<NextUp items={nextUpList(tasks,today,ownExams)} onClose={()=>setNextUpOpen(false)} onStart={item=>{setNextUpOpen(false);startFocusSession(item.exam?'':item.id,item.minutes,item.exam?item.title:undefined)}} onDone={item=>void run(()=>save(d=>completeTask(d,item.id)),'Done: '+item.title,true,item.exam?undefined:item.id)}/>}
     </section>
-    <details ref={sanctuaryFocusRef} className="wb-panel sanctuary-focus"><summary>Focus session</summary><FocusSession draftKey={draftScope+':focus'} tasks={tasks} notes={notes} focusRequest={focusRequest} onComplete={id=>void run(()=>save(d=>completeTask(d,id)),'Assignment completed.')} onSaveNote={body=>save(d=>({...d,notes:[...d.notes,{id:uid('note'),profileId:profile.id,subjectId:'',title:'Study session',body,created:new Date().toISOString(),pinned:true}]}))} onFocusActiveChange={setFocusCompanionActive} onSessionComplete={focusDone}/></details>
-    {setupOpen&&setupLeft>0&&<GettingStarted steps={startSteps} onSkip={skipStart} onHide={()=>{skipStart('all');setSetupOpen(false)}}/>}
-    {recap&&recapDay(today)&&recapHiddenFor!==recap.from&&<div className="wb-panel week-recap-sunday"><WeekRecap recap={recap} onPlanWeek={openWeekPlan} onDismiss={()=>setRecapHiddenFor(recap.from)}/></div>}
-    {weekend&&<section className="wb-panel weekend-card" aria-label="Get ready for Monday"><div className="wb-section-head"><div><small>WEEKEND · {dateLabel(monday)}</small><h2>Get ready for Monday</h2></div><div className="wb-toolbar"><button onClick={()=>{setSelectedDate(monday);navigate('Planner')}}>Open Monday</button><button onClick={openWeekPlan}>✨ Plan my week</button></div></div>
-     {mondayWork.length>0?<div className="weekend-due"><strong>Due Monday</strong>{mondayWork.map(t=>card('tasks',t as unknown as Entry))}</div>:<p>Nothing is due Monday.</p>}
-     {weekTests.length>0?<p className="weekend-tests"><strong>Tests this week:</strong> {weekTests.map(e=>e.title+' ('+new Date(e.due+'T12:00:00').toLocaleDateString(undefined,{weekday:'short'})+')').join(', ')}</p>:<p className="wb-muted">No tests next week.</p>}
-    </section>}
+    {!showQuick&&<details ref={sanctuaryFocusRef} className="wb-panel sanctuary-focus"><summary>Focus session</summary><FocusSession draftKey={draftScope+':focus'} tasks={tasks} notes={notes} focusRequest={focusRequest} onComplete={id=>void run(()=>save(d=>completeTask(d,id)),'Assignment completed.')} onSaveNote={body=>save(d=>({...d,notes:[...d.notes,{id:uid('note'),profileId:profile.id,subjectId:'',title:'Study session',body,created:new Date().toISOString(),pinned:true}]}))} onFocusActiveChange={setFocusCompanionActive} onSessionComplete={focusDone}/></details>}
+    {!showQuick&&setupOpen&&setupLeft>0&&<GettingStarted steps={startSteps} onSkip={skipStart} onHide={()=>{skipStart('all');setSetupOpen(false)}}/>}
+    {!showQuick&&reviewShown&&recap&&<div className="wb-panel week-recap-sunday"><WeekRecap recap={recap} onPlanWeek={openWeekPlan} onDismiss={()=>setRecapHiddenFor(recap.from)}/></div>}
+    {!showQuick&&weekend&&<WeekAhead data={data} monday={monday} recap={reviewShown?null:recap} tasks={tasks} exams={ownExams} onPlan={openWeekPlan} onOpenDay={date=>{setSelectedDate(date);navigate('Planner')}} mondayWork={mondayWork.length>0?<div className="weekend-due"><strong>Due Monday</strong>{mondayWork.map(t=>card('tasks',t as unknown as Entry))}</div>:<p>Nothing is due Monday.</p>}/>}
     {/* Your day: one card for today and tomorrow. Late work and past-due reminders lead Today; ＋ Add
         and the ⋯ menu (what to show, classes, the Planner) sit in its header. */}
     <section className="wb-panel today-card" aria-label="Your day">

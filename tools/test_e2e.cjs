@@ -1473,19 +1473,24 @@ async function swipe(locator,dx){
   const fire=(type,x)=>{const t=new Touch({identifier:1,target:el,clientX:x,clientY:y});el.dispatchEvent(new TouchEvent(type,{bubbles:true,cancelable:true,touches:type==='touchend'?[]:[t],targetTouches:type==='touchend'?[]:[t],changedTouches:[t]}))}
   fire('touchstart',x0);for(let i=1;i<=6;i++)fire('touchmove',x0+dx*i/6);fire('touchend',x0+dx)},dx)
 }
-test('Weekend, quick add and swipe: Saturday leads with Monday; "bio worksheet due fri" becomes a Biology assignment; on a phone, swipe right finishes and left moves to tomorrow',async({context,page})=>{
+test('Weekend, quick add and swipe: Saturday leads with the week ahead (due, tests, work shifts); "bio worksheet due fri" becomes a Biology assignment; on a phone, swipe right finishes and left moves to tomorrow',async({context,page})=>{
  const SATURDAY='2026-10-03T10:00:00'
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  plan.tasks.push({id:'mon-read',profileId:pid,subjectId:'sub-bio',title:'Monday reading',due:'2026-10-05',done:false,notes:''},{id:'mon-lab',profileId:pid,subjectId:'',title:'Lab sheet',due:'2026-10-05',done:false,notes:''})
  plan.exams.push({id:'wed-quiz',profileId:pid,subjectId:'sub-bio',title:'Unit quiz',due:'2026-10-07',done:false,notes:''})
+ plan.studySeasons.push({id:'job',profileId:pid,name:'Cafe · work',start:'2026-09-01',end:'2026-12-20',active:true,week:{Sunday:[],Monday:[],Tuesday:[{id:'tue',label:'Cafe',start:'16:00',end:'20:00',kind:'routine'}],Wednesday:[],Thursday:[],Friday:[],Saturday:[]}})
  await page.clock.setFixedTime(new Date(SATURDAY))
  await signInAs(context,cloud,'alice')
  await page.goto(BASE)
  await heading(page,'Sanctuary')
- const weekend=page.getByRole('region',{name:'Get ready for Monday'})
+ const weekend=page.getByRole('region',{name:'Your week ahead'})
  await weekend.getByText('Monday reading').first().waitFor()
  await weekend.getByText('Tests this week:').waitFor()
  assert.match(await weekend.locator('.weekend-tests').innerText(),/Unit quiz \(Wed\)/)
+ // The week ahead, day by day: Monday's two, Wednesday's quiz, Tuesday's shift.
+ await weekend.getByRole('button',{name:/^Mon 5: 2 due$/}).waitFor()
+ await weekend.getByRole('button',{name:/^Tue 6: work 4:00 PM to 8:00 PM$/}).waitFor()
+ await weekend.getByRole('button',{name:/^Wed 7: test: Unit quiz$/}).waitFor()
 
  await page.getByRole('button',{name:'＋ Add',exact:true}).click()
  const chooser=page.getByRole('dialog',{name:'Add to your plan'})
@@ -1503,7 +1508,7 @@ test('Weekend, quick add and swipe: Saturday leads with Monday; "bio worksheet d
   await signInAs(phone.context,cloud,'alice')
   await phone.page.goto(BASE)
   await heading(phone.page,'Sanctuary')
-  const card=title=>phone.page.getByRole('region',{name:'Get ready for Monday'}).locator('.swipe-row').filter({hasText:title}).first()
+  const card=title=>phone.page.getByRole('region',{name:'Your week ahead'}).locator('.swipe-row').filter({hasText:title}).first()
   await swipe(card('Monday reading'),150)
   await waitFor(()=>cloud.users.alice.plan.data.tasks.find(t=>t.id==='mon-read')?.done===true,'swipe right never finished it')
   await swipe(card('Lab sheet'),-150)
@@ -2096,6 +2101,37 @@ test('KONO on the island: when it is hungry and there is a snack it says so in a
  if(process.env.KONO_SHOTS){await page.waitForTimeout(150);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/kono-feed-1.png'});await page.waitForTimeout(450);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/kono-feed-2.png'})}
  await page.locator(`.wb-island[data-kono-need="${snack}"]`).waitFor({state:'detached'})
 })
+test('Today view: the app’s Today shortcut opens just KONO and today’s list without loading the island, Open your island brings it back, and the Add shortcut opens ＋ Add',async({context,page})=>{
+ const cloud=fakeCloud()
+ await page.setViewportSize({width:390,height:844})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE+'?view=today');await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'Today view'}).waitFor()
+ await page.getByRole('region',{name:'Your day'}).waitFor()
+ await page.getByRole('region',{name:'KONO today'}).waitFor()
+ assert.equal(await page.locator('.wb-island').count(),0,'no island in the Today view')
+ assert.ok(!new URL(page.url()).searchParams.has('view'),'the shortcut flag is cleared from the address')
+ await page.getByRole('button',{name:'Open your island'}).click()
+ await page.locator('.wb-island').waitFor()
+ assert.equal(await page.getByRole('region',{name:'Today view'}).count(),0)
+ await page.goto(BASE+'?new=1');await heading(page,'Sanctuary')
+ await page.getByRole('dialog',{name:'Add to your plan'}).waitFor()
+})
+
+test('Finishing something: the Done toast shows the snack it earned, and Feed KONO feeds that snack right away',async({context,page})=>{
+ const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
+ const toast=page.locator('.undo-toast')
+ const id=cloud.users.alice.plan.data.tasks.find(t=>t.title==='Read chapter 3').id
+ await toast.getByRole('button',{name:/^Feed KONO the .+ you earned$/}).click()
+ await toast.waitFor({state:'detached'})
+ await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).some(e=>e.kind==='feed'&&e.taskId===id),'the snack from that assignment was never eaten')
+ await page.getByRole('region',{name:'KONO today'}).locator('p[aria-live]',{hasText:/^(Yum!|😍)/}).waitFor()
+})
+
 test('KONO’s corner: the snack tray feeds the snack you pick (a new kind goes in the snack book), Play with KONO opens a game, makes KONO happier and waits an hour, and KONO’s notes can be turned off',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
  await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))

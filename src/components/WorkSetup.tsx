@@ -5,11 +5,12 @@ import {addWeeklyClass,weeklyClassDates,weeklyConflicts,type WeeklyClassInput} f
 import {addDays} from '../store/studyScheduler'
 import type {PlannerRepository} from '../store/repository'
 import WeekdayPicker from './WeekdayPicker'
+import {WORK_SUFFIX} from '../store/workShifts'
 
 /** Planner › ＋ Add to my calendar › My work schedule: shifts that repeat each week (Tue and Thu 4–8, …).
  * They go on the calendar like any weekly activity, and Plan my week plans study time around them
  * (store/weekPlan › busyTimes). Several entries cover shifts that differ by day. */
-export const WORK_SUFFIX=' · work'
+export {WORK_SUFFIX}
 export default function WorkSetup({data,save,draftKey}:{data:AppData;save:PlannerRepository['update'];draftKey:string}){
  const today=localDate()
  const initial:WeeklyClassInput={title:'',subjectId:'',activity:true,location:'',weekdays:[],start:'16:00',end:'20:00',first:today,last:addDays(today,182),blockKind:'routine'}

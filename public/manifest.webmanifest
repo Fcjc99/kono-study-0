@@ -35,5 +35,46 @@
       "text": "text",
       "url": "url"
     }
-  }
+  },
+  "shortcuts": [
+    {
+      "name": "Today",
+      "short_name": "Today",
+      "description": "Today's list and KONO",
+      "url": "/?view=today",
+      "icons": [
+        {
+          "src": "/icons/kono-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Add homework",
+      "short_name": "Add",
+      "description": "Add an assignment, exam or event",
+      "url": "/?new=1",
+      "icons": [
+        {
+          "src": "/icons/kono-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Planner",
+      "short_name": "Planner",
+      "description": "Your calendar",
+      "url": "/?page=planner",
+      "icons": [
+        {
+          "src": "/icons/kono-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
 }
