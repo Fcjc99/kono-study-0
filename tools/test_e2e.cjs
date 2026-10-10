@@ -646,12 +646,13 @@ test('Welcome tour: a new plan gets three steps (the island, KONO, adding work),
  assert.equal(await page.getByRole('region',{name:'Welcome to KONO'}).count(),0,'the tour doesn’t come back')
 })
 
-test('Getting started: a new plan shows three steps; each opens the right place, ticks off when done or skipped, and Hide keeps it hidden',async({page})=>{
+test('Getting started: a new plan shows a Set up KONO chip that opens three steps; each opens the right place, ticks off when done or skipped, and Hide keeps it hidden',async({page})=>{
  await createPlan(page)
  const card=page.getByRole('region',{name:'Getting started'})
- // It starts as one row with the next step; All steps opens the full list.
- await card.getByText('SET UP KONO · 0 of 3 done').waitFor()
- const allSteps=()=>card.getByRole('button',{name:'Show all setup steps'}).click()
+ // Home shows a small chip with the progress; it opens the steps.
+ await page.getByRole('button',{name:'Set up KONO · 0/3'}).waitFor()
+ assert.equal(await card.count(),0,'the steps stay out of the way until asked for')
+ const allSteps=async()=>{if(!await card.isVisible())await page.getByRole('button',{name:/^Set up KONO · \d\/3$/}).click();await card.getByRole('heading',{name:'Set up KONO in a few minutes'}).waitFor()}
  await allSteps()
  await card.getByText('0 of 3 done').waitFor()
  // Add my school opens Add to my calendar at the school setup.
@@ -679,7 +680,7 @@ test('Getting started: a new plan shows three steps; each opens the right place,
  await card.getByRole('button',{name:'Hide'}).click()
  await card.waitFor({state:'detached'})
  await page.reload();await heading(page,'Sanctuary')
- assert.equal(await page.getByRole('region',{name:'Getting started'}).count(),0,'stays hidden after a reload')
+ assert.equal(await page.getByRole('button',{name:/^Set up KONO/}).count(),0,'stays hidden after a reload')
 })
 
 test('Calendar import: a Google/Apple calendar file or link adds weekly repeats and events, and importing again adds nothing new',async({context,page})=>{
@@ -978,6 +979,10 @@ function weekPlanCloud(){
 // The island only loads while it's on screen (GardenCard pauses it otherwise), and the page can still
 // shift as it settles, so keep it in view while waiting for it to finish.
 const islandLoaded=page=>page.waitForFunction(()=>{const island=document.querySelector('.wb-island'),r=island?.getBoundingClientRect();if(island&&(r.bottom<0||r.top>innerHeight))island.scrollIntoView({block:'center'});return island&&!document.querySelector('.sanctuary-load-status')},null,{timeout:30000,polling:250})
+/** KONO's corner: tap KONO's face in the KONO bar; it opens over the page. */
+const cornerOf=page=>page.getByRole('dialog',{name:'KONO’s corner'})
+const openCorner=async page=>{const d=cornerOf(page);if(!await d.isVisible())await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:'Open KONO’s corner'}).click();await d.waitFor();return d}
+const closeCorner=async page=>{const d=cornerOf(page);if(await d.isVisible()){await d.getByRole('button',{name:'Close dialog'}).click();await d.waitFor({state:'detached'})}}
 const waitFor=async(check,message)=>{for(let i=0;i<60;i++){if(check())return;await new Promise(r=>setTimeout(r,250))}assert.fail(message)}
 async function openWeekPlanner(page){
  await go(page,'Planner')
@@ -1392,7 +1397,7 @@ test('Share with a classmate: a student sends an exam from its editor to a conne
  }finally{await other.context.close()}
 })
 
-test('Overdue: past-due assignments show one card with Done, Move to today, Move all and Later; on phones the island comes before Getting started',async({context,page})=>{
+test('Overdue: past-due assignments show one card (at the top of Today) with Done, Move to today, Move all and Later; on phones setup is a chip that opens the steps',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  plan.tasks.push({id:'old-sheet',profileId:pid,subjectId:'',title:'Old worksheet',due:'2026-09-01',done:false,notes:''},{id:'old-map',profileId:pid,subjectId:'',title:'Map quiz review',due:'2026-09-10',done:false,notes:''})
  const now=new Date(),today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')
@@ -1425,9 +1430,7 @@ test('Overdue: past-due assignments show one card with Done, Move to today, Move
  try{
   await createPlan(phone.page)
   const start=phone.page.getByRole('region',{name:'Getting started'})
-  await start.getByText(/SET UP KONO · \d of 3 done/).waitFor()
-  assert.ok(await phone.page.evaluate(()=>{const island=document.querySelector('.wb-island'),start=document.querySelector('.getting-started');return !!island&&!!start&&!!(island.compareDocumentPosition(start)&Node.DOCUMENT_POSITION_FOLLOWING)}),'the island comes first on phones')
-  await start.getByRole('button',{name:'Show all setup steps'}).click()
+  await phone.page.getByRole('button',{name:/^Set up KONO · \d\/3$/}).click()
   await start.getByRole('heading',{name:'Set up KONO in a few minutes'}).waitFor()
   assert.deepEqual(phone.errors,[])
  }finally{await phone.context.close()}
@@ -1523,6 +1526,7 @@ test('Add from Siri or the share sheet, links and photos: /?add=… starts quick
  assert.equal(new URL(page.url()).search,'','the address is cleaned up so a reload doesn’t add it twice')
  await chooser.getByRole('button',{name:'Add',exact:true}).click()
  await chooser.waitFor({state:'detached'})
+ await page.getByRole('tab',{name:/^Tomorrow/}).click()
  const row=()=>page.locator('article.cozy-task-row').filter({hasText:'Lab report'}).first()
  assert.equal(await row().getByRole('link',{name:'🔗 Open link'}).getAttribute('href'),'https://docs.google.com/document/d/kono-test')
  await row().getByRole('button',{name:'Edit'}).click()
@@ -1535,6 +1539,7 @@ test('Add from Siri or the share sheet, links and photos: /?add=… starts quick
  await row().getByRole('button',{name:'1 photo, open it'}).waitFor()
  await flushSave(page,'"photos":["photo-')
  await page.reload();await heading(page,'Sanctuary')
+ await page.getByRole('tab',{name:/^Tomorrow/}).click()
  await row().getByRole('button',{name:'1 photo, open it'}).click()
  const img=page.locator('dialog[open] .assignment-photo-thumb img')
  await img.waitFor()
@@ -1553,7 +1558,8 @@ test('KONO today and stickers: KONO is worried about late work and sleepy late a
  await heading(page,'Sanctuary')
  const today=page.getByRole('region',{name:'KONO today'})
  await today.getByText('KONO is a little worried about 1 late assignment. One at a time?').waitFor()
- await today.getByRole('button',{name:'Your stickers: 2 of 12 earned'}).waitFor()
+ await (await openCorner(page)).getByRole('button',{name:'Your stickers: 2 of 12 earned'}).waitFor()
+ await closeCorner(page)
  await page.waitForTimeout(900)
  assert.equal(await page.getByText(/New sticker/).count(),0,'the first look on a device only notes what is already earned')
  await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
@@ -1564,7 +1570,7 @@ test('KONO today and stickers: KONO is worried about late work and sleepy late a
  cloud.users.alice.plan.revision++
  await page.reload();await heading(page,'Sanctuary')
  await page.getByRole('status').filter({hasText:'New sticker: 🐦 Early bird! Put it on your island in Decorate › Stickers.'}).waitFor()
- await today.getByRole('button',{name:'Your stickers: 3 of 12 earned'}).click()
+ await (await openCorner(page)).getByRole('button',{name:'Your stickers: 3 of 12 earned'}).click()
  const palette=page.locator('.build-palette')
  await page.getByRole('navigation',{name:'Decoration categories'}).getByRole('button',{name:'Stickers',exact:true}).and(page.locator('[aria-current="page"]')).waitFor()
  await page.getByText('3 of 12 earned.').waitFor()
@@ -1652,7 +1658,8 @@ test('Winter island: from December 1 the island is under snow (with its own quic
  await page.reload();await heading(page,'Sanctuary')
  await islandLoaded(page)
  assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/winter/afternoon.webp'&&st===200),'Valentine’s week keeps the snow: '+JSON.stringify(maps))
- await page.getByText(/Valentine’s week: 0\/4 special stickers until Feb 14/).waitFor()
+ await (await openCorner(page)).getByText(/Valentine’s week: 0\/4 special stickers until Feb 14/).waitFor()
+ await closeCorner(page)
  if(process.env.KONO_SHOTS){await page.waitForTimeout(4000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/valentine-island.png'})}
  await page.getByRole('button',{name:'Decorate'}).click()
  await page.getByRole('navigation',{name:'Decoration categories'}).getByRole('button',{name:'Wardrobe',exact:true}).click()
@@ -1676,7 +1683,8 @@ test('Spring and the end of the semester: from March 20 the island blooms (Sprin
   await islandLoaded(page)
   assert.ok(maps.some(([p,st])=>p==='/garden/terrace-23.0/'+folder+'afternoon.webp'&&st===200),time+': '+JSON.stringify(maps))
   if(!banner)return
-  await page.getByText(banner).waitFor()
+  await (await openCorner(page)).getByText(banner).waitFor()
+  await closeCorner(page)
   if(process.env.KONO_SHOTS)await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/'+folder.replace('/','')+'-island.png'})
   await page.getByRole('button',{name:'Decorate'}).click()
   await page.getByRole('navigation',{name:'Decoration categories'}).getByRole('button',{name:'Wardrobe',exact:true}).click()
@@ -1718,22 +1726,25 @@ test('Halloween on the island: in October KONO wears a pumpkin, a banner counts 
  await page.goto(BASE)
  await heading(page,'Sanctuary')
  const today=page.getByRole('region',{name:'KONO today'})
- await today.getByText('Spooky season: 0/4 special stickers until Oct 31',{exact:false}).waitFor()
  assert.equal(await today.locator('.kono-mood-face').getAttribute('data-costume'),'🎃')
- await today.getByRole('button',{name:'Your stickers: 2 of 16 earned'}).waitFor()
+ const corner=await openCorner(page)
+ await corner.getByText('Spooky season: 0/4 special stickers until Oct 31',{exact:false}).waitFor()
+ await corner.getByRole('button',{name:'Your stickers: 2 of 16 earned'}).waitFor()
+ await closeCorner(page)
  await page.waitForTimeout(900)
  await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
  await page.getByRole('status').filter({hasText:'New sticker: 🎃 Pumpkin! Put it on your island in Decorate › Stickers.'}).waitFor()
- await today.getByText('Spooky season: 1/4 special stickers',{exact:false}).waitFor()
- await today.getByRole('button',{name:'Your stickers: 3 of 16 earned'}).click()
+ await (await openCorner(page)).getByText('Spooky season: 1/4 special stickers',{exact:false}).waitFor()
+ await cornerOf(page).getByRole('button',{name:'Your stickers: 3 of 16 earned'}).click()
  const palette=page.locator('.build-palette')
  await palette.getByLabel('Friendly ghost, locked. Study 3 days in a row in October.').waitFor()
  await palette.getByRole('button',{name:'Add Pumpkin'}).click()
  await waitFor(()=>(cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[]).some(p=>p.assetId==='sticker-halloween-pumpkin'),'the pumpkin never reached the island')
  await page.clock.setFixedTime(new Date('2026-11-05T15:00:00'))
  await page.reload();await heading(page,'Sanctuary')
- assert.equal(await today.locator('.kono-season').count(),0,'the event is over')
- await today.getByRole('button',{name:'Your stickers: 3 of 13 earned'}).click()
+ await openCorner(page)
+ assert.equal(await cornerOf(page).locator('.kono-season').count(),0,'the event is over')
+ await cornerOf(page).getByRole('button',{name:'Your stickers: 3 of 13 earned'}).click()
  await palette.getByRole('button',{name:'Add Pumpkin'}).waitFor()
  assert.equal(await palette.getByText('Friendly ghost').count(),0,'unearned event stickers leave with the event')
 })
@@ -1886,7 +1897,7 @@ test('Ask KONO: KONO greets and asks what you want to know and answers today, th
  await page.getByRole('button',{name:'What should I do now?'}).waitFor()
 })
 
-test('Sanctuary: KONO today is a slim bar right under the island window, inside the island card, with Focus session after it; Decorate opened from its sticker button keeps the decorations on the island',async({context,page})=>{
+test('Sanctuary: KONO today is a slim bar right under the island window, inside the island card, with Focus session after it; Decorate opened from the sticker tile in KONO’s corner keeps the decorations on the island',async({context,page})=>{
  const cloud=fakeCloud()
  await page.clock.setFixedTime(new Date('2026-10-02T15:00:00'))
  await signInAs(context,cloud,'alice')
@@ -1905,7 +1916,7 @@ test('Sanctuary: KONO today is a slim bar right under the island window, inside 
  const nav=page.getByRole('navigation',{name:'Decoration categories'})
  for(const cat of ['Homes','Trees','Ponds']){await nav.getByRole('button',{name:cat,exact:true}).click();await page.locator('.build-palette [role=button][aria-label^="Add "]').first().click()}
  await page.getByRole('button',{name:'Your island'}).click()
- await bar.getByRole('button',{name:/^Your stickers/}).click()
+ await (await openCorner(page)).getByRole('button',{name:/^Your stickers/}).click()
  await page.getByText(/^Earn stickers by keeping up with your work/).waitFor()
  await page.waitForTimeout(600)
  const aligned=async why=>{const art=await page.locator('.wb-sanctuary-zoom-wrap').boundingBox(),layer=await page.locator('.build-hotspot-layer').boundingBox();assert.ok(Math.abs(art.y-layer.y)<2&&Math.abs(art.x-layer.x)<2&&Math.abs(art.height-layer.height)<8,why+': the decorations layer '+JSON.stringify(layer)+' left the island '+JSON.stringify(art))}
@@ -1921,8 +1932,7 @@ test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assign
  await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
- const todayCard=page.locator('section.today-schedule-compact').filter({has:page.getByRole('heading',{name:'Today’s schedule'})})
- const tomorrowCard=page.locator('section.tomorrow-schedule')
+ const todayCard=page.getByRole('region',{name:'Your day'}),tomorrowCard=todayCard
  const dialogs=await page.getByRole('dialog').count()
  await todayCard.getByRole('button',{name:'Add for today'}).click()
  const todayForm=todayCard.getByRole('form',{name:'Add for today'})
@@ -1936,6 +1946,7 @@ test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assign
  await todayCard.getByText('Tutoring').first().waitFor()
  if(process.env.KONO_SHOTS)await todayCard.screenshot({path:process.env.KONO_SHOTS+'/quick-day.png'})
  await todayForm.getByRole('button',{name:'Done'}).click()
+ await todayCard.getByRole('tab',{name:/^Tomorrow/}).click()
  await tomorrowCard.getByRole('button',{name:'Add for tomorrow'}).click()
  const tomorrowForm=tomorrowCard.getByRole('form',{name:'Add for tomorrow'})
  await tomorrowForm.getByLabel('What to add for tomorrow').fill('Spanish quiz')
@@ -1995,7 +2006,7 @@ test('KONO’s taps: coming back after a while gets a wave, a tap right after fi
  await context.addInitScript(([key,value])=>{if(!sessionStorage.getItem('seeded')){localStorage.setItem(key,value);sessionStorage.setItem('seeded','1')}},['kono-last-visit:'+pid,String(now.getTime()-3*3_600_000)])
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
- const bar=page.getByRole('region',{name:'KONO today'}),face=bar.getByRole('button',{name:'Pet KONO'})
+ const bar=page.getByRole('region',{name:'KONO today'}),face=cornerOf(page).getByRole('button',{name:'Pet KONO'})
  // Back after three hours: a wave hello.
  await bar.getByText('👋 Welcome back! KONO missed you.').waitFor()
  await bar.locator('.kono-react.is-wave').waitFor()
@@ -2004,11 +2015,13 @@ test('KONO’s taps: coming back after a while gets a wave, a tap right after fi
  await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
  await waitFor(()=>cloud.users.alice.plan.data.tasks.find(t=>t.title==='Read chapter 3')?.done===true,'finished')
  await page.waitForTimeout(600)
+ // Pats happen in KONO's corner (tap KONO's face in the bar).
+ await openCorner(page)
  await face.click()
  await bar.getByText('✋ High five! Nice work on Read chapter 3!').waitFor()
  await bar.locator('.kono-react.is-highfive').waitFor()
  // The Feed button says what this week's favorite is.
- assert.match(await bar.locator('.kono-feed').getAttribute('title'),/favorite this week/)
+ assert.match(await cornerOf(page).locator('.kono-feed').getAttribute('title'),/favorite this week/)
  await page.waitForTimeout(3800)
  // Three quick taps: a tickle.
  for(let i=0;i<3;i++)await face.click({delay:20})
@@ -2066,15 +2079,16 @@ test('Taking care of KONO: finished work earns a snack, Feed KONO feeds it in th
  assert.equal(cloud.users.alice.plan.data.tasks.find(t=>t.id===fed.taskId)?.done,true,'KONO eats the snack from finished work')
  assert.ok(await value('Full')>fullBefore,'a snack fills KONO up')
  if(!snacksBefore)assert.equal(await feed.count(),0,'the one snack is eaten, so the chip goes away')
- await today.getByRole('button',{name:'Pet KONO'}).click()
+ await (await openCorner(page)).getByRole('button',{name:'Pet KONO'}).click()
  await waitFor(()=>cloud.users.alice.plan.data.konoCare[pid].log.some(e=>e.kind==='pet'),'the pat never reached the account')
  // (Work was just finished, so this tap is a high five; it still counts as a pat.)
  await today.getByText(/KONO (giggles|leans|does a happy)|^✋ High five!/).waitFor()
  assert.ok(await value('Happy')>happyBefore,'pats and snacks make KONO happier')
- await today.getByRole('button',{name:'Pet KONO'}).click()
+ await cornerOf(page).getByRole('button',{name:'Pet KONO'}).click()
  await page.waitForTimeout(500)
  assert.equal(cloud.users.alice.plan.data.konoCare[pid].log.filter(e=>e.kind==='pet').length,1,'lots of taps still count as one pat for ten minutes')
- assert.equal(await page.getByRole('dialog').count(),dialogsBefore,'caring for KONO never opens anything')
+ await closeCorner(page)
+ assert.equal(await page.getByRole('dialog').count(),dialogsBefore,'caring for KONO never opens anything else')
  if(process.env.KONO_SHOTS){await today.screenshot({path:process.env.KONO_SHOTS+'/care-desktop.png'});await page.setViewportSize({width:375,height:800});await today.screenshot({path:process.env.KONO_SHOTS+'/care-phone.png'});await page.setViewportSize({width:1280,height:900})}
  await page.reload();await heading(page,'Sanctuary')
  assert.ok(await value('Full')>fullBefore,'the meters come from the saved log after a reload')
@@ -2117,7 +2131,7 @@ test('Bedtime and wake-up: in the evening KONO can be tucked in and shows tomorr
  assert.equal(await care.getByRole('button',{name:'Tuck in'}).count(),0,'already tucked in')
  assert.equal(await care.getByRole('button',{name:/^Feed KONO/}).count(),0,'no snacks while KONO sleeps')
  assert.equal(await care.getByRole('meter',{name:'Sleeping'}).count(),1)
- await today.getByRole('button',{name:'Pet KONO'}).click()
+ await (await openCorner(page)).getByRole('button',{name:'Pet KONO'}).click()
  await today.getByText('Shh… KONO is sleeping. 💤').waitFor()
  await page.clock.setFixedTime(new Date('2026-10-01T07:30:00'))
  await page.reload();await heading(page,'Sanctuary')
@@ -2226,14 +2240,17 @@ test('Stamp card: a stamp for each day something gets finished; the 7th fills th
  await page.clock.setFixedTime(new Date('2026-10-12T16:00:00'))
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
- const stampsButton=page.getByRole('button',{name:/^Stamp card: /})
+ const stampsButton=cornerOf(page).getByRole('button',{name:/^Stamp card: /})
+ await openCorner(page)
  assert.equal(await stampsButton.getAttribute('aria-label'),'Stamp card: 6 of 7 stamps')
+ await closeCorner(page)
  if(process.env.KONO_SHOTS){await page.getByRole('region',{name:'KONO today'}).screenshot({path:process.env.KONO_SHOTS+'/stamps-strip.png'});await page.setViewportSize({width:375,height:812});await page.waitForTimeout(400);await page.getByRole('region',{name:'KONO today'}).screenshot({path:process.env.KONO_SHOTS+'/stamps-strip-phone.png'});await page.setViewportSize({width:1280,height:900});await page.waitForTimeout(300)}
  // Finishing something today is the 7th stamp: the card is full and KONO has a present.
  await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Read chapter 3'}).click()
  const bar=page.getByRole('region',{name:'KONO today'})
  await bar.getByText('🎁 Your stamp card is full! KONO wrapped a present for you: a kite. It’s in Decorate › Presents.').waitFor({timeout:20000})
  await bar.locator('img.kono-find-icon').waitFor()
+ await openCorner(page)
  assert.equal(await stampsButton.getAttribute('aria-label'),'Stamp card: 7 of 7 stamps')
  await stampsButton.click()
  const card=page.getByRole('group',{name:'Stamp card: 7 of 7 stamps'})
@@ -2259,13 +2276,13 @@ test('Bond hearts: KONO’s bond grows with what you do together; at 2 hearts a 
  await page.goto(BASE);await heading(page,'Sanctuary')
  const bar=page.getByRole('region',{name:'KONO today'})
  // Today's first pat marks a day of care (+3): the 3rd heart.
- await bar.getByRole('button',{name:'Pet KONO'}).click()
+ await (await openCorner(page)).getByRole('button',{name:'Pet KONO'}).click()
  await bar.getByText(/^💗 (KONO snuggles closer|KONO beams at you|A happy little heart floats up)/).waitFor()
  await bar.locator('.kono-react.is-heart').waitFor()
  await bar.getByText('💗 You and KONO are now Pals! KONO made you a heart cushion. It’s in Decorate › Presents.').waitFor({timeout:20000})
  await waitFor(()=>(data().konoCare?.[pid]?.log??[]).some(e=>e.id==='bond-2026-10-12'),'the day of care never reached the account')
  if(process.env.KONO_SHOTS)await bar.screenshot({path:process.env.KONO_SHOTS+'/bond-bar.png'})
- await bar.getByRole('button',{name:/^Stamp card: /}).click()
+ await (await openCorner(page)).getByRole('button',{name:/^Stamp card: /}).click()
  await page.getByRole('group',{name:'Bond with KONO: 3 of 10 hearts, Pals'}).waitFor()
  await page.getByText('(1 of 8)',{exact:false}).waitFor()
  await page.locator('.build-palette').getByLabel('Heart lantern, locked. A friendship gift at 4 hearts.').waitFor()
@@ -2339,7 +2356,7 @@ test('Planner daily page matches Today’s schedule: the day’s classes as comp
  await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
- const sanctuaryClass=await page.locator('.today-schedule-compact').first().locator('.today-schedule-list > *').first().getAttribute('class')
+ const sanctuaryClass=await page.locator('.today-card .today-schedule-list > *').first().getAttribute('class')
  await go(page,'Planner');await heading(page,'Planner')
  const day=page.locator('.planner-day-paper')
  await day.getByRole('heading',{name:'Today · Sep 28, 2026'}).waitFor()

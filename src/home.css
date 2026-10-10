@@ -30,3 +30,66 @@
 @keyframes kono-low{50%{transform:scale(1.18);filter:drop-shadow(0 0 3px #f2a65a)}}
 html[data-motion=reduced] .kono-care-gain,html[data-motion=reduced] .kono-care-meter.is-up .kono-care-bar,html[data-motion=reduced] .kono-care-meter.is-low>span[aria-hidden]{animation:none}
 @media (prefers-reduced-motion:reduce){.kono-care-gain,.kono-care-meter.is-up .kono-care-bar,.kono-care-meter.is-low>span[aria-hidden]{animation:none}}
+
+/* The island's toolbar is one row: Your island / Decorate on the left, time, zoom and expand on the
+ * right (the streak and the week moved into KONO's corner). On a phone, pinch zooms the island, so the
+ * zoom buttons step aside. */
+.workbench[data-page=sanctuary] .wb-scene-toolbar{display:flex!important;flex-wrap:nowrap!important;align-items:center!important;gap:8px!important}
+.workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-left,.workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-controls{display:flex!important;align-items:center;gap:6px;min-width:0}
+.workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-controls{margin-left:auto}
+@media(max-width:600px){
+ .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-island-zoom{display:none!important}
+ .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-expand .wb-btn-label{display:none}
+}
+
+/* Setup, until it's done: a chip in Home's toolbar that opens the steps. */
+.setup-chip{display:inline-flex!important;align-items:center;gap:6px;border-radius:999px!important;padding:0 14px!important;font-weight:700;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 12%,var(--wb-surface,#fffdf9))!important}
+.setup-chip.is-open{box-shadow:inset 0 0 0 2px var(--wb-accent,#c76b8f)!important}
+
+/* Your day: one card, Today / Tomorrow. */
+.today-card-head{align-items:center!important;flex-wrap:nowrap!important}
+.today-card-tabs{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--wb-ink,#3b2a25) 6%,transparent)}
+.today-card-tabs button{min-height:38px;border:0!important;box-shadow:none!important;background:transparent!important;border-radius:999px!important;padding:0 16px!important;font-family:Newsreader,Georgia,serif;font-size:1.15rem;font-weight:600;color:var(--wb-muted,#8a7469)}
+.today-card-tabs button[aria-selected=true]{background:var(--wb-surface,#fffdf9)!important;color:var(--wb-ink,#3b2a25);box-shadow:0 2px 8px -3px #8a5a4266!important}
+.today-card-count{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:7px;padding:0 6px;border-radius:999px;font:700 .72rem/1 system-ui,sans-serif;background:var(--wb-accent,#c76b8f);color:#fff;vertical-align:middle}
+.today-card-more{position:relative}
+.today-card-more>summary{list-style:none;cursor:pointer;display:grid;place-items:center;width:40px;height:40px;border-radius:999px;border:1px solid var(--wb-line,#eee1d6);background:var(--wb-surface,#fffdf9);font-weight:800}
+.today-card-more>summary::-webkit-details-marker{display:none}
+.today-card-menu{position:absolute;right:0;top:46px;z-index:20;display:grid;gap:8px;min-width:230px;padding:12px;border-radius:16px;border:1px solid var(--wb-line,#eee1d6);background:var(--wb-surface,#fffdf9);box-shadow:0 18px 40px -20px #3b2a2566}
+.today-card-menu .schedule-view-picker{display:grid;gap:6px}
+.today-card-menu-title{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--wb-muted,#8a7469)}
+.today-card-body{display:grid;gap:10px}
+.today-card-body>.overdue-card,.today-card-body>section{margin:0!important;box-shadow:none!important}
+.today-card-date{margin:0;color:var(--wb-muted,#8a7469);font-weight:600}
+.today-card-empty{margin:4px 0;color:var(--wb-muted,#8a7469)}
+
+/* KONO's corner (tap KONO's face in the KONO bar). */
+.kono-mood-face{cursor:pointer}
+.kono-corner{display:grid;gap:14px;padding:4px 2px 8px;min-width:min(440px,86vw)}
+.kono-corner-hero{display:grid;justify-items:center;gap:6px;text-align:center}
+.kono-corner-face{position:relative;width:132px;height:132px;border-radius:50%!important;padding:0!important;display:grid!important;place-items:center;background:radial-gradient(circle at 50% 40%,#fff7ee,#f6e3d6)!important;border:1px solid var(--wb-line,#eee1d6)!important}
+.kono-corner-face .kono-react{font-size:1.6rem}
+.kono-corner-line{margin:0;max-width:34ch;font-weight:600}
+.kono-corner-meters{display:grid;gap:8px}
+.kono-corner-meter{position:relative;display:grid;grid-template-columns:7.5em 1fr 3em;align-items:center;gap:10px;font-size:.92rem}
+.kono-corner-meter .kono-care-bar{height:10px}
+.kono-corner-meter-value{text-align:right;font-variant-numeric:tabular-nums;color:var(--wb-muted,#8a7469)}
+.kono-corner-meter.is-rested .kono-care-bar i{background:#8c9de0}
+.kono-corner-meter.is-happy .kono-care-bar i{background:#e57c93}
+.kono-corner-meter.is-up .kono-care-bar{animation:kono-bar-up .6s ease-out}
+.kono-corner-meter.is-low .kono-corner-meter-label>span{display:inline-block;animation:kono-low 2.4s ease-in-out infinite}
+.kono-corner-action{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.kono-corner-action .kono-feed{min-height:44px;padding:0 18px!important;font-size:1rem}
+.kono-corner-stats{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin:0;color:var(--wb-muted,#8a7469);font-size:.9rem}
+.kono-corner-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.kono-corner-tile{display:grid!important;justify-items:center;gap:2px;padding:10px 6px!important;border-radius:16px!important;min-height:0!important;text-align:center;white-space:normal}
+.kono-corner-tile-icon{font-size:1.5rem}
+.kono-corner-tile small{font-size:.72rem;color:var(--wb-muted,#8a7469);font-weight:500}
+.kono-corner-notes{text-align:center;font-size:.85rem;color:var(--wb-muted,#8a7469)}
+@media(max-width:600px){.kono-corner-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.kono-corner{min-width:0}}
+html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[data-motion=reduced] .kono-corner-meter.is-up .kono-care-bar{animation:none}
+.kono-corner-line::before{content:attr(data-line)}
+/* (The corner sits inside the KONO bar in the page, so it undoes the bar's 40px face.) */
+.kono-bar .kono-mood-face.kono-corner-face{flex:none;width:132px;height:132px}
+.kono-corner-facebox{position:relative;display:block;width:112px;height:112px}
+.kono-corner-facebox>img:first-child{display:block;width:112px;height:112px;object-fit:contain}
