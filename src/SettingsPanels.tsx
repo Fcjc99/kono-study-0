@@ -6,6 +6,7 @@ import { createSanctuaryProgress } from './game/progression/progressionEngine'
 import { uid, localDate as iso, type AppData, type ProfileKind, type SettingsData } from './store/model'
 import { useLocalSetting } from './hooks/useLocalSetting'
 import { BABBLE_SETTING, babble } from './konoBabble'
+import { startOver } from './store/deleteProfile'
 
 /** Settings panels (plans, weather, sound & motion, reminders). Settings-only, so they load when shown. */
 type SetAppData=(action:SetStateAction<AppData>)=>Promise<boolean>
@@ -23,7 +24,19 @@ export function PlanSettings({data,setData,onDeleteProfile}:{data:AppData;setDat
   <div className="profile-delete-list">{onDeleteProfile&&data.profiles.map(p=><div className="wb-toolbar" key={p.id}><strong>{p.label}{p.id===data.activeProfileId?' · Active':''}</strong><button disabled={data.profiles.length<2} onClick={()=>onDeleteProfile(p.id)}>Delete plan</button></div>)}<p>Deleting a plan includes its saved work. Keep at least one plan. Export a backup (Import &amp; export) first.</p></div>
   <form className="card profile-form" onSubmit={add}><div><span className="eyebrow">Create profile</span><h3>Add summer, school year, or semester</h3></div><input maxLength={200} required aria-label="Student name" value={name} onChange={e=>setName(e.target.value)} placeholder="Student name"/><input maxLength={200} required aria-label="Plan name" value={label} onChange={e=>setLabel(e.target.value)} placeholder="Profile label"/><select value={kind} onChange={e=>setKind(e.target.value as ProfileKind)}><option value="summer">Summer</option><option value="school">School year</option><option value="college">College semester</option><option value="custom">Custom</option></select><button className="primary">＋ Create profile</button></form>
   <details className="wb-panel settings-group"><summary>Reset this plan’s progress</summary><section className="card danger-zone"><h3>Reset this plan’s progress</h3><p>Keeps your assignments and notes, reopens assignments, and resets only this plan’s Sanctuary. Export a backup first.</p><button className="secondary" onClick={()=>{if(!window.confirm('Reopen every assignment and reset Sanctuary progress for '+profile.label+'?'))return;setData(d=>({...d,profiles:d.profiles.map(p=>p.id===profile.id?{...p,progressEpoch:uid('epoch')}:p),tasks:d.tasks.map(t=>t.profileId===profile.id?{...t,done:false,completedAt:undefined}:t),sanctuaryProgress:{...d.sanctuaryProgress,[profile.id]:createSanctuaryProgress(profile.id)}}))}}>Reset this plan’s progress</button></section></details>
+  <StartOver setData={setData}/>
  </div>
+}
+/** Start over: delete every plan, kid, assignment and setting and begin again (typed confirmation). */
+function StartOver({setData}:{setData:SetAppData}){
+ const [typed,setTyped]=useState(''),[busy,setBusy]=useState(false),ready=typed.trim().toUpperCase()==='START OVER'
+ const go=async(e:FormEvent)=>{e.preventDefault();if(!ready||busy)return;setBusy(true);const url=new URL(location.href);url.searchParams.set('page','sanctuary');history.replaceState(null,'',url);await setData(()=>startOver());setBusy(false)}
+ return <details className="wb-panel settings-group"><summary>Start over (delete everything)</summary><form className="card danger-zone start-over" onSubmit={go}>
+  <h3>Start over</h3>
+  <p>Deletes <strong>every plan</strong>, kid, class schedule, assignment, note, exam and island, and sets KONO back to how it was the first day. You stay signed in. Last night’s automatic backup (Settings › Import &amp; export) is kept, so download it first if you might want something back.</p>
+  <label>Type START OVER to confirm<input value={typed} onChange={e=>setTyped(e.target.value)} autoComplete="off" placeholder="START OVER"/></label>
+  <button type="submit" className="secondary danger" disabled={!ready||busy}>{busy?'Starting over…':'Delete everything and start over'}</button>
+ </form></details>
 }
 /** Live, manual or clear Sanctuary weather, and the live-weather location. */
 export function WeatherSettings({data,setData,weatherState}:{data:AppData;setData:SetAppData;weatherState:LiveWeatherState}){

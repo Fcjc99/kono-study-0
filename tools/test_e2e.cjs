@@ -2754,6 +2754,26 @@ test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as
  assert.match(await sheet.getByRole('button',{name:/^Work/}).innerText(),/Family plan/)
 })
 
+test('Plans & account: deleting the family plan keeps the kids (they move to the other plan), and Start over clears everything after typing START OVER',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ d.profiles.push({id:'plan-work',name:'Alice',label:'Work',kind:'custom',start:'2026-09-01',end:'2027-06-30'})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Settings')
+ await page.getByRole('navigation',{name:'Settings sections'}).getByRole('button',{name:'Plans & account'}).click()
+ await page.locator('.profile-delete-list .wb-toolbar').filter({hasText:'My study plan'}).getByRole('button',{name:'Delete plan'}).click()
+ await page.getByRole('dialog',{name:'Confirm change'}).getByRole('button',{name:'Confirm'}).click()
+ await waitFor(()=>{const p=cloud.users.alice.plan.data;return !p.profiles.some(x=>x.id===pid)&&p.kids.length===2&&p.kids.every(k=>k.profileId==='plan-work')},'deleting the family plan never reached the account, or the kids were lost')
+ if(!await page.getByText('Start over (delete everything)').count()){await go(page,'Settings');await page.getByRole('navigation',{name:'Settings sections'}).getByRole('button',{name:'Plans & account'}).click()}
+ await page.getByText('Start over (delete everything)').click()
+ const start=page.locator('form.start-over')
+ const button=start.getByRole('button',{name:'Delete everything and start over'})
+ assert.equal(await button.isDisabled(),true,'not until START OVER is typed')
+ await start.getByLabel('Type START OVER to confirm').fill('start over')
+ await button.click()
+ await waitFor(()=>{const p=cloud.users.alice.plan.data;return p.profiles.length===1&&p.kids.length===0&&p.tasks.length===0&&p.profiles[0].label==='My study plan'},'Start over never reached the account')
+})
+
 test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone a swipe goes to the next days and the whole week scrolls sideways',async({context,page})=>{
  const cloud=fakeCloud()
  await page.setViewportSize({width:390,height:844})
