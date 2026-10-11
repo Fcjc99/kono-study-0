@@ -2643,7 +2643,7 @@ test('Planner daily page matches Today’s schedule: the day’s classes as comp
  assert.equal(await calendar.getByRole('button',{name:'↩ Back to today'}).count(),0)
 })
 
-test('Family plans: a parent makes a kid’s own plan from Kids, the kid’s plan has no parent tools, a parent PIN locks the device to it (no Settings, no switching) and unlocks it',async({context,page})=>{
+test('Family plans: a parent makes a kid’s own plan from Kids, the kid’s plan has no parent tools, one tap locks the device to it (no Settings, no switching) and one tap unlocks it; an optional parent PIN makes unlocking need the PIN',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
@@ -2659,7 +2659,16 @@ test('Family plans: a parent makes a kid’s own plan from Kids, the kid’s pla
  const sheet=page.getByRole('dialog',{name:'Whose plan?'})
  await sheet.getByRole('button',{name:/My study plan/}).waitFor()
  await sheet.getByRole('button',{name:/Leo’s plan/}).waitFor()
- // Hand it to Emma: set a PIN, then lock.
+ // Hand it to Emma: one tap locks, one tap unlocks (no PIN set).
+ await sheet.getByRole('button',{name:/^🔒 Lock to/}).click()
+ await sheet.waitFor({state:'detached'})
+ assert.equal(await page.locator('nav button:visible, nav a:visible').filter({hasText:'Settings'}).count(),0,'no Settings while locked')
+ await page.getByRole('button',{name:'Whose plan?'}).first().click()
+ await sheet.getByText('This device is set to',{exact:false}).waitFor()
+ await sheet.getByRole('button',{name:'🔓 Unlock'}).click()
+ await sheet.getByRole('button',{name:/My study plan/}).waitFor()
+ // With a parent PIN, unlocking needs it.
+ await sheet.getByRole('button',{name:'Add a parent PIN'}).click()
  await sheet.getByLabel('New parent PIN').fill('2468')
  await sheet.getByRole('button',{name:'Save PIN'}).click()
  await sheet.getByRole('button',{name:/^🔒 Lock to/}).click()
