@@ -1,4 +1,4 @@
-import type {AppData, Kid} from './model'
+import {peopleOf, type AppData, type Kid} from './model'
 import {schoolDay} from './schoolCalendar'
 import {planForKid} from './familyPlans'
 
@@ -14,7 +14,7 @@ export function kidGlance(data: Pick<AppData, 'profiles' | 'kids' | 'tasks' | 'e
   const tomorrow = addDays(today, 1), weekEnd = addDays(today, 7)
   return data.kids.filter(k => k.profileId === parentProfileId).map(kid => {
     const plan = planForKid(data, kid.id)
-    const mine = (x: {profileId: string; kidId?: string}) => (plan && x.profileId === plan.id) || (x.profileId === parentProfileId && x.kidId === kid.id)
+    const mine = (x: {profileId: string; kidId?: string; kidIds?: string[]}) => (plan && x.profileId === plan.id) || (x.profileId === parentProfileId && peopleOf(x).includes(kid.id))
     const tasks = data.tasks.filter(t => !t.done && mine(t)), exams = data.exams.filter(e => !e.done && mine(e))
     const seasons = data.studySeasons.filter(s => s.active && s.school && mine(s))
     const day = seasons.map(s => schoolDay(s, today)).find(Boolean)

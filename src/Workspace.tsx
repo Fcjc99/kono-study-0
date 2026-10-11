@@ -1,7 +1,7 @@
 import {Fragment,Suspense,lazy,useEffect,useMemo,useRef,useState,type CSSProperties,type PointerEvent,type ReactNode,type SetStateAction,type TouchEvent} from 'react'
 import {deleteProfile} from './store/deleteProfile'
 import {usePlannerRepository} from './store/repository'
-import {uid,localDate,eventCategory,type AppData,type SettingsData,type Subtask,type CalendarEvent,type CalendarEventKind,type Kid} from './store/model'
+import {uid,localDate,eventCategory,peopleOf,type AppData,type SettingsData,type Subtask,type CalendarEvent,type CalendarEventKind,type Kid} from './store/model'
 import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems} from './store/kids'
 import {collections,records,titleOf,equal,removeEntry,restoreEntry,completeTask,type Collection,type Entry} from './store/workspace'
 import {calendarTasks,addDays} from './store/studyScheduler'
@@ -116,7 +116,7 @@ import {readLinked} from './store/linkedCalendars'
 import {currentPushSubscription} from './store/pushDevice'
 import {weekDrop} from './store/weekDrop'
 import {shiftAt} from './store/workShifts'
-import {addKidPlan,familyView,moveToWhose} from './store/familyPlans'
+import {addKidPlan,familyView,kidPlanView,moveToWhose} from './store/familyPlans'
 import {teamJersey} from './teamThemes'
 import AddToCalendar,{type AddChoice,type AddChoiceId} from './components/AddToCalendar'
 // Panels that aren't needed on first paint load on demand.
@@ -143,7 +143,7 @@ const QuickDayAdd=lazyPanel(()=>import('./components/QuickDayAdd'))
 const SharedWithMe=lazyPanel(()=>import('./components/SharedWithMe'))
 
 type Store=ReturnType<typeof usePlannerRepository>
-import {SETTINGS_TABS,cozyPalette,fixedPaletteExperiences,own,pages,dateLabel,daysUntil,countdown,entryDate,isAssignmentKind,isImportantEntry,type Page,type SettingsTab} from './workspaceShared'
+import {SETTINGS_TABS,cozyPalette,fixedPaletteExperiences,own,pages,dateLabel,daysUntil,countdown,entryDate,isAssignmentKind,isImportantEntry,tracksDone,type Page,type SettingsTab} from './workspaceShared'
 import AssignmentProgress from './components/AssignmentProgress'
 import type * as Screens from './WorkspaceSettings'
 type PropsOf<K extends keyof typeof Screens>=Parameters<(typeof Screens)[K]>[0]
@@ -498,15 +498,20 @@ function Workspace({store}:{store:Store}){
  const showAppointments=data.settings.scheduleShowAppointments??true
  const categoryVisible=(category:'academic'|'sports'|'appointments')=>category==='academic'?showAcademic:category==='sports'?showSports:showAppointments
  // The family plan's Home and Planner also show what's in each kid's own plan, as that kid's.
- const family=parentMode?familyView(data,profile.id):null
+ // A kid's plan, the other way round: what the family plan has tagged for them.
+ const family=parentMode?familyView(data,profile.id):profile.kidId?kidPlanView(data,profile.id):null
  const view=family?.data??data
  const viewTasks=family?.home.size?[...tasks,...view.tasks.filter(t=>family.home.has(t.id))]:tasks
  // Whose things show (Home and Planner, parent mode): Me and each kid, tapped on and off, per device.
  const [hiddenPeopleRaw,setHiddenPeopleRaw]=useLocalSetting('kono-hidden-people:'+profile.id,'')
  const hiddenPeople=new Set(parentMode?hiddenPeopleRaw.split(',').filter(Boolean):[])
- const personShown=(kidId?:string)=>!hiddenPeople.has(kidId&&profileKids.some(k=>k.id===kidId)?kidId:'me')
- const togglePerson=(id:string)=>{const next=new Set(hiddenPeople);if(next.has(id))next.delete(id);else next.add(id);setHiddenPeopleRaw([...next].join(','))}
- const peopleFilter=parentMode&&profileKids.length>0?<div className="people-filter" role="group" aria-label="Whose things to show">{[{id:'me',name:'Me',emoji:'',color:'var(--wb-accent,#c76b8f)'},...profileKids].map(k=><button type="button" key={k.id} aria-pressed={!hiddenPeople.has(k.id)} style={{'--kid-color':k.color} as CSSProperties} onClick={()=>togglePerson(k.id)}><i aria-hidden="true"/>{(k.emoji?k.emoji+' ':'')+k.name}</button>)}</div>:null
+ const personShown=(x?:unknown)=>{const ids=(x&&typeof x==='object'?peopleOf(x as {kidId?:string;kidIds?:string[]}):typeof x==='string'?[x]:[]).filter(id=>profileKids.some(k=>k.id===id));return ids.length?ids.some(id=>!hiddenPeople.has(id)):!hiddenPeople.has('me')}
+ // Tap a name to see only that person's things; tap them again (or Everyone) to see everyone.
+ const peopleIds=['me',...profileKids.map(k=>k.id)]
+ const onlyShown=peopleIds.filter(id=>!hiddenPeople.has(id)).length===1?peopleIds.find(id=>!hiddenPeople.has(id)):undefined
+ const showOnly=(id:string)=>setHiddenPeopleRaw(onlyShown===id?'':peopleIds.filter(x=>x!==id).join(','))
+ const myName=profile.name.trim()&&profile.name!=='Learner'?profile.name.trim():'Me'
+ const peopleFilter=parentMode&&profileKids.length>0?<div className="people-filter" role="group" aria-label="Whose things to show"><button type="button" className="people-filter-all" aria-pressed={!hiddenPeople.size} onClick={()=>setHiddenPeopleRaw('')}>Everyone</button>{[{id:'me',name:myName,emoji:'',color:'var(--wb-accent,#c76b8f)'},...profileKids].map(k=><button type="button" key={k.id} aria-pressed={!hiddenPeople.has(k.id)} title={onlyShown===k.id?'Show everyone':'Show only '+k.name} style={{'--kid-color':k.color} as CSSProperties} onClick={()=>showOnly(k.id)}><i aria-hidden="true"/>{(k.emoji?k.emoji+' ':'')+k.name}</button>)}</div>:null
  const scheduleClasses=(date:string)=>classOccurrences(view,date).filter(c=>categoryVisible(c.season.category??'academic')&&personShown(classKid(c)))
  const scheduleViewPicker=<div className="schedule-view-picker" role="group" aria-label="Schedule view"><label><input type="checkbox" checked={showAcademic} onChange={e=>void setting('scheduleShowAcademic',e.target.checked)}/> Academics</label><label><input type="checkbox" checked={showSports} onChange={e=>void setting('scheduleShowSports',e.target.checked)}/> Sports</label><label><input type="checkbox" checked={showAppointments} onChange={e=>void setting('scheduleShowAppointments',e.target.checked)}/> Appointments</label></div>
  const navigate=(next:Page)=>{const url=new URL(location.href);url.searchParams.set('page',next.toLowerCase());history.pushState(null,'',url);setPage(next);setMore(false);if(next!=='Planner')setAddOpen(false);window.scrollTo({top:0})}
@@ -557,7 +562,7 @@ function Workspace({store}:{store:Store}){
  const dow=new Date(localDate()+'T12:00:00').getDay(),weekend=dow===0||dow===6,monday=addDays(localDate(),dow===6?2:1)
  const mondayWork=weekend?tasks.filter(t=>!t.done&&t.due===monday):[]
  const [overdueHiddenOn,setOverdueHiddenOn]=useLocalSetting('kono-overdue-hidden:'+profile.id,'')
- const overdue=overdueHiddenOn===localDate()?[]:tasks.filter(t=>!t.done&&t.due<localDate()&&personShown(t.kidId)).sort((a,b)=>a.due.localeCompare(b.due))
+ const overdue=overdueHiddenOn===localDate()?[]:tasks.filter(t=>!t.done&&t.due<localDate()&&personShown(t)).sort((a,b)=>a.due.localeCompare(b.due))
  const moveToToday=(ids:string[])=>void run(()=>save(d=>({...d,tasks:d.tasks.map(t=>ids.includes(t.id)&&t.profileId===profile.id?{...t,due:localDate(),plannedTime:undefined}:t)})),ids.length===1?'Moved to today.':ids.length+' assignments moved to today.',true)
  // "＋ Add" › Type it: saves the assignment or exam exactly as the preview showed it.
  const quickAdd=(g:QuickAddGuess&{link?:string})=>{setAdding(false);const id=uid(g.key);void run(()=>save(d=>g.key==='tasks'?{...d,tasks:[...d.tasks,{id,profileId:profile.id,subjectId:g.subjectId,title:g.title,due:g.due,done:false,notes:'',...(g.time?{plannedTime:g.time}:{}),...(g.link?{link:g.link}:{})}]}:{...d,exams:[...d.exams,{id,profileId:profile.id,subjectId:g.subjectId,title:g.title,due:g.due,done:false,notes:'',...(g.link?{link:g.link}:{})}]}),'Added “'+g.title+'” for '+dateLabel(g.due)+'.',true)}
@@ -584,9 +589,9 @@ function Workspace({store}:{store:Store}){
    :item.key==='exams'?{...d,exams:[...d.exams,{...base,due:date}]}
    :{...d,calendarEvents:[...d.calendarEvents,{...base,date,kind:item.eventKind??'personal',...(item.time?{time:item.time,endTime:end}:{})}]}),'Added “'+item.title+'” for '+dateLabel(date)+'.',true)
  }
- const quickAddFamilyEvent=async(date:string,payload:{title:string;kind:CalendarEventKind;kidId?:string;time?:string;endTime?:string}):Promise<boolean>=>{
+ const quickAddFamilyEvent=async(date:string,payload:{title:string;kind:CalendarEventKind;kidIds:string[];time?:string;endTime?:string}):Promise<boolean>=>{
   try{
-   const saved=await save(d=>({...d,calendarEvents:[...d.calendarEvents,moveToWhose(d,{id:uid('event'),profileId:profile.id,date,title:payload.title,kind:payload.kind,time:payload.time,endTime:payload.endTime,notes:'',done:false} as CalendarEvent,profile.id,payload.kidId)]}))
+   const saved=await save(d=>({...d,calendarEvents:[...d.calendarEvents,moveToWhose(d,{id:uid('event'),profileId:profile.id,date,title:payload.title,kind:payload.kind,time:payload.time,endTime:payload.endTime,notes:'',done:false} as CalendarEvent,profile.id,payload.kidIds)]}))
    setMessage(saved?'Added to the family calendar.':'Not saved yet. Check the save status; your working copy is preserved.')
    return saved
   }catch(e){setMessage(e instanceof Error?e.message:'Could not save.');return false}
@@ -757,7 +762,7 @@ function Workspace({store}:{store:Store}){
  // Phones: an open assignment can be swiped right to finish it, or left to move it to tomorrow (not
  // study-plan units, which reschedule themselves).
  const card=(key:Collection,entry:Entry,compact=false)=>{
-  const record=<RecordCard cozy={experience==='cozy'} compact={compact} collection={key} entry={entry} subjectColor={data.subjects.find(s=>s.id===entry.subjectId)?.color} subject={data.subjects.find(s=>s.id===entry.subjectId)?.name} kid={data.kids.find(k=>k.id===entry.kidId)} showKidBorder={showKidBorder} showKidHeader={showKidHeader} seriesCount={seriesCount(key,entry)} edit={()=>edit(key,entry)} remove={()=>remove(key,entry)} removeSeries={()=>removeSeries(key,entry)} duplicate={()=>duplicate(key,entry)} toggle={()=>toggle(key,entry)} pin={()=>void patch(key,entry,{pinned:!entry.pinned})} remind={()=>openEditor({key:'calendarEvents',entry:{id:uid('event'),profileId:profile.id,subjectId:String(entry.subjectId??''),title:'Reminder: '+titleOf(entry),date:today,kind:'personal',notes:'From note: '+titleOf(entry),done:false}})} scheduleReview={key==='exams'?()=>scheduleExamReview(entry):undefined} confirmReview={['tasks','exams','calendarEvents'].includes(key)?()=>void patch(key,entry,{needsReview:false}):undefined} startFocus={key==='tasks'&&!entry.done&&entry.plannedTime?()=>startFocusSession(entry.id,entry.estimatedMinutes as number|undefined):undefined}/>
+  const record=<RecordCard cozy={experience==='cozy'} compact={compact} collection={key} entry={entry} subjectColor={data.subjects.find(s=>s.id===entry.subjectId)?.color} subject={data.subjects.find(s=>s.id===entry.subjectId)?.name} kid={data.kids.find(k=>k.id===entry.kidId)} alsoKids={peopleOf(entry as {kidId?:string;kidIds?:string[]}).slice(1).flatMap(id=>data.kids.filter(k=>k.id===id))} showKidBorder={showKidBorder} showKidHeader={showKidHeader} seriesCount={seriesCount(key,entry)} edit={()=>edit(key,entry)} remove={()=>remove(key,entry)} removeSeries={()=>removeSeries(key,entry)} duplicate={()=>duplicate(key,entry)} toggle={()=>toggle(key,entry)} pin={()=>void patch(key,entry,{pinned:!entry.pinned})} remind={()=>openEditor({key:'calendarEvents',entry:{id:uid('event'),profileId:profile.id,subjectId:String(entry.subjectId??''),title:'Reminder: '+titleOf(entry),date:today,kind:'personal',notes:'From note: '+titleOf(entry),done:false}})} scheduleReview={key==='exams'?()=>scheduleExamReview(entry):undefined} confirmReview={['tasks','exams','calendarEvents'].includes(key)?()=>void patch(key,entry,{needsReview:false}):undefined} startFocus={key==='tasks'&&!entry.done&&entry.plannedTime?()=>startFocusSession(entry.id,entry.estimatedMinutes as number|undefined):undefined}/>
   if(!onPhone||key!=='tasks'||entry.done||compact)return <Fragment key={entry.id}>{record}</Fragment>
   return <SwipeRow key={entry.id} onRight={()=>toggle(key,entry)} onLeft={entry.studyPlanId?undefined:()=>void run(()=>save(d=>({...d,tasks:d.tasks.map(t=>t.id===entry.id?{...t,due:addDays(localDate(),1),plannedTime:undefined}:t)})),'Moved “'+titleOf(entry)+'” to tomorrow.',true)}>{record}</SwipeRow>
  }
@@ -824,16 +829,16 @@ function Workspace({store}:{store:Store}){
   ...view.exams.filter(e=>e.profileId===profile.id&&!e.done&&e.due===today).map(e=>({key:'exams' as Collection,entry:e as unknown as Entry,date:e.due})),
   ...notes.filter(n=>!n.completed&&entryDate(n as unknown as Entry)===today).map(n=>({key:'notes' as Collection,entry:n as unknown as Entry,date:entryDate(n as unknown as Entry)})),
   ...view.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date===today).map(e=>({key:'calendarEvents' as Collection,entry:e as unknown as Entry,date:e.date})),
- ].filter(e=>personShown(e.entry.kidId as string|undefined)&&(!e.entry.subjectId||!todayClasses.some(c=>c.block.subjectId===e.entry.subjectId)))
+ ].filter(e=>personShown(e.entry)&&(!e.entry.subjectId||!todayClasses.some(c=>c.block.subjectId===e.entry.subjectId)))
  const tomorrowClasses=scheduleClasses(tomorrow)
  const tomorrowLoose=[
   ...viewTasks.filter(t=>!t.done&&t.due===tomorrow).map(t=>({key:'tasks' as Collection,entry:t as unknown as Entry,date:t.due})),
   ...view.exams.filter(e=>e.profileId===profile.id&&!e.done&&e.due===tomorrow).map(e=>({key:'exams' as Collection,entry:e as unknown as Entry,date:e.due})),
   ...notes.filter(n=>!n.completed&&entryDate(n as unknown as Entry)===tomorrow).map(n=>({key:'notes' as Collection,entry:n as unknown as Entry,date:entryDate(n as unknown as Entry)})),
   ...view.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date===tomorrow).map(e=>({key:'calendarEvents' as Collection,entry:e as unknown as Entry,date:e.date})),
- ].filter(e=>personShown(e.entry.kidId as string|undefined)&&(!e.entry.subjectId||!tomorrowClasses.some(c=>c.block.subjectId===e.entry.subjectId)))
+ ].filter(e=>personShown(e.entry)&&(!e.entry.subjectId||!tomorrowClasses.some(c=>c.block.subjectId===e.entry.subjectId)))
  // Your day (Home): late work and past-due reminders lead Today; the tabs count what's on each day.
- const pastReminders=data.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date<today&&personShown(e.kidId)).sort((a,b)=>a.date.localeCompare(b.date))
+ const pastReminders=data.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date<today&&personShown(e)&&tracksDone('calendarEvents',e as unknown as Entry)).sort((a,b)=>a.date.localeCompare(b.date))
  const todayCount=overdue.length+pastReminders.length+todayClasses.length+todayLoose.length,tomorrowCount=tomorrowClasses.length+tomorrowLoose.length
  const setupLeft=startSkipped.has('all')?0:startSteps.filter(st=>!st.done).length
  return <div className={'workbench density-'+(data.settings.density??'comfortable')+' text-'+(data.settings.textSize??'normal')} data-page={page.toLowerCase()} data-experience={experience} data-decoration={data.settings.decoration!==false}>
@@ -962,7 +967,7 @@ function Workspace({store}:{store:Store}){
   {editor&&<EntryEditor key={editor.entry.id} edit={editor} data={data} save={save} share={classmatesOn?repository:null} photoCloud={photoCloud} draftScope={draftScope} close={(saved,discarded,quiet)=>{setEditor(null);setHasDraft(!saved);if(saved&&!quiet)setMessage(discarded?'Draft discarded.':'Saved.')}}/>}
  </div>
 }
-function RecordCard({cozy,collection,entry,subject,subjectColor,kid,showKidBorder=false,showKidHeader=false,seriesCount=0,compact=false,edit,remove,removeSeries,duplicate,toggle,pin,remind,scheduleReview,confirmReview,startFocus}:{cozy:boolean;collection:Collection;entry:Entry;subject?:string;subjectColor?:string;kid?:Kid;showKidBorder?:boolean;showKidHeader?:boolean;seriesCount?:number;compact?:boolean;edit:()=>void;remove:()=>void;removeSeries?:()=>void;duplicate:()=>void;toggle:()=>void;pin:()=>void;remind:()=>void;scheduleReview?:()=>void;confirmReview?:()=>void;startFocus?:()=>void}){
+function RecordCard({cozy,collection,entry,subject,subjectColor,kid,alsoKids=[],showKidBorder=false,showKidHeader=false,seriesCount=0,compact=false,edit,remove,removeSeries,duplicate,toggle,pin,remind,scheduleReview,confirmReview,startFocus}:{cozy:boolean;collection:Collection;entry:Entry;subject?:string;subjectColor?:string;kid?:Kid;alsoKids?:Kid[];showKidBorder?:boolean;showKidHeader?:boolean;seriesCount?:number;compact?:boolean;edit:()=>void;remove:()=>void;removeSeries?:()=>void;duplicate:()=>void;toggle:()=>void;pin:()=>void;remind:()=>void;scheduleReview?:()=>void;confirmReview?:()=>void;startFocus?:()=>void}){
  const note=collection==='notes',paper=note||collection==='exams',done=Boolean(note?entry.completed:entry.done),canComplete=['tasks','notes','exams','calendarEvents'].includes(collection)
  const due=String(entry.due??entry.date??''),dueLabel=due?countdown(due,done):''
  const subtasks=collection==='tasks'?entry.subtasks as Subtask[]|undefined:undefined
@@ -996,16 +1001,17 @@ function RecordCard({cozy,collection,entry,subject,subjectColor,kid,showKidBorde
  // both tagged and showing -- an untagged "Family" item or a solo student's plain tile always gets the
  // ordinary border, never someone else's chosen style.
  const borderStyle=showKidBorder&&kid?kid.borderStyle??'solid':'solid'
+ const tracked=tracksDone(collection,entry)
  if(collection==='calendarEvents')return <article className={'wb-family-event kid-border-'+borderStyle+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={{'--kid-color':showKidBorder?kid?.color??'#b47e75':undefined} as CSSProperties}>
   <div className="wb-family-event-main">
    <div className="wb-family-event-time">{entry.time?<><span className="wb-family-event-start">{classTime(String(entry.time))}</span>{entry.endTime&&<span className="wb-family-event-end">–{classTime(String(entry.endTime))}</span>}</>:'—'}</div>
    <div className="wb-family-event-info">
-    <small>{showKidHeader?(kid?(kid.emoji?kid.emoji+' ':'')+kid.name:'Family')+(subject?' · '+subject:''):subject??(entry.subjectId?'Removed subject':'General')}</small>
+    <small>{showKidHeader?(kid?[kid,...alsoKids].map(k=>(k.emoji?k.emoji+' ':'')+k.name).join(' & '):'Family')+(subject?' · '+subject:''):subject??(entry.subjectId?'Removed subject':'General')}</small>
     <h3>{titleOf(entry)}{inSeries&&<span className="wb-repeat-mark" title={'Repeats · '+seriesCount+' dates'} aria-label="Repeats"> ↻</span>}</h3>
    </div>
-   {reviewBadge}{due&&<span className={'countdown-chip '+(daysUntil(due)<0?'is-overdue':'')}>{dueLabel}</span>}
+   {reviewBadge}{due&&(tracked||daysUntil(due)>=0)&&<span className={'countdown-chip '+(daysUntil(due)<0?'is-overdue':'')}>{tracked?dueLabel:daysUntil(due)===0?'Today':daysUntil(due)===1?'Tomorrow':'In '+daysUntil(due)+' days'}</span>}
   </div>
-  <div className="wb-toolbar">{reviewButton}<button onClick={toggle}>{done?'Reopen':'Complete'}</button><button onClick={edit}>Edit</button><details className="wb-actions"><summary>More actions</summary><div><button onClick={duplicate}>Duplicate</button><button onClick={remove}>Move to Trash</button>{inSeries&&<button onClick={removeSeries}>Delete whole series ({seriesCount})</button>}</div></details></div>
+  <div className="wb-toolbar">{reviewButton}{tracked&&<button onClick={toggle}>{done?'Reopen':'Complete'}</button>}<button onClick={edit}>Edit</button><details className="wb-actions"><summary>More actions</summary><div><button onClick={duplicate}>Duplicate</button><button onClick={remove}>Move to Trash</button>{inSeries&&<button onClick={removeSeries}>Delete whole series ({seriesCount})</button>}</div></details></div>
  </article>
  return <article className={'wb-record wb-record-'+collection+' '+(paper?'wb-sticky note-font-'+String(entry.font??'rounded'):'')+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={paper?{'--note-paper':String(entry.color??'#fff2b4'),'--note-ink':String(entry.textColor??'#2f2942')} as CSSProperties:{'--subject-accent':subjectColor??String(entry.color??'#b47e75')} as CSSProperties}>
   <>{paper&&<span className="push-pin pin-0" aria-hidden="true"/>}</>{reviewBadge}<small>{subject??(entry.subjectId?'Removed subject':'General')} · {labels[collection]}{note&&entry.pinned?' · Pinned':''}</small><h3>{titleOf(entry)}</h3>{Boolean(entry.due||entry.date)&&<p>{dateLabel(String(entry.due??entry.date))}{done?' · Completed':''} {due&&<span className={'countdown-chip '+(daysUntil(due)<0?'is-overdue':'')}>{dueLabel}</span>}{plannedChip}{attachChips}{subtaskProgress&&<span className="subtask-chip">{subtaskProgress}</span>}{inSeries&&<span className="subtask-chip">1 of {seriesCount} dates</span>}</p>}

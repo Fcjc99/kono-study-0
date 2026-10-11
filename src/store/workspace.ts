@@ -44,9 +44,11 @@ export function restoreEntry(data:AppData,id:string):AppData {
  }
  return normalizeData(next)
 }
-/** The active plan, or (from the family plan) one of its kids' own plans: the family Home and Planner
- * show those too, so finishing or removing one of them works from there. */
+/** The active plan, or (from the family plan) one of its kids' own plans, or (from a kid's plan) the
+ * family plan: each shows the other's things for that kid, so finishing or removing one works there. */
 export const inReach=(data:Pick<AppData,'activeProfileId'|'profiles'|'kids'>,profileId:unknown)=>profileId===data.activeProfileId||data.profiles.some(p=>p.id===profileId&&p.kidId&&data.kids.some(k=>k.id===p.kidId&&k.profileId===data.activeProfileId))
+ // …and from a kid's own plan, the family plan's things for them.
+ ||data.kids.some(k=>k.profileId===profileId&&data.profiles.some(p=>p.id===data.activeProfileId&&p.kidId===k.id))
 export function removeEntry(data:AppData,key:Collection,id:string):AppData {
  const item=records(data,key).find(r=>r.id===id&&inReach(data,r.profileId))
  if(!item)return data

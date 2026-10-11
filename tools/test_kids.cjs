@@ -350,6 +350,40 @@ test('Renaming plans: a parent’s plan gets a new name and owner; a kid’s pla
  assert.equal(model.normalizeData(JSON.parse(JSON.stringify(data))).kids.find(k=>k.id===emma).name,'Em')
 })
 
+test('Several people on one item, and a kid’s own plan shows what the family plan tagged for them',()=>{
+ const fam=load('src/store/familyPlans.ts'),same=(a,b,m)=>assert.equal(JSON.stringify(a),JSON.stringify(b),m)
+ let {data,id:blair}=withKid(model.createFreshData(),'Blair','#6a8fc7')
+ ;({data}=withKid(data,'Leo','#e08a4f'))
+ const parent=data.activeProfileId,leo=data.kids.find(k=>k.name==='Leo').id
+ const made=fam.addKidPlan(data,data.kids.find(k=>k.id===blair));data=made.data
+ const base={id:'e-both',profileId:parent,date:'2026-10-14',title:'Dentist',kind:'appointment',notes:''}
+ // Two people: stays in the family plan, tagged to both.
+ const both=fam.moveToWhose(data,base,parent,[blair,leo])
+ assert.equal(both.profileId,parent);same(both.kidIds,[blair,leo]);assert.equal(both.kidId,blair)
+ // One kid with a plan: into their plan.
+ assert.equal(fam.moveToWhose(data,base,parent,[blair]).profileId,made.id)
+ data={...data,calendarEvents:[...data.calendarEvents,both,{id:'e-leo',profileId:parent,date:'2026-10-14',title:'Soccer',kind:'sports',kidId:leo,notes:''},{id:'e-blair',profileId:parent,date:'2026-10-15',title:'Piano',kind:'activity',kidId:blair,notes:''}]}
+ const saved=model.normalizeData(JSON.parse(JSON.stringify(data)))
+ same(saved.calendarEvents.find(e=>e.id==='e-both').kidIds,[blair,leo],'both names survive a save')
+ assert.equal(model.peopleOf(saved.calendarEvents.find(e=>e.id==='e-leo')).join(),leo)
+ // Blair's plan sees the dentist (with Leo) and piano, not Leo's soccer.
+ const view=fam.kidPlanView(saved,made.id)
+ const mine=view.data.calendarEvents.filter(e=>e.profileId===made.id).map(e=>e.title).sort()
+ same(mine,['Dentist','Piano'])
+ assert.equal(view.home.get('e-piano')??view.home.get('e-blair'),parent,'they still live in the family plan')
+ assert.equal(saved.calendarEvents.find(e=>e.id==='e-blair').profileId,parent)
+ assert.equal(fam.kidPlanView(saved,parent).home.size,0,'the family plan itself borrows nothing this way')
+ // From Blair's plan, the family plan's things for her can be finished or removed.
+ const ws=load('src/store/workspace.ts')
+ assert.equal(ws.inReach({...saved,activeProfileId:made.id},parent),true)
+ // Kids today counts both-people items for each.
+ const glance=load('src/store/kidGlance.ts')
+ const withTask={...saved,tasks:[...saved.tasks,{id:'t-both',profileId:parent,subjectId:'',kidId:blair,kidIds:[blair,leo],title:'Science fair board',due:'2026-10-14',done:false,notes:''}]}
+ const rows=glance.kidGlance(model.normalizeData(withTask),parent,'2026-10-13')
+ same(rows.find(r=>r.kid.id===leo).dueTonight,['Science fair board'])
+ same(rows.find(r=>r.kid.id===blair).dueTonight,['Science fair board'])
+})
+
 let passed=0
 for(const t of tests){try{t.fn();passed++;console.log('PASS',t.name)}catch(e){console.error('FAIL',t.name);console.error(e);process.exitCode=1}}
 console.log(`${passed}/${tests.length} kid-tag regression groups passed.`)
