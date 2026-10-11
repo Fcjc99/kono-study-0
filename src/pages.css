@@ -49,3 +49,10 @@
 .work-shift-list li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:10px 12px;border-radius:14px;border:1px solid var(--wb-line,#eee1d6)}
 .work-shift-list li small{color:var(--wb-muted,#8a7469)}
 .work-shift-list li button{margin-left:auto}
+
+/* Phones: the floating music button only shows while music plays (to pause it); Play music is in the
+   top bar's ⋯ menu, so the button doesn't sit over the KONO bar and the calendar all the time. */
+@media (max-width:900px){
+ .workbench .wb-music-bar:not(.is-playing){display:none!important}
+}
+@media (min-width:901px){.header-more-music{display:none!important}}

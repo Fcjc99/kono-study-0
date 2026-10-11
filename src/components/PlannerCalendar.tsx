@@ -2,7 +2,7 @@ import {useState,type CSSProperties,type DragEvent,type ReactNode} from 'react'
 import {dayNames,localDate,type AppData,type CalendarEventKind,type SettingsData,type Task} from '../store/model'
 import {titleOf,type Collection,type Entry} from '../store/workspace'
 import {addDays} from '../store/studyScheduler'
-import {classOccurrences,type ClassOccurrence} from '../store/classSchedule'
+import {classKid,classOccurrences,type ClassOccurrence} from '../store/classSchedule'
 import {PLANNER_SOURCES,classSource,entrySource,sourcesInPlan,type PlannerSource} from '../store/plannerSources'
 import {schoolDayLabels} from '../store/schoolCalendar'
 import {useLocalSetting} from '../hooks/useLocalSetting'
@@ -42,7 +42,7 @@ export default function PlannerCalendar({data,tasks,date,selectDate,create,rende
  const kidVisible=(kidId?:string)=>!kidId||!hiddenKids.has(kidId)
  const toggleKid=(id:string)=>setHiddenKids(v=>{const next=new Set(v);if(next.has(id))next.delete(id);else next.add(id);return next})
  const kidOf=(kidId?:string)=>kidId?kids.find(k=>k.id===kidId):undefined
- const scheduleClasses=(day:string)=>classOccurrences(data,day).filter(c=>shown(classSource(c))&&kidVisible(c.block.kidId))
+ const scheduleClasses=(day:string)=>classOccurrences(data,day).filter(c=>shown(classSource(c))&&kidVisible(classKid(c)))
  const entries=[
   ...tasks.filter(t=>kidVisible(t.kidId)).map(t=>({key:'tasks' as Collection,entry:t as unknown as Entry,date:t.due})),
   ...own(data,'exams').filter(e=>kidVisible(e.kidId as string|undefined)).map(e=>({key:'exams' as Collection,entry:e,date:String(e.due)})),
@@ -70,7 +70,7 @@ export default function PlannerCalendar({data,tasks,date,selectDate,create,rende
  // before "what subject" -- falling back to the subject color (and the priority red) exactly as
  // before for anything not tagged to a kid.
  const dotColor=(entry:{key:Collection;entry:Entry})=>kidOf(entry.entry.kidId as string|undefined)?.color??(dayHasPriority(entry)?'#d24864':data.subjects.find(s=>s.id===entry.entry.subjectId)?.color??'#d9828a')
- const classDotColor=(c:ClassOccurrence)=>kidOf(c.block.kidId)?.color??data.subjects.find(s=>s.id===c.block.subjectId)?.color??'#b77c98'
+ const classDotColor=(c:ClassOccurrence)=>kidOf(classKid(c))?.color??data.subjects.find(s=>s.id===c.block.subjectId)?.color??'#b77c98'
  // Week view: Sunday to Saturday around the selected date, classes and timed items at their hour.
  // On an iPhone seven columns are too narrow to read, so it shows three days from the selected one.
  const weekStart=phone?date:addDays(date,-new Date(date+'T12:00:00').getDay()),weekDays=Array.from({length:phone?3:7},(_,i)=>addDays(weekStart,i)),weekStep=phone?3:7

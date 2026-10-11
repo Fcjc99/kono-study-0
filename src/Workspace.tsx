@@ -55,6 +55,8 @@ type StoreProps={store:ReturnType<typeof usePlannerRepository>}
 /** The three-step welcome on a brand-new plan; only new students download it. */
 const WelcomeTour=lazy(()=>import('./components/WelcomeTour'))
 const KonoCorner=lazy(()=>import('./components/KonoCorner'))
+const RotationToday=lazy(()=>import('./components/RotationToday'))
+const ClassSheet=lazy(()=>import('./components/ClassSheet'))
 /** Holds the tour's place while its code loads, so nothing below jumps when it arrives. */
 const TourPlaceholder=()=><section className="wb-panel welcome-tour is-loading" aria-hidden="true"/>
 const AccountPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.AccountPanel})))
@@ -248,6 +250,8 @@ function Workspace({store}:{store:Store}){
   setIslandPan(clampIslandPan(drag.pan.x+e.clientX-drag.x,drag.pan.y+e.clientY-drag.y,islandZoom))
  }
  const onIslandPointerUp=()=>{mouseDrag.current=null}
+ // A class's page (tap a class's name): its homework, notes and next meetings.
+ const [classSheet,setClassSheet]=useState<ClassOccurrence|null>(null)
  const [today,setToday]=useState(localDate),[selectedDate,setSelectedDate]=useState(localDate),[subject,setSubject]=useState(''),[boardView,setBoardView]=useState('board'),[subjectTab,setSubjectTab]=useState('Assignments')
  const [settingsTab,setSettingsTab]=useState<SettingsTab>('Look & feel')
  const tomorrow=addDays(today,1)
@@ -715,8 +719,8 @@ function Workspace({store}:{store:Store}){
   return create('calendarEvents',item.date,item.block.subjectId??'',{title:item.block.label+' reminder',kind:'personal'})
  }
  const removeDue=(due:{collection:string;entry:unknown})=>remove(due.collection as Collection,due.entry as Entry)
- const renderClass=(item:ClassOccurrence)=><ClassOccurrenceCard key={item.id} item={item} dueItems={classDueItems(item)} subjectColor={classColor(item)} save={save} draftKey={draftScope} onAdd={kind=>addForClass(item,kind)} onRemoveDue={removeDue}/>
- const renderCompactClass=(item:ClassOccurrence)=><ClassOccurrenceCard compact key={item.id} item={item} dueItems={classDueItems(item)} subjectColor={classColor(item)} save={save} draftKey={draftScope} onAdd={kind=>addForClass(item,kind)} onRemoveDue={removeDue}/>
+ const renderClass=(item:ClassOccurrence)=><ClassOccurrenceCard onOpen={()=>setClassSheet(item)} key={item.id} item={item} dueItems={classDueItems(item)} subjectColor={classColor(item)} save={save} draftKey={draftScope} onAdd={kind=>addForClass(item,kind)} onRemoveDue={removeDue}/>
+ const renderCompactClass=(item:ClassOccurrence)=><ClassOccurrenceCard compact onOpen={()=>setClassSheet(item)} key={item.id} item={item} dueItems={classDueItems(item)} subjectColor={classColor(item)} save={save} draftKey={draftScope} onAdd={kind=>addForClass(item,kind)} onRemoveDue={removeDue}/>
  const seriesCount=(key:Collection,entry:Entry)=>inSeriesOf(key,entry).length
  // Parent mode gates both independently-toggleable tile features entirely -- a solo student who has
  // never turned parent mode on gets the plain, pre-family tile design no matter what these settings
@@ -781,6 +785,8 @@ function Workspace({store}:{store:Store}){
  const weatherIcon={rain:'🌧️',snow:'🌨️',wind:'🌬️',cloudy:'☁️',clear:'☀️'}[weather.weather]??'⛅'
  const weatherChip=<button type="button" className="kono-weather-chip" onClick={openWeather} title="Sanctuary weather" aria-label={'Sanctuary weather'+(weather.reading?': '+weather.reading.condition+', '+weather.reading.temperatureF+'°F':'')}><span aria-hidden="true">{weatherIcon}</span>{weather.reading&&data.settings.sanctuaryWeatherMode==='live'&&<small>{Math.round(weather.reading.temperatureF)}°</small>}</button>
  const commands=[...visiblePages.map(p=>({label:'Open '+p,hint:'Page',run:()=>navigate(p)})),{label:'Add to my calendar',hint:'Planner',run:()=>openAdd()},...SETTINGS_TABS.map(tab=>({label:'Settings › '+tab,hint:'Settings',run:()=>openSettings(tab)})),...(store.isAdmin&&!store.support?[{label:'KONO support: all accounts',hint:'Settings',run:()=>openSettings('KONO support')}]:[]),{label:'Sanctuary weather',hint:'Sanctuary',run:openWeather},{label:'AI helper (API key)',hint:'Settings › Import & export',run:()=>openSettings('Import & export')},...(parentMode?[{label:"Kids' appearance",hint:'Settings › Family',run:()=>openSettings('Family')}]:[]),...(['tasks','notes','exams','calendarEvents','subjects',...(parentMode?['kids'] as const:[])] as Collection[]).flatMap(key=>own(data,key).map(entry=>({label:titleOf(entry),hint:labels[key]+' · '+String(entry.due??entry.date??entry.body??entry.notes??'').slice(0,160),run:()=>edit(key,entry)})))]
+ // Weekly schools (Monday–Friday) keep their one-line label; rotation schools get RotationToday.
+ const weeklyDayLabels=(date:string)=>schoolDayLabels({...data,studySeasons:data.studySeasons.filter(s=>s.school?.pattern==='weekly')},date)
  const todayClasses=scheduleClasses(today)
  // Mirrors tomorrowLoose below -- Today's schedule only ever showed recurring classes, so a kid's
  // sports practice, appointment or anything else added straight to today's calendar (not tied to a
@@ -810,11 +816,13 @@ function Workspace({store}:{store:Store}){
      <button type="button" title="Undo" disabled={!repository.canUndo} onClick={()=>void run(repository.undo,'Undone. Earned progress is kept.')}><ActionIcon name="undo"/>Undo</button>
      <button type="button" title="Redo" disabled={!repository.canRedo} onClick={()=>void run(repository.redo,'Redone.')}><ActionIcon name="redo"/>Redo</button>
      {voiceSupported&&!voiceListening&&<button type="button" className="voice-add-menu" onClick={toggleVoiceAdd} title="Speak an assignment, exam, note or appointment — it opens in the right editor to review"><span className="kono-mic-face" aria-hidden="true"><img src={mood.pose} alt=""/></span>Add by voice</button>}
+     {music.enabled&&<button type="button" className="header-more-music" onClick={music.toggle}><span aria-hidden="true">{music.playing?'Ⅱ':'♪'}</span>{music.playing?'Pause music':'Play music'}</button>}
      {experience==='cozy'&&<button type="button" title="Trash" onClick={()=>navigate('Trash')}><ActionIcon name="trash"/>Trash</button>}
      <p className="header-more-account">{store.user?'Signed in as '+store.user.email:'Saved on this device'}</p>
     </div></details></div>{konoPhrase&&<div className="kono-speech-bubble" role="status"><img src={konoPhrase.kind==='sticker'||konoPhrase.kind==='milestone'||konoPhrase.kind==='celebration'?'/garden/kono/excited.webp':mood.pose} alt="" aria-hidden="true"/><p>{konoPhrase.text}</p><button type="button" aria-label="Dismiss" onClick={()=>setKonoPhrase(null)}>×</button></div>}{voiceError&&<p role="alert" className="voice-add-error">{voiceError}</p>}</header>
    <div ref={pageScope} className="wb-page">
    {message&&<p role="status" className="wb-notice">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></p>}
+   {classSheet&&<Suspense fallback={null}><ClassSheet item={classSheet} data={data} today={today} close={()=>setClassSheet(null)} onAdd={(kind,date,subjectId)=>create(kind,date,subjectId)} onToggleTask={id=>{const t=data.tasks.find(x=>x.id===id);if(t)toggle('tasks',t as unknown as Entry)}} onOpenNote={id=>{const n=data.notes.find(x=>x.id===id);if(n)edit('notes',n as unknown as Entry)}} onOpenSubject={id=>{setSubject(id);setSubjectTab('Assignments');navigate('Subjects')}}/></Suspense>}
    {undoToast&&<div className={'undo-toast'+(undoToast.snack?' has-snack':'')} role="status" key={undoToast.at}><span>{undoToast.text}{undoToast.snack&&meters.asleep&&<small className="undo-toast-snack"> · KONO earned {undoToast.snack.treat.emoji} for the morning</small>}</span>{undoToast.snack&&!meters.asleep&&<button type="button" className="undo-toast-feed" aria-label={'Feed KONO the '+undoToast.snack.treat.name+' you earned'} onClick={()=>{const id=undoToast.snack!.taskId;setUndoToast(null);feedKono(id)}}><span aria-hidden="true">{undoToast.snack.treat.emoji}</span> Feed KONO</button>}{repository.canUndo&&<button type="button" onClick={()=>{setUndoToast(null);void run(repository.undo,'Undone.')}}>Undo</button>}<button type="button" className="undo-toast-close" aria-label="Dismiss" onClick={()=>setUndoToast(null)}>×</button></div>}
    {showDigest&&(page==='Sanctuary'||page==='Planner')&&<div className="wb-notice login-digest is-slim" role="status"><details><summary><strong>{dueSoon.length} due by {new Date(addDays(today,3)+'T12:00:00').toLocaleDateString(undefined,{weekday:'short'})}</strong>{dueSoon.length===1&&<span className="digest-inline"> · {dueSoon[0].title}</span>}</summary><ul>{dueSoon.slice(0,5).map(t=><li key={t.id}>{t.title} · {dateLabel(t.due)}</li>)}</ul>{dueSoon.length>5&&<small>+{dueSoon.length-5} more</small>}</details><button onClick={dismissDigest}>Got it</button></div>}
    {(page==='Sanctuary'||page==='Planner')&&schoolAhead.length>0&&<div className="wb-notice school-heads-up" role="status"><div><strong>📅 Coming up at school</strong><ul>{schoolAhead.map(c=><li key={c.key}><b>{changeTitle(c)}</b>{changeDetail(c)?' · '+changeDetail(c):''}</li>)}</ul></div><button onClick={()=>setSchoolSeen([...schoolSeen.split('|').filter(Boolean).slice(-30),...schoolAhead.map(c=>c.key)].join('|'))}>Got it</button></div>}
@@ -873,10 +881,10 @@ function Workspace({store}:{store:Store}){
       </div>
      </div>
      {dayTab==='today'?<div role="tabpanel" id="day-panel-today" aria-labelledby="day-tab-today" className="today-card-body">
-      {overdueCard}
+      <Suspense fallback={null}><RotationToday data={data} save={save} today={today} kids={profileKids} onOpenClass={label=>{const c=todayClasses.find(x=>x.block.label===label);if(c)setClassSheet(c)}}/></Suspense>{overdueCard}
       {pastReminders.length>0&&<div className="tomorrow-extra-list today-card-reminders"><strong>Reminders</strong>{pastReminders.map(e=>card('calendarEvents',e as unknown as Entry))}</div>}
       {quickDayOpen==='today'&&<QuickDayAdd date={today} dayName="today" subjects={subjects} onAdd={item=>quickDay(today,item)} onClose={()=>setQuickDayOpen(null)}/>}
-      <AssignmentProgress tasks={tasks} date={today} label="Today's"/>{schoolDayLabels(data,today).map(label=><p className="school-day-label" key={label}>{label}</p>)}
+      <AssignmentProgress tasks={tasks} date={today} label="Today's"/>{weeklyDayLabels(today).map(label=><p className="school-day-label" key={label}>{label}</p>)}
       <div className="today-schedule-list">{todayClasses.map(renderCompactClass)}</div>
       {todayLoose.length>0&&<div className="tomorrow-extra-list"><strong>Also today</strong>{todayLoose.map(e=>card(e.key,e.entry))}</div>}
       {!todayClasses.length&&!todayLoose.length&&<p className="today-card-empty">{season&&season.end<today?'Your schedule has ended. Update its dates in Settings.':'Nothing else on today.'}</p>}
@@ -911,7 +919,7 @@ function Workspace({store}:{store:Store}){
    </div>
   </main>
   <nav className="wb-bottom-nav" aria-label="Mobile navigation">{(['Sanctuary','Planner','Notes'] as Page[]).map(p=><button aria-current={page===p?'page':undefined} key={p} onClick={()=>navigate(p)}>{p}</button>)}<button aria-expanded={more} onClick={()=>setMore(v=>!v)}>More</button></nav>
-  <div className="wb-music-bar"><MusicPlayer controller={music} compact/></div>
+  <div className={'wb-music-bar'+(music.playing?' is-playing':'')}><MusicPlayer controller={music} compact/></div>
   {confirmation&&<Modal title="Confirm change" close={()=>setConfirmation(null)}><p>{confirmation.text}</p><button onClick={()=>{confirmation.action();setConfirmation(null)}}>Confirm</button><button onClick={()=>setConfirmation(null)}>Cancel</button></Modal>}
   {more&&<Modal title="More" close={()=>setMore(false)}>{(['Kids','Subjects','K-Quiz','Exams','Settings','Trash'] as Page[]).filter(p=>p!=='Kids'||parentMode).map(p=><button key={p} onClick={()=>navigate(p)}>{p}</button>)}<label>Study profile<select value={profile.id} onChange={e=>void save(d=>({...d,activeProfileId:e.target.value}))}>{data.profiles.map(p=><option value={p.id} key={p.id}>{p.label}</option>)}</select></label></Modal>}
   {adding&&<Modal title="Add to your plan" close={()=>setAdding(false)}><QuickAddBox subjects={data.subjects.filter(s=>s.profileId===profile.id)} today={localDate()} initialText={incoming?.text} link={incoming?.link} onAdd={quickAdd} onEdit={g=>create(g.key,g.due,g.subjectId,{title:g.title,...(g.time?{plannedTime:g.time}:{}),...(g.link?{link:g.link}:{})})}/><div className="quick-add-choice"><p className="quick-add-or">Or pick a type:</p><label>What are you adding?<select aria-label="Add type" value={addKind} onChange={e=>setAddKind(e.target.value as typeof addKind)}><option value="tasks">Homework</option><option value="exams">Exam or test</option><option value="lesson">Lesson</option><option value="notes">Study note</option></select></label><p className="wb-muted">Exams appear on the countdown board. Study notes are pinned to your bulletin board.</p><button className="primary" onClick={()=>addKind==='lesson'?create('calendarEvents',today,subject,{kind:'lesson'}):create(addKind)}>Continue</button></div><button type="button" className="update-entire-plan-button" onClick={()=>{setAdding(false);setScanningPlan(true)}}>📷 Update entire plan — scan notes or a syllabus</button><details className="add-more-choices"><summary>More ways to add</summary><div>{(['studyPlans','calendarEvents','subjects',...(parentMode?['kids'] as const:[])] as Collection[]).map(key=><button key={key} onClick={()=>create(key)}>{labels[key]}</button>)}</div></details></Modal>}

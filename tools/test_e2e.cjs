@@ -1199,6 +1199,55 @@ function picturePdf(jpeg,width,height){
  return Buffer.concat(parts)
 }
 
+test('Phone music: the floating music button only shows while music plays; Play music is in the top bar’s ⋯ menu',async({context,page})=>{
+ const cloud=fakeCloud();cloud.users.alice.plan.data.settings.ambient=true
+ await page.setViewportSize({width:390,height:844})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ assert.equal(await page.locator('.wb-music-bar').isVisible(),false,'no floating button while nothing plays')
+ await page.locator('.header-more summary').click()
+ await page.locator('.header-more-menu').getByRole('button',{name:'Play music'}).waitFor()
+})
+
+test('Home at a rotation school: Today shows the rotation day and the block now with what’s next, "Not Day 1?" fixes the day, a class’s name opens its page (homework, notes, next classes, ＋ Homework for it), and a parent sees the kid’s school day on Kids',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.settings.parentMode=true
+ const cycle=Array.from({length:14},(_,i)=>'Day '+(i+1))
+ const week=Object.fromEntries(cycle.map((d,i)=>[d,[{id:'bio-'+i,label:'Biology',slot:'Period 1',start:'08:20',end:'09:19',kind:'study',subjectId:'sub-bio',location:'B139',fullYear:true,occurrenceNotes:{},completedDates:[],skippedDates:[]},{id:'math-'+i,label:'Math 6',slot:'Period 2',start:'09:23',end:'10:22',kind:'study',fullYear:true,occurrenceNotes:{},completedDates:[],skippedDates:[]}]]))
+ plan.studySeasons=[{id:'dms',profileId:pid,kidId:'kid-emma',name:'Duxbury Middle School 2026–27',start:'2026-09-02',end:'2027-06-24',active:true,week,school:{pattern:'rotation',name:'Duxbury Middle School',grade:'6',cycle,anchorDate:'2026-10-13',anchorDay:'Day 1',weekdays:[1,2,3,4,5],snowAdvances:true,lastClassDate:'2027-06-16',exceptions:[]}}]
+ plan.tasks.push({id:'bio-hw',profileId:pid,subjectId:'sub-bio',title:'Cell diagram',due:'2026-10-14',done:false,notes:''})
+ await page.clock.setFixedTime(new Date('2026-10-13T09:10:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const strip=page.getByRole('group',{name:'Today at school'})
+ assert.match(await strip.innerText(),/🦄 Emma\s+Day 1/i)
+ assert.match(await strip.innerText(),/Now Block 1 · Biology until 9:19 AM · then Block 2 · Math 6 at 9:23 AM/i)
+ // The school counts today as Day 3: fix it here, and the account keeps the correction.
+ await strip.getByRole('button',{name:'Not Day 1?'}).click()
+ await strip.getByLabel('Rotation day today for 🦄 Emma').selectOption('Day 3')
+ await strip.getByRole('button',{name:'Set'}).click()
+ await strip.locator('.rotation-today-day strong',{hasText:'Day 3'}).waitFor();await strip.getByRole('button',{name:'Not Day 3?'}).waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.studySeasons[0].school.exceptions.some(e=>e.cycleDay==='Day 3'&&e.start==='2026-10-13'),'the rotation fix never reached the account')
+ // A class's page: what's due for it and when it meets next; ＋ Homework is already set to its subject.
+ await strip.getByRole('button',{name:'Block 1 · Biology'}).click()
+ const sheet=page.getByRole('dialog',{name:'Biology'})
+ await sheet.getByRole('region',{name:'Due for this class'}).getByText('Cell diagram').waitFor()
+ assert.match(await sheet.getByRole('region',{name:'Next classes'}).innerText(),/Today\s+8:20 AM · Period 1/)
+ await sheet.getByRole('button',{name:'＋ Homework'}).click()
+ const editor=page.getByRole('dialog').filter({has:page.getByLabel('Subject')}).first()
+ assert.equal(await editor.getByLabel('Subject').locator('option:checked').innerText(),'Biology')
+ await page.keyboard.press('Escape');await editor.waitFor({state:'detached'})
+ // The same page opens from the class's card in Today.
+ await page.getByRole('region',{name:'Your day'}).getByRole('button',{name:'Open Math 6'}).click()
+ await page.getByRole('dialog',{name:'Math 6'}).getByText('Save this schedule to link the class',{exact:false}).waitFor()
+ await page.keyboard.press('Escape')
+ // Parent mode › Kids: Emma's school day.
+ await go(page,'Kids')
+ const kids=page.getByRole('region',{name:'Kids today'})
+ assert.match(await kids.innerText(),/Emma\s+Duxbury Middle School · Day 3/)
+ assert.match(await kids.innerText(),/8:20 AM\s*Biology\s+9:23 AM\s*Math 6/)
+})
+
 test('Duxbury Middle School: the school’s 14-day Rotation of Periods (1a–7b, five blocks a day) with its bell times, lunch waves and ASP; KONO’s AI reads a Grade 6 schedule into 7 periods (Period 2 and 6 alternate on b days), and all 14 days are saved',async({context,page})=>{
  const cloud=fakeCloud(),posts=[]
  await page.clock.setFixedTime(new Date('2026-10-10T10:00:00')) // a Saturday

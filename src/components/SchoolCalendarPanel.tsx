@@ -31,6 +31,9 @@ export default function SchoolCalendarPanel({data,save,draftKey,flow='school',fe
  const begin=(s:StudySeason,first='year',guide=false)=>{setDraft(structuredClone(s));setBase(schools.find(x=>x.id===s.id)??null);setStep(first);setGuided(guide);setReviewed(false);setError('');setMessage('')}
  const change=(next:StudySeason)=>{setDraft(next);setReviewed(false)}
  const config=(patch:Partial<SchoolCalendar>)=>{if(draft?.school)change({...draft,school:{...draft.school,...patch}})}
+ // Parent mode: whose school this is, so each kid's school (rotation day, classes) shows as theirs.
+ const kids=data.settings.parentMode?data.kids.filter(k=>k.profileId===data.activeProfileId):[]
+ const kidChoice=draft&&kids.length>0&&<section className="rotation-question" aria-label="Whose school"><h3>Whose school is this?</h3><label>Student<select value={draft.kidId??''} onChange={e=>change({...draft,kidId:e.target.value||undefined})}><option value="">Me</option>{kids.map(k=><option key={k.id} value={k.id}>{(k.emoji?k.emoji+' ':'')+k.name}</option>)}</select></label></section>
  const commit=async()=>{
   // The guide's grid is its review; the full editor asks for the checkbox.
   if(!draft?.school||busy||(!reviewed&&!guided))return
@@ -50,7 +53,8 @@ export default function SchoolCalendarPanel({data,save,draftKey,flow='school',fe
      if(!subject){subject={id:uid('subject'),profileId:next.profileId,name:b.label.trim(),color:'#4169a8',resources:[]};result.subjects.push(subject)}
      b.subjectId=subject.id
     }
-    result.studySeasons=result.studySeasons.filter(s=>s.id!==next.id).map(s=>s.profileId===next.profileId&&s.school&&next.active&&s.start<=next.end&&s.end>=next.start?{...s,active:false}:s)
+    // A new school replaces the one it overlaps for the same person (each of a parent's kids keeps theirs).
+    result.studySeasons=result.studySeasons.filter(s=>s.id!==next.id).map(s=>s.profileId===next.profileId&&s.school&&next.active&&(s.kidId??'')===(next.kidId??'')&&s.start<=next.end&&s.end>=next.start?{...s,active:false}:s)
     result.studySeasons.push(next);return normalizeData(result)
    })
    if(ok){setDraft(null);setBase(null);setGuided(false);setMessage('Schedule saved. Calendar and Today now follow its classes and exceptions.');if(!next.school!.catalogId&&!base)setInvite(next);if(guided)onSaved?.()}else setError('Not saved yet. Your draft is still here.')
@@ -65,6 +69,7 @@ export default function SchoolCalendarPanel({data,save,draftKey,flow='school',fe
   <ol className="school-guide-steps" aria-label="Setup steps">{[['find','Find your school'],['questions','Quick questions'],['classes','Your classes']].map(([id,label],i)=><li key={id} aria-current={(step==='review'?'classes':step)===id?'step':undefined}>{i+1} · {label}</li>)}</ol>
   <fieldset disabled={busy}>
   {step==='questions'&&<><h3>{draft.school.name}</h3>
+   {kidChoice}
    <section className="rotation-question" aria-label="Your grade"><h3>What grade are you in?</h3><p>Some school days only apply to certain grades, like senior events or a grade’s field trip.</p><label>Grade<select value={draft.school.grade} onChange={e=>config({grade:e.target.value})}><option value="">Choose grade</option>{Array.from({length:12},(_,i)=><option key={i+1} value={String(i+1)}>Grade {i+1}</option>)}<option value="other">Other</option></select></label></section>
    {draft.school.pattern!=='weekly'&&<RotationQuestion key={draft.id} season={draft} onAnswer={(anchorDate,anchorDay)=>config({anchorDate,anchorDay})}/>}
    <div className="wb-toolbar"><button className="primary" disabled={!draft.school.grade||(draft.school.pattern!=='weekly'&&!draft.school.cycle.includes(draft.school.anchorDay))} onClick={()=>setStep('classes')}>Next: your classes</button></div></>}

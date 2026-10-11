@@ -180,6 +180,29 @@ test('Duxbury Middle School: a 14-day rotation (D1–D14); a Grade 6 schedule wi
  // Day 1 is Tuesday October 13 (Monday the 12th is a holiday); the next school day is Day 2.
  const {schoolDay}=load('src/store/schoolCalendar.ts');assert.equal(schoolDay(saved,'2026-10-13').cycleDay,'Day 1');assert.equal(schoolDay(saved,'2026-10-14').cycleDay,'Day 2')
 })
+test('Today at a rotation school: the rotation day, the block now (lunch during lunch) or next with minutes to go, school’s done with tomorrow’s day, and "Not Day 1?" re-counts the rotation from today',()=>{
+ const {academicTemplate}=load('src/store/academicCatalog.ts'),{buildRotationWeek,bellScheduleFor}=load('src/store/bellSchedules.ts'),{rotationNow,correctRotation}=load('src/store/rotationToday.ts'),{schoolDay}=load('src/store/schoolCalendar.ts')
+ const data=model.createFreshData(),dms=academicTemplate(data.activeProfileId,'duxburyms-2026')
+ const school={...dms.school,grade:'6',anchorDate:'2026-10-13',anchorDay:'Day 1'},bells=bellScheduleFor(school)
+ const names=['Literacy/Writing','Literacy/Writing','PE','French','Science','Science','Geography','Geography','Math','Math','Chorus','STEM','Reading','Reading']
+ const season=buildRotationWeek({...dms,school},names.map(label=>({label,location:'',lunchWave:2})),{label:'ASP',location:''})
+ data.studySeasons=[season]
+ const at=(clock)=>rotationNow(data,new Date('2026-10-13T'+clock+':00'))[0]
+ let r=at('07:50');assert.equal(r.cycleDay,'Day 1');assert.equal(r.next.label,'Literacy/Writing');assert.equal(r.minutesToNext,30);assert.equal(r.now,undefined)
+ r=at('09:00');assert.equal(r.now.label,'Literacy/Writing');assert.equal(r.next.label,'PE')
+ r=at('12:10');assert.equal(r.now.label,'Lunch 2','during lunch it’s lunch, not the Block 4 class');assert.equal(r.next.label,'ASP')
+ r=at('15:00');assert.equal(r.done,true);assert.equal(r.tomorrow,'Day 2')
+ assert.equal(rotationNow(data,new Date('2026-10-17T10:00:00'))[0].closed,true,'Saturday')
+ // The school says today is Day 3: today and the days after follow from it; earlier days don't change.
+ const fixed=correctRotation(season,'2026-10-13','Day 3')
+ assert.equal(schoolDay(fixed,'2026-10-13').cycleDay,'Day 3');assert.equal(schoolDay(fixed,'2026-10-14').cycleDay,'Day 4');assert.equal(schoolDay(fixed,'2026-10-09').cycleDay,schoolDay(season,'2026-10-09').cycleDay)
+ assert.equal(schoolDay(correctRotation(fixed,'2026-10-13','Day 2'),'2026-10-13').cycleDay,'Day 2','fixing it again replaces the first fix')
+ assert.equal(correctRotation(fixed,'2026-10-13','Day 2').school.exceptions.filter(e=>e.id.startsWith('rotation-fix:')).length,1)
+ assert.throws(()=>correctRotation(season,'2026-10-13','Day 15'),/rotation days/)
+ // Weekly schools don't get the strip; a parent's kid's school is marked as theirs.
+ assert.equal(rotationNow({...data,studySeasons:[academicTemplate(data.activeProfileId,'duxbury-2026')]},new Date('2026-10-13T09:00:00')).length,0)
+ assert.equal(rotationNow({...data,studySeasons:[{...season,kidId:'kid-1'}]},new Date('2026-10-13T09:00:00'))[0].kidId,'kid-1')
+})
 test('One known day sets the rotation: "September 28 is Day 4" counts forward over weekends and holidays, and the next school day is found without it',()=>{
  const {academicTemplate}=load('src/store/academicCatalog.ts'),{nextSchoolDate,rotationPreview}=load('src/store/schoolCalendar.ts')
  const dhs=academicTemplate(model.createFreshData().activeProfileId,'duxburyhs-2026')
