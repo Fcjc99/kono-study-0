@@ -15,7 +15,7 @@ export function classSchedulePrompt(cycle: string[], text?: string, periods?: nu
     (periods ? `This school has ${periods} periods (also called blocks) every day, numbered 1 to ${periods}, so each day has at most ${periods} classes in them; return each period as "Period N". ` : '') +
     (extraRows.length ? `Each day also has ${extraRows.map(r => JSON.stringify(r)).join(' and ')} (its own row, with a class in it); return it with that as its period. ` : '') +
     `A row that isn't numbered but has a class in it every day, like "ASP-Academic Support Period", is a period too: return its classes with that row's heading as the period. Skip lunch, passing time, homeroom or advisory unless it is clearly a class, and skip anything without a day and either a time or a period. ` +
-    `Respond with a single JSON object: {"classes": array of {"name": string (the class title), "code": string or null (course code or section, if shown), ` +
+    `Respond with a single JSON object: {"dayHeadings": array of strings (the schedule's own day column or row headings, copied exactly as printed, like "Monday" or "D1 - Day 1"), "classes": array of {"name": string (the class title), "code": string or null (course code or section, if shown), ` +
     `"days": array of one or more of the day names above, "start": "HH:MM" 24-hour or null, "end": "HH:MM" 24-hour or null, "period": string or null (the period the class meets in, like "Period 1", when shown), ` +
     `"building": string or null, "room": string or null, "teacher": string or null}}. Output ONLY the JSON object, no other text.` +
     (text ? `\n\nSchedule text:\n${text.slice(0, 30000)}` : '')
@@ -38,12 +38,19 @@ export function periodLabel(value: unknown): string {
 const rotationDay = (value: string, cycle: string[]) => { const m = value.match(/^\s*d(?:ay)?\s*-?\s*(\d{1,2})\b/i); return m && cycle.includes('Day ' + Number(m[1])) ? ['Day ' + Number(m[1])] : undefined }
 const words = (value: unknown, max: number) => typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : ''
 
+const ROTATION_ON_WEEKLY = 'This schedule uses rotation days (D1, D2…), not weekdays. Go back to step 1 and pick your school’s rotation option (like “Duxbury Middle School · 14-day rotation”), or set up a school with rotation days.'
+
 /** Checks every field of the AI's answer; anything unusable is dropped rather than guessed. */
 export function parseAiClassSchedule(raw: string, cycle: string[], start: string, end: string): RotatingImportRow[] {
   let obj: unknown
   try { obj = JSON.parse(raw) } catch { aiFail('The AI response was not valid JSON. Try again.') }
   const classes = obj && typeof obj === 'object' ? (obj as Record<string, unknown>).classes : undefined
   if (!Array.isArray(classes)) aiFail('The AI response was not in the expected format. Try again.')
+  // KONO checks the schedule's own headings itself: a rotation-day schedule (D1–D14) can't fill a
+  // Monday–Friday school, even when the AI turned its days into weekdays.
+  const headings = (obj as Record<string, unknown>).dayHeadings
+  const rotationHeadings = Array.isArray(headings) && headings.some(h => typeof h === 'string' && /^\s*d(?:ay)?\s*-?\s*\d{1,2}\b/i.test(h))
+  if (rotationHeadings && !cycle.some(d => /^Day \d/.test(d))) aiFail(ROTATION_ON_WEEKLY)
   const byName = new Map(cycle.map(day => [day.toLowerCase(), day]))
   const rows: RotatingImportRow[] = []
   let rotationDays = 0
@@ -64,7 +71,7 @@ export function parseAiClassSchedule(raw: string, cycle: string[], start: string
     for (const day of days) rows.push({ id: uid('import-block'), include: true, day, label, slot: timed ? code : period, start: timed ? from : '', end: timed ? to : '', dateStart: start, dateEnd: end, kind: 'study', location })
   }
   // A rotation-day schedule (D1–D14) read for a Monday–Friday school: it's the wrong kind of school.
-  if (!rows.length && rotationDays) aiFail('This schedule uses rotation days (D1, D2…), not weekdays. Go back to step 1 and pick your school’s rotation option (like “Duxbury Middle School · 14-day rotation”), or set up a school with rotation days.')
+  if (!rows.length && rotationDays) aiFail(ROTATION_ON_WEEKLY)
   return rows
 }
 

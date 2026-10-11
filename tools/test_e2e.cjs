@@ -1106,6 +1106,24 @@ function proseSchedulePdf(){
  return {name:'my-classes.pdf',mimeType:'application/pdf',buffer:Buffer.from(doc.output('arraybuffer'))}
 }
 
+test('Duxbury’s elementary calendar with grade 6 offers Duxbury Middle School (14-day rotation, its bell times) in one tap, keeping the grade',async({context,page})=>{
+ const cloud=fakeCloud()
+ await page.clock.setFixedTime(new Date('2026-10-10T10:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await addToCalendar(page,'My school schedule')
+ await page.getByRole('searchbox',{name:'Search for your school'}).fill('duxbury public')
+ await page.getByRole('button',{name:'Duxbury Public Schools · 2026–27 · elementary, Monday–Friday'}).click()
+ await page.getByRole('region',{name:'Your grade'}).getByRole('combobox').selectOption('6')
+ const banner=page.getByRole('alert').filter({hasText:'Grade 6 goes to Duxbury Middle School'})
+ await banner.waitFor()
+ assert.ok(await page.getByRole('button',{name:'Next: your classes'}).isDisabled(),'not on the elementary calendar')
+ await banner.getByRole('button',{name:'Switch to Duxbury Middle School'}).click()
+ await page.getByRole('region',{name:'Rotation day'}).getByRole('heading',{name:'Which rotation day is it?'}).waitFor()
+ assert.equal(await page.getByRole('region',{name:'Your grade'}).getByRole('combobox').inputValue(),'6')
+ assert.equal(await page.getByRole('alert').filter({hasText:'goes to Duxbury'}).count(),0)
+})
+
 test('Monday–Friday school: a schedule read by the AI never puts classes on the weekend, and a period set to PM by mistake gets a check AM/PM warning',async({context,page})=>{
  const cloud=fakeCloud()
  await page.clock.setFixedTime(new Date('2026-10-10T10:00:00'))
@@ -1119,7 +1137,7 @@ test('Monday–Friday school: a schedule read by the AI never puts classes on th
  await addToCalendar(page,'My school schedule')
  await page.getByRole('searchbox',{name:'Search for your school'}).fill('duxbury public')
  await page.getByRole('button',{name:'Duxbury Public Schools · 2026–27 · elementary, Monday–Friday'}).click()
- await page.getByRole('region',{name:'Your grade'}).getByRole('combobox').selectOption('6')
+ await page.getByRole('region',{name:'Your grade'}).getByRole('combobox').selectOption('4')
  await page.getByRole('button',{name:'Next: your classes'}).click()
  const {jsPDF}=require('jspdf'),doc=new jsPDF();doc.setFontSize(8);doc.text(['Weekly schedule','P1-Period 1  Chorus 6  PAC'],40,60)
  await page.getByLabel('Upload my schedule').setInputFiles({name:'schedule.pdf',mimeType:'application/pdf',buffer:Buffer.from(doc.output('arraybuffer'))})
@@ -1152,7 +1170,7 @@ test('School setup guide: find the school, answer the grade, save, and land on t
  assert.equal(await page.getByRole('region',{name:'Rotation day'}).count(),0,'a Monday–Friday school has no rotation question')
  const next=page.getByRole('button',{name:'Next: your classes'})
  assert.ok(await next.isDisabled(),'the grade comes first')
- await grade.getByRole('combobox').selectOption('11')
+ await grade.getByRole('combobox').selectOption('3')
  await next.click()
  assert.match(await steps.locator('[aria-current=step]').innerText(),/3 · Your classes/)
  await page.getByLabel('Upload my schedule').waitFor()
@@ -1162,13 +1180,13 @@ test('School setup guide: find the school, answer the grade, save, and land on t
  // Saved: the guide closes and the Planner is showing.
  await page.getByRole('region',{name:'Add to my calendar'}).waitFor({state:'detached'})
  await page.getByRole('button',{name:'＋ Add to my calendar'}).waitFor()
- await waitFor(()=>cloud.users.alice.plan.data.studySeasons?.some(x=>x.school?.name==='Duxbury Public Schools'&&x.school.grade==='11'),'the school reaches the account')
+ await waitFor(()=>cloud.users.alice.plan.data.studySeasons?.some(x=>x.school?.name==='Duxbury Public Schools'&&x.school.grade==='3'),'the school reaches the account')
  // My schedules opens the full editor, with the grade in step 1 and no college fields.
  await plannerMenu(page,'My schedules')
  await page.getByRole('button',{name:/^Rotating school/}).click()
  const card=page.locator('.school-setup .wb-record').filter({hasText:'Duxbury Public Schools 2026–27'})
  await card.getByRole('button',{name:'Edit school calendar / classes'}).click()
- assert.equal(await page.getByLabel('Student grade').inputValue(),'11')
+ assert.equal(await page.getByLabel('Student grade').inputValue(),'3')
  assert.equal(await page.getByLabel('Faculty / program').count(),0,'no college faculty field')
  assert.equal(await page.getByRole('navigation',{name:'School setup sections'}).count(),1,'the full editor has all four sections')
 })
