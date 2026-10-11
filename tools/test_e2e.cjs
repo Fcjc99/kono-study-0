@@ -2454,6 +2454,11 @@ test('Focus finds: when a focus session runs all the way down, KONO (who read be
  await focus.locator(':scope > summary').click()
  await focus.getByLabel('Minutes').fill('25');await focus.getByLabel('Seconds').fill('0')
  await focus.getByRole('button',{name:'Start timer'}).click()
+ // The fake clock runs every animation frame of those 25 minutes: keep the island (which pauses while
+ // it's off screen) out of view, or the test spends minutes drawing it.
+ await focus.evaluate(el=>el.scrollIntoView({block:'start'}))
+ await page.waitForFunction(()=>(document.querySelector('.wb-island')?.getBoundingClientRect().bottom??0)<=0)
+ await page.waitForTimeout(300)
  await page.clock.runFor(25*60*1000+3000)
  await focus.getByText('Session complete. Take a short break.').waitFor()
  await today.getByText(/^KONO found an? .+ while you focused for 25 minutes! It’s in Decorate › Finds\.$/).waitFor()
