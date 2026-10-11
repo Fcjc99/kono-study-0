@@ -129,13 +129,22 @@ export class SupabaseRemote{
   if(error)throw new Error(/relation|does not exist|schema cache/i.test(error.message)?'Reminders aren’t set up on the server yet.':error.message)
  }
  async forgetPushDevice(endpoint:string){await this.client.from('kono_push_subscriptions').delete().eq('endpoint',endpoint)}
- async replacePushQueue(rows:{sendAt:string;title:string;body:string;tag:string}[]){
+ /** Each device has its own queue (migration 0013), so a kid's iPad and a parent's phone on different
+  * plans each get their own plan's reminders. Before 0013 is run, it's one queue for the account. */
+ async replacePushQueue(rows:{sendAt:string;title:string;body:string;tag:string}[],endpoint?:string){
   const {data:{session}}=await this.client.auth.getSession()
   if(!session?.user)return
-  const cleared=await this.client.from('kono_push_queue').delete().eq('user_id',session.user.id)
+  const queue=()=>this.client.from('kono_push_queue')
+  let device=endpoint
+  if(device){
+   const mine=await queue().delete().eq('user_id',session.user.id).eq('endpoint',device)
+   if(mine.error){if(/endpoint|column|schema cache/i.test(mine.error.message))device=undefined;else throw new Error(mine.error.message)}
+  }
+  // Without a device (or before 0013): the account's whole queue; with one, also any account-wide leftovers.
+  const cleared=device?await queue().delete().eq('user_id',session.user.id).is('endpoint',null):await queue().delete().eq('user_id',session.user.id)
   if(cleared.error)throw new Error(cleared.error.message)
   if(!rows.length)return
-  const {error}=await this.client.from('kono_push_queue').insert(rows.map(r=>({send_at:r.sendAt,title:r.title,body:r.body,tag:r.tag})))
+  const {error}=await queue().insert(rows.map(r=>({send_at:r.sendAt,title:r.title,body:r.body,tag:r.tag,...(device?{endpoint:device}:{})})))
   if(error)throw new Error(error.message)
  }
  /** Private subscribe links (migration 0009): the token for one plan, made on request. */

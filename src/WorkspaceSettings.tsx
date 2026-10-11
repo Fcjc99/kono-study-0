@@ -25,7 +25,7 @@ export function QuickFamilyAdd({kids,time:startAt,onCancel,onSave}:{kids:Kid[];t
   try{await onSave({title:title.trim(),kind,kidId:kidId||undefined,time:time||undefined,endTime:endTime||undefined})}catch(e){setError(e instanceof Error?e.message:'Could not save.')}finally{setBusy(false)}
  }
  return <form onSubmit={submit} className="quick-family-add"><fieldset disabled={busy}>
-  <label>Kid<select autoFocus value={kidId} onChange={e=>setKidId(e.target.value)}><option value="">Whole family</option>{kids.map(k=><option key={k.id} value={k.id}>{(k.emoji?k.emoji+' ':'')+k.name}</option>)}</select></label>
+  <label>Who’s it for?<select autoFocus value={kidId} onChange={e=>setKidId(e.target.value)}><option value="">Me / whole family</option>{kids.map(k=><option key={k.id} value={k.id}>{(k.emoji?k.emoji+' ':'')+k.name}</option>)}</select></label>
   <label>Type<select value={kind} onChange={e=>setKind(e.target.value as CalendarEventKind)}>{QUICK_KIND_OPTIONS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
   <label>What is it?<input required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Soccer practice, Dentist, Work shift…"/></label>
   <label>Start time (optional)<input type="time" value={time} onChange={e=>setTime(e.target.value)}/></label>

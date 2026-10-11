@@ -59,7 +59,7 @@ try{
  `)
  for(const file of fs.readdirSync(path.join(root,'supabase','migrations')).filter(f=>f.endsWith('.sql')).sort())psql(fs.readFileSync(path.join(root,'supabase','migrations',file),'utf8'))
  // People run the newest migration by hand in the Supabase SQL editor, sometimes twice: it must be re-runnable.
- for(const again of ['0004_kono_backups_and_support.sql','0005_kono_nightly_backup_support_setup_errors.sql','0006_kono_feedback.sql','0007_kono_ai_usage.sql','0008_kono_push_reminders.sql','0009_kono_calendar_subscribe.sql','0012_kono_voice_usage.sql'])psql(fs.readFileSync(path.join(root,'supabase','migrations',again),'utf8'))
+ for(const again of ['0004_kono_backups_and_support.sql','0005_kono_nightly_backup_support_setup_errors.sql','0006_kono_feedback.sql','0007_kono_ai_usage.sql','0008_kono_push_reminders.sql','0009_kono_calendar_subscribe.sql','0012_kono_voice_usage.sql','0013_kono_push_per_device.sql'])psql(fs.readFileSync(path.join(root,'supabase','migrations',again),'utf8'))
 
  test('a signed-in person saves their plan and nobody else can read it',()=>{
   assert.equal(save(alice,0,'Alice').revision,1)
@@ -207,6 +207,12 @@ try{
   assert.equal(JSON.parse(as(null,`select public.kono_push_claim('${secret}');`)).length,0,'nothing is sent twice')
   as(null,`select public.kono_push_forget('${secret}','https://push.example/bob');`)
   assert.equal(as(bob,'select count(*) from public.kono_push_subscriptions;'),'0')
+  // Per device (migration 0013): a reminder for one of the person's devices goes only to that device.
+  as(bob,"insert into public.kono_push_subscriptions(endpoint,p256dh,auth) values ('https://push.example/bob-phone','k','a'),('https://push.example/kid-ipad','k','a');")
+  as(bob,"insert into public.kono_push_queue(send_at,title,endpoint) values (now()-interval '1 minute','Kid: Day 3 tomorrow','https://push.example/kid-ipad');")
+  fails(bob,"insert into public.kono_push_queue(send_at,title,endpoint) values (now(),'Not mine','https://push.example/alice');",/row-level security/)
+  const perDevice=JSON.parse(as(null,`select public.kono_push_claim('${secret}');`))
+  assert.deepEqual(perDevice.map(c=>c.endpoint),['https://push.example/kid-ipad'],'only the kid’s iPad gets the kid’s reminder')
   psql(`insert into public.kono_push_queue(user_id,send_at,title) select '${alice}',now()+interval '1 day','x' from generate_series(1,300);`)
   fails(alice,"insert into public.kono_push_queue(send_at,title) values (now()+interval '1 day','one too many');",/Too many reminders/)
  })

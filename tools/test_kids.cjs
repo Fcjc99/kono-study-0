@@ -93,13 +93,15 @@ test('a stale kidId (the kid was since deleted) clears to unassigned instead of 
  assert.equal(normalized.tasks.find(t=>t.id==='t1').kidId,undefined)
 })
 
-test('a kidId belonging to another profile clears to unassigned rather than leaking across profiles',()=>{
+test('a kid tag works across the parent’s own plans (the family plan can move), but clears to unassigned in a kid’s own plan',()=>{
  const base=model.normalizeData(model.createFreshData())
  const other=model.uid('profile')
  const withOther={...base,profiles:[...base.profiles,{id:other,name:'Other plan',label:'Other',kind:'custom',start:base.profiles[0].start,end:base.profiles[0].end}],kids:[...base.kids,{id:'kid-1',profileId:other,name:'Jack',color:'#7ca982'}]}
- const withTask={...withOther,tasks:[...withOther.tasks,{id:'t1',profileId:base.activeProfileId,subjectId:'',kidId:'kid-1',title:'Reading log',due:'2026-09-21',done:false,notes:''}]}
+ const kidPlan={id:model.uid('profile'),name:'Jack',label:'Jack’s plan',kind:'school',start:base.profiles[0].start,end:base.profiles[0].end,kidId:'kid-1'}
+ const withTask={...withOther,profiles:[...withOther.profiles,kidPlan],tasks:[...withOther.tasks,{id:'t1',profileId:base.activeProfileId,subjectId:'',kidId:'kid-1',title:'Reading log',due:'2026-09-21',done:false,notes:''},{id:'t2',profileId:kidPlan.id,subjectId:'',kidId:'kid-1',title:'Spelling',due:'2026-09-21',done:false,notes:''}]}
  const normalized=model.normalizeData(withTask)
- assert.equal(normalized.tasks.find(t=>t.id==='t1').kidId,undefined)
+ assert.equal(normalized.tasks.find(t=>t.id==='t1').kidId,'kid-1','another of the parent’s plans keeps the tag')
+ assert.equal(normalized.tasks.find(t=>t.id==='t2').kidId,undefined,'a kid’s own plan has no kid tags')
 })
 
 test('a recurring class block can carry a kidId the same way it carries a subjectId',()=>{
@@ -296,6 +298,41 @@ test('Family plans: a kid’s own plan is made once, keeps the kid’s name and 
  assert.equal(saved.settings.parentPin,'a'.repeat(64))
  assert.equal(model.normalizeData(JSON.parse(JSON.stringify({...data,settings:{...data.settings,parentPin:'1234'}}))).settings.parentPin,undefined,'a plain PIN is never kept')
  assert.equal(fam.validPin('2468'),true);assert.equal(fam.validPin('12'),false);assert.equal(fam.validPin('12ab'),false)
+})
+
+test('The family plan shows each kid’s own plan as theirs, saves “who it’s for” into a kid’s plan, can move, and Kids today sums each kid up',()=>{
+ const fam=load('src/store/familyPlans.ts'),glance=load('src/store/kidGlance.ts')
+ let {data,id:emma}=withKid(model.createFreshData(),'Emma','#6a8fc7','🦄')
+ ;({data}=withKid(data,'Leo','#e08a4f'))
+ const parent=data.activeProfileId,leo=data.kids.find(k=>k.name==='Leo').id
+ const made=fam.addKidPlan(data,data.kids.find(k=>k.id===emma));data=made.data
+ const today='2026-10-13'
+ data={...data,
+  tasks:[...data.tasks,{id:'t-emma',profileId:made.id,subjectId:'',title:'Spelling list',due:'2026-10-14',done:false,notes:''},{id:'t-late',profileId:made.id,subjectId:'',title:'Reading log',due:'2026-10-10',done:false,notes:''},{id:'t-leo',profileId:parent,subjectId:'',kidId:leo,title:'Science poster',due:'2026-10-14',done:false,notes:''}],
+  exams:[...data.exams,{id:'x-emma',profileId:made.id,subjectId:'',title:'Math test',due:'2026-10-15',done:false,notes:''}]}
+ const view=fam.familyView(data,parent)
+ const borrowed=view.data.tasks.find(t=>t.id==='t-emma')
+ assert.equal(borrowed.profileId,parent);assert.equal(borrowed.kidId,emma,'shown as Emma’s')
+ assert.equal(view.home.get('t-emma'),made.id,'and remembered as living in her plan')
+ assert.equal(data.tasks.find(t=>t.id==='t-emma').profileId,made.id,'the plan itself is unchanged')
+ assert.equal(fam.familyView(data,made.id).home.size,0,'a kid’s plan doesn’t borrow anything')
+ // Who's it for: Emma (with a plan) gets it in her plan; Leo (no plan) gets a tag; "Me" brings it back.
+ const event={id:'e1',profileId:parent,subjectId:'',date:today,title:'Dentist',kind:'appointment',notes:''}
+ const forEmma=fam.moveToWhose(data,event,parent,emma);assert.equal(forEmma.profileId,made.id);assert.equal(forEmma.kidId,undefined)
+ const forLeo=fam.moveToWhose(data,event,parent,leo);assert.equal(forLeo.profileId,parent);assert.equal(forLeo.kidId,leo)
+ assert.equal(fam.moveToWhose(data,forEmma,parent,undefined).profileId,parent)
+ // Kids today.
+ const rows=glance.kidGlance(data,parent,today),e=rows.find(r=>r.kid.id===emma),l=rows.find(r=>r.kid.id===leo)
+ assert.deepEqual(e.dueTonight,['Spelling list']);assert.equal(e.late,1);assert.deepEqual(e.tests.map(t=>t.title),['Math test']);assert.equal(e.planId,made.id)
+ assert.deepEqual(l.dueTonight,['Science poster']);assert.equal(l.planId,undefined)
+ // The family plan can move to another of the parent's plans; tags go with the kids.
+ const second={id:model.uid('profile'),name:'Mom',label:'Work and home',kind:'custom',start:data.profiles[0].start,end:data.profiles[0].end}
+ data={...data,profiles:[...data.profiles,second]}
+ assert.equal(fam.familyPlanId(data),parent)
+ const moved=model.normalizeData(JSON.parse(JSON.stringify(fam.makeFamilyPlan(data,second.id))))
+ assert.equal(fam.familyPlanId(moved),second.id)
+ assert.equal(moved.tasks.find(t=>t.id==='t-leo').kidId,leo,'Leo’s tag is kept')
+ assert.throws(()=>fam.makeFamilyPlan(data,made.id),/own plans/)
 })
 
 let passed=0

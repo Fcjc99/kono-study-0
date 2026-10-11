@@ -11,7 +11,7 @@ const what=(b:BlockNow)=>(b.slot&&/^(Period|Block) /.test(b.slot)?b.slot.replace
 /** Home › Today at a rotation school: the rotation day, the block going on now or next (with a
  * countdown), and "Not Day 7?" to fix the day if the school's count is different. Parents see one line
  * for each kid's school. Updates every half minute. */
-export default function RotationToday({data,save,today,kids,onOpenClass,family=false}:{data:AppData;save:PlannerRepository['update'];today:string;kids:Kid[];onOpenClass?:(label:string)=>void;family?:boolean}){
+export default function RotationToday({data,save,today,kids,onOpenClass,family=false,onCalendar}:{data:AppData;save:PlannerRepository['update'];today:string;kids:Kid[];onOpenClass?:(label:string)=>void;family?:boolean;onCalendar?:()=>void}){
  const [now,setNow]=useState(()=>new Date()),[fixing,setFixing]=useState(''),[picked,setPicked]=useState(''),[error,setError]=useState('')
  useEffect(()=>{const t=window.setInterval(()=>setNow(new Date()),30000);return()=>window.clearInterval(t)},[])
  // A parent's plan also shows each kid's school day from the kid's own plan.
@@ -38,5 +38,6 @@ export default function RotationToday({data,save,today,kids,onOpenClass,family=f
     :<button type="button" className="rotation-today-wrong" onClick={()=>{setFixing(r.season.id);setPicked('')}}>Not {r.cycleDay}?</button>)}
   </div>})}
   {error&&<p role="alert">{error}</p>}
+  {onCalendar&&<button type="button" className="link-button rotation-today-calendar" onClick={onCalendar}>📅 See the rotation days in Google or Apple Calendar</button>}
  </div>
 }

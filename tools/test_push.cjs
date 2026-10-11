@@ -133,7 +133,22 @@ console.log('PASS reminder planner: work shifts respected, morning summary, exam
  assert.equal(family.title,'Family week ahead');assert.equal(new Date(family.sendAt).getHours(),18);assert.equal(new Date(family.sendAt).getDay(),0)
  assert.equal(family.body,'🦊 Maya: 1 due · Theo: 2 due · Everyone: 1 due · Tests: Spelling test (Thu)')
  assert.equal(buildReminders(plan,sunday).filter(r=>r.tag.startsWith('family-week-')).length,1,'once a week')
- console.log('PASS the night before: still-open homework due tomorrow at 7:05 PM; parents get the family week ahead on Sunday at 6 PM')
+ // Maya has a plan of her own: the parent hears about her test the evening before, and her week counts.
+ const mayaPlan={id:'p-maya',name:'Maya',label:'Maya’s plan',kind:'school',start:plan.profiles[0].start,end:plan.profiles[0].end,kidId:'k1'}
+ plan.profiles.push(mayaPlan)
+ plan.exams.push({id:'x2',profileId:'p-maya',subjectId:'',title:'Fractions quiz',due:'2026-10-07',done:false,notes:''})
+ plan.tasks.push({id:'h5',profileId:'p-maya',subjectId:'',title:'Reading log',due:'2026-10-07',done:false,notes:''})
+ const withKidPlan=buildReminders(plan,sunday)
+ const heads=withKidPlan.find(r=>r.tag==='kid-test-k1-2026-10-06')
+ assert.equal(heads.title,'🦊 Maya has a test tomorrow');assert.equal(heads.body,'Fractions quiz');assert.equal(new Date(heads.sendAt).getHours()*60+new Date(heads.sendAt).getMinutes(),19*60+15)
+ assert.match(withKidPlan.find(r=>r.tag==='family-week-2026-10-04').body,/🦊 Maya: 3 due/)
+ assert.ok(!withKidPlan.some(r=>r.title==='Due tomorrow: Reading log'),'the parent’s phone doesn’t get the kid’s homework reminders')
+ // Maya's iPad, on her plan: her own reminders, nothing for the family.
+ const ipad=buildReminders({...plan,activeProfileId:'p-maya'},sunday)
+ assert.ok(ipad.some(r=>r.tag==='exam-2026-10-06'&&r.title==='Tomorrow: Fractions quiz'),'her test, the night before')
+ assert.ok(ipad.some(r=>r.title==='Due tomorrow: Reading log'))
+ assert.ok(!ipad.some(r=>/^family-|^kid-test-/.test(r.tag)),'no family reminders in a kid’s plan')
+ console.log('PASS the night before: still-open homework due tomorrow at 7:05 PM; parents get the family week ahead on Sunday at 6 PM, and a heads-up for a kid’s test; a kid’s device gets only the kid’s plan')
 }
 
 ;(async()=>{
