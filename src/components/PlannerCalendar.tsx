@@ -18,7 +18,7 @@ const WeekGrid=lazyPanel(()=>import('./WeekGrid'))
 const QuickFamilyAdd=lazyPanel<Parameters<typeof Screens.QuickFamilyAdd>[0]>(()=>import('../WorkspaceSettings').then(m=>({default:m.QuickFamilyAdd})))
 
 /** Planner's calendar (month, week and day views), split from Workspace so it loads with the Planner page. */
-export default function PlannerCalendar({data,tasks,date,selectDate,create,render,renderClass,reschedule,planAt,stretchTo,edit,navigate,parentMode,quickAddEvent,personShown,peopleFilter}:{data:AppData;tasks:Task[];date:string;selectDate:(date:string)=>void;create:(key:Collection,date?:string,subjectId?:string,seed?:Partial<Entry>)=>void;render:(key:Collection,entry:Entry,compact?:boolean)=>ReactNode;renderClass:(item:ClassOccurrence)=>ReactNode;reschedule:(key:Collection,entry:Entry,date:string)=>void;planAt:(key:Collection,entry:Entry,day:string,time:string)=>void;stretchTo:(key:Collection,entry:Entry,end:string)=>void;edit:(key:Collection,entry:Entry)=>void;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>;navigate:(page:Page)=>void;parentMode:boolean;quickAddEvent:(date:string,payload:{title:string;kind:CalendarEventKind;kidId?:string;time?:string;endTime?:string})=>Promise<boolean>;personShown:(kidId?:string)=>boolean;peopleFilter:ReactNode}){
+export default function PlannerCalendar({data,tasks,date,selectDate,create,render,renderClass,reschedule,planAt,stretchTo,edit,navigate,parentMode,quickAddEvent,personShown,peopleFilter}:{data:AppData;tasks:Task[];date:string;selectDate:(date:string)=>void;create:(key:Collection,date?:string,subjectId?:string,seed?:Partial<Entry>)=>void;render:(key:Collection,entry:Entry,compact?:boolean)=>ReactNode;renderClass:(item:ClassOccurrence)=>ReactNode;reschedule:(key:Collection,entry:Entry,date:string)=>void;planAt:(key:Collection,entry:Entry,day:string,time:string)=>void;stretchTo:(key:Collection,entry:Entry,end:string)=>void;edit:(key:Collection,entry:Entry)=>void;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>;navigate:(page:Page)=>void;parentMode:boolean;quickAddEvent:(date:string,payload:{title:string;kind:CalendarEventKind;kidIds:string[];time?:string;endTime?:string})=>Promise<boolean>;personShown:(x?:unknown)=>boolean;peopleFilter:ReactNode}){
  // Week by default (three days at a time on an iPhone); Month and Agenda are in the picker.
  const [mode,setMode]=useState('week'),[month,setMonth]=useState(()=>localDate().slice(0,7))
  const [dropTarget,setDropTarget]=useState('')
@@ -39,10 +39,10 @@ export default function PlannerCalendar({data,tasks,date,selectDate,create,rende
  const kidOf=(kidId?:string)=>kidId?kids.find(k=>k.id===kidId):undefined
  const scheduleClasses=(day:string)=>classOccurrences(data,day).filter(c=>shown(classSource(c))&&kidVisible(classKid(c)))
  const entries=[
-  ...tasks.filter(t=>kidVisible(t.kidId)).map(t=>({key:'tasks' as Collection,entry:t as unknown as Entry,date:t.due})),
-  ...own(data,'exams').filter(e=>kidVisible(e.kidId as string|undefined)).map(e=>({key:'exams' as Collection,entry:e,date:String(e.due)})),
+  ...tasks.filter(t=>kidVisible(t)).map(t=>({key:'tasks' as Collection,entry:t as unknown as Entry,date:t.due})),
+  ...own(data,'exams').filter(e=>kidVisible(e)).map(e=>({key:'exams' as Collection,entry:e,date:String(e.due)})),
   ...own(data,'notes').filter(n=>entryDate(n)).map(n=>({key:'notes' as Collection,entry:n,date:entryDate(n)})),
-  ...own(data,'calendarEvents').filter(e=>kidVisible(e.kidId as string|undefined)).map(e=>({key:'calendarEvents' as Collection,entry:e,date:String(e.date)})),
+  ...own(data,'calendarEvents').filter(e=>kidVisible(e)).map(e=>({key:'calendarEvents' as Collection,entry:e,date:String(e.date)})),
  ].filter(e=>shown(entrySource(e.key,e.entry)))
  const selectedEntries=entries.filter(entry=>entry.date===date)
  const selectedClasses=scheduleClasses(date)

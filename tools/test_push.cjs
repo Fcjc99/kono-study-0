@@ -148,6 +148,10 @@ console.log('PASS reminder planner: work shifts respected, morning summary, exam
  assert.ok(ipad.some(r=>r.tag==='exam-2026-10-06'&&r.title==='Tomorrow: Fractions quiz'),'her test, the night before')
  assert.ok(ipad.some(r=>r.title==='Due tomorrow: Reading log'))
  assert.ok(!ipad.some(r=>/^family-|^kid-test-/.test(r.tag)),'no family reminders in a kid’s plan')
+ // A test the parent tagged for Maya in the family plan reaches her iPad too.
+ plan.exams.push({id:'x3',profileId:pid,subjectId:'',kidId:'k1',title:'Spelling bee',due:'2026-10-07',done:false,notes:''})
+ const ipad2=buildReminders({...plan,activeProfileId:'p-maya'},sunday)
+ assert.equal(ipad2.find(r=>r.tag==='exam-2026-10-06').title,'2 exams or tests tomorrow')
  console.log('PASS the night before: still-open homework due tomorrow at 7:05 PM; parents get the family week ahead on Sunday at 6 PM, and a heads-up for a kid’s test; a kid’s device gets only the kid’s plan')
 }
 

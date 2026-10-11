@@ -30,4 +30,7 @@ export const countdown=(date:string,done=false,from=localDate())=>{if(done)retur
 export const eventKind=(entry:Entry)=>String(entry.kind??'').toLowerCase()
 export const entryDate=(entry:Entry)=>String(entry.due??entry.date??'')
 export const isAssignmentKind=(entry:Entry)=>['homework','assignment','assignments'].includes(eventKind(entry))
+/** Only schoolwork is something to finish: assignments, exams and tests. An appointment, practice, work
+ * shift or other event just happens on its day; it has no Complete button and never piles up as late. */
+export const tracksDone=(key:Collection,entry:Entry)=>key==='tasks'||key==='exams'||(key==='calendarEvents'&&['exam','test','quiz','assignment','homework','project'].includes(eventKind(entry)))
 export const isImportantEntry=(key:Collection,entry:Entry)=>key==='exams'||(key==='notes'&&['exam','project','test','quiz'].includes(eventKind(entry)))||(key==='calendarEvents'&&['exam','test','quiz','project','assignment'].includes(eventKind(entry)))

@@ -2690,7 +2690,7 @@ test('Family plans: a parent makes a kid’s own plan from Kids, the kid’s pla
  assert.match(cloud.users.alice.plan.data.settings.parentPin,/^[0-9a-f]{64}$/,'only the PIN’s hash is saved')
 })
 
-test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as hers, names tap on and off, Kids today sums each kid up, an event for Emma lands in her plan, “Who’s using KONO?” opens a shared device on the right plan, plans can be renamed and the family plan can be another plan',async({context,page})=>{
+test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as hers, names tap on and off, Kids today sums each kid up, an event for Emma lands in her plan, “Who’s using KONO?” opens a shared device on the right plan, plans can be renamed and the family plan can be another plan; tapping a name shows only theirs; an event can be for two kids and shows in each kid’s plan',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.setFixedTime(new Date('2026-10-13T08:00:00')) // a Tuesday
  d.profiles.push({id:'plan-emma',name:'Emma',label:'Emma’s plan',kind:'school',start:'2026-09-01',end:'2027-06-30',kidId:'kid-emma'})
@@ -2706,24 +2706,38 @@ test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as
  // Home's day: Emma's homework (from her plan), Leo's and mine; names tap off and on.
  const day=page.getByRole('region',{name:'Your day'}),people=day.getByRole('group',{name:'Whose things to show'}),also=day.locator('.tomorrow-extra-list').filter({hasText:'Also today'})
  for(const title of ['Spelling list','Science poster','Pay school fees'])await also.getByText(title,{exact:true}).waitFor()
+ // Tap a name: only theirs. Tap it again: everyone. "Me" goes by the plan's name (Alice).
  await people.getByRole('button',{name:/Emma/}).click()
- await also.getByText('Spelling list',{exact:true}).waitFor({state:'detached'})
- assert.equal(await people.getByRole('button',{name:/Emma/}).getAttribute('aria-pressed'),'false')
- await people.getByRole('button',{name:'Me'}).click()
  await also.getByText('Pay school fees',{exact:true}).waitFor({state:'detached'})
- await also.getByText('Science poster',{exact:true}).waitFor()
- await people.getByRole('button',{name:/Emma/}).click();await people.getByRole('button',{name:'Me'}).click()
+ await also.getByText('Science poster',{exact:true}).waitFor({state:'detached'})
  await also.getByText('Spelling list',{exact:true}).waitFor()
+ assert.equal(await people.getByRole('button',{name:'Alice'}).getAttribute('aria-pressed'),'false')
+ await people.getByRole('button',{name:'Alice'}).click()
+ await also.getByText('Spelling list',{exact:true}).waitFor({state:'detached'})
+ await also.getByText('Pay school fees',{exact:true}).waitFor()
+ await people.getByRole('button',{name:'Alice'}).click()
+ await also.getByText('Spelling list',{exact:true}).waitFor()
+ assert.equal(await people.getByRole('button',{name:'Everyone'}).getAttribute('aria-pressed'),'true')
+ // Past events (the fixture's soccer game and dentist) aren't a backlog of things to complete.
+ assert.equal(await day.locator('.today-card-reminders').count(),0,'no overdue events')
  // Planner: the same names; an event for Emma goes into her plan.
  await go(page,'Planner')
  await page.getByRole('group',{name:'Whose things to show'}).waitFor()
  await page.getByRole('button',{name:'1 day'}).click()
  await page.getByRole('button',{name:/^Add at 4:00 PM on/}).click()
  const add=page.getByRole('dialog',{name:/^Add for/})
- await add.getByLabel('Who’s it for?').selectOption({label:'🦄 Emma'})
+ const forWho=add.getByRole('group',{name:'Who’s it for?'})
+ assert.equal(await forWho.getByRole('checkbox',{name:'🦄 Emma'}).isChecked(),true)
  await add.getByLabel('What is it?').fill('Dentist')
  await add.getByRole('button',{name:'Add'}).click()
  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.some(e=>e.title==='Dentist'&&e.profileId==='plan-emma'&&!e.kidId),'Emma’s event never landed in her plan')
+ // Two people on one event: it stays on the family calendar, tagged to both.
+ await page.getByRole('button',{name:/^Add at 6:00 PM on/}).click()
+ await forWho.getByRole('checkbox',{name:'Leo'}).check()
+ await add.getByLabel('What is it?').fill('Movie night')
+ await add.getByRole('button',{name:'Add'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.some(e=>e.title==='Movie night'&&e.profileId===pid&&JSON.stringify(e.kidIds)==='["kid-emma","kid-leo"]'),'Movie night never got both names')
+ assert.match(await page.locator('.wb-family-event').filter({hasText:'Movie night'}).first().innerText(),/Emma & Leo/i)
  // Who's using KONO: turned on for this device, then asked when KONO opens.
  await page.getByRole('button',{name:'Whose plan?'}).first().click()
  const sheet=page.getByRole('dialog',{name:'Whose plan?'})
@@ -2745,6 +2759,8 @@ test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as
  await who.getByRole('button',{name:/^Em\b/}).click()
  await fresh.getByRole('button',{name:'Whose plan?'}).first().waitFor()
  await fresh.locator('.tomorrow-extra-list').getByText('Spelling list',{exact:true}).waitFor()
+ // Emma's plan also shows what the family plan has for her: Movie night (with Leo).
+ await fresh.getByRole('region',{name:'Your day'}).getByText('Movie night').first().waitFor()
  assert.equal(await fresh.getByRole('region',{name:'Kids today'}).count(),0,'Emma’s plan has no parent tools')
  // The family plan can be another of my plans: the kids go with it.
  await page.getByRole('button',{name:'Whose plan?'}).first().click()
@@ -2752,6 +2768,26 @@ test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as
  await sheet.getByRole('group',{name:/Family plan/}).getByLabel('⭐ Work').check()
  await waitFor(()=>cloud.users.alice.plan.data.kids.every(k=>k.profileId==='plan-work'),'the kids never moved to the Work plan')
  assert.match(await sheet.getByRole('button',{name:/^Work/}).innerText(),/Family plan/)
+})
+
+test('Plans & account: deleting the family plan keeps the kids (they move to the other plan), and Start over clears everything after typing START OVER',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ d.profiles.push({id:'plan-work',name:'Alice',label:'Work',kind:'custom',start:'2026-09-01',end:'2027-06-30'})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Settings')
+ await page.getByRole('navigation',{name:'Settings sections'}).getByRole('button',{name:'Plans & account'}).click()
+ await page.locator('.profile-delete-list .wb-toolbar').filter({hasText:'My study plan'}).getByRole('button',{name:'Delete plan'}).click()
+ await page.getByRole('dialog',{name:'Confirm change'}).getByRole('button',{name:'Confirm'}).click()
+ await waitFor(()=>{const p=cloud.users.alice.plan.data;return !p.profiles.some(x=>x.id===pid)&&p.kids.length===2&&p.kids.every(k=>k.profileId==='plan-work')},'deleting the family plan never reached the account, or the kids were lost')
+ if(!await page.getByText('Start over (delete everything)').count()){await go(page,'Settings');await page.getByRole('navigation',{name:'Settings sections'}).getByRole('button',{name:'Plans & account'}).click()}
+ await page.getByText('Start over (delete everything)').click()
+ const start=page.locator('form.start-over')
+ const button=start.getByRole('button',{name:'Delete everything and start over'})
+ assert.equal(await button.isDisabled(),true,'not until START OVER is typed')
+ await start.getByLabel('Type START OVER to confirm').fill('start over')
+ await button.click()
+ await waitFor(()=>{const p=cloud.users.alice.plan.data;return p.profiles.length===1&&p.kids.length===0&&p.tasks.length===0&&p.profiles[0].label==='My study plan'},'Start over never reached the account')
 })
 
 test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone a swipe goes to the next days and the whole week scrolls sideways',async({context,page})=>{

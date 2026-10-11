@@ -17,15 +17,15 @@ const QUICK_KIND_OPTIONS=[['sports','Sports'],['lesson','Lesson'],['appointment'
 // The fast path parent mode promises: kid, type, a short title and an optional time -- no subject
 // picker, notes, voice input or multi-date repeat. Saves straight to calendarEvents (see
 // quickAddFamilyEvent) rather than opening the full EntryEditor.
-export function QuickFamilyAdd({kids,time:startAt,onCancel,onSave}:{kids:Kid[];time?:string;onCancel:()=>void;onSave:(payload:{title:string;kind:CalendarEventKind;kidId?:string;time?:string;endTime?:string})=>Promise<void>}){
- const [title,setTitle]=useState(''),[kidId,setKidId]=useState(kids[0]?.id??''),[kind,setKind]=useState<CalendarEventKind>('appointment'),[time,setTime]=useState(startAt??''),[endTime,setEndTime]=useState(startAt?String(Math.min(23,Number(startAt.slice(0,2))+1)).padStart(2,'0')+startAt.slice(2):''),[busy,setBusy]=useState(false),[error,setError]=useState('')
+export function QuickFamilyAdd({kids,time:startAt,onCancel,onSave}:{kids:Kid[];time?:string;onCancel:()=>void;onSave:(payload:{title:string;kind:CalendarEventKind;kidIds:string[];time?:string;endTime?:string})=>Promise<void>}){
+ const [title,setTitle]=useState(''),[kidIds,setKidIds]=useState<string[]>(kids[0]?[kids[0].id]:[]),[kind,setKind]=useState<CalendarEventKind>('appointment'),[time,setTime]=useState(startAt??''),[endTime,setEndTime]=useState(startAt?String(Math.min(23,Number(startAt.slice(0,2))+1)).padStart(2,'0')+startAt.slice(2):''),[busy,setBusy]=useState(false),[error,setError]=useState('')
  const submit=async(e:FormEvent)=>{
   e.preventDefault();if(busy||!title.trim())return
   setBusy(true);setError('')
-  try{await onSave({title:title.trim(),kind,kidId:kidId||undefined,time:time||undefined,endTime:endTime||undefined})}catch(e){setError(e instanceof Error?e.message:'Could not save.')}finally{setBusy(false)}
+  try{await onSave({title:title.trim(),kind,kidIds,time:time||undefined,endTime:endTime||undefined})}catch(e){setError(e instanceof Error?e.message:'Could not save.')}finally{setBusy(false)}
  }
  return <form onSubmit={submit} className="quick-family-add"><fieldset disabled={busy}>
-  <label>Who’s it for?<select autoFocus value={kidId} onChange={e=>setKidId(e.target.value)}><option value="">Me / whole family</option>{kids.map(k=><option key={k.id} value={k.id}>{(k.emoji?k.emoji+' ':'')+k.name}</option>)}</select></label>
+  <fieldset className="whose-pick"><legend>Who’s it for?</legend><label><input type="checkbox" checked={!kidIds.length} onChange={()=>setKidIds([])}/> Me / whole family</label>{kids.map(k=><label key={k.id}><input type="checkbox" checked={kidIds.includes(k.id)} onChange={()=>setKidIds(ids=>ids.includes(k.id)?ids.filter(x=>x!==k.id):[...ids,k.id])}/> {(k.emoji?k.emoji+' ':'')+k.name}</label>)}</fieldset>
   <label>Type<select value={kind} onChange={e=>setKind(e.target.value as CalendarEventKind)}>{QUICK_KIND_OPTIONS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
   <label>What is it?<input required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Soccer practice, Dentist, Work shift…"/></label>
   <label>Start time (optional)<input type="time" value={time} onChange={e=>setTime(e.target.value)}/></label>

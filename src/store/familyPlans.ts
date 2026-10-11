@@ -1,4 +1,4 @@
-import {uid,localDate,type AppData,type Kid,type Profile} from './model'
+import {uid,localDate,peopleOf,type AppData,type Kid,type Profile} from './model'
 import {createSanctuaryProgress} from '../game/progression/progressionEngine'
 
 /** Family plans: in a parent's account, each kid can have their own plan (their school, homework and
@@ -46,12 +46,16 @@ export function familyView(data:AppData,parentProfileId:string):{data:AppData;ho
  return {data:{...data,tasks:borrow(data.tasks),exams:borrow(data.exams),calendarEvents:borrow(data.calendarEvents),studySeasons:borrow(data.studySeasons)},home}
 }
 
-/** Who an item is for, from the family plan: a kid with a plan of their own gets it in their plan (so it's
- * on their device); anyone else is a tag in the family plan. A subject from the other plan doesn't come along. */
-export function moveToWhose<T extends {profileId:string;kidId?:string;subjectId?:string}>(data:Pick<AppData,'profiles'|'subjects'>,item:T,familyId:string,kidId:string|undefined):T{
- const plan=kidId?planForKid(data,kidId):undefined,profileId=plan?.id??familyId
+/** Who an item is for, from the family plan. One kid with a plan of their own gets it in their plan (so
+ * it's on their device); several people, or a kid without a plan, are tags in the family plan (each
+ * kid's own plan shows what's tagged to them there). A subject from the other plan doesn't come along. */
+export function moveToWhose<T extends {profileId:string;kidId?:string;kidIds?:string[];subjectId?:string}>(data:Pick<AppData,'profiles'|'subjects'>,item:T,familyId:string,who:string|string[]|undefined):T{
+ const ids=[...new Set(Array.isArray(who)?who:who?[who]:[])]
+ const plan=ids.length===1?planForKid(data,ids[0]):undefined,profileId=plan?.id??familyId
  const subjectId=item.subjectId&&data.subjects.some(s=>s.id===item.subjectId&&s.profileId===profileId)?item.subjectId:''
- return {...item,profileId,kidId:plan?undefined:kidId,...(item.subjectId===undefined?{}:{subjectId})}
+ const next={...item,profileId,kidId:plan?undefined:ids[0],kidIds:!plan&&ids.length>1?ids:undefined,...(item.subjectId===undefined?{}:{subjectId})}
+ if(!next.kidIds)delete next.kidIds
+ return next
 }
 
 /** Renaming a plan: its name (the plan) and whose it is. A kid's plan renames the kid too (their tag in
@@ -64,4 +68,17 @@ export function renamePlan(data:AppData,profileId:string,change:{label:string;na
  const nextLabel=label||(kid?name+'’s plan':plan.label)
  const followLabel=kid&&plan.label===kid.name+'’s plan'&&label===plan.label?name+'’s plan':nextLabel
  return {...data,profiles:data.profiles.map(p=>p.id===profileId?{...p,name,label:followLabel}:p),kids:kid?data.kids.map(k=>k.id===kid.id?{...k,name}:k):data.kids}
+}
+
+/** A kid's own plan also shows what the family plan has for them (tagged to them, alone or with others),
+ * however it got there: added before they had a plan, from a photo or a team calendar, or for two kids
+ * at once. Items keep their IDs and stay in the family plan; `home` maps each one back to it. */
+export function kidPlanView(data:AppData,kidPlanId:string):{data:AppData;home:Map<string,string>}{
+ const kid=kidOfPlan(data,data.profiles.find(p=>p.id===kidPlanId)),home=new Map<string,string>()
+ if(!kid||!data.profiles.some(p=>p.id===kid.profileId&&!p.kidId))return {data,home}
+ const familyId=kid.profileId
+ const theirs=(x:{profileId:string;kidId?:string;kidIds?:string[]})=>x.profileId===familyId&&peopleOf(x).includes(kid.id)
+ const borrow=<T extends {id:string;profileId:string;kidId?:string;kidIds?:string[]}>(list:T[])=>list.map(x=>{if(!theirs(x))return x;home.set(x.id,familyId);const next={...x,profileId:kidPlanId,kidId:undefined};delete next.kidIds;return next})
+ const seasons=data.studySeasons.map(s=>s.profileId===familyId&&s.kidId===kid.id?(home.set(s.id,familyId),{...s,profileId:kidPlanId,kidId:undefined}):s)
+ return {data:{...data,tasks:borrow(data.tasks),exams:borrow(data.exams),calendarEvents:borrow(data.calendarEvents),studySeasons:seasons},home}
 }

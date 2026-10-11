@@ -1,10 +1,10 @@
 import { classOccurrences, classTime } from './classSchedule'
-import type { AppData } from './model'
+import { peopleOf, type AppData } from './model'
 import { schoolDay } from './schoolCalendar'
 import { changeDetail, changeTitle, schoolChanges } from './schoolHeadsUp'
 import { careMeters, pantry } from './konoCare'
 import { shiftAt, shiftMinutes, shiftsOn } from './workShifts'
-import { kidPlans } from './familyPlans'
+import { kidPlans, kidPlanView } from './familyPlans'
 
 /** The next week of lock-screen reminders for the active plan, worked out on the person's own device
  * (so times are in their time zone) and handed to KONO's server queue (migration 0008):
@@ -35,6 +35,8 @@ const list = (titles: string[]) => titles.slice(0, 4).join(', ') + (titles.lengt
 const cut = (s: string, n: number) => s.length > n ? s.slice(0, n - 1) + '…' : s
 
 export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
+  // On a kid's device, the family plan's things for them count too (practices, appointments, tests).
+  if (data.profiles.find(p => p.id === data.activeProfileId)?.kidId) data = kidPlanView(data, data.activeProfileId).data
   // Turning reminders on for a device is the opt-in, so the in-app reminder toggle doesn't gate these.
   const profileId = data.activeProfileId, settings = data.settings
   // A kid's own plan is a student plan: no family reminders in it, whatever the account's setting.
@@ -87,7 +89,7 @@ export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
       if (items.length) {
         const kids = data.kids.filter(k => k.profileId === profileId)
         const who = (kidId?: string) => kids.find(k => k.id === kidId)
-        const groups = [...kids.map(k => ({ name: (k.emoji ? k.emoji + ' ' : '') + k.name, list: items.filter(i => i.kidId === k.id) })), { name: kids.length ? 'Everyone' : '', list: items.filter(i => !who(i.kidId)) }].filter(g => g.list.length)
+        const groups = [...kids.map(k => ({ name: (k.emoji ? k.emoji + ' ' : '') + k.name, list: items.filter(i => peopleOf(i).includes(k.id)) })), { name: kids.length ? 'Everyone' : '', list: items.filter(i => !peopleOf(i).some(id => who(id))) }].filter(g => g.list.length)
         const tests = items.filter(i => i.exam).sort((a, b) => a.due.localeCompare(b.due)).map(i => i.title + ' (' + weekday(i.due) + ')')
         const counts = groups.map(g => (g.name ? g.name + ': ' : '') + g.list.length + ' due').join(' · ')
         add(at(date, '18:00'), 'Family week ahead', counts + (tests.length ? ' · Tests: ' + list(tests) : ''), 'family-week-' + date)

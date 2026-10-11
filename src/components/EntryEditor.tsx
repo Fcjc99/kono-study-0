@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react'
-import {uid,localDate,dayNames,matchOutcome,type AppData,type CalendarEvent,type Subtask,type MatchResult} from '../store/model'
+import {uid,localDate,dayNames,matchOutcome,peopleOf,type AppData,type CalendarEvent,type Subtask,type MatchResult} from '../store/model'
 import {records,equal,type Collection,type Entry} from '../store/workspace'
 import {addDays} from '../store/studyScheduler'
 import {REPEATS,repeatDates,defaultUntil,repeatCopy,applyToSeries,type Repeat,type SeriesScope} from '../store/eventRepeat'
@@ -49,10 +49,12 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
  const addSubtask=()=>{const title=newSubtask.trim();if(!title)return;field('subtasks',[...(entry.subtasks as Subtask[]??[]),{id:uid('subtask'),title,done:false}]);setNewSubtask('')}
  const persist=(next:Entry)=>{try{localStorage.setItem(draftScope,JSON.stringify({...edit,entry:next}));setDraftError('');return true}catch{setDraftError('Draft storage is unavailable. Keep this editor open until saved.');return false}}
  // From the family plan, an item can be for a kid: one with a plan of their own gets it in their plan.
- const inFamily=(d:AppData,profileId:string)=>d.activeProfileId===profileId||kidPlans(d,d.activeProfileId).some(x=>x.plan.id===profileId)
+ const inFamily=(d:AppData,profileId:string)=>d.activeProfileId===profileId||kidPlans(d,d.activeProfileId).some(x=>x.plan.id===profileId)||d.kids.some(k=>k.profileId===profileId&&d.profiles.some(p=>p.id===d.activeProfileId&&p.kidId===k.id))
  const familyKids=data.kids.filter(k=>k.profileId===data.activeProfileId)
- const whose=String(entry.kidId??kidOfPlan(data,data.profiles.find(p=>p.id===entry.profileId))?.id??'')
- const setWhose=(kidId:string)=>{const next=moveToWhose(data,entry as Entry&{profileId:string},data.activeProfileId,kidId||undefined) as Entry;persist(next);setEntry(next)}
+ const planKid=kidOfPlan(data,data.profiles.find(p=>p.id===entry.profileId))?.id
+ const whose:string[]=planKid?[planKid]:peopleOf(entry as {kidId?:string;kidIds?:string[]})
+ const setWhose=(ids:string[])=>{const next=moveToWhose(data,entry as Entry&{profileId:string},data.activeProfileId,ids) as Entry;persist(next);setEntry(next)}
+ const togglePerson=(id:string)=>setWhose(whose.includes(id)?whose.filter(x=>x!==id):[...whose,id])
  const field=(key:string,value:unknown)=>{const next={...entry,[key]:value};persist(next);setEntry(next)}
  const append=(key:string,text:string)=>{const current=String(entry[key]??'');field(key,current.trim()?current+' '+text:text)}
  const format=(before:string,after:string)=>{const textarea=bodyRef.current;if(!textarea)return;const key=note?'body':'notes',body=String(entry[key]??''),start=textarea.selectionStart,end=textarea.selectionEnd;field(key,body.slice(0,start)+before+(body.slice(start,end)||'text')+after+body.slice(end));requestAnimationFrame(()=>textarea.focus())}
@@ -77,7 +79,11 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
  return <Modal title={(edit.original?'Edit ':'New ')+labels[edit.key]} close={keep}><form onSubmit={submit}><fieldset disabled={busy}><label>{edit.key==='subjects'?'Subject name':edit.key==='kids'?'Kid name':'Title'}<input autoFocus required maxLength={edit.key==='subjects'||edit.key==='kids'?200:1000} value={String(entry[titleKey]??'')} onChange={e=>field(titleKey,e.target.value)}/></label>
   {note&&<VoiceInputButton label="title" onText={text=>append(titleKey,text)}/>}
   {!['subjects','kids'].includes(edit.key)&&<label>Subject<select value={String(entry.subjectId??'')} onChange={e=>field('subjectId',e.target.value)}><option value="">General / unassigned</option>{data.subjects.filter(s=>s.profileId===entry.profileId).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}
-  {(['tasks','exams','calendarEvents'] as Collection[]).includes(edit.key)&&familyKids.length>0&&<label>Who’s it for?<select value={whose} onChange={e=>setWhose(e.target.value)}><option value="">Me / whole family</option>{familyKids.map(k=><option key={k.id} value={k.id}>{(k.emoji?k.emoji+' ':'')+k.name}{kidPlans(data,data.activeProfileId).some(x=>x.kid.id===k.id)?' (their plan)':''}</option>)}</select></label>}
+  {(['tasks','exams','calendarEvents'] as Collection[]).includes(edit.key)&&familyKids.length>0&&<fieldset className="whose-pick"><legend>Who’s it for?</legend>
+   <label><input type="checkbox" checked={!whose.length} onChange={()=>setWhose([])}/> Me / whole family</label>
+   {familyKids.map(k=><label key={k.id}><input type="checkbox" checked={whose.includes(k.id)} onChange={()=>togglePerson(k.id)}/> {(k.emoji?k.emoji+' ':'')+k.name}</label>)}
+   {whose.length===1&&kidPlans(data,data.activeProfileId).some(x=>x.kid.id===whose[0])&&<small>Saved in their plan, so it’s on their device too.</small>}
+  </fieldset>}
   {('due' in entry||'date' in entry)&&<label>Date<input required type="date" value={String(entry.due??entry.date??'')} onInput={e=>{const next={...entry,['due' in entry?'due':'date']:e.currentTarget.value,...(edit.key==='tasks'?{plannedTime:undefined}:{})};persist(next);setEntry(next)}}/></label>}
   {edit.key==='calendarEvents'&&<label>Start time (optional)<input type="time" value={String(entry.time??'')} onChange={e=>field('time',e.target.value||undefined)}/></label>}
   {edit.key==='calendarEvents'&&<label>End time (optional)<input type="time" value={String(entry.endTime??'')} onChange={e=>field('endTime',e.target.value||undefined)}/></label>}

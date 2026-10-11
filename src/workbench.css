@@ -484,3 +484,5 @@ html[data-theme] .brand:has(.kono-weather-chip):after,html[data-theme] .sidebar:
  .workbench .settings-list label,.workbench .manual-weather-row{flex-wrap:wrap;gap:12px}
 }
 @media(prefers-reduced-motion:reduce){.workbench *{scroll-behavior:auto!important;transition:none!important}}
+.workbench .people-filter .people-filter-all{--kid-color:#8a7f86}
+.workbench .people-filter .people-filter-all[aria-pressed=false]{text-decoration:none;opacity:.85;border-style:solid!important}
