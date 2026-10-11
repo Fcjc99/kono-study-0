@@ -208,6 +208,10 @@ test('A rotation-day schedule (D1–D14) read for a Monday–Friday school is re
  assert.match(classSchedulePrompt(weekly),/never turn them into weekdays: put them in days exactly as written/)
  const raw=JSON.stringify({classes:[{name:'MATH 6',code:'621-01',days:['D1 - Day 1','D8 -'],start:null,end:null,period:'P5-Period 5',room:'B146'},{name:'Chorus 6',code:'657-01',days:['D2'],start:null,end:null,period:'P1',room:'PAC'}]})
  assert.throws(()=>parseAiClassSchedule(raw,weekly,'2026-09-02','2027-06-16'),/uses rotation days \(D1, D2…\), not weekdays\. Go back to step 1 and pick your school’s rotation option/)
+ // Even when the AI turns D1–D14 into weekdays, the headings it copied give it away.
+ const converted=JSON.stringify({dayHeadings:['D1 - Day 1','D2 - Day 2','D3 -'],classes:[{name:'MATH 6',days:['Monday'],start:null,end:null,period:'P5'}]})
+ assert.throws(()=>parseAiClassSchedule(converted,weekly,'2026-09-02','2027-06-16'),/uses rotation days/)
+ assert.equal(parseAiClassSchedule(converted,Array.from({length:14},(_,i)=>'Day '+(i+1)),'2026-09-02','2027-06-16').length,0,'a rotation school takes D1 headings (the class above names a weekday, so it has no day there)')
  const ok=JSON.stringify({classes:[{name:'Biology',days:['Monday','Wednesday'],start:'09:00',end:'10:00'}]})
  assert.equal(parseAiClassSchedule(ok,weekly,'2026-09-02','2027-06-16').length,2,'weekday schedules still read')
 })
