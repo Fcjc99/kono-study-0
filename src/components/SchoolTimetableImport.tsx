@@ -6,6 +6,7 @@ import {suggestSchedule} from '../store/scheduleImport'
 import {dayNames,uid} from '../store/model'
 import {useAiHelper} from '../hooks/useAiHelper'
 import {classTime} from '../store/classSchedule'
+import {isCollegeCalendar} from '../store/schoolCalendar'
 import {AiHelperSettings} from './AiHelper'
 import ClassGrid from './ClassGrid'
 import {addBellBlocks,applyBells,bellScheduleFor,periodNumber,periodProblems} from '../store/bellSchedules'
@@ -22,10 +23,15 @@ export default function SchoolTimetableImport({season,change,onReview}:{season:S
  // Numbered periods, then any other untimed row the schedule has (like Duxbury Middle's ASP), each set once.
  const periods=[...new Set(rows.filter(r=>periodNumber(r.slot)||(r.slot&&rows.some(x=>x.slot===r.slot&&(!x.start||!x.end)))).map(r=>r.slot))].sort((a,b)=>(periodNumber(a)||99)-(periodNumber(b)||99))
  const lunchRows=bells?.lunch?rows.filter(r=>r.include&&r.kind==='study'&&periodNumber(r.slot)===bells.lunch!.period):[]
- const problems=bells||periods.length?periodProblems(rows,season.school!.cycle,bells):[]
+ // A school period that starts at night is almost always AM picked as PM (phone time pickers).
+ const night=periods.filter(p=>{const t=rows.find(r=>r.slot===p&&r.start)?.start;return !!t&&(t>='18:00'||t<'05:00')}).map(p=>p+' starts at '+classTime(rows.find(r=>r.slot===p)!.start)+'. School times are usually AM or early PM; check AM/PM.')
+ const problems=[...night,...(bells||periods.length?periodProblems(rows,season.school!.cycle,bells):[])]
  const setPeriod=(period:string,key:'start'|'end',value:string)=>setRows(rows.map(r=>r.slot===period?{...r,[key]:value}:r))
  const untimed=rows.filter(r=>r.include&&(!r.start||!r.end)).length
  const weekly=season.school?.pattern==='weekly'
+ // A school (middle or high) has no classes on its closed days (the weekend), whatever a schedule (or the
+ // AI) says. College classes can meet on weekends, so a college term keeps every day it reads.
+ const openDays=(found:RotatingImportRow[])=>weekly&&!isCollegeCalendar(season.school)?found.filter(r=>!r.day||season.school!.weekdays.includes((dayNames as readonly string[]).indexOf(r.day))):found
  const lastClass=season.school!.lastClassDate||season.end
  // College classes: the table reader first, then the same reader Import & export › Import a schedule uses.
  const weeklyClasses=(value:string)=>{
@@ -33,7 +39,7 @@ export default function SchoolTimetableImport({season,change,onReview}:{season:S
   if(table.length)return table
   return suggestSchedule(value,season.start,lastClass,'mdy').filter(r=>r.kind==='class'&&r.start&&r.end&&r.end>r.start).flatMap(r=>r.weekdays.map(d=>dayNames[d]).filter(day=>season.school!.cycle.includes(day)).map(day=>({id:uid('import-block'),include:true,day,label:r.title,slot:'',start:r.start,end:r.end,dateStart:season.start,dateEnd:lastClass,kind:'study' as const,location:r.location})))
  }
- const find=(value:string,picked:File|null=file):number=>{try{const nda=season.school!.cycle.length===6&&/6-Day Schedule/i.test(value),found=weekly?weeklyClasses(value):nda?parseNdaSixDaySchedule(value,season.start,lastClass):suggestRotatingClasses(value,season.school!.cycle,season.start,lastClass).map(r=>({...r,include:!!(r.day&&r.label&&r.start&&r.end&&r.end>r.start)&&r.kind==='study'}));setRows(applyBells(found,bells));const classes=found.filter(r=>r.kind==='study').length;setMissed(!classes);setMessage(classes?'Found '+classes+' classes and '+found.filter(r=>r.kind!=='study').length+' schedule blocks. Check them, then continue to your calendar preview.':'KONO couldn’t find classes in this layout. Try “Read with AI helper” below, or add your classes by hand.')
+ const find=(value:string,picked:File|null=file):number=>{try{const nda=season.school!.cycle.length===6&&/6-Day Schedule/i.test(value),found=weekly?weeklyClasses(value):nda?parseNdaSixDaySchedule(value,season.start,lastClass):suggestRotatingClasses(value,season.school!.cycle,season.start,lastClass).map(r=>({...r,include:!!(r.day&&r.label&&r.start&&r.end&&r.end>r.start)&&r.kind==='study'}));setRows(applyBells(openDays(found),bells));const classes=found.filter(r=>r.kind==='study').length;setMissed(!classes);setMessage(classes?'Found '+classes+' classes and '+found.filter(r=>r.kind!=='study').length+' schedule blocks. Check them, then continue to your calendar preview.':'KONO couldn’t find classes in this layout. Try “Read with AI helper” below, or add your classes by hand.')
   // Tell KONO support that a schedule layout wasn't understood: the kind of file and schedule only, never its text.
   if(!classes&&picked)reportError('Schedule upload found no classes ('+(weekly?'weekly college':season.school!.cycle.length+'-day rotation')+')',{detail:'File: '+(/\.pdf$/i.test(picked.name)?'PDF':'photo')+' · text read: '+value.length+' characters · column headings found: '+(/(^|\t)(time|days?)(\t|$)/im.test(value)?'yes':'no')+' · school: '+season.school!.name})
   return classes
@@ -51,7 +57,7 @@ export default function SchoolTimetableImport({season,change,onReview}:{season:S
    // A picture-only PDF goes to the AI as the picture, not as recognized text.
    const pdfPicture=file&&/\.pdf$/i.test(file.name)?await (await import('../store/readSchedulePdf')).pdfPageImage(file):null
    const photo=pdfPicture??(file&&!/\.pdf$/i.test(file.name)?{base64:await new Promise<string>((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]??'');r.onerror=()=>reject(new Error('Could not read that photo.'));r.readAsDataURL(file)}),mimeType:file.type||'image/jpeg'}:undefined)
-   const read=await readClassScheduleWithAi({text,photo},season.school!.cycle,season.start,lastClass,ai.provider,ai.apiKey,bells?.periods.length,bells?.extraRows),found=applyBells(read,bells)
+   const read=await readClassScheduleWithAi({text,photo},season.school!.cycle,season.start,lastClass,ai.provider,ai.apiKey,bells?.periods.length,bells?.extraRows),found=applyBells(openDays(read),bells)
    setRows(found);setMissed(false);setMessage('Your AI helper found '+found.length+' classes. '+(read.some(r=>!r.start)?bells?'Each period’s times come from '+season.school!.name+'’s bell schedule. ':'Your schedule shows periods but no times, so enter each period’s times below. ':'')+'Check each one against your schedule, then continue.')
   }catch(e){
    const why=e instanceof Error?e.message:'The AI helper could not read this schedule.'

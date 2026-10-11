@@ -203,6 +203,14 @@ test('Today at a rotation school: the rotation day, the block now (lunch during 
  assert.equal(rotationNow({...data,studySeasons:[academicTemplate(data.activeProfileId,'duxbury-2026')]},new Date('2026-10-13T09:00:00')).length,0)
  assert.equal(rotationNow({...data,studySeasons:[{...season,kidId:'kid-1'}]},new Date('2026-10-13T09:00:00'))[0].kidId,'kid-1')
 })
+test('A rotation-day schedule (D1–D14) read for a Monday–Friday school is refused with a pointer to the rotation option, never spread over weekdays',()=>{
+ const {parseAiClassSchedule,classSchedulePrompt}=load('src/store/aiClassSchedule.ts'),weekly=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+ assert.match(classSchedulePrompt(weekly),/never turn them into weekdays: put them in days exactly as written/)
+ const raw=JSON.stringify({classes:[{name:'MATH 6',code:'621-01',days:['D1 - Day 1','D8 -'],start:null,end:null,period:'P5-Period 5',room:'B146'},{name:'Chorus 6',code:'657-01',days:['D2'],start:null,end:null,period:'P1',room:'PAC'}]})
+ assert.throws(()=>parseAiClassSchedule(raw,weekly,'2026-09-02','2027-06-16'),/uses rotation days \(D1, D2…\), not weekdays\. Go back to step 1 and pick your school’s rotation option/)
+ const ok=JSON.stringify({classes:[{name:'Biology',days:['Monday','Wednesday'],start:'09:00',end:'10:00'}]})
+ assert.equal(parseAiClassSchedule(ok,weekly,'2026-09-02','2027-06-16').length,2,'weekday schedules still read')
+})
 test('One known day sets the rotation: "September 28 is Day 4" counts forward over weekends and holidays, and the next school day is found without it',()=>{
  const {academicTemplate}=load('src/store/academicCatalog.ts'),{nextSchoolDate,rotationPreview}=load('src/store/schoolCalendar.ts')
  const dhs=academicTemplate(model.createFreshData().activeProfileId,'duxburyhs-2026')

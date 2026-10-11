@@ -1106,6 +1106,33 @@ function proseSchedulePdf(){
  return {name:'my-classes.pdf',mimeType:'application/pdf',buffer:Buffer.from(doc.output('arraybuffer'))}
 }
 
+test('Monday–Friday school: a schedule read by the AI never puts classes on the weekend, and a period set to PM by mistake gets a check AM/PM warning',async({context,page})=>{
+ const cloud=fakeCloud()
+ await page.clock.setFixedTime(new Date('2026-10-10T10:00:00'))
+ await signInAs(context,cloud,'alice')
+ await context.route(BASE+'api/ai',route=>{
+  if(route.request().method()==='GET')return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({enabled:true})})
+  const classes=[{name:'Chorus 6',days:['Sunday','Monday'],start:null,end:null,period:'P1-Period 1',room:'PAC'},{name:'MATH 6',days:['Tuesday','Saturday'],start:null,end:null,period:'P2',room:'B146'}]
+  return route.fulfill({status:200,headers:{'content-type':'application/json'},body:JSON.stringify({text:JSON.stringify({classes}),used:1,limit:40})})
+ })
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await addToCalendar(page,'My school schedule')
+ await page.getByRole('searchbox',{name:'Search for your school'}).fill('duxbury public')
+ await page.getByRole('button',{name:'Duxbury Public Schools · 2026–27 · elementary, Monday–Friday'}).click()
+ await page.getByRole('region',{name:'Your grade'}).getByRole('combobox').selectOption('6')
+ await page.getByRole('button',{name:'Next: your classes'}).click()
+ const {jsPDF}=require('jspdf'),doc=new jsPDF();doc.setFontSize(8);doc.text(['Weekly schedule','P1-Period 1  Chorus 6  PAC'],40,60)
+ await page.getByLabel('Upload my schedule').setInputFiles({name:'schedule.pdf',mimeType:'application/pdf',buffer:Buffer.from(doc.output('arraybuffer'))})
+ await page.getByText(/Your AI helper found 2 classes\./).waitFor({timeout:90000})
+ const found=page.getByRole('table',{name:'What KONO found'})
+ assert.equal(await found.getByRole('row',{name:/^(Sunday|Saturday)/}).count(),0,'nothing on the weekend')
+ const times=page.getByRole('group',{name:'Period times'})
+ await times.getByLabel('Period 1 starts').fill('20:20');await times.getByLabel('Period 1 ends').fill('21:19')
+ await page.getByText('Period 1 starts at 8:20 PM. School times are usually AM or early PM; check AM/PM.').waitFor()
+ await times.getByLabel('Period 1 starts').fill('08:20');await times.getByLabel('Period 1 ends').fill('09:19')
+ await page.getByText('Period 1 starts at',{exact:false}).waitFor({state:'detached'})
+})
+
 test('School setup guide: find the school, answer the grade, save, and land on the Planner (Duxbury Public Schools, Monday–Friday)',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
@@ -1114,10 +1141,10 @@ test('School setup guide: find the school, answer the grade, save, and land on t
  const find=page.getByRole('region',{name:'Find your school'})
  const search=find.getByRole('searchbox',{name:'Search for your school'})
  await search.fill('hanover')
- assert.equal(await find.getByRole('button',{name:'Duxbury Public Schools · 2026–27'}).count(),0,'search narrows the list')
+ assert.equal(await find.getByRole('button',{name:'Duxbury Public Schools · 2026–27 · elementary, Monday–Friday'}).count(),0,'search narrows the list')
  await search.fill('duxbury public')
  await find.getByRole('button',{name:'My school isn’t listed'}).waitFor()
- await find.getByRole('button',{name:'Duxbury Public Schools · 2026–27'}).click()
+ await find.getByRole('button',{name:'Duxbury Public Schools · 2026–27 · elementary, Monday–Friday'}).click()
  const steps=page.getByRole('list',{name:'Setup steps'})
  assert.match(await steps.locator('[aria-current=step]').innerText(),/2 · Quick questions/)
  const grade=page.getByRole('region',{name:'Your grade'})
