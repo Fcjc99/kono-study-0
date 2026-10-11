@@ -25,3 +25,31 @@ export async function hashPin(pin:string):Promise<string>{
  return [...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,'0')).join('')
 }
 export const validPin=(pin:string)=>/^\d{4,8}$/.test(pin)
+
+/** The family plan: the parent's plan the kids are listed in (one of the parent's own plans). */
+export const familyPlanId=(data:Pick<AppData,'profiles'|'kids'>)=>data.kids.map(k=>k.profileId).find(id=>data.profiles.some(p=>p.id===id&&!p.kidId))
+/** Make another of the parent's own plans the family plan: the kids (and their tags) go with it. */
+export function makeFamilyPlan(data:AppData,profileId:string):AppData{
+ const plan=data.profiles.find(p=>p.id===profileId)
+ if(!plan||plan.kidId)throw Error('Pick one of your own plans.')
+ return {...data,kids:data.kids.map(k=>data.profiles.some(p=>p.id===k.profileId&&!p.kidId)?{...k,profileId}:k)}
+}
+
+/** The family plan's calendar: its own things plus everything in each kid's own plan, shown as that kid's
+ * (for Home and the Planner only). Items keep their IDs, so opening, moving or finishing one changes
+ * it where it lives, in the kid's plan. `home` maps each borrowed item back to its own plan. */
+export function familyView(data:AppData,parentProfileId:string):{data:AppData;home:Map<string,string>}{
+ const plans=kidPlans(data,parentProfileId),home=new Map<string,string>()
+ if(!plans.length)return {data,home}
+ const kidOf=new Map(plans.map(({kid,plan})=>[plan.id,kid.id]))
+ const borrow=<T extends {id:string;profileId:string}>(list:T[])=>list.map(x=>{const kidId=kidOf.get(x.profileId);if(!kidId)return x;home.set(x.id,x.profileId);return {...x,profileId:parentProfileId,kidId}})
+ return {data:{...data,tasks:borrow(data.tasks),exams:borrow(data.exams),calendarEvents:borrow(data.calendarEvents),studySeasons:borrow(data.studySeasons)},home}
+}
+
+/** Who an item is for, from the family plan: a kid with a plan of their own gets it in their plan (so it's
+ * on their device); anyone else is a tag in the family plan. A subject from the other plan doesn't come along. */
+export function moveToWhose<T extends {profileId:string;kidId?:string;subjectId?:string}>(data:Pick<AppData,'profiles'|'subjects'>,item:T,familyId:string,kidId:string|undefined):T{
+ const plan=kidId?planForKid(data,kidId):undefined,profileId=plan?.id??familyId
+ const subjectId=item.subjectId&&data.subjects.some(s=>s.id===item.subjectId&&s.profileId===profileId)?item.subjectId:''
+ return {...item,profileId,kidId:plan?undefined:kidId,...(item.subjectId===undefined?{}:{subjectId})}
+}

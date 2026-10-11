@@ -4,6 +4,7 @@ import { schoolDay } from './schoolCalendar'
 import { changeDetail, changeTitle, schoolChanges } from './schoolHeadsUp'
 import { careMeters, pantry } from './konoCare'
 import { shiftAt, shiftMinutes, shiftsOn } from './workShifts'
+import { kidPlans } from './familyPlans'
 
 /** The next week of lock-screen reminders for the active plan, worked out on the person's own device
  * (so times are in their time zone) and handed to KONO's server queue (migration 0008):
@@ -11,7 +12,8 @@ import { shiftAt, shiftMinutes, shiftsOn } from './workShifts'
  * - 7:00 AM: what's due today (assignments and exams), one summary
  * - 7:00 PM: exams and tests tomorrow
  * - 7:05 PM: assignments due tomorrow that aren't done yet
- * - parent mode, 6:00 PM on Sundays: the family's week ahead, per kid
+ * - parent mode, 6:00 PM on Sundays: the family's week ahead, per kid (kids' own plans included)
+ * - parent mode, 7:15 PM: a kid with their own plan has a test tomorrow
  * - 7:30 PM, rotating schools: which day tomorrow is and its first class, or that there's no school
  * - 6:30 PM a week before a school day off or early release; for other schools, 7:30 PM the evening before too
  * - 15 minutes before each class, and at the start of each planned study block and Plan-my-week session
@@ -21,7 +23,8 @@ import { shiftAt, shiftMinutes, shiftsOn } from './workShifts'
  * - 7:10 PM before a long work shift (4 hours or more), when something is due that day or the next:
  *   the shift, and what's due, so there's time to get a head start
  * Nothing arrives during a work shift: a reminder that would is sent when the shift ends.
- * Past times are skipped; the list is capped so a busy week can't flood anyone. */
+ * Past times are skipped; the list is capped so a busy week can't flood anyone. Each device builds its
+ * own list from the plan open on it, so a kid's iPad on the kid's plan gets the kid's reminders. */
 export type Reminder = { sendAt: string; title: string; body: string; tag: string }
 
 const MAX = 200
@@ -34,6 +37,9 @@ const cut = (s: string, n: number) => s.length > n ? s.slice(0, n - 1) + '…' :
 export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
   // Turning reminders on for a device is the opt-in, so the in-app reminder toggle doesn't gate these.
   const profileId = data.activeProfileId, settings = data.settings
+  // A kid's own plan is a student plan: no family reminders in it, whatever the account's setting.
+  const parentMode = settings.parentMode === true && !data.profiles.find(p => p.id === profileId)?.kidId
+  const kidOwn = parentMode ? kidPlans(data, profileId) : []
   const out: Reminder[] = []
   const add = (time: Date, title: string, body: string, tag: string) => {
     const shift = shiftAt(data, time), when = shift ? at(shift.date, shift.end) : time
@@ -68,11 +74,16 @@ export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
     const homework = tasks.filter(t => t.due === dateOf(next))
     if (homework.length) add(at(date, '19:05'), homework.length === 1 ? 'Due tomorrow: ' + homework[0].title : homework.length + ' assignments due tomorrow', homework.length === 1 ? (subject(homework[0].subjectId) ?? 'Still open. A few minutes tonight gets it done.') : list(homework.map(t => t.title)), 'homework-' + date)
     // Parent mode: Sunday evening, what each kid has coming up Monday–Sunday (untagged work counts as the family's).
-    if (settings.parentMode && day.getDay() === 0) {
+    if (parentMode) for (const { kid, plan } of kidOwn) {
+      const tests = data.exams.filter(e => e.profileId === plan.id && !e.done && e.due === dateOf(next))
+      if (tests.length) add(at(date, '19:15'), (kid.emoji ? kid.emoji + ' ' : '') + kid.name + (tests.length === 1 ? ' has a test tomorrow' : ' has ' + tests.length + ' tests tomorrow'), list(tests.map(e => e.title)), 'kid-test-' + kid.id + '-' + date)
+    }
+    if (parentMode && day.getDay() === 0) {
       const first = dateOf(next), last = new Date(next); last.setDate(next.getDate() + 6)
       const inWeek = (d: string) => d >= first && d <= dateOf(last)
       const weekday = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' })
-      const items = [...tasks.filter(t => inWeek(t.due)).map(t => ({ ...t, exam: false })), ...exams.filter(e => inWeek(e.due)).map(e => ({ ...e, exam: true }))]
+      const borrowed = <T extends { profileId: string; done: boolean }>(list: T[]) => kidOwn.flatMap(({ kid, plan }) => list.filter(x => x.profileId === plan.id && !x.done).map(x => ({ ...x, kidId: kid.id })))
+      const items = [...[...tasks, ...borrowed(data.tasks)].filter(t => inWeek(t.due)).map(t => ({ ...t, exam: false })), ...[...exams, ...borrowed(data.exams)].filter(e => inWeek(e.due)).map(e => ({ ...e, exam: true }))]
       if (items.length) {
         const kids = data.kids.filter(k => k.profileId === profileId)
         const who = (kidId?: string) => kids.find(k => k.id === kidId)
@@ -111,7 +122,7 @@ export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
     }
     for (const t of tasks.filter(t => t.due === date && t.plannedTime)) add(at(date, t.plannedTime!), 'Time to start: ' + t.title, t.estimatedMinutes ? `Planned for about ${t.estimatedMinutes} minutes.` : 'This is the time you planned for it.', 'block-' + t.id)
     for (const e of data.calendarEvents.filter(e => e.profileId === profileId && !e.done && e.date === date && e.time && e.planFor)) add(at(date, e.time!), 'Study time: ' + e.title, [e.endTime ? classTime(e.time!) + '–' + classTime(e.endTime) : classTime(e.time!), e.notes.split('\n')[0]].filter(Boolean).join(' · '), 'study-' + e.id)
-    if (settings.parentMode && settings.familyEventReminders) for (const e of data.calendarEvents.filter(e => e.profileId === profileId && !e.done && e.date === date && e.time && !e.planFor)) add(at(date, e.time!, 15), 'In 15 min: ' + e.title, classTime(e.time!), 'event-' + e.id)
+    if (parentMode && settings.familyEventReminders) for (const e of data.calendarEvents.filter(e => e.profileId === profileId && !e.done && e.date === date && e.time && !e.planFor)) add(at(date, e.time!, 15), 'In 15 min: ' + e.title, classTime(e.time!), 'event-' + e.id)
   }
   // KONO's notes: the meters are worked out from the care log alone, so they can be looked ahead.
   const care = data.konoCare?.[profileId]?.log ?? []

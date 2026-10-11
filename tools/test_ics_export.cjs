@@ -121,6 +121,20 @@ test('api/ics: a valid link serves the subscribed calendar; bad or turned-off li
 })
 
 ;(async()=>{
+test('the school schedule: each rotation day as an all-day “Day 2”, days off, and every class at its time with an end',()=>{
+ const d=make(),pid=d.activeProfileId
+ d.studySeasons=[{id:'dms',profileId:pid,name:'School',start:'2026-09-01',end:'2027-06-20',active:true,school:{pattern:'rotation',name:'Test Middle',grade:'7',cycle:['Day 1','Day 2'],anchorDate:'2026-10-12',anchorDay:'Day 1',weekdays:[1,2,3,4,5],snowAdvances:false,lastClassDate:'2027-06-15',exceptions:[{id:'h',start:'2026-10-14',end:'2026-10-14',kind:'holiday',label:'Teacher day',audience:'all'}]},week:{'Day 1':[{id:'b1',slot:'Block 1',label:'Biology',start:'08:20',end:'09:19',kind:'study',location:'Rm 12'}],'Day 2':[{id:'b2',label:'Math 7',start:'08:20',end:'09:19',kind:'study'}]}}]
+ const ics=buildIcs(d,pid,{subscribe:true,today:'2026-10-12'})
+ assert.match(ics,/UID:school-dms-2026-10-12@[^\r]*\r\nDTSTAMP:\d+T\d+Z\r\nDTSTART;VALUE=DATE:20261012\r\nSUMMARY:Day 1\r\n/)
+ assert.match(ics,/DTSTART;VALUE=DATE:20261013\r\nSUMMARY:Day 2/)
+ assert.match(ics,/DTSTART;VALUE=DATE:20261014\r\nSUMMARY:No school · Teacher day/)
+ assert.match(ics,/DTSTART:20261012T082000\r\nDTEND:20261012T091900\r\nSUMMARY:Block 1 · Biology\r\n/)
+ assert.match(ics,/LOCATION:Rm 12/)
+ assert.match(ics,/DTSTART;VALUE=DATE:20261015\r\nSUMMARY:Day 1/,'the day off doesn’t use up a rotation day')
+ assert.ok(!ics.includes('school-dms-2026-10-17'),'no Saturday')
+ assert.ok(!ics.includes('20261215'),'two months ahead at most')
+})
+
 let passed=0
 for(const t of tests){try{await t.fn();passed++;console.log('PASS',t.name)}catch(e){console.error('FAIL',t.name);console.error(e);process.exitCode=1}}
 console.log(`${passed}/${tests.length} ics-export regression groups passed.`)

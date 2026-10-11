@@ -209,3 +209,23 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .kid-plan-open{font-size:.85rem!important}
 .plan-switcher-pin-note{margin:0;font-size:.9rem}
 .plan-switcher .link-button{background:none!important;border:0!important;box-shadow:none!important;text-decoration:underline;min-height:0!important;padding:2px!important;font:inherit;color:inherit;cursor:pointer}
+.plan-switcher-family{display:grid;gap:8px}
+.plan-switcher-family p{margin:0}
+.plan-switcher-ask{display:flex!important;align-items:center;gap:8px;font-weight:600;font-size:.92rem}
+.plan-switcher-ask input{width:auto!important;margin:0}
+.who-is-using{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+.who-is-using button{width:100%;display:grid!important;justify-items:center;gap:6px;padding:16px 10px!important;border-radius:20px!important;border:2px solid color-mix(in srgb,var(--kid-color) 45%,transparent)!important;background:color-mix(in srgb,var(--kid-color) 10%,var(--wb-surface,#fff))!important}
+.who-is-using button[aria-current=true]{border-color:var(--kid-color)!important}
+.who-face{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:2rem;font-weight:800;background:color-mix(in srgb,var(--kid-color) 25%,#fff);color:#3a2b33}
+.who-is-using strong{font-size:1.05rem}
+.who-is-using small{opacity:.7;font-weight:600}
+.kids-glance h2{margin:0 0 10px}
+.kids-glance ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.kids-glance li>button{width:100%;display:flex!important;align-items:flex-start;gap:12px;text-align:left;padding:10px 12px!important;border-radius:16px!important;border-left:5px solid var(--kid-color)!important}
+.kids-glance-face{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:1.3rem;font-weight:800;background:color-mix(in srgb,var(--kid-color) 25%,#fff);color:#3a2b33}
+.kids-glance-main{display:grid;gap:4px;min-width:0}
+.kids-glance-main strong{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kids-glance-day{padding:1px 8px;border-radius:999px;background:color-mix(in srgb,var(--kid-color) 20%,transparent);font-weight:700}
+.kids-glance-facts{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.9rem;font-weight:600}
+.kids-glance-facts .is-late{color:#b2384f}
+.workbench .rotation-today-calendar{justify-self:start;background:none!important;border:0!important;box-shadow:none!important;min-height:0!important;padding:2px 0!important;text-decoration:underline;font-weight:600;font-size:.88rem;color:inherit!important}

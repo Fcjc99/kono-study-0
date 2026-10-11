@@ -198,7 +198,10 @@ export function normalizeData(raw:unknown):AppData {
  const kids:Kid[]=list(raw.kids??[],'kids',500).map(k=>({id:id(k.id,'kid ID'),profileId:owner(k.profileId),name:str(k.name,'kid name',200),color:color(k.color,'#7ca982'),emoji:optional(k.emoji,'kid emoji',40),borderStyle:borderStyle(k.borderStyle)}))
  // A kid tag is cosmetic, unlike a subject reference -- a stale or cross-profile kidId (e.g. from a
  // kid deleted elsewhere) just clears back to unassigned rather than failing the whole save.
- const kidRef=(v:unknown,profileId:string):string|undefined=>{if(v===undefined||v==='')return undefined;const key=str(v,'kid reference',150);const known=kids.find(k=>k.id===key);return known&&known.profileId===profileId?key:undefined}
+ // A kid listed in one of the parent's own plans can tag items in another of them (the family plan
+ // can move), but never items in a kid's own plan.
+ const ownPlans=new Set(profiles.filter(p=>!p.kidId).map(p=>p.id))
+ const kidRef=(v:unknown,profileId:string):string|undefined=>{if(v===undefined||v==='')return undefined;const key=str(v,'kid reference',150);const known=kids.find(k=>k.id===key);return known&&(known.profileId===profileId||ownPlans.has(profileId)&&ownPlans.has(known.profileId))?key:undefined}
  const studyPlans:StudyPlan[]=list(raw.studyPlans??[],'study plans',200).map(p=>{
   const profileId=owner(p.profileId),start=date(p.start,'study start'),end=date(p.end,'study deadline'),timeZone=str(p.timeZone,'study time zone',100)
   if(!Array.isArray(p.weekdays))return fail('study weekdays')

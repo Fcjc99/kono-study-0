@@ -44,8 +44,11 @@ export function restoreEntry(data:AppData,id:string):AppData {
  }
  return normalizeData(next)
 }
+/** The active plan, or (from the family plan) one of its kids' own plans: the family Home and Planner
+ * show those too, so finishing or removing one of them works from there. */
+export const inReach=(data:Pick<AppData,'activeProfileId'|'profiles'|'kids'>,profileId:unknown)=>profileId===data.activeProfileId||data.profiles.some(p=>p.id===profileId&&p.kidId&&data.kids.some(k=>k.id===p.kidId&&k.profileId===data.activeProfileId))
 export function removeEntry(data:AppData,key:Collection,id:string):AppData {
- const item=records(data,key).find(r=>r.id===id&&r.profileId===data.activeProfileId)
+ const item=records(data,key).find(r=>r.id===id&&inReach(data,r.profileId))
  if(!item)return data
  let next={...data,[key]:records(data,key).filter(r=>r.id!==id)} as AppData
  if(key==='tasks'&&item.studyPlanId){
@@ -55,7 +58,7 @@ export function removeEntry(data:AppData,key:Collection,id:string):AppData {
  return next
 }
 export function completeTask(data:AppData,id:string,done?:boolean):AppData {
- const task=data.tasks.find(t=>t.id===id&&t.profileId===data.activeProfileId)
+ const task=data.tasks.find(t=>t.id===id&&inReach(data,t.profileId))
  if(!task)return data
  const completed=done??!task.done,now=new Date().toISOString()
  const progress=applyTaskCompletionChange(data.sanctuaryProgress[task.profileId]??createSanctuaryProgress(task.profileId),{task:{...task,subjectKey:data.subjects.find(s=>s.id===task.subjectId)?.name??task.subjectId},completed,completedAt:now})

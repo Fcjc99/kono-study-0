@@ -2454,6 +2454,11 @@ test('Focus finds: when a focus session runs all the way down, KONO (who read be
  await focus.locator(':scope > summary').click()
  await focus.getByLabel('Minutes').fill('25');await focus.getByLabel('Seconds').fill('0')
  await focus.getByRole('button',{name:'Start timer'}).click()
+ // The fake clock runs every animation frame of those 25 minutes: keep the island (which pauses while
+ // it's off screen) out of view, or the test spends minutes drawing it.
+ await focus.evaluate(el=>el.scrollIntoView({block:'start'}))
+ await page.waitForFunction(()=>(document.querySelector('.wb-island')?.getBoundingClientRect().bottom??0)<=0)
+ await page.waitForTimeout(300)
  await page.clock.runFor(25*60*1000+3000)
  await focus.getByText('Session complete. Take a short break.').waitFor()
  await today.getByText(/^KONO found an? .+ while you focused for 25 minutes! It’s in Decorate › Finds\.$/).waitFor()
@@ -2685,7 +2690,55 @@ test('Family plans: a parent makes a kid’s own plan from Kids, the kid’s pla
  assert.match(cloud.users.alice.plan.data.settings.parentPin,/^[0-9a-f]{64}$/,'only the PIN’s hash is saved')
 })
 
-test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone the whole week scrolls sideways',async({context,page})=>{
+test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as hers, names tap on and off, Kids today sums each kid up, an event for Emma lands in her plan, and “Who’s using KONO?” opens a shared device on the right plan',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.setFixedTime(new Date('2026-10-13T08:00:00')) // a Tuesday
+ d.profiles.push({id:'plan-emma',name:'Emma',label:'Emma’s plan',kind:'school',start:'2026-09-01',end:'2027-06-30',kidId:'kid-emma'})
+ d.tasks.push({id:'emma-hw',profileId:'plan-emma',subjectId:'',title:'Spelling list',due:'2026-10-13',done:false,notes:''},{id:'leo-hw',profileId:pid,subjectId:'',kidId:'kid-leo',title:'Science poster',due:'2026-10-13',done:false,notes:''},{id:'mine',profileId:pid,subjectId:'',title:'Pay school fees',due:'2026-10-13',done:false,notes:''},{id:'emma-due',profileId:'plan-emma',subjectId:'',title:'Book report',due:'2026-10-14',done:false,notes:''})
+ d.exams.push({id:'emma-test',profileId:'plan-emma',subjectId:'',title:'Fractions quiz',due:'2026-10-15',done:false,notes:''})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ // Kids today: each kid at a glance.
+ const glance=page.getByRole('region',{name:'Kids today'})
+ const emmaRow=glance.getByRole('button',{name:/Open Emma’s plan/})
+ assert.match(await emmaRow.innerText(),/1 due tomorrow/i);assert.match(await emmaRow.innerText(),/Fractions quiz/)
+ // Home's day: Emma's homework (from her plan), Leo's and mine; names tap off and on.
+ const day=page.getByRole('region',{name:'Your day'}),people=day.getByRole('group',{name:'Whose things to show'}),also=day.locator('.tomorrow-extra-list').filter({hasText:'Also today'})
+ for(const title of ['Spelling list','Science poster','Pay school fees'])await also.getByText(title,{exact:true}).waitFor()
+ await people.getByRole('button',{name:/Emma/}).click()
+ await also.getByText('Spelling list',{exact:true}).waitFor({state:'detached'})
+ assert.equal(await people.getByRole('button',{name:/Emma/}).getAttribute('aria-pressed'),'false')
+ await people.getByRole('button',{name:'Me'}).click()
+ await also.getByText('Pay school fees',{exact:true}).waitFor({state:'detached'})
+ await also.getByText('Science poster',{exact:true}).waitFor()
+ await people.getByRole('button',{name:/Emma/}).click();await people.getByRole('button',{name:'Me'}).click()
+ await also.getByText('Spelling list',{exact:true}).waitFor()
+ // Planner: the same names; an event for Emma goes into her plan.
+ await go(page,'Planner')
+ await page.getByRole('group',{name:'Whose things to show'}).waitFor()
+ await page.getByRole('button',{name:'1 day'}).click()
+ await page.getByRole('button',{name:/^Add at 4:00 PM on/}).click()
+ const add=page.getByRole('dialog',{name:/^Add for/})
+ await add.getByLabel('Who’s it for?').selectOption({label:'🦄 Emma'})
+ await add.getByLabel('What is it?').fill('Dentist')
+ await add.getByRole('button',{name:'Add'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.some(e=>e.title==='Dentist'&&e.profileId==='plan-emma'&&!e.kidId),'Emma’s event never landed in her plan')
+ // Who's using KONO: turned on for this device, then asked when KONO opens.
+ await page.getByRole('button',{name:'Whose plan?'}).first().click()
+ const sheet=page.getByRole('dialog',{name:'Whose plan?'})
+ assert.match(await sheet.getByRole('button',{name:/My study plan/}).innerText(),/Family plan/)
+ await sheet.getByLabel('Ask “Who’s using KONO?” when it opens on this device').check()
+ await sheet.getByRole('button',{name:'Close'}).click()
+ const fresh=await context.newPage();await fresh.clock.setFixedTime(new Date('2026-10-13T08:00:00'))
+ await fresh.goto(BASE)
+ const who=fresh.getByRole('dialog',{name:'Who’s using KONO?'})
+ await who.getByRole('button',{name:/Emma/}).click()
+ await fresh.getByRole('button',{name:'Whose plan?'}).first().waitFor()
+ await fresh.locator('.tomorrow-extra-list').getByText('Spelling list',{exact:true}).waitFor()
+ assert.equal(await fresh.getByRole('region',{name:'Kids today'}).count(),0,'Emma’s plan has no parent tools')
+})
+
+test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone a swipe goes to the next days and the whole week scrolls sideways',async({context,page})=>{
  const cloud=fakeCloud()
  await page.setViewportSize({width:390,height:844})
  await signInAs(context,cloud,'alice')
@@ -2696,6 +2749,14 @@ test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone the 
  assert.equal(await week.locator('.week-grid-head button').count(),3)
  await days.getByRole('button',{name:'1 day'}).click()
  assert.equal(await week.locator('.week-grid-head button').count(),1)
+ // A quick sideways swipe goes to the next day (and back).
+ const shown=()=>week.locator('.week-grid-head button').first().getAttribute('aria-label')
+ const before=await shown()
+ const swipe=dx=>page.locator('.week-grid-scroll').evaluate((el,dx)=>{const touch=x=>new Touch({identifier:1,target:el,clientX:x,clientY:400});el.dispatchEvent(new TouchEvent('touchstart',{touches:[touch(200)],changedTouches:[touch(200)],bubbles:true}));el.dispatchEvent(new TouchEvent('touchend',{touches:[],changedTouches:[touch(200+dx)],bubbles:true}))},dx)
+ await swipe(-120)
+ await page.waitForFunction(b=>document.querySelector('.week-grid-head button')?.getAttribute('aria-label')!==b,before)
+ await swipe(120)
+ await page.waitForFunction(b=>document.querySelector('.week-grid-head button')?.getAttribute('aria-label')===b,before)
  await days.getByRole('button',{name:'Week'}).click()
  assert.equal(await week.locator('.week-grid-head button').count(),7)
  const scroller=page.locator('.week-grid-scroll.is-wide')

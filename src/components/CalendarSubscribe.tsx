@@ -15,7 +15,7 @@ export default function CalendarSubscribe({ store, profileId, planLabel }: { sto
   const copy = (text: string, which: string) => { void navigator.clipboard?.writeText(text).then(() => setCopied(which)).catch(() => undefined) }
   if (!signedIn) return <p className="wb-muted">Sign in with your email to get a link your calendar app stays subscribed to.</p>
   return <div className="calendar-subscribe">
-    <p>Subscribe once and “{planLabel}” assignments, exams and events appear in your calendar app, updating on their own every few hours. Notes aren’t included. Anyone with this link can see those titles and dates, so keep it private.</p>
+    <p>Subscribe once and “{planLabel}” assignments, exams, events, classes and school days (Day 1, Day 2… at a rotation school) appear in your calendar app, updating on their own every few hours. Notes aren’t included. Anyone with this link can see those titles and dates, so keep it private.</p>
     {!token ? <button type="button" disabled={busy} onClick={() => void make()}>Make my calendar link</button> : <>
       <label>Your KONO calendar link<input readOnly value={https} onFocus={e => e.currentTarget.select()} /></label>
       <div className="wb-toolbar"><button type="button" onClick={() => copy(https, 'link')}>{copied === 'link' ? 'Copied!' : 'Copy link'}</button><a className="button-link" href={webcal}>Open in Apple Calendar</a><button type="button" disabled={busy} onClick={() => void stop()}>Turn off link</button></div>
