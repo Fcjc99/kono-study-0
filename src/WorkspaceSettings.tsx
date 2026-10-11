@@ -5,6 +5,7 @@ import {KID_COLORS} from './store/kids'
 import {localDate,type AppData,type CalendarEventKind,type Kid,type KidBorderStyle,type SettingsData} from './store/model'
 import {classKid,classOccurrences,classTime} from './store/classSchedule'
 import {rotationNow} from './store/rotationToday'
+import {planForKid} from './store/familyPlans'
 import type {Collection,Entry} from './store/workspace'
 import {TEAM_THEMES,teamThemeIds} from './teamThemes'
 import {cozyPalette,cozyPalettes,experienceOptions,fixedPaletteExperiences,type Page,type SettingsTab} from './workspaceShared'
@@ -63,14 +64,14 @@ export function FamilyReminderSettings({data,setting}:{data:AppData;setting:<K e
   <label><div><strong>Kids' event reminders</strong><small>Remind me 15 minutes before a kid's event starts or ends. {notifyOn?'Notifications are labeled with each kid\'s name.':'Turn on Browser notifications above to use this.'}</small></div><input type="checkbox" disabled={!notifyOn} checked={Boolean(data.settings.familyEventReminders)} onChange={e=>void setting('familyEventReminders',e.target.checked)}/></label>
  </section>
 }
-export function KidsPage({data,create,edit,remove,patch,openSettings}:{openSettings:(tab:SettingsTab)=>void;data:AppData;create:(key:Collection)=>void;edit:(key:Collection,entry:Entry)=>void;remove:(key:Collection,entry:Entry)=>void;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
+export function KidsPage({data,create,edit,remove,patch,openSettings,onOpenKidPlan}:{onOpenKidPlan?:(kid:Kid)=>void;openSettings:(tab:SettingsTab)=>void;data:AppData;create:(key:Collection)=>void;edit:(key:Collection,entry:Entry)=>void;remove:(key:Collection,entry:Entry)=>void;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
  const [appearanceOpen,setAppearanceOpen]=useState(false)
  const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
  return <section className="wb-panel family-calendar">
   <div className="wb-section-head"><div><small>ONE SHARED CALENDAR</small><h2>Kids</h2></div><div className="wb-toolbar"><button type="button" onClick={()=>setAppearanceOpen(true)}>🎨 Appearance</button><button onClick={()=>create('kids')}>＋ Add a kid</button></div></div>
   <p className="wb-muted">Add each kid once, then tag any assignment, exam, class or event with them from its own editor and filter your Planner calendar by kid — the same way you already filter by subject. Pick their emoji and color under Appearance.</p>
   {kids.length>0&&<ul className="kid-roster" aria-label="Kids">
-   {kids.map(k=><li key={k.id} style={{'--kid-color':k.color} as CSSProperties}><KidAvatar kid={k}/><strong>{k.name}</strong><button type="button" onClick={()=>edit('kids',k as unknown as Entry)}>Edit</button><button type="button" className="kid-roster-remove" aria-label={'Move '+k.name+' to Trash'} title="Move to Trash" onClick={()=>remove('kids',k as unknown as Entry)}>🗑</button></li>)}
+   {kids.map(k=><li key={k.id} style={{'--kid-color':k.color} as CSSProperties}><KidAvatar kid={k}/><strong>{k.name}</strong>{onOpenKidPlan&&<button type="button" className="kid-plan-open" onClick={()=>onOpenKidPlan(k)}>{planForKid(data,k.id)?'Open '+k.name+'’s plan':'Make '+k.name+'’s plan'}</button>}<button type="button" onClick={()=>edit('kids',k as unknown as Entry)}>Edit</button><button type="button" className="kid-roster-remove" aria-label={'Move '+k.name+' to Trash'} title="Move to Trash" onClick={()=>remove('kids',k as unknown as Entry)}>🗑</button></li>)}
   </ul>}
   {kids.length>0&&<KidsToday data={data} kids={kids} openSchedules={()=>openSettings('Schedules')}/>}
   {!kids.length&&<p className="wb-muted">No kids added yet. Add one to start tagging their assignments, exams, classes and events on your calendar.</p>}
@@ -148,9 +149,11 @@ export function Appearance({settings,setting}:{settings:SettingsData;setting:<K 
 /** Kids › Today: each kid's school day — the rotation day at a rotation school, and their classes today
  * (classes tagged with them, or every class in the school schedule set up as theirs). */
 function KidsToday({data,kids,openSchedules}:{data:AppData;kids:Kid[];openSchedules:()=>void}){
- const today=localDate(),rows=rotationNow(data,new Date())
+ const today=localDate(),now=new Date(),rows=rotationNow(data,now)
+ // A kid with a plan of their own: their school day comes from it (their school, their classes).
+ const ownPlan=(k:Kid)=>{const plan=planForKid(data,k.id);if(!plan)return null;const view={...data,activeProfileId:plan.id};return {school:rotationNow(view,now)[0],classes:classOccurrences(view,today)}}
  return <section className="kids-today" aria-label="Kids today"><h3>Today</h3><ul>{kids.map(k=>{
-  const school=rows.find(r=>r.kidId===k.id),classes=classOccurrences(data,today).filter(c=>classKid(c)===k.id&&c.block.kind!=='break'&&!c.block.skippedDates?.includes(today))
+  const mine=ownPlan(k),school=mine?.school??rows.find(r=>r.kidId===k.id),classes=[...(mine?.classes??[]),...classOccurrences(data,today).filter(c=>classKid(c)===k.id)].filter(c=>c.block.kind!=='break'&&!c.block.skippedDates?.includes(today)).sort((a,b)=>(a.displayStart??a.block.start).localeCompare(b.displayStart??b.block.start))
   return <li key={k.id} style={{'--kid-color':k.color} as CSSProperties}><KidAvatar kid={k}/><div><strong>{k.name}</strong>{school&&<small>{school.season.school!.name} · {school.closed?'No school':school.cycleDay}</small>}
    {classes.length?<ol className="kids-today-classes">{classes.map(c=><li key={c.id}><time>{classTime(c.displayStart??c.block.start)}</time> {c.block.label}</li>)}</ol>
    :<p className="wb-muted">{school?.closed?'No school today.':'No classes for '+k.name+' today. '}{!school&&<button type="button" className="link-button" onClick={openSchedules}>Add {k.name}’s school schedule</button>}</p>}</div></li>})}</ul></section>

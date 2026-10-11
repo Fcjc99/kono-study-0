@@ -280,6 +280,24 @@ test('a multi-codepoint emoji (a ZWJ family sequence, well past the old 8-char c
  assert.equal(normalized.kids[0].emoji,'\u{1F468}‍\u{1F469}‍\u{1F467}‍\u{1F466}')
 })
 
+test('Family plans: a kid’s own plan is made once, keeps the kid’s name and link, survives a save, and the parent PIN is kept only as a hash',()=>{
+ const fam=load('src/store/familyPlans.ts')
+ let {data,id:kidId}=withKid(model.createFreshData(),'Emma','#6a8fc7','🦄')
+ const parent=data.activeProfileId,kid=data.kids.find(k=>k.id===kidId)
+ assert.equal(fam.planForKid(data,kidId),undefined)
+ const made=fam.addKidPlan(data,kid);data=made.data
+ const plan=fam.planForKid(data,kidId);assert.equal(plan.id,made.id);assert.equal(plan.label,'Emma’s plan');assert.equal(plan.kidId,kidId)
+ assert.ok(data.sanctuaryProgress[plan.id],'the kid’s plan gets its own island')
+ assert.equal(fam.addKidPlan(data,kid).id,made.id,'made once')
+ assert.equal(data.activeProfileId,parent,'making it doesn’t switch by itself')
+ assert.equal(fam.kidPlans(data,parent).length,1);assert.equal(fam.kidOfPlan(data,plan).name,'Emma')
+ const saved=model.normalizeData(JSON.parse(JSON.stringify({...data,settings:{...data.settings,parentPin:'a'.repeat(64)}})))
+ assert.equal(saved.profiles.find(p=>p.id===plan.id).kidId,kidId,'the link survives a save')
+ assert.equal(saved.settings.parentPin,'a'.repeat(64))
+ assert.equal(model.normalizeData(JSON.parse(JSON.stringify({...data,settings:{...data.settings,parentPin:'1234'}}))).settings.parentPin,undefined,'a plain PIN is never kept')
+ assert.equal(fam.validPin('2468'),true);assert.equal(fam.validPin('12'),false);assert.equal(fam.validPin('12ab'),false)
+})
+
 let passed=0
 for(const t of tests){try{t.fn();passed++;console.log('PASS',t.name)}catch(e){console.error('FAIL',t.name);console.error(e);process.exitCode=1}}
 console.log(`${passed}/${tests.length} kid-tag regression groups passed.`)
