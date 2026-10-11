@@ -1,5 +1,5 @@
 import type {AppData,Kid} from './model'
-import {classOccurrences,isInClassNow} from './classSchedule'
+import {classKid,classOccurrences,isInClassNow} from './classSchedule'
 
 /** Reuses the same distinguishable, muted color set the rest of the app already leans on for
  * per-item accents, so a kid's color reads as consistent with the app's existing palette choices. */
@@ -28,7 +28,7 @@ export function kidItemsForDate(data:Pick<AppData,'tasks'|'exams'|'calendarEvent
  for(const t of data.tasks)if(t.profileId===profileId&&t.due===date&&visible(t.kidId))items.push({...tag(t.kidId),kind:'task',id:t.id,title:t.title,date,done:t.done})
  for(const e of data.exams)if(e.profileId===profileId&&e.due===date&&visible(e.kidId))items.push({...tag(e.kidId),kind:'exam',id:e.id,title:e.title,date,done:e.done})
  for(const ev of data.calendarEvents)if(ev.profileId===profileId&&ev.date===date&&visible(ev.kidId))items.push({...tag(ev.kidId),kind:'event',id:ev.id,title:ev.title,date,done:Boolean(ev.done),time:ev.time})
- for(const c of classOccurrences({activeProfileId:profileId,studySeasons:data.studySeasons},date)){if(!visible(c.block.kidId))continue;items.push({...tag(c.block.kidId),kind:'class',id:c.id,title:c.block.label,date,done:false,time:c.displayStart??c.block.start})}
+ for(const c of classOccurrences({activeProfileId:profileId,studySeasons:data.studySeasons},date)){if(!visible(classKid(c)))continue;items.push({...tag(classKid(c)),kind:'class',id:c.id,title:c.block.label,date,done:false,time:c.displayStart??c.block.start})}
  return items
 }
 
@@ -37,7 +37,7 @@ export function kidItemsForDate(data:Pick<AppData,'tasks'|'exams'|'calendarEvent
  * happening anywhere on the shared schedule. An untagged (no kidId) item is never suppressed this
  * way, since it isn't known to belong to any one kid's class. */
 const kidInClassNow=(data:Pick<AppData,'studySeasons'>,profileId:string,kidId:string|undefined,today:string,nowClock:string):boolean=>
- Boolean(kidId)&&isInClassNow(classOccurrences({activeProfileId:profileId,studySeasons:data.studySeasons},today).filter(c=>c.block.kidId===kidId),nowClock)
+ Boolean(kidId)&&isInClassNow(classOccurrences({activeProfileId:profileId,studySeasons:data.studySeasons},today).filter(c=>classKid(c)===kidId),nowClock)
 
 export type KidDueItem={id:string;title:string;due:string;done:boolean}
 

@@ -154,3 +154,43 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .undo-toast .undo-toast-feed span{flex:none;overflow:visible}
 .undo-toast .undo-toast-feed{text-transform:none!important}
 .undo-toast.has-snack>span{white-space:normal;overflow:visible}
+
+/* Home › Today at a rotation school (components/RotationToday): the day, the block now or next. */
+.rotation-today{display:grid;gap:8px;margin:8px 0}
+.rotation-today-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 12px;border-radius:14px;border:1.5px solid color-mix(in srgb,var(--wb-accent,#c76b8f) 30%,transparent);background:color-mix(in srgb,var(--wb-accent,#c76b8f) 6%,var(--wb-surface,#fffdf9))}
+.rotation-today-row.is-in-class{border-color:color-mix(in srgb,var(--wb-accent,#c76b8f) 60%,transparent)}
+.rotation-today-day{display:flex;flex-direction:column;min-width:64px}
+.rotation-today-day small{font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;opacity:.75}
+.rotation-today-day strong{font-size:1.25rem;line-height:1.1}
+.rotation-today-now{flex:1;min-width:180px;font-size:.92rem}
+.rotation-today-tag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.72rem;font-weight:800;text-transform:uppercase;background:var(--wb-accent,#c76b8f);color:#fff}
+.rotation-today .rotation-today-class{all:unset;cursor:pointer;font-weight:700;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+.rotation-today .rotation-today-wrong{min-height:32px!important;padding:0 10px!important;font-size:.8rem!important}
+.rotation-today-fix{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.rotation-today-fix label{display:flex;align-items:center;gap:6px}
+
+/* A class's page (components/ClassSheet). */
+.wb-class .wb-class-open{all:unset;cursor:pointer;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent);text-underline-offset:3px}
+.class-sheet{display:grid;gap:14px}
+.class-sheet h3{margin:0 0 6px;font-size:.95rem}
+.class-sheet-where{margin:0;opacity:.8}
+.class-sheet ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.class-sheet-next li{display:flex;gap:8px;align-items:baseline}
+.class-sheet-actions{display:flex;flex-wrap:wrap;gap:8px}
+.class-sheet-due li{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.class-sheet-due .is-late{color:#b3452f;font-weight:700}
+.class-sheet .class-sheet-note{all:unset;cursor:pointer;display:block}
+.class-sheet .class-sheet-subject{justify-self:start}
+
+/* Kids › Today (WorkspaceSettings › KidsToday). */
+.kids-today h3{margin:12px 0 6px}
+.kids-today>ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.kids-today>ul>li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:14px;border-left:4px solid var(--kid-color,#c76b8f);background:color-mix(in srgb,var(--kid-color,#c76b8f) 7%,var(--wb-surface,#fffdf9))}
+.kids-today>ul>li>div{display:grid;gap:4px}
+.kids-today small{opacity:.8}
+.kids-today-classes{margin:0;padding:0 0 0 2px;list-style:none;display:grid;gap:2px;font-size:.9rem}
+.kids-today-classes time{display:inline-block;min-width:4.6em;opacity:.75}
+/* Class names that open the class's page read as text links, not buttons (cozy buttons are pills). */
+.rotation-today .rotation-today-class,.wb-class .wb-class-open,.class-sheet .class-sheet-note{background:none!important;border:0!important;box-shadow:none!important;padding:0!important;min-height:0!important;height:auto!important;border-radius:0!important;font:inherit!important;color:inherit!important;text-transform:none!important;letter-spacing:inherit!important;transform:none!important;display:inline!important;text-align:left}
+.class-sheet .class-sheet-note{display:block!important}
+.class-sheet .class-sheet-note strong{font-weight:700}

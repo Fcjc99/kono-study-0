@@ -9,6 +9,7 @@ export function classSchedulePrompt(cycle: string[], text?: string, periods?: nu
   return `You are reading a student's class schedule${text ? ' (text copied from a PDF; table cells may be split across lines)' : ' from a photo'}. ` +
     `This schedule's days are named: ${cycle.map(d => JSON.stringify(d)).join(', ')}. ` +
     `Columns or rows headed like "D1", "D2 -" or "Day 1" are those rotation days. ` +
+    `If the schedule's days are rotation days ("D1", "Day 1"…) that aren't among the day names above, never turn them into weekdays: put them in days exactly as written. ` +
     `For every class that meets on a regular day and time, return one entry; when a class meets in the same period (or at the same time) on several days, return it once with all those days; list a lecture, discussion, lab or section that meets at a different time as its own entry. ` +
     `If the schedule only shows periods (like "P1-Period 1") and no clock times, return each class with its period and set start and end to null; never guess times. ` +
     (periods ? `This school has ${periods} periods (also called blocks) every day, numbered 1 to ${periods}, so each day has at most ${periods} classes in them; return each period as "Period N". ` : '') +
@@ -45,6 +46,7 @@ export function parseAiClassSchedule(raw: string, cycle: string[], start: string
   if (!Array.isArray(classes)) aiFail('The AI response was not in the expected format. Try again.')
   const byName = new Map(cycle.map(day => [day.toLowerCase(), day]))
   const rows: RotatingImportRow[] = []
+  let rotationDays = 0
   // Up to 14 rotation days × 8 periods, one entry per class and period (a 14-day middle-school matrix is 84).
   for (const item of (classes as unknown[]).slice(0, 120)) {
     if (!item || typeof item !== 'object') continue
@@ -55,11 +57,14 @@ export function parseAiClassSchedule(raw: string, cycle: string[], start: string
     if (!name || (!timed && !period)) continue
     const listed = Array.isArray(c.days) ? c.days.filter((d): d is string => typeof d === 'string') : []
     const days = [...new Set(listed.flatMap(d => byName.get(d.trim().toLowerCase()) ?? rotationDay(d, cycle) ?? weekdaysFrom(d, cycle)))]
+    if (!days.length && listed.some(d => /^\s*d(?:ay)?\s*-?\s*\d{1,2}\b/i.test(d))) rotationDays++
     const place = [words(c.building, 100), words(c.room, 40)].filter(Boolean).join(' ')
     const location = [place, words(c.teacher, 100)].filter(Boolean).join(' · ').slice(0, 160)
     const label = [code, name].filter(Boolean).join(' · ').slice(0, 200)
     for (const day of days) rows.push({ id: uid('import-block'), include: true, day, label, slot: timed ? code : period, start: timed ? from : '', end: timed ? to : '', dateStart: start, dateEnd: end, kind: 'study', location })
   }
+  // A rotation-day schedule (D1–D14) read for a Monday–Friday school: it's the wrong kind of school.
+  if (!rows.length && rotationDays) aiFail('This schedule uses rotation days (D1, D2…), not weekdays. Go back to step 1 and pick your school’s rotation option (like “Duxbury Middle School · 14-day rotation”), or set up a school with rotation days.')
   return rows
 }
 

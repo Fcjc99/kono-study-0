@@ -6,7 +6,7 @@ export const academicCatalog=[
  {id:'nda-2026',label:'NDA · 2026–27',kind:'school',revision:'2026-09-09',source:'School calendar supplied for 2026–27',url:''},
  {id:'hanover-2026',label:'Hanover High · Elevator 2026–27',kind:'school',revision:'2026-09-10',source:'Hanover calendar and elevator schedule supplied for 2026–27',url:''},
  {id:'silverlake-2026',label:'Silver Lake Regional · 2026–27',kind:'school',revision:'2026-09-12',source:'District-issued 2026-2027 School Calendar PDF (Silver Lake Regional School District & Superintendency Union #31)',url:''},
- {id:'duxbury-2026',label:'Duxbury Public Schools · 2026–27',kind:'school',revision:'2026-09-12',source:'District-issued 2026-2027 School Calendar PDF (Duxbury Public Schools)',url:''},
+ {id:'duxbury-2026',label:'Duxbury Public Schools · 2026–27 · elementary, Monday–Friday',kind:'school',revision:'2026-09-12',source:'District-issued 2026-2027 School Calendar PDF (Duxbury Public Schools)',url:''},
  {id:'duxburyms-2026',label:'Duxbury Middle School · 2026–27 · 14-day rotation',kind:'school',revision:'2026-10-10',source:'District-issued 2026-2027 School Calendar PDF (Duxbury Public Schools); 14-day rotation from a Grade 6 schedule',url:''},
  {id:'duxburyhs-2026',label:'Duxbury High School · 2026–27 · 7-day rotation',kind:'school',revision:'2026-09-12',source:'District-issued 2026-2027 School Calendar PDF (Duxbury Public Schools)',url:''},
  {id:'scituate-2026',label:'Scituate Public Schools · 2026–27',kind:'school',revision:'2026-09-12',source:'District-issued 2026-2027 Calendar PDF (Scituate Public Schools, approved 11.17.25)',url:''},

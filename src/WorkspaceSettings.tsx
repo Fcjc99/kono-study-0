@@ -2,7 +2,9 @@ import {useState,type CSSProperties,type FormEvent} from 'react'
 import Modal from './components/Modal'
 import {notificationsSupported} from './hooks/useDueNotifications'
 import {KID_COLORS} from './store/kids'
-import type {AppData,CalendarEventKind,Kid,KidBorderStyle,SettingsData} from './store/model'
+import {localDate,type AppData,type CalendarEventKind,type Kid,type KidBorderStyle,type SettingsData} from './store/model'
+import {classKid,classOccurrences,classTime} from './store/classSchedule'
+import {rotationNow} from './store/rotationToday'
 import type {Collection,Entry} from './store/workspace'
 import {TEAM_THEMES,teamThemeIds} from './teamThemes'
 import {cozyPalette,cozyPalettes,experienceOptions,fixedPaletteExperiences,type Page,type SettingsTab} from './workspaceShared'
@@ -70,6 +72,7 @@ export function KidsPage({data,create,edit,remove,patch,openSettings}:{openSetti
   {kids.length>0&&<ul className="kid-roster" aria-label="Kids">
    {kids.map(k=><li key={k.id} style={{'--kid-color':k.color} as CSSProperties}><KidAvatar kid={k}/><strong>{k.name}</strong><button type="button" onClick={()=>edit('kids',k as unknown as Entry)}>Edit</button><button type="button" className="kid-roster-remove" aria-label={'Move '+k.name+' to Trash'} title="Move to Trash" onClick={()=>remove('kids',k as unknown as Entry)}>🗑</button></li>)}
   </ul>}
+  {kids.length>0&&<KidsToday data={data} kids={kids} openSchedules={()=>openSettings('Schedules')}/>}
   {!kids.length&&<p className="wb-muted">No kids added yet. Add one to start tagging their assignments, exams, classes and events on your calendar.</p>}
   <p className="wb-muted">Reminders for your kids' events, and the family-wide look switches, live in Settings: <button type="button" className="link-button" onClick={()=>openSettings('Notifications')}>Notifications</button> · <button type="button" className="link-button" onClick={()=>openSettings('Family')}>Family</button></p>
   {appearanceOpen&&<KidAppearancePanel data={data} patch={patch} close={()=>setAppearanceOpen(false)}/>}
@@ -142,4 +145,13 @@ export function Appearance({settings,setting}:{settings:SettingsData;setting:<K 
   <div className="wb-form-grid"><label>Text size<select value={settings.textSize??'normal'} onChange={e=>void setting('textSize',e.target.value as SettingsData['textSize'])}><option value="normal">Normal</option><option value="large">Large</option></select></label><label>Spacing<select value={settings.density??'comfortable'} onChange={e=>void setting('density',e.target.value as SettingsData['density'])}><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label><label>Board background<select value={settings.boardStyle??'paper'} onChange={e=>void setting('boardStyle',e.target.value as SettingsData['boardStyle'])}><option value="paper">Cream paper</option><option value="cork">Cork</option><option value="plain">Plain</option></select></label><label className="wb-check"><input type="checkbox" checked={settings.decoration!==false} onChange={e=>void setting('decoration',e.target.checked)}/>Decorative details</label></div><p>Interface themes never recolor your Sanctuary artwork.</p></section>
 }
 
-
+/** Kids › Today: each kid's school day — the rotation day at a rotation school, and their classes today
+ * (classes tagged with them, or every class in the school schedule set up as theirs). */
+function KidsToday({data,kids,openSchedules}:{data:AppData;kids:Kid[];openSchedules:()=>void}){
+ const today=localDate(),rows=rotationNow(data,new Date())
+ return <section className="kids-today" aria-label="Kids today"><h3>Today</h3><ul>{kids.map(k=>{
+  const school=rows.find(r=>r.kidId===k.id),classes=classOccurrences(data,today).filter(c=>classKid(c)===k.id&&c.block.kind!=='break'&&!c.block.skippedDates?.includes(today))
+  return <li key={k.id} style={{'--kid-color':k.color} as CSSProperties}><KidAvatar kid={k}/><div><strong>{k.name}</strong>{school&&<small>{school.season.school!.name} · {school.closed?'No school':school.cycleDay}</small>}
+   {classes.length?<ol className="kids-today-classes">{classes.map(c=><li key={c.id}><time>{classTime(c.displayStart??c.block.start)}</time> {c.block.label}</li>)}</ol>
+   :<p className="wb-muted">{school?.closed?'No school today.':'No classes for '+k.name+' today. '}{!school&&<button type="button" className="link-button" onClick={openSchedules}>Add {k.name}’s school schedule</button>}</p>}</div></li>})}</ul></section>
+}

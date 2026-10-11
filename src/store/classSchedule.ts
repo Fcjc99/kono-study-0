@@ -3,6 +3,8 @@ import {schoolDay} from './schoolCalendar'
 import {addDays} from './studyScheduler'
 
 export type ClassOccurrence={displayStart?:string;displayEnd?:string;timePending?:boolean;id:string;date:string;day:string;season:StudySeason;block:ScheduleBlock}
+/** Whose class this is in parent mode: the class's own kid, or the kid whose school schedule it's in. */
+export const classKid=(c:Pick<ClassOccurrence,'block'|'season'>)=>c.block.kidId??c.season.kidId
 export function classOccurrences(data:Pick<AppData,'activeProfileId'|'studySeasons'>,date:string):ClassOccurrence[]{
  const weekday=dayNames[new Date(date+'T12:00:00').getDay()]
  if(!weekday)return []
