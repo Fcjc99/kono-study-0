@@ -53,3 +53,15 @@ export function moveToWhose<T extends {profileId:string;kidId?:string;subjectId?
  const subjectId=item.subjectId&&data.subjects.some(s=>s.id===item.subjectId&&s.profileId===profileId)?item.subjectId:''
  return {...item,profileId,kidId:plan?undefined:kidId,...(item.subjectId===undefined?{}:{subjectId})}
 }
+
+/** Renaming a plan: its name (the plan) and whose it is. A kid's plan renames the kid too (their tag in
+ * the family plan), and a plan still called “Emma’s plan” follows the new name. */
+export function renamePlan(data:AppData,profileId:string,change:{label:string;name:string}):AppData{
+ const plan=data.profiles.find(p=>p.id===profileId),label=change.label.trim().slice(0,200),name=change.name.trim().slice(0,200)
+ if(!plan)throw Error('That plan is gone.')
+ if(!name)throw Error(plan.kidId?'Add the kid’s name.':'Add whose plan it is.')
+ const kid=plan.kidId?data.kids.find(k=>k.id===plan.kidId):undefined
+ const nextLabel=label||(kid?name+'’s plan':plan.label)
+ const followLabel=kid&&plan.label===kid.name+'’s plan'&&label===plan.label?name+'’s plan':nextLabel
+ return {...data,profiles:data.profiles.map(p=>p.id===profileId?{...p,name,label:followLabel}:p),kids:kid?data.kids.map(k=>k.id===kid.id?{...k,name}:k):data.kids}
+}

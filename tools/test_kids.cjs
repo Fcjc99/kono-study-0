@@ -335,6 +335,21 @@ test('The family plan shows each kid’s own plan as theirs, saves “who it’s
  assert.throws(()=>fam.makeFamilyPlan(data,made.id),/own plans/)
 })
 
+test('Renaming plans: a parent’s plan gets a new name and owner; a kid’s plan renames the kid too, and “Emma’s plan” follows the new name',()=>{
+ const fam=load('src/store/familyPlans.ts')
+ let {data,id:emma}=withKid(model.createFreshData(),'Emma','#6a8fc7','🦄')
+ const parent=data.activeProfileId,made=fam.addKidPlan(data,data.kids.find(k=>k.id===emma));data=made.data
+ data=fam.renamePlan(data,parent,{label:'Our family',name:'Mom'})
+ assert.equal(data.profiles.find(p=>p.id===parent).label,'Our family');assert.equal(data.profiles.find(p=>p.id===parent).name,'Mom')
+ data=fam.renamePlan(data,made.id,{label:'Emma’s plan',name:'Em'})
+ assert.equal(data.kids.find(k=>k.id===emma).name,'Em','the kid is renamed everywhere')
+ assert.equal(data.profiles.find(p=>p.id===made.id).label,'Em’s plan','the default plan name follows')
+ data=fam.renamePlan(data,made.id,{label:'Middle school',name:'Em'})
+ assert.equal(data.profiles.find(p=>p.id===made.id).label,'Middle school','a chosen plan name stays')
+ assert.throws(()=>fam.renamePlan(data,parent,{label:'x',name:'  '}),/whose plan/)
+ assert.equal(model.normalizeData(JSON.parse(JSON.stringify(data))).kids.find(k=>k.id===emma).name,'Em')
+})
+
 let passed=0
 for(const t of tests){try{t.fn();passed++;console.log('PASS',t.name)}catch(e){console.error('FAIL',t.name);console.error(e);process.exitCode=1}}
 console.log(`${passed}/${tests.length} kid-tag regression groups passed.`)
