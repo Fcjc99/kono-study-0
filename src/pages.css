@@ -56,3 +56,12 @@
  .workbench .wb-music-bar:not(.is-playing){display:none!important}
 }
 @media (min-width:901px){.header-more-music{display:none!important}}
+
+/* Planner › Week: 1 day, 3 days or the whole week (PlannerCalendar). On a phone the whole week scrolls
+   sideways instead of squeezing seven columns. */
+.week-span{display:inline-flex;gap:4px;padding:3px;border-radius:999px;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 8%,var(--wb-surface,#fffdf9));margin:4px 0 6px}
+.week-span button{min-height:34px!important;padding:0 14px!important;border-radius:999px!important;font-size:.85rem!important;box-shadow:none!important;background:transparent!important;border:0!important}
+.week-span button[aria-pressed=true]{background:var(--wb-surface,#fff)!important;box-shadow:0 1px 4px rgb(0 0 0/.12)!important;font-weight:800}
+.week-grid-scroll{max-width:100%}
+.week-grid-scroll.is-wide{overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;border-radius:14px}
+.week-grid-scroll.is-wide .week-grid{min-width:calc(56px + var(--days,7) * 104px)}

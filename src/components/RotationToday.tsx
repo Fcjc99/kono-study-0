@@ -3,6 +3,7 @@ import type {AppData,Kid} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
 import {classTime} from '../store/classSchedule'
 import {correctRotation,rotationNow,type BlockNow} from '../store/rotationToday'
+import {kidPlans} from '../store/familyPlans'
 
 const inWords=(m:number)=>m<60?m+' min':Math.floor(m/60)+' h'+(m%60?' '+m%60+' min':'')
 const what=(b:BlockNow)=>(b.slot&&/^(Period|Block) /.test(b.slot)?b.slot.replace('Period','Block')+' · ':'')+b.label
@@ -10,10 +11,11 @@ const what=(b:BlockNow)=>(b.slot&&/^(Period|Block) /.test(b.slot)?b.slot.replace
 /** Home › Today at a rotation school: the rotation day, the block going on now or next (with a
  * countdown), and "Not Day 7?" to fix the day if the school's count is different. Parents see one line
  * for each kid's school. Updates every half minute. */
-export default function RotationToday({data,save,today,kids,onOpenClass}:{data:AppData;save:PlannerRepository['update'];today:string;kids:Kid[];onOpenClass?:(label:string)=>void}){
+export default function RotationToday({data,save,today,kids,onOpenClass,family=false}:{data:AppData;save:PlannerRepository['update'];today:string;kids:Kid[];onOpenClass?:(label:string)=>void;family?:boolean}){
  const [now,setNow]=useState(()=>new Date()),[fixing,setFixing]=useState(''),[picked,setPicked]=useState(''),[error,setError]=useState('')
  useEffect(()=>{const t=window.setInterval(()=>setNow(new Date()),30000);return()=>window.clearInterval(t)},[])
- const rows=rotationNow(data,now)
+ // A parent's plan also shows each kid's school day from the kid's own plan.
+ const rows=[...rotationNow(data,now),...(family?kidPlans(data,data.activeProfileId).flatMap(({kid,plan})=>rotationNow({...data,activeProfileId:plan.id},now).map(r=>({...r,kidId:kid.id}))):[])]
  if(!rows.length)return null
  const fix=async(seasonId:string)=>{
   setError('')
