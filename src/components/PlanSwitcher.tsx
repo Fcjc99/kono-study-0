@@ -2,7 +2,8 @@ import {useState,type CSSProperties} from 'react'
 import Modal from './Modal'
 import type {AppData} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
-import {addKidPlan,familyPlanId,hashPin,kidOfPlan,makeFamilyPlan,planForKid,validPin} from '../store/familyPlans'
+import {addKidPlan,familyPlanId,hashPin,kidOfPlan,makeFamilyPlan,planForKid,renamePlan,validPin} from '../store/familyPlans'
+import type {Profile} from '../store/model'
 
 /** "Whose plan?" (the plan chip in the top bar): the parent's own plan and each kid's plan, one tap to
  * switch. Handing the phone to a kid locks it to the kid's plan on this device in one tap, so it opens
@@ -45,7 +46,10 @@ export default function PlanSwitcher({data,save,close,lockedTo,setLock,onSwitch,
    {kids.map(k=>{const plan=planForKid(data,k.id);return <li key={k.id} style={{'--kid-color':k.color} as CSSProperties}><button type="button" className="is-kid" disabled={busy} aria-current={plan&&plan.id===active?.id?'true':undefined} onClick={()=>void openKid(k.id)}><strong>{(k.emoji?k.emoji+' ':'')+k.name+'’s plan'}</strong><small>{plan?'School, homework and island':'Make '+k.name+'’s own plan'}</small></button></li>})}
   </ul>
   {!kids.length&&<div className="plan-switcher-family"><p className="wb-muted">Planning for your kids too? Make this your family plan: add each kid, see everyone’s schedule here (tap names to show or hide them), and give each kid a plan of their own.</p><button type="button" onClick={()=>{close();onSetUpFamily()}}>👪 Set up my family</button></div>}
-  {active&&!active.kidId&&familyId&&active.id!==familyId&&<button type="button" className="plan-switcher-make-family" disabled={busy} onClick={()=>void save(d=>makeFamilyPlan(d,active.id))}>⭐ Make “{active.label}” the family plan</button>}
+  <details className="plan-switcher-manage"><summary>✎ Rename plans{familyId&&own.length>1?' · choose the family plan':''}</summary>
+   {familyId&&own.length>1&&<fieldset className="plan-switcher-family-pick"><legend>Family plan (shows everyone’s schedule)</legend>{own.map(p=><label key={p.id}><input type="radio" name="family-plan" checked={p.id===familyId} disabled={busy} onChange={()=>void save(d=>makeFamilyPlan(d,p.id))}/> ⭐ {p.label}</label>)}</fieldset>}
+   <ul className="plan-switcher-rename">{[...own,...data.profiles.filter(p=>p.kidId)].map(p=><PlanName key={p.id} plan={p} kid={!!p.kidId} save={change=>save(d=>renamePlan(d,p.id,change))}/>)}</ul>
+  </details>
   {own.length+kids.length>1&&<label className="plan-switcher-ask"><input type="checkbox" checked={askWho} onChange={e=>setAskWho(e.target.checked)}/> Ask “Who’s using KONO?” when it opens on this device</label>}
   {active?.kidId&&<section className="plan-switcher-hand" aria-label="Hand to kid">
    <p>Giving the phone to {kidOfPlan(data,active)?.name}? Lock it to this plan: it opens here and Settings stay hidden.</p>
@@ -58,4 +62,16 @@ export default function PlanSwitcher({data,save,close,lockedTo,setLock,onSwitch,
   </section>}
   {error&&<p role="alert">{error}</p>}
  </div></Modal>
+}
+
+/** One plan's names: what the plan is called, and whose it is (a kid's plan renames the kid too). */
+function PlanName({plan,kid,save}:{plan:Profile;kid:boolean;save:(change:{label:string;name:string})=>Promise<boolean>}){
+ const [label,setLabel]=useState(plan.label),[name,setName]=useState(plan.name),[error,setError]=useState(''),[saved,setSaved]=useState(false)
+ const changed=label.trim()!==plan.label||name.trim()!==plan.name
+ const submit=async()=>{setError('');setSaved(false);try{if(await save({label,name}))setSaved(true)}catch(e){setError(e instanceof Error?e.message:'Could not rename it.')}}
+ return <li><form onSubmit={e=>{e.preventDefault();void submit()}}>
+  <label>{kid?'Kid’s name':'Whose plan'}<input maxLength={200} required value={name} onChange={e=>{setName(e.target.value);setSaved(false)}} aria-label={(kid?'Kid’s name':'Whose plan')+' · '+plan.label}/></label>
+  <label>Plan name<input maxLength={200} value={label} onChange={e=>{setLabel(e.target.value);setSaved(false)}} aria-label={'Plan name · '+plan.label}/></label>
+  <button type="submit" disabled={!changed||!name.trim()}>Save</button>{saved&&<small role="status">Saved</small>}{error&&<small role="alert">{error}</small>}
+ </form></li>
 }

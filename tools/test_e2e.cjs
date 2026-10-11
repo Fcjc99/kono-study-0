@@ -2690,10 +2690,11 @@ test('Family plans: a parent makes a kid’s own plan from Kids, the kid’s pla
  assert.match(cloud.users.alice.plan.data.settings.parentPin,/^[0-9a-f]{64}$/,'only the PIN’s hash is saved')
 })
 
-test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as hers, names tap on and off, Kids today sums each kid up, an event for Emma lands in her plan, and “Who’s using KONO?” opens a shared device on the right plan',async({context,page})=>{
+test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as hers, names tap on and off, Kids today sums each kid up, an event for Emma lands in her plan, “Who’s using KONO?” opens a shared device on the right plan, plans can be renamed and the family plan can be another plan',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.setFixedTime(new Date('2026-10-13T08:00:00')) // a Tuesday
  d.profiles.push({id:'plan-emma',name:'Emma',label:'Emma’s plan',kind:'school',start:'2026-09-01',end:'2027-06-30',kidId:'kid-emma'})
+ d.profiles.push({id:'plan-work',name:'Alice',label:'Work',kind:'custom',start:'2026-09-01',end:'2027-06-30'})
  d.tasks.push({id:'emma-hw',profileId:'plan-emma',subjectId:'',title:'Spelling list',due:'2026-10-13',done:false,notes:''},{id:'leo-hw',profileId:pid,subjectId:'',kidId:'kid-leo',title:'Science poster',due:'2026-10-13',done:false,notes:''},{id:'mine',profileId:pid,subjectId:'',title:'Pay school fees',due:'2026-10-13',done:false,notes:''},{id:'emma-due',profileId:'plan-emma',subjectId:'',title:'Book report',due:'2026-10-14',done:false,notes:''})
  d.exams.push({id:'emma-test',profileId:'plan-emma',subjectId:'',title:'Fractions quiz',due:'2026-10-15',done:false,notes:''})
  await signInAs(context,cloud,'alice')
@@ -2727,15 +2728,30 @@ test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as
  await page.getByRole('button',{name:'Whose plan?'}).first().click()
  const sheet=page.getByRole('dialog',{name:'Whose plan?'})
  assert.match(await sheet.getByRole('button',{name:/My study plan/}).innerText(),/Family plan/)
+ // Rename plans and pick the family plan, right in the sheet.
+ await sheet.getByText(/^✎ Rename plans/).click()
+ await sheet.getByLabel('Kid’s name · Emma’s plan').fill('Em')
+ await sheet.getByRole('listitem').filter({has:page.getByLabel('Kid’s name · Emma’s plan')}).getByRole('button',{name:'Save'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.kids.find(k=>k.id==='kid-emma')?.name==='Em'&&cloud.users.alice.plan.data.profiles.find(p=>p.id==='plan-emma').label==='Em’s plan','renaming Emma never reached the account')
+ await sheet.getByLabel('Whose plan · My study plan').fill('Mom')
+ await sheet.getByLabel('Plan name · My study plan').fill('Our family')
+ await sheet.getByRole('listitem').filter({has:page.getByLabel('Plan name · My study plan')}).getByRole('button',{name:'Save'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.profiles.find(p=>p.id===pid).label==='Our family','renaming my plan never reached the account')
  await sheet.getByLabel('Ask “Who’s using KONO?” when it opens on this device').check()
  await sheet.getByRole('button',{name:'Close'}).click()
  const fresh=await context.newPage();await fresh.clock.setFixedTime(new Date('2026-10-13T08:00:00'))
  await fresh.goto(BASE)
  const who=fresh.getByRole('dialog',{name:'Who’s using KONO?'})
- await who.getByRole('button',{name:/Emma/}).click()
+ await who.getByRole('button',{name:/^Em\b/}).click()
  await fresh.getByRole('button',{name:'Whose plan?'}).first().waitFor()
  await fresh.locator('.tomorrow-extra-list').getByText('Spelling list',{exact:true}).waitFor()
  assert.equal(await fresh.getByRole('region',{name:'Kids today'}).count(),0,'Emma’s plan has no parent tools')
+ // The family plan can be another of my plans: the kids go with it.
+ await page.getByRole('button',{name:'Whose plan?'}).first().click()
+ await sheet.getByText(/^✎ Rename plans/).click()
+ await sheet.getByRole('group',{name:/Family plan/}).getByLabel('⭐ Work').check()
+ await waitFor(()=>cloud.users.alice.plan.data.kids.every(k=>k.profileId==='plan-work'),'the kids never moved to the Work plan')
+ assert.match(await sheet.getByRole('button',{name:/^Work/}).innerText(),/Family plan/)
 })
 
 test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone a swipe goes to the next days and the whole week scrolls sideways',async({context,page})=>{

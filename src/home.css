@@ -229,3 +229,11 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .kids-glance-facts{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.9rem;font-weight:600}
 .kids-glance-facts .is-late{color:#b2384f}
 .workbench .rotation-today-calendar{justify-self:start;background:none!important;border:0!important;box-shadow:none!important;min-height:0!important;padding:2px 0!important;text-decoration:underline;font-weight:600;font-size:.88rem;color:inherit!important}
+.plan-switcher-manage summary{cursor:pointer;font-weight:700}
+.plan-switcher-manage[open]{display:grid;gap:10px}
+.plan-switcher-family-pick{display:grid;gap:6px;border:1px solid var(--wb-line,#e3d7da);border-radius:12px;padding:8px 12px;margin:8px 0 0}
+.plan-switcher-family-pick label{display:flex!important;align-items:center;gap:8px;font-weight:600}
+.plan-switcher-family-pick input{width:auto!important;margin:0}
+.plan-switcher-rename{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.plan-switcher-rename form{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end}
+@media (max-width:560px){.plan-switcher-rename form{grid-template-columns:1fr}}
