@@ -38,6 +38,13 @@ export function repeatDates(start:string,repeat:Repeat,until:string):string[]{
  return out
 }
 
+/** Practice every Tuesday and Thursday: the dates after `start` up to `until` on those weekdays (0 = Sunday). */
+export function weekdayDates(start:string,days:number[],until:string):string[]{
+ const out:string[]=[]
+ if(!days.length||!start||!until||until<=start)return out
+ for(let date=addDays(start,1);date<=until&&out.length<MAX_REPEATS;date=addDays(date,1))if(days.includes(weekday(date)))out.push(date)
+ return out
+}
 /** A copy of `event` on `date`, in the same series. */
 export function repeatCopy(event:CalendarEvent,date:string,recurringId:string):CalendarEvent{
  const copy:CalendarEvent={...event,id:uid('event'),date,done:false,recurringId}
@@ -48,7 +55,7 @@ export function repeatCopy(event:CalendarEvent,date:string,recurringId:string):C
 /** Which of a series a change goes to: just this one, this and the ones after it, or all of them. */
 export type SeriesScope='one'|'following'|'all'
 /** What a change to one event carries to the rest of its series (not the date). */
-const SHARED=['title','subjectId','kidId','kind','time','endTime','notes'] as const
+const SHARED=['title','subjectId','kidId','kidIds','kind','time','endTime','notes','driver'] as const
 export function applyToSeries(events:CalendarEvent[],edited:CalendarEvent,from:string,scope:SeriesScope):CalendarEvent[]{
  if(scope==='one'||!edited.recurringId)return events
  return events.map(e=>{

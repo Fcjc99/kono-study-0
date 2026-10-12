@@ -1,6 +1,8 @@
 import {useEffect,useRef,useState} from 'react'
 import {useDraftState} from '../hooks/useDraftState'
-import {uid,dayNames,normalizeData,type AppData,type StudySeason,type ScheduleBlock} from '../store/model'
+import {uid,dayNames,normalizeData,peopleOf,type AppData,type StudySeason,type ScheduleBlock} from '../store/model'
+// Setting up a school replaces an earlier one for the same students: both for me, or sharing a kid.
+const samePeople=(a:{kidId?:string;kidIds?:string[]},b:{kidId?:string;kidIds?:string[]})=>{const x=peopleOf(a),y=peopleOf(b);return !x.length&&!y.length||x.some(id=>y.includes(id))}
 import {isCollegeCalendar,schoolDay,validateSchool,type SchoolCalendar,type SchoolException} from '../store/schoolCalendar'
 import {academicCatalog,academicTemplate,refreshAcademicTemplate} from '../store/academicCatalog'
 import {schoolPreset} from '../store/schoolPresets'
@@ -37,7 +39,9 @@ export default function SchoolCalendarPanel({data,save,draftKey,flow='school',fe
  const rightSchool=draft?.school?.catalogId==='duxbury-2026'&&/^(6|7|8|9|10|11|12)$/.test(draft.school.grade)?(Number(draft.school.grade)<=8?{id:'duxburyms-2026',name:'Duxbury Middle School',days:'a 14-day rotation (D1–D14)'}:{id:'duxburyhs-2026',name:'Duxbury High School',days:'a 7-day rotation'}):null
  const switchBanner=draft&&rightSchool&&<section className="wb-notice school-switch" role="alert" aria-label="Switch school"><p><strong>Grade {draft.school?.grade} goes to {rightSchool.name}</strong>, which uses {rightSchool.days}, not the Monday–Friday elementary calendar. Its bell times fill in for you.</p><button type="button" className="primary" onClick={()=>{const next=academicTemplate(data.activeProfileId,rightSchool.id);begin({...next,id:draft.id,kidId:draft.kidId,school:{...next.school!,grade:draft.school!.grade}},'questions',guided)}}>Switch to {rightSchool.name}</button></section>
  const kids=data.settings.parentMode?data.kids.filter(k=>k.profileId===data.activeProfileId):[]
- const kidChoice=draft&&kids.length>0&&<section className="rotation-question" aria-label="Whose school"><h3>Whose school is this?</h3><label>Student<select value={draft.kidId??''} onChange={e=>change({...draft,kidId:e.target.value||undefined})}><option value="">Me</option>{kids.map(k=><option key={k.id} value={k.id}>{(k.emoji?k.emoji+' ':'')+k.name}</option>)}</select></label></section>
+ const whose=draft?peopleOf(draft):[]
+ const setWhose=(ids:string[])=>draft&&change({...draft,kidId:ids[0],kidIds:ids.length>1?ids:undefined})
+ const kidChoice=draft&&kids.length>0&&<section className="rotation-question" aria-label="Whose school"><h3>Whose school is this?</h3><fieldset className="whose-pick"><legend>Students (siblings at the same school share one setup)</legend><label><input type="checkbox" checked={!whose.length} onChange={()=>setWhose([])}/> Me</label>{kids.map(k=><label key={k.id}><input type="checkbox" checked={whose.includes(k.id)} onChange={()=>setWhose(whose.includes(k.id)?whose.filter(x=>x!==k.id):[...whose,k.id])}/> {(k.emoji?k.emoji+' ':'')+k.name}</label>)}</fieldset></section>
  const commit=async()=>{
   // The guide's grid is its review; the full editor asks for the checkbox.
   if(!draft?.school||busy||(!reviewed&&!guided))return
@@ -58,7 +62,7 @@ export default function SchoolCalendarPanel({data,save,draftKey,flow='school',fe
      b.subjectId=subject.id
     }
     // A new school replaces the one it overlaps for the same person (each of a parent's kids keeps theirs).
-    result.studySeasons=result.studySeasons.filter(s=>s.id!==next.id).map(s=>s.profileId===next.profileId&&s.school&&next.active&&(s.kidId??'')===(next.kidId??'')&&s.start<=next.end&&s.end>=next.start?{...s,active:false}:s)
+    result.studySeasons=result.studySeasons.filter(s=>s.id!==next.id).map(s=>s.profileId===next.profileId&&s.school&&next.active&&samePeople(s,next)&&s.start<=next.end&&s.end>=next.start?{...s,active:false}:s)
     result.studySeasons.push(next);return normalizeData(result)
    })
    if(ok){setDraft(null);setBase(null);setGuided(false);setMessage('Schedule saved. Calendar and Today now follow its classes and exceptions.');if(!next.school!.catalogId&&!base)setInvite(next);if(guided)onSaved?.()}else setError('Not saved yet. Your draft is still here.')

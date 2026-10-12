@@ -1,7 +1,7 @@
 import {Fragment,Suspense,lazy,useEffect,useMemo,useRef,useState,type CSSProperties,type PointerEvent,type ReactNode,type SetStateAction,type TouchEvent} from 'react'
 import {deleteProfile} from './store/deleteProfile'
 import {usePlannerRepository} from './store/repository'
-import {uid,localDate,eventCategory,peopleOf,type AppData,type SettingsData,type Subtask,type CalendarEvent,type CalendarEventKind,type Kid} from './store/model'
+import {uid,localDate,eventCategory,peopleOf,type AppData,type SettingsData,type Subtask,type CalendarEvent,type Kid} from './store/model'
 import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems} from './store/kids'
 import {collections,records,titleOf,equal,removeEntry,restoreEntry,completeTask,type Collection,type Entry} from './store/workspace'
 import {calendarTasks,addDays} from './store/studyScheduler'
@@ -10,7 +10,7 @@ import {classifyVoiceInput} from './store/voiceIntake'
 import {useSpeechToText} from './hooks/useSpeechToText'
 import {syncCurrentTaskCompletion,createSanctuaryProgress} from './game/progression/progressionEngine'
 import {konoMood} from './store/konoMood'
-import {addCareEvent,ALL_TREATS,treatFor,type Treat,ASLEEP_LINE,AWAY_LINE,bedtime,careMeters,favoriteSnack,fedLine,HELLO_LINE,HIGH_FIVE_MS,highFiveLine,isAwayVisit,nextPlayAt,pantry,PET_EVERY_MS,PET_LINES,PLAY_LINES,tasted,tasteEventId,tasteLine,TICKLE_LINES,type CareEvent} from './store/konoCare'
+import {addCareEvent,ALL_TREATS,waitingGifts,treatFor,type Treat,ASLEEP_LINE,AWAY_LINE,bedtime,careMeters,favoriteSnack,fedLine,HELLO_LINE,HIGH_FIVE_MS,highFiveLine,isAwayVisit,nextPlayAt,pantry,PET_EVERY_MS,PET_LINES,PLAY_LINES,tasted,tasteEventId,tasteLine,TICKLE_LINES,type CareEvent} from './store/konoCare'
 import {dayGlance} from './store/dayGlance'
 import {OUTFITS,outfitsOffered,todaysWish,unlockedOutfits,wardrobeStats,wishEvent,wishGrantedOn,wishProgress,wishText,wornOutfit,type OutfitId} from './store/konoWardrobe'
 import KonoFace from './components/KonoFace'
@@ -32,7 +32,7 @@ import {usePushReminders} from './hooks/usePushReminders'
 import {useLinkedCalendars} from './hooks/useLinkedCalendars'
 import {useLiveSanctuaryWeather} from './hooks/useLiveSanctuaryWeather'
 import ClassOccurrenceCard from './components/ClassOccurrenceCard'
-import {classKid,classOccurrences,classTime,type ClassOccurrence} from './store/classSchedule'
+import {classOccurrences,classTime,type ClassOccurrence} from './store/classSchedule'
 // Styles of the on-demand panels below stay in the startup CSS, in their original cascade position:
 // several of them also style shared classes (.wb-toolbar, .wb-calendar, .school-day-label, …).
 import './components/schedule-import.css'
@@ -60,6 +60,8 @@ const ClassSheet=lazy(()=>import('./components/ClassSheet'))
 const PlanSwitcher=lazy(()=>import('./components/PlanSwitcher'))
 const WhoIsUsing=lazy(()=>import('./components/WhoIsUsing'))
 const KidsGlance=lazy(()=>import('./components/KidsGlance'))
+const Pickups=lazy(()=>import('./components/Pickups'))
+const FamilyTodos=lazy(()=>import('./components/FamilyTodos'))
 /** Holds the tour's place while its code loads, so nothing below jumps when it arrives. */
 const TourPlaceholder=()=><section className="wb-panel welcome-tour is-loading" aria-hidden="true"/>
 const AccountPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.AccountPanel})))
@@ -116,6 +118,7 @@ import {readLinked} from './store/linkedCalendars'
 import {currentPushSubscription} from './store/pushDevice'
 import {weekDrop} from './store/weekDrop'
 import {shiftAt} from './store/workShifts'
+import {repeatCopy,weekdayDates} from './store/eventRepeat'
 import {addKidPlan,familyView,kidPlanView,moveToWhose} from './store/familyPlans'
 import {teamJersey} from './teamThemes'
 import AddToCalendar,{type AddChoice,type AddChoiceId} from './components/AddToCalendar'
@@ -264,7 +267,10 @@ function Workspace({store}:{store:Store}){
  const reduced=useReducedMotion(data.settings),music=useMusicController(data.settings.ambient)
  const weather=useLiveSanctuaryWeather({mode:data.settings.sanctuaryWeatherMode,location:data.settings.sanctuaryWeatherLocations[profile.id]??'',manualWeather:data.settings.sanctuaryWeather})
  const releaseLabel=APP_VERSION.includes('production-')?APP_VERSION.split('production-')[1]:APP_VERSION
- const ownTasks=data.tasks.filter(t=>t.profileId===profile.id),plans=data.studyPlans.filter(p=>p.profileId===profile.id),tasks=calendarTasks(ownTasks,plans)
+ // A kid's own plan also holds what the family plan has for them: their homework from there counts as
+ // theirs (KONO's snacks, wishes, stickers).
+ const kidView=profile.kidId?kidPlanView(data,profile.id):null
+ const ownTasks=(kidView?.data??data).tasks.filter(t=>t.profileId===profile.id),plans=data.studyPlans.filter(p=>p.profileId===profile.id),tasks=calendarTasks(ownTasks,plans)
  const sanctuaryProgress=syncCurrentTaskCompletion(data.sanctuaryProgress[profile.id]??createSanctuaryProgress(profile.id),ownTasks)
  // A day only ever counts once it's actually logged a completion -- if today has none yet, look at
  // yesterday first so an in-progress day doesn't read as a broken streak before it's even over.
@@ -301,7 +307,7 @@ function Workspace({store}:{store:Store}){
  // Back after a couple of hours (but not a trip): KONO waves hello.
  const [helloVisit]=useState(()=>{try{const last=Number(localStorage.getItem(visitKey));return last>0&&Date.now()-last>2*3_600_000&&!isAwayVisit(last,new Date())}catch{return false}})
  useEffect(()=>{try{localStorage.setItem(visitKey,String(Date.now()))}catch{/* Storage unavailable: no homecoming line. */}},[visitKey,today])
- const meters=careMeters(careLog,ownTasks,careNow,awayVisit&&!careLog.some(e=>Date.parse(e.at)>careNow.getTime()-3_600_000)),snacks=pantry(ownTasks,careLog,careNow)
+ const meters=careMeters(careLog,ownTasks,careNow,awayVisit&&!careLog.some(e=>Date.parse(e.at)>careNow.getTime()-3_600_000)),snacks=pantry(ownTasks,careLog,careNow),gift=waitingGifts(careLog,careNow)[0],giftTreat=gift?ALL_TREATS.find(t=>t.id===gift.item):undefined
  const [careMoment,setCareMoment]=useState<CareMomentValue|null>(null)
  // A fresh value makes the island's KONO play a one-off celebration (GardenCard's celebrateSignal),
  // bumped together with KONO's speech bubble so the reaction and the phrase fire at once.
@@ -482,7 +488,7 @@ function Workspace({store}:{store:Store}){
  const parentMode=data.settings.parentMode===true&&!profile.kidId
  // Family plans (store/familyPlans): switching plans, and this device's lock to a kid's plan.
  const [planLock,setPlanLock]=useLocalSetting('kono-plan-lock','')
- const [plansOpen,setPlansOpen]=useState(false)
+ const [plansOpen,setPlansOpen]=useState(false),[pickupsOpen,setPickupsOpen]=useState(false)
  // "Who's using KONO?" on a shared device: asked once each time KONO opens (not while it's locked).
  const [askWho,setAskWho]=useLocalSetting('kono-ask-who','')
  const [whoOpen,setWhoOpen]=useState(()=>{try{return askWho==='1'&&!sessionStorage.getItem('kono-who-asked')}catch{return false}})
@@ -499,9 +505,9 @@ function Workspace({store}:{store:Store}){
  const categoryVisible=(category:'academic'|'sports'|'appointments')=>category==='academic'?showAcademic:category==='sports'?showSports:showAppointments
  // The family plan's Home and Planner also show what's in each kid's own plan, as that kid's.
  // A kid's plan, the other way round: what the family plan has tagged for them.
- const family=parentMode?familyView(data,profile.id):profile.kidId?kidPlanView(data,profile.id):null
+ const family=parentMode?familyView(data,profile.id):kidView
  const view=family?.data??data
- const viewTasks=family?.home.size?[...tasks,...view.tasks.filter(t=>family.home.has(t.id))]:tasks
+ const viewTasks=parentMode&&family?.home.size?[...tasks,...view.tasks.filter(t=>family.home.has(t.id))]:tasks
  // Whose things show (Home and Planner, parent mode): Me and each kid, tapped on and off, per device.
  const [hiddenPeopleRaw,setHiddenPeopleRaw]=useLocalSetting('kono-hidden-people:'+profile.id,'')
  const hiddenPeople=new Set(parentMode?hiddenPeopleRaw.split(',').filter(Boolean):[])
@@ -512,7 +518,7 @@ function Workspace({store}:{store:Store}){
  const showOnly=(id:string)=>setHiddenPeopleRaw(onlyShown===id?'':peopleIds.filter(x=>x!==id).join(','))
  const myName=profile.name.trim()&&profile.name!=='Learner'?profile.name.trim():'Me'
  const peopleFilter=parentMode&&profileKids.length>0?<div className="people-filter" role="group" aria-label="Whose things to show"><button type="button" className="people-filter-all" aria-pressed={!hiddenPeople.size} onClick={()=>setHiddenPeopleRaw('')}>Everyone</button>{[{id:'me',name:myName,emoji:'',color:'var(--wb-accent,#c76b8f)'},...profileKids].map(k=><button type="button" key={k.id} aria-pressed={!hiddenPeople.has(k.id)} title={onlyShown===k.id?'Show everyone':'Show only '+k.name} style={{'--kid-color':k.color} as CSSProperties} onClick={()=>showOnly(k.id)}><i aria-hidden="true"/>{(k.emoji?k.emoji+' ':'')+k.name}</button>)}</div>:null
- const scheduleClasses=(date:string)=>classOccurrences(view,date).filter(c=>categoryVisible(c.season.category??'academic')&&personShown(classKid(c)))
+ const scheduleClasses=(date:string)=>classOccurrences(view,date).filter(c=>categoryVisible(c.season.category??'academic')&&personShown(c.block.kidId?c.block:c.season))
  const scheduleViewPicker=<div className="schedule-view-picker" role="group" aria-label="Schedule view"><label><input type="checkbox" checked={showAcademic} onChange={e=>void setting('scheduleShowAcademic',e.target.checked)}/> Academics</label><label><input type="checkbox" checked={showSports} onChange={e=>void setting('scheduleShowSports',e.target.checked)}/> Sports</label><label><input type="checkbox" checked={showAppointments} onChange={e=>void setting('scheduleShowAppointments',e.target.checked)}/> Appointments</label></div>
  const navigate=(next:Page)=>{const url=new URL(location.href);url.searchParams.set('page',next.toLowerCase());history.pushState(null,'',url);setPage(next);setMore(false);if(next!=='Planner')setAddOpen(false);window.scrollTo({top:0})}
  const startFocusSession=(taskId:string,estimatedMinutes?:number,label?:string)=>{
@@ -589,10 +595,13 @@ function Workspace({store}:{store:Store}){
    :item.key==='exams'?{...d,exams:[...d.exams,{...base,due:date}]}
    :{...d,calendarEvents:[...d.calendarEvents,{...base,date,kind:item.eventKind??'personal',...(item.time?{time:item.time,endTime:end}:{})}]}),'Added “'+item.title+'” for '+dateLabel(date)+'.',true)
  }
- const quickAddFamilyEvent=async(date:string,payload:{title:string;kind:CalendarEventKind;kidIds:string[];time?:string;endTime?:string}):Promise<boolean>=>{
+ const quickAddFamilyEvent=async(date:string,payload:Screens.QuickFamilyPayload):Promise<boolean>=>{
   try{
-   const saved=await save(d=>({...d,calendarEvents:[...d.calendarEvents,moveToWhose(d,{id:uid('event'),profileId:profile.id,date,title:payload.title,kind:payload.kind,time:payload.time,endTime:payload.endTime,notes:'',done:false} as CalendarEvent,profile.id,payload.kidIds)]}))
-   setMessage(saved?'Added to the family calendar.':'Not saved yet. Check the save status; your working copy is preserved.')
+   // Repeats (practice every Tue & Thu): one event per date, linked as a series.
+   const dates=weekdayDates(date,payload.repeatDays,payload.until),recurringId=dates.length?uid('recurring'):undefined
+   const base=moveToWhose(data,{id:uid('event'),profileId:profile.id,date,title:payload.title,kind:payload.kind,time:payload.time,endTime:payload.endTime,notes:'',done:false,...(payload.driver?{driver:payload.driver}:{}),...(recurringId?{recurringId}:{})} as CalendarEvent,profile.id,payload.kidIds)
+   const saved=await save(d=>({...d,calendarEvents:[...d.calendarEvents,base,...dates.map(x=>repeatCopy(base,x,recurringId!))]}))
+   setMessage(saved?(dates.length?'Added '+(dates.length+1)+' dates to the family calendar.':'Added to the family calendar.'):'Not saved yet. Check the save status; your working copy is preserved.')
    return saved
   }catch(e){setMessage(e instanceof Error?e.message:'Could not save.');return false}
  }
@@ -855,6 +864,7 @@ function Workspace({store}:{store:Store}){
    <div ref={pageScope} className="wb-page">
    {message&&<p role="status" className="wb-notice">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></p>}
    {plansOpen&&<Suspense fallback={null}><PlanSwitcher data={data} save={save} close={()=>setPlansOpen(false)} lockedTo={lockedPlan} setLock={setPlanLock} onSwitch={switchPlan} askWho={askWho==='1'} setAskWho={on=>{setAskWho(on?'1':'');try{sessionStorage.setItem('kono-who-asked','1')}catch{/* fine */}}} onSetUpFamily={()=>{void setting('parentMode',true);navigate('Kids')}}/></Suspense>}
+   {pickupsOpen&&<Suspense fallback={null}><Pickups data={view} profileId={profile.id} today={today} close={()=>setPickupsOpen(false)} onOpen={e=>edit('calendarEvents',e as unknown as Entry)}/></Suspense>}
    {whoOpen&&!lockedPlan&&<Suspense fallback={null}><WhoIsUsing data={data} close={closeWho} onPick={switchPlan}/></Suspense>}
    {classSheet&&<Suspense fallback={null}><ClassSheet item={classSheet} data={data} today={today} close={()=>setClassSheet(null)} onAdd={(kind,date,subjectId)=>create(kind,date,subjectId)} onToggleTask={id=>{const t=data.tasks.find(x=>x.id===id);if(t)toggle('tasks',t as unknown as Entry)}} onOpenNote={id=>{const n=data.notes.find(x=>x.id===id);if(n)edit('notes',n as unknown as Entry)}} onOpenSubject={id=>{setSubject(id);setSubjectTab('Assignments');navigate('Subjects')}}/></Suspense>}
    {undoToast&&<div className={'undo-toast'+(undoToast.snack?' has-snack':'')} role="status" key={undoToast.at}><span>{undoToast.text}{undoToast.snack&&meters.asleep&&<small className="undo-toast-snack"> · KONO earned {undoToast.snack.treat.emoji} for the morning</small>}</span>{undoToast.snack&&!meters.asleep&&<button type="button" className="undo-toast-feed" aria-label={'Feed KONO the '+undoToast.snack.treat.name+' you earned'} onClick={()=>{const id=undoToast.snack!.taskId;setUndoToast(null);feedKono(id)}}><span aria-hidden="true">{undoToast.snack.treat.emoji}</span> Feed KONO</button>}{repository.canUndo&&<button type="button" onClick={()=>{setUndoToast(null);void run(repository.undo,'Undone.')}}>Undo</button>}<button type="button" className="undo-toast-close" aria-label="Dismiss" onClick={()=>setUndoToast(null)}>×</button></div>}
@@ -879,7 +889,7 @@ function Workspace({store}:{store:Store}){
       {careAction}
      </div>
      <div className="kono-bar-tools"><button type="button" className="next-up-open" aria-label="What should I do now?" aria-expanded={nextUpOpen} onClick={()=>{setAskOpen(false);setNextUpOpen(v=>!v)}}><span aria-hidden="true">▶</span> Next</button><button type="button" className="ask-kono-open" aria-label="Ask KONO" aria-expanded={askOpen} onClick={()=>{setNextUpOpen(false);setKonoPhrase(null);setAskOpen(v=>!v)}}><span aria-hidden="true">🗣️</span> Ask</button></div></div>
-     <p className="kono-bar-notes">{note&&<span className={'kono-note is-'+note.kind} role="status">{noteText(note)}{note.kind==='ask'&&<span className="kono-note-choices" role="group" aria-label={'How did '+note.test.title+' go?'}>{MOODS.map(m=><button type="button" key={m.mood} aria-label={m.label} title={m.label} onClick={()=>answerTest(note.test,m.mood)}>{m.emoji}</button>)}</span>}{note.kind==='nudge'&&<span className="kono-note-choices"><button type="button" onClick={()=>{answerNudge(true);startFocusSession(note.item.exam?'':note.item.id,note.item.minutes,note.item.exam?note.item.title:undefined)}}>Start</button><button type="button" onClick={()=>answerNudge(false)}>Not now</button></span>}</span>}<span className={'kono-wish'+(wishGranted?' is-granted':'')}>{wishGranted?'✨ Today’s wish came true.':'✨ KONO wishes you’d '+wishText(wish)+(wish.goal>1?' · '+wishDone+'/'+wish.goal:'')}</span>{!note&&!snacks.length&&meters.full<45&&!bed.tucked&&<span className="kono-care-hint">🍙 Finish something to earn KONO a snack</span>}</p>
+     <p className="kono-bar-notes">{gift&&<span className="kono-note is-gift" role="status">🎁 {gift.from||'Your family'} sent KONO {giftTreat?(giftTreat.name==='boba tea'?'':'a ')+giftTreat.name+' '+giftTreat.emoji:'a snack'}{gift.note?': “'+gift.note+'”':''}</span>}{note&&<span className={'kono-note is-'+note.kind} role="status">{noteText(note)}{note.kind==='ask'&&<span className="kono-note-choices" role="group" aria-label={'How did '+note.test.title+' go?'}>{MOODS.map(m=><button type="button" key={m.mood} aria-label={m.label} title={m.label} onClick={()=>answerTest(note.test,m.mood)}>{m.emoji}</button>)}</span>}{note.kind==='nudge'&&<span className="kono-note-choices"><button type="button" onClick={()=>{answerNudge(true);startFocusSession(note.item.exam?'':note.item.id,note.item.minutes,note.item.exam?note.item.title:undefined)}}>Start</button><button type="button" onClick={()=>answerNudge(false)}>Not now</button></span>}</span>}<span className={'kono-wish'+(wishGranted?' is-granted':'')}>{wishGranted?'✨ Today’s wish came true.':'✨ KONO wishes you’d '+wishText(wish)+(wish.goal>1?' · '+wishDone+'/'+wish.goal:'')}</span>{!note&&!snacks.length&&meters.full<45&&!bed.tucked&&<span className="kono-care-hint">🍙 Finish something to earn KONO a snack</span>}</p>
      {cornerOpen&&<Suspense fallback={null}><KonoCorner close={()=>setCornerOpen(false)} pose={konoPose} outfit={shownOutfit} costume={shownOutfit?undefined:islandEvent?.emoji} line={konoLine}
       faceClass={(careMoment&&!careMoment.pose.includes('sleep')?' is-reacting':'')+(careMoment?.react?' is-'+careMoment.react:'')}
       reaction={careMoment?.react&&careMoment.react!=='tickle'?<span key={careMoment.at} className={'kono-react is-'+careMoment.react} aria-hidden="true">{careMoment.react==='wave'?'👋':careMoment.react==='heart'?'💗':'✋'}</span>:null}
@@ -904,7 +914,8 @@ function Workspace({store}:{store:Store}){
     {!showQuick&&weekend&&<WeekAhead data={data} monday={monday} recap={reviewShown?null:recap} tasks={tasks} exams={ownExams} onPlan={openWeekPlan} onOpenDay={date=>{setSelectedDate(date);navigate('Planner')}} mondayWork={mondayWork.length>0?<div className="weekend-due"><strong>Due Monday</strong>{mondayWork.map(t=>card('tasks',t as unknown as Entry))}</div>:<p>Nothing is due Monday.</p>}/>}
     {/* Your day: one card for today and tomorrow. Late work and past-due reminders lead Today; ＋ Add
         and the ⋯ menu (what to show, classes, the Planner) sit in its header. */}
-    {!showQuick&&parentMode&&profileKids.length>0&&<Suspense fallback={null}><KidsGlance data={data} profileId={profile.id} today={today} onOpen={(_kid,planId)=>planId?switchPlan(planId):navigate('Kids')}/></Suspense>}
+    {!showQuick&&parentMode&&profileKids.length>0&&<Suspense fallback={null}><KidsGlance data={data} profileId={profile.id} today={today} from={myName==='Me'?'Your family':myName} save={save} onOpen={(_kid,planId)=>planId?switchPlan(planId):navigate('Kids')}/></Suspense>}
+    {!showQuick&&parentMode&&profileKids.length>0&&<Suspense fallback={null}><FamilyTodos data={data} profileId={profile.id} today={today} save={save}/></Suspense>}
     <section className="wb-panel today-card" aria-label="Your day">
      <div className="wb-section-head today-card-head">
       <div className="today-card-tabs" role="tablist" aria-label="Day">
@@ -934,7 +945,7 @@ function Workspace({store}:{store:Store}){
      </div>}
     </section>
    </>}
-   {page==='Planner'&&<><div className="wb-toolbar planner-settings-link"><span>Your classes, assignments and daily plans</span><div className="wb-toolbar"><button className="primary" onClick={()=>openAdd()}>＋ Add to my calendar</button><details className="today-card-more planner-more" ref={plannerMoreRef}><summary aria-label="More for your planner">⋯</summary><div className="today-card-menu">{([['schedules','My schedules',()=>openSettings('Schedules')],['plan','✨ Plan my week',()=>setWeekPlanOpen(true)],...(recap?[['recap','📊 Your week so far',()=>setRecapOpen(true)] as const]:[]),['study','📚 Break it into days',()=>setPlanRequest(n=>n+1)],['work','💼 My work schedule',()=>openAdd('work')]] as const).map(([id,label,open])=><button type="button" key={id} onClick={()=>{if(plannerMoreRef.current)plannerMoreRef.current.open=false;open()}}>{label}</button>)}</div></details></div></div>{addOpen&&<AddToCalendar choices={addChoices} choice={addChoice} setChoice={setAddChoice} close={closeAdd}/>}{!addOpen&&<>{classmatesOn&&<SharedWithMe repository={repository} data={data} save={save}/>}{overdueCard}{recap&&recapOpen&&<details className="wb-panel week-recap-panel" open onToggle={e=>{if(!e.currentTarget.open)setRecapOpen(false)}}><summary>📊 Your week so far</summary><WeekRecap recap={recap} onPlanWeek={()=>{setRecapOpen(false);setWeekPlanOpen(true)}}/></details>}{weekPlanOpen&&<details className="wb-panel week-plan-panel" open onToggle={e=>{if(!e.currentTarget.open)setWeekPlanOpen(false)}}><summary>✨ Plan my week</summary><WeekPlanner data={data} save={save}/></details>}<Calendar data={view} tasks={viewTasks} date={selectedDate} selectDate={setSelectedDate} create={create} render={card} renderClass={renderCompactClass} reschedule={reschedule} planAt={planAt} stretchTo={stretchTo} edit={edit} setting={setting} navigate={navigate} parentMode={parentMode} quickAddEvent={quickAddFamilyEvent} personShown={personShown} peopleFilter={peopleFilter}/>{(planRequest>0||plans.length>0)&&<StudyPlanner key={planRequest} initialOpen={planRequest>0} draftKey={draftScope+':plan'} profileId={profile.id} plans={plans} tasks={ownTasks} subjects={subjects} setData={save} onSelectDate={setSelectedDate}/>}</>}</>}
+   {page==='Planner'&&<><div className="wb-toolbar planner-settings-link"><span>Your classes, assignments and daily plans</span><div className="wb-toolbar"><button className="primary" onClick={()=>openAdd()}>＋ Add to my calendar</button><details className="today-card-more planner-more" ref={plannerMoreRef}><summary aria-label="More for your planner">⋯</summary><div className="today-card-menu">{([['schedules','My schedules',()=>openSettings('Schedules')],['plan','✨ Plan my week',()=>setWeekPlanOpen(true)],...(recap?[['recap','📊 Your week so far',()=>setRecapOpen(true)] as const]:[]),['study','📚 Break it into days',()=>setPlanRequest(n=>n+1)],['work','💼 My work schedule',()=>openAdd('work')],...(parentMode&&profileKids.length?[['pickups','🚗 Pickups & drop-offs',()=>setPickupsOpen(true)] as const]:[])] as const).map(([id,label,open])=><button type="button" key={id} onClick={()=>{if(plannerMoreRef.current)plannerMoreRef.current.open=false;open()}}>{label}</button>)}</div></details></div></div>{addOpen&&<AddToCalendar choices={addChoices} choice={addChoice} setChoice={setAddChoice} close={closeAdd}/>}{!addOpen&&<>{classmatesOn&&<SharedWithMe repository={repository} data={data} save={save}/>}{overdueCard}{recap&&recapOpen&&<details className="wb-panel week-recap-panel" open onToggle={e=>{if(!e.currentTarget.open)setRecapOpen(false)}}><summary>📊 Your week so far</summary><WeekRecap recap={recap} onPlanWeek={()=>{setRecapOpen(false);setWeekPlanOpen(true)}}/></details>}{weekPlanOpen&&<details className="wb-panel week-plan-panel" open onToggle={e=>{if(!e.currentTarget.open)setWeekPlanOpen(false)}}><summary>✨ Plan my week</summary><WeekPlanner data={data} save={save}/></details>}<Calendar data={view} tasks={viewTasks} date={selectedDate} selectDate={setSelectedDate} create={create} render={card} renderClass={renderCompactClass} reschedule={reschedule} planAt={planAt} stretchTo={stretchTo} edit={edit} setting={setting} navigate={navigate} parentMode={parentMode} quickAddEvent={quickAddFamilyEvent} personShown={personShown} peopleFilter={peopleFilter}/>{(planRequest>0||plans.length>0)&&<StudyPlanner key={planRequest} initialOpen={planRequest>0} draftKey={draftScope+':plan'} profileId={profile.id} plans={plans} tasks={ownTasks} subjects={subjects} setData={save} onSelectDate={setSelectedDate}/>}</>}</>}
    {page==='Kids'&&<KidsPage data={data} create={create} edit={edit} remove={remove} patch={patch} openSettings={openSettings} onOpenKidPlan={kid=>{goHomeFirst();void save(d=>{const r=addKidPlan(d,kid);return {...r.data,activeProfileId:r.id}})}}/>}
    {page==='Subjects'&&experience!=='simplified'&&subjectWorkspace}
    {page==='Subjects'&&experience==='simplified'&&<><section className="wb-panel"><div className="wb-section-head"><h2>Your subjects</h2><button onClick={()=>create('subjects')}>＋ Subject</button></div><div className="wb-record-grid">{subjects.map(s=>card('subjects',s as unknown as Entry))}</div>{!subjects.length&&<p>Create your first subject to organize your work.</p>}</section><section className="wb-panel"><div className="wb-section-head"><h2>Assignments</h2><button onClick={()=>create('tasks')}>＋ Assignment</button></div><label>Filter subject<select value={subject} onChange={e=>setSubject(e.target.value)}><option value="">All subjects, including unassigned</option>{subjects.map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></label><div className="wb-toolbar"><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,true),d)),'Assignments completed.')}>Complete all shown</button><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,false),d)),'Assignments reopened; earned progress is kept.')}>Reopen all shown</button></div>{tasks.filter(t=>!subject||t.subjectId===subject).map(t=>card('tasks',t as unknown as Entry))}</section></>}
@@ -1008,6 +1019,7 @@ function RecordCard({cozy,collection,entry,subject,subjectColor,kid,alsoKids=[],
    <div className="wb-family-event-info">
     <small>{showKidHeader?(kid?[kid,...alsoKids].map(k=>(k.emoji?k.emoji+' ':'')+k.name).join(' & '):'Family')+(subject?' · '+subject:''):subject??(entry.subjectId?'Removed subject':'General')}</small>
     <h3>{titleOf(entry)}{inSeries&&<span className="wb-repeat-mark" title={'Repeats · '+seriesCount+' dates'} aria-label="Repeats"> ↻</span>}</h3>
+    {Boolean(entry.driver)&&<small className="event-driver">🚗 {String(entry.driver)} driving</small>}
    </div>
    {reviewBadge}{due&&(tracked||daysUntil(due)>=0)&&<span className={'countdown-chip '+(daysUntil(due)<0?'is-overdue':'')}>{tracked?dueLabel:daysUntil(due)===0?'Today':daysUntil(due)===1?'Tomorrow':'In '+daysUntil(due)+' days'}</span>}
   </div>
