@@ -1991,6 +1991,8 @@ test('Kids\' appearance: one kid at a time, a saved animated border becomes its 
  await panel.getByLabel('Leo\'s emoji').fill('🦁')
  await panel.getByRole('button',{name:'Use',exact:true}).click()
  await panel.getByRole('img',{name:'Leo\'s tile preview'}).getByText('🦁 Leo').waitFor()
+ // Each change says it was saved, on top of the open dialog.
+ assert.match(await page.locator('.save-toast').innerText(),/saved/i)
  await waitFor(()=>{const k=cloud.users.alice.plan.data.kids.find(x=>x.id==='kid-leo');return k.borderStyle==='dotted'&&k.color==='#5da8a1'&&k.emoji==='🦁'&&!('borderSpeed' in k)},'Leo\'s new look never reached the account')
  await panel.getByRole('button',{name:'Close dialog'}).click()
  await go(page,'Planner')

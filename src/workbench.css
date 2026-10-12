@@ -486,3 +486,8 @@ html[data-theme] .brand:has(.kono-weather-chip):after,html[data-theme] .sidebar:
 @media(prefers-reduced-motion:reduce){.workbench *{scroll-behavior:auto!important;transition:none!important}}
 .workbench .people-filter .people-filter-all{--kid-color:#8a7f86}
 .workbench .people-filter .people-filter-all[aria-pressed=false]{text-decoration:none;opacity:.85;border-style:solid!important}
+.save-toast{position:fixed;inset:auto auto max(20px,env(safe-area-inset-bottom)) 50%;transform:translateX(-50%);margin:0;z-index:2147483000;display:flex;align-items:center;gap:10px;max-width:min(92vw,520px);padding:10px 12px 10px 16px;border:0;border-radius:999px;background:#2f6b4a;color:#fff;font-weight:700;box-shadow:0 10px 28px rgba(0,0,0,.22);animation:save-toast-in .22s ease-out}
+.save-toast.is-problem{background:#9b2d43}
+.save-toast button{background:rgba(255,255,255,.18)!important;color:#fff!important;border:0!important;box-shadow:none!important;border-radius:999px!important;min-height:0!important;width:28px;height:28px;padding:0!important;flex:none}
+@keyframes save-toast-in{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.save-toast{animation:none}}

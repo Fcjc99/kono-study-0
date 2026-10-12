@@ -1,4 +1,4 @@
-import {Fragment,Suspense,lazy,useEffect,useMemo,useRef,useState,type CSSProperties,type PointerEvent,type ReactNode,type SetStateAction,type TouchEvent} from 'react'
+import {Fragment,Suspense,lazy,useCallback,useEffect,useMemo,useRef,useState,type CSSProperties,type PointerEvent,type ReactNode,type SetStateAction,type TouchEvent} from 'react'
 import {deleteProfile} from './store/deleteProfile'
 import {usePlannerRepository} from './store/repository'
 import {uid,localDate,eventCategory,peopleOf,type AppData,type SettingsData,type Subtask,type CalendarEvent,type Kid} from './store/model'
@@ -182,10 +182,22 @@ export default function WorkspaceApp(){
  return <Workspace key={(store.user?.id??'device')+':'+store.data.activeProfileId} store={store}/>
 }
 function Workspace({store}:{store:Store}){
- const {data,repository}=store,save=repository.update
+ const {data,repository}=store
+ // Every change someone makes gets a visible "✓ Saved" (or the action's own message), even inside a
+ // dialog: an edit, a kid's look, a setting, an upload that finishes. Background saves (KONO's daily
+ // wish, a calendar refresh) stay quiet unless someone was using KONO in the last minute and a half.
+ const lastInput=useRef(0),[savedToast,setSavedToast]=useState(0)
+ useEffect(()=>{const mark=()=>{lastInput.current=Date.now()};window.addEventListener('pointerdown',mark,true);window.addEventListener('keydown',mark,true);return()=>{window.removeEventListener('pointerdown',mark,true);window.removeEventListener('keydown',mark,true)}},[])
+ const save=useCallback(async(action:SetStateAction<AppData>,options?:{undoable?:boolean})=>{
+  const before=repository.changeCount,recent=Date.now()-lastInput.current<90_000
+  const ok=await repository.update(action,options)
+  if(ok&&recent&&repository.changeCount!==before)setSavedToast(n=>n+1)
+  return ok
+ },[repository])
  const experience=data.settings.experience??'cozy'
  const profile=data.profiles.find(p=>p.id===data.activeProfileId)??data.profiles[0]
  const [page,setPage]=useState<Page>(pageFromURL),[more,setMore]=useState(false),[search,setSearch]=useState(false),[adding,setAdding]=useState(()=>!!readIncoming()||urlFlag('new')),[incoming]=useState(readIncoming),[scanningPlan,setScanningPlan]=useState(false),[editor,setEditor]=useState<Edit|null>(null),[message,setMessage]=useState('')
+ const dismissMessage=useCallback(()=>setMessage(''),[setMessage])
  // Today view: just KONO and today's list, the island one tap away. The installed app opens to it on a
  // phone (unless turned off on this device), and so does its Today shortcut.
  const [openToToday,setOpenToToday]=useLocalSetting('kono-open-to-today','1')
@@ -862,7 +874,7 @@ function Workspace({store}:{store:Store}){
      <p className="header-more-account">{store.user?'Signed in as '+store.user.email:'Saved on this device'}</p>
     </div></details></div>{konoPhrase&&<div className="kono-speech-bubble" role="status"><img src={konoPhrase.kind==='sticker'||konoPhrase.kind==='milestone'||konoPhrase.kind==='celebration'?'/garden/kono/excited.webp':mood.pose} alt="" aria-hidden="true"/><p>{konoPhrase.text}</p><button type="button" aria-label="Dismiss" onClick={()=>setKonoPhrase(null)}>×</button></div>}{voiceError&&<p role="alert" className="voice-add-error">{voiceError}</p>}</header>
    <div ref={pageScope} className="wb-page">
-   {message&&<p role="status" className="wb-notice">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></p>}
+   <SaveStatusToast message={message} saved={savedToast} dismiss={dismissMessage}/>
    {plansOpen&&<Suspense fallback={null}><PlanSwitcher data={data} save={save} close={()=>setPlansOpen(false)} lockedTo={lockedPlan} setLock={setPlanLock} onSwitch={switchPlan} askWho={askWho==='1'} setAskWho={on=>{setAskWho(on?'1':'');try{sessionStorage.setItem('kono-who-asked','1')}catch{/* fine */}}} onSetUpFamily={()=>{void setting('parentMode',true);navigate('Kids')}}/></Suspense>}
    {pickupsOpen&&<Suspense fallback={null}><Pickups data={view} profileId={profile.id} today={today} close={()=>setPickupsOpen(false)} onOpen={e=>edit('calendarEvents',e as unknown as Entry)}/></Suspense>}
    {whoOpen&&!lockedPlan&&<Suspense fallback={null}><WhoIsUsing data={data} close={closeWho} onPick={switchPlan}/></Suspense>}
@@ -1031,4 +1043,19 @@ function RecordCard({cozy,collection,entry,subject,subjectColor,kid,alsoKids=[],
   {collection==='subjects'&&<p>{String(entry.teacher??'')}{entry.room?' · '+String(entry.room):''}</p>}
   <div className="wb-toolbar">{canComplete&&<button onClick={toggle}>{done?'Reopen':'Complete'}</button>}{reviewButton}{startFocusButton}<button onClick={edit}>Edit</button><details className="wb-actions"><summary>More actions</summary><div><button onClick={duplicate}>Duplicate</button>{note&&<button onClick={remind}>Add reminder</button>}{note&&<button onClick={pin}>{entry.pinned?'Remove from board':'Pin to board'}</button>}{scheduleReview&&<button onClick={scheduleReview}>Schedule review</button>}<button onClick={remove}>Move to Trash</button>{inSeries&&<button onClick={removeSeries}>Delete whole series ({seriesCount})</button>}</div></details></div>
  </article>
+}
+
+/** The confirmation people see after doing something: the action's own message ("Added 6 dates…"), or a
+ * short "✓ Saved". It floats at the bottom of the screen, above any open dialog, and fades on its own. */
+function SaveStatusToast({message,saved,dismiss}:{message:string;saved:number;dismiss:()=>void}){
+ // Each confirmation has its own key (a new save or message shows again); it hides itself after a moment.
+ const key=message?'m:'+saved+':'+message:saved?'s:'+saved:''
+ const [hidden,setHidden]=useState(''),ref=useRef<HTMLDivElement>(null)
+ const text=key&&hidden!==key?message||'✓ Saved':''
+ useEffect(()=>{if(!key)return;const timer=window.setTimeout(()=>{setHidden(key);if(message)dismiss()},message?7000:2500);return()=>window.clearTimeout(timer)},[key,message,dismiss])
+ // A popover sits in the top layer, so it shows above a dialog that's already open.
+ useEffect(()=>{const el=ref.current as (HTMLDivElement&{showPopover?:()=>void;hidePopover?:()=>void})|null;if(!el?.showPopover||!text)return;try{el.hidePopover?.();el.showPopover()}catch{/* not in the page yet */}},[key,text])
+ if(!text)return null
+ const problem=/not saved|could ?n[o’']t|can[’']?t|cannot|error|failed|unavailable|needs attention|no longer|only /i.test(text)
+ return <div ref={ref} popover="manual" className={'save-toast'+(problem?' is-problem':'')} role={problem?'alert':'status'} key={key}>{!/^✓/.test(text)&&<span aria-hidden="true">{problem?'⚠ ':'✓ '}</span>}{text}<button type="button" aria-label="Dismiss message" onClick={()=>{setHidden(key);dismiss()}}>×</button></div>
 }
