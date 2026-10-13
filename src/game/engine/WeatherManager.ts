@@ -1,13 +1,6 @@
 import type { SanctuaryWeather } from '../sanctuary/types'
-
-export interface WeatherTuning {
-  transitionSpeed: number
-  cloudTarget: number | null
-  windTarget: number | null
-  intensityTarget: number | null
-  waterResponse: number
-  instant: boolean
-}
+import { DEFAULT_WEATHER_TUNING, type WeatherTuning } from './weatherTuning'
+export { DEFAULT_WEATHER_TUNING, type WeatherTuning }
 
 export interface WeatherSnapshot {
   weather: SanctuaryWeather
@@ -94,15 +87,6 @@ const WEATHER_PROFILES: Record<SanctuaryWeather, WeatherProfile> = {
     coolness: 0.17,
     waterResponse: -0.08,
   },
-}
-
-export const DEFAULT_WEATHER_TUNING: WeatherTuning = {
-  transitionSpeed: 1,
-  cloudTarget: null,
-  windTarget: null,
-  intensityTarget: null,
-  waterResponse: 1,
-  instant: false,
 }
 
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value))

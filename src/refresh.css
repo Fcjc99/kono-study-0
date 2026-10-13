@@ -23,7 +23,7 @@
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.week-grid-slot):not(.week-item):not(.link-button):not(.save-toast button):not(.primary):not(.week-grid-head button):not(.wb-cal-day):not(.mobile-nav button){
  box-shadow:none!important;background:var(--wb-surface,#fff)!important;border:1px solid var(--rf-line)!important;border-radius:var(--rf-radius-sm)!important;font-weight:600!important;min-height:40px}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) button.primary{background:var(--wb-accent,#c76b8f)!important;border-color:transparent!important;color:#fff!important;box-shadow:0 4px 14px color-mix(in srgb,var(--wb-accent,#c76b8f) 30%,transparent)!important}
-:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:is([aria-pressed='true'],[aria-current]):not(.wb-calendar>button):not(.nav-button){background:var(--rf-tint)!important;border-color:color-mix(in srgb,var(--wb-accent,#c76b8f) 45%,transparent)!important;color:var(--cute-ink,#704257)!important}
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:is([aria-pressed='true'],[aria-current],[aria-selected='true']):not(.wb-calendar>button):not(.nav-button){background:var(--rf-tint)!important;border-color:color-mix(in srgb,var(--wb-accent,#c76b8f) 45%,transparent)!important;color:var(--cute-ink,#704257)!important}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:active:not(:disabled){translate:none;transform:scale(.98)}
 @media(hover:hover){:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:hover:not(:disabled):not(.primary){background:var(--rf-tint)!important;filter:none}}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea){border:1px solid var(--rf-line)!important;border-radius:var(--rf-radius-sm)!important;box-shadow:none!important;background:var(--wb-surface,#fff)!important}
@@ -93,7 +93,7 @@
 html[data-motion=full] .workbench input[type=checkbox]:checked:focus{animation:check-pop .42s cubic-bezier(.3,1.4,.5,1)}
 html[data-motion=full] .assignment-progress.is-all-done .assignment-ring{animation:ring-glow 1.2s ease-out}
 @keyframes ring-glow{0%{filter:drop-shadow(0 0 0 transparent)}40%{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--wb-accent,#c76b8f) 70%,transparent))}100%{filter:drop-shadow(0 0 0 transparent)}}
-.lazy-panel-loading{position:relative;min-height:72px;margin:0 0 16px;border-radius:var(--rf-radius,18px);color:transparent!important;overflow:hidden;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 7%,var(--wb-surface,#fff))}
+.lazy-panel-loading{position:relative;display:grid;place-items:center;min-height:72px;margin:0 0 16px;border-radius:var(--rf-radius,18px);color:var(--wb-muted,#7a6670)!important;font-size:.85rem;overflow:hidden;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 7%,var(--wb-surface,#fff))}
 .lazy-panel-loading::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--wb-surface,#fff) 70%,transparent) 50%,transparent 70%);background-size:200% 100%;animation:skeleton 1.3s linear infinite}
 @keyframes skeleton{from{background-position:150% 0}to{background-position:-50% 0}}
 html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
@@ -119,3 +119,30 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 
 /* Clean: one sans typeface everywhere (the brand, plan names and day tabs were falling back to a serif). */
 :root[data-experience=modern] :is(.wb-sidebar,.workbench,.wb-dialog) :is(strong,h1,h2,h3,button,select,.wb-profile-title){font-family:'DM Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif}
+
+/* Dark mode: the phone tab bar's open tab and the chips stay readable on the dark surface. */
+:root[data-dark] .mobile-nav.is-tabbar button.active{color:color-mix(in srgb,var(--wb-accent) 55%,#fff)!important}
+:root[data-dark] .mobile-nav.is-tabbar{box-shadow:0 -6px 22px rgb(0 0 0/.4)!important}
+:root[data-dark] .workbench .people-filter button[aria-pressed=true]{background:color-mix(in srgb,var(--kid-color) 30%,#221d27)!important;color:#fff!important}
+
+/* Add sheet: one tap on a tile opens the right editor (dated to the Planner's day when one is picked). */
+.add-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.workbench .add-tiles .add-tile,.wb-dialog .add-tiles .add-tile{display:grid!important;justify-items:center;align-content:center;gap:6px;min-height:84px!important;padding:10px 6px!important;border-radius:16px!important;font-weight:650!important;font-size:.92rem;text-align:center;line-height:1.2}
+.add-tile>span{font-size:1.6rem;line-height:1}
+.add-tiles-date{margin:0;font-size:.85rem}
+
+/* Subjects: a plain list of classes beside one clean card (no binder strip, no beige bands). */
+:root[data-experience='cozy'] .workbench .subject-tabs{background:var(--wb-surface,#fff)!important;border:1px solid var(--rf-line)!important;border-radius:var(--rf-radius)!important;box-shadow:none!important;padding:6px!important}
+:root[data-experience='cozy'] .workbench .subject-tabs button{background:none!important;border:0!important;box-shadow:none!important;border-radius:var(--rf-radius-sm)!important}
+:root[data-experience='cozy'] .workbench .subject-tabs button.active{background:var(--rf-tint)!important;outline:0!important}
+:root[data-experience='cozy'] .workbench .subject-workspace{background:var(--wb-surface,#fff)!important;border:1px solid var(--rf-line)!important;border-radius:var(--rf-radius)!important;box-shadow:var(--rf-shadow)!important}
+:root[data-experience='cozy'] .workbench .subject-workspace::before{display:none!important}
+:root[data-experience='cozy'] .workbench .subject-quick-add{background:var(--rf-tint)!important;border-radius:var(--rf-radius-sm)!important}
+:root[data-experience='cozy'] .workbench .subject-section-tabs{gap:6px!important}
+:root[data-experience='cozy'] .workbench .subject-section-tabs button{border-radius:999px!important;min-height:36px!important;padding:4px 14px!important}
+
+/* K-Quiz: one solid button per card is enough; recording and photos are quieter. */
+:root[data-experience='cozy'] .workbench .kquiz :is(.card,section,fieldset){box-shadow:none!important}
+
+/* Dark mode, Sakura: the open sidebar tab's label (the light look's brown) was nearly invisible. */
+:root[data-dark][data-theme='sakura'] .nav-button.active{color:#fff!important}

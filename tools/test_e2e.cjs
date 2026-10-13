@@ -66,8 +66,7 @@ async function addToCalendar(page,choice){
 async function addFromMenu(page,type,title,extra){
  await page.getByRole('button',{name:'＋ Add',exact:true}).click()
  const chooser=page.getByRole('dialog',{name:'Add to your plan'})
- await chooser.getByLabel('Add type').selectOption(type)
- await chooser.getByRole('button',{name:'Continue'}).click()
+ await chooser.getByRole('group',{name:'Add type'}).getByRole('button',{name:{tasks:'Homework',exams:'Test or exam',notes:'Study note',lesson:'Lesson'}[type]}).click()
  const editor=page.locator('dialog[open]')
  await editor.getByLabel('Title').fill(title)
  if(extra)await extra(editor)

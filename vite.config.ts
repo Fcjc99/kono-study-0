@@ -32,7 +32,7 @@ function precacheList(manifest:Record<string,ManifestChunk>):string[]{
 function writeServiceWorker(outDir:string){
   const manifest=JSON.parse(readFileSync(resolve(outDir,'.vite/manifest.json'),'utf8')) as Record<string,ManifestChunk>
   const assets=precacheList(manifest)
-  const precache=['/','/favicon.svg',...assets]
+  const precache=['/','/favicon.svg','/brand-logo.svg',...assets]
   const version=createHash('sha256').update(precache.slice().sort().join('|')).digest('hex').slice(0,12)
   const sw=`// Generated at build time — do not edit. Precaches the app shell so KONO can open offline.
 const VERSION=${JSON.stringify(version)}
