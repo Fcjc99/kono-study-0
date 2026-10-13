@@ -5,6 +5,8 @@ import {addCareEvent,SNACKS} from '../store/konoCare'
 import {uid,type AppData,type Kid} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
 
+// How much of what's on a kid's plate today is done: done today out of done + due tomorrow + late.
+const ring=(r:{doneToday:string[];dueTonight:string[];late:number})=>{const total=r.doneToday.length+r.dueTonight.length+r.late;return total?r.doneToday.length/total:null}
 const weekday=(date:string)=>new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'short'})
 
 /** Home in the family plan: each kid at a glance (school day, due tomorrow, late work, done today, tests
@@ -16,7 +18,7 @@ export default function KidsGlance({data,profileId,today,from,save,onOpen}:{data
  if(!rows.length)return null
  return <section className="wb-panel kids-glance" aria-label="Kids today"><h2>Kids today</h2><ul>{rows.map(r=><li key={r.kid.id} style={{'--kid-color':r.kid.color} as CSSProperties}>
   <button type="button" onClick={()=>onOpen(r.kid,r.planId)} aria-label={'Open '+r.kid.name+(r.planId?'’s plan':' on Kids')}>
-   <span className="kids-glance-face" aria-hidden="true">{r.kid.emoji||r.kid.name.charAt(0).toUpperCase()}</span>
+   <span className={'kids-glance-face'+(ring(r)!==null?' has-ring':'')} aria-hidden="true" style={ring(r)!==null?{'--done':ring(r)} as CSSProperties:undefined}>{r.kid.emoji||r.kid.name.charAt(0).toUpperCase()}</span>
    <span className="kids-glance-main">
     <strong>{r.kid.name}{r.school&&<small className="kids-glance-day">{r.school}</small>}</strong>
     <span className="kids-glance-facts">

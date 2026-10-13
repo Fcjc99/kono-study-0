@@ -15,7 +15,7 @@ export default function Pickups({data,profileId,today,close,onOpen}:{data:AppDat
  const days=[...new Set(events.map(e=>e.date))]
  const who=(e:CalendarEvent)=>peopleOf(e).map(id=>kids.find(k=>k.id===id)).filter(Boolean).map(k=>(k!.emoji?k!.emoji+' ':'')+k!.name).join(' & ')
  return <Modal title="Pickups & drop-offs" close={close}><div className="pickups">
-  {!days.length&&<p className="wb-muted">Nothing with a time for the kids this week. Add a practice or appointment with a start time, and who’s driving, from the Planner.</p>}
+  {!days.length&&<p className="wb-muted pickups-empty"><img className="kono-empty-art" src="/garden/kono/walk-down-01.webp" alt="" aria-hidden="true"/>Nothing with a time for the kids this week. Add a practice or appointment with a start time, and who’s driving, from the Planner.</p>}
   {days.map(day=><section key={day} aria-label={dayName(day,today)}><h3>{dayName(day,today)}</h3><ul>{events.filter(e=>e.date===day).map(e=><li key={e.id}>
    <button type="button" onClick={()=>{close();onOpen(e)}}>
     <time>{classTime(e.time!)}{e.endTime?'–'+classTime(e.endTime):''}</time>

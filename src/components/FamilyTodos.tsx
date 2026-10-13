@@ -17,6 +17,7 @@ export default function FamilyTodos({data,profileId,today,save}:{data:AppData;pr
  const remove=(id:string)=>void update(list=>list.filter(t=>t.id!==id))
  return <section className="wb-panel family-todos" aria-label="Family to-do">
   <h2>Family to-do</h2>
+  {!todos.length&&<p className="family-todo-empty"><img className="kono-empty-art" src="/garden/kono/happy.webp" alt="" aria-hidden="true"/>All clear. Add anything the family needs to remember.</p>}
   {todos.length>0&&<ul>{todos.map(t=>{const kid=kids.find(k=>k.id===t.forKidId);return <li key={t.id} className={t.done?'is-done':''} style={kid?{'--kid-color':kid.color} as CSSProperties:undefined}>
    <label><input type="checkbox" checked={t.done} onChange={()=>toggle(t.id)}/><span>{t.title}</span>{kid&&<small className="family-todo-kid">{(kid.emoji?kid.emoji+' ':'')+kid.name}</small>}</label>
    <button type="button" className="family-todo-remove" aria-label={'Remove '+t.title} onClick={()=>remove(t.id)}>×</button>

@@ -1,0 +1,121 @@
+/* 2026 refresh of the Cozy look: the same colors and KONO, without the clutter. Flat cards with one soft
+   shadow, no borders inside borders, one typeface (DM Sans) with medium weights, quieter controls.
+   Loaded last; scoped to Cozy so Simplified, Clean and Zen Ink keep their own looks. */
+:root[data-experience='cozy']{
+ --rf-radius:18px;--rf-radius-sm:12px;
+ --rf-shadow:0 1px 2px rgb(70 30 45/.05),0 8px 24px rgb(120 60 80/.07);
+ --rf-line:color-mix(in srgb,var(--wb-line,#ead3dc) 70%,transparent);
+ --rf-tint:color-mix(in srgb,var(--wb-accent,#c76b8f) 9%,var(--wb-surface,#fff));
+ --rf-font:'DM Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+:root[data-experience='cozy'] .workbench,:root[data-experience='cozy'] .wb-dialog{font-family:var(--rf-font);letter-spacing:-.005em}
+:root[data-experience='cozy'] .workbench :is(h1,h2,h3,h4,legend,summary),:root[data-experience='cozy'] .wb-dialog :is(h2,h3,legend){font-family:var(--rf-font);letter-spacing:-.015em}
+:root[data-experience='cozy'] .workbench .wb-header h1{font-weight:750;font-size:clamp(1.6rem,2.4vw,2.1rem)}
+:root[data-experience='cozy'] .workbench .wb-panel :is(h2,h3){font-weight:700}
+:root[data-experience='cozy'] .workbench .wb-panel>h2,:root[data-experience='cozy'] .workbench .wb-section-head h2{font-size:1.2rem}
+
+/* Cards: one surface, one soft shadow, no heavy outline. Cards inside cards are just a tint. */
+:root[data-experience='cozy'] .workbench .wb-panel{border:1px solid var(--rf-line)!important;border-radius:var(--rf-radius)!important;box-shadow:var(--rf-shadow)!important;background:var(--wb-surface,#fff)!important}
+:root[data-experience='cozy'] .workbench .wb-panel :is(.wb-panel,.wb-record,.overdue-card,.kids-glance li>button:first-child,.rotation-today-row,.today-schedule-list>*){box-shadow:none!important}
+:root[data-experience='cozy'] .workbench .wb-panel :is(.wb-record:not(.wb-sticky),.kids-glance li>button:first-child,.week-ahead-days button){background:var(--rf-tint)!important;border:1px solid transparent!important;border-radius:var(--rf-radius-sm)!important}
+
+/* Controls: flat, light, medium weight. The main action is the one solid button. */
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.week-grid-slot):not(.week-item):not(.link-button):not(.save-toast button):not(.primary):not(.week-grid-head button):not(.wb-cal-day):not(.mobile-nav button){
+ box-shadow:none!important;background:var(--wb-surface,#fff)!important;border:1px solid var(--rf-line)!important;border-radius:var(--rf-radius-sm)!important;font-weight:600!important;min-height:40px}
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button.primary{background:var(--wb-accent,#c76b8f)!important;border-color:transparent!important;color:#fff!important;box-shadow:0 4px 14px color-mix(in srgb,var(--wb-accent,#c76b8f) 30%,transparent)!important}
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:is([aria-pressed='true'],[aria-current]):not(.wb-calendar>button):not(.nav-button){background:var(--rf-tint)!important;border-color:color-mix(in srgb,var(--wb-accent,#c76b8f) 45%,transparent)!important;color:var(--cute-ink,#704257)!important}
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:active:not(:disabled){translate:none;transform:scale(.98)}
+@media(hover:hover){:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:hover:not(:disabled):not(.primary){background:var(--rf-tint)!important;filter:none}}
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea){border:1px solid var(--rf-line)!important;border-radius:var(--rf-radius-sm)!important;box-shadow:none!important;background:var(--wb-surface,#fff)!important}
+
+/* Chips (names, sources, days shown): lighter, no 3D. */
+:root[data-experience='cozy'] .workbench :is(.people-filter,.planner-source-chips,.week-span) button{min-height:34px!important;padding:5px 12px!important;font-weight:600!important;border-radius:999px!important}
+:root[data-experience='cozy'] .workbench .people-filter button[aria-pressed=true]{background:color-mix(in srgb,var(--kid-color) 14%,var(--wb-surface,#fff))!important;border-color:color-mix(in srgb,var(--kid-color) 55%,transparent)!important}
+
+/* Side tabs: flat icons, a soft highlight for the open page. */
+:root[data-experience='cozy'] :is(.nav-icon,.mobile-nav button>span){box-shadow:none!important;border:0!important;border-radius:12px!important}
+:root[data-experience='cozy'] .nav-button{font-weight:650!important}
+
+/* Dialogs: rounder, one shadow. */
+:root[data-experience='cozy'] .wb-dialog{border:0!important;border-radius:22px!important;box-shadow:0 24px 60px rgb(40 20 30/.22)!important}
+
+/* Phones: a bottom tab bar (Home · Planner · ＋ · Kids/Notes · More), like a native app. */
+@media (max-width:720px){
+ :root[data-experience='cozy'] .mobile-tabs-label{display:none!important}
+ :root[data-experience='cozy'] .mobile-nav.is-tabbar{position:fixed!important;inset:auto 0 0 0!important;z-index:60;display:grid!important;grid-template-columns:repeat(5,1fr)!important;gap:0!important;width:auto!important;margin:0!important;padding:6px 6px calc(6px + env(safe-area-inset-bottom))!important;overflow:visible!important;background:color-mix(in srgb,var(--wb-surface,#fff) 94%,transparent)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:0!important;border-top:1px solid var(--rf-line)!important;border-radius:0!important;box-shadow:0 -6px 22px rgb(60 30 40/.08)!important}
+ :root[data-experience='cozy'] .mobile-nav.is-tabbar button{position:relative;display:grid!important;justify-items:center;align-content:center;gap:2px;min-height:54px!important;padding:2px 0!important;background:none!important;border:0!important;box-shadow:none!important;color:var(--wb-muted,#7a6670)!important;font-weight:600!important}
+ :root[data-experience='cozy'] .mobile-nav.is-tabbar button>span{display:grid!important;place-items:center;width:30px!important;height:30px!important;min-width:0!important;min-height:0!important;background:none!important;border:0!important;box-shadow:none!important;color:inherit!important;font-size:1.15rem;font-weight:800}
+ :root[data-experience='cozy'] .mobile-nav.is-tabbar button>small{font-size:.7rem;font-weight:650;letter-spacing:0}
+ :root[data-experience='cozy'] .mobile-nav.is-tabbar button.active{color:var(--wb-accent,#c76b8f)!important}
+ :root[data-experience='cozy'] .mobile-nav.is-tabbar button.active>span{background:var(--rf-tint)!important;border-radius:10px!important}
+ :root[data-experience='cozy'] .mobile-nav.is-tabbar .nav-indicator{display:none}
+ :root[data-experience='cozy'] .mobile-nav.is-tabbar .mobile-nav-add>span{width:48px!important;height:48px!important;margin-top:-20px;border-radius:50%!important;background:var(--wb-accent,#c76b8f)!important;color:#fff!important;font-size:1.6rem;box-shadow:0 6px 16px color-mix(in srgb,var(--wb-accent,#c76b8f) 40%,transparent)!important}
+ :root[data-experience='cozy'] .workbench{padding-bottom:calc(86px + env(safe-area-inset-bottom))!important}
+ :root[data-experience='cozy'] .save-toast{bottom:calc(84px + env(safe-area-inset-bottom))}
+}
+
+/* Planner: one header, one main Add, filters in one quiet row. */
+:root:is([data-experience=cozy],[data-experience=modern]) .workbench .planner-settings-hint{display:none}
+:root:is([data-experience=cozy],[data-experience=modern]) .workbench .planner-settings-link{justify-content:flex-end!important;margin-bottom:6px}
+:root:is([data-experience=cozy],[data-experience=modern]) .workbench .planner-settings-link button.primary{background:var(--wb-surface,#fff)!important;color:var(--cute-ink,#704257)!important;border:1px solid var(--rf-line)!important;box-shadow:none!important}
+:root:is([data-experience=cozy],[data-experience=modern]) .workbench .planner-filters{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:6px 0 10px}
+:root:is([data-experience=cozy],[data-experience=modern]) .workbench .planner-filters>*{margin:0!important}
+:root:is([data-experience=cozy],[data-experience=modern]) .workbench .planner-filters .planner-source-chips{padding-right:14px;border-right:1px solid var(--rf-line)}
+:root:is([data-experience=cozy],[data-experience=modern]) .workbench .week-grid-hint{font-size:.8rem;opacity:.7}
+:root:is([data-experience=cozy],[data-experience=modern]) .workbench .people-filter{margin:0}
+@media (max-width:720px){
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench .wb-header .header-add{display:none!important}
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench .planner-filters .planner-source-chips{border-right:0;padding-right:0}
+}
+
+/* Home: on a wide screen, the island and KONO on the left and your day on the right, side by side.
+   On a phone, your day comes first and the island follows as a shorter banner. */
+.home-main,.home-side{min-width:0}
+@media (min-width:1440px){
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(400px,1fr);gap:20px;align-items:start}
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-side{display:flex;flex-direction:column;gap:16px}
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-side>*{margin:0!important}
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-side>.today-card{order:-1}
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-side>.getting-started{order:-2}
+}
+@media (max-width:720px){
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-grid{display:flex;flex-direction:column}
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench :is(.home-main,.home-side){display:contents}
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-side>*{order:4}
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-side>.getting-started{order:1}
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-side>.today-card{order:2}
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-main>:is(.wb-island,.kono-bar,.quick-today){order:3}
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-main>.sanctuary-focus{order:5}
+}
+
+/* Motion: a checkbox pops when you tick it (only right after the click, not on load), a ring that
+   reaches 100% gives one soft glow, and panels that are still loading show a shimmer, not "Loading…". */
+html[data-motion=full] .workbench input[type=checkbox]:checked:focus{animation:check-pop .42s cubic-bezier(.3,1.4,.5,1)}
+html[data-motion=full] .assignment-progress.is-all-done .assignment-ring{animation:ring-glow 1.2s ease-out}
+@keyframes ring-glow{0%{filter:drop-shadow(0 0 0 transparent)}40%{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--wb-accent,#c76b8f) 70%,transparent))}100%{filter:drop-shadow(0 0 0 transparent)}}
+.lazy-panel-loading{position:relative;min-height:72px;margin:0 0 16px;border-radius:var(--rf-radius,18px);color:transparent!important;overflow:hidden;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 7%,var(--wb-surface,#fff))}
+.lazy-panel-loading::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--wb-surface,#fff) 70%,transparent) 50%,transparent 70%);background-size:200% 100%;animation:skeleton 1.3s linear infinite}
+@keyframes skeleton{from{background-position:150% 0}to{background-position:-50% 0}}
+html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
+/* Empty days and lists: KONO keeps you company, smaller inside a card. */
+:is(.today-card-empty,.family-todo-empty,.pickups-empty){text-align:center}
+:is(.today-card-empty,.family-todo-empty,.pickups-empty) .kono-empty-art{width:52px;margin:4px auto 6px}
+@media (max-width:720px){
+ :root[data-experience='cozy'] .workbench .today-card-head{display:flex!important;flex-direction:row!important;justify-content:space-between!important;gap:4px!important}
+ :root[data-experience='cozy'] .workbench .today-card-head>.wb-toolbar{display:flex!important;flex-wrap:nowrap!important;width:auto!important;margin:0!important;gap:4px!important}
+ :root[data-experience='cozy'] .workbench .today-card-head>.wb-toolbar>*{flex:none!important;width:auto!important}
+ :root[data-experience='cozy'] .workbench .today-card-tabs{display:flex!important;width:auto!important;margin:0!important}
+ :root[data-experience='cozy'] .workbench .today-card-tabs button{min-height:38px!important;padding:0 8px!important;font-size:.9rem!important}
+ :root[data-experience='cozy'] .workbench .today-card-tabs button{display:inline-flex!important;align-items:center;gap:6px;white-space:nowrap}
+ :root[data-experience='cozy'] .workbench .overdue-card>.wb-section-head{display:flex!important;flex-direction:row!important;align-items:flex-start!important;justify-content:space-between!important}
+ :root[data-experience='cozy'] .workbench .overdue-card .wb-toolbar{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;width:auto!important;gap:8px!important}
+ :root[data-experience='cozy'] .workbench .overdue-card .wb-toolbar>button{width:auto!important;flex:none!important;min-height:38px!important;padding:0 12px!important}
+ :root[data-experience='cozy'] .workbench .overdue-card h2{font-size:1.02rem!important}
+ :root[data-experience='cozy'] .workbench .today-card-head>.wb-toolbar>button{padding:0 10px!important;min-height:38px!important}
+ :root[data-experience='cozy'] .workbench .today-card-head .today-card-more>summary{width:38px!important;min-width:38px!important;height:38px!important}
+}
+.family-todo-empty{display:flex;align-items:center;gap:10px;text-align:left!important;margin:0 0 10px;color:var(--wb-muted,#7a6670)}
+.family-todo-empty .kono-empty-art{width:40px!important;margin:0!important}
+
+/* Clean: one sans typeface everywhere (the brand, plan names and day tabs were falling back to a serif). */
+:root[data-experience=modern] :is(.wb-sidebar,.workbench,.wb-dialog) :is(strong,h1,h2,h3,button,select,.wb-profile-title){font-family:'DM Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif}

@@ -45,7 +45,10 @@ const mainHeading=page=>page.locator('#workspace-main h1').first()
 async function heading(page,name){await page.waitForFunction(n=>document.querySelector('#workspace-main h1')?.textContent?.startsWith(n),name)}
 async function go(page,name){
  // By visible text or by name: on phones the Sanctuary tab reads "Home" but is still named Sanctuary.
- await page.locator('nav button:visible, nav a:visible').filter({hasText:name}).or(page.locator(`nav button:visible[aria-label="${name}"]`)).first().click()
+ // Phones show the everyday pages in the bottom bar; the rest are under More.
+ const tab=page.locator('nav button:visible, nav a:visible').filter({hasText:name}).or(page.locator(`nav button:visible[aria-label="${name}"]`)).first()
+ if(!await tab.count()&&await page.locator('nav button:visible[aria-label="More"]').count()){await page.locator('nav button:visible[aria-label="More"]').click();await page.getByRole('dialog',{name:'More'}).getByRole('button',{name,exact:true}).click()}
+ else await tab.click()
  await heading(page,name)
 }
 async function settingsTab(page,name){
@@ -163,7 +166,7 @@ test('every Settings tab opens, and a theme choice survives a reload',async({pag
   assert.equal(await page.locator('.lazy-panel-error').count(),0,`a panel on ${tab} failed to load`)
  }
  await settingsTab(page,'Look & feel')
- await page.getByRole('button',{name:/Modern/}).first().click()
+ await page.getByRole('button',{name:/Clean/}).first().click()
  const experience=()=>page.evaluate(()=>document.documentElement.dataset.experience??document.documentElement.className)
  const chosen=await experience()
  assert.match(chosen,/modern/i)
@@ -179,7 +182,7 @@ test('Team colors have their own section in Look & feel: each team sets its jers
  const root=()=>page.evaluate(()=>[document.documentElement.dataset.experience,document.documentElement.dataset.theme,document.documentElement.dataset.team??''].join(' '))
  // Starting from Modern (fixed colors): picking a team switches to Cozy.
  await settingsTab(page,'Look & feel')
- await page.getByRole('button',{name:/Modern/}).first().click()
+ await page.getByRole('button',{name:/Clean/}).first().click()
  const teams=page.getByRole('group',{name:'Team colors'})
  assert.equal(await teams.getByRole('button').count(),8)
  await page.getByText('picking one switches you to Cozy',{exact:false}).waitFor()

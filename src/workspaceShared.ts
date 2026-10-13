@@ -18,7 +18,7 @@ export const fixedPaletteExperiences:string[]=['modern','sumi']
 export const experienceOptions=[
  {id:'cozy',title:'Cozy',glyph:'🌸',description:'Notebook tabs, colorful pinned papers and gentle movement.'},
  {id:'simplified',title:'Simplified',glyph:'▢',description:'A compact workspace with straightforward cards and bottom navigation.'},
- {id:'modern',title:'Modern',glyph:'⚪',description:'Clean, minimal and spacious — off-white surfaces, quiet type and a single accent, in the spirit of apple.com.'},
+ {id:'modern',title:'Clean',glyph:'⚪',description:'Minimal and spacious: white cards, quiet type, one accent color and nothing extra. KONO and the island stay.'},
  {id:'sumi',title:'Zen Ink',glyph:'⛩️',description:'Sumi ink and washi paper — muted indigo and charcoal, hairline rules and quiet type, in the spirit of Japanese ink-wash art.'},
 ] as const
 export const own=(data:AppData,key:Collection)=>records(data,key).filter(r=>r.profileId===data.activeProfileId)

@@ -279,3 +279,5 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .workbench .family-todo-remove{background:none!important;border:0!important;box-shadow:none!important;min-height:0!important;padding:2px 8px!important;font-size:1.2rem;opacity:.6}
 .family-todo-add{display:flex;gap:6px;flex-wrap:wrap}
 .family-todo-add input{flex:1;min-width:160px}
+/* Kids today: a ring around each kid's face fills with what they've finished of today's load. */
+.kids-glance-face.has-ring{background:radial-gradient(closest-side,color-mix(in srgb,var(--kid-color) 25%,#fff) 82%,transparent 84%),conic-gradient(var(--kid-color) calc(var(--done)*1turn),color-mix(in srgb,var(--kid-color) 18%,transparent) 0)}
