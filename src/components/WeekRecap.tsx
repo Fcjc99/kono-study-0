@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import type {WeekRecap as Recap} from '../store/weekRecap'
-import {brandLogoPath} from './BrandLogo'
+import {brandLogoPath} from './brandLogoPath'
 
 const short=(iso:string)=>new Date(iso+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})
 const letter=(iso:string)=>new Date(iso+'T12:00:00').toLocaleDateString(undefined,{weekday:'narrow'})

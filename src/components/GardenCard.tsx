@@ -2,7 +2,7 @@ import { minutesFromDate, phaseBlendForMinutes } from '../game/sanctuary/timeEng
 import { useEffect, useRef, useState } from 'react'
 import { WORLD_HEIGHT, WORLD_WIDTH } from '../game/sanctuary/config'
 import { SANCTUARY_EVENTS } from '../game/sanctuary/runtime'
-import { DEFAULT_WEATHER_TUNING, type WeatherTuning } from '../game/engine/WeatherManager'
+import { DEFAULT_WEATHER_TUNING, type WeatherTuning } from '../game/engine/weatherTuning'
 import type { DayPhase, PhaseMode, SanctuaryQuality, SanctuaryWeather } from '../game/sanctuary/types'
 import type { SanctuaryProgressState } from '../game/progression/types'
 import type { BuildPlacement } from '../store/model'

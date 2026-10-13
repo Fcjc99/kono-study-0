@@ -50,7 +50,7 @@ const PlanSettings=lazyPanel<SettingsProps&{onDeleteProfile?:(id:string)=>void}>
 const WeatherSettings=lazyPanel<SettingsProps&{weatherState:LiveWeatherState}>(()=>import('./SettingsPanels').then(m=>({default:m.WeatherSettings})))
 const SoundMotionSettings=lazyPanel<SettingsProps>(()=>import('./SettingsPanels').then(m=>({default:m.SoundMotionSettings})))
 const ReminderSettings=lazyPanel<SettingsProps>(()=>import('./SettingsPanels').then(m=>({default:m.ReminderSettings})))
-import {AccountBanners,Onboarding,RecoveryScreen,SaveStatus} from './components/AccountPanel'
+import {AccountBanners,SaveStatus} from './components/AccountPanel'
 type StoreProps={store:ReturnType<typeof usePlannerRepository>}
 /** The three-step welcome on a brand-new plan; only new students download it. */
 const WelcomeTour=lazy(()=>import('./components/WelcomeTour'))
@@ -64,6 +64,7 @@ const Pickups=lazy(()=>import('./components/Pickups'))
 const FamilyTodos=lazy(()=>import('./components/FamilyTodos'))
 /** Holds the tour's place while its code loads, so nothing below jumps when it arrives. */
 const TourPlaceholder=()=><section className="wb-panel welcome-tour is-loading" aria-hidden="true"/>
+const Onboarding=lazy(()=>import('./components/Welcome').then(m=>({default:m.Onboarding}))),RecoveryScreen=lazy(()=>import('./components/Welcome').then(m=>({default:m.RecoveryScreen})))
 const AccountPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.AccountPanel})))
 const BackupPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.BackupPanel})))
 const SupportAdminPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.SupportAdminPanel})))
@@ -108,9 +109,8 @@ import {currentStreak as streakFrom,recapDay,weekRecap} from './store/weekRecap'
 import {useLocalSetting} from './hooks/useLocalSetting'
 import type {QuickDayItem} from './components/QuickDayAdd'
 const Calendar=lazyPanel(()=>import('./components/PlannerCalendar'))
-import GettingStarted,{type StartStep} from './components/GettingStarted'
+import type {StartStep} from './components/GettingStarted'
 import OverdueCard from './components/OverdueCard'
-import QuickAddBox from './components/QuickAddBox'
 import SwipeRow from './components/SwipeRow'
 const AddFromSiri=lazyPanel(()=>import('./components/AddFromSiri'))
 import {uploadPendingPhotos} from './store/photoStore'
@@ -143,6 +143,9 @@ const StudyPlanner=lazyPanel(()=>import('./components/StudyPlanner'))
 const SanctuaryBuild=lazyPanel(()=>import('./components/SanctuaryBuild'))
 const AskKono=lazyPanel(()=>import('./components/AskKono'))
 const EntryEditor=lazyPanel(()=>import('./components/EntryEditor'))
+// The Add sheet's typing box and the setup steps load when first shown, not with every start.
+const QuickAddBox=lazyPanel(()=>import('./components/QuickAddBox'))
+const GettingStarted=lazyPanel(()=>import('./components/GettingStarted'))
 const QuickDayAdd=lazyPanel(()=>import('./components/QuickDayAdd'))
 const SharedWithMe=lazyPanel(()=>import('./components/SharedWithMe'))
 
@@ -179,7 +182,7 @@ export default function WorkspaceApp(){
  // AccountPanel (rendered inside Onboarding) shows its own SaveStatus in context -- a second
  // one floating above the welcome card duplicated the exact same "Build X · This device only"
  // line as a stray line of text before the reader has even reached the card it belongs to.
- if(!store.data.onboardingComplete)return store.unreadable?<RecoveryScreen store={store}/>:<Onboarding store={store}/>
+ if(!store.data.onboardingComplete)return <Suspense fallback={<main className="startup-card"><h1>KONO</h1><p role="status">Opening KONO…</p></main>}>{store.unreadable?<RecoveryScreen store={store}/>:<Onboarding store={store}/>}</Suspense>
  return <Workspace key={(store.user?.id??'device')+':'+store.data.activeProfileId} store={store}/>
 }
 function Workspace({store}:{store:Store}){
@@ -208,7 +211,6 @@ function Workspace({store}:{store:Store}){
  const [recapOpen,setRecapOpen]=useState(false),plannerMoreRef=useRef<HTMLDetailsElement>(null)
  // The top bar: Search and ＋ Add; Undo, Redo, voice, Trash and the account sit in its ⋯ menu.
  const headerMoreRef=useRef<HTMLDetailsElement>(null)
- const [addKind,setAddKind]=useState<'tasks'|'exams'|'notes'|'lesson'>('tasks')
  const [confirmation,setConfirmation]=useState<{text:string;action:()=>void}|null>(null)
  const [phase,setPhase]=useState<'auto'|'morning'|'afternoon'|'evening'|'night'>('auto'),[expanded,setExpanded]=useState(false)
  const [quickDayOpen,setQuickDayOpen]=useState<'today'|'tomorrow'|null>(null)
@@ -587,6 +589,8 @@ function Workspace({store}:{store:Store}){
  const quickAdd=(g:QuickAddGuess&{link?:string})=>{setAdding(false);const id=uid(g.key);void run(()=>save(d=>g.key==='tasks'?{...d,tasks:[...d.tasks,{id,profileId:profile.id,subjectId:g.subjectId,title:g.title,due:g.due,done:false,notes:'',...(g.time?{plannedTime:g.time}:{}),...(g.link?{link:g.link}:{})}]}:{...d,exams:[...d.exams,{id,profileId:profile.id,subjectId:g.subjectId,title:g.title,due:g.due,done:false,notes:'',...(g.link?{link:g.link}:{})}]}),'Added “'+g.title+'” for '+dateLabel(g.due)+'.',true)}
  const overdueCard=<OverdueCard tasks={overdue} subjectName={id=>data.subjects.find(s=>s.id===id)?.name??''} onDone={id=>void run(async()=>{const saved=await save(d=>completeTask(d,id));if(saved)celebrateDone();return saved},'Assignment completed.',true,id)} onMove={moveToToday} onLater={()=>setOverdueHiddenOn(localDate())}/>
  const openEditor=(edit:Edit)=>{if(hasDraft&&!editor){try{const old=JSON.parse(localStorage.getItem(draftScope)??'null') as Edit;if(old?.entry?.id===edit.entry.id){if(old.original&&edit.original&&!equal(old.original,edit.original)&&equal(old.entry,old.original)){localStorage.removeItem(draftScope);setHasDraft(false);setEditor(edit);return}setEditor(old);return}}catch{/* Offer a clear replacement choice. */}setConfirmation({text:'You have an unfinished edit. Discard it and open this item? Cancel keeps your draft; use Resume draft to finish it.',action:()=>{localStorage.removeItem(draftScope);localStorage.removeItem(draftScope+':assignment-dates');setHasDraft(false);setEditor(edit)}});return}setEditor(edit)}
+ // The Add sheet's tiles use the Planner's chosen day when it's today or later.
+ const addDate=page==='Planner'&&selectedDate>today?selectedDate:today
  const create=(key:Collection,date=today,subjectId=subject,seed:Partial<Entry>={} )=>{
   setAdding(false)
   if(key==='studyPlans'){setPlanRequest(n=>n+1);navigate('Planner');return}
@@ -984,7 +988,7 @@ function Workspace({store}:{store:Store}){
   <div className={'wb-music-bar'+(music.playing?' is-playing':'')}><MusicPlayer controller={music} compact/></div>
   {confirmation&&<Modal title="Confirm change" close={()=>setConfirmation(null)}><p>{confirmation.text}</p><button onClick={()=>{confirmation.action();setConfirmation(null)}}>Confirm</button><button onClick={()=>setConfirmation(null)}>Cancel</button></Modal>}
   {more&&<Modal title="More" close={()=>setMore(false)}>{(['Kids','Notes','Subjects','K-Quiz','Exams','Settings','Trash'] as Page[]).filter(p=>(p!=='Kids'||parentMode)&&!(lockedPlan&&p==='Settings')).map(p=><button key={p} onClick={()=>navigate(p)}>{p}</button>)}<label>Study profile<select value={profile.id} onChange={e=>switchPlan(e.target.value)}>{data.profiles.map(p=><option value={p.id} key={p.id}>{p.label}</option>)}</select></label></Modal>}
-  {adding&&<Modal title="Add to your plan" close={()=>setAdding(false)}><QuickAddBox subjects={data.subjects.filter(s=>s.profileId===profile.id)} today={localDate()} initialText={incoming?.text} link={incoming?.link} onAdd={quickAdd} onEdit={g=>create(g.key,g.due,g.subjectId,{title:g.title,...(g.time?{plannedTime:g.time}:{}),...(g.link?{link:g.link}:{})})}/><div className="quick-add-choice"><p className="quick-add-or">Or pick a type:</p><label>What are you adding?<select aria-label="Add type" value={addKind} onChange={e=>setAddKind(e.target.value as typeof addKind)}><option value="tasks">Homework</option><option value="exams">Exam or test</option><option value="lesson">Lesson</option><option value="notes">Study note</option></select></label><p className="wb-muted">Exams appear on the countdown board. Study notes are pinned to your bulletin board.</p><button className="primary" onClick={()=>addKind==='lesson'?create('calendarEvents',today,subject,{kind:'lesson'}):create(addKind)}>Continue</button></div><button type="button" className="update-entire-plan-button" onClick={()=>{setAdding(false);setScanningPlan(true)}}>📷 Update entire plan — scan notes or a syllabus</button><details className="add-more-choices"><summary>More ways to add</summary><div>{(['studyPlans','calendarEvents','subjects',...(parentMode?['kids'] as const:[])] as Collection[]).map(key=><button key={key} onClick={()=>create(key)}>{labels[key]}</button>)}</div></details></Modal>}
+  {adding&&<Modal title="Add to your plan" close={()=>setAdding(false)}><QuickAddBox subjects={data.subjects.filter(s=>s.profileId===profile.id)} today={localDate()} initialText={incoming?.text} link={incoming?.link} onAdd={quickAdd} onEdit={g=>create(g.key,g.due,g.subjectId,{title:g.title,...(g.time?{plannedTime:g.time}:{}),...(g.link?{link:g.link}:{})})}/><div className="quick-add-choice"><p className="quick-add-or">Or pick one:</p><div className="add-tiles" role="group" aria-label="Add type">{([['tasks','📝','Homework'],['exams','🎯','Test or exam'],['calendarEvents','🗓️','Event'],['lesson','📖','Lesson'],['notes','📌','Study note']] as const).map(([kind,icon,label])=><button type="button" key={kind} className="add-tile" onClick={()=>kind==='lesson'?create('calendarEvents',addDate,subject,{kind:'lesson'}):create(kind,addDate)}><span aria-hidden="true">{icon}</span>{label}</button>)}</div>{addDate!==today&&<p className="wb-muted add-tiles-date">For {dateLabel(addDate)}</p>}</div><button type="button" className="update-entire-plan-button" onClick={()=>{setAdding(false);setScanningPlan(true)}}>📷 Update entire plan — scan notes or a syllabus</button><details className="add-more-choices"><summary>More ways to add</summary><div>{(['studyPlans','subjects',...(parentMode?['kids'] as const:[])] as Collection[]).map(key=><button key={key} onClick={()=>create(key)}>{labels[key]}</button>)}</div></details></Modal>}
   {weatherOpen&&<Modal title="Sanctuary weather" close={()=>setWeatherOpen(false)}><WeatherSettings data={data} setData={save} weatherState={weather}/></Modal>}
   {scanningPlan&&<Modal title="Update entire plan" close={()=>setScanningPlan(false)}><UpdatePlanScanner profileId={profile.id} subjects={subjects} kids={profileKids} save={save} close={()=>setScanningPlan(false)} onOpenAiSettings={()=>{setScanningPlan(false);openSettings('Import & export')}}/></Modal>}
   {reviewOpen&&<Modal title="Needs review" close={()=>setReviewOpen(false)}><p className="wb-muted">Added automatically from a scanned photo. Check each one — confirming it (or just opening and saving it) clears the flag.</p>{needsReviewEntries.length===0?<p>All caught up.</p>:<>{needsReviewEntries.length>1&&<button type="button" className="primary" onClick={()=>void confirmAllReviews()}>Confirm all {needsReviewEntries.length} items</button>}{needsReviewEntries.map(({key,entry})=>card(key,entry))}</>}</Modal>}
