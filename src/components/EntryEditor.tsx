@@ -79,6 +79,7 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
  return <Modal title={(edit.original?'Edit ':'New ')+labels[edit.key]} close={keep}><form onSubmit={submit}><fieldset disabled={busy}><label>{edit.key==='subjects'?'Subject name':edit.key==='kids'?'Kid name':'Title'}<input autoFocus required maxLength={edit.key==='subjects'||edit.key==='kids'?200:1000} value={String(entry[titleKey]??'')} onChange={e=>field(titleKey,e.target.value)}/></label>
   {note&&<VoiceInputButton label="title" onText={text=>append(titleKey,text)}/>}
   {!['subjects','kids'].includes(edit.key)&&<label>Subject<select value={String(entry.subjectId??'')} onChange={e=>field('subjectId',e.target.value)}><option value="">General / unassigned</option>{data.subjects.filter(s=>s.profileId===entry.profileId).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}
+  {isEvent&&familyKids.length>0&&<label>Who’s driving? (optional)<input maxLength={60} value={String(entry.driver??'')} onChange={e=>field('driver',e.target.value||undefined)} placeholder="Mom, Dad, carpool…"/></label>}
   {(['tasks','exams','calendarEvents'] as Collection[]).includes(edit.key)&&familyKids.length>0&&<fieldset className="whose-pick"><legend>Who’s it for?</legend>
    <label><input type="checkbox" checked={!whose.length} onChange={()=>setWhose([])}/> Me / whole family</label>
    {familyKids.map(k=><label key={k.id}><input type="checkbox" checked={whose.includes(k.id)} onChange={()=>togglePerson(k.id)}/> {(k.emoji?k.emoji+' ':'')+k.name}</label>)}

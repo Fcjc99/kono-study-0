@@ -384,6 +384,36 @@ test('Several people on one item, and a kid’s own plan shows what the family p
  same(rows.find(r=>r.kid.id===blair).dueTonight,['Science fair board'])
 })
 
+test('Family extras: gifts wait in a kid’s pantry with a note; weekday repeats; one school for two kids; family to-dos; done today',()=>{
+ const fam=load('src/store/familyPlans.ts'),care=load('src/store/konoCare.ts'),rep=load('src/store/eventRepeat.ts'),glance=load('src/store/kidGlance.ts')
+ const same=(a,b,m)=>assert.equal(JSON.stringify(a),JSON.stringify(b),m)
+ // A gift from a parent: in the pantry, with who sent it and the note; eaten like any snack.
+ const now=new Date('2026-10-13T16:00:00'),at=now.toISOString()
+ let state=care.addCareEvent(undefined,'p-kid',{id:'gift-1',kind:'gift',at,item:care.SNACKS[2].id,from:'Mom',note:'Great job on the test!'},now)
+ const read=care.readCareState(JSON.parse(JSON.stringify(state)),'p-kid')
+ assert.equal(read.log[0].note,'Great job on the test!');assert.equal(read.log[0].from,'Mom')
+ same(care.pantry([],read.log,now).map(p=>p.taskId),['gift-1'])
+ assert.equal(care.waitingGifts(read.log,now)[0].id,'gift-1')
+ state=care.addCareEvent(read,'p-kid',{id:'feed-1',kind:'feed',at,taskId:'gift-1',item:care.SNACKS[2].id},now)
+ assert.equal(care.pantry([],state.log,now).length,0,'eaten');assert.equal(care.waitingGifts(state.log,now).length,0)
+ // Every Tuesday and Thursday from Mon Oct 12 through Oct 22.
+ same(rep.weekdayDates('2026-10-12',[2,4],'2026-10-22'),['2026-10-13','2026-10-15','2026-10-20','2026-10-22'])
+ same(rep.weekdayDates('2026-10-12',[],'2026-10-22'),[])
+ // One school for two kids: each kid's own plan shows it; a family to-do survives a save.
+ let {data,id:blair}=withKid(model.createFreshData(),'Blair','#6a8fc7')
+ ;({data}=withKid(data,'Leo','#e08a4f'))
+ const parent=data.activeProfileId,leo=data.kids.find(k=>k.name==='Leo').id
+ let made=fam.addKidPlan(data,data.kids.find(k=>k.id===blair));data=made.data
+ const leoPlan=fam.addKidPlan(data,data.kids.find(k=>k.id===leo));data=leoPlan.data
+ data={...data,studySeasons:[{id:'s-dms',profileId:parent,kidId:blair,kidIds:[blair,leo],name:'DMS',start:'2026-09-01',end:'2027-06-20',active:true,week:model.blankWeek()}],familyTodos:[{id:'todo-1',profileId:parent,title:'Sign permission slip',done:false,forKidId:leo}],
+  tasks:[{id:'t-done',profileId:made.id,subjectId:'',title:'Reading log',due:'2026-10-13',done:true,completedAt:new Date('2026-10-13T15:00:00').toISOString(),notes:''}]}
+ const saved=model.normalizeData(JSON.parse(JSON.stringify(data)))
+ same(saved.studySeasons[0].kidIds,[blair,leo]);assert.equal(saved.familyTodos[0].title,'Sign permission slip');assert.equal(saved.familyTodos[0].forKidId,leo)
+ assert.equal(fam.kidPlanView(saved,made.id).data.studySeasons[0].profileId,made.id,'Blair’s plan has the school')
+ assert.equal(fam.kidPlanView(saved,leoPlan.id).data.studySeasons[0].profileId,leoPlan.id,'so does Leo’s')
+ same(glance.kidGlance(saved,parent,'2026-10-13').find(r=>r.kid.id===blair).doneToday,['Reading log'])
+})
+
 let passed=0
 for(const t of tests){try{t.fn();passed++;console.log('PASS',t.name)}catch(e){console.error('FAIL',t.name);console.error(e);process.exitCode=1}}
 console.log(`${passed}/${tests.length} kid-tag regression groups passed.`)

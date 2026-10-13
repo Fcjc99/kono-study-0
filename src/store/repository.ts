@@ -128,6 +128,8 @@ export class PlannerRepository {
   this.notify({ready:true})
   if(typeof BroadcastChannel!=='undefined'){this.channel=new BroadcastChannel('kono-plan-changes');this.channel.onmessage=()=>{void this.enqueue(g=>this.reloadOtherTab(g)).catch(()=>undefined)}}
   window.addEventListener('online',this.handleOnline);window.addEventListener('focus',this.handleOnline);window.addEventListener('beforeunload',this.warnUnsaved)
+  // Phones and iPads switch apps without a focus event: pick up other devices' changes as soon as KONO is back on screen.
+  document.addEventListener?.('visibilitychange',this.handleVisible)
   this.timer=window.setInterval(()=>{if(document.visibilityState==='visible')this.retry()},15000)
  }
  /** KONO's built-in AI (the server's OpenAI key) for signed-in people without a key of their own. Only
@@ -194,7 +196,8 @@ export class PlannerRepository {
  }
  private warnUnsaved=(event:BeforeUnloadEvent)=>{if(this.cache?.pending||this.state.status==='Unsaved'||this.state.status==='Saving'){event.preventDefault();event.returnValue=''}}
  private handleOnline=()=>this.retry()
- dispose(){this.disposed=true;this.generation++;this.syncQueued=false;if(this.timer)clearInterval(this.timer);this.channel?.close();this.authUnsubscribe?.();this.authUnsubscribe=null;window.removeEventListener('online',this.handleOnline);window.removeEventListener('focus',this.handleOnline);window.removeEventListener('beforeunload',this.warnUnsaved)}
+ private handleVisible=()=>{if(document.visibilityState==='visible')this.retry()}
+ dispose(){this.disposed=true;this.generation++;this.syncQueued=false;if(this.timer)clearInterval(this.timer);this.channel?.close();this.authUnsubscribe?.();this.authUnsubscribe=null;window.removeEventListener('online',this.handleOnline);window.removeEventListener('focus',this.handleOnline);document.removeEventListener?.('visibilitychange',this.handleVisible);window.removeEventListener('beforeunload',this.warnUnsaved)}
  private async saveCache(data:AppData,base:AppData|null,serverRevision:number,pending:boolean,generation:number){
   const saved=await commitCache(this.scope,this.cache,{version:6,revision:this.cache?.revision??0,data,base,serverRevision,pending,backups:[]})
   if(!this.valid(generation))return
@@ -205,6 +208,8 @@ export class PlannerRepository {
  }
  /** `undoable:false` is for saves KONO makes by itself (a granted wish, a find), which Undo should
   * step over: Undo always takes back the student's own last change. */
+ /** Goes up each time update() actually changes the plan (so the app can confirm "Saved"). */
+ changeCount=0
  update=(action:SetStateAction<AppData>,{undoable=true}:{undoable?:boolean}={})=>{
   if(!this.state.ready||this.blocked||this.state.needsMigration)return Promise.resolve(false)
   let saved=false
@@ -212,6 +217,7 @@ export class PlannerRepository {
    if(this.blocked||this.state.needsMigration)return
    const before=this.state.data,draft=typeof action==='function'?action(before):action
    if(draft===before){saved=!this.unsaved;return}
+   this.changeCount++
    const data=normalizeData(this.historyMove?draft:captureDeletions(before,draft))
    this.unsaved=true;this.notify({data,status:'Saving',error:''})
    try{await this.saveCache(data,this.cache?.base??null,this.cache?.serverRevision??0,!!this.state.user&&(this.cache?.pending||content(before)!==content(data)),generation)}

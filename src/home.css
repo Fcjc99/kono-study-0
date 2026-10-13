@@ -221,7 +221,7 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .who-is-using small{opacity:.7;font-weight:600}
 .kids-glance h2{margin:0 0 10px}
 .kids-glance ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.kids-glance li>button{width:100%;display:flex!important;align-items:flex-start;gap:12px;text-align:left;padding:10px 12px!important;border-radius:16px!important;border-left:5px solid var(--kid-color)!important}
+.kids-glance li>button:first-child{min-width:0;display:flex!important;align-items:flex-start;gap:12px;text-align:left;padding:10px 12px!important;border-radius:16px!important;border-left:5px solid var(--kid-color)!important}
 .kids-glance-face{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:1.3rem;font-weight:800;background:color-mix(in srgb,var(--kid-color) 25%,#fff);color:#3a2b33}
 .kids-glance-main{display:grid;gap:4px;min-width:0}
 .kids-glance-main strong{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -242,3 +242,42 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .whose-pick label{display:inline-flex!important;align-items:center;gap:6px;font-weight:600}
 .whose-pick input{width:auto!important;margin:0}
 .whose-pick small{flex-basis:100%;opacity:.75}
+.kids-glance-facts .is-done{color:#2f7a4f}
+.kids-glance li{display:flex;align-items:stretch;gap:6px}
+.kids-glance li>button:first-child{flex:1}
+.workbench .kids-glance li>.kids-glance-gift{flex:none;width:48px;min-width:48px;display:grid!important;place-items:center;font-size:1.3rem;padding:0!important;border-radius:14px!important;border-left-width:1px!important}
+.gift-sheet{display:grid;gap:12px}
+.gift-snacks{display:flex;flex-wrap:wrap;gap:6px}
+.gift-snacks label{display:inline-flex!important;align-items:center;gap:4px;padding:6px 10px;border:1px solid var(--wb-line,#e3d7da);border-radius:999px;font-weight:600;cursor:pointer}
+.gift-snacks label.is-picked{border-color:var(--wb-accent,#c76b8f);background:color-mix(in srgb,var(--wb-accent,#c76b8f) 12%,transparent)}
+.gift-snacks input{position:absolute;opacity:0;width:1px;height:1px}
+.kono-note.is-gift{font-weight:700}
+.wb-family-event .event-driver{display:block;font-weight:700;opacity:.85}
+.pickups{display:grid;gap:14px}
+.pickups h3{margin:0 0 6px}
+.pickups ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.pickups li button{width:100%;display:grid!important;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;padding:10px 12px!important;border-radius:14px!important}
+.pickups time{font-weight:800;font-variant-numeric:tabular-nums}
+.pickups li button>span{display:grid}
+.pickups small{opacity:.75;font-weight:600}
+.pickups-driver{font-weight:800}
+.pickups-driver.is-missing{color:#b2384f}
+@media (max-width:520px){.pickups li button{grid-template-columns:1fr}}
+.repeat-days{display:flex;flex-wrap:wrap;gap:6px;border:1px solid var(--wb-line,#e3d7da);border-radius:12px;padding:8px 12px;margin:0}
+.repeat-days legend{font-weight:700;padding:0 4px}
+.repeat-days>label{display:inline-flex!important;align-items:center;padding:4px 10px;border:1px solid var(--wb-line,#e3d7da);border-radius:999px;font-weight:700;cursor:pointer}
+.repeat-days>label.is-on{background:color-mix(in srgb,var(--wb-accent,#c76b8f) 18%,transparent);border-color:var(--wb-accent,#c76b8f)}
+.repeat-days>label input{position:absolute;opacity:0;width:1px;height:1px}
+.repeat-days .repeat-until{flex-basis:100%;border:0!important;padding:4px 0 0!important;display:grid!important;font-weight:600}
+.family-todos h2{margin:0 0 8px}
+.family-todos ul{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:4px}
+.family-todos li{display:flex;align-items:center;gap:8px}
+.family-todos li label{flex:1;display:flex!important;align-items:center;gap:8px;font-weight:600}
+.family-todos li label input{width:auto!important;margin:0}
+.family-todos li.is-done span{text-decoration:line-through;opacity:.55}
+.family-todo-kid{padding:1px 8px;border-radius:999px;background:color-mix(in srgb,var(--kid-color,#c76b8f) 18%,transparent)}
+.workbench .family-todo-remove{background:none!important;border:0!important;box-shadow:none!important;min-height:0!important;padding:2px 8px!important;font-size:1.2rem;opacity:.6}
+.family-todo-add{display:flex;gap:6px;flex-wrap:wrap}
+.family-todo-add input{flex:1;min-width:160px}
+/* Kids today: a ring around each kid's face fills with what they've finished of today's load. */
+.kids-glance-face.has-ring{background:radial-gradient(closest-side,color-mix(in srgb,var(--kid-color) 25%,#fff) 82%,transparent 84%),conic-gradient(var(--kid-color) calc(var(--done)*1turn),color-mix(in srgb,var(--kid-color) 18%,transparent) 0)}

@@ -6,12 +6,13 @@
  * What's saved is a short log of feedings and pats (AppData.konoCare), one entry each with its own
  * ID, so two devices adding to it at the same time merge cleanly. Everything else is worked out from
  * that log, finished assignments and the clock. */
-export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'|'find'|'exam'|'nudge'|'visit'|'bond'|'play'|'taste'
+export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'|'find'|'exam'|'nudge'|'visit'|'bond'|'play'|'taste'|'gift'
 /** `item` is the outfit put on for a 'wear' entry ("" = taking it off; store/konoWardrobe), what KONO
  * found for a 'find' entry (store/konoFinds), how a test went for an 'exam' entry, or what was done with
- * the day's nudge for a 'nudge' entry (store/konoNotes). */
-export type CareEvent={id:string;kind:CareKind;at:string;taskId?:string;item?:string}
-const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear','find','exam','nudge','visit','bond','play','taste']
+ * the day's nudge for a 'nudge' entry (store/konoNotes). A 'gift' is a snack a parent sent from the family
+ * plan (`item` is the snack, `from` who sent it, `note` their message); it waits in the pantry like earned ones. */
+export type CareEvent={id:string;kind:CareKind;at:string;taskId?:string;item?:string;from?:string;note?:string}
+const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear','find','exam','nudge','visit','bond','play','taste','gift']
 export type KonoCareState={profileId:string;log:CareEvent[]}
 export type KonoMeters={full:number;rested:number;happy:number;asleep:boolean;away:boolean}
 export type Treat={id:string;emoji:string;name:string}
@@ -30,7 +31,7 @@ export const nextPlayAt=(log:CareEvent[])=>Math.max(-Infinity,...log.filter(e=>e
 export const PLAY_LINES=['That was so fun! KONO is all smiles. 💛','KONO wants a rematch later! 😄','Best. Game. Ever! KONO bounces around. ✨']
 export const FLOOR={full:20,rested:25,happy:30} as const
 
-const SNACKS:Treat[]=[
+export const SNACKS:Treat[]=[
  {id:'onigiri',emoji:'🍙',name:'rice ball'},{id:'dumpling',emoji:'🥟',name:'dumpling'},{id:'dango',emoji:'🍡',name:'dango'},
  {id:'strawberry',emoji:'🍓',name:'strawberry'},{id:'cookie',emoji:'🍪',name:'cookie'},{id:'peach',emoji:'🍑',name:'peach'},
 ]
@@ -64,10 +65,13 @@ const isFavorite=(e:CareEvent)=>e.kind==='feed'&&!!e.item&&e.item===favoriteSnac
 /** Snacks waiting to be eaten: work finished in the last two weeks that KONO hasn't eaten yet, oldest first. */
 export function pantry(tasks:Done[],log:CareEvent[],now:Date):PantryItem[]{
  const fed=fedIds(log),since=now.getTime()-TREAT_DAYS*DAY
- return tasks.filter(t=>t.done&&time(t.completedAt)>=since&&!fed.has(t.id))
-  .sort((a,b)=>time(a.completedAt)-time(b.completedAt))
-  .map(t=>({taskId:t.id,treat:treatFor(t)}))
+ const earned=tasks.filter(t=>t.done&&time(t.completedAt)>=since&&!fed.has(t.id)).map(t=>({at:time(t.completedAt),item:{taskId:t.id,treat:treatFor(t)}}))
+ // Snacks a parent sent wait here too (keyed by the gift's own ID).
+ const gifts=log.filter(e=>e.kind==='gift'&&time(e.at)>=since&&!fed.has(e.id)).map(e=>({at:time(e.at),item:{taskId:e.id,treat:ALL_TREATS.find(t=>t.id===e.item)??SNACKS[0]}}))
+ return [...earned,...gifts].sort((a,b)=>a.at-b.at).map(x=>x.item)
 }
+/** Gifts from a parent still waiting to be eaten, newest first (KONO's card says who sent it and their note). */
+export const waitingGifts=(log:CareEvent[],now:Date)=>{const fed=fedIds(log),since=now.getTime()-TREAT_DAYS*DAY;return log.filter(e=>e.kind==='gift'&&time(e.at)>=since&&!fed.has(e.id)).sort((a,b)=>b.at.localeCompare(a.at))}
 
 /** Rested follows bedtime. A night KONO was tucked in by 10:30 PM it wakes fully rested; tucked in
  * later, a little less; not tucked in at all, it wakes groggy. Through the day it gets sleepier (about
@@ -131,7 +135,7 @@ export function addCareEvent(state:KonoCareState|undefined,profileId:string,even
  // Granted wishes count toward outfits for good, finds and friends stay in the collection, days KONO was
  // cared for count toward the bond (store/konoBond), and the outfit KONO has on stays on: all are kept.
  const lastWear=all.filter(e=>e.kind==='wear').sort((a,b)=>a.at.localeCompare(b.at)).at(-1)
- const kept=(e:CareEvent)=>e.kind==='wish'||e.kind==='find'||e.kind==='visit'||e.kind==='bond'||e.kind==='taste'
+ const kept=(e:CareEvent)=>e.kind==='wish'||e.kind==='find'||e.kind==='visit'||e.kind==='bond'||e.kind==='taste'||e.kind==='gift'
  const log=all.filter(e=>kept(e)||e===lastWear||time(e.at)>=since)
  if((event.kind==='wish'||event.kind==='exam'||event.kind==='nudge'||event.kind==='visit'||event.kind==='bond'||event.kind==='taste')&&log.some(e=>e.id===event.id))return {profileId,log}
  if(event.kind==='play'&&now.getTime()<nextPlayAt(log))return {profileId,log}
@@ -158,7 +162,8 @@ export function readCareState(raw:unknown,profileId:string):KonoCareState{
   if(typeof x.id!=='string'||!x.id||x.id.length>150||!KINDS.includes(x.kind as CareKind)||typeof x.at!=='string'||!Number.isFinite(Date.parse(x.at)))return []
   const event:CareEvent={id:x.id,kind:x.kind as CareKind,at:new Date(x.at).toISOString()}
   if(typeof x.taskId==='string'&&x.taskId&&x.taskId.length<=150)event.taskId=x.taskId
-  if(['wear','find','exam','nudge','feed','visit','taste'].includes(event.kind)&&typeof x.item==='string'&&x.item.length<=40)event.item=x.item
+  if(['wear','find','exam','nudge','feed','visit','taste','gift'].includes(event.kind)&&typeof x.item==='string'&&x.item.length<=40)event.item=x.item
+  if(event.kind==='gift'){if(typeof x.from==='string'&&x.from.length<=60)event.from=x.from;if(typeof x.note==='string'&&x.note.length<=140)event.note=x.note}
   return [event]
  }).slice(-LOG_MAX)
  return {profileId,log}

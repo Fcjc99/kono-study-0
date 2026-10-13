@@ -79,6 +79,6 @@ export function kidPlanView(data:AppData,kidPlanId:string):{data:AppData;home:Ma
  const familyId=kid.profileId
  const theirs=(x:{profileId:string;kidId?:string;kidIds?:string[]})=>x.profileId===familyId&&peopleOf(x).includes(kid.id)
  const borrow=<T extends {id:string;profileId:string;kidId?:string;kidIds?:string[]}>(list:T[])=>list.map(x=>{if(!theirs(x))return x;home.set(x.id,familyId);const next={...x,profileId:kidPlanId,kidId:undefined};delete next.kidIds;return next})
- const seasons=data.studySeasons.map(s=>s.profileId===familyId&&s.kidId===kid.id?(home.set(s.id,familyId),{...s,profileId:kidPlanId,kidId:undefined}):s)
+ const seasons=data.studySeasons.map(s=>{if(!(s.profileId===familyId&&peopleOf(s).includes(kid.id)))return s;home.set(s.id,familyId);const next={...s,profileId:kidPlanId,kidId:undefined};delete next.kidIds;return next})
  return {data:{...data,tasks:borrow(data.tasks),exams:borrow(data.exams),calendarEvents:borrow(data.calendarEvents),studySeasons:seasons},home}
 }

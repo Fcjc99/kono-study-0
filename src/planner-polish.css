@@ -87,16 +87,17 @@
 /* A segmented strip of pills, one per assignment due that day — filled ones are done. Sits right
  * under a schedule section's heading, above the class list, so "how much of tonight's work is done"
  * reads at a glance without opening the assignment list itself. */
-.assignment-progress{margin:2px 0 12px}
-.assignment-progress-bar{display:flex;flex-wrap:wrap;gap:4px}
-/* The unfilled segment's tinted background alone was too close to the page's own off-white surface to
- * read as a shape at a glance — in the coral default it was practically invisible until every
- * assignment was done. var(--wb-line) turned out too pale itself (it's derived the same way), so the
- * border is a stronger, fixed cut of the accent color instead, giving every segment a visible outline
- * regardless of theme. */
-.assignment-progress-bar span{flex:1 0 14px;min-width:14px;height:8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--wb-accent) 55%,transparent);background:color-mix(in srgb,var(--wb-accent) 18%,transparent)}
-.assignment-progress-bar span.is-filled{background:var(--wb-accent)}
-.assignment-progress small{display:block;margin-top:5px;color:var(--wb-muted);font-size:.78rem;font-weight:600}
+.assignment-progress{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:2px 0 12px}
+/* A ring that fills as the day's assignments are checked off; a stronger cut of the accent for the
+ * track so it reads on every theme's off-white surface. */
+.assignment-ring{width:34px;height:34px;flex:none}
+.assignment-ring circle{fill:none;stroke-width:4;transform:rotate(-90deg);transform-origin:18px 18px;stroke:color-mix(in srgb,var(--wb-accent) 20%,transparent)}
+.assignment-ring circle.is-done{stroke:var(--wb-accent);stroke-linecap:round;transition:stroke-dasharray .6s cubic-bezier(.3,1.4,.5,1)}
+.assignment-ring text{fill:var(--wb-accent);font-size:15px;font-weight:800}
+.assignment-progress small{color:var(--wb-muted);font-size:.8rem;font-weight:650}
+.assignment-progress.is-all-done small{color:var(--wb-accent)}
+.assignment-progress-extra{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.assignment-progress-extra>span{padding:3px 10px;border-radius:999px;background:color-mix(in srgb,var(--wb-accent) 10%,transparent);color:var(--wb-ink,inherit);font-size:.76rem;font-weight:650}
 .wb-agenda-day>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:2px 0}
 .wb-agenda-day>summary::-webkit-details-marker{display:none}
 .wb-agenda-day>summary::before{content:'▸';margin-right:8px;color:var(--wb-muted);font-size:.75rem}

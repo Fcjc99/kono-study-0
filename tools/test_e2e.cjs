@@ -45,7 +45,10 @@ const mainHeading=page=>page.locator('#workspace-main h1').first()
 async function heading(page,name){await page.waitForFunction(n=>document.querySelector('#workspace-main h1')?.textContent?.startsWith(n),name)}
 async function go(page,name){
  // By visible text or by name: on phones the Sanctuary tab reads "Home" but is still named Sanctuary.
- await page.locator('nav button:visible, nav a:visible').filter({hasText:name}).or(page.locator(`nav button:visible[aria-label="${name}"]`)).first().click()
+ // Phones show the everyday pages in the bottom bar; the rest are under More.
+ const tab=page.locator('nav button:visible, nav a:visible').filter({hasText:name}).or(page.locator(`nav button:visible[aria-label="${name}"]`)).first()
+ if(!await tab.count()&&await page.locator('nav button:visible[aria-label="More"]').count()){await page.locator('nav button:visible[aria-label="More"]').click();await page.getByRole('dialog',{name:'More'}).getByRole('button',{name,exact:true}).click()}
+ else await tab.click()
  await heading(page,name)
 }
 async function settingsTab(page,name){
@@ -163,7 +166,7 @@ test('every Settings tab opens, and a theme choice survives a reload',async({pag
   assert.equal(await page.locator('.lazy-panel-error').count(),0,`a panel on ${tab} failed to load`)
  }
  await settingsTab(page,'Look & feel')
- await page.getByRole('button',{name:/Modern/}).first().click()
+ await page.getByRole('button',{name:/Clean/}).first().click()
  const experience=()=>page.evaluate(()=>document.documentElement.dataset.experience??document.documentElement.className)
  const chosen=await experience()
  assert.match(chosen,/modern/i)
@@ -179,7 +182,7 @@ test('Team colors have their own section in Look & feel: each team sets its jers
  const root=()=>page.evaluate(()=>[document.documentElement.dataset.experience,document.documentElement.dataset.theme,document.documentElement.dataset.team??''].join(' '))
  // Starting from Modern (fixed colors): picking a team switches to Cozy.
  await settingsTab(page,'Look & feel')
- await page.getByRole('button',{name:/Modern/}).first().click()
+ await page.getByRole('button',{name:/Clean/}).first().click()
  const teams=page.getByRole('group',{name:'Team colors'})
  assert.equal(await teams.getByRole('button').count(),8)
  await page.getByText('picking one switches you to Cozy',{exact:false}).waitFor()
@@ -1991,6 +1994,8 @@ test('Kids\' appearance: one kid at a time, a saved animated border becomes its 
  await panel.getByLabel('Leo\'s emoji').fill('🦁')
  await panel.getByRole('button',{name:'Use',exact:true}).click()
  await panel.getByRole('img',{name:'Leo\'s tile preview'}).getByText('🦁 Leo').waitFor()
+ // Each change says it was saved, on top of the open dialog.
+ assert.match(await page.locator('.save-toast').innerText(),/saved/i)
  await waitFor(()=>{const k=cloud.users.alice.plan.data.kids.find(x=>x.id==='kid-leo');return k.borderStyle==='dotted'&&k.color==='#5da8a1'&&k.emoji==='🦁'&&!('borderSpeed' in k)},'Leo\'s new look never reached the account')
  await panel.getByRole('button',{name:'Close dialog'}).click()
  await go(page,'Planner')
@@ -2788,6 +2793,52 @@ test('Plans & account: deleting the family plan keeps the kids (they move to the
  await start.getByLabel('Type START OVER to confirm').fill('start over')
  await button.click()
  await waitFor(()=>{const p=cloud.users.alice.plan.data;return p.profiles.length===1&&p.kids.length===0&&p.tasks.length===0&&p.profiles[0].label==='My study plan'},'Start over never reached the account')
+})
+
+test('Family extras: a family to-do list, a snack with a note for a kid’s KONO, a practice every Tue & Thu with who’s driving, and Pickups for the week',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.setFixedTime(new Date('2026-10-13T08:00:00')) // a Tuesday
+ d.profiles.push({id:'plan-emma',name:'Emma',label:'Emma’s plan',kind:'school',start:'2026-09-01',end:'2027-06-30',kidId:'kid-emma'})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ // Family to-do: added for Leo, checked off.
+ const todos=page.getByRole('region',{name:'Family to-do'})
+ await todos.getByLabel('New family to-do').fill('Buy poster board')
+ await todos.getByLabel('For').selectOption({label:'Leo'})
+ await todos.getByRole('button',{name:'Add'}).click()
+ await waitFor(()=>(cloud.users.alice.plan.data.familyTodos??[]).some(t=>t.title==='Buy poster board'&&t.forKidId==='kid-leo'),'the to-do never reached the account')
+ await todos.getByRole('checkbox',{name:/Buy poster board/}).check()
+ await waitFor(()=>cloud.users.alice.plan.data.familyTodos.find(t=>t.title==='Buy poster board').done,'checking it off never reached the account')
+ // A snack with a note for Emma's KONO.
+ await page.getByRole('region',{name:'Kids today'}).getByRole('button',{name:'Send Emma’s KONO a snack'}).click()
+ const giftSheet=page.getByRole('dialog',{name:/A treat for Emma/})
+ await giftSheet.getByLabel('Note for Emma').fill('So proud of you!')
+ await giftSheet.getByRole('button',{name:/Send to Emma/}).click()
+ await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.['plan-emma']?.log??[]).some(e=>e.kind==='gift'&&e.note==='So proud of you!'&&e.from==='Alice'),'the gift never reached Emma’s plan')
+ // Soccer for Leo every Tuesday and Thursday, Dad driving.
+ await go(page,'Planner')
+ await page.getByRole('button',{name:'1 day'}).click()
+ await page.getByRole('button',{name:/^Add at 4:00 PM on/}).click()
+ const add=page.getByRole('dialog',{name:/^Add for/}),forWho=add.getByRole('group',{name:'Who’s it for?'})
+ await forWho.getByRole('checkbox',{name:'🦄 Emma'}).uncheck();await forWho.getByRole('checkbox',{name:'Leo'}).check()
+ await add.getByLabel('Type').selectOption('sports')
+ await add.getByLabel('What is it?').fill('Soccer practice')
+ await add.getByLabel('Who’s driving? (optional)').fill('Dad')
+ const repeat=add.getByRole('group',{name:/Repeats every/})
+ await repeat.getByText('Tue',{exact:true}).click();await repeat.getByText('Thu',{exact:true}).click()
+ await repeat.getByLabel('Until').fill('2026-10-29')
+ await add.getByRole('button',{name:'Add'}).click()
+ await waitFor(()=>{const list=cloud.users.alice.plan.data.calendarEvents.filter(e=>e.title==='Soccer practice');return list.length===6&&list.every(e=>e.driver==='Dad'&&e.kidId==='kid-leo'&&e.recurringId===list[0].recurringId)},'the practices weren’t saved as a Tue/Thu series with Dad driving')
+ // Pickups: the week, with who's driving.
+ await plannerMenu(page,'🚗 Pickups & drop-offs')
+ const pickups=page.getByRole('dialog',{name:'Pickups & drop-offs'})
+ assert.match(await pickups.getByRole('region',{name:'Today'}).innerText(),/Soccer practice[\s\S]*Leo[\s\S]*🚗 Dad/)
+ await pickups.getByRole('button',{name:'Close dialog'}).click()
+ // On Emma's plan, KONO says who sent the snack and the note.
+ await page.getByRole('button',{name:'Whose plan?'}).first().click()
+ await page.getByRole('dialog',{name:'Whose plan?'}).getByRole('button',{name:/Emma’s plan/}).click()
+ await page.getByText('Alice sent KONO',{exact:false}).first().waitFor()
+ assert.match(await page.getByText('Alice sent KONO',{exact:false}).first().innerText(),/So proud of you!/)
 })
 
 test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone a swipe goes to the next days and the whole week scrolls sideways',async({context,page})=>{
