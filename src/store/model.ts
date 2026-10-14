@@ -12,7 +12,11 @@ import { readCareState, type KonoCareState } from './konoCare'
 export type ProfileKind='summer'|'school'|'college'|'custom'
 /** kidId: a kid's own plan in a parent's account (the kid is listed in the parent's plan). A kid's plan is
  * a regular student plan: their school, homework and island, never the parent's family tools. */
-export type Profile={id:string;name:string;label:string;kind:ProfileKind;start:string;end:string;progressEpoch?:string;color?:string;kidId?:string}
+/** How much of the island a plan shows: the whole island and KONO (default), just KONO in a card, or a
+ * plain planner with neither. Kept per plan, so a parent can turn it off while a kid keeps it; turning it
+ * back on brings everything back (nothing is deleted). */
+export type IslandMode='full'|'kono'|'off'
+export type Profile={id:string;name:string;label:string;kind:ProfileKind;start:string;end:string;progressEpoch?:string;color?:string;kidId?:string;island?:IslandMode;simpleView?:boolean}
 export type Subject={id:string;profileId:string;name:string;color:string;teacher?:string;room?:string;resources:string[]}
 /** How a kid's tiles are outlined, always in the kid's own color. Simple, still borders (no animation). */
 export const KID_BORDER_STYLES=['solid','bold','stripe','soft','dashed','dotted','double','glow'] as const
@@ -176,7 +180,7 @@ export function normalizeData(raw:unknown):AppData {
  if(!object(raw))return fail('profiles')
  if(!Array.isArray(raw.profiles)||raw.profiles.length<1||raw.profiles.length>100||!raw.profiles.every(object))return fail('profiles')
  if(raw.schemaVersion!==undefined&&raw.schemaVersion!==2&&raw.schemaVersion!==3&&raw.schemaVersion!==4&&raw.schemaVersion!==5&&raw.schemaVersion!==6)return fail('unsupported data version; update KONO before opening this save')
- const profiles:Profile[]=list(raw.profiles,'profiles',100).map(p=>({id:id(p.id,'profile ID'),name:str(p.name,'name',200),label:str(p.label,'plan name',200),kind:choice(p.kind,['summer','school','college','custom'],'custom'),start:date(p.start,'profile start'),end:date(p.end,'profile end'),progressEpoch:optional(p.progressEpoch,'epoch',150),color:p.color===undefined?undefined:color(p.color,'#7ca982'),...(p.kidId===undefined||p.kidId===''?{}:{kidId:str(p.kidId,'kid plan',150)})}))
+ const profiles:Profile[]=list(raw.profiles,'profiles',100).map(p=>({id:id(p.id,'profile ID'),name:str(p.name,'name',200),label:str(p.label,'plan name',200),kind:choice(p.kind,['summer','school','college','custom'],'custom'),start:date(p.start,'profile start'),end:date(p.end,'profile end'),progressEpoch:optional(p.progressEpoch,'epoch',150),color:p.color===undefined?undefined:color(p.color,'#7ca982'),...(p.kidId===undefined||p.kidId===''?{}:{kidId:str(p.kidId,'kid plan',150)}),...(p.island==='kono'||p.island==='off'?{island:p.island}:{}),...(p.simpleView===true?{simpleView:true}:{})}))
  if(!profiles.length)return fail('profiles must contain at least one plan')
  const pids=new Set(profiles.map(p=>p.id))
  const owner=(v:unknown)=>{const key=id(v,'record profile');return pids.has(key)?key:fail('record references an unknown profile')}

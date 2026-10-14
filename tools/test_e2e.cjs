@@ -46,7 +46,9 @@ async function heading(page,name){await page.waitForFunction(n=>document.querySe
 async function go(page,name){
  // By visible text or by name: on phones the Sanctuary tab reads "Home" but is still named Sanctuary.
  // Phones show the everyday pages in the bottom bar; the rest are under More.
- const tab=page.locator('nav button:visible, nav a:visible').filter({hasText:name}).or(page.locator(`nav button:visible[aria-label="${name}"]`)).first()
+ // With the island turned off, the Sanctuary tab reads "Home" on every screen.
+ const text=name==='Sanctuary'?/Sanctuary|Home/:name
+ const tab=page.locator('nav button:visible, nav a:visible').filter({hasText:text}).or(page.locator(`nav button:visible[aria-label="${name}"]`)).first()
  if(!await tab.count()&&await page.locator('nav button:visible[aria-label="More"]').count()){await page.locator('nav button:visible[aria-label="More"]').click();await page.getByRole('dialog',{name:'More'}).getByRole('button',{name,exact:true}).click()}
  else await tab.click()
  await heading(page,name)
@@ -74,8 +76,9 @@ async function addFromMenu(page,type,title,extra){
  await editor.waitFor({state:'detached'}).catch(()=>{})
 }
 /** Waits until the debounced save has reached IndexedDB, so a reload reads what the test just did. */
-async function flushSave(page,text){
- await page.waitForFunction(needle=>new Promise(resolve=>{const request=indexedDB.open('kono-recovery-and-sync',1);request.onsuccess=()=>{const db=request.result,get=db.transaction('plans').objectStore('plans').get('device');get.onsuccess=()=>{db.close();resolve(JSON.stringify(get.result??'').includes(needle))};get.onerror=()=>{db.close();resolve(false)}};request.onerror=()=>resolve(false)}),text,{timeout:10000,polling:250})
+// Waits until the saved plan on this device contains `text` (or, with gone=true, no longer does).
+async function flushSave(page,text,gone=false){
+ await page.waitForFunction(needle=>new Promise(resolve=>{const request=indexedDB.open('kono-recovery-and-sync',1);request.onsuccess=()=>{const db=request.result,get=db.transaction('plans').objectStore('plans').get('device');get.onsuccess=()=>{db.close();resolve(JSON.stringify(get.result??'').includes(needle[0])!==needle[1])};get.onerror=()=>{db.close();resolve(false)}};request.onerror=()=>resolve(false)}),[text,gone],{timeout:10000,polling:250})
 }
 
 const tests=[]
@@ -140,6 +143,33 @@ test('Today in your own order, Settings search and search filters',async({page})
  const search=page.getByRole('dialog',{name:'Search your work'})
  await search.getByRole('button',{name:'This week'}).click()
  await search.getByRole('group',{name:'Assignments'}).getByText('First thing (e2e)').waitFor()
+})
+
+test('Island & KONO: a plan can turn the island off or keep just KONO, and Simple view trims the pages',async({page})=>{
+ await createPlan(page)
+ const choose=async label=>{await go(page,'Settings');await settingsTab(page,'Look & feel');await page.getByRole('group',{name:'Island and KONO'}).getByRole('button',{name:new RegExp('^'+label)}).click()}
+ // Off: a plain planner, no island and no KONO bar; Home still has your day.
+ await choose('Off')
+ await go(page,'Sanctuary')
+ await page.getByRole('region',{name:'Your day'}).waitFor()
+ assert.equal(await page.locator('.wb-island').count(),0,'no island')
+ assert.equal(await page.getByRole('region',{name:'KONO today'}).count(),0,'no KONO bar')
+ // Just KONO: KONO's card is back, still no island.
+ await choose('Just KONO')
+ await go(page,'Sanctuary')
+ await page.getByRole('region',{name:'KONO today'}).waitFor()
+ assert.equal(await page.locator('.wb-island').count(),0,'still no island')
+ // Back to the whole island, and it stays after a reload.
+ await choose('Island and KONO')
+ await flushSave(page,'"island":',true)
+ await page.reload();await go(page,'Sanctuary')
+ await page.locator('.wb-island').waitFor()
+ // Simple view: only Home, Planner and Notes (and Settings) in the tabs.
+ await go(page,'Settings');await settingsTab(page,'Look & feel')
+ await page.getByRole('checkbox',{name:/Simple view/}).check()
+ await page.waitForFunction(()=>document.querySelector('.workbench')?.classList.contains('is-simple'))
+ assert.equal(await page.locator('nav button:visible, nav a:visible').filter({hasText:'Subjects'}).count(),0,'Subjects is tucked away')
+ await page.getByRole('checkbox',{name:/Simple view/}).uncheck()
 })
 
 test('a study note can be moved to Trash and restored',async({page})=>{
