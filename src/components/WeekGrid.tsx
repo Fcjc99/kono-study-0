@@ -29,6 +29,9 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
  const ends=timed.map(i=>i.end&&i.end>i.start!?minutes(i.end):minutes(i.start!)+60)
  const first=Math.min(7,...timed.map(i=>Math.floor(minutes(i.start!)/60))),last=Math.min(24,Math.max(21,...ends.map(m=>Math.ceil(m/60))))
  const hours=Array.from({length:last-first},(_,i)=>first+i)
+ // A clock tick each minute moves the red "now" line down today's column.
+ const [,setTick]=useState(0)
+ useEffect(()=>{const t=window.setInterval(()=>setTick(n=>n+1),60000);return()=>window.clearInterval(t)},[])
  const today=new Date(),todayIso=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0')
  const span=(i:WeekItem)=>({from:minutes(i.start!),to:i.end&&i.end>i.start!?minutes(i.end):minutes(i.start!)+60})
 
@@ -121,7 +124,8 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
   <div className="week-grid-row week-grid-allday"><span className="week-grid-gutter">All day</span>{days.map(day=><div key={day} ref={el=>{if(el)allDayCells.current.set(day,el);else allDayCells.current.delete(day)}} className={'week-grid-allday-cell'+(landing&&landing.day===day&&landing.from===undefined?' is-drop-target':'')}>{allDay.filter(i=>i.day===day).map(i=><button type="button" key={i.id} className={itemClass(i)} style={{'--item-color':i.color} as CSSProperties} aria-label={label(i)} onClick={open(i)} {...handlers(i)}>{i.important?'★ ':''}{i.title}</button>)}</div>)}</div>
   <div ref={body} className="week-grid-row week-grid-body" style={{'--hour':HOUR+'px'} as CSSProperties}>
    <div className="week-grid-gutter week-grid-hours">{hours.map(h=><span key={h}>{(h%12||12)+(h<12||h===24?' AM':' PM')}</span>)}</div>
-   {days.map(day=><div key={day} ref={el=>{if(el)columns.current.set(day,el);else columns.current.delete(day)}} className={'week-grid-day'+(day===selected?' is-selected':'')} style={{height:hours.length*HOUR}}>
+   {days.map(day=><div key={day} ref={el=>{if(el)columns.current.set(day,el);else columns.current.delete(day)}} className={'week-grid-day'+(day===selected?' is-selected':'')+(day===todayIso?' is-today':'')} style={{height:hours.length*HOUR}}>
+    {day===todayIso&&today.getHours()*60+today.getMinutes()>=first*60&&today.getHours()*60+today.getMinutes()<(first+hours.length)*60&&<div className="week-grid-now" aria-hidden="true" style={{top:(today.getHours()*60+today.getMinutes()-first*60)/60*HOUR}}/>}
     {hours.map(h=><button type="button" key={h} className="week-grid-slot" style={{top:(h-first)*HOUR}} aria-label={'Add at '+classTime(clock(h*60))+' on '+dayLabel(day)} onClick={()=>onAddAt(day,clock(h*60))}><span aria-hidden="true">＋</span></button>)}
     {lanes(day).map(({item,from,to,lane,of})=><button type="button" key={item.id} className={itemClass(item,' week-item-timed')} style={{'--item-color':item.color,top:(from-first*60)/60*HOUR,height:Math.max(22,(to-from)/60*HOUR-2),left:`calc(${lane/of*100}% + 2px)`,width:`calc(${100/of}% - 4px)`} as CSSProperties} aria-label={label(item)} onClick={open(item)} {...handlers(item)}><small>{classTime(item.start!)}</small>{item.important?'★ ':''}{item.title}{item.stretch&&onStretch&&<span className="week-item-grip" aria-hidden="true" onPointerDown={begin(item,'stretch')}/>}</button>)}
     {landing&&landing.day===day&&landing.from!==undefined&&<div className="week-item-ghost" aria-hidden="true" style={{'--item-color':live!.item.color,top:(landing.from-first*60)/60*HOUR,height:Math.max(22,(landing.to!-landing.from)/60*HOUR-2)} as CSSProperties}>{classTime(clock(landing.from))}–{classTime(clock(Math.min(24*60-1,landing.to!)))}</div>}
