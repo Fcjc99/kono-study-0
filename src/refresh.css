@@ -292,7 +292,8 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 :root[data-experience] .workbench .people-filter>button,:root[data-experience] .workbench .people-filter>button[aria-pressed]{border:0!important;background:none!important;box-shadow:none!important;padding:4px 2px!important;min-height:0!important;outline:0}
 /* Family events (Schedule view, Today and the daily page): one tidy row in the person's color: time,
    who and what, then Edit at the end. */
-:root[data-experience] .workbench .wb-family-event{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 10px;padding:10px 12px!important;border:0!important;border-left:5px solid var(--kid-color,var(--wb-accent,#c76b8f))!important;border-radius:12px!important;background:color-mix(in srgb,var(--kid-color,var(--wb-accent,#c76b8f)) 9%,var(--wb-surface,#fff))!important;box-shadow:none!important}
+:root[data-experience] .workbench .wb-family-event{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 10px;padding:10px 12px 10px 16px!important;border-radius:12px!important;background:color-mix(in srgb,var(--kid-color,var(--wb-accent,#c76b8f)) 9%,var(--wb-surface,#fff))!important;box-shadow:inset 5px 0 0 var(--kid-color,var(--wb-accent,#c76b8f))!important}
+/* (each kid's chosen border style, from Settings › Family, is kept as it was) */
 :root[data-experience] .workbench .wb-family-event>.wb-toolbar{display:flex!important;flex-wrap:nowrap!important;align-items:center;gap:6px!important;margin:0!important;width:auto!important}
 :root[data-experience] .workbench .wb-family-event>.wb-toolbar>button{min-height:34px!important;padding:0 12px!important;width:auto!important}
 :root[data-experience] .workbench .wb-family-event>.wb-toolbar>details>summary{font-size:.85rem}

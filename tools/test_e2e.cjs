@@ -2790,7 +2790,7 @@ test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as
  // Planner: the same names; an event for Emma goes into her plan.
  await go(page,'Planner')
  await page.getByRole('group',{name:'Whose things to show'}).waitFor()
- await page.getByRole('button',{name:'1 day'}).click()
+ await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Day',exact:true}).click()
  await page.getByRole('button',{name:/^Add at 4:00 PM on/}).click()
  const add=page.getByRole('dialog',{name:/^Add for/})
  const forWho=add.getByRole('group',{name:'Who’s it for?'})
@@ -2879,7 +2879,7 @@ test('Family extras: a family to-do list, a snack with a note for a kid’s KONO
  await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.['plan-emma']?.log??[]).some(e=>e.kind==='gift'&&e.note==='So proud of you!'&&e.from==='Alice'),'the gift never reached Emma’s plan')
  // Soccer for Leo every Tuesday and Thursday, Dad driving.
  await go(page,'Planner')
- await page.getByRole('button',{name:'1 day'}).click()
+ await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Day',exact:true}).click()
  await page.getByRole('button',{name:/^Add at 4:00 PM on/}).click()
  const add=page.getByRole('dialog',{name:/^Add for/}),forWho=add.getByRole('group',{name:'Who’s it for?'})
  await forWho.getByRole('checkbox',{name:'🦄 Emma'}).uncheck();await forWho.getByRole('checkbox',{name:'Leo'}).check()
