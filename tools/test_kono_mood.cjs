@@ -35,6 +35,9 @@ test('late at night KONO is sleepy; a finished week is a celebration from Friday
  assert.equal(konoMood({tasks:week,exams:[],today:wed,hour:16}).id,'happy','not before Friday')
  assert.notEqual(konoMood({tasks:[...week,task('2026-10-01')],exams:[],today:fri,hour:16}).id,'celebrate','something in the week is still open')
  assert.notEqual(konoMood({tasks:week.slice(0,2),exams:[],today:fri,hour:16}).id,'celebrate','a week needs at least 3 things')
+ // A weekend with nothing due today or tomorrow: a nap in the sun (Sunday with Monday work stays calm).
+ assert.match(konoMood({tasks:[],exams:[],today:'2026-10-03',hour:14}).line,/napping/)
+ assert.equal(konoMood({tasks:[task('2026-10-05')],exams:[],today:'2026-10-04',hour:14}).id,'calm')
 })
 
 const none={tasks:[],exams:[],studySessions:[],completionDates:{},today:wed}

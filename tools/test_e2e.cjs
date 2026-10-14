@@ -113,15 +113,46 @@ test('homework added in the Planner survives a reload',async({page})=>{
  await page.getByText('Read chapter 3 (e2e)').filter({visible:true}).first().waitFor()
 })
 
+test('Today in your own order, Settings search and search filters',async({page})=>{
+ await createPlan(page)
+ await addFromMenu(page,'tasks','First thing (e2e)')
+ await addFromMenu(page,'tasks','Second thing (e2e)')
+ await go(page,'Sanctuary')
+ // Also today: the ⠿ handle moves an item with the arrow keys, and the order stays after a reload.
+ const list=page.getByRole('list',{name:'Also today, in your order'})
+ const titles=()=>list.locator('.reorder-row').allInnerTexts()
+ await list.waitFor()
+ const before=await titles()
+ const last=before.length-1,lastTitle=/Second thing/.test(before[last])?'Second thing (e2e)':'First thing (e2e)'
+ await list.getByRole('button',{name:'Reorder '+lastTitle+' (use the up and down arrow keys)'}).press('ArrowUp')
+ await page.waitForFunction(([t])=>[...document.querySelectorAll('.reorder-row')].findIndex(r=>r.textContent.includes(t))===0,[lastTitle])
+ await page.reload();await heading(page,'Sanctuary')
+ assert.match((await page.getByRole('list',{name:'Also today, in your order'}).locator('.reorder-row').allInnerTexts())[0],new RegExp(lastTitle.replace(/[()]/g,'\\$&')))
+ // Settings search: "dark" finds Dark mode and opens Look & feel.
+ await go(page,'Settings')
+ await page.getByLabel('Search settings').fill('dark')
+ await page.getByRole('list',{name:'Matching settings'}).getByRole('button',{name:/Dark mode/}).click()
+ await page.getByRole('group',{name:'Dark mode'}).waitFor()
+ // Search: "This week" lists this week's assignments under their own heading.
+ await page.getByRole('button',{name:'Search'}).first().click()
+ const search=page.getByRole('dialog',{name:'Search your work'})
+ await search.getByRole('button',{name:'This week'}).click()
+ await search.getByRole('group',{name:'Assignments'}).getByText('First thing (e2e)').waitFor()
+})
+
 test('a study note can be moved to Trash and restored',async({page})=>{
  await createPlan(page)
  await addFromMenu(page,'notes','Mitochondria facts (e2e)')
  await go(page,'Notes')
  const note=page.locator('article.kono-sticky').filter({hasText:'Mitochondria facts (e2e)'})
  await note.waitFor()
+ // No "Are you sure?": it goes to Trash with an Undo bar, and Undo brings it straight back.
  await note.getByRole('button',{name:'Delete note'}).click()
- await page.getByRole('button',{name:'Confirm'}).click()
- await page.getByText('Mitochondria facts (e2e)').first().waitFor({state:'hidden'})
+ const toast=page.locator('.undo-toast').filter({hasText:'Moved “Mitochondria facts (e2e)” to Trash.'})
+ await toast.getByRole('button',{name:'Undo'}).click()
+ await note.waitFor()
+ await note.getByRole('button',{name:'Delete note'}).click()
+ await note.waitFor({state:'detached'})
  await headerMenu(page,'Trash')
  await heading(page,'Trash')
  const row=page.locator('li, article, tr, .wb-panel > div').filter({hasText:'Mitochondria facts (e2e)'}).last()

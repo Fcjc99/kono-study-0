@@ -22,5 +22,7 @@ export function konoMood({tasks,exams,today,hour}:{tasks:Item[];exams:Item[];tod
  if(overdue)return mood('worried','KONO is a little worried about '+plural(overdue,'late assignment')+'. One at a time?')
  if(openToday)return mood('busy',plural(openToday,'thing')+' due today. KONO has a book out to study with you.')
  if(doneToday)return mood('happy','Everything due today is done. KONO is so happy!')
+ // A weekend with nothing due today or tomorrow: KONO naps in the sun.
+ if((day===6||day===0)&&![...tasks,...exams].some(t=>!t.done&&t.due===addDays(today,1)))return mood('sleepy','A quiet weekend. KONO is napping in the sun.')
  return mood('calm','Nothing due today. KONO is having a cup of tea.')
 }
