@@ -198,3 +198,33 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .island-photo .button-link{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:12px;text-decoration:none;font-weight:700}
 .island-photo .button-link.primary{background:var(--wb-accent,#c76b8f);color:#fff}
 .wb-scene-controls .wb-scene-photo{width:36px;min-width:36px;padding:0!important;display:grid!important;place-items:center}
+
+/* Look & feel › Island & KONO: three big choices. */
+.island-choice{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.workbench .island-choice button{display:grid!important;justify-items:start;gap:2px;text-align:left;padding:12px 14px!important;min-height:84px}
+.island-choice button>span{font-size:1.4rem}
+.island-choice button small{color:var(--wb-muted,#7a6670);font-weight:500}
+
+/* Home without the island: one column of cards (KONO's card on top when kept), centered on wide screens. */
+.workbench .home-grid.no-island{display:flex!important;flex-direction:column;gap:16px;max-width:980px;margin-inline:auto}
+.workbench .home-grid.no-island :is(.home-main,.home-side){display:contents!important}
+.workbench .home-grid.no-island>*>*{margin:0!important;order:4}
+.workbench .home-grid.no-island .home-main>.kono-bar{order:0;border-radius:var(--rf-radius,18px)!important;border-top-style:solid!important}
+.workbench .home-grid.no-island .home-side>.getting-started{order:1}
+.workbench .home-grid.no-island .home-side>.today-card{order:2}
+.workbench .home-grid.no-island .home-main>.sanctuary-focus{order:6}
+/* A parent's Home leads with the kids: Kids today, then today's family calendar, then the family to-do. */
+.workbench .home-grid.is-parent .home-side>.kids-glance{order:-3!important}
+.workbench .home-grid.is-parent .home-side>.today-card{order:-2!important}
+.workbench .home-grid.is-parent.no-island .home-side>.kids-glance{order:1!important}
+.workbench .home-grid.is-parent.no-island .home-side>.today-card{order:2!important}
+.workbench .home-grid.is-parent.no-island .home-side>.family-todos{order:3!important}
+
+/* Simple view: bigger text and roomier buttons; the extras step aside. */
+.workbench.is-simple{font-size:1.12rem}
+.workbench.is-simple :is(button,select,input){font-size:1.05rem}
+.workbench.is-simple .wb-header :is(.setup-chip,.needs-review-nav-badge){display:none!important}
+.workbench.is-simple :is(.today-card-more,.planner-filters,.planner-settings-link>.wb-toolbar>details,.week-grid-hint){display:none!important}
+.workbench.is-simple .reorder-handle{display:none!important}
+.workbench.is-simple .reorder-row{grid-template-columns:minmax(0,1fr)}
+.people-filter-count{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:6px;padding:0 6px;border-radius:999px;background:var(--kid-color,var(--wb-accent,#c76b8f));color:#fff;font-size:.72rem;font-weight:800;line-height:1}

@@ -5,6 +5,7 @@ import type {SettingsTab} from '../workspaceShared'
  * page to scroll to once the tab opens. */
 const INDEX:{label:string;tab:SettingsTab;find:string;words:string}[]=[
  {label:'KONO experience (Cozy, Simplified, Clean, Zen Ink)',tab:'Look & feel',find:'experience',words:'look style theme design clean modern zen cozy simplified'},
+ {label:'Island & KONO (turn the island off)',tab:'Look & feel',find:'island & kono',words:'island sanctuary kono pet hide off turn plain planner game'},
  {label:'Color palette',tab:'Look & feel',find:'color palette',words:'colors colour theme coral sakura lavender mint ocean'},
  {label:'Team colors',tab:'Look & feel',find:'team colors',words:'school team jersey colors sports'},
  {label:'Dark mode',tab:'Look & feel',find:'dark mode',words:'dark night light black'},
