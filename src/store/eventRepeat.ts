@@ -1,5 +1,5 @@
 import {addDays} from './studyScheduler'
-import {uid,type CalendarEvent} from './model'
+import {uid,type CalendarEvent,type Task} from './model'
 
 /** Repeating events (the event editor's "Repeat"): one event per date, linked by a shared recurringId
  * so a change can go to the rest of the series and the whole series can be deleted at once. Copies
@@ -57,11 +57,19 @@ export type SeriesScope='one'|'following'|'all'
 /** What a change to one event carries to the rest of its series (not the date). */
 const SHARED=['title','subjectId','kidId','kidIds','kind','time','endTime','notes','driver'] as const
 export function applyToSeries(events:CalendarEvent[],edited:CalendarEvent,from:string,scope:SeriesScope):CalendarEvent[]{
- if(scope==='one'||!edited.recurringId)return events
- return events.map(e=>{
-  if(e.id===edited.id||e.recurringId!==edited.recurringId||e.profileId!==edited.profileId||(scope==='following'&&e.date<from))return e
-  const next:CalendarEvent={...e}
-  for(const key of SHARED){if(edited[key]===undefined)delete next[key];else (next as Record<string,unknown>)[key]=edited[key]}
-  return next
+ return applyToSeriesBy(events,edited,from,scope,e=>e.date,SHARED)
+}
+/** The same for a repeating assignment ("spelling every Monday"): its due date stays its own. */
+const SHARED_TASK=['title','subjectId','kidId','kidIds','notes','estimatedMinutes','link'] as const
+export function applyToTaskSeries(tasks:Task[],edited:Task,from:string,scope:SeriesScope):Task[]{
+ return applyToSeriesBy(tasks,edited,from,scope,t=>t.due,SHARED_TASK)
+}
+function applyToSeriesBy<T extends {id:string;profileId:string;recurringId?:string}>(items:T[],edited:T,from:string,scope:SeriesScope,dateOf:(x:T)=>string,shared:readonly string[]):T[]{
+ if(scope==='one'||!edited.recurringId)return items
+ return items.map(e=>{
+  if(e.id===edited.id||e.recurringId!==edited.recurringId||e.profileId!==edited.profileId||(scope==='following'&&dateOf(e)<from))return e
+  const next={...e} as Record<string,unknown>,src=edited as unknown as Record<string,unknown>
+  for(const key of shared){if(src[key]===undefined)delete next[key];else next[key]=src[key]}
+  return next as T
  })
 }

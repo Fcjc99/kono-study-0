@@ -1,8 +1,8 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react'
-import {uid,localDate,dayNames,matchOutcome,peopleOf,type AppData,type CalendarEvent,type Subtask,type MatchResult} from '../store/model'
+import {uid,localDate,dayNames,matchOutcome,peopleOf,type AppData,type CalendarEvent,type Task,type Subtask,type MatchResult} from '../store/model'
 import {records,equal,type Collection,type Entry} from '../store/workspace'
 import {addDays} from '../store/studyScheduler'
-import {REPEATS,repeatDates,defaultUntil,repeatCopy,applyToSeries,type Repeat,type SeriesScope} from '../store/eventRepeat'
+import {REPEATS,repeatDates,weekdayDates,defaultUntil,repeatCopy,applyToSeries,applyToTaskSeries,type Repeat,type SeriesScope} from '../store/eventRepeat'
 import {findOpenSlots} from '../store/timeBlocking'
 import {classTime} from '../store/classSchedule'
 import {shareKindFor} from '../store/itemShare'
@@ -30,22 +30,20 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
  const isNewAssignment=edit.key==='tasks'&&!edit.original
  const extraDatesKey=draftScope+':assignment-dates'
  const [extraDates,setExtraDates]=useState<string[]>(()=>{if(!isNewAssignment)return [];try{const saved=JSON.parse(localStorage.getItem(extraDatesKey)??'[]');return Array.isArray(saved)?saved.filter(d=>typeof d==='string'):[]}catch{return []}})
- const [repeatUntil,setRepeatUntil]=useState('')
  // Events: repeat a new or one-off event, or (for one in a series) choose which of the series a change goes to.
- const isEvent=edit.key==='calendarEvents',seriesId=isEvent&&edit.original?String(edit.original.recurringId??''):''
- const seriesSize=seriesId?data.calendarEvents.filter(e=>e.recurringId===seriesId&&e.profileId===entry.profileId).length:0
+ const isEvent=edit.key==='calendarEvents',isTask=edit.key==='tasks',seriesId=(isEvent||isTask)&&edit.original?String(edit.original.recurringId??''):''
+ const seriesSize=seriesId?(isEvent?data.calendarEvents:data.tasks).filter(e=>e.recurringId===seriesId&&e.profileId===entry.profileId).length:0
  const [repeat,setRepeat]=useState<Repeat>('none'),[repeatEnd,setRepeatEnd]=useState(''),[scope,setScope]=useState<SeriesScope>('one')
  const eventDate=String(entry.date??''),repeatOn=isEvent&&seriesSize<2&&repeat!=='none'
  const repeatList=repeatOn?repeatDates(eventDate,repeat,repeatEnd||defaultUntil(eventDate)):[]
+ // A new assignment can repeat too ("spelling every Monday", "reading log every weekday"), on chosen
+ // weekdays, or on dates picked one by one; one assignment is made per date, linked as a series.
+ const [taskRepeat,setTaskRepeat]=useState<Repeat|'days'|'pick'>(()=>extraDates.length?'pick':'none'),[taskDays,setTaskDays]=useState<number[]>([])
+ const due=String(entry.due??''),taskUntil=repeatEnd||defaultUntil(due)
+ const taskSeries=!isNewAssignment||!due?[]:taskRepeat==='pick'?extraDates.filter(d=>d&&d!==due):taskRepeat==='days'?weekdayDates(due,taskDays,taskUntil):taskRepeat==='none'?[]:repeatDates(due,taskRepeat,taskUntil)
  const [newSubtask,setNewSubtask]=useState('')
  const saveExtraDates=(next:string[])=>{setExtraDates(next);try{localStorage.setItem(extraDatesKey,JSON.stringify(next))}catch{/* Best effort; the editor is still the source of truth while open. */}}
  const toggleDate=(date:string)=>saveExtraDates((extraDates.includes(date)?extraDates.filter(d=>d!==date):[...extraDates,date]).sort())
- const addWeeklyRepeats=()=>{
-  const due=String(entry.due??'');if(!due||!repeatUntil)return
-  const weekly:string[]=[];let next=addDays(due,7),guard=0
-  while(next<=repeatUntil&&guard<104){weekly.push(next);next=addDays(next,7);guard++}
-  saveExtraDates(Array.from(new Set([...extraDates,...weekly])).sort())
- }
  const addSubtask=()=>{const title=newSubtask.trim();if(!title)return;field('subtasks',[...(entry.subtasks as Subtask[]??[]),{id:uid('subtask'),title,done:false}]);setNewSubtask('')}
  const persist=(next:Entry)=>{try{localStorage.setItem(draftScope,JSON.stringify({...edit,entry:next}));setDraftError('');return true}catch{setDraftError('Draft storage is unavailable. Keep this editor open until saved.');return false}}
  // From the family plan, an item can be for a kid: one with a plan of their own gets it in their plan.
@@ -65,7 +63,7 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
  useEffect(()=>{const warn=(e:BeforeUnloadEvent)=>{if(draftError){e.preventDefault();e.returnValue=''}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn)},[draftError])
  const submit=async(e:FormEvent)=>{
   e.preventDefault();if(busy)return;setBusy(true);setError('')
-  const seriesDates=isNewAssignment?extraDates.filter(d=>d&&d!==(entry as Entry).due):[]
+  const seriesDates=taskSeries
   const recurringId=seriesDates.length?uid('recurring'):undefined
   // Saving an entry -- even unchanged -- is the moment a person actually looked at it, so this is
   // also where a photo-scanned item's needsReview flag clears (see RecordCard/applyAssignmentPhoto).
@@ -73,7 +71,7 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
   const copies:Entry[]=seriesDates.map(due=>({...payload,id:uid(edit.key),due}))
   if(repeatList.length){const id=uid('recurring');payload.recurringId=id;copies.push(...repeatList.map(date=>repeatCopy(payload as unknown as CalendarEvent,date,id) as unknown as Entry))}
   // A change to one of a series can go to the rest of it too (not the date: each keeps its own).
-  const spread=(list:Entry[])=>isEvent&&seriesSize>1&&scope!=='one'?applyToSeries(list as unknown as CalendarEvent[],payload as unknown as CalendarEvent,String(edit.original?.date??eventDate),scope) as unknown as Entry[]:list
+  const spread=(list:Entry[])=>seriesSize>1&&scope!=='one'?isEvent?applyToSeries(list as unknown as CalendarEvent[],payload as unknown as CalendarEvent,String(edit.original?.date??eventDate),scope) as unknown as Entry[]:applyToTaskSeries(list as unknown as Task[],payload as unknown as Task,String(edit.original?.due??due),scope) as unknown as Entry[]:list
   try{const saved=await save(d=>{if(!inFamily(d,String(entry.profileId))||(edit.original&&!inFamily(d,String(edit.original.profileId))))throw Error('Your profile changed. Reopen the editor.');const current=records(d,edit.key).find(r=>r.id===entry.id);if(edit.original&&!equal(current,edit.original))throw Error('This item changed elsewhere. Your draft is preserved; reopen the current item before saving.');if(!edit.original&&current)throw Error('This item already exists.');return {...d,[edit.key]:spread(edit.original?[...records(d,edit.key).map(r=>r.id===entry.id?payload:r),...copies]:[...records(d,edit.key),payload,...copies])}});if(saved){clearDrafts();close(true)}else setError('Not saved yet. Your draft is still here.')}catch(e){setError(e instanceof Error?e.message:'Could not save.')}finally{setBusy(false)}
  }
  return <Modal title={(edit.original?'Edit ':'New ')+labels[edit.key]} close={keep}><form onSubmit={submit}><fieldset disabled={busy}><label>{edit.key==='subjects'?'Subject name':edit.key==='kids'?'Kid name':'Title'}<input autoFocus required maxLength={edit.key==='subjects'||edit.key==='kids'?200:1000} value={String(entry[titleKey]??'')} onChange={e=>field(titleKey,e.target.value)}/></label>
@@ -90,9 +88,14 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
   {('due' in entry||'date' in entry)&&<label>Date<input required type="date" value={String(entry.due??entry.date??'')} onInput={e=>{const next={...entry,['due' in entry?'due':'date']:e.currentTarget.value,...(edit.key==='tasks'?{plannedTime:undefined}:{})};persist(next);setEntry(next)}}/></label>}
   {edit.key==='calendarEvents'&&<div className="wb-time-row"><label>Start time (optional)<input type="time" value={String(entry.time??'')} onChange={e=>field('time',e.target.value||undefined)}/></label><label>End time (optional)<input type="time" value={String(entry.endTime??'')} onChange={e=>field('endTime',e.target.value||undefined)}/></label></div>}
   {isEvent&&seriesSize<2&&<div className="wb-event-repeat"><label>Repeat<select value={repeat} onChange={e=>setRepeat(e.target.value as Repeat)}>{REPEATS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>{repeat!=='none'&&<label>Until<input type="date" min={eventDate} value={repeatEnd||defaultUntil(eventDate)} onChange={e=>setRepeatEnd(e.target.value)}/></label>}{repeatOn&&<p className="wb-muted">{repeatList.length?'Adds '+repeatList.length+' more: '+repeatList.slice(0,3).map(d=>dateLabel(d)).join(', ')+(repeatList.length>3?'…':''):'No more dates before then.'}</p>}</div>}
-  {isEvent&&seriesSize>1&&<fieldset className="wb-event-series"><legend>This repeats ({seriesSize} dates). Save changes to:</legend>{([['one','Only this one'],['following','This and the ones after it'],['all','All of them']] as [SeriesScope,string][]).map(([value,label])=><label key={value} className="wb-check"><input type="radio" name="series-scope" checked={scope===value} onChange={()=>setScope(value)}/>{label}</label>)}</fieldset>}
+  {seriesSize>1&&<fieldset className="wb-event-series"><legend>This repeats ({seriesSize} dates). Save changes to:</legend>{([['one','Only this one'],['following','This and the ones after it'],['all','All of them']] as [SeriesScope,string][]).map(([value,label])=><label key={value} className="wb-check"><input type="radio" name="series-scope" checked={scope===value} onChange={()=>setScope(value)}/>{label}</label>)}</fieldset>}
   {isEvent&&familyKids.length>0&&<label>Who’s driving? (optional)<input maxLength={60} value={String(entry.driver??'')} onChange={e=>field('driver',e.target.value||undefined)} placeholder="Mom, Dad, carpool…"/></label>}
-  {isNewAssignment&&<div className="wb-multidate"><p className="wb-muted">Repeats on more days? Click each extra date below — one assignment is created per date.</p><MultiDatePicker primary={String(entry.due??'')} selected={extraDates} onToggle={toggleDate}/><div className="wb-repeat-weekly"><label>Repeat weekly until<input type="date" min={String(entry.due??'')} value={repeatUntil} onChange={e=>setRepeatUntil(e.target.value)}/></label><button type="button" className="secondary" disabled={!repeatUntil||!entry.due} onClick={addWeeklyRepeats}>+ Add weekly occurrences</button></div>{extraDates.length>0&&<p className="wb-multidate-summary">{extraDates.length} extra date{extraDates.length===1?'':'s'} selected: {extraDates.map(d=>dateLabel(d)).join(', ')}</p>}</div>}
+  {isNewAssignment&&<div className="wb-event-repeat wb-task-repeat"><label>Repeat<select value={taskRepeat} onChange={e=>setTaskRepeat(e.target.value as Repeat|'days'|'pick')}>{REPEATS.map(([value,label])=><option key={value} value={value}>{label}</option>)}<option value="days">On certain days of the week…</option><option value="pick">Pick the dates…</option></select></label>
+   {taskRepeat==='days'&&<div className="wb-repeat-days" role="group" aria-label="Repeat on">{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d,i)=><button type="button" key={d} aria-pressed={taskDays.includes(i)} onClick={()=>setTaskDays(taskDays.includes(i)?taskDays.filter(x=>x!==i):[...taskDays,i].sort())}>{d}</button>)}</div>}
+   {taskRepeat==='pick'&&<MultiDatePicker primary={due} selected={extraDates} onToggle={toggleDate}/>}
+   {taskRepeat!=='none'&&taskRepeat!=='pick'&&<label>Until<input type="date" min={due} value={taskUntil} onChange={e=>setRepeatEnd(e.target.value)}/></label>}
+   {taskRepeat!=='none'&&<p className="wb-muted">{!due?'Pick a date first.':taskSeries.length?'Adds '+taskSeries.length+' more, one per date: '+taskSeries.slice(0,3).map(d=>dateLabel(d)).join(', ')+(taskSeries.length>3?'…':''):taskRepeat==='days'&&!taskDays.length?'Pick the days.':taskRepeat==='pick'?'Tap more dates on the calendar.':'No more dates before then.'}</p>}
+  </div>}
   {edit.key==='tasks'&&<div className="wb-subtasks"><p className="wb-muted">Break this assignment into steps, each with its own day.</p><BreakIntoSteps hasSteps={!!(entry.subtasks as Subtask[]??[]).length} profileId={String(entry.profileId??'')} title={String(entry.title??'')} notes={String(entry.notes??'')} due={String(entry.due??'')} today={localDate()} onSteps={steps=>field('subtasks',steps.map(st=>({id:uid('subtask'),title:st.title,done:false,due:st.due})))}/>{!!(entry.subtasks as Subtask[]??[]).length&&<ul>{(entry.subtasks as Subtask[]).map(st=><li key={st.id}><label className="wb-check"><input type="checkbox" checked={st.done} onChange={e=>field('subtasks',(entry.subtasks as Subtask[]).map(x=>x.id===st.id?{...x,done:e.target.checked}:x))}/><span className={st.done?'is-done':''}>{st.title}</span></label><input type="date" className="wb-step-date" value={st.due??''} max={String(entry.due??'')||undefined} aria-label={'Day for '+st.title} onChange={e=>field('subtasks',(entry.subtasks as Subtask[]).map(x=>x.id===st.id?(e.target.value?{...x,due:e.target.value}:{id:x.id,title:x.title,done:x.done}):x))}/><button type="button" aria-label={'Remove step '+st.title} onClick={()=>field('subtasks',(entry.subtasks as Subtask[]).filter(x=>x.id!==st.id))}>Remove</button></li>)}</ul>}<div className="wb-subtask-add"><input value={newSubtask} onChange={e=>setNewSubtask(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addSubtask()}}} maxLength={300} placeholder="Add a step" aria-label="Add a step"/><button type="button" onClick={addSubtask}>Add step</button></div></div>}
   {edit.key==='tasks'&&<div className="wb-time-estimate"><label>About how long will this take?<select value={String(entry.estimatedMinutes??'')} onChange={e=>field('estimatedMinutes',e.target.value?Number(e.target.value):undefined)}><option value="">Not sure</option><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">1 hour</option><option value="90">1.5 hours</option><option value="120">2 hours</option></select></label>
    {Boolean(entry.estimatedMinutes)&&<TimeBlockSuggestions data={data} date={String(entry.due??'')} minutes={Number(entry.estimatedMinutes)} plannedTime={entry.plannedTime as string|undefined} onPick={time=>field('plannedTime',time)} onClear={()=>field('plannedTime',undefined)}/>}</div>}

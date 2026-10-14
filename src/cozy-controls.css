@@ -8,7 +8,7 @@
 :root[data-experience='cozy'][data-theme='zen']{--wb-bg:#f2f0ea;--wb-surface:#fbfaf7;--wb-ink:#302b24;--wb-muted:#6e6659;--wb-accent:#7c8a6e;--wb-line:#ddd6c6;--wb-nav:#3d3a30;--cute-ink:#3d3a30;--cute-edge:#ccc4ae;--cute-shadow:#a89c81}
 :root[data-experience='cozy'][data-theme='floral']{--wb-bg:#fdf2f6;--wb-surface:#fffbfc;--wb-ink:#4a2f3d;--wb-muted:#7c5d6c;--wb-accent:#c9587a;--wb-line:#f0d3de;--wb-nav:#5c3346;--cute-ink:#6a3550;--cute-edge:#e8b8cf;--cute-shadow:#c98aa8}
 :root[data-experience='cozy'][data-theme='ocean']{--wb-bg:#eaf6f6;--wb-surface:#fbfffe;--wb-ink:#123a44;--wb-muted:#4a7078;--wb-accent:#1c9aa1;--wb-line:#bfe4e2;--wb-nav:#0e4a52;--cute-ink:#0e4a52;--cute-edge:#a8dcd8;--cute-shadow:#6fb8b3}
-:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.kquiz-material-row):not(.kquiz-guide-tabs button):not(.kquiz-folders button):not([class*='kid-look-']):not(.link-button){
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.month-grid button):not(.kid-look-emojis button):not(.wall-display button):not(.kid-look-colors button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.kquiz-material-row):not(.kquiz-guide-tabs button):not(.kquiz-folders button):not([class*='kid-look-']):not(.link-button){
  border-radius:16px;border-color:var(--cute-edge);background:linear-gradient(180deg,#fffdfb,#ffedf4);color:var(--cute-ink);font-weight:650;min-height:44px;
  box-shadow:inset 0 2px 0 #fff,0 3px 0 #dcb6c5,0 5px 9px #78465a0c;
  transition:box-shadow .14s ease,background-color .14s ease,translate .14s ease;
@@ -16,7 +16,7 @@
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) button.primary{
  background:linear-gradient(#df80a8,#bd4e7d);color:#fff;border-color:#a7446e;box-shadow:inset 0 2px 0 #ffffff60,0 4px 0 #8f385c,0 6px 12px #8c345021;
 }
-:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:is([aria-pressed='true'],[aria-current]):not(.wb-calendar>button){background:linear-gradient(#f9dce9,#efb5ce);color:#69344d;border-color:#bc6489}
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:is([aria-pressed='true'],[aria-current]):not(.wb-calendar>button):not(.month-grid button):not(.kid-look-emojis button):not(.wall-display button):not(.kid-look-colors button){background:linear-gradient(#f9dce9,#efb5ce);color:#69344d;border-color:#bc6489}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:disabled{box-shadow:none;opacity:.48;translate:none}
 :root[data-experience='cozy'] :is(button,summary,input,select,textarea):focus-visible{outline:3px solid #935aab;outline-offset:4px}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:active:not(:disabled){translate:0 2px;box-shadow:inset 0 1px 3px #78465a22,0 1px 0 #c487a0}

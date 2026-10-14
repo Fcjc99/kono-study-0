@@ -213,6 +213,11 @@ test('KONO’s good morning / goodnight sum up a day in one sentence',()=>{
  assert.equal(load('src/store/dayGlance.ts').dayGlance(d,'2026-09-30'),'2 classes, starting with Biology at 9:00 AM, the Cell biology test, Lab report is due and Soccer practice at 4:30 PM.')
  assert.equal(load('src/store/dayGlance.ts').dayGlance(d,'2026-10-01'),'Art at 8:30 AM and the Spanish test.')
  assert.equal(load('src/store/dayGlance.ts').dayGlance(d,'2026-10-03'),'nothing on the plan.')
+ // Home's one-line summary: due today, late, the next test this week, the next thing on the clock.
+ const sum=(day,now)=>load('src/store/dayGlance.ts').daySummary(d,day,now).map(b=>b.text).join(' · ')
+ assert.equal(sum('2026-09-30','08:00'),'1 due today · Cell biology test today (+1) · Soccer practice at 4:30 PM')
+ assert.equal(sum('2026-09-30','17:00'),'1 due today · Cell biology test today (+1)','a past event is not next')
+ assert.equal(sum('2026-10-03','08:00'),'Nothing due today · 1 late');assert.equal(sum('2026-10-01','08:00'),'Nothing due today · 1 late · Spanish test today')
 })
 
 const wardrobeMod=load('src/store/konoWardrobe.ts'),careMod=load('src/store/konoCare.ts')

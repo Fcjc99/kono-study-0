@@ -20,12 +20,12 @@
 :root[data-experience='cozy'] .workbench .wb-panel :is(.wb-record:not(.wb-sticky),.kids-glance li>button:first-child,.week-ahead-days button){background:var(--rf-tint)!important;border:1px solid transparent!important;border-radius:var(--rf-radius-sm)!important}
 
 /* Controls: flat, light, medium weight. The main action is the one solid button. */
-:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.week-grid-slot):not(.week-item):not(.link-button):not(.save-toast button):not(.primary):not(.week-grid-head button):not(.wb-cal-day):not(.mobile-nav button):not(.people-filter>button):not(.calendar-views button):not(.profile-card fieldset button){
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.month-grid button):not(.kid-look-emojis button):not(.wall-display button):not(.kid-look-colors button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.week-grid-slot):not(.week-item):not(.link-button):not(.save-toast button):not(.primary):not(.week-grid-head button):not(.wb-cal-day):not(.mobile-nav button):not(.people-filter>button):not(.calendar-views button):not(.profile-card fieldset button){
  box-shadow:none!important;background:var(--wb-surface,#fff)!important;border:1px solid var(--rf-line)!important;border-radius:var(--rf-radius-sm)!important;font-weight:600!important;min-height:40px}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) button.primary{background:var(--wb-accent,#c76b8f)!important;border-color:transparent!important;color:#fff!important;box-shadow:0 4px 14px color-mix(in srgb,var(--wb-accent,#c76b8f) 30%,transparent)!important}
-:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:is([aria-pressed='true'],[aria-current],[aria-selected='true']):not(.wb-calendar>button):not(.nav-button):not(.people-filter>button):not(.calendar-views button):not(.profile-card-colors button){background:var(--rf-tint)!important;border-color:color-mix(in srgb,var(--wb-accent,#c76b8f) 45%,transparent)!important;color:var(--cute-ink,#704257)!important}
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:is([aria-pressed='true'],[aria-current],[aria-selected='true']):not(.wb-calendar>button):not(.month-grid button):not(.kid-look-emojis button):not(.wall-display button):not(.kid-look-colors button):not(.nav-button):not(.people-filter>button):not(.calendar-views button):not(.profile-card-colors button){background:var(--rf-tint)!important;border-color:color-mix(in srgb,var(--wb-accent,#c76b8f) 45%,transparent)!important;color:var(--cute-ink,#704257)!important}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:active:not(:disabled){translate:none;transform:scale(.98)}
-@media(hover:hover){:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:hover:not(:disabled):not(.primary){background:var(--rf-tint)!important;filter:none}}
+@media(hover:hover){:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:hover:not(:disabled):not(.primary):not(.month-grid button):not(.kid-look-emojis button):not(.wall-display button):not(.kid-look-colors button){background:var(--rf-tint)!important;filter:none}}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea){border:1px solid var(--rf-line)!important;border-radius:var(--rf-radius-sm)!important;box-shadow:none!important;background:var(--wb-surface,#fff)!important}
 
 /* Chips (names, sources, days shown): lighter, no 3D. */
@@ -61,7 +61,7 @@
 :root:is([data-experience=cozy],[data-experience=modern]) .workbench .planner-filters{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:6px 0 10px}
 :root:is([data-experience=cozy],[data-experience=modern]) .workbench .planner-filters>*{margin:0!important}
 :root:is([data-experience=cozy],[data-experience=modern]) .workbench .planner-filters .planner-source-chips{padding-right:14px;border-right:1px solid var(--rf-line)}
-:root:is([data-experience=cozy],[data-experience=modern]) .workbench .week-grid-hint{font-size:.8rem;opacity:.7}
+:root:is([data-experience=cozy],[data-experience=modern]) .workbench .week-grid-hint{font-size:.8rem}
 :root:is([data-experience=cozy],[data-experience=modern]) .workbench .people-filter{margin:0}
 @media (max-width:720px){
  :root:is([data-experience=cozy],[data-experience=modern]) .workbench .wb-header .header-add{display:none!important}
@@ -242,8 +242,8 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 @media(max-width:600px){.profile-card-names{grid-template-columns:1fr}}
 .profile-card fieldset{border:0;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
 .profile-card legend{font-weight:700;margin-bottom:6px;padding:0}
-.workbench .profile-card-avatars button{width:44px!important;min-width:44px!important;height:44px;min-height:44px!important;padding:0!important;border-radius:50%!important;font-size:1.35rem;font-weight:800!important}
-.workbench .profile-card-avatars button[aria-pressed=true]{outline:3px solid var(--profile-color);outline-offset:1px}
+.workbench .profile-card-avatars>button{width:44px!important;min-width:44px!important;height:44px;min-height:44px!important;padding:0!important;border-radius:50%!important;font-size:1.35rem;font-weight:800!important}
+.workbench .profile-card-avatars>button[aria-pressed=true]{outline:3px solid var(--profile-color);outline-offset:1px}
 .workbench .profile-card-colors button{width:36px!important;min-width:36px!important;height:36px;min-height:36px!important;padding:0!important;border-radius:50%!important;background:var(--swatch)!important;border:3px solid var(--wb-surface,#fff)!important;box-shadow:0 0 0 1px var(--rf-line,#ead3dc)!important}
 .workbench .profile-card-colors button[aria-pressed=true]{box-shadow:0 0 0 3px var(--swatch)!important}
 /* The sidebar's profile avatar uses your color and emoji. */
@@ -299,8 +299,8 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 :root[data-experience] .workbench .wb-family-event>.wb-toolbar>details>summary{font-size:.85rem}
 .wb-family-event-time{font-weight:800}
 @media(max-width:520px){:root[data-experience] .workbench .wb-family-event{grid-template-columns:1fr}}
-:root[data-experience] .workbench .profile-card-avatars button{background:var(--wb-surface,#fff)!important;border:1px solid var(--rf-line,#ead3dc)!important;box-shadow:none!important}
-:root[data-experience] .workbench .profile-card-avatars button[aria-pressed=true]{background:color-mix(in srgb,var(--profile-color) 18%,var(--wb-surface,#fff))!important;border-color:var(--profile-color)!important}
+:root[data-experience] .workbench .profile-card-avatars>button{background:var(--wb-surface,#fff)!important;border:1px solid var(--rf-line,#ead3dc)!important;box-shadow:none!important}
+:root[data-experience] .workbench .profile-card-avatars>button[aria-pressed=true]{background:color-mix(in srgb,var(--profile-color) 18%,var(--wb-surface,#fff))!important;border-color:var(--profile-color)!important}
 
 /* New / edit event: the kind as one row of chips, start and end side by side, a small mic for details. */
 .event-kind-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
@@ -308,3 +308,77 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .wb-dialog .event-kind-chips button[aria-pressed=true]{background:color-mix(in srgb,var(--wb-accent,#c76b8f) 16%,var(--wb-surface,#fff))!important;border-color:var(--wb-accent,#c76b8f)!important;color:var(--wb-ink,#3a2b33)!important}
 .wb-time-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .wb-dialog .voice-input-button{min-height:34px!important;padding:0 12px!important;font-size:.85rem;width:auto!important}
+/* Avatars (a photo, an emoji or an initial) on each person's color, used wherever a person shows. */
+.kono-avatar{display:inline-grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;overflow:hidden;background:color-mix(in srgb,var(--avatar-color,var(--kid-color,var(--wb-accent,#c76b8f))) 24%,var(--wb-surface,#fff));color:color-mix(in srgb,var(--avatar-color,var(--kid-color,var(--wb-accent,#c76b8f))) 60%,#2a1e24);font-weight:800;font-style:normal;line-height:1;font-size:.95em}
+.kono-avatar>img,.avatar-img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
+.kono-avatar.has-photo{background:var(--wb-surface,#fff)}
+.profile-avatar.has-photo,.mobile-profile-avatar:has(.avatar-img),.kids-glance-face:has(.avatar-img),.who-face:has(.avatar-img){padding:0;overflow:hidden}
+.kids-glance-face.has-ring:has(.avatar-img) .avatar-img{width:84%;height:84%}
+.avatar-photo-pick{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 6px}
+.avatar-photo-error{flex-basis:100%;margin:0;color:#b3261e;font-size:.85rem}
+.kid-look-card{display:flex;align-items:center;gap:14px;margin:12px 0 4px;padding:14px;border-radius:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--kid-color) 30%,var(--wb-surface,#fff)),color-mix(in srgb,var(--kid-color) 8%,var(--wb-surface,#fff)))}
+.kid-look-card h3{margin:0;font-size:1.25rem}.kid-look-card p{margin:2px 0 0}
+.kid-look-card .kid-look-big{width:72px;height:72px;font-size:2.3rem;border:3px solid var(--wb-surface,#fff);box-shadow:0 4px 14px rgb(0 0 0/.12);--avatar-color:var(--kid-color)}
+.kid-look-emojis{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.workbench .kid-look-emojis button,.wb-dialog .kid-look-emojis button{width:40px!important;min-width:40px!important;height:40px!important;min-height:40px!important;padding:0!important;border-radius:50%!important;font-size:1.25rem!important;font-weight:800!important;background:var(--wb-surface,#fff)!important;border:1px solid var(--rf-line,#ead3dc)!important;box-shadow:none!important;color:inherit!important}
+.workbench .kid-look-emojis button[aria-pressed=true],.wb-dialog .kid-look-emojis button[aria-pressed=true]{background:color-mix(in srgb,var(--kid-color) 22%,var(--wb-surface,#fff))!important;border-color:var(--kid-color)!important;outline:2px solid var(--kid-color);outline-offset:1px}
+/* Whose it is, on a card: faces and names, and their color down the card's edge. */
+.person-chip{display:inline-flex;align-items:center;gap:4px;margin-right:6px;padding:1px 8px 1px 2px;border-radius:999px;background:color-mix(in srgb,var(--kid-color) 16%,var(--wb-surface,#fff));color:color-mix(in srgb,var(--kid-color) 55%,#2a1e24);font-weight:700;font-size:.8rem;vertical-align:middle}
+.person-chip .person-chip-face{width:20px;height:20px;font-size:.72rem}
+.person-chip .person-chip-face+.person-chip-face{margin-left:-8px;box-shadow:0 0 0 2px var(--wb-surface,#fff)}
+.cozy-task-row.has-person,.wb-record.has-person{box-shadow:inset 4px 0 0 var(--person-color)!important}
+:root[data-dark] .person-chip{color:color-mix(in srgb,var(--kid-color) 45%,#fff)}
+.command-people{display:inline-flex;margin-left:auto;padding-left:8px}.command-people .kono-avatar{width:22px;height:22px;font-size:.72rem}.command-people .kono-avatar+.kono-avatar{margin-left:-6px}
+.command-filters button .kono-avatar{width:20px;height:20px;font-size:.7rem;margin-right:5px;vertical-align:-5px}
+/* Home › Today at a glance. */
+.today-summary{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.today-summary>span{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:var(--rf-tint,color-mix(in srgb,var(--wb-accent,#c76b8f) 9%,var(--wb-surface,#fff)));font-weight:700;font-size:.86rem}
+.today-summary .is-late{background:color-mix(in srgb,#d94b4b 14%,var(--wb-surface,#fff));color:#a12d2d}
+.today-summary .is-test{background:color-mix(in srgb,#d7a62f 18%,var(--wb-surface,#fff));color:#7a5a0c}
+.today-summary .is-calm{background:color-mix(in srgb,#5da86b 14%,var(--wb-surface,#fff));color:#2f6b3b}
+:root[data-dark] .today-summary .is-late{color:#ffb4ab}:root[data-dark] .today-summary .is-test{color:#f5d27a}:root[data-dark] .today-summary .is-calm{color:#a6e0b0}
+/* New homework › Repeat on certain days. */
+.wb-repeat-days{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.workbench .wb-repeat-days button,.wb-dialog .wb-repeat-days button{min-width:52px;min-height:40px;padding:0 10px}
+.wb-task-repeat{margin:4px 0 8px}
+.calendar-wall{white-space:nowrap}
+@media(max-width:600px){.calendar-wall{display:none}}
+/* Notes: subject chips (each in its color) and a Board/List switch, instead of two drop-downs. */
+.notes-filters{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 22px}
+.notes-subject-chips{display:flex;flex-wrap:wrap;gap:6px}
+.workbench .notes-subject-chips button{display:inline-flex!important;align-items:center;gap:6px;min-height:34px!important;padding:0 12px!important;border-radius:999px!important;font-weight:650!important}
+.notes-subject-chips button i{width:10px;height:10px;border-radius:50%;background:var(--subject)}
+.notes-subject-chips button small{font-weight:700;opacity:.6}
+.workbench .notes-subject-chips button[aria-pressed=true]{background:color-mix(in srgb,var(--subject,var(--wb-accent,#c76b8f)) 18%,var(--wb-surface,#fff))!important;border-color:var(--subject,var(--wb-accent,#c76b8f))!important;color:var(--wb-ink,#3a2b33)!important}
+.workbench .calendar-views button[aria-current=page]{background:var(--wb-surface,#fff)!important;color:var(--wb-ink,#3a2b33)!important;box-shadow:0 1px 4px rgb(0 0 0/.12)!important}
+:root[data-dark] .workbench .calendar-views button[aria-current=page]{background:color-mix(in srgb,var(--wb-accent) 30%,#221d27)!important;color:#fff!important}
+/* Subjects: each class a card with its color, initial and how much is done; the open one gets a banner. */
+.workbench .subject-tabs{background:transparent!important;border:0!important;padding:0!important}
+.workbench .subject-tabs button{position:relative;overflow:hidden;min-height:68px;padding:12px 14px!important;border-radius:16px!important;border:1px solid var(--rf-line,#ead3dc)!important;background:var(--wb-surface,#fff)!important;box-shadow:none!important;outline:0!important;transform:none!important}
+.workbench .subject-tabs button>div{min-width:0;flex:1}
+.workbench .subject-tabs button i{display:grid!important;place-items:center;flex:none;width:40px!important;height:40px!important;border-radius:12px!important;background:var(--subject,#8a7469)!important;color:#fff;font-style:normal;font-weight:800;font-size:1.05rem}
+.workbench .subject-tabs button[aria-current=true]{border-color:var(--subject,var(--wb-accent,#c76b8f))!important;background:color-mix(in srgb,var(--subject,var(--wb-accent,#c76b8f)) 10%,var(--wb-surface,#fff))!important;box-shadow:inset 4px 0 0 var(--subject,var(--wb-accent,#c76b8f))!important}
+.workbench .subject-tabs button:not([style])[aria-current=true]{--subject:#8a7469}
+.subject-tab-bar{display:block;height:5px;margin-top:6px;border-radius:3px;background:color-mix(in srgb,var(--subject) 18%,transparent);overflow:hidden}
+.subject-tab-bar b{display:block;height:100%;border-radius:3px;background:var(--subject)}
+.workbench .subject-workspace{position:relative;overflow:hidden}
+.workbench .subject-workspace>.subject-banner{position:absolute!important;inset:0 0 auto;height:96px;background:linear-gradient(120deg,color-mix(in srgb,var(--subject) 55%,var(--wb-surface,#fff)),color-mix(in srgb,var(--subject) 18%,var(--wb-surface,#fff)));pointer-events:none}
+.workbench .subject-workspace>:not(.subject-banner){position:relative}
+.workbench .subject-workspace-title{padding-top:28px}
+.workbench .subject-workspace-title h2{font-size:clamp(1.8rem,3vw,2.4rem)!important;font-weight:800!important;margin:10px 0 2px}
+.subject-facts{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.subject-facts span{padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--subject) 12%,var(--wb-surface,#fff));font-weight:650;font-size:.85rem}
+.workbench .subject-section-tabs.calendar-views{display:flex;width:fit-content;max-width:100%;overflow-x:auto;margin:14px 0 12px;border-bottom:0!important}
+@media(max-width:600px){.notes-filters{padding:10px 12px}.notes-view{width:auto}}
+/* Readable text in each person's color: their color mixed toward the ink, so light colors keep 4.5:1. */
+.wb-family-event-time{color:color-mix(in srgb,var(--kid-color,var(--wb-ink,#3a2b33)) 42%,var(--wb-ink,#3a2b33))}
+.wb-family-event-end{opacity:1}
+.wb-family-event-info>small{color:color-mix(in srgb,var(--kid-color,var(--wb-muted,#7a6670)) 42%,var(--wb-ink,#3a2b33))}
+.week-grid .week-item-timed small{opacity:1;color:color-mix(in srgb,var(--item-color) 45%,var(--wb-ink,#3a2b33))}
+.workbench .subject-tabs small,.profile-grid :is(span,small){color:color-mix(in srgb,var(--wb-muted,#7a6670) 75%,var(--wb-ink,#3a2b33))}
+/* Dark mode: the late count on Kids today, eyebrows and the picked plan card keep readable text. */
+:root[data-dark] .kids-glance-facts .is-late{color:#ffb4ab}
+:root[data-dark] .eyebrow{color:color-mix(in srgb,var(--wb-accent,#c76b8f) 55%,#fff)}
+:root[data-dark] .profile-grid button.active{background:color-mix(in srgb,var(--wb-accent,#c76b8f) 22%,var(--wb-surface,#221d27))!important;color:var(--wb-ink,#f3e9ee)!important}
+:root[data-dark] .profile-grid button.active :is(strong,span,small){color:inherit}
+:root[data-dark] .nav-button[aria-current=page]>span:nth-child(2){color:color-mix(in srgb,var(--wb-accent,#c76b8f) 45%,#fff)}

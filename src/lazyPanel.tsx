@@ -14,9 +14,10 @@ class PanelLoadBoundary extends Component<{children:ReactNode},{failed:boolean}>
 }
 
 /** Loads a panel's code only when it is first shown, keeping it out of the startup download. */
-export function lazyPanel<P extends object>(load:()=>Promise<{default:ComponentType<P>}>){
+/** `quiet` shows nothing while it loads (for something that's already got its own placeholder, like the island). */
+export function lazyPanel<P extends object>(load:()=>Promise<{default:ComponentType<P>}>,quiet=false){
  const Panel=lazy(load) as unknown as ComponentType<P>
  return function LazyPanel(props:P){
-  return <PanelLoadBoundary><Suspense fallback={<p className="wb-muted lazy-panel-loading" aria-live="polite">Loading…</p>}><Panel {...props}/></Suspense></PanelLoadBoundary>
+  return <PanelLoadBoundary><Suspense fallback={quiet?null:<p className="wb-muted lazy-panel-loading" aria-live="polite">Loading…</p>}><Panel {...props}/></Suspense></PanelLoadBoundary>
  }
 }

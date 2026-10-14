@@ -1,0 +1,30 @@
+/* Wall display: big type for across the kitchen, each person's color down their items. */
+html.wall-open,html.wall-open body{overflow:hidden}
+.wall-display{position:fixed;inset:0;z-index:2147483000;overflow:auto;display:flex;flex-direction:column;gap:clamp(12px,2vw,24px);padding:clamp(16px,3vw,40px);padding-top:max(clamp(16px,3vw,40px),env(safe-area-inset-top));background:var(--wb-bg,#fbf6f1);color:var(--wb-ink,#3a2b33);font-family:'DM Sans',ui-sans-serif,system-ui,sans-serif}
+.wall-head{display:flex;align-items:center;gap:clamp(12px,3vw,40px)}
+.wall-head>div:first-child{flex:1}
+.wall-clock{margin:0;font-size:clamp(3rem,9vw,7rem);font-weight:800;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.wall-date{margin:6px 0 0;font-size:clamp(1.1rem,2.4vw,1.8rem);font-weight:700;color:var(--wb-muted,#7a6670)}
+.wall-weather{margin:0;display:flex;align-items:center;gap:8px;font-size:clamp(2rem,5vw,3.6rem);font-weight:800}
+.wall-weather small{font-size:.5em;color:var(--wb-muted,#7a6670);font-weight:700}
+.wall-display .wall-close{all:unset;box-sizing:border-box;padding:10px 18px;border-radius:999px;background:var(--wb-surface,#fff);border:1px solid var(--wb-line,#ead3dc);font-weight:700;font-size:1rem;cursor:pointer;color:inherit}
+.wall-display .wall-close:focus-visible{outline:3px solid var(--wb-accent,#c76b8f);outline-offset:2px}
+.wall-days{flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(12px,2vw,24px);min-height:0}
+.wall-day{background:var(--wb-surface,#fff);border-radius:24px;padding:clamp(14px,2vw,28px);box-shadow:0 1px 2px rgb(0 0 0/.04),0 10px 30px rgb(0 0 0/.06);min-width:0;overflow:auto}
+.wall-day h2{margin:0 0 12px;display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px;font-size:clamp(1.5rem,3vw,2.4rem);font-weight:800}
+.wall-day h2 small{font-size:.5em;font-weight:700;color:var(--wb-muted,#7a6670)}
+.wall-day ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.wall-item{display:grid;grid-template-columns:minmax(5.5em,auto) auto minmax(0,1fr);align-items:center;gap:12px;padding:10px 14px;border-radius:16px;background:color-mix(in srgb,var(--person) 14%,var(--wb-surface,#fff));border-left:6px solid var(--person);font-size:clamp(1.05rem,1.9vw,1.5rem)}
+.wall-time{font-weight:800;font-variant-numeric:tabular-nums;color:color-mix(in srgb,var(--person) 55%,var(--wb-ink,#3a2b33))}
+.wall-title{font-weight:700;min-width:0;overflow-wrap:anywhere}
+.wall-title small{display:block;font-size:.66em;font-weight:600;color:var(--wb-muted,#7a6670)}
+.wall-item .wall-face{width:2.2em;height:2.2em;font-size:.95em}
+.wall-item.is-done .wall-title{text-decoration:line-through;opacity:.55}
+.wall-item.is-past{opacity:.5}
+.wall-item.is-class{background:transparent;border-left-style:dotted}
+.wall-empty{font-size:1.3rem;color:var(--wb-muted,#7a6670)}
+.wall-people{display:flex;flex-wrap:wrap;gap:8px 18px;font-weight:700;font-size:1.05rem}
+.wall-people>span{display:inline-flex;align-items:center;gap:8px}
+.wall-people .kono-avatar{width:2em;height:2em}
+@media(max-width:760px),(orientation:portrait) and (max-width:900px){.wall-days{grid-template-columns:1fr}}
+:root[data-dark] .wall-display{background:var(--wb-bg,#1d171b)}
