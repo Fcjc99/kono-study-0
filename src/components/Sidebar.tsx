@@ -57,7 +57,7 @@ export default function Sidebar({view,onView,profile='Sophia',schoolYear='Summer
  // Simple view keeps just Home, Planner and Notes (and Settings when the device isn't locked).
  const items=navItems.filter(item=>(item!=='Kids'||parentMode)&&!(locked&&item==='Settings')&&(!simple||['Sanctuary','Planner','Notes','Settings'].includes(item)))
  // Phones: a bottom tab bar with the everyday pages, ＋ Add in the middle, and More for the rest.
- const everyday=(['Sanctuary','Planner',parentMode?'Kids':'Notes'] as ViewName[]).filter(i=>items.includes(i))
+ const everyday=(['Sanctuary','Planner',parentMode&&items.includes('Kids')?'Kids':'Notes'] as ViewName[]).filter(i=>items.includes(i))
  const tabbar:(ViewName|'Add'|'More')[]=[...everyday.slice(0,2),...(onAdd?['Add' as const]:[]),...everyday.slice(2),'More']
  const moreActive=!everyday.includes(view)
  useSlidingIndicator(view)

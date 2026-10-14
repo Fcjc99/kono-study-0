@@ -206,7 +206,7 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .island-choice button small{color:var(--wb-muted,#7a6670);font-weight:500}
 
 /* Home without the island: one column of cards (KONO's card on top when kept), centered on wide screens. */
-.workbench .home-grid.no-island{display:flex!important;flex-direction:column;gap:16px;max-width:980px;margin-inline:auto}
+.workbench .home-grid.no-island{display:flex!important;flex-direction:column;align-items:stretch!important;gap:16px;width:100%;max-width:980px;margin-inline:auto}
 .workbench .home-grid.no-island :is(.home-main,.home-side){display:contents!important}
 .workbench .home-grid.no-island>*>*{margin:0!important;order:4}
 .workbench .home-grid.no-island .home-main>.kono-bar{order:0;border-radius:var(--rf-radius,18px)!important;border-top-style:solid!important}
