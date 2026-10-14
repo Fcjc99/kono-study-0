@@ -122,12 +122,14 @@ test('Today in your own order, Settings search and search filters',async({page})
  const list=page.getByRole('list',{name:'Also today, in your order'})
  const titles=()=>list.locator('.reorder-row').allInnerTexts()
  await list.waitFor()
- const before=await titles()
- const last=before.length-1,lastTitle=/Second thing/.test(before[last])?'Second thing (e2e)':'First thing (e2e)'
- await list.getByRole('button',{name:'Reorder '+lastTitle+' (use the up and down arrow keys)'}).press('ArrowUp')
- await page.waitForFunction(([t])=>[...document.querySelectorAll('.reorder-row')].findIndex(r=>r.textContent.includes(t))===0,[lastTitle])
+ const before=await titles(),last=before.length-1
+ const moving=/Second thing/.test(before[last])?'Second thing (e2e)':'First thing (e2e)'
+ const expected=[...before];[expected[last-1],expected[last]]=[expected[last],expected[last-1]]
+ await list.getByRole('button',{name:'Reorder '+moving+' (use the up and down arrow keys)'}).press('ArrowUp')
+ await page.waitForFunction(want=>JSON.stringify([...document.querySelectorAll('.reorder-row')].map(r=>r.innerText))===JSON.stringify(want),expected)
  await page.reload();await heading(page,'Sanctuary')
- assert.match((await page.getByRole('list',{name:'Also today, in your order'}).locator('.reorder-row').allInnerTexts())[0],new RegExp(lastTitle.replace(/[()]/g,'\\$&')))
+ const again=page.getByRole('list',{name:'Also today, in your order'});await again.waitFor()
+ assert.deepEqual(await again.locator('.reorder-row').allInnerTexts(),expected,'the order is kept after a reload')
  // Settings search: "dark" finds Dark mode and opens Look & feel.
  await go(page,'Settings')
  await page.getByLabel('Search settings').fill('dark')
