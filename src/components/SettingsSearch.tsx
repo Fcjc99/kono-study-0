@@ -22,6 +22,7 @@ const INDEX:{label:string;tab:SettingsTab;find:string;words:string}[]=[
  {label:'Show KONO in Google or Apple Calendar',tab:'Import & export',find:'google calendar',words:'calendar google apple ical ics sync subscribe'},
  {label:'Share a schedule',tab:'Import & export',find:'share a schedule',words:'share send schedule friend'},
  {label:'AI helper key',tab:'Import & export',find:'ai helper',words:'ai gemini openai key api scan'},
+ {label:'Your profile (avatar, color, name)',tab:'Plans & account',find:'avatar',words:'profile avatar emoji picture photo color colour name me personalize customize'},
  {label:'Plans (rename, switch, delete)',tab:'Plans & account',find:'plans',words:'plan rename delete switch family master profile name'},
  {label:'Start over',tab:'Plans & account',find:'start over',words:'reset start over clear erase everything'},
  {label:'Account and sign in',tab:'Plans & account',find:'account',words:'account email sign in sign out login logout'},

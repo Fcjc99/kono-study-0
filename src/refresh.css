@@ -20,10 +20,10 @@
 :root[data-experience='cozy'] .workbench .wb-panel :is(.wb-record:not(.wb-sticky),.kids-glance li>button:first-child,.week-ahead-days button){background:var(--rf-tint)!important;border:1px solid transparent!important;border-radius:var(--rf-radius-sm)!important}
 
 /* Controls: flat, light, medium weight. The main action is the one solid button. */
-:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.week-grid-slot):not(.week-item):not(.link-button):not(.save-toast button):not(.primary):not(.week-grid-head button):not(.wb-cal-day):not(.mobile-nav button){
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.week-grid-slot):not(.week-item):not(.link-button):not(.save-toast button):not(.primary):not(.week-grid-head button):not(.wb-cal-day):not(.mobile-nav button):not(.people-filter>button):not(.calendar-views button):not(.profile-card fieldset button){
  box-shadow:none!important;background:var(--wb-surface,#fff)!important;border:1px solid var(--rf-line)!important;border-radius:var(--rf-radius-sm)!important;font-weight:600!important;min-height:40px}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) button.primary{background:var(--wb-accent,#c76b8f)!important;border-color:transparent!important;color:#fff!important;box-shadow:0 4px 14px color-mix(in srgb,var(--wb-accent,#c76b8f) 30%,transparent)!important}
-:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:is([aria-pressed='true'],[aria-current],[aria-selected='true']):not(.wb-calendar>button):not(.nav-button){background:var(--rf-tint)!important;border-color:color-mix(in srgb,var(--wb-accent,#c76b8f) 45%,transparent)!important;color:var(--cute-ink,#704257)!important}
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:is([aria-pressed='true'],[aria-current],[aria-selected='true']):not(.wb-calendar>button):not(.nav-button):not(.people-filter>button):not(.calendar-views button):not(.profile-card-colors button){background:var(--rf-tint)!important;border-color:color-mix(in srgb,var(--wb-accent,#c76b8f) 45%,transparent)!important;color:var(--cute-ink,#704257)!important}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:active:not(:disabled){translate:none;transform:scale(.98)}
 @media(hover:hover){:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:hover:not(:disabled):not(.primary){background:var(--rf-tint)!important;filter:none}}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea){border:1px solid var(--rf-line)!important;border-radius:var(--rf-radius-sm)!important;box-shadow:none!important;background:var(--wb-surface,#fff)!important}
@@ -228,3 +228,83 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .workbench.is-simple .reorder-handle{display:none!important}
 .workbench.is-simple .reorder-row{grid-template-columns:minmax(0,1fr)}
 .people-filter-count{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:6px;padding:0 6px;border-radius:999px;background:var(--kid-color,var(--wb-accent,#c76b8f));color:#fff;font-size:.72rem;font-weight:800;line-height:1}
+
+/* Your profile (Settings › Plans & account): a color banner, a big avatar, then names, avatars and colors. */
+.profile-card{position:relative;overflow:hidden;padding-top:0!important}
+.profile-card-banner{height:86px;margin:0 -24px;background:linear-gradient(120deg,var(--profile-color),color-mix(in srgb,var(--profile-color) 45%,#fff))}
+.profile-card-head{display:grid;grid-template-columns:auto 1fr;align-items:end;gap:14px;margin-top:-42px}
+.profile-card-head>div{transform:translateY(0);padding-top:48px}
+.profile-card-avatar{display:grid;place-items:center;width:84px;height:84px;flex:none;border-radius:50%;background:color-mix(in srgb,var(--profile-color) 22%,var(--wb-surface,#fff));border:4px solid var(--wb-surface,#fff);box-shadow:0 6px 18px rgb(0 0 0/.12);font-size:2.6rem;font-weight:800;color:var(--profile-color)}
+.profile-card-head>div{padding-bottom:4px}
+.profile-card-head h2{margin:0 0 2px;font-size:1.4rem}
+.profile-card-head p{margin:0 0 6px}
+.profile-card-names{display:grid;grid-template-columns:1fr 1fr auto;align-items:end;gap:10px;margin:16px 0 8px}
+@media(max-width:600px){.profile-card-names{grid-template-columns:1fr}}
+.profile-card fieldset{border:0;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.profile-card legend{font-weight:700;margin-bottom:6px;padding:0}
+.workbench .profile-card-avatars button{width:44px!important;min-width:44px!important;height:44px;min-height:44px!important;padding:0!important;border-radius:50%!important;font-size:1.35rem;font-weight:800!important}
+.workbench .profile-card-avatars button[aria-pressed=true]{outline:3px solid var(--profile-color);outline-offset:1px}
+.workbench .profile-card-colors button{width:36px!important;min-width:36px!important;height:36px;min-height:36px!important;padding:0!important;border-radius:50%!important;background:var(--swatch)!important;border:3px solid var(--wb-surface,#fff)!important;box-shadow:0 0 0 1px var(--rf-line,#ead3dc)!important}
+.workbench .profile-card-colors button[aria-pressed=true]{box-shadow:0 0 0 3px var(--swatch)!important}
+/* The sidebar's profile avatar uses your color and emoji. */
+.profile-avatar[style]{color:#fff}
+.profile-avatar.has-emoji{font-size:1.3rem}
+
+/* People (Planner and Home): round avatars in each person's color, like a family wall calendar. A faded
+   avatar is hidden; the bubble says how much of theirs is still open today. */
+.workbench .people-filter{display:flex!important;flex-wrap:wrap;gap:6px 10px!important;align-items:flex-start}
+.workbench .people-filter>button{position:relative;display:grid!important;justify-items:center;gap:4px;min-width:58px!important;min-height:0!important;padding:4px 2px!important;border:0!important;background:none!important;box-shadow:none!important;border-radius:14px!important}
+.people-filter .person-avatar{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:color-mix(in srgb,var(--kid-color,var(--wb-accent,#c76b8f)) 22%,var(--wb-surface,#fff));color:var(--kid-color,var(--wb-accent,#c76b8f));font-size:1.25rem;font-weight:800;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--kid-color,var(--wb-accent,#c76b8f)) 55%,transparent);transition:transform .15s,opacity .15s,filter .15s}
+.people-filter .people-filter-all .person-avatar{--kid-color:#8a7469}
+.people-filter .person-name{font-size:.8rem;font-weight:700;color:var(--wb-ink,inherit);max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.people-filter>button[aria-pressed=true] .person-avatar{background:var(--kid-color,var(--wb-accent,#c76b8f));color:#fff;box-shadow:0 4px 12px color-mix(in srgb,var(--kid-color,var(--wb-accent,#c76b8f)) 40%,transparent)}
+.people-filter>button[aria-pressed=false] .person-avatar{opacity:.45;filter:grayscale(.6)}
+.people-filter>button[aria-pressed=false] .person-name{opacity:.55}
+.people-filter .people-filter-count{position:absolute;top:0;right:6px;margin:0!important;min-width:20px;height:20px;border:2px solid var(--wb-surface,#fff);box-sizing:content-box}
+.people-filter>button:active .person-avatar{transform:scale(.94)}
+.people-filter>button:focus-visible .person-avatar{outline:3px solid var(--wb-accent,#c76b8f);outline-offset:2px}
+
+/* Planner, like a family wall calendar: a big date, one view switcher, and events filled with their
+   person's color. */
+.calendar-hero{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 16px;margin-bottom:12px}
+.calendar-hero-date small{display:block;color:var(--wb-muted,#7a6670);font-weight:700;font-size:.85rem;letter-spacing:.02em;text-transform:uppercase}
+.calendar-hero-date h2{margin:0;font-size:clamp(1.6rem,3vw,2.2rem)!important;font-weight:800!important;line-height:1.1}
+.calendar-hero-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.calendar-views{display:inline-flex;padding:4px;gap:2px;border-radius:999px;background:color-mix(in srgb,var(--wb-ink,#3a2b33) 6%,var(--wb-surface,#fff));border:1px solid var(--rf-line,#ead3dc)}
+.workbench .calendar-views button{min-height:34px!important;padding:0 14px!important;border:0!important;border-radius:999px!important;background:transparent!important;box-shadow:none!important;font-weight:650!important;color:var(--wb-muted,#7a6670)!important}
+.workbench .calendar-views button[aria-pressed=true]{background:var(--wb-surface,#fff)!important;color:var(--wb-ink,#3a2b33)!important;box-shadow:0 1px 4px rgb(0 0 0/.12)!important}
+:root[data-dark] .workbench .calendar-views button[aria-pressed=true]{background:color-mix(in srgb,var(--wb-accent) 30%,#221d27)!important;color:#fff!important}
+@media(max-width:600px){.calendar-views{width:100%;justify-content:space-between}.workbench .calendar-views button{padding:0 8px!important;font-size:.82rem}.calendar-hero-tools{width:100%}}
+.workbench .calendar-today{border-radius:999px!important;min-height:36px!important}
+/* Events in the week: a soft fill in their person's color with a strong left edge. */
+.week-grid .week-item-timed,.week-grid .week-grid-allday-cell .week-item{background:color-mix(in srgb,var(--item-color) 16%,var(--wb-surface,#fff))!important;border:0!important;border-left:4px solid var(--item-color)!important;border-radius:8px!important;color:var(--wb-ink,#3a2b33)!important;box-shadow:none!important}
+.week-grid .week-item-timed small{color:color-mix(in srgb,var(--item-color) 70%,var(--wb-ink,#3a2b33));font-weight:700}
+:root[data-dark] .week-grid :is(.week-item-timed,.week-grid-allday-cell .week-item){background:color-mix(in srgb,var(--item-color) 28%,#221d27)!important;color:#fff!important}
+/* Schedule: each day a clear heading, then its things as rows. */
+.wb-agenda-upcoming>h4{display:none}
+.wb-agenda-day{border:0!important;border-top:1px solid var(--rf-line,#ead3dc)!important;border-radius:0!important;padding:10px 0!important;background:none!important}
+.wb-agenda-day>summary h3{font-size:1.05rem!important;font-weight:800!important}
+.wb-agenda-day[open]>summary{margin-bottom:8px}
+.mobile-profile-chip{grid-template-columns:auto minmax(0,1fr);column-gap:8px}
+.mobile-profile-chip>:not(.mobile-profile-avatar):not(button){grid-column:2}
+.mobile-profile-avatar{grid-row:1/3;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--wb-accent,#c76b8f);color:#fff;font-style:normal;font-weight:800;font-size:.95rem}
+/* (stronger than the general chip and button styles above) */
+:root[data-experience] .workbench .people-filter>button,:root[data-experience] .workbench .people-filter>button[aria-pressed]{border:0!important;background:none!important;box-shadow:none!important;padding:4px 2px!important;min-height:0!important;outline:0}
+/* Family events (Schedule view, Today and the daily page): one tidy row in the person's color: time,
+   who and what, then Edit at the end. */
+:root[data-experience] .workbench .wb-family-event{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 10px;padding:10px 12px 10px 16px!important;border-radius:12px!important;background:color-mix(in srgb,var(--kid-color,var(--wb-accent,#c76b8f)) 9%,var(--wb-surface,#fff))!important;box-shadow:inset 5px 0 0 var(--kid-color,var(--wb-accent,#c76b8f))!important}
+/* (each kid's chosen border style, from Settings › Family, is kept as it was) */
+:root[data-experience] .workbench .wb-family-event>.wb-toolbar{display:flex!important;flex-wrap:nowrap!important;align-items:center;gap:6px!important;margin:0!important;width:auto!important}
+:root[data-experience] .workbench .wb-family-event>.wb-toolbar>button{min-height:34px!important;padding:0 12px!important;width:auto!important}
+:root[data-experience] .workbench .wb-family-event>.wb-toolbar>details>summary{font-size:.85rem}
+.wb-family-event-time{font-weight:800}
+@media(max-width:520px){:root[data-experience] .workbench .wb-family-event{grid-template-columns:1fr}}
+:root[data-experience] .workbench .profile-card-avatars button{background:var(--wb-surface,#fff)!important;border:1px solid var(--rf-line,#ead3dc)!important;box-shadow:none!important}
+:root[data-experience] .workbench .profile-card-avatars button[aria-pressed=true]{background:color-mix(in srgb,var(--profile-color) 18%,var(--wb-surface,#fff))!important;border-color:var(--profile-color)!important}
+
+/* New / edit event: the kind as one row of chips, start and end side by side, a small mic for details. */
+.event-kind-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+.wb-dialog .event-kind-chips button{display:inline-flex!important;align-items:center;gap:6px;min-height:36px!important;padding:0 12px!important;border-radius:999px!important;font-weight:650!important;font-size:.9rem}
+.wb-dialog .event-kind-chips button[aria-pressed=true]{background:color-mix(in srgb,var(--wb-accent,#c76b8f) 16%,var(--wb-surface,#fff))!important;border-color:var(--wb-accent,#c76b8f)!important;color:var(--wb-ink,#3a2b33)!important}
+.wb-time-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wb-dialog .voice-input-button{min-height:34px!important;padding:0 12px!important;font-size:.85rem;width:auto!important}
