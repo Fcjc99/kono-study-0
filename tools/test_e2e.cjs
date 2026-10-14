@@ -2160,7 +2160,7 @@ test('Planner › ＋ Add to this date: Lesson and Work open a new event already
   if(!await page.locator('details.planner-add-menu').evaluate(d=>d.open))await page.locator('details.planner-add-menu > summary').click()
   await page.locator('details.planner-add-menu').getByRole('button',{name:button,exact:true}).click()
   const editor=page.getByRole('dialog',{name:'New Event'})
-  assert.equal(await editor.getByLabel('Event type').inputValue(),kind)
+  assert.equal(await editor.getByRole('group',{name:'Event type'}).getByRole('button',{name:new RegExp(button)}).getAttribute('aria-pressed'),'true',kind+' is picked')
   await editor.getByLabel('Title').fill(title)
   await editor.getByRole('button',{name:'Save'}).click()
   await editor.waitFor({state:'detached'})

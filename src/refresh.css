@@ -301,3 +301,10 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 @media(max-width:520px){:root[data-experience] .workbench .wb-family-event{grid-template-columns:1fr}}
 :root[data-experience] .workbench .profile-card-avatars button{background:var(--wb-surface,#fff)!important;border:1px solid var(--rf-line,#ead3dc)!important;box-shadow:none!important}
 :root[data-experience] .workbench .profile-card-avatars button[aria-pressed=true]{background:color-mix(in srgb,var(--profile-color) 18%,var(--wb-surface,#fff))!important;border-color:var(--profile-color)!important}
+
+/* New / edit event: the kind as one row of chips, start and end side by side, a small mic for details. */
+.event-kind-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+.wb-dialog .event-kind-chips button{display:inline-flex!important;align-items:center;gap:6px;min-height:36px!important;padding:0 12px!important;border-radius:999px!important;font-weight:650!important;font-size:.9rem}
+.wb-dialog .event-kind-chips button[aria-pressed=true]{background:color-mix(in srgb,var(--wb-accent,#c76b8f) 16%,var(--wb-surface,#fff))!important;border-color:var(--wb-accent,#c76b8f)!important;color:var(--wb-ink,#3a2b33)!important}
+.wb-time-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wb-dialog .voice-input-button{min-height:34px!important;padding:0 12px!important;font-size:.85rem;width:auto!important}
