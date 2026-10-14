@@ -76,8 +76,9 @@ async function addFromMenu(page,type,title,extra){
  await editor.waitFor({state:'detached'}).catch(()=>{})
 }
 /** Waits until the debounced save has reached IndexedDB, so a reload reads what the test just did. */
-async function flushSave(page,text){
- await page.waitForFunction(needle=>new Promise(resolve=>{const request=indexedDB.open('kono-recovery-and-sync',1);request.onsuccess=()=>{const db=request.result,get=db.transaction('plans').objectStore('plans').get('device');get.onsuccess=()=>{db.close();resolve(JSON.stringify(get.result??'').includes(needle))};get.onerror=()=>{db.close();resolve(false)}};request.onerror=()=>resolve(false)}),text,{timeout:10000,polling:250})
+// Waits until the saved plan on this device contains `text` (or, with gone=true, no longer does).
+async function flushSave(page,text,gone=false){
+ await page.waitForFunction(needle=>new Promise(resolve=>{const request=indexedDB.open('kono-recovery-and-sync',1);request.onsuccess=()=>{const db=request.result,get=db.transaction('plans').objectStore('plans').get('device');get.onsuccess=()=>{db.close();resolve(JSON.stringify(get.result??'').includes(needle[0])!==needle[1])};get.onerror=()=>{db.close();resolve(false)}};request.onerror=()=>resolve(false)}),[text,gone],{timeout:10000,polling:250})
 }
 
 const tests=[]
@@ -160,6 +161,7 @@ test('Island & KONO: a plan can turn the island off or keep just KONO, and Simpl
  assert.equal(await page.locator('.wb-island').count(),0,'still no island')
  // Back to the whole island, and it stays after a reload.
  await choose('Island and KONO')
+ await flushSave(page,'"island":',true)
  await page.reload();await go(page,'Sanctuary')
  await page.locator('.wb-island').waitFor()
  // Simple view: only Home, Planner and Notes (and Settings) in the tabs.
