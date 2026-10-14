@@ -16,17 +16,17 @@
 .month-grid .school-day-mini{margin-top:5px;max-width:55%;font-size:.66rem;font-weight:700;color:var(--wb-muted,#7a6670);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .month-pills{position:relative;z-index:1;display:flex;flex-direction:column;gap:3px;min-width:0;pointer-events:none}
 .month-pills>*{pointer-events:auto}
-.workbench .month-grid .month-pill{all:unset;box-sizing:border-box;display:flex!important;align-items:center;gap:4px;min-width:0;width:100%;min-height:22px;padding:2px 6px 2px 4px!important;border-radius:7px!important;background:color-mix(in srgb,var(--pill) 22%,var(--wb-surface,#fff))!important;border:0!important;border-left:4px solid var(--pill)!important;box-shadow:none!important;font-size:.74rem!important;font-weight:600!important;line-height:1.2;color:var(--wb-ink,#3a2b33)!important;cursor:pointer;text-align:left}
+.workbench .month-grid .month-pill{all:unset;box-sizing:border-box;pointer-events:auto;display:flex!important;align-items:center;gap:4px;min-width:0;width:100%;min-height:22px;padding:2px 6px 2px 4px!important;border-radius:7px!important;background:color-mix(in srgb,var(--pill) 22%,var(--wb-surface,#fff))!important;border:0!important;border-left:4px solid var(--pill)!important;box-shadow:none!important;font-size:.74rem!important;font-weight:600!important;line-height:1.2;color:var(--wb-ink,#3a2b33)!important;cursor:pointer;text-align:left}
 .workbench .month-grid .month-pill:hover{background:color-mix(in srgb,var(--pill) 34%,var(--wb-surface,#fff))!important}
 .workbench .month-grid .month-pill:focus-visible{outline:2px solid var(--wb-accent,#c76b8f);outline-offset:1px}
-.workbench .month-grid .month-pill[draggable=true]{cursor:grab}
+.workbench .month-grid .month-pill[draggable=true]{cursor:grab;-webkit-user-drag:element;user-select:none}
 .workbench .month-grid .month-pill.is-class{background:transparent!important;border-left-style:dotted!important;color:var(--wb-muted,#7a6670)!important}
 .workbench .month-grid .month-pill.is-priority{background:color-mix(in srgb,var(--pill) 30%,#fff3cf)!important;font-weight:800!important}
 .workbench .month-grid .month-pill.is-done .month-pill-text{text-decoration:line-through;opacity:.6}
 .month-pill time{flex:none;font-size:.68rem;font-weight:700;opacity:.75}
 .month-pill-text{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .month-pill .month-pill-face{flex:none;width:16px;height:16px;font-size:.62rem}
-.workbench .month-grid .month-more{all:unset;box-sizing:border-box;align-self:flex-start;padding:1px 6px!important;border-radius:7px;font-size:.72rem!important;font-weight:700!important;color:color-mix(in srgb,var(--wb-accent,#c76b8f) 70%,var(--wb-ink,#3a2b33))!important;cursor:pointer}
+.workbench .month-grid .month-more{all:unset;box-sizing:border-box;pointer-events:auto;align-self:flex-start;padding:1px 6px!important;border-radius:7px;font-size:.72rem!important;font-weight:700!important;color:color-mix(in srgb,var(--wb-accent,#c76b8f) 70%,var(--wb-ink,#3a2b33))!important;cursor:pointer}
 .workbench .month-grid .month-more:hover{background:var(--rf-tint,#fbeef3)!important}
 .workbench .month-grid .month-more:focus-visible{outline:2px solid var(--wb-accent,#c76b8f)}
 /* Phones: seven narrow columns, so each pill is a colored bar and the count says the rest. */
@@ -45,3 +45,4 @@
 .wb-agenda-day-wrap{position:relative}
 .wb-agenda-day-wrap.has-add>.wb-agenda-day>summary{padding-right:92px}
 .workbench .wb-agenda-day-wrap>.wb-agenda-add{position:absolute;top:14px;right:8px;min-height:34px!important}
+:root[data-dark][data-experience=sumi] .month-cell.is-today .month-day-num{color:#1b1714}

@@ -381,4 +381,5 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 :root[data-dark] .eyebrow{color:color-mix(in srgb,var(--wb-accent,#c76b8f) 55%,#fff)}
 :root[data-dark] .profile-grid button.active{background:color-mix(in srgb,var(--wb-accent,#c76b8f) 22%,var(--wb-surface,#221d27))!important;color:var(--wb-ink,#f3e9ee)!important}
 :root[data-dark] .profile-grid button.active :is(strong,span,small){color:inherit}
-:root[data-dark] .nav-button[aria-current=page]>span:nth-child(2){color:color-mix(in srgb,var(--wb-accent,#c76b8f) 45%,#fff)}
+:root[data-dark] .workbench button[aria-current=page]>span:nth-child(2){color:color-mix(in srgb,var(--wb-accent,#c76b8f) 45%,#fff)!important}
+:root[data-experience=sumi]:not([data-dark]) .radio-mini-copy small{color:#5e574d}

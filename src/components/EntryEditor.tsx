@@ -39,7 +39,7 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
  // A new assignment can repeat too ("spelling every Monday", "reading log every weekday"), on chosen
  // weekdays, or on dates picked one by one; one assignment is made per date, linked as a series.
  const [taskRepeat,setTaskRepeat]=useState<Repeat|'days'|'pick'>(()=>extraDates.length?'pick':'none'),[taskDays,setTaskDays]=useState<number[]>([])
- const due=String(entry.due??''),taskUntil=repeatEnd||defaultUntil(due)
+ const due=String(entry.due??''),taskUntil=repeatEnd||(isNewAssignment&&due?defaultUntil(due):'')
  const taskSeries=!isNewAssignment||!due?[]:taskRepeat==='pick'?extraDates.filter(d=>d&&d!==due):taskRepeat==='days'?weekdayDates(due,taskDays,taskUntil):taskRepeat==='none'?[]:repeatDates(due,taskRepeat,taskUntil)
  const [newSubtask,setNewSubtask]=useState('')
  const saveExtraDates=(next:string[])=>{setExtraDates(next);try{localStorage.setItem(extraDatesKey,JSON.stringify(next))}catch{/* Best effort; the editor is still the source of truth while open. */}}

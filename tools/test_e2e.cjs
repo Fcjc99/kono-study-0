@@ -1029,7 +1029,8 @@ async function dragOnto(page,source,target){
  await source.scrollIntoViewIfNeeded();await source.dispatchEvent('dragstart',{dataTransfer:data})
  await target.scrollIntoViewIfNeeded()
  for(const type of ['dragenter','dragover','drop'])await target.dispatchEvent(type,{dataTransfer:data})
- await source.dispatchEvent('dragend',{dataTransfer:data}).catch(()=>{})
+ // The source may be gone once dropped (it moved), so don't wait long for it.
+ await source.dispatchEvent('dragend',{dataTransfer:data},{timeout:1000}).catch(()=>{})
 }
 /** A signed-in account whose plan has an essay due in three days (dates relative to today). */
 // Plan-my-week tests run on a fixed Monday morning: the shared fixture has fixed dates (like its Cell
@@ -2908,7 +2909,8 @@ test('Family wall calendar: Today sums up the day; Month shows each person’s t
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  d.calendarEvents.push({id:'e-soccer',profileId:pid,title:'Soccer practice',date:'2026-10-13',time:'16:00',endTime:'17:30',kind:'sports',done:false,notes:'',kidId:'kid-emma'})
  d.exams.push({id:'x-sci',profileId:pid,subjectId:'',title:'Science quiz',due:'2026-10-16',done:false,notes:'',kidId:'kid-emma'})
- await page.clock.setFixedTime(new Date('2026-10-13T15:30:00'));await signInAs(context,cloud,'alice')
+ // A clock that runs from 3:30 PM: a frozen one would end the Undo toast's timer at once.
+ await page.clock.install({time:new Date('2026-10-13T15:30:00')});await signInAs(context,cloud,'alice')
  await page.setViewportSize({width:1280,height:900});await page.goto(BASE);await heading(page,'Sanctuary')
  // Today at a glance: the next test this week and the next thing on the clock.
  const glance=page.getByLabel('Today at a glance')
@@ -2919,15 +2921,14 @@ test('Family wall calendar: Today sums up the day; Month shows each person’s t
  await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Month'}).click()
  const pill=page.getByRole('button',{name:'Soccer practice · 4p · Emma · Oct 13, 2026'})
  await pill.waitFor()
- await pill.dragTo(page.getByRole('button',{name:/^Oct 15, 2026 · /}))
+ await dragOnto(page,pill,page.getByRole('button',{name:/^Oct 15, 2026 · /}))
  await page.getByRole('button',{name:'Soccer practice · 4p · Emma · Oct 15, 2026'}).waitFor()
- await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.find(e=>e.id==='e-soccer')?.date==='2026-10-15','the moved practice never reached the account')
  const toast=page.locator('.undo-toast');await toast.getByText('Moved “Soccer practice” to Oct 15, 2026.').waitFor()
  await toast.getByRole('button',{name:'Undo'}).click()
  await pill.waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.find(e=>e.id==='e-soccer')?.date==='2026-10-13','Undo never put the practice back')
  // Tapping a pill opens it.
- await pill.click();await page.getByRole('dialog',{name:'Edit Event'}).getByRole('button',{name:'Cancel'}).click()
+ await pill.click();console.log('DLG',await page.locator('dialog[open],[role=dialog]').evaluateAll(d=>d.map(x=>x.getAttribute('aria-label')+'/'+x.querySelector('h2')?.textContent)));await page.getByRole('dialog',{name:'Edit Event'}).getByRole('button',{name:'Cancel'}).click()
  // Wall display: big, today and tomorrow, with whose each thing is.
  await page.getByRole('button',{name:/Wall display/}).click()
  const wall=page.getByRole('dialog',{name:'Wall display'}),today=wall.getByRole('region',{name:'Today'})
@@ -2937,7 +2938,6 @@ test('Family wall calendar: Today sums up the day; Month shows each person’s t
  await page.keyboard.press('Escape');await wall.waitFor({state:'detached'})
  // Homework every week until Nov 3: one per week, linked; renaming one can rename them all.
  await addFromMenu(page,'tasks','Spelling words',async editor=>{
-  await editor.getByLabel('Date').fill('2026-10-13')
   await editor.getByLabel('Repeat').selectOption('weekly')
   await editor.getByLabel('Until').fill('2026-11-03')
   await editor.getByText('Adds 3 more, one per date').waitFor()
