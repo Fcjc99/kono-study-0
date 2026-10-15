@@ -1,6 +1,7 @@
 import type {AppData} from './model'
 import {classOccurrences,classTime} from './classSchedule'
 import {schoolDay} from './schoolCalendar'
+import {specialOn} from './specialDays'
 
 /** "and" between the last two: "Biology, Algebra and Art". */
 const join=(items:string[])=>items.length<2?items.join(''):items.slice(0,-1).join(', ')+' and '+items.at(-1)
@@ -35,6 +36,7 @@ export function daySummary(data:AppData,date:string,now:string):SummaryBit[]{
  const next=data.calendarEvents.filter(e=>e.profileId===pid&&e.date===date&&!e.done&&e.time&&e.time>=now).sort((a,b)=>a.time!.localeCompare(b.time!))[0]
  const bits:SummaryBit[]=[{icon:'📌',text:due?due+' due today':'Nothing due today',...(due?{}:{tone:'calm' as const})}]
  if(late)bits.push({icon:'⚠',text:late+' late',tone:'late'})
+ bits.unshift(...specialOn(data,pid,date).map(x=>({icon:x.icon,text:x.label+(x.day.kind==='countdown'?' is today!':' today!')})))
  if(tests.length){const t=tests[0],when=t.due===date?'today':t.due===addDay(date,1)?'tomorrow':new Date(t.due+'T12:00:00').toLocaleDateString(undefined,{weekday:'long'});bits.push({icon:'📝',text:(/\b(test|quiz|exam|final|midterm)\b/i.test(t.title)?t.title:t.title+' test')+' '+when+(tests.length>1?' (+'+(tests.length-1)+')':''),tone:'test'})}
  if(next)bits.push({icon:'🕒',text:next.title+' at '+classTime(next.time!)})
  return bits

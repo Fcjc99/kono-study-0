@@ -94,3 +94,9 @@ export function rotationPreview(s:StudySeason,from:string,count=5):{date:string;
 /** College terms are weekly calendars with a faculty / program; schools that simply run Monday–Friday
  * (Duxbury Public Schools, Silver Lake…) are weekly too but have no program and need a grade instead. */
 export const isCollegeCalendar=(c:SchoolCalendar|undefined)=>!!c&&c.pattern==='weekly'&&c.program!==undefined
+/** A school holiday or snow day on `date` ("Thanksgiving break"), for the Month view's all-day banner;
+ * weekends and summer aren't holidays. */
+export function holidayOn(data:{activeProfileId:string;studySeasons:StudySeason[]},date:string):string|undefined{
+ for(const s of data.studySeasons)if(s.active&&s.profileId===data.activeProfileId&&s.school){const d=schoolDay(s,date);if(d?.closed&&d.exception&&(d.exception.kind==='holiday'||d.exception.kind==='snow'))return d.exception.label||'No school'}
+ return undefined
+}

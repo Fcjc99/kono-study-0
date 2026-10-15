@@ -309,9 +309,9 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .wb-time-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .wb-dialog .voice-input-button{min-height:34px!important;padding:0 12px!important;font-size:.85rem;width:auto!important}
 /* Avatars (a photo, an emoji or an initial) on each person's color, used wherever a person shows. */
-.kono-avatar{display:inline-grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;overflow:hidden;background:color-mix(in srgb,var(--avatar-color,var(--kid-color,var(--wb-accent,#c76b8f))) 24%,var(--wb-surface,#fff));color:color-mix(in srgb,var(--avatar-color,var(--kid-color,var(--wb-accent,#c76b8f))) 60%,#2a1e24);font-weight:800;font-style:normal;line-height:1;font-size:.95em}
+:where(.kono-avatar){display:inline-grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;overflow:hidden;background:color-mix(in srgb,var(--avatar-color,var(--kid-color,var(--wb-accent,#c76b8f))) 24%,var(--wb-surface,#fff));color:color-mix(in srgb,var(--avatar-color,var(--kid-color,var(--wb-accent,#c76b8f))) 60%,#2a1e24);font-weight:800;font-style:normal;line-height:1;font-size:.95em}
 .kono-avatar>img,.avatar-img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
-.kono-avatar.has-photo{background:var(--wb-surface,#fff)}
+:where(.kono-avatar.has-photo){background:var(--wb-surface,#fff)}
 .profile-avatar.has-photo,.mobile-profile-avatar:has(.avatar-img),.kids-glance-face:has(.avatar-img),.who-face:has(.avatar-img){padding:0;overflow:hidden}
 .kids-glance-face.has-ring:has(.avatar-img) .avatar-img{width:84%;height:84%}
 .avatar-photo-pick{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 6px}
@@ -383,3 +383,39 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 :root[data-dark] .profile-grid button.active :is(strong,span,small){color:inherit}
 :root[data-dark] .workbench button[aria-current=page]>span:nth-child(2){color:color-mix(in srgb,var(--wb-accent,#c76b8f) 45%,#fff)!important}
 :root[data-experience=sumi]:not([data-dark]) .radio-mini-copy small{color:#5e574d}
+/* Home › Coming up: birthdays and countdowns. */
+.coming-up ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.coming-up li{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;background:var(--rf-tint,color-mix(in srgb,var(--wb-accent,#c76b8f) 9%,var(--wb-surface,#fff)));font-weight:600}
+.coming-up li>span:first-child{font-size:1.25rem}
+.coming-up li b{font-variant-numeric:tabular-nums;color:color-mix(in srgb,var(--wb-accent,#c76b8f) 70%,var(--wb-ink,#3a2b33))}
+.coming-up li.is-today{background:color-mix(in srgb,#f0a04b 22%,var(--wb-surface,#fff))}
+.coming-up .wb-section-head{margin-bottom:8px}
+/* All-day banners on a day: school holidays, birthdays, countdowns. */
+.special-day-banners{display:grid;gap:6px;margin:0 0 10px}
+.special-day-banner{margin:0;padding:8px 12px;border-radius:12px;font-weight:700;background:color-mix(in srgb,var(--pill,#d9828a) 20%,var(--wb-surface,#fff))}
+.special-day-banner.is-holiday{background:color-mix(in srgb,#8fb3d9 24%,var(--wb-surface,#fff))}
+/* Birthdays & countdowns panel. */
+.special-days-next{margin:0 0 12px;padding:10px 12px;border-radius:12px;background:var(--rf-tint,#fbeef3)}
+.special-days-add{display:grid;gap:10px;margin:0 0 16px;padding:12px;border:1px solid var(--rf-line,#ead3dc);border-radius:14px}
+.special-days-add .calendar-views{justify-self:start}
+.special-days-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.special-days-list li{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;border:1px solid var(--rf-line,#ead3dc)}
+.special-days-list strong,.special-days-list small{display:block}.special-days-list small{color:var(--wb-muted,#7a6670)}
+.special-days-icon{font-size:1.4rem}
+/* Event place and travel. */
+.wb-place-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:10px}
+.wb-place-hint{margin:-2px 0 8px}.wb-place-hint a{font-weight:700}
+.event-place{display:block}.event-place a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+@media(max-width:520px){.wb-place-row{grid-template-columns:1fr}}
+.family-share .wb-toolbar{flex-wrap:wrap}
+/* An event card stacks its buttons under it whenever its list is narrow (Home's side column too), not
+   only on a narrow screen, so the title never squeezes to a letter per line. */
+:is(.tomorrow-extra-list,.today-schedule-list,.wb-agenda-day,.planner-day-board,.today-card-body){container-type:inline-size}
+@container (max-width:560px){:root[data-experience] .workbench .wb-family-event{grid-template-columns:1fr}}
+.wb-family-event-info>small:is(.event-place,.event-driver){text-transform:none;letter-spacing:0;font-weight:600;font-size:.8rem;color:var(--wb-muted,#6f5d66)}
+.workbench .calendar-views button{white-space:nowrap}
+@media(max-width:400px){.workbench .calendar-views button{padding:0 6px!important;font-size:.78rem}}
+@container (max-width:420px){.wb-family-event-main{flex-wrap:wrap}.wb-family-event-time{flex:0 0 auto!important;flex-direction:row!important;gap:4px;align-items:baseline}.wb-family-event-info{flex:1 1 100%!important;order:3}.wb-family-event-main>.countdown-chip{margin-left:auto}}
+.workbench .subject-section-tabs.calendar-views{flex-wrap:nowrap}
+:root[data-dark] .coming-up li b{color:color-mix(in srgb,var(--wb-accent,#c76b8f) 40%,#fff)}
+.special-days :is(.special-days-list small,.calendar-views button[aria-pressed=false]){color:color-mix(in srgb,var(--wb-muted,#7a6670) 65%,var(--wb-ink,#3a2b33))!important}

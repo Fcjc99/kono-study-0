@@ -28,3 +28,8 @@ html.wall-open,html.wall-open body{overflow:hidden}
 .wall-people .kono-avatar{width:2em;height:2em}
 @media(max-width:760px),(orientation:portrait) and (max-width:900px){.wall-days{grid-template-columns:1fr}}
 :root[data-dark] .wall-display{background:var(--wb-bg,#1d171b)}
+.wall-special{margin:0 0 10px;padding:10px 14px;border-radius:16px;background:color-mix(in srgb,var(--person) 22%,var(--wb-surface,#fff));font-size:clamp(1.1rem,2vw,1.5rem);font-weight:800}
+.wall-countdowns{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.wall-countdowns li{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--wb-surface,#fff);font-weight:700;font-size:1rem}
+.wall-countdowns b{margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--rf-tint,#fbeef3);font-variant-numeric:tabular-nums}
+@media(max-width:760px){.wall-countdowns{display:none}}

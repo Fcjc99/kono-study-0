@@ -55,7 +55,7 @@ export function repeatCopy(event:CalendarEvent,date:string,recurringId:string):C
 /** Which of a series a change goes to: just this one, this and the ones after it, or all of them. */
 export type SeriesScope='one'|'following'|'all'
 /** What a change to one event carries to the rest of its series (not the date). */
-const SHARED=['title','subjectId','kidId','kidIds','kind','time','endTime','notes','driver'] as const
+const SHARED=['title','subjectId','kidId','kidIds','kind','time','endTime','notes','driver','location','travelMinutes'] as const
 export function applyToSeries(events:CalendarEvent[],edited:CalendarEvent,from:string,scope:SeriesScope):CalendarEvent[]{
  return applyToSeriesBy(events,edited,from,scope,e=>e.date,SHARED)
 }

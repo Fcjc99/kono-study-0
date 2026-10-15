@@ -28,7 +28,7 @@ function dateStamp(): string {
   return new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
 }
 
-type IcsEvent = { uid: string; date: string; time?: string; endTime?: string; summary: string; description?: string; categories?: string; location?: string }
+type IcsEvent = { uid: string; date: string; time?: string; endTime?: string; summary: string; description?: string; categories?: string; location?: string; rrule?: string }
 
 function eventLines(event: IcsEvent, stamp: string): string[] {
   const lines = ['BEGIN:VEVENT', 'UID:' + event.uid + '@kono-study-sanctuary', 'DTSTAMP:' + stamp]
@@ -44,6 +44,7 @@ function eventLines(event: IcsEvent, stamp: string): string[] {
   if (event.description) lines.push('DESCRIPTION:' + escapeText(event.description))
   if (event.categories) lines.push('CATEGORIES:' + escapeText(event.categories))
   if (event.location) lines.push('LOCATION:' + escapeText(event.location))
+  if (event.rrule) lines.push('RRULE:' + event.rrule)
   lines.push('END:VEVENT')
   return lines
 }
@@ -70,7 +71,11 @@ export function buildIcs(data: AppData, profileId: string, options: { subscribe?
     lines.push(...eventLines({ uid: 'exam-' + e.id, date: e.due, summary: 'Exam: ' + e.title, description: notes(e.notes), categories: subjectName.get(e.subjectId) }, stamp))
   }
   for (const c of data.calendarEvents.filter(c => c.profileId === profileId)) {
-    lines.push(...eventLines({ uid: 'event-' + c.id, date: c.date, time: c.time, summary: c.title, description: notes(c.notes), categories: c.subjectId ? subjectName.get(c.subjectId) : undefined }, stamp))
+    lines.push(...eventLines({ uid: 'event-' + c.id, date: c.date, time: c.time, endTime: c.endTime, summary: c.title, description: notes(c.notes), categories: c.subjectId ? subjectName.get(c.subjectId) : undefined, location: c.location }, stamp))
+  }
+  // Birthdays come back every year; a countdown is its one day.
+  for (const x of (data.specialDays ?? []).filter(x => x.profileId === profileId)) {
+    lines.push(...eventLines({ uid: 'special-' + x.id, date: x.date, summary: x.kind === 'birthday' ? '🎂 ' + x.title + '’s birthday' : (x.emoji || '🎉') + ' ' + x.title, ...(x.kind === 'birthday' ? { rrule: 'FREQ=YEARLY' } : {}) }, stamp))
   }
 
   const today = options.today ?? localDate(), first = addDays(today, -7), last = addDays(today, 60)

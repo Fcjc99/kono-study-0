@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { classTime } from '../store/classSchedule'
+import { isLeaveTime } from '../store/leaveBy'
 
 type NotifiableItem = { id: string; title: string; due: string; done: boolean }
 
@@ -105,6 +106,26 @@ export function useFamilyEventNotifications(enabled: boolean, items: FamilyEvent
       for (const item of items) {
         if (isReminderDue(item.time, item.date, today, nowMinutes)) notifyOnce('start', item.id, item.title, 'Starts', item.time as string)
         if (isReminderDue(item.endTime, item.date, today, nowMinutes)) notifyOnce('end', item.id, item.title, 'Ends', item.endTime as string)
+      }
+    }
+    check()
+    const interval = window.setInterval(check, 60000)
+    return () => window.clearInterval(interval)
+  }, [enabled, items, today])
+}
+
+type TripItem = { id: string; title: string; date: string; time?: string; travelMinutes?: number; location?: string; done?: boolean }
+/** "Time to leave for Soccer": at an event's leave-by time (its start minus its travel time), once a day per event. */
+export function useLeaveByNotifications(enabled: boolean, items: TripItem[], today: string) {
+  useEffect(() => {
+    if (!enabled || !notificationsSupported() || Notification.permission !== 'granted') return
+    const check = () => {
+      const now = new Date(), nowMinutes = now.getHours() * 60 + now.getMinutes()
+      for (const item of items) {
+        if (!isLeaveTime(item, today, nowMinutes)) continue
+        const key = 'kono-notified-leave:' + item.id + ':' + today
+        try { if (localStorage.getItem(key)) continue; localStorage.setItem(key, '1') } catch { /* Storage blocked: may repeat once. */ }
+        try { new Notification('Time to leave for ' + item.title, { body: (item.time ? 'Starts at ' + classTime(item.time) : '') + (item.location ? ' · ' + item.location : ''), tag: 'kono-leave-' + item.id }) } catch { /* Blocked mid-session. */ }
       }
     }
     check()

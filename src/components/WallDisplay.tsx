@@ -4,6 +4,7 @@ import {kidItemsForDate,type KidItem} from '../store/kids'
 import {classTime} from '../store/classSchedule'
 import {addDays} from '../store/studyScheduler'
 import type {DailyWeatherForecast} from '../game/weather/liveWeather'
+import {specialOn,upcomingSpecial,daysAwayLabel} from '../store/specialDays'
 import Avatar from './Avatar'
 import './wall-display.css'
 
@@ -38,10 +39,13 @@ export default function WallDisplay({data,me,weather,close}:{data:AppData;me:Per
  const itemsFor=(date:string)=>kidItemsForDate(data,data.activeProfileId,date).sort((a,b)=>(a.time??'99:99').localeCompare(b.time??'99:99')||a.title.localeCompare(b.title))
  const clock=now.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})
  const forecast=weather.find(w=>w.date===today)
+ // Countdowns (not today's or tomorrow's, which show in their day) in the header, up to three.
+ const countdowns=upcomingSpecial(data,data.activeProfileId,today,90).filter(x=>x.day.kind==='countdown'&&x.daysAway>1).slice(0,3)
  const day=(date:string,label:string)=>{
   const items=itemsFor(date),nowClock=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')
   return <section className="wall-day" aria-label={label}>
    <h2>{label}<small>{new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</small></h2>
+   {specialOn(data,data.activeProfileId,date).map(x=><p key={x.day.id} className="wall-special" style={{'--person':personFor(x.day.kidId).color} as CSSProperties}><span aria-hidden="true">{x.icon}</span> {x.label}</p>)}
    {items.length?<ul>{items.map(i=>{const p=personFor(i.kidId),past=date===today&&!!i.time&&i.time<nowClock&&i.kind!=='task';return <li key={i.kind+i.id+(i.kidId??'')} className={'wall-item is-'+i.kind+(i.done?' is-done':'')+(past?' is-past':'')} style={{'--person':p.color} as CSSProperties}>
     <span className="wall-time">{i.time?classTime(i.time):i.kind==='task'?'Due':i.kind==='exam'?'Test':'All day'}</span>
     <Avatar className="wall-face" who={p}/>
@@ -52,6 +56,7 @@ export default function WallDisplay({data,me,weather,close}:{data:AppData;me:Per
  return <div className="wall-display" role="dialog" aria-modal="true" aria-label="Wall display">
   <header className="wall-head">
    <div><p className="wall-clock">{clock}</p><p className="wall-date">{now.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</p></div>
+   {countdowns.length>0&&<ul className="wall-countdowns" aria-label="Counting down">{countdowns.map(x=><li key={x.day.id}><span aria-hidden="true">{x.icon}</span> {x.label}<b>{daysAwayLabel(x.daysAway)}</b></li>)}</ul>}
    {forecast&&<p className="wall-weather" aria-label={'Weather: high '+Math.round(forecast.highF)+', low '+Math.round(forecast.lowF)}><span aria-hidden="true">{weatherEmoji[forecast.weather]}</span>{Math.round(forecast.highF)}°<small>{Math.round(forecast.lowF)}°</small></p>}
    <button type="button" className="wall-close" onClick={close}>Close</button>
   </header>
