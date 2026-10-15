@@ -1580,7 +1580,7 @@ test('Share with a classmate: a student sends an exam from its editor to a conne
  cloud.connections=[{id:'c1',requester_id:'alice',recipient_id:'carol',status:'accepted',created_at:'2026-09-20T00:00:00Z'}]
  cloud.profiles={alice:{username:'alice',displayName:'Alice'},carol:{username:'carol',displayName:'Carol'}}
  cloud.users.carol.plan.data.exams=[]
- cloud.users.alice.plan.data.settings.familyStudyTabs=true // alice has kids: a family plan shows Exams only when asked
+ cloud.users.alice.plan.data.settings.familyStudyTabs=cloud.users.carol.plan.data.settings.familyStudyTabs=true // both have kids: a family plan shows Exams only when asked
  await signInAs(context,cloud,'alice')
  await page.goto(BASE)
  await heading(page,'Sanctuary')
