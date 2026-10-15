@@ -33,3 +33,35 @@ html.wall-open,html.wall-open body{overflow:hidden}
 .wall-countdowns li{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--wb-surface,#fff);font-weight:700;font-size:1rem}
 .wall-countdowns b{margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--rf-tint,#fbeef3);font-variant-numeric:tabular-nums}
 @media(max-width:760px){.wall-countdowns{display:none}}
+/* Day/Night button, beside Close. */
+.wall-display .wall-night{all:unset;box-sizing:border-box;padding:10px 16px;border-radius:999px;background:var(--wb-surface,#fff);border:1px solid var(--wb-line,#ead3dc);font-weight:700;font-size:1rem;cursor:pointer;color:inherit}
+.wall-display .wall-night:focus-visible{outline:3px solid var(--wb-accent,#c76b8f);outline-offset:2px}
+/* The rest of the week: a third column on wide screens only. */
+.wall-week{display:none;background:var(--wb-surface,#fff);border-radius:24px;padding:clamp(14px,1.6vw,24px);box-shadow:0 1px 2px rgb(0 0 0/.04),0 10px 30px rgb(0 0 0/.06);min-width:0;overflow:auto}
+.wall-week h2{margin:0 0 10px;font-size:clamp(1.3rem,2.2vw,1.9rem);font-weight:800}
+.wall-week-day{padding:8px 0;border-top:1px solid var(--wb-line,#ead3dc)}
+.wall-week-day h3{margin:0 0 4px;font-size:1.05rem;display:flex;gap:8px;align-items:baseline}
+.wall-week-day h3 small{font-weight:600;color:var(--wb-muted,#6f5d66);font-size:.85rem}
+.wall-week-day ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.wall-week-day li{display:grid;grid-template-columns:4.6em minmax(0,1fr) auto;align-items:center;gap:8px;padding:4px 8px;border-radius:10px;border-left:4px solid var(--person,#c76b8f);background:color-mix(in srgb,var(--person,#c76b8f) 10%,var(--wb-surface,#fff));font-size:.95rem}
+.wall-week-time{font-weight:700;font-variant-numeric:tabular-nums;font-size:.85rem}
+.wall-week-title{font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.wall-week-day .wall-week-face{width:1.6em;height:1.6em;font-size:.8em}
+.wall-week-day li.wall-week-more{display:block;border:0;background:none;color:var(--wb-muted,#6f5d66);font-weight:600}
+.wall-week-special{margin:0 0 4px;font-weight:700}
+.wall-week-empty{margin:0;color:var(--wb-muted,#6f5d66)}
+@media(min-width:1100px) and (orientation:landscape){.wall-days{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,.85fr)}.wall-week{display:block}}
+/* Night: dark and low-glare, warm text, colors softened; still easy to read across the room. */
+.wall-display.is-night{--wb-surface:#1b1a22;--wb-line:#2c2a36;--wb-ink:#e9dcc8;--wb-muted:#b3a593;background:#0e0d12;color:#e9dcc8}
+.wall-display.is-night :is(.wall-day,.wall-week){background:#17161d;box-shadow:none}
+.wall-display.is-night .wall-clock{color:#f2d9a8}
+.wall-display.is-night .wall-item{background:color-mix(in srgb,var(--person) 14%,#17161d)}
+.wall-display.is-night .wall-time{color:color-mix(in srgb,var(--person) 45%,#e9dcc8)}
+.wall-display.is-night :is(.wall-close,.wall-night,.wall-countdowns li){background:#1b1a22;border-color:#2c2a36}
+.wall-display.is-night .wall-countdowns b{background:#2c2a36}
+.wall-display.is-night .kono-avatar{filter:brightness(.85)}
+@media(prefers-reduced-motion:no-preference){.wall-display{transition:background-color 1.2s,color 1.2s}}
+.wall-week-day li{grid-template-columns:5.6em minmax(0,1fr) auto}
+.wall-week-time{white-space:nowrap}
+.wall-clock{white-space:nowrap}
+@media(orientation:portrait){.wall-clock{font-size:clamp(2.6rem,12vw,6rem)}}
