@@ -16,7 +16,7 @@ export type ProfileKind='summer'|'school'|'college'|'custom'
  * plain planner with neither. Kept per plan, so a parent can turn it off while a kid keeps it; turning it
  * back on brings everything back (nothing is deleted). */
 export type IslandMode='full'|'kono'|'off'
-export type Profile={id:string;name:string;label:string;kind:ProfileKind;start:string;end:string;progressEpoch?:string;color?:string;kidId?:string;island?:IslandMode;simpleView?:boolean;avatar?:string}
+export type Profile={id:string;name:string;label:string;kind:ProfileKind;start:string;end:string;progressEpoch?:string;color?:string;kidId?:string;island?:IslandMode;simpleView?:boolean;avatar?:string;photo?:string}
 export type Subject={id:string;profileId:string;name:string;color:string;teacher?:string;room?:string;resources:string[]}
 /** How a kid's tiles are outlined, always in the kid's own color. Simple, still borders (no animation). */
 export const KID_BORDER_STYLES=['solid','bold','stripe','soft','dashed','dotted','double','glow'] as const
@@ -24,7 +24,7 @@ export type KidBorderStyle=typeof KID_BORDER_STYLES[number]
 /** A kid is a lightweight tag within one shared family calendar/profile -- not its own Profile. Any
  * task/exam/calendarEvent/class block can carry a kidId the same way it already carries a subjectId,
  * so "whose is this" filters and colors the same way "which subject is this" already does. */
-export type Kid={id:string;profileId:string;name:string;color:string;emoji?:string;borderStyle?:KidBorderStyle}
+export type Kid={id:string;profileId:string;name:string;color:string;emoji?:string;borderStyle?:KidBorderStyle;photo?:string}
 /** One step of an assignment; `due` is the day to do it (project steps, see store/projectSteps). */
 export type Subtask={id:string;title:string;done:boolean;due?:string}
 /** Where an imported item came from, for the Planner's source chips: a class site's feed (Canvas,
@@ -140,6 +140,8 @@ const exactChoice=<const T extends string>(v:unknown,values:readonly T[],fallbac
 const date=(v:unknown,path:string):string=>{const s=str(v,path,10),d=new Date(`${s}T12:00:00Z`);return /^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===s?s:fail(path)}
 const clockTime=(v:unknown)=>{const s=str(v,'schedule time',5);return /^([01]\d|2[0-3]):[0-5]\d$/.test(s)?s:fail('schedule time')}
 // Colors are cosmetic: anything this build can't use as a color falls back instead of failing the load.
+/** A small profile picture (Avatar's photo option), kept inline as a JPEG/WebP/PNG data URL. A bad one is just dropped. */
+const avatarPhoto=(v:unknown)=>typeof v==='string'&&v.length<=60000&&/^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/]+=*$/.test(v)?{photo:v}:{}
 const color=(v:unknown,fallback:string)=>typeof v==='string'&&(/^(#[0-9a-f]{3,8}|transparent)$/i.test(v))?v:fallback
 const occurrenceNotes=(value:unknown):Record<string,string>=>{if(value===undefined)return {};if(!object(value)||Object.keys(value).length>2000)return fail('class notes');return Object.fromEntries(Object.entries(value).map(([key,text])=>[date(key,'class note date'),str(text,'class note',10000)]))}
 const stringMap=(v:unknown):Record<string,string>=>{if(v===undefined)return {};if(!object(v))return fail('settings locations');return Object.fromEntries(Object.entries(v).map(([k,x])=>[id(k,'location profile'),str(x,'location',300)]))}
@@ -180,7 +182,7 @@ export function normalizeData(raw:unknown):AppData {
  if(!object(raw))return fail('profiles')
  if(!Array.isArray(raw.profiles)||raw.profiles.length<1||raw.profiles.length>100||!raw.profiles.every(object))return fail('profiles')
  if(raw.schemaVersion!==undefined&&raw.schemaVersion!==2&&raw.schemaVersion!==3&&raw.schemaVersion!==4&&raw.schemaVersion!==5&&raw.schemaVersion!==6)return fail('unsupported data version; update KONO before opening this save')
- const profiles:Profile[]=list(raw.profiles,'profiles',100).map(p=>({id:id(p.id,'profile ID'),name:str(p.name,'name',200),label:str(p.label,'plan name',200),kind:choice(p.kind,['summer','school','college','custom'],'custom'),start:date(p.start,'profile start'),end:date(p.end,'profile end'),progressEpoch:optional(p.progressEpoch,'epoch',150),color:p.color===undefined?undefined:color(p.color,'#7ca982'),...(p.kidId===undefined||p.kidId===''?{}:{kidId:str(p.kidId,'kid plan',150)}),...(p.island==='kono'||p.island==='off'?{island:p.island}:{}),...(p.simpleView===true?{simpleView:true}:{}),...(typeof p.avatar==='string'&&p.avatar.trim()&&[...p.avatar.trim()].length<=4?{avatar:p.avatar.trim()}:{})}))
+ const profiles:Profile[]=list(raw.profiles,'profiles',100).map(p=>({id:id(p.id,'profile ID'),name:str(p.name,'name',200),label:str(p.label,'plan name',200),kind:choice(p.kind,['summer','school','college','custom'],'custom'),start:date(p.start,'profile start'),end:date(p.end,'profile end'),progressEpoch:optional(p.progressEpoch,'epoch',150),color:p.color===undefined?undefined:color(p.color,'#7ca982'),...(p.kidId===undefined||p.kidId===''?{}:{kidId:str(p.kidId,'kid plan',150)}),...(p.island==='kono'||p.island==='off'?{island:p.island}:{}),...(p.simpleView===true?{simpleView:true}:{}),...(typeof p.avatar==='string'&&p.avatar.trim()&&[...p.avatar.trim()].length<=4?{avatar:p.avatar.trim()}:{}),...avatarPhoto(p.photo)}))
  if(!profiles.length)return fail('profiles must contain at least one plan')
  const pids=new Set(profiles.map(p=>p.id))
  const owner=(v:unknown)=>{const key=id(v,'record profile');return pids.has(key)?key:fail('record references an unknown profile')}
@@ -204,7 +206,7 @@ export function normalizeData(raw:unknown):AppData {
  // someone's plan. The old animation tuning (borderColors/Speed/Glow/Extras) is simply dropped.
  const legacyBorderStyle:Record<string,KidBorderStyle>={sparkle:'glow',rainbow:'glow',fire:'bold',cute:'soft',sports:'stripe',modern:'solid',unique:'double',space:'bold',garden:'soft',ocean:'glow',neon:'glow'}
  const borderStyle=(v:unknown):KidBorderStyle=>{const s=typeof v==='string'?legacyBorderStyle[v]??v:v;return KID_BORDER_STYLES.includes(s as KidBorderStyle)?s as KidBorderStyle:'solid'}
- const kids:Kid[]=list(raw.kids??[],'kids',500).map(k=>({id:id(k.id,'kid ID'),profileId:owner(k.profileId),name:str(k.name,'kid name',200),color:color(k.color,'#7ca982'),emoji:optional(k.emoji,'kid emoji',40),borderStyle:borderStyle(k.borderStyle)}))
+ const kids:Kid[]=list(raw.kids??[],'kids',500).map(k=>({id:id(k.id,'kid ID'),profileId:owner(k.profileId),name:str(k.name,'kid name',200),color:color(k.color,'#7ca982'),emoji:optional(k.emoji,'kid emoji',40),borderStyle:borderStyle(k.borderStyle),...avatarPhoto(k.photo)}))
  // A kid tag is cosmetic, unlike a subject reference -- a stale or cross-profile kidId (e.g. from a
  // kid deleted elsewhere) just clears back to unassigned rather than failing the whole save.
  // A kid listed in one of the parent's own plans can tag items in another of them (the family plan

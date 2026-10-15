@@ -1,0 +1,48 @@
+/* Planner › Month, like a family wall calendar: each day a card with its date in the corner and its
+   things as small pills in each person's color; today is circled, other months' days fade back. */
+.month-grid{--mg-line:var(--wb-line,#ead3dc);display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:0 0 18px}
+.month-grid-head{text-align:center;font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--wb-muted,#7a6670);padding:2px 0 4px}
+.month-cell{position:relative;min-height:112px;padding:30px 5px 6px;border-radius:14px;background:var(--wb-surface,#fff);border:1px solid color-mix(in srgb,var(--mg-line) 80%,transparent);display:flex;flex-direction:column;gap:3px;min-width:0;transition:border-color .15s,box-shadow .15s}
+.month-cell.is-other-month{background:color-mix(in srgb,var(--wb-surface,#fff) 45%,transparent);border-style:dashed}
+.month-cell.is-other-month .month-day-num{color:color-mix(in srgb,var(--wb-muted,#7a6670) 80%,var(--wb-ink,#3a2b33));font-weight:600}
+.month-cell.has-priority{border-color:color-mix(in srgb,#d7a62f 60%,var(--mg-line))}
+.month-cell.is-selected{border-color:var(--wb-accent,#c76b8f);box-shadow:0 0 0 2px color-mix(in srgb,var(--wb-accent,#c76b8f) 35%,transparent)}
+.month-cell.drop-target{outline:3px dashed var(--wb-accent,#c76b8f);outline-offset:-3px;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 10%,var(--wb-surface,#fff))}
+.workbench .month-grid .month-day{position:absolute!important;inset:0!important;display:flex!important;align-items:flex-start!important;justify-content:space-between!important;width:auto!important;min-height:0!important;padding:6px 8px!important;margin:0!important;border:0!important;border-radius:14px!important;background:transparent!important;box-shadow:none!important;text-align:left!important;color:inherit!important;cursor:pointer;font:inherit!important}
+.workbench .month-grid .month-day:focus-visible{outline:3px solid var(--wb-accent,#c76b8f)!important;outline-offset:-3px}
+.month-day-num{display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 4px;border-radius:13px;font-weight:800;font-size:.95rem}
+.month-cell.is-today .month-day-num{background:var(--wb-accent,#c76b8f);color:#fff}
+.month-cell.is-selected:not(.is-today) .month-day-num{box-shadow:inset 0 0 0 2px var(--wb-accent,#c76b8f)}
+.month-grid .school-day-mini{margin-top:5px;max-width:55%;font-size:.66rem;font-weight:700;color:var(--wb-muted,#7a6670);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.month-pills{position:relative;z-index:1;display:flex;flex-direction:column;gap:3px;min-width:0;pointer-events:none}
+.month-pills>*{pointer-events:auto}
+.workbench .month-grid .month-pill{all:unset;box-sizing:border-box;pointer-events:auto;display:flex!important;align-items:center;gap:4px;min-width:0;width:100%;min-height:22px;padding:2px 6px 2px 4px!important;border-radius:7px!important;background:color-mix(in srgb,var(--pill) 22%,var(--wb-surface,#fff))!important;border:0!important;border-left:4px solid var(--pill)!important;box-shadow:none!important;font-size:.74rem!important;font-weight:600!important;line-height:1.2;color:var(--wb-ink,#3a2b33)!important;cursor:pointer;text-align:left}
+.workbench .month-grid .month-pill:hover{background:color-mix(in srgb,var(--pill) 34%,var(--wb-surface,#fff))!important}
+.workbench .month-grid .month-pill:focus-visible{outline:2px solid var(--wb-accent,#c76b8f);outline-offset:1px}
+.workbench .month-grid .month-pill[draggable=true]{cursor:grab;-webkit-user-drag:element;user-select:none}
+.workbench .month-grid .month-pill.is-class{background:transparent!important;border-left-style:dotted!important;color:var(--wb-muted,#7a6670)!important}
+.workbench .month-grid .month-pill.is-priority{background:color-mix(in srgb,var(--pill) 30%,#fff3cf)!important;font-weight:800!important}
+.workbench .month-grid .month-pill.is-done .month-pill-text{text-decoration:line-through;opacity:.6}
+.month-pill time{flex:none;font-size:.68rem;font-weight:700;opacity:.75}
+.month-pill-text{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.month-pill .month-pill-face{flex:none;width:16px;height:16px;font-size:.62rem}
+.workbench .month-grid .month-more{all:unset;box-sizing:border-box;pointer-events:auto;align-self:flex-start;padding:1px 6px!important;border-radius:7px;font-size:.72rem!important;font-weight:700!important;color:color-mix(in srgb,var(--wb-accent,#c76b8f) 70%,var(--wb-ink,#3a2b33))!important;cursor:pointer}
+.workbench .month-grid .month-more:hover{background:var(--rf-tint,#fbeef3)!important}
+.workbench .month-grid .month-more:focus-visible{outline:2px solid var(--wb-accent,#c76b8f)}
+/* Phones: seven narrow columns, so each pill is a colored bar and the count says the rest. */
+.month-grid.is-phone{gap:3px}
+.month-grid.is-phone .month-cell{min-height:70px;padding:28px 3px 4px;border-radius:10px}
+.month-grid.is-phone .month-day{padding:4px!important;border-radius:10px!important}
+.month-grid.is-phone .month-day-num{min-width:22px;height:22px;font-size:.82rem}
+.workbench .month-grid.is-phone .month-pill{min-height:6px;height:6px;padding:0!important;border-left:0!important;border-radius:3px!important;background:var(--pill)!important}
+.workbench .month-grid.is-phone .month-pill.is-class{background:color-mix(in srgb,var(--pill) 45%,transparent)!important}
+.workbench .month-grid.is-phone .month-more{padding:0 2px!important;font-size:.64rem!important}
+:root[data-dark] .month-cell{background:color-mix(in srgb,var(--wb-surface,#2a2228) 92%,#fff 3%)}
+:root[data-dark] .workbench .month-grid .month-pill{color:var(--wb-ink,#f3e9ee)!important}
+:root[data-dark] .workbench .month-grid .month-pill.is-priority{background:color-mix(in srgb,var(--pill) 35%,#4a3a10)!important}
+@media(prefers-reduced-motion:reduce){.month-cell{transition:none}}
+/* Schedule: a day's ＋ Add sits on its header row, beside (not inside) the part that opens and closes. */
+.wb-agenda-day-wrap{position:relative}
+.wb-agenda-day-wrap.has-add>.wb-agenda-day>summary{padding-right:92px}
+.workbench .wb-agenda-day-wrap>.wb-agenda-add{position:absolute;top:14px;right:8px;min-height:34px!important}
+:root[data-dark][data-experience=sumi] .month-cell.is-today .month-day-num{color:#1b1714}

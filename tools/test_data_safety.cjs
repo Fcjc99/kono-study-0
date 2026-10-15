@@ -286,4 +286,11 @@ const d=make(),r=setup(d);r.scheduleSync=()=>{};await r.update(x=>note(x,'mine')
 test('repeated reopen complete delete restore never awards the same task twice',()=>{
 const w=load('src/store/workspace.ts'),d=make(),pid=d.activeProfileId;d.tasks=[{id:'one',profileId:pid,subjectId:'',title:'One',due:'2026-09-09',done:false,notes:''}];let next=w.completeTask(d,'one',true);for(let i=0;i<3;i++){next=w.completeTask(next,'one',false);next=w.completeTask(next,'one',true)}assert.equal(next.sanctuaryProgress[pid].totalCredits,1);const removed=model.normalizeData(w.captureDeletions(next,w.removeEntry(next,'tasks','one')));next=w.restoreEntry(removed,removed.trash[0].id);assert.equal(next.sanctuaryProgress[pid].totalCredits,1);
 });
+test('avatar photos: a small picture data URL is kept on a profile and a kid; anything else is dropped without failing the load',()=>{
+ const d=make(),pid=d.profiles[0].id,photo='data:image/jpeg;base64,'+'A'.repeat(400)
+ d.profiles[0].photo=photo;d.kids=[{id:'k1',profileId:pid,name:'Emma',color:'#7ca982',photo},{id:'k2',profileId:pid,name:'Leo',color:'#7ca982',photo:'javascript:alert(1)'},{id:'k3',profileId:pid,name:'Ada',color:'#7ca982',photo:'data:image/jpeg;base64,'+'A'.repeat(70000)}]
+ const n=model.normalizeData(d)
+ assert.equal(n.profiles[0].photo,photo);assert.equal(n.kids[0].photo,photo)
+ assert.equal(n.kids[1].photo,undefined,'not a picture');assert.equal(n.kids[2].photo,undefined,'too big')
+});
 (async()=>{let failed=0;for(const {name,fn}of tests){defaults();try{await fn();console.log('PASS '+name)}catch(e){failed++;console.error('FAIL '+name+'\n'+e.stack)}}console.log(`${tests.length-failed}/${tests.length} positive regression groups passed. Isolated hooks/SQLite; no Site or user-data writes.`);if(failed)process.exitCode=1})().catch(e=>{console.error(e);process.exitCode=1});

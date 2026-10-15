@@ -18,7 +18,7 @@ export default function KidsGlance({data,profileId,today,from,save,onOpen}:{data
  if(!rows.length)return null
  return <section className="wb-panel kids-glance" aria-label="Kids today"><h2>Kids today</h2><ul>{rows.map(r=><li key={r.kid.id} style={{'--kid-color':r.kid.color} as CSSProperties}>
   <button type="button" onClick={()=>onOpen(r.kid,r.planId)} aria-label={'Open '+r.kid.name+(r.planId?'’s plan':' on Kids')}>
-   <span className={'kids-glance-face'+(ring(r)!==null?' has-ring':'')} aria-hidden="true" style={ring(r)!==null?{'--done':ring(r)} as CSSProperties:undefined}>{r.kid.emoji||r.kid.name.charAt(0).toUpperCase()}</span>
+   <span className={'kids-glance-face'+(ring(r)!==null?' has-ring':'')} aria-hidden="true" style={ring(r)!==null?{'--done':ring(r)} as CSSProperties:undefined}>{r.kid.photo?<img className="avatar-img" src={r.kid.photo} alt="" draggable={false}/>:r.kid.emoji||r.kid.name.charAt(0).toUpperCase()}</span>
    <span className="kids-glance-main">
     <strong>{r.kid.name}{r.school&&<small className="kids-glance-day">{r.school}</small>}</strong>
     <span className="kids-glance-facts">

@@ -1,5 +1,7 @@
 import {useState,type CSSProperties,type FormEvent} from 'react'
 import Modal from './components/Modal'
+import Avatar,{AvatarPhotoButton} from './components/Avatar'
+import {AVATARS} from './store/avatar'
 import {notificationsSupported} from './hooks/useDueNotifications'
 import {KID_COLORS} from './store/kids'
 import {localDate,type AppData,type CalendarEventKind,type Kid,type KidBorderStyle,type SettingsData} from './store/model'
@@ -105,23 +107,27 @@ function KidAppearancePanel({data,patch,close}:{data:AppData;patch:(key:Collecti
   </div>
  </Modal>
 }
-const KidAvatar=({kid}:{kid:Kid})=><span className="kid-look-avatar" style={{'--kid-color':kid.color} as CSSProperties} aria-hidden="true">{kid.emoji||kid.name.trim().charAt(0).toUpperCase()||'?'}</span>
+const KidAvatar=({kid}:{kid:Kid})=><Avatar className="kid-look-avatar" who={{name:kid.name,emoji:kid.emoji,photo:kid.photo}} style={{'--kid-color':kid.color} as CSSProperties}/>
 const BORDER_STYLE_OPTIONS:[KidBorderStyle,string][]=[['solid','Classic'],['bold','Bold'],['stripe','Stripe'],['soft','Soft'],['dashed','Dashed'],['dotted','Dotted'],['double','Double'],['glow','Glow']]
 function KidAppearanceEditor({kid,patch,tabbed}:{kid:Kid;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>;tabbed:boolean}){
  const [customEmoji,setCustomEmoji]=useState('')
  const borderStyle=kid.borderStyle??'solid'
  const change=(changes:Partial<Kid>)=>void patch('kids',kid as unknown as Entry,changes as Partial<Entry>)
  const customColor=!(KID_COLORS as readonly string[]).includes(kid.color)
- const applyEmoji=()=>{const e=customEmoji.trim();if(!e)return;change({emoji:e});setCustomEmoji('')}
+ const applyEmoji=()=>{const e=customEmoji.trim();if(!e)return;change({emoji:e,photo:undefined});setCustomEmoji('')}
  return <div id="kid-look-editor" className="kid-look-editor" style={{'--kid-color':kid.color} as CSSProperties} {...(tabbed?{role:'tabpanel','aria-labelledby':'kid-look-tab-'+kid.id}:{})}>
   <div className={'wb-family-event kid-border-'+borderStyle+' kid-look-preview'} aria-label={kid.name+"'s tile preview"} role="img"><div className="wb-family-event-main"><div className="wb-family-event-time"><span className="wb-family-event-start">3:30 PM</span><span className="wb-family-event-end">–5:00 PM</span></div><div className="wb-family-event-info"><small>{(kid.emoji?kid.emoji+' ':'')+kid.name}</small><h3>Soccer practice</h3></div></div></div>
-  <h3 className="kid-look-label">Emoji</h3>
+  <div className="kid-look-card"><Avatar className="kid-look-big" who={{name:kid.name,emoji:kid.emoji,photo:kid.photo}}/><div><h3>{kid.name}</h3><p className="wb-muted">Shows on their events, the name chips and Kids today.</p></div></div>
+  <h3 className="kid-look-label">Avatar</h3>
+  <AvatarPhotoButton photo={kid.photo} onPhoto={photo=>change({photo})}/>
+  <div className="kid-look-emojis" role="group" aria-label={kid.name+"'s avatar"}>
+   <button type="button" aria-pressed={!kid.photo&&!kid.emoji} aria-label="Use their initial" onClick={()=>change({emoji:undefined,photo:undefined})}>{kid.name.trim().charAt(0).toUpperCase()||'?'}</button>
+   {AVATARS.map(a=><button type="button" key={a} aria-pressed={!kid.photo&&kid.emoji===a} aria-label={'Avatar '+a} onClick={()=>change({emoji:a,photo:undefined})}>{a}</button>)}
+  </div>
   <form className="kid-look-emoji" onSubmit={e=>{e.preventDefault();applyEmoji()}}>
-   <KidAvatar kid={kid}/>
-   <input aria-label={kid.name+"'s emoji"} maxLength={40} placeholder={kid.emoji?'Type or paste a new one':'Type or paste an emoji'} value={customEmoji} onChange={ev=>setCustomEmoji(ev.target.value)}/>
+   <input aria-label={kid.name+"'s emoji"} maxLength={40} placeholder="Or type or paste any emoji" value={customEmoji} onChange={ev=>setCustomEmoji(ev.target.value)}/>
    <button type="submit" disabled={!customEmoji.trim()}>Use</button>
   </form>
-  {kid.emoji&&<button type="button" className="kid-look-link" onClick={()=>change({emoji:undefined})}>Remove emoji</button>}
   <h3 className="kid-look-label">Color</h3>
   <div className="kid-look-colors" role="radiogroup" aria-label={kid.name+"'s color"}>
    {KID_COLORS.map(c=><button type="button" role="radio" key={c} className="kid-look-color" aria-checked={kid.color===c} aria-label={c} style={{'--swatch':c} as CSSProperties} onClick={()=>change({color:c})}/>)}

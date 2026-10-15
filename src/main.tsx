@@ -2,13 +2,15 @@ import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import SanctuaryQA from './SanctuaryQA'
 import ErrorBoundary from './components/ErrorBoundary'
 import { captureInstallPrompt } from './store/installPrompt'
 
 /** The decorating studio (?page=build) is a separate tool, so its code only downloads there. */
 // eslint-disable-next-line react-refresh/only-export-components -- the entry file has no exports to refresh
 const SanctuaryBuildStudio = lazy(() => import('./components/SanctuaryBuildStudio'))
+/** The island test page (dev only, ?sanctuaryQA). */
+// eslint-disable-next-line react-refresh/only-export-components -- the entry file has no exports to refresh
+const SanctuaryQA = lazy(() => import('./SanctuaryQA'))
 const params = new URLSearchParams(window.location.search)
 captureInstallPrompt()
 
@@ -27,7 +29,7 @@ for (const href of [
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ErrorBoundary>{params.get('page') === 'build' ? <Suspense fallback={null}><SanctuaryBuildStudio /></Suspense> : import.meta.env.DEV && params.has('sanctuaryQA') ? <SanctuaryQA /> : <App />}</ErrorBoundary>
+    <ErrorBoundary>{params.get('page') === 'build' ? <Suspense fallback={null}><SanctuaryBuildStudio /></Suspense> : import.meta.env.DEV && params.has('sanctuaryQA') ? <Suspense fallback={null}><SanctuaryQA /></Suspense> : <App />}</ErrorBoundary>
   </StrictMode>,
 )
 

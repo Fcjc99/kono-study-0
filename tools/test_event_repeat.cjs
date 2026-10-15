@@ -49,4 +49,15 @@ test('a change goes to only this one, this and the ones after, or all of them (d
  assert.equal(titles(applyToSeries(events,edited,'2026-10-09','following')),'e0:Tutoring@2026-10-02 13:30-14:30, e1:Tutoring@2026-10-09 13:30-14:30, e2:Math tutoring@2026-10-16 15:00-, e3:Math tutoring@2026-10-23 15:00-, x:Other@2026-10-16 -, y:Tutoring@2026-10-16 -')
  assert.equal(titles(applyToSeries(events,edited,'2026-10-09','all')),'e0:Math tutoring@2026-10-02 15:00-, e1:Tutoring@2026-10-09 13:30-14:30, e2:Math tutoring@2026-10-16 15:00-, e3:Math tutoring@2026-10-23 15:00-, x:Other@2026-10-16 -, y:Tutoring@2026-10-16 -')
 })
-console.log(passed+'/4 repeating-event groups passed.')
+test('repeating homework: a change goes to the rest of the series (not the due dates), and on certain weekdays',()=>{
+ const {applyToTaskSeries}=lib
+ const task=(id,due,extra={})=>({id,profileId:'p',subjectId:'',title:'Spelling',due,done:false,notes:'',recurringId:'r',...extra})
+ const tasks=[task('a','2026-10-05'),task('b','2026-10-12',{done:true}),task('c','2026-10-19'),task('x','2026-10-12',{recurringId:'other'})]
+ const edited={...tasks[1],title:'Spelling test',estimatedMinutes:20,notes:'List 4'}
+ const out=applyToTaskSeries(tasks,edited,'2026-10-12','following')
+ assert.deepEqual(out.map(t=>t.id+':'+t.title+'@'+t.due+(t.done?' done':'')),['a:Spelling@2026-10-05','b:Spelling@2026-10-12 done','c:Spelling test@2026-10-19','x:Spelling@2026-10-12'],'the editor saves the one being edited; later ones follow; done stays its own')
+ assert.equal(out[2].estimatedMinutes,20)
+ assert.equal(applyToTaskSeries(tasks,edited,'2026-10-12','all')[0].title,'Spelling test')
+ assert.deepEqual([...lib.weekdayDates('2026-10-05',[1,3],'2026-10-14')],['2026-10-07','2026-10-12','2026-10-14'],'Mondays and Wednesdays after Mon Oct 5')
+})
+console.log(passed+'/5 repeating-event groups passed.')

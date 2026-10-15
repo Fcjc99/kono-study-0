@@ -1029,7 +1029,8 @@ async function dragOnto(page,source,target){
  await source.scrollIntoViewIfNeeded();await source.dispatchEvent('dragstart',{dataTransfer:data})
  await target.scrollIntoViewIfNeeded()
  for(const type of ['dragenter','dragover','drop'])await target.dispatchEvent(type,{dataTransfer:data})
- await source.dispatchEvent('dragend',{dataTransfer:data}).catch(()=>{})
+ // The source may be gone once dropped (it moved), so don't wait long for it.
+ await source.dispatchEvent('dragend',{dataTransfer:data},{timeout:1000}).catch(()=>{})
 }
 /** A signed-in account whose plan has an essay due in three days (dates relative to today). */
 // Plan-my-week tests run on a fixed Monday morning: the shared fixture has fixed dates (like its Cell
@@ -2901,6 +2902,65 @@ test('Family extras: a family to-do list, a snack with a note for a kid’s KONO
  await page.getByRole('dialog',{name:'Whose plan?'}).getByRole('button',{name:/Emma’s plan/}).click()
  await page.getByText('Alice sent KONO',{exact:false}).first().waitFor()
  assert.match(await page.getByText('Alice sent KONO',{exact:false}).first().innerText(),/So proud of you!/)
+})
+
+test('Family wall calendar: Today sums up the day; Month shows each person’s things as pills in their color, a pill drags to another day with Undo; the wall display shows today and tomorrow; homework repeats every week and a change goes to the whole series; a kid gets an avatar from the grid',async()=>{
+ const {context,page}=await freshPage()
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ d.calendarEvents.push({id:'e-soccer',profileId:pid,title:'Soccer practice',date:'2026-10-13',time:'16:00',endTime:'17:30',kind:'sports',done:false,notes:'',kidId:'kid-emma'})
+ d.exams.push({id:'x-sci',profileId:pid,subjectId:'',title:'Science quiz',due:'2026-10-16',done:false,notes:'',kidId:'kid-emma'})
+ // A clock that runs from 3:30 PM: a frozen one would end the Undo toast's timer at once.
+ await page.clock.install({time:new Date('2026-10-13T15:30:00')});await signInAs(context,cloud,'alice')
+ await page.setViewportSize({width:1280,height:900});await page.goto(BASE);await heading(page,'Sanctuary')
+ // Today at a glance: the next test this week and the next thing on the clock.
+ const glance=page.getByLabel('Today at a glance')
+ await glance.getByText('Science quiz Friday').waitFor()
+ await glance.getByText('Soccer practice at 4:00 PM').waitFor()
+ // Month: Emma's practice is a pill on the 13th; dragged to the 15th it moves, and Undo puts it back.
+ await go(page,'Planner')
+ await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Month'}).click()
+ const pill=page.getByRole('button',{name:'Soccer practice · 4p · Emma · Oct 13, 2026'})
+ await pill.waitFor()
+ await dragOnto(page,pill,page.getByRole('button',{name:/^Oct 15, 2026 · /}))
+ await page.getByRole('button',{name:'Soccer practice · 4p · Emma · Oct 15, 2026'}).waitFor()
+ const toast=page.locator('.undo-toast');await toast.getByText('Moved “Soccer practice” to Oct 15, 2026.').waitFor()
+ await toast.getByRole('button',{name:'Undo'}).click()
+ await pill.waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.find(e=>e.id==='e-soccer')?.date==='2026-10-13','Undo never put the practice back')
+ // Tapping a pill opens it.
+ await pill.click();console.log('DLG',await page.locator('dialog[open],[role=dialog]').evaluateAll(d=>d.map(x=>x.getAttribute('aria-label')+'/'+x.querySelector('h2')?.textContent)));await page.getByRole('dialog',{name:'Edit Event'}).getByRole('button',{name:'Cancel'}).click()
+ // Wall display: big, today and tomorrow, with whose each thing is.
+ await page.getByRole('button',{name:/Wall display/}).click()
+ const wall=page.getByRole('dialog',{name:'Wall display'}),today=wall.getByRole('region',{name:'Today'})
+ await today.getByText('Soccer practice').waitFor()
+ assert.match(await today.locator('.wall-item').filter({hasText:'Soccer practice'}).innerText(),/4:00 PM[\s\S]*Emma/)
+ await wall.getByRole('region',{name:'Tomorrow'}).waitFor()
+ await page.keyboard.press('Escape');await wall.waitFor({state:'detached'})
+ // Homework every week until Nov 3: one per week, linked; renaming one can rename them all.
+ await addFromMenu(page,'tasks','Spelling words',async editor=>{
+  await editor.getByLabel('Repeat').selectOption('weekly')
+  await editor.getByLabel('Until').fill('2026-11-03')
+  await editor.getByText('Adds 3 more, one per date').waitFor()
+ })
+ const spelling=()=>cloud.users.alice.plan.data.tasks.filter(t=>/^Spelling/.test(t.title))
+ await waitFor(()=>spelling().length===4&&new Set(spelling().map(t=>t.recurringId)).size===1&&!!spelling()[0].recurringId,'the weekly homework never reached the account as one series')
+ assert.deepEqual(spelling().map(t=>t.due).sort(),['2026-10-13','2026-10-20','2026-10-27','2026-11-03'])
+ await go(page,'Planner');await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Month'}).click()
+ await page.getByRole('button',{name:'Spelling words · Oct 20, 2026'}).click()
+ const series=page.getByRole('dialog',{name:'Edit Assignment'})
+ await series.getByText('This repeats (4 dates). Save changes to:').waitFor()
+ await series.getByLabel('Title').fill('Spelling test words')
+ await series.getByLabel('All of them').check()
+ await series.getByRole('button',{name:'Save',exact:true}).click()
+ await waitFor(()=>spelling().every(t=>t.title==='Spelling test words'),'the change never reached the whole series')
+ // Kids' appearance: Emma picks the panda from the avatar grid.
+ await go(page,'Settings');await settingsTab(page,'Family')
+ await page.getByRole('button',{name:/Kids' appearance/}).first().click()
+ const look=page.getByRole('dialog',{name:"Kids' appearance"})
+ await look.getByRole('tab',{name:/Emma/}).click()
+ await look.getByRole('group',{name:"Emma's avatar"}).getByRole('button',{name:'Avatar 🐼'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.kids.find(k=>k.id==='kid-emma')?.emoji==='🐼','Emma’s avatar never reached the account')
+ await context.close()
 })
 
 test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone a swipe goes to the next days and the whole week scrolls sideways',async({context,page})=>{
