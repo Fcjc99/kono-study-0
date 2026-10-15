@@ -11,6 +11,8 @@ const color=(c:string|undefined)=>c&&/^#[0-9a-f]{3,8}$/i.test(c)?c:'#c76b8f'
 const plus=(date:string,n:number)=>{const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
 const dayName=(date:string,today:string)=>date===today?'Today':date===plus(today,1)?'Tomorrow':new Date(date+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'UTC'})
 
+/** Study sessions and homework blocks are schoolwork, which stays private like homework itself. */
+const SCHOOLWORK=new Set(['study','assignment'])
 type Row={time?:string;endTime?:string;title:string;kids:Kid[];location?:string;icon:string}
 
 export function familyPageHtml(data:AppData,profileId:string,today:string,days=14):string{
@@ -21,7 +23,7 @@ export function familyPageHtml(data:AppData,profileId:string,today:string,days=1
  const mine=(x:{profileId:string})=>x.profileId===profileId||planKid.has(x.profileId)
  const who=(x:{profileId:string;kidId?:string;kidIds?:string[]})=>{const ids=x.kidIds?.length?x.kidIds:x.kidId?[x.kidId]:planKid.has(x.profileId)?[planKid.get(x.profileId)!]:[];return ids.map(id=>kids.find(k=>k.id===id)).filter((k):k is Kid=>!!k)}
  const rowsOn=(date:string):Row[]=>[
-  ...data.calendarEvents.filter(e=>mine(e)&&e.date===date).map((e):Row=>({time:e.time,endTime:e.endTime,title:e.title,kids:who(e),location:e.location,icon:''})),
+  ...data.calendarEvents.filter(e=>mine(e)&&e.date===date&&!e.planFor&&!SCHOOLWORK.has(e.kind)).map((e):Row=>({time:e.time,endTime:e.endTime,title:e.title,kids:who(e),location:e.location,icon:''})),
   ...data.exams.filter(e=>mine(e)&&e.due===date&&!e.done).map((e):Row=>({title:e.title,kids:who(e),icon:'📝 '})),
  ].sort((a,b)=>(a.time??'99').localeCompare(b.time??'99')||a.title.localeCompare(b.title))
  const scope={activeProfileId:profileId,studySeasons:data.studySeasons}

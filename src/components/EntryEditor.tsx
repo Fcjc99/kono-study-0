@@ -55,8 +55,9 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
  const whose:string[]=planKid?[planKid]:peopleOf(entry as {kidId?:string;kidIds?:string[]})
  const setWhose=(ids:string[])=>{const next=moveToWhose(data,entry as Entry&{profileId:string},data.activeProfileId,ids) as Entry;persist(next);setEntry(next)}
  const togglePerson=(id:string)=>setWhose(whose.includes(id)?whose.filter(x=>x!==id):[...whose,id])
- // Clash warnings: what this event would overlap for the same people or driver (all its dates if it repeats).
- const clashes=isEvent&&entry.time?findClashes(familyView(data,data.activeProfileId).data,data.activeProfileId,{id:String(entry.id),recurringId:seriesSize>1&&scope!=='one'?seriesId:undefined,dates:[eventDate,...repeatList],time:entry.time as string,endTime:entry.endTime as string|undefined,kidIds:whose,driver:entry.driver as string|undefined},dateLabel):[]
+ // Clash warnings: what this event would overlap for the same people or driver (all its dates if it repeats,
+ // or the part of a series being changed). In a kid's own plan, untagged things there are that kid's.
+ const clashes=isEvent&&entry.time?findClashes(familyView(data,data.activeProfileId).data,data.activeProfileId,{id:String(entry.id),recurringId:seriesSize>1&&scope!=='one'?seriesId:undefined,dates:seriesSize>1&&scope!=='one'?data.calendarEvents.filter(e=>e.recurringId===seriesId&&e.profileId===entry.profileId&&(scope==='all'||e.date>=eventDate)).map(e=>e.date).sort():[eventDate,...repeatList],time:entry.time as string,endTime:entry.endTime as string|undefined,kidIds:whose,...(planKid?{self:planKid}:{}),driver:entry.driver as string|undefined},dateLabel):[]
  const field=(key:string,value:unknown)=>{const next={...entry,[key]:value};persist(next);setEntry(next)}
  const append=(key:string,text:string)=>{const current=String(entry[key]??'');field(key,current.trim()?current+' '+text:text)}
  const format=(before:string,after:string)=>{const textarea=bodyRef.current;if(!textarea)return;const key=note?'body':'notes',body=String(entry[key]??''),start=textarea.selectionStart,end=textarea.selectionEnd;field(key,body.slice(0,start)+before+(body.slice(start,end)||'text')+after+body.slice(end));requestAnimationFrame(()=>textarea.focus())}
@@ -72,7 +73,10 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
   // Saving an entry -- even unchanged -- is the moment a person actually looked at it, so this is
   // also where a photo-scanned item's needsReview flag clears (see RecordCard/applyAssignmentPhoto).
   const payload={...entry,[titleKey]:String(entry[titleKey]??'').trim(),needsReview:false,...(edit.key==='notes'&&!edit.original?{pinned:true}:{}),...(recurringId?{recurringId}:{})}
-  const copies:Entry[]=seriesDates.map(due=>({...payload,id:uid(edit.key),due}))
+  // Each copy's steps keep their distance from its due date, as their own steps; a free slot picked for the
+  // first date isn't carried over.
+  const gap=(a:string,b:string)=>Math.round((Date.parse(b+'T12:00:00Z')-Date.parse(a+'T12:00:00Z'))/86400000)
+  const copies:Entry[]=seriesDates.map(due=>{const p=payload as Task,shift=gap(p.due,due),c={...payload,id:uid(edit.key),due,...(p.subtasks?{subtasks:p.subtasks.map(x=>({...x,id:uid('subtask'),done:false,...(x.due?{due:addDays(x.due,shift)}:{})}))}:{})} as Task;delete c.plannedTime;return c as unknown as Entry})
   if(repeatList.length){const id=uid('recurring');payload.recurringId=id;copies.push(...repeatList.map(date=>repeatCopy(payload as unknown as CalendarEvent,date,id) as unknown as Entry))}
   // A change to one of a series can go to the rest of it too (not the date: each keeps its own).
   const spread=(list:Entry[])=>seriesSize>1&&scope!=='one'?isEvent?applyToSeries(list as unknown as CalendarEvent[],payload as unknown as CalendarEvent,String(edit.original?.date??eventDate),scope) as unknown as Entry[]:applyToTaskSeries(list as unknown as Task[],payload as unknown as Task,String(edit.original?.due??due),scope) as unknown as Entry[]:list

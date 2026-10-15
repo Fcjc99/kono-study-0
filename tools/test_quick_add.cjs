@@ -55,6 +55,11 @@ test('events in one line: repeats, time ranges, who and where; homework and test
  assert.equal(e('dentist tomorrow at 9am'),'Dentist | 2026-10-01 | 09:00 |  | appointment |  |  | ')
  const club=parseQuickAdd('book club every week on tuesday 7pm until Dec 15',subjects,today,people)
  assert.equal(club.event.until,'2026-12-15');assert.deepEqual([...club.event.repeatDays],[2]);assert.equal(club.due,'2026-10-06')
+ // Longer day names, a dashed date, an eye exam and noon.
+ assert.equal(e('Emma soccer every Tues and Thurs 4pm'),'Soccer | 2026-10-01 | 16:00 |  | sports | 2+4 | kid-emma | ')
+ assert.equal(e('dentist 2026-10-20 at 3pm'),'Dentist | 2026-10-20 | 15:00 |  | appointment |  |  | ')
+ assert.equal(e('eye exam tuesday at 3pm for Leo'),'Eye exam | 2026-10-06 | 15:00 |  | appointment |  | kid-leo | ')
+ assert.equal(e('lunch with Emma at noon'),'Lunch | 2026-10-01 | 12:00 |  | personal |  | kid-emma | ')
  assert.equal(e('bio worksheet due fri'),'tasks');assert.equal(e('math test thursday'),'exams');assert.equal(e('practice problems fri at 8:30am'),'tasks');assert.equal(e('permission slip'),'tasks')
 })
 console.log(`${passed}/5 quick-add groups passed.`)

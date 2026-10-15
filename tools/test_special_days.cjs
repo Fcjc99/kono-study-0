@@ -49,7 +49,7 @@ test('grandparents’ page: the next two weeks of events, tests and birthdays, e
  const d=model.createFreshData(),pid=d.activeProfileId
  d.profiles[0].label='The Parks'
  d.kids=[{id:'k1',profileId:pid,name:'Emma',color:'#7ca982',emoji:'🦄'}]
- d.calendarEvents=[{id:'e1',profileId:pid,date:'2026-10-16',title:'Soccer <game>',kind:'sports',notes:'secret note',time:'10:00',endTime:'11:00',kidId:'k1',location:'Riverside Park',driver:'Dad'},{id:'e2',profileId:pid,date:'2026-11-30',title:'Too far',kind:'other',notes:''}]
+ d.calendarEvents=[{id:'e1',profileId:pid,date:'2026-10-16',title:'Soccer <game>',kind:'sports',notes:'secret note',time:'10:00',endTime:'11:00',kidId:'k1',location:'Riverside Park',driver:'Dad'},{id:'e2',profileId:pid,date:'2026-11-30',title:'Too far',kind:'other',notes:''},{id:'e3',profileId:pid,date:'2026-10-16',title:'Work on Bio worksheet',kind:'study',notes:'',time:'16:00',planFor:'task:t'}]
  d.exams=[{id:'x',profileId:pid,subjectId:'',title:'Science quiz',due:'2026-10-17',done:false,notes:''}]
  d.tasks=[{id:'t',profileId:pid,subjectId:'',title:'Spelling homework',due:'2026-10-16',done:false,notes:''}]
  d.specialDays=[{id:'s',profileId:pid,kind:'birthday',title:'Emma',date:'2017-10-18',kidId:'k1'}]
@@ -58,7 +58,7 @@ test('grandparents’ page: the next two weeks of events, tests and birthdays, e
  assert.match(html,/Soccer &lt;game&gt;/);assert.ok(!html.includes('<game>'),'titles are escaped')
  assert.match(html,/10:00 AM/);assert.match(html,/📍 Riverside Park/);assert.match(html,/🦄 Emma/)
  assert.match(html,/📝 Science quiz/);assert.match(html,/🎂 Emma’s birthday \(9\)/)
- for(const hidden of ['Spelling homework','secret note','Dad','Too far','<script'])assert.ok(!html.includes(hidden),hidden+' should not be on the page')
+ for(const hidden of ['Spelling homework','Bio worksheet','secret note','Dad','Too far','<script'])assert.ok(!html.includes(hidden),hidden+' should not be on the page')
  assert.equal(page.todayIn('America/Los_Angeles',new Date('2026-10-16T05:00:00Z')),'2026-10-15');assert.equal(page.todayIn('Not/AZone',new Date('2026-10-16T05:00:00Z')),'2026-10-16')
 })
 console.log(passed+'/5 special-day groups passed.')

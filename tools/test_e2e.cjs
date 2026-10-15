@@ -245,6 +245,8 @@ test('Team colors have their own section in Look & feel: each team sets its jers
  // Starting from Modern (fixed colors): picking a team switches to Cozy.
  await settingsTab(page,'Look & feel')
  await page.getByRole('button',{name:/Clean/}).first().click()
+ // Folded away until it's opened (most people never need it).
+ await page.locator('summary').filter({hasText:'Team colors'}).click()
  const teams=page.getByRole('group',{name:'Team colors'})
  assert.equal(await teams.getByRole('button').count(),8)
  await page.getByText('picking one switches you to Cozy',{exact:false}).waitFor()
@@ -896,6 +898,7 @@ test('Built-in AI: a signed-in student with no key of their own gets KONO’s AI
  await heading(page,'Sanctuary')
  await go(page,'Settings')
  await settingsTab(page,'Import & export')
+ await page.locator('summary').filter({hasText:'AI helper'}).click()
  await page.getByText('✓ KONO’s AI is included with your account',{exact:false}).waitFor()
  await settingsTab(page,'Schedules')
  await page.getByRole('button',{name:/^College semester/}).click()
@@ -2845,6 +2848,7 @@ test('Plans & account: deleting the family plan keeps the kids (they move to the
  await page.goto(BASE);await heading(page,'Sanctuary')
  await go(page,'Settings')
  await page.getByRole('navigation',{name:'Settings sections'}).getByRole('button',{name:'Plans & account'}).click()
+ await page.locator('summary').filter({hasText:'Delete a plan'}).click()
  await page.locator('.profile-delete-list .wb-toolbar').filter({hasText:'My study plan'}).getByRole('button',{name:'Delete plan'}).click()
  await page.getByRole('dialog',{name:'Confirm change'}).getByRole('button',{name:'Confirm'}).click()
  await waitFor(()=>{const p=cloud.users.alice.plan.data;return !p.profiles.some(x=>x.id===pid)&&p.kids.length===2&&p.kids.every(k=>k.profileId==='plan-work')},'deleting the family plan never reached the account, or the kids were lost')

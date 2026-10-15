@@ -302,12 +302,12 @@ test('two devices: lists of dates and people merge item by item, a setting keeps
  const base=model.normalizeData(clone(d)),left=clone(base),right=clone(base)
  left.studySeasons[0].week.Monday[0].completedDates=['2026-10-05','2026-10-12'];right.studySeasons[0].week.Monday[0].completedDates=['2026-10-05','2026-10-19']
  left.calendarEvents[0].kidIds=['k1','k2','k3'];right.calendarEvents[0].kidIds=['k1']
- left.settings.darkMode='light';right.settings.darkMode='dark'
+ left.settings.darkMode='light';right.settings.darkMode='dark';left.settings.parentPin='a'.repeat(64);right.settings.parentPin='b'.repeat(64)
  const m=mergeData(base,model.normalizeData(left),model.normalizeData(right))
  assert.equal(m.conflicts.length,0,JSON.stringify(m.conflicts.map(c=>c.path)))
  assert.deepEqual([...m.data.studySeasons[0].week.Monday[0].completedDates].sort(),['2026-10-05','2026-10-12','2026-10-19'])
  assert.deepEqual([...m.data.calendarEvents[0].kidIds??[m.data.calendarEvents[0].kidId]],['k1','k3'],'Leo removed on one, Ada added on the other')
- assert.equal(m.data.settings.darkMode,'light')
+ assert.equal(m.data.settings.darkMode,'light');assert.equal(m.data.settings.parentPin,'a'.repeat(64),'first set on both: this device’s')
  const del=clone(base),edit=clone(base);del.calendarEvents=[];edit.calendarEvents[0].notes='bring water'
  assert.equal(mergeData(base,model.normalizeData(del),model.normalizeData(edit)).conflicts.length,1,'deleted here, edited there: ask')
 });

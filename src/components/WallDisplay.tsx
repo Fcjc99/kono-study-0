@@ -15,7 +15,6 @@ const kindIcon:Record<KidItem['kind'],string>={task:'📌',exam:'📝',event:'',
 /** Night mode: from 8 PM to 6 AM the wall dims to a dark, low-glare look and leads with tomorrow. */
 export const NIGHT_FROM=20,NIGHT_UNTIL=6
 const NIGHT_KEY='kono-wall-night'
-type NightSetting='auto'|'night'|'day'
 
 /** Wall display: a big, always-on view of today and tomorrow for the whole family, for an old tablet on
  * the fridge (like a family wall calendar), plus the rest of the week on a wide screen. The clock ticks,
@@ -35,11 +34,15 @@ export default function WallDisplay({data,me,weather,close}:{data:AppData;me:Per
  },[])
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.key==='Escape')close()};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[close])
  useEffect(()=>{document.documentElement.classList.add('wall-open');return()=>document.documentElement.classList.remove('wall-open')},[])
- const [nightSetting,setNightSetting]=useState<NightSetting>(()=>{try{const v=localStorage.getItem(NIGHT_KEY);return v==='night'||v==='day'?v:'auto'}catch{return 'auto'}})
+ // A Day/Night choice is saved with which look the clock had then ("night@day": Night picked in the day). It
+ // lasts only while the clock still says the same, so tapping Night at 7:30 PM doesn't keep the wall dark
+ // the next morning.
+ const [override,setOverride]=useState<string>(()=>{try{return localStorage.getItem(NIGHT_KEY)??''}catch{return ''}})
  const autoNight=now.getHours()>=NIGHT_FROM||now.getHours()<NIGHT_UNTIL
- const night=nightSetting==='auto'?autoNight:nightSetting==='night'
+ const [pick,during]=override.split('@'),active=(pick==='night'||pick==='day')&&during===(autoNight?'night':'day')
+ const night=active?pick==='night':autoNight
  // The button flips to the other look; flipping back to what the clock would pick returns to automatic.
- const toggleNight=()=>{const next:NightSetting=(!night)===autoNight?'auto':!night?'night':'day';setNightSetting(next);try{if(next==='auto')localStorage.removeItem(NIGHT_KEY);else localStorage.setItem(NIGHT_KEY,next)}catch{/* per-device nicety */}}
+ const toggleNight=()=>{const next=(!night)===autoNight?'':(!night?'night':'day')+'@'+(autoNight?'night':'day');setOverride(next);try{if(next)localStorage.setItem(NIGHT_KEY,next);else localStorage.removeItem(NIGHT_KEY)}catch{/* per-device nicety */}}
  const today=localDate(now),tomorrow=addDays(today,1)
  const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
  const people:Person[]=[me,...kids.map(k=>({id:k.id,name:k.name,emoji:k.emoji,photo:k.photo,color:k.color}))]
