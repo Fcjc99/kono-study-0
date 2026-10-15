@@ -110,3 +110,8 @@ html :is(.workbench,.wb-dialog) button:is(.primary,.secondary){font-size:inherit
 :root .workbench .settings-list label{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 14px}
 @media(max-width:760px){.workbench .theme-picker-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.workbench .theme-picker-tile strong{font-size:.66rem}}
 @media(max-width:760px){.workbench .wb-scene-toolbar .wb-scene-time select{max-width:134px}}
+/* The roster wraps: name next to the face, the buttons underneath when there isn't room. */
+.workbench .kid-roster{grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr))}
+.workbench .kid-roster>li{flex-wrap:wrap}
+.workbench .kid-roster>li>strong{flex:1 1 120px;min-width:80px}
+.workbench .kid-roster>li>.kid-plan-open{margin-left:auto}

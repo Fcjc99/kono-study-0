@@ -24,7 +24,21 @@ export const experienceOptions=[
 export const own=(data:AppData,key:Collection)=>records(data,key).filter(r=>r.profileId===data.activeProfileId)
 
 // Dates and kinds of planner entries (Home, the Planner calendar and record cards).
-export const dateLabel=(date:string)=>new Date(date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})
+// toLocaleDateString builds a new formatter on every call (slow on phones, and a busy Home or Planner
+// labels hundreds of dates per render): one shared formatter, and each label remembered.
+let dateFormat:Intl.DateTimeFormat|undefined
+const dateLabels=new Map<string,string>()
+export const dateLabel=(date:string)=>{
+ let label=dateLabels.get(date)
+ if(label===undefined){
+  const day=new Date(date+'T12:00:00')
+  // (format() throws on a bad date where toLocaleDateString said "Invalid Date": keep saying that.)
+  label=Number.isNaN(day.getTime())?'Invalid Date':(dateFormat??=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',year:'numeric'})).format(day)
+  if(dateLabels.size>2000)dateLabels.clear()
+  dateLabels.set(date,label)
+ }
+ return label
+}
 export const daysUntil=(date:string,from=localDate())=>Math.round((new Date(date+'T12:00:00').getTime()-new Date(from+'T12:00:00').getTime())/86400000)
 export const countdown=(date:string,done=false,from=localDate())=>{if(done)return 'Completed';const days=daysUntil(date,from);return days===0?'Due today':days===1?'Due tomorrow':days>1?days+' days left':Math.abs(days)+' day'+(days===-1?'':'s')+' overdue'}
 export const eventKind=(entry:Entry)=>String(entry.kind??'').toLowerCase()

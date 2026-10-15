@@ -21,8 +21,10 @@ const nice=(date:string)=>new Date(date+'T12:00:00').toLocaleDateString(undefine
 export function weekDrop(key:string,entry:DropEntry,day:string,time:string,profileId:string):WeekDrop{
  const title=String(entry.title??'').trim()||'Untitled'
  if(key==='calendarEvents'){
-  const length=typeof entry.time==='string'&&typeof entry.endTime==='string'&&entry.endTime>entry.time?minutes(entry.endTime)-minutes(entry.time):60
-  return {kind:'patch',changes:{date:day,time,endTime:clock(minutes(time)+length)}}
+  const length=typeof entry.time==='string'&&typeof entry.endTime==='string'&&entry.endTime!==entry.time?(minutes(entry.endTime)-minutes(entry.time)+1440)%1440:60
+  // A late-night event keeps running past midnight wherever it's dropped.
+  const overnight=typeof entry.time==='string'&&typeof entry.endTime==='string'&&entry.endTime<entry.time
+  return {kind:'patch',changes:{date:day,time,endTime:clock(overnight?(minutes(time)+length)%1440:minutes(time)+length)}}
  }
  if(key!=='tasks'&&key!=='exams')return {kind:'none',why:'Only assignments, exams and events can be planned on the week.'}
  const due=String(entry.due??''),length=key==='tasks'&&Number(entry.estimatedMinutes)>0?Number(entry.estimatedMinutes):60

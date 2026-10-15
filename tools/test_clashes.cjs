@@ -46,4 +46,12 @@ test('in a kid’s own plan, its untagged things are that kid’s; a date label 
  const dotted=[...findClashes(d,pid,{dates:['2026-10-12','2026-10-19'],time:'13:15',kidIds:['emma']},x=>x.slice(8)+'. Okt.')].map(x=>x.text)
  assert.deepEqual(dotted,['Emma has Biology (class) at 1:00 PM–1:50 PM on 12. Okt..'])
 })
-console.log(passed+'/4 clash groups passed.')
+test('late-night: a sleepover into the next morning clashes with an early start, and a late shift with a late one',()=>{
+ const night={...d,calendarEvents:[ev('Sleepover','2026-10-17','19:00','09:00',{kidId:'emma'})]}
+ assert.deepEqual([...findClashes(night,pid,{dates:['2026-10-18'],time:'08:00',kidIds:['emma']},label)].map(x=>x.text),['Emma already has Sleepover at 7:00 PM–9:00 AM.'])
+ assert.deepEqual([...findClashes(night,pid,{dates:['2026-10-18'],time:'10:00',kidIds:['emma']},label)].map(x=>x.text),[],'after it ends')
+ assert.deepEqual([...findClashes(night,pid,{dates:['2026-10-17'],time:'23:00',endTime:'01:00',kidIds:['emma']},label)].map(x=>x.text),['Emma already has Sleepover at 7:00 PM–9:00 AM.'])
+ const early={...d,calendarEvents:[ev('Swim meet','2026-10-18','07:00','09:00',{kidId:'emma'})]}
+ assert.deepEqual([...findClashes(early,pid,{dates:['2026-10-17'],time:'22:00',endTime:'08:00',kidIds:['emma']},label)].map(x=>x.text),['Emma already has Swim meet at 7:00 AM–9:00 AM.'],'the next morning')
+})
+console.log(passed+'/5 clash groups passed.')

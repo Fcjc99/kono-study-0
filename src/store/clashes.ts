@@ -1,5 +1,7 @@
 import {peopleOf,type AppData} from './model'
 import {classOccurrences,classTime} from './classSchedule'
+import {endMinutes} from './overnight'
+import {addDays} from './studyScheduler'
 
 /** Clash warnings: before something is added, what it overlaps for the same person (a kid, or you for
  * your own and whole-family things), or for the same driver. A kid's school classes count too. It only
@@ -10,8 +12,8 @@ type Found={date:string;text:string;key:string}
 export type Clash={date:string;text:string}
 
 const minutes=(t:string)=>Number(t.slice(0,2))*60+Number(t.slice(3,5))
-/** A start and end in minutes; no end means an hour. */
-const span=(time:string,endTime?:string):[number,number]=>{const s=minutes(time),e=endTime&&endTime>time?minutes(endTime):s+60;return [s,e]}
+/** A start and end in minutes from the start of its day (past midnight for a late-night one); no end means an hour. */
+const span=(time:string,endTime?:string,shift=0):[number,number]=>[minutes(time)+shift,endMinutes(time,endTime)+shift]
 const overlaps=(a:[number,number],b:[number,number])=>a[0]<b[1]&&b[0]<a[1]
 const range=(time:string,endTime?:string)=>classTime(time)+(endTime?'–'+classTime(endTime):'')
 
@@ -23,10 +25,13 @@ export function findClashes(data:Pick<AppData,'activeProfileId'|'calendarEvents'
  const out:Found[]=[]
  for(const date of c.dates.slice(0,200)){
   const on=(text:string)=>out.push({date,key:text,text:text+(c.dates.length>1?' on '+dateLabel(date):'')+'.'})
+  // The day before's late-night things and (for a late-night candidate) the next morning's count too.
+  const before=addDays(date,-1),after=addDays(date,1)
   for(const e of data.calendarEvents){
-   if(e.profileId!==profileId||e.date!==date||!e.time||e.id===c.id||e.done)continue
+   const shift=e.date===date?0:e.date===before?-1440:e.date===after?1440:null
+   if(e.profileId!==profileId||shift===null||!e.time||e.id===c.id||e.done)continue
    if(c.recurringId&&e.recurringId===c.recurringId)continue
-   if(!overlaps(mine,span(e.time,e.endTime)))continue
+   if(!overlaps(mine,span(e.time,e.endTime,shift)))continue
    const theirs=peopleOf(e).length?peopleOf(e):[me],both=people.filter(p=>theirs.includes(p))
    if(both.length){on(whoOf(both)+(both.length===1&&both[0]==='me'?' already have ':' already '+(both.length>1?'have ':'has '))+e.title+' at '+range(e.time,e.endTime));continue}
    if(driver&&e.driver?.trim().toLowerCase()===driver)on(e.driver!.trim()+' is already driving to '+e.title+' at '+range(e.time,e.endTime))

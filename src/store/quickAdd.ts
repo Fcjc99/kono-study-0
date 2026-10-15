@@ -81,6 +81,8 @@ const KINDS:[QuickEvent['kind'],RegExp][]=[
  ['activity',/\b(party|club|scouts?|rehearsal|recital|playdate|play date|camp|church|youth group|concert|show|sleepover|field trip|birthday)\b/i],
  ['work',/\b(work|shift)\b/i],
 ]
+/** An evening start with a morning end runs overnight ("sleepover 7pm-9am", "shift 10pm-2am"). */
+const lateNight=(time:string,endTime:string)=>time>='17:00'&&endTime<='11:00'
 const dayIndex=(w:string)=>DAYS.indexOf(w.slice(0,3).toLowerCase())
 const clock=(h:number,m:number,ap:string|undefined,fallbackPm:boolean)=>{if(ap==='pm'&&h<12)h+=12;if(ap==='am'&&h===12)h=0;if(!ap&&fallbackPm&&h>=1&&h<=7)h+=12;return h<24&&m<60?pad(h)+':'+pad(m):undefined}
 
@@ -134,5 +136,5 @@ export function parseQuickEvent(text:string,today:string,people:Person[]):QuickA
  if(!title)title=kind==='sports'?'Practice':kind==='lesson'?'Lesson':kind==='appointment'?'Appointment':'Event'
  title=title[0].toUpperCase()+title.slice(1)
  if(repeatDays.length&&due&&repeatDays.includes(new Date(due+'T12:00:00').getDay())===false){const now=new Date(due+'T12:00:00').getDay(),ahead=Math.min(...repeatDays.map(d=>(d-now+7)%7));due=plus(due,ahead)}
- return {key:'calendarEvents',title:title.slice(0,200),subjectId:'',subjectName:'',due:due||plus(today,1),...(time?{time}:{}),dateFound,event:{kind,...(endTime&&time&&endTime>time?{endTime}:{}),repeatDays,...(repeatLabel?{repeatLabel}:{}),until:until||plus(due||today,70),kidIds,people:names,...(location?{location}:{})}}
+ return {key:'calendarEvents',title:title.slice(0,200),subjectId:'',subjectName:'',due:due||plus(today,1),...(time?{time}:{}),dateFound,event:{kind,...(endTime&&time&&(endTime>time||lateNight(time,endTime))?{endTime}:{}),repeatDays,...(repeatLabel?{repeatLabel}:{}),until:until||plus(due||today,70),kidIds,people:names,...(location?{location}:{})}}
 }

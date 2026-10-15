@@ -10,6 +10,7 @@ import {rotationNow} from './store/rotationToday'
 import {planForKid} from './store/familyPlans'
 import type {Collection,Entry} from './store/workspace'
 import {TEAM_THEMES,teamThemeIds} from './teamThemes'
+import {isOut} from './store/daysOff'
 import {cozyPalette,cozyPalettes,experienceOptions,fixedPaletteExperiences,type Page,type SettingsTab} from './workspaceShared'
 
 /* The Kids page, the family settings and Look & feel (experience, palettes, team colors). These load
@@ -173,5 +174,5 @@ function KidsToday({data,kids,openSchedules}:{data:AppData;kids:Kid[];openSchedu
   const mine=ownPlan(k),school=mine?.school??rows.find(r=>r.kidId===k.id),classes=[...(mine?.classes??[]),...classOccurrences(data,today).filter(c=>classKid(c)===k.id)].filter(c=>c.block.kind!=='break'&&!c.block.skippedDates?.includes(today)).sort((a,b)=>(a.displayStart??a.block.start).localeCompare(b.displayStart??b.block.start))
   return <li key={k.id} style={{'--kid-color':k.color} as CSSProperties}><KidAvatar kid={k}/><div><strong>{k.name}</strong>{school&&<small>{school.season.school!.name} · {school.closed?'No school':school.cycleDay}</small>}
    {classes.length?<ol className="kids-today-classes">{classes.map(c=><li key={c.id}><time>{classTime(c.displayStart??c.block.start)}</time> {c.block.label}</li>)}</ol>
-   :<p className="wb-muted">{school?.closed?'No school today.':'No classes for '+k.name+' today. '}{!school&&<button type="button" className="link-button" onClick={openSchedules}>Add {k.name}’s school schedule</button>}</p>}</div></li>})}</ul></section>
+   :<p className="wb-muted">{isOut(data,data.activeProfileId,today,k.id)?'🤒 Out today. ':school?.closed?'No school today.':'No classes for '+k.name+' today. '}{!school&&<button type="button" className="link-button" onClick={openSchedules}>Add {k.name}’s school schedule</button>}</p>}</div></li>})}</ul></section>
 }

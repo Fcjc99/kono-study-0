@@ -1,4 +1,3 @@
-import { minutesFromDate, phaseBlendForMinutes } from '../game/sanctuary/timeEngine'
 import { useEffect, useRef, useState } from 'react'
 import { WORLD_HEIGHT, WORLD_WIDTH } from '../game/sanctuary/config'
 import { SANCTUARY_EVENTS } from '../game/sanctuary/runtime'
@@ -10,6 +9,7 @@ import type { EvolutionMilestonePayload } from '../game/evolution/EvolutionCoord
 import type { KonoContextAction, KonoInteractionSummary } from '../game/systems/KonoInteractionSystem'
 import { APP_VERSION } from '../version'
 import { islandMapPath, islandSeason } from '../game/sanctuary/season'
+import { autoIslandPhase, loadIslandPoster } from '../game/sanctuary/islandPoster'
 
 interface SanctuaryState {
   phase: DayPhase
@@ -137,7 +137,9 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
 
   const [state, setState] = useState<SanctuaryState>(initialState)
   // Shown while the island engine downloads: the same picture the island starts from, sized the same way.
-  const [autoPhase] = useState(() => phaseBlendForMinutes(minutesFromDate(new Date())).dominant)
+  const [autoPhase] = useState(autoIslandPhase)
+  const posterSrc = islandMapPath(phase==='auto'?autoPhase:phase,islandSeason(new Date()))+'-poster.webp'
+  const posterSrcRef = useRef(posterSrc)
   const [debugEnabled, setDebugEnabled] = useState(debugFromUrl)
   const [debugMinutes, setDebugMinutes] = useState(() => new Date().getHours() * 60 + new Date().getMinutes())
   const [debugDensity, setDebugDensity] = useState(1)
@@ -184,6 +186,10 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
     let syncPauseState: (() => void) | null = null
 
     const boot = async () => {
+      // The picture first, then the engine: on a slow connection the engine (several hundred KB) would
+      // otherwise share the line with the picture and hold it back. Never waits more than 2.5s.
+      await Promise.race([loadIslandPoster(posterSrcRef.current),new Promise(resolve=>window.setTimeout(resolve,2500))])
+      if (disposed) return
       const [{ default: PhaserRuntime }, { default: Stage0Scene }] = await Promise.all([
         import('phaser'),
         import('../game/scenes/Stage0Scene'),
@@ -461,7 +467,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
   }
 
   return <article className="sanctuary-card" aria-label="KONO Living Sanctuary">
-    <div ref={containerRef} className="sanctuary-viewport" role="img" aria-label={`${state.phaseLabel} sanctuary, ${state.weatherLabel.toLowerCase()} weather`} style={loadStatus.status!=='ready'?{backgroundImage:`url(${islandMapPath(phase==='auto'?autoPhase:phase,islandSeason(new Date()))}-poster.webp)`}:undefined} />
+    <div ref={containerRef} className="sanctuary-viewport" role="img" aria-label={`${state.phaseLabel} sanctuary, ${state.weatherLabel.toLowerCase()} weather`} style={loadStatus.status!=='ready'?{backgroundImage:`url(${posterSrc})`}:undefined} />
     {loadStatus.status!=='ready'&&<div className="sanctuary-load-status" role="status">{loadStatus.status==='error'?'Some Sanctuary artwork could not load. Your plan is safe.':`Opening ${loadStatus.phase??'your'} Sanctuary…`}{loadStatus.status==='error'&&<button onClick={()=>{setLoadStatus({status:'loading'});if(loadStatus.boot)setAttempt(a=>a+1);else gameRef.current?.events.emit(SANCTUARY_EVENTS.retry,null)}}>Retry artwork</button>}</div>}
     {evolutionNotice && <div className={`sanctuary-evolution-toast feature-${evolutionNotice.feature}`} role="status" aria-live="polite"><span>Sanctuary evolved</span><strong>{evolutionNotice.featureLabel}</strong><em>Stage {evolutionNotice.nextStage} · {evolutionNotice.stageName}</em></div>}
     {interactionNotice && <div className="sanctuary-interaction-toast" role="status" aria-live="polite"><span>KONO</span><strong>{interactionNotice.action.title}</strong><em>{interactionNotice.action.hint}</em></div>}

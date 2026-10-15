@@ -443,3 +443,31 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .settings-group>summary small{display:block;font-size:.8rem;font-weight:500;color:var(--wb-muted,#7a6670);margin-top:2px}
 .settings-group .profile-form{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .island-weather-link{margin:12px 0 0}
+/* Out sick, snow days and days off */
+.special-day-banner.is-day-off{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;background:color-mix(in srgb,#9aa5b1 24%,var(--wb-surface,#fff))}
+.special-day-banner.is-day-off .link-button{margin-left:auto;font-weight:600}
+.day-off-open{display:inline-block;margin:2px 0 8px;font-size:.9rem}
+.day-off{display:grid;gap:12px}
+.day-off-reasons,.day-off-who{display:flex;flex-wrap:wrap;gap:8px}
+.day-off-who button{border-left:5px solid var(--kid,var(--wb-line))}
+.day-off-list ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.day-off-list li{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.day-off-list h3{margin:0 0 6px;font-size:1rem}
+.kids-glance-day.is-out{font-weight:700}
+.kids-glance .wb-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.wb-draggable.is-off{position:relative;opacity:.6}
+.wb-draggable.is-off :is(h3,strong){text-decoration:line-through}
+.off-tag{position:absolute;z-index:1;top:-8px;left:12px;padding:1px 8px;border-radius:999px;font-size:.72rem;font-weight:800;background:#5c6670;color:#fff}
+/* Onboarding: real-size fields, and both questions look like questions. */
+.onboarding input:not([type=checkbox]):not([type=radio]){min-height:44px;padding:10px 12px;border:1px solid var(--wb-line,#e6d6dc);border-radius:12px;background:var(--wb-surface,#fff);color:inherit;font:inherit}
+.onboarding :is(.onboarding-who,.onboarding-island){border:1px solid var(--wb-line,#e6d6dc);border-radius:14px;padding:12px 14px;margin:14px 0}
+.onboarding :is(.onboarding-who,.onboarding-island) legend{font-weight:700;padding:0 6px}
+.onboarding :is(.onboarding-who,.onboarding-island) label{margin:8px 0}
+.onboarding-demo{display:block;margin:12px auto 0}
+/* Narrow phones: the day card's tabs and buttons wrap instead of pushing ⋯ off the edge. */
+@media(max-width:380px){.today-card-head{flex-wrap:wrap;gap:8px}.today-card-head>.wb-toolbar{margin-left:auto}}
+/* Links that open something: themed, not raw browser blue. */
+:is(.family-share,.wb-place-hint) a,.button-link{color:var(--wb-accent,#a0466d);font-weight:700}
+.family-share .button-link{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border:1px solid var(--wb-line,#e6d6dc);border-radius:12px;background:var(--wb-surface,#fff);text-decoration:none}
+/* Bigger tap targets for the small text buttons. */
+:is(.special-days-list,.family-setup,.kids-today) .link-button{min-height:36px;padding:4px 6px}
