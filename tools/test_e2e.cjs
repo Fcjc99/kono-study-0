@@ -3050,6 +3050,28 @@ test('Family setup: a parent picks “My family” when starting, adds two kids 
  await context.close()
 })
 
+test('Wall display at night: after 8 PM it dims and leads with tomorrow, the Day/Night button switches by hand and is remembered on that tablet, and a wide screen shows the rest of the week',async()=>{
+ const {context,page}=await freshPage({viewport:{width:1440,height:900}})
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ d.calendarEvents.push({id:'e-tmw',profileId:pid,title:'Field trip',date:'2026-10-16',time:'08:00',kind:'activity',done:false,notes:'',kidId:'kid-emma'},{id:'e-sat',profileId:pid,title:'Pumpkin patch',date:'2026-10-17',time:'10:00',kind:'personal',done:false,notes:''})
+ await page.clock.install({time:new Date('2026-10-15T21:30:00')});await signInAs(context,cloud,'alice')
+ await page.goto(BASE+'?wall')
+ const wall=page.getByRole('dialog',{name:'Wall display'});await wall.waitFor()
+ assert.match(await wall.getAttribute('class'),/is-night/)
+ assert.equal(await wall.locator('.wall-day').first().getAttribute('aria-label'),'Tomorrow','at night tomorrow comes first')
+ await wall.getByRole('region',{name:'Tomorrow'}).getByText('Field trip').waitFor()
+ await wall.getByRole('region',{name:'Rest of the week'}).getByText('Pumpkin patch').waitFor()
+ const toggle=wall.getByRole('button',{name:/Day$/});assert.equal(await toggle.getAttribute('aria-pressed'),'true')
+ await toggle.click()
+ assert.doesNotMatch(await wall.getAttribute('class'),/is-night/)
+ assert.equal(await wall.locator('.wall-day').first().getAttribute('aria-label'),'Today')
+ await page.reload();await wall.waitFor()
+ assert.doesNotMatch(await wall.getAttribute('class'),/is-night/,'the tablet remembers the day look')
+ await wall.getByRole('button',{name:/Night$/}).click()
+ assert.match(await wall.getAttribute('class'),/is-night/)
+ await context.close()
+})
+
 test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone a swipe goes to the next days and the whole week scrolls sideways',async({context,page})=>{
  const cloud=fakeCloud()
  await page.setViewportSize({width:390,height:844})
