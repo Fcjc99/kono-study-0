@@ -63,6 +63,7 @@ export function FamilySettings({data,setting,patch,navigate}:{data:AppData;setti
   <div className="kid-appearance-toggles">
    <label className="wb-check"><input type="checkbox" checked={data.settings.familyTileBorders!==false} onChange={e=>void setting('familyTileBorders',e.target.checked)}/>Color-code event tiles by kid</label>
    <label className="wb-check"><input type="checkbox" checked={data.settings.familyTileAvatars!==false} onChange={e=>void setting('familyTileAvatars',e.target.checked)}/>Show each kid's emoji and name on their tiles</label>
+   <label className="wb-check"><input type="checkbox" checked={data.settings.familyStudyTabs===true} onChange={e=>void setting('familyStudyTabs',e.target.checked)}/>Show the study pages (Subjects, K-Quiz, Exams) in the family plan</label>
   </div>
    <div className="wb-toolbar"><button type="button" onClick={()=>navigate('Kids')}>Manage kids</button><button type="button" onClick={()=>setLookOpen(true)}>🎨 Kids' appearance</button></div>
    {lookOpen&&<KidAppearancePanel data={data} patch={patch} close={()=>setLookOpen(false)}/>}

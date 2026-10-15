@@ -50,13 +50,13 @@ function useSlidingIndicator(view:string){
 }
 
 type ProfileOption={id:string;label:string;avatar?:string;photo?:string;color?:string}
-export default function Sidebar({view,onView,profile='Sophia',schoolYear='Summer 2026',profiles=[],activeProfileId,onProfileChange,weekWeather=[],weatherLocation,music,parentMode=false,weatherChip,onOpenPlans,locked=false,onAdd,onMore,homeLabel,simple=false}:{simple?:boolean;homeLabel?:string;onAdd?:()=>void;onMore?:()=>void;locked?:boolean;onOpenPlans?:()=>void;weatherChip?:ReactNode;view:ViewName;onView:(v:ViewName)=>void;profile?:string;schoolYear?:string;profiles?:ProfileOption[];activeProfileId?:string;onProfileChange?:(id:string)=>void;weekWeather?:DailyWeatherForecast[];weatherLocation?:string;music?:ReturnType<typeof useMusicController>;parentMode?:boolean}){
+export default function Sidebar({hidden=[],view,onView,profile='Sophia',schoolYear='Summer 2026',profiles=[],activeProfileId,onProfileChange,weekWeather=[],weatherLocation,music,parentMode=false,weatherChip,onOpenPlans,locked=false,onAdd,onMore,homeLabel,simple=false}:{hidden?:string[];simple?:boolean;homeLabel?:string;onAdd?:()=>void;onMore?:()=>void;locked?:boolean;onOpenPlans?:()=>void;weatherChip?:ReactNode;view:ViewName;onView:(v:ViewName)=>void;profile?:string;schoolYear?:string;profiles?:ProfileOption[];activeProfileId?:string;onProfileChange?:(id:string)=>void;weekWeather?:DailyWeatherForecast[];weatherLocation?:string;music?:ReturnType<typeof useMusicController>;parentMode?:boolean}){
  // Parent mode is opt-in (see Settings > Family) so a student sharing the app never sees a nav
  // tab meant for a parent managing multiple kids.
  // A device locked to a kid's plan has no Settings tab (a parent unlocks it from Whose plan?).
  // Simple view keeps just Home, Planner and Notes (and Settings when the device isn't locked).
  const me=profiles.find(p=>p.id===activeProfileId)
- const items=navItems.filter(item=>(item!=='Kids'||parentMode)&&!(locked&&item==='Settings')&&(!simple||['Sanctuary','Planner','Notes','Settings'].includes(item)))
+ const items=navItems.filter(item=>!hidden.includes(item)&&(item!=='Kids'||parentMode)&&!(locked&&item==='Settings')&&(!simple||['Sanctuary','Planner','Notes','Settings'].includes(item)))
  // Phones: a bottom tab bar with the everyday pages, ＋ Add in the middle, and More for the rest.
  const everyday=(['Sanctuary','Planner',parentMode&&items.includes('Kids')?'Kids':'Notes'] as ViewName[]).filter(i=>items.includes(i))
  const tabbar:(ViewName|'Add'|'More')[]=[...everyday.slice(0,2),...(onAdd?['Add' as const]:[]),...everyday.slice(2),'More']

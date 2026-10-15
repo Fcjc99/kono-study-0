@@ -471,3 +471,7 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .family-share .button-link{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border:1px solid var(--wb-line,#e6d6dc);border-radius:12px;background:var(--wb-surface,#fff);text-decoration:none}
 /* Bigger tap targets for the small text buttons. */
 :is(.special-days-list,.family-setup,.kids-today) .link-button{min-height:36px;padding:4px 6px}
+.wb-draggable.has-overlap{position:relative}
+.overlap-tag{position:absolute;z-index:1;top:-8px;right:12px;padding:1px 8px;border-radius:999px;font-size:.72rem;font-weight:800;background:#b4532a;color:#fff}
+/* Editors on phones: Save and Cancel stay in reach at the bottom while the form scrolls. */
+@media(max-width:760px){.editor-actions{position:sticky;bottom:-1px;z-index:2;margin:12px -4px 0;padding:10px 4px calc(10px + env(safe-area-inset-bottom));background:var(--wb-surface,#fff);border-top:1px solid var(--wb-line,#e6d6dc)}}
