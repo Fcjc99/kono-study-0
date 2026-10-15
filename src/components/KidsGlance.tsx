@@ -5,6 +5,8 @@ import {addCareEvent,SNACKS} from '../store/konoCare'
 import {uid,type AppData,type Kid} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
 import {daysOffOn,dayOffIcon} from '../store/daysOff'
+import {classTime} from '../store/classSchedule'
+import {leaveBy} from '../store/leaveBy'
 
 // How much of what's on a kid's plate today is done: done today out of done + due tomorrow + late.
 const ring=(r:{doneToday:string[];dueTonight:string[];late:number})=>{const total=r.doneToday.length+r.dueTonight.length+r.late;return total?r.doneToday.length/total:null}
@@ -14,7 +16,7 @@ const weekday=(date:string)=>new Date(date+'T12:00:00').toLocaleDateString(undef
  * this week). Tapping a kid opens their plan, or the Kids page if they don't have one yet. A kid with a
  * plan of their own can be sent a snack for their KONO with a note (🎁). */
 export default function KidsGlance({data,profileId,today,from,save,onOpen,onDayOff}:{data:AppData;profileId:string;today:string;from:string;save:PlannerRepository['update'];onOpen:(kid:Kid,planId?:string)=>void;onDayOff?:()=>void}){
- const rows=kidGlance(data,profileId,today)
+ const now=new Date(),rows=kidGlance(data,profileId,today,String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'))
  const [gift,setGift]=useState<{kid:Kid;planId:string}|null>(null)
  if(!rows.length)return null
  // Out sick or a snow day today: said on the kid's row instead of their school day.
@@ -25,6 +27,7 @@ export default function KidsGlance({data,profileId,today,from,save,onOpen,onDayO
    <span className="kids-glance-main">
     <strong>{r.kid.name}{(()=>{const o=outFor(r.kid.id);return o?<small className="kids-glance-day is-out">{dayOffIcon(o.reason)} {o.reason==='sick'?'Out sick':o.reason==='snow'?'Snow day':'Day off'}</small>:r.school&&<small className="kids-glance-day">{r.school}</small>})()}</strong>
     <span className="kids-glance-facts">
+     {r.next&&<span className="is-next">🕒 {r.next.title} {classTime(r.next.time)}{r.next.travelMinutes?' · leave '+classTime(leaveBy(r.next.time,r.next.travelMinutes)!):''}{r.laterToday?' (+'+r.laterToday+' more)':''}</span>}
      <span>{r.dueTonight.length?'📌 '+r.dueTonight.length+' due tomorrow':'Nothing due tomorrow'}</span>
      {r.late>0&&<span className="is-late">⚠ {r.late} late</span>}
      {r.doneToday.length>0&&<span className="is-done" title={r.doneToday.join(', ')}>✓ {r.doneToday.length} done today{r.doneToday.length<=2?': '+r.doneToday.join(', '):''}</span>}

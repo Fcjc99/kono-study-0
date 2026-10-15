@@ -1,5 +1,5 @@
 import {useState,type CSSProperties,type FormEvent} from 'react'
-import {uid,type AppData,type CalendarEvent,type Kid} from '../store/model'
+import {uid,peopleOf,type AppData,type CalendarEvent,type Kid} from '../store/model'
 import {nextKidColor} from '../store/kids'
 import {parseQuickEvent} from '../store/quickAdd'
 import {repeatCopy,weekdayDates} from '../store/eventRepeat'
@@ -9,6 +9,7 @@ import Modal from './Modal'
 
 const niceDate=(date:string)=>new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})
 type Line={text:string;kidId:string}
+const EXAMPLES=['soccer every Tue and Thu 4pm','piano every Wed 4:30pm','swim every Sat 9-10am','scouts every Mon 6:30pm']
 
 /** Family setup in about two minutes: the kids' names, then each one's weekly activities typed in plain
  * words ("soccer every Tue and Thu 4pm"), then where to go next. Everything is saved at the end, at once. */
@@ -35,10 +36,11 @@ export default function FamilySetup({data,profileId,today,save,close,next}:{data
   setBusy(false)
   if(!ok){setError('Not saved yet. Try again.');return}
   try{localStorage.removeItem('kono-family-setup')}catch{/* best effort */}
-  setDone(newKids.length+' kid'+(newKids.length===1?'':'s')+' and '+events.length+' event'+(events.length===1?'':'s')+' added.');setStep(3)
+  const n=lines.length,parts=[...(newKids.length?[newKids.length+' kid'+(newKids.length===1?'':'s')]:[]),...(n?[n+' activit'+(n===1?'y':'ies')+(events.length>n?' ('+events.length+' dates on the calendar)':'')]:[])]
+  setDone(parts.length?parts.join(' and ')+' added.':'Nothing new added.');setStep(3)
  }
  return <Modal title="Set up your family" close={close}><div className="family-setup">
-  <ol className="family-setup-steps" aria-label="Steps">{['Kids','Activities','Next'].map((s,i)=><li key={s} aria-current={step===i+1?'step':undefined}>{s}</li>)}</ol>
+  <ol className="family-setup-steps" aria-label="Steps">{['Kids','Activities','Done'].map((s,i)=><li key={s} aria-current={step===i+1?'step':undefined}>{s}</li>)}</ol>
   {step===1&&<>
    <h3>Who are the kids?</h3>
    <form className="family-setup-add" onSubmit={addKid}><label>Kid’s name<input value={name} maxLength={200} onChange={e=>setName(e.target.value)} placeholder="Emma" autoFocus/></label><button type="submit">Add</button></form>
@@ -49,13 +51,14 @@ export default function FamilySetup({data,profileId,today,save,close,next}:{data
   {step===2&&<>
    <h3>What do they do each week?</h3>
    <p className="wb-muted">Type each activity in plain words, then press Add. Try “soccer every Tue and Thu 4-5:30pm at Riverside Park” or “piano every Wed 4pm”. You can skip this.</p>
-   {kids.map(k=><section key={k.id} className="family-setup-kid" style={{'--kid-color':k.color} as CSSProperties} aria-label={k.name+'’s activities'}>
+   {kids.map((k,ki)=><section key={k.id} className="family-setup-kid" style={{'--kid-color':k.color} as CSSProperties} aria-label={k.name+'’s activities'}>
     <h4>{k.name}</h4>
+    {(()=>{const have=[...new Map(data.calendarEvents.filter(e=>e.profileId===profileId&&e.date>=today&&peopleOf(e).includes(k.id)).map(e=>[e.recurringId??e.id,e.title])).values()].slice(0,6);return have.length?<p className="wb-muted family-setup-have">Already on the calendar: {have.join(', ')}</p>:null})()}
     <ul>{lines.map((l,i)=>({l,i})).filter(x=>x.l.kidId===k.id).map(({l,i})=>{const g=parse(l)!;return <li key={i}><span><strong>{g.title}</strong> · {g.event?.repeatLabel??niceDate(g.due)}{g.time?' · '+classTime(g.time)+(g.event?.endTime?'–'+classTime(g.event.endTime):''):''}{g.event?.location?' · 📍 '+g.event.location:''}</span><button type="button" className="link-button" aria-label={'Remove '+g.title+' for '+k.name} onClick={()=>setLines(lines.filter((_,j)=>j!==i))}>Remove</button></li>})}</ul>
-    <form className="family-setup-add" onSubmit={e=>{e.preventDefault();addLine(k.id)}}><label>Add an activity for {k.name}<input value={drafts[k.id]??''} onChange={e=>setDrafts({...drafts,[k.id]:e.target.value})} placeholder="soccer every Tue and Thu 4pm" autoComplete="off"/></label><button type="submit">Add</button></form>
+    <form className="family-setup-add" onSubmit={e=>{e.preventDefault();addLine(k.id)}}><label>Add an activity for {k.name}<input value={drafts[k.id]??''} onChange={e=>setDrafts({...drafts,[k.id]:e.target.value})} placeholder={EXAMPLES[ki%EXAMPLES.length]} autoComplete="off"/></label><button type="submit">Add</button></form>
    </section>)}
    {error&&<p role="alert">{error}</p>}
-   <div className="wb-toolbar">{!existing.length&&<button type="button" onClick={()=>setStep(1)}>Back</button>}<button type="button" className="primary" disabled={busy} onClick={()=>void finish()}>{busy?'Saving…':'Finish'}</button></div>
+   <div className="wb-toolbar"><button type="button" onClick={()=>setStep(1)}>{existing.length?'Add another kid':'Back'}</button><button type="button" className="primary" disabled={busy} onClick={()=>void finish()}>{busy?'Saving…':'Finish'}</button></div>
   </>}
   {step===3&&<>
    <h3>All set! 🎉</h3>

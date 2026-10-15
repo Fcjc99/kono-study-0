@@ -3041,7 +3041,7 @@ test('Family setup: a parent picks “My family” when starting, adds two kids 
  await setup.getByLabel('Add an activity for Leo').fill('piano every Wed 4pm')
  await setup.getByRole('region',{name:'Leo’s activities'}).getByRole('button',{name:'Add',exact:true}).click()
  await setup.getByRole('button',{name:'Finish'}).click()
- await setup.getByRole('status').filter({hasText:/2 kids and \d+ events added\./}).waitFor()
+ await setup.getByRole('status').filter({hasText:/2 kids and 2 activities \(\d+ dates on the calendar\) added\./}).waitFor()
  await waitFor(()=>{const d=cloud.users.dave.plan.data;if(!d)return false;const emma=d.kids.find(k=>k.name==='Emma'),leo=d.kids.find(k=>k.name==='Leo');const soccer=d.calendarEvents.filter(e=>e.title==='Soccer'),piano=d.calendarEvents.filter(e=>e.title==='Piano');return d.settings.parentMode===true&&emma&&leo&&soccer.length>4&&soccer.every(e=>e.kidId===emma.id&&e.location==='Riverside Park'&&e.time==='16:00')&&piano.length>2&&piano.every(e=>e.kidId===leo.id)},'the kids and their activities never reached the account')
  await setup.getByRole('button',{name:'Done'}).click()
  // Something new that overlaps Emma's soccer gets a heads-up before it's added.
@@ -3276,7 +3276,7 @@ test('Out sick and late nights: marking Emma out sick skips her class and shows 
  const wall=page.getByRole('dialog',{name:'Wall display'}),today=wall.getByRole('region',{name:'Today'})
  await today.getByText('Emma is out sick').waitFor()
  assert.match(await today.locator('.wall-item.is-off').filter({hasText:'Soccer practice'}).innerText(),/Off/)
- assert.match(await today.locator('.wall-item').filter({hasText:'Sleepover at Sam’s'}).innerText(),/Until 9:00 AM/)
+ assert.match(await today.locator('.wall-item').filter({hasText:'Sleepover at Sam’s'}).innerText(),/Until\s+9:00 AM/)
  // The Planner says so too, and Take back undoes it.
  await page.goto(BASE+'?page=planner');await heading(page,'Planner')
  const banner=page.locator('.special-day-banner.is-day-off').filter({hasText:'Emma is out sick'}).first()

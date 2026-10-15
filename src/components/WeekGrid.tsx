@@ -30,6 +30,11 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
  const ends=timed.map(i=>i.end&&i.end!==i.start?(i.end>i.start!?minutes(i.end):24*60):minutes(i.start!)+60)
  const first=Math.min(7,...timed.map(i=>Math.floor(minutes(i.start!)/60))),last=Math.min(24,Math.max(21,...ends.map(m=>Math.ceil(m/60))))
  const hours=Array.from({length:last-first},(_,i)=>first+i)
+ // Opening a week scrolls to its first timed thing, so a family whose day starts at 3 PM sees it.
+ const firstStart=timed.length?Math.min(...timed.map(i=>minutes(i.start!))):null
+ useEffect(()=>{const el=body.current;if(!el||firstStart===null)return;el.scrollTop=Math.max(0,(firstStart/60-first)*HOUR-HOUR/2)
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- only when a different week opens
+ },[days[0],days.length])
  // A clock tick each minute moves the red "now" line down today's column.
  const [,setTick]=useState(0)
  useEffect(()=>{const t=window.setInterval(()=>setTick(n=>n+1),60000);return()=>window.clearInterval(t)},[])
