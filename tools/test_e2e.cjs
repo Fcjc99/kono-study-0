@@ -3138,6 +3138,54 @@ test('Phone check-up: on a 375px phone no page scrolls sideways, every tab label
  }finally{await phone.context.close()}
 })
 
+test('Two devices: each adds something while one is offline and nothing is lost or doubled; when one deletes an event the other edited, syncing pauses with a banner on every page, and “Keep this device’s version” resolves it',async()=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
+ plan.calendarEvents.push({id:'e-shared',profileId:plan.activeProfileId,title:'Shared practice',date:'2026-10-16',time:'16:00',endTime:'17:00',kind:'sports',done:false,notes:''})
+ const a=await freshPage(),b=await freshPage()
+ const count=title=>JSON.stringify(cloud.users.alice.plan.data).split('"'+title+'"').length-1
+ const waitLong=async(check,message)=>{for(let i=0;i<160;i++){if(check())return;await new Promise(r=>setTimeout(r,250))}assert.fail(message)}
+ try{
+  for(const d of [a,b]){await d.page.clock.install({time:new Date('2026-10-15T15:00:00')});await signInAs(d.context,cloud,'alice');await d.page.goto(BASE);await heading(d.page,'Sanctuary');await go(d.page,'Planner')}
+  // Open the Add sheet, the editor and Schedule on B once while online (these test devices have no offline cache).
+  await b.page.getByRole('button',{name:'＋ Add',exact:true}).click()
+  await b.page.getByRole('dialog',{name:'Add to your plan'}).getByRole('group',{name:'Add type'}).getByRole('button',{name:'Homework'}).click()
+  await b.page.locator('dialog[open]').getByRole('button',{name:'Cancel'}).click()
+  await b.page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Schedule'}).click();await b.page.locator('.wb-agenda-day').first().waitFor()
+  await b.page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Week',exact:true}).click()
+  // B loses signal; both add homework.
+  await b.context.setOffline(true)
+  await addFromMenu(a.page,'tasks','From phone A')
+  await addFromMenu(b.page,'tasks','From phone B')
+  await waitFor(()=>count('From phone A')===1,'A’s homework never reached the account')
+  assert.equal(count('From phone B'),0,'B is offline')
+  await b.context.setOffline(false)
+  await b.page.evaluate(()=>window.dispatchEvent(new Event('online')))
+  await waitLong(()=>count('From phone B')===1&&count('From phone A')===1,'B’s homework never merged in (or something doubled)')
+  await b.page.getByText('From phone A').filter({visible:true}).first().waitFor()
+  await a.page.evaluate(()=>window.dispatchEvent(new Event('focus')))
+  await a.page.getByText('From phone B').filter({visible:true}).first().waitFor({timeout:30000})
+  for(const d of [a,b])assert.equal(await d.page.getByRole('alert',{name:'Syncing is paused'}).count(),0)
+  // Now A deletes the practice while B (offline) adds a note to it.
+  await b.context.setOffline(true)
+  await b.page.getByRole('button',{name:/^Shared practice · 4:00 PM/}).first().click()
+  const editor=b.page.locator('dialog[open]');await editor.getByLabel('Details').fill('Bring the orange cones')
+  await editor.getByRole('button',{name:'Save',exact:true}).click();await editor.waitFor({state:'detached'})
+  await a.page.locator('.planner-day-paper').getByRole('button',{name:'Next day'}).click()
+  const onA=a.page.locator('.wb-family-event').filter({hasText:'Shared practice'}).first()
+  await onA.locator('summary',{hasText:'More actions'}).click();await onA.getByRole('button',{name:'Move to Trash'}).click()
+  await waitFor(()=>!cloud.users.alice.plan.data.calendarEvents.some(e=>e.id==='e-shared'),'A’s delete never reached the account')
+  await b.context.setOffline(false)
+  await b.page.evaluate(()=>window.dispatchEvent(new Event('online')))
+  const banner=b.page.getByRole('alert',{name:'Syncing is paused'})
+  await banner.waitFor({timeout:40000})
+  await go(b.page,'Notes');await banner.waitFor()
+  await banner.getByRole('button',{name:'Keep this device’s version'}).click()
+  await banner.waitFor({state:'detached'})
+  await waitLong(()=>cloud.users.alice.plan.data.calendarEvents.find(e=>e.id==='e-shared')?.notes==='Bring the orange cones','B’s version never reached the account')
+  assert.deepEqual(a.errors,[]);assert.deepEqual(b.errors,[])
+ }finally{await a.context.close();await b.context.close()}
+})
+
 test('offline: the Home Screen app opens with no signal, shows the plan, keeps a new assignment on the device, and uploads it when the signal is back',async()=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,now=new Date()
  const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')
@@ -3166,6 +3214,10 @@ test('offline: the Home Screen app opens with no signal, shows the plan, keeps a
   await addFromMenu(page,'tasks','Written with no signal (e2e)')
   await page.getByText('Written with no signal (e2e)').filter({visible:true}).first().waitFor()
   await page.waitForFunction(()=>/offline|kept on this device|sync pending|unavailable/i.test(document.querySelector('.save-status [role=status]')?.textContent??''))
+  // Screens that load on demand open with no signal too (Settings › Family and Kids, never opened before).
+  await go(page,'Settings');await settingsTab(page,'Family');await page.getByRole('region',{name:'Share with grandparents'}).waitFor()
+  await go(page,'Kids');await page.getByRole('heading',{name:'Kids'}).first().waitFor()
+  assert.equal(await page.locator('.lazy-panel-error').count(),0,'a screen couldn’t load offline')
   assert.ok(!JSON.stringify(cloud.users.alice.plan.data).includes('Written with no signal (e2e)'))
   // Signal back: it reaches the account without doing anything.
   cloud.offline=false

@@ -293,4 +293,22 @@ test('avatar photos: a small picture data URL is kept on a profile and a kid; an
  assert.equal(n.profiles[0].photo,photo);assert.equal(n.kids[0].photo,photo)
  assert.equal(n.kids[1].photo,undefined,'not a picture');assert.equal(n.kids[2].photo,undefined,'too big')
 });
+test('two devices: lists of dates and people merge item by item, a setting keeps this device’s choice, and delete-versus-edit still asks',()=>{
+ const {mergeData}=load('src/store/merge.ts'),d=make(),pid=d.profiles[0].id
+ d.kids=[{id:'k1',profileId:pid,name:'Emma',color:'#7ca982'},{id:'k2',profileId:pid,name:'Leo',color:'#7ca982'},{id:'k3',profileId:pid,name:'Ada',color:'#7ca982'}]
+ d.calendarEvents=[{id:'e',profileId:pid,date:'2026-10-15',title:'Soccer',kind:'sports',notes:'',kidIds:['k1','k2'],kidId:'k1'}]
+ const week={Monday:[{id:'b',label:'Bio',start:'09:00',end:'10:00',kind:'study',completedDates:['2026-10-05']}],Sunday:[],Tuesday:[],Wednesday:[],Thursday:[],Friday:[],Saturday:[]}
+ d.studySeasons=[{id:'s',profileId:pid,name:'Fall',start:'2026-09-01',end:'2026-12-20',active:true,week}]
+ const base=model.normalizeData(clone(d)),left=clone(base),right=clone(base)
+ left.studySeasons[0].week.Monday[0].completedDates=['2026-10-05','2026-10-12'];right.studySeasons[0].week.Monday[0].completedDates=['2026-10-05','2026-10-19']
+ left.calendarEvents[0].kidIds=['k1','k2','k3'];right.calendarEvents[0].kidIds=['k1']
+ left.settings.darkMode='light';right.settings.darkMode='dark'
+ const m=mergeData(base,model.normalizeData(left),model.normalizeData(right))
+ assert.equal(m.conflicts.length,0,JSON.stringify(m.conflicts.map(c=>c.path)))
+ assert.deepEqual([...m.data.studySeasons[0].week.Monday[0].completedDates].sort(),['2026-10-05','2026-10-12','2026-10-19'])
+ assert.deepEqual([...m.data.calendarEvents[0].kidIds??[m.data.calendarEvents[0].kidId]],['k1','k3'],'Leo removed on one, Ada added on the other')
+ assert.equal(m.data.settings.darkMode,'light')
+ const del=clone(base),edit=clone(base);del.calendarEvents=[];edit.calendarEvents[0].notes='bring water'
+ assert.equal(mergeData(base,model.normalizeData(del),model.normalizeData(edit)).conflicts.length,1,'deleted here, edited there: ask')
+});
 (async()=>{let failed=0;for(const {name,fn}of tests){defaults();try{await fn();console.log('PASS '+name)}catch(e){failed++;console.error('FAIL '+name+'\n'+e.stack)}}console.log(`${tests.length-failed}/${tests.length} positive regression groups passed. Isolated hooks/SQLite; no Site or user-data writes.`);if(failed)process.exitCode=1})().catch(e=>{console.error(e);process.exitCode=1});

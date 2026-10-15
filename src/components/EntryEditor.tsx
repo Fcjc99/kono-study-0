@@ -62,7 +62,7 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
  const format=(before:string,after:string)=>{const textarea=bodyRef.current;if(!textarea)return;const key=note?'body':'notes',body=String(entry[key]??''),start=textarea.selectionStart,end=textarea.selectionEnd;field(key,body.slice(0,start)+before+(body.slice(start,end)||'text')+after+body.slice(end));requestAnimationFrame(()=>textarea.focus())}
  // Closing with nothing changed keeps no draft, so opening the item again (say after dragging it on
  // the week) starts from how it is now.
- const keep=()=>{if(busy)return;if(equal(entry,edit.original??edit.entry)){clearDrafts();close(!!edit.original,true,true);return}if(persist(entry))close(false)}
+ const keep=()=>{if(busy)return;if(equal(entry,edit.original??edit.entry)){clearDrafts();close(true,true,true);return}if(persist(entry))close(false)}
  const clearDrafts=()=>{try{localStorage.removeItem(draftScope);if(isNewAssignment)localStorage.removeItem(extraDatesKey)}catch{/* Saved record is authoritative. */}}
  useEffect(()=>{const warn=(e:BeforeUnloadEvent)=>{if(draftError){e.preventDefault();e.returnValue=''}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn)},[draftError])
  const submit=async(e:FormEvent)=>{

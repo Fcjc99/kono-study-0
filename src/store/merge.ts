@@ -6,6 +6,8 @@ export type MergeConflict={path:string;base:unknown;local:unknown;remote:unknown
 const equal=(a:unknown,b:unknown)=>JSON.stringify(a)===JSON.stringify(b)
 const record=(v:Json):v is {[key:string]:Json}=>!!v&&typeof v==='object'&&!Array.isArray(v)
 const identified=(v:Json[]):boolean=>v.every(x=>record(x)&&typeof x.id==='string')
+const plain=(v:Json[]):boolean=>v.every(x=>x===null||typeof x!=='object')
+const listy=(v:Json):boolean=>v===undefined||(Array.isArray(v)&&plain(v))
 
 /** A full-snapshot three-way merge. Absence is deletion only relative to this exact base. */
 export function mergeData(base:AppData,local:AppData,remote:AppData):{data:AppData;conflicts:MergeConflict[]} {
@@ -14,8 +16,20 @@ export function mergeData(base:AppData,local:AppData,remote:AppData):{data:AppDa
   if(equal(l,r))return l
   if(equal(l,b))return r
   if(equal(r,b))return l
+  // Lists of plain values (the dates a class was marked done or skipped, who an item is for, photo IDs)
+  // are sets: what either device added is kept, and what either removed is gone.
+  // A list that's gone on one side (a tag list saved as nothing once one person is left) is an empty list.
+  if(listy(b)&&listy(l)&&listy(r)&&[b,l,r].some(Array.isArray)){
+   const bl=(b??[]) as Json[],ll=(l??[]) as Json[],rl=(r??[]) as Json[]
+   const key=(x:Json)=>JSON.stringify(x),had=new Set(bl.map(key)),dropped=new Set([...bl.filter(x=>!ll.some(y=>key(y)===key(x))),...bl.filter(x=>!rl.some(y=>key(y)===key(x)))].map(key))
+   const out:Json[]=[],seen=new Set<string>()
+   for(const x of [...ll,...rl]){const k=key(x);if(seen.has(k)||(had.has(k)&&dropped.has(k)))continue;seen.add(k);out.push(x)}
+   return out
+  }
   // Concurrent creation and edit/delete are conflicts, never silent resurrection.
   if(b===undefined||l===undefined||r===undefined){conflicts.push({path,base:b,local:l,remote:r});return l}
+  // A preference changed on both devices: this device's choice (the newer one, since it's the one syncing now).
+  if(path.startsWith('/settings/')&&!record(b)&&!record(l)&&!record(r))return l
   if(Array.isArray(b)&&Array.isArray(l)&&Array.isArray(r)&&identified(b)&&identified(l)&&identified(r)){
    const index=(items:Json[])=>new Map(items.map(x=>[(x as {[key:string]:Json}).id as string,x]))
    const bm=index(b),lm=index(l),rm=index(r),out:Json[]=[]
@@ -34,11 +48,22 @@ export function mergeData(base:AppData,local:AppData,remote:AppData):{data:AppDa
   conflicts.push({path,base:b,local:l,remote:r});return l
  }
  const clone=(v:unknown)=>JSON.parse(JSON.stringify(v)) as Json
+ // Who an item is for is one list while merging (one person is saved as just kidId), so one device adding
+ // a kid while another removes one merges person by person; kidId follows the merged list afterwards.
+ const people=(v:Json,expand:boolean):void=>{
+  if(Array.isArray(v)){for(const x of v)people(x,expand);return}
+  if(!record(v))return
+  if(expand&&typeof v.kidId==='string'&&!Array.isArray(v.kidIds))v.kidIds=[v.kidId]
+  if(!expand&&Array.isArray(v.kidIds)){if(v.kidIds.length)v.kidId=v.kidIds[0];else{delete v.kidId;delete v.kidIds}}
+  for(const x of Object.values(v))people(x,expand)
+ }
  const b=clone(base) as {[key:string]:Json},l=clone(local) as {[key:string]:Json},r=clone(remote) as {[key:string]:Json}
+ people(b,true);people(l,true);people(r,true)
  // Navigation never travels between devices. Progress needs ledger-aware merging.
  delete b.activeProfileId;delete l.activeProfileId;delete r.activeProfileId
  delete b.sanctuaryProgress;delete l.sanctuaryProgress;delete r.sanctuaryProgress
- const raw=merge(b,l,r,'') as unknown as AppData
+ const merged=merge(b,l,r,'');people(merged,false)
+ const raw=merged as unknown as AppData
  raw.activeProfileId=local.activeProfileId
  raw.sanctuaryProgress={}
  const profileSlice=(doc:AppData,pid:string)=>({profile:doc.profiles.find(p=>p.id===pid),tasks:doc.tasks.filter(t=>t.profileId===pid),progress:doc.sanctuaryProgress[pid]})
