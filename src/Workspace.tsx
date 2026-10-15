@@ -1,9 +1,8 @@
 import {Fragment,Suspense,lazy,useCallback,useEffect,useMemo,useRef,useState,type CSSProperties,type PointerEvent,type ReactNode,type SetStateAction,type TouchEvent} from 'react'
-import {deleteProfile} from './store/deleteProfile'
 import {usePlannerRepository} from './store/repository'
 import {uid,localDate,eventCategory,peopleOf,type AppData,type SettingsData,type Subtask,type CalendarEvent,type Kid} from './store/model'
 import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems} from './store/kids'
-import {collections,records,titleOf,equal,removeEntry,restoreEntry,completeTask,type Collection,type Entry} from './store/workspace'
+import {collections,records,titleOf,equal,removeEntry,completeTask,type Collection,type Entry} from './store/workspace'
 import {calendarTasks,addDays} from './store/studyScheduler'
 import {planExamReview} from './store/examReview'
 import {classifyVoiceInput} from './store/voiceIntake'
@@ -44,18 +43,16 @@ import './components/sports-setup.css'
 import {schoolDayLabels} from './store/schoolCalendar'
 import {StickyNoteView} from './LegacyApp'
 import Sidebar from './components/Sidebar'
-import {lazyPanel} from './lazyPanel'
+import {lazyPage,lazyPanel} from './lazyPanel'
+import {ScheduleSetup,SharedWithMe,WeekRecap} from './pages/sharedPanels'
+import type {PageContext} from './pages/pageContext'
 import {loadIslandPoster} from './game/sanctuary/islandPoster'
 import Modal from './components/Modal'
 import {labels,type Edit} from './store/entryLabels'
 import type {LiveWeatherState} from './game/weather/liveWeather'
 type SettingsProps={data:AppData;setData:(action:SetStateAction<AppData>)=>Promise<boolean>}
-const PlanSettings=lazyPanel<SettingsProps&{onDeleteProfile?:(id:string)=>void}>(()=>import('./SettingsPanels').then(m=>({default:m.PlanSettings})))
 const WeatherSettings=lazyPanel<SettingsProps&{weatherState:LiveWeatherState}>(()=>import('./SettingsPanels').then(m=>({default:m.WeatherSettings})))
-const SoundMotionSettings=lazyPanel<SettingsProps>(()=>import('./SettingsPanels').then(m=>({default:m.SoundMotionSettings})))
-const ReminderSettings=lazyPanel<SettingsProps>(()=>import('./SettingsPanels').then(m=>({default:m.ReminderSettings})))
 import {AccountBanners,SaveStatus} from './components/AccountPanel'
-type StoreProps={store:ReturnType<typeof usePlannerRepository>}
 /** The three-step welcome on a brand-new plan; only new students download it. */
 const WelcomeTour=lazy(()=>import('./components/WelcomeTour'))
 const KonoCorner=lazy(()=>import('./components/KonoCorner'))
@@ -69,24 +66,16 @@ const FamilyTodos=lazy(()=>import('./components/FamilyTodos'))
 /** Holds the tour's place while its code loads, so nothing below jumps when it arrives. */
 const TourPlaceholder=()=><section className="wb-panel welcome-tour is-loading" aria-hidden="true"/>
 const Onboarding=lazy(()=>import('./components/Welcome').then(m=>({default:m.Onboarding}))),RecoveryScreen=lazy(()=>import('./components/Welcome').then(m=>({default:m.RecoveryScreen})))
-const AccountPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.AccountPanel})))
-const BackupPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.BackupPanel})))
-const SupportAdminPanel=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.SupportAdminPanel})))
-const FeedbackButton=lazyPanel<StoreProps>(()=>import('./components/AccountSettings').then(m=>({default:m.FeedbackButton})))
-const AiHelperSettings=lazyPanel<{profileId:string}>(()=>import('./components/AiHelper').then(m=>({default:m.AiHelperSettings})))
 import './components/StudyPlanner.css'
 import './components/kquiz.css'
 // The search panel groups plan items under these headings.
 const SEARCH_GROUP:Partial<Record<Collection,string>>={tasks:'Assignments',exams:'Exams',calendarEvents:'Events',notes:'Notes',subjects:'Subjects',kids:'Kids'}
-const ProfileCard=lazyPanel(()=>import('./components/ProfileCard'))
 const WallDisplay=lazyPanel(()=>import('./components/WallDisplay'))
-const FamilyShareLink=lazyPanel(()=>import('./components/FamilyShareLink'),null)
 const FamilySetup=lazyPanel(()=>import('./components/FamilySetup'),null)
 const SpecialDaysPanel=lazyPanel(()=>import('./components/SpecialDaysPanel'),null)
 const DayOffPanel=lazyPanel(()=>import('./components/DayOffPanel'),null)
 // The island's own "Opening…" line shows while its code downloads, so there's never an empty frame.
 const GardenCard=lazyPanel(()=>import('./components/GardenCard'),<article className="sanctuary-card" aria-busy="true"><div className="sanctuary-viewport"/><div className="sanctuary-load-status" role="status">Opening your Sanctuary…</div></article>)
-const SettingsSearch=lazyPanel(()=>import('./components/SettingsSearch'),null)
 const IslandPhoto=lazy(()=>import('./components/IslandPhoto'))
 const CommandPalette=lazyPanel(()=>import('./components/CommandPalette'))
 import MusicPlayer from './components/MusicPlayer'
@@ -96,7 +85,6 @@ const FocusSession=lazyPanel(()=>import('./components/FocusSession'))
 import SanctuaryDecorLayer from './components/SanctuaryDecorLayer'
 import './components/peer-connections.css'
 import {NavIcon,WeekWeather} from './components/Sidebar'
-import {downloadData} from './store/localRepository'
 import {APP_VERSION} from './version'
 import './workbench.css'
 import './design-restoration.css'
@@ -123,12 +111,10 @@ import BrandLogo from './components/BrandLogo'
 import {currentStreak as streakFrom,recapDay,weekRecap} from './store/weekRecap'
 import {useLocalSetting} from './hooks/useLocalSetting'
 import type {QuickDayItem} from './components/QuickDayAdd'
-const Calendar=lazyPanel(()=>import('./components/PlannerCalendar'))
 import type {StartStep} from './components/GettingStarted'
 import OverdueCard from './components/OverdueCard'
 import ReorderList from './components/ReorderList'
 import SwipeRow from './components/SwipeRow'
-const AddFromSiri=lazyPanel(()=>import('./components/AddFromSiri'))
 import {uploadPendingPhotos} from './store/photoStore'
 import type {QuickAddGuess} from './store/quickAdd'
 import {readLinked} from './store/linkedCalendars'
@@ -138,24 +124,14 @@ import {shiftAt} from './store/workShifts'
 import {repeatCopy,weekdayDates} from './store/eventRepeat'
 import {addKidPlan,familyView,kidPlanView,moveToWhose} from './store/familyPlans'
 import {teamJersey} from './teamThemes'
-import AddToCalendar,{type AddChoice,type AddChoiceId} from './components/AddToCalendar'
+import type {AddChoice,AddChoiceId} from './components/AddToCalendar'
 // Panels that aren't needed on first paint load on demand.
 const ScheduleImport=lazyPanel(()=>import('./components/ScheduleImport'))
 const CalendarImport=lazyPanel(()=>import('./components/CalendarImport'))
-const WeekPlanner=lazyPanel(()=>import('./components/WeekPlanner'))
-const WeekRecap=lazyPanel(()=>import('./components/WeekRecap'))
-const PushSettings=lazyPanel(()=>import('./components/PushSettings'))
-const CalendarSubscribe=lazyPanel(()=>import('./components/CalendarSubscribe'))
-const ScheduleSetup=lazyPanel(()=>import('./components/ScheduleSetup'))
 const WorkSetup=lazyPanel(()=>import('./components/WorkSetup'))
 const WeekAhead=lazyPanel(()=>import('./components/WeekAhead'))
-const ScheduleShare=lazyPanel(()=>import('./components/ScheduleShare'))
-const Flashcards=lazyPanel(()=>import('./components/Flashcards'))
-const KQuiz=lazyPanel(()=>import('./components/KQuiz'))
 const UpdatePlanScanner=lazyPanel(()=>import('./components/UpdatePlanScanner'))
-const PeerConnections=lazyPanel(()=>import('./components/PeerConnections'))
-// Only shown on the Planner page and in Decorate, so not part of the startup download.
-const StudyPlanner=lazyPanel(()=>import('./components/StudyPlanner'))
+// Only shown in Decorate, so not part of the startup download.
 const SanctuaryBuild=lazyPanel(()=>import('./components/SanctuaryBuild'))
 const AskKono=lazyPanel(()=>import('./components/AskKono'))
 const EntryEditor=lazyPanel(()=>import('./components/EntryEditor'))
@@ -163,17 +139,26 @@ const EntryEditor=lazyPanel(()=>import('./components/EntryEditor'))
 const QuickAddBox=lazyPanel(()=>import('./components/QuickAddBox'))
 const GettingStarted=lazyPanel(()=>import('./components/GettingStarted'))
 const QuickDayAdd=lazyPanel(()=>import('./components/QuickDayAdd'))
-const SharedWithMe=lazyPanel(()=>import('./components/SharedWithMe'))
 
 type Store=ReturnType<typeof usePlannerRepository>
+// Every page but Home loads on demand, so its code stays out of the startup download. The page being
+// opened is fetched right away (below); the others load quietly once Home has settled (see warm-up).
+const PlannerPage=lazyPage(()=>import('./pages/PlannerPage'))
+const SubjectsPage=lazyPage(()=>import('./pages/SubjectsPage'))
+const NotesPage=lazyPage(()=>import('./pages/NotesPage'))
+const KQuizPage=lazyPage(()=>import('./pages/KQuizPage'))
+const ExamsPage=lazyPage(()=>import('./pages/ExamsPage'))
+const SettingsPage=lazyPage(()=>import('./pages/SettingsPage'))
+const TrashPage=lazyPage(()=>import('./pages/TrashPage'))
+const pageCode:Partial<Record<Page,()=>Promise<unknown>>>={Planner:PlannerPage.preload,Kids:()=>import('./WorkspaceSettings'),Subjects:SubjectsPage.preload,Notes:NotesPage.preload,'K-Quiz':KQuizPage.preload,Exams:ExamsPage.preload,Settings:SettingsPage.preload,Trash:TrashPage.preload}
 import {SETTINGS_TABS,cozyPalette,fixedPaletteExperiences,own,pages,dateLabel,daysUntil,countdown,entryDate,isAssignmentKind,isImportantEntry,tracksDone,type Page,type SettingsTab} from './workspaceShared'
 import AssignmentProgress from './components/AssignmentProgress'
 import Avatar from './components/Avatar'
 import type * as Screens from './WorkspaceSettings'
 type PropsOf<K extends keyof typeof Screens>=Parameters<(typeof Screens)[K]>[0]
-/** The Kids page, the family settings and Look & feel load the first time they're shown. */
-const screen=<K extends 'KidsPage'|'FamilySettings'|'FamilyReminderSettings'|'TeamColors'|'Appearance'>(name:K)=>lazyPanel<PropsOf<K>>(()=>import('./WorkspaceSettings').then(m=>({default:m[name] as unknown as (props:PropsOf<K>)=>ReactNode})))
-const KidsPage=screen('KidsPage'),FamilySettings=screen('FamilySettings'),FamilyReminderSettings=screen('FamilyReminderSettings'),TeamColors=screen('TeamColors'),Appearance=screen('Appearance')
+/** The Kids page loads the first time it's shown. */
+const screen=<K extends 'KidsPage'>(name:K)=>lazyPanel<PropsOf<K>>(()=>import('./WorkspaceSettings').then(m=>({default:m[name] as unknown as (props:PropsOf<K>)=>ReactNode})))
+const KidsPage=screen('KidsPage')
 /** "Hey Siri, add homework" (an iPhone Shortcut) and the share sheet open KONO as /?add=… or with a
  * share's title/text/url; that starts Quick add filled in, with any link kept as the assignment's link. */
 const readIncoming=()=>{
@@ -192,6 +177,7 @@ const pageFromURL=():Page=>pages.find(p=>p.toLowerCase()===new URL(location.href
 // (their saved sign-in is in localStorage; a new visitor sees the sign-in screen, so nothing is fetched).
 const signedIn=()=>{try{return Object.keys(localStorage).some(k=>k.startsWith('sb-')&&k.endsWith('-auth-token'))}catch{return false}}
 const startPage=pageFromURL()
+void pageCode[startPage]?.().catch(()=>undefined)
 if(startPage==='Planner'){void import('./components/PlannerCalendar').catch(()=>undefined);void import('./components/WeekGrid').catch(()=>undefined)}
 else if(startPage==='Sanctuary'&&signedIn()){void import('./components/GardenCard').catch(()=>undefined);void loadIslandPoster()}
 
@@ -605,14 +591,22 @@ function Workspace({store}:{store:Store}){
  const pageScope=useRef<HTMLDivElement>(null)
  useEffect(()=>{stagger(pageScope.current)},[page])
  useEffect(trackPointer,[])
- // The Planner is the next page most people open: once Home has settled, its code loads quietly in the
- // background so tapping Planner opens it at once instead of waiting on a download (slow phones most).
+ // Once Home has settled, the other pages' code loads quietly in the background, one per idle moment,
+ // so tapping a page opens it at once instead of waiting on a download (slow phones most). The Planner,
+ // the next page most people open, goes first, with its calendar.
  useEffect(()=>{
-  const warm=()=>{void import('./components/PlannerCalendar').catch(()=>undefined)}
+  const queue=[()=>import('./components/PlannerCalendar'),...Object.values(pageCode)]
   // Safari has no requestIdleCallback; a short delay does the same job there.
   const idle=(window as Window&{requestIdleCallback?:Window['requestIdleCallback']}).requestIdleCallback
-  if(idle){const id=idle.call(window,warm,{timeout:5000});return()=>window.cancelIdleCallback(id)}
-  const t=setTimeout(warm,3000);return()=>clearTimeout(t)
+  let stop=()=>{}
+  const next=(first:boolean)=>{
+   const load=queue.shift();if(!load)return
+   const warm=()=>{void load().catch(()=>undefined).then(()=>next(false))}
+   if(idle){const id=idle.call(window,warm,{timeout:first?5000:2000});stop=()=>window.cancelIdleCallback(id)}
+   else{const t=setTimeout(warm,first?3000:300);stop=()=>clearTimeout(t)}
+  }
+  next(true)
+  return()=>{queue.length=0;stop()}
  },[])
  useEffect(()=>{const t=window.setTimeout(()=>void effects().catch(()=>undefined),1500);return()=>window.clearTimeout(t)},[])
  // The app's light follows the island's time of day (a soft tint behind the pages; motion-polish.css).
@@ -862,33 +856,6 @@ function Workspace({store}:{store:Store}){
   if(!onPhone||key!=='tasks'||entry.done||compact)return <Fragment key={entry.id}>{record}</Fragment>
   return <SwipeRow key={entry.id} onRight={()=>toggle(key,entry)} onLeft={entry.studyPlanId?undefined:()=>void run(()=>save(d=>({...d,tasks:d.tasks.map(t=>t.id===entry.id?{...t,due:addDays(localDate(),1),plannedTime:undefined}:t)})),'Moved “'+titleOf(entry)+'” to tomorrow.',true)}>{record}</SwipeRow>
  }
- const reorder=(from:string,to:string)=>{const sorted=[...notes].sort((a,b)=>(a.position??0)-(b.position??0)),moving=sorted.find(n=>n.id===from);if(!moving||from===to)return;const order=sorted.filter(n=>n.id!==from);order.splice(order.findIndex(n=>n.id===to),0,moving);void run(()=>save(d=>({...d,notes:d.notes.map(n=>n.profileId===profile.id?{...n,position:order.findIndex(x=>x.id===n.id)}:n)})),'Board order saved.')}
- const move=(id:string,by:number)=>{const sorted=[...notes].sort((a,b)=>(a.position??0)-(b.position??0)),index=sorted.findIndex(n=>n.id===id),target=index+by;if(!sorted[target])return;[sorted[index],sorted[target]]=[sorted[target],sorted[index]];void run(()=>save(d=>({...d,notes:d.notes.map(n=>n.profileId===profile.id?{...n,position:sorted.findIndex(x=>x.id===n.id)}:n)})),'Board order saved.')}
- const noteBoard=(pinnedOnly=false)=><section className={'wb-panel wb-board board-'+(data.settings.boardStyle??'paper')}>
-  <div className="wb-section-head wb-board-heading"><h2>{pinnedOnly?'Your bulletin board':'Your notes'}</h2><button onClick={()=>create('notes')}>＋ New note</button></div>
-  <div className="notes-filters">{subjects.length>0&&<div className="notes-subject-chips" role="group" aria-label="Subject"><button type="button" aria-pressed={!subject||!subjects.some(x=>x.id===subject)} onClick={()=>setSubject('')}>All</button>{subjects.map(x=><button type="button" key={x.id} aria-pressed={subject===x.id} style={{'--subject':x.color} as CSSProperties} onClick={()=>setSubject(x.id)}><i aria-hidden="true"/>{x.name}<small>{notes.filter(n=>(!pinnedOnly||n.pinned)&&n.subjectId===x.id).length}</small></button>)}</div>}<div className="calendar-views notes-view" role="group" aria-label="View">{([['board','Board'],['list','List']] as const).map(([id,label])=><button type="button" key={id} aria-pressed={boardView===id} onClick={()=>setBoardView(id)}>{label}</button>)}</div></div>
-  <div className={'wb-note-grid wb-board-canvas '+(boardView==='list'?'is-list':'')}>{notes.filter(n=>(!pinnedOnly||n.pinned)&&(!subject||n.subjectId===subject)).sort((a,b)=>(a.position??0)-(b.position??0)).map(n=><div className={'wb-note-wrap size-'+(n.size??'medium')} key={n.id} draggable onDragStart={e=>e.dataTransfer.setData('text/plain',n.id)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();reorder(e.dataTransfer.getData('text/plain'),n.id)}}>{card('notes',n as unknown as Entry)}<div className="wb-move"><button aria-label={'Move '+n.title+' earlier'} title="Move earlier" onClick={()=>move(n.id,-1)}>‹</button><button aria-label={'Move '+n.title+' later'} title="Move later" onClick={()=>move(n.id,1)}>›</button></div></div>)}</div>
-  {!notes.some(n=>(!pinnedOnly||n.pinned)&&(!subject||n.subjectId===subject))&&<p className="wb-board-empty"><img className="kono-empty-art" src="/garden/kono/read.webp" alt="" aria-hidden="true"/>Your board is ready for your notes.<br/>Pin reminders, ideas and study notes here.</p>}
- <div className="wb-board-tray" aria-hidden="true"><span>✿</span><span>✦</span><span>✿</span></div>
- </section>
-
- // The Subjects page, built only when it's the page showing (it looks four weeks of classes ahead).
- const subjectWorkspace=()=>{
- const selectedSubject=subjects.find(s=>s.id===subject)??(subject==='__unassigned__'?undefined:subjects[0])
- const selectedSubjectId=selectedSubject?.id??''
- const subjectTasks=tasks.filter(t=>selectedSubject? t.subjectId===selectedSubject.id : !subjects.some(s=>s.id===t.subjectId))
- const subjectClasses=Array.from({length:28},(_,i)=>addDays(today,i)).flatMap(date=>classOccurrences(data,date)).filter(c=>selectedSubject&&c.block.subjectId===selectedSubject.id)
- return <>
-  <div className="wb-section-head subject-page-tools"><h2>Your classes</h2><button onClick={()=>create('subjects')}>＋ Create a subject</button></div>
-  <div className="subjects-layout restored-subjects"><nav className="subject-tabs" aria-label="Choose a subject">{subjects.map(s=>{const all=tasks.filter(t=>t.subjectId===s.id),left=all.filter(t=>!t.done).length;return <button key={s.id} aria-current={selectedSubject?.id===s.id?'true':undefined} className={selectedSubject?.id===s.id?'active':''} style={{'--subject':s.color} as CSSProperties} onClick={()=>setSubject(s.id)}><i aria-hidden="true">{s.name.trim().charAt(0).toUpperCase()}</i><div><strong>{s.name}</strong><small>{left?left+' remaining':all.length?'All done ✓':'Nothing yet'}</small>{all.length>0&&<span className="subject-tab-bar" aria-hidden="true"><b style={{width:Math.round(100*(all.length-left)/all.length)+'%'}}/></span>}</div></button>})}<button onClick={()=>setSubject('__unassigned__')} aria-current={!selectedSubject?'true':undefined}><div><strong>Unassigned</strong><small>Work without a subject</small></div></button></nav>
-  <section className="card subject-workspace" style={{'--subject':selectedSubject?.color??'#6e6572'} as CSSProperties}><div className="subject-banner" aria-hidden="true"/><header className="subject-workspace-title"><div><span className="subject-label" style={{background:selectedSubject?.color??'#6e6572'}}>{selectedSubject?.name??'Unassigned'}</span><h2>{selectedSubject?.name??'Unassigned work'}</h2><p>{selectedSubject?.teacher||profile.label}{selectedSubject?.room?' · '+selectedSubject.room:''}</p>{(()=>{const nextClass=subjectClasses[0],nextExam=data.exams.filter(e=>e.profileId===profile.id&&!e.done&&e.due>=today&&(selectedSubject?e.subjectId===selectedSubjectId:!subjects.some(x=>x.id===e.subjectId))).sort((a,b)=>a.due.localeCompare(b.due))[0],open=subjectTasks.filter(t=>!t.done).length;return <p className="subject-facts"><span>📌 {open} to do</span>{nextExam&&<span>📝 {nextExam.title} · {dateLabel(nextExam.due)}</span>}{nextClass&&<span>🕒 Next class {nextClass.date===today?'today':dateLabel(nextClass.date)}{nextClass.timePending?'':' at '+classTime(nextClass.displayStart??nextClass.block.start)}</span>}</p>})()}</div>{selectedSubject&&<div className="wb-toolbar"><button onClick={()=>edit('subjects',selectedSubject as unknown as Entry)}>Customize</button><button onClick={()=>remove('subjects',selectedSubject as unknown as Entry)}>Move to Trash</button></div>}</header>
-  <nav className="subject-section-tabs calendar-views" aria-label="Subject sections">{['Assignments','Notes','Exams','Schedule'].map(tab=><button key={tab} aria-current={tab===subjectTab?'page':undefined} onClick={()=>setSubjectTab(tab)}>{tab}</button>)}</nav>
-  {subjectTab==='Assignments'&&<><div className="subject-quick-add"><p>{subjectTasks.filter(t=>t.done).length} of {subjectTasks.length} complete</p><button className="primary" onClick={()=>create('tasks',today,selectedSubjectId)}>＋ Add assignment</button></div>{subjectTasks.filter(t=>!t.done).map(t=>card('tasks',t as unknown as Entry))}{!subjectTasks.some(t=>!t.done)&&<p>No unfinished assignments here.</p>}<details><summary>Completed · {subjectTasks.filter(t=>t.done).length}</summary>{subjectTasks.filter(t=>t.done).map(t=>card('tasks',t as unknown as Entry))}</details></>}
-  {subjectTab==='Notes'&&<><button onClick={()=>create('notes',today,selectedSubjectId)}>＋ New subject note</button><div className="wb-note-grid">{notes.filter(n=>selectedSubject?n.subjectId===selectedSubjectId:!subjects.some(s=>s.id===n.subjectId)).map(n=>card('notes',n as unknown as Entry))}</div>{!notes.some(n=>n.subjectId===selectedSubjectId)&&<p>No notes here yet.</p>}</>}
-  {subjectTab==='Exams'&&<><button onClick={()=>create('exams',today,selectedSubjectId)}>＋ Add exam</button>{data.exams.filter(e=>e.profileId===profile.id&&(selectedSubject?e.subjectId===selectedSubjectId:!subjects.some(s=>s.id===e.subjectId))).map(e=>card('exams',e as unknown as Entry))}</>}
-  {subjectTab==='Schedule'&&<><p>Classes over the next four weeks.</p><button onClick={()=>navigate('Settings')}>Edit weekly schedule</button>{subjectClasses.map(renderClass)}{!subjectClasses.length&&<p>No upcoming classes linked to this subject. Choose its subject when editing a recurring class.</p>}</>}
-  </section></div></>
- }
  const openSettings=(tab:SettingsTab)=>{setSettingsTab(tab);navigate('Settings')}
  // Planner › ＋ Add to my calendar: the one place to add schedules and calendars (see AddToCalendar).
  const openAdd=(choice:AddChoiceId|null=null)=>{setAddChoice(choice);setAddOpen(true);navigate('Planner')}
@@ -943,6 +910,7 @@ function Workspace({store}:{store:Store}){
  const pastReminders=data.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date<today&&personShown(e)&&tracksDone('calendarEvents',e as unknown as Entry)).sort((a,b)=>a.date.localeCompare(b.date))
  const todayCount=overdue.length+pastReminders.length+todayClasses.length+todayLoose.length,tomorrowCount=tomorrowClasses.length+tomorrowLoose.length
  const setupLeft=startSkipped.has('all')?0:startSteps.filter(st=>!st.done).length
+ const w:PageContext={store,repository,data,view,profile,experience,islandSetting,simpleView,parentMode,reduced,lockedPlan,releaseLabel,draftScope,today,tasks,viewTasks,ownTasks,notes,subjects,profileKids,plans,recap,classmatesOn,peopleFilter,overdueCard,addChoices,plannerMoreRef,subject,setSubject,subjectTab,setSubjectTab,boardView,setBoardView,selectedDate,setSelectedDate,settingsTab,setSettingsTab,addOpen,addChoice,setAddChoice,recapOpen,setRecapOpen,weekPlanOpen,setWeekPlanOpen,planRequest,setPlanRequest,setSpecialOpen,setPickupsOpen,setWallOpen,setDayOffFor,setConfirmation,save,run,setting,navigate,openSettings,openAdd,closeAdd,openWeather,create,edit,remove,patch,reschedule,planAt,stretchTo,quickAddFamilyEvent,personShown,card,renderClass,renderCompactClass}
  return <div className={'workbench density-'+(data.settings.density??'comfortable')+' text-'+(data.settings.textSize??'normal')+(simpleView?' is-simple':'')} data-page={page.toLowerCase()} data-experience={experience} data-decoration={data.settings.decoration!==false}>
   <a className="skip-link" href="#workspace-main">Skip to content</a>
   {experience==='cozy'?<div className="cozy-navigation"><Sidebar hidden={hiddenPages} view={page==='Trash'?'Notes':page} onView={navigate} profile={profile.name} schoolYear={profile.label} profiles={data.profiles} activeProfileId={profile.id} onProfileChange={switchPlan} onOpenPlans={()=>setPlansOpen(true)} locked={!!lockedPlan} onAdd={()=>setAdding(true)} onMore={()=>setMore(true)} homeLabel={islandSetting==='off'?'Home':undefined} simple={simpleView} weekWeather={weather.reading?.daily??[]} weatherLocation={data.settings.sanctuaryWeatherLocations[profile.id]} music={music} parentMode={parentMode} weatherChip={weatherChip}/></div>:<aside className="wb-sidebar"><div className="wb-brand-row"><a className="wb-brand" href="?page=sanctuary" onClick={e=>{e.preventDefault();navigate('Sanctuary')}}><span className="brand-mark" aria-hidden="true"><BrandLogo/><i>✿</i></span><strong>KONO<small>Study Sanctuary</small></strong></a>{weatherChip}</div><div className="wb-tabs-label">Notebook tabs</div><nav aria-label="Main navigation">{visiblePages.map(p=><button key={p} aria-current={page===p?'page':undefined} onClick={()=>navigate(p)}><span className="wb-nav-icon">{p==='Trash'?<span aria-hidden="true">↶</span>:<NavIcon name={p} experience={experience}/>}</span><span>{p}</span></button>)}</nav><div className="sidebar-music-slot"><MusicPlayer controller={music} compact/></div><label className="wb-profile"><span className="wb-profile-title">{profile.label}</span>Study profile<select value={profile.id} onChange={e=>switchPlan(e.target.value)}>{data.profiles.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}</select></label></aside>}
@@ -1044,26 +1012,14 @@ function Workspace({store}:{store:Store}){
      </div>}
     </section>
    </div></div>}
-   {page==='Planner'&&<><div className="wb-toolbar planner-settings-link"><span className="planner-settings-hint">Your classes, assignments and daily plans</span><div className="wb-toolbar"><button className="primary" onClick={()=>openAdd()}>＋ Add to my calendar</button><details className="today-card-more planner-more" ref={plannerMoreRef}><summary aria-label="More for your planner">⋯</summary><div className="today-card-menu">{([['schedules','My schedules',()=>openSettings('Schedules')],['plan','✨ Plan my week',()=>setWeekPlanOpen(true)],['special','🎂 Birthdays & countdowns',()=>setSpecialOpen(true)],...(recap?[['recap','📊 Your week so far',()=>setRecapOpen(true)] as const]:[]),['study','📚 Break it into days',()=>setPlanRequest(n=>n+1)],['work','💼 My work schedule',()=>openAdd('work')],...(parentMode&&profileKids.length?[['pickups','🚗 Pickups & drop-offs',()=>setPickupsOpen(true)] as const]:[])] as const).map(([id,label,open])=><button type="button" key={id} onClick={()=>{if(plannerMoreRef.current)plannerMoreRef.current.open=false;open()}}>{label}</button>)}</div></details></div></div>{addOpen&&<AddToCalendar choices={addChoices} choice={addChoice} setChoice={setAddChoice} close={closeAdd}/>}{!addOpen&&<>{classmatesOn&&<SharedWithMe repository={repository} data={data} save={save}/>}{recap&&recapOpen&&<details className="wb-panel week-recap-panel" open onToggle={e=>{if(!e.currentTarget.open)setRecapOpen(false)}}><summary>📊 Your week so far</summary><WeekRecap recap={recap} onPlanWeek={()=>{setRecapOpen(false);setWeekPlanOpen(true)}}/></details>}{weekPlanOpen&&<details className="wb-panel week-plan-panel" open onToggle={e=>{if(!e.currentTarget.open)setWeekPlanOpen(false)}}><summary>✨ Plan my week</summary><WeekPlanner data={data} save={save}/></details>}<Calendar onWall={()=>setWallOpen(true)} openDayOff={setDayOffFor} openSpecial={()=>setSpecialOpen(true)} data={view} tasks={viewTasks} date={selectedDate} selectDate={setSelectedDate} create={create} render={card} renderClass={renderCompactClass} reschedule={reschedule} planAt={planAt} stretchTo={stretchTo} edit={edit} setting={setting} navigate={navigate} parentMode={parentMode} quickAddEvent={quickAddFamilyEvent} personShown={personShown} peopleFilter={peopleFilter}/>{/* The calendar leads the Planner; anything late follows it. */}{overdueCard}{(planRequest>0||plans.length>0)&&<StudyPlanner key={planRequest} initialOpen={planRequest>0} draftKey={draftScope+':plan'} profileId={profile.id} plans={plans} tasks={ownTasks} subjects={subjects} setData={save} onSelectDate={setSelectedDate}/>}</>}</>}
+   {page==='Planner'&&<PlannerPage w={w}/>}
    {page==='Kids'&&<KidsPage onSetup={()=>setFamilySetupOpen(true)} data={data} create={create} edit={edit} remove={remove} patch={patch} openSettings={openSettings} onOpenKidPlan={kid=>{goHomeFirst();void save(d=>{const r=addKidPlan(d,kid);return {...r.data,activeProfileId:r.id}})}}/>}
-   {page==='Subjects'&&experience!=='simplified'&&subjectWorkspace()}
-   {page==='Subjects'&&experience==='simplified'&&<><section className="wb-panel"><div className="wb-section-head"><h2>Your subjects</h2><button onClick={()=>create('subjects')}>＋ Subject</button></div><div className="wb-record-grid">{subjects.map(s=>card('subjects',s as unknown as Entry))}</div>{!subjects.length&&<p>Create your first subject to organize your work.</p>}</section><section className="wb-panel"><div className="wb-section-head"><h2>Assignments</h2><button onClick={()=>create('tasks')}>＋ Assignment</button></div><label>Filter subject<select value={subject} onChange={e=>setSubject(e.target.value)}><option value="">All subjects, including unassigned</option>{subjects.map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></label><div className="wb-toolbar"><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,true),d)),'Assignments completed.')}>Complete all shown</button><button onClick={()=>void run(()=>save(d=>tasks.filter(t=>!subject||t.subjectId===subject).reduce((next,t)=>completeTask(next,t.id,false),d)),'Assignments reopened; earned progress is kept.')}>Reopen all shown</button></div>{tasks.filter(t=>!subject||t.subjectId===subject).map(t=>card('tasks',t as unknown as Entry))}</section></>}
-   {page==='Notes'&&<>{noteBoard()}<details className="wb-panel"><summary>Quiz me · Flashcards</summary><Flashcards draftKey={draftScope+':cards'} profileId={profile.id} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} setData={save}/></details></>}
-   {page==='K-Quiz'&&<KQuiz onOpenAiSettings={()=>openSettings('Import & export')} profileId={profile.id} lectures={data.kquizLectures.filter(l=>l.profileId===profile.id)} sets={data.kquizSets.filter(s=>s.profileId===profile.id)} sources={data.kquizSources.filter(s=>s.profileId===profile.id)} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} subjects={subjects} setData={save}/>}
-   {page==='Exams'&&<section className="wb-panel wb-board board-paper"><div className="wb-section-head wb-board-heading"><h2>Your exams</h2><button onClick={()=>create('exams')}>＋ Exam</button></div><div className="wb-note-grid wb-board-canvas">{data.exams.filter(e=>e.profileId===profile.id).sort((a,b)=>a.due.localeCompare(b.due)).map(e=>card('exams',e as unknown as Entry))}{!data.exams.some(e=>e.profileId===profile.id)&&<p className="wb-board-empty"><img className="kono-empty-art" src="/garden/kono/tea.webp" alt="" aria-hidden="true"/>No exams yet. Add a date and what you need to review.</p>}</div><div className="wb-board-tray" aria-hidden="true"><span>✿</span><span>✦</span><span>✿</span></div></section>}
-   {page==='Settings'&&lockedPlan&&<section className="wb-panel"><h2>Settings are locked</h2><p>This device is set to one plan. A parent can unlock it from the plan button at the top.</p></section>}
-   {page==='Settings'&&!lockedPlan&&<div className="settings-groups"><div className="wb-section-head settings-page-tools"><small>Version {APP_VERSION} · Build {releaseLabel}</small><FeedbackButton store={store}/></div><SettingsSearch onOpen={(tab,find)=>{setSettingsTab(tab);window.setTimeout(()=>{const el=[...document.querySelectorAll('#workspace-main :is(h2,h3,legend,summary,label,strong)')].find(e=>e.textContent?.toLowerCase().includes(find));const fold=el?.closest('details');if(fold)fold.open=true;el?.scrollIntoView({block:'center',behavior:'smooth'});(el as HTMLElement|undefined)?.classList.add('settings-found');window.setTimeout(()=>(el as HTMLElement|undefined)?.classList.remove('settings-found'),1800)},350)}}/><nav className="subject-section-tabs" aria-label="Settings sections">{[...SETTINGS_TABS,...(store.isAdmin&&!store.support?['KONO support' as const]:[])].map(tab=><button key={tab} aria-current={tab===settingsTab?'page':undefined} onClick={()=>setSettingsTab(tab)}>{tab}</button>)}</nav>
-   {settingsTab==='Look & feel'&&<><section className="wb-panel"><Appearance settings={data.settings} setting={setting}/></section><section className="wb-panel island-setting"><h2>Island &amp; KONO</h2><p className="wb-muted">For {profile.label}. Each plan can choose its own. Nothing is deleted: turning the island back on brings everything back.</p><div className="island-choice" role="group" aria-label="Island and KONO">{([['full','🏝️','Island and KONO','The whole island, KONO, snacks, stickers and Decorate.'],['kono','🐾','Just KONO','No island picture. KONO stays in a card on Home.'],['off','📋','Off','A plain planner: no island and no KONO.']] as const).map(([mode,icon,label,note])=><button type="button" key={mode} aria-pressed={islandSetting===mode} onClick={()=>void run(()=>save(d=>({...d,profiles:d.profiles.map(p=>p.id===profile.id?{...p,island:mode==='full'?undefined:mode}:p)})),mode==='full'?'The island is back.':mode==='kono'?'Just KONO on Home now.':'Island and KONO turned off for this plan.')}><span aria-hidden="true">{icon}</span><strong>{label}</strong><small>{note}</small></button>)}</div><label className="wb-check simple-view-toggle"><input type="checkbox" checked={simpleView} onChange={e=>{const on=e.target.checked;void run(()=>save(d=>({...d,profiles:d.profiles.map(p=>p.id===profile.id?{...p,simpleView:on||undefined}:p)})),on?'Simple view on: bigger text, fewer buttons.':'Simple view off.')}}/><span><strong>Simple view</strong> · bigger text and fewer buttons (just Home, Planner and Notes). Made for kids.</span></label>{islandSetting==='full'&&<p className="island-weather-link wb-muted"><strong>Sanctuary weather</strong> (live, manual or clear) is set on the island, from the weather button next to KONO. <button type="button" className="link-button" onClick={openWeather}>Open Sanctuary weather</button></p>}</section><section className="wb-panel"><h2>Sound &amp; motion</h2><SoundMotionSettings data={data} setData={save}/></section><TeamColors settings={data.settings} setting={setting}/></>}
-   {settingsTab==='Notifications'&&<section className="wb-panel"><h2>Notifications</h2><PushSettings store={store}/>{parentMode&&<FamilyReminderSettings data={data} setting={setting}/>}{islandSetting!=='off'&&<section className="card settings-list kono-note-settings"><h3>KONO</h3><label><div><strong>KONO’s notes</strong><small>A lock-screen note at 4:30 PM when KONO is getting hungry or misses you, at most once a day. Comes with lock-screen reminders above.</small></div><input type="checkbox" checked={data.settings.konoNotes!==false} onChange={e=>void setting('konoNotes',e.target.checked)}/></label></section>}<ReminderSettings data={data} setData={save}/></section>}
-   {settingsTab==='Family'&&<FamilySettings data={data} setting={setting} patch={patch} navigate={navigate}/>}
-   {settingsTab==='Family'&&<FamilyShareLink store={store} profileId={profile.id}/>}
-   {settingsTab==='Schedules'&&<section className="wb-panel"><ScheduleSetup data={data} save={save} draftKey={draftScope} fetchCatalog={repository.fetchSchoolCatalog} submitCatalogEntry={repository.submitSchoolCatalogEntry}/></section>}
-   {settingsTab==='KONO support'&&store.isAdmin&&!store.support&&<section className="wb-panel"><SupportAdminPanel store={store}/></section>}
-      {settingsTab==='Import & export'&&<section className="wb-panel"><h2>Import &amp; export</h2><BackupPanel store={store}/><div className="wb-notice add-moved"><p><strong>Adding schedules and calendars</strong> (photos, PDFs, calendar links, Canvas and Classroom) now all start from the Planner.</p><button type="button" className="primary" onClick={()=>openAdd()}>＋ Add to my calendar</button></div><details><summary>Share a schedule with someone else</summary><ScheduleShare data={data} save={save}/></details><details><summary>Show KONO in Google Calendar or Apple Calendar (stays up to date)</summary><CalendarSubscribe store={store} profileId={profile.id} planLabel={profile.label}/></details><details><summary>Export to your calendar app</summary><p>Download every assignment, exam and event in {profile.label} as a calendar file, then import or add it in Google Calendar, Apple Calendar, or Outlook. This is a one-time snapshot -- re-download it after making big changes to keep your calendar app in sync.</p><button type="button" onClick={()=>void import('./store/icsExport').then(({buildIcs})=>downloadData(buildIcs(data,profile.id),(profile.label||'kono-plan').toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.ics','text/calendar'))}>Download calendar (.ics)</button></details></section>}
-   {settingsTab==='Import & export'&&<section className="wb-panel"><h2>Helpers</h2><details className="settings-group"><summary>Add homework with Siri <small>or from the share sheet on Android</small></summary><AddFromSiri/></details><details id="ai-helper" className="settings-group"><summary>AI helper <small>for K-Quiz, the photo scanner and schedule reading</small></summary><AiHelperSettings profileId={profile.id}/></details></section>}
-   {settingsTab==='Plans & account'&&<><ProfileCard key={profile.id} profile={profile} onSave={patch=>void run(()=>save(d=>({...d,profiles:d.profiles.map(p=>p.id===profile.id?{...p,...patch}:p)})),'Profile saved.')}/><section className="wb-panel"><AccountPanel store={store}/></section><section className="wb-panel"><h2>Plans</h2><PlanSettings data={data} setData={save} onDeleteProfile={id=>{const p=data.profiles.find(x=>x.id===id);if(!p)return;setConfirmation({text:'Delete plan “'+p.label+'” and all its subjects, assignments, notes, schedules and Sanctuary progress? This does not delete your account or other plans. Export a backup first. Plan deletion is not kept in Trash.',action:()=>void run(()=>save(d=>deleteProfile(d,id)),'Plan deleted. Other plans were kept.')})}}/></section><section className="wb-panel"><h2>Friends</h2>{store.user?<PeerConnections repository={repository} myUserId={store.user.id} reducedMotion={reduced}/>:<p>Sign in with a KONO account to connect with classmates and share your classes.</p>}</section></>}
-   </div>}
-   {page==='Trash'&&<section className="wb-panel"><h2>Recently removed</h2><p>Restore items here, even after a reload. Undo/Redo covers the last 30 changes in this session. Signed-in Trash syncs with your account.</p>{data.trash.filter(t=>t.profileId===profile.id).map(t=><article className="wb-record" key={t.id}><h3>{t.title}</h3><p>{labels[t.collection as Collection]??'Schedule block'} · Removed {new Date(t.deletedAt).toLocaleString()}</p><div className="wb-toolbar"><button onClick={()=>void run(()=>save(d=>restoreEntry(d,t.id)),'Restored.')}>Restore</button><button onClick={()=>{setConfirmation({text:'Permanently delete “'+t.title+'” from Trash? Older backups may still contain it.',action:()=>void run(()=>save(d=>({...d,trash:d.trash.filter(x=>x.id!==t.id)})),'Removed from Trash.')})}}>Delete permanently</button></div></article>)}{!data.trash.some(t=>t.profileId===profile.id)&&<p>Trash is empty.</p>}</section>}
+   {page==='Subjects'&&<SubjectsPage w={w}/>}
+   {page==='Notes'&&<NotesPage w={w}/>}
+   {page==='K-Quiz'&&<KQuizPage w={w}/>}
+   {page==='Exams'&&<ExamsPage w={w}/>}
+   {page==='Settings'&&<SettingsPage w={w}/>}
+   {page==='Trash'&&<TrashPage w={w}/>}
    </div>
   </main>
   <nav className="wb-bottom-nav" aria-label="Mobile navigation">{(['Sanctuary','Planner','Notes'] as Page[]).map(p=><button aria-current={page===p?'page':undefined} key={p} onClick={()=>navigate(p)}>{p}</button>)}<button aria-expanded={more} onClick={()=>setMore(v=>!v)}>More</button></nav>
