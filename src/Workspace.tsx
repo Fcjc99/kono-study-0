@@ -76,8 +76,9 @@ import './components/kquiz.css'
 const SEARCH_GROUP:Partial<Record<Collection,string>>={tasks:'Assignments',exams:'Exams',calendarEvents:'Events',notes:'Notes',subjects:'Subjects',kids:'Kids'}
 const ProfileCard=lazyPanel(()=>import('./components/ProfileCard'))
 const WallDisplay=lazyPanel(()=>import('./components/WallDisplay'))
-const GardenCard=lazyPanel(()=>import('./components/GardenCard'),true)
-const SettingsSearch=lazyPanel(()=>import('./components/SettingsSearch'),true)
+// The island's own "Opening…" line shows while its code downloads, so there's never an empty frame.
+const GardenCard=lazyPanel(()=>import('./components/GardenCard'),<article className="sanctuary-card" aria-busy="true"><div className="sanctuary-viewport"/><div className="sanctuary-load-status" role="status">Opening your Sanctuary…</div></article>)
+const SettingsSearch=lazyPanel(()=>import('./components/SettingsSearch'),null)
 const IslandPhoto=lazy(()=>import('./components/IslandPhoto'))
 const CommandPalette=lazyPanel(()=>import('./components/CommandPalette'))
 import MusicPlayer from './components/MusicPlayer'
