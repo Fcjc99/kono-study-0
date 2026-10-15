@@ -73,9 +73,9 @@ export function buildIcs(data: AppData, profileId: string, options: { subscribe?
   for (const c of data.calendarEvents.filter(c => c.profileId === profileId)) {
     lines.push(...eventLines({ uid: 'event-' + c.id, date: c.date, time: c.time, endTime: c.endTime, summary: c.title, description: notes(c.notes), categories: c.subjectId ? subjectName.get(c.subjectId) : undefined, location: c.location }, stamp))
   }
-  // Birthdays come back every year; a countdown is its one day.
+  // Birthdays come back every year (a Feb 29 one on the last day of February); a countdown is its one day.
   for (const x of (data.specialDays ?? []).filter(x => x.profileId === profileId)) {
-    lines.push(...eventLines({ uid: 'special-' + x.id, date: x.date, summary: x.kind === 'birthday' ? '🎂 ' + x.title + '’s birthday' : (x.emoji || '🎉') + ' ' + x.title, ...(x.kind === 'birthday' ? { rrule: 'FREQ=YEARLY' } : {}) }, stamp))
+    lines.push(...eventLines({ uid: 'special-' + x.id, date: x.date, summary: x.kind === 'birthday' ? '🎂 ' + x.title + '’s birthday' : (x.emoji || '🎉') + ' ' + x.title, ...(x.kind === 'birthday' ? { rrule: x.date.endsWith('-02-29') ? 'FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1' : 'FREQ=YEARLY' } : {}) }, stamp))
   }
 
   const today = options.today ?? localDate(), first = addDays(today, -7), last = addDays(today, 60)

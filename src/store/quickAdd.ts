@@ -11,6 +11,8 @@ type Person={id:string;name:string}
 const DAYS=['sun','mon','tue','wed','thu','fri','sat']
 const DAY=String.raw`(sun(?:day)?|mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday)?|fri(?:day)?|sat(?:urday)?)`
 const EXAM=/\b(test|quiz|exam|midterm|final|finals)\b/i
+/** An eye or dental exam is an appointment, not a school test. */
+const isExam=(text:string)=>EXAM.test(text.replace(/\b(?:eye|vision|dental|hearing|physical|medical|vet)\s+exams?\b/gi,' '))
 // Short forms students type for their classes, matched against the start of a class's own name.
 const SHORT:Record<string,string[]>={bio:['biology','bio'],chem:['chemistry','chem'],phys:['physics'],sci:['science'],math:['math','algebra','geometry','calculus','precalc','pre-calculus','statistics','trig'],alg:['algebra'],geo:['geometry'],calc:['calculus','ap calculus'],stats:['statistics','ap statistics'],eng:['english'],ela:['english','ela'],lit:['literature','english'],hist:['history','us history','world history'],apush:['ap us history','us history','apush'],gov:['government','civics'],econ:['economics'],span:['spanish'],fr:['french'],french:['french'],lat:['latin'],cs:['computer science'],comp:['computer science'],art:['art','ceramics','drawing','studio art'],pe:['pe','physical education','gym'],gym:['pe','physical education','gym'],health:['health'],music:['music','band','chorus','orchestra'],psych:['psychology']}
 const pad=(n:number)=>String(n).padStart(2,'0')
@@ -63,14 +65,14 @@ export function parseQuickAdd(text:string,subjects:{id:string;name:string}[],tod
   const hit=subjects.find(s=>names.some(n=>s.name.toLowerCase().startsWith(n)))
   if(hit){subjectId=hit.id;subjectName=hit.name;rest=rest.replace(new RegExp(String.raw`\b${short}\b`,'i'),' ');break}
  }
- const key=EXAM.test(text)?'exams':'tasks'
+ const key=isExam(text)?'exams':'tasks'
  let title=rest.replace(/\s+/g,' ').replace(/^[\s,:;-]+|[\s,:;-]+$/g,'').trim()
  if(!title)title=(subjectName||'New')+' '+(key==='exams'?'test':'assignment')
  title=title[0].toUpperCase()+title.slice(1)
  return {key,title:title.slice(0,200),subjectId,subjectName,due:due||plus(today,1),...(time&&key==='tasks'?{time}:{}),dateFound:!!due}
 }
 
-const DAY_WORD=String.raw`(?:sun|mon|tue|tues|wed|thu|thur|thurs|fri|sat)(?:day|nesday|sday|rsday|urday)?s?\.?`
+const DAY_WORD=String.raw`(?:sun|mon|tues|tue|wed|thurs|thur|thu|fri|sat)(?:nesday|rsday|urday|sday|day)?s?\.?(?![a-z])`
 const HOMEWORK=/\b(homework|worksheet|essay|assignment|due|read(?:ing)?\s+ch|chapter|project|study(?:\s+for)?|flashcards?|problems?|packet|lab|review|pages?)\b/i
 const KINDS:[QuickEvent['kind'],RegExp][]=[
  ['sports',/\b(soccer|football|basketball|baseball|softball|hockey|lacrosse|tennis|volleyball|swim(?:ming)?|track|gymnastics|cheer|wrestling|practice|game|match|tournament|meet|karate|martial arts)\b/i],
@@ -85,7 +87,7 @@ const clock=(h:number,m:number,ap:string|undefined,fallbackPm:boolean)=>{if(ap==
 /** One line that reads like an event (a repeat, a time range, a person, a place, or an event word like
  * practice, lesson or dentist) and not like homework or a test; anything else is left to the rest of parseQuickAdd. */
 export function parseQuickEvent(text:string,today:string,people:Person[]):QuickAddGuess|null{
- if(EXAM.test(text)||HOMEWORK.test(text))return null
+ if(isExam(text)||HOMEWORK.test(text))return null
  let rest=' '+text.replace(/\s+/g,' ').trim()+' '
  const take=(re:RegExp)=>{const m=rest.match(re);if(m)rest=rest.replace(m[0],' ');return m}
  // Repeats: every day / every weekday / every Tue and Thu / Mondays and Wednesdays / every week.
@@ -103,10 +105,11 @@ export function parseQuickEvent(text:string,today:string,people:Person[]):QuickA
  if((m=take(/\b(?:until|till|thru|through)\s+(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}(?:\/\d{4})?|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2})/i)))until=dateFrom(m[1].replace(/sept/i,'sep'),today,plus(today,400),'mdy')||''
  // A time range "4-5:30pm" / "4pm to 5pm" / "from 4 to 6", or one time "at 4" / "4:30pm".
  let time:string|undefined,endTime:string|undefined
- if((m=take(/\b(?:from\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:-|–|to|until)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?(?![\d/])|\bfrom\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:-|–|to|until)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i))){
+ if((m=take(/(?<![\d/-])\b(?:from\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:-|–|to|until)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?(?![\d/])|\bfrom\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:-|–|to|until)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i))){
   const g=m[1]?m.slice(1,7):m.slice(7,13),endAp=g[5]?.toLowerCase(),startAp=g[2]?.toLowerCase()??(endAp&&Number(g[0])<=Number(g[3])?endAp:undefined)
   time=clock(Number(g[0]),Number(g[1]??0),startAp,true);endTime=clock(Number(g[3]),Number(g[4]??0),endAp,true)
  }else if((m=take(/\b(?:at\s+)(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b|\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i)))time=clock(Number(m[1]??m[4]),Number(m[2]??m[5]??0),(m[3]??m[6])?.toLowerCase(),true)
+ else if((m=take(/\b(?:at\s+)?(noon|midnight)\b/i)))time=/noon/i.test(m[1])?'12:00':'00:00'
  // Who: "for Emma and Leo", or a name anywhere.
  const kidIds:string[]=[],names:string[]=[]
  for(const p of people){const n=p.name.trim();if(!n)continue;const re=new RegExp(String.raw`(?:\bfor\s+)?\b${n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}(?:'s|’s)?\b`,'i');if(re.test(rest)){rest=rest.replace(re,' ');kidIds.push(p.id);names.push(n)}}
@@ -127,7 +130,7 @@ export function parseQuickEvent(text:string,today:string,people:Person[]):QuickA
  const kind=(KINDS.find(([,re])=>re.test(text))?.[0])??'personal'
  const eventish=repeatDays.length>0||!!endTime||kidIds.length>0||!!location||kind!=='personal'
  if(!eventish)return null
- let title=rest.replace(/\s+/g,' ').replace(/^[\s,:;&-]+|[\s,:;&-]+$/g,'').replace(/^(?:for|and)\s+|\s+(?:for|and|on)$/gi,'').trim()
+ let title=rest.replace(/\s+/g,' ').replace(/^[\s,:;&-]+|[\s,:;&-]+$/g,'').replace(/^(?:for|and)\s+|\s+(?:for|and|on|with)$/gi,'').trim()
  if(!title)title=kind==='sports'?'Practice':kind==='lesson'?'Lesson':kind==='appointment'?'Appointment':'Event'
  title=title[0].toUpperCase()+title.slice(1)
  if(repeatDays.length&&due&&repeatDays.includes(new Date(due+'T12:00:00').getDay())===false){const now=new Date(due+'T12:00:00').getDay(),ahead=Math.min(...repeatDays.map(d=>(d-now+7)%7));due=plus(due,ahead)}

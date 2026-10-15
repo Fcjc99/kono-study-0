@@ -141,13 +141,15 @@ function KidAppearanceEditor({kid,patch,tabbed}:{kid:Kid;patch:(key:Collection,e
  </div>
 }
 /** Look & feel › Team colors: school and team palettes. They work in Cozy and Simplified, so picking one
- * from Modern or Zen Ink (which have their own fixed colors) switches to Cozy. */
+ * from Modern or Zen Ink (which have their own fixed colors) switches to Cozy. Folded away unless a team
+ * is in use, since most people never need it. */
 export function TeamColors({settings,setting}:{settings:SettingsData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
  const fixed=fixedPaletteExperiences.includes(settings.experience??'cozy')
  const pick=async(id:string)=>{if(fixed&&!await setting('experience','cozy'))return;await setting('theme',id)}
- return <><h2>Team colors</h2><p>Show your school or team colors across KONO: the sidebar, buttons, headers and the top bar on your phone. They work with the Cozy and Simplified looks{fixed?'; picking one switches you to Cozy':''}.</p>
+ const [open]=useState(()=>teamThemeIds.includes(settings.theme))
+ return <details className="wb-panel team-colors-panel settings-group" open={open}><summary>Team colors <small>School and sports team palettes</small></summary><p>Show your school or team colors across KONO: the sidebar, buttons, headers and the top bar on your phone. They work with the Cozy and Simplified looks{fixed?'; picking one switches you to Cozy':''}.</p>
   <div className="team-color-grid" role="group" aria-label="Team colors">{TEAM_THEMES.map(t=><button key={t.id} type="button" aria-pressed={!fixed&&settings.theme===t.id} onClick={()=>void pick(t.id)}><span className={'team-swatch theme-'+t.id} aria-hidden="true"/><strong>{t.label}{!fixed&&settings.theme===t.id?' ✓':''}</strong><small>{t.note}</small></button>)}</div>
-  <p className="wb-muted">To go back to a regular palette, pick one under Color palette above.</p></>
+  <p className="wb-muted">To go back to a regular palette, pick one under Color palette above.</p></details>
 }
 export function Appearance({settings,setting}:{settings:SettingsData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>}){
  const activePalette=settings.experience==='cozy'?cozyPalette(settings.theme):settings.theme

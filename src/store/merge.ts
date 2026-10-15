@@ -26,10 +26,11 @@ export function mergeData(base:AppData,local:AppData,remote:AppData):{data:AppDa
    for(const x of [...ll,...rl]){const k=key(x);if(seen.has(k)||(had.has(k)&&dropped.has(k)))continue;seen.add(k);out.push(x)}
    return out
   }
+  // A preference changed on both devices (or first set on both): this device's choice. Preferences aren't
+  // worth pausing sync over.
+  if(path.startsWith('/settings/')&&!record(b)&&!record(l)&&!record(r))return l
   // Concurrent creation and edit/delete are conflicts, never silent resurrection.
   if(b===undefined||l===undefined||r===undefined){conflicts.push({path,base:b,local:l,remote:r});return l}
-  // A preference changed on both devices: this device's choice (the newer one, since it's the one syncing now).
-  if(path.startsWith('/settings/')&&!record(b)&&!record(l)&&!record(r))return l
   if(Array.isArray(b)&&Array.isArray(l)&&Array.isArray(r)&&identified(b)&&identified(l)&&identified(r)){
    const index=(items:Json[])=>new Map(items.map(x=>[(x as {[key:string]:Json}).id as string,x]))
    const bm=index(b),lm=index(l),rm=index(r),out:Json[]=[]

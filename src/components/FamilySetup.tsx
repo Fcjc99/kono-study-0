@@ -18,8 +18,10 @@ export default function FamilySetup({data,profileId,today,save,close,next}:{data
  const [lines,setLines]=useState<Line[]>([]),[drafts,setDrafts]=useState<Record<string,string>>({}),[error,setError]=useState(''),[busy,setBusy]=useState(false),[done,setDone]=useState('')
  const newKids=kids.filter(k=>!existing.some(e=>e.id===k.id))
  const addKid=(e:FormEvent)=>{e.preventDefault();const n=name.trim();if(!n)return;if(kids.some(k=>k.name.toLowerCase()===n.toLowerCase())){setError(n+' is already here.');return}setError('');setKids([...kids,{id:uid('kid'),profileId,name:n.slice(0,200),color:nextKidColor(kids)}]);setName('')}
- const parse=(l:Line)=>parseQuickEvent(l.text,today,[])
- const addLine=(kidId:string)=>{const text=(drafts[kidId]??'').trim();if(!text)return;if(!parseQuickEvent(text,today,[])){setError('Add a day or time, like “piano every Wed 4pm”.');return}setError('');setLines([...lines,{text,kidId}]);setDrafts({...drafts,[kidId]:''})}
+ // Read as this kid's, so a one-off like "choir Thursday 4pm" counts as an event too.
+ const read=(text:string,kidId:string)=>{const k=kids.find(x=>x.id===kidId);return parseQuickEvent((k?k.name+' ':'')+text,today,k?[{id:k.id,name:k.name}]:[])}
+ const parse=(l:Line)=>read(l.text,l.kidId)
+ const addLine=(kidId:string)=>{const text=(drafts[kidId]??'').trim();if(!text)return;if(!read(text,kidId)?.event){setError('Add a day or time, like “piano every Wed 4pm”.');return}setError('');setLines([...lines,{text,kidId}]);setDrafts({...drafts,[kidId]:''})}
  const finish=async()=>{
   setBusy(true);setError('')
   const events:CalendarEvent[]=[]

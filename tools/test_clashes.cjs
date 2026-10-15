@@ -39,4 +39,11 @@ test('a kid’s class; the event itself, its own series and finished things don�
  assert.deepEqual(weekly,['Emma has Biology (class) at 1:00 PM–1:50 PM on 10-12.'],'every Monday: said once')
  assert.deepEqual(texts({dates:['2026-10-19'],kidIds:['emma']}),[],'no time, no clash')
 })
-console.log(passed+'/3 clash groups passed.')
+test('in a kid’s own plan, its untagged things are that kid’s; a date label with periods still says it once',()=>{
+ const kp={...d,activeProfileId:'kp',calendarEvents:[{...ev('Choir','2026-10-19','16:00','17:00'),profileId:'kp'}],studySeasons:[{...d.studySeasons[0],profileId:'kp',kidId:undefined}]}
+ assert.deepEqual([...findClashes(kp,'kp',{dates:['2026-10-19'],time:'16:30',kidIds:['emma'],self:'emma'},label)].map(x=>x.text),['Emma already has Choir at 4:00 PM–5:00 PM.'])
+ assert.deepEqual([...findClashes(kp,'kp',{dates:['2026-10-19'],time:'13:30',kidIds:['emma'],self:'emma'},label)].map(x=>x.text),['Emma has Biology (class) at 1:00 PM–1:50 PM.'])
+ const dotted=[...findClashes(d,pid,{dates:['2026-10-12','2026-10-19'],time:'13:15',kidIds:['emma']},x=>x.slice(8)+'. Okt.')].map(x=>x.text)
+ assert.deepEqual(dotted,['Emma has Biology (class) at 1:00 PM–1:50 PM on 12. Okt..'])
+})
+console.log(passed+'/4 clash groups passed.')

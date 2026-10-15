@@ -32,7 +32,7 @@ const addDay=(date:string,n:number)=>{const d=new Date(date+'T12:00:00');d.setDa
 export function daySummary(data:AppData,date:string,now:string):SummaryBit[]{
  const pid=data.activeProfileId,open=data.tasks.filter(t=>t.profileId===pid&&!t.done)
  const due=open.filter(t=>t.due===date).length,late=open.filter(t=>t.due<date).length
- const weekEnd=addDay(date,7),tests=data.exams.filter(e=>e.profileId===pid&&!e.done&&e.due>=date&&e.due<=weekEnd).sort((a,b)=>a.due.localeCompare(b.due))
+ const weekEnd=addDay(date,6),tests=data.exams.filter(e=>e.profileId===pid&&!e.done&&e.due>=date&&e.due<=weekEnd).sort((a,b)=>a.due.localeCompare(b.due))
  const next=data.calendarEvents.filter(e=>e.profileId===pid&&e.date===date&&!e.done&&e.time&&e.time>=now).sort((a,b)=>a.time!.localeCompare(b.time!))[0]
  const bits:SummaryBit[]=[{icon:'📌',text:due?due+' due today':'Nothing due today',...(due?{}:{tone:'calm' as const})}]
  if(late)bits.push({icon:'⚠',text:late+' late',tone:'late'})

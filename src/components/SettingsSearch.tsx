@@ -22,6 +22,7 @@ const INDEX:{label:string;tab:SettingsTab;find:string;words:string}[]=[
  {label:'Back up or restore your plan',tab:'Import & export',find:'import',words:'backup restore download file export import save copy'},
  {label:'Show KONO in Google or Apple Calendar',tab:'Import & export',find:'google calendar',words:'calendar google apple ical ics sync subscribe'},
  {label:'Share a schedule',tab:'Import & export',find:'share a schedule',words:'share send schedule friend'},
+ {label:'Add homework with Siri (or the Android share sheet)',tab:'Import & export',find:'siri',words:'siri shortcut iphone android share sheet voice homework'},
  {label:'AI helper key',tab:'Import & export',find:'ai helper',words:'ai gemini openai key api scan'},
  {label:'Your profile (avatar, color, name)',tab:'Plans & account',find:'avatar',words:'profile avatar emoji picture photo color colour name me personalize customize'},
  {label:'Plans (rename, switch, delete)',tab:'Plans & account',find:'plans',words:'plan rename delete switch family master profile name'},
