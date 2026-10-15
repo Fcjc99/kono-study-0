@@ -33,3 +33,4 @@ dist-ssr
 supabase/.temp
 test-results/
 tools/_tmp_*.cjs
+.claude/worktrees/
