@@ -1,4 +1,4 @@
-.kquiz-settings p,.kquiz-record>p{margin:6px 0}
+.kquiz-record>p{margin:6px 0}
 .kquiz-timer{font-weight:700;font-variant-numeric:tabular-nums;font-size:1.1rem}
 .kquiz-photo input[type="file"]{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .kquiz-live-transcript{background:var(--wb-surface);border:1px solid var(--wb-line);border-radius:10px;padding:10px 12px;max-height:120px;overflow-y:auto;font-size:.85rem}

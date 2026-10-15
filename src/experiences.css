@@ -149,4 +149,4 @@
  * layout size to the pixel, both scale and translate silently gone, everywhere this rule reached. */
 @media(prefers-reduced-motion:reduce){.workbench[data-experience] button:not(.build-item){transition:none!important;transform:none!important}.workbench[data-experience] .kono-sticky{transform:none!important}}
 :root[data-motion='reduced'] .workbench button:not(.build-item),:root[data-motion='reduced'] .workbench .kono-sticky{transition:none!important;transform:none!important}
-.workbench[data-experience='cozy'] .wb-record-subjects,.workbench[data-experience='cozy'] .wb-record-tasks{border-left:6px solid var(--subject-accent)!important}.workbench[data-experience='cozy'] .wb-record-subjects h3{color:var(--subject-accent)}.wb-cal-dots{display:flex;gap:3px;min-height:6px;flex-wrap:wrap}.wb-cal-dots i{display:block;width:6px;height:6px;border-radius:50%}
+.workbench[data-experience='cozy'] .wb-record-subjects,.workbench[data-experience='cozy'] .wb-record-tasks{border-left:6px solid var(--subject-accent)!important}.workbench[data-experience='cozy'] .wb-record-subjects h3{color:var(--subject-accent)}
