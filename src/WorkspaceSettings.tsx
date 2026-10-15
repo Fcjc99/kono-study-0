@@ -21,7 +21,7 @@ const QUICK_KIND_OPTIONS=[['sports','Sports'],['lesson','Lesson'],['appointment'
 // quickAddFamilyEvent) rather than opening the full EntryEditor.
 export type QuickFamilyPayload={location?:string;title:string;kind:CalendarEventKind;kidIds:string[];time?:string;endTime?:string;driver?:string;repeatDays:number[];until:string}
 const WEEKDAY_LETTERS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-export function QuickFamilyAdd({kids,time:startAt,date,until:defaultUntil,drivers=[],onCancel,onSave}:{kids:Kid[];time?:string;date?:string;until?:string;drivers?:string[];onCancel:()=>void;onSave:(payload:QuickFamilyPayload)=>Promise<void>}){
+export function QuickFamilyAdd({kids,time:startAt,date,until:defaultUntil,drivers=[],clashes,onCancel,onSave}:{kids:Kid[];time?:string;date?:string;until?:string;drivers?:string[];clashes?:(payload:QuickFamilyPayload)=>{date:string;text:string}[];onCancel:()=>void;onSave:(payload:QuickFamilyPayload)=>Promise<void>}){
  // Repeats: the same weekday as the date by default, through the end of the school year.
  const [repeatDays,setRepeatDays]=useState<number[]>([]),[until,setUntil]=useState(defaultUntil??''),[driver,setDriver]=useState('')
  const toggleDay=(d:number)=>setRepeatDays(v=>v.includes(d)?v.filter(x=>x!==d):[...v,d].sort())
@@ -40,6 +40,7 @@ export function QuickFamilyAdd({kids,time:startAt,date,until:defaultUntil,driver
   <label>Who’s driving? (optional)<input list="quick-family-drivers" maxLength={60} value={driver} onChange={e=>setDriver(e.target.value)} placeholder="Mom, Dad, carpool…"/><datalist id="quick-family-drivers">{drivers.map(d=><option key={d} value={d}/>)}</datalist></label>
   <fieldset className="repeat-days"><legend>Repeats every (optional)</legend>{WEEKDAY_LETTERS.map((name,d)=><label key={name} className={repeatDays.includes(d)?'is-on':''}><input type="checkbox" checked={repeatDays.includes(d)} onChange={()=>toggleDay(d)}/>{name}</label>)}
    {repeatDays.length>0&&<label className="repeat-until">Until<input type="date" value={until} min={date} onChange={e=>setUntil(e.target.value)}/></label>}</fieldset>
+  {(()=>{const list=clashes&&title.trim()?clashes({title:title.trim(),kind,kidIds,time:time||undefined,endTime:endTime||undefined,driver:driver.trim()||undefined,repeatDays,until}):[];return list.length?<div className="clash-warning" role="status"><strong>⚠️ Heads up</strong><ul>{list.slice(0,3).map(c=><li key={c.date+c.text}>{c.text}</li>)}</ul>{list.length>3&&<small>And {list.length-3} more.</small>}</div>:null})()}
   {error&&<p role="alert">{error}</p>}
   <div className="wb-toolbar"><button className="primary" type="submit">{busy?'Adding…':'Add'}</button><button type="button" onClick={onCancel}>Cancel</button></div>
  </fieldset></form>
@@ -74,11 +75,11 @@ export function FamilyReminderSettings({data,setting}:{data:AppData;setting:<K e
   <label><div><strong>Kids' event reminders</strong><small>Remind me 15 minutes before a kid's event starts or ends. {notifyOn?'Notifications are labeled with each kid\'s name.':'Turn on Browser notifications above to use this.'}</small></div><input type="checkbox" disabled={!notifyOn} checked={Boolean(data.settings.familyEventReminders)} onChange={e=>void setting('familyEventReminders',e.target.checked)}/></label>
  </section>
 }
-export function KidsPage({data,create,edit,remove,patch,openSettings,onOpenKidPlan}:{onOpenKidPlan?:(kid:Kid)=>void;openSettings:(tab:SettingsTab)=>void;data:AppData;create:(key:Collection)=>void;edit:(key:Collection,entry:Entry)=>void;remove:(key:Collection,entry:Entry)=>void;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
+export function KidsPage({data,create,edit,remove,patch,openSettings,onOpenKidPlan,onSetup}:{onSetup?:()=>void;onOpenKidPlan?:(kid:Kid)=>void;openSettings:(tab:SettingsTab)=>void;data:AppData;create:(key:Collection)=>void;edit:(key:Collection,entry:Entry)=>void;remove:(key:Collection,entry:Entry)=>void;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
  const [appearanceOpen,setAppearanceOpen]=useState(false)
  const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
  return <section className="wb-panel family-calendar">
-  <div className="wb-section-head"><div><small>ONE SHARED CALENDAR</small><h2>Kids</h2></div><div className="wb-toolbar"><button type="button" onClick={()=>setAppearanceOpen(true)}>🎨 Appearance</button><button onClick={()=>create('kids')}>＋ Add a kid</button></div></div>
+  <div className="wb-section-head"><div><small>ONE SHARED CALENDAR</small><h2>Kids</h2></div><div className="wb-toolbar">{onSetup&&<button type="button" onClick={onSetup}>✨ Quick setup</button>}<button type="button" onClick={()=>setAppearanceOpen(true)}>🎨 Appearance</button><button onClick={()=>create('kids')}>＋ Add a kid</button></div></div>
   <p className="wb-muted">Add each kid once, then tag any assignment, exam, class or event with them from its own editor and filter your Planner calendar by kid — the same way you already filter by subject. Pick their emoji and color under Appearance.</p>
   {kids.length>0&&<ul className="kid-roster" aria-label="Kids">
    {kids.map(k=><li key={k.id} style={{'--kid-color':k.color} as CSSProperties}><KidAvatar kid={k}/><strong>{k.name}</strong>{onOpenKidPlan&&<button type="button" className="kid-plan-open" onClick={()=>onOpenKidPlan(k)}>{planForKid(data,k.id)?'Open '+k.name+'’s plan':'Make '+k.name+'’s plan'}</button>}<button type="button" onClick={()=>edit('kids',k as unknown as Entry)}>Edit</button><button type="button" className="kid-roster-remove" aria-label={'Move '+k.name+' to Trash'} title="Move to Trash" onClick={()=>remove('kids',k as unknown as Entry)}>🗑</button></li>)}

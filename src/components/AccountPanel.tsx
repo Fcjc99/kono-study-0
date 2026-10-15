@@ -33,9 +33,25 @@ export function AccountBanners({store}:{store:Store}){
  // On an iPhone the full explanation and form took half the screen on every page: one line until tapped.
  const phone=useSmallScreen(),[open,setOpen]=useState(false)
  const [error,setError]=useState('')
+ // Syncing is paused until someone picks: say so on every page, with both choices right here.
+ if(store.conflicts.length)return <ConflictBanner store={store}/>
  if(store.support)return <div className="support-banner" role="status"><p><strong>KONO support:</strong> you’re working in <strong>{store.support.email}</strong>’s plan. Changes save to their account, and they can see that support opened and changed it.</p><button type="button" onClick={()=>{setError('');store.repository.exitSupport().catch(e=>setError(e instanceof Error?e.message:'Could not exit yet.'))}}>Exit support</button>{error&&<p role="alert">{error}</p>}</div>
  if(!store.ready||store.user||snoozed||store.repository.signInProvider!=='email')return null
  const snooze=()=>{try{localStorage.setItem(SNOOZE_KEY,String(Date.now()+86_400_000))}catch{/* storage unavailable */}setSnoozed(true)}
  if(phone&&!open)return <section className="save-to-email-banner is-compact" aria-label="Save your plan to your email"><p><strong>Only saved on this device.</strong></p><button type="button" className="primary" onClick={()=>setOpen(true)}>Back it up</button><button type="button" className="save-to-email-later" onClick={snooze}>Later</button></section>
  return <section className="save-to-email-banner" aria-label="Save your plan to your email"><p><strong>Your plan is only saved in this browser.</strong> If this browser’s data is cleared, it’s gone. Save it to your email so it’s backed up and on every device you sign in on.</p><EmailSignIn store={store} button="Save to my email"/><button type="button" className="save-to-email-later" onClick={snooze}>Remind me tomorrow</button></section>
+}
+
+function ConflictBanner({store}:{store:Store}){
+ const [busy,setBusy]=useState(false),[error,setError]=useState('')
+ const pick=async(keep:'here'|'other')=>{
+  if(keep==='other'&&!window.confirm('Use the version from your other device? What you changed here since the last sync will be replaced (your copy is downloaded first).'))return
+  setBusy(true);setError('')
+  try{if(keep==='other'){store.repository.export();await store.repository.useCloud()}else await store.repository.keepLocal()}catch(e){setError(e instanceof Error?e.message:'Could not do that. Try again.')}finally{setBusy(false)}
+ }
+ return <section className="sync-conflict-banner" role="alert" aria-label="Syncing is paused">
+  <p><strong>Your devices changed the same thing, so syncing is paused.</strong> Nothing has been lost. Pick which version to keep:</p>
+  <div className="wb-toolbar"><button type="button" className="primary" disabled={busy} onClick={()=>void pick('here')}>Keep this device’s version</button><button type="button" disabled={busy} onClick={()=>void pick('other')}>Use the other version</button><button type="button" className="link-button" disabled={busy} onClick={store.repository.export}>Download a copy first</button></div>
+  {error&&<p className="sync-conflict-error">{error}</p>}
+ </section>
 }

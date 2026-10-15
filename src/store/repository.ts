@@ -357,6 +357,14 @@ export class PlannerRepository {
  importLegacy=()=>{if(this.migration)this.replace(this.migration)}
  skipMigration=()=>this.notify({needsMigration:false})
  retry=()=>{if(this.blocked)return;if(this.state.status==='Unsaved'){void this.enqueue(async g=>{await this.saveCache(this.state.data,this.cache?.base??null,this.cache?.serverRevision??0,!!this.state.user,g);this.scheduleSync()}).catch(()=>undefined)}else this.scheduleSync()}
+ /** Two devices changed the same thing: keep this device's version, and send it to the account. */
+ keepLocal=()=>this.enqueue(async generation=>{
+  const response=await this.api('plan');if(!response.ok)throw new Error('Cloud plan unavailable.')
+  const remote=remoteValue(await response.json());if(!this.valid(generation))return
+  await this.saveCache(this.state.data,remote.data,remote.revision,true,generation)
+  this.notify({conflicts:[],error:''})
+  await this.syncNow(generation)
+ })
  useCloud=()=>this.enqueue(async generation=>{
   const response=await this.api('plan');if(!response.ok)throw new Error('Cloud plan unavailable.')
   const remote=remoteValue(await response.json());if(!this.valid(generation))return

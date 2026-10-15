@@ -10,7 +10,8 @@ import {shareKindFor} from '../store/itemShare'
 import type {PhotoCloud} from '../store/photoStore'
 import type {usePlannerRepository} from '../store/repository'
 import {labels,type Edit} from '../store/entryLabels'
-import {kidOfPlan,kidPlans,moveToWhose} from '../store/familyPlans'
+import {familyView,kidOfPlan,kidPlans,moveToWhose} from '../store/familyPlans'
+import {findClashes} from '../store/clashes'
 import {lazyPanel} from '../lazyPanel'
 import Modal from './Modal'
 import BreakIntoSteps from './BreakIntoSteps'
@@ -54,12 +55,14 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
  const whose:string[]=planKid?[planKid]:peopleOf(entry as {kidId?:string;kidIds?:string[]})
  const setWhose=(ids:string[])=>{const next=moveToWhose(data,entry as Entry&{profileId:string},data.activeProfileId,ids) as Entry;persist(next);setEntry(next)}
  const togglePerson=(id:string)=>setWhose(whose.includes(id)?whose.filter(x=>x!==id):[...whose,id])
+ // Clash warnings: what this event would overlap for the same people or driver (all its dates if it repeats).
+ const clashes=isEvent&&entry.time?findClashes(familyView(data,data.activeProfileId).data,data.activeProfileId,{id:String(entry.id),recurringId:seriesSize>1&&scope!=='one'?seriesId:undefined,dates:[eventDate,...repeatList],time:entry.time as string,endTime:entry.endTime as string|undefined,kidIds:whose,driver:entry.driver as string|undefined},dateLabel):[]
  const field=(key:string,value:unknown)=>{const next={...entry,[key]:value};persist(next);setEntry(next)}
  const append=(key:string,text:string)=>{const current=String(entry[key]??'');field(key,current.trim()?current+' '+text:text)}
  const format=(before:string,after:string)=>{const textarea=bodyRef.current;if(!textarea)return;const key=note?'body':'notes',body=String(entry[key]??''),start=textarea.selectionStart,end=textarea.selectionEnd;field(key,body.slice(0,start)+before+(body.slice(start,end)||'text')+after+body.slice(end));requestAnimationFrame(()=>textarea.focus())}
  // Closing with nothing changed keeps no draft, so opening the item again (say after dragging it on
  // the week) starts from how it is now.
- const keep=()=>{if(busy)return;if(equal(entry,edit.original??edit.entry)){clearDrafts();close(!!edit.original,true,true);return}if(persist(entry))close(false)}
+ const keep=()=>{if(busy)return;if(equal(entry,edit.original??edit.entry)){clearDrafts();close(true,true,true);return}if(persist(entry))close(false)}
  const clearDrafts=()=>{try{localStorage.removeItem(draftScope);if(isNewAssignment)localStorage.removeItem(extraDatesKey)}catch{/* Saved record is authoritative. */}}
  useEffect(()=>{const warn=(e:BeforeUnloadEvent)=>{if(draftError){e.preventDefault();e.returnValue=''}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn)},[draftError])
  const submit=async(e:FormEvent)=>{
@@ -88,6 +91,7 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
   </fieldset>}
   {('due' in entry||'date' in entry)&&<label>Date<input required type="date" value={String(entry.due??entry.date??'')} onInput={e=>{const next={...entry,['due' in entry?'due':'date']:e.currentTarget.value,...(edit.key==='tasks'?{plannedTime:undefined}:{})};persist(next);setEntry(next)}}/></label>}
   {edit.key==='calendarEvents'&&<div className="wb-time-row"><label>Start time (optional)<input type="time" value={String(entry.time??'')} onChange={e=>field('time',e.target.value||undefined)}/></label><label>End time (optional)<input type="time" value={String(entry.endTime??'')} onChange={e=>field('endTime',e.target.value||undefined)}/></label></div>}
+  {clashes.length>0&&<div className="clash-warning" role="status"><strong>⚠️ Heads up</strong><ul>{clashes.slice(0,3).map(c=><li key={c.date+c.text}>{c.text}</li>)}</ul>{clashes.length>3&&<small>And {clashes.length-3} more.</small>}</div>}
   {isEvent&&<div className="wb-place-row"><label>Where (optional)<input maxLength={300} value={String(entry.location??'')} onChange={e=>field('location',e.target.value||undefined)} placeholder="Riverside Park, field 3" autoComplete="street-address"/></label><label>Travel time<select value={String(entry.travelMinutes??'')} onChange={e=>field('travelMinutes',e.target.value?Number(e.target.value):undefined)}><option value="">None</option>{TRAVEL_CHOICES.map(m=><option key={m} value={m}>{m<60?m+' min':m===60?'1 hour':m/60+' hours'}</option>)}</select></label></div>}
   {isEvent&&(Boolean(entry.location)||Boolean(entry.travelMinutes))&&<p className="wb-muted wb-place-hint">{leaveBy(entry.time as string|undefined,entry.travelMinutes as number|undefined)?<>🚗 Leave by <strong>{classTime(leaveBy(entry.time as string,entry.travelMinutes as number)!)}</strong>{data.settings.browserNotifications?' — KONO will remind you then.':'. Turn on notifications in Settings to get a reminder.'} </>:entry.travelMinutes?'Add a start time to see when to leave. ':''}{Boolean(entry.location)&&<a href={mapsLink(String(entry.location))} target="_blank" rel="noreferrer">Open in Maps</a>}</p>}
   {isEvent&&seriesSize<2&&<div className="wb-event-repeat"><label>Repeat<select value={repeat} onChange={e=>setRepeat(e.target.value as Repeat)}>{REPEATS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>{repeat!=='none'&&<label>Until<input type="date" min={eventDate} value={repeatEnd||defaultUntil(eventDate)} onChange={e=>setRepeatEnd(e.target.value)}/></label>}{repeatOn&&<p className="wb-muted">{repeatList.length?'Adds '+repeatList.length+' more: '+repeatList.slice(0,3).map(d=>dateLabel(d)).join(', ')+(repeatList.length>3?'…':''):'No more dates before then.'}</p>}</div>}

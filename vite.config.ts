@@ -22,8 +22,16 @@ function precacheList(manifest:Record<string,ManifestChunk>):string[]{
   }
   walk(entryKey)
   // Panels split out of the startup bundle (src/lazyPanel.tsx) still open offline: precache them in
-  // the background. Heavy importers (PDF, OCR) stay runtime-cached only.
-  for(const dep of manifest[entryKey].dynamicImports??[])if(dep.startsWith('src/components/'))walk(dep)
+  // the background, and the panels they open in turn (Settings screens, the Planner's week grid).
+  // Heavy or rare tools (PDF reading, the decorating studio, debug and QA pages) stay runtime-cached only.
+  const optional=/SanctuaryQA|SanctuaryBuild|DecorateDebugHUD|readSchedulePdf|kquizPdf|UpdatePlanScanner/
+  const lazy=[...manifest[entryKey].dynamicImports??[]]
+  for(let i=0;i<lazy.length;i++){
+   const dep=lazy[i]
+   if(!dep.startsWith('src/')||dep.startsWith('src/game/')||optional.test(dep)||seen.has(dep))continue
+   walk(dep)
+   for(const next of manifest[dep]?.dynamicImports??[])if(!lazy.includes(next))lazy.push(next)
+  }
   // Opening KONO offline also needs the sign-in code (a signed-in student's plan is under their
   // account) and the Sanctuary island, the first page. PDF, OCR and the rest stay runtime-cached.
   for(const dep of ['src/store/supabaseRemote.ts','src/game/scenes/Stage0Scene.ts'])walk(dep)

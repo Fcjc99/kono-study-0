@@ -6,6 +6,8 @@ import {classKid,classOccurrences,type ClassOccurrence} from '../store/classSche
 import {PLANNER_SOURCES,classSource,entrySource,sourcesInPlan,type PlannerSource} from '../store/plannerSources'
 import {holidayOn,schoolDayLabels} from '../store/schoolCalendar'
 import {specialOn} from '../store/specialDays'
+import {findClashes} from '../store/clashes'
+import {weekdayDates} from '../store/eventRepeat'
 import {useLocalSetting} from '../hooks/useLocalSetting'
 import {usePhoneWidth} from '../hooks/useComfort'
 import {lazyPanel} from '../lazyPanel'
@@ -149,6 +151,6 @@ export default function PlannerCalendar({onWall,openSpecial,data,tasks,date,sele
   <section className={'planner-day-board'+(dropTarget===date?' drop-target':'')} aria-label={'Plan for '+dateLabel(date)} {...dropOn(date)}>{selectedClasses.length>0&&<div className="today-schedule-list">{selectedClasses.map(renderClass)}</div>}{dayLoose.length>0&&<div className="tomorrow-extra-list"><strong>{selectedClasses.length?(date===todayDate?'Also today':'Also on this day'):(date===todayDate?'Today':'On this day')}</strong>{importantFirst(dayLoose).map(draggableEntry)}</div>}{!selectedClasses.length&&!dayLoose.length&&<p className="wb-muted">Nothing planned for this day.</p>}</section>
   <div className="planner-date-tools">{parentMode&&<button type="button" className="quick-add-kid-event" onClick={()=>setQuickAdd({date})}>＋ Quick add for this day</button>}<details className="planner-add-menu"><summary>＋ Add to this date</summary><div><button onClick={()=>create('tasks',date)}>Assignment</button><button onClick={()=>create('notes',date)}>Study note</button><button className="is-priority" onClick={()=>create('exams',date)}>★ Exam / project</button><button onClick={()=>create('calendarEvents',date,undefined,{kind:'lesson'})}>Lesson</button><button onClick={()=>create('calendarEvents',date,undefined,{kind:'work'})}>Work</button><button onClick={()=>create('calendarEvents',date)}>Reminder / event</button></div></details></div>
   </div>}
-  {quickAdd&&<Modal title={'Add for '+dateLabel(quickAdd.date)} close={()=>setQuickAdd(null)}>{kids.length?<QuickFamilyAdd kids={kids} time={quickAdd.time} date={quickAdd.date} until={schoolYearEnd(quickAdd.date)} drivers={drivers} onCancel={()=>setQuickAdd(null)} onSave={async payload=>{if(await quickAddEvent(quickAdd.date,payload))setQuickAdd(null)}}/>:<><p className="wb-muted">No kids added yet.</p><button type="button" onClick={()=>{setQuickAdd(null);navigate('Kids')}}>Manage kids</button></>}</Modal>}
+  {quickAdd&&<Modal title={'Add for '+dateLabel(quickAdd.date)} close={()=>setQuickAdd(null)}>{kids.length?<QuickFamilyAdd kids={kids} time={quickAdd.time} date={quickAdd.date} until={schoolYearEnd(quickAdd.date)} drivers={drivers} clashes={p=>findClashes(data,data.activeProfileId,{dates:[quickAdd.date,...weekdayDates(quickAdd.date,p.repeatDays,p.until)],time:p.time,endTime:p.endTime,kidIds:p.kidIds,driver:p.driver},dateLabel)} onCancel={()=>setQuickAdd(null)} onSave={async payload=>{if(await quickAddEvent(quickAdd.date,payload))setQuickAdd(null)}}/>:<><p className="wb-muted">No kids added yet.</p><button type="button" onClick={()=>{setQuickAdd(null);navigate('Kids')}}>Manage kids</button></>}</Modal>}
   </section>
 }
