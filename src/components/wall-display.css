@@ -65,3 +65,7 @@ html.wall-open,html.wall-open body{overflow:hidden}
 .wall-week-time{white-space:nowrap}
 .wall-clock{white-space:nowrap}
 @media(orientation:portrait){.wall-clock{font-size:clamp(2.6rem,12vw,6rem)}}
+/* Out sick or off: the class or activity stays in view, faded and struck through. */
+.wall-item.is-off .wall-title,.wall-week li.is-off .wall-week-title{text-decoration:line-through;opacity:.55}
+.wall-item.is-off .wall-time{font-weight:800}
+.wall-time small{display:block;font-size:.6em;font-weight:700;opacity:.8}

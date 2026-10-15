@@ -26,14 +26,15 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
  const columns=useRef(new Map<string,HTMLElement>()),allDayCells=useRef(new Map<string,HTMLElement>()),body=useRef<HTMLDivElement>(null)
  const update=(next:Drag|null)=>{dragRef.current=next;setDrag(next)}
  const timed=items.filter(i=>i.start),allDay=items.filter(i=>!i.start)
- const ends=timed.map(i=>i.end&&i.end>i.start!?minutes(i.end):minutes(i.start!)+60)
+ // A late-night event (ends before it starts) fills its evening to midnight; the next day shows the rest.
+ const ends=timed.map(i=>i.end&&i.end!==i.start?(i.end>i.start!?minutes(i.end):24*60):minutes(i.start!)+60)
  const first=Math.min(7,...timed.map(i=>Math.floor(minutes(i.start!)/60))),last=Math.min(24,Math.max(21,...ends.map(m=>Math.ceil(m/60))))
  const hours=Array.from({length:last-first},(_,i)=>first+i)
  // A clock tick each minute moves the red "now" line down today's column.
  const [,setTick]=useState(0)
  useEffect(()=>{const t=window.setInterval(()=>setTick(n=>n+1),60000);return()=>window.clearInterval(t)},[])
  const today=new Date(),todayIso=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0')
- const span=(i:WeekItem)=>({from:minutes(i.start!),to:i.end&&i.end>i.start!?minutes(i.end):minutes(i.start!)+60})
+ const span=(i:WeekItem)=>({from:minutes(i.start!),to:i.end&&i.end!==i.start?(i.end>i.start!?minutes(i.end):24*60):minutes(i.start!)+60})
 
  // Once a drag has started on a touch screen, the page mustn't scroll under the finger.
  useEffect(()=>{

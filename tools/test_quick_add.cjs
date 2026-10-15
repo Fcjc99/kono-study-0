@@ -60,6 +60,7 @@ test('events in one line: repeats, time ranges, who and where; homework and test
  assert.equal(e('dentist 2026-10-20 at 3pm'),'Dentist | 2026-10-20 | 15:00 |  | appointment |  |  | ')
  assert.equal(e('eye exam tuesday at 3pm for Leo'),'Eye exam | 2026-10-06 | 15:00 |  | appointment |  | kid-leo | ')
  assert.equal(e('lunch with Emma at noon'),'Lunch | 2026-10-01 | 12:00 |  | personal |  | kid-emma | ')
+ assert.equal(e('Leo sleepover saturday 7pm-9am'),'Sleepover | 2026-10-03 | 19:00 | 09:00 | activity |  | kid-leo | ','runs overnight')
  assert.equal(e('bio worksheet due fri'),'tasks');assert.equal(e('math test thursday'),'exams');assert.equal(e('practice problems fri at 8:30am'),'tasks');assert.equal(e('permission slip'),'tasks')
 })
 console.log(`${passed}/5 quick-add groups passed.`)

@@ -6,6 +6,7 @@ import {leaveBy,mapsLink,TRAVEL_CHOICES} from '../store/leaveBy'
 import {REPEATS,repeatDates,weekdayDates,defaultUntil,repeatCopy,applyToSeries,applyToTaskSeries,type Repeat,type SeriesScope} from '../store/eventRepeat'
 import {findOpenSlots} from '../store/timeBlocking'
 import {classTime} from '../store/classSchedule'
+import {isOvernight} from '../store/overnight'
 import {shareKindFor} from '../store/itemShare'
 import type {PhotoCloud} from '../store/photoStore'
 import type {usePlannerRepository} from '../store/repository'
@@ -95,6 +96,7 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
   </fieldset>}
   {('due' in entry||'date' in entry)&&<label>Date<input required type="date" value={String(entry.due??entry.date??'')} onInput={e=>{const next={...entry,['due' in entry?'due':'date']:e.currentTarget.value,...(edit.key==='tasks'?{plannedTime:undefined}:{})};persist(next);setEntry(next)}}/></label>}
   {edit.key==='calendarEvents'&&<div className="wb-time-row"><label>Start time (optional)<input type="time" value={String(entry.time??'')} onChange={e=>field('time',e.target.value||undefined)}/></label><label>End time (optional)<input type="time" value={String(entry.endTime??'')} onChange={e=>field('endTime',e.target.value||undefined)}/></label></div>}
+  {edit.key==='calendarEvents'&&isOvernight({time:entry.time as string|undefined,endTime:entry.endTime as string|undefined})&&<p className="wb-muted overnight-note">🌙 Ends the next day at {classTime(String(entry.endTime))}.</p>}
   {clashes.length>0&&<div className="clash-warning" role="status"><strong>⚠️ Heads up</strong><ul>{clashes.slice(0,3).map(c=><li key={c.date+c.text}>{c.text}</li>)}</ul>{clashes.length>3&&<small>And {clashes.length-3} more.</small>}</div>}
   {isEvent&&<div className="wb-place-row"><label>Where (optional)<input maxLength={300} value={String(entry.location??'')} onChange={e=>field('location',e.target.value||undefined)} placeholder="Riverside Park, field 3" autoComplete="street-address"/></label><label>Travel time<select value={String(entry.travelMinutes??'')} onChange={e=>field('travelMinutes',e.target.value?Number(e.target.value):undefined)}><option value="">None</option>{TRAVEL_CHOICES.map(m=><option key={m} value={m}>{m<60?m+' min':m===60?'1 hour':m/60+' hours'}</option>)}</select></label></div>}
   {isEvent&&(Boolean(entry.location)||Boolean(entry.travelMinutes))&&<p className="wb-muted wb-place-hint">{leaveBy(entry.time as string|undefined,entry.travelMinutes as number|undefined)?<>🚗 Leave by <strong>{classTime(leaveBy(entry.time as string,entry.travelMinutes as number)!)}</strong>{data.settings.browserNotifications?' — KONO will remind you then.':'. Turn on notifications in Settings to get a reminder.'} </>:entry.travelMinutes?'Add a start time to see when to leave. ':''}{Boolean(entry.location)&&<a href={mapsLink(String(entry.location))} target="_blank" rel="noreferrer">Open in Maps</a>}</p>}

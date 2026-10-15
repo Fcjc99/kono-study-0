@@ -5,6 +5,7 @@ import {classTime} from '../store/classSchedule'
 import {addDays} from '../store/studyScheduler'
 import type {DailyWeatherForecast} from '../game/weather/liveWeather'
 import {specialOn,upcomingSpecial,daysAwayLabel} from '../store/specialDays'
+import {daysOffOn,dayOffIcon,dayOffLabel} from '../store/daysOff'
 import Avatar from './Avatar'
 import './wall-display.css'
 
@@ -50,20 +51,22 @@ export default function WallDisplay({data,me,weather,close}:{data:AppData;me:Per
  const family:Person=kids.length?{id:'family',name:'Family',emoji:'👪',color:me.color}:me
  const personFor=(kidId?:string)=>people.find(p=>p.id===kidId)??family
  // The family plan (which already carries what's in each kid's own plan, tagged to them), in time order.
- const itemsFor=(date:string)=>kidItemsForDate(data,data.activeProfileId,date).sort((a,b)=>(a.time??'99:99').localeCompare(b.time??'99:99')||a.title.localeCompare(b.title))
+ // Last night's late-night events lead the morning.
+ const itemsFor=(date:string)=>kidItemsForDate(data,data.activeProfileId,date).sort((a,b)=>(a.until?'00:00':a.time??'99:99').localeCompare(b.until?'00:00':b.time??'99:99')||a.title.localeCompare(b.title))
  const clock=now.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})
  const forecast=weather.find(w=>w.date===today)
  // Countdowns (not today's or tomorrow's, which show in their day) in the header, up to three.
  const countdowns=upcomingSpecial(data,data.activeProfileId,today,90).filter(x=>x.day.kind==='countdown'&&x.daysAway>1).slice(0,3)
  // Wide screens: the rest of the week, a few lines a day.
- const week=<section className="wall-week" aria-label="Rest of the week"><h2>This week</h2>{Array.from({length:5},(_,i)=>addDays(today,i+2)).map(date=>{const items=itemsFor(date),special=specialOn(data,data.activeProfileId,date);return <div key={date} className="wall-week-day"><h3>{new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'long'})}<small>{new Date(date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})}</small></h3>{special.map(x=><p key={x.day.id} className="wall-week-special">{x.icon} {x.label}</p>)}{items.length?<ul>{items.slice(0,4).map(i=>{const p=personFor(i.kidId);return <li key={i.kind+i.id+(i.kidId??'')} style={{'--person':p.color} as CSSProperties}><span className="wall-week-time">{i.time?classTime(i.time):i.kind==='exam'?'Test':i.kind==='task'?'Due':''}</span><span className="wall-week-title">{i.title}</span><Avatar className="wall-week-face" who={p}/></li>})}{items.length>4&&<li className="wall-week-more">+{items.length-4} more</li>}</ul>:!special.length&&<p className="wall-week-empty">Free</p>}</div>})}</section>
+ const week=<section className="wall-week" aria-label="Rest of the week"><h2>This week</h2>{Array.from({length:5},(_,i)=>addDays(today,i+2)).map(date=>{const items=itemsFor(date),special=specialOn(data,data.activeProfileId,date),off=daysOffOn(data,data.activeProfileId,date);return <div key={date} className="wall-week-day"><h3>{new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'long'})}<small>{new Date(date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})}</small></h3>{off.map(d=><p key={d.id} className="wall-week-special">{dayOffIcon(d.reason)} {dayOffLabel(data,d)}</p>)}{special.map(x=><p key={x.day.id} className="wall-week-special">{x.icon} {x.label}</p>)}{items.length?<ul>{items.slice(0,4).map(i=>{const p=personFor(i.kidId);return <li key={i.kind+i.id+(i.kidId??'')} className={i.off?'is-off':undefined} style={{'--person':p.color} as CSSProperties}><span className="wall-week-time">{i.off?'Off':i.until?'til '+classTime(i.until):i.time?classTime(i.time):i.kind==='exam'?'Test':i.kind==='task'?'Due':''}</span><span className="wall-week-title">{i.title}</span><Avatar className="wall-week-face" who={p}/></li>})}{items.length>4&&<li className="wall-week-more">+{items.length-4} more</li>}</ul>:!special.length&&!off.length&&<p className="wall-week-empty">Free</p>}</div>})}</section>
  const day=(date:string,label:string)=>{
   const items=itemsFor(date),nowClock=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')
   return <section className="wall-day" aria-label={label}>
    <h2>{label}<small>{new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</small></h2>
+   {daysOffOn(data,data.activeProfileId,date).map(d=><p key={d.id} className="wall-special is-day-off"><span aria-hidden="true">{dayOffIcon(d.reason)}</span> {dayOffLabel(data,d)}</p>)}
    {specialOn(data,data.activeProfileId,date).map(x=><p key={x.day.id} className="wall-special" style={{'--person':personFor(x.day.kidId).color} as CSSProperties}><span aria-hidden="true">{x.icon}</span> {x.label}</p>)}
-   {items.length?<ul>{items.map(i=>{const p=personFor(i.kidId),past=date===today&&!!i.time&&i.time<nowClock&&i.kind!=='task';return <li key={i.kind+i.id+(i.kidId??'')} className={'wall-item is-'+i.kind+(i.done?' is-done':'')+(past?' is-past':'')} style={{'--person':p.color} as CSSProperties}>
-    <span className="wall-time">{i.time?classTime(i.time):i.kind==='task'?'Due':i.kind==='exam'?'Test':'All day'}</span>
+   {items.length?<ul>{items.map(i=>{const p=personFor(i.kidId),past=date===today&&!!i.time&&i.time<nowClock&&i.kind!=='task';return <li key={i.kind+i.id+(i.kidId??'')} className={'wall-item is-'+i.kind+(i.done?' is-done':'')+(i.off?' is-off':'')+(past?' is-past':'')} style={{'--person':p.color} as CSSProperties}>
+    <span className="wall-time">{i.off?'Off':i.until?<><small>Until</small>{classTime(i.until)}</>:i.time?classTime(i.time):i.kind==='task'?'Due':i.kind==='exam'?'Test':'All day'}</span>
     <Avatar className="wall-face" who={p}/>
     <span className="wall-title">{kindIcon[i.kind]&&<span aria-hidden="true">{kindIcon[i.kind]} </span>}{i.title}<small>{p.name}</small></span>
    </li>})}</ul>:<p className="wall-empty">Nothing planned.</p>}

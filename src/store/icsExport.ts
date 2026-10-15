@@ -37,7 +37,8 @@ function eventLines(event: IcsEvent, stamp: string): string[] {
   // all-day rather than implying a due time (like 12:00 AM) that was never actually set.
   if (event.time && /^\d{2}:\d{2}$/.test(event.time)) {
     lines.push('DTSTART:' + day + 'T' + event.time.replace(':', '') + '00')
-    if (event.endTime && /^\d{2}:\d{2}$/.test(event.endTime) && event.endTime > event.time) lines.push('DTEND:' + day + 'T' + event.endTime.replace(':', '') + '00')
+    // A late-night event (ends before it starts) ends the next morning.
+    if (event.endTime && /^\d{2}:\d{2}$/.test(event.endTime) && event.endTime !== event.time) lines.push('DTEND:' + (event.endTime > event.time ? day : addDays(event.date, 1).replace(/-/g, '')) + 'T' + event.endTime.replace(':', '') + '00')
   }
   else lines.push('DTSTART;VALUE=DATE:' + day)
   lines.push('SUMMARY:' + escapeText(event.summary))

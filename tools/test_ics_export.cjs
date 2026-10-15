@@ -53,9 +53,11 @@ test('a calendar event with a time renders a timed DTSTART; without one it stays
  d.calendarEvents=[
   {id:'c1',profileId:pid,date:'2026-09-20',title:'Soccer practice',kind:'sports',notes:'',time:'15:30'},
   {id:'c2',profileId:pid,date:'2026-09-21',title:'Doctor appointment',kind:'appointment',notes:''},
+  {id:'c3',profileId:pid,date:'2026-09-30',title:'Sleepover',kind:'activity',notes:'',time:'19:00',endTime:'09:00'},
  ]
  const ics=buildIcs(d,pid)
  assert.ok(ics.includes('DTSTART:20260920T153000\r\n'))
+ assert.ok(ics.includes('DTSTART:20260930T190000\r\nDTEND:20261001T090000\r\n'),'a late-night event ends the next morning')
  assert.ok(ics.includes('DTSTART;VALUE=DATE:20260921\r\n'))
 })
 

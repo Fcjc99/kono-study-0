@@ -1,5 +1,7 @@
 import type {AppData,Kid} from './model'
 import {classKid,classOccurrences,isInClassNow} from './classSchedule'
+import {eventOff} from './daysOff'
+import {carriedOver} from './overnight'
 
 /** Reuses the same distinguishable, muted color set the rest of the app already leans on for
  * per-item accents, so a kid's color reads as consistent with the app's existing palette choices. */
@@ -13,22 +15,26 @@ export function nextKidColor(kids:readonly Pick<Kid,'color'>[]):string {
 }
 
 export type KidItemKind='task'|'exam'|'event'|'class'
-export type KidItem={kidId?:string;kidName?:string;kidEmoji?:string;color?:string;kind:KidItemKind;id:string;title:string;date:string;done:boolean;time?:string}
+export type KidItem={kidId?:string;kidName?:string;kidEmoji?:string;color?:string;kind:KidItemKind;id:string;title:string;date:string;done:boolean;time?:string;endTime?:string;off?:boolean;until?:string}
 
 /** Every task, exam, calendar event and recurring class occurrence for one shared profile on one
  * date, tagged with whichever kid (if any) it's assigned to -- the whole point of one shared
  * calendar is seeing everyone at once on one grid, not switching between separate calendars per
  * kid. visibleKidIds, when given, hides items tagged to a kid not in the set (an untagged item is
  * always shown, the same way an "unassigned" subject item always shows regardless of subject filter). */
-export function kidItemsForDate(data:Pick<AppData,'tasks'|'exams'|'calendarEvents'|'studySeasons'|'kids'>,profileId:string,date:string,visibleKidIds?:Set<string>|null):KidItem[] {
+/** off: a skipped class, or an event whose people are all out sick or off that day. until: last night's
+ * late-night event, still going this morning until then. */
+export function kidItemsForDate(data:Pick<AppData,'tasks'|'exams'|'calendarEvents'|'studySeasons'|'kids'>&Partial<Pick<AppData,'daysOff'|'profiles'>>,profileId:string,date:string,visibleKidIds?:Set<string>|null):KidItem[] {
+ const offRead={daysOff:data.daysOff,kids:data.kids,profiles:data.profiles??[]}
  const kidOf=(kidId?:string)=>kidId?data.kids.find(k=>k.id===kidId):undefined
  const visible=(kidId?:string)=>!visibleKidIds||!kidId||visibleKidIds.has(kidId)
  const tag=(kidId?:string)=>{const kid=kidOf(kidId);return {kidId,kidName:kid?.name,kidEmoji:kid?.emoji,color:kid?.color}}
  const items:KidItem[]=[]
  for(const t of data.tasks)if(t.profileId===profileId&&t.due===date&&visible(t.kidId))items.push({...tag(t.kidId),kind:'task',id:t.id,title:t.title,date,done:t.done})
  for(const e of data.exams)if(e.profileId===profileId&&e.due===date&&visible(e.kidId))items.push({...tag(e.kidId),kind:'exam',id:e.id,title:e.title,date,done:e.done})
- for(const ev of data.calendarEvents)if(ev.profileId===profileId&&ev.date===date&&visible(ev.kidId))items.push({...tag(ev.kidId),kind:'event',id:ev.id,title:ev.title,date,done:Boolean(ev.done),time:ev.time})
- for(const c of classOccurrences({activeProfileId:profileId,studySeasons:data.studySeasons},date)){if(!visible(classKid(c)))continue;items.push({...tag(classKid(c)),kind:'class',id:c.id,title:c.block.label,date,done:false,time:c.displayStart??c.block.start})}
+ for(const ev of data.calendarEvents)if(ev.profileId===profileId&&ev.date===date&&visible(ev.kidId))items.push({...tag(ev.kidId),kind:'event',id:ev.id,title:ev.title,date,done:Boolean(ev.done),time:ev.time,...(ev.endTime?{endTime:ev.endTime}:{}),...(data.daysOff?.length&&eventOff(offRead,profileId,ev)?{off:true}:{})})
+ for(const ev of carriedOver(data.calendarEvents.filter(e=>e.profileId===profileId&&visible(e.kidId)),date))items.push({...tag(ev.kidId),kind:'event',id:ev.id,title:ev.title,date,done:Boolean(ev.done),until:ev.endTime})
+ for(const c of classOccurrences({activeProfileId:profileId,studySeasons:data.studySeasons},date)){if(!visible(classKid(c)))continue;items.push({...tag(classKid(c)),kind:'class',id:c.id,title:c.block.label,date,done:false,time:c.displayStart??c.block.start,...(c.block.skippedDates?.includes(date)?{off:true}:{})})}
  return items
 }
 

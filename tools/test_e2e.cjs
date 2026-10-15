@@ -3254,6 +3254,36 @@ test('offline: the Home Screen app opens with no signal, shows the plan, keeps a
  }finally{await context.close()}
 })
 
+test('Out sick and late nights: marking Emma out sick skips her class and shows her soccer as off on Home, the Planner and the wall, Take back undoes it; a sleepover past midnight shows the next morning',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.install({time:new Date('2026-10-19T07:30:00')}) // a Monday
+ const week={Monday:[{id:'math',label:'Math',start:'09:00',end:'10:00',kind:'study'}],Sunday:[],Tuesday:[],Wednesday:[],Thursday:[],Friday:[],Saturday:[]}
+ d.studySeasons.push({id:'emma-school',profileId:pid,name:'Emma’s school',start:'2026-09-01',end:'2026-12-20',active:true,week,kidId:'kid-emma'})
+ d.calendarEvents.push({id:'soccer',profileId:pid,date:'2026-10-19',title:'Soccer practice',kind:'sports',notes:'',time:'16:00',kidId:'kid-emma'},{id:'sleep',profileId:pid,date:'2026-10-18',title:'Sleepover at Sam’s',kind:'activity',notes:'',time:'19:00',endTime:'09:00',kidId:'kid-leo'})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const glance=page.getByRole('region',{name:'Kids today'})
+ await glance.getByRole('button',{name:'🤒 Out sick or snow day?'}).click()
+ const sheet=page.getByRole('dialog',{name:'Out sick or a snow day'})
+ await sheet.getByRole('group',{name:'Who’s out'}).getByRole('button',{name:/Emma/}).click()
+ await sheet.getByRole('button',{name:'Mark out sick'}).click()
+ await sheet.waitFor({state:'detached'})
+ await waitFor(()=>{const p=cloud.users.alice.plan.data;return p.daysOff?.length===1&&p.studySeasons.find(s=>s.id==='emma-school').week.Monday[0].skippedDates?.includes('2026-10-19')},'the sick day and the skipped class never reached the account')
+ assert.match(await glance.innerText(),/Out sick/)
+ await page.getByLabel('Today at a glance').getByText('Emma is out sick').waitFor()
+ // The wall: her soccer is off; Leo's sleepover is still going this morning.
+ await page.goto(BASE+'?wall')
+ const wall=page.getByRole('dialog',{name:'Wall display'}),today=wall.getByRole('region',{name:'Today'})
+ await today.getByText('Emma is out sick').waitFor()
+ assert.match(await today.locator('.wall-item.is-off').filter({hasText:'Soccer practice'}).innerText(),/Off/)
+ assert.match(await today.locator('.wall-item').filter({hasText:'Sleepover at Sam’s'}).innerText(),/Until 9:00 AM/)
+ // The Planner says so too, and Take back undoes it.
+ await page.goto(BASE+'?page=planner');await heading(page,'Planner')
+ const banner=page.locator('.special-day-banner.is-day-off').filter({hasText:'Emma is out sick'}).first()
+ await banner.getByRole('button',{name:'Change'}).click()
+ await page.getByRole('dialog',{name:'Out sick or a snow day'}).getByRole('button',{name:'Take back'}).click()
+ await waitFor(()=>{const p=cloud.users.alice.plan.data;return p.daysOff?.length===0&&!p.studySeasons.find(s=>s.id==='emma-school').week.Monday[0].skippedDates?.includes('2026-10-19')},'Take back did not undo the sick day')
+})
 async function main(){
  const server=await startServer()
  const onlyArg=process.argv[2]

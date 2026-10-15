@@ -443,3 +443,18 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .settings-group>summary small{display:block;font-size:.8rem;font-weight:500;color:var(--wb-muted,#7a6670);margin-top:2px}
 .settings-group .profile-form{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .island-weather-link{margin:12px 0 0}
+/* Out sick, snow days and days off */
+.special-day-banner.is-day-off{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;background:color-mix(in srgb,#9aa5b1 24%,var(--wb-surface,#fff))}
+.special-day-banner.is-day-off .link-button{margin-left:auto;font-weight:600}
+.day-off-open{display:inline-block;margin:2px 0 8px;font-size:.9rem}
+.day-off{display:grid;gap:12px}
+.day-off-reasons,.day-off-who{display:flex;flex-wrap:wrap;gap:8px}
+.day-off-who button{border-left:5px solid var(--kid,var(--wb-line))}
+.day-off-list ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.day-off-list li{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.day-off-list h3{margin:0 0 6px;font-size:1rem}
+.kids-glance-day.is-out{font-weight:700}
+.kids-glance .wb-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.wb-draggable.is-off{position:relative;opacity:.6}
+.wb-draggable.is-off :is(h3,strong){text-decoration:line-through}
+.off-tag{position:absolute;z-index:1;top:-8px;left:12px;padding:1px 8px;border-radius:999px;font-size:.72rem;font-weight:800;background:#5c6670;color:#fff}
