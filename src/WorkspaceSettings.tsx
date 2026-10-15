@@ -19,7 +19,7 @@ const QUICK_KIND_OPTIONS=[['sports','Sports'],['lesson','Lesson'],['appointment'
 // The fast path parent mode promises: kid, type, a short title and an optional time -- no subject
 // picker, notes, voice input or multi-date repeat. Saves straight to calendarEvents (see
 // quickAddFamilyEvent) rather than opening the full EntryEditor.
-export type QuickFamilyPayload={title:string;kind:CalendarEventKind;kidIds:string[];time?:string;endTime?:string;driver?:string;repeatDays:number[];until:string}
+export type QuickFamilyPayload={location?:string;title:string;kind:CalendarEventKind;kidIds:string[];time?:string;endTime?:string;driver?:string;repeatDays:number[];until:string}
 const WEEKDAY_LETTERS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 export function QuickFamilyAdd({kids,time:startAt,date,until:defaultUntil,drivers=[],onCancel,onSave}:{kids:Kid[];time?:string;date?:string;until?:string;drivers?:string[];onCancel:()=>void;onSave:(payload:QuickFamilyPayload)=>Promise<void>}){
  // Repeats: the same weekday as the date by default, through the end of the school year.

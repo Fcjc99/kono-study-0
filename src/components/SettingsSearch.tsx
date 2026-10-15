@@ -15,6 +15,7 @@ const INDEX:{label:string;tab:SettingsTab;find:string;words:string}[]=[
  {label:'Reminders and notifications',tab:'Notifications',find:'notifications',words:'reminders alerts notify lock screen push phone due'},
  {label:'Kids',tab:'Family',find:'kids',words:'children family kid add rename names'},
  {label:'Kids’ appearance',tab:'Family',find:'appearance',words:'kid colors emoji avatar border'},
+ {label:'Share with grandparents (view-only link)',tab:'Family',find:'share with grandparents',words:'share grandparents grandma grandpa family link view only read relatives nanny sitter'},
  {label:'Parent PIN and locking a kid’s device',tab:'Family',find:'pin',words:'pin lock parent password device'},
  {label:'Classes and school schedule',tab:'Schedules',find:'schedule',words:'classes school bell rotation day periods timetable'},
  {label:'Sports season and work shifts',tab:'Schedules',find:'schedule',words:'sports practice games work shifts job'},

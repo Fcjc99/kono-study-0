@@ -44,4 +44,17 @@ test('no date: tomorrow, and it says so; nothing but a class still gets a title'
  assert.equal(q('spanish'),'tasks | Spanish III assignment | span | 2026-10-01 | ')
  assert.equal(parseQuickAdd('essay fri',[],today).subjectId,'','no classes: no subject')
 })
-console.log(`${passed}/4 quick-add groups passed.`)
+test('events in one line: repeats, time ranges, who and where; homework and tests stay homework and tests',()=>{
+ const people=[{id:'kid-emma',name:'Emma'},{id:'kid-leo',name:'Leo'}]
+ const e=text=>{const r=parseQuickAdd(text,subjects,today,people);return r.key!=='calendarEvents'?r.key:[r.title,r.due,r.time??'',r.event.endTime??'',r.event.kind,r.event.repeatDays.join('+'),r.event.kidIds.join('+'),r.event.location??''].join(' | ')}
+ assert.equal(e('soccer every Tue and Thu 4pm for Emma'),'Soccer | 2026-10-01 | 16:00 |  | sports | 2+4 | kid-emma | ','first one is Thursday (today is Wednesday)')
+ assert.equal(e('piano lesson thursday 4-4:45pm for Leo'),'Piano lesson | 2026-10-01 | 16:00 | 16:45 | lesson |  | kid-leo | ')
+ assert.equal(e('swim practice mondays and wednesdays 5:30-6:30pm at the Y'),'Swim practice | 2026-09-30 | 17:30 | 18:30 | sports | 1+3 |  | The Y')
+ assert.equal(e('Emma and Leo soccer game sat 10am at Riverside Park'),'Soccer game | 2026-10-03 | 10:00 |  | sports |  | kid-emma+kid-leo | Riverside Park')
+ assert.equal(e('work every weekday 9-5'),'Work | 2026-09-30 | 09:00 | 17:00 | work | 1+2+3+4+5 |  | ')
+ assert.equal(e('dentist tomorrow at 9am'),'Dentist | 2026-10-01 | 09:00 |  | appointment |  |  | ')
+ const club=parseQuickAdd('book club every week on tuesday 7pm until Dec 15',subjects,today,people)
+ assert.equal(club.event.until,'2026-12-15');assert.deepEqual([...club.event.repeatDays],[2]);assert.equal(club.due,'2026-10-06')
+ assert.equal(e('bio worksheet due fri'),'tasks');assert.equal(e('math test thursday'),'exams');assert.equal(e('practice problems fri at 8:30am'),'tasks');assert.equal(e('permission slip'),'tasks')
+})
+console.log(`${passed}/5 quick-add groups passed.`)

@@ -46,3 +46,6 @@
 .wb-agenda-day-wrap.has-add>.wb-agenda-day>summary{padding-right:92px}
 .workbench .wb-agenda-day-wrap>.wb-agenda-add{position:absolute;top:14px;right:8px;min-height:34px!important}
 :root[data-dark][data-experience=sumi] .month-cell.is-today .month-day-num{color:#1b1714}
+/* Birthdays, countdowns and school holidays: all-day pills, first in the day. */
+.workbench .month-grid .month-pill.is-special{background:color-mix(in srgb,var(--pill) 30%,var(--wb-surface,#fff))!important;border-left-style:solid!important;font-weight:800!important}
+.workbench .month-grid .month-pill.is-holiday{pointer-events:none;background:color-mix(in srgb,var(--pill) 22%,var(--wb-surface,#fff))!important;border-left:0!important;justify-content:center;font-weight:700!important;cursor:default}
