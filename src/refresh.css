@@ -417,3 +417,5 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 @media(max-width:400px){.workbench .calendar-views button{padding:0 6px!important;font-size:.78rem}}
 @container (max-width:420px){.wb-family-event-main{flex-wrap:wrap}.wb-family-event-time{flex:0 0 auto!important;flex-direction:row!important;gap:4px;align-items:baseline}.wb-family-event-info{flex:1 1 100%!important;order:3}.wb-family-event-main>.countdown-chip{margin-left:auto}}
 .workbench .subject-section-tabs.calendar-views{flex-wrap:nowrap}
+:root[data-dark] .coming-up li b{color:color-mix(in srgb,var(--wb-accent,#c76b8f) 40%,#fff)}
+.special-days :is(.special-days-list small,.calendar-views button[aria-pressed=false]){color:color-mix(in srgb,var(--wb-muted,#7a6670) 65%,var(--wb-ink,#3a2b33))!important}
