@@ -23,9 +23,9 @@
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:not(.nav-button):not(.cozy-complete):not(.wb-calendar>button):not(.month-grid button):not(.kid-look-emojis button):not(.wall-display button):not(.kid-look-colors button):not(.subject-tabs button):not(.build-item):not(.kquiz-choice):not(.week-grid-slot):not(.week-item):not(.link-button):not(.save-toast button):not(.primary):not(.week-grid-head button):not(.wb-cal-day):not(.mobile-nav button):not(.people-filter>button):not(.calendar-views button):not(.profile-card fieldset button){
  box-shadow:none!important;background:var(--wb-surface,#fff)!important;border:1px solid var(--rf-line)!important;border-radius:var(--rf-radius-sm)!important;font-weight:600!important;min-height:40px}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) button.primary{background:var(--wb-accent,#c76b8f)!important;border-color:transparent!important;color:#fff!important;box-shadow:0 4px 14px color-mix(in srgb,var(--wb-accent,#c76b8f) 30%,transparent)!important}
-:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:is([aria-pressed='true'],[aria-current],[aria-selected='true']):not(.wb-calendar>button):not(.month-grid button):not(.kid-look-emojis button):not(.wall-display button):not(.kid-look-colors button):not(.nav-button):not(.people-filter>button):not(.calendar-views button):not(.profile-card-colors button){background:var(--rf-tint)!important;border-color:color-mix(in srgb,var(--wb-accent,#c76b8f) 45%,transparent)!important;color:var(--cute-ink,#704257)!important}
+:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:is([aria-pressed='true'],[aria-current],[aria-selected='true']):not(.wb-calendar>button):not(.month-grid button):not(.kid-look-emojis button):not(.wall-display button):not(.kid-look-colors button):not(.nav-button):not(.people-filter>button):not(.calendar-views button):not(.profile-card-colors button){background:color-mix(in srgb,var(--wb-accent,#c76b8f) 18%,var(--wb-surface,#fff))!important;border-color:var(--wb-accent,#c76b8f)!important;box-shadow:inset 0 0 0 1px var(--wb-accent,#c76b8f)!important;color:color-mix(in srgb,var(--wb-accent,#c76b8f) 55%,var(--cute-ink,#3a2b33))!important;font-weight:700!important}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:active:not(:disabled){translate:none;transform:scale(.98)}
-@media(hover:hover){:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:hover:not(:disabled):not(.primary):not(.month-grid button):not(.kid-look-emojis button):not(.wall-display button):not(.kid-look-colors button){background:var(--rf-tint)!important;filter:none}}
+@media(hover:hover){:root[data-experience='cozy'] :is(.workbench,.wb-dialog) button:hover:not(:disabled):not(.primary):not(.nav-button):not([aria-current]):not([aria-pressed='true']):not([aria-selected='true']):not(.month-grid button):not(.kid-look-emojis button):not(.wall-display button):not(.kid-look-colors button){background:var(--rf-tint)!important;filter:none}}
 :root[data-experience='cozy'] :is(.workbench,.wb-dialog) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea){border:1px solid var(--rf-line)!important;border-radius:var(--rf-radius-sm)!important;box-shadow:none!important;background:var(--wb-surface,#fff)!important}
 
 /* Chips (names, sources, days shown): lighter, no 3D. */
@@ -260,7 +260,7 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .people-filter>button[aria-pressed=true] .person-avatar{background:var(--kid-color,var(--wb-accent,#c76b8f));color:#fff;box-shadow:0 4px 12px color-mix(in srgb,var(--kid-color,var(--wb-accent,#c76b8f)) 40%,transparent)}
 .people-filter>button[aria-pressed=false] .person-avatar{opacity:.45;filter:grayscale(.6)}
 .people-filter>button[aria-pressed=false] .person-name{opacity:.55}
-.people-filter .people-filter-count{position:absolute;top:0;right:6px;margin:0!important;min-width:20px;height:20px;border:2px solid var(--wb-surface,#fff);box-sizing:content-box}
+.people-filter .people-filter-count{position:absolute;top:-4px;right:-2px;margin:0!important;min-width:16px;height:16px;font-size:.65rem;border:2px solid var(--wb-surface,#fff);box-sizing:content-box}
 .people-filter>button:active .person-avatar{transform:scale(.94)}
 .people-filter>button:focus-visible .person-avatar{outline:3px solid var(--wb-accent,#c76b8f);outline-offset:2px}
 
@@ -478,3 +478,24 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 /* Planner: the source chips say what they do. */
 .planner-source-chips{align-items:center}
 .planner-chips-label{font-size:.78rem;font-weight:700;color:var(--wb-muted,#7a6670);margin-right:2px}
+
+/* ── Visual pass ─────────────────────────────────────────────────────────────────────────────── */
+/* The sidebar plan card's Whose plan? spans the card (an older rule kept it in the avatar column). */
+.sidebar .profile-dock .plan-switch-button{grid-column:1/-1!important;width:100%!important;white-space:nowrap!important;margin-top:8px!important}
+/* Kid cards: the trash button stays on the name's row. */
+.workbench .kid-roster>li>strong{flex:1 1 60px}
+.workbench .kid-roster>li>.kid-roster-remove{width:36px;height:36px;padding:0!important;display:inline-grid;place-items:center}
+/* Exam and note cards: the title only gives way to the × button. */
+.kono-sticky h3{padding-right:36px}
+/* Icon + label buttons get a gap. */
+.wb-scene-toolbar button{gap:6px}
+/* Clean (modern) uses its own colors, not cozy amber and plum. */
+:root[data-experience=modern] .crunch-digest{border-color:var(--wb-line,#d2d2d7)}
+:root[data-experience=modern] .planner-settings-link .primary{background:var(--wb-surface,#fff)!important;color:var(--wb-accent,#0066cc)!important;border:1px solid var(--wb-line,#d2d2d7)!important;box-shadow:none!important}
+/* Dark mode: note stickies dim instead of glowing pastel, and buttons on them aren't heavy black. */
+:root[data-dark] .kono-sticky{filter:brightness(.82) saturate(.9)}
+:root[data-dark] :is(.workbench,body) .kono-sticky :is(.kono-sticky-actions,.kono-sticky-footer) button:not(.primary):not(#x),:root[data-dark] .kono-sticky .kono-sticky-delete:not(#x){background:rgba(255,255,255,.55)!important;color:#2a2228!important;border-color:rgba(0,0,0,.15)!important}
+/* Fewer boxes inside boxes: cards inside a settings panel lose their own frame. */
+.settings-groups .wb-panel>.card.settings-list,.settings-groups .wb-panel>section>.card.settings-list{border:0!important;box-shadow:none!important;background:transparent!important;padding-left:0!important;padding-right:0!important}
+/* Dark mode: the current sidebar tab is a light pill, so its label is dark ink. */
+:root[data-dark] .sidebar .nav-button.active,:root[data-dark] .sidebar .nav-button.active :is(span,strong){color:#3a2230!important}

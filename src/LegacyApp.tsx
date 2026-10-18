@@ -46,7 +46,7 @@ export function StickyNoteView({kind,color,textColor,font='rounded',pinned=false
   <span className="kono-sticky-subject"><b>{subjectGlyph}</b>{subject}</span>
   {exam&&typeof countdown==='number'&&<div className="kono-countdown"><b>{countdown}</b><small>days</small></div>}
   <h3>{title}</h3>
-  <div className="kono-sticky-body" style={{background:highlight}} ><SafeNoteBody text={body||'Add details here.'}/></div>
+  {body.trim()&&<div className="kono-sticky-body" style={{background:highlight}} ><SafeNoteBody text={body}/></div>}
   <footer className="kono-sticky-footer">
    <span>{dateLabel||sourceLabel||(pinned?'Pinned note':exam?'Upcoming exam':'Study note')}</span>
    <div className="kono-sticky-actions">

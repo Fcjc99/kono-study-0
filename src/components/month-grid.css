@@ -43,7 +43,7 @@
 @media(prefers-reduced-motion:reduce){.month-cell{transition:none}}
 /* Schedule: a day's ＋ Add sits on its header row, beside (not inside) the part that opens and closes. */
 .wb-agenda-day-wrap{position:relative}
-.wb-agenda-day-wrap.has-add>.wb-agenda-day>summary{padding-right:92px}
+.wb-agenda-day-wrap.has-add>.wb-agenda-day>summary{padding-right:124px}
 .workbench .wb-agenda-day-wrap>.wb-agenda-add{position:absolute;top:14px;right:8px;min-height:34px!important}
 :root[data-dark][data-experience=sumi] .month-cell.is-today .month-day-num{color:#1b1714}
 /* Birthdays, countdowns and school holidays: all-day pills, first in the day. */
