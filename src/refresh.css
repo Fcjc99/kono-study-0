@@ -550,4 +550,4 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .week-ahead .wa-todo{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;font-weight:700;color:color-mix(in srgb,var(--wb-accent,#c76b8f) 60%,var(--wb-ink,#3a2b33))}
 .week-ahead .wa-events{font-size:.78rem;font-weight:700}
 /* Family Home: the island is a smaller picture under the day, not the whole first screen. */
-.workbench .home-grid.is-parent :is(.wb-island:not(.is-expanded),.kono-bar){width:100%;max-width:760px;align-self:center}
+.workbench .home-grid.is-parent :is(.wb-island:not(.is-expanded),.kono-bar){width:100%;max-width:880px;align-self:center}
