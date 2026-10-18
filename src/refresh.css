@@ -525,3 +525,29 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 :root[data-experience=cozy] .workbench nav.subject-section-tabs button:not(#x){border:0!important;background:transparent!important;box-shadow:none!important;border-radius:12px!important;color:var(--wb-muted,#7a6670)!important;font-weight:600!important}
 :root[data-experience=cozy] .workbench nav.subject-section-tabs button[aria-current]:not(#x){background:var(--wb-surface,#fff)!important;color:var(--cute-ink,#3a2b33)!important;font-weight:800!important;box-shadow:0 1px 3px rgba(60,30,40,.15)!important}
 :root[data-experience=cozy][data-dark] .workbench nav.subject-section-tabs button[aria-current]:not(#x){background:color-mix(in srgb,var(--wb-surface,#2a2228) 70%,#fff 12%)!important;color:var(--wb-ink,#f3e9ee)!important}
+/* Family Home: what's next for each kid, one line each, inside the Today card. */
+.kids-next{list-style:none;margin:4px 0 10px;padding:0;display:grid;gap:6px}
+.kids-next li{padding:6px 10px;border-left:4px solid var(--kid-color,var(--wb-line));border-radius:10px;background:color-mix(in srgb,var(--kid-color,#999) 10%,var(--wb-surface,#fff));font-size:.92rem}
+.kids-next strong{margin-right:4px}
+.workbench .today-summary .today-summary-late:not(#x){cursor:pointer;display:inline-flex;align-items:center;gap:5px;min-height:0!important;padding:5px 11px!important;border:0!important;border-radius:999px!important;box-shadow:none!important;font:inherit;font-weight:700!important;background:color-mix(in srgb,#d94b4b 14%,var(--wb-surface,#fff))!important;color:#a12d2d!important}
+:root[data-dark] .workbench .today-summary .today-summary-late:not(#x){color:#ffb4ab!important}
+.today-summary .today-summary-late:focus-visible{outline:2px solid var(--wb-accent,#c76b8f)}
+/* Family Home order, every screen size: your day, the week, to-dos, what's coming up, then the island. */
+.workbench .home-grid.is-parent{display:flex!important;flex-direction:column;gap:0}
+.workbench .home-grid.is-parent :is(.home-main,.home-side){display:contents!important}
+.workbench .home-grid.is-parent :is(.home-main,.home-side)>*{order:8;margin:0 0 16px!important}
+/* KONO's bar stays attached under the island window, as one card. */
+.workbench .home-grid.is-parent .home-main>.wb-island{margin-bottom:0!important}
+.workbench .home-grid.is-parent .home-side>.getting-started{order:0!important}
+.workbench .home-grid.is-parent .home-side>.today-card{order:1!important}
+.workbench .home-grid.is-parent .home-side>.week-ahead{order:2!important}
+.workbench .home-grid.is-parent .home-side>.family-todos{order:3!important}
+.workbench .home-grid.is-parent .home-side>.coming-up{order:4!important}
+.workbench .home-grid.is-parent .home-main>:is(.welcome-tour,.wb-island,.kono-bar,.quick-today){order:6!important}
+.family-todo-day{margin-left:6px;padding:1px 8px;border-radius:999px;font-size:.75rem;font-weight:700;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 12%,var(--wb-surface,#fff));color:var(--wb-muted,#7a6670)}
+.family-todo-add{flex-wrap:wrap}
+.family-todo-weekly{display:inline-flex!important;align-items:center;gap:6px;font-weight:600;white-space:nowrap}
+.week-ahead .wa-todo{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;font-weight:700;color:color-mix(in srgb,var(--wb-accent,#c76b8f) 60%,var(--wb-ink,#3a2b33))}
+.week-ahead .wa-events{font-size:.78rem;font-weight:700}
+/* Family Home: the island is a smaller picture under the day, not the whole first screen. */
+.workbench .home-grid.is-parent :is(.wb-island:not(.is-expanded),.kono-bar){width:100%;max-width:880px;align-self:center}
