@@ -74,6 +74,7 @@ export type PageContext={
  planAt:(key:Collection,entry:Entry,day:string,time:string)=>void
  stretchTo:(key:Collection,entry:Entry,end:string)=>void
  quickAddFamilyEvent:(date:string,payload:QuickFamilyPayload)=>Promise<boolean>
+ tickFamilyTodo?:(id:string,on:string)=>void
  personShown:(x?:unknown)=>boolean
  card:(key:Collection,entry:Entry,compact?:boolean)=>ReactElement
  renderClass:(item:ClassOccurrence)=>ReactElement

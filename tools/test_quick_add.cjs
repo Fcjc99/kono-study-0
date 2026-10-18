@@ -61,6 +61,24 @@ test('events in one line: repeats, time ranges, who and where; homework and test
  assert.equal(e('eye exam tuesday at 3pm for Leo'),'Eye exam | 2026-10-06 | 15:00 |  | appointment |  | kid-leo | ')
  assert.equal(e('lunch with Emma at noon'),'Lunch | 2026-10-01 | 12:00 |  | personal |  | kid-emma | ')
  assert.equal(e('Leo sleepover saturday 7pm-9am'),'Sleepover | 2026-10-03 | 19:00 | 09:00 | activity |  | kid-leo | ','runs overnight')
- assert.equal(e('bio worksheet due fri'),'tasks');assert.equal(e('math test thursday'),'exams');assert.equal(e('practice problems fri at 8:30am'),'tasks');assert.equal(e('permission slip'),'tasks')
+ assert.equal(e('bio worksheet due fri'),'tasks');assert.equal(e('math test thursday'),'exams');assert.equal(e('practice problems fri at 8:30am'),'tasks');assert.equal(e('permission slip'),'familyTodos','in a family plan a slip to sign is a to-do')
 })
-console.log(`${passed}/5 quick-add groups passed.`)
+test('in a family plan a chore or errand with no time is a family to-do, with its day and repeat',()=>{
+ const people=[{id:'kid-emma',name:'Emma'},{id:'kid-leo',name:'Leo'}]
+ const t=text=>{const r=parseQuickAdd(text,subjects,today,people);return r.key!=='familyTodos'?r.key:[r.title,r.due,r.todo.repeat??'',r.todo.kidId??''].join(' | ')}
+ assert.equal(t('clean house every sat'),'Clean house | 2026-10-03 | week | ')
+ assert.equal(t('trash out every other tue'),'Trash out | 2026-10-06 | 2weeks | ')
+ assert.equal(t('pay rent on the 1st every month'),'Pay rent | 2026-10-01 | month | ')
+ assert.equal(t('pay rent the 15th monthly'),'Pay rent | 2026-10-15 | month | ')
+ assert.equal(t('groceries'),'Groceries |  |  | ','no day: any day')
+ assert.equal(t('buy poster board for Emma tomorrow'),'Buy poster board | 2026-10-01 |  | kid-emma')
+ assert.equal(t('laundry wednesdays'),'Laundry | 2026-09-30 | week | ','today counts')
+ assert.equal(t('to-do: renew passport oct 20'),'Renew passport | 2026-10-20 |  | ')
+ assert.equal(t('remember to call grandma'),'Call grandma |  |  | ')
+ // Not to-dos: anything with a time, tests and plain events.
+ assert.equal(parseQuickAdd('pick up dry cleaning at 5pm',subjects,today,people).key!=='familyTodos',true,'a time makes it something on the calendar')
+ assert.equal(t('soccer every Tue and Thu 4pm for Emma'),'calendarEvents')
+ assert.equal(t('math test thursday'),'exams')
+ assert.equal(parseQuickAdd('clean room',subjects,today).key,'tasks','a student plan has no family to-dos')
+})
+console.log(`${passed}/6 quick-add groups passed.`)

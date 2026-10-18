@@ -1,20 +1,44 @@
-import type {AppData,FamilyTodo} from './model'
+import type {AppData,FamilyTodo,TodoRepeat} from './model'
 import {addDays} from './studyScheduler'
 
-/** Family to-dos with a day (and maybe a weekly repeat): "Clean house · Saturday · every week". */
+/** Family to-dos with a day (and maybe a repeat): "Clean house · Saturday · every week",
+ * "Trash out · every 2 weeks", "Pay rent · the 1st · every month". */
 const dayNumber=(date:string)=>Math.round(Date.parse(date+'T12:00:00Z')/86400000)
+const daysIn=(year:number,month:number)=>new Date(Date.UTC(year,month,0)).getUTCDate()
 
-/** Open to-dos that fall on this date: ones for that day, and weekly ones on their weekday from their
- * first day on. */
-export function todosOn(data:Pick<AppData,'familyTodos'>,profileId:string,date:string):FamilyTodo[]{
- return (data.familyTodos??[]).filter(t=>t.profileId===profileId&&!t.done&&t.due&&(t.due===date||t.weekly&&date>t.due&&(dayNumber(date)-dayNumber(t.due))%7===0))
+export const TODO_REPEATS:{id:TodoRepeat;label:string}[]=[{id:'week',label:'Every week'},{id:'2weeks',label:'Every 2 weeks'},{id:'month',label:'Every month'}]
+export const repeatLabel=(repeat:TodoRepeat)=>TODO_REPEATS.find(r=>r.id===repeat)?.label??''
+
+/** Does this to-do fall on this date: its own day, or (for a repeat) a later turn of it. A monthly one on
+ * the 31st lands on the last day of shorter months. */
+export function todoOn(t:FamilyTodo,date:string):boolean{
+ if(!t.due)return false
+ if(t.due===date)return true
+ if(!t.repeat||date<t.due)return false
+ if(t.repeat!=='month'){const gap=dayNumber(date)-dayNumber(t.due);return gap%(t.repeat==='2weeks'?14:7)===0}
+ const [y,m,d]=date.split('-').map(Number),want=Number(t.due.slice(8,10))
+ return d===Math.min(want,daysIn(y,m))
 }
-/** Ticking a weekly to-do moves it to the same day next week (after today), instead of crossing it off. */
-export function tickTodo(t:FamilyTodo,today:string):FamilyTodo{
- if(t.weekly&&t.due&&!t.done){let next=addDays(t.due,7);while(next<=today)next=addDays(next,7);return {...t,due:next,doneAt:new Date().toISOString()}}
+/** The next turn of a repeating to-do after a date. */
+export function nextTurn(t:FamilyTodo,after:string):string{
+ if(!t.due||!t.repeat)return t.due??after
+ if(t.repeat!=='month'){const step=t.repeat==='2weeks'?14:7,gap=dayNumber(after)-dayNumber(t.due),turns=gap<0?0:Math.floor(gap/step)+1;return addDays(t.due,turns*step)}
+ const want=Number(t.due.slice(8,10))
+ let [y,m]=after.split('-').map(Number)
+ for(let i=0;i<14;i++){const date=y+'-'+String(m).padStart(2,'0')+'-'+String(Math.min(want,daysIn(y,m))).padStart(2,'0');if(date>after&&date>=t.due)return date;m++;if(m>12){m=1;y++}}
+ return addDays(after,30)
+}
+/** Open to-dos that fall on this date. */
+export function todosOn(data:Pick<AppData,'familyTodos'>,profileId:string,date:string):FamilyTodo[]{
+ return (data.familyTodos??[]).filter(t=>t.profileId===profileId&&!t.done&&todoOn(t,date))
+}
+/** Ticking a repeating to-do moves it to its next turn, instead of crossing it off: the turn after the one
+ * ticked (on, from the Planner), after its coming turn, or (if it was missed) after today. */
+export function tickTodo(t:FamilyTodo,today:string,on?:string):FamilyTodo{
+ if(t.repeat&&t.due&&!t.done){const turn=on??(t.due>today?t.due:today);return {...t,due:nextTurn(t,turn>today?turn:today),doneAt:new Date().toISOString()}}
  return {...t,done:!t.done,doneAt:t.done?undefined:new Date().toISOString()}
 }
-/** "Sat", "Today", "Tomorrow" for a to-do's day. */
+/** "Saturday", "Today", "Tomorrow" or "Nov 1" for a to-do's day. */
 export function todoDayLabel(due:string,today:string):string{
  if(due===today)return 'Today'
  if(due===addDays(today,1))return 'Tomorrow'

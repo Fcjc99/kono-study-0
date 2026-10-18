@@ -7,7 +7,7 @@ import {classOccurrences,classTime} from './classSchedule'
  * tagged to them in the parent's plan: today's school day (Day 3, Monday, No school), what's due tonight
  * (open work due tomorrow, and anything late), what they finished today and the tests coming up this week. Read only: nothing in
  * the kid's plan changes. */
-export type KidGlance = {kid: Kid; planId?: string; school?: string; dueTonight: string[]; late: number; tests: {title: string; due: string}[]; doneToday: string[]; next?: {title: string; time: string; travelMinutes?: number}; laterToday: number; classes: string[]}
+export type KidGlance = {kid: Kid; planId?: string; school?: string; dueTonight: string[]; late: number; tests: {title: string; due: string}[]; doneToday: string[]; next?: {title: string; time: string; travelMinutes?: number}; laterToday: number; classes: string[]; tomorrow: {title: string; time?: string}[]; later: {date: string; title: string; time?: string; test?: boolean}[]}
 
 const localDay = (iso: string) => { const d = new Date(iso); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
 const addDays = (date: string, n: number) => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10) }
@@ -25,9 +25,14 @@ export function kidGlance(data: Pick<AppData, 'profiles' | 'kids' | 'tasks' | 'e
     // Today's classes, from their school or class schedule (not breaks, not skipped).
     const classes = data.studySeasons.filter(s => s.active && mine(s)).flatMap(s => classOccurrences({activeProfileId: s.profileId, studySeasons: [s]}, today)).filter(c => c.block.kind !== 'break' && !c.block.skippedDates?.includes(today) && (!c.block.kidId || c.block.kidId === kid.id)).sort((a, b) => (a.displayStart ?? a.block.start).localeCompare(b.displayStart ?? b.block.start)).map(c => c.block.label + ' ' + classTime(c.displayStart ?? c.block.start))
     const coming = (data.calendarEvents ?? []).filter(e => e.date === today && !e.done && e.time && e.time >= nowClock && mine(e)).sort((a, b) => a.time!.localeCompare(b.time!))
+    // Tomorrow's activities, and the rest of the week's (with its tests), in time order.
+    const events = (data.calendarEvents ?? []).filter(e => !e.done && !e.planFor && e.date > today && e.date < weekEnd && mine(e)).sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? '99').localeCompare(b.time ?? '99'))
+    const later: KidGlance['later'] = [...events.filter(e => e.date > tomorrow).map(e => ({date: e.date, title: e.title, ...(e.time ? {time: e.time} : {})})), ...exams.filter(e => e.due > tomorrow && e.due < weekEnd).map(e => ({date: e.due, title: e.title, test: true}))]
+    later.sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? '99').localeCompare(b.time ?? '99'))
     return {
       kid, planId: plan?.id, school,
       ...(coming[0] ? {next: {title: coming[0].title, time: coming[0].time!, ...(coming[0].travelMinutes ? {travelMinutes: coming[0].travelMinutes} : {})}} : {}), laterToday: Math.max(0, coming.length - 1), classes,
+      tomorrow: events.filter(e => e.date === tomorrow).map(e => ({title: e.title, ...(e.time ? {time: e.time} : {})})), later,
       dueTonight: tasks.filter(t => t.due === tomorrow).map(t => t.title),
       late: tasks.filter(t => t.due < today).length,
       doneToday: data.tasks.filter(t => t.done && t.completedAt && localDay(t.completedAt) === today && mine(t)).map(t => t.title),

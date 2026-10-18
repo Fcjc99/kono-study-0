@@ -1360,7 +1360,7 @@ test('Home at a rotation school: Today shows the rotation day and the block now 
  await page.keyboard.press('Escape')
  // Parent mode › Kids: Emma's school day.
  await go(page,'Kids')
- const kids=page.getByRole('region',{name:'Kids today'})
+ const kids=page.getByRole('region',{name:'Your kids'})
  assert.match(await kids.innerText(),/Emma\s+Duxbury Middle School · Day 3/)
  assert.match(await kids.innerText(),/Biology 8:20 AM, Math 6 9:23 AM/)
 })
@@ -2776,9 +2776,10 @@ test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as
  await page.goto(BASE);await heading(page,'Sanctuary')
  // Kids today (on the Kids page): each kid at a glance.
  await go(page,'Kids')
- const glance=page.getByRole('region',{name:'Kids today'})
- const emmaRow=glance.getByRole('button',{name:/Open Emma’s plan/})
- assert.match(await emmaRow.innerText(),/1 due tomorrow/i);assert.match(await emmaRow.innerText(),/Fractions quiz/)
+ const glance=page.getByRole('region',{name:'Your kids'})
+ await glance.getByRole('button',{name:/Open Emma’s plan/}).waitFor()
+ const emmaRow=glance.getByRole('listitem').filter({hasText:'Emma'})
+ assert.match(await emmaRow.innerText(),/1 due:/i);assert.match(await emmaRow.innerText(),/Fractions quiz/)
  await go(page,'Sanctuary')
  // Home's day: Emma's homework (from her plan), Leo's and mine; names tap off and on.
  const day=page.getByRole('region',{name:'Your day'}),people=day.getByRole('group',{name:'Whose things to show'}),also=day.locator('.tomorrow-extra-list').filter({hasText:'Also today'})
@@ -2838,7 +2839,7 @@ test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as
  await fresh.locator('.tomorrow-extra-list').getByText('Spelling list',{exact:true}).waitFor()
  // Emma's plan also shows what the family plan has for her: Movie night (with Leo).
  await fresh.getByRole('region',{name:'Your day'}).getByText('Movie night').first().waitFor()
- assert.equal(await fresh.getByRole('region',{name:'Kids today'}).count(),0,'Emma’s plan has no parent tools')
+ assert.equal(await fresh.getByRole('region',{name:'Your kids'}).count(),0,'Emma’s plan has no parent tools')
  // The family plan can be another of my plans: the kids go with it.
  await page.getByRole('button',{name:'Whose plan?'}).first().click()
  await sheet.getByText(/^✎ Rename plans/).click()
@@ -2884,7 +2885,7 @@ test('Family extras: a family to-do list, a snack with a note for a kid’s KONO
  await waitFor(()=>cloud.users.alice.plan.data.familyTodos.find(t=>t.title==='Buy poster board').done,'checking it off never reached the account')
  // A snack with a note for Emma's KONO.
  await go(page,'Kids')
- await page.getByRole('region',{name:'Kids today'}).getByRole('button',{name:'Send Emma’s KONO a snack'}).click()
+ await page.getByRole('region',{name:'Your kids'}).getByRole('button',{name:'Send Emma’s KONO a snack'}).click()
  const giftSheet=page.getByRole('dialog',{name:/A treat for Emma/})
  await giftSheet.getByLabel('Note for Emma').fill('So proud of you!')
  await giftSheet.getByRole('button',{name:/Send to Emma/}).click()
@@ -3270,7 +3271,7 @@ test('Out sick and late nights: marking Emma out sick skips her class and shows 
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  await go(page,'Kids')
- const glance=page.getByRole('region',{name:'Kids today'})
+ const glance=page.getByRole('region',{name:'Your kids'})
  await glance.getByRole('button',{name:'🤒 Out sick or snow day?'}).click()
  const sheet=page.getByRole('dialog',{name:'Out sick or a snow day'})
  await sheet.getByRole('group',{name:'Who’s out'}).getByRole('button',{name:/Emma/}).click()
@@ -3302,7 +3303,7 @@ test('Family Home: one Today card says what is next for each kid, Kids today liv
  await page.goto(BASE);await heading(page,'Sanctuary')
  const day=page.getByRole('region',{name:'Your day'})
  await day.getByRole('list',{name:'What’s next for the kids'}).getByText(/Soccer practice 4:00 PM · leave 3:45 PM/).waitFor()
- assert.equal(await page.getByRole('region',{name:'Kids today'}).count(),0,'Kids today is on the Kids page')
+ assert.equal(await page.getByRole('region',{name:'Your kids'}).count(),0,'Kids today is on the Kids page')
  assert.equal(await page.locator('details.sanctuary-focus').count(),0,'no Focus session in a family plan')
  // Late work: once, behind its pill.
  assert.equal(await page.getByRole('region',{name:'Overdue'}).count(),0)
@@ -3312,16 +3313,74 @@ test('Family Home: one Today card says what is next for each kid, Kids today liv
  const todos=page.getByRole('region',{name:'Family to-do'})
  await todos.getByLabel('New family to-do').fill('Clean house')
  await todos.getByLabel('When').selectOption('2026-10-17')
- await todos.getByRole('checkbox',{name:'Every week'}).check()
+ await todos.getByLabel('Repeat').selectOption('week')
  await todos.getByRole('button',{name:'Add',exact:true}).click()
  await todos.locator('.family-todo-day',{hasText:'Saturday'}).waitFor()
  const week=page.getByRole('region',{name:'Your week ahead'})
  await week.getByRole('button',{name:/Sat 17: .*to-do: Clean house/}).waitFor()
  await todos.getByRole('checkbox',{name:/Clean house/}).click()
- await waitFor(()=>{const t=cloud.users.alice.plan.data.familyTodos?.find(x=>x.title==='Clean house');return t&&t.weekly&&t.due==='2026-10-24'&&!t.done},'ticking the weekly to-do never moved it to next Saturday')
+ await waitFor(()=>{const t=cloud.users.alice.plan.data.familyTodos?.find(x=>x.title==='Clean house');return t&&t.repeat==='week'&&t.due==='2026-10-24'&&!t.done},'ticking the weekly to-do never moved it to next Saturday')
  // Each kid's whole day is on Kids.
  await go(page,'Kids')
- await page.getByRole('region',{name:'Kids today'}).getByText(/Soccer practice 4:00 PM/).waitFor()
+ await page.getByRole('region',{name:'Your kids'}).getByText(/Soccer practice 4:00 PM/).waitFor()
+})
+test('Family to-dos everywhere: typed in one line in ＋ Add, every 2 weeks from another day, on the Planner’s week and Schedule (Done moves a repeat on); Kids shows one card per kid; a family Home loads the island once it is near',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ d.settings.familyStudyTabs=false
+ await page.clock.install({time:new Date('2026-10-15T15:30:00')}) // a Thursday
+ d.calendarEvents.push({id:'game',profileId:pid,date:'2026-10-17',title:'Soccer game',kind:'sports',notes:'',time:'09:00',kidId:'kid-emma'},{id:'piano',profileId:pid,date:'2026-10-16',title:'Piano',kind:'lesson',notes:'',time:'17:00',kidId:'kid-emma'})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ // Typed: "clean house every sat" is a weekly family to-do from Saturday.
+ await page.getByRole('button',{name:'＋ Add',exact:true}).click()
+ const chooser=page.getByRole('dialog',{name:'Add to your plan'})
+ await chooser.getByLabel('Type it').fill('clean house every sat')
+ await chooser.getByText('To-do: Clean house').waitFor()
+ assert.match(await chooser.locator('.quick-add-preview').innerText(),/Sat, Oct 17 · 🔁 every week/)
+ await chooser.getByRole('button',{name:'Add',exact:true}).click()
+ await waitFor(()=>{const t=cloud.users.alice.plan.data.familyTodos?.find(x=>x.title==='Clean house');return t&&t.repeat==='week'&&t.due==='2026-10-17'},'the typed to-do never reached the account')
+ // Every 2 weeks, from a day further out.
+ const todos=page.getByRole('region',{name:'Family to-do'})
+ await todos.getByLabel('New family to-do').fill('Take out recycling')
+ await todos.getByLabel('When').selectOption('other')
+ await todos.getByLabel('When').fill('2026-10-20')
+ await todos.getByLabel('Repeat').selectOption('2weeks')
+ await todos.getByRole('button',{name:'Add',exact:true}).click()
+ await waitFor(()=>{const t=cloud.users.alice.plan.data.familyTodos?.find(x=>x.title==='Take out recycling');return t&&t.repeat==='2weeks'&&t.due==='2026-10-20'},'the every-2-weeks to-do never reached the account')
+ await todos.locator('.family-todo-day',{hasText:'every 2 weeks'}).waitFor()
+ // Planner › Week: the to-do sits in Saturday's all-day row; Done there moves it to next Saturday.
+ await go(page,'Planner')
+ await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Week'}).click()
+ await page.getByRole('region',{name:'Week'}).getByRole('button',{name:/Clean house/}).click()
+ const sheet=page.getByRole('dialog',{name:'Clean house'})
+ await sheet.getByRole('button',{name:'✔ Done'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.familyTodos.find(x=>x.title==='Clean house').due==='2026-10-24','Done never moved the to-do to next Saturday')
+ // Schedule: next Tuesday's to-do is a checkbox; ticking it moves it two weeks on.
+ await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Schedule'}).click()
+ const tue=page.locator('.wb-agenda-day').filter({hasText:'Take out recycling'})
+ await tue.locator('summary').click()
+ await tue.getByRole('checkbox',{name:/Take out recycling/}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.familyTodos.find(x=>x.title==='Take out recycling').due==='2026-11-03','ticking it never moved it two weeks on')
+ // Kids: one card per kid, with today, tomorrow and later this week.
+ await go(page,'Kids')
+ const emma=page.getByRole('region',{name:'Your kids'}).getByRole('listitem').filter({hasText:'Emma'})
+ await emma.getByText('Later this week').waitFor()
+ assert.match(await emma.innerText(),/Tomorrow\s+🗓️ Piano 5:00 PM/i)
+ assert.match(await emma.innerText(),/Sat · Soccer game 9:00 AM/)
+ await emma.getByRole('button',{name:'Edit Emma'}).waitFor()
+ // A family Home, opened again on this device: the island shows its picture and loads the rest once near.
+ const asked=[];page.on('request',r=>{if(/GardenCard|phaser/i.test(r.url()))asked.push(r.url())})
+ await go(page,'Sanctuary')
+ await page.setViewportSize({width:390,height:844}) // on a phone the island is well below the day
+ asked.length=0
+ await page.reload();await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'Your day'}).waitFor()
+ assert.equal(await page.locator('.wb-island canvas').count(),0)
+ await page.locator('.wb-island [role=img][aria-label="Your island"]').waitFor()
+ assert.deepEqual(asked,[],'nothing of the island engine is fetched while it is out of view')
+ await page.locator('.wb-island').scrollIntoViewIfNeeded()
+ await page.locator('.wb-island canvas').waitFor({timeout:20000})
+ assert.ok(asked.length>0,'the island engine loaded once the island was near')
 })
 async function main(){
  const server=await startServer()

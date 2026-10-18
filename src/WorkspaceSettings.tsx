@@ -1,4 +1,4 @@
-import {useState,type CSSProperties,type FormEvent} from 'react'
+import {useState,type CSSProperties,type FormEvent,type ReactNode} from 'react'
 import Modal from './components/Modal'
 import Avatar,{AvatarPhotoButton} from './components/Avatar'
 import {AVATARS} from './store/avatar'
@@ -74,13 +74,14 @@ export function FamilyReminderSettings({data,setting}:{data:AppData;setting:<K e
   <label><div><strong>Kids' event reminders</strong><small>Remind me 15 minutes before a kid's event starts or ends. {notifyOn?'Notifications are labeled with each kid\'s name.':'Turn on Browser notifications above to use this.'}</small></div><input type="checkbox" disabled={!notifyOn} checked={Boolean(data.settings.familyEventReminders)} onChange={e=>void setting('familyEventReminders',e.target.checked)}/></label>
  </section>
 }
-export function KidsPage({data,create,edit,remove,patch,openSettings,onOpenKidPlan,onSetup}:{onSetup?:()=>void;onOpenKidPlan?:(kid:Kid)=>void;openSettings:(tab:SettingsTab)=>void;data:AppData;create:(key:Collection)=>void;edit:(key:Collection,entry:Entry)=>void;remove:(key:Collection,entry:Entry)=>void;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
+export function KidsPage({data,create,edit,remove,patch,openSettings,onOpenKidPlan,onSetup,cards}:{cards?:ReactNode;onSetup?:()=>void;onOpenKidPlan?:(kid:Kid)=>void;openSettings:(tab:SettingsTab)=>void;data:AppData;create:(key:Collection)=>void;edit:(key:Collection,entry:Entry)=>void;remove:(key:Collection,entry:Entry)=>void;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
  const [appearanceOpen,setAppearanceOpen]=useState(false)
  const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
  return <section className="wb-panel family-calendar">
   <div className="wb-section-head"><div><small>ONE SHARED CALENDAR</small><h2>Kids</h2></div><div className="wb-toolbar">{onSetup&&<button type="button" onClick={onSetup}>✨ Quick setup</button>}<button type="button" onClick={()=>setAppearanceOpen(true)}>🎨 Appearance</button><button onClick={()=>create('kids')}>＋ Add a kid</button></div></div>
-  <p className="wb-muted">Add each kid once, then tag any assignment, exam, class or event with them from its own editor and filter your Planner calendar by kid — the same way you already filter by subject. Pick their emoji and color under Appearance.</p>
-  {kids.length>0&&<ul className="kid-roster" aria-label="Kids">
+  <p className="wb-muted">{kids.length&&cards?'Each kid’s day, tomorrow and the rest of the week. Tag anything with a kid from its editor and it shows here and in their color on the Planner.':'Add each kid once, then tag any assignment, exam, class or event with them from its own editor and filter your Planner calendar by kid — the same way you already filter by subject. Pick their emoji and color under Appearance.'}</p>
+  {kids.length>0&&cards}
+  {kids.length>0&&!cards&&<ul className="kid-roster" aria-label="Kids">
    {kids.map(k=><li key={k.id} style={{'--kid-color':k.color} as CSSProperties}><KidAvatar kid={k}/><strong>{k.name}</strong>{onOpenKidPlan&&<button type="button" className="kid-plan-open" onClick={()=>onOpenKidPlan(k)}>{planForKid(data,k.id)?'Open '+k.name+'’s plan':'Make '+k.name+'’s plan'}</button>}<button type="button" onClick={()=>edit('kids',k as unknown as Entry)}>Edit</button><button type="button" className="kid-roster-remove" aria-label={'Move '+k.name+' to Trash'} title="Move to Trash" onClick={()=>remove('kids',k as unknown as Entry)}>🗑</button></li>)}
   </ul>}
   {!kids.length&&<p className="wb-muted">No kids added yet. Add one to start tagging their assignments, exams, classes and events on your calendar.</p>}
