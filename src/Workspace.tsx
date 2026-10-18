@@ -113,6 +113,7 @@ import {useLocalSetting} from './hooks/useLocalSetting'
 import type {QuickDayItem} from './components/QuickDayAdd'
 import type {StartStep} from './components/GettingStarted'
 import OverdueCard from './components/OverdueCard'
+import KidsNext from './components/KidsNext'
 import ReorderList from './components/ReorderList'
 import SwipeRow from './components/SwipeRow'
 import {uploadPendingPhotos} from './store/photoStore'
@@ -310,7 +311,7 @@ function Workspace({store}:{store:Store}){
  const [startSkipRaw,setStartSkipRaw]=useLocalSetting('kono-getting-started:'+profile.id,''),[pushOn,setPushOn]=useState(false)
  // Reminders count as on once this device has a push subscription (checked when the page changes).
  useEffect(()=>{let live=true;currentPushSubscription().then(sub=>{if(live)setPushOn(!!sub)}).catch(()=>undefined);return()=>{live=false}},[page])
- const [recapHiddenFor,setRecapHiddenFor]=useLocalSetting('kono-recap-hidden:'+profile.id,''),[weekPlanOpen,setWeekPlanOpen]=useState(false),[specialOpen,setSpecialOpen]=useState(false),[dayOffFor,setDayOffFor]=useState<string|null>(null),[familySetupOpen,setFamilySetupOpen]=useState(()=>{try{return localStorage.getItem('kono-family-setup')==='1'}catch{return false}}),[addOpen,setAddOpen]=useState(false),[addChoice,setAddChoice]=useState<AddChoiceId|null>(null)
+ const [recapHiddenFor,setRecapHiddenFor]=useLocalSetting('kono-recap-hidden:'+profile.id,''),[weekPlanOpen,setWeekPlanOpen]=useState(false),[specialOpen,setSpecialOpen]=useState(false),[dayOffFor,setDayOffFor]=useState<string|null>(null),[lateOpen,setLateOpen]=useState(false),[familySetupOpen,setFamilySetupOpen]=useState(()=>{try{return localStorage.getItem('kono-family-setup')==='1'}catch{return false}}),[addOpen,setAddOpen]=useState(false),[addChoice,setAddChoice]=useState<AddChoiceId|null>(null)
  const recap=page==='Sanctuary'||page==='Planner'?weekRecap(data,today,sanctuaryProgress):null
  const openWeekPlan=()=>{setWeekPlanOpen(true);navigate('Planner')}
  const weekStart=addDays(today,-6)
@@ -537,6 +538,8 @@ function Workspace({store}:{store:Store}){
  const simpleView=!!profile.simpleView
  // A family plan hides the student pages (Subjects, K-Quiz, Exams) unless Settings › Family turns them on.
  const hiddenPages:string[]=parentMode&&profileKids.length>0&&!profile.kidId&&data.settings.familyStudyTabs!==true?['Subjects','K-Quiz','Exams']:[]
+ // A family plan's Home is one Today card, the to-dos and what's coming up; each kid's day is on Kids.
+ const familyHome=parentMode&&profileKids.length>0&&!profile.kidId
  const visiblePages=pages.filter(p=>!hiddenPages.includes(p)&&(p!=='Kids'||parentMode)&&!(lockedPlan&&p==='Settings')&&(!simpleView||['Sanctuary','Planner','Notes','Settings'].includes(p)))
  const showAcademic=data.settings.scheduleShowAcademic??true
  const showSports=data.settings.scheduleShowSports??true
@@ -973,16 +976,15 @@ function Workspace({store}:{store:Store}){
      {askOpen&&<AskKono data={data} today={today} name={profile.name} pose={konoPose} onClose={()=>setAskOpen(false)}/>}{nextUpOpen&&<NextUp items={nextUpList(tasks,today,ownExams)} onClose={()=>setNextUpOpen(false)} onStart={item=>{setNextUpOpen(false);startFocusSession(item.exam?'':item.id,item.minutes,item.exam?item.title:undefined)}} onDone={item=>void run(()=>save(d=>completeTask(d,item.id)),'Done: '+item.title,true,item.exam?undefined:item.id)}/>}
     </section>
     </>}
-    {!showQuick&&<details ref={sanctuaryFocusRef} className="wb-panel sanctuary-focus"><summary>Focus session</summary><FocusSession draftKey={draftScope+':focus'} tasks={tasks} notes={notes} focusRequest={focusRequest} onComplete={id=>void run(()=>save(d=>completeTask(d,id)),'Assignment completed.')} onSaveNote={body=>save(d=>({...d,notes:[...d.notes,{id:uid('note'),profileId:profile.id,subjectId:'',title:'Study session',body,created:new Date().toISOString(),pinned:true}]}))} onFocusActiveChange={setFocusCompanionActive} onSessionComplete={focusDone}/></details>}
+    {!showQuick&&(!familyHome||data.settings.familyStudyTabs===true)&&<details ref={sanctuaryFocusRef} className="wb-panel sanctuary-focus"><summary>Focus session</summary><FocusSession draftKey={draftScope+':focus'} tasks={tasks} notes={notes} focusRequest={focusRequest} onComplete={id=>void run(()=>save(d=>completeTask(d,id)),'Assignment completed.')} onSaveNote={body=>save(d=>({...d,notes:[...d.notes,{id:uid('note'),profileId:profile.id,subjectId:'',title:'Study session',body,created:new Date().toISOString(),pinned:true}]}))} onFocusActiveChange={setFocusCompanionActive} onSessionComplete={focusDone}/></details>}
     </div><div className="home-side">
     {!showQuick&&setupOpen&&setupLeft>0&&<GettingStarted steps={startSteps} onSkip={skipStart} onHide={()=>{skipStart('all');setSetupOpen(false)}}/>}
     {!showQuick&&reviewShown&&recap&&<div className="wb-panel week-recap-sunday"><WeekRecap recap={recap} onPlanWeek={openWeekPlan} onDismiss={()=>setRecapHiddenFor(recap.from)}/></div>}
-    {!showQuick&&weekend&&<WeekAhead data={data} monday={monday} recap={reviewShown?null:recap} tasks={tasks} exams={ownExams} onPlan={openWeekPlan} onOpenDay={date=>{setSelectedDate(date);navigate('Planner')}} mondayWork={mondayWork.length>0?<div className="weekend-due"><strong>Due Monday</strong>{mondayWork.map(t=>card('tasks',t as unknown as Entry))}</div>:<p>Nothing is due Monday.</p>}/>}
+    {!showQuick&&(weekend||familyHome)&&<WeekAhead family={familyHome} today={today} profileId={profile.id} data={data} monday={monday} recap={reviewShown?null:recap} tasks={tasks} exams={ownExams} onPlan={openWeekPlan} onOpenDay={date=>{setSelectedDate(date);navigate('Planner')}} mondayWork={mondayWork.length>0?<div className="weekend-due"><strong>Due Monday</strong>{mondayWork.map(t=>card('tasks',t as unknown as Entry))}</div>:<p>Nothing is due Monday.</p>}/>}
     {/* Your day: one card for today and tomorrow. Late work and past-due reminders lead Today; ＋ Add
         and the ⋯ menu (what to show, classes, the Planner) sit in its header. */}
     {!showQuick&&parentMode&&!profileKids.length&&<section className="wb-panel family-setup-card" aria-label="Set up your family"><h2>👪 Set up your family</h2><p className="wb-muted">Add your kids and their weekly activities in about two minutes.</p><button type="button" className="primary" onClick={()=>setFamilySetupOpen(true)}>Start</button></section>}
     {!showQuick&&comingUp.length>0&&<section className="wb-panel coming-up" aria-label="Coming up"><div className="wb-section-head"><h2>Coming up</h2><button type="button" className="link-button" onClick={()=>setSpecialOpen(true)}>Birthdays & countdowns</button></div><ul>{comingUp.slice(0,4).map(x=><li key={x.day.id} className={x.daysAway===0?'is-today':undefined}><span aria-hidden="true">{x.icon}</span><span>{x.label}</span><b>{daysAwayLabel(x.daysAway)}</b></li>)}</ul></section>}
-    {!showQuick&&parentMode&&profileKids.length>0&&<Suspense fallback={null}><KidsGlance data={data} profileId={profile.id} today={today} from={myName==='Me'?'Your family':myName} save={save} onOpen={(_kid,planId)=>planId?switchPlan(planId):navigate('Kids')} onDayOff={()=>setDayOffFor(today)}/></Suspense>}
     {!showQuick&&parentMode&&profileKids.length>0&&<Suspense fallback={null}><FamilyTodos data={data} profileId={profile.id} today={today} save={save}/></Suspense>}
     <section className="wb-panel today-card" aria-label="Your day">
      <div className="wb-section-head today-card-head">
@@ -996,18 +998,19 @@ function Workspace({store}:{store:Store}){
      </div>
      {peopleFilter}
      {dayTab==='today'?<div role="tabpanel" id="day-panel-today" aria-labelledby="day-tab-today" className="today-card-body">
-      <p className="today-summary" aria-label="Today at a glance">{daySummary(data,today,nowClock).map(b=><span key={b.text} className={b.tone?'is-'+b.tone:undefined}><span aria-hidden="true">{b.icon}</span> {b.text}</span>)}</p>
-      <Suspense fallback={null}><RotationToday data={data} save={save} today={today} kids={profileKids} family={parentMode} onCalendar={store.user&&!lockedPlan?()=>openSettings('Import & export'):undefined} onOpenClass={label=>{const c=todayClasses.find(x=>x.block.label===label);if(c)setClassSheet(c)}}/></Suspense>{overdueCard}
+      <p className="today-summary" aria-label="Today at a glance">{daySummary(data,today,nowClock).map(b=>familyHome&&b.tone==='late'?<button type="button" key={b.text} className="is-late today-summary-late" aria-expanded={lateOpen} onClick={()=>setLateOpen(v=>!v)}><span aria-hidden="true">{b.icon}</span> {b.text}</button>:<span key={b.text} className={b.tone?'is-'+b.tone:undefined}><span aria-hidden="true">{b.icon}</span> {b.text}</span>)}</p>
+      {familyHome&&<KidsNext data={data} profileId={profile.id} today={today} nowClock={nowClock}/>}
+      <Suspense fallback={null}><RotationToday data={data} save={save} today={today} kids={profileKids} family={parentMode} onCalendar={store.user&&!lockedPlan?()=>openSettings('Import & export'):undefined} onOpenClass={label=>{const c=todayClasses.find(x=>x.block.label===label);if(c)setClassSheet(c)}}/></Suspense>{(!familyHome||lateOpen)&&overdueCard}
       {pastReminders.length>0&&<div className="tomorrow-extra-list today-card-reminders"><strong>Reminders</strong>{pastReminders.map(e=>card('calendarEvents',e as unknown as Entry))}</div>}
       {quickDayOpen==='today'&&<QuickDayAdd date={today} dayName="today" subjects={subjects} onAdd={item=>quickDay(today,item)} onClose={()=>setQuickDayOpen(null)}/>}
-      <AssignmentProgress tasks={tasks} date={today} label="Today's" streak={currentStreak} week={{done:weekDone,total:weekTotal}}/>{weeklyDayLabels(today).map(label=><p className="school-day-label" key={label}>{label}</p>)}
+      {(!familyHome||tasks.some(t=>t.due===today))&&<AssignmentProgress tasks={tasks} date={today} label="Today's" streak={currentStreak} week={{done:weekDone,total:weekTotal}}/>}{weeklyDayLabels(today).map(label=><p className="school-day-label" key={label}>{label}</p>)}
       <div className="today-schedule-list">{todayClasses.map(renderCompactClass)}</div>
       {todayLoose.length>0&&<div className="tomorrow-extra-list"><strong>Also today</strong>{todayLoose.length>1?<ReorderList label="Also today, in your order" items={todayLoose.map(e=>({id:e.entry.id,title:titleOf(e.entry),node:card(e.key,e.entry)}))} onReorder={ids=>setTodayOrder(today+'|'+ids.join(','))}/>:todayLoose.map(e=>card(e.key,e.entry))}</div>}
       {!todayClasses.length&&!todayLoose.length&&<p className="today-card-empty"><img className="kono-empty-art" src="/garden/kono/tea.webp" alt="" aria-hidden="true"/>{season&&season.end<today?'Your schedule has ended. Update its dates in Settings.':'Nothing else on today.'}</p>}
      </div>:<div role="tabpanel" id="day-panel-tomorrow" aria-labelledby="day-tab-tomorrow" className="today-card-body">
       <p className="today-card-date">{dateLabel(tomorrow)}</p>
       {quickDayOpen==='tomorrow'&&<QuickDayAdd date={tomorrow} dayName="tomorrow" subjects={subjects} onAdd={item=>quickDay(tomorrow,item)} onClose={()=>setQuickDayOpen(null)}/>}
-      <AssignmentProgress tasks={tasks} date={tomorrow} label="Tomorrow's"/>{schoolDayLabels(data,tomorrow).map(label=><p className="school-day-label" key={label}>{label}</p>)}
+      {(!familyHome||tasks.some(t=>t.due===tomorrow))&&<AssignmentProgress tasks={tasks} date={tomorrow} label="Tomorrow's"/>}{schoolDayLabels(data,tomorrow).map(label=><p className="school-day-label" key={label}>{label}</p>)}
       <div className="today-schedule-list">{tomorrowClasses.map(renderCompactClass)}</div>
       {tomorrowLoose.length>0&&<div className="tomorrow-extra-list"><strong>Also tomorrow</strong>{tomorrowLoose.map(e=>card(e.key,e.entry))}</div>}
       {!tomorrowClasses.length&&!tomorrowLoose.length&&<p className="today-card-empty"><img className="kono-empty-art" src="/garden/kono/sit.webp" alt="" aria-hidden="true"/>Nothing on tomorrow yet.</p>}
@@ -1015,6 +1018,7 @@ function Workspace({store}:{store:Store}){
     </section>
    </div></div>}
    {page==='Planner'&&<PlannerPage w={w}/>}
+   {page==='Kids'&&profileKids.length>0&&<Suspense fallback={null}><KidsGlance data={data} profileId={profile.id} today={today} from={myName==='Me'?'Your family':myName} save={save} onOpen={(_kid,planId)=>planId?switchPlan(planId):undefined} onDayOff={()=>setDayOffFor(today)}/></Suspense>}
    {page==='Kids'&&<KidsPage onSetup={()=>setFamilySetupOpen(true)} data={data} create={create} edit={edit} remove={remove} patch={patch} openSettings={openSettings} onOpenKidPlan={kid=>{goHomeFirst();void save(d=>{const r=addKidPlan(d,kid);return {...r.data,activeProfileId:r.id}})}}/>}
    {page==='Subjects'&&<SubjectsPage w={w}/>}
    {page==='Notes'&&<NotesPage w={w}/>}

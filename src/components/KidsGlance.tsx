@@ -27,6 +27,7 @@ export default function KidsGlance({data,profileId,today,from,save,onOpen,onDayO
    <span className="kids-glance-main">
     <strong>{r.kid.name}{(()=>{const o=outFor(r.kid.id);return o?<small className="kids-glance-day is-out">{dayOffIcon(o.reason)} {o.reason==='sick'?'Out sick':o.reason==='snow'?'Snow day':'Day off'}</small>:r.school&&<small className="kids-glance-day">{r.school}</small>})()}</strong>
     <span className="kids-glance-facts">
+     {r.classes.length>0&&<span className="is-classes">🏫 {r.classes.slice(0,3).join(', ')}{r.classes.length>3?' +'+(r.classes.length-3):''}</span>}
      {r.next&&<span className="is-next">🕒 {r.next.title} {classTime(r.next.time)}{r.next.travelMinutes?' · leave '+classTime(leaveBy(r.next.time,r.next.travelMinutes)!):''}{r.laterToday?' (+'+r.laterToday+' more)':''}</span>}
      <span>{r.dueTonight.length?'📌 '+r.dueTonight.length+' due tomorrow':'Nothing due tomorrow'}</span>
      {r.late>0&&<span className="is-late">⚠ {r.late} late</span>}
