@@ -1,13 +1,4 @@
 /* KONO v0.95 — Living Sanctuary Foundation */
-.living-world-frame{
-  position:relative!important;
-  display:block!important;
-  min-height:0!important;
-  aspect-ratio:1448/1086;
-  background:#cfe4ee;
-  isolation:isolate;
-}
-.living-world-frame:after{display:none!important}
 .sanctuary-card{position:relative;width:100%;height:100%;min-height:0;overflow:hidden;background:#cfe4ee}
 .sanctuary-viewport{width:100%;height:100%;min-height:0;overflow:hidden;touch-action:manipulation}
 .sanctuary-viewport canvas{display:block!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain;image-rendering:auto}
@@ -36,16 +27,13 @@
 .sanctuary-debug-panel select,.sanctuary-debug-panel button{height:34px;border:1px solid #e8bfb2;border-radius:9px;background:#fffaf5;color:#5a4038;padding:0 9px;font-weight:750}
 .settings-list .settings-select-row{align-items:center}
 .settings-list .settings-select-row select{width:min(220px,46vw);height:42px;border:1px solid var(--line);border-radius:12px;background:var(--surface2);color:var(--ink);padding:0 11px;font-weight:750}
-html[data-theme='coral'] .living-world-frame{background:#cfe4ee!important}
 html[data-theme='coral'] .sanctuary-world-status{background:rgba(72,39,31,.55);border-color:rgba(255,241,231,.5)}
 html[data-theme='sakura'] .sanctuary-world-status{background:rgba(61,43,50,.52)}
 html[data-motion='reduced'] .sanctuary-world-status i{box-shadow:none}
 @media(max-width:900px){
-  .living-world-frame{aspect-ratio:4/3!important;border-width:6px!important}
   .sanctuary-world-status{left:10px;bottom:9px;padding:6px 8px;font-size:9px}
 }
 @media(max-width:620px){
-  .living-world-frame{width:100%;aspect-ratio:4/3!important;min-height:0!important;border-width:5px!important;border-radius:18px!important}
   .sanctuary-world-status em{display:none}
   .sanctuary-debug-panel{right:7px;top:7px;width:calc(100% - 14px)}
   .settings-list .settings-select-row{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
@@ -112,7 +100,6 @@ html[data-motion='reduced'] .sanctuary-world-status i{box-shadow:none}
 }
 
 /* Production Build 08 — environment framing and long-session QA */
-.living-world-frame,
 .sanctuary-card,
 .sanctuary-viewport{
   contain:layout paint;
@@ -128,10 +115,6 @@ html[data-motion='reduced'] .sanctuary-world-status i{box-shadow:none}
   max-height:calc(100% - max(24px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));
 }
 @media(max-width:620px){
-  .living-world-frame{
-    width:min(100%,100vw);
-    margin-inline:auto;
-  }
   .sanctuary-card,
   .sanctuary-viewport{
     width:100%;
@@ -150,10 +133,8 @@ html[data-motion='reduced'] .sanctuary-world-status i{box-shadow:none}
 }
 
 /* Production 11 — profile-scoped live local weather */
-.live-weather-chip{position:absolute;left:18px;bottom:18px;z-index:12;display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;max-width:min(470px,calc(100% - 36px));padding:10px 12px;border:1px solid rgba(255,255,255,.46);border-radius:16px;background:rgba(35,49,58,.64);color:#fff;box-shadow:0 8px 24px rgba(24,32,38,.2);backdrop-filter:blur(10px)}
-.live-weather-chip>span{width:34px;height:34px;display:grid;place-items:center;border-radius:12px;background:rgba(255,255,255,.16);font-size:20px}.live-weather-chip div{min-width:0}.live-weather-chip strong,.live-weather-chip small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.live-weather-chip strong{font-size:12px}.live-weather-chip small{margin-top:2px;color:rgba(255,255,255,.78);font-size:10px}.live-weather-chip em{padding:4px 7px;border-radius:999px;background:rgba(255,255,255,.15);font-size:9px;font-style:normal;text-transform:uppercase;letter-spacing:.08em}.live-weather-chip.loading{opacity:.86}
 .live-weather-settings{display:grid;gap:18px}.weather-source-badge{padding:7px 10px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}.weather-source-badge.live{color:#397451;background:#e9f8ed}.weather-source-badge.cache{color:#826026;background:#fff6d9}.weather-mode-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.weather-mode-grid button{display:grid;grid-template-columns:22px 1fr;gap:9px;align-items:start;text-align:left;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface2);color:var(--ink)}.weather-mode-grid button.active{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent),0 8px 22px color-mix(in srgb,var(--accent) 12%,transparent)}.weather-mode-grid button>span{color:var(--accent);font-weight:900}.weather-mode-grid strong,.weather-mode-grid small{display:block}.weather-mode-grid small{margin-top:4px;color:var(--muted);line-height:1.35}.live-weather-editor{display:grid;grid-template-columns:minmax(280px,.7fr) minmax(320px,1.3fr);gap:14px}.live-weather-editor form,.weather-reading-card{padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--surface2)}.live-weather-editor label strong,.live-weather-editor label small{display:block}.live-weather-editor label small{margin-top:3px;color:var(--muted)}.zip-entry-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;margin-top:12px}.zip-entry-row input{min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);padding:11px 12px;font-weight:800;letter-spacing:.08em}.zip-message{margin:8px 0 0;color:#4d7d58;font-size:11px}.zip-message.error{color:#a33f4b}.weather-reading-card{display:grid;grid-template-columns:48px 1fr;gap:13px;align-items:center}.weather-reading-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:16px;background:color-mix(in srgb,var(--accent) 12%,var(--surface));font-size:27px}.weather-reading-card strong,.weather-reading-card span,.weather-reading-card small{display:block}.weather-reading-card span{margin-top:3px;font-weight:700}.weather-reading-card small{margin-top:4px;color:var(--muted)}.manual-weather-row{display:grid;grid-template-columns:1fr minmax(180px,240px);gap:16px;align-items:center;padding:15px;border:1px solid var(--line);border-radius:16px;background:var(--surface2)}.manual-weather-row strong,.manual-weather-row small{display:block}.manual-weather-row small{margin-top:4px;color:var(--muted)}.manual-weather-row select{height:42px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);padding:0 11px;font-weight:750}
-@media(max-width:780px){.weather-mode-grid{grid-template-columns:1fr}.live-weather-editor{grid-template-columns:1fr}.manual-weather-row{grid-template-columns:1fr}.live-weather-chip{left:10px;bottom:10px;max-width:calc(100% - 20px);grid-template-columns:30px minmax(0,1fr)}.live-weather-chip>span{width:30px;height:30px}.live-weather-chip em{display:none}.live-weather-chip small{font-size:9px}.zip-entry-row{grid-template-columns:1fr}.zip-entry-row button{width:100%}}
+@media(max-width:780px){.weather-mode-grid{grid-template-columns:1fr}.live-weather-editor{grid-template-columns:1fr}.manual-weather-row{grid-template-columns:1fr}.zip-entry-row{grid-template-columns:1fr}.zip-entry-row button{width:100%}}
 .weather-attribution{display:block;color:var(--muted);font-size:10px;line-height:1.4}
 
 /* Production Build 20 — Sanctuary rollback, original cottage only, bamboo removed */
@@ -210,20 +191,3 @@ html[data-motion='reduced'] .sanctuary-interaction-toast{animation:none}
 
 
 /* Production 22.7.40 — Sanctuary viewport + interaction visibility stability */
-.sakura-sanctuary > .phase-toolbar,
-.sakura-sanctuary > .sanctuary-full.living-world-frame{
-  width:min(100%,920px)!important;
-  margin-inline:auto!important;
-}
-.sakura-sanctuary > .sanctuary-full.living-world-frame{
-  min-height:0!important;
-  max-width:920px!important;
-  aspect-ratio:4/3!important;
-}
-@media(max-width:980px){
-  .sakura-sanctuary > .phase-toolbar,
-  .sakura-sanctuary > .sanctuary-full.living-world-frame{width:100%!important}
-}
-@media(max-width:620px){
-  .sakura-sanctuary > .sanctuary-full.living-world-frame{border-width:5px!important}
-}

@@ -68,8 +68,6 @@ html :is(.workbench,.wb-dialog) button:is(.primary,.secondary){font-size:inherit
  /* Island toolbar on a phone: the clock icon and roomy chips pushed "Live time" under the streak
   * chip. The select still says what it is. */
  .workbench .wb-scene-toolbar .wb-scene-time>span[aria-hidden]{display:none}
- .workbench .wb-scene-toolbar .wb-stat{padding:4px 6px!important}
- .workbench .wb-scene-toolbar .wb-stats-strip{gap:4px!important}
 }
 
 /* Buttons under a pinned note or exam: one size (Duplicate was smaller than its neighbours). */
@@ -81,7 +79,6 @@ html :is(.workbench,.wb-dialog) button:is(.primary,.secondary){font-size:inherit
   * stacked beside the title, and "Open in Planner" ran off the card). */
  .workbench .today-schedule-compact>.wb-section-head{flex-wrap:wrap!important;row-gap:8px}
  .workbench .today-schedule-compact>.wb-section-head>.wb-toolbar{flex-wrap:nowrap;width:100%;gap:6px}
- .workbench .today-schedule-compact>.wb-section-head>.wb-toolbar>.wb-collapse-toggle{margin-left:auto}
 }
 
 /* Kids page: a short roster (avatar, name, Edit, trash) instead of big pills that wrapped on phones. */

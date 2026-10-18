@@ -1,0 +1,19 @@
+import type {CSSProperties} from 'react'
+import type {Entry} from '../store/workspace'
+import {lazyPanel} from '../lazyPanel'
+import type {PageContext} from './pageContext'
+const Flashcards=lazyPanel(()=>import('../components/Flashcards'))
+
+export default function NotesPage({w}:{w:PageContext}){
+ const {notes,run,save,profile,data,create,subjects,subject,setSubject,boardView,setBoardView,card,draftScope}=w
+ const reorder=(from:string,to:string)=>{const sorted=[...notes].sort((a,b)=>(a.position??0)-(b.position??0)),moving=sorted.find(n=>n.id===from);if(!moving||from===to)return;const order=sorted.filter(n=>n.id!==from);order.splice(order.findIndex(n=>n.id===to),0,moving);void run(()=>save(d=>({...d,notes:d.notes.map(n=>n.profileId===profile.id?{...n,position:order.findIndex(x=>x.id===n.id)}:n)})),'Board order saved.')}
+ const move=(id:string,by:number)=>{const sorted=[...notes].sort((a,b)=>(a.position??0)-(b.position??0)),index=sorted.findIndex(n=>n.id===id),target=index+by;if(!sorted[target])return;[sorted[index],sorted[target]]=[sorted[target],sorted[index]];void run(()=>save(d=>({...d,notes:d.notes.map(n=>n.profileId===profile.id?{...n,position:sorted.findIndex(x=>x.id===n.id)}:n)})),'Board order saved.')}
+ const noteBoard=(pinnedOnly=false)=><section className={'wb-panel wb-board board-'+(data.settings.boardStyle??'paper')}>
+  <div className="wb-section-head wb-board-heading"><h2>{pinnedOnly?'Your bulletin board':'Your notes'}</h2><button onClick={()=>create('notes')}>＋ New note</button></div>
+  <div className="notes-filters">{subjects.length>0&&<div className="notes-subject-chips" role="group" aria-label="Subject"><button type="button" aria-pressed={!subject||!subjects.some(x=>x.id===subject)} onClick={()=>setSubject('')}>All</button>{subjects.map(x=><button type="button" key={x.id} aria-pressed={subject===x.id} style={{'--subject':x.color} as CSSProperties} onClick={()=>setSubject(x.id)}><i aria-hidden="true"/>{x.name}<small>{notes.filter(n=>(!pinnedOnly||n.pinned)&&n.subjectId===x.id).length}</small></button>)}</div>}<div className="calendar-views notes-view" role="group" aria-label="View">{([['board','Board'],['list','List']] as const).map(([id,label])=><button type="button" key={id} aria-pressed={boardView===id} onClick={()=>setBoardView(id)}>{label}</button>)}</div></div>
+  <div className={'wb-note-grid wb-board-canvas '+(boardView==='list'?'is-list':'')}>{notes.filter(n=>(!pinnedOnly||n.pinned)&&(!subject||n.subjectId===subject)).sort((a,b)=>(a.position??0)-(b.position??0)).map(n=><div className={'wb-note-wrap size-'+(n.size??'medium')} key={n.id} draggable onDragStart={e=>e.dataTransfer.setData('text/plain',n.id)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();reorder(e.dataTransfer.getData('text/plain'),n.id)}}>{card('notes',n as unknown as Entry)}<div className="wb-move"><button aria-label={'Move '+n.title+' earlier'} title="Move earlier" onClick={()=>move(n.id,-1)}>‹</button><button aria-label={'Move '+n.title+' later'} title="Move later" onClick={()=>move(n.id,1)}>›</button></div></div>)}</div>
+  {!notes.some(n=>(!pinnedOnly||n.pinned)&&(!subject||n.subjectId===subject))&&<p className="wb-board-empty"><img className="kono-empty-art" src="/garden/kono/read.webp" alt="" aria-hidden="true"/>Your board is ready for your notes.<br/>Pin reminders, ideas and study notes here.</p>}
+ <div className="wb-board-tray" aria-hidden="true"><span>✿</span><span>✦</span><span>✿</span></div>
+ </section>
+ return <>{noteBoard()}<details className="wb-panel"><summary>Quiz me · Flashcards</summary><Flashcards draftKey={draftScope+':cards'} profileId={profile.id} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} setData={save}/></details></>
+}

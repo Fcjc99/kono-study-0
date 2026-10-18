@@ -8,9 +8,6 @@
 .planner-day-paper{margin-top:24px;padding:24px;border:1px solid var(--wb-line);border-radius:20px}
 .planner-day-paper>header{margin-bottom:18px}
 .planner-day-paper>header small{letter-spacing:.14em;font-weight:800;color:var(--wb-accent)}
-.planner-day-school{font-size:.65em;font-weight:600;color:var(--wb-muted)}
-.calendar-class-preview{display:grid;gap:3px;font-size:.75rem;font-weight:400}
-.calendar-class-preview>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .workbench .wb-calendar>button{min-width:0}
 .workbench[data-experience="cozy"] .cozy-calendar-shell{background:linear-gradient(#fffdf8,#fcf0e7);border:1px solid #edd8cd;border-radius:26px;padding:24px;box-shadow:0 12px 32px #7854440c}
 .workbench[data-experience="cozy"] .wb-calendar{gap:8px}
@@ -70,9 +67,6 @@
 .wb-class-due-item.kind-exam{color:color-mix(in srgb,#9f2947 65%,var(--wb-ink));font-weight:750}
 .calendar-date-row{display:flex;width:100%;align-items:center;justify-content:space-between}
 .calendar-date-row>b{padding:2px 5px;border-radius:999px;background:#c94061;color:#fff;font-size:.62rem}
-.calendar-entry-preview{display:grid;gap:2px;width:100%;font-size:.68rem;font-weight:650}
-.calendar-entry-preview>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;padding-left:5px;border-left:3px solid #d9a1b4}
-.calendar-entry-preview>.is-priority{border-color:#c94061;color:color-mix(in srgb,#a92c4a 65%,var(--wb-ink));font-weight:850}
 .workbench[data-experience="cozy"] .wb-calendar>button.has-priority{border-color:#d7a62f;background:linear-gradient(145deg,#fffaf7,#fff7d8);box-shadow:0 0 0 3px rgba(218,171,55,.32),inset 0 0 0 1px rgba(255,246,194,.9)}
 .workbench[data-experience="cozy"] .wb-calendar>button.has-priority[aria-pressed="true"]{border-color:#d36291;outline:2px solid #d36291;outline-offset:-3px;box-shadow:0 0 0 4px rgba(218,171,55,.45),0 0 0 7px rgba(211,98,145,.18),inset 0 0 0 1px #fff3b5}
 .wb-class-due-item.kind-note{color:color-mix(in srgb,#7353a2 65%,var(--wb-ink));font-weight:750}
@@ -80,7 +74,6 @@
 .tomorrow-extra-list{display:grid;gap:8px;padding:10px 12px;border-top:1px dashed #dfc6c1;background:#fffaf7}
 .tomorrow-extra-list>strong{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:color-mix(in srgb,#76626b 65%,var(--wb-ink))}
 .planner-day-board{margin-top:14px;padding:12px;border:1px dashed #e0c7bc;border-radius:14px;background:#fffaf7}
-.planner-day-list{display:grid;gap:8px}
 .schedule-view-picker{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:.82rem;font-weight:600}
 .schedule-view-picker label{display:flex;align-items:center;gap:5px;font-weight:inherit}
 .schedule-view-picker input[type="checkbox"]{width:14px;height:14px;margin:0;accent-color:var(--wb-accent)}
@@ -105,18 +98,16 @@
 .wb-agenda-day>summary h3{margin:0;flex:1;min-width:0}
 .wb-agenda-day>summary small{color:var(--wb-muted);white-space:nowrap}
 .wb-agenda-day[open]>summary{margin-bottom:10px;border-bottom:1px dashed var(--wb-line);padding-bottom:8px}
-.tomorrow-schedule{border-style:dashed!important}
 .island-mode-tabs{display:flex;gap:8px}
 .island-mode-tabs button{padding:8px 14px;border-radius:999px;border:1px solid var(--wb-line);background:var(--wb-surface);cursor:pointer;font-weight:700;font-size:.85rem}
 .island-mode-tabs button[aria-current]{background:var(--wb-accent);color:var(--wb-accent-ink);border-color:var(--wb-accent)}
 .settings-page-tools{align-items:baseline}
 .settings-page-tools small{color:var(--wb-muted)}
-.due-tomorrow-panel>.wb-section-head small,.tomorrow-schedule>.wb-section-head small{font-weight:850;letter-spacing:.08em;color:var(--wb-accent)}
+.due-tomorrow-panel>.wb-section-head small{font-weight:850;letter-spacing:.08em;color:var(--wb-accent)}
 @media(max-width:700px){
  .workbench[data-experience="cozy"] .cozy-calendar-shell{padding:12px}
  .workbench[data-experience="cozy"] .wb-calendar{gap:3px}
  .workbench[data-experience="cozy"] .wb-calendar>button{padding:5px;min-height:88px;border-radius:10px;gap:3px}
- .calendar-class-preview{display:none}
  .workbench[data-experience="cozy"] .wb-calendar>button>small{font-size:.65rem;overflow-wrap:anywhere}
  .workbench[data-experience="cozy"] .school-day-mini{font-size:.68rem;overflow-wrap:anywhere}
  .workbench[data-experience="cozy"] .planner-day-paper{padding:16px 10px;background:#fffdf9}
@@ -141,7 +132,6 @@
  .planner-date-tools>label,.planner-add-menu{width:100%}
  .planner-add-menu>summary{min-height:44px}
  .planner-add-menu>div{position:static;margin-top:7px;width:100%}
- .calendar-entry-preview{display:none}
 }
 @media(max-width:390px){
  .wb-class-compact-row{grid-template-columns:112px minmax(0,1fr);column-gap:8px}

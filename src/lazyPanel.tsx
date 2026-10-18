@@ -21,3 +21,14 @@ export function lazyPanel<P extends object>(load:()=>Promise<{default:ComponentT
   return <PanelLoadBoundary><Suspense fallback={fallback!==undefined?fallback:<p className="wb-muted lazy-panel-loading" aria-live="polite">Loading…</p>}><Panel {...props}/></Suspense></PanelLoadBoundary>
  }
 }
+
+/** A whole page that loads on demand, with nothing in its place while it does (no layout flash).
+ * `preload()` fetches its code ahead of time; once that has arrived the page shows on the very first
+ * render, because React.lazy takes a module from a thenable that answers at once without suspending. */
+export function lazyPage<P extends object>(load:()=>Promise<{default:ComponentType<P>}>){
+ type Loaded={default:ComponentType<P>}
+ let loaded:Loaded|undefined,loading:Promise<Loaded>|undefined
+ const preload=()=>loading??=load().then(m=>loaded=m,error=>{loading=undefined;throw error})
+ const now=(m:Loaded)=>({then:(done:(value:Loaded)=>void)=>done(m)}) as unknown as Promise<Loaded>
+ return Object.assign(lazyPanel<P>(()=>loaded?now(loaded):preload(),null),{preload})
+}

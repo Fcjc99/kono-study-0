@@ -85,8 +85,6 @@ html[data-motion=full] .cozy-complete[aria-pressed=true]{animation:check-pop .42
 .delight-particle.is-heart{font-size:20px}
 
 /* "Done this week" pops each time the count changes (the number is re-keyed on its value). */
-@keyframes count-pop{0%{transform:scale(1)}40%{transform:scale(1.35);color:#2f9a5b}100%{transform:scale(1)}}
-html[data-motion=full] .wb-stat-count{display:inline-block;animation:count-pop .5s cubic-bezier(.3,1.4,.5,1)}
 
 /* ＋ Add breathes gently while there's nothing on the list, so a new student knows where to start. */
 @keyframes add-invite{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--wb-accent,#e0685a) 45%,transparent)}50%{box-shadow:0 0 0 9px color-mix(in srgb,var(--wb-accent,#e0685a) 0%,transparent)}}
@@ -104,9 +102,6 @@ html[data-motion=full] .wb-toolbar .primary.is-inviting{animation:add-invite 2.2
 
 /* ── Streak: confetti at milestones (delight.ts), and the 🔥 grows a little with every day ── */
 .delight-confetti{position:fixed;top:0;z-index:2147483000;width:9px;height:14px;border-radius:2px;pointer-events:none}
-.wb-stat-streak .wb-stat-short>span[aria-hidden]{display:inline-block;transform-origin:50% 90%;transform:scale(calc(1 + var(--streak,0) * .025))}
-@keyframes flame{0%,100%{rotate:-4deg}50%{rotate:5deg}}
-html[data-motion=full] .wb-stat-streak .wb-stat-short>span[aria-hidden]{animation:flame 1.6s ease-in-out infinite}
 
 /* ── Empty boards: KONO sits with a book or a cup of tea instead of a bare line of text ── */
 .kono-empty-art{display:block;width:72px;height:auto;margin:0 auto 8px;image-rendering:pixelated;filter:drop-shadow(0 4px 4px #0002)}

@@ -22,19 +22,6 @@
 .workbench .cozy-task-copy p{font-size:.875rem;margin:0}
 .workbench .cozy-task-row.is-complete h3{text-decoration:line-through}
 .workbench .cozy-complete{width:46px;height:46px;min-width:46px;border-radius:50%;background:linear-gradient(#ffe3ef,#e6a3c0);border:2px solid white;box-shadow:0 2px 5px #91546a55,inset 0 0 0 1px #e8b3c9;color:#7b3456;font-size:24px;padding:0}
-.workbench .restored-board-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin:24px 0}
-:root .workbench[data-experience='cozy'] .restored-board-pair .memory-board-frame{padding:20px 16px 12px;border:12px solid #b47b54!important;border-radius:26px!important;background:linear-gradient(#98623e,#784b34)!important;box-shadow:inset 0 0 0 3px #dca57788,0 9px 0 #613b2b,0 18px 26px #57321f25!important}
-:root .workbench[data-experience='cozy'] .restored-board-pair .memory-board-header{background:transparent!important;padding:12px 0 18px;gap:12px;flex-wrap:wrap;min-height:0!important}
-:root .workbench[data-experience='cozy'] .restored-board-pair .board-ribbon{margin:0!important;min-width:0!important;padding:10px 14px}
-:root .workbench[data-experience='cozy'] .restored-board-pair .board-ribbon strong{font-size:1.15rem!important}
-:root .workbench[data-experience='cozy'] .restored-board-pair .board-ribbon small{font-size:.75rem}
-:root .workbench[data-experience='cozy'] .restored-board-pair .board-link{font-size:.875rem;min-height:44px;white-space:normal}
-:root .workbench[data-experience='cozy'] .restored-board-pair .memory-board-canvas{grid-template-columns:minmax(0,1fr)!important;min-height:300px!important;padding:30px 14px!important;overflow:visible;background-color:#d1a276!important;background-image:radial-gradient(circle at 1px 1px,rgba(90,51,29,.18) 1px,transparent 1.2px),radial-gradient(circle at 4px 4px,rgba(255,255,255,.15) .8px,transparent 1px),linear-gradient(125deg,rgba(255,255,255,.13),transparent 45%)!important;background-size:7px 7px,11px 11px,100% 100%!important;box-shadow:inset 0 5px 18px #55311d26}
-.workbench .restored-board-pair .memory-board-empty{padding:22px 10px}
-.workbench .restored-board-pair .memory-board-empty p{font-size:1rem}
-.workbench .restored-board-pair .board-tray{font-size:.75rem;color:#fff1e5;gap:8px}
-.workbench .restored-board-pair .cozy-note-record{min-width:0}
-.workbench .restored-board-pair .kono-sticky{width:100%;transform:none}
 :root .workbench[data-experience='modern'] .subject-tabs{background:#f5f5f7;border-radius:980px;padding:4px}
 :root .workbench[data-experience='modern'] .subject-tabs button{background:transparent;border-radius:980px;box-shadow:none;font-weight:590}
 :root .workbench[data-experience='modern'] .subject-tabs button[aria-current='page']{background:#fff;box-shadow:0 1px 3px #00000014}
@@ -46,7 +33,6 @@
 :root .workbench[data-experience='sumi'] .subject-tabs button.active,:root .workbench[data-experience='sumi'] .subject-tabs button[aria-current='page']{background:color-mix(in srgb,var(--wb-accent) 10%,transparent);box-shadow:none}
 :root .workbench[data-experience='sumi'] .subject-workspace{background:var(--wb-surface);border-radius:2px;border:1px solid var(--wb-line)}
 :root .workbench[data-experience='sumi'] .subject-quick-add{background:var(--wb-bg);border-radius:2px}
-@media(max-width:1100px){.workbench .restored-board-pair{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:760px){
  .workbench .restored-subjects{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
  .workbench .restored-subjects .subject-tabs{display:flex;overflow-x:auto;gap:10px;padding:12px;max-width:100%;scroll-snap-type:x proximity}
@@ -61,8 +47,6 @@
  .workbench button,.workbench summary{min-height:44px}
  .workbench .wb-dialog{max-width:calc(100vw - 20px);max-height:calc(100dvh - 24px);overflow:auto;box-sizing:border-box}
  .workbench .wb-note-grid{grid-template-columns:minmax(0,1fr)}
- :root .workbench[data-experience='cozy'] .restored-board-pair .memory-board-frame{padding:14px 10px 10px;border-width:9px!important}
- .workbench .restored-board-pair{gap:28px}
  .workbench .wb-header{flex-wrap:wrap}
 }
 /* Override inherited legacy tab sizing: keep the label out of the color-strip column. */

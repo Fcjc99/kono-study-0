@@ -153,7 +153,6 @@ button{cursor:pointer}
 [data-theme='sakura'] .card{border-color:#f6c8da;box-shadow:0 15px 35px rgba(197,91,143,.12)}
 [data-theme='sakura'] .primary{background:linear-gradient(135deg,#ff5f9c,#a864e8);box-shadow:0 10px 22px rgba(218,87,151,.25)}
 [data-theme='sakura'] .secondary{background:linear-gradient(180deg,#fffafd,#ffeaf3);border-color:#f7bfd3;color:#d84f83}
-@keyframes star-pop{0%{transform:scale(.98)}65%{transform:scale(1.03)}100%{transform:scale(1)}}
 .push-pin{width:20px;height:20px;border:2px solid rgba(255,255,255,.38)}
 .exam-sticky.is-complete:after{content:'★';position:absolute;right:12px;bottom:11px;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;color:#ffbd3e;font-size:24px;background:radial-gradient(circle,#fff 0 14%,#ffd7ef 16% 52%,#b797ef 78%);border:3px solid white;box-shadow:0 6px 14px rgba(97,60,147,.25)}
 .bubble-complete{display:inline-flex!important;align-items:center;gap:5px}
@@ -166,8 +165,6 @@ button{cursor:pointer}
 html,body,button,input,select,textarea{font-family:var(--font-ui)}
 h1,h2,h3,h4,.eyebrow{font-family:var(--font-display)}
 /* Cleaner, unified hero */
-@keyframes bubble-celebrate{0%{transform:scale(.88);opacity:0}28%{transform:scale(1.02);opacity:1}68%{transform:scale(1);opacity:.96}100%{transform:scale(.98);opacity:0}}
-@keyframes glitter-burst{0%{transform:rotate(var(--angle)) translateY(-28px) scale(.75);opacity:0}24%{opacity:.75}100%{transform:rotate(var(--angle)) translateY(-54px) scale(.7);opacity:0}}
 .bubble-complete span{position:relative;overflow:visible}
 .bubble-complete:active span{transform:scale(.94)}
 /* Sakura: uniform handcrafted visual language */
@@ -188,15 +185,9 @@ h1,h2,h3,h4,.eyebrow{font-family:var(--font-display)}
 [data-theme='professional'] .secondary{background:#fff;color:#1d1d1f;border:1px solid #d2d2d7;box-shadow:none}
 [data-theme='professional'] .eyebrow{color:#6e6e73;letter-spacing:.08em}
 [data-theme='professional'] .push-pin{display:none}
-@media(prefers-reduced-motion:reduce){@keyframes fade-quick{from{opacity:0}50%{opacity:1}to{opacity:0}}}
 .cloud{position:absolute;color:rgba(255,255,255,.76);font-size:clamp(46px,7vw,94px);filter:drop-shadow(0 8px 8px rgba(77,116,147,.12));animation:cloud-drift 28s linear infinite}
 @keyframes cloud-drift{to{transform:translateX(130vw)}}
-@keyframes rain-fall{to{background-position:-36px 72px}}
-@keyframes flower-sway{50%{transform:rotate(4deg) translateY(-2px)}}
-@keyframes ripple-pulse{0%,100%{opacity:.25;transform:scale(.85)}50%{opacity:.8;transform:scale(1.08)}}
 @keyframes bird-flight{to{transform:translate(115vw,-45px)}}
-@keyframes butterfly-flight{0%,100%{transform:translate(0,0) rotate(-8deg)}25%{transform:translate(34px,-22px) rotate(12deg)}50%{transform:translate(58px,8px) rotate(-8deg)}75%{transform:translate(18px,30px) rotate(10deg)}}
-@keyframes firefly-glow{50%{opacity:1;filter:brightness(1.8) drop-shadow(0 0 12px #fff5a9);transform:translateY(-5px)}}
 [data-motion='reduced'] .cloud,[data-motion='reduced'] .bird,[data-motion='reduced'] .butterfly,[data-motion='reduced'] .firefly{animation:none!important}
 @media(max-width:760px){.cloud{font-size:54px}}
 /* KONO Tamagotchi Planner 2.0 visual pass */

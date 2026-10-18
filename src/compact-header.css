@@ -2,8 +2,6 @@
  * Undo/Redo live in the header action row (no separate row). On desktop the buttons keep their
  * text; on phones Undo, Redo, Search, Trash and Expand collapse to icons (the text stays for screen
  * readers), and the Sanctuary toolbar fits in two rows. */
-
-.wb-stat-short{display:none}
 /* Only the Cozy experience used icons on its header buttons before; keep the others text-only on desktop. */
 @media (min-width:701px){
  :root:not([data-experience='cozy']) .wb-header .wb-toolbar .kono-action-icon{display:none}
@@ -17,10 +15,8 @@
  .workbench .wb-header .save-status small,.workbench .wb-header .save-status-account{display:none!important}
  .workbench .wb-header>.wb-toolbar{width:100%;display:flex!important;flex-wrap:nowrap!important;align-items:center;gap:6px!important;margin:0!important}
  .workbench .wb-header>.wb-toolbar>button{flex:0 0 auto;min-height:42px!important;height:42px;font-size:.95rem}
- .workbench .wb-header>.wb-toolbar>.wb-history-btn,
  .workbench .wb-header>.wb-toolbar>.wb-icon-able{width:42px!important;min-width:42px!important;padding:0!important;display:inline-flex!important;align-items:center;justify-content:center}
  .workbench .wb-header>.wb-toolbar .kono-action-icon{margin:0!important;width:20px;height:20px}
- .workbench .wb-header>.wb-toolbar>.wb-history-btn:disabled{opacity:.45}
  .workbench .wb-header>.wb-toolbar>.primary{margin-left:auto!important;padding:0 14px!important}
  .workbench .wb-header>.wb-toolbar>.voice-add-button{width:42px;min-width:42px!important;padding:0!important}
  .workbench .wb-header>.wb-toolbar>.needs-review-nav-badge{padding:0 10px!important;font-size:.8rem}
@@ -37,12 +33,6 @@
  .workbench .wb-scene-toolbar .wb-scene-time{grid-area:time;justify-self:start}
  .workbench .wb-scene-toolbar .wb-scene-time{gap:4px!important;min-width:0}
  .workbench .wb-scene-toolbar .wb-scene-time select{min-height:36px!important;max-width:118px;font-size:16px!important;padding:0 22px 0 6px!important}
- .workbench .wb-scene-toolbar .wb-stats-strip{grid-area:stats;justify-self:end;flex-wrap:nowrap!important;gap:6px!important}
- .workbench .wb-scene-toolbar .wb-stat{padding:4px 9px!important;white-space:nowrap;gap:4px!important}
- .workbench .wb-scene-toolbar .wb-stat-streak small{order:-1}
- .workbench .wb-scene-toolbar .wb-stat small{font-size:.72rem!important}
- .wb-stat-long{display:none}
- .wb-stat-short{display:inline}
 }
 
 /* Phones and tablets: the highlighted tab already names the page and the plan card (top right) names

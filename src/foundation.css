@@ -115,8 +115,6 @@ html[data-theme='sakura'] .secondary{background:#fffaf6;border:1px solid #ddb6c5
 /* Notes and Exams now sit on a full wall-mounted stationery board */
 
 /* v0.7.7 visual refinement: calm banner, aligned work, handcrafted boards */.task-subject-mark{display:grid;place-items:center;width:34px;height:34px;border-radius:12px;background:color-mix(in srgb,var(--subject) 18%,white);border:1px solid color-mix(in srgb,var(--subject) 48%,white);color:var(--subject);font-size:18px;font-weight:900}.task-copy{min-width:0;width:100%;text-align:left!important}.task-copy strong,.task-copy small{display:block;text-align:left!important}.task-copy strong{white-space:normal;line-height:1.35}.task-copy small{margin-top:3px;color:#8b6d79;font-weight:700}.exam-subject-icon{font-size:14px;color:var(--sakura-rose);margin-right:5px}
-@keyframes pin-settle{0%{transform:translate(-50%,-8px) scale(.72)}65%{transform:translate(-50%,2px) scale(1.08)}100%{transform:translate(-50%,0) scale(1)}}
-@media (prefers-reduced-motion:no-preference){@keyframes paper-breathe{from{translate:0 0}to{translate:0 -2px}}}
 
 /* ================================================================
    v0.7.7 ART DIRECTION PASS — cohesive Sakura stationery system

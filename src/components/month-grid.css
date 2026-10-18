@@ -49,3 +49,11 @@
 /* Birthdays, countdowns and school holidays: all-day pills, first in the day. */
 .workbench .month-grid .month-pill.is-special{background:color-mix(in srgb,var(--pill) 30%,var(--wb-surface,#fff))!important;border-left-style:solid!important;font-weight:800!important}
 .workbench .month-grid .month-pill.is-holiday{pointer-events:none;background:color-mix(in srgb,var(--pill) 22%,var(--wb-surface,#fff))!important;border-left:0!important;justify-content:center;font-weight:700!important;cursor:default}
+/* Phones: each thing is a dot in its person's color (a class a ring), and birthdays, days off and holidays
+   show their emoji, so a glance tells them apart; tapping the day opens it. */
+.month-grid.is-phone .month-pills{flex-direction:row;flex-wrap:wrap;align-items:center;gap:3px}
+.workbench .month-grid.is-phone .month-pill{flex:none;width:9px;min-height:9px;height:9px;border-radius:50%!important}
+.workbench .month-grid.is-phone .month-pill.is-class{background:transparent!important;box-shadow:inset 0 0 0 2px var(--pill)}
+.workbench .month-grid.is-phone .month-pill:is(.is-special,.is-day-off,.is-holiday){width:auto;height:auto;min-height:0;background:transparent!important;box-shadow:none;justify-content:center}
+.month-pill-icon{font-size:.85rem;line-height:1}
+.workbench .month-grid.is-phone .month-pill.is-done{opacity:.4}

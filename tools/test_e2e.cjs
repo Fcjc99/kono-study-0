@@ -504,6 +504,7 @@ test('KONO support can list every account, open one to add something for them, a
 
 test('keyboard: K-Quiz practice questions and flashcards keep focus inside, close with Escape, and return focus',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
+ plan.settings.familyStudyTabs=true // alice has kids: a family plan shows the study pages only when asked
  plan.kquizSets=[{id:'set-1',profileId:plan.activeProfileId,subjectId:'',title:'Cells (e2e)',createdAt:'2026-09-20T00:00:00Z',flashcardDeckId:plan.flashcardDecks[0].id,practiceTest:{questions:[{id:'q1',type:'mcq',prompt:'Powerhouse of the cell?',choices:['Mitochondria','Nucleus'],correctIndex:0}]}}]
  await signInAs(context,cloud,'alice')
  await page.goto(BASE)
@@ -1579,6 +1580,7 @@ test('Share with a classmate: a student sends an exam from its editor to a conne
  cloud.connections=[{id:'c1',requester_id:'alice',recipient_id:'carol',status:'accepted',created_at:'2026-09-20T00:00:00Z'}]
  cloud.profiles={alice:{username:'alice',displayName:'Alice'},carol:{username:'carol',displayName:'Carol'}}
  cloud.users.carol.plan.data.exams=[]
+ cloud.users.alice.plan.data.settings.familyStudyTabs=cloud.users.carol.plan.data.settings.familyStudyTabs=true // both have kids: a family plan shows Exams only when asked
  await signInAs(context,cloud,'alice')
  await page.goto(BASE)
  await heading(page,'Sanctuary')
