@@ -499,3 +499,29 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .settings-groups .wb-panel>.card.settings-list,.settings-groups .wb-panel>section>.card.settings-list{border:0!important;box-shadow:none!important;background:transparent!important;padding-left:0!important;padding-right:0!important}
 /* Dark mode: the current sidebar tab is a light pill, so its label is dark ink. */
 :root[data-dark] .sidebar .nav-button.active,:root[data-dark] .sidebar .nav-button.active :is(span,strong){color:#3a2230!important}
+/* Who's it for?: name chips, like everywhere else people are picked (the checkbox stays for keyboards
+   and screen readers, under the chip). */
+.workbench .whose-pick,.wb-dialog .whose-pick{display:flex!important;flex-direction:row!important;flex-wrap:wrap;gap:8px!important;border:0!important;padding:0!important}
+.whose-pick legend{margin-bottom:6px}
+:is(.workbench,.wb-dialog) .whose-pick label{position:relative;display:inline-flex!important;align-items:center;min-height:38px;margin:0!important;padding:6px 14px!important;border:1px solid var(--wb-line,#e3d7da);border-radius:999px;background:var(--wb-surface,#fff);cursor:pointer;font-weight:600}
+:is(.workbench,.wb-dialog) .whose-pick label input{position:absolute;opacity:0;inset:0;width:100%!important;height:100%;margin:0;cursor:pointer}
+:is(.workbench,.wb-dialog) .whose-pick label:has(input:checked){background:color-mix(in srgb,var(--wb-accent,#c76b8f) 18%,var(--wb-surface,#fff));border-color:var(--wb-accent,#c76b8f);box-shadow:inset 0 0 0 1px var(--wb-accent,#c76b8f)}
+:is(.workbench,.wb-dialog) .whose-pick label:has(input:focus-visible){outline:3px solid var(--wb-accent,#c76b8f);outline-offset:2px}
+/* Section tabs (Settings, Subjects) as one segmented control, like the Planner's views. */
+:root[data-experience=cozy] .workbench .subject-section-tabs{gap:4px;padding:4px;border:0;border-radius:16px;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 9%,var(--wb-surface,#fff))}
+:root[data-experience=cozy] .workbench .subject-section-tabs button{border:0!important;background:transparent!important;box-shadow:none!important;border-radius:12px!important;min-height:38px!important;font-weight:600!important;color:var(--wb-muted,#7a6670)!important}
+:root[data-experience=cozy] .workbench .subject-section-tabs button[aria-current]{background:var(--wb-surface,#fff)!important;color:var(--cute-ink,#3a2b33)!important;font-weight:800!important;box-shadow:0 1px 3px rgba(60,30,40,.15)!important}
+:root[data-experience=cozy][data-dark] .workbench .subject-section-tabs button[aria-current]{background:color-mix(in srgb,var(--wb-surface,#2a2228) 70%,#fff 12%)!important;color:var(--wb-ink,#f3e9ee)!important}
+/* Today/Tomorrow tabs use the app's typeface like everything around them. */
+.today-card-tabs button{font-family:inherit!important;font-weight:700}
+/* Phones: the Planner's filters are one row that scrolls sideways, and the big date is a little smaller,
+   so the calendar starts higher up. */
+@media(max-width:760px){.planner-filters{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.planner-filters::-webkit-scrollbar{display:none}.planner-filters>*{flex:none}.wb-calendar-hero h2,.planner-hero h2{font-size:1.6rem}}
+.trash-empty{display:flex;align-items:center;gap:14px;padding:18px;border-radius:16px;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 7%,var(--wb-surface,#fff))}
+.trash-empty img{width:64px;height:64px;object-fit:contain}
+.trash-empty p{margin:0;color:var(--wb-muted,#7a6670)}
+.trash-empty strong{color:var(--wb-ink,#3a2b33)}
+/* (stronger) the section tabs as one segmented control */
+:root[data-experience=cozy] .workbench nav.subject-section-tabs button:not(#x){border:0!important;background:transparent!important;box-shadow:none!important;border-radius:12px!important;color:var(--wb-muted,#7a6670)!important;font-weight:600!important}
+:root[data-experience=cozy] .workbench nav.subject-section-tabs button[aria-current]:not(#x){background:var(--wb-surface,#fff)!important;color:var(--cute-ink,#3a2b33)!important;font-weight:800!important;box-shadow:0 1px 3px rgba(60,30,40,.15)!important}
+:root[data-experience=cozy][data-dark] .workbench nav.subject-section-tabs button[aria-current]:not(#x){background:color-mix(in srgb,var(--wb-surface,#2a2228) 70%,#fff 12%)!important;color:var(--wb-ink,#f3e9ee)!important}
