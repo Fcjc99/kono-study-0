@@ -533,9 +533,11 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 :root[data-dark] .workbench .today-summary .today-summary-late:not(#x){color:#ffb4ab!important}
 .today-summary .today-summary-late:focus-visible{outline:2px solid var(--wb-accent,#c76b8f)}
 /* Family Home order, every screen size: your day, the week, to-dos, what's coming up, then the island. */
-.workbench .home-grid.is-parent{display:flex!important;flex-direction:column;gap:16px}
+.workbench .home-grid.is-parent{display:flex!important;flex-direction:column;gap:0}
 .workbench .home-grid.is-parent :is(.home-main,.home-side){display:contents!important}
-.workbench .home-grid.is-parent :is(.home-main,.home-side)>*{order:8;margin:0!important}
+.workbench .home-grid.is-parent :is(.home-main,.home-side)>*{order:8;margin:0 0 16px!important}
+/* KONO's bar stays attached under the island window, as one card. */
+.workbench .home-grid.is-parent .home-main>.wb-island{margin-bottom:0!important}
 .workbench .home-grid.is-parent .home-side>.getting-started{order:0!important}
 .workbench .home-grid.is-parent .home-side>.today-card{order:1!important}
 .workbench .home-grid.is-parent .home-side>.week-ahead{order:2!important}

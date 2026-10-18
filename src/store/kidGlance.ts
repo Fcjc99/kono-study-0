@@ -20,8 +20,8 @@ export function kidGlance(data: Pick<AppData, 'profiles' | 'kids' | 'tasks' | 'e
     const mine = (x: {profileId: string; kidId?: string; kidIds?: string[]}) => (plan && x.profileId === plan.id) || (x.profileId === parentProfileId && peopleOf(x).includes(kid.id))
     const tasks = data.tasks.filter(t => !t.done && mine(t)), exams = data.exams.filter(e => !e.done && mine(e))
     const seasons = data.studySeasons.filter(s => s.active && s.school && mine(s))
-    const day = seasons.map(s => schoolDay(s, today)).find(Boolean)
-    const school = day ? (day.closed ? 'No school' : day.cycleDay ?? 'School day') : undefined
+    const schoolSeason = seasons.find(s => schoolDay(s, today)), day = schoolSeason ? schoolDay(schoolSeason, today) : undefined
+    const school = day ? schoolSeason!.school!.name + ' · ' + (day.closed ? 'No school' : day.cycleDay ?? 'School day') : undefined
     // Today's classes, from their school or class schedule (not breaks, not skipped).
     const classes = data.studySeasons.filter(s => s.active && mine(s)).flatMap(s => classOccurrences({activeProfileId: s.profileId, studySeasons: [s]}, today)).filter(c => c.block.kind !== 'break' && !c.block.skippedDates?.includes(today) && (!c.block.kidId || c.block.kidId === kid.id)).sort((a, b) => (a.displayStart ?? a.block.start).localeCompare(b.displayStart ?? b.block.start)).map(c => c.block.label + ' ' + classTime(c.displayStart ?? c.block.start))
     const coming = (data.calendarEvents ?? []).filter(e => e.date === today && !e.done && e.time && e.time >= nowClock && mine(e)).sort((a, b) => a.time!.localeCompare(b.time!))

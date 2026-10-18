@@ -368,7 +368,9 @@ function supabaseHost(){
  throw new Error('No Supabase URL found in the build.')
 }
 function fakeCloud(){
- const named=(name,email)=>{const d=fixture();d.profiles[0].name=name;return {email,admin:false,plan:{revision:3,data:d}}}
+ // The fixture's parents also study, so the study pages and tools (Exams, Focus, the catch-up card) stay on;
+ // the family-only Home has its own flow (familyStudyTabs=false).
+ const named=(name,email)=>{const d=fixture();d.profiles[0].name=name;d.settings.familyStudyTabs=true;return {email,admin:false,plan:{revision:3,data:d}}}
  return {users:{alice:named('Alice','alice@example.com'),carol:{...named('Carol','carol@example.com'),admin:true},dave:{email:'dave@example.com',admin:false,plan:{revision:0,data:null}}},me:'alice',calls:[],audit:[],errors:[],feedback:[],nightly:{},feeds:[],catalog:[]}
 }
 const b64=value=>Buffer.from(JSON.stringify(value)).toString('base64url')
@@ -1360,7 +1362,7 @@ test('Home at a rotation school: Today shows the rotation day and the block now 
  await go(page,'Kids')
  const kids=page.getByRole('region',{name:'Kids today'})
  assert.match(await kids.innerText(),/Emma\s+Duxbury Middle School · Day 3/)
- assert.match(await kids.innerText(),/8:20 AM\s*Biology\s+9:23 AM\s*Math 6/)
+ assert.match(await kids.innerText(),/Biology 8:20 AM, Math 6 9:23 AM/)
 })
 
 test('Duxbury Middle School: the school’s 14-day Rotation of Periods (1a–7b, five blocks a day) with its bell times, lunch waves and ASP; KONO’s AI reads a Grade 6 schedule into 7 periods (Period 2 and 6 alternate on b days), and all 14 days are saved',async({context,page})=>{
@@ -2772,10 +2774,12 @@ test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as
  d.exams.push({id:'emma-test',profileId:'plan-emma',subjectId:'',title:'Fractions quiz',due:'2026-10-15',done:false,notes:''})
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
- // Kids today: each kid at a glance.
+ // Kids today (on the Kids page): each kid at a glance.
+ await go(page,'Kids')
  const glance=page.getByRole('region',{name:'Kids today'})
  const emmaRow=glance.getByRole('button',{name:/Open Emma’s plan/})
  assert.match(await emmaRow.innerText(),/1 due tomorrow/i);assert.match(await emmaRow.innerText(),/Fractions quiz/)
+ await go(page,'Sanctuary')
  // Home's day: Emma's homework (from her plan), Leo's and mine; names tap off and on.
  const day=page.getByRole('region',{name:'Your day'}),people=day.getByRole('group',{name:'Whose things to show'}),also=day.locator('.tomorrow-extra-list').filter({hasText:'Also today'})
  for(const title of ['Spelling list','Science poster','Pay school fees'])await also.getByText(title,{exact:true}).waitFor()
@@ -2879,6 +2883,7 @@ test('Family extras: a family to-do list, a snack with a note for a kid’s KONO
  await todos.getByRole('checkbox',{name:/Buy poster board/}).check()
  await waitFor(()=>cloud.users.alice.plan.data.familyTodos.find(t=>t.title==='Buy poster board').done,'checking it off never reached the account')
  // A snack with a note for Emma's KONO.
+ await go(page,'Kids')
  await page.getByRole('region',{name:'Kids today'}).getByRole('button',{name:'Send Emma’s KONO a snack'}).click()
  const giftSheet=page.getByRole('dialog',{name:/A treat for Emma/})
  await giftSheet.getByLabel('Note for Emma').fill('So proud of you!')
@@ -3264,6 +3269,7 @@ test('Out sick and late nights: marking Emma out sick skips her class and shows 
  d.calendarEvents.push({id:'soccer',profileId:pid,date:'2026-10-19',title:'Soccer practice',kind:'sports',notes:'',time:'16:00',kidId:'kid-emma'},{id:'sleep',profileId:pid,date:'2026-10-18',title:'Sleepover at Sam’s',kind:'activity',notes:'',time:'19:00',endTime:'09:00',kidId:'kid-leo'})
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Kids')
  const glance=page.getByRole('region',{name:'Kids today'})
  await glance.getByRole('button',{name:'🤒 Out sick or snow day?'}).click()
  const sheet=page.getByRole('dialog',{name:'Out sick or a snow day'})
@@ -3272,6 +3278,7 @@ test('Out sick and late nights: marking Emma out sick skips her class and shows 
  await sheet.waitFor({state:'detached'})
  await waitFor(()=>{const p=cloud.users.alice.plan.data;return p.daysOff?.length===1&&p.studySeasons.find(s=>s.id==='emma-school').week.Monday[0].skippedDates?.includes('2026-10-19')},'the sick day and the skipped class never reached the account')
  assert.match(await glance.innerText(),/Out sick/)
+ await go(page,'Sanctuary')
  await page.getByLabel('Today at a glance').getByText('Emma is out sick').waitFor()
  // The wall: her soccer is off; Leo's sleepover is still going this morning.
  await page.goto(BASE+'?wall')
@@ -3285,6 +3292,36 @@ test('Out sick and late nights: marking Emma out sick skips her class and shows 
  await banner.getByRole('button',{name:'Change'}).click()
  await page.getByRole('dialog',{name:'Out sick or a snow day'}).getByRole('button',{name:'Take back'}).click()
  await waitFor(()=>{const p=cloud.users.alice.plan.data;return p.daysOff?.length===0&&!p.studySeasons.find(s=>s.id==='emma-school').week.Monday[0].skippedDates?.includes('2026-10-19')},'Take back did not undo the sick day')
+})
+test('Family Home: one Today card says what is next for each kid, Kids today lives on Kids, late work opens from its pill, and a weekly to-do shows on its day this week and moves on when ticked',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ d.settings.familyStudyTabs=false
+ await page.clock.install({time:new Date('2026-10-15T15:30:00')}) // a Thursday
+ d.calendarEvents.push({id:'soccer',profileId:pid,date:'2026-10-15',title:'Soccer practice',kind:'sports',notes:'',time:'16:00',kidId:'kid-emma',location:'Riverside Park',travelMinutes:15})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const day=page.getByRole('region',{name:'Your day'})
+ await day.getByRole('list',{name:'What’s next for the kids'}).getByText(/Soccer practice 4:00 PM · leave 3:45 PM/).waitFor()
+ assert.equal(await page.getByRole('region',{name:'Kids today'}).count(),0,'Kids today is on the Kids page')
+ assert.equal(await page.locator('details.sanctuary-focus').count(),0,'no Focus session in a family plan')
+ // Late work: once, behind its pill.
+ assert.equal(await page.getByRole('region',{name:'Overdue'}).count(),0)
+ await day.getByRole('button',{name:/1 late/}).click()
+ await page.getByRole('region',{name:'Overdue'}).getByRole('heading',{name:'1 assignment is overdue'}).waitFor()
+ // A weekly to-do for Saturday shows on Saturday this week.
+ const todos=page.getByRole('region',{name:'Family to-do'})
+ await todos.getByLabel('New family to-do').fill('Clean house')
+ await todos.getByLabel('When').selectOption('2026-10-17')
+ await todos.getByRole('checkbox',{name:'Every week'}).check()
+ await todos.getByRole('button',{name:'Add',exact:true}).click()
+ await todos.locator('.family-todo-day',{hasText:'Saturday'}).waitFor()
+ const week=page.getByRole('region',{name:'Your week ahead'})
+ await week.getByRole('button',{name:/Sat 17: .*to-do: Clean house/}).waitFor()
+ await todos.getByRole('checkbox',{name:/Clean house/}).click()
+ await waitFor(()=>{const t=cloud.users.alice.plan.data.familyTodos?.find(x=>x.title==='Clean house');return t&&t.weekly&&t.due==='2026-10-24'&&!t.done},'ticking the weekly to-do never moved it to next Saturday')
+ // Each kid's whole day is on Kids.
+ await go(page,'Kids')
+ await page.getByRole('region',{name:'Kids today'}).getByText(/Soccer practice 4:00 PM/).waitFor()
 })
 async function main(){
  const server=await startServer()

@@ -16,5 +16,5 @@ export default function KidsNext({data,profileId,today,nowClock}:{data:AppData;p
   return text?[{kid:r.kid,text}]:[]
  })
  if(!rows.length)return null
- return <ul className="kids-next" aria-label="What's next for the kids">{rows.map(r=><li key={r.kid.id} style={{'--kid-color':r.kid.color} as CSSProperties}><strong>{r.kid.emoji?r.kid.emoji+' ':''}{r.kid.name}</strong> {r.text}</li>)}</ul>
+ return <ul className="kids-next" aria-label="What’s next for the kids">{rows.map(r=><li key={r.kid.id} style={{'--kid-color':r.kid.color} as CSSProperties}><strong>{r.kid.emoji?r.kid.emoji+' ':''}{r.kid.name}</strong> {r.text}</li>)}</ul>
 }
