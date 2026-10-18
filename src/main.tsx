@@ -14,18 +14,15 @@ const SanctuaryQA = lazy(() => import('./SanctuaryQA'))
 const params = new URLSearchParams(window.location.search)
 captureInstallPrompt()
 
-/** KONO's Google Fonts (DM Sans, Newsreader, Caveat; the Zen pair for Zen Ink). Added from here rather
- * than a CSS @import so they never hold up the first paint: the page shows in the system font and
- * swaps when they arrive. Font files only download for the faces a theme actually uses. */
-for (const href of [
-  'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600&family=Caveat:wght@600;700&display=swap',
-  'https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap',
-]) {
-  const link = document.createElement('link')
-  link.rel = 'stylesheet'
-  link.href = href
-  document.head.append(link)
-}
+/** KONO's Google Fonts (DM Sans, Newsreader, Caveat; the Zen pair only once Zen Ink is picked). Added from
+ * here rather than a CSS @import so they never hold up the first paint: the page shows in the system font
+ * and swaps when they arrive. */
+const addFont = (href: string) => { const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = href; document.head.append(link) }
+addFont('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600&family=Caveat:wght@600;700&display=swap')
+const zenFont = () => { if (document.documentElement.dataset.experience !== 'sumi') return; addFont('https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap'); zenWatch.disconnect() }
+const zenWatch = new MutationObserver(zenFont)
+zenWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-experience'] })
+zenFont()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -64,7 +61,9 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 /** Vercel Web Analytics: counts visits with no cookies and nothing that identifies a person. The script
  * only exists where Vercel serves it with analytics turned on, so check before loading it. */
 if (import.meta.env.PROD) {
-  window.addEventListener('load', () => {
+  // After load and once the phone is idle, so it never competes with the first screen.
+  const idle = (run: () => void) => ('requestIdleCallback' in window ? window.requestIdleCallback(run, { timeout: 6000 }) : setTimeout(run, 3000))
+  window.addEventListener('load', () => idle(() => {
     fetch('/_vercel/insights/script.js', { method: 'HEAD' }).then(response => {
       if (!response.ok || !/javascript/i.test(response.headers.get('content-type') ?? '')) return
       const script = document.createElement('script')
@@ -72,5 +71,5 @@ if (import.meta.env.PROD) {
       script.src = '/_vercel/insights/script.js'
       document.head.appendChild(script)
     }).catch(() => undefined)
-  })
+  }))
 }

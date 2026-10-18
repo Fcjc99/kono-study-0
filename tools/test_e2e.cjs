@@ -932,7 +932,7 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  await week.getByRole('button',{name:/^Soccer practice · 5:00 PM–6:30 PM/}).waitFor()
  // Source chips: hiding Canvas hides only what came from Canvas, and stays hidden after a reload.
  const chips=page.getByRole('group',{name:'Show on calendar'})
- assert.deepEqual(await chips.getByRole('button').allInnerTexts(),['Canvas','Google','Sports','Mine'])
+ assert.deepEqual(await chips.getByRole('button').allInnerTexts(),['Canvas','Google','Sports','Added here'])
  const canvas=chips.getByRole('button',{name:'Canvas'})
  await canvas.click()
  assert.equal(await canvas.getAttribute('aria-pressed'),'false')
