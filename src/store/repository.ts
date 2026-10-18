@@ -12,6 +12,8 @@ import {setNaturalVoice} from './konoVoice'
 import {shrinkPhoto} from './shrinkPhoto'
 import {APP_VERSION} from '../version'
 import { buildSharedSnapshot } from './peerShare'
+/** Runs something once the page has loaded and the phone is idle, so it never competes with the first screen. */
+const afterStartup=(run:()=>void)=>{const go=()=>{const idle=(globalThis as {requestIdleCallback?:(cb:()=>void,o?:{timeout:number})=>void}).requestIdleCallback;if(idle)idle(run,{timeout:4000});else setTimeout(run,1500)};if(typeof document==='undefined'||document.readyState==='complete')go();else window.addEventListener('load',go,{once:true})}
 type User={id:string;email:string;name:string}
 type Remote={revision:number;data:AppData|null}
 export type SupportTarget={id:string;email:string}
@@ -115,7 +117,8 @@ export class PlannerRepository {
     if(typeof user.id!=='string'||!user.id||user.id.length>200||typeof user.email!=='string')throw new Error('Invalid account response.')
     const cloud=this.cloud
     if(cloud)installErrorReporter(entry=>cloud.reportError(entry),()=>({page:currentPage(),appVersion:APP_VERSION}))
-    if(user)void this.enableBuiltInAi()
+    // Off the start-up path: asked once the phone is idle (the AI is only used later, from a button).
+    if(user)afterStartup(()=>void this.enableBuiltInAi())
     const support=this.cloud?readSupportTarget():null
     if(support&&this.cloud&&await this.cloud.isAdmin()){if(this.valid(generation))await this.openSupport(user,support,generation)}
     else{if(support)clearSupportTarget();await this.openAccount(user,generation)}

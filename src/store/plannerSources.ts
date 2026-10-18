@@ -9,7 +9,7 @@ export const PLANNER_SOURCES:{id:PlannerSource;label:string;title:string}[]=[
  {id:'canvas',label:'Canvas',title:'From Canvas, Schoology or Google Classroom'},
  {id:'calendar',label:'Google',title:'From Google, Apple or Outlook calendars'},
  {id:'sports',label:'Sports',title:'Practices, games and sports events'},
- {id:'mine',label:'Mine',title:'Things you added in KONO'},
+ {id:'mine',label:'Added here',title:'Things you added in KONO'},
 ]
 
 /** An assignment, exam, note or event: its import source first, then sports events, else yours. */

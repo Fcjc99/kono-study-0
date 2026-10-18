@@ -932,7 +932,7 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  await week.getByRole('button',{name:/^Soccer practice · 5:00 PM–6:30 PM/}).waitFor()
  // Source chips: hiding Canvas hides only what came from Canvas, and stays hidden after a reload.
  const chips=page.getByRole('group',{name:'Show on calendar'})
- assert.deepEqual(await chips.getByRole('button').allInnerTexts(),['Canvas','Google','Sports','Mine'])
+ assert.deepEqual(await chips.getByRole('button').allInnerTexts(),['Canvas','Google','Sports','Added here'])
  const canvas=chips.getByRole('button',{name:'Canvas'})
  await canvas.click()
  assert.equal(await canvas.getAttribute('aria-pressed'),'false')
@@ -945,7 +945,7 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  await week.getByRole('button',{name:/^Quiz review session/}).waitFor()
  // Tap an empty hour: a new event starts then, for an hour.
  await week.getByRole('button',{name:'Add at 10:00 AM on Oct 2, 2026'}).click()
- const editor=page.getByRole('dialog',{name:'New Event'})
+ const editor=page.getByRole('dialog',{name:'New event'})
  assert.equal(await editor.getByLabel('Start time (optional)').inputValue(),'10:00')
  assert.equal(await editor.getByLabel('End time (optional)').inputValue(),'11:00')
  assert.equal(await editor.getByLabel('Date').inputValue(),'2026-10-02')
@@ -955,7 +955,7 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.some(e=>e.title==='Tutoring'&&e.date==='2026-10-02'&&e.time==='10:00'),'the new event reaches the account')
  // Tapping an event opens its editor right on the calendar (no scrolling down to the daily page).
  await week.getByRole('button',{name:/^Tutoring · 10:00 AM/}).click()
- const tutoring=page.getByRole('dialog',{name:'Edit Event'})
+ const tutoring=page.getByRole('dialog',{name:'Edit event'})
  assert.equal(await tutoring.getByLabel('Title').inputValue(),'Tutoring')
  await tutoring.getByRole('button',{name:'Close dialog'}).click()
  await tutoring.waitFor({state:'detached'})
@@ -987,7 +987,7 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  await waitFor(()=>{const d=cloud.users.alice.plan.data,t=d.tasks.find(t=>t.id==='wk-hw');return t?.plannedTime==='15:00'&&t.estimatedMinutes===90&&d.calendarEvents.some(e=>e.planFor==='task:wk-hw'&&e.date==='2026-09-29'&&e.time==='16:00')},'the planned time, its length and the study session reach the account')
  // Repeat: Tutoring every week until Oct 23 adds three more, linked as one series.
  await week.getByRole('button',{name:/^Tutoring · 1:30 PM/}).click()
- const repeatEditor=page.getByRole('dialog',{name:'Edit Event'})
+ const repeatEditor=page.getByRole('dialog',{name:'Edit event'})
  await repeatEditor.getByLabel('Repeat').selectOption('weekly')
  await repeatEditor.getByLabel('Until').fill('2026-10-23')
  await repeatEditor.getByText(/^Adds 3 more: /).waitFor()
@@ -1000,7 +1000,7 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  await page.getByRole('heading',{name:/^Oct 4 – Oct 10/}).waitFor()
  // A change to one of the series can go to the ones after it too.
  await week.getByRole('button',{name:/^Tutoring · 1:30 PM–4:00 PM · Oct 9, 2026/}).click()
- const seriesEditor=page.getByRole('dialog',{name:'Edit Event'})
+ const seriesEditor=page.getByRole('dialog',{name:'Edit event'})
  await seriesEditor.getByText('This repeats (4 dates). Save changes to:').waitFor()
  assert.equal(await seriesEditor.getByLabel('Repeat').count(),0,'one already in a series has no Repeat picker')
  await seriesEditor.getByLabel('Title').fill('Math tutoring')
@@ -2165,7 +2165,7 @@ test('Planner › ＋ Add to this date: Lesson and Work open a new event already
  for(const [button,kind,title] of [['Lesson','lesson','Piano lesson'],['Work','work','Cafe shift']]){
   if(!await page.locator('details.planner-add-menu').evaluate(d=>d.open))await page.locator('details.planner-add-menu > summary').click()
   await page.locator('details.planner-add-menu').getByRole('button',{name:button,exact:true}).click()
-  const editor=page.getByRole('dialog',{name:'New Event'})
+  const editor=page.getByRole('dialog',{name:'New event'})
   assert.equal(await editor.getByRole('group',{name:'Event type'}).getByRole('button',{name:new RegExp(button)}).getAttribute('aria-pressed'),'true',kind+' is picked')
   await editor.getByLabel('Title').fill(title)
   await editor.getByRole('button',{name:'Save'}).click()
@@ -2934,7 +2934,7 @@ test('Family wall calendar: Today sums up the day; Month shows each person’s t
  await pill.waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.find(e=>e.id==='e-soccer')?.date==='2026-10-13','Undo never put the practice back')
  // Tapping a pill opens it.
- await pill.click();console.log('DLG',await page.locator('dialog[open],[role=dialog]').evaluateAll(d=>d.map(x=>x.getAttribute('aria-label')+'/'+x.querySelector('h2')?.textContent)));await page.getByRole('dialog',{name:'Edit Event'}).getByRole('button',{name:'Cancel'}).click()
+ await pill.click();console.log('DLG',await page.locator('dialog[open],[role=dialog]').evaluateAll(d=>d.map(x=>x.getAttribute('aria-label')+'/'+x.querySelector('h2')?.textContent)));await page.getByRole('dialog',{name:'Edit event'}).getByRole('button',{name:'Cancel'}).click()
  // Wall display: big, today and tomorrow, with whose each thing is.
  await page.getByRole('button',{name:/Wall display/}).click()
  const wall=page.getByRole('dialog',{name:'Wall display'}),today=wall.getByRole('region',{name:'Today'})
@@ -2953,7 +2953,7 @@ test('Family wall calendar: Today sums up the day; Month shows each person’s t
  assert.deepEqual(spelling().map(t=>t.due).sort(),['2026-10-13','2026-10-20','2026-10-27','2026-11-03'])
  await go(page,'Planner');await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Month'}).click()
  await page.getByRole('button',{name:'Spelling words · Oct 20, 2026'}).click()
- const series=page.getByRole('dialog',{name:'Edit Assignment'})
+ const series=page.getByRole('dialog',{name:'Edit assignment'})
  await series.getByText('This repeats (4 dates). Save changes to:').waitFor()
  await series.getByLabel('Title').fill('Spelling test words')
  await series.getByLabel('All of them').check()
@@ -3141,7 +3141,7 @@ test('Planner › Week on a phone: press and hold moves an event, a quick swipe 
   assert.equal(await page.getByRole('dialog').count(),0,'a drag doesn’t open the editor')
   // A tap opens it to edit.
   await piano().tap()
-  await page.getByRole('dialog',{name:'Edit Event'}).getByLabel('Title').waitFor()
+  await page.getByRole('dialog',{name:'Edit event'}).getByLabel('Title').waitFor()
   assert.deepEqual(phone.errors,[])
  }finally{await phone.context.close()}
 })

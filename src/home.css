@@ -281,3 +281,5 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .family-todo-add input{flex:1;min-width:160px}
 /* Kids today: a ring around each kid's face fills with what they've finished of today's load. */
 .kids-glance-face.has-ring{background:radial-gradient(closest-side,color-mix(in srgb,var(--kid-color) 25%,#fff) 82%,transparent 84%),conic-gradient(var(--kid-color) calc(var(--done)*1turn),color-mix(in srgb,var(--kid-color) 18%,transparent) 0)}
+/* The sidebar's plan card: "Whose plan?" spans the card under the name, like the old plan picker did. */
+.profile-dock .plan-switch-button{grid-column:1/-1;min-height:36px;justify-content:center;text-align:center;white-space:nowrap}

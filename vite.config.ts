@@ -99,7 +99,27 @@ self.addEventListener('fetch',event=>{
   writeFileSync(resolve(outDir,'sw.js'),sw)
 }
 
+// Phaser's build-time feature switches (its own builds set these with webpack's DefinePlugin): the
+// source checks `typeof FLAG`, so the replacement must cover the whole `typeof FLAG` expression.
+// Both renderers stay (the island asks for AUTO, so a phone without WebGL still gets Canvas); the
+// island plays no sound, and the WebGL debugger stays out, as in Phaser's prebuilt bundles.
+const PHASER_FLAGS:Record<string,boolean>={CANVAS_RENDERER:true,WEBGL_RENDERER:true,WEBGL_DEBUG:false,EXPERIMENTAL:false,FEATURE_SOUND:false}
+const phaserSource=/[\\/]node_modules[\\/]phaser[\\/]src[\\/].*\.js$/
+function phaserFlags(){
+  return {
+    name:'kono-phaser-flags',
+    transform(code:string,id:string){
+      if(!phaserSource.test(id)||!code.includes('typeof '))return null
+      const out=code.replace(new RegExp(`typeof (${Object.keys(PHASER_FLAGS).join('|')})\\b`,'g'),(_,flag:string)=>JSON.stringify(PHASER_FLAGS[flag]))
+      return out===code?null:{code:out,map:null}
+    },
+  }
+}
+
 export default defineConfig(({isSsrBuild,command})=>({
+  // The production build uses the island's slimmer Phaser (src/game/phaser.js) instead of the full
+  // prebuilt bundle; `vite` dev keeps the prebuilt one (it serves Phaser's CommonJS source poorly).
+  resolve:command==='build'?{alias:[{find:/^phaser$/,replacement:resolve('src/game/phaser.js')}]}:undefined,
   define:{
     // trim+|| (not ??) so an env var present but blank/whitespace-only still falls back, instead of
     // silently disabling cloud sign-in the way an unset var would not.
@@ -107,7 +127,7 @@ export default defineConfig(({isSsrBuild,command})=>({
     __KONO_SUPABASE_ANON_KEY__:JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY?.trim()||'sb_publishable_5GOB_LMND1W2NSNmXwQLBA_RTFVemNR'),
   },
   publicDir:command==='serve'?(process.env.KONO_ASSET_SOURCE??'public'):false,
-  plugins: [react(),sites(),ocrAssets(Boolean(isSsrBuild)),...(command==='serve'?[localApi()]:[]),{
+  plugins: [phaserFlags(),react(),sites(),ocrAssets(Boolean(isSsrBuild)),...(command==='serve'?[localApi()]:[]),{
     name:'kono-production-assets',
     // The sign-in code is needed before KONO can open (a signed-in plan lives in the account), but it's
     // a dynamic import, so the browser only asks for it once the main script has run. Preloading it
