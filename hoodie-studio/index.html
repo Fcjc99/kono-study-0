@@ -73,10 +73,25 @@ button{cursor:pointer}
 #c2d{width:100%;height:100%;display:block;cursor:pointer}
 .p2d-title{position:absolute;top:44px;left:20px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted);pointer-events:none}
 .p2d-hint{position:absolute;bottom:76px;left:0;right:0;text-align:center;font-size:12px;color:var(--muted);pointer-events:none}
-.p2d-card{position:absolute;top:68px;left:16px;width:min(260px,calc(100% - 32px));background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:0 8px 30px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:10px}
-.p2d-card[hidden]{display:none}
-.p2d-card .row b{font-size:14px}
-.p2d-card .swatches{grid-template-columns:repeat(8,1fr);gap:6px}
+.part-card{position:absolute;top:44px;left:16px;z-index:4;width:min(280px,calc(100% - 32px));max-height:calc(100% - 120px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:0 8px 30px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:10px}
+.part-card[hidden]{display:none}
+.part-card .row b{font-size:14px}
+.part-card .swatches{grid-template-columns:repeat(8,1fr);gap:6px}
+.part-card .lbl{font-size:12px;font-weight:600;color:var(--muted)}
+.minipats{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.minipats button{aspect-ratio:1;border:1px solid var(--line);border-radius:7px;padding:0;overflow:hidden;background:var(--surface-2);font-size:9px;font-weight:600;color:var(--muted);line-height:1.1}
+.minipats button img{width:100%;height:100%;display:block}
+.minipats button[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.regions{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.regions[hidden]{display:none}
+.regions .lbl{font-size:12px;font-weight:600;color:var(--muted)}
+.regions .chips{display:flex;flex-wrap:wrap;gap:6px}
+.regions .chips button{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 10px 5px 6px;font-size:12px;font-weight:600}
+.regions .chips button[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.regions .chips i{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background-size:cover}
+.patterns .del{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-size:12px;line-height:18px;padding:0;display:grid;place-items:center;z-index:1}
+.patmore{margin-top:8px;border:0;background:none;padding:4px 0;font-weight:600;font-size:12px;color:var(--muted);text-decoration:underline}
+.startover{float:right;margin-top:-2px}
 .stage.split #c{position:absolute;left:50%;top:0;width:50%;height:100%}
 .stage.split .hint{display:none}
 .toolbar,.crumb{z-index:3}
@@ -109,7 +124,7 @@ button{cursor:pointer}
 .part input[type=color]{width:26px;height:26px;border:0;padding:0;background:none;border-radius:6px;cursor:pointer}
 .part span{font-size:12px;font-weight:500}
 
-.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg{display:grid;grid-template-columns:repeat(2,1fr);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
 .sec[hidden]{display:none}
 .seg button{border:0;background:transparent;border-radius:8px;padding:8px 6px;font-weight:600;font-size:13px}
 .seg button[aria-pressed="true"]{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.12)}
@@ -212,9 +227,9 @@ button{cursor:pointer}
     <div class="pieces2d" id="pieces2d" hidden>
       <canvas id="c2d" aria-label="Pattern pieces"></canvas>
       <div class="p2d-title">Pattern pieces</div>
-      <div class="p2d-card" id="pieceCard" hidden></div>
-      <div class="p2d-hint">Click a piece here or on the garment to colour it</div>
+      <div class="p2d-hint">Click a piece here or on the garment to change its colour or pattern</div>
     </div>
+    <div class="part-card" id="partCard" hidden></div>
     <canvas id="c"></canvas>
     <div class="loading" id="loading">Loading studio…</div>
     <div class="crumb">Studio / <span id="crumbCat">Hoodies</span> / <b id="crumbName">Classic Pullover Hoodie</b></div>
@@ -238,6 +253,7 @@ button{cursor:pointer}
       <div class="eyebrow" id="pEyebrow">Made to order · 400 gsm cotton fleece</div>
       <h1 id="pName">Classic Pullover Hoodie</h1>
       <div class="price" id="headPrice">$68</div>
+      <button class="mini startover" id="startOver" title="Clear colours, patterns and prints">Start over</button>
       <p id="pBlurb">Relaxed fit, lined hood, kangaroo pocket and ribbed trims. Design every panel.</p>
       <div class="tabs groups" id="groups" aria-label="Category"></div>
       <div class="products" id="products" role="radiogroup" aria-label="Product"></div>
@@ -246,13 +262,13 @@ button{cursor:pointer}
     <section class="sec">
       <h2><span><span class="n">01</span></span><b style="flex:1">Colour</b><span id="colorName">Heather Grey</span></h2>
       <div class="swatches" id="swatches"></div>
-      <label class="check" id="byPartRow"><input type="checkbox" id="byPart"> Colour by part</label>
-      <div class="parts" id="parts" hidden></div>
+      <div class="regions" id="regions" hidden></div>
     </section>
 
     <section class="sec">
       <h2><span><span class="n">02</span></span><b style="flex:1">Pattern</b><span id="patternName">None</span></h2>
       <div class="patterns" id="patterns"></div>
+      <button class="patmore" id="patMore" type="button"></button>
       <input type="file" id="patternFile" accept="image/png,image/jpeg,image/webp" hidden>
       <div class="patctl" id="patctl"></div>
     </section>
@@ -260,9 +276,10 @@ button{cursor:pointer}
     <section class="sec" id="fabricSec">
       <h2><span><span class="n">03</span></span><b style="flex:1">Fabric</b><span id="fabricNote"></span></h2>
       <div class="seg" id="fabric">
-        <button data-fabric="fleece">Fleece</button>
-        <button data-fabric="terry">French terry</button>
-        <button data-fabric="brushed">Brushed</button>
+        <button data-fabric="athletic">Jersey Athletic</button>
+        <button data-fabric="cotton">Cotton</button>
+        <button data-fabric="fleece">Fleeced</button>
+        <button data-fabric="terry">French Terry</button>
       </div>
     </section>
 
@@ -328,9 +345,10 @@ const FONTS = [
 ];
 const fontInfo = name => FONTS.find(x => x.f === name) || FONTS[0];
 const FABRICS = {
-  fleece: { note: 'Soft brushed back', rough: 0.93, sheen: 1.0, knit: 0.3 },
+  athletic: { note: 'Smooth, quick-dry knit', rough: 0.62, sheen: 0.35, knit: 0.1, sheenRough: 0.5 },
+  cotton: { note: 'Soft, matte jersey', rough: 0.9, sheen: 0.5, knit: 0.25 },
+  fleece: { note: 'Brushed-back fleece', rough: 0.95, sheen: 1.0, knit: 0.3 },
   terry: { note: 'Looped, lighter', rough: 0.86, sheen: 0.6, knit: 0.7 },
-  brushed: { note: 'Peached, velvety', rough: 0.98, sheen: 1.0, knit: 0.12, sheenRough: 0.35 },
 };
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const EXTRA_PLACEMENT = 12;
@@ -371,23 +389,16 @@ const svgFor = (key, color) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox=
 /* =====================================================================
    State
    ===================================================================== */
-const STORE_KEY = 'threadlab-hoodie-v1';
+const STORE_KEY = 'threadlab-studio-v2';
 let uid = 1;
 const newId = () => 'L' + (Date.now().toString(36)) + (uid++);
 function defaultState() {
   return {
-    colorway: 'Heather Grey', byPart: false,
+    colorway: 'Heather Grey',
     colors: { body: '#b8b8b4', sleeves: '#b8b8b4', hood: '#b8b8b4', shorts: '#b8b8b4', trim: '#b8b8b4', lining: '#9a9a96', strings: '#f2efe6' },
-    product: 'hoodie', pattern: { type: 'none', color: '#141414', scale: 1, rot: 0, src: null }, fabric: 'fleece', size: 'M', qty: 1,
-    placements: {
-      front: [
-        { id: newId(), type: 'text', text: 'OFF DUTY', font: 'Archivo Black', color: '#141414', scale: 0.95, x: 0, y: 0.16, rot: 0, spacing: 4, curve: 28, outline: false, outlineColor: '#f5f3ee', outlineWidth: 1 },
-        { id: newId(), type: 'graphic', key: 'sparkle', color: '#d23b2f', scale: 0.42, x: 0, y: -0.06, rot: 0 },
-      ],
-      back: [], left: [
-        { id: newId(), type: 'text', text: 'EST. 2026', font: 'Space Mono', color: '#141414', scale: 0.7, x: 0, y: 0, rot: 0, spacing: 6, curve: 0, outline: false, outlineColor: '#f5f3ee', outlineWidth: 1 },
-      ], right: [],
-    },
+    product: 'hoodie', pattern: { type: 'none', color: '#141414', scale: 1, rot: 0 }, fabric: 'fleece', size: 'M', qty: 1,
+    placements: { front: [], back: [], left: [], right: [] },
+    styles: {}, uploads: [],
   };
 }
 let state = defaultState();
@@ -487,14 +498,18 @@ const KNIT_GLSL = /* glsl */`
 /* All-over repeat prints: a tileable mask (white = pattern colour) or a full-colour tile,
    projected triplanar like the knit so it needs no UVs. */
 const PAT_SIZE = 256;
-const patternCanvas = document.createElement('canvas'); patternCanvas.width = patternCanvas.height = PAT_SIZE;
-const patternTex = new THREE.CanvasTexture(patternCanvas);
-patternTex.wrapS = patternTex.wrapT = THREE.RepeatWrapping; patternTex.colorSpace = THREE.SRGBColorSpace;
-patternTex.anisotropy = 8;
-const patternUniforms = {
-  patternMap: { value: patternTex }, patternOn: { value: 0 }, patternFull: { value: 0 },
-  patternScale: { value: 1 }, patternRot: { value: 0 }, patternColor: { value: new THREE.Color(0x141414) },
-};
+// A pattern "slot" is one tile texture plus the uniforms that project it; the garment has one,
+// and each part of a team kit gets its own so parts can carry different patterns.
+function makePatternSlot() {
+  const canvas = document.createElement('canvas'); canvas.width = canvas.height = PAT_SIZE;
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  return { canvas, tex, uniforms: {
+    patternMap: { value: tex }, patternOn: { value: 0 }, patternFull: { value: 0 },
+    patternScale: { value: 1 }, patternRot: { value: 0 }, patternColor: { value: new THREE.Color(0x141414) },
+  } };
+}
+const globalSlot = makePatternSlot();
 const PATTERN_GLSL = /* glsl */`
   uniform sampler2D patternMap; uniform float patternOn, patternFull, patternScale, patternRot; uniform vec3 patternColor;
 `;
@@ -544,24 +559,46 @@ function drawPatternTile(g, n, type) {
   g.fillStyle = '#000'; g.fillRect(0, 0, n, n);
   g.save(); PATTERNS[type].draw(g, n); g.restore();
 }
-let patternImage = null;
+// Uploaded tiles live in state.uploads as { id, src }; a pattern type 'u:<id>' refers to one.
+const isUpload = t => typeof t === 'string' && t.startsWith('u:');
+const uploadImages = new Map();
+function uploadImage(id) {
+  let rec = uploadImages.get(id);
+  if (!rec) {
+    const up = (state.uploads || []).find(u => u.id === id); if (!up) return null;
+    rec = { img: new Image(), ready: false };
+    rec.img.onload = () => { rec.ready = true; applyPattern(); applyColors(); renderPattern(); renderPartCard(); };
+    rec.img.src = up.src;
+    uploadImages.set(id, rec);
+  }
+  return rec.ready ? rec.img : null;
+}
+const cfgReady = cfg => !!cfg && cfg.type !== 'none' && (isUpload(cfg.type) ? !!uploadImage(cfg.type.slice(2)) : !!PATTERNS[cfg.type]);
+function paintSlot(slot, cfg) {
+  const U = slot.uniforms, on = cfgReady(cfg);
+  U.patternOn.value = on ? 1 : 0;
+  if (!on) return;
+  U.patternFull.value = isUpload(cfg.type) ? 1 : 0;
+  U.patternScale.value = 1.5 * state.pattern.scale; U.patternRot.value = state.pattern.rot * Math.PI / 180;
+  U.patternColor.value.set(cfg.color || state.pattern.color);
+  const g = slot.canvas.getContext('2d');
+  if (isUpload(cfg.type)) g.drawImage(uploadImage(cfg.type.slice(2)), 0, 0, PAT_SIZE, PAT_SIZE);
+  else drawPatternTile(g, PAT_SIZE, cfg.type);
+  slot.tex.needsUpdate = true;
+}
+let kitRegions = null; // current team kit: region name → { mat, slot, mesh }
 function applyPattern() {
-  const P = state.pattern, U = patternUniforms;
-  U.patternOn.value = pieceInfo || P.type === 'none' || (P.type === 'upload' && !patternImage) ? 0 : 1;
-  tileCache.clear(); invalidate();
-  U.patternFull.value = P.type === 'upload' ? 1 : 0;
-  U.patternScale.value = 1.5 * P.scale; U.patternRot.value = P.rot * Math.PI / 180;
-  U.patternColor.value.set(P.color);
-  const g = patternCanvas.getContext('2d');
-  if (P.type === 'upload' && patternImage) g.drawImage(patternImage, 0, 0, PAT_SIZE, PAT_SIZE);
-  else if (PATTERNS[P.type]) drawPatternTile(g, PAT_SIZE, P.type);
-  patternTex.needsUpdate = true;
+  tileCache.clear();
+  // one-piece garments project the garment pattern in 3D; pattern pieces and kit parts carry their own
+  paintSlot(globalSlot, pieceInfo || kitRegions ? null : state.pattern);
+  for (const [name, r] of Object.entries(kitRegions || {})) paintSlot(r.slot, regionLook(name).cfg);
+  invalidate();
 }
 
 // Adds the triplanar knit to a standard/physical material. With `ribUV`, the trims use their UVs instead.
 function withKnit(mat, { map = knitHeight, scale = 15, strength = 0.35, ribUV = null, pattern = false } = {}) {
   mat.userData.knit = { knitMap: { value: map }, knitScale: { value: scale }, knitStrength: { value: strength } };
-  if (pattern) Object.assign(mat.userData.knit, patternUniforms);
+  if (pattern) Object.assign(mat.userData.knit, pattern); // pattern: a slot's uniforms
   mat.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, mat.userData.knit);
     sh.vertexShader = 'varying vec3 vObjPos; varying vec3 vObjNrm;\n' + (ribUV ? 'varying vec2 vRibUv;\n' : '') + sh.vertexShader.replace('#include <begin_vertex>',
@@ -583,8 +620,8 @@ const fabric = (extra = {}) => new THREE.MeshPhysicalMaterial({
 });
 const mats = {
   // double-sided: garment exports don't always agree on which way faces point
-  body: withKnit(fabric({ side: THREE.DoubleSide }), { pattern: true }), sleeves: withKnit(fabric(), { pattern: true }), hood: withKnit(fabric(), { pattern: true }),
-  shorts: withKnit(fabric({ side: THREE.DoubleSide }), { pattern: true }),
+  body: withKnit(fabric({ side: THREE.DoubleSide }), { pattern: globalSlot.uniforms }), sleeves: withKnit(fabric(), { pattern: globalSlot.uniforms }), hood: withKnit(fabric(), { pattern: globalSlot.uniforms }),
+  shorts: withKnit(fabric({ side: THREE.DoubleSide }), { pattern: globalSlot.uniforms }),
   ball: withKnit(new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.12, vertexColors: true, envMapIntensity: 1 }), { pattern: true, strength: 0 }),
   hem: withKnit(fabric(), { map: ribHeight, ribUV: [16, 1], strength: 0.9 }),
   cuff: withKnit(fabric(), { map: ribHeight, ribUV: [6, 1], strength: 0.9 }),
@@ -598,6 +635,7 @@ const fabricMats = ['body', 'sleeves', 'hood', 'shorts', 'hem', 'cuff', 'rim', '
 // GLB node name → material key and colour role
 const PART_MAT = { body: 'body', jersey: 'body', shorts: 'shorts', pocket: 'body', sleeveL: 'sleeves', sleeveR: 'sleeves', hood: 'hood', hem: 'hem', cuffL: 'cuff', cuffR: 'cuff', hoodRim: 'rim', stringL: 'strings', stringR: 'strings', agletL: 'aglet', agletR: 'aglet' };
 const INTERIOR = { sleeveL: 'interior', sleeveR: 'interior', hood: 'lining' };
+const KIT_PARTS = { jersey: 'Jersey', jerseyTrim: 'Jersey trim', shorts: 'Shorts', shortsTrim: 'Shorts trim', socks: 'Socks' };
 
 /* =====================================================================
    Loading the garment model
@@ -611,6 +649,8 @@ const PRODUCTS = {
     eyebrow: 'Made to order · 340 gsm loopback cotton', blurb: 'A clean crew with long sleeves and ribbed collar, cuffs and hem.' },
   tee: { label: 'T-shirt', name: 'Heavyweight Tee', crumb: 'T-shirts', price: 32, model: 'models/tee',
     eyebrow: 'Made to order · 240 gsm combed cotton', blurb: 'A boxy, heavyweight tee with a ribbed crew neck.' },
+  trackset: { label: 'Jacket + shorts', name: 'Colour-Block Track Set', crumb: 'Sets', price: 96, model: 'models/trackset',
+    eyebrow: 'Made to order · zip jacket + shorts', blurb: 'A long-sleeve zip jacket with matching shorts. Colour the whole jacket or shorts at once, or panel by panel.' },
   basketball: { group: 'men', label: 'Basketball', name: "Men's Basketball Uniform", crumb: 'Uniforms', price: 72, model: 'models/basketball',
     eyebrow: 'Team uniform · jersey + shorts', blurb: 'Breathable mesh jersey and shorts. Colour each separately and add numbers, names and a leg print.', areaLabels: { left: 'Shorts' } },
   soccerM: { group: 'men', label: 'Soccer kit', name: "Men's Soccer Kit", crumb: 'Uniforms', price: 64, model: 'models/soccer',
@@ -683,6 +723,13 @@ async function buildGarment(key) {
   gltf.scene.traverse(o => { if (o.isMesh) list.push(o); });
   for (const m of list) {
     if (m.name.startsWith('print_')) { const k = m.name.slice(6); g.decals[k] = setupDecal(frames[k], m); g.meshes.push(m); continue; }
+    if (KIT_PARTS[m.name]) { // team kit part: its own material and pattern slot
+      const slot = makePatternSlot(), mat = withKnit(fabric({ side: THREE.DoubleSide }), { pattern: slot.uniforms });
+      (g.kit ||= {})[KIT_PARTS[m.name]] = { mat, slot, mesh: m };
+      m.material = mat; m.castShadow = m.receiveShadow = true;
+      g.parts[m.name] = m; g.meshes.push(m);
+      continue;
+    }
     const mk = m.name === 'body' && PRODUCTS[key].finish === 'ball' ? 'ball' : PART_MAT[m.name]; if (!mk) continue;
     if (m.name === 'body' && m.material?.normalMap) g.detail = m.material.normalMap; // weave or dimples from the source
     m.material = mats[mk];
@@ -704,7 +751,7 @@ async function showProduct(key) {
     for (const m of [...hoodie.children]) hoodie.remove(m);
     for (const m of g.meshes) hoodie.add(m);
     parts = g.parts; decals = g.decals; placementFrames = g.frames;
-    pieceInfo = g.pieces; selectedPiece = null; hoverPiece = null;
+    pieceInfo = g.pieces; kitRegions = g.kit || null; selectedRegion = null; hoverPiece = null;
     mats.body.map = pieceInfo ? pieceInfo.tex : null;
     mats.body.normalMap = g.detail; mats.body.normalScale.setScalar(0.8); mats.body.needsUpdate = true;
     if (PRODUCTS[key].finish === 'ball') { mats.ball.normalMap = g.detail; mats.ball.normalScale.setScalar(1); mats.ball.needsUpdate = true; }
@@ -712,12 +759,10 @@ async function showProduct(key) {
     if (!garmentAreas.includes(active)) { active = garmentAreas[0]; const l = state.placements[active]; selectedId = l.length ? l[l.length - 1].id : null; }
     $('#fabricSec').hidden = PRODUCTS[key].finish === 'ball';
     renderDesign();
-    setSplit(splitPref && !!pieceInfo); renderPieceCard();
+    setSplit(splitPref && !!pieceInfo); renderPartCard();
     const pb = $('#piecesBtn'); pb.disabled = !pieceInfo; pb.title = pieceInfo ? 'Show the 2D pattern pieces' : 'This model has no pattern pieces';
     applyPattern();
     showCredit(g.credit);
-    $('#byPartRow').hidden = colourParts().length < 2;
-    if (colourParts().length < 2) state.byPart = false;
     applyColors(); applyFabric(); invalidate(); renderColor();
     loading.hidden = true;
   } catch (err) {
@@ -732,13 +777,23 @@ async function showProduct(key) {
    in 2D, and the same canvas textures the 3D garment.
    ===================================================================== */
 let pieceInfo = null;      // current garment: { list, layout, canvas, tex, paths }
-let selectedPiece = null, hoverPiece = null, split = false, splitPref = window.innerWidth > 900;
-const TRIM = /cuff|collar|hem|trim/i;
-const pieceStyles = () => ((state.pieceStyles ||= {})[state.product] ||= {});
-function pieceLook(p) {
-  const st = pieceStyles()[p.name] || {};
-  return { color: st.color || (TRIM.test(p.name) ? state.colors.trim : state.colors.body), pattern: st.pattern ?? !TRIM.test(p.name), custom: !!(st.color || st.pattern !== undefined) };
+let selectedRegion = null, hoverPiece = null, split = false, splitPref = window.innerWidth > 900;
+// Trims (cuffs, collars, bindings, socks…) stay plain unless you give them a pattern yourself.
+const TRIM = /cuff|collar|hem|trim|binding|socks|placket|waistband/i;
+// sets group their pieces into zones (Jacket, Shorts); a zone can be styled as a whole
+const zoneKey = zone => `Whole ${zone.toLowerCase()}`;
+const pieceByName = name => pieceInfo?.list.find(p => p.name === name);
+const styles = () => ((state.styles ||= {})[state.product] ||= {});
+// What a part looks like: its own colour/pattern if set, otherwise the garment's.
+function regionLook(name) {
+  const st = styles()[name] || {}, zone = pieceByName(name)?.zone, zs = (zone && styles()[zoneKey(zone)]) || {};
+  const trim = TRIM.test(name);
+  const inherited = trim ? null : zs.pattern || state.pattern;
+  const cfg = st.pattern ? (st.pattern.type === 'none' ? null : st.pattern) : inherited?.type === 'none' ? null : inherited;
+  return { color: st.color || zs.color || (trim ? state.colors.trim : state.colors.body), cfg: cfgReady(cfg) ? cfg : null, own: st.pattern || null, custom: !!(st.color || st.pattern) };
 }
+const zonesOf = () => pieceInfo ? [...new Set(pieceInfo.list.map(p => p.zone).filter(Boolean))] : [];
+const regionNames = () => pieceInfo ? [...zonesOf().map(zoneKey), ...pieceInfo.list.filter(p => !p.hidden).map(p => p.name)] : kitRegions ? Object.keys(kitRegions) : [];
 function colourise(g, n, base, accent) {
   const img = g.getImageData(0, 0, n, n), a = new THREE.Color(base), b = new THREE.Color(accent);
   const A = [a.r, a.g, a.b].map(x => x * 255), B = [b.r, b.g, b.b].map(x => x * 255);
@@ -746,17 +801,16 @@ function colourise(g, n, base, accent) {
   g.putImageData(img, 0, 0);
 }
 const tileCache = new Map();
-function colouredTile(base) {
-  const P = state.pattern, key = `${P.type}|${base}|${P.color}`;
+function colouredTile(base, cfg) {
+  const accent = cfg.color || state.pattern.color, key = `${cfg.type}|${base}|${accent}`;
   if (tileCache.has(key)) return tileCache.get(key);
   const c = document.createElement('canvas'); c.width = c.height = PAT_SIZE;
   const g = c.getContext('2d', { willReadFrequently: true });
-  if (P.type === 'upload') g.drawImage(patternImage, 0, 0, PAT_SIZE, PAT_SIZE);
-  else { drawPatternTile(g, PAT_SIZE, P.type); colourise(g, PAT_SIZE, base, P.color); }
+  if (isUpload(cfg.type)) g.drawImage(uploadImage(cfg.type.slice(2)), 0, 0, PAT_SIZE, PAT_SIZE);
+  else { drawPatternTile(g, PAT_SIZE, cfg.type); colourise(g, PAT_SIZE, base, accent); }
   tileCache.set(key, c);
   return c;
 }
-const patternActive = () => state.pattern.type !== 'none' && (state.pattern.type !== 'upload' || patternImage);
 function piecePath(p, ox, oy, w, h) {
   const path = new Path2D();
   p.outline.forEach(([x, y], i) => path[i ? 'lineTo' : 'moveTo'](ox + x * w, oy + y * h));
@@ -769,17 +823,16 @@ function drawPieces() {
   // pattern scale matches the 3D garment: the layout knows its size in studio units
   const tilePx = 1 / (1.5 * P.scale) / layout.size[0] * W;
   for (const p of list) {
-    const look = pieceLook(p), [x, y, w, h] = p.rect, pad = 0.01;
+    const look = regionLook(p.name), [x, y, w, h] = p.rect, pad = 0.01;
     const rx = (x - pad) * W, ry = (y - pad) * H, rw = (w + 2 * pad) * W, rh = (h + 2 * pad) * H;
     g.fillStyle = look.color; g.fillRect(rx, ry, rw, rh);
-    if (look.pattern && patternActive()) {
-      const pat = g.createPattern(colouredTile(look.color), 'repeat');
+    if (look.cfg) {
+      const pat = g.createPattern(colouredTile(look.color, look.cfg), 'repeat');
       pat.setTransform(new DOMMatrix().rotate(P.rot).scale(tilePx / PAT_SIZE));
       g.fillStyle = pat; g.fillRect(rx, ry, rw, rh);
     }
   }
-  if (showGuides && selectedPiece !== null) {
-    const p = list[selectedPiece];
+  for (const p of showGuides ? list.filter(p => p.name === selectedRegion || (p.zone && zoneKey(p.zone) === selectedRegion && !p.hidden)) : []) {
     g.save(); g.setLineDash([18, 12]); g.lineWidth = 6; g.strokeStyle = '#3b6cf6';
     g.stroke(piecePath(p, 0, 0, W, H)); g.restore();
   }
@@ -803,7 +856,7 @@ function render2D() {
     const path = piecePath(p, ox, oy, w, h);
     pieceInfo.paths.push({ id: p.id, path });
     g.save(); g.clip(path); g.drawImage(tc, ox, oy, w, h); g.restore();
-    const sel = p.id === selectedPiece, hov = p.id === hoverPiece;
+    const sel = p.name === selectedRegion || (p.zone && zoneKey(p.zone) === selectedRegion), hov = p.id === hoverPiece;
     g.lineWidth = sel ? 2.5 : 1.2; g.strokeStyle = sel ? '#3b6cf6' : hov ? ink : muted;
     g.setLineDash(sel ? [] : [5, 3]); g.stroke(path); g.setLineDash([]);
     const [x, y, rw, rh] = p.rect;
@@ -829,34 +882,58 @@ function pointInOutline(o, x, y) {
   }
   return inside;
 }
-function selectPiece(id) {
-  selectedPiece = id; renderPieceCard(); invalidate(); render2D();
+function selectRegion(name) {
+  selectedRegion = name || null;
+  for (const [n, r] of Object.entries(kitRegions || {})) { r.mat.emissive.set(n === selectedRegion && showGuides ? 0x1d3a8a : 0x000000); r.mat.emissiveIntensity = 0.22; }
+  renderPartCard(); renderRegions(); invalidate(); render2D();
 }
-function renderPieceCard() {
-  const card = $('#pieceCard');
-  if (!pieceInfo || selectedPiece === null) { card.hidden = true; return; }
-  const p = pieceInfo.list[selectedPiece], look = pieceLook(p);
-  card.innerHTML = `<div class="row"><b>${esc(p.name)}</b><button class="ib" data-pc="close" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-    <div class="swatches">${COLORWAYS.slice(0, 11).map(([n, h]) => `<button class="sw" style="background:${h}" title="${n}" aria-label="${n}" aria-pressed="${look.color.toLowerCase() === h}" data-pc="color" data-v="${h}"></button>`).join('')}<label class="sw custom" title="Custom colour"><input type="color" id="pieceColor" value="${look.color}" aria-label="Custom piece colour"></label></div>
-    <label class="check" style="margin:0"><input type="checkbox" id="piecePattern" ${look.pattern ? 'checked' : ''} ${patternActive() ? '' : 'disabled'}> Pattern on this piece</label>
+const swatchRow = (cur, attr) => COLORWAYS.map(([n, h]) => `<button class="sw" style="background:${h}" title="${n}" aria-label="${n}" aria-pressed="${cur.toLowerCase() === h}" ${attr}="${h}"></button>`).join('');
+// The card for one part: colour, and a pattern of its own or the garment's.
+function renderPartCard() {
+  const card = $('#partCard');
+  if (!selectedRegion || !regionNames().includes(selectedRegion)) { card.hidden = true; return; }
+  const look = regionLook(selectedRegion), own = look.own, cur = own ? own.type : 'inherit';
+  const opt = (type, label, inner) => `<button data-rp="${type}" title="${label}" aria-label="${label}" aria-pressed="${cur === type}">${inner}</button>`;
+  const pats = opt('inherit', 'Same as garment', 'Same') + opt('none', 'No pattern', 'None') +
+    Object.entries(PATTERNS).map(([k, x]) => opt(k, x.name, `<img alt="" src="${patternThumb(k, look.color, own?.color || state.pattern.color)}">`)).join('') +
+    (state.uploads || []).map((u, i) => opt('u:' + u.id, `Upload ${i + 1}`, `<img alt="" src="${u.src}">`)).join('');
+  card.innerHTML = `<div class="row"><b>${esc(selectedRegion)}</b><button class="ib" data-pc="close" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <span class="lbl">Colour</span>
+    <div class="swatches">${swatchRow(look.color, 'data-pcolor')}<label class="sw custom" title="Custom colour"><input type="color" id="partColor" value="${look.color}" aria-label="Custom part colour"></label></div>
+    <span class="lbl">Pattern</span>
+    <div class="minipats">${pats}</div>
+    ${own && own.type !== 'none' && !isUpload(own.type) ? `<span class="lbl">Pattern colour</span><div class="inks">${INKS.map(c => `<button class="sw" style="background:${c}" data-ppc="${c}" aria-label="Pattern colour ${c}" aria-pressed="${(own.color || '').toLowerCase() === c}"></button>`).join('')}</div>` : ''}
     ${look.custom ? '<button class="mini" data-pc="reset">Match the garment</button>' : ''}`;
   card.hidden = false;
 }
-$('#pieceCard').addEventListener('click', e => {
-  const b = e.target.closest('[data-pc]'); if (!b) return;
-  const p = pieceInfo.list[selectedPiece], st = pieceStyles();
-  if (b.dataset.pc === 'close') return selectPiece(null);
-  if (b.dataset.pc === 'color') (st[p.name] ||= {}).color = b.dataset.v;
-  if (b.dataset.pc === 'reset') delete st[p.name];
-  renderPieceCard(); invalidate(); save();
+function changedPart() { applyPattern(); applyColors(); renderPartCard(); renderRegions(); save(); }
+$('#partCard').addEventListener('click', e => {
+  const b = e.target.closest('[data-pc],[data-pcolor],[data-rp],[data-ppc]'); if (!b) return;
+  const st = styles();
+  if (b.dataset.pc === 'close') return selectRegion(null);
+  const mine = (st[selectedRegion] ||= {});
+  if (b.dataset.pc === 'reset') delete st[selectedRegion];
+  if (b.dataset.pcolor) mine.color = b.dataset.pcolor;
+  if (b.dataset.rp) { if (b.dataset.rp === 'inherit') delete mine.pattern; else mine.pattern = { type: b.dataset.rp, color: mine.pattern?.color || state.pattern.color }; }
+  if (b.dataset.ppc && mine.pattern) mine.pattern.color = b.dataset.ppc;
+  changedPart();
 });
-$('#pieceCard').addEventListener('input', e => {
-  const p = pieceInfo.list[selectedPiece], st = (pieceStyles()[p.name] ||= {});
-  if (e.target.id === 'pieceColor') st.color = e.target.value;
-  if (e.target.id === 'piecePattern') { st.pattern = e.target.checked; renderPieceCard(); }
-  invalidate(); save();
-});
-$('#c2d').addEventListener('click', e => selectPiece(pieceAt2D(e)));
+$('#partCard').addEventListener('input', e => { if (e.target.id === 'partColor') { (styles()[selectedRegion] ||= {}).color = e.target.value; applyPattern(); applyColors(); renderRegions(); save(); } });
+$('#partCard').addEventListener('change', e => { if (e.target.id === 'partColor') renderPartCard(); });
+// The list of parts under Colour, for picking one without hunting for it on the model
+function renderRegions() {
+  const names = regionNames(), el = $('#regions');
+  el.hidden = !names.length;
+  if (!names.length) return;
+  const chip = n => { const l = regionLook(n);
+    return `<button data-region="${esc(n)}" aria-pressed="${n === selectedRegion}"><i style="background:${l.color}${l.cfg ? `;background-image:url(${isUpload(l.cfg.type) ? (state.uploads.find(u => 'u:' + u.id === l.cfg.type) || {}).src : patternThumb(l.cfg.type, l.color, l.cfg.color || state.pattern.color)})` : ''}"></i>${esc(n)}</button>`; };
+  const zones = zonesOf();
+  el.innerHTML = `<span class="lbl">Parts · pick one to give it its own colour or pattern</span>` + (zones.length
+    ? zones.map(z => `<span class="lbl">${esc(z)}</span><div class="chips">${chip(zoneKey(z))}${pieceInfo.list.filter(p => p.zone === z && !p.hidden).map(p => chip(p.name)).join('')}</div>`).join('')
+    : `<div class="chips">${names.map(chip).join('')}</div>`);
+}
+$('#regions').addEventListener('click', e => { const b = e.target.closest('[data-region]'); if (b) selectRegion(b.dataset.region === selectedRegion ? null : b.dataset.region); });
+$('#c2d').addEventListener('click', e => { const id = pieceAt2D(e); selectRegion(id === null ? null : pieceInfo.list[id].name); });
 $('#c2d').addEventListener('mousemove', e => { const id = pieceAt2D(e); if (id !== hoverPiece) { hoverPiece = id; render2D(); } });
 $('#c2d').addEventListener('mouseleave', () => { hoverPiece = null; render2D(); });
 function setSplit(on) {
@@ -985,6 +1062,7 @@ function applyColors() {
   const C = state.colors, white = new THREE.Color(0xffffff);
   const set = (m, hex) => { m.color.set(hex); m.sheenColor.set(hex).lerp(white, 0.25).multiplyScalar(0.6); };
   set(mats.body, C.body); if (pieceInfo) mats.body.color.set(0xffffff); // pieces carry their own colour
+  for (const [name, r] of Object.entries(kitRegions || {})) set(r.mat, regionLook(name).color);
   set(mats.sleeves, C.sleeves); set(mats.hood, C.hood);
   set(mats.shorts, C.shorts || C.body); set(mats.ball, C.body);
   set(mats.hem, C.trim); set(mats.cuff, C.trim); set(mats.rim, C.hood); set(mats.lining, C.lining);
@@ -994,8 +1072,8 @@ function applyColors() {
 }
 function applyFabric() {
   const F = FABRICS[state.fabric];
-  for (const k of fabricMats) {
-    const m = mats[k];
+  for (const m of [...fabricMats.map(k => mats[k]), ...Object.values(kitRegions || {}).map(r => r.mat)]) {
+    const k = m === mats.lining ? 'lining' : '';
     m.roughness = k === 'lining' ? 1 : F.rough; m.sheen = F.sheen; m.sheenRoughness = F.sheenRough ?? 0.55;
     if (!m.userData.knit.knitMap.value.isRib) m.userData.knit.knitStrength.value = F.knit;
   }
@@ -1050,17 +1128,20 @@ function layerAt(placement, pt) {
 let drag = null, downAt = null;
 canvas.addEventListener('pointerdown', ev => { downAt = [ev.clientX, ev.clientY]; });
 canvas.addEventListener('pointerup', ev => {
-  if (!downAt || !split || !pieceInfo || drag) return;
+  if (!downAt || drag || !(pieceInfo || kitRegions)) return;
   const moved = Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]); downAt = null;
-  if (moved > 5) return;
+  if (moved > 5) return; // that was an orbit, not a click
   const r = canvas.getBoundingClientRect();
   pointer.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
   raycaster.setFromCamera(pointer, camera);
-  const hit = raycaster.intersectObject(parts.body, false)[0];
-  if (!hit || !hit.uv) return;
-  const x = hit.uv.x, y = 1 - hit.uv.y;
-  const p = pieceInfo.list.find(p => !p.hidden && pointInOutline(p.outline, x, y));
-  selectPiece(p ? p.id : null);
+  const hit = raycaster.intersectObjects(Object.values(parts), false)[0];
+  if (!hit) return selectRegion(null);
+  if (pieceInfo) {
+    if (!hit.uv) return;
+    const x = hit.uv.x, y = 1 - hit.uv.y;
+    const p = pieceInfo.list.find(p => !p.hidden && pointInOutline(p.outline, x, y));
+    selectRegion(p ? p.name : null);
+  } else selectRegion(KIT_PARTS[hit.object.name] || null);
 });
 canvas.addEventListener('pointerdown', ev => {
   if (ev.button !== 0) return;
@@ -1101,9 +1182,6 @@ const ICON = {
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // Colour
-const PARTS = [['body', 'Body'], ['sleeves', 'Sleeves'], ['hood', 'Hood'], ['trim', 'Cuffs & hem'], ['lining', 'Hood lining'], ['strings', 'Drawstrings']];
-// the colour controls that make sense for the current model
-const colourParts = () => parts.shorts ? [['body', 'Jersey'], ['shorts', 'Shorts']] : parts.sleeveL ? PARTS : [];
 function setColorway(name, hex) {
   state.colorway = name;
   Object.assign(state.colors, { body: hex, sleeves: hex, hood: hex, shorts: hex, trim: hex, lining: shade(hex, -0.14), strings: luminance(hex) > 0.5 ? shade(hex, 0.6) : shade(hex, 0.15) });
@@ -1113,47 +1191,58 @@ function renderColor() {
   $('#swatches').innerHTML = COLORWAYS.map(([n, h]) =>
     `<button class="sw" style="background:${h}" title="${n}" aria-label="${n}" aria-pressed="${state.colorway === n}" data-cw="${n}"></button>`).join('') +
     `<label class="sw custom" title="Custom colour" aria-pressed="${!COLORWAYS.some(c => c[0] === state.colorway)}"><input type="color" id="customColor" value="${state.colors.body}" aria-label="Custom colour"></label>`;
-  $('#colorName').textContent = state.byPart ? 'Custom mix' : state.colorway;
-  $('#byPart').checked = state.byPart;
-  $('#parts').hidden = !state.byPart;
-  renderPattern();
-  $('#parts').innerHTML = colourParts().map(([k, n]) => `<label class="part"><input type="color" data-part="${k}" value="${state.colors[k] || state.colors.body}"><span>${n}</span></label>`).join('');
+  $('#colorName').textContent = state.colorway;
+  renderPattern(); renderRegions(); renderPartCard();
 }
 $('#swatches').addEventListener('click', e => { const b = e.target.closest('[data-cw]'); if (b) setColorway(b.dataset.cw, COLORWAYS.find(c => c[0] === b.dataset.cw)[1]); });
 $('#swatches').addEventListener('input', e => { if (e.target.id === 'customColor') { const v = e.target.value; state.colorway = 'Custom'; Object.assign(state.colors, { body: v, sleeves: v, hood: v, shorts: v, trim: v, lining: shade(v, -0.14) }); applyColors(); $('#colorName').textContent = 'Custom'; save(); } });
 $('#swatches').addEventListener('change', e => { if (e.target.id === 'customColor') renderColor(); });
-$('#byPart').addEventListener('change', e => { state.byPart = e.target.checked; renderColor(); save(); });
-$('#parts').addEventListener('input', e => { const k = e.target.dataset.part; if (!k) return; state.colors[k] = e.target.value; applyColors(); save(); });
 
 // Pattern
 const thumbCanvas = document.createElement('canvas'); thumbCanvas.width = thumbCanvas.height = 96;
-function patternThumb(type) {
+function patternThumb(type, base = state.colors.body, accent = state.pattern.color) {
   const g = thumbCanvas.getContext('2d', { willReadFrequently: true }), n = 96;
   drawPatternTile(g, n, type);
-  // colourise the mask: body colour where black, pattern colour where white
-  const img = g.getImageData(0, 0, n, n), a = new THREE.Color(state.colors.body), b = new THREE.Color(state.pattern.color);
-  const A = [a.r, a.g, a.b].map(x => x * 255), B = [b.r, b.g, b.b].map(x => x * 255);
-  for (let i = 0; i < img.data.length; i += 4) { const t = img.data[i] / 255; for (let k = 0; k < 3; k++) img.data[i + k] = A[k] + (B[k] - A[k]) * t; }
-  g.putImageData(img, 0, 0);
+  colourise(g, n, base, accent); // body colour where the mask is black, pattern colour where white
   return thumbCanvas.toDataURL();
 }
+let patternsOpen = false;
+const MAX_UPLOADS = 12;
 function renderPattern() {
-  const P = state.pattern;
-  const opt = (type, label, inner) => `<button data-pattern="${type}" aria-pressed="${P.type === type}" title="${label}" aria-label="${label}">${inner}<span>${label}</span></button>`;
+  const P = state.pattern, keys = Object.keys(PATTERNS);
+  // collapsed: the first few patterns (plus the one in use); open: all of them
+  const shown = patternsOpen ? keys : keys.slice(0, 5).concat(PATTERNS[P.type] && keys.indexOf(P.type) >= 5 ? [P.type] : []);
+  const opt = (type, label, inner, extra = '') => `<button data-pattern="${type}" aria-pressed="${P.type === type}" title="${label}" aria-label="${label}">${inner}<span>${label}</span>${extra}</button>`;
   $('#patterns').innerHTML = opt('none', 'None', `<div style="position:absolute;inset:0;background:${state.colors.body}"></div>`) +
-    Object.entries(PATTERNS).map(([k, x]) => opt(k, x.name, `<img alt="" src="${patternThumb(k)}">`)).join('') +
-    opt('upload', 'Upload', patternImage && P.src ? `<img alt="" src="${P.src}">` : '<div style="position:absolute;inset:0;display:grid;place-items:center;font-size:20px">+</div>');
-  $('#patternName').textContent = P.type === 'none' ? 'None' : P.type === 'upload' ? 'Your tile' : PATTERNS[P.type].name;
+    shown.map(k => opt(k, PATTERNS[k].name, `<img alt="" src="${patternThumb(k)}">`)).join('') +
+    (state.uploads || []).map((u, i) => opt('u:' + u.id, `Upload ${i + 1}`, `<img alt="" src="${u.src}">`, `<span class="del" data-del="${u.id}" role="button" aria-label="Delete upload ${i + 1}" title="Delete">×</span>`)).join('') +
+    `<button data-upload title="Upload a pattern tile" aria-label="Upload a pattern tile"><div style="position:absolute;inset:0;display:grid;place-items:center;font-size:20px">+</div><span>Upload</span></button>`;
+  const more = $('#patMore');
+  more.textContent = patternsOpen ? 'Show fewer patterns' : `Show all patterns (${keys.length})`;
+  $('#patternName').textContent = P.type === 'none' ? 'None' : isUpload(P.type) ? 'Your tile' : PATTERNS[P.type]?.name || 'None';
   $('#patctl').innerHTML = P.type === 'none' ? '' :
-    (P.type === 'upload' ? '' : `<div class="field"><span class="lbl">Pattern colour</span><div class="inks">${INKS.map(c => `<button class="sw" style="background:${c}" data-pcolor="${c}" aria-label="Pattern colour ${c}" aria-pressed="${P.color.toLowerCase() === c}"></button>`).join('')}<label class="sw custom" title="Custom"><input type="color" id="patColor" value="${P.color}" aria-label="Custom pattern colour"></label></div></div>`) +
+    (isUpload(P.type) ? '' : `<div class="field"><span class="lbl">Pattern colour</span><div class="inks">${INKS.map(c => `<button class="sw" style="background:${c}" data-pcolor="${c}" aria-label="Pattern colour ${c}" aria-pressed="${P.color.toLowerCase() === c}"></button>`).join('')}<label class="sw custom" title="Custom"><input type="color" id="patColor" value="${P.color}" aria-label="Custom pattern colour"></label></div></div>`) +
     `<div class="grid2"><div class="field"><label for="patScale">Scale<output id="patScaleOut">${Math.round(P.scale * 100)}%</output></label><input id="patScale" type="range" min="0.3" max="3" step="0.05" value="${P.scale}"></div>
      <div class="field"><label for="patRot">Angle<output id="patRotOut">${P.rot}°</output></label><input id="patRot" type="range" min="-90" max="90" step="1" value="${P.rot}"></div></div>`;
 }
 $('#patterns').addEventListener('click', e => {
+  const del = e.target.closest('[data-del]');
+  if (del) { // delete an uploaded tile, and stop anything from using it
+    const id = del.dataset.del, t = 'u:' + id;
+    state.uploads = state.uploads.filter(u => u.id !== id); uploadImages.delete(id);
+    if (state.pattern.type === t) state.pattern.type = 'none';
+    for (const prod of Object.values(state.styles || {})) for (const st of Object.values(prod)) if (st.pattern?.type === t) delete st.pattern;
+    applyPattern(); applyColors(); renderPattern(); renderRegions(); renderPartCard(); save();
+    return;
+  }
+  if (e.target.closest('[data-upload]')) {
+    if ((state.uploads || []).length >= MAX_UPLOADS) { toast(`You can keep up to ${MAX_UPLOADS} uploaded patterns. Delete one to add another.`); return; }
+    $('#patternFile').click(); return;
+  }
   const b = e.target.closest('[data-pattern]'); if (!b) return;
-  if (b.dataset.pattern === 'upload' && !patternImage) { $('#patternFile').click(); return; }
-  state.pattern.type = b.dataset.pattern; applyPattern(); renderPattern(); save();
+  state.pattern.type = b.dataset.pattern; applyPattern(); applyColors(); renderPattern(); renderRegions(); renderPartCard(); save();
 });
+$('#patMore').addEventListener('click', () => { patternsOpen = !patternsOpen; renderPattern(); });
 $('#patternFile').addEventListener('change', e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   const reader = new FileReader();
@@ -1163,29 +1252,26 @@ $('#patternFile').addEventListener('change', e => {
       // keep tiles small: they repeat, and they are saved with the design
       const c = document.createElement('canvas'); c.width = c.height = 256;
       c.getContext('2d').drawImage(img, 0, 0, 256, 256);
-      state.pattern.src = c.toDataURL('image/jpeg', 0.9);
-      loadPatternImage(() => { state.pattern.type = 'upload'; applyPattern(); renderPattern(); save(); });
+      const id = newId();
+      (state.uploads ||= []).push({ id, src: c.toDataURL('image/jpeg', 0.9) });
+      state.pattern.type = 'u:' + id;
+      uploadImage(id); // loads, then re-applies
+      renderPattern(); save();
     };
     img.src = reader.result;
   };
   reader.readAsDataURL(f);
 });
-function loadPatternImage(done) {
-  if (!state.pattern.src) return;
-  const img = new Image();
-  img.onload = () => { patternImage = img; done?.(); };
-  img.src = state.pattern.src;
-}
 $('#patctl').addEventListener('click', e => {
   const b = e.target.closest('[data-pcolor]'); if (!b) return;
-  state.pattern.color = b.dataset.pcolor; applyPattern(); renderPattern(); save();
+  state.pattern.color = b.dataset.pcolor; applyPattern(); applyColors(); renderPattern(); renderRegions(); save();
 });
 $('#patctl').addEventListener('input', e => {
   const P = state.pattern;
   if (e.target.id === 'patScale') { P.scale = +e.target.value; $('#patScaleOut').textContent = Math.round(P.scale * 100) + '%'; }
   if (e.target.id === 'patRot') { P.rot = +e.target.value; $('#patRotOut').textContent = P.rot + '°'; }
   if (e.target.id === 'patColor') P.color = e.target.value;
-  applyPattern(); save();
+  applyPattern(); applyColors(); save();
 });
 $('#patctl').addEventListener('change', e => { if (e.target.id === 'patColor') renderPattern(); });
 
@@ -1343,6 +1429,13 @@ function renderProduct() {
   document.title = `${P.name} · Studio`;
   renderPrice();
 }
+$('#startOver').addEventListener('click', () => {
+  const product = state.product, uploads = state.uploads;
+  state = defaultState(); state.product = product; state.uploads = uploads; // keep the uploaded tiles
+  selectedId = null; selectedRegion = null; active = garmentAreas[0];
+  applyPattern(); applyColors(); applyFabric(); renderColor(); renderFabric(); renderSizes(); renderDesign(); renderPartCard(); save();
+  toast('Back to a plain grey blank');
+});
 $('#groups').addEventListener('click', e => {
   const b = e.target.closest('[data-group]'); if (!b) return;
   const first = Object.keys(PRODUCTS).find(k => groupOf(k) === b.dataset.group);
@@ -1379,7 +1472,7 @@ function renderPrice() {
 }
 let toastTimer = 0;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200); }
-$('#addBag').addEventListener('click', () => { bagCount += state.qty; $('#bagCount').textContent = bagCount; toast(`Added ${state.qty} × ${PRODUCTS[state.product].label} · ${state.size} · ${state.byPart ? 'Custom mix' : state.colorway}`); });
+$('#addBag').addEventListener('click', () => { bagCount += state.qty; $('#bagCount').textContent = bagCount; toast(`Added ${state.qty} × ${PRODUCTS[state.product].label} · ${state.size} · ${state.colorway}`); });
 $('#bagBtn').addEventListener('click', () => toast(bagCount ? `${bagCount} item${bagCount > 1 ? 's' : ''} in your bag` : 'Your bag is empty'));
 
 // Toolbar
@@ -1409,10 +1502,11 @@ new ResizeObserver(() => { resize(); render2D(); }).observe(stage);
 resize();
 
 if (!PRODUCTS[state.product]) state.product = 'hoodie';
-state.pattern = Object.assign({ type: 'none', color: '#141414', scale: 1, rot: 0, src: null }, state.pattern);
-if (state.pattern.type !== 'none' && state.pattern.type !== 'upload' && !PATTERNS[state.pattern.type]) state.pattern.type = 'none';
+state.pattern = Object.assign({ type: 'none', color: '#141414', scale: 1, rot: 0 }, state.pattern);
+state.uploads ||= []; state.styles ||= {};
+if (state.pattern.type !== 'none' && !PATTERNS[state.pattern.type] && !(isUpload(state.pattern.type) && state.uploads.some(u => 'u:' + u.id === state.pattern.type))) state.pattern.type = 'none';
+if (!FABRICS[state.fabric]) state.fabric = 'fleece';
 applyPattern();
-loadPatternImage(() => { applyPattern(); renderPattern(); });
 renderProduct();
 showProduct(state.product);
 renderColor(); renderFabric(); renderSizes(); renderDesign();

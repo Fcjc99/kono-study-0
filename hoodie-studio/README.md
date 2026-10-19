@@ -1,7 +1,7 @@
 # Hoodie Studio
 
 The products are grouped under four tabs:
-- **Unisex:** hoodie, crewneck, tee
+- **Unisex:** hoodie, crewneck, tee, colour-block track set (jacket and shorts)
 - **Men's:** basketball uniform, soccer kit
 - **Women's:** performance polo, racerback tank, soccer kit
 - **Accessories:** six-panel cap, golf balls
@@ -15,9 +15,10 @@ Open `index.html` through any static server, for example `npx serve hoodie-studi
 ## What it does
 - A floating, realistic hoodie built from a real garment model. Orbit, pan and zoom it, or jump to the Front, Back, Left or Right view.
 - Colourways and a custom colour. Per-part colours only appear for models that come in separate parts.
-- All-over patterns (repeat prints): stripes, pinstripe, Breton, plaid, gingham, check, dots, chevron, waves, camo and heather, or upload your own tile. You can set the pattern colour, scale and angle.
+- Every part can be edited. Click a pattern piece (in 2D or on the model) or a kit part (jersey, trims, shorts, socks), or pick it from the Parts list, to give it its own colour and pattern. Sets also have a "whole jacket" and a "whole shorts" option.
+- All-over patterns (repeat prints): stripes, pinstripe, Breton, plaid, gingham, check, dots, chevron, waves, camo and heather, or upload your own tiles. You can keep up to 12 uploaded tiles and delete them. You can set the pattern colour, scale and angle.
 - A 2D pattern-pieces view, like Fabra's, for garments that have a flat layout (the tee and the crewneck). It shows each sewing pattern piece next to the 3D garment. Click a piece in 2D or on the garment to give it its own colour or switch its pattern on or off. Patterns are cut per piece, the way a cut-and-sew garment is.
-- Fabric finishes: fleece, French terry and brushed.
+- Fabrics: Jersey Athletic, Cotton, Fleeced and French Terry.
 - Four print areas: front, back, left sleeve and right sleeve. Each one takes text layers (10 fonts, ink colour, size, letter spacing, arc, rotation, outline), built-in graphics and uploaded images.
 - Drag a print directly on the 3D model to move it. Arrow keys nudge it, and Delete removes it.
 - Size, quantity, live pricing (each extra print area adds a fee), an "Add to bag" button and a PNG snapshot.

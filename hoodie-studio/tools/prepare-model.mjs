@@ -32,8 +32,10 @@ const PRESETS = {
   polo: { minPieceTris: 250, dropInner: true, front: [0.5, 1.0, 1.0], back: [0.5, 1.1, 1.3], sleeve: { x: 0.43, y: 0.95, lean: 0.9, w: 0.4, h: 0.32 } },
   tank: { front: [0.4, 0.9, 1.0], back: [0.4, 0.9, 1.2], areas: ['front', 'back'], rename: { 'Left cuff': 'Left armhole binding', 'Right cuff': 'Right armhole binding', Collar: 'Neck binding', 'Collar 2': 'Neck binding 2' } },
   // Team kits: top and bottom stay separate parts; `leg` is a print on the shorts' left leg
-  basketball: { parts: [['jersey', /1001/], ['shorts', /1002/]], front: [0.95, 0.85, 0.8], back: [0.95, 0.9, 0.9], leg: { x: 0.28, y: -0.35, w: 0.45, h: 0.55 }, areas: ['front', 'back', 'left'] },
-  soccer: { parts: [['jersey', /1001/], ['shorts', /1002/]], front: [1.05, 0.85, 0.75], back: [1.05, 0.9, 0.85], leg: { x: 0.24, y: 0.4, w: 0.35, h: 0.35 }, areas: ['front', 'back', 'left'] },
+  basketball: { parts: [['jersey', /1001/], ['shorts', /1002/]], segment: 'kit', aoTwoSided: true, front: [0.95, 0.85, 0.8], back: [0.95, 0.9, 0.9], leg: { x: 0.28, y: -0.35, w: 0.45, h: 0.55 }, areas: ['front', 'back', 'left'] },
+  soccer: { parts: [['jersey', /1001/], ['shorts', /1002/]], segment: 'kit', aoTwoSided: true, front: [1.05, 0.85, 0.75], back: [1.05, 0.9, 0.85], leg: { x: 0.24, y: 0.4, w: 0.35, h: 0.35 }, areas: ['front', 'back', 'left'] },
+  // two-garment set: pieces are grouped into zones by height (jacket above the waist, shorts below)
+  trackset: { zones: { split: -0.15, upper: 'Jacket', lower: 'Shorts' }, hideBelow: 0.008, front: [0.9, 0.9, 0.9], back: [0.9, 1.0, 1.1], sleeve: { x: 0.42, y: 0.6, lean: 0.25, w: 0.9, h: 0.36 } },
   ball: { group: /var1/, pieces: false, keepUV: true, normalMap: 'golf-ball-dimples-normal.jpg', yaw: 0, fitMax: 2.6, front: [0.15, 1.8, 1.8], back: [0.15, 1.8, 1.8], areas: ['front', 'back'] },
 };
 const PR = PRESETS[presetName];
@@ -47,7 +49,7 @@ const isOBJ = /\.obj(\.gz)?$/i.test(input);
 const src = isOBJ ? null : await io.read(input);
 const credit = isOBJ ? {} : src.getRoot().getAsset().extras || {};
 const pos = [], nrm = [], idx = [], uvs = [], triPart = [];
-const PART_NAMES = PR.parts ? PR.parts.map(p => p[0]) : ['body'];
+let PART_NAMES = PR.parts ? PR.parts.map(p => p[0]) : ['body'];
 const partOf = name => PR.parts ? Math.max(0, PR.parts.findIndex(([, re]) => re.test(name || ''))) : 0;
 let hasUV = true; // CLO/Style3D exports keep the flat pattern layout in their UVs
 const m4 = new THREE.Matrix4(), n3 = new THREE.Matrix3(), v = new THREE.Vector3();
@@ -116,6 +118,50 @@ for (const node of isOBJ ? [] : src.getRoot().listNodes()) {
 }
 while (triPart.length < idx.length / 3) triPart.push(0); // OBJ input: one part
 log('merged', pos.length / 3, 'verts', idx.length / 3, 'tris');
+
+/* 1-kit. Team kits come as two meshes (top, bottom) that each hold several sewn parts.
+   Split them into colourable regions by connected part, and drop doubled fabric layers. */
+if (PR.segment === 'kit') {
+  const nv = pos.length / 3, key = new Map(), weld = new Int32Array(nv);
+  // weld only exactly coincident points (split normals), so separately sewn parts stay separate
+  for (let i = 0; i < nv; i++) { const k = `${pos[i * 3].toFixed(7)},${pos[i * 3 + 1].toFixed(7)},${pos[i * 3 + 2].toFixed(7)}`; let r = key.get(k); if (r === undefined) key.set(k, r = i); weld[i] = r; }
+  const par = new Int32Array(nv).map((_, i) => i), find = x => { while (par[x] !== x) x = par[x] = par[par[x]]; return x; };
+  for (let t = 0; t < idx.length; t += 3) { const a = find(weld[idx[t]]); par[find(weld[idx[t + 1]])] = a; par[find(weld[idx[t + 2]])] = a; }
+  const comps = new Map();
+  let gy0 = Infinity, gy1 = -Infinity;
+  for (let i = 0; i < nv; i++) { gy0 = Math.min(gy0, pos[i * 3 + 1]); gy1 = Math.max(gy1, pos[i * 3 + 1]); }
+  const H = gy1 - gy0;
+  for (let t = 0; t < idx.length; t += 3) {
+    const r = find(weld[idx[t]]);
+    let c = comps.get(r); if (!c) comps.set(r, c = { tris: [], src: triPart[t / 3], mn: [Infinity, Infinity, Infinity], mx: [-Infinity, -Infinity, -Infinity] });
+    c.tris.push(t);
+    for (let k = 0; k < 3; k++) for (let j = 0; j < 3; j++) { const v = pos[idx[t + k] * 3 + j]; c.mn[j] = Math.min(c.mn[j], v); c.mx[j] = Math.max(c.mx[j], v); }
+  }
+  const list = [...comps.values()];
+  const vol = c => (c.mx[0] - c.mn[0]) * (c.mx[1] - c.mn[1]) * (c.mx[2] - c.mn[2]);
+  // doubled layers: same part, same place, same size → keep the larger (outer) one
+  const drop = new Set();
+  for (const a of list) for (const b of list) {
+    if (a === b || drop.has(a) || drop.has(b) || a.src !== b.src) continue;
+    const same = [0, 1, 2].every(j => Math.abs(a.mn[j] - b.mn[j]) < 0.012 * H && Math.abs(a.mx[j] - b.mx[j]) < 0.012 * H);
+    if (same && Math.abs(a.tris.length - b.tris.length) <= 0.03 * a.tris.length) drop.add(vol(a) >= vol(b) ? b : a);
+  }
+  const srcName = c => PR.parts[c.src][0];
+  for (const c of list) {
+    c.n = { maxY: (c.mx[1] - gy0) / H, width: (c.mx[0] - c.mn[0]) / H };
+    c.socks = srcName(c) === 'shorts' && c.n.maxY < 0.4 && c.n.width < 0.15;
+  }
+  const largest = {};
+  for (const c of list) if (!drop.has(c) && !c.socks && (!largest[c.src] || c.tris.length > largest[c.src].tris.length)) largest[c.src] = c;
+  PART_NAMES = ['jersey', 'jerseyTrim', 'shorts', 'shortsTrim', 'socks'];
+  const name = c => c.socks ? 'socks' : srcName(c) === 'jersey' ? (c === largest[c.src] ? 'jersey' : 'jerseyTrim') : (c === largest[c.src] ? 'shorts' : 'shortsTrim');
+  const I2 = [], P2 = [];
+  for (const c of list) { if (drop.has(c)) continue; const k = PART_NAMES.indexOf(name(c)); for (const t of c.tris) { I2.push(idx[t], idx[t + 1], idx[t + 2]); P2.push(k); } }
+  idx.length = 0; for (const x of I2) idx.push(x);
+  triPart.length = 0; for (const x of P2) triPart.push(x);
+  const counts = PART_NAMES.map((n, k) => `${n}:${P2.filter(x => x === k).length}`);
+  log('kit regions', counts.join(' '), '| dropped', drop.size, 'doubled layers');
+}
 
 /* 1a. CLO can export every stitch as its own tiny mesh (thousands of them, most of the triangles).
    Drop connected parts smaller than `minPieceTris` so only the fabric panels remain. */
@@ -292,9 +338,30 @@ if (hasUV && PR.pieces !== false) {
   // names from where each piece sits on the garment (left = the wearer's left = +x)
   const totalArea = uniq.reduce((s, p) => s + p.area, 0), big = Math.max(...uniq.map(p => p.area));
   const used = new Map();
+  const zoneOf = p => PR.zones ? (p.c[1] > PR.zones.split ? PR.zones.upper : PR.zones.lower) : null;
   const nameOf = p => {
-    const [x0, y0, z0] = p.c, share = p.area / big;
+    const [x0, y0, z0] = p.c, share = p.area / big, zone = zoneOf(p);
     let n;
+    if (zone === PR.zones?.upper) { // tops in a set: panels either side of the zip, sleeves, then trims
+      const zs = p.area / Math.max(...uniq.filter(q => zoneOf(q) === zone).map(q => q.area));
+      const top = Math.max(...uniq.filter(q => zoneOf(q) === zone).map(q => q.c[1]));
+      if (zs > 0.3 && Math.abs(x0) < 0.55) n = (z0 >= 0 ? 'front' : 'back') + (Math.abs(x0) > 0.12 ? (x0 > 0 ? ' left' : ' right') : '');
+      else if (zs > 0.2) n = x0 > 0 ? 'left sleeve' : 'right sleeve';
+      else if (Math.abs(x0) > 0.55) n = x0 > 0 ? 'left cuff' : 'right cuff';
+      else if (y0 > top - 0.15) n = 'collar';
+      else if (y0 < PR.zones.split + 0.35) n = 'hem band';
+      else n = 'panel';
+      n = `${zone} ${n}`;
+      const k = (used.get(n) || 0) + 1; used.set(n, k);
+      return k > 1 ? `${n} ${k}` : n;
+    }
+    if (zone === PR.zones?.lower) { // bottoms: legs by side, then waistband and trims
+      const legShare = p.area / Math.max(...uniq.filter(q => zoneOf(q) === zone).map(q => q.area));
+      n = legShare > 0.35 ? `${z0 >= 0 ? 'Front' : 'Back'} ${x0 > 0 ? 'left' : 'right'} leg` : y0 > PR.zones.split - 0.25 ? 'Waistband' : 'Trim';
+      n = `${zone} ${n.toLowerCase()}`;
+      const k = (used.get(n) || 0) + 1; used.set(n, k);
+      return k > 1 ? `${n} ${k}` : n;
+    }
     if (share > 0.45 && Math.abs(x0) < 0.4) n = y0 > 1.2 ? 'Hood' : z0 >= 0 ? 'Front' : 'Back';
     else if (share > 0.25 && y0 > 1.15 && Math.abs(x0) < 0.5) n = 'Hood';
     else if (share > 0.1 && Math.abs(x0) > 0.45) n = x0 > 0 ? 'Left sleeve' : 'Right sleeve';
@@ -304,8 +371,9 @@ if (hasUV && PR.pieces !== false) {
     else if (z0 > 0 && y0 < 0) n = 'Pocket';
     else n = 'Trim';
     const k = (used.get(n) || 0) + 1; used.set(n, k);
-    const full = k > 1 ? `${n} ${k}` : n;
-    return PR.rename?.[full] || full;
+    const full = (zone ? `${zone} ` + n.toLowerCase() : '') || (k > 1 ? `${n} ${k}` : n);
+    const named = zone ? (k > 1 ? `${full} ${k}` : full) : full;
+    return PR.rename?.[named] || named;
   };
   // outline of each piece: its longest boundary loop, in layout space (x right, y down, 0…1)
   const toLayout = (p, c, i) => {
@@ -323,7 +391,7 @@ if (hasUV && PR.pieces !== false) {
     for (const s0 of next.keys()) { if (seen.has(s0)) continue; const loop = []; let v0 = s0; while (v0 !== undefined && !seen.has(v0)) { seen.add(v0); loop.push(v0); v0 = next.get(v0); } if (loop.length > best.length) best = loop; }
     const step = Math.max(1, Math.floor(best.length / 160));
     const outline = best.filter((_, k) => k % step === 0).map(i => toLayout(p, c, i).map(n => +n.toFixed(4)));
-    pieces.push({ id, name: nameOf(p), rect: [p.x / W, p.y / H, p.w / W, p.h / H].map(n => +n.toFixed(4)), outline, area: +(p.area / totalArea).toFixed(4), hidden: p.area / totalArea < 0.004 });
+    pieces.push({ id, name: nameOf(p), zone: zoneOf(p) || undefined, rect: [p.x / W, p.y / H, p.w / W, p.h / H].map(n => +n.toFixed(4)), outline, area: +(p.area / totalArea).toFixed(4), hidden: p.area / totalArea < (PR.hideBelow || 0.004) });
   });
   // studio units per layout unit, from 3D area vs flat area, so pattern scale matches the 3D garment
   const k = Math.sqrt(uniq.reduce((s, p) => s + p.area, 0) / uniq.reduce((s, p) => s + p.uvArea, 0));
@@ -351,13 +419,18 @@ const K = FAST ? 0 : 28, MAXD = 0.5, col = new Float32Array(pos.length);
   for (let k = 0; k < K; k++) { const u = (k + 0.5) / K, phi = k * 2.399963, r = Math.sqrt(u); dirs.push(new THREE.Vector3(r * Math.cos(phi), r * Math.sin(phi), Math.sqrt(1 - u))); }
   const q = new THREE.Quaternion(), Z = new THREE.Vector3(0, 0, 1), n = new THREE.Vector3();
   for (let i = 0; i < pos.length / 3; i++) {
-    n.fromArray(nrm, i * 3); q.setFromUnitVectors(Z, n);
-    ray.origin.fromArray(pos, i * 3).addScaledVector(n, 0.004);
-    let occ = 0;
-    for (const d of dirs) {
-      ray.direction.copy(d).applyQuaternion(q);
-      const h = bvh.raycastFirst(ray, THREE.DoubleSide, 0, MAXD);
-      if (h) occ += 1 - h.distance / MAXD * 0.6;
+    // two-sided models (kits whose normals may face inward): use whichever side is more open
+    let occ = Infinity;
+    for (const side of PR.aoTwoSided ? [1, -1] : [1]) {
+      n.fromArray(nrm, i * 3).multiplyScalar(side); q.setFromUnitVectors(Z, n);
+      ray.origin.fromArray(pos, i * 3).addScaledVector(n, 0.004);
+      let o = 0;
+      for (const d of dirs) {
+        ray.direction.copy(d).applyQuaternion(q);
+        const h = bvh.raycastFirst(ray, THREE.DoubleSide, 0, MAXD);
+        if (h) o += 1 - h.distance / MAXD * 0.6;
+      }
+      occ = Math.min(occ, o);
     }
     col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = K ? Math.min(1, Math.max(0.15, 1 - occ / K * 1.1)) : 1;
     if (i % 50000 === 0) log('ao', i);
@@ -434,6 +507,7 @@ if (PR.normalMap && hasUV && !pieces) {
 if (PART_NAMES.length === 1) scene.addChild(doc.createNode('body').setMesh(doc.createMesh('body').addPrimitive(body)));
 else PART_NAMES.forEach((name, k) => {
   // one mesh per part, so each can take its own colour
+  if (!triPart.includes(k)) return;
   const map = new Map(), P2 = [], N2 = [], C2 = [], I2 = [];
   for (let t = 0; t < idx.length; t += 3) {
     if (triPart[t / 3] !== k) continue;
