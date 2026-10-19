@@ -40,7 +40,7 @@ Open `index.html` through any static server, for example `npx serve hoodie-studi
 - The knit texture is applied in the shader by triplanar bump mapping, so the garment needs no UV unwrap.
 
 ## Credits
-- Women's polo, racerback tank, basketball uniform, soccer kit, cap and golf ball: supplied by the project owner. Check the licence of each model before using it commercially. Only geometry and surface-detail (normal) maps are used: all printed and branded colour textures were left out.
+- Women's polo, racerback tank, basketball uniform, soccer kit, track set, cap and golf ball: supplied by the project owner. Check the licence of each model before using it commercially. Only geometry and surface-detail (normal) maps are used: all printed and branded colour textures were left out.
 The 3D models are licensed CC BY 4.0, and the studio page shows the credit for the model in use.
 - Hoodie: ["Hoodie Sweatshirt"](https://sketchfab.com/3d-models/hoodie-sweatshirt-d1b0dc66056b4ea7bc616b0d3bb7cf22) by melatmod. Rescaled, recoloured and shaded with baked ambient occlusion for this studio.
 - T-shirt: ["T Shirt"](https://sketchfab.com/3d-models/t-shirt-c1a3e5eb9b5445f4b7d4be82f1127eba) by funlab117. Squared up, rescaled, recoloured and shaded with baked ambient occlusion.
