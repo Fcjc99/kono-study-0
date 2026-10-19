@@ -1,6 +1,6 @@
 import {Fragment,Suspense,lazy,useCallback,useEffect,useMemo,useRef,useState,type CSSProperties,type PointerEvent,type ReactNode,type SetStateAction,type TouchEvent} from 'react'
 import {usePlannerRepository} from './store/repository'
-import {uid,localDate,eventCategory,peopleOf,type AppData,type SettingsData,type Subtask,type CalendarEvent,type Kid} from './store/model'
+import {uid,localDate,eventCategory,peopleOf,type AppData,type FamilyTodo,type SettingsData,type Subtask,type CalendarEvent,type Kid} from './store/model'
 import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems} from './store/kids'
 import {collections,records,titleOf,equal,removeEntry,completeTask,type Collection,type Entry} from './store/workspace'
 import {calendarTasks,addDays} from './store/studyScheduler'
@@ -119,7 +119,8 @@ import SwipeRow from './components/SwipeRow'
 import {uploadPendingPhotos} from './store/photoStore'
 import type {QuickAddGuess} from './store/quickAdd'
 import {readLinked} from './store/linkedCalendars'
-import {tickTodo} from './store/familyTodos'
+import {repeatFields,tickTodo} from './store/familyTodos'
+import type {TodoOps} from './components/TodoEditor'
 import {currentPushSubscription} from './store/pushDevice'
 import {weekDrop} from './store/weekDrop'
 import {shiftAt} from './store/workShifts'
@@ -652,7 +653,7 @@ function Workspace({store}:{store:Store}){
  const overdue=overdueHiddenOn===localDate()?[]:tasks.filter(t=>!t.done&&t.due<localDate()&&personShown(t)).sort((a,b)=>a.due.localeCompare(b.due))
  const moveToToday=(ids:string[])=>void run(()=>save(d=>({...d,tasks:d.tasks.map(t=>ids.includes(t.id)&&t.profileId===profile.id?{...t,due:localDate(),plannedTime:undefined}:t)})),ids.length===1?'Moved to today.':ids.length+' assignments moved to today.',true)
  // "＋ Add" › Type it: saves the assignment or exam exactly as the preview showed it.
- const quickAdd=(g:QuickAddGuess&{link?:string})=>{setAdding(false);if(g.key==='familyTodos'){const t=g.todo??{};void run(()=>save(d=>({...d,familyTodos:[...(d.familyTodos??[]),{id:uid('todo'),profileId:profile.id,title:g.title,done:false,...(t.kidId?{forKidId:t.kidId}:{}),...(g.due?{due:g.due}:{}),...(g.due&&t.repeat?{repeat:t.repeat}:{})}]})),'Added “'+g.title+'” to the family to-do list.',true);return}if(g.event){const ev=g.event;void quickAddFamilyEvent(g.due,{title:g.title,kind:ev.kind,kidIds:ev.kidIds,time:g.time,endTime:ev.endTime,repeatDays:ev.repeatDays,until:ev.until,...(ev.location?{location:ev.location}:{})});return}const id=uid(g.key);void run(()=>save(d=>g.key==='tasks'?{...d,tasks:[...d.tasks,{id,profileId:profile.id,subjectId:g.subjectId,title:g.title,due:g.due,done:false,notes:'',...(g.time?{plannedTime:g.time}:{}),...(g.link?{link:g.link}:{})}]}:{...d,exams:[...d.exams,{id,profileId:profile.id,subjectId:g.subjectId,title:g.title,due:g.due,done:false,notes:'',...(g.link?{link:g.link}:{})}]}),'Added “'+g.title+'” for '+dateLabel(g.due)+'.',true)}
+ const quickAdd=(g:QuickAddGuess&{link?:string})=>{setAdding(false);if(g.key==='familyTodos'){const t=g.todo??{};void run(()=>save(d=>({...d,familyTodos:[...(d.familyTodos??[]),{id:uid('todo'),profileId:profile.id,title:g.title,done:false,...(t.kidId?{forKidId:t.kidId}:{}),...(g.due?{due:g.due}:{}),...repeatFields(t.repeat,g.due||undefined,t.monthDay)}]})),'Added “'+g.title+'” to the family to-do list.',true);return}if(g.event){const ev=g.event;void quickAddFamilyEvent(g.due,{title:g.title,kind:ev.kind,kidIds:ev.kidIds,time:g.time,endTime:ev.endTime,repeatDays:ev.repeatDays,until:ev.until,...(ev.location?{location:ev.location}:{})});return}const id=uid(g.key);void run(()=>save(d=>g.key==='tasks'?{...d,tasks:[...d.tasks,{id,profileId:profile.id,subjectId:g.subjectId,title:g.title,due:g.due,done:false,notes:'',...(g.time?{plannedTime:g.time}:{}),...(g.link?{link:g.link}:{})}]}:{...d,exams:[...d.exams,{id,profileId:profile.id,subjectId:g.subjectId,title:g.title,due:g.due,done:false,notes:'',...(g.link?{link:g.link}:{})}]}),'Added “'+g.title+'” for '+dateLabel(g.due)+'.',true)}
  const overdueCard=<OverdueCard tasks={overdue} subjectName={id=>data.subjects.find(s=>s.id===id)?.name??''} onDone={id=>void run(async()=>{const saved=await save(d=>completeTask(d,id));if(saved)celebrateDone();return saved},'Assignment completed.',true,id)} onMove={moveToToday} onLater={()=>setOverdueHiddenOn(localDate())}/>
  const openEditor=(edit:Edit)=>{if(hasDraft&&!editor){try{const old=JSON.parse(localStorage.getItem(draftScope)??'null') as Edit;if(old?.entry?.id===edit.entry.id){if(old.original&&edit.original&&!equal(old.original,edit.original)&&equal(old.entry,old.original)){localStorage.removeItem(draftScope);setHasDraft(false);setEditor(edit);return}setEditor(old);return}}catch{/* Offer a clear replacement choice. */}setConfirmation({text:'You have an unfinished edit. Discard it and open this item? Cancel keeps your draft; use Resume draft to finish it.',action:()=>{localStorage.removeItem(draftScope);localStorage.removeItem(draftScope+':assignment-dates');setHasDraft(false);setEditor(edit)}});return}setEditor(edit)}
  // The Add sheet's tiles use the Planner's chosen day when it's today or later.
@@ -680,8 +681,17 @@ function Workspace({store}:{store:Store}){
  }
  // Kids › Make …’s plan: the kid's own plan, opened on Home.
  const makeKidPlan=(kid:Kid)=>{goHomeFirst();void save(d=>{const r=addKidPlan(d,kid);return {...r.data,activeProfileId:r.id}})}
- // A family to-do ticked in the Planner (on its day): a repeating one moves on to its next turn.
- const tickFamilyTodo=(id:string,on:string)=>void save(d=>({...d,familyTodos:(d.familyTodos??[]).map(t=>t.id===id?tickTodo(t,localDate(),on):t)}))
+ // Family to-dos, from Home's list and the Planner. Ticking says what happened (a repeat's next turn)
+ // with Undo, as do moving and removing one.
+ const saveTodos=(fn:(list:FamilyTodo[])=>FamilyTodo[])=>save(d=>({...d,familyTodos:fn(d.familyTodos??[])}))
+ const todoNamed=(id:string)=>(data.familyTodos??[]).find(t=>t.id===id)
+ const todoOps:TodoOps={
+  tick:(id,on)=>{const t=todoNamed(id);if(!t)return;const next=tickTodo(t,localDate(),on)
+   void run(()=>saveTodos(list=>list.map(x=>x.id===id?tickTodo(x,localDate(),on):x)),next.done?'Done: “'+t.title+'”.':t.done?'“'+t.title+'” is back on the list.':'Done: “'+t.title+'”. Next: '+dateLabel(next.due!)+'.',true)},
+  update:(id,changes)=>void run(()=>saveTodos(list=>list.map(x=>{if(x.id!==id)return x;return {id:x.id,profileId:x.profileId,done:x.done,...(x.doneAt?{doneAt:x.doneAt}:{}),title:changes.title,...(changes.forKidId?{forKidId:changes.forKidId}:{}),...(changes.due?{due:changes.due}:{}),...repeatFields(changes.repeat,changes.due)}})),'Saved “'+changes.title+'”.'),
+  remove:id=>void run(()=>saveTodos(list=>list.filter(x=>x.id!==id)),'Removed “'+(todoNamed(id)?.title??'the to-do')+'”.',true),
+  move:(id,date)=>void run(()=>saveTodos(list=>list.map(x=>x.id===id?{...x,due:date}:x)),'Moved “'+(todoNamed(id)?.title??'the to-do')+'” to '+dateLabel(date)+'.',true),
+ }
  const quickAddFamilyEvent=async(date:string,payload:Screens.QuickFamilyPayload):Promise<boolean>=>{
   try{
    // Repeats (practice every Tue & Thu): one event per date, linked as a series.
@@ -935,7 +945,7 @@ function Workspace({store}:{store:Store}){
  const pastReminders=data.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date<today&&personShown(e)&&tracksDone('calendarEvents',e as unknown as Entry)).sort((a,b)=>a.date.localeCompare(b.date))
  const todayCount=overdue.length+pastReminders.length+todayClasses.length+todayLoose.length,tomorrowCount=tomorrowClasses.length+tomorrowLoose.length
  const setupLeft=startSkipped.has('all')?0:startSteps.filter(st=>!st.done).length
- const w:PageContext={store,repository,data,view,profile,experience,islandSetting,simpleView,parentMode,reduced,lockedPlan,releaseLabel,draftScope,today,tasks,viewTasks,ownTasks,notes,subjects,profileKids,plans,recap,classmatesOn,peopleFilter,overdueCard,addChoices,plannerMoreRef,subject,setSubject,subjectTab,setSubjectTab,boardView,setBoardView,selectedDate,setSelectedDate,settingsTab,setSettingsTab,addOpen,addChoice,setAddChoice,recapOpen,setRecapOpen,weekPlanOpen,setWeekPlanOpen,planRequest,setPlanRequest,setSpecialOpen,setPickupsOpen,setWallOpen,setDayOffFor,setConfirmation,save,run,setting,navigate,openSettings,openAdd,closeAdd,openWeather,create,edit,remove,patch,reschedule,planAt,stretchTo,quickAddFamilyEvent,tickFamilyTodo:parentMode&&profileKids.length>0?tickFamilyTodo:undefined,personShown,card,renderClass,renderCompactClass}
+ const w:PageContext={store,repository,data,view,profile,experience,islandSetting,simpleView,parentMode,reduced,lockedPlan,releaseLabel,draftScope,today,tasks,viewTasks,ownTasks,notes,subjects,profileKids,plans,recap,classmatesOn,peopleFilter,overdueCard,addChoices,plannerMoreRef,subject,setSubject,subjectTab,setSubjectTab,boardView,setBoardView,selectedDate,setSelectedDate,settingsTab,setSettingsTab,addOpen,addChoice,setAddChoice,recapOpen,setRecapOpen,weekPlanOpen,setWeekPlanOpen,planRequest,setPlanRequest,setSpecialOpen,setPickupsOpen,setWallOpen,setDayOffFor,setConfirmation,save,run,setting,navigate,openSettings,openAdd,closeAdd,openWeather,create,edit,remove,patch,reschedule,planAt,stretchTo,quickAddFamilyEvent,todoOps:parentMode&&profileKids.length>0?todoOps:undefined,personShown,card,renderClass,renderCompactClass}
  return <div className={'workbench density-'+(data.settings.density??'comfortable')+' text-'+(data.settings.textSize??'normal')+(simpleView?' is-simple':'')} data-page={page.toLowerCase()} data-experience={experience} data-decoration={data.settings.decoration!==false}>
   <a className="skip-link" href="#workspace-main">Skip to content</a>
   {experience==='cozy'?<div className="cozy-navigation"><Sidebar hidden={hiddenPages} view={page==='Trash'?'Notes':page} onView={navigate} profile={profile.name} schoolYear={profile.label} profiles={data.profiles} activeProfileId={profile.id} onProfileChange={switchPlan} onOpenPlans={()=>setPlansOpen(true)} locked={!!lockedPlan} onAdd={()=>setAdding(true)} onMore={()=>setMore(true)} homeLabel={islandSetting==='off'?'Home':undefined} simple={simpleView} weekWeather={weather.reading?.daily??[]} weatherLocation={data.settings.sanctuaryWeatherLocations[profile.id]} music={music} parentMode={parentMode} weatherChip={weatherChip}/></div>:<aside className="wb-sidebar"><div className="wb-brand-row"><a className="wb-brand" href="?page=sanctuary" onClick={e=>{e.preventDefault();navigate('Sanctuary')}}><span className="brand-mark" aria-hidden="true"><BrandLogo/><i>✿</i></span><strong>KONO<small>Study Sanctuary</small></strong></a>{weatherChip}</div><div className="wb-tabs-label">Notebook tabs</div><nav aria-label="Main navigation">{visiblePages.map(p=><button key={p} aria-current={page===p?'page':undefined} onClick={()=>navigate(p)}><span className="wb-nav-icon">{p==='Trash'?<span aria-hidden="true">↶</span>:<NavIcon name={p} experience={experience}/>}</span><span>{p}</span></button>)}</nav><div className="sidebar-music-slot"><MusicPlayer controller={music} compact/></div><label className="wb-profile"><span className="wb-profile-title">{profile.label}</span>Study profile<select value={profile.id} onChange={e=>switchPlan(e.target.value)}>{data.profiles.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}</select></label></aside>}
@@ -1005,7 +1015,7 @@ function Workspace({store}:{store:Store}){
         and the ⋯ menu (what to show, classes, the Planner) sit in its header. */}
     {!showQuick&&parentMode&&!profileKids.length&&<section className="wb-panel family-setup-card" aria-label="Set up your family"><h2>👪 Set up your family</h2><p className="wb-muted">Add your kids and their weekly activities in about two minutes.</p><button type="button" className="primary" onClick={()=>setFamilySetupOpen(true)}>Start</button></section>}
     {!showQuick&&comingUp.length>0&&<section className="wb-panel coming-up" aria-label="Coming up"><div className="wb-section-head"><h2>Coming up</h2><button type="button" className="link-button" onClick={()=>setSpecialOpen(true)}>Birthdays & countdowns</button></div><ul>{comingUp.slice(0,4).map(x=><li key={x.day.id} className={x.daysAway===0?'is-today':undefined}><span aria-hidden="true">{x.icon}</span><span>{x.label}</span><b>{daysAwayLabel(x.daysAway)}</b></li>)}</ul></section>}
-    {!showQuick&&parentMode&&profileKids.length>0&&<Suspense fallback={null}><FamilyTodos data={data} profileId={profile.id} today={today} save={save}/></Suspense>}
+    {!showQuick&&parentMode&&profileKids.length>0&&<Suspense fallback={null}><FamilyTodos data={data} profileId={profile.id} today={today} save={save} ops={todoOps}/></Suspense>}
     <section className="wb-panel today-card" aria-label="Your day">
      <div className="wb-section-head today-card-head">
       <div className="today-card-tabs" role="tablist" aria-label="Day">

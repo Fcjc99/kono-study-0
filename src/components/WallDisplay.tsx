@@ -6,6 +6,7 @@ import {addDays} from '../store/studyScheduler'
 import type {DailyWeatherForecast} from '../game/weather/liveWeather'
 import {specialOn,upcomingSpecial,daysAwayLabel} from '../store/specialDays'
 import {daysOffOn,dayOffIcon,dayOffLabel} from '../store/daysOff'
+import {todosOn} from '../store/familyTodos'
 import Avatar from './Avatar'
 import './wall-display.css'
 
@@ -57,8 +58,10 @@ export default function WallDisplay({data,me,weather,close}:{data:AppData;me:Per
  const forecast=weather.find(w=>w.date===today)
  // Countdowns (not today's or tomorrow's, which show in their day) in the header, up to three.
  const countdowns=upcomingSpecial(data,data.activeProfileId,today,90).filter(x=>x.day.kind==='countdown'&&x.daysAway>1).slice(0,3)
+ // The family's to-dos: each day's, and (today) the ones for any day.
+ const todosFor=(date:string)=>[...todosOn(data,data.activeProfileId,date),...(date===today?(data.familyTodos??[]).filter(t=>t.profileId===data.activeProfileId&&!t.done&&!t.due):[])]
  // Wide screens: the rest of the week, a few lines a day.
- const week=<section className="wall-week" aria-label="Rest of the week"><h2>This week</h2>{Array.from({length:5},(_,i)=>addDays(today,i+2)).map(date=>{const items=itemsFor(date),special=specialOn(data,data.activeProfileId,date),off=daysOffOn(data,data.activeProfileId,date);return <div key={date} className="wall-week-day"><h3>{new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'long'})}<small>{new Date(date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})}</small></h3>{off.map(d=><p key={d.id} className="wall-week-special">{dayOffIcon(d.reason)} {dayOffLabel(data,d)}</p>)}{special.map(x=><p key={x.day.id} className="wall-week-special">{x.icon} {x.label}</p>)}{items.length?<ul>{items.slice(0,4).map(i=>{const p=personFor(i.kidId);return <li key={i.kind+i.id+(i.kidId??'')} className={i.off?'is-off':undefined} style={{'--person':p.color} as CSSProperties}><span className="wall-week-time">{i.off?'Off':i.until?'til '+classTime(i.until):i.time?classTime(i.time):i.kind==='exam'?'Test':i.kind==='task'?'Due':''}</span><span className="wall-week-title">{i.title}</span><Avatar className="wall-week-face" who={p}/></li>})}{items.length>4&&<li className="wall-week-more">+{items.length-4} more</li>}</ul>:!special.length&&!off.length&&<p className="wall-week-empty">Free</p>}</div>})}</section>
+ const week=<section className="wall-week" aria-label="Rest of the week"><h2>This week</h2>{Array.from({length:5},(_,i)=>addDays(today,i+2)).map(date=>{const items=itemsFor(date),special=specialOn(data,data.activeProfileId,date),off=daysOffOn(data,data.activeProfileId,date);return <div key={date} className="wall-week-day"><h3>{new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'long'})}<small>{new Date(date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})}</small></h3>{off.map(d=><p key={d.id} className="wall-week-special">{dayOffIcon(d.reason)} {dayOffLabel(data,d)}</p>)}{special.map(x=><p key={x.day.id} className="wall-week-special">{x.icon} {x.label}</p>)}{todosFor(date).length>0&&<p className="wall-week-special wall-week-todo">☐ {todosFor(date).map(t=>t.title).slice(0,2).join(', ')}{todosFor(date).length>2?' +'+(todosFor(date).length-2):''}</p>}{items.length?<ul>{items.slice(0,4).map(i=>{const p=personFor(i.kidId);return <li key={i.kind+i.id+(i.kidId??'')} className={i.off?'is-off':undefined} style={{'--person':p.color} as CSSProperties}><span className="wall-week-time">{i.off?'Off':i.until?'til '+classTime(i.until):i.time?classTime(i.time):i.kind==='exam'?'Test':i.kind==='task'?'Due':''}</span><span className="wall-week-title">{i.title}</span><Avatar className="wall-week-face" who={p}/></li>})}{items.length>4&&<li className="wall-week-more">+{items.length-4} more</li>}</ul>:!special.length&&!off.length&&!todosFor(date).length&&<p className="wall-week-empty">Free</p>}</div>})}</section>
  const day=(date:string,label:string)=>{
   const items=itemsFor(date),nowClock=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')
   return <section className="wall-day" aria-label={label}>
@@ -69,7 +72,8 @@ export default function WallDisplay({data,me,weather,close}:{data:AppData;me:Per
     <span className="wall-time">{i.off?'Off':i.until?<><small>Until</small>{classTime(i.until)}</>:i.time?classTime(i.time):i.kind==='task'?'Due':i.kind==='exam'?'Test':'All day'}</span>
     <Avatar className="wall-face" who={p}/>
     <span className="wall-title">{kindIcon[i.kind]&&<span aria-hidden="true">{kindIcon[i.kind]} </span>}{i.title}<small>{p.name}</small></span>
-   </li>})}</ul>:<p className="wall-empty">Nothing planned.</p>}
+   </li>})}</ul>:!todosFor(date).length&&<p className="wall-empty">Nothing planned.</p>}
+   {todosFor(date).length>0&&<div className="wall-todos"><h3>To-do</h3><ul aria-label={label+'’s to-dos'}>{todosFor(date).map(t=>{const p=t.forKidId?personFor(t.forKidId):undefined;return <li key={t.id} style={p?{'--person':p.color} as CSSProperties:undefined}><span aria-hidden="true">☐</span> {t.title}{p&&<small>{p.name}</small>}</li>})}</ul></div>}
   </section>
  }
  return <div className={'wall-display'+(night?' is-night':'')} role="dialog" aria-modal="true" aria-label="Wall display">

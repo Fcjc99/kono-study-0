@@ -6,6 +6,7 @@ import type {ClassOccurrence} from '../store/classSchedule'
 import type {WeekRecap} from '../store/weekRecap'
 import type {AddChoice,AddChoiceId} from '../components/AddToCalendar'
 import type {QuickFamilyPayload} from '../WorkspaceSettings'
+import type {TodoOps} from '../components/TodoEditor'
 import type {Page,SettingsTab} from '../workspaceShared'
 
 type Store=ReturnType<typeof usePlannerRepository>
@@ -74,7 +75,7 @@ export type PageContext={
  planAt:(key:Collection,entry:Entry,day:string,time:string)=>void
  stretchTo:(key:Collection,entry:Entry,end:string)=>void
  quickAddFamilyEvent:(date:string,payload:QuickFamilyPayload)=>Promise<boolean>
- tickFamilyTodo?:(id:string,on:string)=>void
+ todoOps?:TodoOps
  personShown:(x?:unknown)=>boolean
  card:(key:Collection,entry:Entry,compact?:boolean)=>ReactElement
  renderClass:(item:ClassOccurrence)=>ReactElement

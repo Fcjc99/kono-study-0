@@ -6,7 +6,7 @@ import type {TodoRepeat} from './model'
  * taking those out is the title. Nothing is saved until the person presses Add, after seeing this. */
 export type QuickAddGuess={key:'tasks'|'exams'|'calendarEvents'|'familyTodos';title:string;subjectId:string;subjectName:string;due:string;time?:string;dateFound:boolean;event?:QuickEvent;todo?:QuickTodo}
 /** A family to-do in one line: "clean house every sat", "pay rent on the 1st every month". due is '' for any day. */
-export type QuickTodo={repeat?:TodoRepeat;kidId?:string;kidName?:string}
+export type QuickTodo={repeat?:TodoRepeat;kidId?:string;kidName?:string;monthDay?:number}
 /** An event in one line: "soccer every Tue and Thu 4-5:30pm for Emma at Riverside Park". */
 export type QuickEvent={kind:'sports'|'lesson'|'appointment'|'activity'|'work'|'personal';endTime?:string;repeatDays:number[];repeatLabel?:string;until:string;kidIds:string[];people:string[];location?:string}
 type Person={id:string;name:string}
@@ -147,7 +147,10 @@ export function parseQuickEvent(text:string,today:string,people:Person[]):QuickA
 
 const TODO_START=/^\s*(?:to-?\s?do|remember to|reminder)\s*[:\-–]?\s+/i
 const CHORE=/\b(clean(?:ing)?|tidy|groceries|grocery|shopping|laundry|trash|garbage|recycling|bins?|vacuum|dishes|dishwasher|mow|lawn|water (?:the )?plants|pay|bills?|rent|buy|order|return|sign|permission slip|pack|feed the|walk the dog|sheets|chores?|errands?|wash the car|meal prep|call)\b/i
-const CLOCK=/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b|\bat\s+\d{1,2}\b|\b(?:noon|midnight)\b/i
+// A time: "5pm", "10:30", "at 4", "9-11", noon, or a bare hour after a weekday ("fri 6").
+const CLOCK=new RegExp(String.raw`\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b|\b\d{1,2}:\d{2}\b|\bat\s+\d{1,2}\b|(?<![\d/-])\b\d{1,2}\s*[-–]\s*\d{1,2}\b(?![\d/-])|\b(?:noon|midnight)\b|${DAY}\.?\s+\d{1,2}\b(?!\s*(?:st|nd|rd|th)\b|\s*\/)`,'i')
+// Schoolwork words: a line with one is homework, even when it starts like an errand ("order of operations worksheet").
+const SCHOOLWORK=/\b(homework|worksheet|essay|assignment|read(?:ing)?\s+ch|chapter|study(?:\s+for)?|flashcards?|problems?|packet|lab report|lab|pages?)\b/i
 const ordinalDay=(n:number,today:string)=>{const [y,m,d]=today.split('-').map(Number),days=(yy:number,mm:number)=>new Date(Date.UTC(yy,mm,0)).getUTCDate();let yy=y,mm=m;if(n<d){mm++;if(mm>12){mm=1;yy++}}return yy+'-'+pad(mm)+'-'+pad(Math.min(n,days(yy,mm)))}
 
 /** A family to-do in one line: a chore or errand with no time ("clean house every sat", "trash out every
@@ -155,10 +158,10 @@ const ordinalDay=(n:number,today:string)=>{const [y,m,d]=today.split('-').map(Nu
  * "to-do:" or "remember to". Its day is optional; without one it's for any day. */
 export function parseQuickTodo(text:string,today:string,people:Person[]):QuickAddGuess|null{
  const marked=TODO_START.test(text)
- if(!marked&&(!CHORE.test(text)||CLOCK.test(text)||isExam(text)))return null
+ if(!marked&&(!CHORE.test(text)||CLOCK.test(text)||isExam(text)||SCHOOLWORK.test(text)))return null
  let rest=' '+text.replace(TODO_START,'').replace(/\s+/g,' ').trim()+' '
  const take=(re:RegExp)=>{const m=rest.match(re);if(m)rest=rest.replace(m[0],' ');return m}
- let repeat:TodoRepeat|undefined,due='',m:RegExpMatchArray|null
+ let repeat:TodoRepeat|undefined,due='',monthDay:number|undefined,m:RegExpMatchArray|null
  if(take(/\b(?:every\s+(?:other|2(?:nd)?|two)\s+weeks?|biweekly|fortnightly)\b/i))repeat='2weeks'
  else if(take(/\b(?:every|each)\s+month\b|\bmonthly\b/i))repeat='month'
  else if(take(/\b(?:every|each)\s+week\b|\bweekly\b/i))repeat='week'
@@ -169,14 +172,17 @@ export function parseQuickTodo(text:string,today:string,people:Person[]):QuickAd
   due=plus(today,(want-now+7)%7)
  }else if(take(/\b(?:on\s+)?(?:today|tonight)\b/i))due=today
  else if(take(/\b(?:on\s+)?(?:tomorrow|tmrw|tmr)\b/i))due=plus(today,1)
- else if((m=take(/\b(?:on\s+)?the\s+(\d{1,2})(?:st|nd|rd|th)\b/i))&&Number(m[1])>=1&&Number(m[1])<=31)due=ordinalDay(Number(m[1]),today)
+ else if((m=take(/\b(?:on\s+)?the\s+(\d{1,2})(?:st|nd|rd|th)\b/i))&&Number(m[1])>=1&&Number(m[1])<=31){monthDay=Number(m[1]);due=ordinalDay(monthDay,today)}
  else{const dt=rest.match(/\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\/\d{1,2}(?:\/\d{4})?\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?\b/i);const found=dt?dateFrom(dt[0].replace(/sept/i,'sep'),today,plus(today,365),'mdy'):'';if(dt&&found){rest=rest.replace(new RegExp(String.raw`(?:\b(?:on|by)\s+)?`+dt[0].replace(/[.*+?^${}()|[\]\\/]/g,'\\$&'),'i'),' ');due=found}}
  if(repeat&&!due)due=today
  // For whom: one kid ("for Emma", or her name).
  let kid:Person|undefined
- for(const p of people){const n=p.name.trim();if(!n)continue;const re=new RegExp(String.raw`(?:\bfor\s+)?\b${n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}(?:'s|’s)?\b`,'i');if(re.test(rest)){rest=rest.replace(re,' ');kid=p;break}}
- let title=rest.replace(/\s+/g,' ').replace(/^[\s,:;&-]+|[\s,:;&-]+$/g,'').replace(/\s+(?:for|on|every|each|by)$/i,'').trim()
+ for(const p of people){const n=p.name.trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&');if(!n)continue
+  // "Emma's party" keeps her name in the words; "for Emma" or "Emma" alone just says who it's for.
+  if(new RegExp(String.raw`\b${n}(?:'s|’s)\s+\w`,'i').test(rest)){kid=p;break}
+  const re=new RegExp(String.raw`(?:\bfor\s+)?\b${n}(?:'s|’s)?\b`,'i');if(re.test(rest)){rest=rest.replace(re,' ');kid=p;break}}
+ let title=rest.replace(/\bdue\b/gi,' ').replace(/\s+/g,' ').replace(/^[\s,:;&-]+|[\s,:;&-]+$/g,'').replace(/\s+(?:for|on|every|each|by)$/i,'').trim()
  if(!title)return null
  title=title[0].toUpperCase()+title.slice(1)
- return {key:'familyTodos',title:title.slice(0,300),subjectId:'',subjectName:'',due,dateFound:!!due,todo:{...(repeat?{repeat}:{}),...(kid?{kidId:kid.id,kidName:kid.name}:{})}}
+ return {key:'familyTodos',title:title.slice(0,300),subjectId:'',subjectName:'',due,dateFound:!!due,todo:{...(repeat?{repeat}:{}),...(kid?{kidId:kid.id,kidName:kid.name}:{}),...(repeat==='month'&&monthDay?{monthDay}:{})}}
 }

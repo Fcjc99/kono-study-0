@@ -23,7 +23,7 @@ export default function KidsGlance({data,profileId,today,from,save,onOpen,onMake
  if(!rows.length)return null
  // Out sick or a snow day today: said on the kid's card instead of their school day.
  const off=daysOffOn(data,profileId,today),outFor=(kidId:string)=>off.find(d=>!d.kidIds.length||d.kidIds.includes(kidId))
- const list=(items:string[],more=0)=>items.length?<>{items.map(t=><span key={t}>{t}</span>)}{more>0&&<span className="is-more">+{more} more</span>}</>:null
+ const list=(items:string[],more=0)=>items.length?<>{items.map((t,i)=><span key={i}>{t}</span>)}{more>0&&<span className="is-more">+{more} more</span>}</>:null
  return <section className="kids-glance kid-cards" aria-label="Your kids">{onDayOff&&<div className="kid-cards-tools">{onDayOff&&<button type="button" className="link-button" onClick={onDayOff}>{off.length?'Change who’s out':'🤒 Out sick or snow day?'}</button>}</div>}<ul>{rows.map(r=>{
   const o=outFor(r.kid.id),face=<span className={'kids-glance-face'+(ring(r)!==null?' has-ring':'')} aria-hidden="true" style={ring(r)!==null?{'--done':ring(r)} as CSSProperties:undefined}>{r.kid.photo?<img className="avatar-img" src={r.kid.photo} alt="" draggable={false}/>:r.kid.emoji||r.kid.name.charAt(0).toUpperCase()}</span>
   const name=<><strong>{r.kid.name}</strong>{o?<small className="kids-glance-day is-out">{dayOffIcon(o.reason)} {o.reason==='sick'?'Out sick':o.reason==='snow'?'Snow day':'Day off'}</small>:r.school&&<small className="kids-glance-day">{r.school}</small>}</>

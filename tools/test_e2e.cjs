@@ -3382,6 +3382,49 @@ test('Family to-dos everywhere: typed in one line in ＋ Add, every 2 weeks from
  await page.locator('.wb-island canvas').waitFor({timeout:20000})
  assert.ok(asked.length>0,'the island engine loaded once the island was near')
 })
+test('Family to-dos, part 2: a to-do’s words, day and repeat can be changed; ticking says what is next with Undo; one drags to another day on the Month; the To-dos chip hides them; the wall shows them; in the evening the kids line is tomorrow',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ d.settings.familyStudyTabs=false
+ await page.clock.install({time:new Date('2026-10-15T18:30:00')}) // a Thursday evening
+ d.calendarEvents.push({id:'soccer',profileId:pid,date:'2026-10-16',title:'Soccer practice',kind:'sports',notes:'',time:'16:00',kidId:'kid-emma',travelMinutes:15})
+ d.familyTodos=[{id:'f1',profileId:pid,title:'Clean house',done:false,due:'2026-10-17',repeat:'week',weekly:true},{id:'f2',profileId:pid,title:'Buy poster board',done:false},{id:'f3',profileId:pid,title:'Sign permission slip',done:false,due:'2026-10-16',forKidId:'kid-leo'},{id:'f4',profileId:pid,title:'Groceries',done:false}]
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ // Evening: Emma's line is tomorrow's practice.
+ await page.getByRole('list',{name:'What’s next for the kids'}).getByText('Tomorrow: Soccer practice 4:00 PM · leave 3:45 PM').waitFor()
+ // Change a to-do: new words and a day.
+ const todos=page.getByRole('region',{name:'Family to-do'})
+ await todos.getByRole('button',{name:'Change Buy poster board'}).click()
+ const editor=page.getByRole('dialog',{name:'Change to-do'})
+ await editor.getByLabel('To-do').fill('Buy poster board and glue')
+ await editor.getByLabel('Day').fill('2026-10-19')
+ await editor.getByLabel('Repeat').selectOption('month')
+ await editor.getByRole('button',{name:'Save'}).click()
+ await waitFor(()=>{const t=cloud.users.alice.plan.data.familyTodos.find(x=>x.id==='f2');return t.title==='Buy poster board and glue'&&t.due==='2026-10-19'&&t.repeat==='month'&&t.monthDay===19},'the change never reached the account')
+ // Ticking a weekly one says when it's next, and Undo puts it back.
+ await todos.getByRole('checkbox',{name:'Clean house'}).click()
+ const toast=page.locator('.undo-toast');await toast.getByText(/Done: “Clean house”\. Next: Oct 24/).waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.familyTodos.find(x=>x.id==='f1').due==='2026-10-24','ticking never moved it on')
+ await toast.getByRole('button',{name:'Undo'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.familyTodos.find(x=>x.id==='f1').due==='2026-10-17','Undo never put it back')
+ // Month: drag Saturday's to-do to Sunday; the To-dos chip hides and shows them.
+ await go(page,'Planner')
+ await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Month'}).click()
+ const pill=page.getByRole('button',{name:'To-do: Clean house · Oct 17, 2026'})
+ await dragOnto(page,pill,page.getByRole('button',{name:/^Oct 18, 2026 · /}))
+ await waitFor(()=>cloud.users.alice.plan.data.familyTodos.find(x=>x.id==='f1').due==='2026-10-18','the drag never moved the to-do')
+ await page.getByRole('button',{name:'To-do: Clean house · Oct 18, 2026'}).waitFor()
+ const chip=page.getByRole('group',{name:'Show on calendar'}).getByRole('button',{name:'✔ To-dos'})
+ await chip.click()
+ await page.getByRole('button',{name:'To-do: Clean house · Oct 18, 2026'}).waitFor({state:'detached'})
+ await chip.click()
+ await page.getByRole('button',{name:'To-do: Clean house · Oct 18, 2026'}).waitFor()
+ // The wall: tomorrow's to-do under tomorrow, with whose it is.
+ await page.getByRole('button',{name:/Wall display/}).click()
+ const wall=page.getByRole('dialog',{name:'Wall display'})
+ assert.match(await wall.getByRole('list',{name:'Tomorrow’s to-dos'}).innerText(),/Sign permission slip\s*Leo/)
+ assert.match(await wall.getByRole('list',{name:'Today’s to-dos'}).innerText(),/Groceries/,'today also lists the any-day ones')
+})
 async function main(){
  const server=await startServer()
  const onlyArg=process.argv[2]
