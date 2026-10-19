@@ -64,8 +64,22 @@ button{cursor:pointer}
 .toolbar .sep{width:1px;height:20px;background:var(--line);margin:0 4px;flex:none}
 .tb{border:0;background:transparent;border-radius:999px;padding:7px 12px;font-weight:600;font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:6px;flex:none}
 .tb:hover{background:var(--surface-2)}
+.tb:disabled{opacity:.4;cursor:not-allowed}
 .tb[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .tb svg{width:16px;height:16px}
+.pieces2d{position:absolute;inset:0 50% 0 0;background-color:var(--surface-2);background-image:radial-gradient(color-mix(in srgb,var(--ink) 18%,transparent) 1px,transparent 1.2px);background-size:18px 18px;border-right:1px solid var(--line);z-index:1}
+.pieces2d[hidden]{display:none}
+#c2d{width:100%;height:100%;display:block;cursor:pointer}
+.p2d-title{position:absolute;top:44px;left:20px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted);pointer-events:none}
+.p2d-hint{position:absolute;bottom:76px;left:0;right:0;text-align:center;font-size:12px;color:var(--muted);pointer-events:none}
+.p2d-card{position:absolute;top:68px;left:16px;width:min(260px,calc(100% - 32px));background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:0 8px 30px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:10px}
+.p2d-card[hidden]{display:none}
+.p2d-card .row b{font-size:14px}
+.p2d-card .swatches{grid-template-columns:repeat(8,1fr);gap:6px}
+.stage.split #c{position:absolute;left:50%;top:0;width:50%;height:100%}
+.stage.split .hint{display:none}
+.toolbar,.crumb{z-index:3}
+.stage.split .toolbar{left:75%;max-width:calc(50% - 24px)}
 .hint{position:absolute;top:16px;right:20px;color:var(--muted);font-size:12px;text-align:right;pointer-events:none;max-width:260px}
 
 .panel{overflow-y:auto;border-left:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;min-height:0}
@@ -165,6 +179,11 @@ button{cursor:pointer}
   .hint{display:none}
   .phead,.sec,.buy{padding-left:16px;padding-right:16px}
   .toolbar{bottom:12px}
+  .stage.split{height:88vh;height:88svh}
+  .pieces2d{inset:0 0 50% 0;border-right:0;border-bottom:1px solid var(--line)}
+  .stage.split #c{left:0;top:50%;width:100%;height:50%}
+  .stage.split .toolbar{left:50%}
+  .p2d-hint{bottom:10px}
 }
 </style>
 <script type="importmap">
@@ -188,6 +207,12 @@ button{cursor:pointer}
 
 <main class="studio">
   <section class="stage" id="stage" aria-label="3D hoodie preview">
+    <div class="pieces2d" id="pieces2d" hidden>
+      <canvas id="c2d" aria-label="Pattern pieces"></canvas>
+      <div class="p2d-title">Pattern pieces</div>
+      <div class="p2d-card" id="pieceCard" hidden></div>
+      <div class="p2d-hint">Click a piece here or on the garment to colour it</div>
+    </div>
     <canvas id="c"></canvas>
     <div class="loading" id="loading">Loading studio…</div>
     <div class="crumb">Studio / <span id="crumbCat">Hoodies</span> / <b id="crumbName">Classic Pullover Hoodie</b></div>
@@ -197,6 +222,8 @@ button{cursor:pointer}
       <button class="tb" data-view="back">Back</button>
       <button class="tb" data-view="left">Left</button>
       <button class="tb" data-view="right">Right</button>
+      <span class="sep"></span>
+      <button class="tb" id="piecesBtn" aria-pressed="false" title="Show the 2D pattern pieces"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5l4-2 3 2v15H4zM13 5l3-2 4 2v15h-7z"/></svg>2D pieces</button>
       <span class="sep"></span>
       <button class="tb" id="spinBtn" aria-pressed="false" title="Auto-rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>Spin</button>
       <button class="tb" id="guideBtn" aria-pressed="true" title="Show print areas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>Guides</button>
@@ -517,7 +544,8 @@ function drawPatternTile(g, n, type) {
 let patternImage = null;
 function applyPattern() {
   const P = state.pattern, U = patternUniforms;
-  U.patternOn.value = P.type === 'none' || (P.type === 'upload' && !patternImage) ? 0 : 1;
+  U.patternOn.value = pieceInfo || P.type === 'none' || (P.type === 'upload' && !patternImage) ? 0 : 1;
+  tileCache.clear(); invalidate();
   U.patternFull.value = P.type === 'upload' ? 1 : 0;
   U.patternScale.value = 1.5 * P.scale; U.patternRot.value = P.rot * Math.PI / 180;
   U.patternColor.value.set(P.color);
@@ -623,7 +651,13 @@ async function buildGarment(key) {
   const gltf = await fetchGLTF(PRODUCTS[key].model + MODEL_EXT);
   const frames = gltf.scene.userData.placements;
   for (const F of Object.values(frames)) F.targets ??= ['body'];
-  const g = { meshes: [], parts: {}, decals: {}, frames, credit: gltf.scene.userData.credit };
+  const g = { meshes: [], parts: {}, decals: {}, frames, credit: gltf.scene.userData.credit, pieces: null };
+  const { pieces, layout } = gltf.scene.userData;
+  if (pieces && layout) {
+    const c = document.createElement('canvas'); c.width = 2048; c.height = Math.round(2048 / layout.aspect);
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    g.pieces = { list: pieces, layout, canvas: c, tex, paths: [] };
+  }
   const list = [];
   gltf.scene.traverse(o => { if (o.isMesh) list.push(o); });
   for (const m of list) {
@@ -647,6 +681,11 @@ async function showProduct(key) {
     for (const m of [...hoodie.children]) hoodie.remove(m);
     for (const m of g.meshes) hoodie.add(m);
     parts = g.parts; decals = g.decals; placementFrames = g.frames;
+    pieceInfo = g.pieces; selectedPiece = null; hoverPiece = null;
+    mats.body.map = pieceInfo ? pieceInfo.tex : null; mats.body.needsUpdate = true;
+    setSplit(splitPref && !!pieceInfo); renderPieceCard();
+    const pb = $('#piecesBtn'); pb.disabled = !pieceInfo; pb.title = pieceInfo ? 'Show the 2D pattern pieces' : 'This model has no pattern pieces';
+    applyPattern();
     showCredit(g.credit);
     $('#byPartRow').hidden = !parts.sleeveL;
     if (!parts.sleeveL) state.byPart = false;
@@ -658,6 +697,147 @@ async function showProduct(key) {
     if (seq === loadSeq) loading.textContent = `The ${PRODUCTS[key].label.toLowerCase()} model could not be loaded. Reload the page to try again.`;
   }
 }
+
+/* =====================================================================
+   Pattern pieces: garments with a flat layout (CLO-style exports) are painted per piece
+   in 2D, and the same canvas textures the 3D garment.
+   ===================================================================== */
+let pieceInfo = null;      // current garment: { list, layout, canvas, tex, paths }
+let selectedPiece = null, hoverPiece = null, split = false, splitPref = window.innerWidth > 900;
+const TRIM = /cuff|collar|hem|trim/i;
+const pieceStyles = () => ((state.pieceStyles ||= {})[state.product] ||= {});
+function pieceLook(p) {
+  const st = pieceStyles()[p.name] || {};
+  return { color: st.color || (TRIM.test(p.name) ? state.colors.trim : state.colors.body), pattern: st.pattern ?? !TRIM.test(p.name), custom: !!(st.color || st.pattern !== undefined) };
+}
+function colourise(g, n, base, accent) {
+  const img = g.getImageData(0, 0, n, n), a = new THREE.Color(base), b = new THREE.Color(accent);
+  const A = [a.r, a.g, a.b].map(x => x * 255), B = [b.r, b.g, b.b].map(x => x * 255);
+  for (let i = 0; i < img.data.length; i += 4) { const t = img.data[i] / 255; for (let k = 0; k < 3; k++) img.data[i + k] = A[k] + (B[k] - A[k]) * t; }
+  g.putImageData(img, 0, 0);
+}
+const tileCache = new Map();
+function colouredTile(base) {
+  const P = state.pattern, key = `${P.type}|${base}|${P.color}`;
+  if (tileCache.has(key)) return tileCache.get(key);
+  const c = document.createElement('canvas'); c.width = c.height = PAT_SIZE;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  if (P.type === 'upload') g.drawImage(patternImage, 0, 0, PAT_SIZE, PAT_SIZE);
+  else { drawPatternTile(g, PAT_SIZE, P.type); colourise(g, PAT_SIZE, base, P.color); }
+  tileCache.set(key, c);
+  return c;
+}
+const patternActive = () => state.pattern.type !== 'none' && (state.pattern.type !== 'upload' || patternImage);
+function piecePath(p, ox, oy, w, h) {
+  const path = new Path2D();
+  p.outline.forEach(([x, y], i) => path[i ? 'lineTo' : 'moveTo'](ox + x * w, oy + y * h));
+  path.closePath();
+  return path;
+}
+function drawPieces() {
+  const { list, layout, canvas: c, tex } = pieceInfo, g = c.getContext('2d'), W = c.width, H = c.height, P = state.pattern;
+  g.fillStyle = state.colors.body; g.fillRect(0, 0, W, H);
+  // pattern scale matches the 3D garment: the layout knows its size in studio units
+  const tilePx = 1 / (1.5 * P.scale) / layout.size[0] * W;
+  for (const p of list) {
+    const look = pieceLook(p), [x, y, w, h] = p.rect, pad = 0.01;
+    const rx = (x - pad) * W, ry = (y - pad) * H, rw = (w + 2 * pad) * W, rh = (h + 2 * pad) * H;
+    g.fillStyle = look.color; g.fillRect(rx, ry, rw, rh);
+    if (look.pattern && patternActive()) {
+      const pat = g.createPattern(colouredTile(look.color), 'repeat');
+      pat.setTransform(new DOMMatrix().rotate(P.rot).scale(tilePx / PAT_SIZE));
+      g.fillStyle = pat; g.fillRect(rx, ry, rw, rh);
+    }
+  }
+  if (showGuides && selectedPiece !== null) {
+    const p = list[selectedPiece];
+    g.save(); g.setLineDash([18, 12]); g.lineWidth = 6; g.strokeStyle = '#3b6cf6';
+    g.stroke(piecePath(p, 0, 0, W, H)); g.restore();
+  }
+  tex.needsUpdate = true;
+}
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+function render2D() {
+  if (!split || !pieceInfo) return;
+  const c2 = $('#c2d'), dpr = Math.min(window.devicePixelRatio, 2), cw = c2.clientWidth, ch = c2.clientHeight;
+  if (!cw || !ch) return;
+  if (c2.width !== Math.round(cw * dpr) || c2.height !== Math.round(ch * dpr)) { c2.width = Math.round(cw * dpr); c2.height = Math.round(ch * dpr); }
+  const g = c2.getContext('2d'), { list, layout, canvas: tc } = pieceInfo;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, cw, ch);
+  const top = 70, bottom = 100, side = 24, bw = cw - side * 2, bh = ch - top - bottom;
+  const w = Math.min(bw, bh * layout.aspect), h = w / layout.aspect, ox = (cw - w) / 2, oy = top + (bh - h) / 2;
+  pieceInfo.paths = [];
+  const ink = css('--ink'), muted = css('--muted');
+  for (const p of list) {
+    if (p.hidden) continue;
+    const path = piecePath(p, ox, oy, w, h);
+    pieceInfo.paths.push({ id: p.id, path });
+    g.save(); g.clip(path); g.drawImage(tc, ox, oy, w, h); g.restore();
+    const sel = p.id === selectedPiece, hov = p.id === hoverPiece;
+    g.lineWidth = sel ? 2.5 : 1.2; g.strokeStyle = sel ? '#3b6cf6' : hov ? ink : muted;
+    g.setLineDash(sel ? [] : [5, 3]); g.stroke(path); g.setLineDash([]);
+    const [x, y, rw, rh] = p.rect;
+    if (rw * w > 70 && rh * h > 40) {
+      g.font = '600 11px Inter, system-ui, sans-serif'; g.textAlign = 'center';
+      const tx = ox + (x + rw / 2) * w, ty = oy + (y + rh) * h + 14;
+      g.fillStyle = sel ? '#3b6cf6' : muted; g.fillText(p.name, tx, ty);
+    }
+  }
+}
+function pieceAt2D(ev) {
+  if (!pieceInfo) return null;
+  const c2 = $('#c2d'), r = c2.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio, 2), g = c2.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const hit = [...pieceInfo.paths].reverse().find(({ path }) => g.isPointInPath(path, (ev.clientX - r.left) * dpr, (ev.clientY - r.top) * dpr));
+  return hit ? hit.id : null;
+}
+function pointInOutline(o, x, y) {
+  let inside = false;
+  for (let i = 0, j = o.length - 1; i < o.length; j = i++) {
+    const [xi, yi] = o[i], [xj, yj] = o[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function selectPiece(id) {
+  selectedPiece = id; renderPieceCard(); invalidate(); render2D();
+}
+function renderPieceCard() {
+  const card = $('#pieceCard');
+  if (!pieceInfo || selectedPiece === null) { card.hidden = true; return; }
+  const p = pieceInfo.list[selectedPiece], look = pieceLook(p);
+  card.innerHTML = `<div class="row"><b>${esc(p.name)}</b><button class="ib" data-pc="close" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="swatches">${COLORWAYS.slice(0, 11).map(([n, h]) => `<button class="sw" style="background:${h}" title="${n}" aria-label="${n}" aria-pressed="${look.color.toLowerCase() === h}" data-pc="color" data-v="${h}"></button>`).join('')}<label class="sw custom" title="Custom colour"><input type="color" id="pieceColor" value="${look.color}" aria-label="Custom piece colour"></label></div>
+    <label class="check" style="margin:0"><input type="checkbox" id="piecePattern" ${look.pattern ? 'checked' : ''} ${patternActive() ? '' : 'disabled'}> Pattern on this piece</label>
+    ${look.custom ? '<button class="mini" data-pc="reset">Match the garment</button>' : ''}`;
+  card.hidden = false;
+}
+$('#pieceCard').addEventListener('click', e => {
+  const b = e.target.closest('[data-pc]'); if (!b) return;
+  const p = pieceInfo.list[selectedPiece], st = pieceStyles();
+  if (b.dataset.pc === 'close') return selectPiece(null);
+  if (b.dataset.pc === 'color') (st[p.name] ||= {}).color = b.dataset.v;
+  if (b.dataset.pc === 'reset') delete st[p.name];
+  renderPieceCard(); invalidate(); save();
+});
+$('#pieceCard').addEventListener('input', e => {
+  const p = pieceInfo.list[selectedPiece], st = (pieceStyles()[p.name] ||= {});
+  if (e.target.id === 'pieceColor') st.color = e.target.value;
+  if (e.target.id === 'piecePattern') { st.pattern = e.target.checked; renderPieceCard(); }
+  invalidate(); save();
+});
+$('#c2d').addEventListener('click', e => selectPiece(pieceAt2D(e)));
+$('#c2d').addEventListener('mousemove', e => { const id = pieceAt2D(e); if (id !== hoverPiece) { hoverPiece = id; render2D(); } });
+$('#c2d').addEventListener('mouseleave', () => { hoverPiece = null; render2D(); });
+function setSplit(on) {
+  split = on;
+  stage.classList.toggle('split', on);
+  $('#pieces2d').hidden = !on;
+  $('#piecesBtn').setAttribute('aria-pressed', String(on));
+  resize(); render2D();
+}
+$('#piecesBtn').addEventListener('click', () => { if (pieceInfo) { splitPref = !split; setSplit(splitPref); } });
 
 // Soft contact shadow below the floating hoodie
 const shadowTex = (() => {
@@ -766,6 +946,7 @@ function renderPrint(placement) {
 function redrawTextures() {
   if (!placementFrames) return;
   for (const k of Object.keys(PLACEMENTS)) renderPrint(k);
+  if (pieceInfo) { drawPieces(); render2D(); }
 }
 let needsRedraw = true;
 const invalidate = () => { needsRedraw = true; };
@@ -774,7 +955,8 @@ function shade(hex, f) { const c = new THREE.Color(hex); return '#' + (f < 0 ? c
 function applyColors() {
   const C = state.colors, white = new THREE.Color(0xffffff);
   const set = (m, hex) => { m.color.set(hex); m.sheenColor.set(hex).lerp(white, 0.25).multiplyScalar(0.6); };
-  set(mats.body, C.body); set(mats.sleeves, C.sleeves); set(mats.hood, C.hood);
+  set(mats.body, C.body); if (pieceInfo) mats.body.color.set(0xffffff); // pieces carry their own colour
+  set(mats.sleeves, C.sleeves); set(mats.hood, C.hood);
   set(mats.hem, C.trim); set(mats.cuff, C.trim); set(mats.rim, C.hood); set(mats.lining, C.lining);
   mats.interior.color.set(shade(C.body, -0.45));
   mats.strings.color.set(C.strings);
@@ -835,7 +1017,21 @@ function layerAt(placement, pt) {
   }
   return null;
 }
-let drag = null;
+let drag = null, downAt = null;
+canvas.addEventListener('pointerdown', ev => { downAt = [ev.clientX, ev.clientY]; });
+canvas.addEventListener('pointerup', ev => {
+  if (!downAt || !split || !pieceInfo || drag) return;
+  const moved = Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]); downAt = null;
+  if (moved > 5) return;
+  const r = canvas.getBoundingClientRect();
+  pointer.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(pointer, camera);
+  const hit = raycaster.intersectObject(parts.body, false)[0];
+  if (!hit || !hit.uv) return;
+  const x = hit.uv.x, y = 1 - hit.uv.y;
+  const p = pieceInfo.list.find(p => !p.hidden && pointInOutline(p.outline, x, y));
+  selectPiece(p ? p.id : null);
+});
 canvas.addEventListener('pointerdown', ev => {
   if (ev.button !== 0) return;
   const pt = hitPrint(ev); if (!pt || !pt.inArea) return;
@@ -1157,14 +1353,14 @@ controls.addEventListener('start', () => { camAnim = null; document.querySelecto
    Boot
    ===================================================================== */
 function resize() {
-  const w = stage.clientWidth, h = stage.clientHeight;
+  const w = canvas.clientWidth || stage.clientWidth, h = canvas.clientHeight || stage.clientHeight;
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   // keep the whole hoodie in frame on narrow screens
   camera.fov = w / h < 0.9 ? 30 / Math.max(0.55, w / h / 0.9) : 30;
   camera.updateProjectionMatrix();
 }
-new ResizeObserver(resize).observe(stage);
+new ResizeObserver(() => { resize(); render2D(); }).observe(stage);
 resize();
 
 if (!PRODUCTS[state.product]) state.product = 'hoodie';

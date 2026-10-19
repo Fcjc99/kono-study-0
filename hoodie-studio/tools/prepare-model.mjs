@@ -25,17 +25,20 @@ const log = (...a) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s]`,
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
 const src = await io.read(input);
 const credit = src.getRoot().getAsset().extras || {};
-const pos = [], nrm = [], idx = [];
+const pos = [], nrm = [], idx = [], uvs = [];
+let hasUV = true; // CLO/Style3D exports keep the flat pattern layout in their UVs
 const m4 = new THREE.Matrix4(), n3 = new THREE.Matrix3(), v = new THREE.Vector3();
 for (const node of src.getRoot().listNodes()) {
   const mesh = node.getMesh(); if (!mesh) continue;
   m4.fromArray(node.getWorldMatrix()); n3.getNormalMatrix(m4);
   for (const prim of mesh.listPrimitives()) {
-    const P = prim.getAttribute('POSITION'), N = prim.getAttribute('NORMAL'), I = prim.getIndices();
+    const P = prim.getAttribute('POSITION'), N = prim.getAttribute('NORMAL'), I = prim.getIndices(), T = prim.getAttribute('TEXCOORD_0');
+    if (!T) hasUV = false;
     const base = pos.length / 3, el = [];
     for (let i = 0; i < P.getCount(); i++) {
       v.fromArray(P.getElement(i, el)).applyMatrix4(m4); pos.push(v.x, v.y, v.z);
       v.fromArray(N.getElement(i, el)).applyMatrix3(n3).normalize(); nrm.push(v.x, v.y, v.z);
+      if (T) { const t = T.getElement(i, el); uvs.push(t[0], t[1]); } else uvs.push(0, 0);
     }
     for (let i = 0; i < I.getCount(); i++) idx.push(base + I.getScalar(i));
   }
@@ -148,15 +151,104 @@ const decals = {};
   }
 }
 
+/* 4b. Pattern pieces: each connected panel of a CLO-style export is one sewing pattern piece,
+   and its UVs are that piece laid flat. Lay the pieces out side by side (keeping their real
+   relative size) and give every vertex a UV in that layout, so the studio can paint colours,
+   patterns and prints per piece in 2D. */
+let pieces = null, layout = null;
+const auv = new Float32Array(pos.length / 3 * 2);
+if (hasUV) {
+  const nv = pos.length / 3, par = new Int32Array(nv).map((_, i) => i);
+  const find = x => { while (par[x] !== x) x = par[x] = par[par[x]]; return x; };
+  for (let t = 0; t < idx.length; t += 3) { const r = find(idx[t]); par[find(idx[t + 1])] = r; par[find(idx[t + 2])] = find(idx[t]); }
+  const comps = new Map();
+  for (let t = 0; t < idx.length; t += 3) {
+    const r = find(idx[t]);
+    let c = comps.get(r); if (!c) comps.set(r, c = { tris: [], verts: new Set() });
+    c.tris.push(t); for (let k = 0; k < 3; k++) c.verts.add(idx[t + k]);
+  }
+  const ab = new THREE.Vector3(), ac = new THREE.Vector3();
+  let list = [...comps.values()].map(c => {
+    let u0 = Infinity, v0 = Infinity, u1 = -Infinity, v1 = -Infinity, cx = 0, cy = 0, cz = 0, area = 0, uvArea = 0;
+    for (const i of c.verts) { const u = uvs[i * 2], w = uvs[i * 2 + 1]; u0 = Math.min(u0, u); v0 = Math.min(v0, w); u1 = Math.max(u1, u); v1 = Math.max(v1, w); cx += pos[i * 3]; cy += pos[i * 3 + 1]; cz += pos[i * 3 + 2]; }
+    for (const t of c.tris) { const a = idx[t] * 3; ab.set(pos[idx[t + 1] * 3] - pos[a], pos[idx[t + 1] * 3 + 1] - pos[a + 1], pos[idx[t + 1] * 3 + 2] - pos[a + 2]); ac.set(pos[idx[t + 2] * 3] - pos[a], pos[idx[t + 2] * 3 + 1] - pos[a + 1], pos[idx[t + 2] * 3 + 2] - pos[a + 2]); area += ab.cross(ac).length() / 2;
+      const [i0, i1, i2] = [idx[t], idx[t + 1], idx[t + 2]]; uvArea += Math.abs((uvs[i1 * 2] - uvs[i0 * 2]) * (uvs[i2 * 2 + 1] - uvs[i0 * 2 + 1]) - (uvs[i2 * 2] - uvs[i0 * 2]) * (uvs[i1 * 2 + 1] - uvs[i0 * 2 + 1])) / 2; }
+    const n = c.verts.size;
+    return { ...c, u0, v0, u1, v1, w: u1 - u0, h: v1 - v0, c: [cx / n, cy / n, cz / n], area, uvArea };
+  }).filter(c => c.w > 0 && c.h > 0);
+  // does UV v grow with height? if not, flip pieces so they lie upright in the layout
+  let cov = 0;
+  for (const c of list) for (const i of c.verts) cov += (uvs[i * 2 + 1] - (c.v0 + c.v1) / 2) * (pos[i * 3 + 1] - c.c[1]);
+  const vUp = cov >= 0;
+  // double-layer exports repeat each piece (inner and outer fabric layer): same flat size,
+  // nearly the same place on the body → one entry, one place in the layout
+  const groupsList = [];
+  for (const c of [...list].sort((a, b) => b.area - a.area)) {
+    const g = groupsList.find(g => { const o = g[0]; return Math.abs(o.w - c.w) / o.w < 0.02 && Math.abs(o.h - c.h) / o.h < 0.02 && Math.hypot(o.c[0] - c.c[0], o.c[1] - c.c[1], o.c[2] - c.c[2]) < 0.15; });
+    if (g) g.push(c); else groupsList.push([c]);
+  }
+  const groups = new Map(groupsList.map((g, i) => [i, g]));
+  const uniq = [...groups.values()].map(g => ({ members: g, w: g[0].w, h: g[0].h, area: g.reduce((s, c) => s + c.area, 0) / g.length, uvArea: g[0].uvArea, c: g[0].c }));
+  // shelf-pack, tallest first
+  const maxDim = Math.max(...uniq.map(p => Math.max(p.w, p.h))), m = maxDim * 0.06;
+  const rowW = Math.sqrt(uniq.reduce((s, p) => s + (p.w + m) * (p.h + m), 0)) * 1.5;
+  let x = m, y = m, rowH = 0, W = 0;
+  for (const p of [...uniq].sort((a, b) => b.h - a.h)) {
+    if (x + p.w + m > rowW && x > m) { x = m; y += rowH + m; rowH = 0; }
+    p.x = x; p.y = y; x += p.w + m; rowH = Math.max(rowH, p.h); W = Math.max(W, x);
+  }
+  const H = y + rowH + m;
+  // names from where each piece sits on the garment (left = the wearer's left = +x)
+  const totalArea = uniq.reduce((s, p) => s + p.area, 0), big = Math.max(...uniq.map(p => p.area));
+  const used = new Map();
+  const nameOf = p => {
+    const [x0, y0, z0] = p.c, share = p.area / big;
+    let n;
+    if (share > 0.45 && Math.abs(x0) < 0.4) n = y0 > 1.2 ? 'Hood' : z0 >= 0 ? 'Front' : 'Back';
+    else if (share > 0.25 && y0 > 1.15 && Math.abs(x0) < 0.5) n = 'Hood';
+    else if (share > 0.1 && Math.abs(x0) > 0.45) n = x0 > 0 ? 'Left sleeve' : 'Right sleeve';
+    else if (Math.abs(x0) > 0.55) n = x0 > 0 ? 'Left cuff' : 'Right cuff';
+    else if (y0 < -1.0) n = 'Hem band';
+    else if (y0 > 1.2) n = 'Collar';
+    else if (z0 > 0 && y0 < 0) n = 'Pocket';
+    else n = 'Trim';
+    const k = (used.get(n) || 0) + 1; used.set(n, k);
+    return k > 1 ? `${n} ${k}` : n;
+  };
+  // outline of each piece: its longest boundary loop, in layout space (x right, y down, 0…1)
+  const toLayout = (p, c, i) => {
+    const lu = uvs[i * 2] - c.u0, lv = vUp ? c.v1 - uvs[i * 2 + 1] : uvs[i * 2 + 1] - c.v0; // distance from the piece's top
+    return [(p.x + lu) / W, (p.y + lv) / H];
+  };
+  pieces = [];
+  uniq.sort((a, b) => b.area - a.area).forEach((p, id) => {
+    for (const c of p.members) for (const i of c.verts) { const [lx, ly] = toLayout(p, c, i); auv[i * 2] = lx; auv[i * 2 + 1] = 1 - ly; }
+    const c = p.members[0], cnt = new Map();
+    for (const t of c.tris) for (let k = 0; k < 3; k++) { const a = idx[t + k], b = idx[t + (k + 1) % 3], key = a < b ? a * 1e7 + b : b * 1e7 + a; const e = cnt.get(key); if (e) e.n++; else cnt.set(key, { n: 1, a, b }); }
+    const next = new Map(); for (const e of cnt.values()) if (e.n === 1) next.set(e.a, e.b);
+    let best = [];
+    const seen = new Set();
+    for (const s0 of next.keys()) { if (seen.has(s0)) continue; const loop = []; let v0 = s0; while (v0 !== undefined && !seen.has(v0)) { seen.add(v0); loop.push(v0); v0 = next.get(v0); } if (loop.length > best.length) best = loop; }
+    const step = Math.max(1, Math.floor(best.length / 160));
+    const outline = best.filter((_, k) => k % step === 0).map(i => toLayout(p, c, i).map(n => +n.toFixed(4)));
+    pieces.push({ id, name: nameOf(p), rect: [p.x / W, p.y / H, p.w / W, p.h / H].map(n => +n.toFixed(4)), outline, area: +(p.area / totalArea).toFixed(4), hidden: p.area / totalArea < 0.004 });
+  });
+  // studio units per layout unit, from 3D area vs flat area, so pattern scale matches the 3D garment
+  const k = Math.sqrt(uniq.reduce((s, p) => s + p.area, 0) / uniq.reduce((s, p) => s + p.uvArea, 0));
+  layout = { aspect: +(W / H).toFixed(4), size: [+(W * k).toFixed(3), +(H * k).toFixed(3)] };
+  log('pattern pieces', pieces.length, pieces.filter(p => !p.hidden).map(p => p.name).join(', '));
+} else log('no UVs: no pattern pieces for this model');
+
 /* 5. Write */
 const doc = new Document(); const buf = doc.createBuffer();
 const acc = (type, arr) => doc.createAccessor().setType(type).setArray(arr).setBuffer(buf);
-const scene = doc.createScene('garment').setExtras({ placements, credit, generator: 'hoodie-studio/tools/prepare-model.mjs' });
+const scene = doc.createScene('garment').setExtras({ placements, pieces, layout, credit, generator: 'hoodie-studio/tools/prepare-model.mjs' });
 const body = doc.createPrimitive()
   .setAttribute('POSITION', acc('VEC3', Float32Array.from(pos)))
   .setAttribute('NORMAL', acc('VEC3', Float32Array.from(nrm)))
   .setAttribute('COLOR_0', acc('VEC3', col))
   .setIndices(acc('SCALAR', Uint32Array.from(idx)));
+if (pieces) body.setAttribute('TEXCOORD_0', acc('VEC2', auv));
 scene.addChild(doc.createNode('body').setMesh(doc.createMesh('body').addPrimitive(body)));
 for (const [key, d] of Object.entries(decals)) {
   const prim = doc.createPrimitive()

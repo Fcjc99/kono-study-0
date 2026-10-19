@@ -10,6 +10,7 @@ Open `index.html` through any static server, for example `npx serve hoodie-studi
 - A floating, realistic hoodie built from a real garment model. Orbit, pan and zoom it, or jump to the Front, Back, Left or Right view.
 - Colourways and a custom colour. Per-part colours only appear for models that come in separate parts.
 - All-over patterns (repeat prints): stripes, pinstripe, Breton, plaid, gingham, check, dots, chevron, waves, camo and heather, or upload your own tile. You can set the pattern colour, scale and angle.
+- A 2D pattern-pieces view, like Fabra's, for garments that have a flat layout (the tee and the crewneck). It shows each sewing pattern piece next to the 3D garment. Click a piece in 2D or on the garment to give it its own colour or switch its pattern on or off. Patterns are cut per piece, the way a cut-and-sew garment is.
 - Fabric finishes: fleece, French terry and brushed.
 - Four print areas: front, back, left sleeve and right sleeve. Each one takes text layers (10 fonts, ink colour, size, letter spacing, arc, rotation, outline), built-in graphics and uploaded images.
 - Drag a print directly on the 3D model to move it. Arrow keys nudge it, and Delete removes it.
@@ -20,6 +21,7 @@ Open `index.html` through any static server, for example `npx serve hoodie-studi
 - Each file in `models/` is made from a real garment model in `models-src/` by `tools/prepare-model.mjs`. The script:
   - merges the mesh, squares it up to face forward, scales it into the studio's space and bakes ambient occlusion into vertex colours;
   - precomputes a print surface for the front, back and each sleeve: only the triangles visible from that side, with planar UVs;
+  - for CLO/Style3D exports, extracts the sewing pattern pieces: each panel is one piece and its UVs are the piece laid flat. It merges the inner and outer fabric layers, names each piece from where it sits on the body, and lays the pieces out side by side at their true relative size.
   - quantizes and meshopt-compresses the result to about 7 MB.
 - To rebuild all three models: `cd tools && npm install && npm run models`.
 - To add a garment: run `node prepare-model.mjs <in.glb> ../models/<name>.glb <preset>`, add a preset for its print areas in `PRESETS`, then add it to `PRODUCTS` in `index.html`. Only the geometry is used; any textures baked into the source are dropped.
