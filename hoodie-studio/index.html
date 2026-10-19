@@ -73,6 +73,7 @@ button{cursor:pointer}
 .sw.custom input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .check{display:flex;align-items:center;gap:8px;font-weight:500;margin-top:14px;cursor:pointer}
+.check[hidden]{display:none}
 .check input{width:16px;height:16px;accent-color:var(--accent)}
 .parts[hidden]{display:none}
 .parts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
@@ -137,6 +138,8 @@ button{cursor:pointer}
 .lines .tot{color:var(--ink);font-weight:700;font-size:15px;margin-top:4px}
 .cta{width:100%;border:0;border-radius:999px;background:var(--accent);color:var(--accent-ink);padding:14px;font-weight:700;font-size:15px}
 .cta:active{transform:translateY(1px)}
+.credit{margin:10px 0 0;font-size:11px;line-height:1.4;color:var(--muted)}
+.credit a{color:inherit}
 
 .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;background:var(--accent);color:var(--accent-ink);padding:12px 18px;border-radius:999px;font-weight:600;transition:.25s;pointer-events:none;z-index:50}
 .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -199,7 +202,7 @@ button{cursor:pointer}
     <section class="sec">
       <h2><span><span class="n">01</span></span><b style="flex:1">Colour</b><span id="colorName">Heather Grey</span></h2>
       <div class="swatches" id="swatches"></div>
-      <label class="check"><input type="checkbox" id="byPart"> Colour by part</label>
+      <label class="check" id="byPartRow"><input type="checkbox" id="byPart"> Colour by part</label>
       <div class="parts" id="parts" hidden></div>
     </section>
 
@@ -237,6 +240,7 @@ button{cursor:pointer}
     <div class="buy">
       <div class="lines" id="lines"></div>
       <button class="cta" id="addBag">Add to bag</button>
+      <p class="credit" id="credit" hidden></p>
     </div>
   </aside>
 </main>
@@ -247,6 +251,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 const V3 = THREE.Vector3;
 const TAU = Math.PI * 2;
@@ -471,62 +476,39 @@ let placementFrames = null; // from the GLB: origin, dir, u, v, w, h, targets
 const decals = {};      // placement → { mesh, canvas, tex }
 const MODEL_URL = 'hoodie.glb';
 
-// Projects a placement's print area onto its target meshes: copies the facing triangles and
-// gives them planar UVs, so the print sits on every fold and keeps the baked shading.
-function buildDecal(key) {
+// Each print area ships as its own surface in the model (only the triangles the print can see,
+// with planar UVs); here it just gets a canvas texture to draw the layers into.
+function setupDecal(key, mesh) {
   const F = placementFrames[key];
-  const o = new V3(...F.origin), n = new V3(...F.dir), u = new V3(...F.u), v = new V3(...F.v);
-  const pos = [], nor = [], col = [], uvs = [];
-  const p = new V3(), q = new V3(), fn = new V3();
-  for (const name of F.targets) {
-    // attributes may be interleaved, so read them through the attribute accessors
-    const g = parts[name].geometry, PA = g.attributes.position, NA = g.attributes.normal, CA = g.attributes.color, I = g.index.array;
-    for (let t = 0; t < I.length; t += 3) {
-      fn.set(0, 0, 0);
-      let inside = true;
-      for (let k = 0; k < 3; k++) {
-        const i = I[t + k];
-        p.fromBufferAttribute(PA, i).sub(o);
-        if (Math.abs(p.dot(u)) > F.w * 0.56 || Math.abs(p.dot(v)) > F.h * 0.56 || p.dot(n) < 0) inside = false;
-        fn.add(q.fromBufferAttribute(NA, i));
-      }
-      if (!inside || fn.normalize().dot(n) < 0.12) continue;
-      for (let k = 0; k < 3; k++) {
-        const i = I[t + k];
-        q.fromBufferAttribute(NA, i);
-        p.fromBufferAttribute(PA, i).addScaledVector(q, 0.0025);
-        pos.push(p.x, p.y, p.z); nor.push(q.x, q.y, q.z); col.push(CA.getX(i), CA.getY(i), CA.getZ(i));
-        p.sub(o);
-        uvs.push(p.dot(u) / F.w + 0.5, p.dot(v) / F.h + 0.5);
-      }
-    }
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   const canvas = document.createElement('canvas');
   canvas.width = 1024; canvas.height = Math.round(1024 * F.h / F.w);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  const mat = withKnit(new THREE.MeshPhysicalMaterial({
+  mesh.material = withKnit(new THREE.MeshPhysicalMaterial({
     map: tex, transparent: true, vertexColors: true, roughness: 0.8, sheen: 0.4, sheenRoughness: 0.6,
     polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, depthWrite: false, envMapIntensity: 0.75,
   }), { strength: 0.25 });
-  const mesh = new THREE.Mesh(geo, mat);
   mesh.receiveShadow = true;
   mesh.renderOrder = 2;
   hoodie.add(mesh);
   decals[key] = { mesh, canvas, tex };
 }
 
+function showCredit(c) {
+  if (!c || !c.author) return;
+  const el = $('#credit'), link = (c.source || '').match(/https?:\/\/\S+/)?.[0], who = c.author.replace(/\s*\(.*\)\s*$/, '');
+  el.innerHTML = `3D model: <a href="${esc(link || '#')}" target="_blank" rel="noopener">“${esc(c.title || 'Untitled')}”</a> by ${esc(who)}, licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Rescaled, recoloured and shaded for this studio.`;
+  el.hidden = false;
+}
 function loadModel() {
-  new GLTFLoader().load(MODEL_URL, gltf => {
+  new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(MODEL_URL, gltf => {
     placementFrames = gltf.scene.userData.placements;
+    for (const F of Object.values(placementFrames)) F.targets ??= ['body'];
+    showCredit(gltf.scene.userData.credit);
     const list = [];
     gltf.scene.traverse(o => { if (o.isMesh) list.push(o); });
     for (const m of list) {
+      if (m.name.startsWith('print_')) { setupDecal(m.name.slice(6), m); continue; }
       const key = PART_MAT[m.name]; if (!key) continue;
       m.material = mats[key];
       m.castShadow = m.receiveShadow = true;
@@ -538,8 +520,9 @@ function loadModel() {
         hoodie.add(inner);
       }
     }
-    for (const k of Object.keys(PLACEMENTS)) buildDecal(k);
-    applyColors(); applyFabric(); invalidate();
+    $('#byPartRow').hidden = !parts.sleeveL;
+    if (!parts.sleeveL) state.byPart = false;
+    applyColors(); applyFabric(); invalidate(); renderColor();
     $('#loading').remove();
   }, undefined, err => {
     console.error(err);

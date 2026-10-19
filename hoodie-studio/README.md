@@ -5,8 +5,8 @@ A standalone 3D product customizer for a pullover hoodie. It's one HTML page plu
 Open `index.html` through any static server, for example `npx serve hoodie-studio`. It is separate from the KONO app and is not part of the Vite build.
 
 ## What it does
-- A floating, cloth-simulated hoodie with a hood, lining, drawstrings, kangaroo pocket, ribbed cuffs and hem. Orbit, pan and zoom it, or jump to the Front, Back, Left or Right view.
-- Colourways, plus per-part colours (body, sleeves, hood, trims, lining, drawstrings).
+- A floating, realistic hoodie built from a real garment model. Orbit, pan and zoom it, or jump to the Front, Back, Left or Right view.
+- Colourways and a custom colour. Per-part colours only appear for models that come in separate parts.
 - Fabric finishes: fleece, French terry and brushed.
 - Four print areas: front, back, left sleeve and right sleeve. Each one takes text layers (10 fonts, ink colour, size, letter spacing, arc, rotation, outline), built-in graphics and uploaded images.
 - Drag a print directly on the 3D model to move it. Arrow keys nudge it, and Delete removes it.
@@ -14,12 +14,15 @@ Open `index.html` through any static server, for example `npx serve hoodie-studi
 - The design is saved to localStorage.
 
 ## How it works
-- `hoodie.glb` is the garment, built by `tools/build-hoodie.mjs`. The builder:
-  - shapes the hoodie around an invisible mannequin;
-  - runs a cloth simulation so gravity forms the drape, the gathers above the rib bands and the folds in the sleeves and hood;
-  - sinks the seams and adds the rib bands, hood rim, drawstrings and kangaroo pocket;
-  - bakes ambient occlusion into vertex colours.
-- To rebuild the model: `cd tools && npm install && npm run build`. It takes about 1.5 minutes.
-- The print areas (front, back and both sleeves) are stored in the GLB's scene extras. The studio projects each one onto the folded surface, so prints follow the fabric.
+- `hoodie.glb` is made from a real garment model, `models-src/hoodie-sweatshirt-melatmod.glb`, by `tools/prepare-model.mjs`. The script:
+  - merges the mesh, scales it into the studio's space and bakes ambient occlusion into vertex colours;
+  - precomputes a print surface for the front, back and each sleeve: only the triangles visible from that side, with planar UVs;
+  - quantizes and meshopt-compresses the result to about 7 MB.
+- To rebuild the model: `cd tools && npm install && npm run model`.
+- To swap in another garment, point the script at a different GLB. You may need to adjust the placement frames near the top of step 4 to suit its shape.
 - The knit texture is applied in the shader by triplanar bump mapping, so the garment needs no UV unwrap.
-- To use a different model, such as one from Sketchfab or CLO, export it with mesh names that match `PART_MAT` in `index.html` and add the `placements` extras.
+
+## Credits
+The 3D models are licensed CC BY 4.0, and the studio page shows the credit for the model in use.
+- Hoodie: ["Hoodie Sweatshirt"](https://sketchfab.com/3d-models/hoodie-sweatshirt-d1b0dc66056b4ea7bc616b0d3bb7cf22) by melatmod. Rescaled, recoloured and shaded with baked ambient occlusion for this studio.
+- T-shirt (not used yet): ["T Shirt"](https://sketchfab.com/3d-models/t-shirt-c1a3e5eb9b5445f4b7d4be82f1127eba) by funlab117.

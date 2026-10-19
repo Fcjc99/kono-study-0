@@ -2,9 +2,14 @@
   "name": "hoodie-model-builder",
   "private": true,
   "type": "module",
-  "scripts": { "build": "node build-hoodie.mjs" },
+  "scripts": {
+    "model": "node prepare-model.mjs ../models-src/hoodie-sweatshirt-melatmod.glb"
+  },
   "devDependencies": {
     "@gltf-transform/core": "4.1.1",
+    "@gltf-transform/extensions": "^4.1.1",
+    "@gltf-transform/functions": "^4.1.1",
+    "meshoptimizer": "^0.21.0",
     "three": "0.160.0",
     "three-mesh-bvh": "0.7.8"
   }
