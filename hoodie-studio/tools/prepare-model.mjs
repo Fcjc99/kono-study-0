@@ -32,10 +32,10 @@ const PRESETS = {
   polo: { minPieceTris: 250, dropInner: true, front: [0.5, 1.0, 1.0], back: [0.5, 1.1, 1.3], sleeve: { x: 0.43, y: 0.95, lean: 0.9, w: 0.4, h: 0.32 } },
   tank: { front: [0.4, 0.9, 1.0], back: [0.4, 0.9, 1.2], areas: ['front', 'back'], rename: { 'Left cuff': 'Left armhole binding', 'Right cuff': 'Right armhole binding', Collar: 'Neck binding', 'Collar 2': 'Neck binding 2' } },
   // Team kits: top and bottom stay separate parts; `leg` is a print on the shorts' left leg
-  basketball: { parts: [['jersey', /1001/], ['shorts', /1002/]], segment: 'kit', aoTwoSided: true, front: [0.95, 0.85, 0.8], back: [0.95, 0.9, 0.9], leg: { x: 0.28, y: -0.35, w: 0.45, h: 0.55 }, areas: ['front', 'back', 'left'] },
-  soccer: { parts: [['jersey', /1001/], ['shorts', /1002/]], segment: 'kit', aoTwoSided: true, front: [1.05, 0.85, 0.75], back: [1.05, 0.9, 0.85], leg: { x: 0.24, y: 0.4, w: 0.35, h: 0.35 }, areas: ['front', 'back', 'left'] },
+  basketball: { parts: [['jersey', /1001/], ['shorts', /1002/]], segment: 'kit', aoTwoSided: true, recomputeNormals: true, fillHoles: true, front: [0.95, 0.85, 0.8], back: [0.95, 0.9, 0.9], leg: { x: 0.28, y: -0.35, w: 0.45, h: 0.55 }, areas: ['front', 'back', 'left'] },
+  soccer: { parts: [['jersey', /1001/], ['shorts', /1002/]], segment: 'kit', aoTwoSided: true, recomputeNormals: true, fillHoles: true, front: [1.05, 0.85, 0.75], back: [1.05, 0.9, 0.85], leg: { x: 0.24, y: 0.4, w: 0.35, h: 0.35 }, areas: ['front', 'back', 'left'] },
   // two-garment set: pieces are grouped into zones by height (jacket above the waist, shorts below)
-  trackset: { zones: { split: -0.15, upper: 'Jacket', lower: 'Shorts' }, hideBelow: 0.008, front: [0.9, 0.9, 0.9], back: [0.9, 1.0, 1.1], sleeve: { x: 0.42, y: 0.6, lean: 0.25, w: 0.9, h: 0.36 } },
+  trackset: { zones: { split: -0.15, upper: 'Jacket', lower: 'Shorts' }, hideBelow: 0.008, squareFrom: 'lower', front: [0.9, 0.9, 0.9], back: [0.9, 1.0, 1.1], sleeve: { x: 0.42, y: 0.6, lean: 0.25, w: 0.9, h: 0.36 } },
   ball: { group: /var1/, pieces: false, keepUV: true, normalMap: 'golf-ball-dimples-normal.jpg', yaw: 0, fitMax: 2.6, front: [0.15, 1.8, 1.8], back: [0.15, 1.8, 1.8], areas: ['front', 'back'] },
 };
 const PR = PRESETS[presetName];
@@ -119,6 +119,91 @@ for (const node of isOBJ ? [] : src.getRoot().listNodes()) {
 while (triPart.length < idx.length / 3) triPart.push(0); // OBJ input: one part
 log('merged', pos.length / 3, 'verts', idx.length / 3, 'tris');
 
+/* 1y. Patch pinholes: the source can be missing single quads, which show as dark specks (you see the
+   inside of the garment through them). Fill every boundary loop of up to 8 edges. */
+if (PR.fillHoles) {
+  const key = new Map(), weld = new Int32Array(pos.length / 3);
+  for (let i = 0; i < weld.length; i++) { const k = `${pos[i * 3].toFixed(6)},${pos[i * 3 + 1].toFixed(6)},${pos[i * 3 + 2].toFixed(6)}`; let r = key.get(k); if (r === undefined) key.set(k, r = i); weld[i] = r; }
+  const edges = new Map();
+  for (let t = 0; t < idx.length; t += 3) for (let k = 0; k < 3; k++) {
+    const a = weld[idx[t + k]], b = weld[idx[t + (k + 1) % 3]], e = a < b ? a * 4194304 + b : b * 4194304 + a;
+    const o = edges.get(e); if (o) o.n++; else edges.set(e, { n: 1, a, b, t });
+  }
+  const next = new Map(), edgeTri = new Map();
+  for (const o of edges.values()) if (o.n === 1) { next.set(o.a, o.b); edgeTri.set(o.a, o.t); }
+  const seen = new Set();
+  let filled = 0;
+  for (const s0 of next.keys()) {
+    if (seen.has(s0)) continue;
+    const loop = []; let v = s0;
+    while (v !== undefined && !seen.has(v) && loop.length < 9) { seen.add(v); loop.push(v); v = next.get(v); }
+    if (v !== s0 || loop.length < 3 || loop.length > 8) continue;
+    // a boundary walked in the faces' own direction is filled in reverse, so the patch matches its neighbours
+    const part = triPart[edgeTri.get(loop[0]) / 3];
+    for (let k = 1; k + 1 < loop.length; k++) { idx.push(loop[0], loop[k + 1], loop[k]); triPart.push(part); }
+    filled++;
+  }
+  log('filled', filled, 'pinholes');
+}
+
+/* 1z. Some exports have vertex normals that point against their own triangles; with double-sided
+   rendering those light up dark (small diamonds around each vertex). Turn each normal to agree
+   with the faces around it. */
+{
+  const acc = new Float64Array(nrm.length), A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3();
+  for (let t = 0; t < idx.length; t += 3) {
+    A.fromArray(pos, idx[t] * 3); B.fromArray(pos, idx[t + 1] * 3).sub(A); C.fromArray(pos, idx[t + 2] * 3).sub(A); B.cross(C);
+    for (let k = 0; k < 3; k++) { const i = idx[t + k]; acc[i * 3] += B.x; acc[i * 3 + 1] += B.y; acc[i * 3 + 2] += B.z; }
+  }
+  let flipped = 0;
+  for (let i = 0; i < nrm.length; i += 3) if (nrm[i] * acc[i] + nrm[i + 1] * acc[i + 1] + nrm[i + 2] * acc[i + 2] < 0) { nrm[i] *= -1; nrm[i + 1] *= -1; nrm[i + 2] *= -1; flipped++; }
+  if (flipped) log('turned', flipped, 'normals to match their faces');
+  // …and the odd triangle wound backwards (lit as the back of the fabric) is turned to match its normals
+  let rewound = 0;
+  for (let t = 0; t < idx.length; t += 3) {
+    A.fromArray(pos, idx[t] * 3); B.fromArray(pos, idx[t + 1] * 3).sub(A); C.fromArray(pos, idx[t + 2] * 3).sub(A); B.cross(C);
+    let d = 0; for (let k = 0; k < 3; k++) { const i = idx[t + k] * 3; d += B.x * nrm[i] + B.y * nrm[i + 1] + B.z * nrm[i + 2]; }
+    if (d < 0) { [idx[t + 1], idx[t + 2]] = [idx[t + 2], idx[t + 1]]; rewound++; }
+  }
+  if (rewound) log('rewound', rewound, 'backwards triangles');
+  if (PR.recomputeNormals) {
+    // the source normals are unreliable here: rebuild smooth ones from the surface itself
+    const key = new Map(), weld = new Int32Array(pos.length / 3), sum = new Float64Array(pos.length);
+    for (let i = 0; i < weld.length; i++) { const k = `${pos[i * 3].toFixed(6)},${pos[i * 3 + 1].toFixed(6)},${pos[i * 3 + 2].toFixed(6)}`; let r = key.get(k); if (r === undefined) key.set(k, r = i); weld[i] = r; }
+    // Cloth-sim crumples (a quad folded over on itself) shade as dark diamonds. Find vertices whose
+    // surrounding faces point in clearly different directions and relax them into their neighbours.
+    const nb = new Map(), faces = new Map();
+    for (let t = 0; t < idx.length; t += 3) for (let k = 0; k < 3; k++) {
+      const a = weld[idx[t + k]], b = weld[idx[t + (k + 1) % 3]];
+      (nb.get(a) || nb.set(a, new Set()).get(a)).add(b); (nb.get(b) || nb.set(b, new Set()).get(b)).add(a);
+      (faces.get(a) || faces.set(a, []).get(a)).push(t);
+    }
+    const fN = t => { A.fromArray(pos, idx[t] * 3); B.fromArray(pos, idx[t + 1] * 3).sub(A); C.fromArray(pos, idx[t + 2] * 3).sub(A); return B.cross(C).normalize().clone(); };
+    let relaxed = 0;
+    for (let pass = 0; pass < 4; pass++) {
+      const moves = [];
+      for (const [r, fs] of faces) {
+        if (fs.length < 3) continue; // open edges
+        const ns = fs.map(fN), avg = ns.reduce((acc, n) => acc.add(n), new THREE.Vector3()).normalize();
+        if (Math.min(...ns.map(n => n.dot(avg))) > 0.2) continue; // smooth enough
+        let x = 0, y = 0, z = 0; for (const q of nb.get(r)) { x += pos[q * 3]; y += pos[q * 3 + 1]; z += pos[q * 3 + 2]; }
+        const n = nb.get(r).size; moves.push([r, x / n, y / n, z / n]);
+      }
+      for (const [r, x, y, z] of moves) { pos[r * 3] = x; pos[r * 3 + 1] = y; pos[r * 3 + 2] = z; }
+      relaxed += moves.length;
+      if (!moves.length) break;
+    }
+    for (let i = 0; i < weld.length; i++) if (weld[i] !== i) for (let j = 0; j < 3; j++) pos[i * 3 + j] = pos[weld[i] * 3 + j];
+    log('relaxed', relaxed, 'crumpled vertices');
+    for (let t = 0; t < idx.length; t += 3) {
+      A.fromArray(pos, idx[t] * 3); B.fromArray(pos, idx[t + 1] * 3).sub(A); C.fromArray(pos, idx[t + 2] * 3).sub(A); B.cross(C);
+      for (let k = 0; k < 3; k++) { const r = weld[idx[t + k]]; sum[r * 3] += B.x; sum[r * 3 + 1] += B.y; sum[r * 3 + 2] += B.z; }
+    }
+    for (let i = 0; i < weld.length; i++) { const r = weld[i], l = Math.hypot(sum[r * 3], sum[r * 3 + 1], sum[r * 3 + 2]) || 1; nrm[i * 3] = sum[r * 3] / l; nrm[i * 3 + 1] = sum[r * 3 + 1] / l; nrm[i * 3 + 2] = sum[r * 3 + 2] / l; }
+    log('rebuilt smooth normals');
+  }
+}
+
 /* 1-kit. Team kits come as two meshes (top, bottom) that each hold several sewn parts.
    Split them into colourable regions by connected part, and drop doubled fabric layers. */
 if (PR.segment === 'kit') {
@@ -155,8 +240,36 @@ if (PR.segment === 'kit') {
   for (const c of list) if (!drop.has(c) && !c.socks && (!largest[c.src] || c.tris.length > largest[c.src].tris.length)) largest[c.src] = c;
   PART_NAMES = ['jersey', 'jerseyTrim', 'shorts', 'shortsTrim', 'socks'];
   const name = c => c.socks ? 'socks' : srcName(c) === 'jersey' ? (c === largest[c.src] ? 'jersey' : 'jerseyTrim') : (c === largest[c.src] ? 'shorts' : 'shortsTrim');
+  // Anything tucked inside the shorts (the jersey hem, sock tops) pokes through the fabric as dark
+  // specks. Drop triangles of other parts whose way out (radially, away from the body) hits the shorts.
+  const shortsTris = [];
+  for (const c of list) if (!drop.has(c) && !c.socks && srcName(c) === 'shorts') for (const t of c.tris) shortsTris.push(t);
+  const sg = new THREE.BufferGeometry(), sp = [];
+  let cx = 0, cz = 0, sy1 = -Infinity;
+  for (const t of shortsTris) for (let k = 0; k < 3; k++) { const i = idx[t + k]; sp.push(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]); cx += pos[i * 3]; cz += pos[i * 3 + 2]; sy1 = Math.max(sy1, pos[i * 3 + 1]); }
+  cx /= sp.length / 3; cz /= sp.length / 3;
+  sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
+  const sbvh = new MeshBVH(sg), r = new THREE.Ray();
+  const hidden = t => {
+    let x = 0, y = 0, z = 0; for (let k = 0; k < 3; k++) { const i = idx[t + k]; x += pos[i * 3]; y += pos[i * 3 + 1]; z += pos[i * 3 + 2]; }
+    x /= 3; y /= 3; z /= 3;
+    if (y > sy1) return false;
+    const dx = x - cx, dz = z - cz, l = Math.hypot(dx, dz) || 1;
+    r.origin.set(x, y, z); r.direction.set(dx / l, 0, dz / l);
+    const h = sbvh.raycastFirst(r, THREE.DoubleSide, 0, 0.3 * H);
+    return !!h && h.distance > 1e-5;
+  };
+  let clipped = 0;
   const I2 = [], P2 = [];
-  for (const c of list) { if (drop.has(c)) continue; const k = PART_NAMES.indexOf(name(c)); for (const t of c.tris) { I2.push(idx[t], idx[t + 1], idx[t + 2]); P2.push(k); } }
+  for (const c of list) {
+    if (drop.has(c)) continue;
+    const k = PART_NAMES.indexOf(name(c)), tucked = srcName(c) !== 'shorts' || c.socks;
+    for (const t of c.tris) {
+      if (tucked && hidden(t)) { clipped++; continue; }
+      I2.push(idx[t], idx[t + 1], idx[t + 2]); P2.push(k);
+    }
+  }
+  log('clipped', clipped, 'triangles tucked inside the shorts');
   idx.length = 0; for (const x of I2) idx.push(x);
   triPart.length = 0; for (const x of P2) triPart.push(x);
   const counts = PART_NAMES.map((n, k) => `${n}:${P2.filter(x => x === k).length}`);
@@ -171,6 +284,11 @@ if (PR.minPieceTris) {
   for (let t = 0; t < idx.length; t += 3) { par[find(idx[t + 1])] = find(idx[t]); par[find(idx[t + 2])] = find(idx[t]); }
   const count = new Map();
   for (let t = 0; t < idx.length; t += 3) { const r = find(idx[t]); count.set(r, (count.get(r) || 0) + 1); }
+  if (process.env.DEBUG_DROP) {
+    const info = new Map();
+    for (let t = 0; t < idx.length; t += 3) { const r = find(idx[t]); const c = count.get(r); if (c < PR.minPieceTris && c >= 20) { let o = info.get(r); if (!o) info.set(r, o = { n: c, mn: [9, 9, 9], mx: [-9, -9, -9] }); for (let k = 0; k < 3; k++) for (let j = 0; j < 3; j++) { o.mn[j] = Math.min(o.mn[j], pos[idx[t + k] * 3 + j]); o.mx[j] = Math.max(o.mx[j], pos[idx[t + k] * 3 + j]); } } }
+    for (const o of [...info.values()].sort((a, b) => b.n - a.n).slice(0, 40)) console.log('drop?', o.n, 'size', o.mx.map((x, j) => (x - o.mn[j]).toFixed(3)).join('x'), 'y', o.mn[1].toFixed(3), o.mx[1].toFixed(3));
+  }
   const keepT = [], keepP = [];
   for (let t = 0; t < idx.length; t += 3) if (count.get(find(idx[t])) >= PR.minPieceTris) { keepT.push(idx[t], idx[t + 1], idx[t + 2]); keepP.push(triPart[t / 3]); }
   const map = new Int32Array(nv).fill(-1), P2 = [], N2 = [], U2 = [];
@@ -258,11 +376,14 @@ if (PR.zUp) for (const arr of [pos, nrm]) for (let i = 0; i < arr.length; i += 3
 
 /* 2a. Square the garment up: its widest horizontal direction (the shoulder line) becomes x */
 {
-  let mx = 0, mz = 0; const n = pos.length / 3;
-  for (let i = 0; i < pos.length; i += 3) { mx += pos[i]; mz += pos[i + 2]; }
+  // `squareFrom: 'lower'` uses only the bottom third (e.g. shorts), when a raised arm would skew the top
+  let y0s = Infinity, y1s = -Infinity; for (let i = 1; i < pos.length; i += 3) { y0s = Math.min(y0s, pos[i]); y1s = Math.max(y1s, pos[i]); }
+  const use = i => PR.squareFrom !== 'lower' || pos[i + 1] < y0s + (y1s - y0s) * 0.33;
+  let mx = 0, mz = 0, n = 0;
+  for (let i = 0; i < pos.length; i += 3) if (use(i)) { mx += pos[i]; mz += pos[i + 2]; n++; }
   mx /= n; mz /= n;
   let sxx = 0, szz = 0, sxz = 0;
-  for (let i = 0; i < pos.length; i += 3) { const x = pos[i] - mx, z = pos[i + 2] - mz; sxx += x * x; szz += z * z; sxz += x * z; }
+  for (let i = 0; i < pos.length; i += 3) if (use(i)) { const x = pos[i] - mx, z = pos[i + 2] - mz; sxx += x * x; szz += z * z; sxz += x * z; }
   const yaw = PR.yaw !== undefined ? PR.yaw * Math.PI / 180 : 0.5 * Math.atan2(2 * sxz, sxx - szz) + (PR.yawOffset || 0) * Math.PI / 180; // angle of the principal axis from +x
   if (Math.abs(yaw) > 0.02) {
     const c = Math.cos(yaw), s = Math.sin(yaw);
@@ -396,10 +517,67 @@ if (hasUV && PR.pieces !== false) {
   // studio units per layout unit, from 3D area vs flat area, so pattern scale matches the 3D garment
   const k = Math.sqrt(uniq.reduce((s, p) => s + p.area, 0) / uniq.reduce((s, p) => s + p.uvArea, 0));
   if (process.env.DEBUG_PIECES) for (const p of uniq.slice().sort((a, b) => b.area - a.area).slice(0, 15)) log('group', p.members.length, 'members', p.members.map(c => `${c.tris.length}t a=${c.area.toFixed(3)} c=${c.c.map(x => x.toFixed(2))}`).join(' | '));
+  if (PR.mirrorUpper) {
+    // Re-pose by symmetry: the top's right side hangs relaxed, so rebuild its left side as the mirror
+    // of the right, panel by panel through the flat pattern (each left piece takes its twin's shape).
+    const jp = uniq.filter(p => zoneOf(p) === PR.zones.upper);
+    const back = jp.filter(p => p.c[2] < 0).sort((a, b) => b.area - a.area)[0];
+    const cx = back.c[0], orig = Float64Array.from(pos), on = Float64Array.from(nrm);
+    const local = (c, i) => [(uvs[i * 2] - c.u0) / c.w, (uvs[i * 2 + 1] - c.v0) / c.h];
+    const G = 48;
+    const gridOf = c => {
+      const cells = new Map();
+      for (const i of c.verts) { const [a, b] = local(c, i); const k = Math.min(G - 1, Math.floor(a * G)) * G + Math.min(G - 1, Math.floor(b * G)); (cells.get(k) || cells.set(k, []).get(k)).push(i); }
+      return (a, b) => {
+        const ga = Math.min(G - 1, Math.max(0, Math.floor(a * G))), gb = Math.min(G - 1, Math.max(0, Math.floor(b * G)));
+        for (let r = 0; r < G; r++) {
+          let best = -1, bd = Infinity;
+          for (let da = -r; da <= r; da++) for (let db = -r; db <= r; db++) {
+            if (Math.max(Math.abs(da), Math.abs(db)) !== r) continue;
+            for (const j of cells.get((ga + da) * G + (gb + db)) || []) { const [x, y] = local(c, j), d = (x - a) ** 2 + (y - b) ** 2; if (d < bd) { bd = d; best = j; } }
+          }
+          if (best >= 0) return [best, bd];
+        }
+        return [-1, Infinity];
+      };
+    };
+    let moved = 0;
+    for (const p of jp) {
+      const side = p.c[0] - cx;
+      let q = p, self = Math.abs(side) < 0.06;
+      if (!self && side < 0) continue; // the right side is the model
+      if (!self) q = jp.filter(o => o.c[0] - cx < -0.06).map(o => ({ o, s: 2 * (Math.abs(o.w - p.w) / p.w + Math.abs(o.h - p.h) / p.h) + 0.3 * Math.hypot(2 * cx - p.c[0] - o.c[0], p.c[1] - o.c[1], p.c[2] - o.c[2]) }))
+        .sort((a, b) => a.s - b.s)[0]?.o;
+      if (!q) continue;
+      p.members.forEach((pm, mi) => {
+        const qm = q.members[Math.min(mi, q.members.length - 1)], find = gridOf(qm);
+        // is the twin mirrored in the flat layout? pick the mapping that fits better
+        let flip = true;
+        if (!self) {
+          let e0 = 0, e1 = 0, n = 0;
+          for (const i of pm.verts) { if (n++ > 300) break; const [a, b] = local(pm, i); e0 += find(a, b)[1]; e1 += find(1 - a, b)[1]; }
+          flip = e1 < e0;
+        }
+        for (const i of pm.verts) {
+          if (self && orig[i * 3] <= cx) continue;
+          const [a, b] = local(pm, i), [j] = find(flip ? 1 - a : a, b);
+          if (j < 0) continue;
+          pos[i * 3] = 2 * cx - orig[j * 3]; pos[i * 3 + 1] = orig[j * 3 + 1]; pos[i * 3 + 2] = orig[j * 3 + 2];
+          nrm[i * 3] = -on[j * 3]; nrm[i * 3 + 1] = on[j * 3 + 1]; nrm[i * 3 + 2] = on[j * 3 + 2];
+          moved++;
+        }
+      });
+    }
+    geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx);
+    bvh = new MeshBVH(geo);
+    log('mirrored', moved, 'vertices of the', PR.zones.upper.toLowerCase(), 'into a relaxed pose');
+  }
   if (PR.dropInner) {
     // "thick" CLO exports carry an inner fabric layer that pokes through the outer one: keep the outer only
     const drop = new Set();
-    for (const p of uniq) for (const c of p.members.slice(1)) for (const t of c.tris) drop.add(t);
+    // only big body panels: on collars and plackets both layers show (outer collar and under-collar)
+    const biggest = Math.max(...uniq.map(p => p.area));
+    for (const p of uniq) if (p.area > 0.2 * biggest) for (const c of p.members.slice(1)) for (const t of c.tris) drop.add(t);
     const I2 = [], P2 = [];
     for (let t = 0; t < idx.length; t += 3) if (!drop.has(t)) { I2.push(idx[t], idx[t + 1], idx[t + 2]); P2.push(triPart[t / 3]); }
     log('dropped inner layer:', drop.size, 'of', idx.length / 3, 'tris');
@@ -423,7 +601,7 @@ const K = FAST ? 0 : 28, MAXD = 0.5, col = new Float32Array(pos.length);
     let occ = Infinity;
     for (const side of PR.aoTwoSided ? [1, -1] : [1]) {
       n.fromArray(nrm, i * 3).multiplyScalar(side); q.setFromUnitVectors(Z, n);
-      ray.origin.fromArray(pos, i * 3).addScaledVector(n, 0.004);
+      ray.origin.fromArray(pos, i * 3).addScaledVector(n, PR.aoTwoSided ? 0.015 : 0.004);
       let o = 0;
       for (const d of dirs) {
         ray.direction.copy(d).applyQuaternion(q);
@@ -435,6 +613,21 @@ const K = FAST ? 0 : 28, MAXD = 0.5, col = new Float32Array(pos.length);
     col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = K ? Math.min(1, Math.max(0.15, 1 - occ / K * 1.1)) : 1;
     if (i % 50000 === 0) log('ao', i);
   }
+}
+// Remove single-vertex specks (a vertex wedged against another surface reads as a dark diamond):
+// clamp each vertex to its neighbours, then soften once
+if (K) {
+  const nb = Array.from({ length: pos.length / 3 }, () => []);
+  for (let t = 0; t < idx.length; t += 3) for (let k = 0; k < 3; k++) { const a = idx[t + k], b = idx[t + (k + 1) % 3]; nb[a].push(b); nb[b].push(a); }
+  const ao = i => col[i * 3];
+  const next = new Float32Array(pos.length / 3);
+  for (let i = 0; i < next.length; i++) {
+    if (!nb[i].length) { next[i] = ao(i); continue; }
+    const m = nb[i].reduce((s, j) => s + ao(j), 0) / nb[i].length;
+    const v = Math.max(ao(i), m - 0.12); // never much darker than its surroundings
+    next[i] = 0.6 * v + 0.4 * m;
+  }
+  for (let i = 0; i < next.length; i++) col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = next[i];
 }
 log('ao baked');
 

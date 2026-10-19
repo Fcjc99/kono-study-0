@@ -601,6 +601,10 @@ function withKnit(mat, { map = knitHeight, scale = 15, strength = 0.35, ribUV = 
   if (pattern) Object.assign(mat.userData.knit, pattern); // pattern: a slot's uniforms
   mat.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, mat.userData.knit);
+    // Shade by the smooth normal, not the triangle's winding: crumpled cloth-sim triangles would
+    // otherwise light up as the back of the fabric (dark specks). Inside surfaces still read as inside.
+    sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>',
+      THREE.ShaderChunk.normal_fragment_begin.replace('float faceDirection = gl_FrontFacing ? 1.0 : - 1.0;', 'float faceDirection = dot( normalize( vNormal ), vViewPosition ) >= 0.0 ? 1.0 : - 1.0;'));
     sh.vertexShader = 'varying vec3 vObjPos; varying vec3 vObjNrm;\n' + (ribUV ? 'varying vec2 vRibUv;\n' : '') + sh.vertexShader.replace('#include <begin_vertex>',
       '#include <begin_vertex>\n vObjPos = position; vObjNrm = normal;' + (ribUV ? ` vRibUv = uv * vec2(${ribUV[0].toFixed(1)}, ${ribUV[1].toFixed(1)});` : ''));
     let frag = sh.fragmentShader;
@@ -614,7 +618,10 @@ function withKnit(mat, { map = knitHeight, scale = 15, strength = 0.35, ribUV = 
   mat.customProgramCacheKey = () => 'knit' + (ribUV ? ribUV.join('x') : '') + (pattern ? 'pat' : '');
   return mat;
 }
+// shadowSide FrontSide: only the outward face of the fabric casts shadow, so a garment's inner layer
+// can't speckle the outer one where they touch
 const fabric = (extra = {}) => new THREE.MeshPhysicalMaterial({
+  shadowSide: THREE.FrontSide,
   color: 0xffffff, roughness: 0.92, metalness: 0, sheen: 1, sheenRoughness: 0.55, sheenColor: new THREE.Color(0x777777),
   vertexColors: true, envMapIntensity: 0.75, ...extra,
 });
@@ -649,7 +656,7 @@ const PRODUCTS = {
     eyebrow: 'Made to order · 340 gsm loopback cotton', blurb: 'A clean crew with long sleeves and ribbed collar, cuffs and hem.' },
   tee: { label: 'T-shirt', name: 'Heavyweight Tee', crumb: 'T-shirts', price: 32, model: 'models/tee',
     eyebrow: 'Made to order · 240 gsm combed cotton', blurb: 'A boxy, heavyweight tee with a ribbed crew neck.' },
-  trackset: { label: 'Jacket + shorts', name: 'Colour-Block Track Set', crumb: 'Sets', price: 96, model: 'models/trackset',
+  trackset: { group: 'women', label: 'Jacket + shorts', name: "Women's Colour-Block Track Set", crumb: 'Sets', price: 96, model: 'models/trackset', sizes: ['XS', 'S', 'M', 'L', 'XL'],
     eyebrow: 'Made to order · zip jacket + shorts', blurb: 'A long-sleeve zip jacket with matching shorts. Colour the whole jacket or shorts at once, or panel by panel.' },
   basketball: { group: 'men', label: 'Basketball', name: "Men's Basketball Uniform", crumb: 'Uniforms', price: 72, model: 'models/basketball',
     eyebrow: 'Team uniform · jersey + shorts', blurb: 'Breathable mesh jersey and shorts. Colour each separately and add numbers, names and a leg print.', areaLabels: { left: 'Shorts' } },
@@ -726,7 +733,8 @@ async function buildGarment(key) {
     if (KIT_PARTS[m.name]) { // team kit part: its own material and pattern slot
       const slot = makePatternSlot(), mat = withKnit(fabric({ side: THREE.DoubleSide }), { pattern: slot.uniforms });
       (g.kit ||= {})[KIT_PARTS[m.name]] = { mat, slot, mesh: m };
-      m.material = mat; m.castShadow = m.receiveShadow = true;
+      // kits carry a doubled fabric layer that would self-shadow into specks; baked shading gives their depth
+      m.material = mat; m.castShadow = true; m.receiveShadow = false;
       g.parts[m.name] = m; g.meshes.push(m);
       continue;
     }
