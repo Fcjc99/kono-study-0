@@ -246,6 +246,7 @@ button{cursor:pointer}
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const V3 = THREE.Vector3;
 const TAU = Math.PI * 2;
@@ -271,20 +272,19 @@ const FONTS = [
 ];
 const fontInfo = name => FONTS.find(x => x.f === name) || FONTS[0];
 const FABRICS = {
-  fleece: { note: 'Soft brushed back', rough: 0.93, sheen: 1.0, normal: 0.3 },
-  terry: { note: 'Looped, lighter', rough: 0.86, sheen: 0.6, normal: 0.75 },
-  brushed: { note: 'Peached, velvety', rough: 0.98, sheen: 1.0, normal: 0.18, sheenRough: 0.35 },
+  fleece: { note: 'Soft brushed back', rough: 0.93, sheen: 1.0, knit: 0.3 },
+  terry: { note: 'Looped, lighter', rough: 0.86, sheen: 0.6, knit: 0.7 },
+  brushed: { note: 'Peached, velvety', rough: 0.98, sheen: 1.0, knit: 0.12, sheenRough: 0.35 },
 };
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const BASE_PRICE = 68, EXTRA_PLACEMENT = 12;
 
-// Placements: print areas in model units. Torso areas are centred at (u, y);
-// sleeve areas run along the sleeve (w) and around it (h).
+// Print areas. Their position and size on the garment come from the model (scene extras in hoodie.glb).
 const PLACEMENTS = {
-  front: { label: 'Front', kind: 'torso', u: 0.5, y: 0.1, w: 1.15, h: 1.0, view: 'front' },
-  back: { label: 'Back', kind: 'torso', u: 0.0, y: 0.05, w: 1.2, h: 1.2, view: 'back' },
-  left: { label: 'Left sleeve', kind: 'sleeve', side: 1, t: 0.5, w: 1.15, h: 0.42, view: 'left' },
-  right: { label: 'Right sleeve', kind: 'sleeve', side: -1, t: 0.5, w: 1.15, h: 0.42, view: 'right' },
+  front: { label: 'Front', kind: 'torso', view: 'front' },
+  back: { label: 'Back', kind: 'torso', view: 'back' },
+  left: { label: 'Left sleeve', kind: 'sleeve', view: 'left' },
+  right: { label: 'Right sleeve', kind: 'sleeve', view: 'right' },
 };
 
 const star = (n, r1, r2) => {
@@ -399,293 +399,152 @@ const hoodie = new THREE.Group();
 scene.add(hoodie);
 
 /* =====================================================================
-   Procedural fabric normal maps
+   Fabric shading: a fine knit texture applied by triplanar bump mapping,
+   so it works on the simulated garment without UV unwrapping.
    ===================================================================== */
-function heightToNormal(size, hfn, strength) {
-  const h = new Float32Array(size * size);
-  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) h[y * size + x] = hfn(x, y);
+function heightTexture(size, hfn) {
   const c = document.createElement('canvas'); c.width = c.height = size;
-  const ctx = c.getContext('2d'); const img = ctx.createImageData(size, size);
-  const at = (x, y) => h[((y + size) % size) * size + ((x + size) % size)];
+  const ctx = c.getContext('2d'), img = ctx.createImageData(size, size);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
-    let nx = (at(x - 1, y) - at(x + 1, y)) * strength, ny = (at(x, y + 1) - at(x, y - 1)) * strength, nz = 1;
-    const l = Math.hypot(nx, ny, nz); nx /= l; ny /= l; nz /= l;
-    const i = (y * size + x) * 4;
-    img.data[i] = (nx * 0.5 + 0.5) * 255; img.data[i + 1] = (ny * 0.5 + 0.5) * 255; img.data[i + 2] = (nz * 0.5 + 0.5) * 255; img.data[i + 3] = 255;
+    const v = clamp(hfn(x, y), 0, 1) * 255, i = (y * size + x) * 4;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255;
   }
   ctx.putImageData(img, 0, 0);
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  return tex;
-}
-const knitNormal = heightToNormal(128, (x, y) =>
-  0.5 * Math.sin(Math.PI * x / 8) ** 2 + 0.35 * Math.sin(Math.PI * (y + Math.abs((x % 8) - 4)) / 8) ** 2 + Math.random() * 0.18, 1.3);
-const ribNormal = heightToNormal(128, x => Math.sin(Math.PI * x / 8) ** 2 + Math.random() * 0.05, 2.5);
-
-function fabricMaterial(normal, repeat, extra = {}) {
-  const n = normal.clone(); n.needsUpdate = true; n.repeat.set(repeat[0], repeat[1]);
-  return new THREE.MeshPhysicalMaterial({
-    color: 0xffffff, roughness: 0.92, metalness: 0, sheen: 1, sheenRoughness: 0.55,
-    sheenColor: new THREE.Color(0x777777), normalMap: n, normalScale: new THREE.Vector2(0.38, 0.38),
-    envMapIntensity: 0.7, ...extra,
-  });
-}
-
-/* =====================================================================
-   Geometry helpers
-   ===================================================================== */
-// Builds a (cols x rows) parametric surface. Normals come from finite differences of fn,
-// so seams stay smooth; `inside` gives an interior point used to orient the surface outward.
-function gridGeometry(cols, rows, fn, { wrapU = false, inside = null, uvFn = null } = {}) {
-  const count = (cols + 1) * (rows + 1);
-  const pos = new Float32Array(count * 3), nor = new Float32Array(count * 3), uvs = new Float32Array(count * 2);
-  const p = new V3(), a = new V3(), b = new V3(), c = new V3(), d = new V3(), n = new V3(), q = new V3();
-  const e = 1e-3;
-  const normalAt = (u, v) => {
-    const u0 = wrapU ? u - e : Math.max(0, u - e), u1 = wrapU ? u + e : Math.min(1, u + e);
-    fn(u0, v, a); fn(u1, v, b); fn(u, Math.max(0, v - e), c); fn(u, Math.min(1, v + e), d);
-    return n.crossVectors(b.sub(a), d.sub(c));
-  };
-  let sign = 1;
-  if (inside) { fn(0.37, 0.5, p); normalAt(0.37, 0.5); sign = n.dot(p.sub(inside(0.37, 0.5, q))) < 0 ? -1 : 1; }
-  let k = 0;
-  for (let j = 0; j <= rows; j++) {
-    const v = j / rows;
-    for (let i = 0; i <= cols; i++, k++) {
-      const u = i / cols;
-      fn(u, v, p);
-      normalAt(u, v);
-      if (n.lengthSq() < 1e-14) { if (inside) n.copy(p).sub(inside(u, v, q)).multiplyScalar(sign); else n.set(0, 1, 0); }
-      n.normalize().multiplyScalar(sign);
-      pos.set([p.x, p.y, p.z], k * 3); nor.set([n.x, n.y, n.z], k * 3);
-      const t = uvFn ? uvFn(u, v) : [u, v];
-      uvs.set(t, k * 2);
-    }
-  }
-  const idx = [];
-  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-    const A = j * (cols + 1) + i, B = A + 1, C = A + cols + 1, D = C + 1;
-    if (sign > 0) idx.push(A, B, D, A, D, C); else idx.push(A, D, B, A, C, D);
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
-  g.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
-  g.setIndex(idx);
-  return g;
-}
-
-// Superellipse cross-section, parameterised by arc length so prints don't stretch around the body.
-function sectionPoint(phi, n) {
-  const s = Math.sin(phi), c = Math.cos(phi), e = 2 / n;
-  return [Math.sign(s) * Math.abs(s) ** e, Math.sign(c) * Math.abs(c) ** e];
-}
-function buildPhiTable(ratio, n, N = 256) {
-  const M = 1024, cum = new Float64Array(M + 1);
-  let prev = sectionPoint(-Math.PI, n);
-  for (let k = 1; k <= M; k++) {
-    const p = sectionPoint(-Math.PI + TAU * k / M, n);
-    cum[k] = cum[k - 1] + Math.hypot(p[0] - prev[0], (p[1] - prev[1]) * ratio);
-    prev = p;
-  }
-  const total = cum[M], table = new Float32Array(N + 1);
-  for (let i = 0, k = 0; i <= N; i++) {
-    const target = total * i / N;
-    while (k < M - 1 && cum[k + 1] < target) k++;
-    const f = (target - cum[k]) / ((cum[k + 1] - cum[k]) || 1);
-    table[i] = -Math.PI + TAU * (k + f) / M;
-  }
-  return { table, total };
-}
-// A tube whose cross-section changes with height: u wraps around (0 = back, 0.5 = front), v runs up.
-function makeSection({ yb, yt, rows = 96, radii, disp = null }) {
-  const tables = [], totals = [];
-  for (let i = 0; i < rows; i++) {
-    const r = radii(lerp(yb, yt, i / (rows - 1)));
-    const t = buildPhiTable(r.rz / r.rx, r.n); tables.push(t.table); totals.push(t.total);
-  }
-  const N = tables[0].length - 1;
-  const look = (tab, u) => { const f = u * N, i = Math.min(N - 1, Math.floor(f)); return lerp(tab[i], tab[i + 1], f - i); };
-  const rowF = v => { const f = clamp(v, 0, 1) * (rows - 1), i = Math.min(rows - 2, Math.floor(f)); return [i, f - i]; };
-  return {
-    yb, yt,
-    point(u, v, out) {
-      u -= Math.floor(u); v = clamp(v, 0, 1);
-      const y = lerp(yb, yt, v), r = radii(y), [i, f] = rowF(v);
-      const [sx, sz] = sectionPoint(lerp(look(tables[i], u), look(tables[i + 1], u), f), r.n);
-      const w = disp ? 1 + disp(u, y) : 1;
-      return out.set(r.rx * sx * w, y, r.rz * sz * w);
-    },
-    circ(y) { const [i, f] = rowF((y - yb) / (yt - yb)); return lerp(totals[i], totals[i + 1], f) * radii(y).rx; },
-    vOf(y) { return (y - yb) / (yt - yb); },
-  };
-}
-
-/* =====================================================================
-   Hoodie model (all procedural)
-   ===================================================================== */
-const torso = makeSection({
-  yb: -1.04, yt: 1.0,
-  radii(y) {
-    const r = 0.84 + 0.03 * Math.exp(-(((y + 0.8) / 0.17) ** 2)) - 0.05 * smooth(-0.93, -1.04, y);
-    const t = clamp((y - 0.48) / 0.52, 0, 1), s = Math.cbrt(1 - t * t * t);
-    return { rx: smax(r * s, 0.27, 0.003), rz: smax(r * 0.56 * s, 0.24, 0.003), n: lerp(2.6, 2.0, smooth(0.6, 1.0, y)) };
-  },
-  disp: (u, y) => 0.007 * Math.sin(u * TAU * 11 + y * 4) * Math.exp(-(((y + 0.78) / 0.16) ** 2)),
-});
-const band = makeSection({
-  yb: -1.21, yt: -1.0, rows: 6,
-  radii(y) { const r = 0.806 - 0.014 * smooth(-1.14, -1.21, y); return { rx: r, rz: r * 0.57, n: 2.6 }; },
-});
-const torsoInside = (u, v, o) => o.set(0, lerp(torso.yb, torso.yt, v), 0);
-function surfaceNormal(surf, u, v) {
-  const a = surf.point(u - 1e-3, v, new V3()), b = surf.point(u + 1e-3, v, new V3());
-  const c = surf.point(u, v - 1e-3, new V3()), d = surf.point(u, v + 1e-3, new V3());
-  return new V3().crossVectors(b.sub(a), d.sub(c)).normalize();
-}
-
-// --- materials (colours are applied in applyColors) ---
-const TORSO_W = 2048, TORSO_H = 1024, SLEEVE_W = 512, SLEEVE_H = 1024;
-function canvasTexture(w, h) {
-  const c = document.createElement('canvas'); c.width = w; c.height = h;
   const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  t.wrapS = THREE.RepeatWrapping;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
   return t;
 }
-const torsoTex = canvasTexture(TORSO_W, TORSO_H);
-const sleeveTex = { 1: canvasTexture(SLEEVE_W, SLEEVE_H), [-1]: canvasTexture(SLEEVE_W, SLEEVE_H) };
+const knitHeight = heightTexture(128, (x, y) =>
+  0.45 * Math.sin(Math.PI * x / 8) ** 2 + 0.35 * Math.sin(Math.PI * (y + Math.abs((x % 8) - 4)) / 8) ** 2 + Math.random() * 0.2);
+const ribHeight = heightTexture(128, x => Math.sin(Math.PI * x / 8) ** 2 * 0.9 + Math.random() * 0.08);
 
+const KNIT_GLSL = /* glsl */`
+  uniform sampler2D knitMap; uniform float knitScale; uniform float knitStrength;
+  varying vec3 vObjPos; varying vec3 vObjNrm;
+  vec3 knitPerturb(vec3 surfPos, vec3 surfNorm, vec2 dHdxy, float faceDir) {
+    vec3 sx = normalize(dFdx(surfPos)), sy = normalize(dFdy(surfPos));
+    vec3 r1 = cross(sy, surfNorm), r2 = cross(surfNorm, sx);
+    float det = dot(sx, r1) * faceDir;
+    vec3 grad = sign(det) * (dHdxy.x * r1 + dHdxy.y * r2);
+    return normalize(abs(det) * surfNorm - grad);
+  }`;
+// Adds the triplanar knit to a standard/physical material. With `ribUV`, the trims use their UVs instead.
+function withKnit(mat, { map = knitHeight, scale = 15, strength = 0.35, ribUV = null } = {}) {
+  mat.userData.knit = { knitMap: { value: map }, knitScale: { value: scale }, knitStrength: { value: strength } };
+  mat.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, mat.userData.knit);
+    sh.vertexShader = 'varying vec3 vObjPos; varying vec3 vObjNrm;\n' + (ribUV ? 'varying vec2 vRibUv;\n' : '') + sh.vertexShader.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\n vObjPos = position; vObjNrm = normal;' + (ribUV ? ` vRibUv = uv * vec2(${ribUV[0].toFixed(1)}, ${ribUV[1].toFixed(1)});` : ''));
+    sh.fragmentShader = KNIT_GLSL + (ribUV ? '\nvarying vec2 vRibUv;\n' : '\n') + sh.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+      ${ribUV ? 'float hh = texture2D(knitMap, vRibUv).r;' : `
+      vec3 bw = pow(abs(normalize(vObjNrm)), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);
+      float hh = texture2D(knitMap, vObjPos.zy * knitScale).r * bw.x + texture2D(knitMap, vObjPos.xz * knitScale).r * bw.y + texture2D(knitMap, vObjPos.xy * knitScale).r * bw.z;`}
+      normal = knitPerturb(-vViewPosition, normal, vec2(dFdx(hh), dFdy(hh)) * knitStrength, faceDirection);`);
+  };
+  mat.customProgramCacheKey = () => 'knit' + (ribUV ? ribUV.join('x') : '');
+  return mat;
+}
+const fabric = (extra = {}) => new THREE.MeshPhysicalMaterial({
+  color: 0xffffff, roughness: 0.92, metalness: 0, sheen: 1, sheenRoughness: 0.55, sheenColor: new THREE.Color(0x777777),
+  vertexColors: true, envMapIntensity: 0.75, ...extra,
+});
 const mats = {
-  torso: fabricMaterial(knitNormal, [24, 12], { map: torsoTex, side: THREE.DoubleSide }),
-  sleeveL: fabricMaterial(knitNormal, [8, 10], { map: sleeveTex[1], side: THREE.DoubleSide }),
-  sleeveR: fabricMaterial(knitNormal, [8, 10], { map: sleeveTex[-1], side: THREE.DoubleSide }),
-  hood: fabricMaterial(knitNormal, [14, 5]),
-  lining: fabricMaterial(knitNormal, [14, 5], { side: THREE.BackSide, roughness: 1 }),
-  band: fabricMaterial(ribNormal, [8, 1], { side: THREE.DoubleSide }),
-  cuff: fabricMaterial(ribNormal, [2, 1], { side: THREE.DoubleSide }),
-  interior: new THREE.MeshStandardMaterial({ roughness: 1, side: THREE.DoubleSide }),
-  strings: new THREE.MeshStandardMaterial({ roughness: 0.8 }),
-  aglet: new THREE.MeshStandardMaterial({ color: 0xbfbfbf, roughness: 0.3, metalness: 0.9 }),
-  crease: new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }),
+  body: withKnit(fabric()), sleeves: withKnit(fabric()), hood: withKnit(fabric()),
+  hem: withKnit(fabric(), { map: ribHeight, ribUV: [16, 1], strength: 0.9 }),
+  cuff: withKnit(fabric(), { map: ribHeight, ribUV: [6, 1], strength: 0.9 }),
+  rim: withKnit(fabric(), { map: ribHeight, ribUV: [30, 1], strength: 0.4 }),
+  lining: withKnit(fabric({ side: THREE.BackSide, roughness: 1 })),
+  interior: new THREE.MeshStandardMaterial({ side: THREE.BackSide, roughness: 1, vertexColors: true }),
+  strings: new THREE.MeshStandardMaterial({ roughness: 0.75, vertexColors: true }),
+  aglet: new THREE.MeshStandardMaterial({ color: 0xc9c9c9, roughness: 0.28, metalness: 0.9 }),
 };
-mats.pocket = mats.torso.clone();
-Object.assign(mats.pocket, { side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-const fabricMats = ['torso', 'pocket', 'sleeveL', 'sleeveR', 'hood', 'lining', 'band', 'cuff'];
+const fabricMats = ['body', 'sleeves', 'hood', 'hem', 'cuff', 'rim', 'lining'];
+// GLB node name → material key and colour role
+const PART_MAT = { body: 'body', pocket: 'body', sleeveL: 'sleeves', sleeveR: 'sleeves', hood: 'hood', hem: 'hem', cuffL: 'cuff', cuffR: 'cuff', hoodRim: 'rim', stringL: 'strings', stringR: 'strings', agletL: 'aglet', agletR: 'aglet' };
+const INTERIOR = { body: 'interior', sleeveL: 'interior', sleeveR: 'interior', hood: 'lining' };
 
-function addMesh(geo, mat, { shadow = true } = {}) {
-  const m = new THREE.Mesh(geo, mat);
-  m.castShadow = shadow; m.receiveShadow = true;
-  hoodie.add(m);
-  return m;
-}
+/* =====================================================================
+   Loading the garment model
+   ===================================================================== */
+const parts = {};       // name → mesh
+let placementFrames = null; // from the GLB: origin, dir, u, v, w, h, targets
+const decals = {};      // placement → { mesh, canvas, tex }
+const MODEL_URL = 'hoodie.glb';
 
-// Torso + waistband
-const torsoMesh = addMesh(gridGeometry(160, 120, torso.point, { wrapU: true, inside: torsoInside }), mats.torso);
-addMesh(gridGeometry(160, 6, band.point, { wrapU: true, inside: (u, v, o) => o.set(0, -1.1, 0) }), mats.band);
-// Neck cap (seen through the hood opening)
-const neckCap = new THREE.Mesh(new THREE.CircleGeometry(1, 40), mats.interior);
-neckCap.rotation.x = -Math.PI / 2; neckCap.scale.set(0.27, 0.24, 1); neckCap.position.y = 0.992;
-hoodie.add(neckCap);
-
-// Kangaroo pocket: a puffed patch on the torso that shares the torso's UVs,
-// so a front print flows across it seamlessly.
-const POCKET = { y0: -0.9, y1: -0.36 };
-const pocketHalf = t => 0.068 + 0.044 * Math.cos(t * Math.PI / 2) ** 1.3;
-const pocketUV = (s, t) => [0.5 + (2 * s - 1) * pocketHalf(t), torso.vOf(lerp(POCKET.y0, POCKET.y1, t))];
-const pocketMesh = addMesh(gridGeometry(40, 24, (s, t, o) => {
-  const [u, v] = pocketUV(s, t);
-  torso.point(u, v, o);
-  const edge = Math.min(s, 1 - s, t, 1 - t);
-  return o.addScaledVector(surfaceNormal(torso, u, v), 0.002 + 0.013 * smooth(0, 0.09, edge));
-}, { inside: (s, t, o) => o.set(0, lerp(POCKET.y0, POCKET.y1, t), 0), uvFn: pocketUV }), mats.pocket);
-for (const s of [0, 1]) {
-  const pts = [];
-  for (let i = 0; i <= 16; i++) {
-    const t = 0.04 + 0.92 * i / 16, [u, v] = pocketUV(s, t);
-    pts.push(torso.point(u, v, new V3()).addScaledVector(surfaceNormal(torso, u, v), 0.008));
+// Projects a placement's print area onto its target meshes: copies the facing triangles and
+// gives them planar UVs, so the print sits on every fold and keeps the baked shading.
+function buildDecal(key) {
+  const F = placementFrames[key];
+  const o = new V3(...F.origin), n = new V3(...F.dir), u = new V3(...F.u), v = new V3(...F.v);
+  const pos = [], nor = [], col = [], uvs = [];
+  const p = new V3(), q = new V3(), fn = new V3();
+  for (const name of F.targets) {
+    // attributes may be interleaved, so read them through the attribute accessors
+    const g = parts[name].geometry, PA = g.attributes.position, NA = g.attributes.normal, CA = g.attributes.color, I = g.index.array;
+    for (let t = 0; t < I.length; t += 3) {
+      fn.set(0, 0, 0);
+      let inside = true;
+      for (let k = 0; k < 3; k++) {
+        const i = I[t + k];
+        p.fromBufferAttribute(PA, i).sub(o);
+        if (Math.abs(p.dot(u)) > F.w * 0.56 || Math.abs(p.dot(v)) > F.h * 0.56 || p.dot(n) < 0) inside = false;
+        fn.add(q.fromBufferAttribute(NA, i));
+      }
+      if (!inside || fn.normalize().dot(n) < 0.12) continue;
+      for (let k = 0; k < 3; k++) {
+        const i = I[t + k];
+        q.fromBufferAttribute(NA, i);
+        p.fromBufferAttribute(PA, i).addScaledVector(q, 0.0025);
+        pos.push(p.x, p.y, p.z); nor.push(q.x, q.y, q.z); col.push(CA.getX(i), CA.getY(i), CA.getZ(i));
+        p.sub(o);
+        uvs.push(p.dot(u) / F.w + 0.5, p.dot(v) / F.h + 0.5);
+      }
+    }
   }
-  hoodie.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 32, 0.0065, 6), mats.crease));
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024; canvas.height = Math.round(1024 * F.h / F.w);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const mat = withKnit(new THREE.MeshPhysicalMaterial({
+    map: tex, transparent: true, vertexColors: true, roughness: 0.8, sheen: 0.4, sheenRoughness: 0.6,
+    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, depthWrite: false, envMapIntensity: 0.75,
+  }), { strength: 0.25 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.receiveShadow = true;
+  mesh.renderOrder = 2;
+  hoodie.add(mesh);
+  decals[key] = { mesh, canvas, tex };
 }
 
-// Sleeves: tapered tubes along a curve. u = 0 faces the body, v = 1 at the shoulder.
-function makeSleeve(s) {
-  const curve = new THREE.CatmullRomCurve3([
-    new V3(0.58 * s, 0.62, -0.02), new V3(0.9 * s, 0.3, 0.0), new V3(1.1 * s, -0.15, 0.05),
-    new V3(1.22 * s, -0.62, 0.1), new V3(1.27 * s, -0.88, 0.12),
-  ], false, 'centripetal');
-  const out = new V3(s, 0, 0), fw = new V3(0, 0, 1);
-  const frame = (t, C, T, A, B) => {
-    curve.getPointAt(t, C); curve.getTangentAt(t, T);
-    A.copy(out).addScaledVector(T, -out.dot(T)).normalize();
-    B.copy(fw).addScaledVector(T, -fw.dot(T)).addScaledVector(A, -fw.dot(A)).normalize().multiplyScalar(s);
-    A.negate();
-  };
-  const C = new V3(), T = new V3(), A = new V3(), B = new V3();
-  const radius = (t, th) => {
-    let r = 0.27 - 0.108 * Math.pow(t, 0.85);
-    r *= 1 + 0.045 * Math.exp(-(((t - 0.86) / 0.06) ** 2)) * (0.55 + 0.45 * Math.sin(th * 5 + 1));
-    r *= 1 + 0.014 * Math.sin(th * 3 + t * 14) * Math.exp(-(((t - 0.5) / 0.18) ** 2));
-    return r;
-  };
-  const point = (u, v, o) => {
-    const t = clamp(1 - v, 0, 1), th = u * TAU; frame(t, C, T, A, B);
-    const r = radius(t, th);
-    return o.copy(C).addScaledVector(A, Math.cos(th) * r).addScaledVector(B, Math.sin(th) * r * 0.88);
-  };
-  const C1 = new V3(), T1 = new V3(), A1 = new V3(), B1 = new V3();
-  frame(1, C1, T1, A1, B1);
-  const cuffPoint = (u, v, o) => {
-    const th = u * TAU, r = 0.168 - 0.008 * v;
-    return o.copy(C1).addScaledVector(T1, -0.02 + v * 0.16).addScaledVector(A1, Math.cos(th) * r).addScaledVector(B1, Math.sin(th) * r * 0.88);
-  };
-  const mat = s > 0 ? mats.sleeveL : mats.sleeveR;
-  addMesh(gridGeometry(64, 110, point, { wrapU: true, inside: (u, v, o) => curve.getPointAt(clamp(1 - v, 0, 1), o) }), mat);
-  addMesh(gridGeometry(64, 4, cuffPoint, { wrapU: true, inside: (u, v, o) => o.copy(C1).addScaledVector(T1, v * 0.16) }), mats.cuff);
-  // dark sleeve opening
-  const ring = [], ctr = C1.clone().addScaledVector(T1, 0.12);
-  const geo = new THREE.BufferGeometry(); const P = [ctr.x, ctr.y, ctr.z];
-  for (let i = 0; i <= 40; i++) { const p = cuffPoint(i / 40, 0.85, new V3()).lerp(ctr, 0.04); P.push(p.x, p.y, p.z); ring.push(i + 1); }
-  const idx = []; for (let i = 0; i < 40; i++) idx.push(0, i + 1, i + 2);
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.setIndex(idx); geo.computeVertexNormals();
-  hoodie.add(new THREE.Mesh(geo, mats.interior));
-  return { curve, length: curve.getLength(), circAt: t => TAU * radius(t, 0) * 0.94 };
-}
-const sleeves = { 1: makeSleeve(1), [-1]: makeSleeve(-1) };
-
-// Hood: an ellipsoid shell with a face opening around +z, tipped back off the head.
-const HOOD = { c: new V3(0, 1.17, -0.13), rx: 0.41, ry: 0.5, rz: 0.48, a0: 0.78, tilt: -0.28 };
-const hoodRot = new THREE.Matrix4().makeRotationX(HOOD.tilt);
-function hoodPoint(u, v, o) {
-  const th = lerp(HOOD.a0, Math.PI, v), a = u * TAU;
-  const dx = Math.sin(th) * Math.cos(a), dy = Math.sin(th) * Math.sin(a), dz = Math.cos(th);
-  const peak = 0.12 * Math.max(0, dy) * Math.max(0, -dz);
-  const drape = 1 + 0.12 * Math.max(0, -dy) * Math.max(0, -dz);
-  o.set(dx * HOOD.rx * drape, dy * HOOD.ry * (1 + peak), dz * HOOD.rz * (1 + peak * 0.6));
-  return o.applyMatrix4(hoodRot).add(HOOD.c);
-}
-const hoodGeo = gridGeometry(96, 48, hoodPoint, { wrapU: true, inside: (u, v, o) => o.copy(HOOD.c) });
-addMesh(hoodGeo, mats.hood);
-addMesh(hoodGeo, mats.lining, { shadow: false });
-{
-  const pts = []; for (let i = 0; i < 72; i++) pts.push(hoodPoint(i / 72, 0.012, new V3()));
-  addMesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 160, 0.034, 12, true), mats.hood);
-}
-
-// Drawstrings with metal aglets
-for (const sx of [-1, 1]) {
-  const pts = [];
-  for (const y of [0.86, 0.72, 0.52, 0.32, 0.13, -0.02]) {
-    const v = torso.vOf(y), u = 0.5 + sx * 0.1 / torso.circ(y);
-    pts.push(torso.point(u, v, new V3()).addScaledVector(surfaceNormal(torso, u, v), y > 0.75 ? 0.05 : 0.026));
-  }
-  pts[pts.length - 1].x += sx * 0.014;
-  const curve = new THREE.CatmullRomCurve3(pts);
-  addMesh(new THREE.TubeGeometry(curve, 48, 0.0115, 8), mats.strings);
-  const end = curve.getPointAt(1), tan = curve.getTangentAt(1);
-  const ag = addMesh(new THREE.CylinderGeometry(0.016, 0.0145, 0.075, 14), mats.aglet);
-  ag.position.copy(end).addScaledVector(tan, 0.03);
-  ag.quaternion.setFromUnitVectors(new V3(0, 1, 0), tan.clone().negate());
+function loadModel() {
+  new GLTFLoader().load(MODEL_URL, gltf => {
+    placementFrames = gltf.scene.userData.placements;
+    const list = [];
+    gltf.scene.traverse(o => { if (o.isMesh) list.push(o); });
+    for (const m of list) {
+      const key = PART_MAT[m.name]; if (!key) continue;
+      m.material = mats[key];
+      m.castShadow = m.receiveShadow = true;
+      parts[m.name] = m;
+      hoodie.add(m);
+      if (INTERIOR[m.name]) {
+        const inner = new THREE.Mesh(m.geometry, mats[INTERIOR[m.name]]);
+        inner.receiveShadow = true;
+        hoodie.add(inner);
+      }
+    }
+    for (const k of Object.keys(PLACEMENTS)) buildDecal(k);
+    applyColors(); applyFabric(); invalidate();
+    $('#loading').remove();
+  }, undefined, err => {
+    console.error(err);
+    $('#loading').textContent = 'The hoodie model could not be loaded. Serve this folder over http (for example: npx serve hoodie-studio).';
+  });
 }
 
 // Soft contact shadow below the floating hoodie
@@ -696,13 +555,13 @@ const shadowTex = (() => {
   g.fillStyle = grd; g.fillRect(0, 0, 256, 256);
   return new THREE.CanvasTexture(c);
 })();
-const groundShadow = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.9), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
+const groundShadow = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 1.9), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
 groundShadow.rotation.x = -Math.PI / 2;
-groundShadow.position.y = -1.95;
+groundShadow.position.y = -2.0;
 scene.add(groundShadow);
 
 /* =====================================================================
-   Print rendering (2D canvas → textures)
+   Print rendering (layers → canvas textures on the decals)
    ===================================================================== */
 const imgCache = new Map();
 function getImage(cacheKey, src) {
@@ -720,12 +579,14 @@ const layerImage = L => L.type === 'graphic'
   ? getImage(`g:${L.key}:${L.color}`, 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgFor(L.key, L.color)))
   : getImage(`i:${L.id}`, L.src);
 
-const printCanvases = {};
-// Draws one placement's layers into a canvas `wPx` wide; layer coordinates are in units of print width.
-function renderPrint(placement, wPx, hPx) {
-  const c = printCanvases[placement] || (printCanvases[placement] = document.createElement('canvas'));
-  if (c.width !== wPx || c.height !== hPx) { c.width = wPx; c.height = hPx; }
-  const ctx = c.getContext('2d');
+function luminance(hex) {
+  const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+// Draws one placement's layers into its canvas; layer coordinates are in units of print width.
+function renderPrint(placement) {
+  const { canvas: c, tex } = decals[placement];
+  const wPx = c.width, hPx = c.height, ctx = c.getContext('2d');
   ctx.clearRect(0, 0, wPx, hPx);
   for (const L of state.placements[placement]) {
     ctx.save();
@@ -778,67 +639,33 @@ function renderPrint(placement, wPx, hPx) {
     }
     ctx.restore();
   }
-  return c;
+  if (showGuides && active === placement) {
+    const base = PLACEMENTS[placement].kind === 'sleeve' ? state.colors.sleeves : state.colors.body;
+    ctx.save();
+    ctx.setLineDash([16, 12]); ctx.lineWidth = 4;
+    ctx.strokeStyle = luminance(base) > 0.45 ? 'rgba(0,0,0,0.32)' : 'rgba(255,255,255,0.42)';
+    ctx.strokeRect(6, 6, wPx - 12, hPx - 12);
+    ctx.restore();
+  }
+  // keep a transparent border so clamped UVs outside the print area stay clear
+  ctx.clearRect(0, 0, wPx, 2); ctx.clearRect(0, hPx - 2, wPx, 2); ctx.clearRect(0, 0, 2, hPx); ctx.clearRect(wPx - 2, 0, 2, hPx);
+  tex.needsUpdate = true;
 }
-function luminance(hex) {
-  const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-function drawGuide(ctx, x, y, w, h, base) {
-  ctx.save();
-  ctx.setLineDash([14, 10]); ctx.lineWidth = 3;
-  ctx.strokeStyle = luminance(base) > 0.45 ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.45)';
-  ctx.strokeRect(x, y, w, h);
-  ctx.restore();
-}
-const torsoPx = y => ({ x: TORSO_W / torso.circ(y), y: TORSO_H / (torso.yt - torso.yb) });
-
 function redrawTextures() {
-  const C = state.colors;
-  // torso
-  const ctx = torsoTex.image.getContext('2d');
-  ctx.fillStyle = C.body; ctx.fillRect(0, 0, TORSO_W, TORSO_H);
-  for (const k of ['front', 'back']) {
-    const P = PLACEMENTS[k], px = torsoPx(P.y);
-    const dw = P.w * px.x, dh = P.h * px.y;
-    const pc = renderPrint(k, 1024, Math.round(1024 * P.h / P.w));
-    const cy = (1 - torso.vOf(P.y)) * TORSO_H;
-    for (const cx of P.u === 0 ? [0, TORSO_W] : [P.u * TORSO_W]) {
-      ctx.drawImage(pc, cx - dw / 2, cy - dh / 2, dw, dh);
-      if (showGuides && active === k) drawGuide(ctx, cx - dw / 2, cy - dh / 2, dw, dh, C.body);
-    }
-  }
-  torsoTex.needsUpdate = true;
-  // sleeves: print canvas is laid along the sleeve (rotated 90°), shoulder at the top of the texture
-  for (const k of ['left', 'right']) {
-    const P = PLACEMENTS[k], sl = sleeves[P.side], tex = sleeveTex[P.side], sctx = tex.image.getContext('2d');
-    sctx.fillStyle = C.sleeves; sctx.fillRect(0, 0, SLEEVE_W, SLEEVE_H);
-    const dw = P.w * SLEEVE_H / sl.length, dh = P.h * SLEEVE_W / sl.circAt(P.t);
-    const pc = renderPrint(k, 1024, Math.round(1024 * P.h / P.w));
-    sctx.save();
-    sctx.translate(SLEEVE_W / 2, P.t * SLEEVE_H);
-    sctx.rotate(Math.PI / 2);
-    sctx.drawImage(pc, -dw / 2, -dh / 2, dw, dh);
-    if (showGuides && active === k) drawGuide(sctx, -dw / 2, -dh / 2, dw, dh, C.sleeves);
-    sctx.restore();
-    tex.needsUpdate = true;
-  }
+  if (!placementFrames) return;
+  for (const k of Object.keys(PLACEMENTS)) renderPrint(k);
 }
 let needsRedraw = true;
 const invalidate = () => { needsRedraw = true; };
 
 function shade(hex, f) { const c = new THREE.Color(hex); return '#' + (f < 0 ? c.lerp(new THREE.Color(0), -f) : c.lerp(new THREE.Color(0xffffff), f)).getHexString(); }
 function applyColors() {
-  const C = state.colors, col = h => new THREE.Color(h);
-  mats.hood.color.set(C.hood);
-  mats.lining.color.set(C.lining);
-  mats.band.color.set(C.trim); mats.cuff.color.set(C.trim);
-  mats.interior.color.set(shade(C.lining, -0.55));
+  const C = state.colors, white = new THREE.Color(0xffffff);
+  const set = (m, hex) => { m.color.set(hex); m.sheenColor.set(hex).lerp(white, 0.25).multiplyScalar(0.6); };
+  set(mats.body, C.body); set(mats.sleeves, C.sleeves); set(mats.hood, C.hood);
+  set(mats.hem, C.trim); set(mats.cuff, C.trim); set(mats.rim, C.hood); set(mats.lining, C.lining);
+  mats.interior.color.set(shade(C.body, -0.45));
   mats.strings.color.set(C.strings);
-  mats.torso.sheenColor.copy(col(C.body)).lerp(col('#ffffff'), 0.25).multiplyScalar(0.6);
-  mats.pocket.sheenColor.copy(mats.torso.sheenColor);
-  for (const m of [mats.sleeveL, mats.sleeveR]) m.sheenColor.copy(col(C.sleeves)).lerp(col('#ffffff'), 0.25).multiplyScalar(0.6);
-  for (const [m, h] of [[mats.hood, C.hood], [mats.lining, C.lining], [mats.band, C.trim], [mats.cuff, C.trim]]) m.sheenColor.copy(col(h)).lerp(col('#ffffff'), 0.25).multiplyScalar(0.6);
   invalidate();
 }
 function applyFabric() {
@@ -846,9 +673,10 @@ function applyFabric() {
   for (const k of fabricMats) {
     const m = mats[k];
     m.roughness = k === 'lining' ? 1 : F.rough; m.sheen = F.sheen; m.sheenRoughness = F.sheenRough ?? 0.55;
-    m.normalScale.setScalar(k === 'band' || k === 'cuff' ? 0.9 : F.normal);
+    if (!m.userData.knit.knitMap.value.isRib) m.userData.knit.knitStrength.value = F.knit;
   }
 }
+ribHeight.isRib = true;
 
 /* =====================================================================
    Camera views, picking & dragging prints on the model
@@ -872,19 +700,18 @@ function stepCamera(now) {
 }
 
 const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2();
-// Converts a torso UV hit into print-area coordinates (units of print width) for a torso placement.
-function torsoHitToPrint(placement, uv) {
-  const P = PLACEMENTS[placement];
-  let du = uv.x - P.u; du -= Math.round(du);
-  const y = lerp(torso.yb, torso.yt, uv.y);
-  return { x: du * torso.circ(P.y) / P.w, y: (y - P.y) / P.w, inArea: Math.abs(du * torso.circ(P.y)) < P.w * 0.62 && Math.abs(y - P.y) < P.h * 0.62 };
-}
-function hitTorso(ev) {
+// Raycasts the active placement's garment pieces and returns the hit in print coordinates (units of print width).
+function hitPrint(ev) {
+  if (!placementFrames) return null;
+  const F = placementFrames[active];
   const r = canvas.getBoundingClientRect();
   pointer.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
   raycaster.setFromCamera(pointer, camera);
-  const hit = raycaster.intersectObjects(hoodie.children, false)[0];
-  return hit && (hit.object === torsoMesh || hit.object === pocketMesh) ? hit : null;
+  const all = raycaster.intersectObjects(Object.values(parts), false)[0];
+  if (!all || !F.targets.includes(all.object.name)) return null;
+  const p = hoodie.worldToLocal(all.point.clone()).sub(new V3(...F.origin));
+  const lu = p.dot(new V3(...F.u)), lv = p.dot(new V3(...F.v));
+  return { x: lu / F.w, y: lv / F.w, inArea: Math.abs(lu) < F.w * 0.6 && Math.abs(lv) < F.h * 0.6 };
 }
 function layerAt(placement, pt) {
   const list = state.placements[placement];
@@ -899,9 +726,7 @@ function layerAt(placement, pt) {
 let drag = null;
 canvas.addEventListener('pointerdown', ev => {
   if (ev.button !== 0) return;
-  const P = PLACEMENTS[active]; if (P.kind !== 'torso') return;
-  const hit = hitTorso(ev); if (!hit) return;
-  const pt = torsoHitToPrint(active, hit.uv); if (!pt.inArea) return;
+  const pt = hitPrint(ev); if (!pt || !pt.inArea) return;
   const L = layerAt(active, pt); if (!L) return;
   if (selectedId !== L.id) { selectedId = L.id; renderDesign(); }
   drag = { L, ox: L.x - pt.x, oy: L.y - pt.y };
@@ -912,16 +737,14 @@ canvas.addEventListener('pointerdown', ev => {
 }, { capture: true });
 canvas.addEventListener('pointermove', ev => {
   if (drag) {
-    const hit = hitTorso(ev); if (!hit) return;
-    const pt = torsoHitToPrint(active, hit.uv);
+    const pt = hitPrint(ev); if (!pt) return;
     drag.L.x = clamp(pt.x + drag.ox, -0.6, 0.6);
     drag.L.y = clamp(pt.y + drag.oy, -0.75, 0.75);
     syncEditorPosition(); invalidate();
     return;
   }
-  if (ev.buttons || PLACEMENTS[active].kind !== 'torso') return;
-  const hit = hitTorso(ev);
-  const pt = hit && torsoHitToPrint(active, hit.uv);
+  if (ev.buttons) return;
+  const pt = hitPrint(ev);
   canvas.style.cursor = pt && pt.inArea && layerAt(active, pt) ? 'grab' : '';
 });
 const endDrag = () => { if (!drag) return; drag = null; controls.enabled = true; canvas.style.cursor = ''; save(); };
@@ -1151,7 +974,7 @@ function resize() {
 new ResizeObserver(resize).observe(stage);
 resize();
 
-applyColors(); applyFabric();
+loadModel();
 renderColor(); renderFabric(); renderSizes(); renderDesign();
 Promise.all(FONTS.map(fi => document.fonts.load(`${fi.w} 40px "${fi.f}"`).catch(() => {}))).then(invalidate);
 document.fonts.addEventListener?.('loadingdone', invalidate);
@@ -1161,7 +984,7 @@ renderer.setAnimationLoop(() => {
   const t = clock.getElapsedTime(), now = performance.now();
   if (needsRedraw) { needsRedraw = false; redrawTextures(); }
   const bob = Math.sin(t * 1.1);
-  hoodie.position.y = -0.15 + bob * 0.06;
+  hoodie.position.y = -0.22 + bob * 0.06;
   hoodie.rotation.z = Math.sin(t * 0.7) * 0.015;
   hoodie.rotation.x = Math.sin(t * 0.9 + 1) * 0.012;
   groundShadow.scale.setScalar(1 - bob * 0.06);
@@ -1170,7 +993,6 @@ renderer.setAnimationLoop(() => {
   controls.update();
   renderer.render(scene, camera);
 });
-$('#loading').remove();
 </script>
 </body>
 </html>

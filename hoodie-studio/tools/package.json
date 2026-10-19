@@ -1,0 +1,11 @@
+{
+  "name": "hoodie-model-builder",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build-hoodie.mjs" },
+  "devDependencies": {
+    "@gltf-transform/core": "4.1.1",
+    "three": "0.160.0",
+    "three-mesh-bvh": "0.7.8"
+  }
+}
