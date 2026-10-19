@@ -47,6 +47,13 @@ button{cursor:pointer}
 .crumb b{color:var(--ink);font-weight:600}
 .loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-weight:500;pointer-events:none}
 .loading[hidden]{display:none}
+.patterns{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:8px}
+.patterns button{aspect-ratio:1;border:1px solid var(--line);border-radius:10px;padding:0;overflow:hidden;background:var(--surface-2);position:relative;font-size:11px;font-weight:600;color:var(--muted)}
+.patterns button img{width:100%;height:100%;display:block}
+.patterns button[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink),0 0 0 1px var(--ink)}
+.patterns button span{position:absolute;inset:auto 0 0;background:color-mix(in srgb,var(--surface) 85%,transparent);padding:2px 0;font-size:10px;color:var(--ink)}
+.patctl{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.patctl:empty{display:none}
 .products{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
 .products button{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 8px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
 .products button b{font-size:13px}
@@ -214,7 +221,14 @@ button{cursor:pointer}
     </section>
 
     <section class="sec">
-      <h2><span><span class="n">02</span></span><b style="flex:1">Fabric</b><span id="fabricNote"></span></h2>
+      <h2><span><span class="n">02</span></span><b style="flex:1">Pattern</b><span id="patternName">None</span></h2>
+      <div class="patterns" id="patterns"></div>
+      <input type="file" id="patternFile" accept="image/png,image/jpeg,image/webp" hidden>
+      <div class="patctl" id="patctl"></div>
+    </section>
+
+    <section class="sec">
+      <h2><span><span class="n">03</span></span><b style="flex:1">Fabric</b><span id="fabricNote"></span></h2>
       <div class="seg" id="fabric">
         <button data-fabric="fleece">Fleece</button>
         <button data-fabric="terry">French terry</button>
@@ -223,7 +237,7 @@ button{cursor:pointer}
     </section>
 
     <section class="sec">
-      <h2><span><span class="n">03</span></span><b style="flex:1">Design</b><span>Prints &amp; text</span></h2>
+      <h2><span><span class="n">04</span></span><b style="flex:1">Design</b><span>Prints &amp; text</span></h2>
       <div class="tabs" id="tabs"></div>
       <div class="addrow">
         <button class="btn" id="addText"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>Text</button>
@@ -237,7 +251,7 @@ button{cursor:pointer}
     </section>
 
     <section class="sec">
-      <h2><span><span class="n">04</span></span><b style="flex:1">Size</b><span>Unisex · relaxed</span></h2>
+      <h2><span><span class="n">05</span></span><b style="flex:1">Size</b><span>Unisex · relaxed</span></h2>
       <div class="sizes" id="sizes"></div>
       <div class="row" style="margin-top:14px"><span style="font-weight:600">Quantity</span>
         <div class="qty"><button id="qMinus" aria-label="Decrease">−</button><span id="qty">1</span><button id="qPlus" aria-label="Increase">+</button></div>
@@ -334,7 +348,7 @@ function defaultState() {
   return {
     colorway: 'Heather Grey', byPart: false,
     colors: { body: '#b8b8b4', sleeves: '#b8b8b4', hood: '#b8b8b4', trim: '#b8b8b4', lining: '#9a9a96', strings: '#f2efe6' },
-    product: 'hoodie', fabric: 'fleece', size: 'M', qty: 1,
+    product: 'hoodie', pattern: { type: 'none', color: '#141414', scale: 1, rot: 0, src: null }, fabric: 'fleece', size: 'M', qty: 1,
     placements: {
       front: [
         { id: newId(), type: 'text', text: 'OFF DUTY', font: 'Archivo Black', color: '#141414', scale: 0.95, x: 0, y: 0.16, rot: 0, spacing: 4, curve: 28, outline: false, outlineColor: '#f5f3ee', outlineWidth: 1 },
@@ -440,20 +454,96 @@ const KNIT_GLSL = /* glsl */`
     vec3 grad = sign(det) * (dHdxy.x * r1 + dHdxy.y * r2);
     return normalize(abs(det) * surfNorm - grad);
   }`;
+/* All-over repeat prints: a tileable mask (white = pattern colour) or a full-colour tile,
+   projected triplanar like the knit so it needs no UVs. */
+const PAT_SIZE = 256;
+const patternCanvas = document.createElement('canvas'); patternCanvas.width = patternCanvas.height = PAT_SIZE;
+const patternTex = new THREE.CanvasTexture(patternCanvas);
+patternTex.wrapS = patternTex.wrapT = THREE.RepeatWrapping; patternTex.colorSpace = THREE.SRGBColorSpace;
+patternTex.anisotropy = 8;
+const patternUniforms = {
+  patternMap: { value: patternTex }, patternOn: { value: 0 }, patternFull: { value: 0 },
+  patternScale: { value: 1 }, patternRot: { value: 0 }, patternColor: { value: new THREE.Color(0x141414) },
+};
+const PATTERN_GLSL = /* glsl */`
+  uniform sampler2D patternMap; uniform float patternOn, patternFull, patternScale, patternRot; uniform vec3 patternColor;
+`;
+const PATTERN_APPLY = /* glsl */`
+  if (patternOn > 0.5) {
+    vec3 pw = pow(abs(normalize(vObjNrm)), vec3(8.0)); pw /= (pw.x + pw.y + pw.z);
+    mat2 pr = mat2(cos(patternRot), sin(patternRot), -sin(patternRot), cos(patternRot));
+    vec4 pt = texture2D(patternMap, pr * (vObjPos.zy * patternScale)) * pw.x
+            + texture2D(patternMap, pr * (vObjPos.xz * patternScale)) * pw.y
+            + texture2D(patternMap, pr * (vObjPos.xy * patternScale)) * pw.z;
+    diffuseColor.rgb = patternFull > 0.5 ? pt.rgb : mix(diffuseColor.rgb, patternColor, pt.r);
+  }
+`;
+// Tileable masks: each draws white-on-black into a size × size square.
+const tileRand = seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const PATTERNS = {
+  stripes: { name: 'Stripes', draw: (g, n) => { g.fillStyle = '#fff'; for (let i = 0; i < 2; i++) g.fillRect(i * n / 2, 0, n * 0.16, n); } },
+  pinstripe: { name: 'Pinstripe', draw: (g, n) => { g.fillStyle = '#fff'; for (let i = 0; i < 8; i++) g.fillRect(i * n / 8, 0, n * 0.012, n); } },
+  breton: { name: 'Breton', draw: (g, n) => { g.fillStyle = '#fff'; for (let i = 0; i < 3; i++) g.fillRect(0, i * n / 3, n, n * 0.1); } },
+  plaid: { name: 'Plaid', draw: (g, n) => {
+    const band = (x, w, a) => { g.fillStyle = `rgba(255,255,255,${a})`; g.fillRect(x, 0, w, n); g.fillRect(0, x, n, w); };
+    g.globalCompositeOperation = 'lighter';
+    band(0, n * 0.32, 0.38); band(n * 0.5, n * 0.12, 0.3); band(n * 0.72, n * 0.04, 0.5);
+    g.globalCompositeOperation = 'source-over';
+    g.fillStyle = 'rgba(255,255,255,0.85)'; g.fillRect(n * 0.42, 0, n * 0.012, n); g.fillRect(0, n * 0.42, n, n * 0.012);
+  } },
+  gingham: { name: 'Gingham', draw: (g, n) => { g.globalCompositeOperation = 'lighter'; g.fillStyle = 'rgba(255,255,255,0.5)'; for (let i = 0; i < 4; i++) { g.fillRect(i * n / 4, 0, n / 8, n); g.fillRect(0, i * n / 4, n, n / 8); } } },
+  check: { name: 'Check', draw: (g, n) => { g.fillStyle = '#fff'; for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2) g.fillRect(i * n / 4, j * n / 4, n / 4, n / 4); } },
+  dots: { name: 'Dots', draw: (g, n) => { g.fillStyle = '#fff'; const r = n * 0.06; for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { const x = (i + (j % 2) * 0.5) * n / 4, y = j * n / 4; for (const dx of [0, n]) { g.beginPath(); g.arc(x + dx - (x + r > n ? n : 0), y + n / 8, r, 0, Math.PI * 2); g.fill(); } } } },
+  chevron: { name: 'Chevron', draw: (g, n) => { g.strokeStyle = '#fff'; g.lineWidth = n * 0.07; for (let j = -1; j < 5; j++) { g.beginPath(); for (let i = 0; i <= 8; i++) g.lineTo(i * n / 8, j * n / 4 + (i % 2 ? n / 10 : 0)); g.stroke(); } } },
+  waves: { name: 'Waves', draw: (g, n) => { g.strokeStyle = '#fff'; g.lineWidth = n * 0.045; for (let j = 0; j < 4; j++) { g.beginPath(); for (let x = 0; x <= n; x += 4) g.lineTo(x, j * n / 4 + n / 8 + Math.sin(x / n * Math.PI * 4) * n / 22); g.stroke(); } } },
+  camo: { name: 'Camo', draw: (g, n) => {
+    const rnd = tileRand(7);
+    for (const [shade, count] of [[0.5, 22], [1, 14]]) {
+      g.fillStyle = `rgba(255,255,255,${shade})`;
+      for (let k = 0; k < count; k++) {
+        const cx = rnd() * n, cy = rnd() * n, r = n * (0.06 + rnd() * 0.08), pts = Array.from({ length: 9 }, (_, i) => [i / 9 * Math.PI * 2, r * (0.6 + rnd() * 0.6)]);
+        for (const ox of [-n, 0, n]) for (const oy of [-n, 0, n]) {
+          g.beginPath(); pts.forEach(([a, rr], i) => g[i ? 'lineTo' : 'moveTo'](cx + ox + Math.cos(a) * rr * 1.6, cy + oy + Math.sin(a) * rr)); g.closePath(); g.fill();
+        }
+      }
+    }
+  } },
+  heather: { name: 'Heather', draw: (g, n) => { const img = g.getImageData(0, 0, n, n), rnd = tileRand(3); for (let i = 0; i < img.data.length; i += 4) { const v = rnd() < 0.5 ? rnd() * 140 : 0; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; } g.putImageData(img, 0, 0); } },
+};
+function drawPatternTile(g, n, type) {
+  g.fillStyle = '#000'; g.fillRect(0, 0, n, n);
+  g.save(); PATTERNS[type].draw(g, n); g.restore();
+}
+let patternImage = null;
+function applyPattern() {
+  const P = state.pattern, U = patternUniforms;
+  U.patternOn.value = P.type === 'none' || (P.type === 'upload' && !patternImage) ? 0 : 1;
+  U.patternFull.value = P.type === 'upload' ? 1 : 0;
+  U.patternScale.value = 1.5 * P.scale; U.patternRot.value = P.rot * Math.PI / 180;
+  U.patternColor.value.set(P.color);
+  const g = patternCanvas.getContext('2d');
+  if (P.type === 'upload' && patternImage) g.drawImage(patternImage, 0, 0, PAT_SIZE, PAT_SIZE);
+  else if (PATTERNS[P.type]) drawPatternTile(g, PAT_SIZE, P.type);
+  patternTex.needsUpdate = true;
+}
+
 // Adds the triplanar knit to a standard/physical material. With `ribUV`, the trims use their UVs instead.
-function withKnit(mat, { map = knitHeight, scale = 15, strength = 0.35, ribUV = null } = {}) {
+function withKnit(mat, { map = knitHeight, scale = 15, strength = 0.35, ribUV = null, pattern = false } = {}) {
   mat.userData.knit = { knitMap: { value: map }, knitScale: { value: scale }, knitStrength: { value: strength } };
+  if (pattern) Object.assign(mat.userData.knit, patternUniforms);
   mat.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, mat.userData.knit);
     sh.vertexShader = 'varying vec3 vObjPos; varying vec3 vObjNrm;\n' + (ribUV ? 'varying vec2 vRibUv;\n' : '') + sh.vertexShader.replace('#include <begin_vertex>',
       '#include <begin_vertex>\n vObjPos = position; vObjNrm = normal;' + (ribUV ? ` vRibUv = uv * vec2(${ribUV[0].toFixed(1)}, ${ribUV[1].toFixed(1)});` : ''));
-    sh.fragmentShader = KNIT_GLSL + (ribUV ? '\nvarying vec2 vRibUv;\n' : '\n') + sh.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+    let frag = sh.fragmentShader;
+    if (pattern) frag = PATTERN_GLSL + frag.replace('#include <map_fragment>', '#include <map_fragment>\n' + PATTERN_APPLY);
+    sh.fragmentShader = KNIT_GLSL + (ribUV ? '\nvarying vec2 vRibUv;\n' : '\n') + frag.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
       ${ribUV ? 'float hh = texture2D(knitMap, vRibUv).r;' : `
       vec3 bw = pow(abs(normalize(vObjNrm)), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);
       float hh = texture2D(knitMap, vObjPos.zy * knitScale).r * bw.x + texture2D(knitMap, vObjPos.xz * knitScale).r * bw.y + texture2D(knitMap, vObjPos.xy * knitScale).r * bw.z;`}
       normal = knitPerturb(-vViewPosition, normal, vec2(dFdx(hh), dFdy(hh)) * knitStrength, faceDirection);`);
   };
-  mat.customProgramCacheKey = () => 'knit' + (ribUV ? ribUV.join('x') : '');
+  mat.customProgramCacheKey = () => 'knit' + (ribUV ? ribUV.join('x') : '') + (pattern ? 'pat' : '');
   return mat;
 }
 const fabric = (extra = {}) => new THREE.MeshPhysicalMaterial({
@@ -462,7 +552,7 @@ const fabric = (extra = {}) => new THREE.MeshPhysicalMaterial({
 });
 const mats = {
   // double-sided: garment exports don't always agree on which way faces point
-  body: withKnit(fabric({ side: THREE.DoubleSide })), sleeves: withKnit(fabric()), hood: withKnit(fabric()),
+  body: withKnit(fabric({ side: THREE.DoubleSide }), { pattern: true }), sleeves: withKnit(fabric(), { pattern: true }), hood: withKnit(fabric(), { pattern: true }),
   hem: withKnit(fabric(), { map: ribHeight, ribUV: [16, 1], strength: 0.9 }),
   cuff: withKnit(fabric(), { map: ribHeight, ribUV: [6, 1], strength: 0.9 }),
   rim: withKnit(fabric(), { map: ribHeight, ribUV: [30, 1], strength: 0.4 }),
@@ -798,6 +888,7 @@ function renderColor() {
   $('#colorName').textContent = state.byPart ? 'Custom mix' : state.colorway;
   $('#byPart').checked = state.byPart;
   $('#parts').hidden = !state.byPart;
+  renderPattern();
   $('#parts').innerHTML = PARTS.map(([k, n]) => `<label class="part"><input type="color" data-part="${k}" value="${state.colors[k]}"><span>${n}</span></label>`).join('');
 }
 $('#swatches').addEventListener('click', e => { const b = e.target.closest('[data-cw]'); if (b) setColorway(b.dataset.cw, COLORWAYS.find(c => c[0] === b.dataset.cw)[1]); });
@@ -805,6 +896,70 @@ $('#swatches').addEventListener('input', e => { if (e.target.id === 'customColor
 $('#swatches').addEventListener('change', e => { if (e.target.id === 'customColor') renderColor(); });
 $('#byPart').addEventListener('change', e => { state.byPart = e.target.checked; renderColor(); save(); });
 $('#parts').addEventListener('input', e => { const k = e.target.dataset.part; if (!k) return; state.colors[k] = e.target.value; applyColors(); save(); });
+
+// Pattern
+const thumbCanvas = document.createElement('canvas'); thumbCanvas.width = thumbCanvas.height = 96;
+function patternThumb(type) {
+  const g = thumbCanvas.getContext('2d', { willReadFrequently: true }), n = 96;
+  drawPatternTile(g, n, type);
+  // colourise the mask: body colour where black, pattern colour where white
+  const img = g.getImageData(0, 0, n, n), a = new THREE.Color(state.colors.body), b = new THREE.Color(state.pattern.color);
+  const A = [a.r, a.g, a.b].map(x => x * 255), B = [b.r, b.g, b.b].map(x => x * 255);
+  for (let i = 0; i < img.data.length; i += 4) { const t = img.data[i] / 255; for (let k = 0; k < 3; k++) img.data[i + k] = A[k] + (B[k] - A[k]) * t; }
+  g.putImageData(img, 0, 0);
+  return thumbCanvas.toDataURL();
+}
+function renderPattern() {
+  const P = state.pattern;
+  const opt = (type, label, inner) => `<button data-pattern="${type}" aria-pressed="${P.type === type}" title="${label}" aria-label="${label}">${inner}<span>${label}</span></button>`;
+  $('#patterns').innerHTML = opt('none', 'None', `<div style="position:absolute;inset:0;background:${state.colors.body}"></div>`) +
+    Object.entries(PATTERNS).map(([k, x]) => opt(k, x.name, `<img alt="" src="${patternThumb(k)}">`)).join('') +
+    opt('upload', 'Upload', patternImage && P.src ? `<img alt="" src="${P.src}">` : '<div style="position:absolute;inset:0;display:grid;place-items:center;font-size:20px">+</div>');
+  $('#patternName').textContent = P.type === 'none' ? 'None' : P.type === 'upload' ? 'Your tile' : PATTERNS[P.type].name;
+  $('#patctl').innerHTML = P.type === 'none' ? '' :
+    (P.type === 'upload' ? '' : `<div class="field"><span class="lbl">Pattern colour</span><div class="inks">${INKS.map(c => `<button class="sw" style="background:${c}" data-pcolor="${c}" aria-label="Pattern colour ${c}" aria-pressed="${P.color.toLowerCase() === c}"></button>`).join('')}<label class="sw custom" title="Custom"><input type="color" id="patColor" value="${P.color}" aria-label="Custom pattern colour"></label></div></div>`) +
+    `<div class="grid2"><div class="field"><label for="patScale">Scale<output id="patScaleOut">${Math.round(P.scale * 100)}%</output></label><input id="patScale" type="range" min="0.3" max="3" step="0.05" value="${P.scale}"></div>
+     <div class="field"><label for="patRot">Angle<output id="patRotOut">${P.rot}°</output></label><input id="patRot" type="range" min="-90" max="90" step="1" value="${P.rot}"></div></div>`;
+}
+$('#patterns').addEventListener('click', e => {
+  const b = e.target.closest('[data-pattern]'); if (!b) return;
+  if (b.dataset.pattern === 'upload' && !patternImage) { $('#patternFile').click(); return; }
+  state.pattern.type = b.dataset.pattern; applyPattern(); renderPattern(); save();
+});
+$('#patternFile').addEventListener('change', e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      // keep tiles small: they repeat, and they are saved with the design
+      const c = document.createElement('canvas'); c.width = c.height = 256;
+      c.getContext('2d').drawImage(img, 0, 0, 256, 256);
+      state.pattern.src = c.toDataURL('image/jpeg', 0.9);
+      loadPatternImage(() => { state.pattern.type = 'upload'; applyPattern(); renderPattern(); save(); });
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(f);
+});
+function loadPatternImage(done) {
+  if (!state.pattern.src) return;
+  const img = new Image();
+  img.onload = () => { patternImage = img; done?.(); };
+  img.src = state.pattern.src;
+}
+$('#patctl').addEventListener('click', e => {
+  const b = e.target.closest('[data-pcolor]'); if (!b) return;
+  state.pattern.color = b.dataset.pcolor; applyPattern(); renderPattern(); save();
+});
+$('#patctl').addEventListener('input', e => {
+  const P = state.pattern;
+  if (e.target.id === 'patScale') { P.scale = +e.target.value; $('#patScaleOut').textContent = Math.round(P.scale * 100) + '%'; }
+  if (e.target.id === 'patRot') { P.rot = +e.target.value; $('#patRotOut').textContent = P.rot + '°'; }
+  if (e.target.id === 'patColor') P.color = e.target.value;
+  applyPattern(); save();
+});
+$('#patctl').addEventListener('change', e => { if (e.target.id === 'patColor') renderPattern(); });
 
 // Fabric
 function renderFabric() {
@@ -1013,6 +1168,10 @@ new ResizeObserver(resize).observe(stage);
 resize();
 
 if (!PRODUCTS[state.product]) state.product = 'hoodie';
+state.pattern = Object.assign({ type: 'none', color: '#141414', scale: 1, rot: 0, src: null }, state.pattern);
+if (state.pattern.type !== 'none' && state.pattern.type !== 'upload' && !PATTERNS[state.pattern.type]) state.pattern.type = 'none';
+applyPattern();
+loadPatternImage(() => { applyPattern(); renderPattern(); });
 renderProduct();
 showProduct(state.product);
 renderColor(); renderFabric(); renderSizes(); renderDesign();

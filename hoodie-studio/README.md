@@ -9,6 +9,7 @@ Open `index.html` through any static server, for example `npx serve hoodie-studi
 ## What it does
 - A floating, realistic hoodie built from a real garment model. Orbit, pan and zoom it, or jump to the Front, Back, Left or Right view.
 - Colourways and a custom colour. Per-part colours only appear for models that come in separate parts.
+- All-over patterns (repeat prints): stripes, pinstripe, Breton, plaid, gingham, check, dots, chevron, waves, camo and heather, or upload your own tile. You can set the pattern colour, scale and angle.
 - Fabric finishes: fleece, French terry and brushed.
 - Four print areas: front, back, left sleeve and right sleeve. Each one takes text layers (10 fonts, ink colour, size, letter spacing, arc, rotation, outline), built-in graphics and uploaded images.
 - Drag a print directly on the 3D model to move it. Arrow keys nudge it, and Delete removes it.
