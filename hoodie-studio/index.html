@@ -54,7 +54,8 @@ button{cursor:pointer}
 .patterns button span{position:absolute;inset:auto 0 0;background:color-mix(in srgb,var(--surface) 85%,transparent);padding:2px 0;font-size:10px;color:var(--ink)}
 .patctl{display:flex;flex-direction:column;gap:12px;margin-top:14px}
 .patctl:empty{display:none}
-.products{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.groups{margin:16px 0 0}
+.products{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
 .products button{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 8px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
 .products button b{font-size:13px}
 .products button span{font-size:12px;color:var(--muted)}
@@ -109,6 +110,7 @@ button{cursor:pointer}
 .part span{font-size:12px;font-weight:500}
 
 .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.sec[hidden]{display:none}
 .seg button{border:0;background:transparent;border-radius:8px;padding:8px 6px;font-weight:600;font-size:13px}
 .seg button[aria-pressed="true"]{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .small{font-size:12px;color:var(--muted);margin:8px 0 0}
@@ -237,7 +239,8 @@ button{cursor:pointer}
       <h1 id="pName">Classic Pullover Hoodie</h1>
       <div class="price" id="headPrice">$68</div>
       <p id="pBlurb">Relaxed fit, lined hood, kangaroo pocket and ribbed trims. Design every panel.</p>
-      <div class="products" id="products" role="radiogroup" aria-label="Garment"></div>
+      <div class="tabs groups" id="groups" aria-label="Category"></div>
+      <div class="products" id="products" role="radiogroup" aria-label="Product"></div>
     </div>
 
     <section class="sec">
@@ -254,7 +257,7 @@ button{cursor:pointer}
       <div class="patctl" id="patctl"></div>
     </section>
 
-    <section class="sec">
+    <section class="sec" id="fabricSec">
       <h2><span><span class="n">03</span></span><b style="flex:1">Fabric</b><span id="fabricNote"></span></h2>
       <div class="seg" id="fabric">
         <button data-fabric="fleece">Fleece</button>
@@ -374,7 +377,7 @@ const newId = () => 'L' + (Date.now().toString(36)) + (uid++);
 function defaultState() {
   return {
     colorway: 'Heather Grey', byPart: false,
-    colors: { body: '#b8b8b4', sleeves: '#b8b8b4', hood: '#b8b8b4', trim: '#b8b8b4', lining: '#9a9a96', strings: '#f2efe6' },
+    colors: { body: '#b8b8b4', sleeves: '#b8b8b4', hood: '#b8b8b4', shorts: '#b8b8b4', trim: '#b8b8b4', lining: '#9a9a96', strings: '#f2efe6' },
     product: 'hoodie', pattern: { type: 'none', color: '#141414', scale: 1, rot: 0, src: null }, fabric: 'fleece', size: 'M', qty: 1,
     placements: {
       front: [
@@ -581,6 +584,8 @@ const fabric = (extra = {}) => new THREE.MeshPhysicalMaterial({
 const mats = {
   // double-sided: garment exports don't always agree on which way faces point
   body: withKnit(fabric({ side: THREE.DoubleSide }), { pattern: true }), sleeves: withKnit(fabric(), { pattern: true }), hood: withKnit(fabric(), { pattern: true }),
+  shorts: withKnit(fabric({ side: THREE.DoubleSide }), { pattern: true }),
+  ball: withKnit(new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.12, vertexColors: true, envMapIntensity: 1 }), { pattern: true, strength: 0 }),
   hem: withKnit(fabric(), { map: ribHeight, ribUV: [16, 1], strength: 0.9 }),
   cuff: withKnit(fabric(), { map: ribHeight, ribUV: [6, 1], strength: 0.9 }),
   rim: withKnit(fabric(), { map: ribHeight, ribUV: [30, 1], strength: 0.4 }),
@@ -589,9 +594,9 @@ const mats = {
   strings: new THREE.MeshStandardMaterial({ roughness: 0.75, vertexColors: true }),
   aglet: new THREE.MeshStandardMaterial({ color: 0xc9c9c9, roughness: 0.28, metalness: 0.9 }),
 };
-const fabricMats = ['body', 'sleeves', 'hood', 'hem', 'cuff', 'rim', 'lining'];
+const fabricMats = ['body', 'sleeves', 'hood', 'shorts', 'hem', 'cuff', 'rim', 'lining'];
 // GLB node name → material key and colour role
-const PART_MAT = { body: 'body', pocket: 'body', sleeveL: 'sleeves', sleeveR: 'sleeves', hood: 'hood', hem: 'hem', cuffL: 'cuff', cuffR: 'cuff', hoodRim: 'rim', stringL: 'strings', stringR: 'strings', agletL: 'aglet', agletR: 'aglet' };
+const PART_MAT = { body: 'body', jersey: 'body', shorts: 'shorts', pocket: 'body', sleeveL: 'sleeves', sleeveR: 'sleeves', hood: 'hood', hem: 'hem', cuffL: 'cuff', cuffR: 'cuff', hoodRim: 'rim', stringL: 'strings', stringR: 'strings', agletL: 'aglet', agletR: 'aglet' };
 const INTERIOR = { sleeveL: 'interior', sleeveR: 'interior', hood: 'lining' };
 
 /* =====================================================================
@@ -606,7 +611,23 @@ const PRODUCTS = {
     eyebrow: 'Made to order · 340 gsm loopback cotton', blurb: 'A clean crew with long sleeves and ribbed collar, cuffs and hem.' },
   tee: { label: 'T-shirt', name: 'Heavyweight Tee', crumb: 'T-shirts', price: 32, model: 'models/tee',
     eyebrow: 'Made to order · 240 gsm combed cotton', blurb: 'A boxy, heavyweight tee with a ribbed crew neck.' },
+  basketball: { group: 'men', label: 'Basketball', name: "Men's Basketball Uniform", crumb: 'Uniforms', price: 72, model: 'models/basketball',
+    eyebrow: 'Team uniform · jersey + shorts', blurb: 'Breathable mesh jersey and shorts. Colour each separately and add numbers, names and a leg print.', areaLabels: { left: 'Shorts' } },
+  soccerM: { group: 'men', label: 'Soccer kit', name: "Men's Soccer Kit", crumb: 'Uniforms', price: 64, model: 'models/soccer',
+    eyebrow: 'Team uniform · jersey + shorts', blurb: 'A lightweight match jersey with shorts. Colour each separately and add crests, sponsors and numbers.', areaLabels: { left: 'Shorts' } },
+  polo: { group: 'women', label: 'Polo', name: "Women's Performance Polo", crumb: 'Polos', price: 48, model: 'models/polo', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    eyebrow: 'Made to order · 180 gsm technical piqué', blurb: 'A fitted polo with a placket and knit collar, cut from separate panels you can colour one by one.' },
+  tank: { group: 'women', label: 'Racerback tank', name: "Women's Racerback Tank", crumb: 'Tanks', price: 30, model: 'models/tank', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    eyebrow: 'Made to order · 150 gsm performance jersey', blurb: 'A lightweight racerback with bound neck and armholes for training days.' },
+  soccerW: { group: 'women', label: 'Soccer kit', name: "Women's Soccer Kit", crumb: 'Uniforms', price: 64, model: 'models/soccer', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    eyebrow: 'Team uniform · jersey + shorts', blurb: 'A lightweight match jersey with shorts. Colour each separately and add crests, sponsors and numbers.', areaLabels: { left: 'Shorts' } },
+  cap: { group: 'accessories', label: 'Cap', name: 'Six-Panel Cap', crumb: 'Headwear', price: 28, model: 'models/cap', sizes: ['S/M', 'L/XL'],
+    eyebrow: 'Made to order · cotton twill', blurb: 'A structured six-panel cap with a curved brim. Embroider or print the front and back.', areaLabels: { front: 'Front panel' } },
+  ball: { group: 'accessories', label: 'Golf balls', name: 'Golf Balls · Dozen', crumb: 'Golf', price: 42, model: 'models/ball', sizes: ['12-pack'], finish: 'ball',
+    eyebrow: 'Tour ionomer cover · logo print', blurb: 'A dozen balls with your logo or text printed on one or both sides.', areaLabels: { front: 'Side A', back: 'Side B' } },
 };
+const GROUPS = [['unisex', 'Unisex'], ['men', "Men's"], ['women', "Women's"], ['accessories', 'Accessories']];
+const groupOf = k => PRODUCTS[k].group || 'unisex';
 const garments = {};    // product → { meshes, parts, decals, frames, credit }, loaded on demand
 let parts = {};         // current garment: name → mesh
 let placementFrames = null; // current garment's print areas: origin, dir, u, v, w, h, targets
@@ -651,7 +672,7 @@ async function buildGarment(key) {
   const gltf = await fetchGLTF(PRODUCTS[key].model + MODEL_EXT);
   const frames = gltf.scene.userData.placements;
   for (const F of Object.values(frames)) F.targets ??= ['body'];
-  const g = { meshes: [], parts: {}, decals: {}, frames, credit: gltf.scene.userData.credit, pieces: null };
+  const g = { meshes: [], parts: {}, decals: {}, frames, credit: gltf.scene.userData.credit, pieces: null, areas: gltf.scene.userData.areas || Object.keys(PLACEMENTS), detail: null };
   const { pieces, layout } = gltf.scene.userData;
   if (pieces && layout) {
     const c = document.createElement('canvas'); c.width = 2048; c.height = Math.round(2048 / layout.aspect);
@@ -662,7 +683,8 @@ async function buildGarment(key) {
   gltf.scene.traverse(o => { if (o.isMesh) list.push(o); });
   for (const m of list) {
     if (m.name.startsWith('print_')) { const k = m.name.slice(6); g.decals[k] = setupDecal(frames[k], m); g.meshes.push(m); continue; }
-    const mk = PART_MAT[m.name]; if (!mk) continue;
+    const mk = m.name === 'body' && PRODUCTS[key].finish === 'ball' ? 'ball' : PART_MAT[m.name]; if (!mk) continue;
+    if (m.name === 'body' && m.material?.normalMap) g.detail = m.material.normalMap; // weave or dimples from the source
     m.material = mats[mk];
     m.castShadow = m.receiveShadow = true;
     g.parts[m.name] = m; g.meshes.push(m);
@@ -676,24 +698,31 @@ async function showProduct(key) {
   const loading = $('#loading');
   loading.textContent = `Loading ${PRODUCTS[key].label.toLowerCase()}…`; loading.hidden = false;
   try {
-    const g = garments[key] || (garments[key] = await buildGarment(key));
+    const mkey = PRODUCTS[key].model + (PRODUCTS[key].finish || ''); // kits shared by men's and women's load once
+    const g = garments[mkey] || (garments[mkey] = await buildGarment(key));
     if (seq !== loadSeq) return; // a newer choice won
     for (const m of [...hoodie.children]) hoodie.remove(m);
     for (const m of g.meshes) hoodie.add(m);
     parts = g.parts; decals = g.decals; placementFrames = g.frames;
     pieceInfo = g.pieces; selectedPiece = null; hoverPiece = null;
-    mats.body.map = pieceInfo ? pieceInfo.tex : null; mats.body.needsUpdate = true;
+    mats.body.map = pieceInfo ? pieceInfo.tex : null;
+    mats.body.normalMap = g.detail; mats.body.normalScale.setScalar(0.8); mats.body.needsUpdate = true;
+    if (PRODUCTS[key].finish === 'ball') { mats.ball.normalMap = g.detail; mats.ball.normalScale.setScalar(1); mats.ball.needsUpdate = true; }
+    garmentAreas = g.areas;
+    if (!garmentAreas.includes(active)) { active = garmentAreas[0]; const l = state.placements[active]; selectedId = l.length ? l[l.length - 1].id : null; }
+    $('#fabricSec').hidden = PRODUCTS[key].finish === 'ball';
+    renderDesign();
     setSplit(splitPref && !!pieceInfo); renderPieceCard();
     const pb = $('#piecesBtn'); pb.disabled = !pieceInfo; pb.title = pieceInfo ? 'Show the 2D pattern pieces' : 'This model has no pattern pieces';
     applyPattern();
     showCredit(g.credit);
-    $('#byPartRow').hidden = !parts.sleeveL;
-    if (!parts.sleeveL) state.byPart = false;
+    $('#byPartRow').hidden = colourParts().length < 2;
+    if (colourParts().length < 2) state.byPart = false;
     applyColors(); applyFabric(); invalidate(); renderColor();
     loading.hidden = true;
   } catch (err) {
     console.error(err);
-    delete garments[key];
+    delete garments[PRODUCTS[key].model + (PRODUCTS[key].finish || '')];
     if (seq === loadSeq) loading.textContent = `The ${PRODUCTS[key].label.toLowerCase()} model could not be loaded. Reload the page to try again.`;
   }
 }
@@ -945,7 +974,7 @@ function renderPrint(placement) {
 }
 function redrawTextures() {
   if (!placementFrames) return;
-  for (const k of Object.keys(PLACEMENTS)) renderPrint(k);
+  for (const k of Object.keys(decals)) renderPrint(k); // only the print areas this model has
   if (pieceInfo) { drawPieces(); render2D(); }
 }
 let needsRedraw = true;
@@ -957,6 +986,7 @@ function applyColors() {
   const set = (m, hex) => { m.color.set(hex); m.sheenColor.set(hex).lerp(white, 0.25).multiplyScalar(0.6); };
   set(mats.body, C.body); if (pieceInfo) mats.body.color.set(0xffffff); // pieces carry their own colour
   set(mats.sleeves, C.sleeves); set(mats.hood, C.hood);
+  set(mats.shorts, C.shorts || C.body); set(mats.ball, C.body);
   set(mats.hem, C.trim); set(mats.cuff, C.trim); set(mats.rim, C.hood); set(mats.lining, C.lining);
   mats.interior.color.set(shade(C.body, -0.45));
   mats.strings.color.set(C.strings);
@@ -1072,9 +1102,11 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 
 // Colour
 const PARTS = [['body', 'Body'], ['sleeves', 'Sleeves'], ['hood', 'Hood'], ['trim', 'Cuffs & hem'], ['lining', 'Hood lining'], ['strings', 'Drawstrings']];
+// the colour controls that make sense for the current model
+const colourParts = () => parts.shorts ? [['body', 'Jersey'], ['shorts', 'Shorts']] : parts.sleeveL ? PARTS : [];
 function setColorway(name, hex) {
   state.colorway = name;
-  Object.assign(state.colors, { body: hex, sleeves: hex, hood: hex, trim: hex, lining: shade(hex, -0.14), strings: luminance(hex) > 0.5 ? shade(hex, 0.6) : shade(hex, 0.15) });
+  Object.assign(state.colors, { body: hex, sleeves: hex, hood: hex, shorts: hex, trim: hex, lining: shade(hex, -0.14), strings: luminance(hex) > 0.5 ? shade(hex, 0.6) : shade(hex, 0.15) });
   applyColors(); renderColor(); save();
 }
 function renderColor() {
@@ -1085,10 +1117,10 @@ function renderColor() {
   $('#byPart').checked = state.byPart;
   $('#parts').hidden = !state.byPart;
   renderPattern();
-  $('#parts').innerHTML = PARTS.map(([k, n]) => `<label class="part"><input type="color" data-part="${k}" value="${state.colors[k]}"><span>${n}</span></label>`).join('');
+  $('#parts').innerHTML = colourParts().map(([k, n]) => `<label class="part"><input type="color" data-part="${k}" value="${state.colors[k] || state.colors.body}"><span>${n}</span></label>`).join('');
 }
 $('#swatches').addEventListener('click', e => { const b = e.target.closest('[data-cw]'); if (b) setColorway(b.dataset.cw, COLORWAYS.find(c => c[0] === b.dataset.cw)[1]); });
-$('#swatches').addEventListener('input', e => { if (e.target.id === 'customColor') { const v = e.target.value; state.colorway = 'Custom'; Object.assign(state.colors, { body: v, sleeves: v, hood: v, trim: v, lining: shade(v, -0.14) }); applyColors(); $('#colorName').textContent = 'Custom'; save(); } });
+$('#swatches').addEventListener('input', e => { if (e.target.id === 'customColor') { const v = e.target.value; state.colorway = 'Custom'; Object.assign(state.colors, { body: v, sleeves: v, hood: v, shorts: v, trim: v, lining: shade(v, -0.14) }); applyColors(); $('#colorName').textContent = 'Custom'; save(); } });
 $('#swatches').addEventListener('change', e => { if (e.target.id === 'customColor') renderColor(); });
 $('#byPart').addEventListener('change', e => { state.byPart = e.target.checked; renderColor(); save(); });
 $('#parts').addEventListener('input', e => { const k = e.target.dataset.part; if (!k) return; state.colors[k] = e.target.value; applyColors(); save(); });
@@ -1198,9 +1230,11 @@ $('#file').addEventListener('change', e => {
 });
 
 const layerName = L => L.type === 'text' ? (L.text.trim() || 'Empty text') : L.type === 'graphic' ? GRAPHICS[L.key].name : (L.name || 'Image');
+let garmentAreas = Object.keys(PLACEMENTS);
+const areaLabel = k => PRODUCTS[state.product].areaLabels?.[k] || PLACEMENTS[k].label;
 function renderTabs() {
-  $('#tabs').innerHTML = Object.entries(PLACEMENTS).map(([k, P]) =>
-    `<button class="tab" data-tab="${k}" aria-pressed="${k === active}">${P.label}${state.placements[k].length ? `<i>${state.placements[k].length}</i>` : ''}</button>`).join('');
+  $('#tabs').innerHTML = garmentAreas.map(k =>
+    `<button class="tab" data-tab="${k}" aria-pressed="${k === active}">${areaLabel(k)}${state.placements[k].length ? `<i>${state.placements[k].length}</i>` : ''}</button>`).join('');
 }
 function renderLayers() {
   const list = state.placements[active];
@@ -1299,13 +1333,21 @@ document.addEventListener('keydown', e => {
 // Product
 function renderProduct() {
   const P = PRODUCTS[state.product];
-  $('#products').innerHTML = Object.entries(PRODUCTS).map(([k, x]) =>
+  const grp = groupOf(state.product);
+  $('#groups').innerHTML = GROUPS.map(([g, n]) => `<button class="tab" data-group="${g}" aria-pressed="${g === grp}">${n}</button>`).join('');
+  $('#products').innerHTML = Object.entries(PRODUCTS).filter(([k]) => groupOf(k) === grp).map(([k, x]) =>
     `<button role="radio" aria-checked="${k === state.product}" data-product="${k}"><b>${x.label}</b><span>from $${x.price}</span></button>`).join('');
+  renderSizes();
   $('#pName').textContent = P.name; $('#pEyebrow').textContent = P.eyebrow; $('#pBlurb').textContent = P.blurb;
   $('#crumbCat').textContent = P.crumb; $('#crumbName').textContent = P.name;
   document.title = `${P.name} · Studio`;
   renderPrice();
 }
+$('#groups').addEventListener('click', e => {
+  const b = e.target.closest('[data-group]'); if (!b) return;
+  const first = Object.keys(PRODUCTS).find(k => groupOf(k) === b.dataset.group);
+  if (first && first !== state.product) { state.product = first; renderProduct(); showProduct(first); save(); }
+});
 $('#products').addEventListener('click', e => {
   const b = e.target.closest('[data-product]'); if (!b || b.dataset.product === state.product) return;
   state.product = b.dataset.product; renderProduct(); showProduct(state.product); save();
@@ -1313,14 +1355,17 @@ $('#products').addEventListener('click', e => {
 
 // Size / qty / price
 function renderSizes() {
-  $('#sizes').innerHTML = SIZES.map(s => `<button data-size="${s}" aria-pressed="${s === state.size}">${s}</button>`).join('');
+  const sizes = PRODUCTS[state.product].sizes || SIZES;
+  if (!sizes.includes(state.size)) state.size = sizes.includes('M') ? 'M' : sizes[0];
+  $('#sizes').style.gridTemplateColumns = `repeat(${Math.min(6, sizes.length)},1fr)`;
+  $('#sizes').innerHTML = sizes.map(s => `<button data-size="${s}" aria-pressed="${s === state.size}">${s}</button>`).join('');
   $('#qty').textContent = state.qty;
 }
 $('#sizes').addEventListener('click', e => { const b = e.target.closest('[data-size]'); if (!b) return; state.size = b.dataset.size; renderSizes(); save(); });
 $('#qMinus').addEventListener('click', () => { state.qty = Math.max(1, state.qty - 1); renderSizes(); renderPrice(); save(); });
 $('#qPlus').addEventListener('click', () => { state.qty = Math.min(99, state.qty + 1); renderSizes(); renderPrice(); save(); });
 function price() {
-  const used = Object.keys(PLACEMENTS).filter(k => state.placements[k].length);
+  const used = garmentAreas.filter(k => state.placements[k].length);
   const extra = Math.max(0, used.length - 1) * EXTRA_PLACEMENT;
   const base = PRODUCTS[state.product].price;
   return { used, extra, base, unit: base + extra, total: (base + extra) * state.qty };

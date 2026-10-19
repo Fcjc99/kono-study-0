@@ -1,6 +1,12 @@
 # Hoodie Studio
 
-Three garments are available: a pullover hoodie, a long-sleeve crewneck and a heavyweight tee. Your design carries over when you switch between them.
+The products are grouped under four tabs:
+- **Unisex:** hoodie, crewneck, tee
+- **Men's:** basketball uniform, soccer kit
+- **Women's:** performance polo, racerback tank, soccer kit
+- **Accessories:** six-panel cap, golf balls
+
+Your design carries over when you switch between products.
 
 A standalone 3D product customizer for a pullover hoodie. It's one HTML page plus `hoodie.glb`, with no build step: three.js loads from a pinned CDN version.
 
@@ -23,11 +29,17 @@ Open `index.html` through any static server, for example `npx serve hoodie-studi
   - precomputes a print surface for the front, back and each sleeve: only the triangles visible from that side, with planar UVs;
   - for CLO/Style3D exports, extracts the sewing pattern pieces: each panel is one piece and its UVs are the piece laid flat. It merges the inner and outer fabric layers, names each piece from where it sits on the body, and lays the pieces out side by side at their true relative size.
   - quantizes and meshopt-compresses the result to about 7 MB.
-- To rebuild all three models: `cd tools && npm install && npm run models`.
+- To rebuild a model: `node prepare-model.mjs <source> ../models/<name>.glb <preset>`. The presets are in `PRESETS` in `prepare-model.mjs`.
+- The script also reads OBJ files (gzipped ones too), and it can:
+  - drop CLO stitch geometry (`minPieceTris`) and inner fabric layers (`dropInner`);
+  - simplify dense meshes and subdivide low-poly ones;
+  - keep a weave or dimple normal map;
+  - split team kits into a jersey part and a shorts part.
 - To add a garment: run `node prepare-model.mjs <in.glb> ../models/<name>.glb <preset>`, add a preset for its print areas in `PRESETS`, then add it to `PRODUCTS` in `index.html`. Only the geometry is used; any textures baked into the source are dropped.
 - The knit texture is applied in the shader by triplanar bump mapping, so the garment needs no UV unwrap.
 
 ## Credits
+- Women's polo, racerback tank, basketball uniform, soccer kit, cap and golf ball: supplied by the project owner. Check the licence of each model before using it commercially. Only geometry and surface-detail (normal) maps are used: all printed and branded colour textures were left out.
 The 3D models are licensed CC BY 4.0, and the studio page shows the credit for the model in use.
 - Hoodie: ["Hoodie Sweatshirt"](https://sketchfab.com/3d-models/hoodie-sweatshirt-d1b0dc66056b4ea7bc616b0d3bb7cf22) by melatmod. Rescaled, recoloured and shaded with baked ambient occlusion for this studio.
 - T-shirt: ["T Shirt"](https://sketchfab.com/3d-models/t-shirt-c1a3e5eb9b5445f4b7d4be82f1127eba) by funlab117. Squared up, rescaled, recoloured and shaded with baked ambient occlusion.
