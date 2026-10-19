@@ -1,9 +1,8 @@
 # Hoodie Studio
 
-The products are grouped under four tabs:
-- **Unisex:** hoodie, crewneck, tee
-- **Men's:** basketball uniform, soccer kit
-- **Women's:** performance polo, racerback tank, soccer kit, colour-block track set (jacket and shorts)
+The products are grouped under three tabs:
+- **Men's:** hoodie, crewneck, tee, basketball uniform, soccer kit
+- **Women's:** hoodie, crewneck, performance polo, racerback tank, soccer kit, colour-block track set (jacket and shorts)
 - **Accessories:** six-panel cap, golf balls
 
 Your design carries over when you switch between products.

@@ -650,12 +650,17 @@ const KIT_PARTS = { jersey: 'Jersey', jerseyTrim: 'Jersey trim', shorts: 'Shorts
 // Products: each is a prepared garment model (see tools/prepare-model.mjs).
 const MODEL_EXT = '.glb';
 const PRODUCTS = {
-  hoodie: { label: 'Hoodie', name: 'Classic Pullover Hoodie', crumb: 'Hoodies', price: 68, model: 'models/hoodie',
+  hoodie: { group: 'men', label: 'Hoodie', name: "Men's Classic Pullover Hoodie", crumb: 'Hoodies', price: 68, model: 'models/hoodie',
     eyebrow: 'Made to order · 400 gsm cotton fleece', blurb: 'Relaxed fit, lined hood, kangaroo pocket and ribbed trims. Design every panel.' },
-  crewneck: { label: 'Crewneck', name: 'Long Sleeve Crewneck', crumb: 'Sweatshirts', price: 58, model: 'models/crewneck',
+  crewneck: { group: 'men', label: 'Crewneck', name: "Men's Long Sleeve Crewneck", crumb: 'Sweatshirts', price: 58, model: 'models/crewneck',
     eyebrow: 'Made to order · 340 gsm loopback cotton', blurb: 'A clean crew with long sleeves and ribbed collar, cuffs and hem.' },
-  tee: { label: 'T-shirt', name: 'Heavyweight Tee', crumb: 'T-shirts', price: 32, model: 'models/tee',
+  tee: { group: 'men', label: 'T-shirt', name: "Men's Heavyweight Tee", crumb: 'T-shirts', price: 32, model: 'models/tee',
     eyebrow: 'Made to order · 240 gsm combed cotton', blurb: 'A boxy, heavyweight tee with a ribbed crew neck.' },
+  // the same garments in the women's range (shared models, separate designs and sizes)
+  hoodieW: { group: 'women', label: 'Hoodie', name: "Women's Classic Pullover Hoodie", crumb: 'Hoodies', price: 68, model: 'models/hoodie', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    eyebrow: 'Made to order · 400 gsm cotton fleece', blurb: 'Relaxed fit, lined hood, kangaroo pocket and ribbed trims. Design every panel.' },
+  crewneckW: { group: 'women', label: 'Crewneck', name: "Women's Long Sleeve Crewneck", crumb: 'Sweatshirts', price: 58, model: 'models/crewneck', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    eyebrow: 'Made to order · 340 gsm loopback cotton', blurb: 'A clean crew with long sleeves and ribbed collar, cuffs and hem.' },
   trackset: { group: 'women', label: 'Jacket + shorts', name: "Women's Colour-Block Track Set", crumb: 'Sets', price: 96, model: 'models/trackset', sizes: ['XS', 'S', 'M', 'L', 'XL'],
     eyebrow: 'Made to order · zip jacket + shorts', blurb: 'A long-sleeve zip jacket with matching shorts. Colour the whole jacket or shorts at once, or panel by panel.' },
   basketball: { group: 'men', label: 'Basketball', name: "Men's Basketball Uniform", crumb: 'Uniforms', price: 72, model: 'models/basketball',
@@ -673,8 +678,8 @@ const PRODUCTS = {
   ball: { group: 'accessories', label: 'Golf balls', name: 'Golf Balls · Dozen', crumb: 'Golf', price: 42, model: 'models/ball', sizes: ['12-pack'], finish: 'ball',
     eyebrow: 'Tour ionomer cover · logo print', blurb: 'A dozen balls with your logo or text printed on one or both sides.', areaLabels: { front: 'Side A', back: 'Side B' } },
 };
-const GROUPS = [['unisex', 'Unisex'], ['men', "Men's"], ['women', "Women's"], ['accessories', 'Accessories']];
-const groupOf = k => PRODUCTS[k].group || 'unisex';
+const GROUPS = [['men', "Men's"], ['women', "Women's"], ['accessories', 'Accessories']];
+const groupOf = k => PRODUCTS[k].group;
 const garments = {};    // product → { meshes, parts, decals, frames, credit }, loaded on demand
 let parts = {};         // current garment: name → mesh
 let placementFrames = null; // current garment's print areas: origin, dir, u, v, w, h, targets
