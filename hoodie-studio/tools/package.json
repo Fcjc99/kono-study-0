@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "model": "node prepare-model.mjs ../models-src/hoodie-sweatshirt-melatmod.glb"
+    "models": "node prepare-model.mjs ../models-src/hoodie-sweatshirt-melatmod.glb ../models/hoodie.glb hoodie && node prepare-model.mjs ../models-src/crewneck-style3d.glb ../models/crewneck.glb crewneck && node prepare-model.mjs ../models-src/t-shirt-funlab117.glb ../models/tee.glb tee"
   },
   "devDependencies": {
     "@gltf-transform/core": "4.1.1",

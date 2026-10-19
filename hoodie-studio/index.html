@@ -45,7 +45,13 @@ button{cursor:pointer}
 .stage canvas{display:block;width:100%;height:100%;touch-action:none}
 .crumb{position:absolute;top:16px;left:20px;color:var(--muted);font-size:12px;letter-spacing:.04em;pointer-events:none}
 .crumb b{color:var(--ink);font-weight:600}
-.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-weight:500}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-weight:500;pointer-events:none}
+.loading[hidden]{display:none}
+.products{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.products button{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 8px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
+.products button b{font-size:13px}
+.products button span{font-size:12px;color:var(--muted)}
+.products button[aria-checked="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .toolbar{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:5px;box-shadow:0 8px 30px rgba(0,0,0,.08);max-width:calc(100% - 32px);overflow-x:auto;scrollbar-width:none}
 .toolbar::-webkit-scrollbar{display:none}
 .toolbar .sep{width:1px;height:20px;background:var(--line);margin:0 4px;flex:none}
@@ -177,7 +183,7 @@ button{cursor:pointer}
   <section class="stage" id="stage" aria-label="3D hoodie preview">
     <canvas id="c"></canvas>
     <div class="loading" id="loading">Loading studio…</div>
-    <div class="crumb">Studio / Hoodies / <b>Classic Pullover</b></div>
+    <div class="crumb">Studio / <span id="crumbCat">Hoodies</span> / <b id="crumbName">Classic Pullover Hoodie</b></div>
     <div class="hint">Drag to orbit · Right‑drag to pan · Scroll to zoom<br>Drag a print on the hoodie to move it</div>
     <div class="toolbar" role="toolbar" aria-label="View">
       <button class="tb" data-view="front" aria-pressed="true">Front</button>
@@ -193,10 +199,11 @@ button{cursor:pointer}
 
   <aside class="panel" aria-label="Customize">
     <div class="phead">
-      <div class="eyebrow">Made to order · 400 gsm cotton fleece</div>
-      <h1>Classic Pullover Hoodie</h1>
+      <div class="eyebrow" id="pEyebrow">Made to order · 400 gsm cotton fleece</div>
+      <h1 id="pName">Classic Pullover Hoodie</h1>
       <div class="price" id="headPrice">$68</div>
-      <p>Relaxed fit, double-lined hood, kangaroo pocket and ribbed trims. Design every panel.</p>
+      <p id="pBlurb">Relaxed fit, lined hood, kangaroo pocket and ribbed trims. Design every panel.</p>
+      <div class="products" id="products" role="radiogroup" aria-label="Garment"></div>
     </div>
 
     <section class="sec">
@@ -282,7 +289,7 @@ const FABRICS = {
   brushed: { note: 'Peached, velvety', rough: 0.98, sheen: 1.0, knit: 0.12, sheenRough: 0.35 },
 };
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-const BASE_PRICE = 68, EXTRA_PLACEMENT = 12;
+const EXTRA_PLACEMENT = 12;
 
 // Print areas. Their position and size on the garment come from the model (scene extras in hoodie.glb).
 const PLACEMENTS = {
@@ -327,7 +334,7 @@ function defaultState() {
   return {
     colorway: 'Heather Grey', byPart: false,
     colors: { body: '#b8b8b4', sleeves: '#b8b8b4', hood: '#b8b8b4', trim: '#b8b8b4', lining: '#9a9a96', strings: '#f2efe6' },
-    fabric: 'fleece', size: 'M', qty: 1,
+    product: 'hoodie', fabric: 'fleece', size: 'M', qty: 1,
     placements: {
       front: [
         { id: newId(), type: 'text', text: 'OFF DUTY', font: 'Archivo Black', color: '#141414', scale: 0.95, x: 0, y: 0.16, rot: 0, spacing: 4, curve: 28, outline: false, outlineColor: '#f5f3ee', outlineWidth: 1 },
@@ -454,7 +461,8 @@ const fabric = (extra = {}) => new THREE.MeshPhysicalMaterial({
   vertexColors: true, envMapIntensity: 0.75, ...extra,
 });
 const mats = {
-  body: withKnit(fabric()), sleeves: withKnit(fabric()), hood: withKnit(fabric()),
+  // double-sided: garment exports don't always agree on which way faces point
+  body: withKnit(fabric({ side: THREE.DoubleSide })), sleeves: withKnit(fabric()), hood: withKnit(fabric()),
   hem: withKnit(fabric(), { map: ribHeight, ribUV: [16, 1], strength: 0.9 }),
   cuff: withKnit(fabric(), { map: ribHeight, ribUV: [6, 1], strength: 0.9 }),
   rim: withKnit(fabric(), { map: ribHeight, ribUV: [30, 1], strength: 0.4 }),
@@ -466,20 +474,29 @@ const mats = {
 const fabricMats = ['body', 'sleeves', 'hood', 'hem', 'cuff', 'rim', 'lining'];
 // GLB node name → material key and colour role
 const PART_MAT = { body: 'body', pocket: 'body', sleeveL: 'sleeves', sleeveR: 'sleeves', hood: 'hood', hem: 'hem', cuffL: 'cuff', cuffR: 'cuff', hoodRim: 'rim', stringL: 'strings', stringR: 'strings', agletL: 'aglet', agletR: 'aglet' };
-const INTERIOR = { body: 'interior', sleeveL: 'interior', sleeveR: 'interior', hood: 'lining' };
+const INTERIOR = { sleeveL: 'interior', sleeveR: 'interior', hood: 'lining' };
 
 /* =====================================================================
    Loading the garment model
    ===================================================================== */
-const parts = {};       // name → mesh
-let placementFrames = null; // from the GLB: origin, dir, u, v, w, h, targets
-const decals = {};      // placement → { mesh, canvas, tex }
-const MODEL_URL = 'hoodie.glb';
+// Products: each is a prepared garment model (see tools/prepare-model.mjs).
+const MODEL_EXT = '.glb';
+const PRODUCTS = {
+  hoodie: { label: 'Hoodie', name: 'Classic Pullover Hoodie', crumb: 'Hoodies', price: 68, model: 'models/hoodie',
+    eyebrow: 'Made to order · 400 gsm cotton fleece', blurb: 'Relaxed fit, lined hood, kangaroo pocket and ribbed trims. Design every panel.' },
+  crewneck: { label: 'Crewneck', name: 'Long Sleeve Crewneck', crumb: 'Sweatshirts', price: 58, model: 'models/crewneck',
+    eyebrow: 'Made to order · 340 gsm loopback cotton', blurb: 'A clean crew with long sleeves and ribbed collar, cuffs and hem.' },
+  tee: { label: 'T-shirt', name: 'Heavyweight Tee', crumb: 'T-shirts', price: 32, model: 'models/tee',
+    eyebrow: 'Made to order · 240 gsm combed cotton', blurb: 'A boxy, heavyweight tee with a ribbed crew neck.' },
+};
+const garments = {};    // product → { meshes, parts, decals, frames, credit }, loaded on demand
+let parts = {};         // current garment: name → mesh
+let placementFrames = null; // current garment's print areas: origin, dir, u, v, w, h, targets
+let decals = {};        // current garment: placement → { mesh, canvas, tex }
 
 // Each print area ships as its own surface in the model (only the triangles the print can see,
 // with planar UVs); here it just gets a canvas texture to draw the layers into.
-function setupDecal(key, mesh) {
-  const F = placementFrames[key];
+function setupDecal(F, mesh) {
   const canvas = document.createElement('canvas');
   canvas.width = 1024; canvas.height = Math.round(1024 * F.h / F.w);
   const tex = new THREE.CanvasTexture(canvas);
@@ -490,44 +507,66 @@ function setupDecal(key, mesh) {
   }), { strength: 0.25 });
   mesh.receiveShadow = true;
   mesh.renderOrder = 2;
-  hoodie.add(mesh);
-  decals[key] = { mesh, canvas, tex };
+  return { mesh, canvas, tex };
 }
 
 function showCredit(c) {
-  if (!c || !c.author) return;
-  const el = $('#credit'), link = (c.source || '').match(/https?:\/\/\S+/)?.[0], who = c.author.replace(/\s*\(.*\)\s*$/, '');
+  const el = $('#credit');
+  if (!c || !c.author) { el.hidden = true; return; }
+  const link = (c.source || '').match(/https?:\/\/\S+/)?.[0], who = c.author.replace(/\s*\(.*\)\s*$/, '');
   el.innerHTML = `3D model: <a href="${esc(link || '#')}" target="_blank" rel="noopener">“${esc(c.title || 'Untitled')}”</a> by ${esc(who)}, licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Rescaled, recoloured and shaded for this studio.`;
   el.hidden = false;
 }
-function loadModel() {
-  new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(MODEL_URL, gltf => {
-    placementFrames = gltf.scene.userData.placements;
-    for (const F of Object.values(placementFrames)) F.targets ??= ['body'];
-    showCredit(gltf.scene.userData.credit);
-    const list = [];
-    gltf.scene.traverse(o => { if (o.isMesh) list.push(o); });
-    for (const m of list) {
-      if (m.name.startsWith('print_')) { setupDecal(m.name.slice(6), m); continue; }
-      const key = PART_MAT[m.name]; if (!key) continue;
-      m.material = mats[key];
-      m.castShadow = m.receiveShadow = true;
-      parts[m.name] = m;
-      hoodie.add(m);
-      if (INTERIOR[m.name]) {
-        const inner = new THREE.Mesh(m.geometry, mats[INTERIOR[m.name]]);
-        inner.receiveShadow = true;
-        hoodie.add(inner);
-      }
-    }
+// Fetches a model as binary, or as base64 text where the host can't serve .glb files.
+async function fetchGLTF(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: ${res.status}`);
+  let buf;
+  if (url.endsWith('.txt')) {
+    const bin = atob((await res.text()).trim()), bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    buf = bytes.buffer;
+  } else buf = await res.arrayBuffer();
+  return new Promise((ok, fail) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parse(buf, '', ok, fail));
+}
+async function buildGarment(key) {
+  const gltf = await fetchGLTF(PRODUCTS[key].model + MODEL_EXT);
+  const frames = gltf.scene.userData.placements;
+  for (const F of Object.values(frames)) F.targets ??= ['body'];
+  const g = { meshes: [], parts: {}, decals: {}, frames, credit: gltf.scene.userData.credit };
+  const list = [];
+  gltf.scene.traverse(o => { if (o.isMesh) list.push(o); });
+  for (const m of list) {
+    if (m.name.startsWith('print_')) { const k = m.name.slice(6); g.decals[k] = setupDecal(frames[k], m); g.meshes.push(m); continue; }
+    const mk = PART_MAT[m.name]; if (!mk) continue;
+    m.material = mats[mk];
+    m.castShadow = m.receiveShadow = true;
+    g.parts[m.name] = m; g.meshes.push(m);
+    if (INTERIOR[m.name]) { const inner = new THREE.Mesh(m.geometry, mats[INTERIOR[m.name]]); inner.receiveShadow = true; g.meshes.push(inner); }
+  }
+  return g;
+}
+let loadSeq = 0;
+async function showProduct(key) {
+  const seq = ++loadSeq;
+  const loading = $('#loading');
+  loading.textContent = `Loading ${PRODUCTS[key].label.toLowerCase()}…`; loading.hidden = false;
+  try {
+    const g = garments[key] || (garments[key] = await buildGarment(key));
+    if (seq !== loadSeq) return; // a newer choice won
+    for (const m of [...hoodie.children]) hoodie.remove(m);
+    for (const m of g.meshes) hoodie.add(m);
+    parts = g.parts; decals = g.decals; placementFrames = g.frames;
+    showCredit(g.credit);
     $('#byPartRow').hidden = !parts.sleeveL;
     if (!parts.sleeveL) state.byPart = false;
     applyColors(); applyFabric(); invalidate(); renderColor();
-    $('#loading').remove();
-  }, undefined, err => {
+    loading.hidden = true;
+  } catch (err) {
     console.error(err);
-    $('#loading').textContent = 'The hoodie model could not be loaded. Serve this folder over http (for example: npx serve hoodie-studio).';
-  });
+    delete garments[key];
+    if (seq === loadSeq) loading.textContent = `The ${PRODUCTS[key].label.toLowerCase()} model could not be loaded. Reload the page to try again.`;
+  }
 }
 
 // Soft contact shadow below the floating hoodie
@@ -906,6 +945,21 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Delete' || e.key === 'Backspace') { const list = state.placements[active]; list.splice(list.indexOf(L), 1); selectedId = list.length ? list[list.length - 1].id : null; renderDesign(); save(); e.preventDefault(); }
 });
 
+// Product
+function renderProduct() {
+  const P = PRODUCTS[state.product];
+  $('#products').innerHTML = Object.entries(PRODUCTS).map(([k, x]) =>
+    `<button role="radio" aria-checked="${k === state.product}" data-product="${k}"><b>${x.label}</b><span>from $${x.price}</span></button>`).join('');
+  $('#pName').textContent = P.name; $('#pEyebrow').textContent = P.eyebrow; $('#pBlurb').textContent = P.blurb;
+  $('#crumbCat').textContent = P.crumb; $('#crumbName').textContent = P.name;
+  document.title = `${P.name} · Studio`;
+  renderPrice();
+}
+$('#products').addEventListener('click', e => {
+  const b = e.target.closest('[data-product]'); if (!b || b.dataset.product === state.product) return;
+  state.product = b.dataset.product; renderProduct(); showProduct(state.product); save();
+});
+
 // Size / qty / price
 function renderSizes() {
   $('#sizes').innerHTML = SIZES.map(s => `<button data-size="${s}" aria-pressed="${s === state.size}">${s}</button>`).join('');
@@ -917,18 +971,19 @@ $('#qPlus').addEventListener('click', () => { state.qty = Math.min(99, state.qty
 function price() {
   const used = Object.keys(PLACEMENTS).filter(k => state.placements[k].length);
   const extra = Math.max(0, used.length - 1) * EXTRA_PLACEMENT;
-  return { used, extra, unit: BASE_PRICE + extra, total: (BASE_PRICE + extra) * state.qty };
+  const base = PRODUCTS[state.product].price;
+  return { used, extra, base, unit: base + extra, total: (base + extra) * state.qty };
 }
 function renderPrice() {
   const p = price();
   $('#headPrice').textContent = `$${p.unit}`;
-  $('#lines').innerHTML = `<div><span>Hoodie</span><span>$${BASE_PRICE}</span></div>
+  $('#lines').innerHTML = `<div><span>${PRODUCTS[state.product].label}</span><span>$${p.base}</span></div>
     <div><span>Print areas (${p.used.length || 0}) · first included</span><span>${p.extra ? '+$' + p.extra : '$0'}</span></div>
     <div class="tot"><span>Total${state.qty > 1 ? ` · ${state.qty} pcs` : ''}</span><span>$${p.total}</span></div>`;
 }
 let toastTimer = 0;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200); }
-$('#addBag').addEventListener('click', () => { bagCount += state.qty; $('#bagCount').textContent = bagCount; toast(`Added ${state.qty} × Hoodie · ${state.size} · ${state.byPart ? 'Custom mix' : state.colorway}`); });
+$('#addBag').addEventListener('click', () => { bagCount += state.qty; $('#bagCount').textContent = bagCount; toast(`Added ${state.qty} × ${PRODUCTS[state.product].label} · ${state.size} · ${state.byPart ? 'Custom mix' : state.colorway}`); });
 $('#bagBtn').addEventListener('click', () => toast(bagCount ? `${bagCount} item${bagCount > 1 ? 's' : ''} in your bag` : 'Your bag is empty'));
 
 // Toolbar
@@ -957,7 +1012,9 @@ function resize() {
 new ResizeObserver(resize).observe(stage);
 resize();
 
-loadModel();
+if (!PRODUCTS[state.product]) state.product = 'hoodie';
+renderProduct();
+showProduct(state.product);
 renderColor(); renderFabric(); renderSizes(); renderDesign();
 Promise.all(FONTS.map(fi => document.fonts.load(`${fi.w} 40px "${fi.f}"`).catch(() => {}))).then(invalidate);
 document.fonts.addEventListener?.('loadingdone', invalidate);
