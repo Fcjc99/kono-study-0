@@ -62,7 +62,7 @@ button{cursor:pointer}
 .products button[aria-checked="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .toolbar{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:5px;box-shadow:0 8px 30px rgba(0,0,0,.08);max-width:calc(100% - 32px);overflow-x:auto;scrollbar-width:none}
 .toolbar::-webkit-scrollbar{display:none}
-.toolbar .sep{width:1px;height:20px;background:var(--line);margin:0 4px;flex:none}
+.toolbar .sep,.history .sep{width:1px;height:20px;background:var(--line);margin:0 4px;flex:none}
 .tb{border:0;background:transparent;border-radius:999px;padding:7px 12px;font-weight:600;font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:6px;flex:none}
 .tb:hover{background:var(--surface-2)}
 .tb:disabled{opacity:.4;cursor:not-allowed}
@@ -91,12 +91,15 @@ button{cursor:pointer}
 .regions .chips i{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background-size:cover}
 .patterns .del{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-size:12px;line-height:18px;padding:0;display:grid;place-items:center;z-index:1}
 .patmore{margin-top:8px;border:0;background:none;padding:4px 0;font-weight:600;font-size:12px;color:var(--muted);text-decoration:underline}
-.startover{float:right;margin-top:-2px}
 .stage.split #c{position:absolute;left:50%;top:0;width:50%;height:100%}
 .stage.split .hint{display:none}
 .toolbar,.crumb{z-index:3}
 .stage.split .toolbar{left:75%;max-width:calc(50% - 24px)}
-.hint{position:absolute;top:16px;right:20px;color:var(--muted);font-size:12px;text-align:right;pointer-events:none;max-width:260px}
+.hint{position:absolute;top:64px;right:20px;color:var(--muted);font-size:12px;text-align:right;pointer-events:none;max-width:280px;transition:opacity .6s}
+.hint.gone{opacity:0}
+.history{position:absolute;top:12px;right:16px;z-index:3;display:flex;gap:2px;align-items:center;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:4px;box-shadow:0 8px 30px rgba(0,0,0,.06)}
+.history .tb{padding:7px 10px}
+.stage.split .history{right:16px}
 
 .panel{overflow-y:auto;border-left:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;min-height:0}
 .phead{padding:22px 24px 18px;border-bottom:1px solid var(--line)}
@@ -176,13 +179,13 @@ button{cursor:pointer}
 .qty button{border:0;background:var(--surface);width:36px;height:36px;font-size:16px}
 .qty span{width:36px;text-align:center;font-weight:600}
 
-.buy{position:sticky;bottom:0;margin-top:auto;padding:16px 24px 20px;background:var(--surface);border-top:1px solid var(--line)}
+.buy{position:sticky;bottom:0;margin-top:auto;padding:14px 24px 18px;background:var(--surface);border-top:1px solid var(--line)}
 .lines{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:2px;margin-bottom:12px}
 .lines div{display:flex;justify-content:space-between}
 .lines .tot{color:var(--ink);font-weight:700;font-size:15px;margin-top:4px}
 .cta{width:100%;border:0;border-radius:999px;background:var(--accent);color:var(--accent-ink);padding:14px;font-weight:700;font-size:15px}
 .cta:active{transform:translateY(1px)}
-.credit{margin:10px 0 0;font-size:11px;line-height:1.4;color:var(--muted)}
+.credit{margin:0;padding:16px 24px 20px;font-size:11px;line-height:1.4;color:var(--muted)}
 .credit a{color:inherit}
 
 .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;background:var(--accent);color:var(--accent-ink);padding:12px 18px;border-radius:999px;font-weight:600;transition:.25s;pointer-events:none;z-index:50}
@@ -201,6 +204,18 @@ button{cursor:pointer}
   .stage.split #c{left:0;top:50%;width:100%;height:50%}
   .stage.split .toolbar{left:50%}
   .p2d-hint{bottom:10px}
+  .buy{display:flex;align-items:center;gap:14px;padding:10px 16px}
+  .lines{margin:0;flex:none}
+  .lines div:not(.tot){display:none}
+  .lines .tot{margin:0;flex-direction:column;font-size:16px}
+  .lines .tot span:first-child{font-size:11px;font-weight:600;color:var(--muted)}
+  .cta{flex:1;padding:12px}
+  .credit{padding:14px 16px 18px}
+  .tb .tl{display:none}
+  .crumb{display:none}
+  .toolbar .tb{padding:7px 8px}
+  .toolbar .sep{margin:0 1px}
+  .history{top:10px;right:10px}
 }
 </style>
 <script type="importmap">
@@ -232,19 +247,25 @@ button{cursor:pointer}
     <div class="part-card" id="partCard" hidden></div>
     <canvas id="c"></canvas>
     <div class="loading" id="loading">Loading studio…</div>
-    <div class="crumb">Studio / <span id="crumbCat">Hoodies</span> / <b id="crumbName">Classic Pullover Hoodie</b></div>
-    <div class="hint">Drag to orbit · Right‑drag to pan · Scroll to zoom<br>Drag a print on the hoodie to move it</div>
+    <div class="crumb"><span id="crumbGroup">Men's</span> / <span id="crumbCat">Hoodies</span> / <b id="crumbName">Classic Pullover Hoodie</b></div>
+    <div class="history" role="toolbar" aria-label="History">
+      <button class="tb" id="undoBtn" title="Undo (Ctrl+Z)" aria-label="Undo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+      <button class="tb" id="redoBtn" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+      <span class="sep"></span>
+      <button class="tb" id="startOver" title="Clear colours, patterns and prints"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21z"/><path d="M22 21H7M5 11l9 9"/></svg><span class="tl">Start over</span></button>
+    </div>
+    <div class="hint" id="hint">Drag to orbit · Right‑drag to pan · Scroll to zoom<br>Drag a print to move it</div>
     <div class="toolbar" role="toolbar" aria-label="View">
       <button class="tb" data-view="front" aria-pressed="true">Front</button>
       <button class="tb" data-view="back">Back</button>
       <button class="tb" data-view="left">Left</button>
       <button class="tb" data-view="right">Right</button>
       <span class="sep"></span>
-      <button class="tb" id="piecesBtn" aria-pressed="false" title="Show the 2D pattern pieces"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5l4-2 3 2v15H4zM13 5l3-2 4 2v15h-7z"/></svg>2D pieces</button>
+      <button class="tb" id="piecesBtn" aria-pressed="false" title="Show the 2D pattern pieces"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5l4-2 3 2v15H4zM13 5l3-2 4 2v15h-7z"/></svg><span class="tl">2D pieces</span></button>
       <span class="sep"></span>
-      <button class="tb" id="spinBtn" aria-pressed="false" title="Auto-rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>Spin</button>
-      <button class="tb" id="guideBtn" aria-pressed="true" title="Show print areas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>Guides</button>
-      <button class="tb" id="shotBtn" title="Download image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Snapshot</button>
+      <button class="tb" id="spinBtn" aria-pressed="false" title="Auto-rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg><span class="tl">Spin</span></button>
+      <button class="tb" id="guideBtn" aria-pressed="true" title="Show print areas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3"><rect x="4" y="4" width="16" height="16" rx="2"/></svg><span class="tl">Guides</span></button>
+      <button class="tb" id="shotBtn" title="Download image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span class="tl">Snapshot</span></button>
     </div>
   </section>
 
@@ -253,7 +274,6 @@ button{cursor:pointer}
       <div class="eyebrow" id="pEyebrow">Made to order · 400 gsm cotton fleece</div>
       <h1 id="pName">Classic Pullover Hoodie</h1>
       <div class="price" id="headPrice">$68</div>
-      <button class="mini startover" id="startOver" title="Clear colours, patterns and prints">Start over</button>
       <p id="pBlurb">Relaxed fit, lined hood, kangaroo pocket and ribbed trims. Design every panel.</p>
       <div class="tabs groups" id="groups" aria-label="Category"></div>
       <div class="products" id="products" role="radiogroup" aria-label="Product"></div>
@@ -298,7 +318,7 @@ button{cursor:pointer}
     </section>
 
     <section class="sec">
-      <h2><span><span class="n">05</span></span><b style="flex:1">Size</b><span>Unisex · relaxed</span></h2>
+      <h2><span><span class="n">05</span></span><b style="flex:1">Size</b><span id="fitNote"></span></h2>
       <div class="sizes" id="sizes"></div>
       <div class="row" style="margin-top:14px"><span style="font-weight:600">Quantity</span>
         <div class="qty"><button id="qMinus" aria-label="Decrease">−</button><span id="qty">1</span><button id="qPlus" aria-label="Increase">+</button></div>
@@ -308,8 +328,8 @@ button{cursor:pointer}
     <div class="buy">
       <div class="lines" id="lines"></div>
       <button class="cta" id="addBag">Add to bag</button>
-      <p class="credit" id="credit" hidden></p>
     </div>
+    <p class="credit" id="credit" hidden></p>
   </aside>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -412,9 +432,52 @@ let showGuides = true;
 let bagCount = 0;
 
 let saveTimer = 0;
-function save() {
+function persist() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch { /* quota or blocked */ } }, 300);
+}
+function save() { persist(); recordHistory(); }
+
+// Undo / redo keeps snapshots of the design. Changes that arrive in a quick burst (a slider drag,
+// typing) settle into one step. Long strings (uploaded images) are stored once and referenced by index.
+const HISTORY_MAX = 100;
+const hist = { undo: [], redo: [], current: null, timer: 0 };
+const blobs = [], blobIndex = new Map();
+const snapshot = () => JSON.stringify({ ...state, size: undefined, qty: undefined }, (k, v) => {
+  if (k[0] === '_') return undefined; // render caches such as a layer's _box
+  if (typeof v !== 'string' || v.length < 512) return v;
+  let i = blobIndex.get(v);
+  if (i === undefined) { i = blobs.push(v) - 1; blobIndex.set(v, i); }
+  return '\u0000' + i;
+});
+const unsnapshot = s => JSON.parse(s, (k, v) => typeof v === 'string' && v[0] === '\u0000' ? blobs[+v.slice(1)] : v);
+function recordHistory() {
+  if (hist.current === null) return; // still booting
+  clearTimeout(hist.timer);
+  hist.timer = setTimeout(commitHistory, 400);
+}
+function commitHistory() {
+  clearTimeout(hist.timer);
+  const s = snapshot();
+  if (s === hist.current) return;
+  hist.undo.push(hist.current);
+  if (hist.undo.length > HISTORY_MAX) hist.undo.shift();
+  hist.current = s; hist.redo.length = 0;
+  renderHistory();
+}
+function stepHistory(from, to) {
+  commitHistory();
+  if (!from.length) return;
+  to.push(hist.current);
+  hist.current = from.pop();
+  restoreSnapshot(hist.current);
+  renderHistory();
+}
+const undo = () => stepHistory(hist.undo, hist.redo);
+const redo = () => stepHistory(hist.redo, hist.undo);
+function renderHistory() {
+  $('#undoBtn').disabled = !hist.undo.length;
+  $('#redoBtn').disabled = !hist.redo.length;
 }
 const findLayer = id => { for (const k in state.placements) { const L = state.placements[k].find(l => l.id === id); if (L) return [k, L]; } return [null, null]; };
 const selectedLayer = () => findLayer(selectedId)[1];
@@ -680,6 +743,7 @@ const PRODUCTS = {
 };
 const GROUPS = [['men', "Men's"], ['women', "Women's"], ['accessories', 'Accessories']];
 const groupOf = k => PRODUCTS[k].group;
+const FIT = { men: "Men's sizing", women: "Women's sizing", accessories: 'Sizes' };
 const garments = {};    // product → { meshes, parts, decals, frames, credit }, loaded on demand
 let parts = {};         // current garment: name → mesh
 let placementFrames = null; // current garment's print areas: origin, dir, u, v, w, h, targets
@@ -1438,16 +1502,35 @@ function renderProduct() {
     `<button role="radio" aria-checked="${k === state.product}" data-product="${k}"><b>${x.label}</b><span>from $${x.price}</span></button>`).join('');
   renderSizes();
   $('#pName').textContent = P.name; $('#pEyebrow').textContent = P.eyebrow; $('#pBlurb').textContent = P.blurb;
+  $('#crumbGroup').textContent = GROUPS.find(g => g[0] === grp)[1];
+  $('#fitNote').textContent = FIT[grp];
   $('#crumbCat').textContent = P.crumb; $('#crumbName').textContent = P.name;
   document.title = `${P.name} · Studio`;
   renderPrice();
 }
+function restoreSnapshot(s) {
+  const prevProduct = state.product;
+  state = Object.assign(defaultState(), unsnapshot(s), { size: state.size, qty: state.qty });
+  if (!findLayer(selectedId)[1]) { const l = state.placements[active] || []; selectedId = l.length ? l[l.length - 1].id : null; }
+  if (state.product !== prevProduct) { renderProduct(); showProduct(state.product); }
+  else { applyPattern(); applyColors(); applyFabric(); }
+  renderColor(); renderFabric(); renderSizes(); renderDesign();
+  persist();
+}
+$('#undoBtn').addEventListener('click', undo);
+$('#redoBtn').addEventListener('click', redo);
+document.addEventListener('keydown', e => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || e.target.closest('input,textarea,select')) return;
+  const k = e.key.toLowerCase();
+  if (k === 'z' && !e.shiftKey) { undo(); e.preventDefault(); }
+  else if ((k === 'z' && e.shiftKey) || k === 'y') { redo(); e.preventDefault(); }
+});
 $('#startOver').addEventListener('click', () => {
   const product = state.product, uploads = state.uploads;
   state = defaultState(); state.product = product; state.uploads = uploads; // keep the uploaded tiles
   selectedId = null; selectedRegion = null; active = garmentAreas[0];
   applyPattern(); applyColors(); applyFabric(); renderColor(); renderFabric(); renderSizes(); renderDesign(); renderPartCard(); save();
-  toast('Back to a plain grey blank');
+  toast('Back to a plain grey blank · Undo brings your design back');
 });
 $('#groups').addEventListener('click', e => {
   const b = e.target.closest('[data-group]'); if (!b) return;
@@ -1498,7 +1581,7 @@ $('#shotBtn').addEventListener('click', () => {
   const a = document.createElement('a'); a.download = 'my-hoodie.png'; a.href = canvas.toDataURL('image/png'); a.click();
   showGuides = g; invalidate();
 });
-controls.addEventListener('start', () => { camAnim = null; document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', 'false')); });
+controls.addEventListener('start', () => { $('#hint').classList.add('gone'); camAnim = null; document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', 'false')); });
 
 /* =====================================================================
    Boot
@@ -1523,6 +1606,8 @@ applyPattern();
 renderProduct();
 showProduct(state.product);
 renderColor(); renderFabric(); renderSizes(); renderDesign();
+hist.current = snapshot(); renderHistory();
+setTimeout(() => $('#hint').classList.add('gone'), 9000);
 Promise.all(FONTS.map(fi => document.fonts.load(`${fi.w} 40px "${fi.f}"`).catch(() => {}))).then(invalidate);
 document.fonts.addEventListener?.('loadingdone', invalidate);
 
