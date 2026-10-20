@@ -25,9 +25,9 @@ const FAST = !!process.env.FAST; // skip the AO bake while tuning placements
 // Source options: `group` picks OBJ groups by name, `keepUV` + `normalMap` keep a surface-detail map
 // (e.g. golf ball dimples), `pieces: false` skips pattern pieces, `yaw` (degrees) replaces auto squaring-up.
 const PRESETS = {
-  hoodie: { front: [0.15, 1.05, 1.05], back: [0.2, 1.2, 1.3], sleeve: { x: 0.4, y: 0.25, lean: 0.18, w: 1.0, h: 0.42 } },
+  hoodie: { simplify: 0.35, front: [0.15, 1.05, 1.05], back: [0.2, 1.2, 1.3], sleeve: { x: 0.4, y: 0.25, lean: 0.18, w: 1.0, h: 0.42 } },
   crewneck: { front: [0.55, 1.0, 1.0], back: [0.5, 1.1, 1.3], sleeve: { x: 0.43, y: 0.2, lean: 0.12, w: 1.1, h: 0.4 } },
-  tee: { front: [0.55, 1.0, 1.0], back: [0.55, 1.1, 1.3], sleeve: { x: 0.43, y: 1.0, lean: 0.9, w: 0.42, h: 0.34 } },
+  tee: { simplify: 0.45, front: [0.55, 1.0, 1.0], back: [0.55, 1.1, 1.3], sleeve: { x: 0.43, y: 1.0, lean: 0.9, w: 0.42, h: 0.34 } },
   cap: { pieces: false, keepUV: true, subdivide: 2, normalMap: 'cap-weave-normal.jpg', fitMax: 2.7, yawOffset: 90, front: [0.6, 1.2, 0.8], back: [0.7, 1.1, 0.6], areas: ['front', 'back'] },
   polo: { minPieceTris: 250, dropInner: true, front: [0.5, 1.0, 1.0], back: [0.5, 1.1, 1.3], sleeve: { x: 0.43, y: 0.95, lean: 0.9, w: 0.4, h: 0.32 } },
   tank: { front: [0.4, 0.9, 1.0], back: [0.4, 0.9, 1.2], areas: ['front', 'back'], rename: { 'Left cuff': 'Left armhole binding', 'Right cuff': 'Right armhole binding', Collar: 'Neck binding', 'Collar 2': 'Neck binding 2' } },
