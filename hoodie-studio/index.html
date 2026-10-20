@@ -82,6 +82,23 @@ button{cursor:pointer}
 .minipats button{aspect-ratio:1;border:1px solid var(--line);border-radius:7px;padding:0;overflow:hidden;background:var(--surface-2);font-size:9px;font-weight:600;color:var(--muted);line-height:1.1}
 .minipats button img{width:100%;height:100%;display:block}
 .minipats button[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.palettes{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.palettes .lbl,.paledit label{font-size:12px;font-weight:600;color:var(--muted)}
+.palrow{display:flex;flex-wrap:wrap;gap:6px}
+.palrow:empty{display:none}
+.pal{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 4px 4px 6px;font-size:12px;font-weight:600}
+.pal button.apply{all:unset;cursor:pointer;display:flex;align-items:center;gap:6px}
+.pal .dots{display:flex}
+.pal .dots i{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.15);margin-left:-4px}
+.pal .dots i:first-child{margin-left:0}
+.pal .x{border:0;background:none;color:var(--muted);width:20px;height:20px;border-radius:50%;padding:0;font-size:13px}
+.pal .x:hover{background:var(--surface-2);color:var(--ink)}
+.paledit{display:grid;grid-template-columns:repeat(3,auto) 1fr;gap:8px 10px;align-items:end;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.paledit[hidden]{display:none}
+.paledit label{display:flex;flex-direction:column;gap:4px}
+.paledit input[type=color]{width:40px;height:32px;border:1px solid var(--line);border-radius:8px;padding:2px;background:var(--surface)}
+.paledit #palName{border:1px solid var(--line);border-radius:8px;padding:7px 8px;background:var(--surface);min-width:0}
+.paledit .minis,.paledit .small{grid-column:1/-1}
 .regions{margin-top:14px;display:flex;flex-direction:column;gap:8px}
 .regions[hidden]{display:none}
 .regions .lbl{font-size:12px;font-weight:600;color:var(--muted)}
@@ -137,7 +154,15 @@ button{cursor:pointer}
 .tab{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-weight:600;font-size:13px;display:flex;gap:6px;align-items:center}
 .tab[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .tab i{font-style:normal;font-size:11px;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;background:var(--surface-2);color:var(--ink)}
-.addrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.addrow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media (max-width:440px){.addrow{grid-template-columns:repeat(2,1fr)}}
+.lpick{display:none;margin-top:10px}
+.lpick.open{display:block}
+.lpick .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.lpick .logo{position:relative;aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:var(--surface-2) repeating-conic-gradient(color-mix(in srgb,var(--ink) 6%,transparent) 0 25%,transparent 0 50%) 0 0/12px 12px;overflow:hidden}
+.lpick .logo button.use{all:unset;cursor:pointer;position:absolute;inset:0;display:grid;place-items:center}
+.lpick .logo img{max-width:82%;max-height:82%}
+.lpick .logo .del{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-size:12px;line-height:18px;padding:0;display:grid;place-items:center}
 .methodrow{margin:0 0 12px;display:flex;flex-direction:column;gap:6px}
 .methodrow:empty{display:none}
 .methodrow .seg{grid-template-columns:repeat(3,1fr)}
@@ -223,6 +248,12 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
 .views img{width:100%;aspect-ratio:1;display:block;object-fit:cover}
 .views figcaption{font-size:11px;font-weight:600;color:var(--muted);text-align:center;padding:4px 0 6px}
 .specs{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 18px;margin:18px 0 0;font-size:13px}
+.chart{border-collapse:collapse;width:100%;font-size:13px;margin:6px 0 18px;font-variant-numeric:tabular-nums}
+.chart th,.chart td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left}
+.chart thead th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.chart tbody th{font-weight:700}
+.chart tr.cur td,.chart tr.cur th{background:var(--surface-2)}
+.dlg-body h3{font-size:14px;margin:0 0 4px}
 .specs dt{color:var(--muted);font-weight:600}
 .specs dd{margin:0}
 .specs .warn{color:#b4532f;font-weight:600}
@@ -346,6 +377,18 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
     <section class="sec">
       <h2><span><span class="n">01</span></span><b style="flex:1">Colour</b><span id="colorName">Heather Grey</span></h2>
       <div class="swatches" id="swatches"></div>
+      <div class="palettes" id="palettes">
+        <div class="row"><span class="lbl">Team colours</span><button class="patmore" id="newPalette" type="button" aria-expanded="false" style="margin:0">+ New</button></div>
+        <div class="palrow" id="palList"></div>
+        <form class="paledit" id="palEdit" hidden>
+          <label>Main<input type="color" id="pal1" value="#1f2a44"></label>
+          <label>Trim<input type="color" id="pal2" value="#f5f3ee"></label>
+          <label>Accent<input type="color" id="pal3" value="#d23b2f"></label>
+          <input id="palName" maxlength="24" placeholder="Name, e.g. Varsity" aria-label="Palette name">
+          <div class="minis"><button class="mini" type="button" id="palTry">Apply</button><button class="mini" type="submit">Save &amp; apply</button></div>
+          <p class="small" style="margin:0">Main colours the body, trim goes on cuffs, collars, hems and socks, and accent becomes the pattern and lettering colour.</p>
+        </form>
+      </div>
       <div class="regions" id="regions" hidden></div>
     </section>
 
@@ -375,15 +418,18 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
         <button class="btn" id="addText"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>Text</button>
         <button class="btn" id="addGraphic" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>Graphic</button>
         <button class="btn" id="addImage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Upload</button>
+        <button class="btn" id="addLogo" aria-expanded="false" title="Logos you've uploaded before"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Logos</button>
         <input type="file" id="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" hidden>
       </div>
       <div class="gpick" id="gpick"></div>
+      <div class="lpick" id="lpick"></div>
       <ul class="layers" id="layers"></ul>
       <div class="editor" id="editor"></div>
     </section>
 
     <section class="sec" id="sizeSec">
       <h2><span><span class="n">05</span></span><b style="flex:1">Size &amp; quantity</b><span id="fitNote"></span></h2>
+      <button class="patmore" id="sizeChartBtn" type="button" aria-haspopup="dialog" style="margin:0 0 10px">Size chart</button>
       <div class="seg" id="orderMode" role="group" aria-label="Order type"><button data-mode="single">Just me</button><button data-mode="team">Team order</button></div>
       <div id="singleOrder">
         <div class="sizes" id="sizes"></div>
@@ -432,6 +478,11 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
     <dl class="specs" id="reviewSpecs"></dl>
   </div>
   <div class="dlg-foot"><button class="btn" data-close>Keep editing</button><button class="btn primary" id="confirmBag">Add to bag</button></div>
+</dialog>
+
+<dialog class="sheet" id="sizeDlg" aria-labelledby="sizeTitle">
+  <div class="dlg-head"><h2 id="sizeTitle">Size chart</h2><button class="ib" data-close aria-label="Close">✕</button></div>
+  <div class="dlg-body" id="sizeBody"></div>
 </dialog>
 
 <dialog class="sheet side" id="bagDlg" aria-labelledby="bagTitle">
@@ -1481,6 +1532,41 @@ const ICON = {
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // Colour
+// Team colour palettes, kept on this device.
+const PALETTES_KEY = 'threadlab-palettes-v1';
+let palettes = [];
+try { palettes = JSON.parse(localStorage.getItem(PALETTES_KEY) || '[]'); } catch { palettes = []; }
+const storePalettes = () => { try { localStorage.setItem(PALETTES_KEY, JSON.stringify(palettes)); } catch { /* blocked */ } };
+function renderPalettes() {
+  $('#palList').innerHTML = palettes.map(pl => `<span class="pal"><button class="apply" data-pal="${pl.id}" title="Apply ${esc(pl.name)}"><span class="dots">${pl.colors.map(c => `<i style="background:${c}"></i>`).join('')}</span>${esc(pl.name)}</button><button class="x" data-delpal="${pl.id}" aria-label="Delete ${esc(pl.name)}" title="Delete">×</button></span>`).join('');
+}
+function applyPalette(name, [main, trim, accent]) {
+  state.colorway = name;
+  Object.assign(state.colors, { body: main, sleeves: main, hood: main, shorts: main, trim, lining: shade(main, -0.14), strings: trim });
+  for (const st of Object.values(styles())) delete st.color; // per-part colours give way to the palette
+  state.pattern.color = accent; state.team.color = accent;
+  applyPattern(); applyColors(); renderColor(); renderSizes(); invalidate(); save();
+}
+const paletteFromForm = () => [$('#pal1').value, $('#pal2').value, $('#pal3').value];
+$('#newPalette').addEventListener('click', e => {
+  const open = $('#palEdit').hidden; $('#palEdit').hidden = !open; e.currentTarget.setAttribute('aria-expanded', String(open));
+  if (open) { $('#pal1').value = state.colors.body; $('#pal2').value = state.colors.trim; $('#pal3').value = state.pattern.color; $('#palName').focus(); }
+});
+$('#palTry').addEventListener('click', () => applyPalette($('#palName').value.trim() || 'Team colours', paletteFromForm()));
+$('#palEdit').addEventListener('submit', e => {
+  e.preventDefault();
+  const pl = { id: newId(), name: $('#palName').value.trim() || `Palette ${palettes.length + 1}`, colors: paletteFromForm() };
+  palettes.unshift(pl); storePalettes(); renderPalettes();
+  applyPalette(pl.name, pl.colors);
+  $('#palEdit').hidden = true; $('#newPalette').setAttribute('aria-expanded', 'false'); $('#palName').value = '';
+});
+$('#palList').addEventListener('click', e => {
+  const del = e.target.closest('[data-delpal]');
+  if (del) { palettes = palettes.filter(p => p.id !== del.dataset.delpal); storePalettes(); renderPalettes(); return; }
+  const b = e.target.closest('[data-pal]'); if (!b) return;
+  const pl = palettes.find(p => p.id === b.dataset.pal); applyPalette(pl.name, pl.colors);
+});
+renderPalettes();
 function setColorway(name, hex) {
   state.colorway = name;
   Object.assign(state.colors, { body: hex, sleeves: hex, hood: hex, shorts: hex, trim: hex, lining: shade(hex, -0.14), strings: luminance(hex) > 0.5 ? shade(hex, 0.6) : shade(hex, 0.15) });
@@ -1587,6 +1673,37 @@ function addLayer(L) { state.placements[active].push(L); selectedId = L.id; rend
 $('#addText').addEventListener('click', () => addLayer({ id: newId(), type: 'text', text: 'YOUR TEXT', font: 'Archivo Black', color: inkFor(), scale: 1, x: 0, y: 0, rot: 0, spacing: 0, curve: 0, outline: false, outlineColor: '#f5f3ee', outlineWidth: 1 }));
 $('#gpick').innerHTML = Object.entries(GRAPHICS).map(([k, g]) =>
   `<button data-g="${k}" title="${g.name}" aria-label="${g.name}"><svg viewBox="0 0 100 100" fill="currentColor" stroke="currentColor">${g.body}</svg></button>`).join('');
+// Logo library: every image you upload is kept (on this device) so it can go on any product again.
+const LOGOS_KEY = 'threadlab-logos-v1', MAX_LOGOS = 24;
+let logos = [];
+try { logos = JSON.parse(localStorage.getItem(LOGOS_KEY) || '[]'); } catch { logos = []; }
+function storeLogos() {
+  while (true) {
+    try { localStorage.setItem(LOGOS_KEY, JSON.stringify(logos)); return; }
+    catch { if (logos.length <= 1) return; logos.pop(); } // out of space: drop the oldest
+  }
+}
+function rememberLogo(name, src) {
+  logos = [{ id: newId(), name, src }, ...logos.filter(l => l.src !== src)].slice(0, MAX_LOGOS);
+  storeLogos(); if ($('#lpick').classList.contains('open')) renderLogos();
+}
+function renderLogos() {
+  $('#lpick').innerHTML = logos.length
+    ? `<div class="grid">${logos.map(l => `<div class="logo"><button class="use" data-logo="${l.id}" title="Add ${esc(l.name)}" aria-label="Add ${esc(l.name)}"><img alt="" src="${l.src}"></button><button class="del" data-dellogo="${l.id}" aria-label="Remove ${esc(l.name)} from your logos" title="Remove">×</button></div>`).join('')}</div>`
+    : '<p class="empty" style="margin:0">Logos you upload are kept here so you can reuse them on any product.</p>';
+}
+$('#addLogo').addEventListener('click', () => {
+  const open = $('#lpick').classList.toggle('open'); $('#addLogo').setAttribute('aria-expanded', String(open));
+  if (open) { renderLogos(); $('#gpick').classList.remove('open'); $('#addGraphic').setAttribute('aria-expanded', 'false'); }
+});
+$('#lpick').addEventListener('click', e => {
+  const del = e.target.closest('[data-dellogo]');
+  if (del) { logos = logos.filter(l => l.id !== del.dataset.dellogo); storeLogos(); renderLogos(); return; }
+  const b = e.target.closest('[data-logo]'); if (!b) return;
+  const l = logos.find(x => x.id === b.dataset.logo);
+  addLayer({ id: newId(), type: 'image', name: l.name, src: l.src, scale: 0.9, x: 0, y: 0, rot: 0 });
+  $('#lpick').classList.remove('open'); $('#addLogo').setAttribute('aria-expanded', 'false');
+});
 $('#addGraphic').addEventListener('click', () => { const open = $('#gpick').classList.toggle('open'); $('#addGraphic').setAttribute('aria-expanded', String(open)); });
 $('#gpick').addEventListener('click', e => {
   const b = e.target.closest('[data-g]'); if (!b) return;
@@ -1607,7 +1724,9 @@ $('#file').addEventListener('change', e => {
       const c = document.createElement('canvas');
       c.width = Math.max(1, Math.round((img.naturalWidth || 1024) * s)); c.height = Math.max(1, Math.round((img.naturalHeight || 1024) * s));
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      addLayer({ id: newId(), type: 'image', name: f.name.replace(/\.[^.]+$/, ''), src: c.toDataURL('image/png'), scale: 0.9, x: 0, y: 0, rot: 0 });
+      const src = c.toDataURL('image/png'), name = f.name.replace(/\.[^.]+$/, '');
+      addLayer({ id: newId(), type: 'image', name, src, scale: 0.9, x: 0, y: 0, rot: 0 });
+      rememberLogo(name, src);
     };
     img.src = reader.result;
   };
@@ -1803,9 +1922,34 @@ function renderSizes() {
   renderTeam();
 }
 const TEAM_FONTS = ['Anton', 'Bebas Neue', 'Archivo Black', 'Inter', 'Rubik Mono One', 'Bungee', 'Playfair Display'];
+// Body measurements in inches (standard athletic sizing; swap in your supplier's spec sheets).
+const SIZE_CHARTS = {
+  menTop: { title: "Men's tops", cols: ['Chest', 'Body length', 'Sleeve'], rows: { XS: ['32–34', '26', '32'], S: ['35–37', '27', '33'], M: ['38–40', '28', '34'], L: ['41–43', '29', '35'], XL: ['44–46', '30', '36'], XXL: ['47–49', '31', '37'] } },
+  womenTop: { title: "Women's tops", cols: ['Bust', 'Body length', 'Sleeve'], rows: { XS: ['31–32', '24', '30'], S: ['33–34', '25', '31'], M: ['35–36', '26', '32'], L: ['37–39', '27', '33'], XL: ['40–42', '28', '34'] } },
+  menShorts: { title: "Men's shorts", cols: ['Waist', 'Hip', 'Inseam'], rows: { XS: ['26–28', '33–35', '9'], S: ['28–30', '35–37', '9'], M: ['31–33', '38–40', '9'], L: ['34–36', '41–43', '9'], XL: ['37–39', '44–46', '9'], XXL: ['40–42', '47–49', '9'] } },
+  womenShorts: { title: "Women's shorts", cols: ['Waist', 'Hip', 'Inseam'], rows: { XS: ['24–25', '34–35', '5'], S: ['26–27', '36–37', '5'], M: ['28–29', '38–39', '5'], L: ['30–32', '40–42', '5'], XL: ['33–35', '43–45', '5'] } },
+  cap: { title: 'Caps', cols: ['Head circumference', 'Fits hat size'], rows: { 'S/M': ['21¼–22⅜', '6¾–7⅛'], 'L/XL': ['22½–23⅝', '7¼–7½'] } },
+};
+function chartsFor(product) {
+  const P = PRODUCTS[product], w = P.group === 'women';
+  if (product === 'cap') return ['cap'];
+  if (P.group === 'accessories') return [];
+  const shorts = /basketball|soccer|trackset/.test(product);
+  return [w ? 'womenTop' : 'menTop', ...(shorts ? [w ? 'womenShorts' : 'menShorts'] : [])];
+}
+$('#sizeChartBtn').addEventListener('click', () => {
+  const cur = teamActive() ? null : state.size;
+  $('#sizeTitle').textContent = `Size chart · ${PRODUCTS[state.product].label}`;
+  $('#sizeBody').innerHTML = chartsFor(state.product).map(k => { const c = SIZE_CHARTS[k]; return `<h3>${c.title}</h3>
+    <table class="chart"><thead><tr><th>Size</th>${c.cols.map(x => `<th>${x} (in)</th>`).join('')}</tr></thead>
+    <tbody>${Object.entries(c.rows).map(([z, v]) => `<tr class="${z === cur ? 'cur' : ''}"><th>${z}</th>${v.map(x => `<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table>`; }).join('') +
+    '<p class="small">Body measurements. Measure around the fullest part of the chest and the natural waist. Between sizes? Size up for a relaxed fit.</p>';
+  openDialog($('#sizeDlg'));
+});
 function renderTeam() {
   const apparel = groupOf(state.product) !== 'accessories', team = teamActive(), T = state.team;
   $('#orderMode').hidden = !apparel;
+  $('#sizeChartBtn').hidden = !chartsFor(state.product).length;
   $('#orderMode').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.mode === 'team') === team)));
   $('#singleOrder').hidden = team; $('#teamOrder').hidden = !team;
   if (!team) return;
