@@ -1,9 +1,12 @@
 import {dateFrom} from './dateText'
+import type {TodoRepeat} from './model'
 
 /** "＋ Add" › Type it: one line like "bio worksheet due fri" or "math test thursday at 9" becomes an
  * assignment or exam with its class, date and (for assignments) a planned time. What's left after
  * taking those out is the title. Nothing is saved until the person presses Add, after seeing this. */
-export type QuickAddGuess={key:'tasks'|'exams'|'calendarEvents';title:string;subjectId:string;subjectName:string;due:string;time?:string;dateFound:boolean;event?:QuickEvent}
+export type QuickAddGuess={key:'tasks'|'exams'|'calendarEvents'|'familyTodos';title:string;subjectId:string;subjectName:string;due:string;time?:string;dateFound:boolean;event?:QuickEvent;todo?:QuickTodo}
+/** A family to-do in one line: "clean house every sat", "pay rent on the 1st every month". due is '' for any day. */
+export type QuickTodo={repeat?:TodoRepeat;kidId?:string;kidName?:string;monthDay?:number}
 /** An event in one line: "soccer every Tue and Thu 4-5:30pm for Emma at Riverside Park". */
 export type QuickEvent={kind:'sports'|'lesson'|'appointment'|'activity'|'work'|'personal';endTime?:string;repeatDays:number[];repeatLabel?:string;until:string;kidIds:string[];people:string[];location?:string}
 type Person={id:string;name:string}
@@ -19,7 +22,10 @@ const pad=(n:number)=>String(n).padStart(2,'0')
 const iso=(d:Date)=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())
 const plus=(date:string,days:number)=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+days);return iso(d)}
 
+/** In a family plan (people given), a chore or errand with no time is a family to-do; see parseQuickTodo. */
 export function parseQuickAdd(text:string,subjects:{id:string;name:string}[],today:string,people:Person[]=[]):QuickAddGuess{
+ const todo=people.length?parseQuickTodo(text,today,people):null
+ if(todo)return todo
  const event=parseQuickEvent(text,today,people)
  if(event)return event
  let rest=' '+text.replace(/\s+/g,' ').trim()+' '
@@ -137,4 +143,46 @@ export function parseQuickEvent(text:string,today:string,people:Person[]):QuickA
  title=title[0].toUpperCase()+title.slice(1)
  if(repeatDays.length&&due&&repeatDays.includes(new Date(due+'T12:00:00').getDay())===false){const now=new Date(due+'T12:00:00').getDay(),ahead=Math.min(...repeatDays.map(d=>(d-now+7)%7));due=plus(due,ahead)}
  return {key:'calendarEvents',title:title.slice(0,200),subjectId:'',subjectName:'',due:due||plus(today,1),...(time?{time}:{}),dateFound,event:{kind,...(endTime&&time&&(endTime>time||lateNight(time,endTime))?{endTime}:{}),repeatDays,...(repeatLabel?{repeatLabel}:{}),until:until||plus(due||today,70),kidIds,people:names,...(location?{location}:{})}}
+}
+
+const TODO_START=/^\s*(?:to-?\s?do|remember to|reminder)\s*[:\-–]?\s+/i
+const CHORE=/\b(clean(?:ing)?|tidy|groceries|grocery|shopping|laundry|trash|garbage|recycling|bins?|vacuum|dishes|dishwasher|mow|lawn|water (?:the )?plants|pay|bills?|rent|buy|order|return|sign|permission slip|pack|feed the|walk the dog|sheets|chores?|errands?|wash the car|meal prep|call)\b/i
+// A time: "5pm", "10:30", "at 4", "9-11", noon, or a bare hour after a weekday ("fri 6").
+const CLOCK=new RegExp(String.raw`\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b|\b\d{1,2}:\d{2}\b|\bat\s+\d{1,2}\b|(?<![\d/-])\b\d{1,2}\s*[-–]\s*\d{1,2}\b(?![\d/-])|\b(?:noon|midnight)\b|${DAY}\.?\s+\d{1,2}\b(?!\s*(?:st|nd|rd|th)\b|\s*\/)`,'i')
+// Schoolwork words: a line with one is homework, even when it starts like an errand ("order of operations worksheet").
+const SCHOOLWORK=/\b(homework|worksheet|essay|assignment|read(?:ing)?\s+ch|chapter|study(?:\s+for)?|flashcards?|problems?|packet|lab report|lab|pages?)\b/i
+const ordinalDay=(n:number,today:string)=>{const [y,m,d]=today.split('-').map(Number),days=(yy:number,mm:number)=>new Date(Date.UTC(yy,mm,0)).getUTCDate();let yy=y,mm=m;if(n<d){mm++;if(mm>12){mm=1;yy++}}return yy+'-'+pad(mm)+'-'+pad(Math.min(n,days(yy,mm)))}
+
+/** A family to-do in one line: a chore or errand with no time ("clean house every sat", "trash out every
+ * other tue", "pay rent on the 1st every month", "buy poster board for Emma"), or anything starting with
+ * "to-do:" or "remember to". Its day is optional; without one it's for any day. */
+export function parseQuickTodo(text:string,today:string,people:Person[]):QuickAddGuess|null{
+ const marked=TODO_START.test(text)
+ if(!marked&&(!CHORE.test(text)||CLOCK.test(text)||isExam(text)||SCHOOLWORK.test(text)))return null
+ let rest=' '+text.replace(TODO_START,'').replace(/\s+/g,' ').trim()+' '
+ const take=(re:RegExp)=>{const m=rest.match(re);if(m)rest=rest.replace(m[0],' ');return m}
+ let repeat:TodoRepeat|undefined,due='',monthDay:number|undefined,m:RegExpMatchArray|null
+ if(take(/\b(?:every\s+(?:other|2(?:nd)?|two)\s+weeks?|biweekly|fortnightly)\b/i))repeat='2weeks'
+ else if(take(/\b(?:every|each)\s+month\b|\bmonthly\b/i))repeat='month'
+ else if(take(/\b(?:every|each)\s+week\b|\bweekly\b/i))repeat='week'
+ // "every other Tue", "every Sat", "Saturdays", "on Sat", "sat".
+ if((m=take(new RegExp(String.raw`\b(?:(every|each)\s+(other\s+)?|on\s+)?${DAY}(s)?\b\.?`,'i')))){
+  if(m[2])repeat='2weeks';else if((m[1]||m[4])&&!repeat)repeat='week'
+  const want=DAYS.indexOf(m[3].slice(0,3).toLowerCase()),now=new Date(today+'T12:00:00').getDay()
+  due=plus(today,(want-now+7)%7)
+ }else if(take(/\b(?:on\s+)?(?:today|tonight)\b/i))due=today
+ else if(take(/\b(?:on\s+)?(?:tomorrow|tmrw|tmr)\b/i))due=plus(today,1)
+ else if((m=take(/\b(?:on\s+)?the\s+(\d{1,2})(?:st|nd|rd|th)\b/i))&&Number(m[1])>=1&&Number(m[1])<=31){monthDay=Number(m[1]);due=ordinalDay(monthDay,today)}
+ else{const dt=rest.match(/\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\/\d{1,2}(?:\/\d{4})?\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?\b/i);const found=dt?dateFrom(dt[0].replace(/sept/i,'sep'),today,plus(today,365),'mdy'):'';if(dt&&found){rest=rest.replace(new RegExp(String.raw`(?:\b(?:on|by)\s+)?`+dt[0].replace(/[.*+?^${}()|[\]\\/]/g,'\\$&'),'i'),' ');due=found}}
+ if(repeat&&!due)due=today
+ // For whom: one kid ("for Emma", or her name).
+ let kid:Person|undefined
+ for(const p of people){const n=p.name.trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&');if(!n)continue
+  // "Emma's party" keeps her name in the words; "for Emma" or "Emma" alone just says who it's for.
+  if(new RegExp(String.raw`\b${n}(?:'s|’s)\s+\w`,'i').test(rest)){kid=p;break}
+  const re=new RegExp(String.raw`(?:\bfor\s+)?\b${n}(?:'s|’s)?\b`,'i');if(re.test(rest)){rest=rest.replace(re,' ');kid=p;break}}
+ let title=rest.replace(/\bdue\b/gi,' ').replace(/\s+/g,' ').replace(/^[\s,:;&-]+|[\s,:;&-]+$/g,'').replace(/\s+(?:for|on|every|each|by)$/i,'').trim()
+ if(!title)return null
+ title=title[0].toUpperCase()+title.slice(1)
+ return {key:'familyTodos',title:title.slice(0,300),subjectId:'',subjectName:'',due,dateFound:!!due,todo:{...(repeat?{repeat}:{}),...(kid?{kidId:kid.id,kidName:kid.name}:{}),...(repeat==='month'&&monthDay?{monthDay}:{})}}
 }

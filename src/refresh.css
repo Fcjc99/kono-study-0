@@ -546,8 +546,62 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .workbench .home-grid.is-parent .home-main>:is(.welcome-tour,.wb-island,.kono-bar,.quick-today){order:6!important}
 .family-todo-day{margin-left:6px;padding:1px 8px;border-radius:999px;font-size:.75rem;font-weight:700;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 12%,var(--wb-surface,#fff));color:var(--wb-muted,#7a6670)}
 .family-todo-add{flex-wrap:wrap}
-.family-todo-weekly{display:inline-flex!important;align-items:center;gap:6px;font-weight:600;white-space:nowrap}
+.family-todo-add input[type=date]{flex:0 1 auto;min-width:0}
 .week-ahead .wa-todo{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;font-weight:700;color:color-mix(in srgb,var(--wb-accent,#c76b8f) 60%,var(--wb-ink,#3a2b33))}
 .week-ahead .wa-events{font-size:.78rem;font-weight:700}
 /* Family Home: the island is a smaller picture under the day, not the whole first screen. */
 .workbench .home-grid.is-parent :is(.wb-island:not(.is-expanded),.kono-bar){width:100%;max-width:880px;align-self:center}
+/* Planner: a family plan's to-dos on their day (daily page and Schedule), and on the week and month. */
+.planner-todos{display:grid;gap:6px;margin-top:10px}
+.planner-todos>strong{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:color-mix(in srgb,#76626b 65%,var(--wb-ink))}
+.planner-todos ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.planner-todos li{padding:8px 10px;border-radius:12px;border-left:4px solid var(--kid-color,#9a8fb0);background:color-mix(in srgb,var(--kid-color,#9a8fb0) 10%,var(--wb-surface,#fff))}
+.planner-todos label{display:flex!important;align-items:center;gap:8px;font-weight:600;flex-wrap:wrap}
+.planner-todos label input{width:auto!important;margin:0}
+.planner-todos small{padding:1px 8px;border-radius:999px;font-size:.72rem;font-weight:700;background:var(--wb-surface,#fff);color:var(--wb-muted,#7a6670)}
+.workbench .month-grid .month-pill.is-todo{border-left-style:dashed!important;font-weight:700!important}
+.planner-todo-sheet p{margin:0 0 8px}
+/* Kids page: one card per kid with today, tomorrow and later this week. */
+.kid-cards{margin-top:12px}
+.kid-cards-tools{display:flex;justify-content:flex-end;margin:0 0 8px}
+.kid-cards>ul{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:12px!important}
+.workbench .kid-cards li.kid-card{display:grid;gap:10px;align-content:start;padding:12px 14px;border-radius:18px;border:1px solid var(--wb-line,#ead9df);border-top:5px solid var(--kid-color);background:var(--wb-surface,#fff)}
+.kid-card-head{display:flex;align-items:center;gap:8px;min-width:0}
+.workbench .kid-card-head .kid-card-open{all:unset;box-sizing:border-box;flex:1;min-width:0;display:flex;align-items:center;gap:10px;border-radius:12px;padding:2px}
+.workbench .kid-card-head button.kid-card-open{cursor:pointer}
+.workbench .kid-card-head button.kid-card-open:focus-visible{outline:3px solid var(--wb-accent,#c76b8f);outline-offset:2px}
+.kid-card-name{display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap;min-width:0;font-size:1.05rem}
+.kid-card-go{margin-left:auto;font-size:1.4rem;color:var(--wb-muted,#7a6670)}
+.kid-card-tools{display:flex;align-items:center;gap:6px;flex:none}
+.workbench .kid-card-tools button{min-height:36px;padding:4px 10px!important;font-size:.85rem}
+.kid-card-days{margin:0;display:grid;gap:8px}
+.kid-card-days>div{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:start;padding-top:8px;border-top:1px dashed var(--wb-line,#ead9df)}
+.kid-card-days dt{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--wb-muted,#7a6670);padding-top:2px}
+.kid-card-days dd{margin:0;display:grid;gap:3px;font-size:.9rem;font-weight:600;min-width:0}
+.kid-card-days dd>span{overflow-wrap:anywhere}
+.kid-card-days .is-more{color:var(--wb-muted,#7a6670);font-weight:700}
+@media(max-width:520px){.kid-card-days>div{grid-template-columns:1fr;gap:2px}.kid-card-head{flex-wrap:wrap}.kid-card-tools{margin-left:auto}}
+/* Phone pass: the Today card's tabs and tools fit (or wrap) on a narrow phone; the family to-do box gets
+ * its own row; a kid card keeps the kid's name; the Schedule's long dates don't break letter by letter. */
+@media(max-width:430px){
+ :root .workbench .today-card-head{flex-wrap:wrap!important;row-gap:8px!important}
+ :root[data-experience] .workbench .today-card-head>.wb-toolbar{margin-left:auto!important}
+ :root[data-experience] .workbench .today-card-tabs button{padding:0 6px!important}
+ :root[data-experience] .workbench .today-card-head>.wb-toolbar>button{padding:0 8px!important}
+}
+.family-todo-add>input[aria-label="New family to-do"]{flex:1 1 100%}
+.family-todo-add>select{flex:1 1 120px;min-width:0}
+.workbench .kid-card-head .kid-card-open{flex:1 1 150px}
+.kid-card-tools{flex-wrap:wrap;justify-content:flex-end}
+.wb-agenda-day summary h3{min-width:9ch;flex:1 1 auto}
+.wb-agenda-day-meta{flex:0 1 auto;min-width:0;text-align:right}
+/* Family to-do rows: tick box, then the words (tap to change them), then its day and who it's for. */
+.family-todo-row{flex:1;min-width:0;display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap;font-weight:600}
+.family-todo-row>input{width:auto!important;margin:0}
+.workbench .family-todo-title{all:unset;cursor:pointer;font-weight:700;overflow-wrap:anywhere;border-radius:6px}
+.workbench .family-todo-title:hover{text-decoration:underline;text-decoration-style:dotted}
+.workbench .family-todo-title:focus-visible{outline:3px solid var(--wb-accent,#c76b8f);outline-offset:2px}
+.family-todos li.is-done .family-todo-title{text-decoration:line-through;opacity:.55}
+.todo-editor{display:grid;gap:10px}
+.todo-editor-when{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.workbench .todo-editor-delete{margin-left:auto}

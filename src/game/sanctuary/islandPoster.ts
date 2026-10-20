@@ -3,7 +3,7 @@ import { islandMapPath, islandSeason } from './season'
 
 /** The island's small picture (shown while the island engine downloads) for a time of day: the same
  * file GardenCard shows as its background. */
-const islandPosterSrc = (phase: string) => islandMapPath(phase, islandSeason(new Date())) + '-poster.webp'
+export const islandPosterSrc = (phase: string) => islandMapPath(phase, islandSeason(new Date())) + '-poster.webp'
 /** The time of day the island opens at when it follows the clock. */
 export const autoIslandPhase = () => phaseBlendForMinutes(minutesFromDate(new Date())).dominant
 

@@ -77,3 +77,9 @@ html.wall-open,html.wall-open body{overflow:hidden}
 @media(min-width:1100px) and (orientation:landscape){.wall-item{grid-template-columns:auto minmax(0,1fr);row-gap:2px;font-size:clamp(1rem,1.5vw,1.3rem)}.wall-item .wall-time{grid-column:1/-1}}
 .wall-display.is-night :is(h2,h3){color:#e9dcc8}
 .wall-display.is-night :is(h2,h3) small,.wall-display.is-night .wall-title small{color:#b9ab98}
+/* The family's to-dos under the day: read only, a box to tick on the family's own phone. */
+.wall-todos{margin-top:14px}
+.wall-todos h3{margin:0 0 8px;font-size:clamp(.9rem,1.4vw,1.1rem);text-transform:uppercase;letter-spacing:.06em;color:var(--wb-muted,#7a6670)}
+.wall-todos ul{gap:6px!important}
+.wall-todos li{display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:12px;border-left:4px dashed var(--person,#9a8fb0);font-size:clamp(1rem,1.7vw,1.3rem);font-weight:700}
+.wall-todos li small{margin-left:auto;font-size:.7em;color:var(--wb-muted,#7a6670)}
