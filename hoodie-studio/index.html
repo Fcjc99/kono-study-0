@@ -39,6 +39,79 @@ button{cursor:pointer}
 .bag{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-weight:600}
 .bag b{min-width:20px;height:20px;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-size:12px;display:grid;place-items:center;padding:0 6px}
 
+/* ---------- pages ---------- */
+main[hidden]{display:none!important}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+.wrap.narrow{max-width:760px}
+.page{padding:0 0 64px;min-height:calc(100dvh - 56px)}
+.page h1{font-size:clamp(28px,4vw,44px);line-height:1.08;letter-spacing:-.02em;margin:6px 0 12px}
+.page .lead{font-size:17px;color:var(--muted);max-width:640px;margin:0 0 20px}
+.page .eyebrow{margin:32px 0 0}
+.hero{background:radial-gradient(120% 120% at 70% 20%,var(--stage-a),var(--stage-b));padding:56px 0 64px;border-bottom:1px solid var(--line)}
+.hero h1{font-size:clamp(34px,6vw,64px);max-width:720px}
+.herogrid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:32px;align-items:center}
+.heroart img{width:100%;max-width:440px;display:block;margin-left:auto;border-radius:24px;box-shadow:0 24px 60px rgba(0,0,0,.12)}
+@media (max-width:900px){.herogrid{grid-template-columns:1fr}.heroart{display:none}}
+@media (max-width:600px){.cards{grid-template-columns:repeat(2,1fr);gap:10px}.card .meta{padding:10px}.card .meta b{font-size:13px}.hero{padding:32px 0 40px}}
+.hero .eyebrow{margin:0}
+.ctas{display:flex;gap:10px;flex-wrap:wrap}
+.btn.big{padding:13px 20px;font-size:15px;border-radius:999px;text-decoration:none;color:inherit}
+.btn.primary.big{color:var(--accent-ink)}
+.points{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;padding-top:32px;padding-bottom:8px}
+.points b{display:block;margin-bottom:4px}
+.points p{margin:0;color:var(--muted);font-size:13px}
+.cat h2{font-size:22px;margin:40px 0 14px;letter-spacing:-.01em}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.card{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface);text-decoration:none;color:inherit;transition:transform .15s,box-shadow .15s}
+.card:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.card .ph{aspect-ratio:1;background:radial-gradient(120% 90% at 50% 38%,var(--stage-a),var(--stage-b))}
+.card img{width:100%;height:100%;object-fit:cover;display:block}
+.card .meta{padding:12px 14px 14px;display:flex;flex-direction:column;gap:2px}
+.card .meta span{color:var(--muted);font-size:13px}
+.card .meta em{font-style:normal;font-weight:600;font-size:13px;margin-top:6px}
+.foot{margin-top:56px;border-top:1px solid var(--line);padding:20px 0;font-size:13px}
+.foot .wrap{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+.foot a{color:inherit}
+.foot .muted{color:var(--muted);margin-left:auto}
+.form{display:flex;flex-direction:column;gap:14px}
+.form label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;color:var(--muted)}
+.form label.check{flex-direction:row;align-items:center;font-size:14px;color:var(--ink);font-weight:500}
+.form input:not([type=checkbox]),.form textarea,.form select{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);color:var(--ink);font-size:14px;font-weight:400}
+.form fieldset{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0}
+.form legend{font-size:12px;font-weight:600;color:var(--muted);padding:0 4px}
+.form .checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px}
+.form .checks label{flex-direction:row;align-items:center;gap:8px;font-size:13px;color:var(--ink);font-weight:500}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.form .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.prose h2{font-size:18px;margin:32px 0 10px}
+.prose p,.prose li{color:var(--ink)}
+.steps{padding-left:20px;display:flex;flex-direction:column;gap:8px}
+.prose details{border-bottom:1px solid var(--line);padding:12px 0}
+.prose summary{font-weight:600;cursor:pointer}
+.prose details p{color:var(--muted);margin:8px 0 0}
+.ptable{border-collapse:collapse;width:100%;font-size:13px}
+.ptable th,.ptable td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.ptable thead th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.olist{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.order{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:14px 16px}
+.order .top{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.order .top b{font-size:15px}
+.order .top .muted{color:var(--muted);font-size:13px}
+.order .top .amt{margin-left:auto;font-weight:700}
+.order .items{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.order .items figure{margin:0;display:flex;gap:8px;align-items:center;font-size:12px;border:1px solid var(--line);border-radius:10px;padding:4px 10px 4px 4px;background:var(--surface-2)}
+.order .items img{width:44px;height:44px;border-radius:7px;object-fit:cover;background:var(--surface)}
+.order .who{font-size:13px;color:var(--muted);white-space:pre-line}
+.order .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.order select{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface)}
+.status{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-radius:999px;padding:3px 8px;background:var(--surface-2);border:1px solid var(--line)}
+@media (max-width:900px){
+  .points{grid-template-columns:1fr 1fr}
+  .grid3,.form .grid2{grid-template-columns:1fr}
+  .wrap{padding:0 16px}
+  .foot .muted{margin-left:0}
+}
+
 /* ---------- layout ---------- */
 .studio{display:grid;grid-template-columns:minmax(0,1fr) 420px;height:calc(100vh - 56px);height:calc(100dvh - 56px)}
 .stage{position:relative;background:radial-gradient(120% 90% at 50% 38%,var(--stage-a),var(--stage-b));overflow:hidden;min-height:0}
@@ -282,7 +355,10 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
   .studio{grid-template-columns:1fr;height:auto}
   .stage{height:58vh;height:58svh}
   .panel{border-left:0;overflow:visible}
-  .nav{display:none}
+  .topbar{height:auto;flex-wrap:wrap;padding:10px 16px;gap:8px 16px}
+  .nav{order:3;width:100%;gap:18px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .nav::-webkit-scrollbar{display:none}
+  .page{min-height:0}
   .hint{display:none}
   .phead,.sec,.buy{padding-left:16px;padding-right:16px}
   .toolbar{bottom:12px}
@@ -321,17 +397,84 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
 </head>
 <body>
 <header class="topbar">
-  <a class="brand" href="#">THREADLAB</a>
+  <a class="brand" href="#shop">THREADLAB</a>
   <nav class="nav" aria-label="Main">
-    <a href="#">Shop</a>
-    <a href="#" aria-current="page">Studio</a>
-    <a href="#">Bulk orders</a>
-    <a href="#">About</a>
+    <a href="#shop" data-nav="shop">Shop</a>
+    <a href="#studio" data-nav="studio">Studio</a>
+    <a href="#bulk" data-nav="bulk">Bulk orders</a>
+    <a href="#about" data-nav="about">About</a>
+    <a href="#orders" data-nav="orders" id="navOrders" hidden>Orders</a>
   </nav>
   <button class="bag" id="bagBtn" aria-label="Bag">Bag <b id="bagCount">0</b></button>
 </header>
 
-<main class="studio">
+<main class="page" id="view-shop" hidden>
+  <section class="hero">
+    <div class="wrap herogrid">
+      <div>
+        <p class="eyebrow">Custom athletic wear · made to order</p>
+        <h1>Design your team's kit in 3D.</h1>
+        <p class="lead">Pick a garment, colour every panel, add logos, names and numbers, and see it from every side before you order. One piece or a whole roster.</p>
+        <div class="ctas"><a class="btn primary big" href="#studio">Start designing</a><a class="btn big" href="#bulk">Get a team quote</a></div>
+      </div>
+      <a class="heroart" href="#studio/hoodie" aria-label="Customise the hoodie"><img src="img/products/hoodie.jpg" alt="" onerror="this.parentElement.remove()"></a>
+    </div>
+  </section>
+  <section class="wrap points">
+    <div><b>Every panel, your colour</b><p>Colour and pattern each piece separately, from the hood lining to the socks.</p></div>
+    <div><b>Rosters built in</b><p>Paste your team list and we print each player's name and number.</p></div>
+    <div><b>Print, screen or stitch</b><p>Choose digital print, screen print or embroidery for each area.</p></div>
+    <div><b>Better together</b><p>Save up to 25% on bigger orders, with no surprises at checkout.</p></div>
+  </section>
+  <div class="wrap" id="catalogue"></div>
+  <footer class="foot"><div class="wrap"><span>THREADLAB</span><a href="#about">About</a><a href="#bulk">Bulk orders</a><span class="muted" id="footCredit">3D models used under CC BY 4.0 · see the studio for credits</span></div></footer>
+</main>
+
+<main class="page" id="view-bulk" hidden>
+  <div class="wrap narrow">
+    <p class="eyebrow">Teams, clubs, schools and companies</p>
+    <h1>Get a team quote</h1>
+    <p class="lead">Tell us what you need and we'll come back with pricing, samples and a timeline. Attach the design you're working on if you have one.</p>
+    <form class="form" id="bulkForm">
+      <div class="grid2"><label>Your name<input name="name" required autocomplete="name"></label><label>Email<input name="email" type="email" required autocomplete="email"></label></div>
+      <div class="grid2"><label>Team or organisation<input name="org" autocomplete="organization"></label><label>Phone (optional)<input name="phone" type="tel" autocomplete="tel"></label></div>
+      <fieldset><legend>What are you interested in?</legend><div class="checks" id="bulkProducts"></div></fieldset>
+      <div class="grid3"><label>About how many pieces?<input name="qty" type="number" min="1" required></label><label>Needed by<input name="date" type="date"></label>
+        <label>Decoration<select name="method"><option value="">Not sure yet</option><option>Digital print</option><option>Screen print</option><option>Embroidery</option></select></label></div>
+      <label>Anything else we should know?<textarea name="notes" rows="4" placeholder="Colours, sizes, logos, budget, deadlines…"></textarea></label>
+      <label class="check"><input type="checkbox" name="attach" checked> Attach the design I'm working on in the studio</label>
+      <button class="cta" type="submit">Send request</button>
+      <p class="small" id="bulkNote"></p>
+    </form>
+  </div>
+</main>
+
+<main class="page" id="view-about" hidden>
+  <div class="wrap narrow prose">
+    <p class="eyebrow">About</p>
+    <h1>Kit that looks exactly like you designed it</h1>
+    <p class="lead">THREADLAB makes custom athletic and team wear to order. You design on true-to-life 3D garments, and we print, screen or stitch exactly what you see.</p>
+    <h2>How it works</h2>
+    <ol class="steps"><li><b>Design.</b> Pick a garment and colour it panel by panel, add patterns, text, graphics and your logos.</li><li><b>Add your team.</b> Paste a roster and every piece gets its own name, number and size.</li><li><b>Review.</b> Check every side and the full spec before it goes in your bag.</li><li><b>Order.</b> Send your order request. We confirm the details, send an invoice and start production.</li></ol>
+    <h2>Decoration and pricing</h2>
+    <div id="aboutPricing"></div>
+    <h2>Questions</h2>
+    <details><summary>Is there a minimum order?</summary><p>No for digital print and embroidery. Screen print starts at 12 pieces, because each colour needs its own screen.</p></details>
+    <details><summary>How long does it take?</summary><p>It depends on the size of the order and the decoration. We confirm a production timeline with your order or quote before anything is made.</p></details>
+    <details><summary>Can I see a sample first?</summary><p>For team orders, yes. Ask in a <a href="#bulk">team quote</a>.</p></details>
+    <details><summary>What files do you need for my logo?</summary><p>A PNG with a transparent background works for most things. For screen print and embroidery, vector files (SVG or PDF) give the cleanest result.</p></details>
+  </div>
+</main>
+
+<main class="page" id="view-orders" hidden>
+  <div class="wrap">
+    <div class="row" style="align-items:flex-end;flex-wrap:wrap"><div><p class="eyebrow" id="ordersEyebrow">Your orders</p><h1 id="ordersTitle">Orders</h1></div><button class="btn" id="ordersRefresh">Refresh</button></div>
+    <div class="tabs" id="ordersTabs" style="margin-top:12px"><button class="tab" data-otab="orders" aria-pressed="true">Orders</button><button class="tab" data-otab="requests" aria-pressed="false">Quote requests</button></div>
+    <div id="ordersList"></div>
+  </div>
+</main>
+
+<main class="studio" id="view-studio" hidden>
   <section class="stage" id="stage" aria-label="3D hoodie preview">
     <div class="pieces2d" id="pieces2d" hidden>
       <canvas id="c2d" aria-label="Pattern pieces"></canvas>
@@ -470,6 +613,20 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
   </aside>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<dialog class="sheet" id="checkoutDlg" aria-labelledby="checkoutTitle">
+  <div class="dlg-head"><h2 id="checkoutTitle">Send your order</h2><button class="ib" data-close aria-label="Close">✕</button></div>
+  <form class="dlg-body form" id="checkoutForm">
+    <p class="small" style="margin-top:0">No payment is taken here. We check every design, confirm the details with you and send an invoice before anything is made.</p>
+    <div class="grid2"><label>Name<input name="name" required autocomplete="name"></label><label>Email<input name="email" type="email" required autocomplete="email"></label></div>
+    <div class="grid2"><label>Phone (optional)<input name="phone" type="tel" autocomplete="tel"></label><label>Needed by (optional)<input name="date" type="date"></label></div>
+    <label>Delivery address<textarea name="address" rows="3" required autocomplete="street-address"></textarea></label>
+    <label>Notes (optional)<textarea name="notes" rows="2"></textarea></label>
+    <div class="lines" id="checkoutLines"></div>
+    <button class="cta" type="submit" id="placeOrder">Send order request</button>
+    <p class="small" id="checkoutNote" style="margin:0"></p>
+  </form>
+</dialog>
 
 <dialog class="sheet" id="reviewDlg" aria-labelledby="reviewTitle">
   <div class="dlg-head"><h2 id="reviewTitle">Review your design</h2><button class="ib" data-close aria-label="Close">✕</button></div>
@@ -2184,13 +2341,22 @@ $('#bagList').addEventListener('click', e => {
   if (b.dataset.bag === 'edit') {
     cart.splice(i, 1);
     applyDesign(JSON.parse(it.design), false);
-    $('#bagDlg').close();
+    $('#bagDlg').close(); go('studio');
     toast('Back in the studio — add it to your bag again when you are done');
   }
   saveCart(); renderBag(); renderBagCount();
 });
 $('#allFiles').addEventListener('click', e => downloadPack(cart, 'bag-production-files.zip', e.currentTarget));
-$('#checkout').addEventListener('click', () => toast('Checkout is not connected yet — this studio is a prototype'));
+$('#checkout').addEventListener('click', () => {
+  $('#bagDlg').close();
+  const total = round2(cart.reduce((a, it) => a + it.total, 0));
+  $('#checkoutLines').innerHTML = cart.map(it => `<div><span>${esc(it.name)} · ${esc(it.order)}</span><span>${money(it.total)}</span></div>`).join('') +
+    `<div class="tot"><span>Total</span><span>${money(total)}</span></div>`;
+  $('#checkoutNote').textContent = backendReady() ? '' : SHOP.email
+    ? `This opens an email to ${SHOP.email} and downloads your production files to attach.`
+    : 'Ordering online isn’t switched on here, so this downloads your order and production files to send to us.';
+  openDialog($('#checkoutDlg'));
+});
 renderBagCount();
 
 /* ---------- Production files: print-ready art at real size, per-player names and numbers, an order sheet ---------- */
@@ -2320,6 +2486,189 @@ async function downloadPack(items, filename, btn) {
   finally { if (btn) { btn.disabled = false; btn.textContent = label; } }
 }
 
+/* ---------- Pages and routing ---------- */
+const PAGES = ['shop', 'studio', 'bulk', 'about', 'orders'];
+let currentView = null;
+const go = view => { if (location.hash !== '#' + view) location.hash = view; else showView(view); };
+function showView(view, arg) {
+  if (!PAGES.includes(view)) view = 'shop';
+  if (view === 'orders' && !backendReady()) view = 'shop';
+  for (const v of PAGES) $('#view-' + v).hidden = v !== view;
+  document.querySelectorAll('.nav [data-nav]').forEach(a => { if (a.dataset.nav === view) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  const was = currentView; currentView = view;
+  if (view === 'studio') {
+    if (arg && PRODUCTS[arg] && arg !== state.product) { state.product = arg; renderProduct(); showProduct(arg); save(); }
+    resize(); invalidate();
+  }
+  if (view === 'orders') loadOrders();
+  if (view === 'bulk') renderBulkProducts();
+  if (was && was !== view) window.scrollTo(0, 0);
+}
+function route() {
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (h.startsWith('design=')) return; // a shared design: openSharedFromUrl takes it from here
+  const [view, arg] = h.split('/');
+  showView(view || 'shop', arg);
+}
+window.addEventListener('hashchange', route);
+
+// Shop: one card per product, grouped like the studio.
+function renderCatalogue() {
+  $('#catalogue').innerHTML = GROUPS.map(([g, label]) => `<section class="cat"><h2>${label}</h2><div class="cards">${Object.entries(PRODUCTS).filter(([, P]) => P.group === g).map(([k, P]) =>
+    `<a class="card" href="#studio/${k}"><div class="ph"><img src="img/products/${k}.jpg" alt="" loading="lazy" onerror="this.remove()"></div>
+      <div class="meta"><b>${esc(P.name)}</b><span>from ${money(P.price)}</span><em>Customise →</em></div></a>`).join('')}</div></section>`).join('');
+}
+function renderAboutPricing() {
+  const ms = Object.values(PRICING.methods);
+  $('#aboutPricing').innerHTML = `<table class="ptable"><thead><tr><th>Method</th><th>Best for</th><th>Extra print areas</th><th>Setup</th><th>Minimum</th></tr></thead><tbody>${ms.map(m =>
+    `<tr><th>${m.label}</th><td>${esc(m.note.split(' · ')[0])}</td><td>${money(m.extra)} each${m.first ? ` (first area ${money(m.first)})` : ''}</td><td>${m.setup ? money(m.setup) + ' per area' : '—'}</td><td>${m.min > 1 ? m.min + ' pieces' : 'None'}</td></tr>`).join('')}</tbody></table>
+    <p>Your first print area is included in the garment price. Names and numbers add ${money(PRICING.nameNumber)} a piece. Bigger orders save more: ${PRICING.tiers.map(([n, d]) => `${Math.round(d * 100)}% off at ${n}+`).join(', ')} pieces of one design.</p>`;
+}
+function renderBulkProducts() {
+  if ($('#bulkProducts').childElementCount) return;
+  $('#bulkProducts').innerHTML = Object.entries(PRODUCTS).map(([k, P]) => `<label><input type="checkbox" name="products" value="${esc(P.name)}"${k === state.product ? ' checked' : ''}> ${esc(P.name)}</label>`).join('');
+}
+
+/* ---------- Orders and quote requests ----------
+   On claude.ai the page keeps them in its database: each customer writes under their own id, and only the
+   artifact's owner can read everyone's (see the db rules it is published with). Elsewhere they're downloaded,
+   or emailed when SHOP.email is set. */
+const SHOP = { email: '' }; // set to your address to get order emails where there is no database
+let dbApi = null, userApi = null, myId = null, owner = false, canWrite = false;
+const backendReady = () => !!(dbApi && myId && canWrite);
+const backend = (async () => {
+  [dbApi, userApi] = await Promise.all([capability('db'), capability('user')]);
+  if (userApi) {
+    try { myId = await userApi.id(); owner = await userApi.isOwner(); canWrite = (await userApi.can('data.write')) !== false; } catch { /* no identity */ }
+  }
+  $('#navOrders').hidden = !backendReady();
+  $('#navOrders').textContent = owner ? 'Orders' : 'My orders';
+  if (location.hash === '#orders') route();
+})();
+// Big inline images (uploads, previews) go to the page's asset store so order records stay small.
+async function offloadImages(value, keepWithoutStore) {
+  const assets = await capability('assets'), seen = new Map(); let missing = 0;
+  async function walk(v) {
+    if (typeof v === 'string' && v.startsWith('data:image/') && v.length > 4000) {
+      if (!assets) { if (keepWithoutStore) return v; missing++; return null; }
+      if (!seen.has(v)) seen.set(v, (async () => { try { const r = await assets.upload(await (await fetch(v)).blob()); return '/_blob/' + r.id; } catch { missing++; return keepWithoutStore ? v : null; } })());
+      return seen.get(v);
+    }
+    if (Array.isArray(v)) return Promise.all(v.map(walk));
+    if (v && typeof v === 'object') { const o = {}; for (const [k, x] of Object.entries(v)) o[k] = await walk(x); return o; }
+    return v;
+  }
+  return [await walk(value), missing];
+}
+async function writeRecord(kind, record) {
+  await dbApi.collection(`${kind}/${myId}/list`).doc(record.id).set(record);
+  await dbApi.doc(`${kind}/${myId}`).set({ last: record.createdAt }); // index, so the owner can find every customer's list
+}
+const formData = form => Object.fromEntries([...new FormData(form).entries()].map(([k, v]) => [k, typeof v === 'string' ? v.trim() : v]));
+const orderEmailText = o => [`Order ${o.id} · ${new Date(o.createdAt).toLocaleString()}`, `${o.customer.name} <${o.customer.email}>${o.customer.phone ? ' · ' + o.customer.phone : ''}`, o.customer.address, o.customer.date ? 'Needed by ' + o.customer.date : '', o.customer.notes, '',
+  ...o.items.map(it => `• ${it.name} · ${it.colorway} · ${it.order} · ${money(it.total)}`), '', `Total ${money(o.total)}`].filter(x => x !== undefined).join('\n');
+$('#checkoutForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!cart.length) return;
+  const btn = $('#placeOrder'); btn.disabled = true; btn.textContent = 'Sending…';
+  const customer = formData(e.target);
+  const order = { id: 'TL-' + Date.now().toString(36).toUpperCase(), createdAt: Date.now(), status: 'new', customer, total: round2(cart.reduce((a, it) => a + it.total, 0)), items: [] };
+  try {
+    if (backendReady()) {
+      let missing = 0;
+      for (const it of cart) {
+        const [design, m1] = await offloadImages(JSON.parse(it.design), false);
+        const [pics] = await offloadImages({ thumb: it.thumb, back: it.back }, true);
+        missing += m1;
+        order.items.push({ ...it, design: JSON.stringify(design), thumb: pics.thumb, back: pics.back });
+      }
+      if (missing) order.missingImages = missing;
+      if (JSON.stringify(order).length > 250000) throw new Error('too_big');
+      await writeRecord('orders', order);
+      toast(`Order ${order.id} sent — we'll be in touch`);
+    } else {
+      order.items = cart.map(it => ({ ...it }));
+      await downloadPack(cart, `order-${order.id}.zip`);
+      if (SHOP.email) location.href = `mailto:${SHOP.email}?subject=${encodeURIComponent('Order request ' + order.id)}&body=${encodeURIComponent(orderEmailText(order) + '\n\n(Production files attached.)')}`;
+      toast(`Order ${order.id} saved — send the file to us to finish`);
+    }
+    cart = []; saveCart(); renderBagCount(); e.target.reset();
+    $('#checkoutDlg').close();
+    if (backendReady()) go('orders');
+  } catch (err) {
+    console.error(err);
+    toast(err?.message === 'too_big' ? 'This order is too large to send in one go — try fewer items' : err?.code === 'quota_exceeded' ? 'The order book is full — contact us directly' : 'The order could not be sent — try again');
+  } finally { btn.disabled = false; btn.textContent = 'Send order request'; }
+});
+$('#bulkForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = formData(e.target), products = [...e.target.querySelectorAll('[name=products]:checked')].map(x => x.value);
+  const req = { id: 'Q-' + Date.now().toString(36).toUpperCase(), createdAt: Date.now(), status: 'new', name: f.name, email: f.email, org: f.org || '', phone: f.phone || '', products, qty: +f.qty || 0, date: f.date || '', method: f.method || '', notes: f.notes || '' };
+  if (f.attach) { const [d] = shareable(); req.design = await packDesign(d); req.designProduct = PRODUCTS[state.product].name; }
+  try {
+    if (backendReady()) { await writeRecord('requests', req); $('#bulkNote').textContent = `Thanks — request ${req.id} is in. We'll reply to ${req.email}.`; }
+    else {
+      const text = [`Quote request ${req.id}`, `${req.name} <${req.email}>${req.phone ? ' · ' + req.phone : ''}`, req.org, `Products: ${products.join(', ') || '—'}`, `About ${req.qty} pieces${req.date ? ', needed by ' + req.date : ''}`, req.method && `Decoration: ${req.method}`, req.notes, req.design && `Design (${req.designProduct}) share code:\n${req.design}`].filter(Boolean).join('\n');
+      if (SHOP.email) location.href = `mailto:${SHOP.email}?subject=${encodeURIComponent('Team quote ' + req.id)}&body=${encodeURIComponent(text)}`;
+      else await saveFile(`quote-request-${req.id}.txt`, new Blob([text], { type: 'text/plain' }));
+      $('#bulkNote').textContent = SHOP.email ? 'Your email app should open with the request ready to send.' : 'Online requests aren’t switched on here — we saved your request as a file to email to us.';
+    }
+    e.target.reset(); renderBulkProducts();
+  } catch (err) { console.error(err); $('#bulkNote').textContent = 'The request could not be sent — try again.'; }
+});
+
+// Orders page: the owner sees everyone's orders and requests and can update their status; customers see their own.
+const STATUSES = ['new', 'invoiced', 'in production', 'shipped', 'cancelled'];
+let ordersTab = 'orders', ordersCache = [];
+async function fetchRecords(kind) {
+  const lists = owner
+    ? (await dbApi.collection(kind).get()).docs.map(d => d.id)
+    : [myId];
+  const snaps = await Promise.all(lists.map(id => dbApi.collection(`${kind}/${id}/list`).orderBy('createdAt', 'desc').limit(200).get()));
+  return snaps.flatMap((q, i) => q.docs.map(d => ({ ...d.data(), _path: `${kind}/${lists[i]}/list/${d.id}` }))).sort((a, b) => b.createdAt - a.createdAt);
+}
+async function loadOrders() {
+  await backend;
+  if (!backendReady()) return;
+  $('#ordersTitle').textContent = owner ? 'Orders and quote requests' : 'My orders';
+  $('#ordersEyebrow').textContent = owner ? 'Shop owner' : 'Your account';
+  document.querySelectorAll('[data-otab]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.otab === ordersTab)));
+  $('#ordersList').innerHTML = '<p class="empty">Loading…</p>';
+  try { ordersCache = await fetchRecords(ordersTab); renderOrders(); }
+  catch (err) { console.error(err); $('#ordersList').innerHTML = '<p class="empty">Orders could not be loaded right now.</p>'; }
+}
+function renderOrders() {
+  if (!ordersCache.length) { $('#ordersList').innerHTML = `<p class="empty">${ordersTab === 'orders' ? 'No orders yet.' : 'No quote requests yet.'}</p>`; return; }
+  const status = r => owner
+    ? `<select data-status="${esc(r._path)}" aria-label="Status">${STATUSES.map(x => `<option ${x === r.status ? 'selected' : ''}>${x}</option>`).join('')}</select>`
+    : `<span class="status">${esc(r.status)}</span>`;
+  $('#ordersList').innerHTML = `<div class="olist">${ordersCache.map((r, i) => ordersTab === 'orders' ? `<article class="order">
+      <div class="top"><b>${esc(r.id)}</b><span class="muted">${new Date(r.createdAt).toLocaleString()}</span>${owner ? '' : status(r)}<span class="amt">${money(r.total)}</span></div>
+      <div class="items">${(r.items || []).map(it => `<figure>${it.thumb ? `<img src="${esc(it.thumb)}" alt="">` : ''}<figcaption><b>${esc(it.name)}</b><br>${esc(it.colorway)} · ${esc(it.order)}</figcaption></figure>`).join('')}</div>
+      ${owner ? `<div class="who">${esc(r.customer?.name)} · ${esc(r.customer?.email)}${r.customer?.phone ? ' · ' + esc(r.customer.phone) : ''}\n${esc(r.customer?.address || '')}${r.customer?.date ? '\nNeeded by ' + esc(r.customer.date) : ''}${r.customer?.notes ? '\n“' + esc(r.customer.notes) + '”' : ''}${r.missingImages ? '\n⚠ Some uploaded images could not be stored — ask the customer for their logo files.' : ''}</div>
+      <div class="acts">${status(r)}<button class="mini" data-ofiles="${i}">Production files</button><a class="mini" href="mailto:${esc(r.customer?.email)}?subject=${encodeURIComponent('Your order ' + r.id)}">Email customer</a></div>` : ''}
+    </article>` : `<article class="order">
+      <div class="top"><b>${esc(r.id)}</b><span class="muted">${new Date(r.createdAt).toLocaleString()}</span>${owner ? '' : status(r)}<span class="amt">~${r.qty} pcs</span></div>
+      <div class="who">${owner ? `${esc(r.name)} · ${esc(r.email)}${r.phone ? ' · ' + esc(r.phone) : ''}${r.org ? '\n' + esc(r.org) : ''}\n` : ''}${esc(r.products?.join(', ') || '—')}${r.date ? '\nNeeded by ' + esc(r.date) : ''}${r.method ? '\n' + esc(r.method) : ''}${r.notes ? '\n“' + esc(r.notes) + '”' : ''}</div>
+      <div class="acts">${owner ? status(r) : ''}${r.design ? `<button class="mini" data-odesign="${i}">Open attached design</button>` : ''}${owner ? `<a class="mini" href="mailto:${esc(r.email)}?subject=${encodeURIComponent('Your team quote ' + r.id)}">Email</a>` : ''}</div>
+    </article>`).join('')}</div>`;
+}
+$('#ordersTabs').addEventListener('click', e => { const b = e.target.closest('[data-otab]'); if (!b) return; ordersTab = b.dataset.otab; loadOrders(); });
+$('#ordersRefresh').addEventListener('click', loadOrders);
+$('#ordersList').addEventListener('change', async e => {
+  const sel = e.target.closest('[data-status]'); if (!sel) return;
+  sel.disabled = true;
+  try { await dbApi.doc(sel.dataset.status).update({ status: sel.value }); toast('Status updated'); }
+  catch (err) { console.error(err); toast('The status could not be saved'); }
+  finally { sel.disabled = false; }
+});
+$('#ordersList').addEventListener('click', async e => {
+  const f = e.target.closest('[data-ofiles]');
+  if (f) { const r = ordersCache[+f.dataset.ofiles]; downloadPack(r.items, `order-${r.id}-production.zip`, f); return; }
+  const d = e.target.closest('[data-odesign]');
+  if (d) { try { applyDesign(await unpackDesign(ordersCache[+d.dataset.odesign].design), false); go('studio'); } catch { toast('That design could not be opened'); } }
+});
+
 /* ---------- Saved designs and share codes ---------- */
 const DESIGNS_KEY = 'threadlab-designs-v1';
 let savedDesigns = [];
@@ -2348,7 +2697,7 @@ $('#saveForm').addEventListener('submit', e => {
 $('#savedList').addEventListener('click', e => {
   const b = e.target.closest('[data-sv]'), li = e.target.closest('[data-id]'); if (!b || !li) return;
   const i = savedDesigns.findIndex(d => d.id === li.dataset.id);
-  if (b.dataset.sv === 'open') { applyDesign(savedDesigns[i].design, false); $('#designsDlg').close(); toast(`Opened “${savedDesigns[i].name}”`); return; }
+  if (b.dataset.sv === 'open') { applyDesign(savedDesigns[i].design, false); $('#designsDlg').close(); go('studio'); toast(`Opened “${savedDesigns[i].name}”`); return; }
   if (b.dataset.sv === 'del') {
     const [gone] = savedDesigns.splice(i, 1);
     toast(`Deleted “${gone.name}”`);
@@ -2392,14 +2741,15 @@ $('#copyLink').addEventListener('click', async () => {
 });
 $('#openCodeForm').addEventListener('submit', async e => {
   e.preventDefault();
-  try { applyDesign(await unpackDesign($('#codeIn').value), false); $('#codeIn').value = ''; $('#designsDlg').close(); toast('Opened the shared design'); }
+  try { applyDesign(await unpackDesign($('#codeIn').value), false); $('#codeIn').value = ''; $('#designsDlg').close(); go('studio'); toast('Opened the shared design'); }
   catch { toast('That does not look like a share code'); }
 });
 async function openSharedFromUrl() {
   if (!location.hash.startsWith('#design=')) return;
   try { applyDesign(await unpackDesign(location.hash), false); toast('Opened a shared design'); }
   catch { toast('That design link is damaged'); }
-  try { history.replaceState(null, '', location.pathname + location.search); } catch { /* sandboxed */ }
+  try { history.replaceState(null, '', location.pathname + location.search + '#studio'); } catch { /* sandboxed */ }
+  showView('studio');
 }
 
 // Toolbar
@@ -2421,6 +2771,7 @@ controls.addEventListener('start', () => { $('#hint').classList.add('gone'); cam
    ===================================================================== */
 function resize() {
   const w = canvas.clientWidth || stage.clientWidth, h = canvas.clientHeight || stage.clientHeight;
+  if (!w || !h) return; // the studio is hidden behind another page
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   // keep the whole hoodie in frame on narrow screens
@@ -2441,6 +2792,8 @@ renderProduct();
 showProduct(state.product);
 renderColor(); renderFabric(); renderSizes(); renderDesign();
 hist.current = snapshot(); renderHistory();
+renderCatalogue(); renderAboutPricing();
+route();
 openSharedFromUrl();
 window.addEventListener('hashchange', openSharedFromUrl);
 setTimeout(() => $('#hint').classList.add('gone'), 9000);
@@ -2472,6 +2825,7 @@ document.fonts.addEventListener?.('loadingdone', invalidate);
 
 const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
+  if (currentView !== 'studio') return;
   const t = clock.getElapsedTime(), now = performance.now();
   if (needsRedraw) { needsRedraw = false; redrawTextures(); }
   const bob = reduceMotion ? 0 : Math.sin(t * 1.1);

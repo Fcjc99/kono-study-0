@@ -22,7 +22,20 @@ Open `index.html` through any static server, for example `npx serve hoodie-studi
 - Drag a print directly on the 3D model to move it. Arrow keys nudge it, and Delete removes it.
 - Undo and redo (Ctrl/⌘+Z, Ctrl/⌘+Shift+Z). Quick bursts of changes, like a slider drag, count as one step. Start over can be undone.
 - Team orders: a roster with each player's name, number and size, pasted from a list or added one by one. It shows a size breakdown, warns about duplicate numbers, and prints names and numbers on the back. Click a row to preview that player on the garment.
-- Live pricing: each extra print area adds a fee, and names and numbers add a per-piece fee.
+- Pages: a Shop home page with a card for every product, the Studio, a Bulk orders (team quote) form, About (how it works, methods, pricing, FAQ) and Orders.
+- Decoration per print area: digital print, screen print or embroidery, each with its own price, one-time setup and minimum, plus warnings for details that won't reproduce well (e.g. embroidered text under ¼ in). Embroidered areas show a stitch texture.
+- Pricing: every rule is in the `PRICING` table in `index.html`. The first print area is included, extra areas and names/numbers are per piece, and bulk discounts apply at 12, 24, 48 and 100 pieces of one design. The page nudges towards the next discount tier.
+- Production files: each bag item, the whole bag or an order downloads a zip containing:
+  - a full-size PNG per print area, sized in inches from `PRINT_IN` (up to 300 dpi);
+  - one names-and-numbers file per player;
+  - previews;
+  - a printable order sheet with positions, sizes and colour codes;
+  - `order.json`.
+- Logo library: every uploaded image is kept so it can be reused on any product. Team colour palettes (main, trim, accent) apply in one click. Size charts are shown per product.
+- Orders: Checkout sends an order request, and no payment is taken.
+  - Published on claude.ai, orders and quote requests are stored in the page's database. The owner sees everything under Orders, can set each order's status and can download production files. Customers see only their own orders.
+  - Elsewhere, the order downloads as a zip, or opens an email if `SHOP.email` is set.
+- The size-chart measurements are standard athletic sizing. Replace them with your supplier's specs in `SIZE_CHARTS`.
 - Review before the bag: pictures of all four sides plus the full spec (colours, patterns, fabric, custom parts, prints, roster and price).
 - A bag that keeps its items between visits. You can edit an item (it goes back into the studio), duplicate it or remove it. Checkout is not connected.
 - Designs: save named designs on this device, and share a design as a code or link. Uploaded images are left out of share codes.
