@@ -215,6 +215,21 @@ test('A rotation-day schedule (D1–D14) read for a Monday–Friday school is re
  const ok=JSON.stringify({classes:[{name:'Biology',days:['Monday','Wednesday'],start:'09:00',end:'10:00'}]})
  assert.equal(parseAiClassSchedule(ok,weekly,'2026-09-02','2027-06-16').length,2,'weekday schedules still read')
 })
+test('Duxbury Middle School, a Grade 7 screenshot cropped above its day headings: the AI’s grid is read column by column as Day 1–14, "6-P5" is Block 5 and "5-ASP" is ASP, and the seven periods come out right (Orchestra on 4a, PE on 4b)',()=>{
+ const {parseAiClassSchedule,periodLabel}=load('src/store/aiClassSchedule.ts'),{bellScheduleFor,classesFromRows}=load('src/store/bellSchedules.ts'),{academicTemplate}=load('src/store/academicCatalog.ts')
+ const dms=academicTemplate('p','duxburyms-2026'),cycle=dms.school.cycle,bells=bellScheduleFor(dms.school)
+ assert.equal(periodLabel('6-P5'),'Period 5');assert.equal(periodLabel('5-ASP'),'ASP');assert.equal(periodLabel('1-P1'),'Period 1')
+ // The screenshot's six rows, left to right (Day 1 … Day 14).
+ const F='French 7',E='English 7',M='Math 7 Accelerated',O='Orchestra 7',P='Physical Education/Health for Music 7',C='Critical Reading&Thinking',G='Geography and Ancient Civilizations II',S='Science 7'
+ const rowsOf={'1-P1':[F,G,P,E,S,C,M,F,G,O,E,S,C,M],'2-P2':[E,S,C,M,F,G,O,E,S,C,M,F,G,P],'3-P3':[M,F,G,O,E,S,C,M,F,G,P,E,S,C],'4-P4':[O,E,S,C,M,F,G,P,E,S,C,M,F,G],'5-ASP':Array(14).fill('Academic Support Period Gr. 7'),'6-P5':[C,M,F,G,P,E,S,C,M,F,G,O,E,S]}
+ const raw=JSON.stringify({dayHeadings:[],grid:Object.entries(rowsOf).map(([period,names])=>({period,cells:names.map(name=>({name,code:null,room:'B235',teacher:null}))})),classes:[]})
+ const rows=parseAiClassSchedule(raw,cycle,dms.start,dms.end)
+ assert.equal(rows.length,84);assert.equal(rows[0].day,'Day 1');assert.equal(rows[13].day,'Day 14')
+ assert.ok(rows.some(r=>r.slot==='ASP'),'the ASP row is ASP');assert.ok(rows.filter(r=>r.slot==='Period 5').length===14)
+ const found=classesFromRows(rows,cycle,bells)
+ assert.equal(JSON.stringify(found.classes.map(c=>c.label)),JSON.stringify([F,F,E,E,M,M,O,P,C,C,G,G,S,S]))
+ assert.equal(found.conflicts.length,0)
+})
 test('One known day sets the rotation: "September 28 is Day 4" counts forward over weekends and holidays, and the next school day is found without it',()=>{
  const {academicTemplate}=load('src/store/academicCatalog.ts'),{nextSchoolDate,rotationPreview}=load('src/store/schoolCalendar.ts')
  const dhs=academicTemplate(model.createFreshData().activeProfileId,'duxburyhs-2026')
