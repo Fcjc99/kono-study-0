@@ -138,6 +138,13 @@ button{cursor:pointer}
 .tab[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .tab i{font-style:normal;font-size:11px;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;background:var(--surface-2);color:var(--ink)}
 .addrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.methodrow{margin:0 0 12px;display:flex;flex-direction:column;gap:6px}
+.methodrow:empty{display:none}
+.methodrow .seg{grid-template-columns:repeat(3,1fr)}
+.methodrow .seg button{font-size:12px;padding:7px 4px}
+.methodrow .small{margin:0}
+.methodrow .warn,.nudge.warn,.small.warn{color:#b4532f;font-weight:600}
+.nudge{font-size:12px;color:var(--muted);margin-top:4px}
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 10px;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px}
 .btn:hover{background:var(--surface-2)}
 .btn svg{width:16px;height:16px}
@@ -363,6 +370,7 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
     <section class="sec">
       <h2><span><span class="n">04</span></span><b style="flex:1">Design</b><span>Prints &amp; text</span></h2>
       <div class="tabs" id="tabs"></div>
+      <div class="methodrow" id="methodRow"></div>
       <div class="addrow">
         <button class="btn" id="addText"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>Text</button>
         <button class="btn" id="addGraphic" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>Graphic</button>
@@ -483,8 +491,22 @@ const FABRICS = {
   terry: { note: 'Looped, lighter', rough: 0.86, sheen: 0.6, knit: 0.7 },
 };
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-const EXTRA_PLACEMENT = 12;
-const NAME_NUMBER = 8; // per piece, for printed names and/or numbers on a team order
+// Prices. Decoration is per piece per print area; the priciest area in use counts as the included one.
+// Setup is charged once per order for each print area that needs screens or digitising.
+const PRICING = {
+  methods: {
+    print: { label: 'Digital print', note: 'Full colour, photos and gradients · no minimum', first: 0, extra: 12, setup: 0, min: 1 },
+    screen: { label: 'Screen print', note: 'Solid, vivid colours · $25 screen setup per area · 12 piece minimum', first: 0, extra: 8, setup: 25, min: 12 },
+    embroidery: { label: 'Embroidery', note: 'Stitched · $35 digitising per area · keep text ¼ in tall or more', first: 6, extra: 14, setup: 35, min: 1 },
+  },
+  nameNumber: 8, // per piece, for printed names and/or numbers on a team order
+  tiers: [[12, 0.1], [24, 0.15], [48, 0.2], [100, 0.25]], // pieces in one design → discount on the piece price
+};
+// Real-world print area widths in inches (production files are sized from these); products can override.
+const PRINT_IN = { front: 12, back: 14, left: 3.5, right: 3.5 };
+const printInches = (product, k) => PRODUCTS[product].printIn?.[k] || PRINT_IN[k];
+const round2 = x => Math.round(x * 100) / 100;
+const money = x => '$' + (Number.isInteger(x) ? x : x.toFixed(2));
 
 // Print areas. Their position and size on the garment come from the model (scene extras in hoodie.glb).
 const PLACEMENTS = {
@@ -532,9 +554,11 @@ function defaultState() {
     product: 'hoodie', pattern: { type: 'none', color: '#141414', scale: 1, rot: 0 }, fabric: 'fleece', size: 'M', qty: 1,
     placements: { front: [], back: [], left: [], right: [] },
     styles: {}, uploads: [],
-    team: defaultTeam(),
+    team: defaultTeam(), methods: {},
   };
 }
+const methodsFor = product => PRODUCTS[product].methods || Object.keys(PRICING.methods);
+const methodOf = k => methodsFor(state.product).includes(state.methods?.[k]) ? state.methods[k] : 'print';
 const defaultTeam = () => ({ on: false, players: [], names: true, numbers: true, font: 'Anton', color: '#141414' });
 // Team orders apply to apparel; accessories are always ordered as a quantity.
 const teamActive = () => state.team.on && groupOf(state.product) !== 'accessories';
@@ -846,16 +870,16 @@ const PRODUCTS = {
   basketball: { group: 'men', label: 'Basketball', name: "Men's Basketball Uniform", crumb: 'Uniforms', price: 72, model: 'models/basketball',
     eyebrow: 'Team uniform · jersey + shorts', blurb: 'Breathable mesh jersey and shorts. Colour each separately and add numbers, names and a leg print.', areaLabels: { left: 'Shorts' } },
   soccerM: { group: 'men', label: 'Soccer kit', name: "Men's Soccer Kit", crumb: 'Uniforms', price: 64, model: 'models/soccer',
-    eyebrow: 'Team uniform · jersey + shorts', blurb: 'A lightweight match jersey with shorts. Colour each separately and add crests, sponsors and numbers.', areaLabels: { left: 'Shorts' } },
+    eyebrow: 'Team uniform · jersey + shorts', blurb: 'A lightweight match jersey with shorts. Colour each separately and add crests, sponsors and numbers.', areaLabels: { left: 'Shorts' }, printIn: { left: 4 } },
   polo: { group: 'women', label: 'Polo', name: "Women's Performance Polo", crumb: 'Polos', price: 48, model: 'models/polo', sizes: ['XS', 'S', 'M', 'L', 'XL'],
     eyebrow: 'Made to order · 180 gsm technical piqué', blurb: 'A fitted polo with a placket and knit collar, cut from separate panels you can colour one by one.' },
   tank: { group: 'women', label: 'Racerback tank', name: "Women's Racerback Tank", crumb: 'Tanks', price: 30, model: 'models/tank', sizes: ['XS', 'S', 'M', 'L', 'XL'],
     eyebrow: 'Made to order · 150 gsm performance jersey', blurb: 'A lightweight racerback with bound neck and armholes for training days.' },
   soccerW: { group: 'women', label: 'Soccer kit', name: "Women's Soccer Kit", crumb: 'Uniforms', price: 64, model: 'models/soccer', sizes: ['XS', 'S', 'M', 'L', 'XL'],
-    eyebrow: 'Team uniform · jersey + shorts', blurb: 'A lightweight match jersey with shorts. Colour each separately and add crests, sponsors and numbers.', areaLabels: { left: 'Shorts' } },
-  cap: { group: 'accessories', label: 'Cap', name: 'Six-Panel Cap', crumb: 'Headwear', price: 28, model: 'models/cap', sizes: ['S/M', 'L/XL'],
+    eyebrow: 'Team uniform · jersey + shorts', blurb: 'A lightweight match jersey with shorts. Colour each separately and add crests, sponsors and numbers.', areaLabels: { left: 'Shorts' }, printIn: { left: 4 } },
+  cap: { group: 'accessories', label: 'Cap', name: 'Six-Panel Cap', crumb: 'Headwear', price: 28, model: 'models/cap', sizes: ['S/M', 'L/XL'], printIn: { front: 4.5, back: 2.5 },
     eyebrow: 'Made to order · cotton twill', blurb: 'A structured six-panel cap with a curved brim. Embroider or print the front and back.', areaLabels: { front: 'Front panel' } },
-  ball: { group: 'accessories', label: 'Golf balls', name: 'Golf Balls · Dozen', crumb: 'Golf', price: 42, model: 'models/ball', sizes: ['12-pack'], finish: 'ball',
+  ball: { group: 'accessories', label: 'Golf balls', name: 'Golf Balls · Dozen', crumb: 'Golf', price: 42, model: 'models/ball', sizes: ['12-pack'], finish: 'ball', printIn: { front: 1.25, back: 1.25 }, methods: ['print'],
     eyebrow: 'Tour ionomer cover · logo print', blurb: 'A dozen balls with your logo or text printed on one or both sides.', areaLabels: { front: 'Side A', back: 'Side B' } },
 };
 const GROUPS = [['men', "Men's"], ['women', "Women's"], ['accessories', 'Accessories']];
@@ -1218,12 +1242,10 @@ function guideScale(placement) {
   const screenW = F.w * h / (2 * guideDist * Math.tan(camera.fov * Math.PI / 360));
   return decals[placement].canvas.width / Math.max(60, screenW);
 }
-// Draws one placement's layers into its canvas; layer coordinates are in units of print width.
-function renderPrint(placement) {
-  const { canvas: c, tex } = decals[placement];
-  const wPx = c.width, hPx = c.height, ctx = c.getContext('2d'), gs = guideScale(placement);
-  ctx.clearRect(0, 0, wPx, hPx);
-  for (const L of state.placements[placement]) {
+// Draws a print area's layers; coordinates are in units of print width, so any canvas size works
+// (the on-screen texture and the full-size production file use the same code).
+function drawLayers(ctx, wPx, hPx, list, sel = null, gs = 1) {
+  for (const L of list) {
     ctx.save();
     ctx.translate(wPx / 2 + L.x * wPx, hPx / 2 - L.y * wPx);
     ctx.rotate(L.rot * Math.PI / 180);
@@ -1267,14 +1289,40 @@ function renderPrint(placement) {
       if (img) ctx.drawImage(img, -hw, -hh, w, w * ar);
     }
     L._box = { hw: hw / wPx, hh: hh / wPx };
-    if (showGuides && L.id === selectedId) {
+    if (sel && L.id === sel) {
       ctx.setLineDash([6 * gs, 4 * gs]);
       ctx.lineWidth = 1.5 * gs; ctx.strokeStyle = '#3b6cf6';
       ctx.strokeRect(-hw, -hh, hw * 2, hh * 2);
     }
     ctx.restore();
   }
-  if (placement === 'back' && teamActive()) drawTeamBack(ctx, wPx, hPx);
+}
+// Embroidery preview: a fine satin-stitch texture over whatever is drawn.
+const stitchTiles = new Map();
+function stitch(ctx, wPx, hPx) {
+  const n = Math.max(6, Math.round(wPx / 160));
+  let tile = stitchTiles.get(n);
+  if (!tile) {
+    tile = document.createElement('canvas'); tile.width = tile.height = n;
+    const g = tile.getContext('2d');
+    g.strokeStyle = 'rgba(255,255,255,0.32)'; g.lineWidth = n * 0.24;
+    g.beginPath(); g.moveTo(0, n); g.lineTo(n, 0); g.moveTo(-n / 2, n / 2); g.lineTo(n / 2, -n / 2); g.moveTo(n / 2, n * 1.5); g.lineTo(n * 1.5, n / 2); g.stroke();
+    g.strokeStyle = 'rgba(0,0,0,0.3)'; g.lineWidth = n * 0.14;
+    g.beginPath(); g.moveTo(0, n * 0.6); g.lineTo(n * 0.6, 0); g.moveTo(n * 0.4, n); g.lineTo(n, n * 0.4); g.stroke();
+    stitchTiles.set(n, tile);
+  }
+  ctx.save(); ctx.globalCompositeOperation = 'source-atop';
+  ctx.fillStyle = ctx.createPattern(tile, 'repeat'); ctx.fillRect(0, 0, wPx, hPx);
+  ctx.restore();
+}
+// Draws one placement's print into its texture.
+function renderPrint(placement) {
+  const { canvas: c, tex } = decals[placement];
+  const wPx = c.width, hPx = c.height, ctx = c.getContext('2d'), gs = guideScale(placement);
+  ctx.clearRect(0, 0, wPx, hPx);
+  drawLayers(ctx, wPx, hPx, state.placements[placement], showGuides ? selectedId : null, gs);
+  if (placement === 'back' && teamActive()) drawTeamBack(ctx, wPx, hPx, state.team, state.team.players[clamp(teamPreview, 0, state.team.players.length - 1)]);
+  if (methodOf(placement) === 'embroidery') stitch(ctx, wPx, hPx);
   if (showGuides && active === placement) {
     const base = PLACEMENTS[placement].kind === 'sleeve' ? state.colors.sleeves : state.colors.body;
     ctx.save();
@@ -1288,10 +1336,9 @@ function renderPrint(placement) {
   ctx.clearRect(0, 0, wPx, 2); ctx.clearRect(0, hPx - 2, wPx, 2); ctx.clearRect(0, 0, 2, hPx); ctx.clearRect(wPx - 2, 0, 2, hPx);
   tex.needsUpdate = true;
 }
-// The previewed player's name and number, centred on the back print area.
-function drawTeamBack(ctx, wPx, hPx) {
-  const T = state.team; if (!T.names && !T.numbers) return;
-  const pl = T.players[clamp(teamPreview, 0, T.players.length - 1)] || {};
+// A player's name and number, centred on the back print area.
+function drawTeamBack(ctx, wPx, hPx, T, pl = {}) {
+  if (!T.names && !T.numbers) return;
   const name = (pl.name || 'PLAYER').toUpperCase(), num = pl.number || '10', fi = fontInfo(T.font);
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = T.color;
@@ -1570,6 +1617,28 @@ $('#file').addEventListener('change', e => {
 const layerName = L => L.type === 'text' ? (L.text.trim() || 'Empty text') : L.type === 'graphic' ? GRAPHICS[L.key].name : (L.name || 'Image');
 let garmentAreas = Object.keys(PLACEMENTS);
 const areaLabel = k => PRODUCTS[state.product].areaLabels?.[k] || PLACEMENTS[k].label;
+function renderMethods() {
+  const allowed = methodsFor(state.product), m = methodOf(active);
+  if (allowed.length < 2) { $('#methodRow').innerHTML = ''; return; }
+  const warn = methodWarnings(active);
+  $('#methodRow').innerHTML = `<span class="lbl" style="font-size:12px;font-weight:600;color:var(--muted)">How the ${esc(areaLabel(active).toLowerCase())} is decorated</span>
+    <div class="seg" role="group" aria-label="Decoration method">${allowed.map(k => `<button data-method="${k}" aria-pressed="${k === m}">${PRICING.methods[k].label}</button>`).join('')}</div>
+    <p class="small">${PRICING.methods[m].note}</p>${warn.map(w => `<p class="small warn">${esc(w)}</p>`).join('')}`;
+}
+// Things that won't come out well with the chosen method.
+function methodWarnings(k, d = state, product = state.product) {
+  const m = PRODUCTS[product].methods?.length === 1 ? 'print' : (d.methods?.[k] || 'print'), list = d.placements[k] || [], W = printInches(product, k), out = [];
+  if (m === 'embroidery') {
+    if (list.some(L => L.type === 'text' && 0.16 * 0.7 * W * L.scale < 0.25)) out.push('Some text is under ¼ in tall and won’t stitch cleanly — make it bigger.');
+    if (list.some(L => L.type === 'image')) out.push('Uploaded images are re-drawn as stitches; simple logos with a few solid colours work best.');
+  }
+  if (m === 'screen' && list.some(L => L.type === 'image')) out.push('Screen print uses solid inks; photos and gradients are halftoned.');
+  return out;
+}
+$('#methodRow').addEventListener('click', e => {
+  const b = e.target.closest('[data-method]'); if (!b) return;
+  state.methods[active] = b.dataset.method; renderMethods(); renderPrice(); invalidate(); save();
+});
 function renderTabs() {
   $('#tabs').innerHTML = garmentAreas.map(k =>
     `<button class="tab" data-tab="${k}" aria-pressed="${k === active}">${areaLabel(k)}${state.placements[k].length ? `<i>${state.placements[k].length}</i>` : ''}</button>`).join('');
@@ -1619,7 +1688,7 @@ function syncEditorPosition() {
     if (inp) inp.value = L[k]; if (out) out.textContent = FMT[k](L[k]);
   }
 }
-function renderDesign() { renderTabs(); renderLayers(); renderEditor(); renderPrice(); invalidate(); }
+function renderDesign() { renderTabs(); renderMethods(); renderLayers(); renderEditor(); renderPrice(); invalidate(); }
 
 $('#tabs').addEventListener('click', e => {
   const b = e.target.closest('[data-tab]'); if (!b) return;
@@ -1647,6 +1716,7 @@ $('#editor').addEventListener('input', e => {
   const out = $(`#editor [data-out="${k}"]`); if (out) out.textContent = FMT[k] ? FMT[k](L[k]) : L[k];
   if (k === 'text') { const nm = $(`#layers [data-id="${L.id}"] .nm`); if (nm) nm.textContent = layerName(L); }
   if (k === 'outline') renderEditor();
+  if (k === 'scale') renderMethods();
   if (k === 'font') document.fonts.load(`${fontInfo(L.font).w} 40px "${L.font}"`).then(invalidate);
   if (el.type === 'color') $(`#editor .inks [data-k="${k}"]`)?.parentElement.querySelectorAll('.sw').forEach(s => s.setAttribute('aria-pressed', String(s.dataset.v === L[k])));
   invalidate(); save();
@@ -1688,7 +1758,7 @@ const restoreSnapshot = s => applyDesign(unsnapshot(s), true);
 function applyDesign(d, keepOrder) {
   const prevProduct = state.product, uploads = state.uploads;
   state = Object.assign(defaultState(), d, keepOrder ? { size: state.size, qty: state.qty } : {});
-  state.team = Object.assign(defaultTeam(), state.team);
+  state.team = Object.assign(defaultTeam(), state.team); state.methods ||= {};
   if (!PRODUCTS[state.product]) state.product = prevProduct;
   // keep the pattern library: what you had plus anything the design brings
   if (!keepOrder) state.uploads = [...uploads, ...(state.uploads || []).filter(u => !uploads.some(x => x.id === u.id))].slice(-MAX_UPLOADS);
@@ -1834,22 +1904,32 @@ $('#sizes').addEventListener('click', e => { const b = e.target.closest('[data-s
 $('#qMinus').addEventListener('click', () => { state.qty = Math.max(1, state.qty - 1); renderSizes(); renderPrice(); save(); });
 $('#qPlus').addEventListener('click', () => { state.qty = Math.min(99, state.qty + 1); renderSizes(); renderPrice(); save(); });
 function price() {
+  const base = PRODUCTS[state.product].price, T = state.team, team = teamActive();
   const used = garmentAreas.filter(k => state.placements[k].length);
-  const extra = Math.max(0, used.length - 1) * EXTRA_PLACEMENT;
-  const base = PRODUCTS[state.product].price;
-  const team = teamActive(), T = state.team;
-  const nn = team && (T.names || T.numbers) ? NAME_NUMBER : 0;
+  const ms = used.map(k => PRICING.methods[methodOf(k)]);
+  const order = ms.map((m, i) => i).sort((a, b) => ms[b].extra - ms[a].extra);
+  const deco = order.reduce((sum, i, n) => sum + (n === 0 ? ms[i].first : ms[i].extra), 0);
+  const setup = ms.reduce((a, m) => a + m.setup, 0);
+  const min = Math.max(1, ...ms.map(m => m.min));
+  const nn = team && (T.names || T.numbers) ? PRICING.nameNumber : 0;
   const count = team ? T.players.length : state.qty;
-  return { used, extra, base, nn, count, unit: base + extra + nn, total: (base + extra + nn) * count };
+  const tier = [...PRICING.tiers].reverse().find(([n]) => count >= n), disc = tier ? tier[1] : 0;
+  const next = PRICING.tiers.find(([n]) => count < n);
+  const unit = round2((base + deco + nn) * (1 - disc));
+  return { used, base, deco, nn, count, disc, tierAt: tier?.[0], next, setup, min, short: count < min, unit, total: round2(unit * count + setup) };
 }
 function renderPrice() {
   const p = price();
-  $('#headPrice').textContent = `$${p.unit}`;
-  $('#lines').innerHTML = `<div><span>${PRODUCTS[state.product].label}</span><span>$${p.base}</span></div>
-    <div><span>Print areas (${p.used.length || 0}) · first included</span><span>${p.extra ? '+$' + p.extra : '$0'}</span></div>
-    ${p.nn ? `<div><span>Names &amp; numbers</span><span>+$${p.nn}</span></div>` : ''}
-    <div class="tot"><span>Total${p.count !== 1 ? ` · ${p.count} pcs` : ''}</span><span>$${p.total}</span></div>`;
-  $('#addBag').disabled = !p.count;
+  $('#headPrice').textContent = money(p.unit);
+  const methods = [...new Set(p.used.map(k => PRICING.methods[methodOf(k)].label))].join(', ');
+  $('#lines').innerHTML = `<div><span>${PRODUCTS[state.product].label}</span><span>${money(p.base)}</span></div>
+    ${p.used.length ? `<div><span>Decoration · ${p.used.length} area${p.used.length > 1 ? 's' : ''} (${methods})</span><span>${p.deco ? '+' + money(p.deco) : 'Included'}</span></div>` : ''}
+    ${p.nn ? `<div><span>Names &amp; numbers</span><span>+${money(p.nn)}</span></div>` : ''}
+    ${p.disc ? `<div><span>Bulk discount · ${p.tierAt}+ pieces</span><span>−${Math.round(p.disc * 100)}%</span></div>` : ''}
+    ${p.setup ? `<div><span>Setup · one time</span><span>${money(p.setup)}</span></div>` : ''}
+    <div class="tot"><span>Total${p.count !== 1 ? ` · ${p.count} pcs` : ''}</span><span>${money(p.total)}</span></div>
+    ${p.short ? `<div class="nudge warn">${methods.includes('Screen') ? 'Screen print' : 'This order'} needs at least ${p.min} pieces</div>` : p.next && p.count > 0 ? `<div class="nudge">Add ${p.next[0] - p.count} more for ${Math.round(p.next[1] * 100)}% off</div>` : ''}`;
+  $('#addBag').disabled = !p.count || p.short;
 }
 let toastTimer = 0;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200); }
@@ -1895,7 +1975,7 @@ function designSpecs() {
   if (parts.length) rows.push(['Parts', parts.map(([n, v]) => `${n}: ${[v.color && colorName(v.color), v.pattern && `${patternLabel(v.pattern.type, v.pattern.type !== 'none' && !isUpload(v.pattern.type) && v.pattern.color)} pattern`].filter(Boolean).join(', ')}`).join(' · ')]);
   for (const k of garmentAreas) {
     const list = state.placements[k]; if (!list.length) continue;
-    rows.push([areaLabel(k), list.map(L => L.type === 'text' ? `“${L.text.replace(/\n/g, ' ')}” (${L.font})` : L.type === 'graphic' ? `${GRAPHICS[L.key].name} graphic` : `Image: ${L.name || 'upload'}`).join(' · ')]);
+    rows.push([`${areaLabel(k)} · ${PRICING.methods[methodOf(k)].label}`, list.map(L => L.type === 'text' ? `“${L.text.replace(/\n/g, ' ')}” (${L.font})` : L.type === 'graphic' ? `${GRAPHICS[L.key].name} graphic` : `Image: ${L.name || 'upload'}`).join(' · ')]);
   }
   if (teamActive()) {
     const T = state.team;
@@ -1916,9 +1996,10 @@ $('#addBag').addEventListener('click', () => {
   const views = captureViews(360), specs = designSpecs();
   $('#reviewViews').innerHTML = Object.entries(views).map(([v, src]) => `<figure><img src="${src}" alt="${VIEW_LABELS[v]} view"><figcaption>${VIEW_LABELS[v]}</figcaption></figure>`).join('');
   $('#reviewSpecs').innerHTML = specs.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}${k === 'Order' ? rosterTable() : ''}</dd>`).join('') +
-    `<dt>Total</dt><dd><b>$${p.total}</b> · $${p.unit} each</dd>` +
-    (missing ? `<dt>Check</dt><dd class="warn">${missing} player${missing > 1 ? 's are' : ' is'} missing a name or number</dd>` : '');
-  $('#confirmBag').textContent = `Add to bag · $${p.total}`;
+    `<dt>Total</dt><dd><b>${money(p.total)}</b> · ${money(p.unit)} each${p.disc ? ` after ${Math.round(p.disc * 100)}% bulk discount` : ''}${p.setup ? ` + ${money(p.setup)} one-time setup` : ''}</dd>` +
+    (missing ? `<dt>Check</dt><dd class="warn">${missing} player${missing > 1 ? 's are' : ' is'} missing a name or number</dd>` : '') +
+    garmentAreas.flatMap(k => methodWarnings(k).map(w => `<dt>Check</dt><dd class="warn">${esc(areaLabel(k))}: ${esc(w)}</dd>`)).join('');
+  $('#confirmBag').textContent = `Add to bag · ${money(p.total)}`;
   pendingItem = { id: newId(), product: state.product, name: PRODUCTS[state.product].name, colorway: state.colorway, thumb: views.front, back: views.back, specs, roster: teamActive() ? state.team.players.map(pl => ({ ...pl })) : null, order: orderText(), count: p.count, unit: p.unit, total: p.total, design: JSON.stringify(state, (k, v) => k[0] === '_' ? undefined : v) };
   openDialog($('#reviewDlg'));
 });
@@ -1945,8 +2026,8 @@ function renderBag() {
       <img src="${it.thumb}" alt="">
       <div><b>${esc(it.name)}</b><div class="meta">${esc(it.colorway)} · ${esc(it.order)}</div>
         <div class="minis"><button class="mini" data-bag="edit">Edit</button><button class="mini" data-bag="dup">Duplicate</button><button class="mini" data-bag="del">Remove</button></div></div>
-      <div class="pr">$${it.total}</div></div>`).join('') : '<p class="empty">Your bag is empty. Design something and add it here.</p>';
-  $('#bagTotal').textContent = '$' + cart.reduce((a, it) => a + it.total, 0);
+      <div class="pr">${money(it.total)}</div></div>`).join('') : '<p class="empty">Your bag is empty. Design something and add it here.</p>';
+  $('#bagTotal').textContent = money(round2(cart.reduce((a, it) => a + it.total, 0)));
   $('#checkout').disabled = !cart.length;
 }
 $('#bagBtn').addEventListener('click', () => { renderBag(); openDialog($('#bagDlg')); });
@@ -2079,7 +2160,7 @@ resize();
 if (!PRODUCTS[state.product]) state.product = 'hoodie';
 state.pattern = Object.assign({ type: 'none', color: '#141414', scale: 1, rot: 0 }, state.pattern);
 state.uploads ||= []; state.styles ||= {};
-state.team = Object.assign(defaultTeam(), state.team);
+state.team = Object.assign(defaultTeam(), state.team); state.methods ||= {};
 if (state.pattern.type !== 'none' && !PATTERNS[state.pattern.type] && !(isUpload(state.pattern.type) && state.uploads.some(u => 'u:' + u.id === state.pattern.type))) state.pattern.type = 'none';
 if (!FABRICS[state.fabric]) state.fabric = 'fleece';
 applyPattern();
