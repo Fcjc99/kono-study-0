@@ -20,15 +20,23 @@ Open `index.html` through any static server, for example `npx serve hoodie-studi
 - Fabrics: Jersey Athletic, Cotton, Fleeced and French Terry.
 - Four print areas: front, back, left sleeve and right sleeve. Each one takes text layers (10 fonts, ink colour, size, letter spacing, arc, rotation, outline), built-in graphics and uploaded images.
 - Drag a print directly on the 3D model to move it. Arrow keys nudge it, and Delete removes it.
-- Size, quantity, live pricing (each extra print area adds a fee), an "Add to bag" button and a PNG snapshot.
-- The design is saved to localStorage.
+- Undo and redo (Ctrl/⌘+Z, Ctrl/⌘+Shift+Z). Quick bursts of changes, like a slider drag, count as one step. Start over can be undone.
+- Team orders: a roster with each player's name, number and size, pasted from a list or added one by one. It shows a size breakdown, warns about duplicate numbers, and prints names and numbers on the back. Click a row to preview that player on the garment.
+- Live pricing: each extra print area adds a fee, and names and numbers add a per-piece fee.
+- Review before the bag: pictures of all four sides plus the full spec (colours, patterns, fabric, custom parts, prints, roster and price).
+- A bag that keeps its items between visits. You can edit an item (it goes back into the studio), duplicate it or remove it. Checkout is not connected.
+- Designs: save named designs on this device, and share a design as a code or link. Uploaded images are left out of share codes.
+- On phones the panel works as steps, with one section open at a time.
+- Models load with a progress readout, and the rest of the range downloads in the background.
+- Honours reduced-motion settings.
+- The current design, saved designs and the bag are kept in localStorage.
 
 ## How it works
 - Each file in `models/` is made from a real garment model in `models-src/` by `tools/prepare-model.mjs`. The script:
   - merges the mesh, squares it up to face forward, scales it into the studio's space and bakes ambient occlusion into vertex colours;
   - precomputes a print surface for the front, back and each sleeve: only the triangles visible from that side, with planar UVs;
   - for CLO/Style3D exports, extracts the sewing pattern pieces: each panel is one piece and its UVs are the piece laid flat. It merges the inner and outer fabric layers, names each piece from where it sits on the body, and lays the pieces out side by side at their true relative size.
-  - quantizes and meshopt-compresses the result to about 7 MB.
+  - quantizes and meshopt-compresses the result (0.3–3 MB per model).
 - To rebuild a model: `node prepare-model.mjs <source> ../models/<name>.glb <preset>`. The presets are in `PRESETS` in `prepare-model.mjs`.
 - The script also reads OBJ files (gzipped ones too), and it can:
   - drop CLO stitch geometry (`minPieceTris`) and inner fabric layers (`dropInner`);

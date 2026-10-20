@@ -114,7 +114,7 @@ button{cursor:pointer}
 
 .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:8px}
 .sw{aspect-ratio:1;border-radius:50%;border:1px solid rgba(0,0,0,.12);position:relative;padding:0}
-.sw[aria-pressed="true"]::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--ink)}
+.sw[aria-pressed="true"]::after,.sw.on::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--ink)}
 .sw.custom{background:conic-gradient(#f55,#fd5,#5d7,#5bf,#a6f,#f55);overflow:hidden}
 .sw.custom input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -178,6 +178,19 @@ button{cursor:pointer}
 .qty{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .qty button{border:0;background:var(--surface);width:36px;height:36px;font-size:16px}
 .qty span{width:36px;text-align:center;font-weight:600}
+#singleOrder,#teamOrder{margin-top:12px}
+#teamOrder[hidden],#orderMode[hidden]{display:none}
+.roster-head,.roster li{display:grid;grid-template-columns:minmax(0,1fr) 56px 76px 28px;gap:6px;align-items:center}
+.roster-head{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:0 2px 4px}
+.roster{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.roster input,.roster select,.teamprint select,.pastebox textarea{border:1px solid var(--line);border-radius:8px;padding:7px 8px;background:var(--surface);min-width:0;width:100%}
+.roster li[aria-current="true"] input{border-color:var(--ink)}
+.roster input.num{text-align:center;font-variant-numeric:tabular-nums}
+.pastebox{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.pastebox[hidden]{display:none}
+.pastebox .mini{align-self:flex-start}
+.teamprint{display:flex;flex-direction:column;gap:10px;margin-top:12px;padding:12px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+.teamprint .lbl{font-size:12px;font-weight:600;color:var(--muted)}
 
 .buy{position:sticky;bottom:0;margin-top:auto;padding:14px 24px 18px;background:var(--surface);border-top:1px solid var(--line)}
 .lines{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:2px;margin-bottom:12px}
@@ -188,7 +201,43 @@ button{cursor:pointer}
 .credit{margin:0;padding:16px 24px 20px;font-size:11px;line-height:1.4;color:var(--muted)}
 .credit a{color:inherit}
 
-.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;background:var(--accent);color:var(--accent-ink);padding:12px 18px;border-radius:999px;font-weight:600;transition:.25s;pointer-events:none;z-index:50}
+dialog.sheet{border:0;padding:0;background:var(--surface);color:var(--ink);border-radius:16px;width:min(760px,calc(100vw - 32px));max-height:calc(100dvh - 48px);box-shadow:0 30px 80px rgba(0,0,0,.25)}
+dialog.sheet[open]{display:flex;flex-direction:column}
+dialog.sheet::backdrop{background:rgba(0,0,0,.38)}
+dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radius:0;width:min(440px,100vw)}
+.dlg-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.dlg-head h2{margin:0;font-size:17px;font-weight:800}
+.dlg-body{padding:16px 20px;overflow:auto;flex:1}
+.dlg-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;align-items:center}
+.dlg-foot.col{flex-direction:column;align-items:stretch}
+.dlg-foot .lines{margin:0}
+.views{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.views figure{margin:0;border-radius:10px;overflow:hidden;background:radial-gradient(120% 90% at 50% 38%,var(--stage-a),var(--stage-b))}
+.views img{width:100%;aspect-ratio:1;display:block;object-fit:cover}
+.views figcaption{font-size:11px;font-weight:600;color:var(--muted);text-align:center;padding:4px 0 6px}
+.specs{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 18px;margin:18px 0 0;font-size:13px}
+.specs dt{color:var(--muted);font-weight:600}
+.specs dd{margin:0}
+.specs .warn{color:#b4532f;font-weight:600}
+.specs table{border-collapse:collapse;font-size:12px;margin-top:4px}
+.specs td{padding:2px 12px 2px 0}
+.bagitem{display:grid;grid-template-columns:76px minmax(0,1fr) auto;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);align-items:start}
+.bagitem img{width:76px;height:76px;border-radius:10px;object-fit:cover;background:var(--surface-2)}
+.bagitem b{display:block}
+.bagitem .meta{font-size:12px;color:var(--muted)}
+.bagitem .minis{margin-top:8px}
+.bagitem .pr{font-weight:700}
+.saverow{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.saverow .lbl{font-size:12px;font-weight:600;color:var(--muted)}
+.saverow input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:var(--surface)}
+.dh{font-size:13px;font-weight:700;margin:18px 0 8px;padding-top:16px;border-top:1px solid var(--line)}
+.saved{list-style:none;margin:0;padding:0}
+.saved li{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.saved img{width:56px;height:56px;border-radius:8px;object-fit:cover;background:var(--surface-2)}
+.saved .meta{font-size:12px;color:var(--muted)}
+.cta:disabled{opacity:.45;cursor:not-allowed}
+@media (max-width:600px){ .views{grid-template-columns:repeat(2,1fr)} dialog.sheet:not(.side){width:100vw;max-width:100vw;max-height:100dvh;height:100dvh;margin:0;border-radius:0} }
+.toast{position:fixed;left:50%;bottom:28px;max-width:calc(100vw - 32px);text-align:center;transform:translate(-50%,20px);opacity:0;background:var(--accent);color:var(--accent-ink);padding:12px 18px;border-radius:999px;font-weight:600;transition:.25s;pointer-events:none;z-index:50}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
 @media (max-width:900px){
@@ -212,6 +261,13 @@ button{cursor:pointer}
   .cta{flex:1;padding:12px}
   .credit{padding:14px 16px 18px}
   .tb .tl{display:none}
+  /* the customiser reads as steps on phones: one section open at a time */
+  .sec>h2{cursor:pointer;margin-bottom:12px}
+  .sec>h2::after{content:"";flex:none;width:7px;height:7px;margin:0 4px 0 6px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translateY(-2px);transition:transform .2s}
+  .sec.closed>h2{margin:0}
+  .sec.closed>h2::after{transform:rotate(-45deg)}
+  .sec.closed>:not(h2){display:none!important}
+  .sec.closed{padding-top:16px;padding-bottom:16px}
   .crumb{display:none}
   .toolbar .tb{padding:7px 8px}
   .toolbar .sep{margin:0 1px}
@@ -245,13 +301,14 @@ button{cursor:pointer}
       <div class="p2d-hint">Click a piece here or on the garment to change its colour or pattern</div>
     </div>
     <div class="part-card" id="partCard" hidden></div>
-    <canvas id="c"></canvas>
+    <canvas id="c" role="img" aria-label="3D preview of your design. Drag to rotate, scroll to zoom, or use the view buttons below."></canvas>
     <div class="loading" id="loading">Loading studio…</div>
     <div class="crumb"><span id="crumbGroup">Men's</span> / <span id="crumbCat">Hoodies</span> / <b id="crumbName">Classic Pullover Hoodie</b></div>
     <div class="history" role="toolbar" aria-label="History">
       <button class="tb" id="undoBtn" title="Undo (Ctrl+Z)" aria-label="Undo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
       <button class="tb" id="redoBtn" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
       <span class="sep"></span>
+      <button class="tb" id="designsBtn" title="Save, open and share designs" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span class="tl">Designs</span></button>
       <button class="tb" id="startOver" title="Clear colours, patterns and prints"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21z"/><path d="M22 21H7M5 11l9 9"/></svg><span class="tl">Start over</span></button>
     </div>
     <div class="hint" id="hint">Drag to orbit · Right‑drag to pan · Scroll to zoom<br>Drag a print to move it</div>
@@ -317,11 +374,37 @@ button{cursor:pointer}
       <div class="editor" id="editor"></div>
     </section>
 
-    <section class="sec">
-      <h2><span><span class="n">05</span></span><b style="flex:1">Size</b><span id="fitNote"></span></h2>
-      <div class="sizes" id="sizes"></div>
-      <div class="row" style="margin-top:14px"><span style="font-weight:600">Quantity</span>
-        <div class="qty"><button id="qMinus" aria-label="Decrease">−</button><span id="qty">1</span><button id="qPlus" aria-label="Increase">+</button></div>
+    <section class="sec" id="sizeSec">
+      <h2><span><span class="n">05</span></span><b style="flex:1">Size &amp; quantity</b><span id="fitNote"></span></h2>
+      <div class="seg" id="orderMode" role="group" aria-label="Order type"><button data-mode="single">Just me</button><button data-mode="team">Team order</button></div>
+      <div id="singleOrder">
+        <div class="sizes" id="sizes"></div>
+        <div class="row" style="margin-top:14px"><span style="font-weight:600">Quantity</span>
+          <div class="qty"><button id="qMinus" aria-label="Decrease">−</button><span id="qty" aria-live="polite">1</span><button id="qPlus" aria-label="Increase">+</button></div>
+        </div>
+      </div>
+      <div id="teamOrder" hidden>
+        <div class="roster-head" aria-hidden="true"><span>Name</span><span>No.</span><span>Size</span><span></span></div>
+        <ol class="roster" id="roster"></ol>
+        <div class="minis" style="margin-top:8px"><button class="mini" id="addPlayer">+ Add player</button><button class="mini" id="pasteRoster" aria-expanded="false">Paste a list</button></div>
+        <div class="pastebox" id="pasteBox" hidden>
+          <label class="lbl" for="pasteText">One player per line: name, number, size</label>
+          <textarea id="pasteText" rows="4" placeholder="Rivera, 10, M&#10;Okafor, 7, L"></textarea>
+          <button class="mini" id="pasteApply">Add to roster</button>
+        </div>
+        <p class="small" id="breakdown"></p>
+        <div class="teamprint">
+          <span class="lbl">Print on the back</span>
+          <div class="minis">
+            <label class="check" style="margin:0"><input type="checkbox" id="tNames"> Player names</label>
+            <label class="check" style="margin:0"><input type="checkbox" id="tNumbers"> Numbers</label>
+          </div>
+          <div class="grid2">
+            <div class="field"><label for="tFont">Lettering</label><select id="tFont"></select></div>
+            <div class="field"><span class="lbl">Ink</span><div class="inks" id="tInks"></div></div>
+          </div>
+          <p class="small" id="teamNote" style="margin:0"></p>
+        </div>
       </div>
     </section>
 
@@ -333,6 +416,34 @@ button{cursor:pointer}
   </aside>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<dialog class="sheet" id="reviewDlg" aria-labelledby="reviewTitle">
+  <div class="dlg-head"><h2 id="reviewTitle">Review your design</h2><button class="ib" data-close aria-label="Close">✕</button></div>
+  <div class="dlg-body">
+    <div class="views" id="reviewViews"></div>
+    <dl class="specs" id="reviewSpecs"></dl>
+  </div>
+  <div class="dlg-foot"><button class="btn" data-close>Keep editing</button><button class="btn primary" id="confirmBag">Add to bag</button></div>
+</dialog>
+
+<dialog class="sheet side" id="bagDlg" aria-labelledby="bagTitle">
+  <div class="dlg-head"><h2 id="bagTitle">Your bag</h2><button class="ib" data-close aria-label="Close">✕</button></div>
+  <div class="dlg-body" id="bagList"></div>
+  <div class="dlg-foot col"><div class="lines"><div class="tot"><span>Subtotal</span><span id="bagTotal">$0</span></div></div><button class="cta" id="checkout">Checkout</button></div>
+</dialog>
+
+<dialog class="sheet side" id="designsDlg" aria-labelledby="designsTitle">
+  <div class="dlg-head"><h2 id="designsTitle">Designs</h2><button class="ib" data-close aria-label="Close">✕</button></div>
+  <div class="dlg-body">
+    <form class="saverow" id="saveForm"><label class="lbl" for="designName">Save this design</label><div class="row"><input id="designName" maxlength="40" placeholder="Name" required><button class="btn primary">Save</button></div></form>
+    <h3 class="dh">Share</h3>
+    <p class="small" style="margin-top:0">A share code holds the whole design except your uploaded images. Anyone can paste it here to open it.</p>
+    <div class="minis"><button class="mini" id="copyCode">Copy share code</button><button class="mini" id="copyLink" hidden>Copy link</button></div>
+    <form class="saverow" id="openCodeForm"><label class="lbl" for="codeIn">Open a share code</label><div class="row"><input id="codeIn" placeholder="TL1.…" required autocomplete="off"><button class="btn">Open</button></div></form>
+    <h3 class="dh">Saved on this device</h3>
+    <ul class="saved" id="savedList"></ul>
+  </div>
+</dialog>
 
 <script type="module">
 import * as THREE from 'three';
@@ -348,6 +459,7 @@ const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
 const smax = (a, b, k) => (a + b + Math.sqrt((a - b) ** 2 + k)) / 2;
 const $ = s => document.querySelector(s);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* =====================================================================
    Catalogue data
@@ -372,6 +484,7 @@ const FABRICS = {
 };
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const EXTRA_PLACEMENT = 12;
+const NAME_NUMBER = 8; // per piece, for printed names and/or numbers on a team order
 
 // Print areas. Their position and size on the garment come from the model (scene extras in hoodie.glb).
 const PLACEMENTS = {
@@ -419,8 +532,13 @@ function defaultState() {
     product: 'hoodie', pattern: { type: 'none', color: '#141414', scale: 1, rot: 0 }, fabric: 'fleece', size: 'M', qty: 1,
     placements: { front: [], back: [], left: [], right: [] },
     styles: {}, uploads: [],
+    team: defaultTeam(),
   };
 }
+const defaultTeam = () => ({ on: false, players: [], names: true, numbers: true, font: 'Anton', color: '#141414' });
+// Team orders apply to apparel; accessories are always ordered as a quantity.
+const teamActive = () => state.team.on && groupOf(state.product) !== 'accessories';
+let teamPreview = 0; // which player the garment shows
 let state = defaultState();
 try {
   const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
@@ -429,7 +547,6 @@ try {
 let active = 'front';
 let selectedId = state.placements.front[0]?.id || null;
 let showGuides = true;
-let bagCount = 0;
 
 let saveTimer = 0;
 function persist() {
@@ -772,17 +889,50 @@ function showCredit(c) {
   el.innerHTML = `3D model: <a href="${esc(link || '#')}" target="_blank" rel="noopener">“${esc(c.title || 'Untitled')}”</a> by ${esc(who)}, licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Rescaled, recoloured and shaded for this studio.`;
   el.hidden = false;
 }
-// Fetches a model as binary, or as base64 text where the host can't serve .glb files.
-async function fetchGLTF(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`${url}: ${res.status}`);
-  let buf;
-  if (url.endsWith('.txt')) {
-    const bin = atob((await res.text()).trim()), bytes = new Uint8Array(bin.length);
+// Downloads a model as binary, or as base64 text where the host can't serve .glb files.
+// Downloads are shared, so a prefetch in flight is reused, and report progress for the loading label.
+const modelBytes = new Map(), modelProgress = new Map();
+function fetchModel(url) {
+  if (!modelBytes.has(url)) modelBytes.set(url, (async () => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${url}: ${res.status}`);
+    // a compressed transfer reports the compressed length, which can't be compared with what we read
+    const total = res.headers.get('content-encoding') ? 0 : +res.headers.get('content-length') || 0;
+    let blob;
+    if (res.body && total) {
+      const reader = res.body.getReader(), chunks = []; let got = 0;
+      for (;;) {
+        const { done, value } = await reader.read(); if (done) break;
+        chunks.push(value); got += value.length;
+        modelProgress.set(url, Math.min(0.99, got / total)); onModelProgress(url);
+      }
+      blob = new Blob(chunks);
+    } else blob = await res.blob();
+    if (!url.endsWith('.txt')) return blob.arrayBuffer();
+    const bin = atob((await blob.text()).trim()), bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    buf = bytes.buffer;
-  } else buf = await res.arrayBuffer();
-  return new Promise((ok, fail) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parse(buf, '', ok, fail));
+    return bytes.buffer;
+  })().catch(err => { modelBytes.delete(url); throw err; }));
+  return modelBytes.get(url);
+}
+let showingUrl = null;
+function onModelProgress(url) {
+  if (url !== showingUrl || $('#loading').hidden) return;
+  $('#loading').textContent = `Loading ${PRODUCTS[state.product].label.toLowerCase()}… ${Math.round(modelProgress.get(url) * 100)}%`;
+}
+async function fetchGLTF(url) {
+  const buf = await fetchModel(url);
+  const gltf = await new Promise((ok, fail) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parse(buf, '', ok, fail));
+  modelBytes.delete(url); // the built garment is cached from here on
+  return gltf;
+}
+// Once the studio is showing something, quietly download the rest of the range so switching is quick.
+function prefetchRange() {
+  if (navigator.connection?.saveData) return;
+  const grp = groupOf(state.product);
+  const urls = [...new Set(Object.entries(PRODUCTS).filter(([k, P]) => P.group === grp && !garments[P.model + (P.finish || '')]).map(([, P]) => P.model + MODEL_EXT))];
+  const next = () => { const u = urls.shift(); if (u) fetchModel(u).catch(() => {}).then(next); }; // one at a time
+  (window.requestIdleCallback || (f => setTimeout(f, 1500)))(next);
 }
 async function buildGarment(key) {
   const gltf = await fetchGLTF(PRODUCTS[key].model + MODEL_EXT);
@@ -821,6 +971,8 @@ async function showProduct(key) {
   const seq = ++loadSeq;
   const loading = $('#loading');
   loading.textContent = `Loading ${PRODUCTS[key].label.toLowerCase()}…`; loading.hidden = false;
+  showingUrl = PRODUCTS[key].model + MODEL_EXT;
+  if (modelProgress.has(showingUrl)) onModelProgress(showingUrl);
   try {
     const mkey = PRODUCTS[key].model + (PRODUCTS[key].finish || ''); // kits shared by men's and women's load once
     const g = garments[mkey] || (garments[mkey] = await buildGarment(key));
@@ -842,6 +994,7 @@ async function showProduct(key) {
     showCredit(g.credit);
     applyColors(); applyFabric(); invalidate(); renderColor();
     loading.hidden = true;
+    prefetchRange();
   } catch (err) {
     console.error(err);
     delete garments[PRODUCTS[key].model + (PRODUCTS[key].finish || '')];
@@ -1121,6 +1274,7 @@ function renderPrint(placement) {
     }
     ctx.restore();
   }
+  if (placement === 'back' && teamActive()) drawTeamBack(ctx, wPx, hPx);
   if (showGuides && active === placement) {
     const base = PLACEMENTS[placement].kind === 'sleeve' ? state.colors.sleeves : state.colors.body;
     ctx.save();
@@ -1133,6 +1287,18 @@ function renderPrint(placement) {
   // keep a transparent border so clamped UVs outside the print area stay clear
   ctx.clearRect(0, 0, wPx, 2); ctx.clearRect(0, hPx - 2, wPx, 2); ctx.clearRect(0, 0, 2, hPx); ctx.clearRect(wPx - 2, 0, 2, hPx);
   tex.needsUpdate = true;
+}
+// The previewed player's name and number, centred on the back print area.
+function drawTeamBack(ctx, wPx, hPx) {
+  const T = state.team; if (!T.names && !T.numbers) return;
+  const pl = T.players[clamp(teamPreview, 0, T.players.length - 1)] || {};
+  const name = (pl.name || 'PLAYER').toUpperCase(), num = pl.number || '10', fi = fontInfo(T.font);
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = T.color;
+  const fit = (str, px, maxW) => { ctx.font = `${fi.w} ${px}px "${T.font}", sans-serif`; const w = ctx.measureText(str).width; if (w > maxW) { px *= maxW / w; ctx.font = `${fi.w} ${px}px "${T.font}", sans-serif`; } return px; };
+  if (T.names) { fit(name, wPx * 0.12, wPx * 0.86); ctx.fillText(name, wPx / 2, Math.min(hPx * 0.17, wPx * 0.16)); }
+  if (T.numbers) { fit(num, Math.min(wPx * 0.5, hPx * 0.5), wPx * 0.8); ctx.fillText(num, wPx / 2, T.names ? Math.min(hPx * 0.5, wPx * 0.5) : hPx * 0.42); }
+  ctx.restore();
 }
 function redrawTextures() {
   if (!placementFrames) return;
@@ -1180,7 +1346,7 @@ function goToView(name) {
 }
 function stepCamera(now) {
   if (!camAnim) return;
-  const k = clamp((now - camAnim.t0) / 750, 0, 1), e = k < 0.5 ? 4 * k ** 3 : 1 - (-2 * k + 2) ** 3 / 2;
+  const k = reduceMotion ? 1 : clamp((now - camAnim.t0) / 750, 0, 1), e = k < 0.5 ? 4 * k ** 3 : 1 - (-2 * k + 2) ** 3 / 2;
   const s = new THREE.Spherical(lerp(camAnim.from.radius, camAnim.to.radius, e), lerp(camAnim.from.phi, camAnim.to.phi, e), camAnim.from.theta + camAnim.dTheta * e);
   controls.target.lerpVectors(camAnim.tFrom, new V3(0, 0.1, 0), e);
   camera.position.setFromSpherical(s).add(controls.target);
@@ -1276,7 +1442,7 @@ function setColorway(name, hex) {
 function renderColor() {
   $('#swatches').innerHTML = COLORWAYS.map(([n, h]) =>
     `<button class="sw" style="background:${h}" title="${n}" aria-label="${n}" aria-pressed="${state.colorway === n}" data-cw="${n}"></button>`).join('') +
-    `<label class="sw custom" title="Custom colour" aria-pressed="${!COLORWAYS.some(c => c[0] === state.colorway)}"><input type="color" id="customColor" value="${state.colors.body}" aria-label="Custom colour"></label>`;
+    `<label class="sw custom${COLORWAYS.some(c => c[0] === state.colorway) ? '' : ' on'}" title="Custom colour"><input type="color" id="customColor" value="${state.colors.body}" aria-label="Custom colour"></label>`;
   $('#colorName').textContent = state.colorway;
   renderPattern(); renderRegions(); renderPartCard();
 }
@@ -1517,14 +1683,20 @@ function renderProduct() {
   document.title = `${P.name} · Studio`;
   renderPrice();
 }
-function restoreSnapshot(s) {
-  const prevProduct = state.product;
-  state = Object.assign(defaultState(), unsnapshot(s), { size: state.size, qty: state.qty });
+const restoreSnapshot = s => applyDesign(unsnapshot(s), true);
+// Puts a whole design into the studio (undo, the bag's Edit, saved designs, share codes).
+function applyDesign(d, keepOrder) {
+  const prevProduct = state.product, uploads = state.uploads;
+  state = Object.assign(defaultState(), d, keepOrder ? { size: state.size, qty: state.qty } : {});
+  state.team = Object.assign(defaultTeam(), state.team);
+  if (!PRODUCTS[state.product]) state.product = prevProduct;
+  // keep the pattern library: what you had plus anything the design brings
+  if (!keepOrder) state.uploads = [...uploads, ...(state.uploads || []).filter(u => !uploads.some(x => x.id === u.id))].slice(-MAX_UPLOADS);
   if (!findLayer(selectedId)[1]) { const l = state.placements[active] || []; selectedId = l.length ? l[l.length - 1].id : null; }
   if (state.product !== prevProduct) { renderProduct(); showProduct(state.product); }
   else { applyPattern(); applyColors(); applyFabric(); }
   renderColor(); renderFabric(); renderSizes(); renderDesign();
-  persist();
+  if (keepOrder) persist(); else save();
 }
 $('#undoBtn').addEventListener('click', undo);
 $('#redoBtn').addEventListener('click', redo);
@@ -1558,7 +1730,106 @@ function renderSizes() {
   $('#sizes').style.gridTemplateColumns = `repeat(${Math.min(6, sizes.length)},1fr)`;
   $('#sizes').innerHTML = sizes.map(s => `<button data-size="${s}" aria-pressed="${s === state.size}">${s}</button>`).join('');
   $('#qty').textContent = state.qty;
+  renderTeam();
 }
+const TEAM_FONTS = ['Anton', 'Bebas Neue', 'Archivo Black', 'Inter', 'Rubik Mono One', 'Bungee', 'Playfair Display'];
+function renderTeam() {
+  const apparel = groupOf(state.product) !== 'accessories', team = teamActive(), T = state.team;
+  $('#orderMode').hidden = !apparel;
+  $('#orderMode').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.mode === 'team') === team)));
+  $('#singleOrder').hidden = team; $('#teamOrder').hidden = !team;
+  if (!team) return;
+  const sizes = PRODUCTS[state.product].sizes || SIZES;
+  teamPreview = clamp(teamPreview, 0, Math.max(0, T.players.length - 1));
+  $('#roster').innerHTML = T.players.map((pl, i) => `<li data-i="${i}" aria-current="${i === teamPreview}">
+      <input data-f="name" value="${esc(pl.name)}" maxlength="16" placeholder="Name" aria-label="Player ${i + 1} name" autocomplete="off">
+      <input data-f="number" class="num" value="${esc(pl.number)}" maxlength="3" inputmode="numeric" placeholder="00" aria-label="Player ${i + 1} number">
+      <select data-f="size" aria-label="Player ${i + 1} size">${sizes.map(z => `<option ${z === pl.size ? 'selected' : ''}>${z}</option>`).join('')}</select>
+      <button class="ib" data-del="${i}" aria-label="Remove player ${i + 1}" title="Remove">${ICON.del}</button></li>`).join('') ||
+    '<li class="empty" style="display:block">No players yet — add them one by one or paste a list.</li>';
+  renderBreakdown();
+  $('#tNames').checked = T.names; $('#tNumbers').checked = T.numbers;
+  $('#tFont').innerHTML = TEAM_FONTS.map(f => `<option value="${f}" ${f === T.font ? 'selected' : ''}>${fontInfo(f).label || f}</option>`).join('');
+  $('#tInks').innerHTML = INKS.map(c => `<button class="sw" style="background:${c}" data-tink="${c}" aria-label="Ink ${c}" aria-pressed="${T.color.toLowerCase() === c}"></button>`).join('');
+  $('#teamNote').textContent = garmentAreas.includes('back') ? `Showing ${T.players[teamPreview]?.name || 'player 1'} on the garment. Click a row to preview another player.` : 'This item has no back print area, so names and numbers are not printed.';
+}
+function renderBreakdown() {
+  const T = state.team, sizes = PRODUCTS[state.product].sizes || SIZES, n = {};
+  for (const pl of T.players) n[pl.size] = (n[pl.size] || 0) + 1;
+  const dup = T.numbers ? T.players.map(p => p.number).filter((x, i, a) => x && a.indexOf(x) !== i) : [];
+  $('#breakdown').textContent = T.players.length
+    ? `${T.players.length} player${T.players.length > 1 ? 's' : ''} · ` + sizes.filter(z => n[z]).map(z => `${z} × ${n[z]}`).join(', ') + (dup.length ? ` · Number ${[...new Set(dup)].join(', ')} is used twice` : '')
+    : '';
+}
+function teamChanged() { renderPrice(); invalidate(); save(); }
+$('#orderMode').addEventListener('click', e => {
+  const b = e.target.closest('[data-mode]'); if (!b) return;
+  const T = state.team;
+  T.on = b.dataset.mode === 'team';
+  if (T.on && !T.players.length) {
+    T.players.push({ name: '', number: '', size: state.size });
+    T.color = luminance(state.colors.body) > 0.45 ? '#141414' : '#f5f3ee';
+  }
+  if (T.on && garmentAreas.includes('back')) { active = 'back'; selectedId = null; goToView('back'); renderDesign(); }
+  renderTeam(); teamChanged();
+});
+$('#roster').addEventListener('input', e => {
+  const li = e.target.closest('[data-i]'), f = e.target.dataset.f; if (!li || !f) return;
+  const pl = state.team.players[+li.dataset.i];
+  if (f === 'number') { e.target.value = e.target.value.replace(/\D/g, ''); }
+  pl[f] = e.target.value;
+  teamPreview = +li.dataset.i;
+  if (f !== 'name') renderBreakdown();
+  teamChanged();
+});
+$('#roster').addEventListener('change', e => { if (e.target.dataset.f === 'size') renderBreakdown(); });
+$('#roster').addEventListener('focusin', e => {
+  const li = e.target.closest('[data-i]'); if (!li || +li.dataset.i === teamPreview) return;
+  teamPreview = +li.dataset.i;
+  $('#roster').querySelectorAll('li').forEach(x => x.setAttribute('aria-current', String(x === li)));
+  $('#teamNote').textContent = `Showing ${state.team.players[teamPreview].name || 'player ' + (teamPreview + 1)} on the garment. Click a row to preview another player.`;
+  if (garmentAreas.includes('back') && active !== 'back') { active = 'back'; goToView('back'); renderDesign(); }
+  invalidate();
+});
+$('#roster').addEventListener('click', e => {
+  const b = e.target.closest('[data-del]'); if (!b) return;
+  state.team.players.splice(+b.dataset.del, 1); renderTeam(); teamChanged();
+});
+$('#addPlayer').addEventListener('click', () => {
+  const T = state.team; T.players.push({ name: '', number: '', size: T.players.at(-1)?.size || state.size });
+  teamPreview = T.players.length - 1; renderTeam(); teamChanged();
+  $('#roster li:last-child input')?.focus();
+});
+$('#pasteRoster').addEventListener('click', e => { const open = $('#pasteBox').hidden; $('#pasteBox').hidden = !open; e.currentTarget.setAttribute('aria-expanded', String(open)); if (open) $('#pasteText').focus(); });
+$('#pasteApply').addEventListener('click', () => {
+  const sizes = PRODUCTS[state.product].sizes || SIZES, T = state.team;
+  const rows = $('#pasteText').value.split(/\n+/).map(l => l.split(/\t|,|;/).map(x => x.trim())).filter(r => r.some(Boolean));
+  for (const r of rows) {
+    const size = r.find(x => sizes.includes(x.toUpperCase()))?.toUpperCase() || state.size;
+    const number = (r.find(x => /^\d{1,3}$/.test(x)) || '');
+    const name = r.find(x => x && !/^\d{1,3}$/.test(x) && !sizes.includes(x.toUpperCase())) || '';
+    T.players.push({ name: name.slice(0, 16), number, size });
+  }
+  // drop the blank starter row once real players arrive
+  if (rows.length) T.players = T.players.filter((p, i) => p.name || p.number || i >= T.players.length - rows.length);
+  $('#pasteText').value = ''; $('#pasteBox').hidden = true; $('#pasteRoster').setAttribute('aria-expanded', 'false');
+  renderTeam(); teamChanged();
+  toast(`Added ${rows.length} player${rows.length === 1 ? '' : 's'}`);
+});
+$('#teamOrder').addEventListener('change', e => {
+  const T = state.team;
+  if (e.target.id === 'tNames') T.names = e.target.checked;
+  else if (e.target.id === 'tNumbers') T.numbers = e.target.checked;
+  else if (e.target.id === 'tFont') { T.font = e.target.value; document.fonts.load(`${fontInfo(T.font).w} 40px "${T.font}"`).then(invalidate); }
+  else return;
+  teamChanged();
+});
+$('#tInks').addEventListener('click', e => {
+  const b = e.target.closest('[data-tink]'); if (!b) return;
+  state.team.color = b.dataset.tink;
+  $('#tInks').querySelectorAll('.sw').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  teamChanged();
+});
 $('#sizes').addEventListener('click', e => { const b = e.target.closest('[data-size]'); if (!b) return; state.size = b.dataset.size; renderSizes(); save(); });
 $('#qMinus').addEventListener('click', () => { state.qty = Math.max(1, state.qty - 1); renderSizes(); renderPrice(); save(); });
 $('#qPlus').addEventListener('click', () => { state.qty = Math.min(99, state.qty + 1); renderSizes(); renderPrice(); save(); });
@@ -1566,19 +1837,216 @@ function price() {
   const used = garmentAreas.filter(k => state.placements[k].length);
   const extra = Math.max(0, used.length - 1) * EXTRA_PLACEMENT;
   const base = PRODUCTS[state.product].price;
-  return { used, extra, base, unit: base + extra, total: (base + extra) * state.qty };
+  const team = teamActive(), T = state.team;
+  const nn = team && (T.names || T.numbers) ? NAME_NUMBER : 0;
+  const count = team ? T.players.length : state.qty;
+  return { used, extra, base, nn, count, unit: base + extra + nn, total: (base + extra + nn) * count };
 }
 function renderPrice() {
   const p = price();
   $('#headPrice').textContent = `$${p.unit}`;
   $('#lines').innerHTML = `<div><span>${PRODUCTS[state.product].label}</span><span>$${p.base}</span></div>
     <div><span>Print areas (${p.used.length || 0}) · first included</span><span>${p.extra ? '+$' + p.extra : '$0'}</span></div>
-    <div class="tot"><span>Total${state.qty > 1 ? ` · ${state.qty} pcs` : ''}</span><span>$${p.total}</span></div>`;
+    ${p.nn ? `<div><span>Names &amp; numbers</span><span>+$${p.nn}</span></div>` : ''}
+    <div class="tot"><span>Total${p.count !== 1 ? ` · ${p.count} pcs` : ''}</span><span>$${p.total}</span></div>`;
+  $('#addBag').disabled = !p.count;
 }
 let toastTimer = 0;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200); }
-$('#addBag').addEventListener('click', () => { bagCount += state.qty; $('#bagCount').textContent = bagCount; toast(`Added ${state.qty} × ${PRODUCTS[state.product].label} · ${state.size} · ${state.colorway}`); });
-$('#bagBtn').addEventListener('click', () => toast(bagCount ? `${bagCount} item${bagCount > 1 ? 's' : ''} in your bag` : 'Your bag is empty'));
+/* ---------- Dialogs ---------- */
+document.querySelectorAll('dialog.sheet').forEach(d => {
+  d.addEventListener('click', e => { if (e.target === d || e.target.closest('[data-close]')) d.close(); }); // backdrop or close button
+});
+const openDialog = d => { d.showModal(); d.querySelector('.dlg-body').scrollTop = 0; };
+
+/* ---------- Review: pictures of every side plus the full spec, before it goes in the bag ---------- */
+const VIEW_LABELS = { front: 'Front', back: 'Back', left: 'Left', right: 'Right' };
+function captureViews(size = 360) {
+  const keep = { pos: camera.position.clone(), target: controls.target.clone(), guides: showGuides, rot: hoodie.rotation.clone() };
+  camAnim = null; showGuides = false; redrawTextures(); hoodie.rotation.set(0, 0, 0);
+  const W = canvas.width, H = canvas.height, sq = Math.min(W, H) * 0.92, out = {};
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d');
+  for (const v of Object.keys(VIEWS)) {
+    controls.target.set(0, 0.1, 0); camera.position.set(...VIEWS[v]); camera.lookAt(controls.target);
+    renderer.render(scene, camera);
+    g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--stage-a').trim() || '#efeee9';
+    g.fillRect(0, 0, size, size);
+    g.drawImage(canvas, (W - sq) / 2, (H - sq) / 2, sq, sq, 0, 0, size, size);
+    out[v] = c.toDataURL('image/jpeg', 0.84);
+  }
+  camera.position.copy(keep.pos); controls.target.copy(keep.target); hoodie.rotation.copy(keep.rot);
+  showGuides = keep.guides; invalidate();
+  return out;
+}
+const fabricName = k => $(`[data-fabric="${k}"]`)?.textContent || k;
+const patternLabel = (type, color) => type === 'none' ? 'None' : isUpload(type) ? 'Your pattern' : `${PATTERNS[type]?.name || type}${color ? ` in ${colorName(color)}` : ''}`;
+const colorName = hex => (COLORWAYS.find(c => c[1] === String(hex).toLowerCase()) || [hex])[0];
+function orderText() {
+  const p = price();
+  if (!teamActive()) return `Size ${state.size} × ${state.qty}`;
+  const n = {}; for (const pl of state.team.players) n[pl.size] = (n[pl.size] || 0) + 1;
+  return `Team of ${p.count} · ` + Object.entries(n).map(([z, c]) => `${z} × ${c}`).join(', ');
+}
+function designSpecs() {
+  const P = PRODUCTS[state.product], rows = [['Item', P.name], ['Colour', state.colorway], ['Pattern', patternLabel(state.pattern.type, state.pattern.type !== 'none' && !isUpload(state.pattern.type) && state.pattern.color)]];
+  if (P.finish !== 'ball') rows.push(['Fabric', fabricName(state.fabric)]);
+  const parts = Object.entries(styles()).filter(([, v]) => v && (v.color || v.pattern));
+  if (parts.length) rows.push(['Parts', parts.map(([n, v]) => `${n}: ${[v.color && colorName(v.color), v.pattern && `${patternLabel(v.pattern.type, v.pattern.type !== 'none' && !isUpload(v.pattern.type) && v.pattern.color)} pattern`].filter(Boolean).join(', ')}`).join(' · ')]);
+  for (const k of garmentAreas) {
+    const list = state.placements[k]; if (!list.length) continue;
+    rows.push([areaLabel(k), list.map(L => L.type === 'text' ? `“${L.text.replace(/\n/g, ' ')}” (${L.font})` : L.type === 'graphic' ? `${GRAPHICS[L.key].name} graphic` : `Image: ${L.name || 'upload'}`).join(' · ')]);
+  }
+  if (teamActive()) {
+    const T = state.team;
+    if (T.names || T.numbers) rows.push(['Back print', `${[T.names && 'Names', T.numbers && 'numbers'].filter(Boolean).join(' and ')} in ${fontInfo(T.font).label || T.font}, ${colorName(T.color)}`]);
+  }
+  rows.push(['Order', orderText()]);
+  return rows;
+}
+function rosterTable() {
+  if (!teamActive() || !state.team.players.length) return '';
+  return `<table><tbody>${state.team.players.map(pl => `<tr><td>${esc(pl.name || '—')}</td><td>${esc(pl.number || '—')}</td><td>${esc(pl.size)}</td></tr>`).join('')}</tbody></table>`;
+}
+let pendingItem = null;
+$('#addBag').addEventListener('click', () => {
+  if (!garments[PRODUCTS[state.product].model + (PRODUCTS[state.product].finish || '')]) return toast('The model is still loading');
+  const p = price();
+  const missing = teamActive() ? state.team.players.filter(pl => state.team.names && !pl.name.trim() || state.team.numbers && !pl.number).length : 0;
+  const views = captureViews(360), specs = designSpecs();
+  $('#reviewViews').innerHTML = Object.entries(views).map(([v, src]) => `<figure><img src="${src}" alt="${VIEW_LABELS[v]} view"><figcaption>${VIEW_LABELS[v]}</figcaption></figure>`).join('');
+  $('#reviewSpecs').innerHTML = specs.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}${k === 'Order' ? rosterTable() : ''}</dd>`).join('') +
+    `<dt>Total</dt><dd><b>$${p.total}</b> · $${p.unit} each</dd>` +
+    (missing ? `<dt>Check</dt><dd class="warn">${missing} player${missing > 1 ? 's are' : ' is'} missing a name or number</dd>` : '');
+  $('#confirmBag').textContent = `Add to bag · $${p.total}`;
+  pendingItem = { id: newId(), product: state.product, name: PRODUCTS[state.product].name, colorway: state.colorway, thumb: views.front, back: views.back, specs, roster: teamActive() ? state.team.players.map(pl => ({ ...pl })) : null, order: orderText(), count: p.count, unit: p.unit, total: p.total, design: JSON.stringify(state, (k, v) => k[0] === '_' ? undefined : v) };
+  openDialog($('#reviewDlg'));
+});
+$('#confirmBag').addEventListener('click', () => {
+  if (!pendingItem) return;
+  cart.push(pendingItem); pendingItem = null;
+  if (!saveCart()) { cart.pop(); return toast('Your browser storage is full — remove something from the bag first'); }
+  $('#reviewDlg').close(); renderBagCount();
+  toast('Added to your bag');
+});
+
+/* ---------- Bag ---------- */
+const CART_KEY = 'threadlab-bag-v1';
+let cart = [];
+try { cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]'); } catch { cart = []; }
+function saveCart() { try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); return true; } catch { return false; } }
+function renderBagCount() {
+  const n = cart.reduce((a, it) => a + it.count, 0);
+  $('#bagCount').textContent = n; $('#bagBtn').setAttribute('aria-label', `Bag, ${n} item${n === 1 ? '' : 's'}`);
+}
+function renderBag() {
+  $('#bagTitle').textContent = cart.length ? `Your bag (${cart.reduce((a, it) => a + it.count, 0)})` : 'Your bag';
+  $('#bagList').innerHTML = cart.length ? cart.map(it => `<div class="bagitem" data-id="${it.id}">
+      <img src="${it.thumb}" alt="">
+      <div><b>${esc(it.name)}</b><div class="meta">${esc(it.colorway)} · ${esc(it.order)}</div>
+        <div class="minis"><button class="mini" data-bag="edit">Edit</button><button class="mini" data-bag="dup">Duplicate</button><button class="mini" data-bag="del">Remove</button></div></div>
+      <div class="pr">$${it.total}</div></div>`).join('') : '<p class="empty">Your bag is empty. Design something and add it here.</p>';
+  $('#bagTotal').textContent = '$' + cart.reduce((a, it) => a + it.total, 0);
+  $('#checkout').disabled = !cart.length;
+}
+$('#bagBtn').addEventListener('click', () => { renderBag(); openDialog($('#bagDlg')); });
+$('#bagList').addEventListener('click', e => {
+  const b = e.target.closest('[data-bag]'), row = e.target.closest('[data-id]'); if (!b || !row) return;
+  const i = cart.findIndex(it => it.id === row.dataset.id), it = cart[i];
+  if (b.dataset.bag === 'del') cart.splice(i, 1);
+  if (b.dataset.bag === 'dup') cart.splice(i + 1, 0, { ...it, id: newId() });
+  if (b.dataset.bag === 'edit') {
+    cart.splice(i, 1);
+    applyDesign(JSON.parse(it.design), false);
+    $('#bagDlg').close();
+    toast('Back in the studio — add it to your bag again when you are done');
+  }
+  saveCart(); renderBag(); renderBagCount();
+});
+$('#checkout').addEventListener('click', () => toast('Checkout is not connected yet — this studio is a prototype'));
+renderBagCount();
+
+/* ---------- Saved designs and share codes ---------- */
+const DESIGNS_KEY = 'threadlab-designs-v1';
+let savedDesigns = [];
+try { savedDesigns = JSON.parse(localStorage.getItem(DESIGNS_KEY) || '[]'); } catch { savedDesigns = []; }
+const plainState = () => JSON.parse(JSON.stringify(state, (k, v) => k[0] === '_' ? undefined : v));
+function renderSaved() {
+  $('#savedList').innerHTML = savedDesigns.length ? savedDesigns.map(d => `<li data-id="${d.id}"><img src="${d.thumb}" alt="">
+      <div><b>${esc(d.name)}</b><div class="meta">${esc(PRODUCTS[d.product]?.label || '')} · ${new Date(d.at).toLocaleDateString()}</div></div>
+      <div class="minis"><button class="mini" data-sv="open">Open</button><button class="ib" data-sv="del" aria-label="Delete ${esc(d.name)}" title="Delete">${ICON.del}</button></div></li>`).join('')
+    : '<li class="empty" style="display:block">Nothing saved yet.</li>';
+}
+$('#designsBtn').addEventListener('click', () => {
+  $('#designName').value = `${PRODUCTS[state.product].label} · ${state.colorway}`;
+  $('#copyLink').hidden = window.top !== window || location.protocol === 'file:'; // a framed page's own address can't be shared
+  renderSaved(); openDialog($('#designsDlg'));
+});
+$('#saveForm').addEventListener('submit', e => {
+  e.preventDefault();
+  if (!garments[PRODUCTS[state.product].model + (PRODUCTS[state.product].finish || '')]) return toast('The model is still loading');
+  const d = { id: newId(), name: $('#designName').value.trim() || 'Untitled', product: state.product, at: Date.now(), thumb: captureViews(160).front, design: plainState() };
+  savedDesigns.unshift(d);
+  try { localStorage.setItem(DESIGNS_KEY, JSON.stringify(savedDesigns)); }
+  catch { savedDesigns.shift(); return toast('Your browser storage is full — delete an old design first'); }
+  renderSaved(); toast(`Saved “${d.name}”`);
+});
+$('#savedList').addEventListener('click', e => {
+  const b = e.target.closest('[data-sv]'), li = e.target.closest('[data-id]'); if (!b || !li) return;
+  const i = savedDesigns.findIndex(d => d.id === li.dataset.id);
+  if (b.dataset.sv === 'open') { applyDesign(savedDesigns[i].design, false); $('#designsDlg').close(); toast(`Opened “${savedDesigns[i].name}”`); return; }
+  if (b.dataset.sv === 'del') {
+    const [gone] = savedDesigns.splice(i, 1);
+    toast(`Deleted “${gone.name}”`);
+    try { localStorage.setItem(DESIGNS_KEY, JSON.stringify(savedDesigns)); } catch { /* blocked */ }
+    renderSaved();
+  }
+});
+// Share codes: the design without uploaded images, deflated and base64url-encoded.
+function shareable() {
+  const d = plainState(); let dropped = 0;
+  delete d.uploads; delete d.size; delete d.qty;
+  for (const k in d.placements) { const n = d.placements[k].length; d.placements[k] = d.placements[k].filter(L => L.type !== 'image'); dropped += n - d.placements[k].length; }
+  if (isUpload(d.pattern.type)) { d.pattern.type = 'none'; dropped++; }
+  for (const prod in d.styles) for (const r in d.styles[prod]) if (isUpload(d.styles[prod][r]?.pattern?.type)) { delete d.styles[prod][r].pattern; dropped++; }
+  return [d, dropped];
+}
+async function packDesign(d) {
+  const z = new Uint8Array(await new Response(new Blob([JSON.stringify(d)]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());
+  let bin = ''; for (const b of z) bin += String.fromCharCode(b);
+  return 'TL1.' + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+async function unpackDesign(code) {
+  const m = String(code).trim().match(/TL1\.([A-Za-z0-9_-]+)/); if (!m) throw new Error('not a share code');
+  const bin = atob(m[1].replace(/-/g, '+').replace(/_/g, '/')), bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  const d = JSON.parse(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text());
+  if (!d || !d.colors || !d.placements || !PRODUCTS[d.product]) throw new Error('not a design');
+  return d;
+}
+async function copyText(text, what) {
+  try { await navigator.clipboard.writeText(text); toast(`${what} copied`); }
+  catch { $('#codeIn').value = text; $('#codeIn').select(); toast(`Copy the ${what.toLowerCase()} from the box below`); }
+}
+$('#copyCode').addEventListener('click', async () => {
+  const [d, dropped] = shareable(), code = await packDesign(d);
+  await copyText(code, 'Share code');
+  if (dropped) setTimeout(() => toast('Uploaded images are not included in share codes'), 2300);
+});
+$('#copyLink').addEventListener('click', async () => {
+  const [d] = shareable();
+  await copyText(location.href.split('#')[0] + '#design=' + await packDesign(d), 'Link');
+});
+$('#openCodeForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  try { applyDesign(await unpackDesign($('#codeIn').value), false); $('#codeIn').value = ''; $('#designsDlg').close(); toast('Opened the shared design'); }
+  catch { toast('That does not look like a share code'); }
+});
+async function openSharedFromUrl() {
+  if (!location.hash.startsWith('#design=')) return;
+  try { applyDesign(await unpackDesign(location.hash), false); toast('Opened a shared design'); }
+  catch { toast('That design link is damaged'); }
+  try { history.replaceState(null, '', location.pathname + location.search); } catch { /* sandboxed */ }
+}
 
 // Toolbar
 document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => goToView(b.dataset.view)));
@@ -1611,6 +2079,7 @@ resize();
 if (!PRODUCTS[state.product]) state.product = 'hoodie';
 state.pattern = Object.assign({ type: 'none', color: '#141414', scale: 1, rot: 0 }, state.pattern);
 state.uploads ||= []; state.styles ||= {};
+state.team = Object.assign(defaultTeam(), state.team);
 if (state.pattern.type !== 'none' && !PATTERNS[state.pattern.type] && !(isUpload(state.pattern.type) && state.uploads.some(u => 'u:' + u.id === state.pattern.type))) state.pattern.type = 'none';
 if (!FABRICS[state.fabric]) state.fabric = 'fleece';
 applyPattern();
@@ -1618,7 +2087,32 @@ renderProduct();
 showProduct(state.product);
 renderColor(); renderFabric(); renderSizes(); renderDesign();
 hist.current = snapshot(); renderHistory();
+openSharedFromUrl();
+window.addEventListener('hashchange', openSharedFromUrl);
 setTimeout(() => $('#hint').classList.add('gone'), 9000);
+
+// Phones: the customiser reads as steps, one section open at a time.
+const phone = matchMedia('(max-width: 900px)');
+const steps = [...document.querySelectorAll('.panel .sec')];
+function setupSteps() {
+  steps.forEach((sec, i) => {
+    const h = sec.querySelector('h2');
+    if (phone.matches) { h.setAttribute('role', 'button'); h.tabIndex = 0; sec.classList.toggle('closed', i !== 0); h.setAttribute('aria-expanded', String(i === 0)); }
+    else { h.removeAttribute('role'); h.removeAttribute('tabindex'); h.removeAttribute('aria-expanded'); sec.classList.remove('closed'); }
+  });
+}
+function toggleStep(sec) {
+  const open = sec.classList.contains('closed');
+  for (const x of steps) { const on = x === sec && open; x.classList.toggle('closed', !on); x.querySelector('h2').setAttribute('aria-expanded', String(on)); }
+  if (open) sec.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' });
+}
+for (const sec of steps) {
+  const h = sec.querySelector('h2');
+  h.addEventListener('click', () => { if (phone.matches) toggleStep(sec); });
+  h.addEventListener('keydown', e => { if (phone.matches && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleStep(sec); } });
+}
+phone.addEventListener('change', setupSteps);
+setupSteps();
 Promise.all(FONTS.map(fi => document.fonts.load(`${fi.w} 40px "${fi.f}"`).catch(() => {}))).then(invalidate);
 document.fonts.addEventListener?.('loadingdone', invalidate);
 
@@ -1626,10 +2120,9 @@ const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const t = clock.getElapsedTime(), now = performance.now();
   if (needsRedraw) { needsRedraw = false; redrawTextures(); }
-  const bob = Math.sin(t * 1.1);
+  const bob = reduceMotion ? 0 : Math.sin(t * 1.1);
   hoodie.position.y = -0.22 + bob * 0.06;
-  hoodie.rotation.z = Math.sin(t * 0.7) * 0.015;
-  hoodie.rotation.x = Math.sin(t * 0.9 + 1) * 0.012;
+  if (!reduceMotion) { hoodie.rotation.z = Math.sin(t * 0.7) * 0.015; hoodie.rotation.x = Math.sin(t * 0.9 + 1) * 0.012; }
   groundShadow.scale.setScalar(1 - bob * 0.06);
   groundShadow.material.opacity = 0.9 - bob * 0.15;
   stepCamera(now);
