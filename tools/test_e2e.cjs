@@ -2972,7 +2972,7 @@ test('Family wall calendar: Today sums up the day; Month shows each person’s t
  await pill.waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.find(e=>e.id==='e-soccer')?.date==='2026-10-13','Undo never put the practice back')
  // Tapping a pill opens it.
- await pill.click();console.log('DLG',await page.locator('dialog[open],[role=dialog]').evaluateAll(d=>d.map(x=>x.getAttribute('aria-label')+'/'+x.querySelector('h2')?.textContent)));await page.getByRole('dialog',{name:'Edit event'}).getByRole('button',{name:'Cancel'}).click()
+ await pill.click();await page.getByRole('dialog',{name:'Edit event'}).getByRole('button',{name:'Cancel'}).click()
  // Wall display: big, today and tomorrow, with whose each thing is.
  await page.getByRole('button',{name:/Wall display/}).click()
  const wall=page.getByRole('dialog',{name:'Wall display'}),today=wall.getByRole('region',{name:'Today'})
@@ -3456,6 +3456,37 @@ test('Family to-dos, part 2: a to-do’s words, day and repeat can be changed; t
  const wall=page.getByRole('dialog',{name:'Wall display'})
  assert.match(await wall.getByRole('list',{name:'Tomorrow’s to-dos'}).innerText(),/Sign permission slip\s*Leo/)
  assert.match(await wall.getByRole('list',{name:'Today’s to-dos'}).innerText(),/Groceries/,'today also lists the any-day ones')
+})
+test('A repeating event from the Planner: a note on just one day stays on that day, a new time for all of them keeps each day’s note, and more dates can be added to the series',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.install({time:new Date('2026-10-15T09:00:00')})
+ for(const date of ['2026-10-15','2026-10-22','2026-10-29'])d.calendarEvents.push({id:'soc-'+date,profileId:pid,date,title:'Soccer practice',kind:'sports',notes:'',time:'16:00',endTime:'17:00',kidId:'kid-emma',recurringId:'rec-soc'})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Planner')
+ await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Month'}).click()
+ const editor=page.getByRole('dialog',{name:'Edit event'}),soc=list=>cloud.users.alice.plan.data.calendarEvents.filter(e=>e.recurringId==='rec-soc').sort((a,b)=>a.date.localeCompare(b.date)).map(list)
+ // A note on Oct 22 only (Only this one is the choice to start with).
+ await page.getByRole('button',{name:/^Soccer practice · 4p · Emma · Oct 22, 2026/}).click()
+ await editor.getByText('This repeats (3 dates). Save changes to:').waitFor()
+ assert.equal(await editor.getByLabel('Only this one').isChecked(),true)
+ await editor.getByLabel('Details').fill('Bring shin guards')
+ await editor.getByRole('button',{name:'Save'}).click()
+ await waitFor(()=>soc(e=>e.notes).join('|')==='|Bring shin guards|','the note never reached just Oct 22')
+ // A new time for all of them: Oct 22 keeps its note.
+ await page.getByRole('button',{name:/^Soccer practice · 4p · Emma · Oct 15, 2026/}).click()
+ await editor.getByLabel('Start time (optional)').fill('17:00');await editor.getByLabel('End time (optional)').fill('18:00')
+ await editor.getByLabel('All of them').check()
+ await editor.getByRole('button',{name:'Save'}).click()
+ await waitFor(()=>soc(e=>e.time+' '+e.notes).join('|')==='17:00 |17:00 Bring shin guards|17:00 ','the new time never reached all of them, or the note was lost')
+ // More dates: Nov 5 joins the series as a copy.
+ await page.getByRole('button',{name:/^Soccer practice · 5p · Emma · Oct 29, 2026/}).click()
+ await editor.locator('summary',{hasText:'Add more dates'}).click()
+ await editor.getByRole('button',{name:'Next month'}).click()
+ await editor.getByRole('button',{name:/^Nov 5, 2026/}).click()
+ await editor.locator('summary',{hasText:'1 new'}).waitFor()
+ await editor.getByRole('button',{name:'Save'}).click()
+ await waitFor(()=>soc(e=>e.date+' '+e.time).join('|')==='2026-10-15 17:00|2026-10-22 17:00|2026-10-29 17:00|2026-11-05 17:00','Nov 5 never joined the series')
 })
 async function main(){
  const server=await startServer()
