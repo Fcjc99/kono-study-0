@@ -120,13 +120,6 @@ main[hidden]{display:none!important}
 .crumb b{color:var(--ink);font-weight:600}
 .loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-weight:500;pointer-events:none}
 .loading[hidden]{display:none}
-.patterns{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:8px}
-.patterns button{aspect-ratio:1;border:1px solid var(--line);border-radius:10px;padding:0;overflow:hidden;background:var(--surface-2);position:relative;font-size:11px;font-weight:600;color:var(--muted)}
-.patterns button img{width:100%;height:100%;display:block}
-.patterns button[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink),0 0 0 1px var(--ink)}
-.patterns button span{position:absolute;inset:auto 0 0;background:color-mix(in srgb,var(--surface) 85%,transparent);padding:2px 0;font-size:10px;color:var(--ink)}
-.patctl{display:flex;flex-direction:column;gap:12px;margin-top:14px}
-.patctl:empty{display:none}
 .groups{margin:16px 0 0}
 .products{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
 .products button{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 8px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
@@ -141,55 +134,11 @@ main[hidden]{display:none!important}
 .tb:disabled{opacity:.4;cursor:not-allowed}
 .tb[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .tb svg{width:16px;height:16px}
-.pieces2d{position:absolute;inset:0 50% 0 0;background-color:var(--surface-2);background-image:radial-gradient(color-mix(in srgb,var(--ink) 18%,transparent) 1px,transparent 1.2px);background-size:18px 18px;border-right:1px solid var(--line);z-index:1}
-.pieces2d[hidden]{display:none}
-#c2d{width:100%;height:100%;display:block;cursor:pointer}
-.p2d-title{position:absolute;top:44px;left:20px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted);pointer-events:none}
-.p2d-hint{position:absolute;bottom:76px;left:0;right:0;text-align:center;font-size:12px;color:var(--muted);pointer-events:none}
-.part-card{position:absolute;top:44px;left:16px;z-index:4;width:min(280px,calc(100% - 32px));max-height:calc(100% - 120px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:0 8px 30px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:10px}
-.part-card[hidden]{display:none}
-.part-card .row b{font-size:14px}
-.part-card .swatches{grid-template-columns:repeat(8,1fr);gap:6px}
-.part-card .lbl{font-size:12px;font-weight:600;color:var(--muted)}
-.minipats{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
-.minipats button{aspect-ratio:1;border:1px solid var(--line);border-radius:7px;padding:0;overflow:hidden;background:var(--surface-2);font-size:9px;font-weight:600;color:var(--muted);line-height:1.1}
-.minipats button img{width:100%;height:100%;display:block}
-.minipats button[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
-.palettes{margin-top:14px;display:flex;flex-direction:column;gap:8px}
-.palettes .lbl,.paledit label{font-size:12px;font-weight:600;color:var(--muted)}
-.palrow{display:flex;flex-wrap:wrap;gap:6px}
-.palrow:empty{display:none}
-.pal{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 4px 4px 6px;font-size:12px;font-weight:600}
-.pal button.apply{all:unset;cursor:pointer;display:flex;align-items:center;gap:6px}
-.pal .dots{display:flex}
-.pal .dots i{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.15);margin-left:-4px}
-.pal .dots i:first-child{margin-left:0}
-.pal .x{border:0;background:none;color:var(--muted);width:20px;height:20px;border-radius:50%;padding:0;font-size:13px}
-.pal .x:hover{background:var(--surface-2);color:var(--ink)}
-.paledit{display:grid;grid-template-columns:repeat(3,auto) 1fr;gap:8px 10px;align-items:end;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
-.paledit[hidden]{display:none}
-.paledit label{display:flex;flex-direction:column;gap:4px}
-.paledit input[type=color]{width:40px;height:32px;border:1px solid var(--line);border-radius:8px;padding:2px;background:var(--surface)}
-.paledit #palName{border:1px solid var(--line);border-radius:8px;padding:7px 8px;background:var(--surface);min-width:0}
-.paledit .minis,.paledit .small{grid-column:1/-1}
-.regions{margin-top:14px;display:flex;flex-direction:column;gap:8px}
-.regions[hidden]{display:none}
-.regions .lbl{font-size:12px;font-weight:600;color:var(--muted)}
-.regions .chips{display:flex;flex-wrap:wrap;gap:6px}
-.regions .chips button{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 10px 5px 6px;font-size:12px;font-weight:600}
-.regions .chips button[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
-.regions .chips i{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background-size:cover}
-.patterns .del{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-size:12px;line-height:18px;padding:0;display:grid;place-items:center;z-index:1}
-.patmore{margin-top:8px;border:0;background:none;padding:4px 0;font-weight:600;font-size:12px;color:var(--muted);text-decoration:underline}
-.stage.split #c{position:absolute;left:50%;top:0;width:50%;height:100%}
-.stage.split .hint{display:none}
 .toolbar,.crumb{z-index:3}
-.stage.split .toolbar{left:75%;max-width:calc(50% - 24px)}
 .hint{position:absolute;top:64px;right:20px;color:var(--muted);font-size:12px;text-align:right;pointer-events:none;max-width:280px;transition:opacity .6s}
 .hint.gone{opacity:0}
 .history{position:absolute;top:12px;right:16px;z-index:3;display:flex;gap:2px;align-items:center;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:4px;box-shadow:0 8px 30px rgba(0,0,0,.06)}
 .history .tb{padding:7px 10px}
-.stage.split .history{right:16px}
 
 .panel{overflow-y:auto;border-left:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;min-height:0}
 .phead{padding:22px 24px 18px;border-bottom:1px solid var(--line)}
@@ -222,36 +171,18 @@ main[hidden]{display:none!important}
 .seg button{border:0;background:transparent;border-radius:8px;padding:8px 6px;font-weight:600;font-size:13px}
 .seg button[aria-pressed="true"]{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .small{font-size:12px;color:var(--muted);margin:8px 0 0}
+.linkbtn{border:0;background:none;padding:4px 0;font-weight:600;font-size:12px;color:var(--muted);text-decoration:underline}
 
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .tab{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-weight:600;font-size:13px;display:flex;gap:6px;align-items:center}
 .tab[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .tab i{font-style:normal;font-size:11px;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;background:var(--surface-2);color:var(--ink)}
-.addrow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-@media (max-width:440px){.addrow{grid-template-columns:repeat(2,1fr)}}
-.lpick{display:none;margin-top:10px}
-.lpick.open{display:block}
-.lpick .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-.lpick .logo{position:relative;aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:var(--surface-2) repeating-conic-gradient(color-mix(in srgb,var(--ink) 6%,transparent) 0 25%,transparent 0 50%) 0 0/12px 12px;overflow:hidden}
-.lpick .logo button.use{all:unset;cursor:pointer;position:absolute;inset:0;display:grid;place-items:center}
-.lpick .logo img{max-width:82%;max-height:82%}
-.lpick .logo .del{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-size:12px;line-height:18px;padding:0;display:grid;place-items:center}
-.methodrow{margin:0 0 12px;display:flex;flex-direction:column;gap:6px}
-.methodrow:empty{display:none}
-.methodrow .seg{grid-template-columns:repeat(3,1fr)}
-.methodrow .seg button{font-size:12px;padding:7px 4px}
-.methodrow .small{margin:0}
-.methodrow .warn,.nudge.warn,.small.warn{color:#b4532f;font-weight:600}
+.addrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .nudge{font-size:12px;color:var(--muted);margin-top:4px}
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 10px;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px}
 .btn:hover{background:var(--surface-2)}
 .btn svg{width:16px;height:16px}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.gpick{display:none;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:10px}
-.gpick.open{display:grid}
-.gpick button{aspect-ratio:1;border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:8px;color:var(--ink)}
-.gpick button:hover{border-color:var(--ink)}
-.gpick svg{width:100%;height:100%;display:block}
 .layers{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
 .layer{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:6px 6px 6px 10px;background:var(--surface)}
 .layer[aria-selected="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
@@ -362,11 +293,6 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
   .hint{display:none}
   .phead,.sec,.buy{padding-left:16px;padding-right:16px}
   .toolbar{bottom:12px}
-  .stage.split{height:88vh;height:88svh}
-  .pieces2d{inset:0 0 50% 0;border-right:0;border-bottom:1px solid var(--line)}
-  .stage.split #c{left:0;top:50%;width:100%;height:50%}
-  .stage.split .toolbar{left:50%}
-  .p2d-hint{bottom:10px}
   .buy{display:flex;align-items:center;gap:14px;padding:10px 16px}
   .lines{margin:0;flex:none}
   .lines div:not(.tot){display:none}
@@ -414,17 +340,17 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
       <div>
         <p class="eyebrow">Custom athletic wear · made to order</p>
         <h1>Design your team's kit in 3D.</h1>
-        <p class="lead">Pick a garment, colour every panel, add logos, names and numbers, and see it from every side before you order. One piece or a whole roster.</p>
+        <p class="lead">Pick a garment and a colour, add your logo and text, and see it from every side before you order. One piece or a whole roster.</p>
         <div class="ctas"><a class="btn primary big" href="#studio">Start designing</a><a class="btn big" href="#bulk">Get a team quote</a></div>
       </div>
       <a class="heroart" href="#studio/hoodie" aria-label="Customise the hoodie"><img src="img/products/hoodie.jpg" alt="" onerror="this.parentElement.remove()"></a>
     </div>
   </section>
   <section class="wrap points">
-    <div><b>Every panel, your colour</b><p>Colour and pattern each piece separately, from the hood lining to the socks.</p></div>
+    <div><b>Pick a colour</b><p>Choose from our colours or match your own.</p></div>
+    <div><b>Add your logo and text</b><p>Upload your logo, type your text and put it where you want it.</p></div>
     <div><b>Rosters built in</b><p>Paste your team list and we print each player's name and number.</p></div>
-    <div><b>Print, screen or stitch</b><p>Choose digital print, screen print or embroidery for each area.</p></div>
-    <div><b>Better together</b><p>Save up to 25% on bigger orders, with no surprises at checkout.</p></div>
+    <div><b>Better together</b><p>Save up to 25% on bigger orders.</p></div>
   </section>
   <div class="wrap" id="catalogue"></div>
   <footer class="foot"><div class="wrap"><span>THREADLAB</span><a href="#about">About</a><a href="#bulk">Bulk orders</a><span class="muted" id="footCredit">3D models used under CC BY 4.0 · see the studio for credits</span></div></footer>
@@ -439,8 +365,7 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
       <div class="grid2"><label>Your name<input name="name" required autocomplete="name"></label><label>Email<input name="email" type="email" required autocomplete="email"></label></div>
       <div class="grid2"><label>Team or organisation<input name="org" autocomplete="organization"></label><label>Phone (optional)<input name="phone" type="tel" autocomplete="tel"></label></div>
       <fieldset><legend>What are you interested in?</legend><div class="checks" id="bulkProducts"></div></fieldset>
-      <div class="grid3"><label>About how many pieces?<input name="qty" type="number" min="1" required></label><label>Needed by<input name="date" type="date"></label>
-        <label>Decoration<select name="method"><option value="">Not sure yet</option><option>Digital print</option><option>Screen print</option><option>Embroidery</option></select></label></div>
+      <div class="grid2"><label>About how many pieces?<input name="qty" type="number" min="1" required></label><label>Needed by<input name="date" type="date"></label></div>
       <label>Anything else we should know?<textarea name="notes" rows="4" placeholder="Colours, sizes, logos, budget, deadlines…"></textarea></label>
       <label class="check"><input type="checkbox" name="attach" checked> Attach the design I'm working on in the studio</label>
       <button class="cta" type="submit">Send request</button>
@@ -453,16 +378,17 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
   <div class="wrap narrow prose">
     <p class="eyebrow">About</p>
     <h1>Kit that looks exactly like you designed it</h1>
-    <p class="lead">THREADLAB makes custom athletic and team wear to order. You design on true-to-life 3D garments, and we print, screen or stitch exactly what you see.</p>
+    <p class="lead">THREADLAB makes custom athletic and team wear to order. You design on true-to-life 3D garments, and we make exactly what you see.</p>
     <h2>How it works</h2>
-    <ol class="steps"><li><b>Design.</b> Pick a garment and colour it panel by panel, add patterns, text, graphics and your logos.</li><li><b>Add your team.</b> Paste a roster and every piece gets its own name, number and size.</li><li><b>Review.</b> Check every side and the full spec before it goes in your bag.</li><li><b>Order.</b> Send your order request. We confirm the details, send an invoice and start production.</li></ol>
-    <h2>Decoration and pricing</h2>
+    <ol class="steps"><li><b>Design.</b> Pick a garment and a colour, then add your logo and text.</li><li><b>Add your team.</b> Paste a roster and every piece gets its own name, number and size.</li><li><b>Review.</b> Check every side and the full spec before it goes in your bag.</li><li><b>Order.</b> Send your order request. We talk you through fabrics and decoration (print or embroidery), send an invoice and start production.</li></ol>
+    <h2>Pricing</h2>
     <div id="aboutPricing"></div>
     <h2>Questions</h2>
-    <details><summary>Is there a minimum order?</summary><p>No for digital print and embroidery. Screen print starts at 12 pieces, because each colour needs its own screen.</p></details>
+    <details><summary>Is there a minimum order?</summary><p>No. One piece is fine, and bigger orders get a discount.</p></details>
+    <details><summary>Which fabrics can I choose?</summary><p>We'll go through fabrics and decoration (print or embroidery) with you before production, so you get the right material for how the kit will be worn.</p></details>
     <details><summary>How long does it take?</summary><p>It depends on the size of the order and the decoration. We confirm a production timeline with your order or quote before anything is made.</p></details>
     <details><summary>Can I see a sample first?</summary><p>For team orders, yes. Ask in a <a href="#bulk">team quote</a>.</p></details>
-    <details><summary>What files do you need for my logo?</summary><p>A PNG with a transparent background works for most things. For screen print and embroidery, vector files (SVG or PDF) give the cleanest result.</p></details>
+    <details><summary>What files do you need for my logo?</summary><p>A PNG with a transparent background works well. If you have a vector file (SVG or PDF), send that too for the cleanest result.</p></details>
   </div>
 </main>
 
@@ -476,12 +402,6 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
 
 <main class="studio" id="view-studio" hidden>
   <section class="stage" id="stage" aria-label="3D hoodie preview">
-    <div class="pieces2d" id="pieces2d" hidden>
-      <canvas id="c2d" aria-label="Pattern pieces"></canvas>
-      <div class="p2d-title">Pattern pieces</div>
-      <div class="p2d-hint">Click a piece here or on the garment to change its colour or pattern</div>
-    </div>
-    <div class="part-card" id="partCard" hidden></div>
     <canvas id="c" role="img" aria-label="3D preview of your design. Drag to rotate, scroll to zoom, or use the view buttons below."></canvas>
     <div class="loading" id="loading">Loading studio…</div>
     <div class="crumb"><span id="crumbGroup">Men's</span> / <span id="crumbCat">Hoodies</span> / <b id="crumbName">Classic Pullover Hoodie</b></div>
@@ -499,8 +419,6 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
       <button class="tb" data-view="left">Left</button>
       <button class="tb" data-view="right">Right</button>
       <span class="sep"></span>
-      <button class="tb" id="piecesBtn" aria-pressed="false" title="Show the 2D pattern pieces"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5l4-2 3 2v15H4zM13 5l3-2 4 2v15h-7z"/></svg><span class="tl">2D pieces</span></button>
-      <span class="sep"></span>
       <button class="tb" id="spinBtn" aria-pressed="false" title="Auto-rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg><span class="tl">Spin</span></button>
       <button class="tb" id="guideBtn" aria-pressed="true" title="Show print areas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3"><rect x="4" y="4" width="16" height="16" rx="2"/></svg><span class="tl">Guides</span></button>
       <button class="tb" id="shotBtn" title="Download image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span class="tl">Snapshot</span></button>
@@ -509,10 +427,10 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
 
   <aside class="panel" aria-label="Customize">
     <div class="phead">
-      <div class="eyebrow" id="pEyebrow">Made to order · 400 gsm cotton fleece</div>
+      <div class="eyebrow" id="pEyebrow">Made to order</div>
       <h1 id="pName">Classic Pullover Hoodie</h1>
       <div class="price" id="headPrice">$68</div>
-      <p id="pBlurb">Relaxed fit, lined hood, kangaroo pocket and ribbed trims. Design every panel.</p>
+      <p id="pBlurb">Relaxed fit, lined hood, kangaroo pocket and ribbed trims.</p>
       <div class="tabs groups" id="groups" aria-label="Category"></div>
       <div class="products" id="products" role="radiogroup" aria-label="Product"></div>
     </div>
@@ -520,59 +438,23 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
     <section class="sec">
       <h2><span><span class="n">01</span></span><b style="flex:1">Colour</b><span id="colorName">Heather Grey</span></h2>
       <div class="swatches" id="swatches"></div>
-      <div class="palettes" id="palettes">
-        <div class="row"><span class="lbl">Team colours</span><button class="patmore" id="newPalette" type="button" aria-expanded="false" style="margin:0">+ New</button></div>
-        <div class="palrow" id="palList"></div>
-        <form class="paledit" id="palEdit" hidden>
-          <label>Main<input type="color" id="pal1" value="#1f2a44"></label>
-          <label>Trim<input type="color" id="pal2" value="#f5f3ee"></label>
-          <label>Accent<input type="color" id="pal3" value="#d23b2f"></label>
-          <input id="palName" maxlength="24" placeholder="Name, e.g. Varsity" aria-label="Palette name">
-          <div class="minis"><button class="mini" type="button" id="palTry">Apply</button><button class="mini" type="submit">Save &amp; apply</button></div>
-          <p class="small" style="margin:0">Main colours the body, trim goes on cuffs, collars, hems and socks, and accent becomes the pattern and lettering colour.</p>
-        </form>
-      </div>
-      <div class="regions" id="regions" hidden></div>
     </section>
 
     <section class="sec">
-      <h2><span><span class="n">02</span></span><b style="flex:1">Pattern</b><span id="patternName">None</span></h2>
-      <div class="patterns" id="patterns"></div>
-      <button class="patmore" id="patMore" type="button"></button>
-      <input type="file" id="patternFile" accept="image/png,image/jpeg,image/webp" hidden>
-      <div class="patctl" id="patctl"></div>
-    </section>
-
-    <section class="sec" id="fabricSec">
-      <h2><span><span class="n">03</span></span><b style="flex:1">Fabric</b><span id="fabricNote"></span></h2>
-      <div class="seg" id="fabric">
-        <button data-fabric="athletic">Jersey Athletic</button>
-        <button data-fabric="cotton">Cotton</button>
-        <button data-fabric="fleece">Fleeced</button>
-        <button data-fabric="terry">French Terry</button>
-      </div>
-    </section>
-
-    <section class="sec">
-      <h2><span><span class="n">04</span></span><b style="flex:1">Design</b><span>Prints &amp; text</span></h2>
+      <h2><span><span class="n">02</span></span><b style="flex:1">Logo &amp; text</b><span>Upload a logo or add text</span></h2>
       <div class="tabs" id="tabs"></div>
-      <div class="methodrow" id="methodRow"></div>
       <div class="addrow">
-        <button class="btn" id="addText"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>Text</button>
-        <button class="btn" id="addGraphic" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>Graphic</button>
-        <button class="btn" id="addImage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Upload</button>
-        <button class="btn" id="addLogo" aria-expanded="false" title="Logos you've uploaded before"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Logos</button>
+        <button class="btn" id="addImage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Upload logo</button>
+        <button class="btn" id="addText"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>Add text</button>
         <input type="file" id="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" hidden>
       </div>
-      <div class="gpick" id="gpick"></div>
-      <div class="lpick" id="lpick"></div>
       <ul class="layers" id="layers"></ul>
       <div class="editor" id="editor"></div>
     </section>
 
     <section class="sec" id="sizeSec">
-      <h2><span><span class="n">05</span></span><b style="flex:1">Size &amp; quantity</b><span id="fitNote"></span></h2>
-      <button class="patmore" id="sizeChartBtn" type="button" aria-haspopup="dialog" style="margin:0 0 10px">Size chart</button>
+      <h2><span><span class="n">03</span></span><b style="flex:1">Size &amp; quantity</b><span id="fitNote"></span></h2>
+      <button class="linkbtn" id="sizeChartBtn" type="button" aria-haspopup="dialog" style="margin:0 0 10px">Size chart</button>
       <div class="seg" id="orderMode" role="group" aria-label="Order type"><button data-mode="single">Just me</button><button data-mode="team">Team order</button></div>
       <div id="singleOrder">
         <div class="sizes" id="sizes"></div>
@@ -699,13 +581,11 @@ const FABRICS = {
   terry: { note: 'Looped, lighter', rough: 0.86, sheen: 0.6, knit: 0.7 },
 };
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-// Prices. Decoration is per piece per print area; the priciest area in use counts as the included one.
-// Setup is charged once per order for each print area that needs screens or digitising.
+// Prices. The first print area is included; each extra area costs `extra` per piece. How each area is
+// decorated (print or embroidery) and the fabric are agreed with the client, so the studio doesn't ask.
 const PRICING = {
   methods: {
-    print: { label: 'Digital print', note: 'Full colour, photos and gradients · no minimum', first: 0, extra: 12, setup: 0, min: 1 },
-    screen: { label: 'Screen print', note: 'Solid, vivid colours · $25 screen setup per area · 12 piece minimum', first: 0, extra: 8, setup: 25, min: 12 },
-    embroidery: { label: 'Embroidery', note: 'Stitched · $35 digitising per area · keep text ¼ in tall or more', first: 6, extra: 14, setup: 35, min: 1 },
+    print: { label: 'Print', note: '', first: 0, extra: 12, setup: 0, min: 1 },
   },
   nameNumber: 8, // per piece, for printed names and/or numbers on a team order
   tiers: [[12, 0.1], [24, 0.15], [48, 0.2], [100, 0.25]], // pieces in one design → discount on the piece price
@@ -765,7 +645,11 @@ function defaultState() {
     team: defaultTeam(), methods: {},
   };
 }
-const methodsFor = product => PRODUCTS[product].methods || Object.keys(PRICING.methods);
+const methodsFor = () => ['print'];
+// Garments are shown in a sensible fabric; the real material is agreed with the client.
+const fabricFor = product => /hoodie|crewneck/.test(product) ? 'fleece' : product === 'tee' ? 'cotton' : 'athletic';
+// Patterns and per-part colours are switched off; older saved designs are brought back to one plain colour.
+function plain(d) { d.pattern = { type: 'none', color: '#141414', scale: 1, rot: 0 }; d.styles = {}; return d; }
 const methodOf = k => methodsFor(state.product).includes(state.methods?.[k]) ? state.methods[k] : 'print';
 const defaultTeam = () => ({ on: false, players: [], names: true, numbers: true, font: 'Anton', color: '#141414' });
 // Team orders apply to apparel; accessories are always ordered as a quantity.
@@ -979,7 +863,7 @@ function uploadImage(id) {
   if (!rec) {
     const up = (state.uploads || []).find(u => u.id === id); if (!up) return null;
     rec = { img: new Image(), ready: false };
-    rec.img.onload = () => { rec.ready = true; applyPattern(); applyColors(); renderPattern(); renderPartCard(); };
+    rec.img.onload = () => { rec.ready = true; applyPattern(); applyColors(); };
     rec.img.src = up.src;
     uploadImages.set(id, rec);
   }
@@ -1063,32 +947,32 @@ const KIT_PARTS = { jersey: 'Jersey', jerseyTrim: 'Jersey trim', shorts: 'Shorts
 const MODEL_EXT = '.glb';
 const PRODUCTS = {
   hoodie: { group: 'men', label: 'Hoodie', name: "Men's Classic Pullover Hoodie", crumb: 'Hoodies', price: 68, model: 'models/hoodie',
-    eyebrow: 'Made to order · 400 gsm cotton fleece', blurb: 'Relaxed fit, lined hood, kangaroo pocket and ribbed trims. Design every panel.' },
+    eyebrow: 'Made to order', blurb: 'Relaxed fit, lined hood, kangaroo pocket and ribbed trims.' },
   crewneck: { group: 'men', label: 'Crewneck', name: "Men's Long Sleeve Crewneck", crumb: 'Sweatshirts', price: 58, model: 'models/crewneck',
-    eyebrow: 'Made to order · 340 gsm loopback cotton', blurb: 'A clean crew with long sleeves and ribbed collar, cuffs and hem.' },
+    eyebrow: 'Made to order', blurb: 'A clean crew with long sleeves and ribbed collar, cuffs and hem.' },
   tee: { group: 'men', label: 'T-shirt', name: "Men's Heavyweight Tee", crumb: 'T-shirts', price: 32, model: 'models/tee',
-    eyebrow: 'Made to order · 240 gsm combed cotton', blurb: 'A boxy, heavyweight tee with a ribbed crew neck.' },
+    eyebrow: 'Made to order', blurb: 'A boxy, heavyweight tee with a ribbed crew neck.' },
   // the same garments in the women's range (shared models, separate designs and sizes)
   hoodieW: { group: 'women', label: 'Hoodie', name: "Women's Classic Pullover Hoodie", crumb: 'Hoodies', price: 68, model: 'models/hoodie', sizes: ['XS', 'S', 'M', 'L', 'XL'],
-    eyebrow: 'Made to order · 400 gsm cotton fleece', blurb: 'Relaxed fit, lined hood, kangaroo pocket and ribbed trims. Design every panel.' },
+    eyebrow: 'Made to order', blurb: 'Relaxed fit, lined hood, kangaroo pocket and ribbed trims.' },
   crewneckW: { group: 'women', label: 'Crewneck', name: "Women's Long Sleeve Crewneck", crumb: 'Sweatshirts', price: 58, model: 'models/crewneck', sizes: ['XS', 'S', 'M', 'L', 'XL'],
-    eyebrow: 'Made to order · 340 gsm loopback cotton', blurb: 'A clean crew with long sleeves and ribbed collar, cuffs and hem.' },
+    eyebrow: 'Made to order', blurb: 'A clean crew with long sleeves and ribbed collar, cuffs and hem.' },
   trackset: { group: 'women', label: 'Jacket + shorts', name: "Women's Colour-Block Track Set", crumb: 'Sets', price: 96, model: 'models/trackset', sizes: ['XS', 'S', 'M', 'L', 'XL'],
-    eyebrow: 'Made to order · zip jacket + shorts', blurb: 'A long-sleeve zip jacket with matching shorts. Colour the whole jacket or shorts at once, or panel by panel.' },
+    eyebrow: 'Made to order · zip jacket + shorts', blurb: 'A long-sleeve zip jacket with matching shorts.' },
   basketball: { group: 'men', label: 'Basketball', name: "Men's Basketball Uniform", crumb: 'Uniforms', price: 72, model: 'models/basketball',
-    eyebrow: 'Team uniform · jersey + shorts', blurb: 'Breathable mesh jersey and shorts. Colour each separately and add numbers, names and a leg print.', areaLabels: { left: 'Shorts' } },
+    eyebrow: 'Team uniform · jersey + shorts', blurb: 'Jersey and shorts for the whole team, with names and numbers.', areaLabels: { left: 'Shorts' } },
   soccerM: { group: 'men', label: 'Soccer kit', name: "Men's Soccer Kit", crumb: 'Uniforms', price: 64, model: 'models/soccer',
-    eyebrow: 'Team uniform · jersey + shorts', blurb: 'A lightweight match jersey with shorts. Colour each separately and add crests, sponsors and numbers.', areaLabels: { left: 'Shorts' }, printIn: { left: 4 } },
+    eyebrow: 'Team uniform · jersey + shorts', blurb: 'A match jersey with shorts. Add your crest, sponsors, names and numbers.', areaLabels: { left: 'Shorts' }, printIn: { left: 4 } },
   polo: { group: 'women', label: 'Polo', name: "Women's Performance Polo", crumb: 'Polos', price: 48, model: 'models/polo', sizes: ['XS', 'S', 'M', 'L', 'XL'],
-    eyebrow: 'Made to order · 180 gsm technical piqué', blurb: 'A fitted polo with a placket and knit collar, cut from separate panels you can colour one by one.' },
+    eyebrow: 'Made to order', blurb: 'A fitted polo with a placket and knit collar.' },
   tank: { group: 'women', label: 'Racerback tank', name: "Women's Racerback Tank", crumb: 'Tanks', price: 30, model: 'models/tank', sizes: ['XS', 'S', 'M', 'L', 'XL'],
-    eyebrow: 'Made to order · 150 gsm performance jersey', blurb: 'A lightweight racerback with bound neck and armholes for training days.' },
+    eyebrow: 'Made to order', blurb: 'A lightweight racerback with bound neck and armholes for training days.' },
   soccerW: { group: 'women', label: 'Soccer kit', name: "Women's Soccer Kit", crumb: 'Uniforms', price: 64, model: 'models/soccer', sizes: ['XS', 'S', 'M', 'L', 'XL'],
-    eyebrow: 'Team uniform · jersey + shorts', blurb: 'A lightweight match jersey with shorts. Colour each separately and add crests, sponsors and numbers.', areaLabels: { left: 'Shorts' }, printIn: { left: 4 } },
+    eyebrow: 'Team uniform · jersey + shorts', blurb: 'A match jersey with shorts. Add your crest, sponsors, names and numbers.', areaLabels: { left: 'Shorts' }, printIn: { left: 4 } },
   cap: { group: 'accessories', label: 'Cap', name: 'Six-Panel Cap', crumb: 'Headwear', price: 28, model: 'models/cap', sizes: ['S/M', 'L/XL'], printIn: { front: 4.5, back: 2.5 },
-    eyebrow: 'Made to order · cotton twill', blurb: 'A structured six-panel cap with a curved brim. Embroider or print the front and back.', areaLabels: { front: 'Front panel' } },
+    eyebrow: 'Made to order', blurb: 'A structured six-panel cap with a curved brim. Add your logo to the front and back.', areaLabels: { front: 'Front panel' } },
   ball: { group: 'accessories', label: 'Golf balls', name: 'Golf Balls · Dozen', crumb: 'Golf', price: 42, model: 'models/ball', sizes: ['12-pack'], finish: 'ball', printIn: { front: 1.25, back: 1.25 }, methods: ['print'],
-    eyebrow: 'Tour ionomer cover · logo print', blurb: 'A dozen balls with your logo or text printed on one or both sides.', areaLabels: { front: 'Side A', back: 'Side B' } },
+    eyebrow: 'Logo golf balls', blurb: 'A dozen balls with your logo or text printed on one or both sides.', areaLabels: { front: 'Side A', back: 'Side B' } },
 };
 const GROUPS = [['men', "Men's"], ['women', "Women's"], ['accessories', 'Accessories']];
 const groupOf = k => PRODUCTS[k].group;
@@ -1212,16 +1096,14 @@ async function showProduct(key) {
     for (const m of [...hoodie.children]) hoodie.remove(m);
     for (const m of g.meshes) hoodie.add(m);
     parts = g.parts; decals = g.decals; placementFrames = g.frames;
-    pieceInfo = g.pieces; kitRegions = g.kit || null; selectedRegion = null; hoverPiece = null;
+    pieceInfo = g.pieces; kitRegions = g.kit || null; selectedRegion = null;
     mats.body.map = pieceInfo ? pieceInfo.tex : null;
     mats.body.normalMap = g.detail; mats.body.normalScale.setScalar(0.8); mats.body.needsUpdate = true;
     if (PRODUCTS[key].finish === 'ball') { mats.ball.normalMap = g.detail; mats.ball.normalScale.setScalar(1); mats.ball.needsUpdate = true; }
+    state.fabric = fabricFor(key);
     garmentAreas = g.areas;
     if (!garmentAreas.includes(active)) { active = garmentAreas[0]; const l = state.placements[active]; selectedId = l.length ? l[l.length - 1].id : null; }
-    $('#fabricSec').hidden = PRODUCTS[key].finish === 'ball';
     renderDesign();
-    setSplit(splitPref && !!pieceInfo); renderPartCard();
-    const pb = $('#piecesBtn'); pb.disabled = !pieceInfo; pb.title = pieceInfo ? 'Show the 2D pattern pieces' : 'This model has no pattern pieces';
     applyPattern();
     showCredit(g.credit);
     applyColors(); applyFabric(); invalidate(); renderColor();
@@ -1239,13 +1121,13 @@ async function showProduct(key) {
    in 2D, and the same canvas textures the 3D garment.
    ===================================================================== */
 let pieceInfo = null;      // current garment: { list, layout, canvas, tex, paths }
-let selectedRegion = null, hoverPiece = null, split = false, splitPref = window.innerWidth > 900;
+let selectedRegion = null; // per-part styling is switched off: one colour per garment
 // Trims (cuffs, collars, bindings, socks…) stay plain unless you give them a pattern yourself.
 const TRIM = /cuff|collar|hem|trim|binding|socks|placket|waistband/i;
 // sets group their pieces into zones (Jacket, Shorts); a zone can be styled as a whole
 const zoneKey = zone => `Whole ${zone.toLowerCase()}`;
 const pieceByName = name => pieceInfo?.list.find(p => p.name === name);
-const styles = () => ((state.styles ||= {})[state.product] ||= {});
+const styles = () => state.styles?.[state.product] || {};
 // What a part looks like: its own colour/pattern if set, otherwise the garment's.
 function regionLook(name) {
   const st = styles()[name] || {}, zone = pieceByName(name)?.zone, zs = (zone && styles()[zoneKey(zone)]) || {};
@@ -1300,114 +1182,6 @@ function drawPieces() {
   }
   tex.needsUpdate = true;
 }
-const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-function render2D() {
-  if (!split || !pieceInfo) return;
-  const c2 = $('#c2d'), dpr = Math.min(window.devicePixelRatio, 2), cw = c2.clientWidth, ch = c2.clientHeight;
-  if (!cw || !ch) return;
-  if (c2.width !== Math.round(cw * dpr) || c2.height !== Math.round(ch * dpr)) { c2.width = Math.round(cw * dpr); c2.height = Math.round(ch * dpr); }
-  const g = c2.getContext('2d'), { list, layout, canvas: tc } = pieceInfo;
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.clearRect(0, 0, cw, ch);
-  const top = 70, bottom = 100, side = 24, bw = cw - side * 2, bh = ch - top - bottom;
-  const w = Math.min(bw, bh * layout.aspect), h = w / layout.aspect, ox = (cw - w) / 2, oy = top + (bh - h) / 2;
-  pieceInfo.paths = [];
-  const ink = css('--ink'), muted = css('--muted');
-  for (const p of list) {
-    if (p.hidden) continue;
-    const path = piecePath(p, ox, oy, w, h);
-    pieceInfo.paths.push({ id: p.id, path });
-    g.save(); g.clip(path); g.drawImage(tc, ox, oy, w, h); g.restore();
-    const sel = p.name === selectedRegion || (p.zone && zoneKey(p.zone) === selectedRegion), hov = p.id === hoverPiece;
-    g.lineWidth = sel ? 2.5 : 1.2; g.strokeStyle = sel ? '#3b6cf6' : hov ? ink : muted;
-    g.setLineDash(sel ? [] : [5, 3]); g.stroke(path); g.setLineDash([]);
-    const [x, y, rw, rh] = p.rect;
-    if (rw * w > 70 && rh * h > 40) {
-      g.font = '600 11px Inter, system-ui, sans-serif'; g.textAlign = 'center';
-      const tx = ox + (x + rw / 2) * w, ty = oy + (y + rh) * h + 14;
-      g.fillStyle = sel ? '#3b6cf6' : muted; g.fillText(p.name, tx, ty);
-    }
-  }
-}
-function pieceAt2D(ev) {
-  if (!pieceInfo) return null;
-  const c2 = $('#c2d'), r = c2.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio, 2), g = c2.getContext('2d');
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const hit = [...pieceInfo.paths].reverse().find(({ path }) => g.isPointInPath(path, (ev.clientX - r.left) * dpr, (ev.clientY - r.top) * dpr));
-  return hit ? hit.id : null;
-}
-function pointInOutline(o, x, y) {
-  let inside = false;
-  for (let i = 0, j = o.length - 1; i < o.length; j = i++) {
-    const [xi, yi] = o[i], [xj, yj] = o[j];
-    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
-  }
-  return inside;
-}
-function selectRegion(name) {
-  selectedRegion = name || null;
-  for (const [n, r] of Object.entries(kitRegions || {})) { r.mat.emissive.set(n === selectedRegion && showGuides ? 0x1d3a8a : 0x000000); r.mat.emissiveIntensity = 0.22; }
-  renderPartCard(); renderRegions(); invalidate(); render2D();
-}
-const swatchRow = (cur, attr) => COLORWAYS.map(([n, h]) => `<button class="sw" style="background:${h}" title="${n}" aria-label="${n}" aria-pressed="${cur.toLowerCase() === h}" ${attr}="${h}"></button>`).join('');
-// The card for one part: colour, and a pattern of its own or the garment's.
-function renderPartCard() {
-  const card = $('#partCard');
-  if (!selectedRegion || !regionNames().includes(selectedRegion)) { card.hidden = true; return; }
-  const look = regionLook(selectedRegion), own = look.own, cur = own ? own.type : 'inherit';
-  const opt = (type, label, inner) => `<button data-rp="${type}" title="${label}" aria-label="${label}" aria-pressed="${cur === type}">${inner}</button>`;
-  const pats = opt('inherit', 'Same as garment', 'Same') + opt('none', 'No pattern', 'None') +
-    Object.entries(PATTERNS).map(([k, x]) => opt(k, x.name, `<img alt="" src="${patternThumb(k, look.color, own?.color || state.pattern.color)}">`)).join('') +
-    (state.uploads || []).map((u, i) => opt('u:' + u.id, `Upload ${i + 1}`, `<img alt="" src="${u.src}">`)).join('');
-  card.innerHTML = `<div class="row"><b>${esc(selectedRegion)}</b><button class="ib" data-pc="close" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-    <span class="lbl">Colour</span>
-    <div class="swatches">${swatchRow(look.color, 'data-pcolor')}<label class="sw custom" title="Custom colour"><input type="color" id="partColor" value="${look.color}" aria-label="Custom part colour"></label></div>
-    <span class="lbl">Pattern</span>
-    <div class="minipats">${pats}</div>
-    ${own && own.type !== 'none' && !isUpload(own.type) ? `<span class="lbl">Pattern colour</span><div class="inks">${INKS.map(c => `<button class="sw" style="background:${c}" data-ppc="${c}" aria-label="Pattern colour ${c}" aria-pressed="${(own.color || '').toLowerCase() === c}"></button>`).join('')}</div>` : ''}
-    ${look.custom ? '<button class="mini" data-pc="reset">Match the garment</button>' : ''}`;
-  card.hidden = false;
-}
-function changedPart() { applyPattern(); applyColors(); renderPartCard(); renderRegions(); save(); }
-$('#partCard').addEventListener('click', e => {
-  const b = e.target.closest('[data-pc],[data-pcolor],[data-rp],[data-ppc]'); if (!b) return;
-  const st = styles();
-  if (b.dataset.pc === 'close') return selectRegion(null);
-  const mine = (st[selectedRegion] ||= {});
-  if (b.dataset.pc === 'reset') delete st[selectedRegion];
-  if (b.dataset.pcolor) mine.color = b.dataset.pcolor;
-  if (b.dataset.rp) { if (b.dataset.rp === 'inherit') delete mine.pattern; else mine.pattern = { type: b.dataset.rp, color: mine.pattern?.color || state.pattern.color }; }
-  if (b.dataset.ppc && mine.pattern) mine.pattern.color = b.dataset.ppc;
-  changedPart();
-});
-$('#partCard').addEventListener('input', e => { if (e.target.id === 'partColor') { (styles()[selectedRegion] ||= {}).color = e.target.value; applyPattern(); applyColors(); renderRegions(); save(); } });
-$('#partCard').addEventListener('change', e => { if (e.target.id === 'partColor') renderPartCard(); });
-// The list of parts under Colour, for picking one without hunting for it on the model
-function renderRegions() {
-  const names = regionNames(), el = $('#regions');
-  el.hidden = !names.length;
-  if (!names.length) return;
-  const chip = n => { const l = regionLook(n);
-    return `<button data-region="${esc(n)}" aria-pressed="${n === selectedRegion}"><i style="background:${l.color}${l.cfg ? `;background-image:url(${isUpload(l.cfg.type) ? (state.uploads.find(u => 'u:' + u.id === l.cfg.type) || {}).src : patternThumb(l.cfg.type, l.color, l.cfg.color || state.pattern.color)})` : ''}"></i>${esc(n)}</button>`; };
-  const zones = zonesOf();
-  el.innerHTML = `<span class="lbl">Parts · pick one to give it its own colour or pattern</span>` + (zones.length
-    ? zones.map(z => `<span class="lbl">${esc(z)}</span><div class="chips">${chip(zoneKey(z))}${pieceInfo.list.filter(p => p.zone === z && !p.hidden).map(p => chip(p.name)).join('')}</div>`).join('')
-    : `<div class="chips">${names.map(chip).join('')}</div>`);
-}
-$('#regions').addEventListener('click', e => { const b = e.target.closest('[data-region]'); if (b) selectRegion(b.dataset.region === selectedRegion ? null : b.dataset.region); });
-$('#c2d').addEventListener('click', e => { const id = pieceAt2D(e); selectRegion(id === null ? null : pieceInfo.list[id].name); });
-$('#c2d').addEventListener('mousemove', e => { const id = pieceAt2D(e); if (id !== hoverPiece) { hoverPiece = id; render2D(); } });
-$('#c2d').addEventListener('mouseleave', () => { hoverPiece = null; render2D(); });
-function setSplit(on) {
-  split = on;
-  stage.classList.toggle('split', on);
-  $('#pieces2d').hidden = !on;
-  $('#piecesBtn').setAttribute('aria-pressed', String(on));
-  resize(); render2D();
-}
-$('#piecesBtn').addEventListener('click', () => { if (pieceInfo) { splitPref = !split; setSplit(splitPref); } });
-
-// Soft contact shadow below the floating hoodie
 const shadowTex = (() => {
   const c = document.createElement('canvas'); c.width = c.height = 256;
   const g = c.getContext('2d'), grd = g.createRadialGradient(128, 128, 0, 128, 128, 128);
@@ -1505,24 +1279,6 @@ function drawLayers(ctx, wPx, hPx, list, sel = null, gs = 1) {
     ctx.restore();
   }
 }
-// Embroidery preview: a fine satin-stitch texture over whatever is drawn.
-const stitchTiles = new Map();
-function stitch(ctx, wPx, hPx) {
-  const n = Math.max(6, Math.round(wPx / 160));
-  let tile = stitchTiles.get(n);
-  if (!tile) {
-    tile = document.createElement('canvas'); tile.width = tile.height = n;
-    const g = tile.getContext('2d');
-    g.strokeStyle = 'rgba(255,255,255,0.32)'; g.lineWidth = n * 0.24;
-    g.beginPath(); g.moveTo(0, n); g.lineTo(n, 0); g.moveTo(-n / 2, n / 2); g.lineTo(n / 2, -n / 2); g.moveTo(n / 2, n * 1.5); g.lineTo(n * 1.5, n / 2); g.stroke();
-    g.strokeStyle = 'rgba(0,0,0,0.3)'; g.lineWidth = n * 0.14;
-    g.beginPath(); g.moveTo(0, n * 0.6); g.lineTo(n * 0.6, 0); g.moveTo(n * 0.4, n); g.lineTo(n, n * 0.4); g.stroke();
-    stitchTiles.set(n, tile);
-  }
-  ctx.save(); ctx.globalCompositeOperation = 'source-atop';
-  ctx.fillStyle = ctx.createPattern(tile, 'repeat'); ctx.fillRect(0, 0, wPx, hPx);
-  ctx.restore();
-}
 // Draws one placement's print into its texture.
 function renderPrint(placement) {
   const { canvas: c, tex } = decals[placement];
@@ -1530,7 +1286,6 @@ function renderPrint(placement) {
   ctx.clearRect(0, 0, wPx, hPx);
   drawLayers(ctx, wPx, hPx, state.placements[placement], showGuides ? selectedId : null, gs);
   if (placement === 'back' && teamActive()) drawTeamBack(ctx, wPx, hPx, state.team, state.team.players[clamp(teamPreview, 0, state.team.players.length - 1)]);
-  if (methodOf(placement) === 'embroidery') stitch(ctx, wPx, hPx);
   if (showGuides && active === placement) {
     const base = PLACEMENTS[placement].kind === 'sleeve' ? state.colors.sleeves : state.colors.body;
     ctx.save();
@@ -1559,7 +1314,7 @@ function redrawTextures() {
   if (!placementFrames) return;
   guideDist = camera.position.distanceTo(controls.target);
   for (const k of Object.keys(decals)) renderPrint(k); // only the print areas this model has
-  if (pieceInfo) { drawPieces(); render2D(); }
+  if (pieceInfo) drawPieces();
 }
 let needsRedraw = true;
 const invalidate = () => { needsRedraw = true; };
@@ -1632,24 +1387,7 @@ function layerAt(placement, pt) {
   }
   return null;
 }
-let drag = null, downAt = null;
-canvas.addEventListener('pointerdown', ev => { downAt = [ev.clientX, ev.clientY]; });
-canvas.addEventListener('pointerup', ev => {
-  if (!downAt || drag || !(pieceInfo || kitRegions)) return;
-  const moved = Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]); downAt = null;
-  if (moved > 5) return; // that was an orbit, not a click
-  const r = canvas.getBoundingClientRect();
-  pointer.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
-  raycaster.setFromCamera(pointer, camera);
-  const hit = raycaster.intersectObjects(Object.values(parts), false)[0];
-  if (!hit) return selectRegion(null);
-  if (pieceInfo) {
-    if (!hit.uv) return;
-    const x = hit.uv.x, y = 1 - hit.uv.y;
-    const p = pieceInfo.list.find(p => !p.hidden && pointInOutline(p.outline, x, y));
-    selectRegion(p ? p.name : null);
-  } else selectRegion(KIT_PARTS[hit.object.name] || null);
-});
+let drag = null;
 canvas.addEventListener('pointerdown', ev => {
   if (ev.button !== 0) return;
   const pt = hitPrint(ev); if (!pt || !pt.inArea) return;
@@ -1689,41 +1427,6 @@ const ICON = {
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // Colour
-// Team colour palettes, kept on this device.
-const PALETTES_KEY = 'threadlab-palettes-v1';
-let palettes = [];
-try { palettes = JSON.parse(localStorage.getItem(PALETTES_KEY) || '[]'); } catch { palettes = []; }
-const storePalettes = () => { try { localStorage.setItem(PALETTES_KEY, JSON.stringify(palettes)); } catch { /* blocked */ } };
-function renderPalettes() {
-  $('#palList').innerHTML = palettes.map(pl => `<span class="pal"><button class="apply" data-pal="${pl.id}" title="Apply ${esc(pl.name)}"><span class="dots">${pl.colors.map(c => `<i style="background:${c}"></i>`).join('')}</span>${esc(pl.name)}</button><button class="x" data-delpal="${pl.id}" aria-label="Delete ${esc(pl.name)}" title="Delete">×</button></span>`).join('');
-}
-function applyPalette(name, [main, trim, accent]) {
-  state.colorway = name;
-  Object.assign(state.colors, { body: main, sleeves: main, hood: main, shorts: main, trim, lining: shade(main, -0.14), strings: trim });
-  for (const st of Object.values(styles())) delete st.color; // per-part colours give way to the palette
-  state.pattern.color = accent; state.team.color = accent;
-  applyPattern(); applyColors(); renderColor(); renderSizes(); invalidate(); save();
-}
-const paletteFromForm = () => [$('#pal1').value, $('#pal2').value, $('#pal3').value];
-$('#newPalette').addEventListener('click', e => {
-  const open = $('#palEdit').hidden; $('#palEdit').hidden = !open; e.currentTarget.setAttribute('aria-expanded', String(open));
-  if (open) { $('#pal1').value = state.colors.body; $('#pal2').value = state.colors.trim; $('#pal3').value = state.pattern.color; $('#palName').focus(); }
-});
-$('#palTry').addEventListener('click', () => applyPalette($('#palName').value.trim() || 'Team colours', paletteFromForm()));
-$('#palEdit').addEventListener('submit', e => {
-  e.preventDefault();
-  const pl = { id: newId(), name: $('#palName').value.trim() || `Palette ${palettes.length + 1}`, colors: paletteFromForm() };
-  palettes.unshift(pl); storePalettes(); renderPalettes();
-  applyPalette(pl.name, pl.colors);
-  $('#palEdit').hidden = true; $('#newPalette').setAttribute('aria-expanded', 'false'); $('#palName').value = '';
-});
-$('#palList').addEventListener('click', e => {
-  const del = e.target.closest('[data-delpal]');
-  if (del) { palettes = palettes.filter(p => p.id !== del.dataset.delpal); storePalettes(); renderPalettes(); return; }
-  const b = e.target.closest('[data-pal]'); if (!b) return;
-  const pl = palettes.find(p => p.id === b.dataset.pal); applyPalette(pl.name, pl.colors);
-});
-renderPalettes();
 function setColorway(name, hex) {
   state.colorway = name;
   Object.assign(state.colors, { body: hex, sleeves: hex, hood: hex, shorts: hex, trim: hex, lining: shade(hex, -0.14), strings: luminance(hex) > 0.5 ? shade(hex, 0.6) : shade(hex, 0.15) });
@@ -1734,141 +1437,16 @@ function renderColor() {
     `<button class="sw" style="background:${h}" title="${n}" aria-label="${n}" aria-pressed="${state.colorway === n}" data-cw="${n}"></button>`).join('') +
     `<label class="sw custom${COLORWAYS.some(c => c[0] === state.colorway) ? '' : ' on'}" title="Custom colour"><input type="color" id="customColor" value="${state.colors.body}" aria-label="Custom colour"></label>`;
   $('#colorName').textContent = state.colorway;
-  renderPattern(); renderRegions(); renderPartCard();
 }
 $('#swatches').addEventListener('click', e => { const b = e.target.closest('[data-cw]'); if (b) setColorway(b.dataset.cw, COLORWAYS.find(c => c[0] === b.dataset.cw)[1]); });
 $('#swatches').addEventListener('input', e => { if (e.target.id === 'customColor') { const v = e.target.value; state.colorway = 'Custom'; Object.assign(state.colors, { body: v, sleeves: v, hood: v, shorts: v, trim: v, lining: shade(v, -0.14) }); applyColors(); $('#colorName').textContent = 'Custom'; save(); } });
 $('#swatches').addEventListener('change', e => { if (e.target.id === 'customColor') renderColor(); });
 
 // Pattern
-const thumbCanvas = document.createElement('canvas'); thumbCanvas.width = thumbCanvas.height = 96;
-function patternThumb(type, base = state.colors.body, accent = state.pattern.color) {
-  const g = thumbCanvas.getContext('2d', { willReadFrequently: true }), n = 96;
-  drawPatternTile(g, n, type);
-  colourise(g, n, base, accent); // body colour where the mask is black, pattern colour where white
-  return thumbCanvas.toDataURL();
-}
-let patternsOpen = false;
 const MAX_UPLOADS = 12;
-function renderPattern() {
-  const P = state.pattern, keys = Object.keys(PATTERNS);
-  // collapsed: the first few patterns (plus the one in use); open: all of them
-  const shown = patternsOpen ? keys : keys.slice(0, 5).concat(PATTERNS[P.type] && keys.indexOf(P.type) >= 5 ? [P.type] : []);
-  const opt = (type, label, inner, extra = '') => `<button data-pattern="${type}" aria-pressed="${P.type === type}" title="${label}" aria-label="${label}">${inner}<span>${label}</span>${extra}</button>`;
-  $('#patterns').innerHTML = opt('none', 'None', `<div style="position:absolute;inset:0;background:${state.colors.body}"></div>`) +
-    shown.map(k => opt(k, PATTERNS[k].name, `<img alt="" src="${patternThumb(k)}">`)).join('') +
-    (state.uploads || []).map((u, i) => opt('u:' + u.id, `Upload ${i + 1}`, `<img alt="" src="${u.src}">`, `<span class="del" data-del="${u.id}" role="button" aria-label="Delete upload ${i + 1}" title="Delete">×</span>`)).join('') +
-    `<button data-upload title="Upload a pattern tile" aria-label="Upload a pattern tile"><div style="position:absolute;inset:0;display:grid;place-items:center;font-size:20px">+</div><span>Upload</span></button>`;
-  const more = $('#patMore');
-  more.textContent = patternsOpen ? 'Show fewer patterns' : `Show all patterns (${keys.length})`;
-  $('#patternName').textContent = P.type === 'none' ? 'None' : isUpload(P.type) ? 'Your tile' : PATTERNS[P.type]?.name || 'None';
-  $('#patctl').innerHTML = P.type === 'none' ? '' :
-    (isUpload(P.type) ? '' : `<div class="field"><span class="lbl">Pattern colour</span><div class="inks">${INKS.map(c => `<button class="sw" style="background:${c}" data-pcolor="${c}" aria-label="Pattern colour ${c}" aria-pressed="${P.color.toLowerCase() === c}"></button>`).join('')}<label class="sw custom" title="Custom"><input type="color" id="patColor" value="${P.color}" aria-label="Custom pattern colour"></label></div></div>`) +
-    `<div class="grid2"><div class="field"><label for="patScale">Scale<output id="patScaleOut">${Math.round(P.scale * 100)}%</output></label><input id="patScale" type="range" min="0.3" max="3" step="0.05" value="${P.scale}"></div>
-     <div class="field"><label for="patRot">Angle<output id="patRotOut">${P.rot}°</output></label><input id="patRot" type="range" min="-90" max="90" step="1" value="${P.rot}"></div></div>`;
-}
-$('#patterns').addEventListener('click', e => {
-  const del = e.target.closest('[data-del]');
-  if (del) { // delete an uploaded tile, and stop anything from using it
-    const id = del.dataset.del, t = 'u:' + id;
-    state.uploads = state.uploads.filter(u => u.id !== id); uploadImages.delete(id);
-    if (state.pattern.type === t) state.pattern.type = 'none';
-    for (const prod of Object.values(state.styles || {})) for (const st of Object.values(prod)) if (st.pattern?.type === t) delete st.pattern;
-    applyPattern(); applyColors(); renderPattern(); renderRegions(); renderPartCard(); save();
-    return;
-  }
-  if (e.target.closest('[data-upload]')) {
-    if ((state.uploads || []).length >= MAX_UPLOADS) { toast(`You can keep up to ${MAX_UPLOADS} uploaded patterns. Delete one to add another.`); return; }
-    $('#patternFile').click(); return;
-  }
-  const b = e.target.closest('[data-pattern]'); if (!b) return;
-  state.pattern.type = b.dataset.pattern; applyPattern(); applyColors(); renderPattern(); renderRegions(); renderPartCard(); save();
-});
-$('#patMore').addEventListener('click', () => { patternsOpen = !patternsOpen; renderPattern(); });
-$('#patternFile').addEventListener('change', e => {
-  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    const img = new Image();
-    img.onload = () => {
-      // keep tiles small: they repeat, and they are saved with the design
-      const c = document.createElement('canvas'); c.width = c.height = 256;
-      c.getContext('2d').drawImage(img, 0, 0, 256, 256);
-      const id = newId();
-      (state.uploads ||= []).push({ id, src: c.toDataURL('image/jpeg', 0.9) });
-      state.pattern.type = 'u:' + id;
-      uploadImage(id); // loads, then re-applies
-      renderPattern(); save();
-    };
-    img.src = reader.result;
-  };
-  reader.readAsDataURL(f);
-});
-$('#patctl').addEventListener('click', e => {
-  const b = e.target.closest('[data-pcolor]'); if (!b) return;
-  state.pattern.color = b.dataset.pcolor; applyPattern(); applyColors(); renderPattern(); renderRegions(); save();
-});
-$('#patctl').addEventListener('input', e => {
-  const P = state.pattern;
-  if (e.target.id === 'patScale') { P.scale = +e.target.value; $('#patScaleOut').textContent = Math.round(P.scale * 100) + '%'; }
-  if (e.target.id === 'patRot') { P.rot = +e.target.value; $('#patRotOut').textContent = P.rot + '°'; }
-  if (e.target.id === 'patColor') P.color = e.target.value;
-  applyPattern(); applyColors(); save();
-});
-$('#patctl').addEventListener('change', e => { if (e.target.id === 'patColor') renderPattern(); });
-
-// Fabric
-function renderFabric() {
-  document.querySelectorAll('[data-fabric]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.fabric === state.fabric)));
-  $('#fabricNote').textContent = FABRICS[state.fabric].note;
-}
-$('#fabric').addEventListener('click', e => { const b = e.target.closest('[data-fabric]'); if (!b) return; state.fabric = b.dataset.fabric; applyFabric(); renderFabric(); save(); });
-
-// Design
 const inkFor = () => luminance(PLACEMENTS[active].kind === 'sleeve' ? state.colors.sleeves : state.colors.body) > 0.45 ? '#141414' : '#f5f3ee';
 function addLayer(L) { state.placements[active].push(L); selectedId = L.id; renderDesign(); invalidate(); save(); }
-$('#addText').addEventListener('click', () => addLayer({ id: newId(), type: 'text', text: 'YOUR TEXT', font: 'Archivo Black', color: inkFor(), scale: 1, x: 0, y: 0, rot: 0, spacing: 0, curve: 0, outline: false, outlineColor: '#f5f3ee', outlineWidth: 1 }));
-$('#gpick').innerHTML = Object.entries(GRAPHICS).map(([k, g]) =>
-  `<button data-g="${k}" title="${g.name}" aria-label="${g.name}"><svg viewBox="0 0 100 100" fill="currentColor" stroke="currentColor">${g.body}</svg></button>`).join('');
-// Logo library: every image you upload is kept (on this device) so it can go on any product again.
-const LOGOS_KEY = 'threadlab-logos-v1', MAX_LOGOS = 24;
-let logos = [];
-try { logos = JSON.parse(localStorage.getItem(LOGOS_KEY) || '[]'); } catch { logos = []; }
-function storeLogos() {
-  while (true) {
-    try { localStorage.setItem(LOGOS_KEY, JSON.stringify(logos)); return; }
-    catch { if (logos.length <= 1) return; logos.pop(); } // out of space: drop the oldest
-  }
-}
-function rememberLogo(name, src) {
-  logos = [{ id: newId(), name, src }, ...logos.filter(l => l.src !== src)].slice(0, MAX_LOGOS);
-  storeLogos(); if ($('#lpick').classList.contains('open')) renderLogos();
-}
-function renderLogos() {
-  $('#lpick').innerHTML = logos.length
-    ? `<div class="grid">${logos.map(l => `<div class="logo"><button class="use" data-logo="${l.id}" title="Add ${esc(l.name)}" aria-label="Add ${esc(l.name)}"><img alt="" src="${l.src}"></button><button class="del" data-dellogo="${l.id}" aria-label="Remove ${esc(l.name)} from your logos" title="Remove">×</button></div>`).join('')}</div>`
-    : '<p class="empty" style="margin:0">Logos you upload are kept here so you can reuse them on any product.</p>';
-}
-$('#addLogo').addEventListener('click', () => {
-  const open = $('#lpick').classList.toggle('open'); $('#addLogo').setAttribute('aria-expanded', String(open));
-  if (open) { renderLogos(); $('#gpick').classList.remove('open'); $('#addGraphic').setAttribute('aria-expanded', 'false'); }
-});
-$('#lpick').addEventListener('click', e => {
-  const del = e.target.closest('[data-dellogo]');
-  if (del) { logos = logos.filter(l => l.id !== del.dataset.dellogo); storeLogos(); renderLogos(); return; }
-  const b = e.target.closest('[data-logo]'); if (!b) return;
-  const l = logos.find(x => x.id === b.dataset.logo);
-  addLayer({ id: newId(), type: 'image', name: l.name, src: l.src, scale: 0.9, x: 0, y: 0, rot: 0 });
-  $('#lpick').classList.remove('open'); $('#addLogo').setAttribute('aria-expanded', 'false');
-});
-$('#addGraphic').addEventListener('click', () => { const open = $('#gpick').classList.toggle('open'); $('#addGraphic').setAttribute('aria-expanded', String(open)); });
-$('#gpick').addEventListener('click', e => {
-  const b = e.target.closest('[data-g]'); if (!b) return;
-  const L = selectedLayer();
-  if (L && L.type === 'graphic' && $('#gpick').dataset.mode === 'swap') { L.key = b.dataset.g; delete $('#gpick').dataset.mode; renderDesign(); invalidate(); save(); }
-  else addLayer({ id: newId(), type: 'graphic', key: b.dataset.g, color: inkFor(), scale: 0.7, x: 0, y: 0, rot: 0 });
-  $('#gpick').classList.remove('open'); $('#addGraphic').setAttribute('aria-expanded', 'false');
-});
+$('#addText').addEventListener('click', () => addLayer(placeAt({ id: newId(), type: 'text', text: 'YOUR TEXT', font: 'Archivo Black', color: inkFor(), spacing: 0, curve: 0, outline: false, outlineColor: '#f5f3ee', outlineWidth: 1 }, freeSpot(1))));
 $('#addImage').addEventListener('click', () => $('#file').click());
 $('#file').addEventListener('change', e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
@@ -1882,8 +1460,7 @@ $('#file').addEventListener('change', e => {
       c.width = Math.max(1, Math.round((img.naturalWidth || 1024) * s)); c.height = Math.max(1, Math.round((img.naturalHeight || 1024) * s));
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
       const src = c.toDataURL('image/png'), name = f.name.replace(/\.[^.]+$/, '');
-      addLayer({ id: newId(), type: 'image', name, src, scale: 0.9, x: 0, y: 0, rot: 0 });
-      rememberLogo(name, src);
+      addLayer(placeAt({ id: newId(), type: 'image', name, src }, freeSpot(0)));
     };
     img.src = reader.result;
   };
@@ -1893,14 +1470,6 @@ $('#file').addEventListener('change', e => {
 const layerName = L => L.type === 'text' ? (L.text.trim() || 'Empty text') : L.type === 'graphic' ? GRAPHICS[L.key].name : (L.name || 'Image');
 let garmentAreas = Object.keys(PLACEMENTS);
 const areaLabel = k => PRODUCTS[state.product].areaLabels?.[k] || PLACEMENTS[k].label;
-function renderMethods() {
-  const allowed = methodsFor(state.product), m = methodOf(active);
-  if (allowed.length < 2) { $('#methodRow').innerHTML = ''; return; }
-  const warn = methodWarnings(active);
-  $('#methodRow').innerHTML = `<span class="lbl" style="font-size:12px;font-weight:600;color:var(--muted)">How the ${esc(areaLabel(active).toLowerCase())} is decorated</span>
-    <div class="seg" role="group" aria-label="Decoration method">${allowed.map(k => `<button data-method="${k}" aria-pressed="${k === m}">${PRICING.methods[k].label}</button>`).join('')}</div>
-    <p class="small">${PRICING.methods[m].note}</p>${warn.map(w => `<p class="small warn">${esc(w)}</p>`).join('')}`;
-}
 // Things that won't come out well with the chosen method.
 function methodWarnings(k, d = state, product = state.product) {
   const m = PRODUCTS[product].methods?.length === 1 ? 'print' : (d.methods?.[k] || 'print'), list = d.placements[k] || [], W = printInches(product, k), out = [];
@@ -1911,10 +1480,6 @@ function methodWarnings(k, d = state, product = state.product) {
   if (m === 'screen' && list.some(L => L.type === 'image')) out.push('Screen print uses solid inks; photos and gradients are halftoned.');
   return out;
 }
-$('#methodRow').addEventListener('click', e => {
-  const b = e.target.closest('[data-method]'); if (!b) return;
-  state.methods[active] = b.dataset.method; renderMethods(); renderPrice(); invalidate(); save();
-});
 function renderTabs() {
   $('#tabs').innerHTML = garmentAreas.map(k =>
     `<button class="tab" data-tab="${k}" aria-pressed="${k === active}">${areaLabel(k)}${state.placements[k].length ? `<i>${state.placements[k].length}</i>` : ''}</button>`).join('');
@@ -1923,38 +1488,54 @@ function renderLayers() {
   const list = state.placements[active];
   $('#layers').innerHTML = list.length ? list.slice().reverse().map(L =>
     `<li class="layer" aria-selected="${L.id === selectedId}" data-id="${L.id}">
-      <span class="kind">${L.type === 'image' ? 'Image' : L.type}</span>
+      <span class="kind">${L.type === 'text' ? 'Text' : 'Logo'}</span>
       <button class="nm" data-act="select">${esc(layerName(L))}</button>
-      <button class="ib" data-act="up" title="Bring forward" aria-label="Bring forward">${ICON.up}</button>
-      <button class="ib" data-act="down" title="Send backward" aria-label="Send backward">${ICON.down}</button>
-      <button class="ib" data-act="dup" title="Duplicate" aria-label="Duplicate">${ICON.dup}</button>
-      <button class="ib" data-act="del" title="Delete" aria-label="Delete">${ICON.del}</button>
-    </li>`).join('') : '';
-  if (!list.length) $('#layers').innerHTML = `<li class="empty">Nothing on the ${PLACEMENTS[active].label.toLowerCase()} yet — add text, a graphic or your own image.</li>`;
+      <button class="ib" data-act="del" title="Remove" aria-label="Remove">${ICON.del}</button>
+    </li>`).join('')
+    : `<li class="empty">Nothing on the ${areaLabel(active).toLowerCase()} yet — upload a logo or add text.</li>`;
+}
+// Where a logo or text can sit in each print area: [name, x, y (print widths from the centre), size by type, widest it may be].
+const SPOTS = {
+  front: [['Left chest', 0.3, 0.3, { image: 0.55, text: 0.5 }, 0.3], ['Centre chest', 0, 0.24, { image: 0.7, text: 0.8 }, 0.75], ['Full front', 0, 0.02, { image: 1.3, text: 1.2 }, 0.92]],
+  back: [['Upper back', 0, 0.3, { image: 0.7, text: 0.8 }, 0.8], ['Full back', 0, 0, { image: 1.4, text: 1.3 }, 0.92]],
+};
+const spotsFor = k => PRODUCTS[state.product].group === 'accessories' || !SPOTS[k] ? [['Centre', 0, 0, { image: 1, text: 1 }, 0.9]] : SPOTS[k];
+const sizeKind = L => L.type === 'text' ? 'text' : 'image';
+const measure = document.createElement('canvas').getContext('2d');
+// Text is shrunk to fit the spot's width (measured at the size drawLayers uses: 0.16 print widths per unit of scale).
+function fitText(L, maxW) {
+  const fi = fontInfo(L.font); measure.font = `${fi.w} 100px "${L.font}", sans-serif`;
+  const w = Math.max(...L.text.split('\n').map(t => measure.measureText(t).width)) / 100 * 0.16 * L.scale;
+  if (w > maxW) L.scale = Math.max(0.3, L.scale * maxW / w);
+}
+function placeAt(L, i) {
+  const [, x, y, sz, maxW] = spotsFor(active)[i];
+  Object.assign(L, { x, y, scale: sz[sizeKind(L)], rot: 0 });
+  if (L.type === 'text') fitText(L, maxW);
+  return L;
+}
+const atSpot = (L, [, x, y]) => Math.abs(L.x - x) < 0.02 && Math.abs(L.y - y) < 0.02;
+// The preferred spot, or the next one whose height isn't already taken by something else in this area.
+function freeSpot(pref) {
+  const spots = spotsFor(active), list = state.placements[active];
+  const order = [pref, ...spots.keys()].filter((i, n, a) => i < spots.length && a.indexOf(i) === n);
+  return order.find(i => !list.some(L => Math.abs(L.y - spots[i][2]) < 0.15)) ?? order[0];
 }
 const sliderF = (label, k, min, max, step, val, fmt = v => v) =>
   `<div class="field"><label for="f-${k}">${label}<output data-out="${k}">${fmt(val)}</output></label><input id="f-${k}" type="range" data-key="${k}" min="${min}" max="${max}" step="${step}" value="${val}"></div>`;
 const FMT = { scale: v => Math.round(v * 100) + '%', rot: v => Math.round(v) + '°', spacing: v => v, curve: v => v, x: v => (+v).toFixed(2), y: v => (+v).toFixed(2), outlineWidth: v => (+v).toFixed(1) };
 const inkPicker = (k, val) => `<div class="inks">${INKS.map(c => `<button class="sw" style="background:${c}" data-act="ink" data-k="${k}" data-v="${c}" aria-label="Ink ${c}" aria-pressed="${val.toLowerCase() === c}"></button>`).join('')}<label class="sw custom" title="Custom"><input type="color" data-key="${k}" value="${val}" aria-label="Custom ink"></label></div>`;
 function renderEditor() {
-  const L = selectedLayer();
-  const ed = $('#editor');
+  const L = selectedLayer(), ed = $('#editor');
   if (!L || findLayer(L.id)[0] !== active) { ed.innerHTML = ''; return; }
+  const spots = spotsFor(active);
   let h = '';
-  if (L.type === 'text') {
-    h += `<div class="field"><label for="f-text">Text</label><textarea id="f-text" data-key="text" rows="2" maxlength="80">${esc(L.text)}</textarea></div>
-      <div class="field"><label for="f-font">Font</label><select id="f-font" data-key="font">${FONTS.map(fi => `<option value="${fi.f}" ${fi.f === L.font ? 'selected' : ''} style="font-family:'${fi.f}'">${fi.label || fi.f}</option>`).join('')}</select></div>
-      <div class="field"><span class="lbl">Ink</span>${inkPicker('color', L.color)}</div>
-      <div class="grid2">${sliderF('Size', 'scale', 0.3, 2.5, 0.01, L.scale, FMT.scale)}${sliderF('Letter spacing', 'spacing', -10, 40, 1, L.spacing)}</div>
-      <div class="grid2">${sliderF('Arc', 'curve', -100, 100, 1, L.curve)}${sliderF('Rotate', 'rot', -180, 180, 1, L.rot, FMT.rot)}</div>
-      <label class="check" style="margin:0"><input type="checkbox" data-key="outline" ${L.outline ? 'checked' : ''}> Outline</label>
-      ${L.outline ? `<div class="field"><span class="lbl">Outline colour</span>${inkPicker('outlineColor', L.outlineColor)}</div>${sliderF('Outline width', 'outlineWidth', 0.3, 3, 0.1, L.outlineWidth, FMT.outlineWidth)}` : ''}`;
-  } else {
-    if (L.type === 'graphic') h += `<div class="field"><span class="lbl">Ink</span>${inkPicker('color', L.color)}</div>`;
-    h += `<div class="grid2">${sliderF('Size', 'scale', 0.15, 2.2, 0.01, L.scale, FMT.scale)}${sliderF('Rotate', 'rot', -180, 180, 1, L.rot, FMT.rot)}</div>`;
-  }
-  h += `<div class="grid2">${sliderF('Left ↔ right', 'x', -0.6, 0.6, 0.005, L.x, FMT.x)}${sliderF('Down ↕ up', 'y', -0.75, 0.75, 0.005, L.y, FMT.y)}</div>
-    <div class="minis"><button class="mini" data-act="cx">Centre horizontally</button><button class="mini" data-act="r0">Reset rotation</button>${L.type === 'graphic' ? '<button class="mini" data-act="swap">Change graphic</button>' : ''}</div>`;
+  if (L.type === 'text') h += `<div class="field"><label for="f-text">Text</label><textarea id="f-text" data-key="text" rows="2" maxlength="60">${esc(L.text)}</textarea></div>
+    <div class="grid2"><div class="field"><label for="f-font">Font</label><select id="f-font" data-key="font">${FONTS.map(fi => `<option value="${fi.f}" ${fi.f === L.font ? 'selected' : ''}>${fi.label || fi.f}</option>`).join('')}</select></div>
+    <div class="field"><span class="lbl">Colour</span>${inkPicker('color', L.color)}</div></div>`;
+  h += sliderF('Size', 'scale', L.type === 'text' ? 0.3 : 0.15, L.type === 'text' ? 2.2 : 1.8, 0.01, L.scale, FMT.scale);
+  if (spots.length > 1) h += `<div class="field"><span class="lbl">Placement</span><div class="seg" style="grid-template-columns:repeat(${spots.length},1fr)">${spots.map((sp, i) => `<button data-act="spot" data-i="${i}" aria-pressed="${atSpot(L, sp)}">${sp[0]}</button>`).join('')}</div></div>`;
+  h += '<p class="small" style="margin:0">Drag it on the garment to fine-tune where it sits.</p>';
   ed.innerHTML = h;
 }
 function syncEditorPosition() {
@@ -1964,7 +1545,7 @@ function syncEditorPosition() {
     if (inp) inp.value = L[k]; if (out) out.textContent = FMT[k](L[k]);
   }
 }
-function renderDesign() { renderTabs(); renderMethods(); renderLayers(); renderEditor(); renderPrice(); invalidate(); }
+function renderDesign() { renderTabs(); renderLayers(); renderEditor(); renderPrice(); invalidate(); }
 
 $('#tabs').addEventListener('click', e => {
   const b = e.target.closest('[data-tab]'); if (!b) return;
@@ -1992,7 +1573,6 @@ $('#editor').addEventListener('input', e => {
   const out = $(`#editor [data-out="${k}"]`); if (out) out.textContent = FMT[k] ? FMT[k](L[k]) : L[k];
   if (k === 'text') { const nm = $(`#layers [data-id="${L.id}"] .nm`); if (nm) nm.textContent = layerName(L); }
   if (k === 'outline') renderEditor();
-  if (k === 'scale') renderMethods();
   if (k === 'font') document.fonts.load(`${fontInfo(L.font).w} 40px "${L.font}"`).then(invalidate);
   if (el.type === 'color') $(`#editor .inks [data-k="${k}"]`)?.parentElement.querySelectorAll('.sw').forEach(s => s.setAttribute('aria-pressed', String(s.dataset.v === L[k])));
   invalidate(); save();
@@ -2002,7 +1582,7 @@ $('#editor').addEventListener('click', e => {
   if (b.dataset.act === 'ink') { L[b.dataset.k] = b.dataset.v; renderEditor(); }
   if (b.dataset.act === 'cx') { L.x = 0; syncEditorPosition(); }
   if (b.dataset.act === 'r0') { L.rot = 0; renderEditor(); }
-  if (b.dataset.act === 'swap') { $('#gpick').dataset.mode = 'swap'; $('#gpick').classList.add('open'); $('#addGraphic').setAttribute('aria-expanded', 'true'); }
+  if (b.dataset.act === 'spot') { placeAt(L, +b.dataset.i); renderEditor(); }
   invalidate(); save();
 });
 document.addEventListener('keydown', e => {
@@ -2034,14 +1614,14 @@ const restoreSnapshot = s => applyDesign(unsnapshot(s), true);
 function applyDesign(d, keepOrder) {
   const prevProduct = state.product, uploads = state.uploads;
   state = Object.assign(defaultState(), d, keepOrder ? { size: state.size, qty: state.qty } : {});
-  state.team = Object.assign(defaultTeam(), state.team); state.methods ||= {};
+  state.team = Object.assign(defaultTeam(), state.team); state.methods ||= {}; plain(state);
   if (!PRODUCTS[state.product]) state.product = prevProduct;
   // keep the pattern library: what you had plus anything the design brings
   if (!keepOrder) state.uploads = [...uploads, ...(state.uploads || []).filter(u => !uploads.some(x => x.id === u.id))].slice(-MAX_UPLOADS);
   if (!findLayer(selectedId)[1]) { const l = state.placements[active] || []; selectedId = l.length ? l[l.length - 1].id : null; }
   if (state.product !== prevProduct) { renderProduct(); showProduct(state.product); }
   else { applyPattern(); applyColors(); applyFabric(); }
-  renderColor(); renderFabric(); renderSizes(); renderDesign();
+  renderColor(); renderSizes(); renderDesign();
   if (keepOrder) persist(); else save();
 }
 $('#undoBtn').addEventListener('click', undo);
@@ -2056,7 +1636,7 @@ $('#startOver').addEventListener('click', () => {
   const product = state.product, uploads = state.uploads;
   state = defaultState(); state.product = product; state.uploads = uploads; // keep the uploaded tiles
   selectedId = null; selectedRegion = null; active = garmentAreas[0];
-  applyPattern(); applyColors(); applyFabric(); renderColor(); renderFabric(); renderSizes(); renderDesign(); renderPartCard(); save();
+  applyPattern(); applyColors(); applyFabric(); renderColor(); renderSizes(); renderDesign(); save();
   toast('Back to a plain grey blank · Undo brings your design back');
 });
 $('#groups').addEventListener('click', e => {
@@ -2222,14 +1802,13 @@ function price() {
 function renderPrice() {
   const p = price();
   $('#headPrice').textContent = money(p.unit);
-  const methods = [...new Set(p.used.map(k => PRICING.methods[methodOf(k)].label))].join(', ');
   $('#lines').innerHTML = `<div><span>${PRODUCTS[state.product].label}</span><span>${money(p.base)}</span></div>
-    ${p.used.length ? `<div><span>Decoration · ${p.used.length} area${p.used.length > 1 ? 's' : ''} (${methods})</span><span>${p.deco ? '+' + money(p.deco) : 'Included'}</span></div>` : ''}
+    ${p.used.length ? `<div><span>Logo &amp; text · ${p.used.length} area${p.used.length > 1 ? 's' : ''}</span><span>${p.deco ? '+' + money(p.deco) : 'Included'}</span></div>` : ''}
     ${p.nn ? `<div><span>Names &amp; numbers</span><span>+${money(p.nn)}</span></div>` : ''}
     ${p.disc ? `<div><span>Bulk discount · ${p.tierAt}+ pieces</span><span>−${Math.round(p.disc * 100)}%</span></div>` : ''}
     ${p.setup ? `<div><span>Setup · one time</span><span>${money(p.setup)}</span></div>` : ''}
     <div class="tot"><span>Total${p.count !== 1 ? ` · ${p.count} pcs` : ''}</span><span>${money(p.total)}</span></div>
-    ${p.short ? `<div class="nudge warn">${methods.includes('Screen') ? 'Screen print' : 'This order'} needs at least ${p.min} pieces</div>` : p.next && p.count > 0 ? `<div class="nudge">Add ${p.next[0] - p.count} more for ${Math.round(p.next[1] * 100)}% off</div>` : ''}`;
+    ${p.short ? `<div class="nudge warn">This order needs at least ${p.min} pieces</div>` : p.next && p.count > 0 ? `<div class="nudge">Add ${p.next[0] - p.count} more for ${Math.round(p.next[1] * 100)}% off</div>` : ''}`;
   $('#addBag').disabled = !p.count || p.short;
 }
 let toastTimer = 0;
@@ -2260,8 +1839,6 @@ function captureViews(size = 360) {
   showGuides = keep.guides; invalidate();
   return out;
 }
-const fabricName = k => $(`[data-fabric="${k}"]`)?.textContent || k;
-const patternLabel = (type, color) => type === 'none' ? 'None' : isUpload(type) ? 'Your pattern' : `${PATTERNS[type]?.name || type}${color ? ` in ${colorName(color)}` : ''}`;
 const colorName = hex => (COLORWAYS.find(c => c[1] === String(hex).toLowerCase()) || [hex])[0];
 function orderText() {
   const p = price();
@@ -2270,13 +1847,10 @@ function orderText() {
   return `Team of ${p.count} · ` + Object.entries(n).map(([z, c]) => `${z} × ${c}`).join(', ');
 }
 function designSpecs() {
-  const P = PRODUCTS[state.product], rows = [['Item', P.name], ['Colour', state.colorway], ['Pattern', patternLabel(state.pattern.type, state.pattern.type !== 'none' && !isUpload(state.pattern.type) && state.pattern.color)]];
-  if (P.finish !== 'ball') rows.push(['Fabric', fabricName(state.fabric)]);
-  const parts = Object.entries(styles()).filter(([, v]) => v && (v.color || v.pattern));
-  if (parts.length) rows.push(['Parts', parts.map(([n, v]) => `${n}: ${[v.color && colorName(v.color), v.pattern && `${patternLabel(v.pattern.type, v.pattern.type !== 'none' && !isUpload(v.pattern.type) && v.pattern.color)} pattern`].filter(Boolean).join(', ')}`).join(' · ')]);
+  const P = PRODUCTS[state.product], rows = [['Item', P.name], ['Colour', state.colorway]];
   for (const k of garmentAreas) {
     const list = state.placements[k]; if (!list.length) continue;
-    rows.push([`${areaLabel(k)} · ${PRICING.methods[methodOf(k)].label}`, list.map(L => L.type === 'text' ? `“${L.text.replace(/\n/g, ' ')}” (${L.font})` : L.type === 'graphic' ? `${GRAPHICS[L.key].name} graphic` : `Image: ${L.name || 'upload'}`).join(' · ')]);
+    rows.push([areaLabel(k), list.map(L => L.type === 'text' ? `“${L.text.replace(/\n/g, ' ')}” (${L.font})` : L.type === 'graphic' ? `${GRAPHICS[L.key].name} graphic` : `Logo: ${L.name || 'upload'}`).join(' · ')]);
   }
   if (teamActive()) {
     const T = state.team;
@@ -2395,8 +1969,7 @@ async function renderProduction(item) {
     if (!list.length && !withTeam) continue;
     const F = g.frames[k], W = printInches(product, k), H = round2(W * F.h / F.w);
     const dpi = Math.min(300, Math.floor(MAX_PX / Math.max(W, H))), wPx = Math.round(W * dpi), hPx = Math.round(H * dpi);
-    const method = PRODUCTS[product].methods?.length === 1 ? 'print' : (d.methods[k] || 'print');
-    const area = { key: k, label: P.areaLabels?.[k] || PLACEMENTS[k].label, method: PRICING.methods[method].label, widthIn: W, heightIn: H, dpi, files: [], layers: [], warnings: methodWarnings(k, d, product) };
+    const area = { key: k, label: P.areaLabels?.[k] || PLACEMENTS[k].label, widthIn: W, heightIn: H, dpi, files: [], layers: [], warnings: methodWarnings(k, d, product) };
     if (list.length) {
       const c = document.createElement('canvas'); c.width = wPx; c.height = hPx;
       drawLayers(c.getContext('2d'), wPx, hPx, list);
@@ -2420,8 +1993,8 @@ async function renderProduction(item) {
   }
   if (item.thumb) files.push({ name: 'preview-front.jpg', data: dataUrlBytes(item.thumb) });
   if (item.back) files.push({ name: 'preview-back.jpg', data: dataUrlBytes(item.back) });
-  const colours = { garment: d.colors, parts: d.styles?.[product] || {} };
-  const order = { id: item.id, product, name: item.name, colorway: item.colorway, fabric: P.finish === 'ball' ? undefined : d.fabric, order: item.order, pieces: item.count, unitPrice: item.unit, total: item.total, specs: item.specs, roster: item.roster, colours, areas };
+  const colours = { garment: d.colors };
+  const order = { id: item.id, product, name: item.name, colorway: item.colorway, order: item.order, pieces: item.count, unitPrice: item.unit, total: item.total, specs: item.specs, roster: item.roster, colours, areas };
   files.push({ name: 'order.json', data: new TextEncoder().encode(JSON.stringify(order, null, 2)) });
   files.push({ name: 'order-sheet.html', data: new TextEncoder().encode(orderSheet(order, !!item.thumb, !!item.back)) });
   return files;
@@ -2441,8 +2014,8 @@ table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:4px 8px;
 <h1>${esc(o.name)}</h1><div>Order item ${esc(o.id)} · ${new Date().toLocaleString()}</div>
 <div class="pv">${front ? '<img src="preview-front.jpg" alt="Front">' : ''}${back ? '<img src="preview-back.jpg" alt="Back">' : ''}</div>
 <h2>Summary</h2><table>${(o.specs || []).map(([k, v]) => row(k, esc(v))).join('')}${row('Pieces', o.pieces)}${row('Price', `${money(o.unitPrice)} each · ${money(o.total)} total`)}</table>
-<h2>Colours</h2><table>${row('Body', sw(o.colours.garment.body))}${row('Trims', sw(o.colours.garment.trim))}${Object.entries(o.colours.parts).filter(([, v]) => v?.color).map(([n, v]) => row(n, sw(v.color))).join('')}</table>
-${o.areas.map(a => `<h2>${esc(a.label)} · ${esc(a.method)}</h2><table>${row('Print size', `${a.widthIn} × ${a.heightIn} in at ${a.dpi} dpi`)}${row('Files', a.files.map(f => `<code>${esc(f)}</code>`).join('<br>'))}
+<h2>Colours</h2><table>${row('Garment', sw(o.colours.garment.body))}</table>
+${o.areas.map(a => `<h2>${esc(a.label)}</h2><table>${row('Print size', `${a.widthIn} × ${a.heightIn} in at ${a.dpi} dpi`)}${row('Files', a.files.map(f => `<code>${esc(f)}</code>`).join('<br>'))}
 ${a.layers.map((L, i) => row(`Layer ${i + 1} · ${L.type}`, `${esc(L.content)}${L.font ? ` · ${esc(L.font)}` : ''}${L.ink ? ` · ${sw(L.ink)}` : ''}${L.outline ? ` · outline ${sw(L.outline)}` : ''}<br>${L.widthIn} × ${L.heightIn} in, ${offsetText(L.centreFromMiddleIn)}${L.rotationDeg ? `, rotated ${L.rotationDeg}°` : ''}`)).join('')}
 ${a.warnings.map(w => row('Check', `<span class="warn">${esc(w)}</span>`)).join('')}</table>`).join('')}
 ${o.roster?.length ? `<h2>Roster</h2><table><tr><th>#</th><th>Name</th><th>Number</th><th>Size</th></tr>${o.roster.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.name || '—')}</td><td>${esc(p.number || '—')}</td><td>${esc(p.size)}</td></tr>`).join('')}</table>` : ''}
@@ -2519,10 +2092,8 @@ function renderCatalogue() {
       <div class="meta"><b>${esc(P.name)}</b><span>from ${money(P.price)}</span><em>Customise →</em></div></a>`).join('')}</div></section>`).join('');
 }
 function renderAboutPricing() {
-  const ms = Object.values(PRICING.methods);
-  $('#aboutPricing').innerHTML = `<table class="ptable"><thead><tr><th>Method</th><th>Best for</th><th>Extra print areas</th><th>Setup</th><th>Minimum</th></tr></thead><tbody>${ms.map(m =>
-    `<tr><th>${m.label}</th><td>${esc(m.note.split(' · ')[0])}</td><td>${money(m.extra)} each${m.first ? ` (first area ${money(m.first)})` : ''}</td><td>${m.setup ? money(m.setup) + ' per area' : '—'}</td><td>${m.min > 1 ? m.min + ' pieces' : 'None'}</td></tr>`).join('')}</tbody></table>
-    <p>Your first print area is included in the garment price. Names and numbers add ${money(PRICING.nameNumber)} a piece. Bigger orders save more: ${PRICING.tiers.map(([n, d]) => `${Math.round(d * 100)}% off at ${n}+`).join(', ')} pieces of one design.</p>`;
+  $('#aboutPricing').innerHTML = `<p>Prices on each product include your logo or text in one place. Each extra place (front, back or a sleeve) adds ${money(PRICING.methods.print.extra)} a piece, and team names and numbers add ${money(PRICING.nameNumber)} a piece.</p>
+    <p>Bigger orders save more: ${PRICING.tiers.map(([n, d]) => `${Math.round(d * 100)}% off at ${n}+`).join(', ')} pieces of one design.</p>`;
 }
 function renderBulkProducts() {
   if ($('#bulkProducts').childElementCount) return;
@@ -2778,19 +2349,19 @@ function resize() {
   camera.fov = w / h < 0.9 ? 30 / Math.max(0.55, w / h / 0.9) : 30;
   camera.updateProjectionMatrix();
 }
-new ResizeObserver(() => { resize(); render2D(); invalidate(); }).observe(stage);
+new ResizeObserver(() => { resize(); invalidate(); }).observe(stage);
 resize();
 
 if (!PRODUCTS[state.product]) state.product = 'hoodie';
 state.pattern = Object.assign({ type: 'none', color: '#141414', scale: 1, rot: 0 }, state.pattern);
-state.uploads ||= []; state.styles ||= {};
+state.uploads ||= []; plain(state);
 state.team = Object.assign(defaultTeam(), state.team); state.methods ||= {};
 if (state.pattern.type !== 'none' && !PATTERNS[state.pattern.type] && !(isUpload(state.pattern.type) && state.uploads.some(u => 'u:' + u.id === state.pattern.type))) state.pattern.type = 'none';
 if (!FABRICS[state.fabric]) state.fabric = 'fleece';
 applyPattern();
 renderProduct();
 showProduct(state.product);
-renderColor(); renderFabric(); renderSizes(); renderDesign();
+renderColor(); renderSizes(); renderDesign();
 hist.current = snapshot(); renderHistory();
 renderCatalogue(); renderAboutPricing();
 route();

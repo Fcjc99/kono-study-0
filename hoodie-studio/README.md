@@ -12,37 +12,32 @@ A standalone 3D product customizer for a pullover hoodie. It's one HTML page plu
 Open `index.html` through any static server, for example `npx serve hoodie-studio`. It is separate from the KONO app and is not part of the Vite build.
 
 ## What it does
-- A floating, realistic hoodie built from a real garment model. Orbit, pan and zoom it, or jump to the Front, Back, Left or Right view.
-- Colourways and a custom colour. Per-part colours only appear for models that come in separate parts.
-- Every part can be edited. Click a pattern piece (in 2D or on the model) or a kit part (jersey, trims, shorts, socks), or pick it from the Parts list, to give it its own colour and pattern. Sets also have a "whole jacket" and a "whole shorts" option.
-- All-over patterns (repeat prints): stripes, pinstripe, Breton, plaid, gingham, check, dots, chevron, waves, camo and heather, or upload your own tiles. You can keep up to 12 uploaded tiles and delete them. You can set the pattern colour, scale and angle.
-- A 2D pattern-pieces view, like Fabra's, for garments that have a flat layout (the tee and the crewneck). It shows each sewing pattern piece next to the 3D garment. Click a piece in 2D or on the garment to give it its own colour or switch its pattern on or off. Patterns are cut per piece, the way a cut-and-sew garment is.
-- Fabrics: Jersey Athletic, Cotton, Fleeced and French Terry.
-- Four print areas: front, back, left sleeve and right sleeve. Each one takes text layers (10 fonts, ink colour, size, letter spacing, arc, rotation, outline), built-in graphics and uploaded images.
-- Drag a print directly on the 3D model to move it. Arrow keys nudge it, and Delete removes it.
-- Undo and redo (Ctrl/⌘+Z, Ctrl/⌘+Shift+Z). Quick bursts of changes, like a slider drag, count as one step. Start over can be undone.
-- Team orders: a roster with each player's name, number and size, pasted from a list or added one by one. It shows a size breakdown, warns about duplicate numbers, and prints names and numbers on the back. Click a row to preview that player on the garment.
-- Pages: a Shop home page with a card for every product, the Studio, a Bulk orders (team quote) form, About (how it works, methods, pricing, FAQ) and Orders.
-- Decoration per print area: digital print, screen print or embroidery, each with its own price, one-time setup and minimum, plus warnings for details that won't reproduce well (e.g. embroidered text under ¼ in). Embroidered areas show a stitch texture.
-- Pricing: every rule is in the `PRICING` table in `index.html`. The first print area is included, extra areas and names/numbers are per piece, and bulk discounts apply at 12, 24, 48 and 100 pieces of one design. The page nudges towards the next discount tier.
-- Production files: each bag item, the whole bag or an order downloads a zip containing:
-  - a full-size PNG per print area, sized in inches from `PRINT_IN` (up to 300 dpi);
+- **Pages:** Shop (a card for every product), Studio, Bulk orders (a team quote form), About and Orders.
+- **The studio has three steps:**
+  1. **Colour:** pick a colour or a custom one.
+  2. **Logo & text:** upload a logo or add text on the front, back or sleeves. Choose a placement (Left chest, Centre chest, Full front, Upper back, Full back) and a size, or drag it on the garment. Text shrinks to fit its spot.
+  3. **Size & quantity:** for one piece, or a team roster with names, numbers and sizes.
+
+  Fabric and decoration (print or embroidery) are agreed with the client, so the studio doesn't ask about them.
+- The garment is a realistic 3D model. You can orbit, pan and zoom it, or jump to the Front, Back, Left or Right view.
+- **Undo and redo:** Ctrl/⌘+Z and Ctrl/⌘+Shift+Z. Start over can also be undone.
+- **Designs:** save designs on this device, or share them as a code or a link.
+- **Review before the bag:** pictures of every side and the full spec.
+- **Bag:** edit, duplicate and remove items.
+- **Production files:** a zip for each item or order with:
+  - a full-size PNG for each print area at its real size (up to 300 dpi);
   - one names-and-numbers file per player;
   - previews;
-  - a printable order sheet with positions, sizes and colour codes;
+  - a printable order sheet;
   - `order.json`.
-- Logo library: every uploaded image is kept so it can be reused on any product. Team colour palettes (main, trim, accent) apply in one click. Size charts are shown per product.
-- Orders: Checkout sends an order request, and no payment is taken.
-  - Published on claude.ai, orders and quote requests are stored in the page's database. The owner sees everything under Orders, can set each order's status and can download production files. Customers see only their own orders.
+- **Pricing:** every rule is in `PRICING` in `index.html`. The first logo or text area is included, each extra area and names/numbers add a price per piece, and bulk discounts apply at 12, 24, 48 and 100 pieces.
+- **Orders:** Checkout sends an order request, and no payment is taken.
+  - On claude.ai, orders and quote requests go to the page's database. The owner sees them all under Orders and can set their status.
   - Elsewhere, the order downloads as a zip, or opens an email if `SHOP.email` is set.
-- The size-chart measurements are standard athletic sizing. Replace them with your supplier's specs in `SIZE_CHARTS`.
-- Review before the bag: pictures of all four sides plus the full spec (colours, patterns, fabric, custom parts, prints, roster and price).
-- A bag that keeps its items between visits. You can edit an item (it goes back into the studio), duplicate it or remove it. Checkout is not connected.
-- Designs: save named designs on this device, and share a design as a code or link. Uploaded images are left out of share codes.
-- On phones the panel works as steps, with one section open at a time.
-- Models load with a progress readout, and the rest of the range downloads in the background.
-- Honours reduced-motion settings.
+- **Size charts** use standard athletic sizing. Replace them with your supplier's specs in `SIZE_CHARTS`.
 - The current design, saved designs and the bag are kept in localStorage.
+
+The code for patterns, per-part colours and 2D pattern pieces is still in `index.html` and `tools/`, but the studio no longer shows those controls.
 
 ## How it works
 - Each file in `models/` is made from a real garment model in `models-src/` by `tools/prepare-model.mjs`. The script:
