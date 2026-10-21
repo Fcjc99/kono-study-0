@@ -28,7 +28,7 @@ const PRESETS = {
   hoodie: { simplify: 0.35, front: [0.15, 1.05, 1.05], back: [0.2, 1.2, 1.3], sleeve: { x: 0.4, y: 0.25, lean: 0.18, w: 1.0, h: 0.42 } },
   crewneck: { front: [0.55, 1.0, 1.0], back: [0.5, 1.1, 1.3], sleeve: { x: 0.43, y: 0.2, lean: 0.12, w: 1.1, h: 0.4 } },
   tee: { simplify: 0.45, front: [0.55, 1.0, 1.0], back: [0.55, 1.1, 1.3], sleeve: { x: 0.43, y: 1.0, lean: 0.9, w: 0.42, h: 0.34 } },
-  cap: { pieces: false, keepUV: true, subdivide: 2, normalMap: 'cap-weave-normal.jpg', fitMax: 2.7, yawOffset: 90, front: [0.6, 1.2, 0.8], back: [0.7, 1.1, 0.6], areas: ['front', 'back'] },
+  cap: { pieces: false, keepUV: true, subdivide: 2, normalMap: 'cap-weave-normal.jpg', fitMax: 2.7, yawOffset: 0, front: [0.25, 1.1, 0.75], back: [0.35, 1.0, 0.5], areas: ['front', 'back'] },
   polo: { minPieceTris: 250, dropInner: true, front: [0.5, 1.0, 1.0], back: [0.5, 1.1, 1.3], sleeve: { x: 0.43, y: 0.95, lean: 0.9, w: 0.4, h: 0.32 } },
   tank: { front: [0.4, 0.9, 1.0], back: [0.4, 0.9, 1.2], areas: ['front', 'back'], rename: { 'Left cuff': 'Left armhole binding', 'Right cuff': 'Right armhole binding', Collar: 'Neck binding', 'Collar 2': 'Neck binding 2' } },
   // Team kits: top and bottom stay separate parts; `leg` is a print on the shorts' left leg
@@ -36,6 +36,8 @@ const PRESETS = {
   soccer: { parts: [['jersey', /1001/], ['shorts', /1002/]], segment: 'kit', aoTwoSided: true, recomputeNormals: true, fillHoles: true, front: [1.05, 0.85, 0.75], back: [1.05, 0.9, 0.85], leg: { x: 0.24, y: 0.4, w: 0.35, h: 0.35 }, areas: ['front', 'back', 'left'] },
   // two-garment set: pieces are grouped into zones by height (jacket above the waist, shorts below)
   trackset: { zones: { split: -0.15, upper: 'Jacket', lower: 'Shorts' }, hideBelow: 0.008, squareFrom: 'lower', front: [0.9, 0.9, 0.9], back: [0.9, 1.0, 1.1], sleeve: { x: 0.42, y: 0.6, lean: 0.25, w: 0.9, h: 0.36 } },
+  // tennis skort, shown under the racerback tank as the Tennis outfit (no print areas of its own)
+  skort: { pieces: false, subdivide: 2, recomputeNormals: true, front: [0, 0.4, 0.4], back: [0, 0.4, 0.4], areas: [] },
   ball: { group: /var1/, pieces: false, keepUV: true, normalMap: 'golf-ball-dimples-normal.jpg', yaw: 0, fitMax: 2.6, front: [0.15, 1.8, 1.8], back: [0.15, 1.8, 1.8], areas: ['front', 'back'] },
 };
 const PR = PRESETS[presetName];

@@ -2,7 +2,7 @@
 
 The products are grouped under three tabs:
 - **Men's:** hoodie, crewneck, tee, basketball uniform, soccer kit
-- **Women's:** hoodie, crewneck, performance polo, racerback tank, soccer kit, colour-block track set (jacket and shorts)
+- **Women's:** hoodie, crewneck, colour-block track set (jacket and shorts), tennis uniform (racerback tank and skort), performance polo, racerback tank, soccer kit
 - **Accessories:** six-panel cap, golf balls
 
 Your design carries over when you switch between products.
@@ -13,9 +13,10 @@ Open `index.html` through any static server, for example `npx serve hoodie-studi
 
 ## What it does
 - **Pages:** Shop (a card for every product), Studio, About and Orders. Team and bulk enquiries come in by email.
+- **Each product keeps its own design.** Switching products doesn't change the others, and each product remembers its colour, logo, text, roster and size. Saved designs and bag items open into their own product only.
 - **The studio has three steps:**
   1. **Colour:** pick the garment colour and, where the garment has them, a separate colour for the hem, cuffs and collar (trims and socks on uniforms).
-  2. **Logo & text:** upload a logo or add text. Choose a placement (Left chest, Centre chest, Upper back or Full back; picking a back spot moves the item to the back) and a size, or drag it on the garment. Sleeves take one centred item. Text shrinks to fit its spot.
+  2. **Logo & text:** upload a logo or add text. Choose a placement (Left chest, Centre chest, Upper back or Full back; picking a back spot moves the item to the back) and a size, or drag it on the garment. Sleeves, caps and golf balls take one centred item on the front. Text can run across or vertically and shrinks to fit its spot.
   3. **Size & quantity:** for one piece, or a team roster with names, numbers and sizes.
 
   Fabric and decoration (print or embroidery) are agreed with the client, so the studio doesn't ask about them.
@@ -55,7 +56,7 @@ The code for patterns, per-part colours and 2D pattern pieces is still in `index
 - The knit texture is applied in the shader by triplanar bump mapping, so the garment needs no UV unwrap.
 
 ## Credits
-- Women's polo, racerback tank, basketball uniform, soccer kit, track set, cap and golf ball: supplied by the project owner. Check the licence of each model before using it commercially. Only geometry and surface-detail (normal) maps are used: all printed and branded colour textures were left out.
+- Women's polo, racerback tank, tennis skort, basketball uniform, soccer kit, track set, cap and golf ball: supplied by the project owner. Check the licence of each model before using it commercially. Only geometry and surface-detail (normal) maps are used: all printed and branded colour textures were left out.
 The 3D models are licensed CC BY 4.0, and the studio page shows the credit for the model in use.
 - Hoodie: ["Hoodie Sweatshirt"](https://sketchfab.com/3d-models/hoodie-sweatshirt-d1b0dc66056b4ea7bc616b0d3bb7cf22) by melatmod. Rescaled, recoloured and shaded with baked ambient occlusion for this studio.
 - T-shirt: ["T Shirt"](https://sketchfab.com/3d-models/t-shirt-c1a3e5eb9b5445f4b7d4be82f1127eba) by funlab117. Squared up, rescaled, recoloured and shaded with baked ambient occlusion.

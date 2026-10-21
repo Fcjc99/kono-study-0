@@ -630,7 +630,20 @@ function defaultState() {
     placements: { front: [], back: [], left: [], right: [] },
     styles: {}, uploads: [],
     team: defaultTeam(), methods: {},
+    byProduct: {}, // the designs of the other products, while this one is being edited
   };
+}
+// Each product keeps its own design: the one being edited lives at the top of `state`, the others in byProduct.
+const DESIGN_KEYS = ['colorway', 'colors', 'placements', 'team', 'methods', 'size', 'qty'];
+const pickDesign = d => JSON.parse(JSON.stringify(Object.fromEntries(DESIGN_KEYS.map(k => [k, d[k]])), (k, v) => k[0] === '_' ? undefined : v));
+function switchProduct(key) {
+  if (!PRODUCTS[key] || key === state.product) return;
+  state.byProduct[state.product] = pickDesign(state);
+  const next = state.byProduct[key]; delete state.byProduct[key];
+  Object.assign(state, pickDesign(defaultState()), next || {}, { product: key });
+  state.team = Object.assign(defaultTeam(), state.team);
+  selectedId = null; active = 'front';
+  renderProduct(); showProduct(key); renderColor(); renderSizes(); renderDesign(); applyColors(); save();
 }
 const methodsFor = () => ['print'];
 // Garments are shown in a sensible fabric; the real material is agreed with the client.
@@ -954,6 +967,8 @@ const PRODUCTS = {
     eyebrow: 'Team uniform · jersey + shorts', blurb: 'A match jersey with shorts. Add your crest, sponsors, names and numbers.', areaLabels: { left: 'Shorts' }, printIn: { left: 4 } },
   polo: { group: 'women', trim: 'Collar', label: 'Polo', name: "Women's Performance Polo", crumb: 'Polos', price: 48, model: 'models/polo', sizes: ['XS', 'S', 'M', 'L', 'XL'],
     eyebrow: 'Made to order', blurb: 'A fitted polo with a placket and knit collar.' },
+  tennis: { group: 'women', trim: 'Neck & armholes', label: 'Tennis', name: "Women's Tennis Uniform", crumb: 'Uniforms', price: 58, model: 'models/tank', addOn: 'models/skort', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    eyebrow: 'Team uniform · tank + skort', blurb: 'A racerback tank with a matching tennis skort.' },
   tank: { group: 'women', trim: 'Neck & armholes', label: 'Racerback tank', name: "Women's Racerback Tank", crumb: 'Tanks', price: 30, model: 'models/tank', sizes: ['XS', 'S', 'M', 'L', 'XL'],
     eyebrow: 'Made to order', blurb: 'A lightweight racerback with bound neck and armholes for training days.' },
   soccerW: { group: 'women', trim: 'Trims & socks', label: 'Soccer kit', name: "Women's Soccer Kit", crumb: 'Uniforms', price: 64, model: 'models/soccer', sizes: ['XS', 'S', 'M', 'L', 'XL'],
@@ -1035,7 +1050,7 @@ async function fetchGLTF(url) {
 function prefetchRange() {
   if (navigator.connection?.saveData) return;
   const grp = groupOf(state.product);
-  const urls = [...new Set(Object.entries(PRODUCTS).filter(([k, P]) => P.group === grp && !garments[P.model + (P.finish || '')]).map(([, P]) => P.model + MODEL_EXT))];
+  const urls = [...new Set(Object.entries(PRODUCTS).filter(([k, P]) => P.group === grp && !garments[garmentKey(k)]).flatMap(([, P]) => [P.model + MODEL_EXT, ...(P.addOn ? [P.addOn + MODEL_EXT] : [])]))];
   const next = () => { const u = urls.shift(); if (u) fetchModel(u).catch(() => {}).then(next); }; // one at a time
   (window.requestIdleCallback || (f => setTimeout(f, 1500)))(next);
 }
@@ -1043,6 +1058,7 @@ function prefetchRange() {
 // height cut, and the body only above it (clipping planes, so the edge is a clean line). Returns the cut height.
 const hemPlanes = { body: new THREE.Plane(new V3(0, 1, 0), 0), band: new THREE.Plane(new V3(0, -1, 0), 0) };
 let hemCut = null; // the current garment's cut height in garment space, or null
+let garmentLift = 0; // outfits scaled to fit the view are also re-centred
 function addHemBand(mesh, frac, meshes) {
   const g = mesh.geometry; g.computeBoundingBox();
   const { min, max } = g.boundingBox;
@@ -1052,6 +1068,7 @@ function addHemBand(mesh, frac, meshes) {
   meshes.push(band);
   return mesh.position.y + mesh.scale.y * (min.y + (max.y - min.y) * frac);
 }
+const garmentKey = k => PRODUCTS[k].model + (PRODUCTS[k].finish || '') + (PRODUCTS[k].addOn || '');
 async function buildGarment(key) {
   const gltf = await fetchGLTF(PRODUCTS[key].model + MODEL_EXT);
   const frames = gltf.scene.userData.placements;
@@ -1083,7 +1100,32 @@ async function buildGarment(key) {
     if (m.name === 'body' && PRODUCTS[key].hemBand) g.hemCut = addHemBand(m, PRODUCTS[key].hemBand, g.meshes);
     if (INTERIOR[m.name]) { const inner = new THREE.Mesh(m.geometry, mats[INTERIOR[m.name]]); inner.receiveShadow = true; g.meshes.push(inner); }
   }
+  if (PRODUCTS[key].addOn) await attachBelow(g, PRODUCTS[key].addOn);
   return g;
+}
+// Hangs a second garment (a skort) under the first: sized to its hem, tucked slightly under it, and the
+// whole outfit scaled to fit the view. Print areas stay on the top garment.
+async function attachBelow(g, model) {
+  const gltf = await fetchGLTF(model + MODEL_EXT);
+  const top = g.parts.body.geometry, mesh = []; gltf.scene.traverse(o => { if (o.isMesh && o.name === 'body') mesh.push(o); });
+  const bottom = mesh[0].geometry;
+  top.computeBoundingBox(); bottom.computeBoundingBox();
+  // width and centre of a horizontal band of a geometry (lo..hi as fractions of its height)
+  const band = (geo, lo, hi) => {
+    const p = geo.attributes.position, { min, max } = geo.boundingBox, y0 = min.y + (max.y - min.y) * lo, y1 = min.y + (max.y - min.y) * hi;
+    let x0 = Infinity, x1 = -Infinity, z = 0, n = 0;
+    for (let i = 0; i < p.count; i++) { const y = p.getY(i); if (y < y0 || y > y1) continue; const x = p.getX(i); x0 = Math.min(x0, x); x1 = Math.max(x1, x); z += p.getZ(i); n++; }
+    return { w: x1 - x0, cx: (x0 + x1) / 2, cz: z / Math.max(1, n) };
+  };
+  const hem = band(top, 0, 0.08), waist = band(bottom, 0.92, 1);
+  const k = hem.w * 0.96 / waist.w, tb = top.boundingBox, bb = bottom.boundingBox, tuck = (tb.max.y - tb.min.y) * 0.07;
+  const skirt = new THREE.Mesh(bottom, mats.shorts);
+  skirt.scale.setScalar(k);
+  skirt.position.set(hem.cx - waist.cx * k, tb.min.y + tuck - bb.max.y * k, hem.cz - waist.cz * k);
+  skirt.castShadow = true; skirt.receiveShadow = false; // layered pleats would self-shadow into specks; the baked shading gives depth
+  g.meshes.push(skirt);
+  const lo = skirt.position.y + bb.min.y * k, hi = tb.max.y, s = (tb.max.y - tb.min.y) / (hi - lo);
+  g.fit = { scale: s, y: (tb.max.y + tb.min.y) / 2 - s * (hi + lo) / 2 };
 }
 let loadSeq = 0;
 async function showProduct(key) {
@@ -1093,7 +1135,7 @@ async function showProduct(key) {
   showingUrl = PRODUCTS[key].model + MODEL_EXT;
   if (modelProgress.has(showingUrl)) onModelProgress(showingUrl);
   try {
-    const mkey = PRODUCTS[key].model + (PRODUCTS[key].finish || ''); // kits shared by men's and women's load once
+    const mkey = garmentKey(key); // kits shared by men's and women's load once
     const g = garments[mkey] || (garments[mkey] = await buildGarment(key));
     if (seq !== loadSeq) return; // a newer choice won
     for (const m of [...hoodie.children]) hoodie.remove(m);
@@ -1107,7 +1149,8 @@ async function showProduct(key) {
     mats.body.normalMap = g.detail; mats.body.normalScale.setScalar(0.8); mats.body.needsUpdate = true;
     if (PRODUCTS[key].finish === 'ball') { mats.ball.normalMap = g.detail; mats.ball.normalScale.setScalar(1); mats.ball.needsUpdate = true; }
     state.fabric = fabricFor(key);
-    garmentAreas = g.areas;
+    garmentAreas = PRODUCTS[key].group === 'accessories' ? ['front'] : g.areas; // caps and balls: one centred logo on the front
+    hoodie.scale.setScalar(g.fit?.scale || 1); garmentLift = g.fit?.y || 0;
     if (!garmentAreas.includes(active)) { active = garmentAreas[0]; const l = state.placements[active]; selectedId = l.length ? l[l.length - 1].id : null; }
     renderDesign();
     applyPattern();
@@ -1117,7 +1160,7 @@ async function showProduct(key) {
     prefetchRange();
   } catch (err) {
     console.error(err);
-    delete garments[PRODUCTS[key].model + (PRODUCTS[key].finish || '')];
+    delete garments[garmentKey(key)];
     if (seq === loadSeq) loading.textContent = `The ${PRODUCTS[key].label.toLowerCase()} model could not be loaded. Reload the page to try again.`;
   }
 }
@@ -1227,7 +1270,7 @@ function luminance(hex) {
 let guideDist = 0;
 function guideScale(placement) {
   const F = placementFrames[placement], h = renderer.domElement.clientHeight || 600;
-  const screenW = F.w * h / (2 * guideDist * Math.tan(camera.fov * Math.PI / 360));
+  const screenW = F.w * hoodie.scale.x * h / (2 * guideDist * Math.tan(camera.fov * Math.PI / 360));
   return decals[placement].canvas.width / Math.max(60, screenW);
 }
 // Draws a print area's layers; coordinates are in units of print width, so any canvas size works
@@ -1246,7 +1289,12 @@ function drawLayers(ctx, wPx, hPx, list, sel = null, gs = 1) {
       ctx.lineWidth = L.outlineWidth * px * 0.14;
       const sp = L.spacing * px * 0.02;
       const paint = (s, x, y) => { if (L.outline) ctx.strokeText(s, x, y); ctx.fillText(s, x, y); };
-      if (Math.abs(L.curve) > 1) {
+      if (L.vertical) { // letters stacked top to bottom
+        const chars = [...L.text.replace(/\s*\n\s*/g, ' ')], lh = px * 0.92;
+        chars.forEach((ch, i) => paint(ch, 0, (i - (chars.length - 1) / 2) * lh));
+        hw = Math.max(0, ...chars.map(ch => ctx.measureText(ch).width)) / 2 + px * 0.08;
+        hh = chars.length * lh / 2;
+      } else if (Math.abs(L.curve) > 1) {
         const str = L.text.replace(/\n/g, ' ');
         const widths = [...str].map(ch => ctx.measureText(ch).width + sp);
         const total = widths.reduce((a, b) => a + b, 0) - sp;
@@ -1533,11 +1581,17 @@ function fitText(L, maxW) {
   const w = Math.max(...L.text.split('\n').map(t => measure.measureText(t).width)) / 100 * 0.16 * L.scale;
   if (w > maxW) L.scale = Math.max(0.3, L.scale * maxW / w);
 }
+// Vertical text is shrunk to fit the height of its print area (letters are 0.92 × font size apart).
+function fitVertical(L) {
+  const F = placementFrames?.[findLayer(L.id)[0] || active]; if (!F) return;
+  const h = [...L.text.replace(/\s*\n\s*/g, ' ')].length * 0.92 * 0.16 * L.scale, maxH = 0.9 * F.h / F.w;
+  if (h > maxH) L.scale = Math.max(0.2, L.scale * maxH / h);
+}
 // Puts an item on a spot, moving it to that spot's print area (and turning the garment) if needed.
 function placeAt(L, sp) {
   const [, area, x, y, sz, maxW] = sp;
   Object.assign(L, { x, y, scale: sz[sizeKind(L)], rot: 0 });
-  if (L.type === 'text') fitText(L, maxW);
+  if (L.type === 'text') { if (L.vertical) fitVertical(L); else fitText(L, maxW); }
   const [from] = findLayer(L.id);
   if (from && from !== area) {
     state.placements[from].splice(state.placements[from].indexOf(L), 1);
@@ -1564,7 +1618,8 @@ function renderEditor() {
   let h = '';
   if (L.type === 'text') h += `<div class="field"><label for="f-text">Text</label><textarea id="f-text" data-key="text" rows="2" maxlength="60">${esc(L.text)}</textarea></div>
     <div class="grid2"><div class="field"><label for="f-font">Font</label><select id="f-font" data-key="font">${FONTS.map(fi => `<option value="${fi.f}" ${fi.f === L.font ? 'selected' : ''}>${fi.label || fi.f}</option>`).join('')}</select></div>
-    <div class="field"><span class="lbl">Colour</span>${inkPicker('color', L.color)}</div></div>`;
+    <div class="field"><span class="lbl">Colour</span>${inkPicker('color', L.color)}</div></div>
+    <div class="field"><span class="lbl">Direction</span><div class="seg"><button data-act="vertical" data-v="0" aria-pressed="${!L.vertical}">Across</button><button data-act="vertical" data-v="1" aria-pressed="${!!L.vertical}">Vertical</button></div></div>`;
   h += sliderF('Size', 'scale', L.type === 'text' ? 0.3 : 0.15, L.type === 'text' ? 2.2 : 1.8, 0.01, L.scale, FMT.scale);
   if (spots.length > 1) h += `<div class="field"><span class="lbl">Placement</span><div class="seg" style="grid-template-columns:repeat(${spots.length > 3 ? 2 : spots.length},1fr)">${spots.map((sp, i) => `<button data-act="spot" data-i="${i}" aria-pressed="${atSpot(L, sp)}">${sp[0]}</button>`).join('')}</div></div>`;
   h += '<p class="small" style="margin:0">Drag it on the garment to fine-tune where it sits.</p>';
@@ -1614,6 +1669,7 @@ $('#editor').addEventListener('click', e => {
   if (b.dataset.act === 'ink') { L[b.dataset.k] = b.dataset.v; renderEditor(); }
   if (b.dataset.act === 'cx') { L.x = 0; syncEditorPosition(); }
   if (b.dataset.act === 'r0') { L.rot = 0; renderEditor(); }
+  if (b.dataset.act === 'vertical') { L.vertical = b.dataset.v === '1'; if (L.vertical) { L.y = 0; fitVertical(L); } else fitText(L, 0.9); renderEditor(); } // vertical text runs down the middle of the area
   if (b.dataset.act === 'spot') { placeAt(L, spotsFor(active)[+b.dataset.i]); renderDesign(); }
   invalidate(); save();
 });
@@ -1645,6 +1701,12 @@ const restoreSnapshot = s => applyDesign(unsnapshot(s), true);
 // Puts a whole design into the studio (undo, the bag's Edit, saved designs, share codes).
 function applyDesign(d, keepOrder) {
   const prevProduct = state.product, uploads = state.uploads;
+  if (!keepOrder) { // undo restores everything; anything else only replaces the design of its own product
+    const byProduct = JSON.parse(JSON.stringify(state.byProduct || {}));
+    if (d.product !== state.product) byProduct[state.product] = pickDesign(state);
+    delete byProduct[d.product];
+    d = { ...d, byProduct };
+  }
   state = Object.assign(defaultState(), d, keepOrder ? { size: state.size, qty: state.qty } : {});
   state.team = Object.assign(defaultTeam(), state.team); state.methods ||= {}; plain(state);
   if (!PRODUCTS[state.product]) state.product = prevProduct;
@@ -1665,8 +1727,8 @@ document.addEventListener('keydown', e => {
   else if ((k === 'z' && e.shiftKey) || k === 'y') { redo(); e.preventDefault(); }
 });
 $('#startOver').addEventListener('click', () => {
-  const product = state.product, uploads = state.uploads;
-  state = defaultState(); state.product = product; state.uploads = uploads; // keep the uploaded tiles
+  const { product, uploads, byProduct } = state;
+  state = defaultState(); Object.assign(state, { product, uploads, byProduct }); // only this product starts over
   selectedId = null; selectedRegion = null; active = garmentAreas[0];
   applyPattern(); applyColors(); applyFabric(); renderColor(); renderSizes(); renderDesign(); save();
   toast('Back to a plain grey blank · Undo brings your design back');
@@ -1674,11 +1736,11 @@ $('#startOver').addEventListener('click', () => {
 $('#groups').addEventListener('click', e => {
   const b = e.target.closest('[data-group]'); if (!b) return;
   const first = Object.keys(PRODUCTS).find(k => groupOf(k) === b.dataset.group);
-  if (first && first !== state.product) { state.product = first; renderProduct(); showProduct(first); save(); }
+  if (first) switchProduct(first);
 });
 $('#products').addEventListener('click', e => {
   const b = e.target.closest('[data-product]'); if (!b || b.dataset.product === state.product) return;
-  state.product = b.dataset.product; renderProduct(); showProduct(state.product); save();
+  switchProduct(b.dataset.product);
 });
 
 // Size / qty / price
@@ -1703,7 +1765,7 @@ function chartsFor(product) {
   const P = PRODUCTS[product], w = P.group === 'women';
   if (product === 'cap') return ['cap'];
   if (P.group === 'accessories') return [];
-  const shorts = /basketball|soccer|trackset/.test(product);
+  const shorts = /basketball|soccer|trackset|tennis/.test(product);
   return [w ? 'womenTop' : 'menTop', ...(shorts ? [w ? 'womenShorts' : 'menShorts'] : [])];
 }
 $('#sizeChartBtn').addEventListener('click', () => {
@@ -1898,7 +1960,7 @@ function rosterTable() {
 }
 let pendingItem = null;
 $('#addBag').addEventListener('click', () => {
-  if (!garments[PRODUCTS[state.product].model + (PRODUCTS[state.product].finish || '')]) return toast('The model is still loading');
+  if (!garments[garmentKey(state.product)]) return toast('The model is still loading');
   const p = price();
   const missing = teamActive() ? state.team.players.filter(pl => state.team.names && !pl.name.trim() || state.team.numbers && !pl.number).length : 0;
   const views = captureViews(360), specs = designSpecs();
@@ -1908,7 +1970,7 @@ $('#addBag').addEventListener('click', () => {
     (missing ? `<dt>Check</dt><dd class="warn">${missing} player${missing > 1 ? 's are' : ' is'} missing a name or number</dd>` : '') +
     garmentAreas.flatMap(k => methodWarnings(k).map(w => `<dt>Check</dt><dd class="warn">${esc(areaLabel(k))}: ${esc(w)}</dd>`)).join('');
   $('#confirmBag').textContent = `Add to bag · ${money(p.total)}`;
-  pendingItem = { id: newId(), product: state.product, name: PRODUCTS[state.product].name, colorway: state.colorway, thumb: views.front, back: views.back, specs, roster: teamActive() ? state.team.players.map(pl => ({ ...pl })) : null, order: orderText(), count: p.count, unit: p.unit, total: p.total, design: JSON.stringify(state, (k, v) => k[0] === '_' ? undefined : v) };
+  pendingItem = { id: newId(), product: state.product, name: PRODUCTS[state.product].name, colorway: state.colorway, thumb: views.front, back: views.back, specs, roster: teamActive() ? state.team.players.map(pl => ({ ...pl })) : null, order: orderText(), count: p.count, unit: p.unit, total: p.total, design: JSON.stringify(state, (k, v) => k[0] === '_' || k === 'byProduct' ? undefined : v) };
   openDialog($('#reviewDlg'));
 });
 $('#confirmBag').addEventListener('click', () => {
@@ -1981,7 +2043,7 @@ async function saveFile(filename, blob) {
   return true;
 }
 async function ensureGarment(product) {
-  const mkey = PRODUCTS[product].model + (PRODUCTS[product].finish || '');
+  const mkey = garmentKey(product);
   return garments[mkey] || (garments[mkey] = await buildGarment(product));
 }
 const imageLoaded = (L) => new Promise(res => { const t0 = performance.now(); (function poll() { if (layerImage(L) || performance.now() - t0 > 8000) res(); else setTimeout(poll, 40); })(); });
@@ -2103,7 +2165,7 @@ function showView(view, arg) {
   document.querySelectorAll('.nav [data-nav]').forEach(a => { if (a.dataset.nav === view) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   const was = currentView; currentView = view;
   if (view === 'studio') {
-    if (arg && PRODUCTS[arg] && arg !== state.product) { state.product = arg; renderProduct(); showProduct(arg); save(); }
+    if (arg) switchProduct(arg);
     resize(); invalidate();
   }
   if (view === 'orders') loadOrders();
@@ -2246,7 +2308,7 @@ $('#ordersList').addEventListener('click', async e => {
 const DESIGNS_KEY = 'threadlab-designs-v1';
 let savedDesigns = [];
 try { savedDesigns = JSON.parse(localStorage.getItem(DESIGNS_KEY) || '[]'); } catch { savedDesigns = []; }
-const plainState = () => JSON.parse(JSON.stringify(state, (k, v) => k[0] === '_' ? undefined : v));
+const plainState = () => JSON.parse(JSON.stringify(state, (k, v) => k[0] === '_' || k === 'byProduct' ? undefined : v));
 function renderSaved() {
   $('#savedList').innerHTML = savedDesigns.length ? savedDesigns.map(d => `<li data-id="${d.id}"><img src="${d.thumb}" alt="">
       <div><b>${esc(d.name)}</b><div class="meta">${esc(PRODUCTS[d.product]?.label || '')} · ${new Date(d.at).toLocaleDateString()}</div></div>
@@ -2260,7 +2322,7 @@ $('#designsBtn').addEventListener('click', () => {
 });
 $('#saveForm').addEventListener('submit', e => {
   e.preventDefault();
-  if (!garments[PRODUCTS[state.product].model + (PRODUCTS[state.product].finish || '')]) return toast('The model is still loading');
+  if (!garments[garmentKey(state.product)]) return toast('The model is still loading');
   const d = { id: newId(), name: $('#designName').value.trim() || 'Untitled', product: state.product, at: Date.now(), thumb: captureViews(160).front, design: plainState() };
   savedDesigns.unshift(d);
   try { localStorage.setItem(DESIGNS_KEY, JSON.stringify(savedDesigns)); }
@@ -2402,8 +2464,8 @@ renderer.setAnimationLoop(() => {
   const t = clock.getElapsedTime(), now = performance.now();
   if (needsRedraw) { needsRedraw = false; redrawTextures(); }
   const bob = reduceMotion ? 0 : Math.sin(t * 1.1);
-  hoodie.position.y = -0.22 + bob * 0.06;
-  if (hemCut !== null) { const y = hoodie.position.y + hemCut; hemPlanes.body.constant = -y; hemPlanes.band.constant = y; }
+  hoodie.position.y = -0.22 + garmentLift + bob * 0.06;
+  if (hemCut !== null) { const y = hoodie.position.y + hemCut * hoodie.scale.y; hemPlanes.body.constant = -y; hemPlanes.band.constant = y; }
   if (!reduceMotion) { hoodie.rotation.z = Math.sin(t * 0.7) * 0.015; hoodie.rotation.x = Math.sin(t * 0.9 + 1) * 0.012; }
   groundShadow.scale.setScalar(1 - bob * 0.06);
   groundShadow.material.opacity = 0.9 - bob * 0.15;
