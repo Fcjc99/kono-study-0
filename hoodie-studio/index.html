@@ -421,10 +421,7 @@ dialog.sheet.side{margin:0 0 0 auto;height:100dvh;max-height:100dvh;border-radiu
     <section class="sec">
       <h2><span><span class="n">01</span></span><b style="flex:1">Colour</b><span id="colorName">Heather Grey</span></h2>
       <div class="swatches" id="swatches"></div>
-      <div class="trimrow" id="trimRow" hidden>
-        <div class="row"><span class="lbl" id="trimLabel">Hem</span><span class="small" id="trimName" style="margin:0"></span></div>
-        <div class="swatches" id="trimSwatches"></div>
-      </div>
+      <div id="extraColours"></div>
     </section>
 
     <section class="sec">
@@ -967,7 +964,7 @@ const PRODUCTS = {
     eyebrow: 'Team uniform · jersey + shorts', blurb: 'A match jersey with shorts. Add your crest, sponsors, names and numbers.', areaLabels: { left: 'Shorts' }, printIn: { left: 4 } },
   polo: { group: 'women', trim: 'Collar', label: 'Polo', name: "Women's Performance Polo", crumb: 'Polos', price: 48, model: 'models/polo', sizes: ['XS', 'S', 'M', 'L', 'XL'],
     eyebrow: 'Made to order', blurb: 'A fitted polo with a placket and knit collar.' },
-  tennis: { group: 'women', trim: 'Neck & armholes', label: 'Tennis', name: "Women's Tennis Uniform", crumb: 'Uniforms', price: 58, model: 'models/tank', addOn: 'models/skort', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+  tennis: { group: 'women', trim: 'Neck & armholes', bottom: 'Skort', label: 'Tennis', name: "Women's Tennis Uniform", crumb: 'Uniforms', price: 58, model: 'models/tank', addOn: 'models/skort', sizes: ['XS', 'S', 'M', 'L', 'XL'],
     eyebrow: 'Team uniform · tank + skort', blurb: 'A racerback tank with a matching tennis skort.' },
   tank: { group: 'women', trim: 'Neck & armholes', label: 'Racerback tank', name: "Women's Racerback Tank", crumb: 'Tanks', price: 30, model: 'models/tank', sizes: ['XS', 'S', 'M', 'L', 'XL'],
     eyebrow: 'Made to order', blurb: 'A lightweight racerback with bound neck and armholes for training days.' },
@@ -1483,8 +1480,8 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 // Colour
 function setColorway(name, hex) {
   state.colorway = name;
-  const trim = state.colors.trim === state.colors.body ? hex : state.colors.trim; // a separately chosen trim stays
-  Object.assign(state.colors, { body: hex, sleeves: hex, hood: hex, shorts: hex, trim, lining: shade(hex, -0.14), strings: luminance(hex) > 0.5 ? shade(hex, 0.6) : shade(hex, 0.15) });
+  const C = state.colors, follow = k => (C[k] || C.body) === C.body ? hex : C[k]; // separately chosen trim/bottom colours stay
+  Object.assign(state.colors, { body: hex, sleeves: hex, hood: hex, shorts: follow('shorts'), trim: follow('trim'), lining: shade(hex, -0.14), strings: luminance(hex) > 0.5 ? shade(hex, 0.6) : shade(hex, 0.15) });
   applyColors(); renderColor(); save();
 }
 function renderColor() {
@@ -1494,20 +1491,25 @@ function renderColor() {
   $('#colorName').textContent = state.colorway;
   renderTrim();
 }
+// Extra colour rows: the trim (hem, cuffs, collar…) and a separate bottom (the tennis skort). Each follows the
+// main colour until it's picked on its own.
+const EXTRA_COLOURS = [['trim', P => P.trim], ['shorts', P => P.bottom]];
 function renderTrim() {
-  const label = PRODUCTS[state.product].trim, t = state.colors.trim;
-  $('#trimRow').hidden = !label; if (!label) return;
-  $('#trimLabel').textContent = label;
-  $('#trimName').textContent = t === state.colors.body ? 'Same as garment' : colorName(t);
-  $('#trimSwatches').innerHTML = COLORWAYS.map(([n, h]) => `<button class="sw" style="background:${h}" title="${n}" aria-label="${label}: ${n}" aria-pressed="${t === h}" data-trim="${h}"></button>`).join('') +
-    `<label class="sw custom${COLORWAYS.some(c => c[1] === t) ? '' : ' on'}" title="Custom colour"><input type="color" id="trimCustom" value="${t}" aria-label="${label}: custom colour"></label>`;
+  const P = PRODUCTS[state.product];
+  $('#extraColours').innerHTML = EXTRA_COLOURS.filter(([, lab]) => lab(P)).map(([key, lab]) => {
+    const label = lab(P), t = state.colors[key] || state.colors.body;
+    return `<div class="trimrow" data-colour="${key}">
+      <div class="row"><span class="lbl">${esc(label)}</span><span class="small" style="margin:0">${t === state.colors.body ? 'Same as garment' : esc(colorName(t))}</span></div>
+      <div class="swatches">${COLORWAYS.map(([n, h]) => `<button class="sw" style="background:${h}" title="${n}" aria-label="${esc(label)}: ${n}" aria-pressed="${t === h}" data-set="${h}"></button>`).join('')}<label class="sw custom${COLORWAYS.some(c => c[1] === t) ? '' : ' on'}" title="Custom colour"><input type="color" value="${t}" aria-label="${esc(label)}: custom colour"></label></div>
+    </div>`;
+  }).join('');
 }
-function setTrim(hex) { state.colors.trim = hex; applyColors(); invalidate(); renderTrim(); save(); }
-$('#trimSwatches').addEventListener('click', e => { const b = e.target.closest('[data-trim]'); if (b) setTrim(b.dataset.trim); });
-$('#trimSwatches').addEventListener('input', e => { if (e.target.id === 'trimCustom') { state.colors.trim = e.target.value; applyColors(); invalidate(); $('#trimName').textContent = colorName(e.target.value); save(); } });
-$('#trimSwatches').addEventListener('change', e => { if (e.target.id === 'trimCustom') renderTrim(); });
+function setExtraColour(key, hex, rerender = true) { state.colors[key] = hex; applyColors(); invalidate(); if (rerender) renderTrim(); save(); }
+$('#extraColours').addEventListener('click', e => { const b = e.target.closest('[data-set]'); if (b) setExtraColour(b.closest('[data-colour]').dataset.colour, b.dataset.set); });
+$('#extraColours').addEventListener('input', e => { if (e.target.type === 'color') setExtraColour(e.target.closest('[data-colour]').dataset.colour, e.target.value, false); });
+$('#extraColours').addEventListener('change', e => { if (e.target.type === 'color') renderTrim(); });
 $('#swatches').addEventListener('click', e => { const b = e.target.closest('[data-cw]'); if (b) setColorway(b.dataset.cw, COLORWAYS.find(c => c[0] === b.dataset.cw)[1]); });
-$('#swatches').addEventListener('input', e => { if (e.target.id === 'customColor') { const v = e.target.value; state.colorway = 'Custom'; const trim = state.colors.trim === state.colors.body ? v : state.colors.trim; Object.assign(state.colors, { body: v, sleeves: v, hood: v, shorts: v, trim, lining: shade(v, -0.14) }); applyColors(); $('#colorName').textContent = 'Custom'; save(); } });
+$('#swatches').addEventListener('input', e => { if (e.target.id === 'customColor') { const v = e.target.value; state.colorway = 'Custom'; const C = state.colors, follow = k => (C[k] || C.body) === C.body ? v : C[k]; Object.assign(state.colors, { body: v, sleeves: v, hood: v, shorts: follow('shorts'), trim: follow('trim'), lining: shade(v, -0.14) }); applyColors(); $('#colorName').textContent = 'Custom'; renderTrim(); save(); } });
 $('#swatches').addEventListener('change', e => { if (e.target.id === 'customColor') renderColor(); });
 
 // Pattern
@@ -1942,7 +1944,7 @@ function orderText() {
 }
 function designSpecs() {
   const P = PRODUCTS[state.product], rows = [['Item', P.name], ['Colour', state.colorway]];
-  if (P.trim && state.colors.trim !== state.colors.body) rows.push([P.trim, colorName(state.colors.trim)]);
+  for (const [key, lab] of EXTRA_COLOURS) if (lab(P) && state.colors[key] && state.colors[key] !== state.colors.body) rows.push([lab(P), colorName(state.colors[key])]);
   for (const k of garmentAreas) {
     const list = state.placements[k]; if (!list.length) continue;
     rows.push([areaLabel(k), list.map(L => L.type === 'text' ? `“${L.text.replace(/\n/g, ' ')}” (${L.font})` : L.type === 'graphic' ? `${GRAPHICS[L.key].name} graphic` : `Logo: ${L.name || 'upload'}`).join(' · ')]);
@@ -2109,7 +2111,7 @@ table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:4px 8px;
 <h1>${esc(o.name)}</h1><div>Order item ${esc(o.id)} · ${new Date().toLocaleString()}</div>
 <div class="pv">${front ? '<img src="preview-front.jpg" alt="Front">' : ''}${back ? '<img src="preview-back.jpg" alt="Back">' : ''}</div>
 <h2>Summary</h2><table>${(o.specs || []).map(([k, v]) => row(k, esc(v))).join('')}${row('Pieces', o.pieces)}${row('Price', `${money(o.unitPrice)} each · ${money(o.total)} total`)}</table>
-<h2>Colours</h2><table>${row('Garment', sw(o.colours.garment.body))}${PRODUCTS[o.product]?.trim ? row(PRODUCTS[o.product].trim, sw(o.colours.garment.trim)) : ''}</table>
+<h2>Colours</h2><table>${row('Garment', sw(o.colours.garment.body))}${EXTRA_COLOURS.filter(([, lab]) => PRODUCTS[o.product] && lab(PRODUCTS[o.product])).map(([key, lab]) => row(lab(PRODUCTS[o.product]), sw(o.colours.garment[key] || o.colours.garment.body))).join('')}</table>
 ${o.areas.map(a => `<h2>${esc(a.label)}</h2><table>${row('Print size', `${a.widthIn} × ${a.heightIn} in at ${a.dpi} dpi`)}${row('Files', a.files.map(f => `<code>${esc(f)}</code>`).join('<br>'))}
 ${a.layers.map((L, i) => row(`Layer ${i + 1} · ${L.type}`, `${esc(L.content)}${L.font ? ` · ${esc(L.font)}` : ''}${L.ink ? ` · ${sw(L.ink)}` : ''}${L.outline ? ` · outline ${sw(L.outline)}` : ''}<br>${L.widthIn} × ${L.heightIn} in, ${offsetText(L.centreFromMiddleIn)}${L.rotationDeg ? `, rotated ${L.rotationDeg}°` : ''}`)).join('')}
 ${a.warnings.map(w => row('Check', `<span class="warn">${esc(w)}</span>`)).join('')}</table>`).join('')}
