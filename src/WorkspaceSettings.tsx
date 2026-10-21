@@ -33,14 +33,14 @@ export function QuickFamilyAdd({kids,time:startAt,date,until:defaultUntil,driver
   <fieldset className="whose-pick"><legend>Who’s it for?</legend><label><input type="checkbox" checked={!kidIds.length} onChange={()=>setKidIds([])}/> Me / whole family</label>{kids.map(k=><label key={k.id}><input type="checkbox" checked={kidIds.includes(k.id)} onChange={()=>setKidIds(ids=>ids.includes(k.id)?ids.filter(x=>x!==k.id):[...ids,k.id])}/> {(k.emoji?k.emoji+' ':'')+k.name}</label>)}</fieldset>
   <label>Type<select value={kind} onChange={e=>setKind(e.target.value as CalendarEventKind)}>{QUICK_KIND_OPTIONS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
   <label>What is it?<input required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Soccer practice, Dentist, Work shift…"/></label>
-  <label>Start time (optional)<input type="time" value={time} onChange={e=>setTime(e.target.value)}/></label>
-  <label>End time (optional)<input type="time" value={endTime} onChange={e=>setEndTime(e.target.value)}/></label>
+  <div className="quick-family-times"><label>Start time (optional)<input type="time" value={time} onChange={e=>setTime(e.target.value)}/></label>
+  <label>End time (optional)<input type="time" value={endTime} onChange={e=>setEndTime(e.target.value)}/></label></div>
   <label>Who’s driving? (optional)<input list="quick-family-drivers" maxLength={60} value={driver} onChange={e=>setDriver(e.target.value)} placeholder="Mom, Dad, carpool…"/><datalist id="quick-family-drivers">{drivers.map(d=><option key={d} value={d}/>)}</datalist></label>
   <fieldset className="repeat-days"><legend>Repeats every (optional)</legend>{WEEKDAY_LETTERS.map((name,d)=><label key={name} className={repeatDays.includes(d)?'is-on':''}><input type="checkbox" checked={repeatDays.includes(d)} onChange={()=>toggleDay(d)}/>{name}</label>)}
    {repeatDays.length>0&&<label className="repeat-until">Until<input type="date" value={until} min={date} onChange={e=>setUntil(e.target.value)}/></label>}</fieldset>
   {(()=>{const list=clashes&&title.trim()?clashes({title:title.trim(),kind,kidIds,time:time||undefined,endTime:endTime||undefined,driver:driver.trim()||undefined,repeatDays,until}):[];return list.length?<div className="clash-warning" role="status"><strong>⚠️ Heads up</strong><ul>{list.slice(0,3).map(c=><li key={c.date+c.text}>{c.text}</li>)}</ul>{list.length>3&&<small>And {list.length-3} more.</small>}</div>:null})()}
   {error&&<p role="alert">{error}</p>}
-  <div className="wb-toolbar"><button className="primary" type="submit">{busy?'Adding…':'Add'}</button><button type="button" onClick={onCancel}>Cancel</button></div>
+  <div className="wb-toolbar quick-family-actions"><button className="primary" type="submit">{busy?'Adding…':'Add'}</button><button type="button" onClick={onCancel}>Cancel</button></div>
  </fieldset></form>
 }
 // A per-kid tag list for the one shared family calendar -- add each kid once here with a color and
