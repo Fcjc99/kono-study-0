@@ -18,7 +18,7 @@ export default async function handler(req: Request, res: Response) {
   const token = typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice(7) : ''
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
-    const result = await handleAi(token, body, { fetch, openaiKey: process.env.OPENAI_API_KEY, supabaseUrl, supabaseKey, model: process.env.KONO_AI_MODEL })
+    const result = await handleAi(token, body, { fetch, openaiKey: process.env.OPENAI_API_KEY, supabaseUrl, supabaseKey, model: process.env.KONO_AI_MODEL, visionModel: process.env.KONO_AI_VISION_MODEL })
     res.status(result.status).json(result.body)
   } catch {
     res.status(502).json({ error: 'KONO’s AI couldn’t be reached. Try again in a moment.' })

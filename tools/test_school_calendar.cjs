@@ -229,6 +229,10 @@ test('Duxbury Middle School, a Grade 7 screenshot cropped above its day headings
  const found=classesFromRows(rows,cycle,bells)
  assert.equal(JSON.stringify(found.classes.map(c=>c.label)),JSON.stringify([F,F,E,E,M,M,O,P,C,C,G,G,S,S]))
  assert.equal(found.conflicts.length,0)
+ // A misread: one row drops a cell (shifting it a day) and some cells come with their course codes.
+ const messy=JSON.parse(raw);messy.grid[3].cells.splice(5,1);messy.grid[0].cells[0].code='471-02'
+ const fixedUp=classesFromRows(parseAiClassSchedule(JSON.stringify(messy),cycle,dms.start,dms.end),cycle,bells)
+ assert.equal(JSON.stringify(fixedUp.classes.map(c=>c.label.replace(/^471-02 · /,''))),JSON.stringify([F,F,E,E,M,M,O,P,C,C,G,G,S,S]),'the shifted row is left out and the codes count with the rest')
 })
 test('Duxbury Middle, cropped to a day or two: a one-column grid with no headings is that day, a second screenshot carries on from it, and an answer with only the grid (no class list) is read',()=>{
  const {parseAiClassSchedule}=load('src/store/aiClassSchedule.ts'),{bellScheduleFor,classesFromRows}=load('src/store/bellSchedules.ts'),{academicTemplate}=load('src/store/academicCatalog.ts')

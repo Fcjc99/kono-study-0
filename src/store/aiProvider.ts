@@ -28,11 +28,12 @@ async function callGemini(prompt: string, apiKey: string, photo?: PhotoInput): P
 }
 
 async function callOpenAI(prompt: string, apiKey: string, photo?: PhotoInput): Promise<string> {
-  const content: unknown = photo ? [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: `data:${photo.mimeType};base64,${photo.base64}` } }] : prompt
+  // Photos at full detail, read by the full model: a schedule grid's small print needs both.
+  const content: unknown = photo ? [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: `data:${photo.mimeType};base64,${photo.base64}`, detail: 'high' } }] : prompt
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ model: 'gpt-4o-mini', response_format: { type: 'json_object' }, messages: [{ role: 'user', content }] }),
+    body: JSON.stringify({ model: photo ? 'gpt-4o' : 'gpt-4o-mini', response_format: { type: 'json_object' }, messages: [{ role: 'user', content }] }),
   })
   if (!response.ok) aiFail(response.status === 401 ? 'That OpenAI API key was rejected. Check it in Settings.' : `OpenAI request failed (${response.status}). Try again in a moment.`)
   const data = await response.json() as { choices?: { message?: { content?: string } }[] }

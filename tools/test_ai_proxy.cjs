@@ -19,6 +19,7 @@ function fakes({user=true,allowed=true,used=3,openai={status:200,body:{choices:[
  assert.equal(f.calls[0].init.headers.authorization,'Bearer tok','the person’s own token checks the sign-in')
  f=fakes();r=await handleAi('tok',{prompt:'Photo JSON',photo:{base64:'aGVsbG8=',mimeType:'image/jpeg'}},f.deps)
  assert.equal(r.status,200);assert.match(JSON.parse(f.calls.at(-1).init.body).messages[0].content[1].image_url.url,/^data:image\/jpeg;base64,aGVsbG8=$/)
+ {const sent=JSON.parse(f.calls.at(-1).init.body);assert.equal(sent.model,'gpt-4o','a photo is read by the full model');assert.equal(sent.messages[0].content[1].image_url.detail,'high','at full detail, so a schedule’s small print is readable')}
  f=fakes();r=await handleAi('tok',{prompt:'x'},{...f.deps,openaiKey:undefined});assert.equal(r.status,503);assert.equal(f.calls.length,0)
  f=fakes();r=await handleAi('',{prompt:'x'},f.deps);assert.equal(r.status,401);assert.equal(f.calls.length,0)
  f=fakes({user:false});r=await handleAi('bad',{prompt:'x'},f.deps);assert.equal(r.status,401);assert.ok(!f.calls.some(c=>c.url.includes('openai')))
