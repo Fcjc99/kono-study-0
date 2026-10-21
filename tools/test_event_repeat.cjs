@@ -49,6 +49,16 @@ test('a change goes to only this one, this and the ones after, or all of them (d
  assert.equal(titles(applyToSeries(events,edited,'2026-10-09','following')),'e0:Tutoring@2026-10-02 13:30-14:30, e1:Tutoring@2026-10-09 13:30-14:30, e2:Math tutoring@2026-10-16 15:00-, e3:Math tutoring@2026-10-23 15:00-, x:Other@2026-10-16 -, y:Tutoring@2026-10-16 -')
  assert.equal(titles(applyToSeries(events,edited,'2026-10-09','all')),'e0:Math tutoring@2026-10-02 15:00-, e1:Tutoring@2026-10-09 13:30-14:30, e2:Math tutoring@2026-10-16 15:00-, e3:Math tutoring@2026-10-23 15:00-, x:Other@2026-10-16 -, y:Tutoring@2026-10-16 -')
 })
+test('only what was changed goes to the rest of a series: a new time for all keeps each day’s own note',()=>{
+ const series=['2026-10-02','2026-10-09','2026-10-16'].map((date,i)=>({id:'e'+i,profileId:'p',date,title:'Soccer',kind:'sports',notes:i===2?'Bring shin guards':'',time:'16:00',recurringId:'rec'}))
+ const original=series[0],edited={...original,time:'17:00',notes:'Field 3 today'}
+ const out=applyToSeries(series,{...original,time:'17:00'},'2026-10-02','all',original)
+ assert.deepEqual(out.map(e=>e.time+' '+e.notes),['16:00 ','17:00 ','17:00 Bring shin guards'],'the time moves, Oct 16’s note stays')
+ const withNote=applyToSeries(series,edited,'2026-10-02','all',original)
+ assert.deepEqual(withNote.slice(1).map(e=>e.notes),['Field 3 today','Field 3 today'],'a note changed for all goes to all')
+ const {applyToTaskSeries}=lib,tasks=[{id:'a',profileId:'p',title:'Reading log',due:'2026-10-05',done:false,notes:'',recurringId:'r'},{id:'b',profileId:'p',title:'Reading log',due:'2026-10-12',done:false,notes:'Chapter 4',recurringId:'r'}]
+ assert.equal(applyToTaskSeries(tasks,{...tasks[0],title:'Reading log (20 min)'},'2026-10-05','all',tasks[0])[1].notes,'Chapter 4')
+})
 test('repeating homework: a change goes to the rest of the series (not the due dates), and on certain weekdays',()=>{
  const {applyToTaskSeries}=lib
  const task=(id,due,extra={})=>({id,profileId:'p',subjectId:'',title:'Spelling',due,done:false,notes:'',recurringId:'r',...extra})
@@ -60,4 +70,4 @@ test('repeating homework: a change goes to the rest of the series (not the due d
  assert.equal(applyToTaskSeries(tasks,edited,'2026-10-12','all')[0].title,'Spelling test')
  assert.deepEqual([...lib.weekdayDates('2026-10-05',[1,3],'2026-10-14')],['2026-10-07','2026-10-12','2026-10-14'],'Mondays and Wednesdays after Mon Oct 5')
 })
-console.log(passed+'/5 repeating-event groups passed.')
+console.log(passed+'/6 repeating-event groups passed.')

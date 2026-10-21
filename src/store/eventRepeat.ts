@@ -56,20 +56,24 @@ export function repeatCopy(event:CalendarEvent,date:string,recurringId:string):C
 export type SeriesScope='one'|'following'|'all'
 /** What a change to one event carries to the rest of its series (not the date). */
 const SHARED=['title','subjectId','kidId','kidIds','kind','time','endTime','notes','driver','location','travelMinutes'] as const
-export function applyToSeries(events:CalendarEvent[],edited:CalendarEvent,from:string,scope:SeriesScope):CalendarEvent[]{
- return applyToSeriesBy(events,edited,from,scope,e=>e.date,SHARED)
+/** original: the event as it was before the change. Given, only what was changed goes to the rest (a new
+ * time doesn't wipe each day's own note); without it, every shared field does. */
+export function applyToSeries(events:CalendarEvent[],edited:CalendarEvent,from:string,scope:SeriesScope,original?:CalendarEvent):CalendarEvent[]{
+ return applyToSeriesBy(events,edited,from,scope,e=>e.date,SHARED,original)
 }
 /** The same for a repeating assignment ("spelling every Monday"): its due date stays its own. */
 const SHARED_TASK=['title','subjectId','kidId','kidIds','notes','estimatedMinutes','link'] as const
-export function applyToTaskSeries(tasks:Task[],edited:Task,from:string,scope:SeriesScope):Task[]{
- return applyToSeriesBy(tasks,edited,from,scope,t=>t.due,SHARED_TASK)
+export function applyToTaskSeries(tasks:Task[],edited:Task,from:string,scope:SeriesScope,original?:Task):Task[]{
+ return applyToSeriesBy(tasks,edited,from,scope,t=>t.due,SHARED_TASK,original)
 }
-function applyToSeriesBy<T extends {id:string;profileId:string;recurringId?:string}>(items:T[],edited:T,from:string,scope:SeriesScope,dateOf:(x:T)=>string,shared:readonly string[]):T[]{
+function applyToSeriesBy<T extends {id:string;profileId:string;recurringId?:string}>(items:T[],edited:T,from:string,scope:SeriesScope,dateOf:(x:T)=>string,shared:readonly string[],original?:T):T[]{
  if(scope==='one'||!edited.recurringId)return items
+ const before=original as unknown as Record<string,unknown>|undefined,after=edited as unknown as Record<string,unknown>
+ const changed=before?shared.filter(key=>JSON.stringify(before[key])!==JSON.stringify(after[key])):shared
  return items.map(e=>{
   if(e.id===edited.id||e.recurringId!==edited.recurringId||e.profileId!==edited.profileId||(scope==='following'&&dateOf(e)<from))return e
   const next={...e} as Record<string,unknown>,src=edited as unknown as Record<string,unknown>
-  for(const key of shared){if(src[key]===undefined)delete next[key];else next[key]=src[key]}
+  for(const key of changed){if(src[key]===undefined)delete next[key];else next[key]=src[key]}
   return next as T
  })
 }
