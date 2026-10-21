@@ -230,6 +230,23 @@ test('Duxbury Middle School, a Grade 7 screenshot cropped above its day headings
  assert.equal(JSON.stringify(found.classes.map(c=>c.label)),JSON.stringify([F,F,E,E,M,M,O,P,C,C,G,G,S,S]))
  assert.equal(found.conflicts.length,0)
 })
+test('Duxbury Middle, cropped to a day or two: a one-column grid with no headings is that day, a second screenshot carries on from it, and an answer with only the grid (no class list) is read',()=>{
+ const {parseAiClassSchedule}=load('src/store/aiClassSchedule.ts'),{bellScheduleFor,classesFromRows}=load('src/store/bellSchedules.ts'),{academicTemplate}=load('src/store/academicCatalog.ts')
+ const dms=academicTemplate('p','duxburyms-2026'),cycle=dms.school.cycle,bells=bellScheduleFor(dms.school)
+ const col=(names,extra={})=>JSON.stringify({dayHeadings:[],grid:['1-P1','2-P2','3-P3','4-P4','5-ASP','6-P5'].map((period,i)=>({period,cells:[{name:names[i]}]})),...extra})
+ const day1=parseAiClassSchedule(col(['French 7','English 7','Math 7 Accelerated','Orchestra 7','Academic Support Period Gr. 7','Critical Reading&Thinking']),cycle,dms.start,dms.end)
+ assert.ok(day1.every(r=>r.day==='Day 1'),'a single column is Day 1')
+ const day2=parseAiClassSchedule(col(['Geography and Ancient Civilizations II','Science 7','French 7','English 7','Academic Support Period Gr. 7','Math 7 Accelerated'],{classes:null}),cycle,dms.start,dms.end,1)
+ assert.ok(day2.every(r=>r.day==='Day 2'),'the second screenshot is Day 2')
+ const labels=classesFromRows([...day1,...day2],cycle,bells).classes.map(c=>c.label)
+ assert.equal(JSON.stringify([labels[0],labels[2],labels[4],labels[6],labels[8],labels[10],labels[12]]),JSON.stringify(['French 7','English 7','Math 7 Accelerated','Orchestra 7','Critical Reading&Thinking','Geography and Ancient Civilizations II','Science 7']),'Day 1 and Day 2 give all seven periods')
+ // A row heading copied in as the first cell is dropped.
+ const echoed=parseAiClassSchedule(JSON.stringify({grid:[{period:'1-P1',cells:['1-P1','French 7']}]}),cycle,dms.start,dms.end)
+ assert.equal(echoed.length,1);assert.equal(echoed[0].label,'French 7');assert.equal(echoed[0].day,'Day 1')
+ // The Grade 6 schedule, headed D1 - Day 1 … D14 -, still maps by its headings.
+ const headed=parseAiClassSchedule(JSON.stringify({dayHeadings:['D1 - Day 1','D2 - Day 2','D3 -'],grid:[{period:'P1-Period1',cells:['Literacy/Writing','Chorus 6','Geography and Ancient Civilizations I']}]}),cycle,dms.start,dms.end)
+ assert.equal(headed.map(r=>r.day).join(','),'Day 1,Day 2,Day 3');assert.equal(headed[0].slot,'Period 1')
+})
 test('One known day sets the rotation: "September 28 is Day 4" counts forward over weekends and holidays, and the next school day is found without it',()=>{
  const {academicTemplate}=load('src/store/academicCatalog.ts'),{nextSchoolDate,rotationPreview}=load('src/store/schoolCalendar.ts')
  const dhs=academicTemplate(model.createFreshData().activeProfileId,'duxburyhs-2026')

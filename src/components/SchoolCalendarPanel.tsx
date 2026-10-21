@@ -121,7 +121,9 @@ function FindSchool({flow,shared,sharedError,onCatalog,onShared,onBlank}:{flow:'
  // several shared copies only the newest shows (they arrive newest first).
  const schoolKey=(label:string)=>label.split('·')[0].toLowerCase().replace(/\b(?:19|20)\d\d\s*[-–/]?\s*(?:\d{2,4})?\b/g,' ').replace(/[^a-z]+/g,' ').trim()
  const builtIn=new Set(academicCatalog.filter(x=>x.kind===flow).map(x=>schoolKey(x.label))),seenShared=new Set<string>()
- const catalog=academicCatalog.filter(x=>x.kind===flow&&matches(x.label)),community=(shared??[]).filter(r=>{if(r.kind!==flow)return false;const key=schoolKey(r.label);if(builtIn.has(key)||seenShared.has(key))return false;seenShared.add(key);return true}).filter(r=>matches([r.label,r.town??'',r.source??''].join(' ')))
+ // Duxbury's elementary calendar only shows when asked for, so a Duxbury family sees one middle school.
+ const quiet:Record<string,RegExp>={'duxbury-2026':/elem|alden|chandler|public/}
+ const catalog=academicCatalog.filter(x=>x.kind===flow&&matches(x.label)&&(!quiet[x.id]||quiet[x.id].test(query.toLowerCase()))),community=(shared??[]).filter(r=>{if(r.kind!==flow)return false;const key=schoolKey(r.label);if(builtIn.has(key)||seenShared.has(key))return false;seenShared.add(key);return true}).filter(r=>matches([r.label,r.town??'',r.source??''].join(' ')))
  return <section className="find-school" aria-label={'Find your '+noun}>
   <h3>Find your {noun}</h3>
   <input type="search" aria-label={'Search for your '+noun} value={query} placeholder={flow==='college'?'For example: Boston College':'For example: Duxbury High'} onChange={e=>setQuery(e.target.value)}/>

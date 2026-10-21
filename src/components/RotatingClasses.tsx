@@ -22,25 +22,31 @@ export default function RotatingClasses({season,bells,change,onReview}:{season:S
  // An unsplit period's b meeting is the same class as its a meeting.
  const expanded=()=>paired?classes.map((c,i)=>i%2&&!split[(i-1)/2]?{...classes[i-1]}:c):classes
  const [guessed,setGuessed]=useState<boolean[]>(()=>Array(count).fill(false))
- const [file,setFile]=useState<File|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[conflicts,setConflicts]=useState<string[]>([]),[error,setError]=useState(''),[tried,setTried]=useState(false)
+ const [files,setFiles]=useState<File[]>([]),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[conflicts,setConflicts]=useState<string[]>([]),[error,setError]=useState(''),[tried,setTried]=useState(false)
  const ai=useAiHelper(season.profileId),cancel=useRef<AbortController|null>(null)
  useEffect(()=>()=>cancel.current?.abort(),[])
  const set=(i:number,p:Partial<RotationClass>)=>{setClasses(classes.map((c,j)=>j===i?{...c,...p}:c));if(p.lunchWave)setGuessed(guessed.map((g,j)=>j===i?false:g))}
  const rename=(i:number,label:string)=>{const guess=guessWave(label);setClasses(classes.map((c,j)=>j===i?{...c,label,lunchWave:guess.wave}:c));setGuessed(guessed.map((g,j)=>j===i?!guess.sure:g))}
  const lunchPeriod=bells.lunch?.period,after=bells.after
- const read=async(file:File)=>{
+ // One or more screenshots (or a PDF), read in order: a picture with no day headings carries on from
+ // the day the one before it ended on, so Day 1–2 in one shot and Day 3–14 in another make the whole rotation.
+ const read=async(list:File[])=>{
   if(busy)return
   setTried(true)
   const controller=new AbortController();cancel.current=controller
   setBusy(true);setError('');setConflicts([]);setMessage('Reading your schedule…')
   try{
    const reader=await import('../store/readSchedulePdf'),{readClassScheduleWithAi}=await import('../store/aiClassSchedule')
-   const pdf=/\.pdf$/i.test(file.name)
-   // A picture-only PDF (or a photo) goes to the AI as the picture; a PDF with text goes as its text.
-   const picture=pdf?await reader.pdfPageImage(file):{base64:await new Promise<string>((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]??'');r.onerror=()=>reject(new Error('Could not read that photo.'));r.readAsDataURL(file)}),mimeType:file.type||'image/jpeg'}
-   const text=picture?undefined:await reader.readSchedulePdf(file,1,2,controller.signal,setMessage,false,true)
-   setMessage('Asking KONO’s AI to find your classes…')
-   const rows=await readClassScheduleWithAi({text,photo:picture??undefined},cycle,season.start,season.school!.lastClassDate||season.end,ai.provider,ai.apiKey,bells.periods.length,bells.extraRows)
+   const rows:Awaited<ReturnType<typeof readClassScheduleWithAi>>=[]
+   for(const [n,file] of list.entries()){
+    const pdf=/\.pdf$/i.test(file.name)
+    // A picture-only PDF (or a photo) goes to the AI as the picture; a PDF with text goes as its text.
+    const picture=pdf?await reader.pdfPageImage(file):{base64:await new Promise<string>((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]??'');r.onerror=()=>reject(new Error('Could not read that photo.'));r.readAsDataURL(file)}),mimeType:file.type||'image/jpeg'}
+    const text=picture?undefined:await reader.readSchedulePdf(file,1,2,controller.signal,setMessage,false,true)
+    setMessage('Asking KONO’s AI to find your classes'+(list.length>1?' ('+(n+1)+' of '+list.length+')':'')+'…')
+    const next=rows.reduce((m,r)=>Math.max(m,cycle.indexOf(r.day)+1),0)
+    rows.push(...await readClassScheduleWithAi({text,photo:picture??undefined},cycle,season.start,season.school!.lastClassDate||season.end,ai.provider,ai.apiKey,bells.periods.length,bells.extraRows,next<cycle.length?next:0))
+   }
    const found=classesFromRows(rows,cycle,bells)
    if(!found.classes.some(c=>c.label))throw Error('KONO couldn’t match the classes to days and periods. Type your '+count+' classes below instead.')
    const next=found.classes.map((c,i)=>{const guess=guessWave(c.label);return {label:c.label||classes[i].label,location:c.location||classes[i].location,lunchWave:guess.wave}})
@@ -51,14 +57,14 @@ export default function RotatingClasses({season,bells,change,onReview}:{season:S
    setConflicts(found.conflicts)
    const empty=found.classes.filter(c=>!c.label).length
    // Tell KONO support when a schedule is only partly read: the school and counts, never the classes.
-   if(empty)reportError('Rotating-school upload found only '+(count-empty)+' of '+count+' classes',{detail:'File: '+(pdf?'PDF':'photo')+' · school: '+season.school!.name})
+   if(empty)reportError('Rotating-school upload found only '+(count-empty)+' of '+count+' classes',{detail:'Files: '+list.length+' · school: '+season.school!.name})
    // Duxbury Middle counts periods (a period is found when its a meeting is).
    const total=paired?count/2:count,missed=paired?Array.from({length:total},(_,k)=>!found.classes[2*k].label).filter(Boolean).length:empty
    setMessage('Found '+(total-missed)+' of your '+total+(paired?' periods':' classes')+'. Check each one against your schedule'+(missed?' and fill in the missing '+(missed===1?'one':'ones'):'')+', then build your days.')
   }catch(e){
    const why=e instanceof Error?e.message:'Could not read this schedule.'
    setMessage('');setError(why)
-   if(/found no classes|couldn’t match/i.test(why))reportError('Rotating-school upload found no classes',{detail:'File: '+(/\.pdf$/i.test(file.name)?'PDF':'photo')+' · school: '+season.school!.name})
+   if(/found no classes|couldn’t match/i.test(why))reportError('Rotating-school upload found no classes',{detail:'Files: '+list.length+' · school: '+season.school!.name})
   }finally{setBusy(false)}
  }
  const build=()=>{
@@ -86,8 +92,8 @@ export default function RotatingClasses({season,bells,change,onReview}:{season:S
   <div className="wb-record">
    <strong>Read them from your schedule</strong>
    <p className="wb-muted">A PDF or photo of your schedule. It goes to KONO’s AI to find your classes; it isn’t saved. Crop out anything personal first.</p>
-   <label className="schedule-upload">Upload my schedule<small>PDF, photo or screenshot</small><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" disabled={busy} onChange={e=>{const picked=e.target.files?.[0]??null;e.target.value='';setFile(picked);setTried(false);setMessage('');setError('');if(picked&&ai.ready)void read(picked)}}/></label>
-   {!ai.ready?<details><summary>Set up the AI helper to read your schedule</summary><AiHelperSettings profileId={season.profileId}/></details>:file&&!tried&&<button type="button" disabled={busy} onClick={()=>void read(file)}>Find my classes</button>}
+   <label className="schedule-upload">Upload my schedule<small>PDF, photo or screenshots (pick several, in order, if it took more than one)</small><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" disabled={busy} onChange={e=>{const picked=[...e.target.files??[]];e.target.value='';setFiles(picked);setTried(false);setMessage('');setError('');if(picked.length&&ai.ready)void read(picked)}}/></label>
+   {!ai.ready?<details><summary>Set up the AI helper to read your schedule</summary><AiHelperSettings profileId={season.profileId}/></details>:files.length>0&&!tried&&<button type="button" disabled={busy} onClick={()=>void read(files)}>Find my classes</button>}
    {message&&<p role="status">{message}</p>}
    {conflicts.length>0&&<ul className="period-problems" aria-label="Check these classes">{conflicts.map(c=><li key={c}>{c}</li>)}</ul>}
   </div>
