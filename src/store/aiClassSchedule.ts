@@ -5,7 +5,7 @@ import type { RotatingImportRow } from './schoolImport'
 
 /** The fallback for class schedules the built-in reader can't follow: the person's own AI helper turns
  * the schedule's text (or photo) into classes, which they still review before anything is saved. */
-export function classSchedulePrompt(cycle: string[], text?: string, periods?: number, extraRows: string[] = []): string {
+export function classSchedulePrompt(cycle: string[], text?: string, periods?: number, extraRows: string[] = [], firstColumn = 0): string {
   return `You are reading a student's class schedule${text ? ' (text copied from a PDF; table cells may be split across lines)' : ' from a photo'}. ` +
     `This schedule's days are named: ${cycle.map(d => JSON.stringify(d)).join(', ')}. ` +
     `Columns or rows headed like "D1", "D2 -" or "Day 1" are those rotation days. ` +
@@ -16,7 +16,7 @@ export function classSchedulePrompt(cycle: string[], text?: string, periods?: nu
     (extraRows.length ? `Each day also has ${extraRows.map(r => JSON.stringify(r)).join(' and ')} (its own row, with a class in it); return it with that as its period. ` : '') +
     `Row headings like "6-P5" or "5-ASP" are a row number, then the period: "6-P5" is Period 5 and "5-ASP" is ASP; the period is the part after the dash. ` +
     `A row that isn't numbered but has a class in it every day, like "ASP-Academic Support Period", is a period too: return its classes with that row's heading as the period. Skip lunch, passing time, homeroom or advisory unless it is clearly a class, and skip anything without a day and either a time or a period. ` +
-    `When the schedule is a grid with periods down the side and days across the top (or no day headings at all, as in a cropped screenshot), read it column by column: the columns from left to right are the days in the order named above (the first column is ${JSON.stringify(cycle[0])}), and also return the whole grid in "grid". ` +
+    `When the schedule is a grid with periods down the side and days across the top (or no day headings at all, as in a cropped screenshot), read it column by column: the columns from left to right are the days in the order named above (the first column is ${JSON.stringify(cycle[firstColumn] ?? cycle[0])}; a cropped picture may show only one or a few days), and also return the whole grid in "grid". ` +
     `Respond with a single JSON object: {"dayHeadings": array of strings (the schedule's own day column or row headings, copied exactly as printed, like "Monday" or "D1 - Day 1"; empty if none show), ` +
     `"grid": null, or (for a grid) an array with one entry per row from top to bottom: {"period": string (the row heading as printed, like "1-P1"), "cells": array with one entry per day column from left to right, each null for an empty cell or {"name": string, "code": string or null, "room": string or null, "teacher": string or null}}, "classes": array of {"name": string (the class title), "code": string or null (course code or section, if shown), ` +
     `"days": array of one or more of the day names above, "start": "HH:MM" 24-hour or null, "end": "HH:MM" 24-hour or null, "period": string or null (the period the class meets in, like "Period 1", when shown), ` +
@@ -46,11 +46,15 @@ const words = (value: unknown, max: number) => typeof value === 'string' ? value
 const ROTATION_ON_WEEKLY = 'This schedule uses rotation days (D1, D2…), not weekdays. Go back to step 1 and pick your school’s rotation option (like “Duxbury Middle School · 14-day rotation”), or set up a school with rotation days.'
 
 /** Checks every field of the AI's answer; anything unusable is dropped rather than guessed. */
-export function parseAiClassSchedule(raw: string, cycle: string[], start: string, end: string): RotatingImportRow[] {
+/** firstColumn: the day a grid's first column is when it has no day headings (a second screenshot
+ * continuing the first). */
+export function parseAiClassSchedule(raw: string, cycle: string[], start: string, end: string, firstColumn = 0): RotatingImportRow[] {
   let obj: unknown
   try { obj = JSON.parse(raw) } catch { aiFail('The AI response was not valid JSON. Try again.') }
-  const classes = obj && typeof obj === 'object' ? (obj as Record<string, unknown>).classes : undefined
-  if (!Array.isArray(classes)) aiFail('The AI response was not in the expected format. Try again.')
+  const answer = obj && typeof obj === 'object' ? obj as Record<string, unknown> : {}
+  // A grid on its own is a full answer (the class list may be empty or left out then).
+  const classes = Array.isArray(answer.classes) ? answer.classes : Array.isArray(answer.grid) ? [] : undefined
+  if (!classes) aiFail('The AI response was not in the expected format. Try again.')
   // KONO checks the schedule's own headings itself: a rotation-day schedule (D1–D14) can't fill a
   // Monday–Friday school, even when the AI turned its days into weekdays.
   const headings = (obj as Record<string, unknown>).dayHeadings
@@ -63,13 +67,19 @@ export function parseAiClassSchedule(raw: string, cycle: string[], start: string
   const grid = (obj as Record<string, unknown>).grid
   // Each column's day: from its printed heading when every heading names a day, else in the cycle's order.
   const printed = Array.isArray(headings) ? headings.map(h => typeof h === 'string' ? byName.get(h.trim().toLowerCase()) ?? rotationDay(h, cycle)?.[0] ?? weekdaysFrom(h, cycle)[0] : undefined) : []
-  const columnDay = (i: number) => (printed.length && printed.every(Boolean) ? printed[i] : undefined) ?? cycle[i]
+  const columnDay = (i: number) => (printed.length && printed.every(Boolean) ? printed[i] : undefined) ?? cycle[firstColumn + i]
+  // A grid of rotation days (more columns than a Monday–Friday week has) can't fill a Monday–Friday school.
+  if (Array.isArray(grid) && !cycle.some(d => /^Day \d/.test(d)) && grid.some(r => Array.isArray((r as Record<string, unknown>)?.cells) && ((r as Record<string, unknown>).cells as unknown[]).length > cycle.length + 1)) aiFail(ROTATION_ON_WEEKLY)
   if (Array.isArray(grid)) {
     for (const row of grid.slice(0, 12)) {
       if (!row || typeof row !== 'object') continue
-      const period = periodLabel((row as Record<string, unknown>).period), cells = (row as Record<string, unknown>).cells
-      if (!period || !Array.isArray(cells)) continue
+      const period = periodLabel((row as Record<string, unknown>).period), all = (row as Record<string, unknown>).cells
+      if (!period || !Array.isArray(all)) continue
+      // The row's own heading copied in as its first cell isn't a class.
+      const first = all[0], firstName = typeof first === 'string' ? first : first && typeof first === 'object' ? (first as Record<string, unknown>).name : ''
+      const cells = periodLabel(firstName) === period ? all.slice(1) : all
       cells.slice(0, cycle.length).forEach((cell, i) => {
+        if (!columnDay(i)) return
         const c = typeof cell === 'string' ? {name: cell} : cell && typeof cell === 'object' ? cell as Record<string, unknown> : null
         const name = c ? words(c.name, 200) : '', code = c ? words(c.code, 30) : ''
         if (!c || !name) return
@@ -77,12 +87,12 @@ export function parseAiClassSchedule(raw: string, cycle: string[], start: string
         rows.push({ id: uid('import-block'), include: true, day: columnDay(i), label: [code, name].filter(Boolean).join(' · ').slice(0, 200), slot: period, start: '', end: '', dateStart: start, dateEnd: end, kind: 'study', location })
       })
     }
-    if (rows.length >= cycle.length) return rows
-    rows.length = 0
+    // Even one column (one day, cropped) is enough: the rotation fills in the rest.
+    if (rows.length) return rows
   }
   let rotationDays = 0
   // Up to 14 rotation days × 8 periods, one entry per class and period (a 14-day middle-school matrix is 84).
-  for (const item of (classes as unknown[]).slice(0, 120)) {
+  for (const item of (classes ?? []).slice(0, 120)) {
     if (!item || typeof item !== 'object') continue
     const c = item as Record<string, unknown>
     const name = words(c.name, 200), code = words(c.code, 30), from = clock(c.start), to = clock(c.end), period = periodLabel(c.period)
@@ -102,10 +112,10 @@ export function parseAiClassSchedule(raw: string, cycle: string[], start: string
   return rows
 }
 
-export async function readClassScheduleWithAi(input: { text?: string; photo?: PhotoInput }, cycle: string[], start: string, end: string, provider: AiProvider, apiKey: string, periods?: number, extraRows?: string[]): Promise<RotatingImportRow[]> {
+export async function readClassScheduleWithAi(input: { text?: string; photo?: PhotoInput }, cycle: string[], start: string, end: string, provider: AiProvider, apiKey: string, periods?: number, extraRows?: string[], firstColumn = 0): Promise<RotatingImportRow[]> {
   if (!aiReady(apiKey)) aiFail(needsAiMessage)
   if (!input.photo && !input.text?.trim()) aiFail('Nothing was read from this file to send.')
-  const rows = parseAiClassSchedule(await callAi(classSchedulePrompt(cycle, input.photo ? undefined : input.text, periods, extraRows), provider, apiKey.trim(), input.photo), cycle, start, end)
+  const rows = parseAiClassSchedule(await callAi(classSchedulePrompt(cycle, input.photo ? undefined : input.text, periods, extraRows, firstColumn), provider, apiKey.trim(), input.photo), cycle, start, end, firstColumn)
   if (!rows.length) aiFail('The AI helper found no classes with a day and time either. Add them by hand below.')
   return rows
 }
