@@ -12,10 +12,10 @@ A standalone 3D product customizer for a pullover hoodie. It's one HTML page plu
 Open `index.html` through any static server, for example `npx serve hoodie-studio`. It is separate from the KONO app and is not part of the Vite build.
 
 ## What it does
-- **Pages:** Shop (a card for every product), Studio, Bulk orders (a team quote form), About and Orders.
+- **Pages:** Shop (a card for every product), Studio, About and Orders. Team and bulk enquiries come in by email.
 - **The studio has three steps:**
-  1. **Colour:** pick a colour or a custom one.
-  2. **Logo & text:** upload a logo or add text on the front, back or sleeves. Choose a placement (Left chest, Centre chest, Full front, Upper back, Full back) and a size, or drag it on the garment. Text shrinks to fit its spot.
+  1. **Colour:** pick the garment colour and, where the garment has them, a separate colour for the hem, cuffs and collar (trims and socks on uniforms).
+  2. **Logo & text:** upload a logo or add text. Choose a placement (Left chest, Centre chest, Upper back or Full back; picking a back spot moves the item to the back) and a size, or drag it on the garment. Sleeves take one centred item. Text shrinks to fit its spot.
   3. **Size & quantity:** for one piece, or a team roster with names, numbers and sizes.
 
   Fabric and decoration (print or embroidery) are agreed with the client, so the studio doesn't ask about them.
@@ -32,7 +32,7 @@ Open `index.html` through any static server, for example `npx serve hoodie-studi
   - `order.json`.
 - **Pricing:** every rule is in `PRICING` in `index.html`. The first logo or text area is included, each extra area and names/numbers add a price per piece, and bulk discounts apply at 12, 24, 48 and 100 pieces.
 - **Orders:** Checkout sends an order request, and no payment is taken.
-  - On claude.ai, orders and quote requests go to the page's database. The owner sees them all under Orders and can set their status.
+  - On claude.ai, orders go to the page's database. The owner sees them all under Orders and can set their status.
   - Elsewhere, the order downloads as a zip, or opens an email if `SHOP.email` is set.
 - **Size charts** use standard athletic sizing. Replace them with your supplier's specs in `SIZE_CHARTS`.
 - The current design, saved designs and the bag are kept in localStorage.
