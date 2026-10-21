@@ -18,7 +18,7 @@ export function classSchedulePrompt(cycle: string[], text?: string, periods?: nu
     `A row that isn't numbered but has a class in it every day, like "ASP-Academic Support Period", is a period too: return its classes with that row's heading as the period. Skip lunch, passing time, homeroom or advisory unless it is clearly a class, and skip anything without a day and either a time or a period. ` +
     `When the schedule is a grid with periods down the side and days across the top (or no day headings at all, as in a cropped screenshot), read it column by column: the columns from left to right are the days in the order named above (the first column is ${JSON.stringify(cycle[firstColumn] ?? cycle[0])}; a cropped picture may show only one or a few days), and also return the whole grid in "grid". ` +
     `Respond with a single JSON object: {"dayHeadings": array of strings (the schedule's own day column or row headings, copied exactly as printed, like "Monday" or "D1 - Day 1"; empty if none show), ` +
-    `"grid": null, or (for a grid) an array with one entry per row from top to bottom: {"period": string (the row heading as printed, like "1-P1"), "cells": array with one entry per day column from left to right, each null for an empty cell or {"name": string, "code": string or null, "room": string or null, "teacher": string or null}}, "classes": array of {"name": string (the class title), "code": string or null (course code or section, if shown), ` +
+    `"grid": null, or (for a grid) an array with one entry per row from top to bottom, every row with the same number of cells (one per day column, even when a cell is empty or a class name wraps onto several lines): {"period": string (the row heading as printed, like "1-P1"), "cells": array with one entry per day column from left to right, each null for an empty cell or {"name": string, "code": string or null, "room": string or null, "teacher": string or null}}, "classes": (when you return a grid, an empty array) array of {"name": string (the class title), "code": string or null (course code or section, if shown), ` +
     `"days": array of one or more of the day names above, "start": "HH:MM" 24-hour or null, "end": "HH:MM" 24-hour or null, "period": string or null (the period the class meets in, like "Period 1", when shown), ` +
     `"building": string or null, "room": string or null, "teacher": string or null}}. Output ONLY the JSON object, no other text.` +
     (text ? `\n\nSchedule text:\n${text.slice(0, 30000)}` : '')
@@ -70,8 +70,13 @@ export function parseAiClassSchedule(raw: string, cycle: string[], start: string
   const columnDay = (i: number) => (printed.length && printed.every(Boolean) ? printed[i] : undefined) ?? cycle[firstColumn + i]
   // A grid of rotation days (more columns than a Monday–Friday week has) can't fill a Monday–Friday school.
   if (Array.isArray(grid) && !cycle.some(d => /^Day \d/.test(d)) && grid.some(r => Array.isArray((r as Record<string, unknown>)?.cells) && ((r as Record<string, unknown>).cells as unknown[]).length > cycle.length + 1)) aiFail(ROTATION_ON_WEEKLY)
+  // A row with a cell more or less than most rows has a cell skipped or split, which shifts every class
+  // after it onto the wrong day: it's left out, and the other rows (each class meets in several) decide.
+  const lengths = Array.isArray(grid) ? grid.map(r => Array.isArray((r as Record<string, unknown>)?.cells) ? ((r as Record<string, unknown>).cells as unknown[]).length : 0) : []
+  const usual = [...new Set(lengths)].sort((a, b) => lengths.filter(n => n === b).length - lengths.filter(n => n === a).length || b - a)[0] ?? 0
   if (Array.isArray(grid)) {
-    for (const row of grid.slice(0, 12)) {
+    for (const [r, row] of grid.slice(0, 12).entries()) {
+      if (lengths.filter(n => n === usual).length >= 3 && Math.abs(lengths[r] - usual) > 0 && !(lengths[r] === usual + 1)) continue
       if (!row || typeof row !== 'object') continue
       const period = periodLabel((row as Record<string, unknown>).period), all = (row as Record<string, unknown>).cells
       if (!period || !Array.isArray(all)) continue

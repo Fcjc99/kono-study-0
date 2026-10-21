@@ -195,18 +195,23 @@ const dayIndexOf = (day: string, cycle: string[]) => cycle.indexOf(day)
  * seen on several days; the name seen most often wins, and any disagreement is reported. */
 export function classesFromRows(rows: { include?: boolean; day: string; label: string; slot: string; location?: string; kind?: string }[], cycle: string[], bells: BellSchedule): { classes: { label: string; location: string }[]; conflicts: string[] } {
   const count = bells.classes ?? bells.periods.length
-  const seen = Array.from({ length: count }, () => new Map<string, { n: number; location: string }>())
+  // Each meeting is a vote for its class; the same class read with or without its course code
+  // ("471-02 · French 7", "French 7") counts as one, shown the way it was read most often.
+  const sameClass = (label: string) => label.toLowerCase().replace(/^[\w-]*\d[\w-]*\s*·\s*/, '').replace(/[^a-z0-9]+/g, ' ').trim()
+  const seen = Array.from({ length: count }, () => new Map<string, { n: number; location: string; labels: Map<string, number> }>())
   for (const r of rows) {
     const d = dayIndexOf(r.day, cycle), p = periodNumber(r.slot)
     if (r.include === false || d < 0 || !p || p > bells.periods.length || !r.label.trim()) continue
-    const names = seen[classIndexFor(bells, d, p)], key = r.label.trim(), prev = names.get(key)
-    names.set(key, { n: (prev?.n ?? 0) + 1, location: prev?.location || r.location || '' })
+    const names = seen[classIndexFor(bells, d, p)], key = sameClass(r.label) || r.label.trim(), prev = names.get(key) ?? { n: 0, location: '', labels: new Map<string, number>() }
+    prev.labels.set(r.label.trim(), (prev.labels.get(r.label.trim()) ?? 0) + 1)
+    names.set(key, { n: prev.n + 1, location: prev.location || r.location || '', labels: prev.labels })
   }
+  const shown = (labels: Map<string, number>) => [...labels].sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0][0]
   const conflicts: string[] = []
   const classes = seen.map((names, i) => {
     const ranked = [...names].sort((a, b) => b[1].n - a[1].n)
-    if (ranked.length > 1) conflicts.push('Class ' + (i + 1) + ' was read as ' + ranked.map(([name]) => name).join(' and ') + '. Check which it is.')
-    return { label: ranked[0]?.[0] ?? '', location: ranked[0]?.[1].location ?? '' }
+    if (ranked.length > 1) conflicts.push('Class ' + (i + 1) + ' was read as ' + ranked.map(([, v]) => shown(v.labels)).join(' and ') + '. Check which it is.')
+    return { label: ranked[0] ? shown(ranked[0][1].labels) : '', location: ranked[0]?.[1].location ?? '' }
   })
   return { classes, conflicts }
 }
