@@ -1,0 +1,47 @@
+/* KONO Town (KonoTown.tsx): the purse, today's quest, shops, prize wheel, arcade and album. */
+.kono-town{display:grid;gap:12px;padding:0 4px 8px}
+.town-purse{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:0;font-size:1.3rem}
+.town-purse strong{font-variant-numeric:tabular-nums}
+.town-purse small{flex-basis:100%;font-size:.8rem;color:var(--wb-muted,inherit)}
+.town-quest{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 12px;border-radius:16px;background:color-mix(in srgb,#ffd36b 22%,var(--wb-surface,#fff));border:1px solid color-mix(in srgb,#e0a92a 40%,transparent)}
+.town-quest.is-done{background:color-mix(in srgb,#8fd19e 18%,var(--wb-surface,#fff));border-color:color-mix(in srgb,#5aa86b 35%,transparent)}
+.town-quest p{flex:1 1 200px;margin:0}
+.town-quest-snack{font-size:2rem;line-height:1}
+.town-quest button{margin:0!important}
+.town-tabs{display:flex;flex-wrap:wrap;gap:6px}
+.town-tabs button{margin:0!important;min-height:38px;border-radius:999px;padding:6px 12px}
+.kono-town .town-tabs button[aria-current=page],.wb-dialog .kono-town .town-tabs button[aria-current=page]{background:var(--wb-accent,#c06b8a)!important;color:#fff!important;border-color:transparent!important}
+.town-note{margin:0;font-weight:700}
+.town-shop h3,.town-album h3{margin:4px 0 8px;font-size:1rem}
+.town-shop h3 small,.town-album h3 small{font-weight:400;color:var(--wb-muted,inherit);font-size:.8rem}
+.town-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;margin:0;padding:0;list-style:none}
+.town-items li{position:relative;display:grid;justify-items:center;gap:4px;padding:10px 8px;border-radius:14px;border:1px solid var(--wb-line,#e5ddd2);background:var(--wb-surface,#fff);text-align:center}
+.town-items li.is-sale{border-color:#e0a92a;box-shadow:0 0 0 2px color-mix(in srgb,#ffd36b 50%,transparent)}
+.town-items strong{font-size:.85rem;line-height:1.2}
+.town-items button{margin:0!important;min-height:34px;padding:4px 10px;border-radius:999px;font-variant-numeric:tabular-nums}
+.town-short{font-size:.72rem;color:var(--wb-muted,inherit)}
+.town-sale{position:absolute;top:6px;right:6px;font-style:normal;font-size:.68rem;font-weight:800;padding:1px 6px;border-radius:999px;background:#e0a92a;color:#fff}
+.town-item-art{display:grid;place-items:center;width:56px;height:56px;font-size:2rem;line-height:1}
+.town-item-art img{width:48px;height:48px;object-fit:contain;image-rendering:pixelated}
+.town-item-art .kono-face-box{display:block;width:56px;height:56px}
+.town-item-art .kono-face-box>img:first-child{width:100%;height:100%;object-fit:contain}
+.town-wheel-box{display:grid;justify-items:center;gap:10px;text-align:center}
+.town-wheel-box p{margin:0;font-weight:700}
+.town-wheel-frame{position:relative;width:220px;height:220px}
+.town-wheel-pointer{position:absolute;left:50%;top:-14px;transform:translateX(-50%);z-index:1;font-size:1.4rem;color:#c0392b;text-shadow:0 1px 0 #fff}
+.town-wheel{position:relative;width:100%;height:100%;border-radius:50%;border:6px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.18);background:conic-gradient(#ffb3c1 0 45deg,#ffe08a 45deg 90deg,#a8e6cf 90deg 135deg,#b5c7ff 135deg 180deg,#ffb3c1 180deg 225deg,#ffe08a 225deg 270deg,#a8e6cf 270deg 315deg,#b5c7ff 315deg 360deg);transition:transform 3.3s cubic-bezier(.12,.85,.18,1)}
+.town-wheel span{position:absolute;left:50%;top:50%;width:40px;margin:-12px 0 0 -20px;text-align:center;font-weight:800;color:#5b3b2e;transform-origin:center}
+.town-rounds{margin:0 0 8px}
+.town-album-count{display:grid;gap:6px;margin:0}
+.town-album-bar{display:block;height:8px;border-radius:999px;background:var(--wb-line,#eee);overflow:hidden}
+.town-album-bar i{display:block;height:100%;background:var(--wb-accent,#c06b8a);border-radius:inherit}
+.town-album-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px;margin:0;padding:0;list-style:none}
+.town-album-grid li{display:grid;justify-items:center;gap:2px;padding:6px 4px;border-radius:12px;background:var(--wb-surface,#fff);border:1px solid var(--wb-line,#e5ddd2);text-align:center}
+.town-album-grid small{font-size:.7rem;line-height:1.15}
+.town-album-grid .town-item-art{width:48px;height:48px;font-size:1.7rem}
+.town-album-grid .town-item-art img{width:42px;height:42px}
+.town-album-grid .town-item-art .kono-face-box{width:48px;height:48px}
+.town-album-grid li.is-missing .town-item-art{filter:brightness(0) opacity(.22)}
+.kono-coins{display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums;font-weight:700}
+@media(prefers-reduced-motion:reduce){.town-wheel{transition:none}}
+@media(max-width:600px){.town-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}.town-tabs button{display:grid;justify-items:center;gap:2px;min-height:0!important;padding:6px 2px!important;border-radius:12px!important;font-size:.74rem!important;line-height:1.1}.town-tabs button span{font-size:1.15rem}.town-items{grid-template-columns:repeat(3,minmax(0,1fr))}.town-items li{padding:8px 4px}}

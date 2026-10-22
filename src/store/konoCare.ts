@@ -6,13 +6,16 @@
  * What's saved is a short log of feedings and pats (AppData.konoCare), one entry each with its own
  * ID, so two devices adding to it at the same time merge cleanly. Everything else is worked out from
  * that log, finished assignments and the clock. */
-export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'|'find'|'exam'|'nudge'|'visit'|'bond'|'play'|'taste'|'gift'
+export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'|'find'|'exam'|'nudge'|'visit'|'bond'|'play'|'taste'|'gift'|'coin'|'buy'|'bank'
 /** `item` is the outfit put on for a 'wear' entry ("" = taking it off; store/konoWardrobe), what KONO
  * found for a 'find' entry (store/konoFinds), how a test went for an 'exam' entry, or what was done with
  * the day's nudge for a 'nudge' entry (store/konoNotes). A 'gift' is a snack a parent sent from the family
- * plan (`item` is the snack, `from` who sent it, `note` their message); it waits in the pantry like earned ones. */
-export type CareEvent={id:string;kind:CareKind;at:string;taskId?:string;item?:string;from?:string;note?:string}
-const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear','find','exam','nudge','visit','bond','play','taste','gift']
+ * plan (`item` is the snack, `from` who sent it, `note` their message); it waits in the pantry like earned ones.
+ * Coins (store/konoCoins): a 'coin' entry is coins won (`n`, `item` what for: the prize wheel, a game, a
+ * surprise, a quest), a 'buy' entry something bought (`item` "food:cookie", "outfit:bow" or "find:star",
+ * `n` its price), and a 'bank' entry a month's coins and snacks folded into one (see foldCoins). */
+export type CareEvent={id:string;kind:CareKind;at:string;taskId?:string;item?:string;from?:string;note?:string;n?:number}
+const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear','find','exam','nudge','visit','bond','play','taste','gift','coin','buy','bank']
 export type KonoCareState={profileId:string;log:CareEvent[]}
 export type KonoMeters={full:number;rested:number;happy:number;asleep:boolean;away:boolean}
 export type Treat={id:string;emoji:string;name:string}
@@ -66,9 +69,10 @@ const isFavorite=(e:CareEvent)=>e.kind==='feed'&&!!e.item&&e.item===favoriteSnac
 export function pantry(tasks:Done[],log:CareEvent[],now:Date):PantryItem[]{
  const fed=fedIds(log),since=now.getTime()-TREAT_DAYS*DAY
  const earned=tasks.filter(t=>t.done&&time(t.completedAt)>=since&&!fed.has(t.id)).map(t=>({at:time(t.completedAt),item:{taskId:t.id,treat:treatFor(t)}}))
- // Snacks a parent sent wait here too (keyed by the gift's own ID).
+ // Snacks a parent sent, and snacks bought in KONO's food shop, wait here too (keyed by the entry's own ID).
  const gifts=log.filter(e=>e.kind==='gift'&&time(e.at)>=since&&!fed.has(e.id)).map(e=>({at:time(e.at),item:{taskId:e.id,treat:ALL_TREATS.find(t=>t.id===e.item)??SNACKS[0]}}))
- return [...earned,...gifts].sort((a,b)=>a.at-b.at).map(x=>x.item)
+ const bought=log.filter(e=>e.kind==='buy'&&e.item?.startsWith('food:')&&time(e.at)>=since&&!fed.has(e.id)).map(e=>({at:time(e.at),item:{taskId:e.id,treat:ALL_TREATS.find(t=>t.id===e.item!.slice(5))??SNACKS[0]}}))
+ return [...earned,...gifts,...bought].sort((a,b)=>a.at-b.at).map(x=>x.item)
 }
 /** Gifts from a parent still waiting to be eaten, newest first (KONO's card says who sent it and their note). */
 export const waitingGifts=(log:CareEvent[],now:Date)=>{const fed=fedIds(log),since=now.getTime()-TREAT_DAYS*DAY;return log.filter(e=>e.kind==='gift'&&time(e.at)>=since&&!fed.has(e.id)).sort((a,b)=>b.at.localeCompare(a.at))}
@@ -135,9 +139,10 @@ export function addCareEvent(state:KonoCareState|undefined,profileId:string,even
  // Granted wishes count toward outfits for good, finds and friends stay in the collection, days KONO was
  // cared for count toward the bond (store/konoBond), and the outfit KONO has on stays on: all are kept.
  const lastWear=all.filter(e=>e.kind==='wear').sort((a,b)=>a.at.localeCompare(b.at)).at(-1)
- const kept=(e:CareEvent)=>e.kind==='wish'||e.kind==='find'||e.kind==='visit'||e.kind==='bond'||e.kind==='taste'||e.kind==='gift'
+ // Coins won and things bought are kept too (old months are folded into one entry, see foldCoins).
+ const kept=(e:CareEvent)=>e.kind==='wish'||e.kind==='find'||e.kind==='visit'||e.kind==='bond'||e.kind==='taste'||e.kind==='gift'||e.kind==='coin'||e.kind==='buy'||e.kind==='bank'
  const log=all.filter(e=>kept(e)||e===lastWear||time(e.at)>=since)
- if((event.kind==='wish'||event.kind==='exam'||event.kind==='nudge'||event.kind==='visit'||event.kind==='bond'||event.kind==='taste')&&log.some(e=>e.id===event.id))return {profileId,log}
+ if((event.kind==='wish'||event.kind==='exam'||event.kind==='nudge'||event.kind==='visit'||event.kind==='bond'||event.kind==='taste'||event.kind==='coin')&&log.some(e=>e.id===event.id))return {profileId,log}
  if(event.kind==='play'&&now.getTime()<nextPlayAt(log))return {profileId,log}
  if(event.kind==='pet'){const lastPet=Math.max(-Infinity,...log.filter(e=>e.kind==='pet').map(e=>time(e.at)));if(now.getTime()-lastPet<PET_EVERY_MS)return {profileId,log}}
  if(event.kind==='sleep'&&bedtime(log,now).tucked)return {profileId,log}
@@ -149,7 +154,25 @@ export function addCareEvent(state:KonoCareState|undefined,profileId:string,even
  const next=['feed','pet','sleep','wake','play'].includes(event.kind)&&!log.some(e=>e.id===careDay)?[...log,event,{id:careDay,kind:'bond' as const,at:event.at}]:[...log,event]
  // Over the cap: drop the oldest everyday entries, never wishes or what KONO is wearing.
  while(next.length>LOG_MAX){const i=next.findIndex(e=>!kept(e)&&e!==event&&!(e.kind==='wear'&&event.kind!=='wear'&&e===lastWear));if(i<0)break;next.splice(i,1)}
- return {profileId,log:next}
+ return {profileId,log:event.kind==='coin'||event.kind==='buy'?foldCoins(next,now):next}
+}
+
+/** Coins won and snacks bought more than two months ago are folded into one 'bank' entry per month (its
+ * coins won minus its snacks bought), so the log doesn't grow for ever. Outfits and finds bought stay as
+ * they are (they're owned for good). A month with a bank entry ignores any loose entries of that month,
+ * so two devices folding at different times (or an old device sending an entry late) never count twice. */
+export const monthOf=(iso:string)=>iso.slice(0,7)
+export const foldable=(e:CareEvent)=>e.kind==='coin'||(e.kind==='buy'&&!!e.item?.startsWith('food:'))
+export const bankEventId=(month:string)=>'bank-'+month
+export function foldCoins(log:CareEvent[],now:Date):CareEvent[]{
+ const cutoff=monthOf(new Date(now.getTime()-60*DAY).toISOString())
+ const banked=new Set(log.filter(e=>e.kind==='bank').map(e=>e.id.slice(5)))
+ const sums=new Map<string,number>()
+ for(const e of log)if(foldable(e)&&monthOf(e.at)<cutoff&&!banked.has(monthOf(e.at)))sums.set(monthOf(e.at),(sums.get(monthOf(e.at))??0)+(e.kind==='coin'?1:-1)*(e.n??0))
+ if(!sums.size&&!log.some(e=>foldable(e)&&banked.has(monthOf(e.at))))return log
+ const banks=[...sums].map(([month,n]):CareEvent=>({id:bankEventId(month),kind:'bank',at:month+'-15T12:00:00.000Z',n}))
+ for(const month of sums.keys())banked.add(month)
+ return [...log.filter(e=>!(foldable(e)&&banked.has(monthOf(e.at)))),...banks]
 }
 
 /** Reads a saved care log, quietly dropping anything it doesn't understand: it's only for fun, so it
@@ -164,6 +187,8 @@ export function readCareState(raw:unknown,profileId:string):KonoCareState{
   if(typeof x.taskId==='string'&&x.taskId&&x.taskId.length<=150)event.taskId=x.taskId
   if(['wear','find','exam','nudge','feed','visit','taste','gift'].includes(event.kind)&&typeof x.item==='string'&&x.item.length<=40)event.item=x.item
   if(event.kind==='gift'){if(typeof x.from==='string'&&x.from.length<=60)event.from=x.from;if(typeof x.note==='string'&&x.note.length<=140)event.note=x.note}
+  if(['coin','buy'].includes(event.kind)&&typeof x.item==='string'&&x.item.length<=40)event.item=x.item
+  if(['coin','buy','bank'].includes(event.kind)){if(typeof x.n!=='number'||!Number.isInteger(x.n)||Math.abs(x.n)>1_000_000)return [];event.n=x.n}
   return [event]
  }).slice(-LOG_MAX)
  return {profileId,log}

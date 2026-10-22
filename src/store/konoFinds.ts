@@ -33,10 +33,11 @@ export const findSrc=(id:string)=>'/garden/finds/'+id+'.webp'
 export const MIN_FIND_MINUTES=10
 export const findHow=(f:Find)=>f.tier==='common'?'Found on focus sessions of 10+ minutes.':f.tier==='uncommon'?'Found on focus sessions of 25+ minutes.':f.tier==='rare'?'Found on focus sessions of 45+ minutes.':'Found on focus sessions '+(f.season?SEASON_WINDOWS[f.season].when:'')+'.'
 
-/** How many of each find there are (the same one can turn up again). */
+/** How many of each find there are (the same one can turn up again), counting ones bought in KONO's
+ * treasure shop (store/konoCoins). */
 export function foundCounts(log:CareEvent[]):Map<string,number>{
  const counts=new Map<string,number>()
- for(const e of log)if(e.kind==='find'&&e.item)counts.set(e.item,(counts.get(e.item)??0)+1)
+ for(const e of log){const id=e.kind==='find'?e.item:e.kind==='buy'&&e.item?.startsWith('find:')?e.item.slice(5):undefined;if(id)counts.set(id,(counts.get(id)??0)+1)}
  return counts
 }
 /** Finds shown in Decorate: all of them, except seasonal ones outside their season unless found. */

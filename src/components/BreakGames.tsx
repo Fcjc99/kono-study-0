@@ -6,14 +6,17 @@ import {FINDS,findSrc} from '../store/konoFinds'
  * ones: Snack catch (move KONO to catch falling treats, 30 seconds), Memory match (pairs of KONO's
  * finds) and Peekaboo (tap KONO when it pops out of a bush, 30 seconds). The break itself lasts five
  * minutes; when it's over the games stop and KONO says it's time for the next session. Best scores are
- * kept on this device only. Loaded only when opened, so it never adds to the app's startup. */
-type Game='catch'|'memory'|'peekaboo'
+ * kept on this device only. Loaded only when opened, so it never adds to the app's startup.
+ * The same games (and Bubble pop) are KONO Town's arcade: no break timer there, and `onScore` can turn a
+ * score into coins (it returns what to add to the result line). */
+type Game='catch'|'memory'|'peekaboo'|'bubbles'
 export const BREAK_MINUTES=5
 const ROUND_MS=30_000
 const GAMES:{id:Game;emoji:string;name:string;how:string;best:(n:number)=>string}[]=[
  {id:'catch',emoji:'🍓',name:'Snack catch',how:'Move KONO to catch the falling snacks.',best:n=>'Best: '+n+' snacks'},
  {id:'memory',emoji:'🃏',name:'Memory match',how:'Find the pairs of KONO’s treasures.',best:n=>'Best: '+n+' moves'},
  {id:'peekaboo',emoji:'🌿',name:'Peekaboo',how:'Tap KONO when it peeks out of a bush.',best:n=>'Best: '+n+' boops'},
+ {id:'bubbles',emoji:'🫧',name:'Bubble pop',how:'Pop the snack bubbles before they float away.',best:n=>'Best: '+n+' pops'},
 ]
 const bestKey=(g:Game)=>'kono-break-best:'+g
 function readBest(g:Game):number|null{try{const v=localStorage.getItem(bestKey(g));return v===null?null:Number(v)}catch{return null}}
@@ -28,19 +31,21 @@ const clock=(ms:number)=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.flo
 const shuffled=<T,>(items:T[])=>{const deck=[...items];for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}return deck}
 
 /** `startedAt` is when the break games were opened (the break runs BREAK_MINUTES from then). */
-export default function BreakGames({startedAt,onClose}:{startedAt:number;onClose:()=>void}){
+export default function BreakGames({startedAt,onClose,arcade=false,onScore}:{startedAt:number;onClose?:()=>void;arcade?:boolean;onScore?:(game:Game,score:number)=>string|null}){
  const [game,setGame]=useState<Game|null>(null),[deck,setDeck]=useState<string[]>([])
  const [now,setNow]=useState(startedAt)
  const [result,setResult]=useState<string|null>(null)
  useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return ()=>window.clearInterval(t)},[])
- const left=startedAt+BREAK_MINUTES*60_000-now,over=left<=0
- const finish=(g:Game,score:number,line:string)=>{const best=saveBest(g,score);setResult(line+(best?' New best! 🎉':''));setGame(null)}
- return <section className="break-games" aria-label="Break games with KONO">
-  <header><strong>🎮 Break time with KONO</strong><span role="timer" aria-label="Break time left">{over?'Break’s over':'Break: '+clock(left)}</span><button type="button" onClick={onClose}>Close</button></header>
+ const left=startedAt+BREAK_MINUTES*60_000-now,over=!arcade&&left<=0
+ const finish=(g:Game,score:number,line:string)=>{const best=saveBest(g,score),extra=onScore?.(g,score);setResult(line+(best?' New best! 🎉':'')+(extra?' '+extra:''));setGame(null)}
+ return <section className={'break-games'+(arcade?' is-arcade':'')} aria-label={arcade?'Arcade':'Break games with KONO'}>
+  {arcade?game&&<header><strong>{GAMES.find(g=>g.id===game)?.emoji} {GAMES.find(g=>g.id===game)?.name}</strong></header>
+  :<header><strong>🎮 Break time with KONO</strong><span role="timer" aria-label="Break time left">{over?'Break’s over':'Break: '+clock(left)}</span>{onClose&&<button type="button" onClick={onClose}>Close</button>}</header>}
   {over?<p className="break-over" role="status">That was a nice reset! KONO’s ready for the next session when you are. 📚</p>
   :game==='catch'?<SnackCatch onEnd={n=>finish('catch',n,'KONO caught '+n+' snack'+(n===1?'':'s')+'! 😋')}/>
   :game==='memory'?<MemoryMatch cards={deck} onEnd={n=>finish('memory',n,'All pairs found in '+n+' moves! 🧠')}/>
   :game==='peekaboo'?<Peekaboo onEnd={n=>finish('peekaboo',n,'You booped KONO '+n+' time'+(n===1?'':'s')+'! 🌿')}/>
+  :game==='bubbles'?<BubblePop onEnd={n=>finish('bubbles',n,'You popped '+n+' bubble'+(n===1?'':'s')+'! 🫧')}/>
   :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>{setResult(null);if(g.id==='memory')setDeck(shuffled([...MEMORY_IDS,...MEMORY_IDS]));setGame(g.id)}}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
  </section>
 }
@@ -127,5 +132,33 @@ function Peekaboo({onEnd}:{onEnd:(score:number)=>void}){
  return <div className="break-game">
   <p className="break-game-status"><span>Boops: <strong>{score}</strong></span><span>{clock(left)}</span></p>
   <div className="peekaboo-grid">{Array.from({length:9},(_,i)=><button type="button" key={i} className={'peekaboo-bush'+(at===i?' is-up':'')+(booped===i?' is-booped':'')} aria-label={at===i?'Boop KONO!':'Bush'} onClick={()=>boop(i)}>{at===i&&<img src="/garden/kono/happy.webp" alt=""/>}{booped===i&&<span className="peekaboo-boop" aria-hidden="true">💗</span>}<span className="peekaboo-leaves" aria-hidden="true">🌿</span></button>)}</div>
+ </div>
+}
+
+/** Bubble pop: bubbles with snacks inside float up from the bottom; tap one to pop it before it floats away. */
+type Bubble={id:number;x:number;emoji:string;seconds:number}
+function BubblePop({onEnd}:{onEnd:(score:number)=>void}){
+ const [bubbles,setBubbles]=useState<Bubble[]>([]),[score,setScore]=useState(0),[left,setLeft]=useState(ROUND_MS),[pops,setPops]=useState<{id:number;x:number;y:number}[]>([])
+ const onEndRef=useRef(onEnd),scoreRef=useRef(0),boxRef=useRef<HTMLDivElement>(null)
+ useEffect(()=>{onEndRef.current=onEnd},[onEnd])
+ useEffect(()=>{
+  const started=Date.now()
+  let id=0
+  const spawn=window.setInterval(()=>setBubbles(list=>[...list,{id:++id,x:6+Math.random()*80,emoji:SNACKS[Math.floor(Math.random()*SNACKS.length)],seconds:3.2+Math.random()*2.2}]),480)
+  const timer=window.setInterval(()=>{const remaining=ROUND_MS-(Date.now()-started);setLeft(remaining);if(remaining<=0){window.clearInterval(timer);window.clearInterval(spawn);onEndRef.current(scoreRef.current)}},200)
+  return ()=>{window.clearInterval(timer);window.clearInterval(spawn)}
+ },[])
+ const pop=(b:Bubble,target:HTMLElement)=>{
+  scoreRef.current+=1;setScore(scoreRef.current)
+  const box=boxRef.current?.getBoundingClientRect(),r=target.getBoundingClientRect()
+  if(box)setPops(p=>[...p.slice(-4),{id:b.id,x:r.left-box.left+r.width/2,y:r.top-box.top+r.height/2}])
+  setBubbles(list=>list.filter(x=>x.id!==b.id))
+ }
+ return <div className="break-game">
+  <p className="break-game-status"><span>Pops: <strong>{score}</strong></span><span>{clock(left)}</span></p>
+  <div ref={boxRef} className="bubble-pop">
+   {bubbles.map(b=><button type="button" key={b.id} className="bubble" style={{left:b.x+'%',animationDuration:b.seconds+'s'}} aria-label="Pop the bubble" onPointerDown={e=>pop(b,e.currentTarget)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' ')pop(b,e.currentTarget)}} onAnimationEnd={()=>setBubbles(list=>list.filter(x=>x.id!==b.id))}><span aria-hidden="true">{b.emoji}</span></button>)}
+   {pops.map(p=><span key={p.id} className="bubble-popped" style={{left:p.x,top:p.y}} aria-hidden="true">✨</span>)}
+  </div>
  </div>
 }

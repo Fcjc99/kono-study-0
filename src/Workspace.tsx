@@ -56,6 +56,10 @@ import {AccountBanners,SaveStatus} from './components/AccountPanel'
 /** The three-step welcome on a brand-new plan; only new students download it. */
 const WelcomeTour=lazy(()=>import('./components/WelcomeTour'))
 const KonoCorner=lazy(()=>import('./components/KonoCorner'))
+const KonoTown=lazy(()=>import('./components/KonoTown'))
+import type {TownTab} from './components/KonoTown'
+import {boughtOutfits,buyEvent,coinBalance,coinText,gameEvent,questEventId,questLine,questEvent,questToday,roundsLeft,spinEvent,spunToday,surpriseEvent,surpriseEventId,surpriseText,surpriseToday,wheelSlice,COIN_ICON,type GameId,type ShopItem,foodStock,outfitStock,treasureStock} from './store/konoCoins'
+import {albumCount,albumSections} from './store/konoAlbum'
 const RotationToday=lazy(()=>import('./components/RotationToday'))
 const ClassSheet=lazy(()=>import('./components/ClassSheet'))
 const PlanSwitcher=lazy(()=>import('./components/PlanSwitcher'))
@@ -239,7 +243,7 @@ function Workspace({store}:{store:Store}){
  const [phase,setPhase]=useState<'auto'|'morning'|'afternoon'|'evening'|'night'>('auto'),[expanded,setExpanded]=useState(false)
  const [quickDayOpen,setQuickDayOpen]=useState<'today'|'tomorrow'|null>(null)
  // Home's one Today card shows today or tomorrow; KONO's corner and the setup steps open on request.
- const [dayTab,setDayTab]=useState<'today'|'tomorrow'>('today'),[cornerOpen,setCornerOpen]=useState(false),[setupOpen,setSetupOpen]=useState(false)
+ const [dayTab,setDayTab]=useState<'today'|'tomorrow'>('today'),[cornerOpen,setCornerOpen]=useState(false),[townOpen,setTownOpen]=useState<TownTab|null>(null),[setupOpen,setSetupOpen]=useState(false)
  const [islandMode,setIslandMode]=useState<'view'|'decorate'>('view'),[decorateStart,setDecorateStart]=useState<string|undefined>(),[nextUpOpen,setNextUpOpen]=useState(false),[askOpen,setAskOpen]=useState(false)
  // View-only: Decorate mode has its own per-item Size control, and zooming the whole stage there
  // would resize the same Phaser canvas GardenCard already goes out of its way to keep paused and
@@ -375,10 +379,10 @@ function Workspace({store}:{store:Store}){
  })
  // Tucked in: the island goes to night until KONO wakes (only when the island follows the live time).
  const islandPhase=bed.tucked&&phase==='auto'?'night':phase
- const logEvent=(event:CareEvent,now:Date)=>{void save(d=>({...d,konoCare:{...d.konoCare,[profile.id]:addCareEvent(d.konoCare[profile.id],profile.id,event,now)}}),{undoable:!['wish','find','visit'].includes(event.kind)})}
+ const logEvent=(event:CareEvent,now:Date)=>{void save(d=>({...d,konoCare:{...d.konoCare,[profile.id]:addCareEvent(d.konoCare[profile.id],profile.id,event,now)}}),{undoable:!['wish','find','visit','coin'].includes(event.kind)})}
  const logCare=(kind:CareEvent['kind'],now:Date,taskId?:string)=>logEvent({id:uid('care'),kind,at:now.toISOString(),...(taskId?{taskId}:{})},now)
  // KONO's wardrobe and daily wish (store/konoWardrobe; Decorate › Wardrobe).
- const wardrobe=wardrobeStats(sanctuaryProgress.totalCredits,ownTasks,careLog),unlockedOutfitIds=unlockedOutfits(wardrobe)
+ const wardrobe=wardrobeStats(sanctuaryProgress.totalCredits,ownTasks,careLog),unlockedOutfitIds=new Set([...unlockedOutfits(wardrobe),...boughtOutfits(careLog)])
  const worn=wornOutfit(careLog,unlockedOutfitIds)
  // KONO's notes (store/konoNotes): good luck the evening before a test, the study headband on test day,
  // "How did it go?" after it, and otherwise one gentle nudge a day. One at a time, in the KONO bar.
@@ -470,6 +474,20 @@ function Workspace({store}:{store:Store}){
  // Decorate › Stickers and Finds: both are placed once earned (finds as "find-" asset IDs).
  const metFriends=friendsMet(careLog),visitor=visitorToday(ownTasks,careLog,today),stamps=stampCard(sanctuaryProgress.completionDates,today),bond=bondLevel(bondPoints(sanctuaryProgress.totalCredits,careLog))
  const decorEarned=new Set([...earned,...[...found.keys()].map(id=>'find-'+id),...[...metFriends.keys()].map(id=>'friend-'+id),...stamps.presents.map(p=>'present-'+p.id),...giftsAt(bond.level).map(g=>'gift-'+g.id)])
+ // KONO's coins and KONO Town (store/konoCoins): shops, the prize wheel, the arcade, today's quest, a
+ // surprise about every other day, and the album of everything to collect (store/konoAlbum).
+ const coins=coinBalance(sanctuaryProgress.totalCredits,careLog)
+ const quest=questToday(profile.id,today),questDone=careLog.some(e=>e.id===questEventId(today)),questSnack=snacks.find(s=>s.treat.id===quest.treat.id)
+ const surprise=surpriseToday(profile.id,today),surpriseWaiting=!!surprise&&!careLog.some(e=>e.id===surpriseEventId(today))
+ // A surprise turns up a few seconds into the visit, not the moment the page opens.
+ const [surpriseShown,setSurpriseShown]=useState(false)
+ useEffect(()=>{if(!surpriseWaiting||page!=='Sanctuary')return;const timer=window.setTimeout(()=>setSurpriseShown(true),4000);return ()=>window.clearTimeout(timer)},[surpriseWaiting,page])
+ const album=albumSections({today,outfits:unlockedOutfitIds,found,met:metFriends,tried,stickers:earned,presents:new Set(stamps.presents.map(p=>p.id)),gifts:new Set(giftsAt(bond.level).map(g=>g.id))}),albumTotal=albumCount(album)
+ const collectSurprise=()=>{if(!surprise||!surpriseWaiting)return;const now=new Date();logEvent(surpriseEvent(today,surprise,now),now);setSurpriseShown(false);setCareMoment({line:surprise.emoji+' +'+coinText(surprise.n)+'! '+COIN_ICON,pose:'/garden/kono/excited.webp',at:now.getTime(),ms:4500});setCelebrateSignal(now.getTime())}
+ const buyItem=(item:ShopItem)=>{if(item.price>coins)return;const now=new Date();logEvent(buyEvent(uid('buy'),item,now),now)}
+ const spinWheel=()=>{if(spunToday(careLog,today))return null;const now=new Date(),slice=wheelSlice(Math.random());logEvent(spinEvent(today,slice,now),now);return slice}
+ const playedGame=(game:GameId,score:number)=>{const now=new Date(),event=gameEvent(careLog,today,game,score,now);if(!event)return null;logEvent(event,now);return event.n??0}
+ const giveQuest=()=>{if(!questSnack||questDone)return;const now=new Date();feedKono(questSnack.taskId);logEvent(questEvent(today,quest,now),now);announce({line:questLine(quest),pose:'/garden/kono/excited.webp',at:now.getTime(),ms:6000})}
  // School days off and early releases in the next week (store/schoolHeadsUp); "Got it" hides each one on this device.
  const [todayOrder,setTodayOrder]=useLocalSetting('kono-today-order:'+profile.id,'')
  const [schoolSeen,setSchoolSeen]=useLocalSetting('kono-school-heads-up:'+profile.id,'')
@@ -1014,8 +1032,8 @@ function Workspace({store}:{store:Store}){
           and there's a snack), then Tuck in; otherwise Feed when there's a snack. */}
       {careAction}
      </div>
-     <div className="kono-bar-tools"><button type="button" className="next-up-open" aria-label="What should I do now?" aria-expanded={nextUpOpen} onClick={()=>{setAskOpen(false);setNextUpOpen(v=>!v)}}><span aria-hidden="true">▶</span> Next</button><button type="button" className="ask-kono-open" aria-label="Ask KONO" aria-expanded={askOpen} onClick={()=>{setNextUpOpen(false);setKonoPhrase(null);setAskOpen(v=>!v)}}><span aria-hidden="true">🗣️</span> Ask</button></div></div>
-     <p className="kono-bar-notes">{gift&&<span className="kono-note is-gift" role="status">🎁 {gift.from||'Your family'} sent KONO {giftTreat?(giftTreat.name==='boba tea'?'':'a ')+giftTreat.name+' '+giftTreat.emoji:'a snack'}{gift.note?': “'+gift.note+'”':''}</span>}{note&&<span className={'kono-note is-'+note.kind} role="status">{noteText(note)}{note.kind==='ask'&&<span className="kono-note-choices" role="group" aria-label={'How did '+note.test.title+' go?'}>{MOODS.map(m=><button type="button" key={m.mood} aria-label={m.label} title={m.label} onClick={()=>answerTest(note.test,m.mood)}>{m.emoji}</button>)}</span>}{note.kind==='nudge'&&<span className="kono-note-choices"><button type="button" onClick={()=>{answerNudge(true);startFocusSession(note.item.exam?'':note.item.id,note.item.minutes,note.item.exam?note.item.title:undefined)}}>Start</button><button type="button" onClick={()=>answerNudge(false)}>Not now</button></span>}</span>}<span className={'kono-wish'+(wishGranted?' is-granted':'')}>{wishGranted?'✨ Today’s wish came true.':'✨ KONO wishes you’d '+wishText(wish)+(wish.goal>1?' · '+wishDone+'/'+wish.goal:'')}</span>{!note&&!snacks.length&&meters.full<45&&!bed.tucked&&<span className="kono-care-hint">🍙 Finish something to earn KONO a snack</span>}</p>
+     <div className="kono-bar-tools"><button type="button" className="kono-coins-open" aria-label={'KONO Town: '+coinText(Math.max(0,coins))} aria-haspopup="dialog" onClick={()=>setTownOpen('shops')}><span aria-hidden="true">{COIN_ICON}</span> {Math.max(0,coins).toLocaleString()}</button><button type="button" className="next-up-open" aria-label="What should I do now?" aria-expanded={nextUpOpen} onClick={()=>{setAskOpen(false);setNextUpOpen(v=>!v)}}><span aria-hidden="true">▶</span> Next</button><button type="button" className="ask-kono-open" aria-label="Ask KONO" aria-expanded={askOpen} onClick={()=>{setNextUpOpen(false);setKonoPhrase(null);setAskOpen(v=>!v)}}><span aria-hidden="true">🗣️</span> Ask</button></div></div>
+     <p className="kono-bar-notes">{surpriseShown&&surpriseWaiting&&surprise&&<span className="kono-note is-surprise" role="status"><strong>✨ Something has happened!</strong> {surprise.emoji} {surpriseText(surprise)}<span className="kono-note-choices"><button type="button" onClick={collectSurprise}>Collect</button></span></span>}{gift&&<span className="kono-note is-gift" role="status">🎁 {gift.from||'Your family'} sent KONO {giftTreat?(giftTreat.name==='boba tea'?'':'a ')+giftTreat.name+' '+giftTreat.emoji:'a snack'}{gift.note?': “'+gift.note+'”':''}</span>}{note&&<span className={'kono-note is-'+note.kind} role="status">{noteText(note)}{note.kind==='ask'&&<span className="kono-note-choices" role="group" aria-label={'How did '+note.test.title+' go?'}>{MOODS.map(m=><button type="button" key={m.mood} aria-label={m.label} title={m.label} onClick={()=>answerTest(note.test,m.mood)}>{m.emoji}</button>)}</span>}{note.kind==='nudge'&&<span className="kono-note-choices"><button type="button" onClick={()=>{answerNudge(true);startFocusSession(note.item.exam?'':note.item.id,note.item.minutes,note.item.exam?note.item.title:undefined)}}>Start</button><button type="button" onClick={()=>answerNudge(false)}>Not now</button></span>}</span>}<span className={'kono-wish'+(wishGranted?' is-granted':'')}>{wishGranted?'✨ Today’s wish came true.':'✨ KONO wishes you’d '+wishText(wish)+(wish.goal>1?' · '+wishDone+'/'+wish.goal:'')}</span>{!note&&!snacks.length&&meters.full<45&&!bed.tucked&&<span className="kono-care-hint">🍙 Finish something to earn KONO a snack</span>}</p>
      {cornerOpen&&<Suspense fallback={null}><KonoCorner close={()=>setCornerOpen(false)} pose={konoPose} outfit={shownOutfit} costume={shownOutfit?undefined:islandEvent?.emoji} line={konoLine}
       faceClass={(careMoment&&!careMoment.pose.includes('sleep')?' is-reacting':'')+(careMoment?.react?' is-'+careMoment.react:'')}
       reaction={careMoment?.react&&careMoment.react!=='tickle'?<span key={careMoment.at} className={'kono-react is-'+careMoment.react} aria-hidden="true">{careMoment.react==='wave'?'👋':careMoment.react==='heart'?'💗':'✋'}</span>:null}
@@ -1030,8 +1048,14 @@ function Workspace({store}:{store:Store}){
        {id:'stamps',icon:'🐾',label:'Stamp card',detail:stamps.stamped.length+' of '+CARD_SIZE+' stamps',ariaLabel:'Stamp card: '+stamps.stamped.length+' of '+CARD_SIZE+' stamps',onOpen:()=>{setDecorateStart('presents');openDecorate()}},
        {id:'wardrobe',icon:'🎀',label:'Wardrobe',detail:unlockedOutfitIds.size+' of '+outfitsOffered(unlockedOutfitIds,today).length+' outfits',onOpen:()=>{setDecorateStart('wardrobe');openDecorate()}},
        {id:'bond',icon:'💗',label:'Bond',detail:bond.level+' heart'+(bond.level===1?'':'s')+' · '+bond.title,onOpen:()=>{setDecorateStart('presents');openDecorate()}},
+       {id:'town',icon:'🏪',label:'KONO Town',detail:coinText(Math.max(0,coins)),ariaLabel:'KONO Town: shops, prize wheel and arcade. '+coinText(Math.max(0,coins)),onOpen:()=>setTownOpen('shops')},
+       {id:'album',icon:'📖',label:'Album',detail:albumTotal.owned+' of '+albumTotal.total+' collected',onOpen:()=>setTownOpen('album')},
       ]}
       notes={<>{islandEvent&&<span className="kono-season">{islandEvent.emoji} <strong>{islandEvent.label}:</strong> {islandEvent.stickers.filter(t=>earned.has(t.id)).length}/{islandEvent.stickers.length} special stickers until {islandEvent.until}</span>}</>}/></Suspense>}
+     {townOpen&&<Suspense fallback={null}><KonoTown close={()=>setTownOpen(null)} startTab={townOpen} balance={coins}
+      quest={{treat:quest.treat,reward:quest.reward,done:questDone,canGive:!!questSnack}} onGiveQuest={giveQuest}
+      food={foodStock(today)} outfits={outfitStock(unlockedOutfitIds,today)} treasures={treasureStock(found,today)} onBuy={buyItem}
+      spin={spunToday(careLog,today)?.n??null} onSpin={spinWheel} roundsLeft={roundsLeft(careLog,today)} onGame={playedGame} album={album}/></Suspense>}
      {askOpen&&<AskKono data={data} today={today} name={profile.name} pose={konoPose} onClose={()=>setAskOpen(false)}/>}{nextUpOpen&&<NextUp items={nextUpList(tasks,today,ownExams)} onClose={()=>setNextUpOpen(false)} onStart={item=>{setNextUpOpen(false);startFocusSession(item.exam?'':item.id,item.minutes,item.exam?item.title:undefined)}} onDone={item=>void run(()=>save(d=>completeTask(d,item.id)),'Done: '+item.title,true,item.exam?undefined:item.id)}/>}
     </section>
     </>}

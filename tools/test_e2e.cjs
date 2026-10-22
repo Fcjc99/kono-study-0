@@ -3488,6 +3488,69 @@ test('A repeating event from the Planner: a note on just one day stays on that d
  await editor.getByRole('button',{name:'Save'}).click()
  await waitFor(()=>soc(e=>e.date+' '+e.time).join('|')==='2026-10-15 17:00|2026-10-22 17:00|2026-10-29 17:00|2026-11-05 17:00','Nov 5 never joined the series')
 })
+test('Round 51: KONO Town: a surprise to collect, coins in the KONO bar, the food shop, the boutique, today’s quest, the prize wheel, the arcade and the album',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId,day='2026-10-01'
+ await page.clock.install({time:new Date(day+'T15:00:00')})
+ // The quest's snack (the same pick as store/konoCoins), waiting as a gift, and some coins from an old month.
+ const hash=t=>{let h=2166136261;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+ const TREATS=[['onigiri','rice ball'],['dumpling','dumpling'],['dango','dango'],['strawberry','strawberry'],['cookie','cookie'],['peach','peach'],['bento','bento box'],['cake','slice of cake'],['boba','boba tea']]
+ const [questId,questName]=TREATS[hash(pid+day+'quest')%TREATS.length]
+ d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:500},{id:'gift-1',kind:'gift',at:day+'T10:00:00.000Z',item:questId,from:'Mom'}]}}
+ const log=()=>cloud.users.alice.plan.data.konoCare[pid].log
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const bar=page.getByRole('region',{name:'KONO today'})
+ await bar.getByRole('button',{name:/^KONO Town: 510 coins$/}).waitFor()
+ // Something has happened! (a few seconds into the visit)
+ await bar.getByText('Something has happened!').waitFor({timeout:15000})
+ await bar.getByRole('button',{name:'Collect'}).click()
+ await waitFor(()=>log().some(e=>e.id==='event-'+day&&e.n>0),'the surprise never reached the account')
+ const surprise=log().find(e=>e.id==='event-'+day).n
+ if(process.env.KONO_SHOTS)await bar.screenshot({path:process.env.KONO_SHOTS+'/town-bar.png'})
+ await bar.getByRole('button',{name:'KONO Town: '+(510+surprise)+' coins'}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByText((510+surprise)+' coins',{exact:true}).waitFor()
+ if(process.env.KONO_SHOTS)await town.screenshot({path:process.env.KONO_SHOTS+'/town-shops.png'})
+ // The quest: KONO wants the snack Mom sent.
+ const quest=town.getByRole('region',{name:'KONO’s quest'})
+ await quest.getByText('KONO is craving a '+questName,{exact:false}).waitFor()
+ await quest.getByRole('button',{name:'Give the '+questName}).click()
+ await quest.getByText('Quest done!').waitFor()
+ await waitFor(()=>log().some(e=>e.id==='quest-'+day&&e.n>0)&&log().some(e=>e.kind==='feed'&&e.taskId==='gift-1'),'the quest never reached the account')
+ // Food shop: a snack for KONO; Boutique: the cozy beanie.
+ const food=town.getByRole('region',{name:'Food shop'})
+ await food.getByRole('button',{name:/^Buy /}).first().click()
+ await town.getByText('It’s with KONO’s snacks.',{exact:false}).waitFor()
+ await waitFor(()=>log().some(e=>e.kind==='buy'&&e.item.startsWith('food:')),'the snack bought never reached the account')
+ await town.getByRole('region',{name:'Boutique'}).getByRole('button',{name:/^Buy Cozy beanie for /}).click()
+ await waitFor(()=>log().some(e=>e.kind==='buy'&&e.item==='outfit:beanie'),'the outfit bought never reached the account')
+ await town.getByRole('region',{name:'Boutique'}).getByRole('button',{name:/^Buy Cozy beanie/}).waitFor({state:'detached'})
+ // Prize wheel: one spin a day.
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Prize wheel'}).click()
+ await town.getByRole('button',{name:'Spin the wheel'}).click()
+ await town.getByText(/^🎉 You won \d+ coins!$/).waitFor({timeout:10000})
+ await waitFor(()=>log().some(e=>e.id==='spin-'+day),'the spin never reached the account')
+ assert.equal(await town.getByRole('button',{name:'Spun today'}).isDisabled(),true)
+ if(process.env.KONO_SHOTS)await town.screenshot({path:process.env.KONO_SHOTS+'/town-wheel.png'})
+ // Arcade: coin rounds, and Bubble pop is there.
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
+ await town.getByText('3 of 3',{exact:true}).waitFor()
+ await town.getByRole('button',{name:/Bubble pop/}).click()
+ await town.getByRole('button',{name:'Pop the bubble'}).first().dispatchEvent('pointerdown')
+ await town.getByText(/^Pops: 1$/).waitFor()
+ // Album: the beanie is in, with how far along the whole collection is.
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Album'}).click()
+ await town.getByRole('region',{name:'Outfits'}).getByRole('listitem',{name:'Cozy beanie',exact:true}).waitFor()
+ await town.getByText(/^\d+ of \d+ collected$/).first().waitFor()
+ if(process.env.KONO_SHOTS)await town.screenshot({path:process.env.KONO_SHOTS+'/town-album.png'})
+ if(process.env.KONO_SHOTS){await page.setViewportSize({width:390,height:844});await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Shops'}).click();await page.waitForTimeout(400);await page.screenshot({path:process.env.KONO_SHOTS+'/town-phone.png'});await town.getByRole('button',{name:'Close dialog'}).click();await bar.scrollIntoViewIfNeeded();await bar.screenshot({path:process.env.KONO_SHOTS+'/town-bar-phone.png'});await bar.getByRole('button',{name:/^KONO Town/}).click();await page.setViewportSize({width:1280,height:900})}
+ await town.getByRole('button',{name:'Close dialog'}).click()
+ // KONO's corner has KONO Town and the album too.
+ const corner=await openCorner(page)
+ await corner.getByRole('button',{name:/^KONO Town: shops, prize wheel and arcade/}).waitFor()
+ await corner.getByRole('button',{name:/^Album/}).waitFor()
+})
+
 test('Round 50: several lines in ＋ Add at once; an event typed again takes last time’s details; a repeat can be moved a day or deleted from a date on; search finds a to-do; a kid’s own plan shows their to-dos',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.install({time:new Date('2026-10-15T09:00:00')}) // a Thursday
