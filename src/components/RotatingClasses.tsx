@@ -54,7 +54,12 @@ export default function RotatingClasses({season,bells,change,onReview}:{season:S
    setGuessed(found.classes.map(c=>bells.lunchByDepartment?!guessWave(c.label).sure:false))
    if(paired)setSplit(split.map((_,k)=>!!next[2*k+1].label&&next[2*k+1].label.trim().toLowerCase()!==next[2*k].label.trim().toLowerCase()))
    const ownRow=bells.own&&rows.find(r=>r.slot===bells.own!.label&&r.label.trim());if(ownRow)setOwn({label:ownRow.label,location:ownRow.location??''})
-   setConflicts(found.conflicts)
+   // A reading that puts the same class in several periods is a misread (a blurry photo, or the AI
+   // guessing): say so plainly rather than let it fill every day.
+   const firsts=paired?next.filter((_,i)=>i%2===0):next,counts=new Map<string,number>()
+   for(const c of firsts){const k=c.label.trim().toLowerCase();if(k)counts.set(k,(counts.get(k)??0)+1)}
+   const repeated=[...counts].filter(([,n])=>n>=3).map(([k,n])=>'“'+(firsts.find(c=>c.label.trim().toLowerCase()===k)?.label??k)+'” came out in '+n+(paired?' periods':' classes'))
+   setConflicts([...(repeated.length?['This doesn’t look right: '+repeated.join(', ')+'. Check each one against your schedule and type the right names, or try a sharper screenshot.']:[]),...found.conflicts])
    const empty=found.classes.filter(c=>!c.label).length
    // Tell KONO support when a schedule is only partly read: the school and counts, never the classes.
    if(empty)reportError('Rotating-school upload found only '+(count-empty)+' of '+count+' classes',{detail:'Files: '+list.length+' · school: '+season.school!.name})

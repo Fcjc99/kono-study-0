@@ -1,3 +1,5 @@
+import type {Remembered} from './store/eventMemory'
+import {classTime} from './store/classSchedule'
 import {useState,type CSSProperties,type FormEvent,type ReactNode} from 'react'
 import Modal from './components/Modal'
 import Avatar,{AvatarPhotoButton} from './components/Avatar'
@@ -17,22 +19,27 @@ const QUICK_KIND_OPTIONS=[['sports','Sports'],['lesson','Lesson'],['appointment'
 // The fast path parent mode promises: kid, type, a short title and an optional time -- no subject
 // picker, notes, voice input or multi-date repeat. Saves straight to calendarEvents (see
 // quickAddFamilyEvent) rather than opening the full EntryEditor.
-export type QuickFamilyPayload={location?:string;title:string;kind:CalendarEventKind;kidIds:string[];time?:string;endTime?:string;driver?:string;repeatDays:number[];until:string}
+export type QuickFamilyPayload={location?:string;travelMinutes?:number;title:string;kind:CalendarEventKind;kidIds:string[];time?:string;endTime?:string;driver?:string;repeatDays:number[];until:string}
 const WEEKDAY_LETTERS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-export function QuickFamilyAdd({kids,time:startAt,date,until:defaultUntil,drivers=[],clashes,onCancel,onSave}:{kids:Kid[];time?:string;date?:string;until?:string;drivers?:string[];clashes?:(payload:QuickFamilyPayload)=>{date:string;text:string}[];onCancel:()=>void;onSave:(payload:QuickFamilyPayload)=>Promise<void>}){
+export function QuickFamilyAdd({kids,time:startAt,date,until:defaultUntil,drivers=[],clashes,recall,onCancel,onSave}:{recall?:(title:string)=>Remembered|undefined;kids:Kid[];time?:string;date?:string;until?:string;drivers?:string[];clashes?:(payload:QuickFamilyPayload)=>{date:string;text:string}[];onCancel:()=>void;onSave:(payload:QuickFamilyPayload)=>Promise<void>}){
  // Repeats: the same weekday as the date by default, through the end of the school year.
  const [repeatDays,setRepeatDays]=useState<number[]>([]),[until,setUntil]=useState(defaultUntil??''),[driver,setDriver]=useState('')
  const toggleDay=(d:number)=>setRepeatDays(v=>v.includes(d)?v.filter(x=>x!==d):[...v,d].sort())
  const [title,setTitle]=useState(''),[kidIds,setKidIds]=useState<string[]>(kids[0]?[kids[0].id]:[]),[kind,setKind]=useState<CalendarEventKind>('appointment'),[time,setTime]=useState(startAt??''),[endTime,setEndTime]=useState(startAt?String(Math.min(23,Number(startAt.slice(0,2))+1)).padStart(2,'0')+startAt.slice(2):''),[busy,setBusy]=useState(false),[error,setError]=useState('')
+ // Typed again ("soccer practice"): last time's time, people, driver and place, one tap away.
+ const [place,setPlace]=useState<{location?:string;travelMinutes?:number}>({}),[usedFor,setUsedFor]=useState('')
+ const memory=title.trim()&&usedFor!==title.trim().toLowerCase()?recall?.(title):undefined
+ const useMemory=()=>{if(!memory)return;setUsedFor(title.trim().toLowerCase());if(memory.time)setTime(memory.time);setEndTime(memory.endTime??'');if(memory.kidIds.length)setKidIds(memory.kidIds.filter(id=>kids.some(k=>k.id===id)));setKind(memory.kind);if(memory.driver)setDriver(memory.driver);setPlace({...(memory.location?{location:memory.location}:{}),...(memory.travelMinutes?{travelMinutes:memory.travelMinutes}:{})})}
  const submit=async(e:FormEvent)=>{
   e.preventDefault();if(busy||!title.trim())return
   setBusy(true);setError('')
-  try{await onSave({title:title.trim(),kind,kidIds,time:time||undefined,endTime:endTime||undefined,driver:driver.trim()||undefined,repeatDays,until})}catch(e){setError(e instanceof Error?e.message:'Could not save.')}finally{setBusy(false)}
+  try{await onSave({title:title.trim(),kind,kidIds,time:time||undefined,endTime:endTime||undefined,driver:driver.trim()||undefined,repeatDays,until,...place})}catch(e){setError(e instanceof Error?e.message:'Could not save.')}finally{setBusy(false)}
  }
  return <form onSubmit={submit} className="quick-family-add"><fieldset disabled={busy}>
   <fieldset className="whose-pick"><legend>Who’s it for?</legend><label><input type="checkbox" checked={!kidIds.length} onChange={()=>setKidIds([])}/> Me / whole family</label>{kids.map(k=><label key={k.id}><input type="checkbox" checked={kidIds.includes(k.id)} onChange={()=>setKidIds(ids=>ids.includes(k.id)?ids.filter(x=>x!==k.id):[...ids,k.id])}/> {(k.emoji?k.emoji+' ':'')+k.name}</label>)}</fieldset>
   <label>Type<select value={kind} onChange={e=>setKind(e.target.value as CalendarEventKind)}>{QUICK_KIND_OPTIONS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
   <label>What is it?<input required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Soccer practice, Dentist, Work shift…"/></label>
+  {memory&&<p className="event-memory" role="status"><span>Like last time? {[memory.time?classTime(memory.time)+(memory.endTime?'–'+classTime(memory.endTime):''):'',memory.kidIds.map(id=>kids.find(k=>k.id===id)?.name).filter(Boolean).join(' & '),memory.location?'📍 '+memory.location:'',memory.driver?'🚗 '+memory.driver:''].filter(Boolean).join(' · ')}</span><button type="button" onClick={useMemory}>Use it</button></p>}
   <div className="quick-family-times"><label>Start time (optional)<input type="time" value={time} onChange={e=>setTime(e.target.value)}/></label>
   <label>End time (optional)<input type="time" value={endTime} onChange={e=>setEndTime(e.target.value)}/></label></div>
   <label>Who’s driving? (optional)<input list="quick-family-drivers" maxLength={60} value={driver} onChange={e=>setDriver(e.target.value)} placeholder="Mom, Dad, carpool…"/><datalist id="quick-family-drivers">{drivers.map(d=><option key={d} value={d}/>)}</datalist></label>

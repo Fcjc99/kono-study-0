@@ -3488,6 +3488,57 @@ test('A repeating event from the Planner: a note on just one day stays on that d
  await editor.getByRole('button',{name:'Save'}).click()
  await waitFor(()=>soc(e=>e.date+' '+e.time).join('|')==='2026-10-15 17:00|2026-10-22 17:00|2026-10-29 17:00|2026-11-05 17:00','Nov 5 never joined the series')
 })
+test('Round 50: several lines in ＋ Add at once; an event typed again takes last time’s details; a repeat can be moved a day or deleted from a date on; search finds a to-do; a kid’s own plan shows their to-dos',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.install({time:new Date('2026-10-15T09:00:00')}) // a Thursday
+ d.calendarEvents.push({id:'soc-old',profileId:pid,date:'2026-10-08',title:'Soccer practice',kind:'sports',notes:'',time:'16:00',endTime:'17:30',kidId:'kid-emma',location:'Riverside Park',driver:'Mom'})
+ for(const date of ['2026-10-15','2026-10-16','2026-10-17','2026-10-18'])d.calendarEvents.push({id:'swim-'+date,profileId:pid,date,title:'Swim lesson',kind:'lesson',notes:'',time:'18:00',kidId:'kid-leo',recurringId:'rec-swim'})
+ d.familyTodos=[{id:'t-clean',profileId:pid,title:'Clean house',done:false,due:'2026-10-17',repeat:'week',weekly:true},{id:'t-slip',profileId:pid,title:'Sign permission slip',done:false,forKidId:'kid-emma'}]
+ d.profiles.push({id:'plan-emma',name:'Emma',label:'Emma’s plan',kind:'school',start:'2026-09-01',end:'2027-06-30',kidId:'kid-emma'})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ // Several at once, and "soccer practice" remembers its time, place, driver and kid.
+ await page.getByRole('button',{name:'＋ Add',exact:true}).click()
+ const chooser=page.getByRole('dialog',{name:'Add to your plan'})
+ await chooser.getByLabel('Type it').fill('soccer practice sat\ndentist fri 3pm for Leo\ngroceries')
+ await chooser.getByText('3 things to add').waitFor()
+ assert.match(await chooser.locator('.quick-add-many').innerText(),/Event: Soccer practice\s+Sat, Oct 17 · 4:00 PM–5:30 PM · For Emma · 📍 Riverside Park · 🚗 Mom · like last time/)
+ await chooser.getByRole('button',{name:'Add all 3'}).click()
+ await waitFor(()=>{const p=cloud.users.alice.plan.data,s=p.calendarEvents.find(e=>e.date==='2026-10-17'&&e.title==='Soccer practice');return s&&s.time==='16:00'&&s.location==='Riverside Park'&&s.driver==='Mom'&&(s.kidId==='kid-emma'||s.profileId==='plan-emma')&&p.calendarEvents.some(e=>e.title==='Dentist'&&e.time==='15:00')&&p.familyTodos.some(t=>t.title==='Groceries')},'the three never reached the account as read')
+ // Search finds a to-do and opens it.
+ await page.getByRole('button',{name:'Search'}).first().click()
+ const search=page.getByRole('dialog',{name:'Search your work'})
+ await search.getByRole('combobox').fill('clean house')
+ await search.getByRole('group',{name:'To-dos'}).getByText('Clean house').click()
+ await page.getByRole('dialog',{name:'Change to-do'}).getByLabel('To-do').waitFor()
+ await page.getByRole('dialog',{name:'Change to-do'}).getByRole('button',{name:'Cancel'}).click()
+ // Swim lesson every day Thu–Sun: moved a day later for all of them, then deleted from Sat on.
+ await go(page,'Planner')
+ await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Month'}).click()
+ await page.getByRole('button',{name:/^Swim lesson · 6p · Leo · Oct 15, 2026/}).click()
+ const editor=page.getByRole('dialog',{name:'Edit event'})
+ await editor.getByLabel('Date').fill('2026-10-16')
+ await editor.getByLabel('All of them').check()
+ await editor.getByRole('button',{name:'Save'}).click()
+ const swim=()=>cloud.users.alice.plan.data.calendarEvents.filter(e=>e.recurringId==='rec-swim').map(e=>e.date).sort().join()
+ await waitFor(()=>swim()==='2026-10-16,2026-10-17,2026-10-18,2026-10-19','moving one a day later never moved the rest')
+ await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Schedule'}).click()
+ const sat=page.locator('.wb-agenda-day').filter({hasText:'Oct 18, 2026'}).filter({hasText:'Swim lesson'})
+ await sat.locator('summary').first().click()
+ const tile=sat.locator('article, .wb-family-event').filter({hasText:'Swim lesson'}).first()
+ await tile.getByText('More actions').click()
+ await tile.getByRole('button',{name:'Delete this and the ones after'}).click()
+ await page.getByRole('dialog',{name:'Confirm change'}).getByRole('button',{name:'Confirm'}).click()
+ await waitFor(()=>swim()==='2026-10-16,2026-10-17','deleting from Oct 18 on kept the wrong dates')
+ // Emma’s own plan: the to-do her parent made for her, to tick off.
+ await go(page,'Sanctuary')
+ await page.getByRole('button',{name:'Whose plan?'}).first().click()
+ await page.getByRole('dialog',{name:'Whose plan?'}).getByRole('button',{name:/Emma’s plan/}).click()
+ await heading(page,'Sanctuary')
+ const mine=page.getByRole('region',{name:'Your to-dos'})
+ await mine.getByRole('checkbox',{name:'Sign permission slip'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.familyTodos.find(t=>t.id==='t-slip').done,'Emma ticking her to-do never reached the account')
+})
 async function main(){
  const server=await startServer()
  const onlyArg=process.argv[2]
