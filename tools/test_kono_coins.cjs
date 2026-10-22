@@ -13,7 +13,7 @@ let passed=0
 const test=(name,fn)=>{fn();passed++;console.log('PASS '+name)}
 const {bondPoints,bondLevel,giftsAt,bondLine,GIFTS,MAX_HEARTS}=load('src/store/konoBond.ts')
 const coins=load('src/store/konoCoins.ts'),care=load('src/store/konoCare.ts'),{foundCounts}=load('src/store/konoFinds.ts')
-const {coinBalance,PER_FINISHED,PER_WISH,PER_FIND}=coins
+const {coinBalance,PER_FINISHED,PER_WISH,PER_FIND}=coins,shops=load('src/store/konoShops.ts')
 const at=(day,h=12)=>day+'T'+String(h).padStart(2,'0')+':00:00.000Z'
 
 test('balance: 10 per thing finished, 15 per wish, 5 per find, plus coins won, minus things bought',()=>{
@@ -42,17 +42,17 @@ test('arcade: three coin rounds a day, coins by score (capped), then just for fu
  assert.equal(coins.gameCoins('catch',999),50);assert.equal(coins.gameCoins('memory',6),48);assert.equal(coins.gameCoins('memory',40),5);assert.equal(coins.gameCoins('peekaboo',0),0)
 })
 test('shops: the same stock all day on every device; food includes this week’s favorite; owned outfits and found treasures aren’t sold',()=>{
- const a=coins.foodStock('2026-10-22'),b=coins.foodStock('2026-10-22')
+ const a=shops.foodStock('2026-10-22'),b=shops.foodStock('2026-10-22')
  assert.deepEqual(a,b);assert.equal(a.length,5);assert.equal(a[0].id,care.favoriteSnack('2026-10-22').id)
- const outfits=coins.outfitStock(new Set(['bow','beanie']),'2026-07-01')
+ const outfits=shops.outfitStock(new Set(['bow','beanie']),'2026-07-01')
  assert.ok(!outfits.some(o=>o.id==='bow'||o.id==='beanie'));assert.ok(!outfits.some(o=>o.id==='witch'),'Halloween outfits only sell in their season')
  assert.equal(outfits.filter(o=>o.sale).length,1)
- const t=coins.treasureStock(new Map([['acorn',1]]),'2026-07-01')
+ const t=shops.treasureStock(new Map([['acorn',1]]),'2026-07-01')
  assert.equal(t.length,3);assert.ok(!t.some(x=>x.id==='acorn'))
 })
 test('things bought: snacks wait with KONO’s snacks, outfits are owned, treasures count as found',()=>{
  const now=new Date('2026-10-22T15:00:00Z')
- const food=coins.foodStock('2026-10-22')[0],outfit=coins.outfitStock(new Set(),'2026-10-22').find(o=>o.id==='crown'),find=coins.treasureStock(new Map(),'2026-10-22')[0]
+ const food=shops.foodStock('2026-10-22')[0],outfit=shops.outfitStock(new Set(),'2026-10-22').find(o=>o.id==='crown'),find=shops.treasureStock(new Map(),'2026-10-22')[0]
  let state={profileId:'p',log:[]}
  for(const [i,item] of [food,outfit,find].entries())state=care.addCareEvent(state,'p',coins.buyEvent('buy-'+i,item,now),now)
  const p=care.pantry([],state.log,now)
@@ -81,5 +81,35 @@ test('surprises come about every other day and the quest asks for a real snack w
  let days=0;for(let d=1;d<=60;d++){const day='2026-'+(d<=31?'08-'+String(d).padStart(2,'0'):'09-'+String(d-31).padStart(2,'0'));if(coins.surpriseToday('plan-1',day))days++}
  assert.ok(days>15&&days<45,'surprise days: '+days)
  const q=coins.questToday('plan-1','2026-10-22');assert.ok(care.ALL_TREATS.some(t=>t.id===q.treat.id));assert.equal(q.reward,coins.foodPrice(q.treat)*3)
+})
+const looks=load('src/store/konoLooks.ts')
+test('colors: KONO’s pictures in a color, only for frames that come in colors; the latest pick is worn if it’s owned',()=>{
+ assert.equal(looks.paintPose('/garden/kono/happy.webp','starry'),'/garden/kono/colors/starry/happy.webp')
+ assert.equal(looks.paintPose('/garden/kono/walk-up-02.webp','ghost'),'/garden/kono/colors/ghost/walk-up-02.webp')
+ assert.equal(looks.paintPose('/garden/kono/shadow.webp','starry'),'/garden/kono/shadow.webp')
+ assert.equal(looks.paintPose('/garden/kono/happy.webp',null),'/garden/kono/happy.webp')
+ const log=[{id:'b',kind:'buy',at:at('2026-10-01'),item:'paint:starry',n:400},{id:'p1',kind:'paint',at:at('2026-10-01',13),item:'rainbow'},{id:'p2',kind:'paint',at:at('2026-10-01',14),item:'starry'}]
+ const owned=looks.ownedPaints(log)
+ assert.equal(JSON.stringify([...owned]),JSON.stringify(['starry']))
+ assert.equal(looks.wornPaint(log,owned),'starry')
+ assert.equal(looks.wornPaint([...log,{id:'p3',kind:'paint',at:at('2026-10-01',15),item:''}],owned),null,'back to classic')
+ assert.equal(looks.wornPaint(log.slice(1,2),owned),null,'a color not owned isn’t worn')
+})
+test('furniture: each one bought is one more to place; what’s in the room isn’t in storage; pieces stay on the floor (wall pieces can go up the walls)',()=>{
+ const log=[{id:'a',kind:'buy',at:at('2026-10-01'),item:'furn:bed',n:120},{id:'b',kind:'buy',at:at('2026-10-01'),item:'furn:bed',n:120},{id:'c',kind:'buy',at:at('2026-10-01'),item:'furn:round-rug',n:0}]
+ const owned=looks.ownedFurniture(log)
+ assert.equal(owned.get('bed'),2)
+ const storage=looks.inStorage(owned,[{id:'h1',item:'bed',x:0.5,y:0.7}])
+ assert.equal(JSON.stringify(storage.map(s=>[s.furniture.id,s.count])),JSON.stringify([['round-rug',1],['bed',1]]))
+ const bed=looks.FURNITURE.find(f=>f.id==='bed'),clock=looks.FURNITURE.find(f=>f.id==='wall-clock')
+ assert.ok(looks.clampSpot(bed,0.5,0.1).y>=0.3);assert.ok(looks.clampSpot(clock,0.5,0.15).y<0.2);assert.ok(looks.clampSpot(bed,-1,2).x>0&&looks.clampSpot(bed,-1,2).y<=0.96)
+})
+test('KONO’s house is read back safely (odd pieces dropped, numbers kept in range), and adding to the care log keeps the house',()=>{
+ const read=care.readCareState({log:[],house:[{id:'h1',item:'bed',x:0.3,y:5,size:9,flip:true},{id:'',item:'bed'},{id:'h2',item:'x'.repeat(50)},'nope']},'p')
+ assert.equal(JSON.stringify(read.house),JSON.stringify([{id:'h1',item:'bed',x:0.3,y:1,size:2,flip:true}]))
+ assert.equal(care.readCareState({log:[]},'p').house,undefined)
+ const now=new Date('2026-10-22T15:00:00Z')
+ const next=care.addCareEvent(read,'p',{id:'pet1',kind:'pet',at:now.toISOString()},now)
+ assert.equal(JSON.stringify(next.house),JSON.stringify(read.house))
 })
 console.log(passed+'/'+passed+' coin checks passed.')

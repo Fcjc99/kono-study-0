@@ -6,17 +6,21 @@
  * What's saved is a short log of feedings and pats (AppData.konoCare), one entry each with its own
  * ID, so two devices adding to it at the same time merge cleanly. Everything else is worked out from
  * that log, finished assignments and the clock. */
-export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'|'find'|'exam'|'nudge'|'visit'|'bond'|'play'|'taste'|'gift'|'coin'|'buy'|'bank'
+export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'|'find'|'exam'|'nudge'|'visit'|'bond'|'play'|'taste'|'gift'|'coin'|'buy'|'bank'|'paint'
 /** `item` is the outfit put on for a 'wear' entry ("" = taking it off; store/konoWardrobe), what KONO
  * found for a 'find' entry (store/konoFinds), how a test went for an 'exam' entry, or what was done with
  * the day's nudge for a 'nudge' entry (store/konoNotes). A 'gift' is a snack a parent sent from the family
  * plan (`item` is the snack, `from` who sent it, `note` their message); it waits in the pantry like earned ones.
  * Coins (store/konoCoins): a 'coin' entry is coins won (`n`, `item` what for: the prize wheel, a game, a
  * surprise, a quest), a 'buy' entry something bought (`item` "food:cookie", "outfit:bow" or "find:star",
- * `n` its price), and a 'bank' entry a month's coins and snacks folded into one (see foldCoins). */
+ * `n` its price), and a 'bank' entry a month's coins and snacks folded into one (see foldCoins). A 'paint'
+ * entry is KONO's color picked (`item`, "" for classic; store/konoLooks). */
 export type CareEvent={id:string;kind:CareKind;at:string;taskId?:string;item?:string;from?:string;note?:string;n?:number}
-const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear','find','exam','nudge','visit','bond','play','taste','gift','coin','buy','bank']
-export type KonoCareState={profileId:string;log:CareEvent[]}
+const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear','find','exam','nudge','visit','bond','play','taste','gift','coin','buy','bank','paint']
+/** KONO's house (store/konoLooks): the furniture placed in the room. `x` and `y` (0–1) are where the
+ * piece stands in the room (the middle of its bottom edge), `size` how much bigger or smaller than usual. */
+export type HouseItem={id:string;item:string;x:number;y:number;size?:number;flip?:boolean}
+export type KonoCareState={profileId:string;log:CareEvent[];house?:HouseItem[]}
 export type KonoMeters={full:number;rested:number;happy:number;asleep:boolean;away:boolean}
 export type Treat={id:string;emoji:string;name:string}
 export type PantryItem={taskId:string;treat:Treat}
@@ -138,23 +142,23 @@ export function addCareEvent(state:KonoCareState|undefined,profileId:string,even
  const since=now.getTime()-LOG_DAYS*DAY,all=state?.log??[]
  // Granted wishes count toward outfits for good, finds and friends stay in the collection, days KONO was
  // cared for count toward the bond (store/konoBond), and the outfit KONO has on stays on: all are kept.
- const lastWear=all.filter(e=>e.kind==='wear').sort((a,b)=>a.at.localeCompare(b.at)).at(-1)
+ const lastWear=all.filter(e=>e.kind==='wear').sort((a,b)=>a.at.localeCompare(b.at)).at(-1),lastPaint=all.filter(e=>e.kind==='paint').sort((a,b)=>a.at.localeCompare(b.at)).at(-1)
  // Coins won and things bought are kept too (old months are folded into one entry, see foldCoins).
  const kept=(e:CareEvent)=>e.kind==='wish'||e.kind==='find'||e.kind==='visit'||e.kind==='bond'||e.kind==='taste'||e.kind==='gift'||e.kind==='coin'||e.kind==='buy'||e.kind==='bank'
- const log=all.filter(e=>kept(e)||e===lastWear||time(e.at)>=since)
- if((event.kind==='wish'||event.kind==='exam'||event.kind==='nudge'||event.kind==='visit'||event.kind==='bond'||event.kind==='taste'||event.kind==='coin')&&log.some(e=>e.id===event.id))return {profileId,log}
- if(event.kind==='play'&&now.getTime()<nextPlayAt(log))return {profileId,log}
- if(event.kind==='pet'){const lastPet=Math.max(-Infinity,...log.filter(e=>e.kind==='pet').map(e=>time(e.at)));if(now.getTime()-lastPet<PET_EVERY_MS)return {profileId,log}}
- if(event.kind==='sleep'&&bedtime(log,now).tucked)return {profileId,log}
- if(event.kind==='wake'&&!bedtime(log,now).canWake)return {profileId,log}
- if(event.kind==='feed'&&event.taskId&&log.some(e=>e.kind==='feed'&&e.taskId===event.taskId))return {profileId,log}
+ const log=all.filter(e=>kept(e)||e===lastWear||e===lastPaint||time(e.at)>=since)
+ if((event.kind==='wish'||event.kind==='exam'||event.kind==='nudge'||event.kind==='visit'||event.kind==='bond'||event.kind==='taste'||event.kind==='coin')&&log.some(e=>e.id===event.id))return {profileId,log,...(state?.house?{house:state.house}:{})}
+ if(event.kind==='play'&&now.getTime()<nextPlayAt(log))return {profileId,log,...(state?.house?{house:state.house}:{})}
+ if(event.kind==='pet'){const lastPet=Math.max(-Infinity,...log.filter(e=>e.kind==='pet').map(e=>time(e.at)));if(now.getTime()-lastPet<PET_EVERY_MS)return {profileId,log,...(state?.house?{house:state.house}:{})}}
+ if(event.kind==='sleep'&&bedtime(log,now).tucked)return {profileId,log,...(state?.house?{house:state.house}:{})}
+ if(event.kind==='wake'&&!bedtime(log,now).canWake)return {profileId,log,...(state?.house?{house:state.house}:{})}
+ if(event.kind==='feed'&&event.taskId&&log.some(e=>e.kind==='feed'&&e.taskId===event.taskId))return {profileId,log,...(state?.house?{house:state.house}:{})}
  // The first feeding, pat, tuck-in or wake-up of a day also marks a day KONO was cared for, with a fixed
  // ID so two devices mark the same day once.
  const careDay=bondEventId(localDay(now))
  const next=['feed','pet','sleep','wake','play'].includes(event.kind)&&!log.some(e=>e.id===careDay)?[...log,event,{id:careDay,kind:'bond' as const,at:event.at}]:[...log,event]
  // Over the cap: drop the oldest everyday entries, never wishes or what KONO is wearing.
- while(next.length>LOG_MAX){const i=next.findIndex(e=>!kept(e)&&e!==event&&!(e.kind==='wear'&&event.kind!=='wear'&&e===lastWear));if(i<0)break;next.splice(i,1)}
- return {profileId,log:event.kind==='coin'||event.kind==='buy'?foldCoins(next,now):next}
+ while(next.length>LOG_MAX){const i=next.findIndex(e=>!kept(e)&&e!==event&&!(e.kind==='wear'&&event.kind!=='wear'&&e===lastWear)&&!(e.kind==='paint'&&event.kind!=='paint'&&e===lastPaint));if(i<0)break;next.splice(i,1)}
+ return {profileId,log:event.kind==='coin'||event.kind==='buy'?foldCoins(next,now):next,...(state?.house?{house:state.house}:{})}
 }
 
 /** Coins won and snacks bought more than two months ago are folded into one 'bank' entry per month (its
@@ -185,13 +189,20 @@ export function readCareState(raw:unknown,profileId:string):KonoCareState{
   if(typeof x.id!=='string'||!x.id||x.id.length>150||!KINDS.includes(x.kind as CareKind)||typeof x.at!=='string'||!Number.isFinite(Date.parse(x.at)))return []
   const event:CareEvent={id:x.id,kind:x.kind as CareKind,at:new Date(x.at).toISOString()}
   if(typeof x.taskId==='string'&&x.taskId&&x.taskId.length<=150)event.taskId=x.taskId
-  if(['wear','find','exam','nudge','feed','visit','taste','gift'].includes(event.kind)&&typeof x.item==='string'&&x.item.length<=40)event.item=x.item
+  if(['wear','find','exam','nudge','feed','visit','taste','gift','paint'].includes(event.kind)&&typeof x.item==='string'&&x.item.length<=40)event.item=x.item
   if(event.kind==='gift'){if(typeof x.from==='string'&&x.from.length<=60)event.from=x.from;if(typeof x.note==='string'&&x.note.length<=140)event.note=x.note}
   if(['coin','buy'].includes(event.kind)&&typeof x.item==='string'&&x.item.length<=40)event.item=x.item
   if(['coin','buy','bank'].includes(event.kind)){if(typeof x.n!=='number'||!Number.isInteger(x.n)||Math.abs(x.n)>1_000_000)return [];event.n=x.n}
   return [event]
  }).slice(-LOG_MAX)
- return {profileId,log}
+ const num=(v:unknown,lo:number,hi:number,fallback:number)=>typeof v==='number'&&Number.isFinite(v)?Math.min(hi,Math.max(lo,v)):fallback
+ const house=(Array.isArray(value.house)?value.house:[]).flatMap((h:unknown):HouseItem[]=>{
+  if(!h||typeof h!=='object')return []
+  const x=h as Record<string,unknown>
+  if(typeof x.id!=='string'||!x.id||x.id.length>150||typeof x.item!=='string'||!x.item||x.item.length>40)return []
+  return [{id:x.id,item:x.item,x:num(x.x,0,1,0.5),y:num(x.y,0,1,0.7),...(x.size!==undefined?{size:num(x.size,0.5,2,1)}:{}),...(x.flip===true?{flip:true}:{})}]
+ }).slice(0,80)
+ return {profileId,log,...(Array.isArray(value.house)?{house}:{})}
 }
 
 /** What KONO says after being fed or patted, shown in place of the day's line for a moment. */

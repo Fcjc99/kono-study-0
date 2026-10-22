@@ -1,47 +1,65 @@
 import './kono-town.css'
-import {useState} from 'react'
+import {useState,type ReactNode} from 'react'
 import Modal from './Modal'
 import KonoFace from './KonoFace'
 import BreakGames from './BreakGames'
 import type {Treat} from '../store/konoCare'
-import {COIN_ICON,COIN_ROUNDS,WHEEL,boughtLine,coinText,type GameId,type ShopItem} from '../store/konoCoins'
-import {albumCount,type AlbumSection} from '../store/konoAlbum'
+import {COIN_ICON,COIN_ROUNDS,WHEEL,coinText,type GameId,type ShopItem} from '../store/konoCoins'
+import {boughtLine,foodStock,furnitureStock,outfitStock,paintStock,treasureStock} from '../store/konoShops'
+import type {OutfitId} from '../store/konoWardrobe'
+import {albumCount,albumSections,type AlbumInput} from '../store/konoAlbum'
+import type {PaintId} from '../store/konoLooks'
 
-export type TownTab='shops'|'wheel'|'arcade'|'album'
-const TABS:{id:TownTab;icon:string;label:string}[]=[{id:'shops',icon:'🛍️',label:'Shops'},{id:'wheel',icon:'🎡',label:'Prize wheel'},{id:'arcade',icon:'🕹️',label:'Arcade'},{id:'album',icon:'📖',label:'Album'}]
+export type TownTab='shops'|'home'|'wheel'|'arcade'|'album'
+const TABS:{id:TownTab;icon:string;label:string}[]=[{id:'shops',icon:'🛍️',label:'Shops'},{id:'home',icon:'🎨',label:'Paint & home'},{id:'wheel',icon:'🎡',label:'Prize wheel'},{id:'arcade',icon:'🕹️',label:'Arcade'},{id:'album',icon:'📖',label:'Album'}]
 const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /** KONO Town (the coin button in the KONO bar, or KONO's corner): where coins are spent and won. Today's
- * quest sits on top; then the shops (food, outfits, treasures), the prize wheel (one free spin a day),
+ * quest sits on top; then the shops (food, outfits, treasures; colors for KONO and furniture for KONO's
+ * house), the prize wheel (one free spin a day),
  * the arcade (the first few rounds a day win coins) and the album of everything there is to collect.
  * Loaded only when opened. */
-export default function KonoTown({close,balance,startTab='shops',quest,onGiveQuest,food,outfits,treasures,onBuy,spin,onSpin,roundsLeft,onGame,album}:{
+export default function KonoTown({close,balance,startTab='shops',quest,onGiveQuest,today,outfitsOwned,found,paints,furniture,onBuy,spin,onSpin,roundsLeft,onGame,album:albumInput}:{
  close:()=>void
  balance:number
  startTab?:TownTab
  quest:{treat:Treat;reward:number;done:boolean;canGive:boolean}
  onGiveQuest:()=>void
- food:ShopItem[];outfits:ShopItem[];treasures:ShopItem[]
+ /** For the day's stock: today, outfits KONO has, treasures found. */
+ today:string;outfitsOwned:Set<OutfitId>;found:Map<string,number>
+ /** Colors: all of them, which are owned, which KONO wears (null: classic), and wearing one. */
+ paints:{owned:Set<PaintId>;worn:PaintId|null;onWear:(id:PaintId|null)=>void}
+ /** Furniture: all of it, how many of each KONO has, and opening the house to place it. */
+ furniture:{owned:Map<string,number>;onOpenHouse:()=>void}
  onBuy:(item:ShopItem)=>void
  /** Today's spin, if already spun (the coins it won). onSpin spins and returns the slice won. */
  spin:number|null;onSpin:()=>number|null
  roundsLeft:number
  /** A finished arcade game: the coins it won (null when today's coin rounds are used up). */
  onGame:(game:GameId,score:number)=>number|null
- album:AlbumSection[]
+ album:AlbumInput
 }){
+ const food=foodStock(today),outfits=outfitStock(outfitsOwned,today),treasures=treasureStock(found,today),album=albumSections(albumInput)
  const [tab,setTab]=useState<TownTab>(startTab),[note,setNote]=useState('')
  const buy=(item:ShopItem)=>{if(item.price>balance)return;onBuy(item);setNote(boughtLine(item))}
- const shop=(title:string,blurb:string,items:ShopItem[],empty:string)=><section className="town-shop" aria-label={title}>
+ const shop=(title:string,blurb:string,items:ShopItem[],empty:string,owned?:(item:ShopItem)=>ReactNode,after?:ReactNode)=><section className="town-shop" aria-label={title}>
   <h3>{title} <small>{blurb}</small></h3>
   {items.length?<ul className="town-items">{items.map(item=>{const short=item.price-balance;return <li key={item.key} className={item.sale?'is-sale':undefined}>
-   <span className="town-item-art" aria-hidden="true">{item.kind==='outfit'?<span className="kono-face-box"><KonoFace pose="/garden/kono/happy.webp" outfit={item.id} size={56}/></span>:item.img?<img src={item.img} alt=""/>:<span>{item.emoji}</span>}</span>
+   <span className={'town-item-art is-'+item.kind} aria-hidden="true">{item.kind==='outfit'?<span className="kono-face-box"><KonoFace pose="/garden/kono/happy.webp" outfit={item.id} size={56}/></span>:item.img?<img src={item.img} alt=""/>:<span>{item.emoji}</span>}</span>
    <strong>{item.name[0].toUpperCase()+item.name.slice(1)}</strong>
    {item.sale&&<em className="town-sale">Sale!</em>}
-   <button type="button" disabled={short>0} aria-label={'Buy '+item.name+' for '+coinText(item.price)} onClick={()=>buy(item)}>{COIN_ICON} {item.price}</button>
-   {short>0&&<small className="town-short">{coinText(short)} more</small>}
+   {owned?.(item)??<><button type="button" disabled={short>0} aria-label={'Buy '+item.name+' for '+(item.price?coinText(item.price):'free')} onClick={()=>buy(item)}>{item.price?<>{COIN_ICON} {item.price}</>:'Free'}</button>
+   {short>0&&<small className="town-short">{coinText(short)} more</small>}</>}
+   {item.kind==='furniture'&&!!furniture.owned.get(item.id)&&<small className="town-short">You have {furniture.owned.get(item.id)}</small>}
   </li>})}</ul>:<p className="wb-muted">{empty}</p>}
+  {after}
  </section>
+ const wearButton=(item:ShopItem)=>{
+  const id=item.id as PaintId
+  if(!paints.owned.has(id))return null
+  const on=paints.worn===id
+  return <button type="button" aria-pressed={on} className={on?'primary':undefined} aria-label={(on?'Take off ':'Paint KONO ')+item.name} onClick={()=>{paints.onWear(on?null:id);setNote(on?'KONO is back to classic.':'🎨 KONO is '+item.name+' now!')}}>{on?'Wearing ✓':'Paint KONO'}</button>
+ }
  const count=albumCount(album)
  return <Modal title="KONO Town" close={close}>
   <div className="kono-town">
@@ -57,6 +75,10 @@ export default function KonoTown({close,balance,startTab='shops',quest,onGiveQue
     {shop('Food shop','For KONO’s snacks. New stock every day.',food,'Sold out! Come back tomorrow.')}
     {shop('Boutique','Outfits to keep. One is on sale each day.',outfits,'KONO has every outfit there is right now!')}
     {shop('Treasure shop','Treasures KONO hasn’t found yet, for the island.',treasures,'KONO has found every treasure there is right now!')}
+   </>}
+   {tab==='home'&&<>
+    {shop('Paint shop','Colors KONO keeps for good. Switch any time.',paintStock(),'',wearButton,paints.worn&&<p className="town-classic"><button type="button" onClick={()=>{paints.onWear(null);setNote('KONO is back to classic.')}}>Back to classic KONO</button></p>)}
+    {shop('Furniture shop','For KONO’s house. Place it in the room.',furnitureStock(),'',undefined,<p className="town-classic"><button type="button" className="primary" onClick={furniture.onOpenHouse}>🏠 Go to KONO’s house</button></p>)}
    </>}
    {tab==='wheel'&&<PrizeWheel spin={spin} onSpin={onSpin}/>}
    {tab==='arcade'&&<section className="town-arcade" aria-label="Arcade">

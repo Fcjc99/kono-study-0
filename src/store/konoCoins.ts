@@ -1,7 +1,5 @@
-import {ALL_TREATS,favoriteSnack,foldable,monthOf,type CareEvent,type Treat} from './konoCare'
-import {FINDS,findSrc,type Find} from './konoFinds'
-import {OUTFITS,type Outfit,type OutfitId} from './konoWardrobe'
-import {inSeasonWindow} from './seasonWindows'
+import {ALL_TREATS,foldable,monthOf,type CareEvent,type Treat} from './konoCare'
+import type {OutfitId} from './konoWardrobe'
 
 /** KONO's coins (Sanctuary › KONO Town): earned by finishing work and playing, spent in KONO's shops. Kind
  * like the rest of KONO's care: coins are only ever earned (never bought), nothing costs coins to keep,
@@ -34,36 +32,13 @@ export function coinBalance(finished:number,log:CareEvent[]):number{
  return coins
 }
 
-/** Shops. Food goes to KONO's snacks (store/konoCare › pantry), outfits to the wardrobe and treasures to
- * Decorate › Finds, all for good. Stock changes every day and is the same on every device. */
-export type ShopKind='food'|'outfit'|'find'
+/** What the shops sell (store/konoShops has the stock, loaded with KONO Town). */
+export type ShopKind='food'|'outfit'|'find'|'paint'|'furniture'
 export type ShopItem={key:string;kind:ShopKind;id:string;name:string;price:number;emoji?:string;img?:string;sale?:boolean}
 export const foodPrice=(t:Treat)=>['bento','cake','boba'].includes(t.id)?30:12
-export function foodStock(today:string):ShopItem[]{
- const fav=favoriteSnack(today)
- const picks=[...ALL_TREATS].sort((a,b)=>hash(today+'food'+a.id)-hash(today+'food'+b.id)).filter(t=>t.id!==fav.id).slice(0,4)
- return [fav,...picks].map(t=>({key:'food:'+t.id,kind:'food',id:t.id,name:t.name,price:foodPrice(t),emoji:t.emoji}))
-}
-export function outfitPrice(o:Outfit):number{
- const raw=o.season?150:o.by==='finished'?60+o.count*12:60+o.count*40
- return Math.round(raw/5)*5
-}
-/** Outfits not yet owned (seasonal ones in their season), one of them a quarter off today. */
-export function outfitStock(owned:Set<OutfitId>,today:string):ShopItem[]{
- const list=OUTFITS.filter(o=>!owned.has(o.id)&&(!o.season||inSeasonWindow(o.season,today)))
- const sale=list.length?list[hash(today+'sale')%list.length].id:null
- return list.map(o=>{const price=outfitPrice(o),off=o.id===sale;return {key:'outfit:'+o.id,kind:'outfit',id:o.id,name:o.name,price:off?Math.round(price*0.75/5)*5:price,...(off?{sale:true}:{})}})
-}
-export const findPrice=(f:Find)=>f.tier==='common'?40:f.tier==='uncommon'?90:f.tier==='rare'?220:120
-/** Three treasures a day that KONO hasn't found yet (seasonal ones in their season). */
-export function treasureStock(found:Map<string,number>,today:string):ShopItem[]{
- return FINDS.filter(f=>!found.has(f.id)&&(!f.season||inSeasonWindow(f.season,today))).sort((a,b)=>hash(today+'find'+a.id)-hash(today+'find'+b.id)).slice(0,3)
-  .map(f=>({key:'find:'+f.id,kind:'find',id:f.id,name:f.name,price:findPrice(f),img:findSrc(f.id)}))
-}
 /** Outfits bought in the boutique (owned for good, like ones earned). */
 export const boughtOutfits=(log:CareEvent[])=>new Set(log.filter(e=>e.kind==='buy'&&e.item?.startsWith('outfit:')).map(e=>e.item!.slice(7) as OutfitId))
 export const buyEvent=(id:string,item:ShopItem,now:Date):CareEvent=>({id,kind:'buy',at:now.toISOString(),item:item.key,n:item.price})
-export const boughtLine=(item:ShopItem)=>item.kind==='food'?'Yum! '+(item.emoji??'')+' A '+item.name+' for KONO. It’s with KONO’s snacks.':item.kind==='outfit'?'✨ The '+item.name.toLowerCase()+' is KONO’s now! Try it on in Decorate › Wardrobe.':'💎 The '+item.name.toLowerCase()+' is yours! Put it on the island from Decorate › Finds.'
 
 /** The prize wheel: one free spin a day, and every spin wins something. */
 export const WHEEL=[10,25,15,50,20,100,30,40]

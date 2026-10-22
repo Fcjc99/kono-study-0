@@ -44,4 +44,8 @@
 .town-album-grid li.is-missing .town-item-art{filter:brightness(0) opacity(.22)}
 .kono-coins{display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums;font-weight:700}
 @media(prefers-reduced-motion:reduce){.town-wheel{transition:none}}
-@media(max-width:600px){.town-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}.town-tabs button{display:grid;justify-items:center;gap:2px;min-height:0!important;padding:6px 2px!important;border-radius:12px!important;font-size:.74rem!important;line-height:1.1}.town-tabs button span{font-size:1.15rem}.town-items{grid-template-columns:repeat(3,minmax(0,1fr))}.town-items li{padding:8px 4px}}
+@media(max-width:600px){.town-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}.town-tabs button{display:grid;justify-items:center;gap:2px;min-height:0!important;padding:6px 2px!important;border-radius:12px!important;font-size:.74rem!important;line-height:1.1}.town-tabs button span{font-size:1.15rem}.town-items{grid-template-columns:repeat(3,minmax(0,1fr))}.town-items li{padding:8px 4px}}
+.town-item-art.is-paint img,.town-item-art.is-furniture img{image-rendering:auto}
+.town-item-art.is-paint img{image-rendering:pixelated}
+.town-classic{margin:8px 0 0}
+.town-classic button{margin:0!important}
