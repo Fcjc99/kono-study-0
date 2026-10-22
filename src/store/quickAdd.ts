@@ -8,7 +8,7 @@ export type QuickAddGuess={key:'tasks'|'exams'|'calendarEvents'|'familyTodos';ti
 /** A family to-do in one line: "clean house every sat", "pay rent on the 1st every month". due is '' for any day. */
 export type QuickTodo={repeat?:TodoRepeat;kidId?:string;kidName?:string;monthDay?:number}
 /** An event in one line: "soccer every Tue and Thu 4-5:30pm for Emma at Riverside Park". */
-export type QuickEvent={kind:'sports'|'lesson'|'appointment'|'activity'|'work'|'personal';endTime?:string;repeatDays:number[];repeatLabel?:string;until:string;kidIds:string[];people:string[];location?:string}
+export type QuickEvent={kind:'sports'|'lesson'|'appointment'|'activity'|'work'|'personal'|import('./model').CalendarEventKind;endTime?:string;repeatDays:number[];repeatLabel?:string;until:string;kidIds:string[];people:string[];location?:string;travelMinutes?:number;driver?:string;remembered?:boolean}
 type Person={id:string;name:string}
 
 const DAYS=['sun','mon','tue','wed','thu','fri','sat']

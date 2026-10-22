@@ -56,6 +56,8 @@ test('only what was changed goes to the rest of a series: a new time for all kee
  assert.deepEqual(out.map(e=>e.time+' '+e.notes),['16:00 ','17:00 ','17:00 Bring shin guards'],'the time moves, Oct 16’s note stays')
  const withNote=applyToSeries(series,edited,'2026-10-02','all',original)
  assert.deepEqual(withNote.slice(1).map(e=>e.notes),['Field 3 today','Field 3 today'],'a note changed for all goes to all')
+ const moved=applyToSeries(series,{...original,date:'2026-10-03'},'2026-10-02','all',original)
+ assert.deepEqual(moved.slice(1).map(e=>e.date),['2026-10-10','2026-10-17'],'moving one a day later moves the rest a day later (Thursdays to Fridays)')
  const {applyToTaskSeries}=lib,tasks=[{id:'a',profileId:'p',title:'Reading log',due:'2026-10-05',done:false,notes:'',recurringId:'r'},{id:'b',profileId:'p',title:'Reading log',due:'2026-10-12',done:false,notes:'Chapter 4',recurringId:'r'}]
  assert.equal(applyToTaskSeries(tasks,{...tasks[0],title:'Reading log (20 min)'},'2026-10-05','all',tasks[0])[1].notes,'Chapter 4')
 })

@@ -615,3 +615,11 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .quick-family-times{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .quick-family-times>label{min-width:0}
 .quick-family-times input{min-width:0;width:100%}
+/* ＋ Add › Type it: one line, or several (one per line) listed before adding all of them. */
+.quick-add-box textarea{width:100%;min-height:44px;resize:vertical;font:inherit;line-height:1.4;padding:10px 12px}
+.quick-add-many ul{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px;max-height:40vh;overflow:auto}
+.quick-add-many li{display:grid;gap:2px;padding:6px 10px;border-radius:10px;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 8%,var(--wb-surface,#fff))}
+.quick-add-many li span{font-size:.85rem;color:var(--wb-muted,#7a6670)}
+/* Typed again: last time's details, one tap away. */
+.event-memory{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:0;padding:8px 10px;border-radius:12px;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 10%,var(--wb-surface,#fff));font-size:.9rem;font-weight:600}
+.workbench .event-memory button{min-height:36px;padding:4px 12px!important}

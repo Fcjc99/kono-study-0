@@ -8,7 +8,7 @@ type Filter={id:string;label:string;test:(c:Command)=>boolean}
 
 const localToday=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 const plusDays=(day:string,n:number)=>{const d=new Date(day+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
-const GROUP_ORDER=['Assignments','Exams','Events','Notes','Subjects','Kids','Pages & settings']
+const GROUP_ORDER=['Assignments','Exams','Events','To-dos','Notes','Subjects','Kids','Pages & settings']
 
 export default function CommandPalette({commands,onClose,people=[]}:{commands:Command[];onClose:()=>void;people?:{id:string;name:string;emoji?:string;photo?:string;color?:string}[]}){
  const dialog=useRef<HTMLDialogElement>(null),input=useRef<HTMLInputElement>(null)
