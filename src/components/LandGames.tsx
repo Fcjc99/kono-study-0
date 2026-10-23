@@ -32,7 +32,7 @@ export default function LandGame({land,sound,kono,onScore}:{land:LandId;sound:bo
  const start=()=>{setResult(null);if(game.id==='tumble')setBoard(tumbleBoard());setRound(r=>r+1);setPlaying(true)}
  const best=readBest(game.id)
  return <section className="land-game" aria-label={game.name}>
-  {playing&&<GameScreen title={game.emoji+' '+game.name} onLeave={()=>setPlaying(false)}><div className="land-game">{game.id==='chase'?<ShellChase key={round} kono={kono} sound={sound} onEnd={n=>finish(n,'KONO collected '+game.unit(n)+' and '+n+' baby crab'+(n===1?'':'s')+' followed along! 🦀')}/>
+  {playing&&<GameScreen title={game.emoji+' '+game.name} tone="blast" onLeave={()=>setPlaying(false)}><div className="land-game">{game.id==='chase'?<ShellChase key={round} kono={kono} sound={sound} onEnd={n=>finish(n,'KONO collected '+game.unit(n)+' and '+n+' baby crab'+(n===1?'':'s')+' followed along! 🦀')}/>
   :game.id==='tumble'?<AcornTumble key={round} start={board} sound={sound} onEnd={(n,clear)=>finish(n,(clear?'You cleared the whole glade! ':'')+'That’s '+game.unit(n)+'! 🌰')}/>
   :<SledDash key={round} kono={kono} sound={sound} onEnd={(n,crashed)=>finish(n,(crashed?'Bonk! KONO tumbled into the snow with ':'KONO made it to the bottom with ')+game.unit(n)+'! 🛷')}/>}</div></GameScreen>}
   <div className="land-game-intro">

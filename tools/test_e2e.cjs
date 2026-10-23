@@ -2674,7 +2674,7 @@ test('Bond hearts: KONO’s bond grows with what you do together; at 2 hearts a 
  await page.locator('.build-palette').getByRole('button',{name:'Add Heart cushion'}).click()
  await waitFor(()=>(data().sanctuaryDecor?.[pid]?.placements??[]).some(p=>p.assetId==='gift-cushion'),'the cushion never went on the island')
 })
-test('Break games: after a focus session KONO offers a break game; Peekaboo, Memory match and Snack catch each play through, keep a best score, and the games stop when the five-minute break is over',async({context,page})=>{
+test('Break games: after a focus session KONO offers a break game; Peekaboo and Snack catch each play through (full screen), keep a best score, and the games stop when the five-minute break is over',async({context,page})=>{
  const cloud=fakeCloud()
  await page.clock.install({time:new Date('2026-09-15T15:00:00')})
  await signInAs(context,cloud,'alice')
@@ -2700,26 +2700,6 @@ test('Break games: after a focus session KONO offers a break game; Peekaboo, Mem
  await page.clock.fastForward(31000);await page.clock.runFor(500)
  await games.getByText(new RegExp('^You booped KONO '+boops+' times?! 🌿 New best! 🎉$')).waitFor()
  await games.getByText('Best: '+boops+' boops').waitFor()
- // Memory match: find all 6 pairs.
- await games.getByRole('button',{name:/Memory match/}).click()
- const cards=games.locator('.memory-card')
- await cards.first().waitFor()
- const known=new Map(),matched=new Set()
- const label=async i=>cards.nth(i).getAttribute('aria-label')
- for(let i=0;i<12;i++){
-  if(matched.has(i))continue
-  await cards.nth(i).click();const a=await label(i)
-  const twin=[...known.entries()].find(([j,name])=>name===a&&j!==i&&!matched.has(j))
-  let j=twin?twin[0]:[...Array(12).keys()].find(k=>k!==i&&!matched.has(k)&&!known.has(k))
-  if(j===undefined)break
-  await cards.nth(j).click();const b=await label(j)
-  known.set(i,a);known.set(j,b)
-  if(a===b){matched.add(i);matched.add(j)}
-  await page.clock.runFor(900)
-  if(a!==b){const pair=[...known.entries()].find(([k,name])=>name===a&&k!==i&&!matched.has(k));if(pair){await cards.nth(i).click();await cards.nth(pair[0]).click();matched.add(i);matched.add(pair[0]);await page.clock.runFor(900)}}
- }
- for(const [i,name] of known)if(!matched.has(i)){const pair=[...known.entries()].find(([k,n])=>n===name&&k!==i&&!matched.has(k));if(pair){await cards.nth(i).click();await cards.nth(pair[0]).click();matched.add(i);matched.add(pair[0]);await page.clock.runFor(900)}}
- await games.getByText(/^All pairs found in \d+ moves! 🧠 New best! 🎉$/).waitFor()
  // Snack catch: thirty seconds of falling snacks.
  await games.getByRole('button',{name:/Snack catch/}).click()
  await games.getByRole('application',{name:/Snack catch/}).waitFor()
@@ -3859,14 +3839,11 @@ test('Round 51: KONO Town: a surprise to collect, coins in the KONO bar, the foo
  await waitFor(()=>log().some(e=>e.id==='spin-'+day),'the spin never reached the account')
  assert.equal(await town.getByRole('button',{name:'Spun today'}).isDisabled(),true)
  if(process.env.KONO_SHOTS)await town.screenshot({path:process.env.KONO_SHOTS+'/town-wheel.png'})
- // Arcade: coin rounds, and Bubble pop is there.
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
  await town.getByText('3 of 3',{exact:true}).waitFor()
- await town.getByRole('button',{name:/Bubble pop/}).click()
- await town.getByRole('button',{name:'Pop the bubble'}).first().dispatchEvent('pointerdown')
- await town.getByText(/^Pops: 1$/).waitFor()
- // Games play full screen; Leave goes back to KONO Town.
- await page.getByRole('dialog',{name:'🫧 Bubble pop'}).getByRole('button',{name:'✕ Leave'}).click()
+ // The arcade has Snack catch, Peekaboo and KONO blast (Memory match and Bubble pop are gone).
+ await town.getByRole('button',{name:/KONO blast/}).waitFor()
+ assert.equal(await town.getByRole('button',{name:/Memory match|Bubble pop/}).count(),0)
  // Album: the beanie is in, with how far along the whole collection is.
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Album'}).click()
  await town.getByRole('region',{name:'Outfits'}).getByRole('listitem',{name:'Cozy beanie',exact:true}).waitFor()

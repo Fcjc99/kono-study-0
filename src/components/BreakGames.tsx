@@ -1,45 +1,39 @@
 import './break-games.css'
 import {useEffect,useRef,useState} from 'react'
-import {FINDS,findSrc} from '../store/konoFinds'
-import {playSfx} from '../konoSounds'
 import BlockBlast from './BlockBlast'
 import GameScreen from './GameScreen'
 import {deal,readBlastSave,type BlastSave,type Piece} from '../store/blockBlast'
 
-/** Break-time games with KONO, offered when a focus session finishes ("Take a short break"). Three quick
- * ones: Snack catch (move KONO to catch falling treats, 30 seconds), Memory match (pairs of KONO's
- * finds) and Peekaboo (tap KONO when it pops out of a bush, 30 seconds). The break itself lasts five
+/** Break-time games with KONO, offered when a focus session finishes ("Take a short break"). Two quick
+ * ones: Snack catch (move KONO to catch falling treats, 30 seconds) and Peekaboo (tap KONO when it pops
+ * out of a hole, 30 seconds). Every game plays full screen in KONO blast's look. The break itself lasts five
  * minutes; when it's over the games stop and KONO says it's time for the next session. Best scores are
  * kept on this device only. Loaded only when opened, so it never adds to the app's startup.
- * The same games (and Bubble pop and KONO blast, the block puzzle) are KONO Town's arcade: no break timer there, and `onScore` can turn a
+ * The same games (and KONO blast, the block puzzle) are KONO Town's arcade: no break timer there, and `onScore` can turn a
  * score into coins (it returns what to add to the result line). */
-type Game='catch'|'memory'|'peekaboo'|'bubbles'|'blast'
+type Game='catch'|'peekaboo'|'blast'
 export const BREAK_MINUTES=5
 const ROUND_MS=30_000
 const GAMES:{id:Game;emoji:string;name:string;how:string;best:(n:number)=>string;arcade?:boolean}[]=[
  {id:'catch',emoji:'🍓',name:'Snack catch',how:'Move KONO to catch the falling snacks.',best:n=>'Best: '+n+' snacks'},
- {id:'memory',emoji:'🃏',name:'Memory match',how:'Find the pairs of KONO’s treasures.',best:n=>'Best: '+n+' moves'},
  {id:'peekaboo',emoji:'🌿',name:'Peekaboo',how:'Tap KONO when it peeks out of a bush.',best:n=>'Best: '+n+' boops'},
- {id:'bubbles',emoji:'🫧',name:'Bubble pop',how:'Pop the snack bubbles before they float away.',best:n=>'Best: '+n+' pops'},
  {id:'blast',emoji:'🧱',name:'KONO blast',how:'Fit the pieces on the board; fill a row or column to clear it.',best:n=>'Best: '+n+' points',arcade:true},
 ]
 const bestKey=(g:Game)=>'kono-break-best:'+g
 function readBest(g:Game):number|null{try{const v=localStorage.getItem(bestKey(g));return v===null?null:Number(v)}catch{return null}}
-/** Saves a score if it's a new best (fewer moves is better for Memory match); returns whether it was. */
+/** Saves a score if it's a new best; returns whether it was. */
 function saveBest(g:Game,score:number):boolean{
- const old=readBest(g),better=old===null||!Number.isFinite(old)||(g==='memory'?score<old:score>old)
+ const old=readBest(g),better=old===null||!Number.isFinite(old)||score>old
  if(better)try{localStorage.setItem(bestKey(g),String(score))}catch{/* storage unavailable */}
  return better
 }
 const clock=(ms:number)=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
 
-const shuffled=<T,>(items:T[])=>{const deck=[...items];for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}return deck}
-
 /** `startedAt` is when the break games were opened (the break runs BREAK_MINUTES from then). */
 /** Games play full screen (GameScreen); Leave goes back to the list. KONO blast pays coins as lines clear
  * (`onBlastCoins`) and is saved as it goes, so Leave keeps it for next time. */
 export default function BreakGames({startedAt,onClose,arcade=false,sound=false,onScore,onBlastCoins}:{startedAt:number;onClose?:()=>void;arcade?:boolean;sound?:boolean;onScore?:(game:Game,score:number)=>string|null;onBlastCoins?:(lines:number,streak:number)=>number|null}){
- const [game,setGame]=useState<Game|null>(null),[deck,setDeck]=useState<string[]>([]),[pieces,setPieces]=useState<Piece[]>([]),[blastSave,setBlastSave]=useState<BlastSave|null>(null)
+ const [game,setGame]=useState<Game|null>(null),[pieces,setPieces]=useState<Piece[]>([]),[blastSave,setBlastSave]=useState<BlastSave|null>(null)
  const [now,setNow]=useState(startedAt)
  const [result,setResult]=useState<string|null>(null)
  useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return ()=>window.clearInterval(t)},[])
@@ -47,17 +41,15 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
  const finish=(g:Game,score:number,line:string)=>{const best=saveBest(g,score),extra=g==='blast'?null:onScore?.(g,score);setResult(line+(best?' New best! 🎉':'')+(extra?' '+extra:''));setGame(null)}
  const info=GAMES.find(g=>g.id===game)
  const playing=over?null:game==='catch'?<SnackCatch onEnd={n=>finish('catch',n,'KONO caught '+n+' snack'+(n===1?'':'s')+'! 😋')}/>
-  :game==='memory'?<MemoryMatch cards={deck} onEnd={n=>finish('memory',n,'All pairs found in '+n+' moves! 🧠')}/>
   :game==='peekaboo'?<Peekaboo onEnd={n=>finish('peekaboo',n,'You booped KONO '+n+' time'+(n===1?'':'s')+'! 🌿')}/>
   :game==='blast'?<BlockBlast start={pieces} saved={blastSave} best={readBest('blast')} sound={sound} onCoins={onBlastCoins} onEnd={n=>finish('blast',n,'KONO blast: '+n+' point'+(n===1?'':'s')+'! 🧱')}/>
-  :game==='bubbles'?<BubblePop sound={sound} onEnd={n=>finish('bubbles',n,'You popped '+n+' bubble'+(n===1?'':'s')+'! 🫧')}/>
   :null
  const kept=readBlastSave()
  return <section className={'break-games'+(arcade?' is-arcade':'')} aria-label={arcade?'Arcade':'Break games with KONO'}>
   {!arcade&&<header><strong>🎮 Break time with KONO</strong><span role="timer" aria-label="Break time left">{over?'Break’s over':'Break: '+clock(left)}</span>{onClose&&<button type="button" onClick={onClose}>Close</button>}</header>}
   {over?<p className="break-over" role="status">That was a nice reset! KONO’s ready for the next session when you are. 📚</p>
-  :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.filter(g=>arcade||!g.arcade).map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>{setResult(null);if(g.id==='memory')setDeck(shuffled([...MEMORY_IDS,...MEMORY_IDS]));if(g.id==='blast'){setPieces(deal(Math.random));setBlastSave(readBlastSave())}setGame(g.id)}}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.id==='blast'&&kept?'Carry on your game ('+kept.score+' points so far)':g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
-  {playing&&info&&<GameScreen title={info.emoji+' '+info.name} tone={game==='blast'?'blast':undefined} onLeave={()=>setGame(null)}>
+  :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.filter(g=>arcade||!g.arcade).map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>{setResult(null);if(g.id==='blast'){setPieces(deal(Math.random));setBlastSave(readBlastSave())}setGame(g.id)}}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.id==='blast'&&kept?'Carry on your game ('+kept.score+' points so far)':g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
+  {playing&&info&&<GameScreen title={info.emoji+' '+info.name} tone="blast" onLeave={()=>setGame(null)}>
    {!arcade&&<p className="game-screen-timer" role="timer">{'Break: '+clock(left)}</p>}
    {playing}
   </GameScreen>}
@@ -108,27 +100,6 @@ function SnackCatch({onEnd}:{onEnd:(score:number)=>void}){
  </div>
 }
 
-/** Memory match: 12 cards, 6 pairs of KONO's finds. */
-const MEMORY_IDS=['acorn','shell','clover','feather','star','mushroom']
-function MemoryMatch({cards,onEnd}:{cards:string[];onEnd:(moves:number)=>void}){
- const [open,setOpen]=useState<number[]>([]),[matched,setMatched]=useState<Set<string>>(new Set()),[moves,setMoves]=useState(0)
- const flip=(i:number)=>{
-  if(open.length>=2||open.includes(i)||matched.has(cards[i]))return
-  const next=[...open,i];setOpen(next)
-  if(next.length<2)return
-  const m=moves+1;setMoves(m)
-  if(cards[next[0]]===cards[next[1]]){
-   const done=new Set(matched).add(cards[i]);setMatched(done);setOpen([])
-   if(done.size===MEMORY_IDS.length)window.setTimeout(()=>onEnd(m),600)
-  }else window.setTimeout(()=>setOpen([]),800)
- }
- const name=(id:string)=>FINDS.find(f=>f.id===id)?.name??id
- return <div className="break-game">
-  <p className="break-game-status"><span>Moves: <strong>{moves}</strong></span><span>Pairs: {matched.size}/{MEMORY_IDS.length}</span></p>
-  <div className="memory-grid">{cards.map((id,i)=>{const shown=open.includes(i)||matched.has(id);return <button type="button" key={i} className={'memory-card'+(shown?' is-open':'')+(matched.has(id)?' is-matched':'')} aria-label={shown?name(id):'Card '+(i+1)} onClick={()=>flip(i)}>{shown?<img src={findSrc(id)} alt=""/>:<span aria-hidden="true">?</span>}</button>})}</div>
- </div>
-}
-
 /** Peekaboo: KONO pops out of one of nine bushes for a moment; tap it for a boop. */
 function Peekaboo({onEnd}:{onEnd:(score:number)=>void}){
  const [at,setAt]=useState(-1),[score,setScore]=useState(0),[left,setLeft]=useState(ROUND_MS),[booped,setBooped]=useState(-1)
@@ -146,33 +117,5 @@ function Peekaboo({onEnd}:{onEnd:(score:number)=>void}){
  return <div className="break-game">
   <p className="break-game-status"><span>Boops: <strong>{score}</strong></span><span>{clock(left)}</span></p>
   <div className="peekaboo-grid">{Array.from({length:9},(_,i)=><button type="button" key={i} className={'peekaboo-bush'+(at===i?' is-up':'')+(booped===i?' is-booped':'')} aria-label={at===i?'Boop KONO!':'Bush'} onClick={()=>boop(i)}>{at===i&&<img src="/garden/kono/happy.webp" alt=""/>}{booped===i&&<span className="peekaboo-boop" aria-hidden="true">💗</span>}<span className="peekaboo-leaves" aria-hidden="true">🌿</span></button>)}</div>
- </div>
-}
-
-/** Bubble pop: bubbles with snacks inside float up from the bottom; tap one to pop it before it floats away. */
-type Bubble={id:number;x:number;emoji:string;seconds:number}
-function BubblePop({onEnd,sound}:{onEnd:(score:number)=>void;sound:boolean}){
- const [bubbles,setBubbles]=useState<Bubble[]>([]),[score,setScore]=useState(0),[left,setLeft]=useState(ROUND_MS),[pops,setPops]=useState<{id:number;x:number;y:number}[]>([])
- const onEndRef=useRef(onEnd),scoreRef=useRef(0),boxRef=useRef<HTMLDivElement>(null)
- useEffect(()=>{onEndRef.current=onEnd},[onEnd])
- useEffect(()=>{
-  const started=Date.now()
-  let id=0
-  const spawn=window.setInterval(()=>setBubbles(list=>[...list,{id:++id,x:6+Math.random()*80,emoji:SNACKS[Math.floor(Math.random()*SNACKS.length)],seconds:3.2+Math.random()*2.2}]),480)
-  const timer=window.setInterval(()=>{const remaining=ROUND_MS-(Date.now()-started);setLeft(remaining);if(remaining<=0){window.clearInterval(timer);window.clearInterval(spawn);onEndRef.current(scoreRef.current)}},200)
-  return ()=>{window.clearInterval(timer);window.clearInterval(spawn)}
- },[])
- const pop=(b:Bubble,target:HTMLElement)=>{
-  scoreRef.current+=1;setScore(scoreRef.current);playSfx('pop',sound)
-  const box=boxRef.current?.getBoundingClientRect(),r=target.getBoundingClientRect()
-  if(box)setPops(p=>[...p.slice(-4),{id:b.id,x:r.left-box.left+r.width/2,y:r.top-box.top+r.height/2}])
-  setBubbles(list=>list.filter(x=>x.id!==b.id))
- }
- return <div className="break-game">
-  <p className="break-game-status"><span>Pops: <strong>{score}</strong></span><span>{clock(left)}</span></p>
-  <div ref={boxRef} className="bubble-pop">
-   {bubbles.map(b=><button type="button" key={b.id} className="bubble" style={{left:b.x+'%',animationDuration:b.seconds+'s'}} aria-label="Pop the bubble" onPointerDown={e=>pop(b,e.currentTarget)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' ')pop(b,e.currentTarget)}} onAnimationEnd={()=>setBubbles(list=>list.filter(x=>x.id!==b.id))}><span aria-hidden="true">{b.emoji}</span></button>)}
-   {pops.map(p=><span key={p.id} className="bubble-popped" style={{left:p.x,top:p.y}} aria-hidden="true">✨</span>)}
-  </div>
  </div>
 }
