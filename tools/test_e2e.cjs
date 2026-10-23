@@ -2710,7 +2710,7 @@ test('Break games: after a focus session KONO offers a break game; Peekaboo and 
  await games.getByRole('application',{name:/Snack catch/}).waitFor()
  if(process.env.KONO_SHOTS){await page.clock.runFor(4000);await games.screenshot({path:process.env.KONO_SHOTS+'/break-catch.png'})}
  await page.clock.fastForward(31000);await page.clock.runFor(500)
- await games.getByText(/^KONO caught \d+ snacks?! 😋/).waitFor()
+ await games.getByText(/^KONO caught \d+ snacks?! 😋/).first().waitFor()
  await page.getByRole('dialog',{name:'🍓 Snack catch'}).getByRole('button',{name:'Done'}).click()
  if(process.env.KONO_SHOTS)await games.screenshot({path:process.env.KONO_SHOTS+'/break-games.png'})
  // The break ends after five minutes (jumped to, rather than stepped through frame by frame).
@@ -3552,6 +3552,7 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
   return null
  })
  assert.ok(swap,'a fresh board always has a move')
+ await gems.evaluate(d=>Promise.all(d.getAnimations().map(x=>x.finished)))
  const box=await board.boundingBox(),cell=box.width/8,centre=i=>({x:box.x+(i%8+0.5)*cell,y:box.y+(Math.floor(i/8)+0.5)*cell})
  const a=centre(swap[0]),b=centre(swap[1])
  await page.mouse.move(a.x,a.y);await page.mouse.down();await page.mouse.move((a.x+b.x)/2,(a.y+b.y)/2,{steps:4});await page.mouse.move(b.x,b.y,{steps:4});await page.mouse.up()
@@ -3651,7 +3652,7 @@ test('Round 57: KONO blast clears a full row (the squares empty and the score ju
  assert.equal(await page.evaluate(()=>Number(document.querySelector('.blast-score')?.textContent)),kept)
  // End game finishes it (the best score is kept) and the next game starts fresh.
  await page.getByRole('button',{name:'End game'}).click()
- await town.getByText(/^KONO blast: \d+ points! 🧱/).waitFor()
+ await town.getByText(/^KONO blast: \d+ points! 🧱/).first().waitFor()
  await town.getByRole('button',{name:/KONO blast.*Fit the pieces/}).waitFor()
 })
 
@@ -3710,6 +3711,8 @@ test('Round 56: each land has its own game: Shell chase on the beach, Acorn tumb
  await page.waitForFunction(m=>document.querySelector('.sled-kono')?.style.left!==m,middle,{timeout:5000})
  if(process.env.KONO_SHOTS){await page.waitForTimeout(2500);await snow.getByRole('application',{name:/^Sled dash/}).screenshot({path:process.env.KONO_SHOTS+'/land-sled.png'})}
  // The arcade (here and in KONO Town) has KONO blast, the block puzzle: tap a piece, then a square; or drag one on.
+ await snow.getByRole('dialog',{name:'🛷 Sled dash'}).getByRole('button',{name:'✕ Leave'}).click()
+ await snow.getByRole('dialog',{name:'🛷 Sled dash'}).waitFor({state:'detached'})
  await snow.getByRole('button',{name:'🎮 Arcade'}).click()
  await snow.getByRole('region',{name:'Arcade'}).getByRole('button',{name:/KONO blast/}).click()
  const blast=snow.getByRole('grid',{name:'KONO blast board'})
