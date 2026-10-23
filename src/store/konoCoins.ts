@@ -33,7 +33,7 @@ export function coinBalance(finished:number,log:CareEvent[]):number{
 }
 
 /** What the shops sell (store/konoShops has the stock, loaded with KONO Town). */
-export type ShopKind='food'|'outfit'|'find'|'paint'|'furniture'
+export type ShopKind='food'|'outfit'|'find'|'paint'|'furniture'|'room'
 export type ShopItem={key:string;kind:ShopKind;id:string;name:string;price:number;emoji?:string;img?:string;sale?:boolean}
 export const foodPrice=(t:Treat)=>['bento','cake','boba'].includes(t.id)?30:12
 /** Outfits bought in the boutique (owned for good, like ones earned). */

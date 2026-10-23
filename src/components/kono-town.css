@@ -47,5 +47,6 @@
 @media(max-width:600px){.town-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}.town-tabs button{display:grid;justify-items:center;gap:2px;min-height:0!important;padding:6px 2px!important;border-radius:12px!important;font-size:.74rem!important;line-height:1.1}.town-tabs button span{font-size:1.15rem}.town-items{grid-template-columns:repeat(3,minmax(0,1fr))}.town-items li{padding:8px 4px}}
 .town-item-art.is-paint img,.town-item-art.is-furniture img{image-rendering:auto}
 .town-item-art.is-paint img{image-rendering:pixelated}
+.town-item-art.is-room img{width:56px;height:42px;object-fit:cover;border-radius:6px}
 .town-classic{margin:8px 0 0}
 .town-classic button{margin:0!important}

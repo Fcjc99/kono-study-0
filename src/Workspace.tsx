@@ -59,7 +59,7 @@ const KonoCorner=lazy(()=>import('./components/KonoCorner'))
 const KonoTown=lazy(()=>import('./components/KonoTown'))
 const KonoHouse=lazy(()=>import('./components/KonoHouse'))
 const KonoVisit=lazy(()=>import('./components/KonoVisit'))
-import {ownedFurniture,ownedPaints,paintPose,wornPaint,type PaintId} from './store/konoLooks'
+import {ownedFurniture,ownedPaints,ownedRooms,paintPose,wornPaint,type PaintId} from './store/konoLooks'
 import type {HouseItem} from './store/konoCare'
 import type {TownTab} from './components/KonoTown'
 import {boughtOutfits,buyEvent,coinBalance,coinText,gameEvent,questEventId,questLine,questEvent,questToday,roundsLeft,spinEvent,spunToday,surpriseEvent,surpriseEventId,surpriseText,surpriseToday,wheelSlice,COIN_ICON,type GameId,type ShopItem} from './store/konoCoins'
@@ -402,6 +402,9 @@ function Workspace({store}:{store:Store}){
  // Family visits: look round another plan's KONO house (its KONO in its own color and outfit) and leave a
  // snack bought with your coins, which waits with its snacks like a parent's gift.
  const visitable=data.profiles.filter(p=>p.id!==profile.id)
+ // The house's walls and floor: the style picked, if it's owned (classic always is).
+ const rooms=ownedRooms(careLog),roomStyle=rooms.has(data.konoCare?.[profile.id]?.room??'')?data.konoCare[profile.id].room!:'classic'
+ const setRoom=(id:string)=>{void save(d=>({...d,konoCare:{...d.konoCare,[profile.id]:{...(d.konoCare[profile.id]??{profileId:profile.id,log:[]}),room:id}}}))}
  const saveHouse=(items:HouseItem[])=>{void save(d=>({...d,konoCare:{...d.konoCare,[profile.id]:{...(d.konoCare[profile.id]??{profileId:profile.id,log:[]}),house:items}}}))}
  // KONO's notes (store/konoNotes): good luck the evening before a test, the study headband on test day,
  // "How did it go?" after it, and otherwise one gentle nudge a day. One at a time, in the KONO bar.
@@ -531,7 +534,8 @@ function Workspace({store}:{store:Store}){
  const [surpriseShown,setSurpriseShown]=useState(false)
  useEffect(()=>{if(!surpriseWaiting||page!=='Sanctuary')return;const timer=window.setTimeout(()=>setSurpriseShown(true),4000);return ()=>window.clearTimeout(timer)},[surpriseWaiting,page])
  const collectSurprise=()=>{if(!surprise||!surpriseWaiting)return;const now=new Date();logEvent(surpriseEvent(today,surprise,now),now);sfx('coin',data.settings.sound);coinBurst(document.querySelector('.kono-coins-open'));setSurpriseShown(false);setCareMoment({line:surprise.emoji+' +'+coinText(surprise.n)+'! '+COIN_ICON,pose:'/garden/kono/excited.webp',at:now.getTime(),ms:4500});setCelebrateSignal(now.getTime())}
- const buyItem=(item:ShopItem)=>{if(item.price>coins)return;const now=new Date();logEvent(buyEvent(uid('buy'),item,now),now)}
+ // A room style bought goes straight into the house.
+ const buyItem=(item:ShopItem)=>{if(item.price>coins)return;const now=new Date();logEvent(buyEvent(uid('buy'),item,now),now);if(item.kind==='room')setRoom(item.id)}
  const spinWheel=()=>{if(spunToday(careLog,today))return null;const now=new Date(),slice=wheelSlice(Math.random());logEvent(spinEvent(today,slice,now),now);return slice}
  const playedGame=(game:GameId,score:number)=>{const now=new Date(),event=gameEvent(careLog,today,game,score,now);if(!event)return null;logEvent(event,now);return event.n??0}
  const giveQuest=()=>{if(!questSnack||questDone)return;const now=new Date();feedKono(questSnack.taskId);logEvent(questEvent(today,quest,now),now);announce({line:questLine(quest),pose:'/garden/kono/excited.webp',at:now.getTime(),ms:6000})}
@@ -1105,10 +1109,10 @@ function Workspace({store}:{store:Store}){
      {townOpen&&<Suspense fallback={null}><KonoTown close={()=>setTownOpen(null)} sound={data.settings.sound} startTab={townOpen} balance={coins}
       quest={{treat:quest.treat,reward:quest.reward,done:questDone,canGive:!!questSnack}} onGiveQuest={giveQuest}
       today={today} outfitsOwned={unlockedOutfitIds} found={found} onBuy={buyItem}
-      paints={{owned:paints,worn:paint,onWear:wearPaint}} furniture={{owned:furnitureOwned,onOpenHouse:()=>{setTownOpen(null);setHouseOpen(true)}}}
+      paints={{owned:paints,worn:paint,onWear:wearPaint}} rooms={{owned:rooms,current:roomStyle,onUse:setRoom}} furniture={{owned:furnitureOwned,onOpenHouse:()=>{setTownOpen(null);setHouseOpen(true)}}}
       spin={spunToday(careLog,today)?.n??null} onSpin={spinWheel} roundsLeft={roundsLeft(careLog,today)} onGame={playedGame} album={{today,outfits:unlockedOutfitIds,found,met:metFriends,tried,paints,furniture:furnitureOwned,stickers:earned,presents:new Set(stamps.presents.map(p=>p.id)),gifts:new Set(giftsAt(bond.level).map(g=>g.id))}}/></Suspense>}
      {visitPick&&<Suspense fallback={null}><KonoVisit data={data} profileId={profile.id} coins={coins} sound={data.settings.sound} save={update=>save(update)} close={()=>setVisitPick(false)} onGave={line=>announce({line,pose:'/garden/kono/happy.webp',at:Date.now(),ms:5000})}/></Suspense>}
-     {houseOpen&&<Suspense fallback={null}><KonoHouse close={closeHouse} entering={enteredHouse} homes={homes.map(h=>({id:h.placement.id,label:h.asset.label}))} home={konoHome?.placement.id??null} onHome={setHome} house={house} owned={furnitureOwned} paint={paint} outfit={shownOutfit} night={bed.tucked||meters.asleep} onSave={saveHouse} onPet={()=>petKono()} onShop={()=>{setHouseOpen(false);setTownOpen('home')}}/></Suspense>}
+     {houseOpen&&<Suspense fallback={null}><KonoHouse close={closeHouse} room={roomStyle} rooms={[...rooms]} onRoom={setRoom} entering={enteredHouse} homes={homes.map(h=>({id:h.placement.id,label:h.asset.label}))} home={konoHome?.placement.id??null} onHome={setHome} house={house} owned={furnitureOwned} paint={paint} outfit={shownOutfit} night={bed.tucked||meters.asleep} onSave={saveHouse} onPet={()=>petKono()} onShop={()=>{setHouseOpen(false);setTownOpen('home')}}/></Suspense>}
      {askOpen&&<AskKono data={data} today={today} name={profile.name} pose={konoPose} onClose={()=>setAskOpen(false)}/>}{nextUpOpen&&<NextUp items={nextUpList(tasks,today,ownExams)} onClose={()=>setNextUpOpen(false)} onStart={item=>{setNextUpOpen(false);startFocusSession(item.exam?'':item.id,item.minutes,item.exam?item.title:undefined)}} onDone={item=>void run(()=>save(d=>completeTask(d,item.id)),'Done: '+item.title,true,item.exam?undefined:item.id)}/>}
     </section>
     </>}

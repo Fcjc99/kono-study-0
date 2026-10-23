@@ -34,6 +34,10 @@ export function spotFor(h:HouseItem,f:Furniture):{x:number;y:number}{
 }
 export const furnitureSrc=(id:string)=>'/garden/house/'+id+'.webp'
 export const ROOM_SRC='/garden/house/room.webp'
+/** Room styles: the same room with other walls and floors (furniture stays where it is). Classic is free. */
+export type RoomStyle={id:string;name:string;price:number}
+export const ROOM_STYLES:RoomStyle[]=[{id:'classic',name:'Classic wood',price:0},{id:'mint',name:'Mint cottage',price:200}]
+export const roomSrc=(id:string|undefined)=>id&&id!=='classic'&&ROOM_STYLES.some(r=>r.id===id)?'/garden/house/room-'+id+'.webp':ROOM_SRC
 /** Pieces owned but not in the room (to place from the tray). */
 export function inStorage(owned:Map<string,number>,house:HouseItem[]):{furniture:Furniture;count:number}[]{
  return FURNITURE.map(f=>({furniture:f,count:(owned.get(f.id)??0)-house.filter(h=>h.item===f.id).length})).filter(x=>x.count>0)

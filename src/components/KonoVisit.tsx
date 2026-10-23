@@ -33,6 +33,6 @@ export default function KonoVisit({data,profileId,coins,sound,save,close,onGave}
   onGave('🎁 You left '+(them?.name??'them')+'’s KONO '+(treat.name==='boba tea'?'':'a ')+treat.name+' '+treat.emoji+'!')
  }
  const plan=visiting?data.profiles.find(p=>p.id===visiting):undefined
- if(plan){const look=lookOf(plan.id);return <KonoHouse close={close} visit={{name:plan.name,balance:Math.max(0,coins),price:foodPrice,onGive:(t,n)=>give(plan.id,t,n)}} house={data.konoCare?.[plan.id]?.house??[]} owned={NO_FURNITURE} paint={look.paint} outfit={look.outfit} night={false} onSave={()=>undefined} onPet={()=>undefined} onShop={()=>undefined}/>}
+ if(plan){const look=lookOf(plan.id);return <KonoHouse close={close} room={data.konoCare?.[plan.id]?.room} visit={{name:plan.name,balance:Math.max(0,coins),price:foodPrice,onGive:(t,n)=>give(plan.id,t,n)}} house={data.konoCare?.[plan.id]?.house??[]} owned={NO_FURNITURE} paint={look.paint} outfit={look.outfit} night={false} onSave={()=>undefined} onPet={()=>undefined} onShop={()=>undefined}/>}
  return <Modal title="Visit family" close={close}><ul className="visit-list">{others.map(p=>{const look=lookOf(p.id);return <li key={p.id}><button type="button" onClick={()=>setVisiting(p.id)}><span className="kono-face-box"><KonoFace pose={paintPose('/garden/kono/happy.webp',look.paint)} outfit={look.outfit} size={48}/></span><strong>{p.name}’s KONO</strong><small>{(data.konoCare?.[p.id]?.house??[]).length?'Come see the house':'Say hi'}</small></button></li>})}</ul></Modal>
 }

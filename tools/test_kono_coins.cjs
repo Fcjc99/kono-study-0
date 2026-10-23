@@ -112,4 +112,12 @@ test('KONO’s house is read back safely (odd pieces dropped, numbers kept in ra
  const next=care.addCareEvent(read,'p',{id:'pet1',kind:'pet',at:now.toISOString()},now)
  assert.equal(JSON.stringify(next.house),JSON.stringify(read.house))
 })
+test('room styles: classic is always owned, a style bought is owned, and the room picked is read back safely',()=>{
+ assert.equal(JSON.stringify([...looks.ownedRooms([{id:'b',kind:'buy',at:at('2026-10-01'),item:'room:mint',n:200}])]),JSON.stringify(['classic','mint']))
+ assert.equal(looks.roomSrc('mint'),'/garden/house/room-mint.webp');assert.equal(looks.roomSrc('classic'),'/garden/house/room.webp');assert.equal(looks.roomSrc('nope'),'/garden/house/room.webp')
+ assert.equal(care.readCareState({log:[],room:'mint'},'p').room,'mint')
+ assert.equal(care.readCareState({log:[],room:'../x'},'p').room,undefined)
+ const now=new Date('2026-10-22T15:00:00Z')
+ assert.equal(care.addCareEvent({profileId:'p',log:[],room:'mint'},'p',{id:'pet1',kind:'pet',at:now.toISOString()},now).room,'mint','adding to the care log keeps the room')
+})
 console.log(passed+'/'+passed+' coin checks passed.')
