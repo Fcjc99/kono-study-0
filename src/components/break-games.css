@@ -191,3 +191,8 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 @keyframes match3-pop{from{transform:scale(.4);opacity:1}to{transform:scale(1.8);opacity:0}}
 @media(prefers-reduced-motion:reduce){.match3-piece{transition:none}.match3-piece>span,.match3-burst,.meow-cat,.meow-cell.is-wrong{animation:none!important}.match3-burst{display:none}}
 .game-screen .game-result h2:not(#x){color:#fff!important}
+/* The game's start card and the play tools (↻ Restart, ■ End) beside Leave. */
+.game-screen-tools{display:flex;gap:8px;align-items:center}
+.game-screen.is-blast .game-screen-tool:not(#x):not(#y){margin:0!important;min-height:40px;padding:0 12px!important;background:rgba(255,255,255,.1)!important;color:#fff!important;border:1px solid rgba(255,255,255,.28)!important;box-shadow:none!important;font-weight:700}
+.game-start .game-result-line{font-size:1rem;max-width:300px}
+@media(max-width:420px){.game-screen>header strong{font-size:1rem}.game-screen-tools{gap:6px}.game-screen.is-blast .game-screen-tool:not(#x):not(#y){padding:0 9px!important;font-size:.85rem}}

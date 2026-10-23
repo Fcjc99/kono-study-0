@@ -1,12 +1,14 @@
-import {useEffect,useRef,useState} from 'react'
+import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {check,saveMeowLevel,type Puzzle} from '../store/meowdoku'
-import {playSfx} from '../konoSounds'
+import {gameSound} from '../konoSounds'
+import type {GameHandle} from './GameScreen'
 
 /** Meowdoku (store/meowdoku has the rules): tap a square for ✕ (a note to yourself), again for a cat, and
  * again to clear it. Cats that break a rule shake red. Solving moves you up a level (saved on this device),
- * and the boards get bigger. In KONO blast's look: patches are the jewel colors on the navy board. */
+ * and the boards get bigger. In KONO blast's look: patches are the jewel colors on the navy board.
+ * ■ End gives the puzzle up (the level stays); ↻ Restart clears the board. */
 const clock=(s:number)=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0')
-export default function Meowdoku({level,puzzle,sound,onEnd}:{level:number;puzzle:Puzzle;sound:boolean;onEnd:(level:number,seconds:number)=>void}){
+export default function Meowdoku({ref,level,puzzle,sound,onEnd}:{ref:Ref<GameHandle>;level:number;puzzle:Puzzle;sound:boolean;onEnd:(level:number,seconds:number,solved:boolean)=>void}){
  const [marks,setMarks]=useState<('x'|'cat'|null)[]>(()=>Array(puzzle.n*puzzle.n).fill(null))
  const [seconds,setSeconds]=useState(0),[solved,setSolved]=useState(false)
  const started=useRef(0)
@@ -22,13 +24,14 @@ export default function Meowdoku({level,puzzle,sound,onEnd}:{level:number;puzzle
   const nowCats=new Set(next.flatMap((m,k)=>m==='cat'?[k]:[]))
   if(next[i]==='cat'){
    const result=check(puzzle,nowCats)
-   playSfx(result.wrong.has(i)?'tick':'pop',sound)
+   gameSound(result.wrong.has(i)?'nope':'score',sound,nowCats.size)
    if(result.solved){
     setSolved(true);saveMeowLevel(level+1)
-    playSfx('win',sound);window.setTimeout(()=>onEnd(level,seconds),1300)
+    window.setTimeout(()=>onEnd(level,seconds,true),1300)
    }
   }
  }
+ useImperativeHandle(ref,()=>({end:()=>{if(!solved)onEnd(level,seconds,false)}}),[solved,level,seconds,onEnd])
  // Edges between patches are drawn thicker, so the patches read at a glance.
  const edge=(i:number,j:number|null)=>j===null||puzzle.regions[i]!==puzzle.regions[j]
  return <div className={'break-game meow'+(solved?' is-solved':'')}>
@@ -42,6 +45,5 @@ export default function Meowdoku({level,puzzle,sound,onEnd}:{level:number;puzzle
     </div>})}
   </div>
   <p className="meow-help">{solved?'Purr-fect! 🎉':'One 🐱 in every row, column and color. Cats can’t touch, even corner to corner. Tap once for ✕, twice for a cat.'}</p>
-  {!solved&&<p className="land-game-done"><button type="button" onClick={()=>setMarks(Array(n*n).fill(null))}>Clear board</button></p>}
  </div>
 }

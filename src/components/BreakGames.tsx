@@ -1,10 +1,11 @@
 import './break-games.css'
-import {useEffect,useRef,useState} from 'react'
+import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import BlockBlast from './BlockBlast'
-import GameScreen,{type GameResult} from './GameScreen'
+import GameScreen,{type GameHandle,type GameResult} from './GameScreen'
+import {gameSound} from '../konoSounds'
 import Meowdoku from './Meowdoku'
 import Match3 from './Match3'
-import {deal,readBlastSave,type BlastSave,type Piece} from '../store/blockBlast'
+import {deal,readBlastSave,writeBlastSave,type BlastSave,type Piece} from '../store/blockBlast'
 import {meowLevel,newMeowPuzzle,type Puzzle} from '../store/meowdoku'
 import {candyLevelNow,freshBoard,maker,saveCandyLevel,type Board,type Maker} from '../store/match3'
 
@@ -43,33 +44,36 @@ const clock=(ms:number)=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.flo
 export default function BreakGames({startedAt,onClose,arcade=false,sound=false,onScore,onBlastCoins}:{startedAt:number;onClose?:()=>void;arcade?:boolean;sound?:boolean;onScore?:(game:Game,score:number)=>string|null;onBlastCoins?:(lines:number,streak:number)=>number|null}){
  const [game,setGame]=useState<Game|null>(null),[pieces,setPieces]=useState<Piece[]>([]),[blastSave,setBlastSave]=useState<BlastSave|null>(null)
  const [meow,setMeow]=useState<{level:number;puzzle:Puzzle}|null>(null),[match,setMatch]=useState<{maker:Maker;board:Board;level:number}|null>(null)
- const [ended,setEnded]=useState<GameResult|null>(null),[round,setRound]=useState(0)
+ const [ended,setEnded]=useState<GameResult|null>(null),[round,setRound]=useState(0),[started,setStarted]=useState(false)
+ const handle=useRef<GameHandle>(null)
  const [now,setNow]=useState(startedAt)
  const [result,setResult]=useState<string|null>(null)
  useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return ()=>window.clearInterval(t)},[])
  const left=startedAt+BREAK_MINUTES*60_000-now,over=!arcade&&left<=0
  // A finished round: its results card (in the game's screen), the best kept, and coins for it.
  // `coinScore` is what earns coins when it isn't the score kept as a best (Candy crush keeps the level).
- const finish=(g:Game,score:number,line:string,{title='Nice game!',coinScore=score,scoreText}:{title?:string;coinScore?:number;scoreText?:string}={})=>{
+ const finish=(g:Game,score:number,line:string,{title='Nice game!',coinScore=score,scoreText,won=true}:{title?:string;coinScore?:number;scoreText?:string;won?:boolean}={})=>{
   const best=score>0&&saveBest(g,score),extra=g==='blast'?null:onScore?.(g,coinScore),info=GAMES.find(x=>x.id===g)!
   setResult(line+(best?' New best! 🎉':'')+(extra?' '+extra:''))
-  setEnded({emoji:info.emoji,title,line,score:scoreText??info.best(score).replace(/^Best: /,''),best:Boolean(best),coins:extra})
+  setEnded({emoji:info.emoji,title,line,score:scoreText??info.best(score).replace(/^Best: /,''),best:Boolean(best),coins:extra,won})
  }
- // Each game's start (and Play again: the next Meowdoku puzzle or Candy crush level picks up from there).
- const begin=(g:Game)=>{
-  setEnded(null);setRound(n=>n+1)
-  if(g==='blast'){setPieces(deal(Math.random));setBlastSave(readBlastSave())}
+ // Opening a game shows its start card; Start (and Restart, and Play again) begins a round: a fresh board
+ // (KONO blast carries on a saved game unless `fresh`; Meowdoku and Candy crush pick up at your level).
+ const open=(g:Game)=>{setResult(null);setEnded(null);setStarted(false);setGame(g)}
+ const begin=(g:Game,fresh=false)=>{
+  setEnded(null);setRound(n=>n+1);setStarted(true)
+  if(g==='blast'){if(fresh)writeBlastSave(null);setPieces(deal(Math.random));setBlastSave(fresh?null:readBlastSave())}
   if(g==='meow'){const level=meowLevel();setMeow({level,puzzle:newMeowPuzzle(level)})}
   if(g==='gems'||g==='candy'){const mk=maker(6,Math.random);setMatch({maker:mk,board:freshBoard(mk),level:g==='candy'?candyLevelNow():1})}
   setGame(g)
  }
  const info=GAMES.find(g=>g.id===game)
- const playing=over?null:game==='catch'?<SnackCatch onEnd={n=>finish('catch',n,'KONO caught '+n+' snack'+(n===1?'':'s')+'! 😋')}/>
-  :game==='peekaboo'?<Peekaboo onEnd={n=>finish('peekaboo',n,'You booped KONO '+n+' time'+(n===1?'':'s')+'! 🌿')}/>
-  :game==='blast'?<BlockBlast key={round} start={pieces} saved={blastSave} best={readBest('blast')} sound={sound} onCoins={onBlastCoins} onEnd={n=>finish('blast',n,'KONO blast: '+n+' point'+(n===1?'':'s')+'! 🧱')}/>
- :game==='meow'&&meow?<Meowdoku key={round} level={meow.level} puzzle={meow.puzzle} sound={sound} onEnd={(level,seconds)=>finish('meow',level,'Solved in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+'. Next up: level '+(level+1)+'.',{title:'Purr-fect!',coinScore:meow.puzzle.n,scoreText:'Level '+level}) }/>
-  :(game==='gems'||game==='candy')&&match?<Match3 key={round} mode={game} level={match.level} start={match} sound={sound} onEnd={(score,won)=>{
-   if(game==='candy'){if(won)saveCandyLevel(match.level+1);finish('candy',won?match.level:match.level-1,won?'You reached the target with '+score+' points!':'So close! '+score+' points. Try the level again.',{title:won?'Level '+match.level+' complete!':'Out of moves',coinScore:won?score:Math.round(score/2),scoreText:score+' points'})}
+ const playing=over?null:game==='catch'?<SnackCatch key={round} ref={handle} sound={sound} onEnd={n=>finish('catch',n,'KONO caught '+n+' snack'+(n===1?'':'s')+'! 😋')}/>
+  :game==='peekaboo'?<Peekaboo key={round} ref={handle} sound={sound} onEnd={n=>finish('peekaboo',n,'You booped KONO '+n+' time'+(n===1?'':'s')+'! 🌿')}/>
+  :game==='blast'?<BlockBlast key={round} ref={handle} start={pieces} saved={blastSave} best={readBest('blast')} sound={sound} onCoins={onBlastCoins} onEnd={n=>finish('blast',n,'KONO blast: '+n+' point'+(n===1?'':'s')+'! 🧱')}/>
+ :game==='meow'&&meow?<Meowdoku key={round} ref={handle} level={meow.level} puzzle={meow.puzzle} sound={sound} onEnd={(level,seconds,solved)=>solved?finish('meow',level,'Solved in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+'. Next up: level '+(level+1)+'.',{title:'Purr-fect!',coinScore:meow.puzzle.n,scoreText:'Level '+level}):finish('meow',0,'This one stays at level '+level+'. Play again for a new puzzle.',{title:'Puzzle skipped',coinScore:0,scoreText:'Level '+level,won:false})}/>
+  :(game==='gems'||game==='candy')&&match?<Match3 key={round} ref={handle} mode={game} level={match.level} start={match} sound={sound} onEnd={(score,won)=>{
+   if(game==='candy'){if(won)saveCandyLevel(match.level+1);finish('candy',won?match.level:match.level-1,won?'You reached the target with '+score+' points!':'So close! '+score+' points. Try the level again.',{title:won?'Level '+match.level+' complete!':'Out of moves',coinScore:won?score:Math.round(score/2),scoreText:score+' points',won})}
    else finish('gems',score,'One minute of gem swapping!',{title:'Time’s up!'})
   }}/>
   :null
@@ -77,8 +81,11 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
  return <section className={'break-games'+(arcade?' is-arcade':'')} aria-label={arcade?'Arcade':'Break games with KONO'}>
   {!arcade&&<header><strong>🎮 Break time with KONO</strong><span role="timer" aria-label="Break time left">{over?'Break’s over':'Break: '+clock(left)}</span>{onClose&&<button type="button" onClick={onClose}>Close</button>}</header>}
   {over?<p className="break-over" role="status">That was a nice reset! KONO’s ready for the next session when you are. 📚</p>
-  :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.filter(g=>arcade||!g.arcade).map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>{setResult(null);begin(g.id)}}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.id==='blast'&&kept?'Carry on your game ('+kept.score+' points so far)':g.id==='meow'&&meowLevel()>1?'Level '+meowLevel()+' is next':g.id==='candy'&&candyLevelNow()>1?'Level '+candyLevelNow()+' is next':g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
-  {game&&!over&&info&&<GameScreen title={info.emoji+' '+info.name} tone="blast" result={ended} onAgain={()=>begin(game)} onLeave={()=>{setGame(null);setEnded(null)}}>
+  :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.filter(g=>arcade||!g.arcade).map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>open(g.id)}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.id==='blast'&&kept?'Carry on your game ('+kept.score+' points so far)':g.id==='meow'&&meowLevel()>1?'Level '+meowLevel()+' is next':g.id==='candy'&&candyLevelNow()>1?'Level '+candyLevelNow()+' is next':g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
+  {game&&!over&&info&&<GameScreen title={info.emoji+' '+info.name} tone="blast" sound={sound} result={ended}
+   intro={{emoji:info.emoji,name:info.name,how:info.how,best:readBest(game)!==null?info.best(readBest(game)!):null,...(game==='blast'&&kept?{start:'Continue ('+kept.score+' points)',alt:{label:'New game',onClick:()=>begin('blast',true)}}:game==='meow'?{start:'Start level '+meowLevel()}:game==='candy'?{start:'Start level '+candyLevelNow()}:{})}}
+   started={started} onStart={()=>begin(game)} onRestart={()=>begin(game,true)} onEnd={()=>handle.current?.end()}
+   onAgain={()=>begin(game,true)} onLeave={()=>{setGame(null);setEnded(null);setStarted(false)}}>
    {!arcade&&<p className="game-screen-timer" role="timer">{'Break: '+clock(left)}</p>}
    {playing}
   </GameScreen>}
@@ -87,7 +94,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
 
 /** Snack catch: snacks fall in a box; KONO slides along the bottom (drag, tap a side, or ← →). */
 const SNACKS=['🍓','🍪','🍙','🍩','🍎','🧁']
-function SnackCatch({onEnd}:{onEnd:(score:number)=>void}){
+function SnackCatch({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:boolean;onEnd:(score:number)=>void}){
  const boxRef=useRef<HTMLDivElement>(null),konoRef=useRef<HTMLImageElement>(null)
  const [score,setScore]=useState(0),[left,setLeft]=useState(ROUND_MS)
  const [snacks,setSnacks]=useState<{id:number;x:number;y:number;emoji:string;speed:number}[]>([])
@@ -104,7 +111,7 @@ function SnackCatch({onEnd}:{onEnd:(score:number)=>void}){
    if(t>=s.next){s.snacks.push({id:++s.id,x:0.08+Math.random()*0.84,y:-0.06,emoji:SNACKS[Math.floor(Math.random()*SNACKS.length)],speed:0.00028+Math.random()*0.00022});s.next=t+520+Math.random()*420}
    for(const sn of s.snacks)sn.y+=sn.speed*dt
    const caught=s.snacks.filter(sn=>sn.y>0.8&&sn.y<0.96&&Math.abs(sn.x-s.x)<0.11)
-   if(caught.length){s.score+=caught.length;setScore(s.score)}
+   if(caught.length){s.score+=caught.length;setScore(s.score);gameSound('score',sound,Math.min(4,Math.floor(s.score/5)))}
    s.snacks=s.snacks.filter(sn=>!caught.includes(sn)&&sn.y<1.05)
    setSnacks([...s.snacks])
    if(konoRef.current)konoRef.current.style.left=(s.x*100)+'%'
@@ -117,7 +124,8 @@ function SnackCatch({onEnd}:{onEnd:(score:number)=>void}){
   const kd=(e:KeyboardEvent)=>key(e,true),ku=(e:KeyboardEvent)=>key(e,false)
   window.addEventListener('keydown',kd);window.addEventListener('keyup',ku)
   return ()=>{cancelAnimationFrame(raf);window.removeEventListener('keydown',kd);window.removeEventListener('keyup',ku)}
- },[])
+ },[sound])
+ useImperativeHandle(ref,()=>({end:()=>onEndRef.current(state.current.score)}),[])
  const move=(clientX:number)=>{const r=boxRef.current?.getBoundingClientRect();if(r)state.current.x=Math.min(0.94,Math.max(0.06,(clientX-r.left)/r.width))}
  return <div className="break-game">
   <p className="break-game-status"><span>Snacks: <strong>{score}</strong></span><span>{clock(left)}</span></p>
@@ -130,7 +138,7 @@ function SnackCatch({onEnd}:{onEnd:(score:number)=>void}){
 }
 
 /** Peekaboo: KONO pops out of one of nine bushes for a moment; tap it for a boop. */
-function Peekaboo({onEnd}:{onEnd:(score:number)=>void}){
+function Peekaboo({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:boolean;onEnd:(score:number)=>void}){
  const [at,setAt]=useState(-1),[score,setScore]=useState(0),[left,setLeft]=useState(ROUND_MS),[booped,setBooped]=useState(-1)
  const onEndRef=useRef(onEnd),scoreRef=useRef(0)
  useEffect(()=>{onEndRef.current=onEnd},[onEnd])
@@ -142,7 +150,8 @@ function Peekaboo({onEnd}:{onEnd:(score:number)=>void}){
   const timer=window.setInterval(()=>{const remaining=ROUND_MS-(Date.now()-started);setLeft(remaining);if(remaining<=0){window.clearInterval(timer);window.clearTimeout(pop);onEndRef.current(scoreRef.current)}},200)
   return ()=>{window.clearInterval(timer);window.clearTimeout(pop)}
  },[])
- const boop=(i:number)=>{if(i!==at)return;scoreRef.current+=1;setScore(scoreRef.current);setBooped(i);setAt(-1)}
+ const boop=(i:number)=>{if(i!==at){gameSound('nope',sound);return}scoreRef.current+=1;setScore(scoreRef.current);setBooped(i);setAt(-1);gameSound('score',sound,Math.min(4,Math.floor(scoreRef.current/4)))}
+ useImperativeHandle(ref,()=>({end:()=>onEndRef.current(scoreRef.current)}),[])
  return <div className="break-game">
   <p className="break-game-status"><span>Boops: <strong>{score}</strong></span><span>{clock(left)}</span></p>
   <div className="peekaboo-grid">{Array.from({length:9},(_,i)=><button type="button" key={i} className={'peekaboo-bush'+(at===i?' is-up':'')+(booped===i?' is-booped':'')} aria-label={at===i?'Boop KONO!':'Bush'} onClick={()=>boop(i)}>{at===i&&<img src="/garden/kono/happy.webp" alt=""/>}{booped===i&&<span className="peekaboo-boop" aria-hidden="true">💗</span>}<span className="peekaboo-leaves" aria-hidden="true">🌿</span></button>)}</div>

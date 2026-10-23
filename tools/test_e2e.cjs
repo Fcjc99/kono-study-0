@@ -1060,6 +1060,8 @@ function weekPlanCloud(){
 const islandLoaded=page=>page.waitForFunction(()=>{const island=document.querySelector('.wb-island'),r=island?.getBoundingClientRect();if(island&&(r.bottom<0||r.top>innerHeight))island.scrollIntoView({block:'center'});return island&&!document.querySelector('.sanctuary-load-status')},null,{timeout:30000,polling:250})
 /** KONO's corner: tap KONO's face in the KONO bar; it opens over the page. */
 /** The top bar's ⋯ menu (Undo, Redo, voice, Trash) and the Planner's ⋯ menu (Plan my week, …). */
+/** Every game opens on its start card (components/GameScreen): press Start (or Continue, Start level N). */
+const startGame=async(page,title,label=/^(Start|Continue)/)=>{const d=page.getByRole('dialog',{name:title});await d.getByRole('region',{name:'Start'}).getByRole('button',{name:label}).click();return d}
 const headerMenu=async(page,name)=>{const menu=page.locator('details.header-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
 const plannerMenu=async(page,name)=>{const menu=page.locator('details.planner-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
 const cornerOf=page=>page.getByRole('dialog',{name:'KONO’s corner'})
@@ -2693,6 +2695,7 @@ test('Break games: after a focus session KONO offers a break game; Peekaboo and 
  await games.getByRole('timer',{name:'Break time left'}).filter({hasText:'Break: 5:00'}).waitFor()
  // Peekaboo: thirty seconds of KONO popping out of bushes.
  await games.getByRole('button',{name:/Peekaboo/}).click()
+ await startGame(page,'🌿 Peekaboo')
  await games.locator('.peekaboo-grid').waitFor()
  let boops=0
  for(let i=0;i<40&&boops<3;i++){await page.clock.runFor(300);const up=games.getByRole('button',{name:'Boop KONO!'});if(await up.count()){await up.click();boops++}}
@@ -2707,6 +2710,7 @@ test('Break games: after a focus session KONO offers a break game; Peekaboo and 
  await games.getByText('Best: '+boops+' boops').waitFor()
  // Snack catch: thirty seconds of falling snacks.
  await games.getByRole('button',{name:/Snack catch/}).click()
+ await startGame(page,'🍓 Snack catch')
  await games.getByRole('application',{name:/Snack catch/}).waitFor()
  if(process.env.KONO_SHOTS){await page.clock.runFor(4000);await games.screenshot({path:process.env.KONO_SHOTS+'/break-catch.png'})}
  await page.clock.fastForward(31000);await page.clock.runFor(500)
@@ -3519,6 +3523,8 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
  // Meowdoku: read the patches off the board, solve it, and tap each answer square twice (✕, then a cat).
  await town.getByRole('button',{name:/Meowdoku/}).click()
+ if(process.env.KONO_SHOTS){const d=page.getByRole('dialog',{name:'🐱 Meowdoku'});await d.getByRole('region',{name:'Start'}).waitFor();await page.waitForTimeout(600);await d.screenshot({path:process.env.KONO_SHOTS+'/game-start.png'})}
+ await startGame(page,'🐱 Meowdoku',/^Start level 1$/)
  const meow=page.getByRole('dialog',{name:'🐱 Meowdoku'})
  const grid=meow.getByRole('grid',{name:/^Meowdoku, 5 by 5$/})
  await grid.waitFor()
@@ -3539,10 +3545,18 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  // Play again: the next puzzle (level 2).
  await results.getByRole('button',{name:'Play again'}).click()
  await meow.getByText(/^Level 2$/).waitFor()
- await meow.getByRole('button',{name:'✕ Leave'}).click()
+ // ↻ Restart clears the board; ■ End gives the puzzle up (the level stays) and shows the results.
+ const any=meow.getByRole('gridcell').first();await any.click()
+ await meow.getByRole('gridcell',{name:/, marked$/}).first().waitFor()
+ await meow.getByRole('button',{name:'↻ Restart'}).click()
+ assert.equal(await meow.getByRole('gridcell',{name:/, (marked|cat)$/}).count(),0,'Restart clears the board')
+ await meow.getByRole('button',{name:'■ End'}).click()
+ await meow.getByRole('region',{name:'Results'}).getByRole('heading',{name:'Puzzle skipped'}).waitFor()
+ await meow.getByRole('button',{name:'Done'}).click()
  await meow.waitFor({state:'detached'})
  // Gem blitz: find a swap that lines up three (from the board's pieces) and make it.
  await town.getByRole('button',{name:/Gem blitz/}).click()
+ await startGame(page,'💎 Gem blitz')
  const gems=page.getByRole('dialog',{name:'💎 Gem blitz'}),board=gems.getByRole('grid',{name:'Gem board'})
  await board.getByRole('gridcell').first().waitFor()
  const swap=await board.evaluate(el=>{
@@ -3562,6 +3576,7 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  await gems.waitFor({state:'detached'})
  // Candy crush: level 1, with its moves and target.
  await town.getByRole('button',{name:/Candy crush/}).click()
+ await startGame(page,'🍬 Candy crush',/^Start level 1$/)
  const candy=page.getByRole('dialog',{name:'🍬 Candy crush'})
  await candy.getByText('Level 1').waitFor();await candy.getByText(/^\d+ moves$/).waitFor()
  await candy.getByRole('progressbar',{name:/^Target \d+$/}).waitFor()
@@ -3620,6 +3635,7 @@ test('Round 57: KONO blast clears a full row (the squares empty and the score ju
  // Every piece is a single square from here on, so eight in a row fill it.
  await page.evaluate(()=>{Math.random=()=>0})
  await town.getByRole('button',{name:/KONO blast/}).click()
+ await startGame(page,'🧱 KONO blast')
  const board=page.getByRole('grid',{name:'KONO blast board'})
  for(let c=1;c<=8;c++){
   await page.getByRole('group',{name:'Pieces'}).getByRole('button').first().click()
@@ -3648,10 +3664,11 @@ test('Round 57: KONO blast clears a full row (the squares empty and the score ju
  const kept=await page.evaluate(()=>Number(document.querySelector('.blast-score')?.textContent))
  await page.getByRole('dialog',{name:'🧱 KONO blast'}).getByRole('button',{name:'✕ Leave'}).click()
  await town.getByRole('button',{name:new RegExp('KONO blast.*Carry on your game \\('+kept+' points so far\\)')}).click()
+ await startGame(page,'🧱 KONO blast',new RegExp('^Continue \\('+kept+' points\\)$'))
  await board.getByRole('gridcell',{name:'Row 5, column 5, filled'}).waitFor()
  assert.equal(await page.evaluate(()=>Number(document.querySelector('.blast-score')?.textContent)),kept)
  // End game finishes it (the best score is kept) and the next game starts fresh.
- await page.getByRole('button',{name:'End game'}).click()
+ await page.getByRole('dialog',{name:'🧱 KONO blast'}).getByRole('button',{name:'■ End'}).click()
  await town.getByText(/^KONO blast: \d+ points! 🧱/).first().waitFor()
  await town.getByRole('button',{name:/KONO blast.*Fit the pieces/}).waitFor()
 })
@@ -3673,6 +3690,7 @@ test('Round 56: each land has its own game: Shell chase on the beach, Acorn tumb
  const beach=page.getByRole('dialog',{name:'Sandy Beach Cove'})
  await beach.getByRole('button',{name:'The Shell chase booth'}).click()
  await beach.getByRole('button',{name:'Play Shell chase'}).click()
+ await startGame(page,'🐚 Shell chase')
  await beach.getByRole('application',{name:/^Shell chase/}).waitFor()
  if(process.env.KONO_SHOTS){await page.waitForTimeout(1200);await beach.getByRole('application',{name:/^Shell chase/}).screenshot({path:process.env.KONO_SHOTS+'/land-chase.png'})}
  await beach.getByRole('region',{name:'Results'}).getByText('KONO collected 0 shells',{exact:false}).waitFor({timeout:10000})
@@ -3685,6 +3703,7 @@ test('Round 56: each land has its own game: Shell chase on the beach, Acorn tumb
  const forest=page.getByRole('dialog',{name:'Mossy Forest Glade'})
  await forest.getByRole('button',{name:'The Acorn tumble booth'}).click()
  await forest.getByRole('button',{name:'Play Acorn tumble'}).click()
+ await startGame(page,'🌰 Acorn tumble')
  const board=forest.getByRole('group',{name:'Acorn tumble'})
  await board.locator('.tumble-tile').first().waitFor()
  const pair=await board.evaluate(el=>{const at=new Map([...el.querySelectorAll('.tumble-tile')].map(b=>[b.dataset.c+','+b.dataset.r,b.dataset.kind]));for(const [k,kind] of at){const [c,r]=k.split(',').map(Number);if(at.get(c+','+(r+1))===kind||at.get((c+1)+','+r)===kind)return k}return null})
@@ -3693,7 +3712,7 @@ test('Round 56: each land has its own game: Shell chase on the beach, Acorn tumb
  await board.locator('.tumble-tile[data-c="'+c+'"][data-r="'+r+'"]').click()
  await forest.getByText(/^Pieces left: (5[0-4]|[1-4]\d)$/).waitFor()
  if(process.env.KONO_SHOTS)await forest.screenshot({path:process.env.KONO_SHOTS+'/land-tumble.png'})
- await forest.getByRole('button',{name:'I’m done'}).click()
+ await forest.getByRole('dialog',{name:'🌰 Acorn tumble'}).getByRole('button',{name:'■ End'}).click()
  await forest.getByRole('region',{name:'Results'}).getByText(/\+\d+ coins!/).waitFor()
  await forest.getByRole('dialog',{name:'🌰 Acorn tumble'}).getByRole('button',{name:'Done'}).click()
  await forest.getByRole('status').filter({hasText:/That’s \d+ points! 🌰.*\+\d+ coins!/}).waitFor()
@@ -3704,6 +3723,7 @@ test('Round 56: each land has its own game: Shell chase on the beach, Acorn tumb
  const snow=page.getByRole('dialog',{name:'Snowy Mountain Village'})
  await snow.getByRole('button',{name:'The Sled dash booth'}).click()
  await snow.getByRole('button',{name:'Play Sled dash'}).click()
+ await startGame(page,'🛷 Sled dash')
  await snow.getByRole('application',{name:/^Sled dash/}).waitFor()
  const lane=()=>snow.locator('.sled-kono').evaluate(el=>el.style.left)
  const middle=await lane()
@@ -3715,6 +3735,7 @@ test('Round 56: each land has its own game: Shell chase on the beach, Acorn tumb
  await snow.getByRole('dialog',{name:'🛷 Sled dash'}).waitFor({state:'detached'})
  await snow.getByRole('button',{name:'🎮 Arcade'}).click()
  await snow.getByRole('region',{name:'Arcade'}).getByRole('button',{name:/KONO blast/}).click()
+ await startGame(page,'🧱 KONO blast')
  const blast=snow.getByRole('grid',{name:'KONO blast board'})
  const score=async()=>Number((await snow.locator('.blast-score').textContent()))
  const pieces=snow.getByRole('group',{name:'Pieces'})

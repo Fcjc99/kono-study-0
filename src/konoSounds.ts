@@ -35,3 +35,17 @@ export function playSfx(kind:Sfx,enabled=true,pitch=1){
   osc.start(at);osc.stop(at+length+.02)
  }
 }
+
+/** The task-complete chime (the same as finishing a task), a little higher with each `level`. */
+export function playChime(level=0){try{const a=new Audio('/audio/completion.wav') as HTMLAudioElement&{preservesPitch?:boolean};a.preservesPitch=false;a.playbackRate=Math.min(1.6,1+level*0.08);void a.play().catch(()=>undefined)}catch{/* no audio */}}
+
+/** The arcade's sounds, shared by every game so they all feel the same: a jingle to start, a pop for each
+ * point scored (higher as a combo or cascade builds), a thunk for putting a piece down, a tick for a move
+ * that doesn't go, the task-complete chime for a big moment and a round won, a soft tune for a round
+ * lost, and coins coming in. `level` raises the pop and the chime. */
+export type GameSound='start'|'score'|'place'|'nope'|'big'|'win'|'lose'|'coin'
+export function gameSound(kind:GameSound,enabled:boolean,level=0){
+ if(!enabled)return
+ if(kind==='big'||kind==='win'){playChime(level);return}
+ playSfx(kind==='start'?'buy':kind==='score'?'pop':kind==='place'?'place':kind==='nope'?'tick':kind==='lose'?'over':'coin',true,kind==='score'?1+Math.min(level,8)*0.1:1)
+}

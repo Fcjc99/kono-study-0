@@ -1,6 +1,7 @@
-import {useEffect,useRef,useState} from 'react'
+import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {W,candyLevel,play,type Board,type Maker,type Piece} from '../store/match3'
-import {playSfx} from '../konoSounds'
+import {gameSound} from '../konoSounds'
+import type {GameHandle} from './GameScreen'
 
 /** Gem blitz and Candy crush (the rules are in store/match3), in KONO blast's look: swipe a piece toward a
  * neighbor (or tap one, then the other) to swap them. Pieces slide, cleared ones burst, new ones drop in
@@ -12,7 +13,7 @@ const BLITZ_MS=60_000
 const CASCADE_CHEERS=['Sweet!','Tasty!','Delicious!','Divine!','Sugar crush!']
 const GEM_CHEERS=['Good!','Excellent!','Awesome!','Spectacular!','Blazing!']
 type Burst={key:number;cells:{at:number;kind:number}[]}
-export default function Match3({mode,level,start,sound,onEnd}:{mode:'gems'|'candy';level:number;start:{maker:Maker;board:Board};sound:boolean;onEnd:(score:number,won:boolean)=>void}){
+export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameHandle>;mode:'gems'|'candy';level:number;start:{maker:Maker;board:Board};sound:boolean;onEnd:(score:number,won:boolean)=>void}){
  const goal=candyLevel(level)
  const [board,setBoard]=useState<Board>(start.board),[born,setBorn]=useState<Set<number>>(new Set())
  const [sel,setSel]=useState<number|null>(null),[shake,setShake]=useState<number[]>([])
@@ -22,20 +23,21 @@ export default function Match3({mode,level,start,sound,onEnd}:{mode:'gems'|'cand
  const press=useRef<{at:number;x:number;y:number;moved:boolean}|null>(null)
  const onEndRef=useRef(onEnd)
  useEffect(()=>{onEndRef.current=onEnd},[onEnd])
- const finish=(won:boolean,text:string)=>{if(ended.current)return;ended.current=true;setDone(text);playSfx(won?'win':'over',sound);window.setTimeout(()=>onEndRef.current(scoreRef.current,won),1400)}
+ const finish=(won:boolean,text:string)=>{if(ended.current)return;ended.current=true;setDone(text);window.setTimeout(()=>onEndRef.current(scoreRef.current,won),1400)}
  // Gem blitz's minute (a move under way still finishes before time's up counts).
  useEffect(()=>{
   if(mode!=='gems')return
   const startAt=performance.now()
   const t=window.setInterval(()=>{const rest=BLITZ_MS-(performance.now()-startAt);setLeft(Math.max(0,rest));if(rest<=0&&!busy.current){window.clearInterval(t);finish(true,'Time’s up!')}},200)
   return ()=>window.clearInterval(t)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[mode])
+ // ■ End: finish now (Candy crush counts it as won only if the target's already reached).
+ useImperativeHandle(ref,()=>({end:()=>{if(ended.current)return;ended.current=true;onEndRef.current(scoreRef.current,mode==='gems'||scoreRef.current>=goal.target)}}),[mode,goal.target])
  const show=(next:Board)=>{const had=new Set(boardNow.current.map(p=>p?.id));setBorn(new Set(next.flatMap(p=>p&&!had.has(p.id)?[p.id]:[])));boardNow.current=next;setBoard(next)}
  const attempt=(a:number,c:number)=>{
   if(busy.current||ended.current)return
   const frames=play(boardNow.current,a,c,start.maker)
-  if(!frames){setShake([a,c]);playSfx('tick',sound);window.setTimeout(()=>setShake([]),380);return}
+  if(!frames){setShake([a,c]);gameSound('nope',sound);window.setTimeout(()=>setShake([]),380);return}
   busy.current=true;setSel(null)
   const swapped=[...boardNow.current];[swapped[a],swapped[c]]=[swapped[c],swapped[a]];show(swapped)
   let at=200,top=0
@@ -45,7 +47,7 @@ export default function Match3({mode,level,start,sound,onEnd}:{mode:'gems'|'cand
     if(f.cleared.length){
      scoreRef.current+=f.points;setScore(scoreRef.current);top=Math.max(top,f.cascade)
      const key=++keys.current;setBurst({key,cells:f.cleared});window.setTimeout(()=>setBurst(b=>b?.key===key?null:b),600)
-     playSfx('pop',sound,1+(f.cascade-1)*0.12)
+     gameSound('score',sound,f.cascade-1)
      if(f.cascade>=2){setCheer({key,text:(mode==='candy'?CASCADE_CHEERS:GEM_CHEERS)[Math.min(f.cascade-2,4)]});window.setTimeout(()=>setCheer(t=>t?.key===key?null:t),1100)}
     }
    },at)
@@ -53,7 +55,7 @@ export default function Match3({mode,level,start,sound,onEnd}:{mode:'gems'|'cand
   }
   window.setTimeout(()=>{
    busy.current=false
-   if(top>=3)playSfx('win',sound)
+   if(top>=3)gameSound('big',sound,top-3)
    if(mode==='candy'){
     movesLeft.current-=1;setMoves(movesLeft.current)
     if(scoreRef.current>=goal.target)finish(true,'Level '+level+' complete!');else if(movesLeft.current<=0)finish(false,'Out of moves')
