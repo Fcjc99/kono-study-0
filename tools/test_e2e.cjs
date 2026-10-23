@@ -3488,6 +3488,123 @@ test('A repeating event from the Planner: a note on just one day stays on that d
  await editor.getByRole('button',{name:'Save'}).click()
  await waitFor(()=>soc(e=>e.date+' '+e.time).join('|')==='2026-10-15 17:00|2026-10-22 17:00|2026-10-29 17:00|2026-11-05 17:00','Nov 5 never joined the series')
 })
+test('Round 52: Paint KONO in the paint shop (it shows in the KONO bar), buy furniture, and arrange it in KONO’s house',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.install({time:new Date('2026-10-02T15:00:00')})
+ d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:2000}]}}
+ const care=()=>cloud.users.alice.plan.data.konoCare[pid]
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const bar=page.getByRole('region',{name:'KONO today'})
+ await bar.getByRole('button',{name:/^KONO Town: /}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Paint & home'}).click()
+ // Paint: buy Starry, and KONO wears it straight away.
+ await town.getByRole('region',{name:'Paint shop'}).getByRole('button',{name:/^Buy Starry for /}).click()
+ await waitFor(()=>care().log.some(e=>e.kind==='buy'&&e.item==='paint:starry'),'the color bought never reached the account')
+ await town.getByRole('region',{name:'Paint shop'}).getByRole('button',{name:'Paint KONO Starry'}).click()
+ await waitFor(()=>care().log.some(e=>e.kind==='paint'&&e.item==='starry'),'the color picked never reached the account')
+ await town.getByRole('region',{name:'Paint shop'}).getByRole('button',{name:'Take off Starry'}).waitFor()
+ // Furniture: the rug is free; a bed costs coins.
+ const shop=town.getByRole('region',{name:'Furniture shop'})
+ await shop.getByRole('button',{name:'Buy Round rug for free'}).click()
+ await shop.getByRole('button',{name:/^Buy Cozy bed for /}).click()
+ await waitFor(()=>care().log.filter(e=>e.kind==='buy'&&e.item.startsWith('furn:')).length===2,'the furniture bought never reached the account')
+ if(process.env.KONO_SHOTS)await town.screenshot({path:process.env.KONO_SHOTS+'/town-paint-home.png'})
+ await shop.getByRole('button',{name:'🏠 Go to KONO’s house'}).click()
+ const house=page.getByRole('dialog',{name:'KONO’s house'})
+ await house.getByText('KONO’s house is empty!',{exact:false}).waitFor()
+ await house.getByRole('button',{name:'🪑 Arrange'}).click()
+ await house.getByRole('region',{name:'Storage'}).getByRole('button',{name:'Place the round rug'}).click()
+ await house.getByRole('region',{name:'Storage'}).getByRole('button',{name:'Place the cozy bed'}).click()
+ await waitFor(()=>(care().house??[]).length===2,'the placed furniture never reached the account')
+ // Drag the bed to the left, then make it bigger.
+ const bed=house.getByRole('button',{name:'Cozy bed, drag to move'});await page.waitForFunction(()=>[...document.querySelectorAll('.house-piece img')].every(i=>i.complete&&i.naturalWidth));const box=await bed.boundingBox()
+ await page.mouse.move(box.x+box.width/2,box.y+box.height*0.6);await page.mouse.down();await page.mouse.move(box.x+box.width/2-120,box.y+box.height*0.6-20,{steps:6});await page.mouse.up()
+ await waitFor(()=>{const b=(care().house??[]).find(h=>h.item==='bed');return b&&b.x<0.45},'the bed never moved')
+ await house.getByRole('group',{name:'Change the cozy bed'}).getByRole('button',{name:'Bigger'}).click()
+ await waitFor(()=>(care().house??[]).find(h=>h.item==='bed')?.size>1,'the bed never grew')
+ await house.getByRole('button',{name:'Done arranging'}).click()
+ // KONO, in its new color, can be patted in the house.
+ const kono=house.getByRole('button',{name:'Pet KONO'})
+ assert.ok((await kono.locator('img').first().getAttribute('src')).includes('/garden/kono/colors/starry/'),'KONO wears its color in the house')
+ await kono.click()
+ if(process.env.KONO_SHOTS)await house.screenshot({path:process.env.KONO_SHOTS+'/house.png'})
+ await house.getByRole('button',{name:'Close dialog'}).click()
+ if(process.env.KONO_SHOTS){await islandLoaded(page);await page.waitForTimeout(3000);await page.locator('.wb-island').screenshot({path:process.env.KONO_SHOTS+'/island-starry.png'})}
+ // KONO's face in the KONO bar is Starry too.
+ assert.ok((await bar.locator('.kono-mood-face img').first().getAttribute('src')).includes('/garden/kono/colors/starry/'),'the KONO bar shows the color')
+ // KONO's corner opens the house; the album counts colors and furniture.
+ const corner=await openCorner(page)
+ await corner.getByRole('button',{name:/^KONO’s house/}).waitFor()
+ await corner.getByRole('button',{name:/^Album/}).click()
+ await page.getByRole('dialog',{name:'KONO Town'}).getByRole('region',{name:'Colors'}).getByRole('listitem',{name:'Starry',exact:true}).waitFor()
+ await page.getByRole('dialog',{name:'KONO Town'}).getByRole('region',{name:'Furniture'}).getByRole('listitem',{name:'Cozy bed',exact:true}).waitFor()
+})
+
+test('Round 51: KONO Town: a surprise to collect, coins in the KONO bar, the food shop, the boutique, today’s quest, the prize wheel, the arcade and the album',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId,day='2026-10-01'
+ await page.clock.install({time:new Date(day+'T15:00:00')})
+ // The quest's snack (the same pick as store/konoCoins), waiting as a gift, and some coins from an old month.
+ const hash=t=>{let h=2166136261;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+ const TREATS=[['onigiri','rice ball'],['dumpling','dumpling'],['dango','dango'],['strawberry','strawberry'],['cookie','cookie'],['peach','peach'],['bento','bento box'],['cake','slice of cake'],['boba','boba tea']]
+ const [questId,questName]=TREATS[hash(pid+day+'quest')%TREATS.length]
+ d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:500},{id:'gift-1',kind:'gift',at:day+'T10:00:00.000Z',item:questId,from:'Mom'}]}}
+ const log=()=>cloud.users.alice.plan.data.konoCare[pid].log
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const bar=page.getByRole('region',{name:'KONO today'})
+ await bar.getByRole('button',{name:/^KONO Town: 510 coins$/}).waitFor()
+ // Something has happened! (a few seconds into the visit)
+ await bar.getByText('Something has happened!').waitFor({timeout:15000})
+ await bar.getByRole('button',{name:'Collect'}).click()
+ await waitFor(()=>log().some(e=>e.id==='event-'+day&&e.n>0),'the surprise never reached the account')
+ const surprise=log().find(e=>e.id==='event-'+day).n
+ if(process.env.KONO_SHOTS)await bar.screenshot({path:process.env.KONO_SHOTS+'/town-bar.png'})
+ await bar.getByRole('button',{name:'KONO Town: '+(510+surprise)+' coins'}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByText((510+surprise)+' coins',{exact:true}).waitFor()
+ if(process.env.KONO_SHOTS)await town.screenshot({path:process.env.KONO_SHOTS+'/town-shops.png'})
+ // The quest: KONO wants the snack Mom sent.
+ const quest=town.getByRole('region',{name:'KONO’s quest'})
+ await quest.getByText('KONO is craving a '+questName,{exact:false}).waitFor()
+ await quest.getByRole('button',{name:'Give the '+questName}).click()
+ await quest.getByText('Quest done!').waitFor()
+ await waitFor(()=>log().some(e=>e.id==='quest-'+day&&e.n>0)&&log().some(e=>e.kind==='feed'&&e.taskId==='gift-1'),'the quest never reached the account')
+ // Food shop: a snack for KONO; Boutique: the cozy beanie.
+ const food=town.getByRole('region',{name:'Food shop'})
+ await food.getByRole('button',{name:/^Buy /}).first().click()
+ await town.getByText('It’s with KONO’s snacks.',{exact:false}).waitFor()
+ await waitFor(()=>log().some(e=>e.kind==='buy'&&e.item.startsWith('food:')),'the snack bought never reached the account')
+ await town.getByRole('region',{name:'Boutique'}).getByRole('button',{name:/^Buy Cozy beanie for /}).click()
+ await waitFor(()=>log().some(e=>e.kind==='buy'&&e.item==='outfit:beanie'),'the outfit bought never reached the account')
+ await town.getByRole('region',{name:'Boutique'}).getByRole('button',{name:/^Buy Cozy beanie/}).waitFor({state:'detached'})
+ // Prize wheel: one spin a day.
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Prize wheel'}).click()
+ await town.getByRole('button',{name:'Spin the wheel'}).click()
+ await town.getByText(/^🎉 You won \d+ coins!$/).waitFor({timeout:10000})
+ await waitFor(()=>log().some(e=>e.id==='spin-'+day),'the spin never reached the account')
+ assert.equal(await town.getByRole('button',{name:'Spun today'}).isDisabled(),true)
+ if(process.env.KONO_SHOTS)await town.screenshot({path:process.env.KONO_SHOTS+'/town-wheel.png'})
+ // Arcade: coin rounds, and Bubble pop is there.
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
+ await town.getByText('3 of 3',{exact:true}).waitFor()
+ await town.getByRole('button',{name:/Bubble pop/}).click()
+ await town.getByRole('button',{name:'Pop the bubble'}).first().dispatchEvent('pointerdown')
+ await town.getByText(/^Pops: 1$/).waitFor()
+ // Album: the beanie is in, with how far along the whole collection is.
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Album'}).click()
+ await town.getByRole('region',{name:'Outfits'}).getByRole('listitem',{name:'Cozy beanie',exact:true}).waitFor()
+ await town.getByText(/^\d+ of \d+ collected$/).first().waitFor()
+ if(process.env.KONO_SHOTS)await town.screenshot({path:process.env.KONO_SHOTS+'/town-album.png'})
+ if(process.env.KONO_SHOTS){await page.setViewportSize({width:390,height:844});await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Shops'}).click();await page.waitForTimeout(400);await page.screenshot({path:process.env.KONO_SHOTS+'/town-phone.png'});await town.getByRole('button',{name:'Close dialog'}).click();await bar.scrollIntoViewIfNeeded();await bar.screenshot({path:process.env.KONO_SHOTS+'/town-bar-phone.png'});await bar.getByRole('button',{name:/^KONO Town/}).click();await page.setViewportSize({width:1280,height:900})}
+ await town.getByRole('button',{name:'Close dialog'}).click()
+ // KONO's corner has KONO Town and the album too.
+ const corner=await openCorner(page)
+ await corner.getByRole('button',{name:/^KONO Town: shops, prize wheel and arcade/}).waitFor()
+ await corner.getByRole('button',{name:/^Album/}).waitFor()
+})
+
 test('Round 50: several lines in ＋ Add at once; an event typed again takes last time’s details; a repeat can be moved a day or deleted from a date on; search finds a to-do; a kid’s own plan shows their to-dos',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.install({time:new Date('2026-10-15T09:00:00')}) // a Thursday

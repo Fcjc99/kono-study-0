@@ -1,0 +1,34 @@
+/* KONO's house (KonoHouse.tsx): the room, its furniture, KONO, and the arrange tools. Pieces and KONO are
+   placed with a transform, kept even if something else styles them (it would move them under the pointer). */
+.kono-house{display:grid;gap:10px;padding:0 4px 8px}
+.house-room{position:relative;width:100%;aspect-ratio:1448/1086;background-size:100% 100%;border-radius:16px;overflow:hidden;touch-action:none;user-select:none}
+.kono-house.is-night .house-room::after{content:"";position:absolute;inset:0;z-index:5000;pointer-events:none;background:radial-gradient(ellipse at 50% 60%,rgba(255,190,110,.12),rgba(20,24,60,.5) 75%)}
+.house-piece{position:absolute;transform:translate(-50%,-100%)!important;transition:none!important;margin:0!important;padding:0!important;min-height:0!important;border:0!important;background:none!important;box-shadow:none!important;cursor:default}
+.kono-house .house-piece img{display:block;width:100%!important;height:auto!important;max-width:none;filter:drop-shadow(0 6px 5px rgba(70,40,20,.28));pointer-events:none}
+.house-piece.is-rug{transform:translate(-50%,-70%)!important}
+.house-piece.is-rug img{filter:none}
+.is-arranging .house-piece{cursor:grab}
+.is-arranging .house-piece:active{cursor:grabbing}
+.house-piece.is-selected img{filter:drop-shadow(0 0 0 #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 0 2px var(--wb-accent,#c06b8a))}
+.house-piece:focus-visible{outline:3px solid var(--wb-accent,#c06b8a);outline-offset:2px}
+.house-kono{position:absolute;cursor:pointer;transform:translate(-50%,-100%)!important;margin:0!important;padding:0!important;min-height:0!important;border:0!important;background:none!important;box-shadow:none!important;transition:left 2.4s ease-in-out,top 2.4s ease-in-out}
+.house-kono .kono-face-box{display:block;position:relative;width:100%;height:100%}
+.kono-house .house-kono .kono-face-box>img:first-child{width:100%!important;height:100%!important;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 4px 3px rgba(60,30,10,.3))}
+.house-kono.is-happy .kono-face-box{animation:house-hop .5s ease-out}
+.house-heart{position:absolute;left:50%;top:-6px;transform:translateX(-50%);font-size:1.3rem;animation:peekaboo-boop .9s ease-out both;pointer-events:none}
+@keyframes house-hop{0%,100%{transform:translateY(0)}40%{transform:translateY(-14%)}}
+@keyframes peekaboo-boop{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-24px)}}
+.house-empty{margin:0;font-weight:600}
+.house-tools{margin:0}
+.house-tools button{margin:0!important}
+.house-selected{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.house-selected strong{margin-right:auto}
+.house-selected button{margin:0!important;min-height:36px}
+.house-storage h3{margin:0 0 6px;font-size:1rem}
+.house-storage h3 small{font-weight:400;font-size:.8rem;color:var(--wb-muted,inherit)}
+.house-storage ul{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px;margin:0;padding:0;list-style:none}
+.house-storage button{display:grid;justify-items:center;gap:2px;width:100%;margin:0!important;padding:6px!important;border-radius:12px}
+.kono-house .house-storage img{width:52px!important;height:52px!important;object-fit:contain}
+.house-storage small{font-size:.72rem;line-height:1.15}
+@media(prefers-reduced-motion:reduce){.house-kono{transition:none}.house-kono.is-happy .kono-face-box,.house-heart{animation:none}}
+.is-arranging .house-kono{pointer-events:none;opacity:.55}

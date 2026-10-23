@@ -169,6 +169,8 @@ export class KonoMascotSystem {
   // KONO's outfit (Decorate › Wardrobe): drawn over the sprite at the same scale, placed for each pose.
   private outfitImage: Phaser.GameObjects.Image | null = null
   private outfitId: string | null = null
+  // KONO's color (KONO Town › Paint shop): its own frames, loaded the first time it's worn.
+  private paint: string | null = null
   // What KONO would like (a snack, a pat), in a thought bubble over its head; and quick taps for tickles.
   private needBubble: Phaser.GameObjects.Container | null = null
   private needIcon = ''
@@ -230,12 +232,14 @@ export class KonoMascotSystem {
     this.scene.game.events.on(SANCTUARY_EVENTS.celebrate, this.celebrate, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.focusCompanion, this.setFocusCompanion, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.outfit, this.setOutfit, this)
+    this.scene.game.events.on(SANCTUARY_EVENTS.paint, this.setPaint, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.need, this.setNeed, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.feed, this.feed, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.mood, this.setMood, this)
     this.setMood((this.scene.registry?.get('sanctuaryMood') as KonoMood | null | undefined) ?? null)
     this.nextMoodAt = this.scene.time.now + 8_000
     this.setOutfit((this.scene.registry?.get('sanctuaryOutfit') as string | null | undefined) ?? null)
+    this.setPaint((this.scene.registry?.get('sanctuaryPaint') as string | null | undefined) ?? null)
     this.setNeed((this.scene.registry?.get('sanctuaryNeed') as string | null | undefined) ?? null)
     if (phase === 'night') this.enterNightSleep()
     else this.pickWanderTarget(this.scene.time.now + 1_200)
@@ -422,6 +426,7 @@ export class KonoMascotSystem {
     this.scene.game.events.off(SANCTUARY_EVENTS.celebrate, this.celebrate, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.focusCompanion, this.setFocusCompanion, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.outfit, this.setOutfit, this)
+    this.scene.game.events.off(SANCTUARY_EVENTS.paint, this.setPaint, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.need, this.setNeed, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.feed, this.feed, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.mood, this.setMood, this)
@@ -573,7 +578,7 @@ export class KonoMascotSystem {
   private setTexture(texture: string): void {
     if (!this.sprite || texture === this.currentTexture) return
     this.currentTexture = texture
-    this.sprite.setTexture(texture)
+    this.sprite.setTexture(this.painted(texture))
     this.applySpriteScale()
     this.placeOutfit()
   }
@@ -696,6 +701,26 @@ export class KonoMascotSystem {
       const c = this.scene.add.circle(x + Phaser.Math.Between(-5, 5), y, Phaser.Math.FloatBetween(1.6, 3), 0xf3d29a).setDepth((this.sprite?.depth ?? 0) + 0.04)
       this.scene.tweens.add({ targets: c, x: c.x + Phaser.Math.Between(-16, 16), y: y + Phaser.Math.Between(6, 14), alpha: 0, duration: 420, ease: 'Quad.Out', onComplete: () => c.destroy() })
     }
+  }
+
+  /** The frame in KONO's color, once that color's frames have loaded ('kono-idle' → 'kono-paint-starry-idle'). */
+  private painted(texture: string): string {
+    const key = this.paint ? texture.replace(/^kono-/, 'kono-paint-' + this.paint + '-') : texture
+    return key !== texture && this.scene.textures.exists(key) ? key : texture
+  }
+
+  /** Paint KONO (null is classic). The color's frames load the first time it's worn. */
+  setPaint(id: string | null): void {
+    this.paint = id && /^[a-z]+$/.test(id) ? id : null
+    const apply = () => { if (this.sprite) { this.sprite.setTexture(this.painted(this.currentTexture)); this.placeOutfit() } }
+    if (!this.paint) { apply(); return }
+    const root = ASSET_ROOT + '/colors/' + this.paint
+    const frames = ['idle', 'happy', 'excited', 'question', 'sleep', 'tea', 'read', 'pond', 'fishing', ...Object.values(WALK_FRAMES).flat().map(k => k.replace(/^kono-/, ''))]
+    const missing = frames.filter(f => !this.scene.textures.exists('kono-paint-' + this.paint + '-' + f))
+    if (!missing.length) { apply(); return }
+    missing.forEach(f => this.scene.load.image('kono-paint-' + this.paint + '-' + f, root + '/' + f + '.webp'))
+    this.scene.load.once(Phaser.Loader.Events.COMPLETE, apply)
+    this.scene.load.start()
   }
 
   /** Put an outfit on (null takes it off). Its pictures load the first time it's worn. */

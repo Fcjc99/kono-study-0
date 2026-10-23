@@ -623,3 +623,6 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 /* Typed again: last time's details, one tap away. */
 .event-memory{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:0;padding:8px 10px;border-radius:12px;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 10%,var(--wb-surface,#fff));font-size:.9rem;font-weight:600}
 .workbench .event-memory button{min-height:36px;padding:4px 12px!important}
+/* KONO Town's coin button in the KONO bar (KonoTown.tsx) and a surprise to collect. */
+.kono-bar-tools .kono-coins-open{font-variant-numeric:tabular-nums;font-weight:700}
+.kono-note.is-surprise{background:color-mix(in srgb,#ffd36b 28%,transparent);border-radius:10px;padding:2px 8px}

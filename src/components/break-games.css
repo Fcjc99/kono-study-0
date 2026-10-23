@@ -27,3 +27,8 @@
 @keyframes peekaboo-up{from{transform:translate(-50%,40%)}to{transform:translate(-50%,0)}}
 @keyframes peekaboo-boop{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-24px)}}
 @media(prefers-reduced-motion:reduce){.peekaboo-bush img,.peekaboo-boop{animation:none}}
+.bubble-pop{position:relative;height:300px;max-width:420px;margin:0 auto;overflow:hidden;border-radius:14px;background:linear-gradient(#bfe3ff,#eef8ff);touch-action:manipulation}
+.bubble-pop .bubble{position:absolute;bottom:-64px;width:56px;height:56px;min-height:0!important;margin:0!important;padding:0!important;border-radius:50%!important;display:grid;place-items:center;font-size:1.5rem;background:radial-gradient(circle at 32% 28%,#fff 0 12%,rgba(255,255,255,.45) 26%,rgba(140,200,255,.35) 70%,rgba(255,255,255,.7))!important;border:2px solid rgba(255,255,255,.9)!important;box-shadow:inset -4px -6px 10px rgba(90,150,220,.25)!important;animation:bubble-rise linear forwards;transform:translateX(-50%)}
+.bubble-popped{position:absolute;transform:translate(-50%,-50%);font-size:1.4rem;pointer-events:none;animation:peekaboo-boop .5s ease-out both}
+@keyframes bubble-rise{from{translate:0 0}25%{translate:-8px -100px}50%{translate:8px -200px}75%{translate:-6px -300px}to{translate:0 -390px}}
+.break-games.is-arcade{margin:0;border:0;padding:0;background:none}
