@@ -1,6 +1,7 @@
-import {useRef,useState} from 'react'
+import {useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {SIZE,anyFits,deal,fits,movePoints,place,praise,shapeSize,writeBlastSave,type BlastSave,type Grid,type Piece} from '../store/blockBlast'
-import {playSfx} from '../konoSounds'
+import {gameSound} from '../konoSounds'
+import type {GameHandle} from './GameScreen'
 
 /** KONO blast, the arcade's block puzzle (the rules are in store/blockBlast), in the look of the classic
  * block games: a deep blue board, glossy jewel blocks, a burst and a cheer ("Great!", "Combo ×2") when lines
@@ -8,7 +9,7 @@ import {playSfx} from '../konoSounds'
  * higher with each combo) and KONO cheers you on below the board.
  *
  * Each clear pays coins at once (`onCoins`, store/konoCoins › blastCoins), and the game is saved on this
- * device after every move, so leaving and coming back carries on where it was; End game finishes it.
+ * device after every move, so leaving and coming back carries on where it was; ■ End finishes it.
  *
  * Drag a piece onto the board, or tap a piece and then the square for its top-left corner. From the
  * keyboard: 1–3 pick a piece, the arrows move around the board and Enter puts it down. A dragged piece
@@ -20,10 +21,8 @@ const CHEERS=['Nice one! 🌟','You’re on a roll!','KONO is cheering for you!'
 const COMBO_CHEERS=['Combo! Keep it going! 🔥','You’re unstoppable!','KONO can’t believe it!','On fire! Don’t stop now!']
 const BIG_CHEERS=['Lines everywhere! Amazing!','WOW! KONO is doing a happy dance! 💃','That was incredible!']
 const pickOne=(list:string[])=>list[Math.floor(Math.random()*list.length)]
-/** The same chime as finishing a task, a little higher with each combo. */
-function chime(streak:number){try{const a=new Audio('/audio/completion.wav') as HTMLAudioElement&{preservesPitch?:boolean};a.preservesPitch=false;a.playbackRate=Math.min(1.6,1+streak*0.08);void a.play().catch(()=>undefined)}catch{/* no audio */}}
 type Burst={key:number;cells:{j:number;color:number;delay:number;dx:number;dy:number}[]}
-export default function BlockBlast({start,saved,best,sound,onCoins,onEnd}:{start:Piece[];saved:BlastSave|null;best:number|null;sound:boolean;onCoins?:(lines:number,streak:number)=>number|null;onEnd:(score:number)=>void}){
+export default function BlockBlast({ref,start,saved,best,sound,onCoins,onEnd}:{ref:Ref<GameHandle>;start:Piece[];saved:BlastSave|null;best:number|null;sound:boolean;onCoins?:(lines:number,streak:number)=>number|null;onEnd:(score:number)=>void}){
  const [grid,setGrid]=useState<Grid>(()=>saved?.grid??Array(SIZE*SIZE).fill(null))
  const [tray,setTray]=useState<(Piece|null)[]>(saved?.tray??start)
  const [score,setScore]=useState(saved?.score??0),[streak,setStreak]=useState(saved?.streak??0),[picked,setPicked]=useState<number|null>(null)
@@ -53,24 +52,25 @@ export default function BlockBlast({start,saved,best,sound,onCoins,onEnd}:{start
   if(left.every(t=>!t))left=deal(Math.random)
   setGrid(done.grid);setTray(left);setScore(total);setPicked(null);setAim(null);setStreak(nextStreak)
   const size=shapeSize(p.shape)
-  setGain({key,n:points,r:r+size.rows/2,c:c+size.cols/2})
+  setGain({key,n:points,r:r+size.rows/2,c:c+size.cols/2});window.setTimeout(()=>setGain(g=>g?.key===key?null:g),950)
   if(done.lines){
    // The cleared squares burst outward from where the piece landed, one after another.
    setBurst({key,cells:done.cleared.map((j,k)=>{const y=Math.floor(j/SIZE),x=j%SIZE,angle=Math.random()*Math.PI*2;return {j,color:done.colors[k],delay:(Math.abs(y-r)+Math.abs(x-c))*28,dx:Math.cos(angle)*40,dy:Math.sin(angle)*40-20}})})
    const coins=onCoins?.(done.lines,streak)??0
    if(coins)setEarned(n=>n+coins)
    setCheer({key,text:praise(done.lines),combo:streak,coins})
-   if(sound)chime(streak)
+   gameSound('big',sound,streak)
    setKonoSays({key,text:pickOne(done.lines>=3?BIG_CHEERS:streak>0?COMBO_CHEERS:CHEERS)})
    window.setTimeout(()=>{setBurst(b=>b?.key===key?null:b);setCheer(t=>t?.key===key?null:t)},1300)
-  }else playSfx('place',sound)
+  }else gameSound('place',sound)
   const stuck=!left.some(t=>t&&anyFits(done.grid,t.shape))
   writeBlastSave(stuck?null:{grid:done.grid,tray:left,score:total,streak:nextStreak})
-  if(stuck){setOver(true);window.setTimeout(()=>playSfx('over',sound),500);window.setTimeout(()=>onEnd(total),2000)}
+  if(stuck){setOver(true);window.setTimeout(()=>onEnd(total),2000)}
   return true
  }
- const endGame=()=>{if(over)return;writeBlastSave(null);setOver(true);onEnd(score)}
- const pick=(i:number)=>{if(over||!tray[i])return;playSfx('tick',sound);setPicked(k=>k===i?null:i)}
+ // ■ End (in the game's screen): finish now with the score so far.
+ useImperativeHandle(ref,()=>({end:()=>{if(over)return;writeBlastSave(null);setOver(true);onEnd(score)}}),[over,score,onEnd])
+ const pick=(i:number)=>{if(over||!tray[i])return;setPicked(k=>k===i?null:i)}
  // The floating piece follows the finger by itself (no re-render); the board only updates when the aim moves.
  const follow=(x:number,y:number)=>{const d=drag.current,el=floatRef.current;if(!d||!el)return;const p=tray[d.i];if(!p)return;const size=shapeSize(p.shape);el.style.transform=`translate3d(${x-size.cols*d.cell/2}px,${y-lift-size.rows*d.cell/2}px,0)`}
  const down=(e:React.PointerEvent<HTMLDivElement>,i:number)=>{
@@ -81,7 +81,7 @@ export default function BlockBlast({start,saved,best,sound,onCoins,onEnd}:{start
  const moveDrag=(e:React.PointerEvent<HTMLDivElement>,i:number)=>{
   const d=drag.current
   if(!d||d.i!==i)return
-  if(!d.moved){if(Math.hypot(e.clientX-d.x,e.clientY-d.y)<5)return;d.moved=true;setPicked(null);setHeld({i,x:e.clientX,y:e.clientY,cell:d.cell});playSfx('tick',sound)}
+  if(!d.moved){if(Math.hypot(e.clientX-d.x,e.clientY-d.y)<5)return;d.moved=true;setPicked(null);setHeld({i,x:e.clientX,y:e.clientY,cell:d.cell})}
   follow(e.clientX,e.clientY)
   const a=aimFrom(i,e.clientX,e.clientY),key=a?a.r+','+a.c:''
   if(key!==d.aim){d.aim=key;setAim(a)}
@@ -92,7 +92,7 @@ export default function BlockBlast({start,saved,best,sound,onCoins,onEnd}:{start
   drag.current=null;setHeld(null)
   if(!d.moved){pick(i);return}
   const a=aimFrom(i,e.clientX,e.clientY)
-  if(!(a&&putDown(i,a.r,a.c)))setAim(null)
+  if(!(a&&putDown(i,a.r,a.c))){setAim(null);gameSound('nope',sound)}
  }
  // The squares lit up for the piece being aimed: where it lands and the lines it would clear.
  const target=dragging!==null?aim:aim??(picked!==null?cursor:null)
@@ -117,7 +117,7 @@ export default function BlockBlast({start,saved,best,sound,onCoins,onEnd}:{start
      return <div key={j} role="gridcell" className={'blast-cell'+(color!==null?' is-block is-c'+color:'')+(lit&&piece?' is-lit is-c'+piece.color:'')+(landing.has(j)?' is-landing':'')+(cursor?.r===r&&cursor.c===c?' is-cursor':'')} data-r={r} data-c={c}
       aria-label={'Row '+(r+1)+', column '+(c+1)+(color!==null?', filled':'')}
       onPointerEnter={()=>{if(picked!==null&&dragging===null)setAim(fits(grid,tray[picked]!.shape,r,c)?{r,c}:null)}}
-      onClick={()=>{if(picked!==null)putDown(picked,r,c)}}/>})}
+      onClick={()=>{if(picked!==null&&!putDown(picked,r,c))gameSound('nope',sound)}}/>})}
     {burst&&<div key={burst.key} className="blast-burst" aria-hidden="true">{burst.cells.map(b=><span key={b.j} className={'is-c'+b.color} style={{left:(b.j%SIZE)*100/SIZE+'%',top:Math.floor(b.j/SIZE)*100/SIZE+'%',animationDelay:b.delay+'ms',['--dx' as string]:b.dx+'px',['--dy' as string]:b.dy+'px'}}/>)}</div>}
     {gain&&<span key={gain.key} className="blast-gain" style={{left:gain.c*100/SIZE+'%',top:gain.r*100/SIZE+'%'}} aria-hidden="true">+{gain.n}</span>}
     {cheer&&<p key={cheer.key} className="blast-cheer" role="status">{cheer.combo>0&&<small>Combo ×{cheer.combo+1}</small>}<span>{cheer.text}</span>{cheer.coins>0&&<em>+{cheer.coins} 🪙</em>}</p>}
@@ -138,7 +138,7 @@ export default function BlockBlast({start,saved,best,sound,onCoins,onEnd}:{start
     </div>})}
   </div>
   {held&&tray[held.i]&&<Floating ref={floatRef} piece={tray[held.i]!} x={held.x} y={held.y} cell={held.cell}/>}
-  <div className="blast-foot"><p className="blast-help">{picked!==null?'Now tap the square for the piece’s top-left corner.':'Drag a piece onto the board, or tap it and then a square.'}</p>{!over&&<button type="button" className="blast-end" onClick={endGame}>End game</button>}</div>
+  <div className="blast-foot"><p className="blast-help">{picked!==null?'Now tap the square for the piece’s top-left corner.':'Drag a piece onto the board, or tap it and then a square.'}</p></div>
  </div>
 }
 

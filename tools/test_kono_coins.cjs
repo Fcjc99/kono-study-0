@@ -169,11 +169,44 @@ test('KONO blast: a full row or column clears (both at once count as two lines),
  let i=0;const rolls=[0,0.5,0.99,0.2,0.4,0.6];const hand=b.deal(()=>rolls[i++%rolls.length])
  assert.equal(hand.length,3);assert.equal(hand[0].shape.id,'dot');assert.ok(hand.every(p=>p.color>=0&&p.color<b.COLORS))
  assert.equal(coins.gameCoins('blast',300),25)
+ assert.equal(coins.gameCoins('meow',6),30,'a 6 × 6 Meowdoku');assert.equal(coins.gameCoins('gems',3600),30);assert.equal(coins.gameCoins('candy',1800),30)
  // Coins as you play: lines × lines, times the combo, up to 75 a day.
  assert.equal(coins.blastCoins(1,0),1);assert.equal(coins.blastCoins(2,0),4);assert.equal(coins.blastCoins(2,2),12);assert.equal(coins.blastCoins(1,9),5,'the combo tops out at ×5')
  const now=new Date('2026-10-22T15:00:00Z');let log=[]
  for(let i=0;i<9;i++){const e=coins.blastEvent(log,'2026-10-22',3,0,new Date(now.getTime()+i));if(e)log=[...log,e]}
  assert.equal(coins.blastToday(log,'2026-10-22'),75,'nine big clears hit the daily limit exactly');assert.equal(new Set(log.map(e=>e.id)).size,log.length)
  assert.equal(coins.blastEvent(log,'2026-10-22',1,0,now),null);assert.ok(coins.blastEvent(log,'2026-10-23',1,0,now))
+})
+test('Meowdoku: every puzzle has exactly one answer; boards grow with the level; a cat touching another, or two in a row, column or patch, is wrong',()=>{
+ const m=load('src/store/meowdoku.ts')
+ assert.equal(m.sizeFor(1),5);assert.equal(m.sizeFor(4),6);assert.equal(m.sizeFor(12),7)
+ for(const n of [5,6,7]){const p=m.makePuzzle(n,m.seeded(n*31));assert.equal(p.regions.length,n*n);assert.equal(new Set(p.regions).size,n);assert.equal(m.countSolutions(p,5),1,n+' × '+n+' has one answer')}
+ const p={n:4,regions:[0,0,1,1, 0,0,1,1, 2,2,3,3, 2,2,3,3]}
+ assert.equal(m.check(p,new Set([0,5])).wrong.size,2,'touching corner to corner')
+ assert.equal(m.check(p,new Set([0,1])).wrong.size,2,'same row (and patch)')
+ assert.equal(m.check(p,new Set([0,6])).wrong.size,0)
+ // Any real answer passes: solve by brute force and check it.
+ const q=m.makePuzzle(5,m.seeded(7));let answer=null
+ const go=(r,cats)=>{if(answer)return;if(r===5){if(m.check(q,new Set(cats)).solved)answer=cats;return}for(let c=0;c<5;c++)go(r+1,[...cats,r*5+c])}
+ go(0,[]);assert.ok(answer,'the puzzle has an answer that check() accepts')
+})
+test('match-3: a fresh board has no lines and a move; a swap that lines up three clears, drops and refills; 4 in a line makes a striped piece, 5 a rainbow orb',()=>{
+ const g=load('src/store/match3.ts')
+ const mk=g.maker(6,load('src/store/meowdoku.ts').seeded(3)),b=g.freshBoard(mk)
+ assert.equal(b.length,64);assert.equal(g.lines(b).length,0);assert.ok(g.hasMove(b))
+ // A hand-made board: row 0 is 0 0 1 0 …; swapping (0,2) with (1,2) (a 0) lines up four 0s.
+ let id=1000;const P=k=>({id:++id,kind:k})
+ const kinds=[0,0,1,0,2,3,4,5, 3,4,0,5,1,2,3,4, 1,2,3,4,5,0,1,2, 2,3,4,5,0,1,2,3, 3,4,5,0,1,2,3,4, 4,5,0,1,2,3,4,5, 5,0,1,2,3,4,5,0, 0,1,2,3,4,5,0,1]
+ const board=kinds.map(P)
+ assert.ok(!g.canSwap(board,0,9),'not side by side');assert.ok(g.canSwap(board,2,10))
+ const frames=g.play(board,2,10,g.maker(6,()=>0.5))
+ assert.ok(frames&&frames.length>=3)
+ assert.equal(frames[0].cleared.length,3,'three 0s clear (the fourth stays as a striped piece)')
+ assert.ok(frames[0].board.some(p=>p&&p.special==='row'),'four across makes a striped piece');assert.ok(frames[0].points>0)
+ const settled=frames.at(-1).board;assert.equal(settled.filter(Boolean).length,64,'the board is full again');assert.ok(g.hasMove(settled))
+ const five=[0,0,1,0,0,2,3,4, 5,4,0,5,1,2,3,4].concat(kinds.slice(16)).map(P)
+ const f5=g.play(five,2,10,g.maker(6,()=>0.5))
+ assert.ok(f5[0].board.some(p=>p&&p.special==='color'),'five in a line makes a rainbow orb')
+ assert.deepEqual([g.candyLevel(1).moves>0,g.candyLevel(2).target>g.candyLevel(1).target],[true,true])
 })
 console.log(passed+'/'+passed+' coin checks passed.')

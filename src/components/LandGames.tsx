@@ -1,13 +1,14 @@
 import './land-games.css'
-import {useEffect,useRef,useState} from 'react'
+import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import type {LandId} from '../store/konoWorld'
 import {KINDS,LAND_GAMES,ROWS,COLS,clearGroup,hasMoves,tumbleBoard,type LandGameId,type Tile} from '../store/landGames'
-import {playSfx} from '../konoSounds'
-import GameScreen from './GameScreen'
+import {gameSound} from '../konoSounds'
+import GameScreen,{type GameHandle,type GameResult} from './GameScreen'
 
 /** Each land's own game on the world map (components/KonoWorld), played from its booth on the land's
  * picture. Like the arcade, the first rounds a day win coins (store/konoCoins › gameCoins) and best scores
- * stay on this device. A game plays full screen (Leave ends the round). After classic pet-site games:
+ * stay on this device. A game plays full screen with the arcade's start card, ↻ Restart, ■ End and results
+ * (components/GameScreen) and its sounds. After classic pet-site games:
  * - Sandy Beach Cove: Shell chase (a snake game, after Meerca Chase): steer KONO to the shells, each one
  *   adds a baby crab to the line behind it; bumping the edge or a crab ends it.
  * - Mossy Forest Glade: Acorn tumble (after Destruct-O-Match): tap two or more touching pieces of a kind to
@@ -27,19 +28,21 @@ const clock=(ms:number)=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.flo
 /** `onScore` turns a finished round into coins (it returns what to add to the result line). */
 export default function LandGame({land,sound,kono,onScore}:{land:LandId;sound:boolean;kono:string;onScore:(game:LandGameId,score:number)=>string|null}){
  const game=LAND_GAMES[land]
- const [playing,setPlaying]=useState(false),[board,setBoard]=useState<Tile[][]>([]),[result,setResult]=useState<string|null>(null),[round,setRound]=useState(0)
- const finish=(score:number,line:string)=>{const best=score>0&&saveBest(game.id,score),extra=onScore(game.id,score);playSfx(score>0?'win':'pop',sound);setResult(line+(best?' New best! 🎉':'')+(extra?' '+extra:''));setPlaying(false)}
- const start=()=>{setResult(null);if(game.id==='tumble')setBoard(tumbleBoard());setRound(r=>r+1);setPlaying(true)}
+ const [open,setOpen]=useState(false),[started,setStarted]=useState(false),handle=useRef<GameHandle>(null)
+ const [board,setBoard]=useState<Tile[][]>([]),[result,setResult]=useState<string|null>(null),[round,setRound]=useState(0),[ended,setEnded]=useState<GameResult|null>(null)
+ // A finished round shows its results card in the game's screen (Play again or Done).
+ const finish=(score:number,line:string)=>{const best=score>0&&saveBest(game.id,score),extra=onScore(game.id,score);setResult(line+(best?' New best! 🎉':'')+(extra?' '+extra:''));setEnded({emoji:game.emoji,title:score>0?'Nice one!':'Better luck next time!',line,score:game.unit(score),best:Boolean(best),coins:extra,won:score>0})}
+ const start=()=>{setResult(null);setEnded(null);if(game.id==='tumble')setBoard(tumbleBoard());setRound(r=>r+1);setStarted(true)}
  const best=readBest(game.id)
  return <section className="land-game" aria-label={game.name}>
-  {playing&&<GameScreen title={game.emoji+' '+game.name} tone="blast" onLeave={()=>setPlaying(false)}><div className="land-game">{game.id==='chase'?<ShellChase key={round} kono={kono} sound={sound} onEnd={n=>finish(n,'KONO collected '+game.unit(n)+' and '+n+' baby crab'+(n===1?'':'s')+' followed along! 🦀')}/>
-  :game.id==='tumble'?<AcornTumble key={round} start={board} sound={sound} onEnd={(n,clear)=>finish(n,(clear?'You cleared the whole glade! ':'')+'That’s '+game.unit(n)+'! 🌰')}/>
-  :<SledDash key={round} kono={kono} sound={sound} onEnd={(n,crashed)=>finish(n,(crashed?'Bonk! KONO tumbled into the snow with ':'KONO made it to the bottom with ')+game.unit(n)+'! 🛷')}/>}</div></GameScreen>}
+  {open&&<GameScreen title={game.emoji+' '+game.name} tone="blast" sound={sound} result={ended} intro={{emoji:game.emoji,name:game.name,how:game.how,best:best!==null?'Best: '+game.unit(best):null}} started={started} onStart={start} onRestart={start} onEnd={()=>handle.current?.end()} onAgain={start} onLeave={()=>{setOpen(false);setStarted(false);setEnded(null)}}><div className="land-game">{game.id==='chase'?<ShellChase key={round} ref={handle} kono={kono} sound={sound} onEnd={n=>finish(n,'KONO collected '+game.unit(n)+' and '+n+' baby crab'+(n===1?'':'s')+' followed along! 🦀')}/>
+  :game.id==='tumble'?<AcornTumble key={round} ref={handle} start={board} sound={sound} onEnd={(n,clear)=>finish(n,(clear?'You cleared the whole glade! ':'')+'That’s '+game.unit(n)+'! 🌰')}/>
+  :<SledDash key={round} ref={handle} kono={kono} sound={sound} onEnd={(n,crashed)=>finish(n,(crashed?'Bonk! KONO tumbled into the snow with ':'KONO made it to the bottom with ')+game.unit(n)+'! 🛷')}/>}</div></GameScreen>}
   <div className="land-game-intro">
    <span className="land-game-emoji" aria-hidden="true">{game.emoji}</span>
    <div><strong>{game.name}</strong><p>{game.how}</p>{best!==null&&<small>Best: {game.unit(best)}</small>}</div>
    {result&&<p className="land-game-result" role="status">{result}</p>}
-   <button type="button" className="primary" onClick={start}>{result?'Play again':'Play '+game.name}</button>
+   <button type="button" className="primary" onClick={()=>{setResult(null);setEnded(null);setStarted(false);setOpen(true)}}>{result?'Play again':'Play '+game.name}</button>
   </div>
  </section>
 }
@@ -58,7 +61,7 @@ function queueTurn(st:Chase,name:string){
  if(st.over||st.turns.length>=2||(d.x===-prev.x&&d.y===-prev.y)||(d.x===prev.x&&d.y===prev.y))return
  st.turns.push(d)
 }
-function ShellChase({kono,sound,onEnd}:{kono:string;sound:boolean;onEnd:(shells:number)=>void}){
+function ShellChase({ref,kono,sound,onEnd}:{ref:Ref<GameHandle>;kono:string;sound:boolean;onEnd:(shells:number)=>void}){
  const [view,setView]=useState({body:START,shell:{x:8,y:3},score:0,bump:false})
  const s=useRef<Chase>({body:START,dir:DIRS.right,turns:[],shell:{x:8,y:3},score:0,over:false})
  const onEndRef=useRef(onEnd),swipe=useRef<{x:number;y:number}|null>(null)
@@ -75,7 +78,7 @@ function ShellChase({kono,sound,onEnd}:{kono:string;sound:boolean;onEnd:(shells:
    }
    st.body=[head,...body]
    if(grow){
-    st.score+=1;playSfx('coin',sound)
+    st.score+=1;gameSound('score',sound,Math.min(6,Math.floor(st.score/3)))
     const free:Cell[]=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(!st.body.some(c=>c.x===x&&c.y===y))free.push({x,y})
     st.shell=free[Math.floor(Math.random()*free.length)]??st.shell
    }
@@ -93,6 +96,7 @@ function ShellChase({kono,sound,onEnd}:{kono:string;sound:boolean;onEnd:(shells:
   window.addEventListener('keydown',key)
   return ()=>{cancelAnimationFrame(raf);window.removeEventListener('keydown',key)}
  },[sound])
+ useImperativeHandle(ref,()=>({end:()=>{const st=s.current;if(st.over)return;st.over=true;onEndRef.current(st.score)}}),[])
  const steerTo=(name:string)=>queueTurn(s.current,name)
  return <div className="land-game-play">
   <p className="land-game-status"><span>Shells: <strong>{view.score}</strong></span><span>Crabs: {view.body.length-1}</span></p>
@@ -113,14 +117,15 @@ function ShellChase({kono,sound,onEnd}:{kono:string;sound:boolean;onEnd:(shells:
 }
 
 /** Acorn tumble (the board and its rules are in store/landGames). */
-function AcornTumble({start,sound,onEnd}:{start:Tile[][];sound:boolean;onEnd:(points:number,cleared:boolean)=>void}){
+function AcornTumble({ref,start,sound,onEnd}:{ref:Ref<GameHandle>;start:Tile[][];sound:boolean;onEnd:(points:number,cleared:boolean)=>void}){
  const [cols,setCols]=useState(start),[score,setScore]=useState(0),[gain,setGain]=useState<{id:number;n:number;c:number;r:number}|null>(null),[over,setOver]=useState(false)
+ useImperativeHandle(ref,()=>({end:()=>{if(over)return;setOver(true);onEnd(score,false)}}),[over,score,onEnd])
  const tap=(c:number,r:number)=>{
   if(over)return
   const done=clearGroup(cols,c,r)
-  if(!done)return
+  if(!done){gameSound('nope',sound);return}
   const next=done.cols,points=score+done.points
-  playSfx('pop',sound);setCols(next);setScore(points);setGain({id:cols[c][r].id,n:done.points,c,r})
+  gameSound(done.points>=36?'big':'score',sound,Math.round(Math.sqrt(done.points))-1);setCols(next);setScore(points);setGain({id:cols[c][r].id,n:done.points,c,r})
   if(!hasMoves(next)){const cleared=!next.length;setOver(true);window.setTimeout(()=>onEnd(points+(cleared?100:0),cleared),900)}
  }
  return <div className="land-game-play">
@@ -129,7 +134,6 @@ function AcornTumble({start,sound,onEnd}:{start:Tile[][];sound:boolean;onEnd:(po
    {cols.map((col,c)=>col.map((t,r)=><button type="button" key={t.id} className="tumble-tile" data-c={c} data-r={r} data-kind={t.kind} style={{left:c*100/COLS+'%',bottom:r*100/ROWS+'%',width:100/COLS+'%',height:100/ROWS+'%'}} aria-label={KINDS[t.kind].name} onClick={()=>tap(c,r)}><span aria-hidden="true">{KINDS[t.kind].emoji}</span></button>))}
    {gain&&<span key={gain.id} className="tumble-gain" style={{left:(gain.c+0.5)*100/COLS+'%',bottom:(gain.r+0.5)*100/ROWS+'%'}} aria-hidden="true">+{gain.n}</span>}
   </div>
-  {!over&&<p className="land-game-done"><button type="button" onClick={()=>{setOver(true);onEnd(score,false)}}>I’m done</button></p>}
  </div>
 }
 
@@ -139,7 +143,7 @@ type Thing={id:number;lane:number;y:number;kind:'tree'|'rock'|'star'}
 type Sled={lane:number;things:Thing[];score:number;next:number;id:number;over:boolean}
 const steerSled=(st:Sled,d:number)=>{if(!st.over)st.lane=Math.min(2,Math.max(0,st.lane+d));return st.lane}
 const THING={tree:'🌲',rock:'🪨',star:'⭐'}
-function SledDash({kono,sound,onEnd}:{kono:string;sound:boolean;onEnd:(stars:number,crashed:boolean)=>void}){
+function SledDash({ref,kono,sound,onEnd}:{ref:Ref<GameHandle>;kono:string;sound:boolean;onEnd:(stars:number,crashed:boolean)=>void}){
  const [things,setThings]=useState<Thing[]>([]),[lane,setLane]=useState(1),[score,setScore]=useState(0),[left,setLeft]=useState(SLED_MS),[bump,setBump]=useState(false)
  const s=useRef<Sled>({lane:1,things:[],score:0,next:900,id:0,over:false})
  const onEndRef=useRef(onEnd)
@@ -161,7 +165,7 @@ function SledDash({kono,sound,onEnd}:{kono:string;sound:boolean;onEnd:(stars:num
    for(const th of st.things)th.y-=speed*dt
    const hit=st.things.filter(th=>th.lane===st.lane&&Math.abs(th.y-KONO_Y)<0.06)
    if(hit.some(th=>th.kind!=='star')){setThings([...st.things]);end(true);return}
-   if(hit.length){st.score+=hit.length;setScore(st.score);playSfx('coin',sound)}
+   if(hit.length){st.score+=hit.length;setScore(st.score);gameSound('score',sound,Math.min(6,Math.floor(st.score/3)))}
    st.things=st.things.filter(th=>!hit.includes(th)&&th.y>-0.1)
    setThings([...st.things]);setLeft(SLED_MS-run)
    if(run>=SLED_MS){end(false);return}
@@ -172,6 +176,7 @@ function SledDash({kono,sound,onEnd}:{kono:string;sound:boolean;onEnd:(stars:num
   window.addEventListener('keydown',key)
   return ()=>{cancelAnimationFrame(raf);window.removeEventListener('keydown',key)}
  },[sound])
+ useImperativeHandle(ref,()=>({end:()=>{const st=s.current;if(st.over)return;st.over=true;onEndRef.current(st.score,false)}}),[])
  const steer=(d:number)=>setLane(steerSled(s.current,d))
  return <div className="land-game-play">
   <p className="land-game-status"><span>Stars: <strong>{score}</strong></span><span>{clock(left)}</span></p>
