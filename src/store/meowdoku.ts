@@ -71,8 +71,52 @@ export function check(p:Puzzle,cats:Set<number>):{wrong:Set<number>;solved:boole
  return {wrong,solved:cats.size===n&&wrong.size===0}
 }
 
+/** The answer: one cat square for each row (the puzzle has just one answer). */
+export function solve(p:Puzzle):number[]{
+ const {n,regions}=p,at:number[]=[]
+ const go=(r:number):boolean=>{
+  if(r===n)return true
+  for(let c=0;c<n;c++){
+   if(at.some((x,y)=>x===c||regions[y*n+x]===regions[r*n+c])||(r>0&&Math.abs(at[r-1]-c)<=1))continue
+   at.push(c);if(go(r+1))return true;at.pop()
+  }
+  return false
+ }
+ go(0)
+ return at.map((c,r)=>r*n+c)
+}
+/** Squares a placed cat rules out: its row, column and patch, and the eight around it. */
+export function ruledOut(p:Puzzle,cats:Set<number>):Set<number>{
+ const {n,regions}=p,out=new Set<number>()
+ for(const i of cats){const r=Math.floor(i/n),c=i%n
+  for(let j=0;j<n*n;j++){const rj=Math.floor(j/n),cj=j%n;if(j!==i&&(rj===r||cj===c||regions[j]===regions[i]||(Math.abs(rj-r)<=1&&Math.abs(cj-c)<=1)))out.add(j)}}
+ for(const i of cats)out.delete(i)
+ return out
+}
+/** The cats that share a row, column or patch with another: those rows, columns and patches light up. */
+export function clashes(p:Puzzle,cats:Set<number>):Set<number>{
+ const {n,regions}=p,list=[...cats],hot=new Set<number>()
+ for(let a=0;a<list.length;a++)for(let b=a+1;b<list.length;b++){
+  const i=list[a],j=list[b],ri=Math.floor(i/n),ci=i%n,rj=Math.floor(j/n),cj=j%n
+  for(let k=0;k<n*n;k++){const rk=Math.floor(k/n),ck=k%n
+   if((ri===rj&&rk===ri)||(ci===cj&&ck===ci)||(regions[i]===regions[j]&&regions[k]===regions[i]))hot.add(k)}
+ }
+ return hot
+}
+
+/** Your fastest time for each board size, kept on this device. */
+const BEST_KEY='kono-meow-best'
+const bests=():Record<string,number>=>{try{return JSON.parse(localStorage.getItem(BEST_KEY)||'{}')}catch{return {}}}
+export const meowBest=(n:number):number|null=>bests()[n]??null
+/** Saves a time; true when it's a new best for that size. */
+export const saveMeowBest=(n:number,seconds:number)=>{const all=bests(),was=all[n];if(was!==undefined&&was<=seconds)return false;all[n]=seconds;try{localStorage.setItem(BEST_KEY,JSON.stringify(all))}catch{/* storage unavailable */}return true}
+
 /** The level you're on, kept on this device. */
 const LEVEL_KEY='kono-meow-level'
 export const meowLevel=()=>{try{return Math.max(1,Number(localStorage.getItem(LEVEL_KEY))||1)}catch{return 1}}
 export const saveMeowLevel=(n:number)=>{try{localStorage.setItem(LEVEL_KEY,String(n))}catch{/* storage unavailable */}}
 export const newMeowPuzzle=(level:number)=>makePuzzle(sizeFor(level),Math.random)
+/** Whether Meowdoku marks the squares a cat rules out by itself (Auto ✕), kept on this device. */
+const AUTO_KEY='kono-meow-auto'
+export const meowAuto=()=>{try{return localStorage.getItem(AUTO_KEY)==='1'}catch{return false}}
+export const saveMeowAuto=(on:boolean)=>{try{localStorage.setItem(AUTO_KEY,on?'1':'0')}catch{/* storage unavailable */}}
