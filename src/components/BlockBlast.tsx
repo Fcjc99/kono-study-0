@@ -53,7 +53,7 @@ export default function BlockBlast({start,saved,best,sound,onCoins,onEnd}:{start
   if(left.every(t=>!t))left=deal(Math.random)
   setGrid(done.grid);setTray(left);setScore(total);setPicked(null);setAim(null);setStreak(nextStreak)
   const size=shapeSize(p.shape)
-  setGain({key,n:points,r:r+size.rows/2,c:c+size.cols/2})
+  setGain({key,n:points,r:r+size.rows/2,c:c+size.cols/2});window.setTimeout(()=>setGain(g=>g?.key===key?null:g),950)
   if(done.lines){
    // The cleared squares burst outward from where the piece landed, one after another.
    setBurst({key,cells:done.cleared.map((j,k)=>{const y=Math.floor(j/SIZE),x=j%SIZE,angle=Math.random()*Math.PI*2;return {j,color:done.colors[k],delay:(Math.abs(y-r)+Math.abs(x-c))*28,dx:Math.cos(angle)*40,dy:Math.sin(angle)*40-20}})})

@@ -37,13 +37,13 @@
 .blast-cell{margin:2px;border-radius:5px;background:#1e3270;box-shadow:inset 0 2px 3px rgba(0,0,0,.35);cursor:pointer}
 .blast-cell.is-cursor{box-shadow:inset 0 0 0 2px #ffd84d}
 /* Jewel colors, with a bevel: light top and left, dark bottom and right, and a shine. */
-.blast .is-c0{--b:#ef4b5c;--l:#ff8a96;--d:#b52b3b}
-.blast .is-c1{--b:#f7922f;--l:#ffc078;--d:#c4650f}
-.blast .is-c2{--b:#f6cf33;--l:#fff08a;--d:#c79c0c}
-.blast .is-c3{--b:#46c35a;--l:#8eeb98;--d:#258f37}
-.blast .is-c4{--b:#2fc2e8;--l:#8ae6ff;--d:#1888ad}
-.blast .is-c5{--b:#3e6fe6;--l:#86a8ff;--d:#2346b0}
-.blast .is-c6{--b:#a35be0;--l:#d1a2ff;--d:#7134ad}
+.blast .is-c0,.meow .is-c0,.match3 .is-c0{--b:#ef4b5c;--l:#ff8a96;--d:#b52b3b}
+.blast .is-c1,.meow .is-c1,.match3 .is-c1{--b:#f7922f;--l:#ffc078;--d:#c4650f}
+.blast .is-c2,.meow .is-c2,.match3 .is-c2{--b:#f6cf33;--l:#fff08a;--d:#c79c0c}
+.blast .is-c3,.meow .is-c3,.match3 .is-c3{--b:#46c35a;--l:#8eeb98;--d:#258f37}
+.blast .is-c4,.meow .is-c4,.match3 .is-c4{--b:#2fc2e8;--l:#8ae6ff;--d:#1888ad}
+.blast .is-c5,.meow .is-c5,.match3 .is-c5{--b:#3e6fe6;--l:#86a8ff;--d:#2346b0}
+.blast .is-c6,.meow .is-c6,.match3 .is-c6{--b:#a35be0;--l:#d1a2ff;--d:#7134ad}
 .blast-cell.is-block,.blast-cell.is-lit,.blast-mini span,.blast-float span,.blast-burst span{background:linear-gradient(160deg,var(--l) 0%,var(--b) 38%,var(--b) 70%,var(--d) 100%);box-shadow:inset 0 3px 0 rgba(255,255,255,.45),inset 3px 0 0 rgba(255,255,255,.18),inset 0 -4px 0 rgba(0,0,0,.28),inset -3px 0 0 rgba(0,0,0,.14)}
 .blast-cell.is-lit.is-landing{opacity:.5}
 .blast-cell.is-lit:not(.is-landing){filter:brightness(1.25) saturate(1.1)}
@@ -130,3 +130,64 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .game-screen.is-blast .sled-thing.is-star{filter:drop-shadow(0 0 6px #ffe58a)}
 .game-screen.is-blast :is(.land-game-pad button,.land-game-done button,.game-screen-timer):not(#x):not(#y){background:rgba(255,255,255,.16)!important;color:#fff!important;border:1px solid rgba(255,255,255,.35)!important;box-shadow:none!important}
 .game-screen.is-blast .game-screen-timer{margin:0 auto 8px;padding:4px 12px;border-radius:999px;font-weight:800;width:auto}
+/* Games slide in when they open and out when they close; a finished round shows its results card. */
+.game-screen[open]{animation:game-in .32s cubic-bezier(.2,.9,.3,1) both}
+.game-screen.is-closing{animation:game-out .24s ease-in both}
+@keyframes game-in{from{opacity:0;transform:translateY(24px) scale(.97)}}
+@keyframes game-out{to{opacity:0;transform:translateY(24px) scale(.97)}}
+.game-result{display:grid;justify-items:center;gap:6px;max-width:360px;margin:6vh auto 0;padding:26px 20px 20px;border-radius:22px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);text-align:center;animation:game-result .45s cubic-bezier(.2,1.3,.4,1) both}
+@keyframes game-result{from{opacity:0;transform:scale(.8)}}
+.game-result-emoji{font-size:3.2rem;line-height:1;animation:game-result-bob 1.6s ease-in-out infinite}
+@keyframes game-result-bob{50%{transform:translateY(-6px) rotate(-4deg)}}
+.game-result h2{margin:4px 0 0;font-size:1.6rem;font-weight:900}
+.game-result-score{margin:0;font-size:2.8rem;font-weight:900;line-height:1;text-shadow:0 3px 0 rgba(0,0,0,.3)}
+.game-result-best{margin:0;color:#ffd84d;font-weight:800}
+.game-result-line{margin:4px 0 0}
+.game-result-coins{margin:0;padding:4px 14px;border-radius:999px;background:rgba(255,216,77,.18);color:#ffd84d;font-weight:800}
+.game-result-actions{display:flex;gap:10px;margin-top:12px}
+.game-result-actions button{margin:0!important;min-width:120px}
+.game-screen.is-blast .game-result-actions button:not(.primary):not(#x):not(#y){background:rgba(255,255,255,.16)!important;color:#fff!important;border:1px solid rgba(255,255,255,.35)!important;box-shadow:none!important}
+@media(prefers-reduced-motion:reduce){.game-screen[open],.game-screen.is-closing,.game-result,.game-result-emoji{animation:none}}
+/* Meowdoku (Meowdoku.tsx): each colored patch is a soft jewel color on the navy board; patch edges are
+   drawn thick. Cats that break a rule shake red; solving makes them all bounce. */
+.break-game.meow,.break-game.match3{justify-items:center;gap:10px;color:#fff;user-select:none;-webkit-user-select:none}
+.meow-board{display:grid;width:100%;max-width:380px;aspect-ratio:1;padding:4px;border-radius:12px;background:#132457;box-shadow:inset 0 3px 8px rgba(0,0,0,.45)}
+.meow-cell{position:relative;display:grid;place-items:center;margin:0;background:linear-gradient(160deg,var(--l),var(--b));opacity:.92;border:1px solid rgba(19,36,87,.35);cursor:pointer;font-size:clamp(1.1rem,6vw,1.9rem);line-height:1;outline:none}
+.meow-cell:focus-visible{box-shadow:inset 0 0 0 3px #fff}
+.meow-cell.edge-r{border-right:3px solid #132457}.meow-cell.edge-b{border-bottom:3px solid #132457}.meow-cell.edge-l{border-left:3px solid #132457}.meow-cell.edge-t{border-top:3px solid #132457}
+.meow-x{color:rgba(19,36,87,.6);font-size:.7em;font-weight:900}
+.meow-cat{animation:meow-in .22s cubic-bezier(.2,1.4,.4,1) both;filter:drop-shadow(0 2px 0 rgba(0,0,0,.25))}
+@keyframes meow-in{from{transform:scale(.3)}}
+.meow-cell.is-wrong{background:linear-gradient(160deg,#ff8a96,#ef4b5c)!important;animation:meow-shake .35s}
+@keyframes meow-shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.meow.is-solved .meow-cat{animation:meow-bounce .6s ease-in-out infinite alternate}
+@keyframes meow-bounce{to{transform:translateY(-14%) scale(1.1)}}
+.meow-help{margin:0;max-width:380px;text-align:center;font-size:.85rem;color:rgba(255,255,255,.85)}
+.meow .land-game-done{margin:0}
+.meow .land-game-done button:not(#x):not(#y){background:rgba(255,255,255,.16)!important;color:#fff!important;border:1px solid rgba(255,255,255,.35)!important;box-shadow:none!important;margin:0!important}
+/* Gem blitz and Candy crush (Match3.tsx): pieces slide between squares, new ones drop in, cleared ones burst. */
+.match3-goal{position:relative;width:100%;max-width:340px;height:22px;border-radius:999px;background:rgba(0,0,0,.25);overflow:hidden}
+.match3-goal.is-time{height:10px}
+.match3-goal span{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#ffd84d,#ff9b3d);border-radius:999px;transition:width .3s}
+.match3-goal b{position:relative;display:block;text-align:center;font-size:.78rem;line-height:22px;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.match3-board{position:relative;aspect-ratio:1;touch-action:none;background:linear-gradient(90deg,#132457 3px,transparent 3px) 0 0/12.5% 12.5%,linear-gradient(#132457 3px,transparent 3px) 0 0/12.5% 12.5%,#1e3270;border-radius:6px}
+.match3-piece{position:absolute;width:12.5%;height:12.5%;padding:3px;transition:left .18s ease,top .2s cubic-bezier(.3,1.3,.5,1);cursor:pointer}
+.match3-piece>span{display:grid;place-items:center;width:100%;height:100%;border-radius:8px;font-size:clamp(.9rem,5vw,1.5rem);line-height:1;pointer-events:none}
+.match3.is-gems .match3-piece>span{background:linear-gradient(160deg,var(--l) 0%,var(--b) 40%,var(--d) 100%);box-shadow:inset 0 3px 0 rgba(255,255,255,.5),inset 0 -4px 0 rgba(0,0,0,.28);color:rgba(255,255,255,.92);text-shadow:0 1px 2px rgba(0,0,0,.35);border-radius:50% 50% 45% 45%/40% 40% 60% 60%}
+.match3.is-candy .match3-piece>span{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.35),transparent 60%);font-size:clamp(1.1rem,6.4vw,1.9rem);filter:drop-shadow(0 3px 0 rgba(0,0,0,.35))}
+.match3-piece.is-picked>span{outline:3px solid #ffd84d;outline-offset:-1px;transform:scale(1.08)}
+.match3-piece.is-shake>span{animation:meow-shake .35s}
+.match3-piece.is-new>span{animation:match3-drop .32s cubic-bezier(.3,1.3,.5,1) both}
+@keyframes match3-drop{from{transform:translateY(-140%);opacity:0}}
+/* Special pieces: stripes across or down, a glowing bomb, a rainbow orb. */
+.match3-piece.is-row>span{background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.55) 0 3px,transparent 3px 8px)!important}
+.match3-piece.is-col>span{background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.55) 0 3px,transparent 3px 8px)!important}
+.match3-piece.is-bomb>span{box-shadow:0 0 0 3px #fff,0 0 14px 4px #ffd84d!important;animation:match3-glow 1s ease-in-out infinite alternate}
+.match3-piece.is-color>span{background:conic-gradient(#ef4b5c,#f7922f,#f6cf33,#46c35a,#2fc2e8,#a35be0,#ef4b5c)!important;border-radius:50%!important;animation:match3-spin 3s linear infinite}
+@keyframes match3-glow{to{filter:brightness(1.3)}}
+@keyframes match3-spin{to{rotate:360deg}}
+.match3-burst{position:absolute;inset:0;pointer-events:none}
+.match3-burst span{position:absolute;width:12.5%;height:12.5%;border-radius:50%;background:radial-gradient(circle,#fff 0 20%,var(--b) 45%,transparent 70%);animation:match3-pop .5s ease-out both}
+@keyframes match3-pop{from{transform:scale(.4);opacity:1}to{transform:scale(1.8);opacity:0}}
+@media(prefers-reduced-motion:reduce){.match3-piece{transition:none}.match3-piece>span,.match3-burst,.meow-cat,.meow-cell.is-wrong{animation:none!important}.match3-burst{display:none}}
+.game-screen .game-result h2:not(#x){color:#fff!important}

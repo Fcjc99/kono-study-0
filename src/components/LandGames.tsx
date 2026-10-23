@@ -3,7 +3,7 @@ import {useEffect,useRef,useState} from 'react'
 import type {LandId} from '../store/konoWorld'
 import {KINDS,LAND_GAMES,ROWS,COLS,clearGroup,hasMoves,tumbleBoard,type LandGameId,type Tile} from '../store/landGames'
 import {playSfx} from '../konoSounds'
-import GameScreen from './GameScreen'
+import GameScreen,{type GameResult} from './GameScreen'
 
 /** Each land's own game on the world map (components/KonoWorld), played from its booth on the land's
  * picture. Like the arcade, the first rounds a day win coins (store/konoCoins › gameCoins) and best scores
@@ -27,12 +27,13 @@ const clock=(ms:number)=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.flo
 /** `onScore` turns a finished round into coins (it returns what to add to the result line). */
 export default function LandGame({land,sound,kono,onScore}:{land:LandId;sound:boolean;kono:string;onScore:(game:LandGameId,score:number)=>string|null}){
  const game=LAND_GAMES[land]
- const [playing,setPlaying]=useState(false),[board,setBoard]=useState<Tile[][]>([]),[result,setResult]=useState<string|null>(null),[round,setRound]=useState(0)
- const finish=(score:number,line:string)=>{const best=score>0&&saveBest(game.id,score),extra=onScore(game.id,score);playSfx(score>0?'win':'pop',sound);setResult(line+(best?' New best! 🎉':'')+(extra?' '+extra:''));setPlaying(false)}
- const start=()=>{setResult(null);if(game.id==='tumble')setBoard(tumbleBoard());setRound(r=>r+1);setPlaying(true)}
+ const [playing,setPlaying]=useState(false),[board,setBoard]=useState<Tile[][]>([]),[result,setResult]=useState<string|null>(null),[round,setRound]=useState(0),[ended,setEnded]=useState<GameResult|null>(null)
+ // A finished round shows its results card in the game's screen (Play again or Done).
+ const finish=(score:number,line:string)=>{const best=score>0&&saveBest(game.id,score),extra=onScore(game.id,score);playSfx(score>0?'win':'pop',sound);setResult(line+(best?' New best! 🎉':'')+(extra?' '+extra:''));setEnded({emoji:game.emoji,title:score>0?'Nice one!':'Better luck next time!',line,score:game.unit(score),best:Boolean(best),coins:extra})}
+ const start=()=>{setResult(null);setEnded(null);if(game.id==='tumble')setBoard(tumbleBoard());setRound(r=>r+1);setPlaying(true)}
  const best=readBest(game.id)
  return <section className="land-game" aria-label={game.name}>
-  {playing&&<GameScreen title={game.emoji+' '+game.name} tone="blast" onLeave={()=>setPlaying(false)}><div className="land-game">{game.id==='chase'?<ShellChase key={round} kono={kono} sound={sound} onEnd={n=>finish(n,'KONO collected '+game.unit(n)+' and '+n+' baby crab'+(n===1?'':'s')+' followed along! 🦀')}/>
+  {playing&&<GameScreen title={game.emoji+' '+game.name} tone="blast" result={ended} onAgain={start} onLeave={()=>{setPlaying(false);setEnded(null)}}><div className="land-game">{game.id==='chase'?<ShellChase key={round} kono={kono} sound={sound} onEnd={n=>finish(n,'KONO collected '+game.unit(n)+' and '+n+' baby crab'+(n===1?'':'s')+' followed along! 🦀')}/>
   :game.id==='tumble'?<AcornTumble key={round} start={board} sound={sound} onEnd={(n,clear)=>finish(n,(clear?'You cleared the whole glade! ':'')+'That’s '+game.unit(n)+'! 🌰')}/>
   :<SledDash key={round} kono={kono} sound={sound} onEnd={(n,crashed)=>finish(n,(crashed?'Bonk! KONO tumbled into the snow with ':'KONO made it to the bottom with ')+game.unit(n)+'! 🛷')}/>}</div></GameScreen>}
   <div className="land-game-intro">

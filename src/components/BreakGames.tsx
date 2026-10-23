@@ -1,23 +1,31 @@
 import './break-games.css'
 import {useEffect,useRef,useState} from 'react'
 import BlockBlast from './BlockBlast'
-import GameScreen from './GameScreen'
+import GameScreen,{type GameResult} from './GameScreen'
+import Meowdoku from './Meowdoku'
+import Match3 from './Match3'
 import {deal,readBlastSave,type BlastSave,type Piece} from '../store/blockBlast'
+import {meowLevel,newMeowPuzzle,type Puzzle} from '../store/meowdoku'
+import {candyLevelNow,freshBoard,maker,saveCandyLevel,type Board,type Maker} from '../store/match3'
 
 /** Break-time games with KONO, offered when a focus session finishes ("Take a short break"). Two quick
  * ones: Snack catch (move KONO to catch falling treats, 30 seconds) and Peekaboo (tap KONO when it pops
  * out of a hole, 30 seconds). Every game plays full screen in KONO blast's look. The break itself lasts five
  * minutes; when it's over the games stop and KONO says it's time for the next session. Best scores are
  * kept on this device only. Loaded only when opened, so it never adds to the app's startup.
- * The same games (and KONO blast, the block puzzle) are KONO Town's arcade: no break timer there, and `onScore` can turn a
+ * The same games, and KONO blast (the block puzzle), Meowdoku (the cat puzzle), Gem blitz and Candy crush
+ * (match-3), are KONO Town's arcade: no break timer there, and `onScore` can turn a
  * score into coins (it returns what to add to the result line). */
-type Game='catch'|'peekaboo'|'blast'
+type Game='catch'|'peekaboo'|'blast'|'meow'|'gems'|'candy'
 export const BREAK_MINUTES=5
 const ROUND_MS=30_000
 const GAMES:{id:Game;emoji:string;name:string;how:string;best:(n:number)=>string;arcade?:boolean}[]=[
  {id:'catch',emoji:'🍓',name:'Snack catch',how:'Move KONO to catch the falling snacks.',best:n=>'Best: '+n+' snacks'},
  {id:'peekaboo',emoji:'🌿',name:'Peekaboo',how:'Tap KONO when it peeks out of a bush.',best:n=>'Best: '+n+' boops'},
  {id:'blast',emoji:'🧱',name:'KONO blast',how:'Fit the pieces on the board; fill a row or column to clear it.',best:n=>'Best: '+n+' points',arcade:true},
+ {id:'meow',emoji:'🐱',name:'Meowdoku',how:'One cat in every row, column and color, and no two cats touching.',best:n=>'Best: level '+n,arcade:true},
+ {id:'gems',emoji:'💎',name:'Gem blitz',how:'Swap gems to match 3 or more. One minute, as many points as you can!',best:n=>'Best: '+n+' points',arcade:true},
+ {id:'candy',emoji:'🍬',name:'Candy crush',how:'Match candies to reach each level’s target in the moves you have.',best:n=>'Best: level '+n,arcade:true},
 ]
 const bestKey=(g:Game)=>'kono-break-best:'+g
 function readBest(g:Game):number|null{try{const v=localStorage.getItem(bestKey(g));return v===null?null:Number(v)}catch{return null}}
@@ -34,22 +42,43 @@ const clock=(ms:number)=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.flo
  * (`onBlastCoins`) and is saved as it goes, so Leave keeps it for next time. */
 export default function BreakGames({startedAt,onClose,arcade=false,sound=false,onScore,onBlastCoins}:{startedAt:number;onClose?:()=>void;arcade?:boolean;sound?:boolean;onScore?:(game:Game,score:number)=>string|null;onBlastCoins?:(lines:number,streak:number)=>number|null}){
  const [game,setGame]=useState<Game|null>(null),[pieces,setPieces]=useState<Piece[]>([]),[blastSave,setBlastSave]=useState<BlastSave|null>(null)
+ const [meow,setMeow]=useState<{level:number;puzzle:Puzzle}|null>(null),[match,setMatch]=useState<{maker:Maker;board:Board;level:number}|null>(null)
+ const [ended,setEnded]=useState<GameResult|null>(null),[round,setRound]=useState(0)
  const [now,setNow]=useState(startedAt)
  const [result,setResult]=useState<string|null>(null)
  useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return ()=>window.clearInterval(t)},[])
  const left=startedAt+BREAK_MINUTES*60_000-now,over=!arcade&&left<=0
- const finish=(g:Game,score:number,line:string)=>{const best=saveBest(g,score),extra=g==='blast'?null:onScore?.(g,score);setResult(line+(best?' New best! 🎉':'')+(extra?' '+extra:''));setGame(null)}
+ // A finished round: its results card (in the game's screen), the best kept, and coins for it.
+ // `coinScore` is what earns coins when it isn't the score kept as a best (Candy crush keeps the level).
+ const finish=(g:Game,score:number,line:string,{title='Nice game!',coinScore=score,scoreText}:{title?:string;coinScore?:number;scoreText?:string}={})=>{
+  const best=score>0&&saveBest(g,score),extra=g==='blast'?null:onScore?.(g,coinScore),info=GAMES.find(x=>x.id===g)!
+  setResult(line+(best?' New best! 🎉':'')+(extra?' '+extra:''))
+  setEnded({emoji:info.emoji,title,line,score:scoreText??info.best(score).replace(/^Best: /,''),best:Boolean(best),coins:extra})
+ }
+ // Each game's start (and Play again: the next Meowdoku puzzle or Candy crush level picks up from there).
+ const begin=(g:Game)=>{
+  setEnded(null);setRound(n=>n+1)
+  if(g==='blast'){setPieces(deal(Math.random));setBlastSave(readBlastSave())}
+  if(g==='meow'){const level=meowLevel();setMeow({level,puzzle:newMeowPuzzle(level)})}
+  if(g==='gems'||g==='candy'){const mk=maker(6,Math.random);setMatch({maker:mk,board:freshBoard(mk),level:g==='candy'?candyLevelNow():1})}
+  setGame(g)
+ }
  const info=GAMES.find(g=>g.id===game)
  const playing=over?null:game==='catch'?<SnackCatch onEnd={n=>finish('catch',n,'KONO caught '+n+' snack'+(n===1?'':'s')+'! 😋')}/>
   :game==='peekaboo'?<Peekaboo onEnd={n=>finish('peekaboo',n,'You booped KONO '+n+' time'+(n===1?'':'s')+'! 🌿')}/>
-  :game==='blast'?<BlockBlast start={pieces} saved={blastSave} best={readBest('blast')} sound={sound} onCoins={onBlastCoins} onEnd={n=>finish('blast',n,'KONO blast: '+n+' point'+(n===1?'':'s')+'! 🧱')}/>
+  :game==='blast'?<BlockBlast key={round} start={pieces} saved={blastSave} best={readBest('blast')} sound={sound} onCoins={onBlastCoins} onEnd={n=>finish('blast',n,'KONO blast: '+n+' point'+(n===1?'':'s')+'! 🧱')}/>
+ :game==='meow'&&meow?<Meowdoku key={round} level={meow.level} puzzle={meow.puzzle} sound={sound} onEnd={(level,seconds)=>finish('meow',level,'Solved in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+'. Next up: level '+(level+1)+'.',{title:'Purr-fect!',coinScore:meow.puzzle.n,scoreText:'Level '+level}) }/>
+  :(game==='gems'||game==='candy')&&match?<Match3 key={round} mode={game} level={match.level} start={match} sound={sound} onEnd={(score,won)=>{
+   if(game==='candy'){if(won)saveCandyLevel(match.level+1);finish('candy',won?match.level:match.level-1,won?'You reached the target with '+score+' points!':'So close! '+score+' points. Try the level again.',{title:won?'Level '+match.level+' complete!':'Out of moves',coinScore:won?score:Math.round(score/2),scoreText:score+' points'})}
+   else finish('gems',score,'One minute of gem swapping!',{title:'Time’s up!'})
+  }}/>
   :null
  const kept=readBlastSave()
  return <section className={'break-games'+(arcade?' is-arcade':'')} aria-label={arcade?'Arcade':'Break games with KONO'}>
   {!arcade&&<header><strong>🎮 Break time with KONO</strong><span role="timer" aria-label="Break time left">{over?'Break’s over':'Break: '+clock(left)}</span>{onClose&&<button type="button" onClick={onClose}>Close</button>}</header>}
   {over?<p className="break-over" role="status">That was a nice reset! KONO’s ready for the next session when you are. 📚</p>
-  :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.filter(g=>arcade||!g.arcade).map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>{setResult(null);if(g.id==='blast'){setPieces(deal(Math.random));setBlastSave(readBlastSave())}setGame(g.id)}}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.id==='blast'&&kept?'Carry on your game ('+kept.score+' points so far)':g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
-  {playing&&info&&<GameScreen title={info.emoji+' '+info.name} tone="blast" onLeave={()=>setGame(null)}>
+  :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.filter(g=>arcade||!g.arcade).map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>{setResult(null);begin(g.id)}}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.id==='blast'&&kept?'Carry on your game ('+kept.score+' points so far)':g.id==='meow'&&meowLevel()>1?'Level '+meowLevel()+' is next':g.id==='candy'&&candyLevelNow()>1?'Level '+candyLevelNow()+' is next':g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
+  {game&&!over&&info&&<GameScreen title={info.emoji+' '+info.name} tone="blast" result={ended} onAgain={()=>begin(game)} onLeave={()=>{setGame(null);setEnded(null)}}>
    {!arcade&&<p className="game-screen-timer" role="timer">{'Break: '+clock(left)}</p>}
    {playing}
   </GameScreen>}

@@ -2699,6 +2699,11 @@ test('Break games: after a focus session KONO offers a break game; Peekaboo and 
  assert.ok(boops>=1,'KONO popped up to be booped')
  await page.clock.fastForward(31000);await page.clock.runFor(500)
  await games.getByText(new RegExp('^You booped KONO '+boops+' times?! 🌿 New best! 🎉$')).waitFor()
+ // The round ends on its results card (in the game's screen); Done slides it away.
+ const peekResults=page.getByRole('dialog',{name:'🌿 Peekaboo'}).getByRole('region',{name:'Results'})
+ await peekResults.getByText('👑 New best!').waitFor()
+ await peekResults.getByRole('button',{name:'Done'}).click()
+ await page.getByRole('dialog',{name:'🌿 Peekaboo'}).waitFor({state:'detached'})
  await games.getByText('Best: '+boops+' boops').waitFor()
  // Snack catch: thirty seconds of falling snacks.
  await games.getByRole('button',{name:/Snack catch/}).click()
@@ -2706,6 +2711,7 @@ test('Break games: after a focus session KONO offers a break game; Peekaboo and 
  if(process.env.KONO_SHOTS){await page.clock.runFor(4000);await games.screenshot({path:process.env.KONO_SHOTS+'/break-catch.png'})}
  await page.clock.fastForward(31000);await page.clock.runFor(500)
  await games.getByText(/^KONO caught \d+ snacks?! 😋/).waitFor()
+ await page.getByRole('dialog',{name:'🍓 Snack catch'}).getByRole('button',{name:'Done'}).click()
  if(process.env.KONO_SHOTS)await games.screenshot({path:process.env.KONO_SHOTS+'/break-games.png'})
  // The break ends after five minutes (jumped to, rather than stepped through frame by frame).
  await page.clock.fastForward(5*60_000);await page.clock.runFor(1500)
@@ -3501,6 +3507,66 @@ test('Round 55: the world map: the beach is open (the forest opens with more hea
  await page.getByRole('dialog',{name:'World map'}).waitFor()
 })
 
+test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a results card and coins, and the next level is bigger), Gem blitz (a swap that lines up three scores) and Candy crush (moves and a target)',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.install({time:new Date('2026-10-15T15:00:00')})
+ d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:500}]}}
+ const care=()=>cloud.users.alice.plan.data.konoCare?.[pid]??{log:[]}
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
+ // Meowdoku: read the patches off the board, solve it, and tap each answer square twice (✕, then a cat).
+ await town.getByRole('button',{name:/Meowdoku/}).click()
+ const meow=page.getByRole('dialog',{name:'🐱 Meowdoku'})
+ const grid=meow.getByRole('grid',{name:/^Meowdoku, 5 by 5$/})
+ await grid.waitFor()
+ const answer=await grid.evaluate(el=>{
+  const cells=[...el.querySelectorAll('[role=gridcell]')],n=Math.round(Math.sqrt(cells.length)),reg=cells.map(c=>[...c.classList].find(k=>/^is-c\d$/.test(k)))
+  const out=[],cols=new Set(),regs=new Set()
+  const go=r=>{if(r===n)return true;for(let c=0;c<n;c++){const i=r*n+c;if(cols.has(c)||regs.has(reg[i])||(r>0&&Math.abs(out[r-1]%n-c)<=1))continue;cols.add(c);regs.add(reg[i]);out.push(i);if(go(r+1))return true;out.pop();cols.delete(c);regs.delete(reg[i])}return false}
+  go(0);return out.map(i=>({r:Math.floor(i/n)+1,c:i%n+1}))
+ })
+ assert.equal(answer.length,5)
+ for(const {r,c} of answer){const cell=grid.getByRole('gridcell',{name:new RegExp('^Row '+r+', column '+c+'(,|$)')});await cell.click();await cell.click()}
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(300);await meow.screenshot({path:process.env.KONO_SHOTS+'/meowdoku.png'})}
+ const results=meow.getByRole('region',{name:'Results'})
+ await results.getByRole('heading',{name:'Purr-fect!'}).waitFor({timeout:8000})
+ await results.getByText(/\+\d+ coins!/).waitFor()
+ await waitFor(()=>care().log.some(e=>e.kind==='coin'&&e.item==='game:meow'),'the Meowdoku coins never reached the account')
+ if(process.env.KONO_SHOTS)await meow.screenshot({path:process.env.KONO_SHOTS+'/game-results.png'})
+ // Play again: the next puzzle (level 2).
+ await results.getByRole('button',{name:'Play again'}).click()
+ await meow.getByText(/^Level 2$/).waitFor()
+ await meow.getByRole('button',{name:'✕ Leave'}).click()
+ await meow.waitFor({state:'detached'})
+ // Gem blitz: find a swap that lines up three (from the board's pieces) and make it.
+ await town.getByRole('button',{name:/Gem blitz/}).click()
+ const gems=page.getByRole('dialog',{name:'💎 Gem blitz'}),board=gems.getByRole('grid',{name:'Gem board'})
+ await board.getByRole('gridcell').first().waitFor()
+ const swap=await board.evaluate(el=>{
+  const k=Array(64);for(const p of el.querySelectorAll('[role=gridcell]'))k[Number(p.dataset.i)]=Number(p.dataset.kind)
+  const line=b=>{for(let i=0;i<64;i++){const r=Math.floor(i/8),c=i%8;if(c<=5&&b[i]===b[i+1]&&b[i]===b[i+2])return true;if(r<=5&&b[i]===b[i+8]&&b[i]===b[i+16])return true}return false}
+  for(let i=0;i<64;i++)for(const j of [i%8<7?i+1:-1,i<56?i+8:-1]){if(j<0)continue;const b=[...k];[b[i],b[j]]=[b[j],b[i]];if(line(b))return [i,j]}
+  return null
+ })
+ assert.ok(swap,'a fresh board always has a move')
+ const box=await board.boundingBox(),cell=box.width/8,centre=i=>({x:box.x+(i%8+0.5)*cell,y:box.y+(Math.floor(i/8)+0.5)*cell})
+ const a=centre(swap[0]),b=centre(swap[1])
+ await page.mouse.move(a.x,a.y);await page.mouse.down();await page.mouse.move((a.x+b.x)/2,(a.y+b.y)/2,{steps:4});await page.mouse.move(b.x,b.y,{steps:4});await page.mouse.up()
+ await page.waitForFunction(()=>Number(document.querySelector('.match3 .blast-score')?.textContent)>0,null,{timeout:5000})
+ if(process.env.KONO_SHOTS)await gems.screenshot({path:process.env.KONO_SHOTS+'/gem-blitz.png'})
+ await gems.getByRole('button',{name:'✕ Leave'}).click()
+ await gems.waitFor({state:'detached'})
+ // Candy crush: level 1, with its moves and target.
+ await town.getByRole('button',{name:/Candy crush/}).click()
+ const candy=page.getByRole('dialog',{name:'🍬 Candy crush'})
+ await candy.getByText('Level 1').waitFor();await candy.getByText(/^\d+ moves$/).waitFor()
+ await candy.getByRole('progressbar',{name:/^Target \d+$/}).waitFor()
+ if(process.env.KONO_SHOTS)await candy.screenshot({path:process.env.KONO_SHOTS+'/candy.png'})
+})
+
 test('Round 58: your own Home: the week strip, Sanctuary, the family schedule, then the schedule (today and tomorrow together), the next 7 days and pinned notes; Customize Home hides and reorders, and it stays after a reload',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
@@ -3608,7 +3674,9 @@ test('Round 56: each land has its own game: Shell chase on the beach, Acorn tumb
  await beach.getByRole('button',{name:'Play Shell chase'}).click()
  await beach.getByRole('application',{name:/^Shell chase/}).waitFor()
  if(process.env.KONO_SHOTS){await page.waitForTimeout(1200);await beach.getByRole('application',{name:/^Shell chase/}).screenshot({path:process.env.KONO_SHOTS+'/land-chase.png'})}
- await beach.getByText('KONO collected 0 shells',{exact:false}).waitFor({timeout:10000})
+ await beach.getByRole('region',{name:'Results'}).getByText('KONO collected 0 shells',{exact:false}).waitFor({timeout:10000})
+ await beach.getByRole('dialog',{name:'🐚 Shell chase'}).getByRole('button',{name:'Done'}).click()
+ await beach.getByRole('dialog',{name:'🐚 Shell chase'}).waitFor({state:'detached'})
  await beach.getByRole('button',{name:'Play again'}).waitFor()
  await beach.getByRole('button',{name:'← World map'}).click()
  // The forest: Acorn tumble. Tap a piece with a matching neighbor, then finish for coins.
@@ -3625,6 +3693,8 @@ test('Round 56: each land has its own game: Shell chase on the beach, Acorn tumb
  await forest.getByText(/^Pieces left: (5[0-4]|[1-4]\d)$/).waitFor()
  if(process.env.KONO_SHOTS)await forest.screenshot({path:process.env.KONO_SHOTS+'/land-tumble.png'})
  await forest.getByRole('button',{name:'I’m done'}).click()
+ await forest.getByRole('region',{name:'Results'}).getByText(/\+\d+ coins!/).waitFor()
+ await forest.getByRole('dialog',{name:'🌰 Acorn tumble'}).getByRole('button',{name:'Done'}).click()
  await forest.getByRole('status').filter({hasText:/That’s \d+ points! 🌰.*\+\d+ coins!/}).waitFor()
  await waitFor(()=>care().log.some(e=>e.id==='game-2026-10-15-1'&&e.item==='game:tumble'&&e.n>=5),'the tumble coins never reached the account')
  await forest.getByRole('button',{name:'← World map'}).click()
