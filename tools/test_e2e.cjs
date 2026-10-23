@@ -3488,6 +3488,36 @@ test('A repeating event from the Planner: a note on just one day stays on that d
  await editor.getByRole('button',{name:'Save'}).click()
  await waitFor(()=>soc(e=>e.date+' '+e.time).join('|')==='2026-10-15 17:00|2026-10-22 17:00|2026-10-29 17:00|2026-11-05 17:00','Nov 5 never joined the series')
 })
+test('Round 53: tap a house on the island and KONO walks in, the island zooms into the door and KONO’s house opens; with two houses you pick KONO’s home',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.install({time:new Date('2026-10-02T15:00:00')})
+ const place=(id,assetId,x,y)=>({id,assetId,x,y,rotation:0,scale:1,skewX:0,flipX:false})
+ d.sanctuaryDecor={...(d.sanctuaryDecor??{}),[pid]:{profileId:pid,placements:[place('h-mush','home-mushroom-house',0.3,0.5),place('h-tea','home-tea-house',0.68,0.56)]}}
+ const care=()=>cloud.users.alice.plan.data.konoCare?.[pid]??{}
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary');await islandLoaded(page)
+ // The second house isn't KONO's home yet: tapping it asks first.
+ await page.getByRole('button',{name:'The tea house: go in'}).click()
+ const confirm=page.getByRole('dialog',{name:'Confirm change'})
+ await confirm.getByText('Make the tea house KONO’s home?',{exact:false}).waitFor()
+ await confirm.getByRole('button',{name:'Confirm'}).click()
+ await waitFor(()=>care().home==='h-tea','KONO’s home never reached the account')
+ // KONO walks over and in; the island zooms into the doorway; the house opens.
+ await page.locator('.wb-sanctuary-zoom-wrap.is-entering').waitFor({timeout:12000})
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(400);await page.locator('.wb-island').screenshot({path:process.env.KONO_SHOTS+'/house-door-zoom.png'})}
+ const house=page.getByRole('dialog',{name:'KONO’s house'})
+ await house.waitFor({timeout:8000})
+ await page.locator('.kono-house.is-entering').waitFor()
+ // Two houses: KONO's home can be changed here too.
+ await house.getByLabel('KONO lives in').selectOption('h-mush')
+ await waitFor(()=>care().home==='h-mush','changing KONO’s home never reached the account')
+ await house.getByRole('button',{name:'Close dialog'}).click()
+ await page.getByRole('button',{name:'Go into KONO’s house'}).waitFor()
+ // The island's tab goes in through KONO's home as well.
+ await page.getByRole('navigation',{name:'Sanctuary view'}).getByRole('button',{name:'KONO’s house'}).click()
+ await page.getByRole('dialog',{name:'KONO’s house'}).waitFor({timeout:15000})
+})
+
 test('Round 52: Paint KONO in the paint shop (it shows in the KONO bar), buy furniture, and arrange it in KONO’s house',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.install({time:new Date('2026-10-02T15:00:00')})

@@ -626,3 +626,9 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 /* KONO Town's coin button in the KONO bar (KonoTown.tsx) and a surprise to collect. */
 .kono-bar-tools .kono-coins-open{font-variant-numeric:tabular-nums;font-weight:700}
 .kono-note.is-surprise{background:color-mix(in srgb,#ffd36b 28%,transparent);border-radius:10px;padding:2px 8px}
+/* Going into KONO's house: the island zooms into the doorway and fills with its warm light (Workspace ›
+   goIntoHome; --door-x/--door-y is the door's spot on the island). */
+.wb-sanctuary-zoom-wrap.is-entering{position:relative;transform-origin:var(--door-x,50%) var(--door-y,50%);animation:island-into-door .8s cubic-bezier(.55,0,.8,.3) forwards}
+.wb-sanctuary-zoom-wrap.is-entering::after{content:"";position:absolute;inset:0;z-index:50;pointer-events:none;background:radial-gradient(circle at var(--door-x,50%) var(--door-y,50%),rgba(255,226,170,.2) 0,rgba(255,214,150,.98) 55%);animation:door-light .8s ease-in forwards}
+@keyframes island-into-door{to{transform:scale(3.4)}}
+@keyframes door-light{from{opacity:0}to{opacity:1}}

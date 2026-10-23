@@ -32,3 +32,10 @@
 .house-storage small{font-size:.72rem;line-height:1.15}
 @media(prefers-reduced-motion:reduce){.house-kono{transition:none}.house-kono.is-happy .kono-face-box,.house-heart{animation:none}}
 .is-arranging .house-kono{pointer-events:none;opacity:.55}
+/* Coming in through the door: the room swings into view from the doorway's warm light. */
+.kono-house.is-entering .house-room{animation:house-enter .7s cubic-bezier(.2,.9,.3,1) both}
+@keyframes house-enter{from{opacity:0;transform:scale(1.35);filter:brightness(1.8) blur(3px)}to{opacity:1;transform:none;filter:none}}
+.house-home-pick{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0;font-weight:600}
+.house-home-pick select{width:auto}
+.house-hint{margin:0;font-size:.85rem;color:var(--wb-muted,inherit)}
+@media(prefers-reduced-motion:reduce){.kono-house.is-entering .house-room{animation:none}}

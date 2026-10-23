@@ -14,8 +14,13 @@ const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-red
  * from storage, drag them around, make them bigger or smaller, flip them and put them away; each change
  * is saved straight away. Tap KONO for a pat. At night KONO sleeps (in its bed, if there is one).
  * Loaded only when opened. */
-export default function KonoHouse({close,house,owned,paint,outfit,night,onSave,onPet,onShop}:{
+export default function KonoHouse({close,entering=false,homes=[],home=null,onHome,house,owned,paint,outfit,night,onSave,onPet,onShop}:{
  close:()=>void
+ /** Opened by KONO walking in through the door of its house on the island: the room swings into view and
+  * KONO walks in from the front. */
+ entering?:boolean
+ /** The houses on the island, and which one KONO lives in (picked here when there are several). */
+ homes?:{id:string;label:string}[];home?:string|null;onHome?:(id:string)=>void
  house:HouseItem[]
  owned:Map<string,number>
  paint:PaintId|null;outfit:string|null
@@ -27,9 +32,11 @@ export default function KonoHouse({close,house,owned,paint,outfit,night,onSave,o
  const roomRef=useRef<HTMLDivElement>(null)
  const [width,setWidth]=useState(0),[arranging,setArranging]=useState(false),[selected,setSelected]=useState<string|null>(null)
  const [drag,setDrag]=useState<{id:string;x:number;y:number;dx:number;dy:number;moved:boolean}|null>(null)
- const [kono,setKono]=useState({x:0.5,y:0.72}),[happy,setHappy]=useState(false)
+ const [kono,setKono]=useState(()=>entering?{x:0.5,y:0.99}:{x:0.5,y:0.72}),[happy,setHappy]=useState(false)
  useEffect(()=>{const el=roomRef.current;if(!el)return;const ro=new ResizeObserver(()=>setWidth(el.clientWidth));ro.observe(el);setWidth(el.clientWidth);return ()=>ro.disconnect()},[])
  const bed=house.find(h=>h.item==='bed')
+ // Coming in through the door: KONO walks in from the front of the room.
+ useEffect(()=>{if(!entering)return;const t=window.setTimeout(()=>setKono({x:0.5,y:0.72}),250);return ()=>window.clearTimeout(t)},[entering])
  // KONO wanders the floor now and then (not while asleep, or with reduced motion).
  useEffect(()=>{
   if(night||reducedMotion())return
@@ -63,7 +70,7 @@ export default function KonoHouse({close,house,owned,paint,outfit,night,onSave,o
   e.preventDefault();const s=clampSpot(byId.get(h.item),h.x+d[0],h.y+d[1]);change(h.id,x=>({...x,...s}))
  }
  return <Modal title="KONO’s house" close={close}>
-  <div className={'kono-house'+(arranging?' is-arranging':'')+(night?' is-night':'')}>
+  <div className={'kono-house'+(arranging?' is-arranging':'')+(night?' is-night':'')+(entering?' is-entering':'')}>
    <div ref={roomRef} className="house-room" style={{backgroundImage:`url(${ROOM_SRC})`}} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onClick={e=>{if(e.target===e.currentTarget)setSelected(null)}}>
     {order.map(h=>{const f=byId.get(h.item);if(!f)return null;// Not <button>s: the app's button styles (background, padding, hover lift) would change how pieces sit.
      return <div role={arranging?'button':'img'} tabIndex={arranging?0:undefined} key={h.id} className={'house-piece'+(f.rug?' is-rug':'')+(h.id===selected&&arranging?' is-selected':'')} aria-label={f.name+(arranging?', drag to move':'')} aria-pressed={arranging?h.id===selected:undefined}
@@ -79,6 +86,8 @@ export default function KonoHouse({close,house,owned,paint,outfit,night,onSave,o
     </div>}
    </div>
    {!house.length&&!arranging&&<p className="house-empty">KONO’s house is empty! {storage.length?'Tap Arrange to put your furniture in.':'Get furniture in KONO Town’s furniture shop (the rug is free).'}</p>}
+   {homes.length>1&&onHome&&<label className="house-home-pick">KONO lives in<select value={home??homes[0].id} onChange={e=>onHome(e.target.value)}>{homes.map(h=><option key={h.id} value={h.id}>{h.label}{homes.filter(x=>x.label===h.label).length>1?' '+(homes.filter(x=>x.label===h.label).indexOf(h)+1):''}</option>)}</select></label>}
+   {!homes.length&&<p className="house-hint">Put a house on the island (Decorate › Homes), then tap it: KONO walks over and goes in.</p>}
    <div className="wb-toolbar house-tools">
     <button type="button" className={arranging?'primary':undefined} aria-pressed={arranging} onClick={()=>{setArranging(a=>!a);setSelected(null)}}>{arranging?'Done arranging':'🪑 Arrange'}</button>
     <button type="button" onClick={onShop}>🛋️ Furniture shop</button>
