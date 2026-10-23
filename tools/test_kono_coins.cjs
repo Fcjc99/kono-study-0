@@ -293,4 +293,41 @@ test('KONO.io: a loop out of your land claims the trail and what it closes in; t
  const share=P.shares(c);assert.ok([...share.values()].reduce((x,y)=>x+y,0)<=100.0001)
  assert.ok(c.players.slice(1).some(p=>share.get(p.id)>0.6),'bots grow their land')
 })
+test('KONO.io team battle: four a side, a team shares its land, teammates cross each other’s trails, the cut come back on their team’s land, and two minutes decide it',()=>{
+ const P=load('src/store/paper.ts'),seeded=load('src/store/meowdoku.ts').seeded,N=P.N
+ const a=P.newArena(seeded(4),6,'#3e6fe6','team')
+ assert.equal(a.players.length,8);assert.equal(a.players.filter(p=>p.team===1).length,4);assert.equal(a.players.filter(p=>p.team===2).length,4)
+ assert.ok([...a.own].every(x=>x===0||x===1||x===2),'land is held by a team')
+ const you=a.players[0],mate=a.players[1],foe=a.players[4]
+ for(const p of a.players.slice(1))p.bot.plan=[]
+ // A teammate walks across your trail: you're fine. The other team does it: you're out.
+ a.own.fill(0);a.trail.fill(0)
+ for(let y=20;y<=22;y++)for(let x=20;x<=22;x++)a.own[y*N+x]=1
+ for(let y=40;y<=42;y++)for(let x=40;x<=42;x++)a.own[y*N+x]=2
+ for(const p of a.players.slice(2))Object.assign(p,{alive:false,back:1e9})
+ foe.alive=true;Object.assign(foe,{x:45,y:45,dir:1,want:1,trail:[]});foe.bot.plan=[]
+ Object.assign(you,{x:25,y:30,dir:1,want:1,trail:[30*N+23,30*N+24,30*N+25]});for(const i of you.trail)a.trail[i]=1
+ Object.assign(mate,{x:24,y:29,dir:2,want:2,trail:[]});mate.bot.plan=[2]
+ a.players[0].want=1;P.tick(a)
+ assert.ok(you.alive&&mate.alive,'teammates pass over each other’s trails');assert.equal(a.trail[30*N+24],1,'your trail stays yours')
+ // Your loop claims land for Blue.
+ const blue=()=>a.own.filter(x=>x===1).length,before=blue()
+ Object.assign(you,{x:22,y:21,dir:1,want:1,trail:[]});for(let i=0;i<N*N;i++)if(a.trail[i]===1)a.trail[i]=0
+ mate.alive=false;mate.back=1e9
+ const go=(d,n)=>{for(let k=0;k<n;k++){P.steer(you,d);P.tick(a)}}
+ go(1,3);go(2,4);go(3,4);go(0,3)
+ assert.ok(you.alive);assert.ok(blue()>before,'the loop is Blue’s now');assert.ok(P.teamShares(a).get(1)>P.teamShares(a).get(2))
+ assert.equal(P.shares(a).get(1),P.teamShares(a).get(1),'your share is your team’s')
+ // Cut: you come back three seconds later on Blue land (and Blue keeps its land meanwhile).
+ Object.assign(you,{x:N-1,y:5,dir:1,want:1});P.tick(a);assert.ok(!you.alive)
+ assert.ok(blue()>0,'the team keeps its land')
+ for(let k=0;k<31;k++)P.tick(a)
+ assert.ok(you.alive,'back in team battle');assert.equal(a.own[you.y*N+you.x],1,'on Blue’s land')
+ assert.ok(!P.battleOver(a));a.ticks=P.TEAM_TICKS;assert.ok(P.battleOver(a))
+ assert.ok(!P.battleOver(P.newArena(seeded(1))),'solo has no clock')
+ // A full battle of bots keeps the map sane.
+ const c=P.newArena(seeded(11),6,'#3e6fe6','team')
+ for(let k=0;k<P.TEAM_TICKS;k++)P.tick(c)
+ const t=P.teamShares(c);assert.ok(t.get(1)+t.get(2)<=100.0001&&t.get(1)+t.get(2)>3,'both teams hold land ('+t.get(1).toFixed(1)+' / '+t.get(2).toFixed(1)+')')
+})
 console.log(passed+'/'+passed+' coin checks passed.')

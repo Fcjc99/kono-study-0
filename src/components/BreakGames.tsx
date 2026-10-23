@@ -31,7 +31,7 @@ const GAMES:{id:Game;emoji:string;name:string;how:string;best:(n:number)=>string
  {id:'gems',emoji:'💎',name:'Gem blitz',how:'Swap gems to match 3 or more. One minute, as many points as you can!',best:n=>'Best: '+n+' points',arcade:true},
  {id:'candy',emoji:'🍬',name:'Candy crush',how:'Match candies to reach each level’s target in the moves you have.',best:n=>'Best: level '+n,arcade:true},
  {id:'flap',emoji:'🐤',name:'Flappy KONO',how:'Tap to flap KONO through the gaps in the pipes.',best:n=>'Best: '+n+' pipe'+(n===1?'':'s'),arcade:true},
- {id:'paper',emoji:'🟦',name:'KONO.io',how:'Leave your land, loop around and come home to claim it. Cut the bots’ trails, and keep yours safe!',best:n=>'Best: '+n+'% of the map',arcade:true},
+ {id:'paper',emoji:'🟦',name:'KONO.io',how:'Leave your land, loop around and come home to claim it. Cut the bots’ trails, and keep yours safe! Play solo, or in a team battle: Blue against Red for two minutes.',best:n=>'Best: '+n+'% of the map',arcade:true},
 ]
 const bestKey=(g:Game)=>'kono-break-best:'+g
 function readBest(g:Game):number|null{try{const v=localStorage.getItem(bestKey(g));return v===null?null:Number(v)}catch{return null}}
@@ -49,6 +49,7 @@ const clock=(ms:number)=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.flo
 export default function BreakGames({startedAt,onClose,arcade=false,sound=false,onScore,onBlastCoins}:{startedAt:number;onClose?:()=>void;arcade?:boolean;sound?:boolean;onScore?:(game:Game,score:number)=>string|null;onBlastCoins?:(lines:number,streak:number)=>number|null}){
  const [game,setGame]=useState<Game|null>(null),[pieces,setPieces]=useState<Piece[]>([]),[blastSave,setBlastSave]=useState<BlastSave|null>(null)
  const [meow,setMeow]=useState<{level:number;puzzle:Puzzle}|null>(null),[match,setMatch]=useState<{maker:Maker;board:Board;level:number;jelly?:Set<number>}|null>(null)
+ const [paperMode,setPaperMode]=useState<'solo'|'team'>('solo')
  const [ended,setEnded]=useState<GameResult|null>(null),[round,setRound]=useState(0),[started,setStarted]=useState(false)
  const handle=useRef<GameHandle>(null)
  const [now,setNow]=useState(startedAt)
@@ -78,7 +79,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
   :game==='blast'?<BlockBlast key={round} ref={handle} start={pieces} saved={blastSave} best={readBest('blast')} sound={sound} onCoins={onBlastCoins} onEnd={n=>finish('blast',n,'KONO blast: '+n+' point'+(n===1?'':'s')+'! 🧱')}/>
  :game==='meow'&&meow?<Meowdoku key={round} ref={handle} level={meow.level} puzzle={meow.puzzle} sound={sound} onEnd={(level,seconds,solved,extra)=>solved?finish('meow',level,'Solved in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+(extra?.best?' — a new best for '+meow.puzzle.n+' × '+meow.puzzle.n+'!':'.')+(extra?.hints?' ('+extra.hints+' hint'+(extra.hints===1?'':'s')+')':'')+' Next up: level '+(level+1)+'.',{title:'Purr-fect!',coinScore:meow.puzzle.n,scoreText:'Level '+level}):finish('meow',0,'This one stays at level '+level+'. Play again for a new puzzle.',{title:'Puzzle skipped',coinScore:0,scoreText:'Level '+level,won:false})}/>
   :game==='flap'?<FlappyKono key={round} ref={handle} best={readBest('flap')} sound={sound} onEnd={n=>{const medal=flapMedal(n);finish('flap',n,(medal?medal.emoji+' '+medal.name+' medal! ':'')+'KONO flew through '+n+' pipe'+(n===1?'':'s')+'.',{title:medal?medal.name+' medal!':n>0?'Nice flying!':'Bonk!',scoreText:n+' pipe'+(n===1?'':'s'),won:n>0})}}/>
-  :game==='paper'?<PaperKono key={round} ref={handle} sound={sound} onEnd={r=>finish('paper',r.share,'You claimed '+r.share+'% of the map'+(r.kills?' and cut '+r.kills+' trail'+(r.kills===1?'':'s'):'')+'. Rank #'+r.rank+'.',{title:r.rank===1?'Top of the map!':'Nice run!',coinScore:Math.round(r.share+r.kills*5),scoreText:r.share+'%',won:r.share>1})}/>
+  :game==='paper'?<PaperKono key={round} ref={handle} mode={paperMode} sound={sound} onEnd={r=>r.team?finish('paper',0,'Blue '+r.team.blue+'% · Red '+r.team.red+'%'+(r.kills?'. You cut '+r.kills+' trail'+(r.kills===1?'':'s'):'')+'.',{title:r.team.won?'Blue wins! 🏆':r.team.blue===r.team.red?'A tie!':'Red wins this time',coinScore:(r.team.won?25:10)+r.kills*5,scoreText:'Team battle',won:r.team.won}):finish('paper',r.share,'You claimed '+r.share+'% of the map'+(r.kills?' and cut '+r.kills+' trail'+(r.kills===1?'':'s'):'')+'. Rank #'+r.rank+'.',{title:r.rank===1?'Top of the map!':'Nice run!',coinScore:Math.round(r.share+r.kills*5),scoreText:r.share+'%',won:r.share>1})}/>
   :(game==='gems'||game==='candy')&&match?<Match3 key={round} ref={handle} mode={game} level={match.level} start={match} sound={sound} onEnd={(score,won,stars)=>{
    if(game==='candy'){if(won)saveCandyLevel(match.level+1);finish('candy',won?match.level:match.level-1,won?'★'.repeat(stars)+'☆'.repeat(3-stars)+' · '+score.toLocaleString()+' points!':'So close! '+score+' points. Try the level again.',{title:won?'Level '+match.level+' complete!':'Out of moves',coinScore:won?score:Math.round(score/2),scoreText:score+' points',won})}
    else finish('gems',score,'One minute of gem swapping!',{title:'Time’s up!'})
@@ -90,8 +91,8 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
   {over?<p className="break-over" role="status">That was a nice reset! KONO’s ready for the next session when you are. 📚</p>
   :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.filter(g=>arcade||!g.arcade).map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>open(g.id)}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.id==='blast'&&kept?'Carry on your game ('+kept.score+' points so far)':g.id==='meow'&&meowLevel()>1?'Level '+meowLevel()+' is next':g.id==='candy'&&candyLevelNow()>1?'Level '+candyLevelNow()+' is next':g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
   {game&&!over&&info&&<GameScreen title={info.emoji+' '+info.name} tone="blast" sound={sound} result={ended}
-   intro={{emoji:info.emoji,name:info.name,how:info.how,best:readBest(game)!==null?info.best(readBest(game)!):null,...(game==='blast'&&kept?{start:'Continue ('+kept.score+' points)',alt:{label:'New game',onClick:()=>begin('blast',true)}}:game==='meow'?{start:'Start level '+meowLevel()}:game==='candy'?{start:'Start level '+candyLevelNow()}:{})}}
-   started={started} onStart={()=>begin(game)} onRestart={()=>begin(game,true)} onEnd={()=>handle.current?.end()}
+   intro={{emoji:info.emoji,name:info.name,how:info.how,best:readBest(game)!==null?info.best(readBest(game)!):null,...(game==='blast'&&kept?{start:'Continue ('+kept.score+' points)',alt:{label:'New game',onClick:()=>begin('blast',true)}}:game==='meow'?{start:'Start level '+meowLevel()}:game==='candy'?{start:'Start level '+candyLevelNow()}:game==='paper'?{start:'Solo',alt:{label:'Team battle',onClick:()=>{setPaperMode('team');begin('paper')}}}:{})}}
+   started={started} onStart={()=>{if(game==='paper')setPaperMode('solo');begin(game)}} onRestart={()=>begin(game,true)} onEnd={()=>handle.current?.end()}
    onAgain={()=>begin(game,true)} onLeave={()=>{setGame(null);setEnded(null);setStarted(false)}}>
    {!arcade&&<p className="game-screen-timer" role="timer">{'Break: '+clock(left)}</p>}
    {playing}

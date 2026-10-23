@@ -321,3 +321,9 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .paper-feed span{font-size:1.8rem}
 .paper-feed.is-out{animation-duration:2.4s}
 @media(prefers-reduced-motion:reduce){.flappy-score,.flappy-ready span,.flappy-flash{animation:none}}
+/* KONO.io's team battle: Blue against Red, each side as wide as its share, the clock in the middle. */
+.paper-teams{position:absolute;left:8px;right:8px;top:8px;display:flex;align-items:stretch;height:30px;border-radius:999px;overflow:hidden;background:rgba(19,36,87,.72);font-size:.8rem;font-weight:900;pointer-events:none}
+.paper-teams span{display:flex;align-items:center;padding:0 10px;white-space:nowrap;transition:flex-grow .4s;min-width:0}
+.paper-teams .is-blue{background:#3e6fe6}
+.paper-teams .is-red{background:#ef4b5c;justify-content:flex-end}
+.paper-teams b{display:grid;place-items:center;padding:0 10px;background:#132457;font-variant-numeric:tabular-nums}

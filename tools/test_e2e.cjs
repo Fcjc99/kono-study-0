@@ -3583,7 +3583,7 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  if(process.env.KONO_SHOTS)await candy.screenshot({path:process.env.KONO_SHOTS+'/candy.png'})
 })
 
-test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with results), KONO.io (the map, a live leaderboard, steering, ■ End gives your share) and Meowdoku’s Undo, Hint and Auto ✕',async({context,page})=>{
+test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with results), KONO.io (the map, a live leaderboard, steering, ■ End gives your share; team battle: Blue against Red on a clock) and Meowdoku’s Undo, Hint and Auto ✕',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
  d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:500}]}}
@@ -3608,7 +3608,7 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  await flappy.getByRole('button',{name:'Done'}).click();await flappy.waitFor({state:'detached'})
  // KONO.io: the leaderboard lists you; steering works; ■ End shows your share of the map.
  await town.getByRole('button',{name:/KONO\.io/}).click()
- await startGame(page,'🟦 KONO.io')
+ await startGame(page,'🟦 KONO.io',/^Solo$/)
  const io=page.getByRole('dialog',{name:'🟦 KONO.io'}),lb=io.getByRole('list',{name:'Leaderboard'})
  await lb.getByText(/\d+\. You/).waitFor()
  assert.ok(await lb.getByRole('listitem').count()>=5,'you and the bots on the leaderboard')
@@ -3619,6 +3619,20 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  const ir=io.getByRole('region',{name:'Results'})
  await ir.getByText(/You claimed [\d.]+% of the map/).waitFor()
  await io.getByRole('button',{name:'Done'}).click();await io.waitFor({state:'detached'})
+ // KONO.io team battle: Blue against Red with the clock; ■ End shows which team was ahead.
+ await town.getByRole('button',{name:/KONO\.io/}).click()
+ await startGame(page,'🟦 KONO.io',/^Team battle$/)
+ const tb=page.getByRole('dialog',{name:'🟦 KONO.io'})
+ await tb.getByRole('group',{name:/^Blue [\d.]+%, Red [\d.]+%, \d:\d\d left$/}).waitFor()
+ assert.equal(await tb.getByRole('list',{name:'Leaderboard'}).count(),0,'team battle shows the teams, not the solo leaderboard')
+ await tb.getByRole('timer').filter({hasText:/^[12]:\d\d$/}).waitFor()
+ await page.keyboard.press('ArrowUp');await page.waitForTimeout(700)
+ if(process.env.KONO_SHOTS)await tb.screenshot({path:process.env.KONO_SHOTS+'/kono-io-team.png'})
+ await tb.getByRole('button',{name:'■ End'}).click()
+ const tr=tb.getByRole('region',{name:'Results'})
+ await tr.getByRole('heading',{name:/Blue wins|Red wins|A tie/}).waitFor()
+ await tr.getByText(/^Blue [\d.]+% · Red [\d.]+%/).first().waitFor()
+ await tb.getByRole('button',{name:'Done'}).click();await tb.waitFor({state:'detached'})
  // Meowdoku: Hint places a right cat, Undo takes it back, Auto ✕ shades what a cat rules out.
  await town.getByRole('button',{name:/Meowdoku/}).click()
  await startGame(page,'🐱 Meowdoku')
