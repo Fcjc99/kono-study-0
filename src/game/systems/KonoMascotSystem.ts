@@ -171,6 +171,9 @@ export class KonoMascotSystem {
   private outfitId: string | null = null
   // KONO's color (KONO Town › Paint shop): its own frames, loaded the first time it's worn.
   private paint: string | null = null
+  // Going into KONO's house (a house on the island): walking to its door, then inside (hidden) until it comes out.
+  private entering: { x: number; y: number } | null = null
+  private inside = false
   // What KONO would like (a snack, a pat), in a thought bubble over its head; and quick taps for tickles.
   private needBubble: Phaser.GameObjects.Container | null = null
   private needIcon = ''
@@ -233,6 +236,8 @@ export class KonoMascotSystem {
     this.scene.game.events.on(SANCTUARY_EVENTS.focusCompanion, this.setFocusCompanion, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.outfit, this.setOutfit, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.paint, this.setPaint, this)
+    this.scene.game.events.on(SANCTUARY_EVENTS.enterHome, this.enterHome, this)
+    this.scene.game.events.on(SANCTUARY_EVENTS.leaveHome, this.leaveHome, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.need, this.setNeed, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.feed, this.feed, this)
     this.scene.game.events.on(SANCTUARY_EVENTS.mood, this.setMood, this)
@@ -296,6 +301,7 @@ export class KonoMascotSystem {
   update(timeMs: number, deltaSeconds: number, environment: EnvironmentSnapshot): void {
     this.setPhase(environment.phase)
     this.setWeather(environment.weather)
+    if (this.inside) return
     this.ensureSafePosition()
     this.applyLighting()
     if (this.phase === 'night') {
@@ -350,6 +356,11 @@ export class KonoMascotSystem {
       if (this.route.length > 0) {
         // Keep the current walk frame between navigation nodes so path turns do not visibly hitch.
         this.positionVisuals()
+        return
+      }
+
+      if (this.entering) {
+        this.goInside()
         return
       }
 
@@ -427,6 +438,8 @@ export class KonoMascotSystem {
     this.scene.game.events.off(SANCTUARY_EVENTS.focusCompanion, this.setFocusCompanion, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.outfit, this.setOutfit, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.paint, this.setPaint, this)
+    this.scene.game.events.off(SANCTUARY_EVENTS.enterHome, this.enterHome, this)
+    this.scene.game.events.off(SANCTUARY_EVENTS.leaveHome, this.leaveHome, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.need, this.setNeed, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.feed, this.feed, this)
     this.scene.game.events.off(SANCTUARY_EVENTS.mood, this.setMood, this)
@@ -662,6 +675,7 @@ export class KonoMascotSystem {
   }
 
   private placeNeed(): void {
+    this.needBubble?.setVisible(!this.inside)
     if (!this.needBubble || !this.sprite) return
     const head = this.headPoint(), scale = Phaser.Math.Clamp(this.sprite.displayHeight / 42, 0.8, 1.5)
     this.needBubble.setScale(scale).setPosition(head.x + 26 * scale, head.y - 18 * scale)
@@ -736,8 +750,56 @@ export class KonoMascotSystem {
     this.scene.load.start()
   }
 
+  /** Walk to a house's door and go in (see GardenCard's enterHome); at night or with reduced motion KONO is
+   * simply there. Once inside, the scene says so (SANCTUARY_EVENTS.konoInside) and KONO stays hidden until
+   * leaveHome. */
+  enterHome(door: { x: number; y: number } | null): void {
+    if (!door || !this.sprite || this.inside) return
+    this.pendingReaction = null
+    this.reactionTexture = null
+    this.forcedTarget = true
+    if (this.phase === 'night' || this.reducedMotion) {
+      this.position = { ...door }
+      this.route = []
+      this.positionVisuals()
+      this.goInside()
+      return
+    }
+    this.entering = { ...door }
+    this.navigateTo(door, null)
+  }
+
+  private goInside(): void {
+    this.entering = null
+    this.inside = true
+    this.setTexture('kono-walk-up-01')
+    this.needBubble?.setVisible(false)
+    this.outfitImage?.setVisible(false)
+    const done = () => this.scene.game.events.emit(SANCTUARY_EVENTS.konoInside)
+    if (this.reducedMotion) { this.sprite.setAlpha(0); this.shadow.setAlpha(0); done(); return }
+    this.scene.tweens.add({ targets: this.sprite, alpha: 0, scaleX: this.sprite.scaleX * 0.72, scaleY: this.sprite.scaleY * 0.72, y: this.sprite.y - this.bounds.height * 0.012, duration: 420, ease: 'Quad.In', onComplete: done })
+    this.scene.tweens.add({ targets: this.shadow, alpha: 0, duration: 420 })
+  }
+
+  /** Back out of the house, at its door. */
+  leaveHome(): void {
+    if (!this.inside || !this.sprite) return
+    this.inside = false
+    this.entering = null
+    this.forcedTarget = false
+    this.route = []
+    this.target = { ...this.position }
+    this.nextWanderAt = this.scene.time.now + 1_800
+    this.setTexture(this.phase === 'night' ? 'kono-sleep' : 'kono-walk-down-01')
+    this.positionVisuals()
+    this.sprite.setAlpha(this.reducedMotion ? 1 : 0)
+    if (!this.reducedMotion) this.scene.tweens.add({ targets: this.sprite, alpha: 1, duration: 360, ease: 'Quad.Out' })
+    this.applyLighting()
+  }
+
   private placeOutfit(): void {
     if (!this.sprite) return
+    if (this.inside) { this.outfitImage?.setVisible(false); return }
     const pose = this.currentTexture.replace(/^kono-/, '')
     const box = this.outfitId ? outfitBox(pose, this.outfitId) : null
     const key = this.outfitId ? outfitKey(this.outfitId, OUTFIT_FITS[this.outfitId].full ? pose : '') : ''

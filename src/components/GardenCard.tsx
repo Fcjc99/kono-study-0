@@ -89,6 +89,11 @@ interface GardenCardProps {
   outfit?: string | null
   /** KONO's color (KONO Town › Paint shop), or null for classic. */
   paint?: string | null
+  /** A fresh value sends KONO to a house's door (world 0–1) to go in; onKonoInside is called once it's in. */
+  enterHome?: { at: number; x: number; y: number } | null
+  /** A fresh value brings KONO back out of the house. */
+  leaveHome?: number | null
+  onKonoInside?: () => void
   /** The friend visiting the island today (store/konoFriends), or null. */
   visitor?: string | null
 }
@@ -123,8 +128,10 @@ const formatDebugTime = (minutes: number) => {
 const debugFromUrl = () =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('sanctuaryDebug') === '1'
 
-export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused, celebrateSignal, focusCompanionActive, onKonoPet, konoNeed = null, feedSignal = null, konoMood = null, outfit = null, paint = null, visitor = null }: GardenCardProps) {
+export default function GardenCard({ phase, weather, reducedMotion, progress, decorations = [], paused, celebrateSignal, focusCompanionActive, onKonoPet, konoNeed = null, feedSignal = null, konoMood = null, outfit = null, paint = null, visitor = null, enterHome = null, leaveHome = null, onKonoInside }: GardenCardProps) {
   const onPetRef = useRef(onKonoPet)
+  const onInsideRef = useRef(onKonoInside)
+  useEffect(() => { onInsideRef.current = onKonoInside }, [onKonoInside])
   useEffect(() => { onPetRef.current = onKonoPet }, [onKonoPet])
   const containerRef = useRef<HTMLDivElement | null>(null)
   const gameRef = useRef<PhaserGameHandle | null>(null)
@@ -248,6 +255,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
       const handleLoad=(payload:{status:string;phase?:string;boot?:boolean})=>{if(!disposed)setLoadStatus(payload)}
       game.events.on(SANCTUARY_EVENTS.load,handleLoad)
       game.events.on(SANCTUARY_EVENTS.petted,(tapAt?:number)=>{if(!disposed)onPetRef.current?.(tapAt??Date.now())})
+      game.events.on(SANCTUARY_EVENTS.konoInside,()=>{if(!disposed)onInsideRef.current?.()})
       const handleState = (payload: SanctuaryState) => {
         if (debugEnabledRef.current) {
           setState(payload)
@@ -425,6 +433,14 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
     gameRef.current?.registry.set('sanctuaryOutfit', outfit)
     gameRef.current?.events.emit(SANCTUARY_EVENTS.outfit, outfit)
   }, [outfit])
+
+  useEffect(() => {
+    if (enterHome) gameRef.current?.events.emit(SANCTUARY_EVENTS.enterHome, { x: enterHome.x, y: enterHome.y })
+  }, [enterHome])
+
+  useEffect(() => {
+    if (leaveHome) gameRef.current?.events.emit(SANCTUARY_EVENTS.leaveHome, null)
+  }, [leaveHome])
 
   useEffect(() => {
     gameRef.current?.registry.set('sanctuaryPaint', paint)

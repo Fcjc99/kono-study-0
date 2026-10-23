@@ -351,5 +351,9 @@ export const obstacleFootprint=(asset:BuildAsset,placement:Pick<BuildPlacement,'
  const rx=clampValue((asset.width/WORLD_REFERENCE_WIDTH)*placement.scale*0.28,0.02,0.12)
  return {x:placement.x,y:placement.y,rx,ry:rx*0.55}
 }
+/** Houses (Decorate › Homes, and seasonal cottages and cabins): KONO can live in one and go inside it. */
+export const isHomeAsset=(asset:BuildAsset)=>asset.category==='homes'||/(house|cottage|cabin)/.test(asset.id)
+/** The spot in front of a house where KONO goes in: just below its footprint on the ground. */
+export const homeDoor=(asset:BuildAsset,placement:Pick<BuildPlacement,'x'|'y'|'scale'>)=>({x:placement.x,y:clampValue(placement.y+(obstacleFootprint(asset,placement)?.ry??0.03)+0.012,0,0.97)})
 export const mascotObstacles=(placements:BuildPlacement[]):MascotObstacle[]=>
  resolvePlacements(placements).map(({placement,asset})=>obstacleFootprint(asset,placement)).filter((o):o is MascotObstacle=>!!o)

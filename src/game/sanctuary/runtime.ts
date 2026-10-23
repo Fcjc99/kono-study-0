@@ -25,6 +25,9 @@ export const SANCTUARY_EVENTS = {
   mood: 'sanctuary:kono-mood',
   outfit: 'sanctuary:kono-outfit',
   paint: 'sanctuary:kono-paint',
+  enterHome: 'sanctuary:kono-enter-home',
+  konoInside: 'sanctuary:kono-inside',
+  leaveHome: 'sanctuary:kono-leave-home',
   visitor: 'sanctuary:visitor',
   state: 'sanctuary:state',
 } as const

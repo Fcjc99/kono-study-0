@@ -68,3 +68,8 @@
 .kono-bond-hearts{margin:0;display:flex;flex-wrap:wrap;gap:2px;font-size:1.1rem;line-height:1.2}
 .kono-bond-hearts span:not(.is-full){opacity:.55}
 .kono-bond p:last-child{margin:4px 0 0;font-size:.82rem;color:var(--wb-muted)}
+/* Houses on the island can be tapped to go in (SanctuaryDecorLayer › onHome). Only the house itself is the
+   target, not the clear space around it in its picture. */
+.build-home-layer{grid-area:1/1;position:relative;z-index:3;pointer-events:none}
+.build-home-door{position:absolute;pointer-events:auto;cursor:pointer;clip-path:inset(22% 18% 4% 18%);-webkit-tap-highlight-color:transparent}
+.build-home-door:focus-visible{clip-path:none;outline:3px solid var(--wb-accent,#c06b8a);outline-offset:-6px;border-radius:12px}
