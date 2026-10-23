@@ -1,0 +1,35 @@
+/* KONO's world map and its lands (KonoWorld.tsx). Places, the market and KONO aren't styled as app buttons
+   would be (no background or hover lift): they sit on the picture. */
+.kono-world{display:grid;gap:10px;padding:0 4px 8px}
+.world-map,.world-land{position:relative;width:100%;aspect-ratio:1448/1086;background-size:100% 100%;border-radius:16px;overflow:hidden}
+.world-map{transform-origin:var(--to-x,50%) var(--to-y,50%)}
+.world-map.is-zooming{animation:world-zoom .7s cubic-bezier(.55,0,.8,.3) forwards}
+@keyframes world-zoom{to{transform:scale(3.2);filter:brightness(1.4);opacity:.2}}
+.world-land.is-entering{animation:world-enter .7s cubic-bezier(.2,.9,.3,1) both}
+@keyframes world-enter{from{opacity:0;transform:scale(1.3);filter:brightness(1.6) blur(3px)}to{opacity:1;transform:none;filter:none}}
+.kono-world .world-place,.kono-world .world-stall{position:absolute;transform:translate(-50%,-50%)!important;display:grid;justify-items:center;gap:2px;margin:0!important;padding:6px 10px!important;min-height:0!important;border-radius:999px!important;border:2px solid rgba(255,255,255,.9)!important;background:rgba(255,250,240,.88)!important;box-shadow:0 3px 10px rgba(40,30,20,.25)!important;color:#5b3b2e!important;font-weight:700;transition:none!important}
+.kono-world .world-place span,.kono-world .world-stall span{font-size:1.3rem;line-height:1}
+.kono-world .world-place small,.kono-world .world-stall small{font-size:.7rem;white-space:nowrap}
+.kono-world .world-place:disabled{opacity:1!important;cursor:default}
+.kono-world .world-place.is-locked{background:rgba(236,232,226,.94)!important;color:#6d5a50!important}
+.kono-world .world-place .world-lock{font-weight:600;color:#a0526d}
+.world-kono{position:absolute;transform:translate(-50%,-100%);pointer-events:none;transition:left .9s ease-in-out,top .9s ease-in-out;z-index:2}
+.world-kono.is-strolling{transition:left 2.4s ease-in-out,top 2.4s ease-in-out}
+.world-kono .kono-face-box{display:block;position:relative}
+.kono-world .world-kono .kono-face-box>img:first-child{width:100%!important;height:100%!important;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 4px 3px rgba(40,20,10,.35))}
+.world-status{margin:0;font-weight:600}
+.world-tools{margin:0}
+.world-tools button{margin:0!important}
+.world-found{display:flex;align-items:center;gap:8px;margin:0;font-size:.9rem;color:var(--wb-muted,inherit)}
+.kono-world .world-found img{width:28px!important;height:28px!important;image-rendering:pixelated}
+.world-market h3{margin:0 0 6px;font-size:1rem}
+.world-market h3 small{font-weight:400;font-size:.8rem;color:var(--wb-muted,inherit)}
+.world-market ul{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;margin:0;padding:0;list-style:none}
+.world-market li{display:grid;justify-items:center;gap:4px;padding:10px 8px;border-radius:14px;border:1px solid var(--wb-line,#e5ddd2);background:var(--wb-surface,#fff);text-align:center}
+.kono-world .world-market img{width:56px!important;height:56px!important;object-fit:contain}
+.world-market strong{font-size:.85rem}
+.world-market button{margin:0!important;min-height:34px;border-radius:999px;padding:4px 10px}
+.world-market small{font-size:.72rem;color:var(--wb-muted,inherit)}
+.world-market-go{margin:8px 0 0}
+.world-play p{margin:0 0 8px}
+@media(prefers-reduced-motion:reduce){.world-map.is-zooming,.world-land.is-entering{animation:none}.world-kono{transition:none}}

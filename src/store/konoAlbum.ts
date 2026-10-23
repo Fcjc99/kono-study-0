@@ -24,7 +24,7 @@ export function albumSections(a:AlbumInput):AlbumSection[]{
   {id:'snacks',title:'Snacks',items:ALL_TREATS.map(t=>({id:t.id,name:t.name[0].toUpperCase()+t.name.slice(1),owned:a.tried.has(t.id),how:'Feed it to KONO once.',emoji:t.emoji}))},
   {id:'stickers',title:'Stickers',items:STICKERS.filter(t=>stickerOffered(t.id,a.stickers,a.today)).map(t=>({id:t.id,name:t.label,owned:a.stickers.has(t.id),how:t.how,emoji:t.emoji}))},
   {id:'colors',title:'Colors',items:PAINTS.map(p=>({id:p.id,name:p.name,owned:a.paints.has(p.id),how:'From the paint shop in KONO Town.',img:paintSrc(p.id)}))},
-  {id:'furniture',title:'Furniture',items:FURNITURE.map(f=>({id:f.id,name:f.name,owned:a.furniture.has(f.id),how:'From the furniture shop in KONO Town.',img:furnitureSrc(f.id)}))},
+  {id:'furniture',title:'Furniture',items:FURNITURE.map(f=>({id:f.id,name:f.name,owned:a.furniture.has(f.id),how:f.land?'From the '+({beach:'beach',forest:'forest',snow:'snowy village'})[f.land]+' market on the world map.':'From the furniture shop in KONO Town.',img:furnitureSrc(f.id)}))},
   {id:'presents',title:'Presents',items:[...PRESENTS.map(p=>({id:p.id,name:p.name,owned:a.presents.has(p.id),how:presentHow(p),img:presentSrc(p.id)})),...GIFTS.map(g=>({id:g.id,name:g.name,owned:a.gifts.has(g.id),how:giftHow(g),img:giftSrc(g.id)}))]},
  ]
 }

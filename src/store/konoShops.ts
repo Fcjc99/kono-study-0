@@ -35,7 +35,7 @@ export function treasureStock(found:Map<string,number>,today:string):ShopItem[]{
 /** Every color, owned or not (owned ones are worn from the shop). */
 export const paintStock=():ShopItem[]=>PAINTS.map(p=>({key:'paint:'+p.id,kind:'paint',id:p.id,name:p.name,price:p.price,img:paintSrc(p.id as PaintId)}))
 /** Every piece of furniture, always in stock (buying one again gets another). */
-export const furnitureStock=():ShopItem[]=>FURNITURE.map(f=>({key:'furn:'+f.id,kind:'furniture',id:f.id,name:f.name,price:f.price,img:furnitureSrc(f.id)}))
+export const furnitureStock=(land?:string):ShopItem[]=>FURNITURE.filter(f=>(f.land??'')===(land??'')).map(f=>({key:'furn:'+f.id,kind:'furniture',id:f.id,name:f.name,price:f.price,img:furnitureSrc(f.id)}))
 /** Room styles for KONO's house (classic is everyone's already). */
 export const roomStock=():ShopItem[]=>ROOM_STYLES.filter(r=>r.id!=='classic').map(r=>({key:'room:'+r.id,kind:'room',id:r.id,name:r.name,price:r.price,img:roomSrc(r.id)}))
 export const boughtLine=(item:ShopItem)=>item.kind==='room'?'🏠 KONO’s house is '+item.name.toLowerCase()+' now!':item.kind==='paint'?'🎨 KONO can be '+item.name+' now! It’s wearing it.':item.kind==='furniture'?'🏠 The '+item.name.toLowerCase()+' is in KONO’s house, ready to place.':item.kind==='food'?'Yum! '+(item.emoji??'')+' A '+item.name+' for KONO. It’s with KONO’s snacks.':item.kind==='outfit'?'✨ The '+item.name.toLowerCase()+' is KONO’s now! Try it on in Decorate › Wardrobe.':'💎 The '+item.name.toLowerCase()+' is yours! Put it on the island from Decorate › Finds.'

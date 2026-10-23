@@ -3488,6 +3488,35 @@ test('A repeating event from the Planner: a note on just one day stays on that d
  await editor.getByRole('button',{name:'Save'}).click()
  await waitFor(()=>soc(e=>e.date+' '+e.time).join('|')==='2026-10-15 17:00|2026-10-22 17:00|2026-10-29 17:00|2026-11-05 17:00','Nov 5 never joined the series')
 })
+test('Round 55: the world map: the beach is open (the forest opens with more hearts); KONO travels there, looks around once a day, and the market sells beach furniture',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.install({time:new Date('2026-10-15T15:00:00')})
+ d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:500}]}}
+ const care=()=>cloud.users.alice.plan.data.konoCare?.[pid]??{log:[]}
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('navigation',{name:'Sanctuary view'}).getByRole('button',{name:'World map'}).click()
+ const world=page.getByRole('dialog',{name:'World map'})
+ await world.getByRole('button',{name:'Go to Sandy Beach Cove'}).waitFor()
+ assert.equal(await world.getByRole('button',{name:/^Snowy Mountain Village, opens at 3 bond hearts$/}).isDisabled(),true,'the snowy village waits for more hearts')
+ if(process.env.KONO_SHOTS)await world.screenshot({path:process.env.KONO_SHOTS+'/world-map.png'})
+ await world.getByRole('button',{name:'Go to Sandy Beach Cove'}).click()
+ const beach=page.getByRole('dialog',{name:'Sandy Beach Cove'})
+ await beach.waitFor({timeout:8000})
+ // One look around a day: a beach treasure, kept as a find.
+ await beach.getByRole('button',{name:'🔍 Look around'}).click()
+ await beach.getByText('KONO found',{exact:false}).waitFor()
+ await waitFor(()=>care().log.some(e=>e.id==='land-beach-2026-10-15'&&e.kind==='find'&&['shell','seaglass','pebble','feather'].includes(e.item)),'the beach find never reached the account')
+ await beach.getByRole('button',{name:'Looked around today ✓'}).waitFor()
+ // The market: beach furniture, for KONO's house.
+ await beach.getByRole('button',{name:'The Sandy Beach Cove market'}).click()
+ await beach.getByRole('region',{name:'Market'}).getByRole('button',{name:/^Buy Beach hammock for /}).click()
+ await waitFor(()=>care().log.some(e=>e.kind==='buy'&&e.item==='furn:hammock'),'the hammock never reached the account')
+ if(process.env.KONO_SHOTS)await beach.screenshot({path:process.env.KONO_SHOTS+'/world-beach.png'})
+ await beach.getByRole('button',{name:'← World map'}).click()
+ await page.getByRole('dialog',{name:'World map'}).waitFor()
+})
+
 test('Round 54: KONO uses the furniture; visit Emma’s KONO and leave a snack; Undo after Add all; skip one turn of a repeating to-do',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.install({time:new Date('2026-10-15T15:00:00')}) // a Thursday afternoon

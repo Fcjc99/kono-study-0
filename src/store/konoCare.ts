@@ -150,7 +150,7 @@ export function addCareEvent(state:KonoCareState|undefined,profileId:string,even
  // Coins won and things bought are kept too (old months are folded into one entry, see foldCoins).
  const kept=(e:CareEvent)=>e.kind==='wish'||e.kind==='find'||e.kind==='visit'||e.kind==='bond'||e.kind==='taste'||e.kind==='gift'||e.kind==='coin'||e.kind==='buy'||e.kind==='bank'
  const log=all.filter(e=>kept(e)||e===lastWear||e===lastPaint||time(e.at)>=since)
- if((event.kind==='wish'||event.kind==='exam'||event.kind==='nudge'||event.kind==='visit'||event.kind==='bond'||event.kind==='taste'||event.kind==='coin')&&log.some(e=>e.id===event.id))return {profileId,log,...extras(state)}
+ if((event.kind==='wish'||event.kind==='exam'||event.kind==='nudge'||event.kind==='visit'||event.kind==='bond'||event.kind==='taste'||event.kind==='coin'||event.kind==='find')&&log.some(e=>e.id===event.id))return {profileId,log,...extras(state)}
  if(event.kind==='play'&&now.getTime()<nextPlayAt(log))return {profileId,log,...extras(state)}
  if(event.kind==='pet'){const lastPet=Math.max(-Infinity,...log.filter(e=>e.kind==='pet').map(e=>time(e.at)));if(now.getTime()-lastPet<PET_EVERY_MS)return {profileId,log,...extras(state)}}
  if(event.kind==='sleep'&&bedtime(log,now).tucked)return {profileId,log,...extras(state)}

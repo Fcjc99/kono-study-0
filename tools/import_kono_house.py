@@ -6,7 +6,8 @@
 - Furniture: one piece per picture on a plain white background (house_NN_<name>.png). The white around
   each piece is cut away (by flooding in from the edges, so white inside a piece stays), the piece is
   trimmed, scaled to at most 512 px and saved as public/garden/house/<id>.webp, where <id> is the name
-  part of the file (house_01_bed.png → bed).
+  part of the file (house_01_bed.png → bed). The lands' market furniture (land_<land>_NN_<name>.png, see
+  tools/import_kono_world.py) is imported the same way.
 
 Run: python3 -I tools/import_kono_house.py SOURCE_DIR [--preview out.png]"""
 import json, os, re, sys
@@ -78,7 +79,8 @@ def main(args):
             print(m.group(1))
     pieces = []
     for name in sorted(os.listdir(source)):
-        m = re.match(r'house_\d+_(.+)\.png$', name)
+        # House furniture (house_NN_<name>.png) and the lands' market furniture (land_<land>_NN_<name>.png).
+        m = re.match(r'(?:house|land_[a-z]+)_\d+_(.+)\.png$', name)
         if not m:
             continue
         pid = {'study_desk_with_lamp': 'desk'}.get(m.group(1), m.group(1)).replace('_', '-')
