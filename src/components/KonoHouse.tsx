@@ -6,7 +6,7 @@ import {uid} from '../store/model'
 import type {HouseItem} from '../store/konoCare'
 import {ALL_TREATS,type Treat} from '../store/konoCare'
 import {paintPose,type PaintId} from '../store/konoLooks'
-import {FURNITURE,ROOM_SRC,SIZES,clampSpot,furnitureSrc,inStorage,spotFor,type FurnitureUse} from '../store/konoFurniture'
+import {FURNITURE,ROOM_STYLES,roomSrc,SIZES,clampSpot,furnitureSrc,inStorage,spotFor,type FurnitureUse} from '../store/konoFurniture'
 
 const byId=new Map(FURNITURE.map(f=>[f.id,f]))
 const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -17,11 +17,13 @@ const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-red
  * is saved straight away. Tap KONO for a pat. KONO uses the furniture now and then (naps in the bed, reads at
  * the desk, dances to the music…), and at night it sleeps (in its bed, if there is one).
  * Loaded only when opened. */
-export default function KonoHouse({close,visit,entering=false,homes=[],home=null,onHome,house,owned,paint,outfit,night,onSave,onPet,onShop}:{
+export default function KonoHouse({close,visit,room='classic',rooms=[],onRoom,entering=false,homes=[],home=null,onHome,house,owned,paint,outfit,night,onSave,onPet,onShop}:{
  close:()=>void
  /** Visiting someone else's KONO (another plan in the family): their house to look round, nothing to
   * arrange, and a gift to leave: a snack bought with your coins (`price`) and a note, for their KONO's snacks. */
  visit?:{name:string;balance:number;price:(t:Treat)=>number;onGive:(t:Treat,note:string)=>void}
+ /** The room's style (its walls and floor), the styles owned, and switching (store/konoFurniture). */
+ room?:string;rooms?:string[];onRoom?:(id:string)=>void
  /** Opened by KONO walking in through the door of its house on the island: the room swings into view and
   * KONO walks in from the front. */
  entering?:boolean
@@ -99,7 +101,7 @@ export default function KonoHouse({close,visit,entering=false,homes=[],home=null
  const giftTreat=ALL_TREATS.find(t=>t.id===gift)??ALL_TREATS[0]
  return <Modal title={visit?visit.name+'’s KONO':'KONO’s house'} close={close}>
   <div className={'kono-house'+(arranging?' is-arranging':'')+(night?' is-night':'')+(entering?' is-entering':'')}>
-   <div ref={roomRef} className="house-room" style={{backgroundImage:`url(${ROOM_SRC})`}} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onClick={e=>{if(e.target===e.currentTarget)setSelected(null)}}>
+   <div ref={roomRef} className="house-room" style={{backgroundImage:`url(${roomSrc(room)})`}} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onClick={e=>{if(e.target===e.currentTarget)setSelected(null)}}>
     {order.map(h=>{const f=byId.get(h.item);if(!f)return null;// Not <button>s: the app's button styles (background, padding, hover lift) would change how pieces sit.
      return <div role={arranging?'button':'img'} tabIndex={arranging?0:undefined} key={h.id} className={'house-piece'+(f.rug?' is-rug':'')+(h.id===selected&&arranging?' is-selected':'')} aria-label={f.name+(arranging?', drag to move':'')} aria-pressed={arranging?h.id===selected:undefined}
      style={{left:h.x*100+'%',top:h.y*100+'%',width:f.width*(h.size??1)*100+'%',zIndex:f.rug?1:10+Math.round(h.y*1000)}}
@@ -126,6 +128,7 @@ export default function KonoHouse({close,visit,entering=false,homes=[],home=null
    </section>}
    {visit?null:<>
    {!house.length&&!arranging&&<p className="house-empty">KONO’s house is empty! {storage.length?'Tap Arrange to put your furniture in.':'Get furniture in KONO Town’s furniture shop (the rug is free).'}</p>}
+   {rooms.length>1&&onRoom&&<label className="house-home-pick">Walls & floor<select value={room} onChange={e=>onRoom(e.target.value)}>{ROOM_STYLES.filter(r=>rooms.includes(r.id)).map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></label>}
    {homes.length>1&&onHome&&<label className="house-home-pick">KONO lives in<select value={home??homes[0].id} onChange={e=>onHome(e.target.value)}>{homes.map(h=><option key={h.id} value={h.id}>{h.label}{homes.filter(x=>x.label===h.label).length>1?' '+(homes.filter(x=>x.label===h.label).indexOf(h)+1):''}</option>)}</select></label>}
    {!homes.length&&<p className="house-hint">Put a house on the island (Decorate › Homes), then tap it: KONO walks over and goes in.</p>}
    <div className="wb-toolbar house-tools">

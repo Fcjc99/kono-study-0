@@ -20,10 +20,11 @@ const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear','find','exam',
 /** KONO's house (store/konoLooks): the furniture placed in the room. `x` and `y` (0–1) are where the
  * piece stands in the room (the middle of its bottom edge), `size` how much bigger or smaller than usual. */
 export type HouseItem={id:string;item:string;x:number;y:number;size?:number;flip?:boolean}
-/** `home` is the house on the island (a Decorate placement's ID) that KONO lives in and goes into. */
-export type KonoCareState={profileId:string;log:CareEvent[];house?:HouseItem[];home?:string}
+/** `home` is the house on the island (a Decorate placement's ID) that KONO lives in and goes into; `room` is
+ * the style KONO's house is in (store/konoFurniture › ROOM_STYLES). */
+export type KonoCareState={profileId:string;log:CareEvent[];house?:HouseItem[];home?:string;room?:string}
 /** What a care state keeps besides its log (KONO's house and which island house is its home). */
-const extras=(state:KonoCareState|undefined)=>({...(state?.house?{house:state.house}:{}),...(state?.home?{home:state.home}:{})})
+const extras=(state:KonoCareState|undefined)=>({...(state?.house?{house:state.house}:{}),...(state?.home?{home:state.home}:{}),...(state?.room?{room:state.room}:{})})
 export type KonoMeters={full:number;rested:number;happy:number;asleep:boolean;away:boolean}
 export type Treat={id:string;emoji:string;name:string}
 export type PantryItem={taskId:string;treat:Treat}
@@ -149,7 +150,7 @@ export function addCareEvent(state:KonoCareState|undefined,profileId:string,even
  // Coins won and things bought are kept too (old months are folded into one entry, see foldCoins).
  const kept=(e:CareEvent)=>e.kind==='wish'||e.kind==='find'||e.kind==='visit'||e.kind==='bond'||e.kind==='taste'||e.kind==='gift'||e.kind==='coin'||e.kind==='buy'||e.kind==='bank'
  const log=all.filter(e=>kept(e)||e===lastWear||e===lastPaint||time(e.at)>=since)
- if((event.kind==='wish'||event.kind==='exam'||event.kind==='nudge'||event.kind==='visit'||event.kind==='bond'||event.kind==='taste'||event.kind==='coin')&&log.some(e=>e.id===event.id))return {profileId,log,...extras(state)}
+ if((event.kind==='wish'||event.kind==='exam'||event.kind==='nudge'||event.kind==='visit'||event.kind==='bond'||event.kind==='taste'||event.kind==='coin'||event.kind==='find')&&log.some(e=>e.id===event.id))return {profileId,log,...extras(state)}
  if(event.kind==='play'&&now.getTime()<nextPlayAt(log))return {profileId,log,...extras(state)}
  if(event.kind==='pet'){const lastPet=Math.max(-Infinity,...log.filter(e=>e.kind==='pet').map(e=>time(e.at)));if(now.getTime()-lastPet<PET_EVERY_MS)return {profileId,log,...extras(state)}}
  if(event.kind==='sleep'&&bedtime(log,now).tucked)return {profileId,log,...extras(state)}
@@ -206,7 +207,8 @@ export function readCareState(raw:unknown,profileId:string):KonoCareState{
   return [{id:x.id,item:x.item,x:num(x.x,0,1,0.5),y:num(x.y,0,1,0.7),...(x.size!==undefined?{size:num(x.size,0.5,2,1)}:{}),...(x.flip===true?{flip:true}:{})}]
  }).slice(0,80)
  const home=typeof value.home==='string'&&value.home&&value.home.length<=150?value.home:undefined
- return {profileId,log,...(Array.isArray(value.house)?{house}:{}),...(home?{home}:{})}
+ const room=typeof value.room==='string'&&/^[a-z]{1,30}$/.test(value.room)?value.room:undefined
+ return {profileId,log,...(Array.isArray(value.house)?{house}:{}),...(home?{home}:{}),...(room?{room}:{})}
 }
 
 /** What KONO says after being fed or patted, shown in place of the day's line for a moment. */

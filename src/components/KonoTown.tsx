@@ -7,7 +7,7 @@ import {playSfx} from '../konoSounds'
 import {coinBurst} from '../delight'
 import type {Treat} from '../store/konoCare'
 import {COIN_ICON,COIN_ROUNDS,WHEEL,coinText,type GameId,type ShopItem} from '../store/konoCoins'
-import {boughtLine,foodStock,furnitureStock,outfitStock,paintStock,treasureStock} from '../store/konoShops'
+import {boughtLine,foodStock,furnitureStock,outfitStock,paintStock,roomStock,treasureStock} from '../store/konoShops'
 import type {OutfitId} from '../store/konoWardrobe'
 import {albumCount,albumSections,type AlbumInput} from '../store/konoAlbum'
 import type {PaintId} from '../store/konoLooks'
@@ -21,7 +21,7 @@ const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-red
  * house), the prize wheel (one free spin a day),
  * the arcade (the first few rounds a day win coins) and the album of everything there is to collect.
  * Loaded only when opened. */
-export default function KonoTown({close,sound=true,balance,startTab='shops',quest,onGiveQuest,today,outfitsOwned,found,paints,furniture,onBuy,spin,onSpin,roundsLeft,onGame,album:albumInput}:{
+export default function KonoTown({close,sound=true,balance,startTab='shops',quest,onGiveQuest,today,outfitsOwned,found,paints,furniture,rooms,onBuy,spin,onSpin,roundsLeft,onGame,album:albumInput}:{
  close:()=>void
  /** Settings › Sounds: KONO Town's little sounds. */
  sound?:boolean
@@ -35,6 +35,8 @@ export default function KonoTown({close,sound=true,balance,startTab='shops',ques
  paints:{owned:Set<PaintId>;worn:PaintId|null;onWear:(id:PaintId|null)=>void}
  /** Furniture: all of it, how many of each KONO has, and opening the house to place it. */
  furniture:{owned:Map<string,number>;onOpenHouse:()=>void}
+ /** Room styles for KONO's house: which are owned, which is in use, and using one. */
+ rooms:{owned:Set<string>;current:string;onUse:(id:string)=>void}
  onBuy:(item:ShopItem)=>void
  /** Today's spin, if already spun (the coins it won). onSpin spins and returns the slice won. */
  spin:number|null;onSpin:()=>number|null
@@ -58,6 +60,11 @@ export default function KonoTown({close,sound=true,balance,startTab='shops',ques
   </li>})}</ul>:<p className="wb-muted">{empty}</p>}
   {after}
  </section>
+ const useRoomButton=(item:ShopItem)=>{
+  if(!rooms.owned.has(item.id))return null
+  const on=rooms.current===item.id
+  return <button type="button" aria-pressed={on} className={on?'primary':undefined} aria-label={on?item.name+' is in KONO’s house':'Use '+item.name+' in KONO’s house'} onClick={()=>{rooms.onUse(on?'classic':item.id);setNote(on?'KONO’s house is classic again.':'🏠 KONO’s house is '+item.name.toLowerCase()+' now!')}}>{on?'In the house ✓':'Use it'}</button>
+ }
  const wearButton=(item:ShopItem)=>{
   const id=item.id as PaintId
   if(!paints.owned.has(id))return null
@@ -82,6 +89,7 @@ export default function KonoTown({close,sound=true,balance,startTab='shops',ques
    </>}
    {tab==='home'&&<>
     {shop('Paint shop','Colors KONO keeps for good. Switch any time.',paintStock(),'',wearButton,paints.worn&&<p className="town-classic"><button type="button" onClick={()=>{paints.onWear(null);setNote('KONO is back to classic.')}}>Back to classic KONO</button></p>)}
+    {shop('Walls & floors','The same room with new walls and floors. Furniture stays put.',roomStock(),'',useRoomButton)}
     {shop('Furniture shop','For KONO’s house. Place it in the room.',furnitureStock(),'',undefined,<p className="town-classic"><button type="button" className="primary" onClick={furniture.onOpenHouse}>🏠 Go to KONO’s house</button></p>)}
    </>}
    {tab==='wheel'&&<PrizeWheel spin={spin} onSpin={onSpin} sound={sound}/>}

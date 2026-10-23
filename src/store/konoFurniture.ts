@@ -8,7 +8,8 @@ import type {HouseItem} from './konoCare'
  * what KONO does with it now and then: a pose, where KONO stands (`dy` above the piece's foot is on it, as
  * a share of the room's height, a share of the piece's width across), a little emoji, and what it says. */
 export type FurnitureUse={pose:string;dx?:number;dy:number;on?:boolean;emoji?:string;line:string}
-export type Furniture={id:string;name:string;price:number;width:number;rug?:boolean;wall?:boolean;use?:FurnitureUse}
+/** `land` pieces are sold only at that land's market on the world map (store/konoWorld). */
+export type Furniture={id:string;name:string;price:number;width:number;rug?:boolean;wall?:boolean;use?:FurnitureUse;land?:'beach'|'forest'|'snow'}
 export const FURNITURE:Furniture[]=[
  {id:'round-rug',name:'Round rug',price:0,width:0.3,rug:true},
  {id:'bed',name:'Cozy bed',price:120,width:0.24,use:{pose:'sleep',dy:-0.07,on:true,emoji:'💤',line:'KONO is napping in the cozy bed.'}},
@@ -26,6 +27,18 @@ export const FURNITURE:Furniture[]=[
  {id:'wall-clock',name:'Wall clock',price:60,width:0.08,wall:true},
  {id:'picture-frame',name:'Picture frame',price:50,width:0.08,wall:true},
  {id:'string-lights',name:'String lights',price:70,width:0.2,wall:true},
+ {id:'shell-armchair',name:'Shell armchair',price:140,width:0.15,land:'beach',use:{pose:'tea',dy:-0.06,on:true,emoji:'🐚',line:'KONO is lounging in the shell armchair.'}},
+ {id:'driftwood-table',name:'Driftwood table',price:90,width:0.16,land:'beach'},
+ {id:'hammock',name:'Beach hammock',price:170,width:0.22,land:'beach',use:{pose:'sleep',dy:-0.06,on:true,emoji:'🌴',line:'KONO is swinging in the hammock.'}},
+ {id:'shell-lamp',name:'Shell lamp',price:80,width:0.07,land:'beach'},
+ {id:'mushroom-stool',name:'Mushroom stool',price:80,width:0.1,land:'forest',use:{pose:'happy',dy:-0.05,on:true,emoji:'🍄',line:'KONO is perched on the mushroom stool.'}},
+ {id:'log-bookshelf',name:'Log bookshelf',price:160,width:0.17,land:'forest',use:{pose:'read',dx:0.7,dy:0.03,emoji:'📗',line:'KONO is reading by the log bookshelf.'}},
+ {id:'leaf-armchair',name:'Leaf armchair',price:140,width:0.14,land:'forest',use:{pose:'tea',dy:-0.06,on:true,emoji:'🍃',line:'KONO is curled up in the leaf armchair.'}},
+ {id:'acorn-lamp',name:'Acorn lamp',price:80,width:0.06,land:'forest'},
+ {id:'knitted-armchair',name:'Knitted armchair',price:140,width:0.15,land:'snow',use:{pose:'tea',dy:-0.06,on:true,emoji:'🧶',line:'KONO is snuggled in the knitted armchair.'}},
+ {id:'pine-table',name:'Pine table',price:90,width:0.15,land:'snow'},
+ {id:'quilted-bed',name:'Quilted bed',price:180,width:0.24,land:'snow',use:{pose:'sleep',dy:-0.07,on:true,emoji:'💤',line:'KONO is napping under the quilt.'}},
+ {id:'hearth',name:'Stone hearth',price:220,width:0.17,land:'snow',use:{pose:'tea',dy:0.05,emoji:'🔥',line:'KONO is toasting its paws by the hearth.'}},
 ]
 /** Where KONO goes to use a piece placed in the room. */
 export function spotFor(h:HouseItem,f:Furniture):{x:number;y:number}{
@@ -34,6 +47,10 @@ export function spotFor(h:HouseItem,f:Furniture):{x:number;y:number}{
 }
 export const furnitureSrc=(id:string)=>'/garden/house/'+id+'.webp'
 export const ROOM_SRC='/garden/house/room.webp'
+/** Room styles: the same room with other walls and floors (furniture stays where it is). Classic is free. */
+export type RoomStyle={id:string;name:string;price:number}
+export const ROOM_STYLES:RoomStyle[]=[{id:'classic',name:'Classic wood',price:0},{id:'mint',name:'Mint cottage',price:200}]
+export const roomSrc=(id:string|undefined)=>id&&id!=='classic'&&ROOM_STYLES.some(r=>r.id===id)?'/garden/house/room-'+id+'.webp':ROOM_SRC
 /** Pieces owned but not in the room (to place from the tray). */
 export function inStorage(owned:Map<string,number>,house:HouseItem[]):{furniture:Furniture;count:number}[]{
  return FURNITURE.map(f=>({furniture:f,count:(owned.get(f.id)??0)-house.filter(h=>h.item===f.id).length})).filter(x=>x.count>0)

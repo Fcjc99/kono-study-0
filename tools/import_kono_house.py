@@ -1,11 +1,13 @@
 """Imports KONO's house (Sanctuary › KONO's house): the room and the furniture pieces.
 
 - The room: one 1448 x 1086 picture of the empty room (kono-house-room.png), saved as
-  public/garden/house/room.webp.
+  public/garden/house/room.webp; its other styles (kono-house-room-<style>.png, the same room repainted) as
+  room-<style>.webp.
 - Furniture: one piece per picture on a plain white background (house_NN_<name>.png). The white around
   each piece is cut away (by flooding in from the edges, so white inside a piece stays), the piece is
   trimmed, scaled to at most 512 px and saved as public/garden/house/<id>.webp, where <id> is the name
-  part of the file (house_01_bed.png → bed).
+  part of the file (house_01_bed.png → bed). The lands' market furniture (land_<land>_NN_<name>.png, see
+  tools/import_kono_world.py) is imported the same way.
 
 Run: python3 -I tools/import_kono_house.py SOURCE_DIR [--preview out.png]"""
 import json, os, re, sys
@@ -68,13 +70,17 @@ def main(args):
     source = args[0]
     preview = args[args.index('--preview') + 1] if '--preview' in args else None
     os.makedirs(OUT, exist_ok=True)
-    room = os.path.join(source, 'kono-house-room.png')
-    if os.path.exists(room):
-        Image.open(room).convert('RGB').save(os.path.join(OUT, 'room.webp'), 'WEBP', quality=86, method=6)
-        print('room')
+    # The room, its other styles (kono-house-room-<style>.png → room-<style>.webp, the same room repainted)
+    # and other rooms (kono-house-room2.png → room2.webp).
+    for name in sorted(os.listdir(source)):
+        m = re.match(r'kono-house-(room(?:-[a-z]+|\d)?)\.png$', name)
+        if m:
+            Image.open(os.path.join(source, name)).convert('RGB').save(os.path.join(OUT, m.group(1) + '.webp'), 'WEBP', quality=86, method=6)
+            print(m.group(1))
     pieces = []
     for name in sorted(os.listdir(source)):
-        m = re.match(r'house_\d+_(.+)\.png$', name)
+        # House furniture (house_NN_<name>.png) and the lands' market furniture (land_<land>_NN_<name>.png).
+        m = re.match(r'(?:house|land_[a-z]+)_\d+_(.+)\.png$', name)
         if not m:
             continue
         pid = {'study_desk_with_lamp': 'desk'}.get(m.group(1), m.group(1)).replace('_', '-')

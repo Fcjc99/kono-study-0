@@ -33,6 +33,8 @@ export function wornPaint(log:CareEvent[],owned:Set<PaintId>):PaintId|null{
  return id&&owned.has(id)?id:null
 }
 
+/** Room styles bought (KONO's house), and classic, which every house has. */
+export const ownedRooms=(log:CareEvent[])=>new Set(['classic',...log.filter(e=>e.kind==='buy'&&e.item?.startsWith('room:')).map(e=>e.item!.slice(5))])
 /** How many of each piece KONO owns. */
 export function ownedFurniture(log:CareEvent[]):Map<string,number>{
  const counts=new Map<string,number>()
