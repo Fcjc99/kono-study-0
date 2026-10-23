@@ -57,11 +57,12 @@ export const spinEvent=(today:string,slice:number,now:Date):CareEvent=>({id:spin
 /** The arcade: any game, any time. The first few rounds a day win coins (by score); after that it's just
  * for fun. */
 export const COIN_ROUNDS=3
-export type GameId='catch'|'memory'|'peekaboo'|'bubbles'
+/** The arcade's games, and each land's own game on the world map (components/LandGames). */
+export type GameId='catch'|'memory'|'peekaboo'|'bubbles'|'blast'|'chase'|'tumble'|'sled'
 const gamePrefix=(today:string)=>'game-'+today+'-'
 export const roundsLeft=(log:CareEvent[],today:string)=>Math.max(0,COIN_ROUNDS-log.filter(e=>e.kind==='coin'&&e.id.startsWith(gamePrefix(today))).length)
 export function gameCoins(game:GameId,score:number):number{
- const n=game==='memory'?60-score*2:game==='peekaboo'?score*3:score*2
+ const n=game==='memory'?60-score*2:game==='peekaboo'||game==='chase'?score*3:game==='tumble'?score/8:game==='blast'?score/12:score*2
  return Math.max(score>0?5:0,Math.min(50,Math.round(n)))
 }
 /** The next coin round's entry, or null when today's coin rounds are used up. */

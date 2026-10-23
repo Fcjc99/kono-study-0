@@ -13,6 +13,9 @@
 .kono-world .world-place:disabled{opacity:1!important;cursor:default}
 .kono-world .world-place.is-locked{background:rgba(236,232,226,.94)!important;color:#6d5a50!important}
 .kono-world .world-place .world-lock{font-weight:600;color:#a0526d}
+.kono-world .world-place .world-game{font-weight:600;color:#3f6b8a}
+.kono-world .world-stall.is-game{background:rgba(255,244,214,.94)!important}
+.kono-world .world-stall[aria-pressed=true]{border-color:#c987a2!important}
 .world-kono{position:absolute;transform:translate(-50%,-100%);pointer-events:none;transition:left .9s ease-in-out,top .9s ease-in-out;z-index:2}
 .world-kono.is-strolling{transition:left 2.4s ease-in-out,top 2.4s ease-in-out}
 .world-kono .kono-face-box{display:block;position:relative}

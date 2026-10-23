@@ -3517,6 +3517,76 @@ test('Round 55: the world map: the beach is open (the forest opens with more hea
  await page.getByRole('dialog',{name:'World map'}).waitFor()
 })
 
+test('Round 56: each land has its own game: Shell chase on the beach, Acorn tumble in the forest (a cleared group scores and wins coins) and Sled dash in the snowy village; the arcade has KONO blast (tap or drag pieces on)',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.install({time:new Date('2026-10-15T15:00:00')})
+ // 20 days of care is 3 bond hearts: every land is open.
+ const cared=Array.from({length:20},(_,i)=>({id:'bond-2026-09-'+String(i+1).padStart(2,'0'),kind:'bond',at:'2026-09-'+String(i+1).padStart(2,'0')+'T12:00:00.000Z'}))
+ d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:500},...cared]}}
+ const care=()=>cloud.users.alice.plan.data.konoCare?.[pid]??{log:[]}
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('navigation',{name:'Sanctuary view'}).getByRole('button',{name:'World map'}).click()
+ const world=page.getByRole('dialog',{name:'World map'})
+ await world.getByRole('button',{name:'Go to Mossy Forest Glade'}).getByText('Acorn tumble').waitFor()
+ // The beach: Shell chase. KONO walks right into the edge (no shells, so no coins and no coin round used).
+ await world.getByRole('button',{name:'Go to Sandy Beach Cove'}).click()
+ const beach=page.getByRole('dialog',{name:'Sandy Beach Cove'})
+ await beach.getByRole('button',{name:'The Shell chase booth'}).click()
+ await beach.getByRole('button',{name:'Play Shell chase'}).click()
+ await beach.getByRole('application',{name:/^Shell chase/}).waitFor()
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(1200);await beach.getByRole('application',{name:/^Shell chase/}).screenshot({path:process.env.KONO_SHOTS+'/land-chase.png'})}
+ await beach.getByText('KONO collected 0 shells',{exact:false}).waitFor({timeout:10000})
+ await beach.getByRole('button',{name:'Play again'}).waitFor()
+ await beach.getByRole('button',{name:'← World map'}).click()
+ // The forest: Acorn tumble. Tap a piece with a matching neighbor, then finish for coins.
+ await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:'Go to Mossy Forest Glade'}).click()
+ const forest=page.getByRole('dialog',{name:'Mossy Forest Glade'})
+ await forest.getByRole('button',{name:'The Acorn tumble booth'}).click()
+ await forest.getByRole('button',{name:'Play Acorn tumble'}).click()
+ const board=forest.getByRole('group',{name:'Acorn tumble'})
+ await board.locator('.tumble-tile').first().waitFor()
+ const pair=await board.evaluate(el=>{const at=new Map([...el.querySelectorAll('.tumble-tile')].map(b=>[b.dataset.c+','+b.dataset.r,b.dataset.kind]));for(const [k,kind] of at){const [c,r]=k.split(',').map(Number);if(at.get(c+','+(r+1))===kind||at.get((c+1)+','+r)===kind)return k}return null})
+ assert.ok(pair,'a fresh board always has a pair somewhere')
+ const [c,r]=pair.split(',')
+ await board.locator('.tumble-tile[data-c="'+c+'"][data-r="'+r+'"]').click()
+ await forest.getByText(/^Pieces left: (5[0-4]|[1-4]\d)$/).waitFor()
+ if(process.env.KONO_SHOTS)await forest.screenshot({path:process.env.KONO_SHOTS+'/land-tumble.png'})
+ await forest.getByRole('button',{name:'I’m done'}).click()
+ await forest.getByRole('status').filter({hasText:/That’s \d+ points! 🌰.*\+\d+ coins!/}).waitFor()
+ await waitFor(()=>care().log.some(e=>e.id==='game-2026-10-15-1'&&e.item==='game:tumble'&&e.n>=5),'the tumble coins never reached the account')
+ await forest.getByRole('button',{name:'← World map'}).click()
+ // The snowy village: Sled dash runs, and KONO steers between the lanes.
+ await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:'Go to Snowy Mountain Village'}).click()
+ const snow=page.getByRole('dialog',{name:'Snowy Mountain Village'})
+ await snow.getByRole('button',{name:'The Sled dash booth'}).click()
+ await snow.getByRole('button',{name:'Play Sled dash'}).click()
+ await snow.getByRole('application',{name:/^Sled dash/}).waitFor()
+ const lane=()=>snow.locator('.sled-kono').evaluate(el=>el.style.left)
+ const middle=await lane()
+ await snow.getByRole('button',{name:'Steer left'}).click()
+ await page.waitForFunction(m=>document.querySelector('.sled-kono')?.style.left!==m,middle,{timeout:5000})
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(2500);await snow.getByRole('application',{name:/^Sled dash/}).screenshot({path:process.env.KONO_SHOTS+'/land-sled.png'})}
+ // The arcade (here and in KONO Town) has KONO blast, the block puzzle: tap a piece, then a square; or drag one on.
+ await snow.getByRole('button',{name:'🎮 Arcade'}).click()
+ await snow.getByRole('region',{name:'Arcade'}).getByRole('button',{name:/KONO blast/}).click()
+ const blast=snow.getByRole('grid',{name:'KONO blast board'})
+ const score=async()=>Number((await snow.locator('.blast-score').textContent()))
+ const pieces=snow.getByRole('group',{name:'Pieces'})
+ await pieces.getByRole('button').first().click()
+ await snow.getByText('Now tap the square for the piece’s top-left corner.').waitFor()
+ await blast.getByRole('gridcell',{name:'Row 1, column 1'}).click()
+ await page.waitForFunction(()=>Number(document.querySelector('.blast-score')?.textContent)>0,null,{timeout:5000})
+ const first=await score()
+ const piece=await pieces.getByRole("button").first().boundingBox(),area=await blast.boundingBox()
+ await page.mouse.move(piece.x+piece.width/2,piece.y+piece.height/2);await page.mouse.down()
+ for(let k=1;k<=8;k++)await page.mouse.move(piece.x+piece.width/2+(area.x+area.width*0.6-piece.x-piece.width/2)*k/8,piece.y+piece.height/2+(area.y+area.height*0.6+56-piece.y-piece.height/2)*k/8)
+ if(process.env.KONO_SHOTS)await snow.getByRole('region',{name:'Arcade'}).screenshot({path:process.env.KONO_SHOTS+'/arcade-blast-drag.png'})
+ await page.mouse.up()
+ await page.waitForFunction(n=>Number(document.querySelector('.blast-score')?.textContent)>n,first,{timeout:5000})
+ if(process.env.KONO_SHOTS)await snow.getByRole('region',{name:'Arcade'}).screenshot({path:process.env.KONO_SHOTS+'/arcade-blast.png'})
+})
+
 test('Round 54: KONO uses the furniture; visit Emma’s KONO and leave a snack; Undo after Add all; skip one turn of a repeating to-do',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.install({time:new Date('2026-10-15T15:00:00')}) // a Thursday afternoon
