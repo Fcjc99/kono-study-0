@@ -49,3 +49,46 @@ Furniture (one piece per picture):
 - A new piece also needs adding to `FURNITURE` in `src/store/konoLooks.ts` (its name, price and width).
 
 Both tools list what they make in `tools/public-allowlist.json`, so the build ships it.
+
+## KONO's house, part 2: room styles and a second room
+
+Room styles are the **same room** repainted, so furniture stands in the same places. Attach the current
+room (`public/garden/house/room.webp`) as well as the style references.
+
+> Repaint the attached cozy round room **exactly**: same shape, walls, window, camera angle and size, and the
+> same empty floor area. Change only the wallpaper, trim and floor to **[style]**. Same soft painterly
+> storybook look and warm afternoon light. Lamps and windows that glow are warm yellow-orange. No furniture,
+> no characters, no text.
+
+- 1448 × 1086, named `kono-house-room-<style>.png`.
+
+Second room (a new shape, same rules for the floor):
+
+> Cozy storybook **[attic bedroom with a slanted ceiling and a skylight]**, painted in the same soft
+> painterly style, light and 3/4 top-down angle as the attached room. Keep a large, mostly empty floor in
+> the lower two-thirds for furniture; detail only on the walls and edges. No furniture, no characters, no text.
+
+- 1448 × 1086, named `kono-house-room2.png`.
+
+## World map and lands
+
+Map:
+
+> A cozy storybook world map seen from above at a slight angle, in the same painterly style and warm light
+> as the attached island: KONO's small island in the middle of a calm sea, with three places around it:
+> a **sandy beach cove** (left), a **mossy forest glade** (top) and a **snowy mountain village** (right),
+> linked by little dotted sea paths. Clear open water between them. No text, no labels.
+
+- 1448 × 1086, named `world-map.png`.
+
+Each land (one picture each):
+
+> The **[sandy beach cove]** from the world map, up close: a cozy storybook scene in the same painterly
+> style and 3/4 top-down angle as the attached island. A wide open walkable ground in the middle and lower
+> half (sand / grass / snow), with detail around the edges, and a small empty market stall on one side.
+> Warm afternoon light. No characters, no text.
+
+- 1448 × 1086, named `land-beach.png`, `land-forest.png`, `land-snow.png`.
+
+Each land's shop sells 4 pieces of furniture (same furniture prompt as the house, one per picture, on
+white): `land_beach_NN_<name>.png`, `land_forest_NN_<name>.png`, `land_snow_NN_<name>.png`.
