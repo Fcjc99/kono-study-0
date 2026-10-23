@@ -3,7 +3,8 @@ import {useEffect,useRef,useState} from 'react'
 import {FINDS,findSrc} from '../store/konoFinds'
 import {playSfx} from '../konoSounds'
 import BlockBlast from './BlockBlast'
-import {deal,type Piece} from '../store/blockBlast'
+import GameScreen from './GameScreen'
+import {deal,readBlastSave,type BlastSave,type Piece} from '../store/blockBlast'
 
 /** Break-time games with KONO, offered when a focus session finishes ("Take a short break"). Three quick
  * ones: Snack catch (move KONO to catch falling treats, 30 seconds), Memory match (pairs of KONO's
@@ -35,23 +36,31 @@ const clock=(ms:number)=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.flo
 const shuffled=<T,>(items:T[])=>{const deck=[...items];for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}return deck}
 
 /** `startedAt` is when the break games were opened (the break runs BREAK_MINUTES from then). */
-export default function BreakGames({startedAt,onClose,arcade=false,sound=false,onScore}:{startedAt:number;onClose?:()=>void;arcade?:boolean;sound?:boolean;onScore?:(game:Game,score:number)=>string|null}){
- const [game,setGame]=useState<Game|null>(null),[deck,setDeck]=useState<string[]>([]),[pieces,setPieces]=useState<Piece[]>([])
+/** Games play full screen (GameScreen); Leave goes back to the list. KONO blast pays coins as lines clear
+ * (`onBlastCoins`) and is saved as it goes, so Leave keeps it for next time. */
+export default function BreakGames({startedAt,onClose,arcade=false,sound=false,onScore,onBlastCoins}:{startedAt:number;onClose?:()=>void;arcade?:boolean;sound?:boolean;onScore?:(game:Game,score:number)=>string|null;onBlastCoins?:(lines:number,streak:number)=>number|null}){
+ const [game,setGame]=useState<Game|null>(null),[deck,setDeck]=useState<string[]>([]),[pieces,setPieces]=useState<Piece[]>([]),[blastSave,setBlastSave]=useState<BlastSave|null>(null)
  const [now,setNow]=useState(startedAt)
  const [result,setResult]=useState<string|null>(null)
  useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return ()=>window.clearInterval(t)},[])
  const left=startedAt+BREAK_MINUTES*60_000-now,over=!arcade&&left<=0
- const finish=(g:Game,score:number,line:string)=>{const best=saveBest(g,score),extra=onScore?.(g,score);setResult(line+(best?' New best! 🎉':'')+(extra?' '+extra:''));setGame(null)}
- return <section className={'break-games'+(arcade?' is-arcade':'')} aria-label={arcade?'Arcade':'Break games with KONO'}>
-  {arcade?game&&<header><strong>{GAMES.find(g=>g.id===game)?.emoji} {GAMES.find(g=>g.id===game)?.name}</strong></header>
-  :<header><strong>🎮 Break time with KONO</strong><span role="timer" aria-label="Break time left">{over?'Break’s over':'Break: '+clock(left)}</span>{onClose&&<button type="button" onClick={onClose}>Close</button>}</header>}
-  {over?<p className="break-over" role="status">That was a nice reset! KONO’s ready for the next session when you are. 📚</p>
-  :game==='catch'?<SnackCatch onEnd={n=>finish('catch',n,'KONO caught '+n+' snack'+(n===1?'':'s')+'! 😋')}/>
+ const finish=(g:Game,score:number,line:string)=>{const best=saveBest(g,score),extra=g==='blast'?null:onScore?.(g,score);setResult(line+(best?' New best! 🎉':'')+(extra?' '+extra:''));setGame(null)}
+ const info=GAMES.find(g=>g.id===game)
+ const playing=over?null:game==='catch'?<SnackCatch onEnd={n=>finish('catch',n,'KONO caught '+n+' snack'+(n===1?'':'s')+'! 😋')}/>
   :game==='memory'?<MemoryMatch cards={deck} onEnd={n=>finish('memory',n,'All pairs found in '+n+' moves! 🧠')}/>
   :game==='peekaboo'?<Peekaboo onEnd={n=>finish('peekaboo',n,'You booped KONO '+n+' time'+(n===1?'':'s')+'! 🌿')}/>
-  :game==='blast'?<BlockBlast start={pieces} best={readBest('blast')} sound={sound} onEnd={n=>finish('blast',n,'KONO blast: '+n+' point'+(n===1?'':'s')+'! 🧱')}/>
+  :game==='blast'?<BlockBlast start={pieces} saved={blastSave} best={readBest('blast')} sound={sound} onCoins={onBlastCoins} onEnd={n=>finish('blast',n,'KONO blast: '+n+' point'+(n===1?'':'s')+'! 🧱')}/>
   :game==='bubbles'?<BubblePop sound={sound} onEnd={n=>finish('bubbles',n,'You popped '+n+' bubble'+(n===1?'':'s')+'! 🫧')}/>
-  :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.filter(g=>arcade||!g.arcade).map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>{setResult(null);if(g.id==='memory')setDeck(shuffled([...MEMORY_IDS,...MEMORY_IDS]));if(g.id==='blast')setPieces(deal(Math.random));setGame(g.id)}}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
+  :null
+ const kept=readBlastSave()
+ return <section className={'break-games'+(arcade?' is-arcade':'')} aria-label={arcade?'Arcade':'Break games with KONO'}>
+  {!arcade&&<header><strong>🎮 Break time with KONO</strong><span role="timer" aria-label="Break time left">{over?'Break’s over':'Break: '+clock(left)}</span>{onClose&&<button type="button" onClick={onClose}>Close</button>}</header>}
+  {over?<p className="break-over" role="status">That was a nice reset! KONO’s ready for the next session when you are. 📚</p>
+  :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.filter(g=>arcade||!g.arcade).map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>{setResult(null);if(g.id==='memory')setDeck(shuffled([...MEMORY_IDS,...MEMORY_IDS]));if(g.id==='blast'){setPieces(deal(Math.random));setBlastSave(readBlastSave())}setGame(g.id)}}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.id==='blast'&&kept?'Carry on your game ('+kept.score+' points so far)':g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
+  {playing&&info&&<GameScreen title={info.emoji+' '+info.name} tone={game==='blast'?'blast':undefined} onLeave={()=>setGame(null)}>
+   {!arcade&&<p className="game-screen-timer" role="timer">{'Break: '+clock(left)}</p>}
+   {playing}
+  </GameScreen>}
  </section>
 }
 

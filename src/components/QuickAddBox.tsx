@@ -3,6 +3,9 @@ import {parseQuickAdd,type QuickAddGuess} from '../store/quickAdd'
 import {classTime} from '../store/classSchedule'
 import {repeatLabel} from '../store/familyTodos'
 import type {Remembered} from '../store/eventMemory'
+import type {AppData} from '../store/model'
+import {findClashes} from '../store/clashes'
+import {weekdayDates} from '../store/eventRepeat'
 
 const niceDate=(date:string)=>new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})
 /** Several things at once: one per line, or separated by " / " or ";". */
@@ -13,7 +16,9 @@ const splitLines=(text:string)=>text.split(/\n|\s+\/\s+|;/).map(l=>l.trim()).fil
  * once. An event typed again ("soccer practice") takes last time's time, people, place and driver for
  * whatever the line doesn't say. */
 type WithLink=QuickAddGuess&{link?:string}
-export default function QuickAddBox({clashes,subjects,people=[],today,initialText='',link='',recall,onAdd,onAddMany,onEdit}:{subjects:{id:string;name:string}[];people?:{id:string;name:string}[];clashes?:(guess:QuickAddGuess)=>{date:string;text:string}[];today:string;initialText?:string;link?:string;recall?:(title:string)=>Remembered|undefined;onAdd:(guess:WithLink)=>void;onAddMany?:(list:QuickAddGuess[])=>void;onEdit:(guess:WithLink)=>void}){
+/** `clashIn`: the plan to check a typed event against (store/clashes), with how dates read. */
+export default function QuickAddBox({clashIn,subjects,people=[],today,initialText='',link='',recall,onAdd,onAddMany,onEdit}:{subjects:{id:string;name:string}[];people?:{id:string;name:string}[];clashIn?:{data:AppData;profileId:string;dateLabel:(date:string)=>string};today:string;initialText?:string;link?:string;recall?:(title:string)=>Remembered|undefined;onAdd:(guess:WithLink)=>void;onAddMany?:(list:QuickAddGuess[])=>void;onEdit:(guess:WithLink)=>void}){
+ const clashes=clashIn?(g:QuickAddGuess)=>g.event?findClashes(clashIn.data,clashIn.profileId,{dates:[g.due,...weekdayDates(g.due,g.event.repeatDays,g.event.until)],time:g.time,endTime:g.event.endTime,kidIds:g.event.kidIds},clashIn.dateLabel):[]:undefined
  const [text,setText]=useState(initialText)
  const read=(line:string):QuickAddGuess=>{
   const g=parseQuickAdd(line,subjects,today,people),m=g.event?recall?.(g.title):undefined

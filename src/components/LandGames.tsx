@@ -3,10 +3,11 @@ import {useEffect,useRef,useState} from 'react'
 import type {LandId} from '../store/konoWorld'
 import {KINDS,LAND_GAMES,ROWS,COLS,clearGroup,hasMoves,tumbleBoard,type LandGameId,type Tile} from '../store/landGames'
 import {playSfx} from '../konoSounds'
+import GameScreen from './GameScreen'
 
 /** Each land's own game on the world map (components/KonoWorld), played from its booth on the land's
  * picture. Like the arcade, the first rounds a day win coins (store/konoCoins › gameCoins) and best scores
- * stay on this device. After classic pet-site games:
+ * stay on this device. A game plays full screen (Leave ends the round). After classic pet-site games:
  * - Sandy Beach Cove: Shell chase (a snake game, after Meerca Chase): steer KONO to the shells, each one
  *   adds a baby crab to the line behind it; bumping the edge or a crab ends it.
  * - Mossy Forest Glade: Acorn tumble (after Destruct-O-Match): tap two or more touching pieces of a kind to
@@ -31,15 +32,15 @@ export default function LandGame({land,sound,kono,onScore}:{land:LandId;sound:bo
  const start=()=>{setResult(null);if(game.id==='tumble')setBoard(tumbleBoard());setRound(r=>r+1);setPlaying(true)}
  const best=readBest(game.id)
  return <section className="land-game" aria-label={game.name}>
-  {playing?game.id==='chase'?<ShellChase key={round} kono={kono} sound={sound} onEnd={n=>finish(n,'KONO collected '+game.unit(n)+' and '+n+' baby crab'+(n===1?'':'s')+' followed along! 🦀')}/>
+  {playing&&<GameScreen title={game.emoji+' '+game.name} onLeave={()=>setPlaying(false)}><div className="land-game">{game.id==='chase'?<ShellChase key={round} kono={kono} sound={sound} onEnd={n=>finish(n,'KONO collected '+game.unit(n)+' and '+n+' baby crab'+(n===1?'':'s')+' followed along! 🦀')}/>
   :game.id==='tumble'?<AcornTumble key={round} start={board} sound={sound} onEnd={(n,clear)=>finish(n,(clear?'You cleared the whole glade! ':'')+'That’s '+game.unit(n)+'! 🌰')}/>
-  :<SledDash key={round} kono={kono} sound={sound} onEnd={(n,crashed)=>finish(n,(crashed?'Bonk! KONO tumbled into the snow with ':'KONO made it to the bottom with ')+game.unit(n)+'! 🛷')}/>
-  :<div className="land-game-intro">
+  :<SledDash key={round} kono={kono} sound={sound} onEnd={(n,crashed)=>finish(n,(crashed?'Bonk! KONO tumbled into the snow with ':'KONO made it to the bottom with ')+game.unit(n)+'! 🛷')}/>}</div></GameScreen>}
+  <div className="land-game-intro">
    <span className="land-game-emoji" aria-hidden="true">{game.emoji}</span>
    <div><strong>{game.name}</strong><p>{game.how}</p>{best!==null&&<small>Best: {game.unit(best)}</small>}</div>
    {result&&<p className="land-game-result" role="status">{result}</p>}
    <button type="button" className="primary" onClick={start}>{result?'Play again':'Play '+game.name}</button>
-  </div>}
+  </div>
  </section>
 }
 

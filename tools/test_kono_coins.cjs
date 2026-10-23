@@ -169,5 +169,11 @@ test('KONO blast: a full row or column clears (both at once count as two lines),
  let i=0;const rolls=[0,0.5,0.99,0.2,0.4,0.6];const hand=b.deal(()=>rolls[i++%rolls.length])
  assert.equal(hand.length,3);assert.equal(hand[0].shape.id,'dot');assert.ok(hand.every(p=>p.color>=0&&p.color<b.COLORS))
  assert.equal(coins.gameCoins('blast',300),25)
+ // Coins as you play: lines × lines, times the combo, up to 75 a day.
+ assert.equal(coins.blastCoins(1,0),1);assert.equal(coins.blastCoins(2,0),4);assert.equal(coins.blastCoins(2,2),12);assert.equal(coins.blastCoins(1,9),5,'the combo tops out at ×5')
+ const now=new Date('2026-10-22T15:00:00Z');let log=[]
+ for(let i=0;i<9;i++){const e=coins.blastEvent(log,'2026-10-22',3,0,new Date(now.getTime()+i));if(e)log=[...log,e]}
+ assert.equal(coins.blastToday(log,'2026-10-22'),75,'nine big clears hit the daily limit exactly');assert.equal(new Set(log.map(e=>e.id)).size,log.length)
+ assert.equal(coins.blastEvent(log,'2026-10-22',1,0,now),null);assert.ok(coins.blastEvent(log,'2026-10-23',1,0,now))
 })
 console.log(passed+'/'+passed+' coin checks passed.')

@@ -13,7 +13,6 @@ import {addCareEvent,ALL_TREATS,waitingGifts,treatFor,type Treat,ASLEEP_LINE,AWA
 import {dayGlance,daySummary} from './store/dayGlance'
 import {upcomingSpecial,daysAwayLabel} from './store/specialDays'
 import {leaveBy,mapsLink} from './store/leaveBy'
-import {findClashes} from './store/clashes'
 import {OUTFITS,outfitsOffered,todaysWish,unlockedOutfits,wardrobeStats,wishEvent,wishGrantedOn,wishProgress,wishText,wornOutfit,type OutfitId} from './store/konoWardrobe'
 import KonoFace from './components/KonoFace'
 import {findFor,findSrc,foundCounts,foundLine,rollFrom} from './store/konoFinds'
@@ -25,7 +24,6 @@ import {konoNote,moodLine,MOODS,noteText,examEventId,nudgeEventId,testDay,testsF
 import {changeDetail,changeTitle,schoolChanges} from './store/schoolHeadsUp'
 import {APP_BADGE_SETTING,rememberBadgeChoice,showAppBadge} from './store/appBadge'
 import {BABBLE_SETTING} from './konoBabbleSetting'
-import NextUp from './components/NextUp'
 import {earnedStickers,seasonOn,stickerOffered,STICKERS} from './store/stickers'
 import {konoCelebration,konoStreakMilestone,STREAK_MILESTONES,type KonoPhrase} from './store/konoPhrases'
 import {useReducedMotion,useMusicController,usePhoneWidth,usePrefersDark} from './hooks/useComfort'
@@ -41,7 +39,7 @@ import './components/schedule-import.css'
 import './components/school-calendar.css'
 import './components/sports-setup.css'
 import {schoolDayLabels} from './store/schoolCalendar'
-import {StickyNoteView} from './LegacyApp'
+import './LegacyApp'
 import Sidebar from './components/Sidebar'
 import {lazyPage,lazyPanel} from './lazyPanel'
 import {ScheduleSetup,SharedWithMe,WeekRecap} from './pages/sharedPanels'
@@ -63,7 +61,8 @@ const KonoWorld=lazy(()=>import('./components/KonoWorld'))
 import {ownedFurniture,ownedPaints,ownedRooms,paintPose,wornPaint,type PaintId} from './store/konoLooks'
 import type {HouseItem} from './store/konoCare'
 import type {TownTab} from './components/KonoTown'
-import {boughtOutfits,buyEvent,coinBalance,coinText,gameEvent,questEventId,questLine,questEvent,questToday,roundsLeft,spinEvent,spunToday,surpriseEvent,surpriseEventId,surpriseText,surpriseToday,wheelSlice,COIN_ICON,type GameId,type ShopItem} from './store/konoCoins'
+import {isDefault,readLayout,writeLayout,type HomeWidget} from './store/homeLayout'
+import {blastEvent,boughtOutfits,buyEvent,coinBalance,coinText,gameEvent,questEventId,questLine,questEvent,questToday,roundsLeft,spinEvent,spunToday,surpriseEvent,surpriseEventId,surpriseText,surpriseToday,wheelSlice,COIN_ICON,type GameId,type ShopItem} from './store/konoCoins'
 const RotationToday=lazy(()=>import('./components/RotationToday'))
 const ClassSheet=lazy(()=>import('./components/ClassSheet'))
 const PlanSwitcher=lazy(()=>import('./components/PlanSwitcher'))
@@ -146,6 +145,9 @@ const ScheduleImport=lazyPanel(()=>import('./components/ScheduleImport'))
 const CalendarImport=lazyPanel(()=>import('./components/CalendarImport'))
 const WorkSetup=lazyPanel(()=>import('./components/WorkSetup'))
 const WeekAhead=lazyPanel(()=>import('./components/WeekAhead'))
+const HomeCustomize=lazy(()=>import('./components/HomeCustomize'))
+const NextUp=lazy(()=>import('./components/NextUp'))
+const StickyNoteView=lazy(()=>import('./components/StickyNoteView'))
 const UpdatePlanScanner=lazyPanel(()=>import('./components/UpdatePlanScanner'))
 // Only shown in Decorate, so not part of the startup download.
 const SanctuaryBuild=lazyPanel(()=>import('./components/SanctuaryBuild'))
@@ -250,7 +252,7 @@ function Workspace({store}:{store:Store}){
  const [phase,setPhase]=useState<'auto'|'morning'|'afternoon'|'evening'|'night'>('auto'),[expanded,setExpanded]=useState(false)
  const [quickDayOpen,setQuickDayOpen]=useState<'today'|'tomorrow'|null>(null)
  // Home's one Today card shows today or tomorrow; KONO's corner and the setup steps open on request.
- const [dayTab,setDayTab]=useState<'today'|'tomorrow'>('today'),[cornerOpen,setCornerOpen]=useState(false),[townOpen,setTownOpen]=useState<TownTab|null>(null),[houseOpen,setHouseOpen]=useState(false),[visitPick,setVisitPick]=useState(false),[worldOpen,setWorldOpen]=useState(false),[entering,setEntering]=useState<{at:number;x:number;y:number;ox:number;oy:number;zoom:boolean}|null>(null),[leaveSignal,setLeaveSignal]=useState<number|null>(null),[enteredHouse,setEnteredHouse]=useState(false),[setupOpen,setSetupOpen]=useState(false)
+ const [cornerOpen,setCornerOpen]=useState(false),[townOpen,setTownOpen]=useState<TownTab|null>(null),[houseOpen,setHouseOpen]=useState(false),[visitPick,setVisitPick]=useState(false),[worldOpen,setWorldOpen]=useState(false),[entering,setEntering]=useState<{at:number;x:number;y:number;ox:number;oy:number;zoom:boolean}|null>(null),[leaveSignal,setLeaveSignal]=useState<number|null>(null),[enteredHouse,setEnteredHouse]=useState(false),[setupOpen,setSetupOpen]=useState(false)
  const [islandMode,setIslandMode]=useState<'view'|'decorate'>('view'),[decorateStart,setDecorateStart]=useState<string|undefined>(),[nextUpOpen,setNextUpOpen]=useState(false),[askOpen,setAskOpen]=useState(false)
  // View-only: Decorate mode has its own per-item Size control, and zooming the whole stage there
  // would resize the same Phaser canvas GardenCard already goes out of its way to keep paused and
@@ -274,9 +276,10 @@ function Workspace({store}:{store:Store}){
  }
  const setIslandZoom=(next:number|((z:number)=>number))=>setIslandZoomRaw(z=>{const nextZoom=typeof next==='function'?next(z):next;setIslandPan(p=>clampIslandPan(p.x,p.y,nextZoom));return nextZoom})
  const resetIslandView=()=>{setIslandZoomRaw(1);setIslandPan({x:0,y:0})}
- // Two-finger pinch zooms (alongside the +/- buttons, kept for mouse/keyboard/screen-reader users);
- // a single finger pans once zoomed in, the same way a map app separates the two gestures. Mouse/
- // trackpad dragging is handled separately below via Pointer Events, which touch does not fire here.
+ // Two-finger pinch zooms (a trackpad pinch too, see the wheel listener below); a single finger pans once
+ // zoomed in, the same way a map app separates the two gestures. Pinching out well past the whole island
+ // pulls back to KONO's world map. Mouse/trackpad dragging is handled separately below via Pointer Events,
+ // which touch does not fire here.
  const touchGesture=useRef<{mode:'pinch';distance:number;zoom:number}|{mode:'pan';x:number;y:number;pan:{x:number;y:number}}|null>(null)
  const touchDistance=(a:{clientX:number;clientY:number},b:{clientX:number;clientY:number})=>Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)
  const onIslandTouchStart=(e:TouchEvent<HTMLDivElement>)=>{
@@ -290,12 +293,31 @@ function Workspace({store}:{store:Store}){
   e.preventDefault()
   if(gesture.mode==='pinch'&&e.touches.length===2){
    const ratio=touchDistance(e.touches[0],e.touches[1])/gesture.distance
+   if(gesture.zoom*ratio<0.7){touchGesture.current=null;resetIslandView();setWorldOpen(true);return}
    setIslandZoom(Math.min(MAX_ISLAND_ZOOM,Math.max(MIN_ISLAND_ZOOM,+(gesture.zoom*ratio).toFixed(2))))
   }else if(gesture.mode==='pan'&&e.touches.length===1){
    setIslandPan(clampIslandPan(gesture.pan.x+e.touches[0].clientX-gesture.x,gesture.pan.y+e.touches[0].clientY-gesture.y,islandZoom))
   }
  }
  const onIslandTouchEnd=(e:TouchEvent<HTMLDivElement>)=>{if(e.touches.length===0)touchGesture.current=null}
+ // A trackpad pinch (or Ctrl + scroll) zooms the island the same way; plain scrolling still scrolls the page.
+ const wheelOut=useRef(0),wheelZoom=useRef(1)
+ useEffect(()=>{wheelZoom.current=islandZoom},[islandZoom])
+ useEffect(()=>{
+  const el=islandStageRef.current
+  if(!el)return
+  const wheel=(e:WheelEvent)=>{
+   if(!e.ctrlKey||islandMode!=='view')return
+   e.preventDefault()
+   const z=wheelZoom.current
+   if(e.deltaY>0&&z<=MIN_ISLAND_ZOOM){wheelOut.current+=e.deltaY;if(wheelOut.current>160){wheelOut.current=0;setWorldOpen(true)}return}
+   wheelOut.current=0
+   const next=Math.min(MAX_ISLAND_ZOOM,Math.max(MIN_ISLAND_ZOOM,+(z*Math.exp(-e.deltaY*0.01)).toFixed(2)))
+   wheelZoom.current=next;setIslandZoomRaw(next);setIslandPan(p=>{const box=islandStageRef.current;if(!box||next<=1)return {x:0,y:0};const mx=box.clientWidth*(next-1)/2,my=box.clientHeight*(next-1)/2;return {x:Math.max(-mx,Math.min(mx,p.x)),y:Math.max(-my,Math.min(my,p.y))}})
+  }
+  el.addEventListener('wheel',wheel,{passive:false})
+  return ()=>el.removeEventListener('wheel',wheel)
+ })
  const mouseDrag=useRef<{x:number;y:number;pan:{x:number;y:number}}|null>(null)
  const onIslandPointerDown=(e:PointerEvent<HTMLDivElement>)=>{
   if(islandMode!=='view'||islandZoom<=1||e.pointerType==='touch')return
@@ -487,7 +509,7 @@ function Workspace({store}:{store:Store}){
  const islandPat=(tapAt:number)=>{if(!bed.tucked&&meters.full<40&&nextSnack){feedKono();return}petKono(tapAt,true)}
  // Going in (see konoHome above): KONO walks to the door; once it's inside (or after a few seconds, if it
  // can't get there) the island zooms into the doorway and the house opens.
- const enteringRef=useRef(entering)
+ const enteringRef=useRef(entering),entrySeq=useRef(0)
  useEffect(()=>{enteringRef.current=entering},[entering])
  const openFromDoor=()=>{
   const e=enteringRef.current;if(!e||e.zoom)return
@@ -500,7 +522,7 @@ function Workspace({store}:{store:Store}){
   const home=homes.find(h=>h.placement.id===id),wrap=islandStageRef.current
   if(!home||!el||!wrap||!islandLive||islandMode!=='view'){setHouseOpen(true);return}
   const r=el.getBoundingClientRect(),w=wrap.getBoundingClientRect()
-  const door=homeDoor(home.asset,home.placement),at=Date.now()
+  const door=homeDoor(home.asset,home.placement),at=++entrySeq.current
   const next={at,...door,ox:(r.left+r.width/2-w.left)/w.width*100,oy:(r.top+r.height*0.72-w.top)/w.height*100,zoom:false}
   enteringRef.current=next;setEntering(next)
   window.setTimeout(()=>{if(enteringRef.current?.at===at)openFromDoor()},6000)
@@ -538,12 +560,16 @@ function Workspace({store}:{store:Store}){
  // A room style bought goes straight into the house.
  const buyItem=(item:ShopItem)=>{if(item.price>coins)return;const now=new Date();logEvent(buyEvent(uid('buy'),item,now),now);if(item.kind==='room')setRoom(item.id)}
  const spinWheel=()=>{if(spunToday(careLog,today))return null;const now=new Date(),slice=wheelSlice(Math.random());logEvent(spinEvent(today,slice,now),now);return slice}
+ const blastPaid=(lines:number,streak:number)=>{const now=new Date(),event=blastEvent(careLog,today,lines,streak,now);if(!event)return null;logEvent(event,now);return event.n??0}
  const playedGame=(game:GameId,score:number)=>{const now=new Date(),event=gameEvent(careLog,today,game,score,now);if(!event)return null;logEvent(event,now);return event.n??0}
  // The world map (components/KonoWorld): one look around a day in each land, kept like a focus find.
  const lookInLand=(land:string,findId:string)=>{const now=new Date();logEvent({id:'land-'+land+'-'+today,kind:'find',at:now.toISOString(),item:findId},now)}
  const giveQuest=()=>{if(!questSnack||questDone)return;const now=new Date();feedKono(questSnack.taskId);logEvent(questEvent(today,quest,now),now);announce({line:questLine(quest),pose:'/garden/kono/excited.webp',at:now.getTime(),ms:6000})}
  // School days off and early releases in the next week (store/schoolHeadsUp); "Got it" hides each one on this device.
  const [todayOrder,setTodayOrder]=useLocalSetting('kono-today-order:'+profile.id,'')
+ // Your own Home (store/homeLayout): the widgets' order and which are hidden, on this device for this plan.
+ const [homeLine,setHomeLine]=useLocalSetting('kono-home-layout:'+profile.id,''),[customizing,setCustomizing]=useState(false)
+ const homeLayout=readLayout(homeLine)
  const [schoolSeen,setSchoolSeen]=useLocalSetting('kono-school-heads-up:'+profile.id,'')
  const schoolAhead=schoolChanges(data,profile.id,addDays(today,1),addDays(today,7)).filter(c=>!schoolSeen.split('|').includes(c.key))
  const offeredStickers=STICKERS.filter(t=>stickerOffered(t.id,earned,today)).length,islandEvent=seasonOn(today)
@@ -1033,9 +1059,12 @@ function Workspace({store}:{store:Store}){
  ].filter(e=>personShown(e.entry)&&(!e.entry.subjectId||!todayClasses.some(c=>c.block.subjectId===e.entry.subjectId)))
   // In time order (untimed last) until it's reordered by hand.
   .sort((a,b)=>String((a.entry.time??a.entry.plannedTime)||'99:99').localeCompare(String((b.entry.time??b.entry.plannedTime)||'99:99')))
- // Today's own order (drag the ⠿ handle), remembered on this device for the day.
- const todayRank=todayOrder.startsWith(today+'|')?todayOrder.slice(today.length+1).split(','):[]
- if(todayRank.length)todayLoose.sort((a,b)=>{const ra=todayRank.indexOf(a.entry.id),rb=todayRank.indexOf(b.entry.id);return (ra<0?1e9:ra)-(rb<0?1e9:rb)})
+ // Today's and tomorrow's own order (drag the ⠿ handle), remembered on this device for each day: one line
+ // "date|id,id;date|id,id" (tomorrow's order carries on once it's today).
+ const dayRank=(date:string)=>todayOrder.split(';').find(p=>p.startsWith(date+'|'))?.slice(date.length+1).split(',')??[]
+ const setDayRank=(date:string,ids:string[])=>setTodayOrder([...todayOrder.split(';').filter(p=>(p.startsWith(today+'|')||p.startsWith(tomorrow+'|'))&&!p.startsWith(date+'|')),date+'|'+ids.join(',')].join(';'))
+ const byRank=(rank:string[])=>(a:{entry:Entry},b:{entry:Entry})=>{const ra=rank.indexOf(a.entry.id),rb=rank.indexOf(b.entry.id);return (ra<0?1e9:ra)-(rb<0?1e9:rb)}
+ if(dayRank(today).length)todayLoose.sort(byRank(dayRank(today)))
  const tomorrowClasses=scheduleClasses(tomorrow)
  const tomorrowLoose=[
   ...viewTasks.filter(t=>!t.done&&t.due===tomorrow).map(t=>({key:'tasks' as Collection,entry:t as unknown as Entry,date:t.due})),
@@ -1043,8 +1072,16 @@ function Workspace({store}:{store:Store}){
   ...notes.filter(n=>!n.completed&&entryDate(n as unknown as Entry)===tomorrow).map(n=>({key:'notes' as Collection,entry:n as unknown as Entry,date:entryDate(n as unknown as Entry)})),
   ...view.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date===tomorrow).map(e=>({key:'calendarEvents' as Collection,entry:e as unknown as Entry,date:e.date})),
  ].filter(e=>personShown(e.entry)&&(!e.entry.subjectId||!tomorrowClasses.some(c=>c.block.subjectId===e.entry.subjectId)))
+  .sort((a,b)=>String((a.entry.time??a.entry.plannedTime)||'99:99').localeCompare(String((b.entry.time??b.entry.plannedTime)||'99:99')))
+ if(dayRank(tomorrow).length)tomorrowLoose.sort(byRank(dayRank(tomorrow)))
  // Your day (Home): late work and past-due reminders lead Today; the tabs count what's on each day.
  const pastReminders=data.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date<today&&personShown(e)&&tracksDone('calendarEvents',e as unknown as Entry)).sort((a,b)=>a.date.localeCompare(b.date))
+ // Home's Notes & reminders: pinned notes first, then the newest (six at most), and reminders for the next
+ // week (events made with ＋ Reminder or a note's "Add reminder").
+ const homeNotes=notes.filter(n=>!n.completed).sort((a,b)=>Number(Boolean(b.pinned))-Number(Boolean(a.pinned))||String(b.created??'').localeCompare(String(a.created??''))).slice(0,6)
+ const homeReminders=data.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date>=today&&e.date<=addDays(today,7)&&/^reminder\b|\breminder$/i.test(e.title)).sort((a,b)=>(a.date+(a.time??'')).localeCompare(b.date+(b.time??''))).slice(0,6)
+ // The widgets that fit this plan (Customize Home only offers these).
+ const homeAvailable:HomeWidget[]=homeLayout.order.filter(id=>id==='family'?familyHome:id==='todos'?kidTodos.length>0||(parentMode&&profileKids.length>0):id==='focus'?!familyLean:true)
  const todayCount=overdue.length+pastReminders.length+todayClasses.length+todayLoose.length,tomorrowCount=tomorrowClasses.length+tomorrowLoose.length
  const setupLeft=startSkipped.has('all')?0:startSteps.filter(st=>!st.done).length
  const w:PageContext={store,repository,data,view,profile,experience,islandSetting,simpleView,parentMode,reduced,lockedPlan,releaseLabel,draftScope,today,tasks,viewTasks,ownTasks,notes,subjects,profileKids,plans,recap,classmatesOn,peopleFilter,overdueCard,addChoices,plannerMoreRef,subject,setSubject,subjectTab,setSubjectTab,boardView,setBoardView,selectedDate,setSelectedDate,settingsTab,setSettingsTab,addOpen,addChoice,setAddChoice,recapOpen,setRecapOpen,weekPlanOpen,setWeekPlanOpen,planRequest,setPlanRequest,setSpecialOpen,setPickupsOpen,setWallOpen,setDayOffFor,setConfirmation,save,run,setting,navigate,openSettings,openAdd,closeAdd,openWeather,create,edit,remove,patch,reschedule,planAt,stretchTo,quickAddFamilyEvent,todoOps:parentMode&&profileKids.length>0?todoOps:undefined,personShown,card,renderClass,renderCompactClass}
@@ -1071,11 +1108,18 @@ function Workspace({store}:{store:Store}){
    {showCrunch&&page==='Sanctuary'&&<div className="wb-notice crunch-digest" role="status"><div><strong>{crunchDays.length===1?'A busy day is':'Busy days are'} coming up</strong><ul>{crunchDays.slice(0,3).map(([day,list])=><li key={day}>{day===today?'Today':day===tomorrow?'Tomorrow':dateLabel(day)}: {list.length} thing{list.length===1?'':'s'} due{list.filter(i=>i.kind==='exam').length>1?' (multiple exams)':''}</li>)}</ul>{crunchDays.length>3&&<small>+{crunchDays.length-3} more busy day{crunchDays.length-3===1?'':'s'}</small>}</div><button onClick={dismissCrunch}>Got it</button></div>}
    {showReviewDigest&&<div className="wb-notice review-digest" role="status"><div><strong>{needsReviewEntries.length} item{needsReviewEntries.length===1?'':'s'} from a scanned photo need{needsReviewEntries.length===1?'s':''} a check</strong><small>Added automatically — make sure each one is correct.</small></div><button className="primary" onClick={()=>setReviewOpen(true)}>Review now</button><button onClick={dismissReviewDigest}>Later</button></div>}
    {hasDraft&&!editor&&<div className="wb-notice">You have an unfinished draft.<button onClick={()=>{try{const draft=JSON.parse(localStorage.getItem(draftScope)??'null') as Edit;if(!draft||!collections.includes(draft.key)||draft.entry.profileId!==profile.id)throw Error('Invalid draft');setEditor(draft)}catch{setMessage('This draft could not be opened.')}}}>Resume draft</button><button onClick={()=>{setConfirmation({text:'Discard this unfinished draft?',action:()=>{localStorage.removeItem(draftScope);localStorage.removeItem(draftScope+':assignment-dates');setHasDraft(false)}})}}>Discard draft</button></div>}
-   {page==='Sanctuary'&&<div className={'home-grid'+(parentMode&&profileKids.length?' is-parent':'')+(islandSetting!=='full'?' no-island':'')}><div className="home-main">
+   {page==='Sanctuary'&&<div className={'home-grid home-widgets'+(parentMode&&profileKids.length?' is-parent':'')+(islandSetting!=='full'?' no-island':'')}>
     {classmatesOn&&<SharedWithMe repository={repository} data={data} save={save}/>}
+    {!showQuick&&setupOpen&&setupLeft>0&&<GettingStarted steps={startSteps} onSkip={skipStart} onHide={()=>{skipStart('all');setSetupOpen(false)}}/>}
+    {!showQuick&&reviewShown&&recap&&<div className="wb-panel week-recap-sunday"><WeekRecap recap={recap} onPlanWeek={openWeekPlan} onDismiss={()=>setRecapHiddenFor(recap.from)}/></div>}
+    {!showQuick&&parentMode&&!profileKids.length&&<section className="wb-panel family-setup-card" aria-label="Set up your family"><h2>👪 Set up your family</h2><p className="wb-muted">Add your kids and their weekly activities in about two minutes.</p><button type="button" className="primary" onClick={()=>setFamilySetupOpen(true)}>Start</button></section>}
+    {/* Your own Home (✏️ Customize Home, store/homeLayout): the widgets in your order, hidden ones left out. */}
+    {homeLayout.order.filter(id=>!homeLayout.hidden.has(id)).map(id=><Fragment key={id}>
+    {id==='week'&&!showQuick&&<WeekAhead strip today={today} profileId={profile.id} data={data} monday={monday} recap={null} tasks={tasks} exams={ownExams} onPlan={openWeekPlan} onOpenDay={date=>{setSelectedDate(date);navigate('Planner')}} mondayWork={null}/>}
+    {id==='sanctuary'&&<>
     {showTour&&islandSetting==='full'&&<Suspense fallback={<TourPlaceholder/>}><WelcomeTour family={parentMode} onAdd={()=>setAdding(true)} onDone={()=>setTourDone('1')}/></Suspense>}
     {islandSetting!=='full'?null:showQuick?<section className="wb-panel quick-today" aria-label="Today view"><div><small>{new Date(today+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</small><h2>Today</h2></div><button type="button" onClick={()=>setQuickToday(false)}><span aria-hidden="true">🏝</span> Open your island</button>{installedApp()&&<label className="wb-check quick-today-pref"><input type="checkbox" checked={openToToday==='1'} onChange={e=>setOpenToToday(e.target.checked?'1':'0')}/>Open the app to Today</label>}</section>
-    :<section className={'wb-island '+(expanded?'is-expanded':'')} data-kono-need={konoNeed??undefined}><div className="wb-scene-toolbar"><div className="wb-scene-left"><nav className="island-mode-tabs" aria-label="Sanctuary view"><button aria-current={islandMode==='view'?'page':undefined} onClick={()=>setIslandMode('view')}>Your island</button><button aria-current={islandMode==='decorate'?'page':undefined} onClick={()=>{setDecorateStart(undefined);openDecorate()}}>Decorate</button><button type="button" aria-haspopup="dialog" onClick={openHouse}>KONO’s house</button><button type="button" aria-haspopup="dialog" onClick={()=>setWorldOpen(true)}>World map</button></nav></div><div className="wb-scene-controls"><label className="wb-scene-time" title="Sanctuary time"><span aria-hidden="true">🕐</span><select aria-label="Sanctuary time" value={phase} onChange={e=>setPhase(e.target.value as typeof phase)}>{['auto','morning','afternoon','evening','night'].map(p=><option key={p} value={p}>{p==='auto'?'Live time':p[0].toUpperCase()+p.slice(1)}</option>)}</select></label>{islandMode==='view'&&<div className="wb-island-zoom" role="group" aria-label="Zoom island"><button type="button" onClick={()=>setIslandZoom(z=>Math.max(MIN_ISLAND_ZOOM,+(z-0.25).toFixed(2)))} disabled={islandZoom<=MIN_ISLAND_ZOOM} aria-label="Zoom out">−</button><span aria-live="polite">{Math.round(islandZoom*100)}%</span><button type="button" onClick={()=>setIslandZoom(z=>Math.min(MAX_ISLAND_ZOOM,+(z+0.25).toFixed(2)))} disabled={islandZoom>=MAX_ISLAND_ZOOM} aria-label="Zoom in">＋</button>{islandZoom!==1&&<button type="button" onClick={resetIslandView}>Reset</button>}</div>}{islandMode==='view'&&<button type="button" className="wb-scene-photo" title="Island photo" aria-label="Take a photo of your island" onClick={()=>setPhotoStage(islandStageRef.current)}><span aria-hidden="true">📷</span></button>}<button type="button" className="wb-scene-expand" title={expanded?'Close full screen':'Expand'} onClick={()=>setExpanded(v=>!v)}><span aria-hidden="true">{expanded?'✕':'⤢'}</span><span className="wb-btn-label">{expanded?'Close full screen':'Expand'}</span></button></div></div><div className="wb-sanctuary-stage"><div ref={islandStageRef} className={'wb-sanctuary-zoom-wrap'+(entering?.zoom?' is-entering':'')} style={entering?{['--door-x' as string]:entering.ox+'%',['--door-y' as string]:entering.oy+'%'}:undefined} onTouchStart={onIslandTouchStart} onTouchMove={onIslandTouchMove} onTouchEnd={onIslandTouchEnd} onPointerDown={onIslandPointerDown} onPointerMove={onIslandPointerMove} onPointerUp={onIslandPointerUp} onPointerCancel={onIslandPointerUp}><div className={'wb-sanctuary-zoom'+(islandMode==='view'&&islandZoom!==1?' is-zoomed':'')} style={islandMode==='view'?{transform:`translate(${islandPan.x}px, ${islandPan.y}px) scale(${islandZoom})`}:undefined}><div ref={islandSlotRef} className={'wb-sanctuary-backdrop'+(islandMode==='decorate'?' is-decorating':'')}>{!islandLive?<article className="sanctuary-card"><div className="sanctuary-viewport" role="img" aria-label="Your island" style={{backgroundImage:`url(${islandPosterSrc(islandPhase==='auto'?autoIslandPhase():islandPhase)})`}}/></article>:<GardenCard phase={islandPhase} weather={weather.weather} reducedMotion={reduced} progress={sanctuaryProgress} decorations={data.sanctuaryDecor[profile.id]?.placements} paused={islandMode==='decorate'} celebrateSignal={celebrateSignal} focusCompanionActive={focusCompanionActive} onKonoPet={islandPat} konoNeed={konoNeed} feedSignal={feedSignal} konoMood={meters.away?null:{full:meters.full,rested:meters.rested,happy:meters.happy,asleep:meters.asleep}} outfit={shownOutfit} paint={paint} visitor={visitor?.id??null} enterHome={entering} leaveHome={leaveSignal} onKonoInside={openFromDoor}/>}</div>{islandMode==='view'&&<SanctuaryDecorLayer data={data} phase={islandPhase} home={konoHome?.placement.id??null} onHome={tapHome}/>}</div></div>{islandMode==='decorate'&&<SanctuaryBuild data={data} save={save} phase={phase} earned={decorEarned} today={today} startCategory={decorateStart} wardrobe={{offered:outfitsOffered(unlockedOutfitIds,today),unlocked:unlockedOutfitIds,worn,stats:wardrobe,onWear:wearOutfit}} stamps={stamps} bond={bond}/>}</div></section>}
+    :<section className={'wb-island '+(expanded?'is-expanded':'')} data-kono-need={konoNeed??undefined}><div className="wb-scene-toolbar"><div className="wb-scene-left"><nav className="island-mode-tabs" aria-label="Sanctuary view">{islandMode==='decorate'?<button type="button" aria-pressed="true" onClick={()=>setIslandMode('view')}>✓ Done decorating</button>:<button type="button" aria-pressed="false" onClick={()=>{setDecorateStart(undefined);openDecorate()}}>✏️ Decorate</button>}</nav></div><div className="wb-scene-controls"><label className="wb-scene-time" title="Sanctuary time"><span aria-hidden="true">🕐</span><select aria-label="Sanctuary time" value={phase} onChange={e=>setPhase(e.target.value as typeof phase)}>{['auto','morning','afternoon','evening','night'].map(p=><option key={p} value={p}>{p==='auto'?'Live time':p[0].toUpperCase()+p.slice(1)}</option>)}</select></label>{islandMode==='view'&&islandZoom!==1&&<button type="button" className="wb-island-reset" onClick={resetIslandView}>Reset zoom</button>}{islandMode==='view'&&<button type="button" className="wb-scene-photo" title="Island photo" aria-label="Take a photo of your island" onClick={()=>setPhotoStage(islandStageRef.current)}><span aria-hidden="true">📷</span></button>}<button type="button" className="wb-scene-expand" title={expanded?'Close full screen':'Expand'} onClick={()=>setExpanded(v=>!v)}><span aria-hidden="true">{expanded?'✕':'⤢'}</span><span className="wb-btn-label">{expanded?'Close full screen':'Expand'}</span></button></div></div><div className="wb-sanctuary-stage"><div ref={islandStageRef} className={'wb-sanctuary-zoom-wrap'+(entering?.zoom?' is-entering':'')} style={entering?{['--door-x' as string]:entering.ox+'%',['--door-y' as string]:entering.oy+'%'}:undefined} onTouchStart={onIslandTouchStart} onTouchMove={onIslandTouchMove} onTouchEnd={onIslandTouchEnd} onPointerDown={onIslandPointerDown} onPointerMove={onIslandPointerMove} onPointerUp={onIslandPointerUp} onPointerCancel={onIslandPointerUp}><div className={'wb-sanctuary-zoom'+(islandMode==='view'&&islandZoom!==1?' is-zoomed':'')} style={islandMode==='view'?{transform:`translate(${islandPan.x}px, ${islandPan.y}px) scale(${islandZoom})`}:undefined}><div ref={islandSlotRef} className={'wb-sanctuary-backdrop'+(islandMode==='decorate'?' is-decorating':'')}>{!islandLive?<article className="sanctuary-card"><div className="sanctuary-viewport" role="img" aria-label="Your island" style={{backgroundImage:`url(${islandPosterSrc(islandPhase==='auto'?autoIslandPhase():islandPhase)})`}}/></article>:<GardenCard phase={islandPhase} weather={weather.weather} reducedMotion={reduced} progress={sanctuaryProgress} decorations={data.sanctuaryDecor[profile.id]?.placements} paused={islandMode==='decorate'} celebrateSignal={celebrateSignal} focusCompanionActive={focusCompanionActive} onKonoPet={islandPat} konoNeed={konoNeed} feedSignal={feedSignal} konoMood={meters.away?null:{full:meters.full,rested:meters.rested,happy:meters.happy,asleep:meters.asleep}} outfit={shownOutfit} paint={paint} visitor={visitor?.id??null} enterHome={entering} leaveHome={leaveSignal} onKonoInside={openFromDoor}/>}</div>{islandMode==='view'&&<SanctuaryDecorLayer data={data} phase={islandPhase} home={konoHome?.placement.id??null} onHome={tapHome}/>}</div></div>{islandMode==='decorate'&&<SanctuaryBuild data={data} save={save} phase={phase} earned={decorEarned} today={today} startCategory={decorateStart} wardrobe={{offered:outfitsOffered(unlockedOutfitIds,today),unlocked:unlockedOutfitIds,worn,stats:wardrobe,onWear:wearOutfit}} stamps={stamps} bond={bond}/>}</div></section>}
     {/* KONO today: the bottom strip of the island card, inside its border. KONO, its line, how it's
         doing, one care action, stickers, and "do next" / "ask". The day's wish (and an island season)
         sit in a small line under it; Ask KONO and What should I do now? open below when asked. */}
@@ -1114,56 +1158,74 @@ function Workspace({store}:{store:Store}){
       quest={{treat:quest.treat,reward:quest.reward,done:questDone,canGive:!!questSnack}} onGiveQuest={giveQuest}
       today={today} outfitsOwned={unlockedOutfitIds} found={found} onBuy={buyItem}
       paints={{owned:paints,worn:paint,onWear:wearPaint}} rooms={{owned:rooms,current:roomStyle,onUse:setRoom}} furniture={{owned:furnitureOwned,onOpenHouse:()=>{setTownOpen(null);setHouseOpen(true)}}}
-      spin={spunToday(careLog,today)?.n??null} onSpin={spinWheel} roundsLeft={roundsLeft(careLog,today)} onGame={playedGame} album={{today,outfits:unlockedOutfitIds,found,met:metFriends,tried,paints,furniture:furnitureOwned,stickers:earned,presents:new Set(stamps.presents.map(p=>p.id)),gifts:new Set(giftsAt(bond.level).map(g=>g.id))}}/></Suspense>}
-     {worldOpen&&<Suspense fallback={null}><KonoWorld close={()=>setWorldOpen(false)} today={today} hearts={bond.level} paint={paint} outfit={shownOutfit} log={careLog} found={found} balance={coins} owned={furnitureOwned} onBuy={buyItem} onLook={lookInLand} roundsLeft={roundsLeft(careLog,today)} onGame={playedGame} sound={data.settings.sound} onOpenHouse={()=>{setWorldOpen(false);setHouseOpen(true)}}/></Suspense>}
+      spin={spunToday(careLog,today)?.n??null} onSpin={spinWheel} roundsLeft={roundsLeft(careLog,today)} onGame={playedGame} onBlastCoins={blastPaid} album={{today,outfits:unlockedOutfitIds,found,met:metFriends,tried,paints,furniture:furnitureOwned,stickers:earned,presents:new Set(stamps.presents.map(p=>p.id)),gifts:new Set(giftsAt(bond.level).map(g=>g.id))}}/></Suspense>}
+     {worldOpen&&<Suspense fallback={null}><KonoWorld close={()=>setWorldOpen(false)} today={today} hearts={bond.level} paint={paint} outfit={shownOutfit} log={careLog} found={found} balance={coins} owned={furnitureOwned} onBuy={buyItem} onLook={lookInLand} roundsLeft={roundsLeft(careLog,today)} onGame={playedGame} onBlastCoins={blastPaid} sound={data.settings.sound} onOpenHouse={()=>{setWorldOpen(false);setHouseOpen(true)}}/></Suspense>}
      {visitPick&&<Suspense fallback={null}><KonoVisit data={data} profileId={profile.id} coins={coins} sound={data.settings.sound} save={update=>save(update)} close={()=>setVisitPick(false)} onGave={line=>announce({line,pose:'/garden/kono/happy.webp',at:Date.now(),ms:5000})}/></Suspense>}
      {houseOpen&&<Suspense fallback={null}><KonoHouse close={closeHouse} room={roomStyle} rooms={[...rooms]} onRoom={setRoom} entering={enteredHouse} homes={homes.map(h=>({id:h.placement.id,label:h.asset.label}))} home={konoHome?.placement.id??null} onHome={setHome} house={house} owned={furnitureOwned} paint={paint} outfit={shownOutfit} night={bed.tucked||meters.asleep} onSave={saveHouse} onPet={()=>petKono()} onShop={()=>{setHouseOpen(false);setTownOpen('home')}}/></Suspense>}
-     {askOpen&&<AskKono data={data} today={today} name={profile.name} pose={konoPose} onClose={()=>setAskOpen(false)}/>}{nextUpOpen&&<NextUp items={nextUpList(tasks,today,ownExams)} onClose={()=>setNextUpOpen(false)} onStart={item=>{setNextUpOpen(false);startFocusSession(item.exam?'':item.id,item.minutes,item.exam?item.title:undefined)}} onDone={item=>void run(()=>save(d=>completeTask(d,item.id)),'Done: '+item.title,true,item.exam?undefined:item.id)}/>}
+     {askOpen&&<AskKono data={data} today={today} name={profile.name} pose={konoPose} onClose={()=>setAskOpen(false)}/>}{nextUpOpen&&<Suspense fallback={null}><NextUp items={nextUpList(tasks,today,ownExams)} onClose={()=>setNextUpOpen(false)} onStart={item=>{setNextUpOpen(false);startFocusSession(item.exam?'':item.id,item.minutes,item.exam?item.title:undefined)}} onDone={item=>void run(()=>save(d=>completeTask(d,item.id)),'Done: '+item.title,true,item.exam?undefined:item.id)}/></Suspense>}
     </section>
     </>}
-    {!showQuick&&!familyLean&&<details ref={sanctuaryFocusRef} className="wb-panel sanctuary-focus"><summary>Focus session</summary><FocusSession draftKey={draftScope+':focus'} tasks={tasks} notes={notes} focusRequest={focusRequest} onComplete={id=>void run(()=>save(d=>completeTask(d,id)),'Assignment completed.')} onSaveNote={body=>save(d=>({...d,notes:[...d.notes,{id:uid('note'),profileId:profile.id,subjectId:'',title:'Study session',body,created:new Date().toISOString(),pinned:true}]}))} onFocusActiveChange={setFocusCompanionActive} onSessionComplete={focusDone}/></details>}
-    </div><div className="home-side">
-    {!showQuick&&setupOpen&&setupLeft>0&&<GettingStarted steps={startSteps} onSkip={skipStart} onHide={()=>{skipStart('all');setSetupOpen(false)}}/>}
-    {!showQuick&&reviewShown&&recap&&<div className="wb-panel week-recap-sunday"><WeekRecap recap={recap} onPlanWeek={openWeekPlan} onDismiss={()=>setRecapHiddenFor(recap.from)}/></div>}
-    {!showQuick&&(weekend||familyLean)&&<WeekAhead family={familyLean} today={today} profileId={profile.id} data={data} monday={monday} recap={reviewShown?null:recap} tasks={tasks} exams={ownExams} onPlan={openWeekPlan} onOpenDay={date=>{setSelectedDate(date);navigate('Planner')}} mondayWork={mondayWork.length>0?<div className="weekend-due"><strong>Due Monday</strong>{mondayWork.map(t=>card('tasks',t as unknown as Entry))}</div>:<p>Nothing is due Monday.</p>}/>}
-    {/* Your day: one card for today and tomorrow. Late work and past-due reminders lead Today; ＋ Add
-        and the ⋯ menu (what to show, classes, the Planner) sit in its header. */}
-    {!showQuick&&parentMode&&!profileKids.length&&<section className="wb-panel family-setup-card" aria-label="Set up your family"><h2>👪 Set up your family</h2><p className="wb-muted">Add your kids and their weekly activities in about two minutes.</p><button type="button" className="primary" onClick={()=>setFamilySetupOpen(true)}>Start</button></section>}
-    {!showQuick&&comingUp.length>0&&<section className="wb-panel coming-up" aria-label="Coming up"><div className="wb-section-head"><h2>Coming up</h2><button type="button" className="link-button" onClick={()=>setSpecialOpen(true)}>Birthdays & countdowns</button></div><ul>{comingUp.slice(0,4).map(x=><li key={x.day.id} className={x.daysAway===0?'is-today':undefined}><span aria-hidden="true">{x.icon}</span><span>{x.label}</span><b>{daysAwayLabel(x.daysAway)}</b></li>)}</ul></section>}
-    {/* A kid's own plan: the family to-dos their parent made for them, to tick off here. */}
-    {!showQuick&&kidTodos.length>0&&<section className="wb-panel family-todos kid-todos" aria-label="Your to-dos"><h2>Your to-dos</h2><ul>{kidTodos.map(t=><li key={t.id}><span className="family-todo-row"><input type="checkbox" aria-label={t.title} checked={false} onChange={()=>tickKidTodo(t.id)}/><span className="family-todo-title">{t.title}</span>{t.due&&<small className="family-todo-day">{t.repeat?'🔁 ':''}{dateLabel(t.due)}</small>}</span></li>)}</ul></section>}
-    {!showQuick&&parentMode&&profileKids.length>0&&<Suspense fallback={null}><FamilyTodos data={data} profileId={profile.id} today={today} save={save} ops={todoOps}/></Suspense>}
-    <section className="wb-panel today-card" aria-label="Your day">
-     <div className="wb-section-head today-card-head">
-      <div className="today-card-tabs" role="tablist" aria-label="Day">
-       {(['today','tomorrow'] as const).map(d=><button type="button" key={d} role="tab" id={'day-tab-'+d} aria-controls={'day-panel-'+d} aria-selected={dayTab===d} tabIndex={dayTab===d?0:-1} onClick={()=>{setDayTab(d);setQuickDayOpen(null)}}>{d==='today'?'Today':'Tomorrow'}{(d==='today'?todayCount:tomorrowCount)>0&&<span className="today-card-count">{d==='today'?todayCount:tomorrowCount}</span>}</button>)}
-      </div>
-      <div className="wb-toolbar">
-       <button type="button" className="quick-day-open" aria-label={'Add for '+dayTab} aria-expanded={quickDayOpen===dayTab} onClick={()=>setQuickDayOpen(o=>o===dayTab?null:dayTab)}>＋ Add</button>
-       <details className="today-card-more"><summary aria-label="More for your day">⋯</summary><div className="today-card-menu"><span className="today-card-menu-title">Show</span>{scheduleViewPicker}<button type="button" onClick={()=>{setSettingsTab('Schedules');navigate('Settings')}}>Edit classes</button><button type="button" onClick={()=>{setSelectedDate(dayTab==='today'?today:tomorrow);navigate('Planner')}}>Open in Planner</button></div></details>
-      </div>
-     </div>
+    </>}
+    {/* The family schedule: whose is what (tap a name), the day at a glance and what's next for each person. */}
+    {id==='family'&&familyHome&&<section className="wb-panel today-card family-schedule" aria-label="Family schedule">
+     <div className="wb-section-head"><div><small>{dateLabel(today)}</small><h2>Family schedule</h2></div></div>
      {peopleFilter}
-     {dayTab==='today'?<div role="tabpanel" id="day-panel-today" aria-labelledby="day-tab-today" className="today-card-body">
       <p className="today-summary" aria-label="Today at a glance">{daySummary(data,today,nowClock).map(b=>familyLean&&b.tone==='late'?<button type="button" key={b.text} className="is-late today-summary-late" aria-expanded={lateOpen} onClick={()=>setLateOpen(v=>!v)}><span aria-hidden="true">{b.icon}</span> {b.text}</button>:<span key={b.text} className={b.tone?'is-'+b.tone:undefined}><span aria-hidden="true">{b.icon}</span> {b.text}</span>)}</p>
       {familyHome&&<KidsNext data={data} profileId={profile.id} today={today} nowClock={nowClock}/>}
+    </section>}
+    {/* The schedule: today, then tomorrow, each in your own order. Late work and past-due reminders lead
+        today; ＋ Add and the ⋯ menu (what to show, classes, the Planner) sit in its header. */}
+    {id==='schedule'&&<section className="wb-panel today-card" aria-label="Your day">
+     <div className="wb-section-head today-card-head">
+      <h2>Schedule</h2>
+      <div className="wb-toolbar">
+       <button type="button" className="quick-day-open" aria-label="Add for today" aria-expanded={quickDayOpen==='today'} onClick={()=>setQuickDayOpen(o=>o==='today'?null:'today')}>＋ Add</button>
+       <details className="today-card-more"><summary aria-label="More for your day">⋯</summary><div className="today-card-menu"><span className="today-card-menu-title">Show</span>{scheduleViewPicker}<button type="button" onClick={()=>{setSettingsTab('Schedules');navigate('Settings')}}>Edit classes</button><button type="button" onClick={()=>{setSelectedDate(today);navigate('Planner')}}>Open in Planner</button></div></details>
+      </div>
+     </div>
+     {!familyHome&&<>{peopleFilter}
+      <p className="today-summary" aria-label="Today at a glance">{daySummary(data,today,nowClock).map(b=>familyLean&&b.tone==='late'?<button type="button" key={b.text} className="is-late today-summary-late" aria-expanded={lateOpen} onClick={()=>setLateOpen(v=>!v)}><span aria-hidden="true">{b.icon}</span> {b.text}</button>:<span key={b.text} className={b.tone?'is-'+b.tone:undefined}><span aria-hidden="true">{b.icon}</span> {b.text}</span>)}</p>
+     </>}
+     <div className="today-card-body" role="region" aria-label="Today">
+      <h3 className="today-card-day">Today{todayCount>0&&<span className="today-card-count">{todayCount}</span>}</h3>
       <Suspense fallback={null}><RotationToday data={data} save={save} today={today} kids={profileKids} family={parentMode} onCalendar={store.user&&!lockedPlan?()=>openSettings('Import & export'):undefined} onOpenClass={label=>{const c=todayClasses.find(x=>x.block.label===label);if(c)setClassSheet(c)}}/></Suspense>{(!familyLean||lateOpen)&&overdueCard}
       {pastReminders.length>0&&<div className="tomorrow-extra-list today-card-reminders"><strong>Reminders</strong>{pastReminders.map(e=>card('calendarEvents',e as unknown as Entry))}</div>}
       {quickDayOpen==='today'&&<QuickDayAdd date={today} dayName="today" subjects={subjects} onAdd={item=>quickDay(today,item)} onClose={()=>setQuickDayOpen(null)}/>}
       {(!familyHome||tasks.some(t=>t.due===today))&&<AssignmentProgress tasks={tasks} date={today} label="Today's" streak={currentStreak} week={{done:weekDone,total:weekTotal}}/>}{weeklyDayLabels(today).map(label=><p className="school-day-label" key={label}>{label}</p>)}
       <div className="today-schedule-list">{todayClasses.map(renderCompactClass)}</div>
-      {todayLoose.length>0&&<div className="tomorrow-extra-list"><strong>Also today</strong>{todayLoose.length>1?<ReorderList label="Also today, in your order" items={todayLoose.map(e=>({id:e.entry.id,title:titleOf(e.entry),node:card(e.key,e.entry)}))} onReorder={ids=>setTodayOrder(today+'|'+ids.join(','))}/>:todayLoose.map(e=>card(e.key,e.entry))}</div>}
+      {todayLoose.length>0&&<div className="tomorrow-extra-list"><strong>Also today</strong>{todayLoose.length>1?<ReorderList label="Also today, in your order" items={todayLoose.map(e=>({id:e.entry.id,title:titleOf(e.entry),node:card(e.key,e.entry)}))} onReorder={ids=>setDayRank(today,ids)}/>:todayLoose.map(e=>card(e.key,e.entry))}</div>}
       {!todayClasses.length&&!todayLoose.length&&<p className="today-card-empty"><img className="kono-empty-art" src="/garden/kono/tea.webp" alt="" aria-hidden="true"/>{season&&season.end<today?'Your schedule has ended. Update its dates in Settings.':'Nothing else on today.'}</p>}
-     </div>:<div role="tabpanel" id="day-panel-tomorrow" aria-labelledby="day-tab-tomorrow" className="today-card-body">
-      <p className="today-card-date">{dateLabel(tomorrow)}</p>
+     </div>
+     <div className="today-card-body is-tomorrow" role="region" aria-label="Tomorrow">
+      <h3 className="today-card-day">Tomorrow <small>{dateLabel(tomorrow)}</small>{tomorrowCount>0&&<span className="today-card-count">{tomorrowCount}</span>}<button type="button" className="quick-day-open" aria-label="Add for tomorrow" aria-expanded={quickDayOpen==='tomorrow'} onClick={()=>setQuickDayOpen(o=>o==='tomorrow'?null:'tomorrow')}>＋</button></h3>
       {quickDayOpen==='tomorrow'&&<QuickDayAdd date={tomorrow} dayName="tomorrow" subjects={subjects} onAdd={item=>quickDay(tomorrow,item)} onClose={()=>setQuickDayOpen(null)}/>}
       {(!familyHome||tasks.some(t=>t.due===tomorrow))&&<AssignmentProgress tasks={tasks} date={tomorrow} label="Tomorrow's"/>}{schoolDayLabels(data,tomorrow).map(label=><p className="school-day-label" key={label}>{label}</p>)}
       <div className="today-schedule-list">{tomorrowClasses.map(renderCompactClass)}</div>
-      {tomorrowLoose.length>0&&<div className="tomorrow-extra-list"><strong>Also tomorrow</strong>{tomorrowLoose.map(e=>card(e.key,e.entry))}</div>}
+      {tomorrowLoose.length>0&&<div className="tomorrow-extra-list"><strong>Also tomorrow</strong>{tomorrowLoose.length>1?<ReorderList label="Also tomorrow, in your order" items={tomorrowLoose.map(e=>({id:e.entry.id,title:titleOf(e.entry),node:card(e.key,e.entry)}))} onReorder={ids=>setDayRank(tomorrow,ids)}/>:tomorrowLoose.map(e=>card(e.key,e.entry))}</div>}
       {!tomorrowClasses.length&&!tomorrowLoose.length&&<p className="today-card-empty"><img className="kono-empty-art" src="/garden/kono/sit.webp" alt="" aria-hidden="true"/>Nothing on tomorrow yet.</p>}
-     </div>}
-    </section>
-   </div></div>}
+     </div>
+    </section>}
+    {id==='weekAhead'&&!showQuick&&<WeekAhead family={familyLean||!weekend} today={today} profileId={profile.id} data={data} monday={monday} recap={reviewShown?null:recap} tasks={tasks} exams={ownExams} onPlan={openWeekPlan} onOpenDay={date=>{setSelectedDate(date);navigate('Planner')}} mondayWork={mondayWork.length>0?<div className="weekend-due"><strong>Due Monday</strong>{mondayWork.map(t=>card('tasks',t as unknown as Entry))}</div>:<p>Nothing is due Monday.</p>}/>}
+    {id==='notes'&&!showQuick&&<section className="wb-panel home-notes" aria-label="Notes & reminders">
+     <div className="wb-section-head"><h2>Notes & reminders</h2><div className="wb-toolbar"><button type="button" onClick={()=>create('notes')}>＋ Note</button><button type="button" onClick={()=>create('calendarEvents',today,'',{title:'Reminder: ',kind:'personal'})}>＋ Reminder</button><button type="button" className="link-button" onClick={()=>navigate('Notes')}>All notes</button></div></div>
+     {homeNotes.length||homeReminders.length?<div className="home-notes-board">{homeReminders.map(e=><div key={e.id} className="home-reminder">{card('calendarEvents',e as unknown as Entry)}</div>)}{homeNotes.map(n=><div key={n.id} className="home-note">{card('notes',n as unknown as Entry)}</div>)}</div>
+     :<p className="today-card-empty">No notes yet. Pinned notes stay here, and reminders for the next week show up too.</p>}
+    </section>}
+    {id==='todos'&&<>
+    {/* A kid's own plan: the family to-dos their parent made for them, to tick off here. */}
+    {!showQuick&&kidTodos.length>0&&<section className="wb-panel family-todos kid-todos" aria-label="Your to-dos"><h2>Your to-dos</h2><ul>{kidTodos.map(t=><li key={t.id}><span className="family-todo-row"><input type="checkbox" aria-label={t.title} checked={false} onChange={()=>tickKidTodo(t.id)}/><span className="family-todo-title">{t.title}</span>{t.due&&<small className="family-todo-day">{t.repeat?'🔁 ':''}{dateLabel(t.due)}</small>}</span></li>)}</ul></section>}
+    {!showQuick&&parentMode&&profileKids.length>0&&<Suspense fallback={null}><FamilyTodos data={data} profileId={profile.id} today={today} save={save} ops={todoOps}/></Suspense>}
+    </>}
+    {id==='comingUp'&&<>
+    {!showQuick&&comingUp.length>0&&<section className="wb-panel coming-up" aria-label="Coming up"><div className="wb-section-head"><h2>Coming up</h2><button type="button" className="link-button" onClick={()=>setSpecialOpen(true)}>Birthdays & countdowns</button></div><ul>{comingUp.slice(0,4).map(x=><li key={x.day.id} className={x.daysAway===0?'is-today':undefined}><span aria-hidden="true">{x.icon}</span><span>{x.label}</span><b>{daysAwayLabel(x.daysAway)}</b></li>)}</ul></section>}
+    </>}
+    {id==='focus'&&<>
+    {!showQuick&&!familyLean&&<details ref={sanctuaryFocusRef} className="wb-panel sanctuary-focus"><summary>Focus session</summary><FocusSession draftKey={draftScope+':focus'} tasks={tasks} notes={notes} focusRequest={focusRequest} onComplete={id=>void run(()=>save(d=>completeTask(d,id)),'Assignment completed.')} onSaveNote={body=>save(d=>({...d,notes:[...d.notes,{id:uid('note'),profileId:profile.id,subjectId:'',title:'Study session',body,created:new Date().toISOString(),pinned:true}]}))} onFocusActiveChange={setFocusCompanionActive} onSessionComplete={focusDone}/></details>}
+    </>}
+    </Fragment>)}
+    {!showQuick&&<p className="home-customize"><button type="button" onClick={()=>setCustomizing(true)}>✏️ Customize Home</button></p>}
+    {customizing&&<Suspense fallback={null}><HomeCustomize layout={homeLayout} available={homeAvailable} close={()=>setCustomizing(false)} onChange={l=>setHomeLine(isDefault(l)?'':writeLayout(l))}/></Suspense>}
+   </div>}
    {page==='Planner'&&<PlannerPage w={w}/>}
    {page==='Kids'&&<KidsPage onSetup={()=>setFamilySetupOpen(true)} data={data} create={create} edit={edit} remove={remove} patch={patch} openSettings={openSettings} onOpenKidPlan={makeKidPlan} cards={profileKids.length>0&&<Suspense fallback={null}><KidsGlance data={data} profileId={profile.id} today={today} from={myName==='Me'?'Your family':myName} save={save} onOpen={(_kid,planId)=>planId?switchPlan(planId):undefined} onMakePlan={makeKidPlan} onEdit={kid=>edit('kids',kid as unknown as Entry)} onRemove={kid=>remove('kids',kid as unknown as Entry)} onDayOff={()=>setDayOffFor(today)}/></Suspense>}/>}
    {page==='Subjects'&&<SubjectsPage w={w}/>}
@@ -1178,7 +1240,7 @@ function Workspace({store}:{store:Store}){
   <div className={'wb-music-bar'+(music.playing?' is-playing':'')}><MusicPlayer controller={music} compact/></div>
   {confirmation&&<Modal title="Confirm change" close={()=>setConfirmation(null)}><p>{confirmation.text}</p><button onClick={()=>{confirmation.action();setConfirmation(null)}}>Confirm</button><button onClick={()=>setConfirmation(null)}>Cancel</button></Modal>}
   {more&&<Modal title="More" close={()=>setMore(false)}>{(['Kids','Notes','Subjects','K-Quiz','Exams','Settings','Trash'] as Page[]).filter(p=>p==='Trash'?!simpleView:visiblePages.includes(p)).map(p=><button key={p} onClick={()=>navigate(p)}>{p}</button>)}<label>Study profile<select value={profile.id} onChange={e=>switchPlan(e.target.value)}>{data.profiles.map(p=><option value={p.id} key={p.id}>{p.label}</option>)}</select></label></Modal>}
-  {adding&&<Modal title="Add to your plan" close={()=>setAdding(false)}><QuickAddBox onAddMany={quickAddMany} recall={(t:string)=>rememberEvent(data,profile.id,t)} clashes={g=>g.event?findClashes(view,profile.id,{dates:[g.due,...weekdayDates(g.due,g.event.repeatDays,g.event.until)],time:g.time,endTime:g.event.endTime,kidIds:g.event.kidIds},dateLabel):[]} subjects={data.subjects.filter(s=>s.profileId===profile.id)} people={parentMode?profileKids.map(k=>({id:k.id,name:k.name})):[]} today={localDate()} initialText={incoming?.text} link={incoming?.link} onAdd={quickAdd} onEdit={g=>g.key==='familyTodos'?quickAdd(g):g.event?(setAdding(false),create('calendarEvents',g.due,undefined,{title:g.title,kind:g.event.kind,...(g.time?{time:g.time}:{}),...(g.event.endTime?{endTime:g.event.endTime}:{}),...(g.event.location?{location:g.event.location}:{}),...(g.event.kidIds.length===1?{kidId:g.event.kidIds[0]}:g.event.kidIds.length>1?{kidId:g.event.kidIds[0],kidIds:g.event.kidIds}:{})})):create(g.key,g.due,g.subjectId,{title:g.title,...(g.time?{plannedTime:g.time}:{}),...(g.link?{link:g.link}:{})})}/><div className="quick-add-choice"><p className="quick-add-or">Or pick one:</p><div className="add-tiles" role="group" aria-label="Add type">{([['tasks','📝','Homework'],['exams','🎯','Test or exam'],['calendarEvents','🗓️','Event'],['lesson','📖','Lesson'],['notes','📌','Study note']] as const).map(([kind,icon,label])=><button type="button" key={kind} className="add-tile" onClick={()=>kind==='lesson'?create('calendarEvents',addDate,subject,{kind:'lesson'}):create(kind,addDate)}><span aria-hidden="true">{icon}</span>{label}</button>)}</div>{addDate!==today&&<p className="wb-muted add-tiles-date">For {dateLabel(addDate)}</p>}</div><button type="button" className="update-entire-plan-button" onClick={()=>{setAdding(false);setScanningPlan(true)}}>📷 Update entire plan — scan notes or a syllabus</button><details className="add-more-choices"><summary>More ways to add</summary><div>{(['studyPlans','subjects',...(parentMode?['kids'] as const:[])] as Collection[]).map(key=><button key={key} onClick={()=>create(key)}>{labels[key]}</button>)}</div></details></Modal>}
+  {adding&&<Modal title="Add to your plan" close={()=>setAdding(false)}><QuickAddBox onAddMany={quickAddMany} recall={(t:string)=>rememberEvent(data,profile.id,t)} clashIn={{data:view,profileId:profile.id,dateLabel}} subjects={data.subjects.filter(s=>s.profileId===profile.id)} people={parentMode?profileKids.map(k=>({id:k.id,name:k.name})):[]} today={localDate()} initialText={incoming?.text} link={incoming?.link} onAdd={quickAdd} onEdit={g=>g.key==='familyTodos'?quickAdd(g):g.event?(setAdding(false),create('calendarEvents',g.due,undefined,{title:g.title,kind:g.event.kind,...(g.time?{time:g.time}:{}),...(g.event.endTime?{endTime:g.event.endTime}:{}),...(g.event.location?{location:g.event.location}:{}),...(g.event.kidIds.length===1?{kidId:g.event.kidIds[0]}:g.event.kidIds.length>1?{kidId:g.event.kidIds[0],kidIds:g.event.kidIds}:{})})):create(g.key,g.due,g.subjectId,{title:g.title,...(g.time?{plannedTime:g.time}:{}),...(g.link?{link:g.link}:{})})}/><div className="quick-add-choice"><p className="quick-add-or">Or pick one:</p><div className="add-tiles" role="group" aria-label="Add type">{([['tasks','📝','Homework'],['exams','🎯','Test or exam'],['calendarEvents','🗓️','Event'],['lesson','📖','Lesson'],['notes','📌','Study note']] as const).map(([kind,icon,label])=><button type="button" key={kind} className="add-tile" onClick={()=>kind==='lesson'?create('calendarEvents',addDate,subject,{kind:'lesson'}):create(kind,addDate)}><span aria-hidden="true">{icon}</span>{label}</button>)}</div>{addDate!==today&&<p className="wb-muted add-tiles-date">For {dateLabel(addDate)}</p>}</div><button type="button" className="update-entire-plan-button" onClick={()=>{setAdding(false);setScanningPlan(true)}}>📷 Update entire plan — scan notes or a syllabus</button><details className="add-more-choices"><summary>More ways to add</summary><div>{(['studyPlans','subjects',...(parentMode?['kids'] as const:[])] as Collection[]).map(key=><button key={key} onClick={()=>create(key)}>{labels[key]}</button>)}</div></details></Modal>}
   {photoStage&&<Suspense fallback={null}><IslandPhoto stage={photoStage} close={()=>setPhotoStage(null)}/></Suspense>}
   {weatherOpen&&<Modal title="Sanctuary weather" close={()=>setWeatherOpen(false)}><WeatherSettings data={data} setData={save} weatherState={weather}/></Modal>}
   {scanningPlan&&<Modal title="Update entire plan" close={()=>setScanningPlan(false)}><UpdatePlanScanner profileId={profile.id} subjects={subjects} kids={profileKids} save={save} close={()=>setScanningPlan(false)} onOpenAiSettings={()=>{setScanningPlan(false);openSettings('Import & export')}}/></Modal>}
@@ -1219,7 +1281,7 @@ function RecordCard({cozy,collection,entry,subject,subjectColor,kid,alsoKids=[],
  const startFocusButton=startFocus&&<button type="button" className="start-focus-button" onClick={startFocus}>▶ Start focus session</button>
  if(cozy&&collection==='tasks')return <article className={'cozy-task-row '+(done?'is-complete':'')+(needsReview?' needs-review-record':'')+(personEdge?' has-person':'')} style={{'--subject-accent':subjectColor??'#b47e75',...personEdge} as CSSProperties}><button className="cozy-complete" aria-label={(done?'Reopen ':'Complete ')+titleOf(entry)} aria-pressed={done} onClick={toggle}>{done?'✓':'○'}</button><div className="cozy-task-copy">{reviewBadge}<h3>{titleOf(entry)}</h3><p>{whoChip}{subject??'Unassigned'} · {dateLabel(String(entry.due))} <span className={'countdown-chip '+(daysUntil(String(entry.due))<0?'is-overdue':'')}>{dueLabel}</span>{plannedChip}{attachChips}{subtaskProgress&&<span className="subtask-chip">{subtaskProgress}</span>}{inSeries&&<span className="subtask-chip">1 of {seriesCount} dates</span>}</p>{Boolean(entry.notes)&&<SafeNoteBody text={String(entry.notes)}/>}</div><div className="cozy-task-actions">{reviewButton}{startFocusButton}<button onClick={edit}><ActionIcon name="edit"/>Edit</button><details className="card-more"><summary aria-label={'More actions for '+titleOf(entry)} title="More actions">⋯</summary><div onClick={e=>{(e.currentTarget.parentElement as HTMLDetailsElement).open=false}}><button onClick={duplicate}><ActionIcon name="copy"/>Duplicate</button><button onClick={remove}><ActionIcon name="trash"/>Move to Trash</button>{inSeries&&<button onClick={removeSeries}><ActionIcon name="trash"/>Delete whole series ({seriesCount})</button>}</div></details></div></article>
  if(cozy&&paper&&compact)return <button type="button" className={'cozy-pin-mini'+(priority?' priority-record':'')+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={{'--note-paper':String(entry.color??'#ffd2dd'),'--note-ink':String(entry.textColor??'#2f2942')} as CSSProperties} onClick={edit}><span className="push-pin pin-mini" aria-hidden="true"/>{priority&&<b aria-hidden="true">★</b>}<strong>{titleOf(entry)}</strong>{dueLabel&&<span className={'countdown-chip '+(daysUntil(due)<0?'is-overdue':'')}>{dueLabel}</span>}</button>
- if(cozy&&paper)return <div className={'cozy-note-record '+(priority?'priority-record':'')+(needsReview?' needs-review-record':'')} >{priority&&<span className="priority-flag">★ IMPORTANT · {dueLabel}</span>}{reviewBadge}{attachChips}<StickyNoteView kind={note?'note':'exam'} color={String(entry.color??'#ffd2dd')} textColor={String(entry.textColor??'#2f2942')} font={String(entry.font??'rounded')} pinned={Boolean(entry.pinned)} completed={done} subject={subject??'General'} title={titleOf(entry)} body={String(entry.body??entry.notes??'')} highlight={String(entry.highlight??'transparent')} dateLabel={due?dateLabel(due)+(dueLabel?' · '+dueLabel:''):undefined} onEdit={edit} onDelete={remove} onTogglePin={note?pin:undefined} onToggleComplete={toggle}/><div className="wb-toolbar note-tools">{reviewButton}<details className="note-more"><summary aria-label={'More for '+titleOf(entry)}>⋯</summary><div className="note-more-menu" onClick={e=>{if((e.target as HTMLElement).closest('button'))(e.currentTarget.parentElement as HTMLDetailsElement).open=false}}><button className="cozy-duplicate" onClick={duplicate}>Duplicate</button>{note&&<button onClick={remind}>Add reminder</button>}{scheduleReview&&<button onClick={scheduleReview}>Schedule review</button>}</div></details></div></div>
+ if(cozy&&paper)return <div className={'cozy-note-record '+(priority?'priority-record':'')+(needsReview?' needs-review-record':'')} >{priority&&<span className="priority-flag">★ IMPORTANT · {dueLabel}</span>}{reviewBadge}{attachChips}<Suspense fallback={<div className="kono-sticky is-loading" aria-hidden="true"/>}><StickyNoteView kind={note?'note':'exam'} color={String(entry.color??'#ffd2dd')} textColor={String(entry.textColor??'#2f2942')} font={String(entry.font??'rounded')} pinned={Boolean(entry.pinned)} completed={done} subject={subject??'General'} title={titleOf(entry)} body={String(entry.body??entry.notes??'')} highlight={String(entry.highlight??'transparent')} dateLabel={due?dateLabel(due)+(dueLabel?' · '+dueLabel:''):undefined} onEdit={edit} onDelete={remove} onTogglePin={note?pin:undefined} onToggleComplete={toggle}/></Suspense><div className="wb-toolbar note-tools">{reviewButton}<details className="note-more"><summary aria-label={'More for '+titleOf(entry)}>⋯</summary><div className="note-more-menu" onClick={e=>{if((e.target as HTMLElement).closest('button'))(e.currentTarget.parentElement as HTMLDetailsElement).open=false}}><button className="cozy-duplicate" onClick={duplicate}>Duplicate</button>{note&&<button onClick={remind}>Add reminder</button>}{scheduleReview&&<button onClick={scheduleReview}>Schedule review</button>}</div></details></div></div>
  // A calendar event's own compact tile: the time is the first thing a parent's eye hits, in a
  // fixed-width column so a whole day's times line up for a straight vertical scan. showKidBorder and
  // showKidHeader are each their own opt-in (see the Kids page's appearance settings) and both require

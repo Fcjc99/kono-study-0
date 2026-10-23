@@ -75,7 +75,35 @@
 .blast-piece.is-stuck{opacity:.4;filter:grayscale(.6)}
 .blast-mini{display:grid;gap:2px;pointer-events:none}
 .blast-mini span{border-radius:4px}
-.blast-float{position:fixed;z-index:1000;display:grid;pointer-events:none;filter:drop-shadow(0 8px 10px rgba(0,0,0,.35))}
+.blast-float{position:fixed;left:0;top:0;z-index:1000;display:grid;pointer-events:none;will-change:transform;filter:drop-shadow(0 8px 10px rgba(0,0,0,.35));animation:blast-lift .12s ease-out}
+@keyframes blast-lift{from{opacity:.6;scale:.6}}
 .blast-float span{margin:2px;border-radius:5px}
-.blast-help{margin:0;font-size:.8rem;color:rgba(255,255,255,.75);text-align:center}
-@media(prefers-reduced-motion:reduce){.blast-score,.blast-burst span,.blast-gain,.blast-cheer,.blast-over{animation:none}}
+.blast-help{margin:0;font-size:.8rem;color:rgba(255,255,255,.75)}
+.blast-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;max-width:340px}
+.blast .blast-end{margin:0!important;min-height:34px!important;padding:4px 14px!important;border-radius:999px!important;background:rgba(255,255,255,.14)!important;color:#fff!important;border:1px solid rgba(255,255,255,.3)!important;box-shadow:none!important;font-weight:700}
+.blast-coins{position:absolute;right:0;top:0;font-weight:800;font-size:.95rem;color:#ffd84d;text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.blast-cheer em{font-style:normal;font-size:1.1rem;font-weight:900;color:#ffd84d;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+/* Without motion the burst isn't drawn at all (its squares would just sit over the cleared ones). */
+@media(prefers-reduced-motion:reduce){.blast-score,.blast-gain,.blast-cheer,.blast-over,.blast-float{animation:none}.blast-burst{display:none}}
+/* A game, full screen (GameScreen.tsx). */
+.game-screen{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;display:flex;flex-direction:column;background:var(--wb-bg,#fff8f1);color:inherit;overscroll-behavior:contain}
+.game-screen::backdrop{background:rgba(0,0,0,.35)}
+.game-screen>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px}
+.game-screen>header strong{font-size:1.1rem}
+.game-screen .game-screen-leave{margin:0!important;min-height:40px}
+.game-screen-body{flex:1;overflow:auto;display:grid;align-content:start;justify-items:center;padding:4px 12px calc(env(safe-area-inset-bottom) + 16px)}
+.game-screen-body>*{width:100%;max-width:520px}
+.game-screen.is-blast{background:radial-gradient(120% 70% at 50% 0%,#3a63d8 0%,#2443a6 45%,#172f7a 100%);color:#fff}
+.game-screen.is-blast>header .game-screen-leave{background:rgba(255,255,255,.15)!important;color:#fff!important;border-color:rgba(255,255,255,.3)!important}
+.game-screen.is-blast .break-game.blast{background:none}
+@media(min-height:700px){.game-screen-body{align-content:center}}
+/* Light buttons on the dark blast screen (stronger than the app's own button look). */
+dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast button.blast-end:not(#x):not(#y){background:rgba(255,255,255,.16)!important;color:#fff!important;border:1px solid rgba(255,255,255,.35)!important;box-shadow:none!important;text-shadow:none!important}
+/* KONO cheering under the board after a clear. */
+.blast-kono{min-height:44px;margin:0;display:flex;justify-content:center}
+.blast-kono span{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;background:rgba(255,255,255,.95);color:#5b3b2e;box-shadow:0 4px 10px rgba(0,0,0,.25);animation:blast-kono 2.4s ease-out both}
+.blast-kono img{width:36px!important;height:36px!important;image-rendering:pixelated}
+.blast-kono b{font-size:.95rem}
+@keyframes blast-kono{0%{opacity:0;transform:translateY(8px) scale(.9)}10%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.blast-kono span{animation:none}}
+.blast .blast-end{white-space:nowrap;flex:none}

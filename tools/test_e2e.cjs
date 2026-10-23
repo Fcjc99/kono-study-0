@@ -612,11 +612,18 @@ test('Sanctuary: the island draws, zooms, expands and changes time; Decorate add
  await page.waitForFunction(()=>{const c=document.querySelector('.sanctuary-viewport canvas');return !!c&&c.width>100&&c.toDataURL('image/png').length>60000},null,{timeout:20000})
  assert.ok(loaded.some(([path,status])=>/terrace-23\.0\/((halloween-v2|winter|spring|semester)\/)?\w+\.webp$/.test(path)&&status===200),'the island map did not load (whatever the season)')
  assert.ok(loaded.every(([,status])=>status===200),'a Sanctuary image failed to load: '+JSON.stringify(loaded.filter(([,st])=>st!==200)))
- const zoom=page.getByRole('group',{name:'Zoom island'})
- await zoom.getByRole('button',{name:'Zoom in'}).click()
- await zoom.getByText('125%').waitFor()
- await zoom.getByRole('button',{name:'Zoom out'}).click()
- await zoom.getByText('100%').waitFor()
+ // A pinch (here a trackpad pinch: Ctrl + scroll) zooms in, Reset zoom puts it back, and pinching out past
+ // the whole island pulls back to the world map.
+ await page.locator('.wb-sanctuary-zoom-wrap').scrollIntoViewIfNeeded()
+ const stage=await page.locator('.wb-sanctuary-zoom-wrap').boundingBox()
+ await page.mouse.move(stage.x+stage.width/2,stage.y+Math.min(stage.height/2,120))
+ await page.keyboard.down('Control');await page.mouse.wheel(0,-120);await page.keyboard.up('Control')
+ await page.getByRole('button',{name:'Reset zoom'}).click()
+ await page.getByRole('button',{name:'Reset zoom'}).waitFor({state:'detached'})
+ await page.keyboard.down('Control');for(let k=0;k<4;k++)await page.mouse.wheel(0,80);await page.keyboard.up('Control')
+ const world=page.getByRole('dialog',{name:'World map'})
+ await world.waitFor()
+ await world.getByRole('button',{name:'Close dialog'}).click()
  await page.locator('.wb-scene-expand').click()
  await page.locator('.wb-island.is-expanded').waitFor()
  await page.locator('.wb-scene-expand').click()
@@ -1355,7 +1362,7 @@ test('Home at a rotation school: Today shows the rotation day and the block now 
  assert.equal(await editor.getByLabel('Subject').locator('option:checked').innerText(),'Biology')
  await page.keyboard.press('Escape');await editor.waitFor({state:'detached'})
  // The same page opens from the class's card in Today.
- await page.getByRole('region',{name:'Your day'}).getByRole('button',{name:'Open Math 6'}).click()
+ await page.getByRole('region',{name:'Your day'}).getByRole('region',{name:'Today',exact:true}).getByRole('button',{name:'Open Math 6'}).click()
  await page.getByRole('dialog',{name:'Math 6'}).getByText('Save this schedule to link the class',{exact:false}).waitFor()
  await page.keyboard.press('Escape')
  // Parent mode › Kids: Emma's school day.
@@ -1788,7 +1795,6 @@ test('Add from Siri or the share sheet, links and photos: /?add=… starts quick
  assert.equal(new URL(page.url()).search,'','the address is cleaned up so a reload doesn’t add it twice')
  await chooser.getByRole('button',{name:'Add',exact:true}).click()
  await chooser.waitFor({state:'detached'})
- await page.getByRole('tab',{name:/^Tomorrow/}).click()
  const row=()=>page.locator('article.cozy-task-row').filter({hasText:'Lab report'}).first()
  assert.equal(await row().getByRole('link',{name:'🔗 Open link'}).getAttribute('href'),'https://docs.google.com/document/d/kono-test')
  await row().getByRole('button',{name:'Edit'}).click()
@@ -1801,7 +1807,6 @@ test('Add from Siri or the share sheet, links and photos: /?add=… starts quick
  await row().getByRole('button',{name:'1 photo, open it'}).waitFor()
  await flushSave(page,'"photos":["photo-')
  await page.reload();await heading(page,'Sanctuary')
- await page.getByRole('tab',{name:/^Tomorrow/}).click()
  await row().getByRole('button',{name:'1 photo, open it'}).click()
  const img=page.locator('dialog[open] .assignment-photo-thumb img')
  await img.waitFor()
@@ -1977,7 +1982,7 @@ test('Decorate › Halloween: all 16 pieces (a pumpkin house, an autumn tree, a 
  await waitFor(()=>{const ps=cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[];return ['halloween-pumpkin-house','halloween-spooky-tree'].every(id=>ps.some(p=>p.assetId===id))&&ps.some(p=>p.assetId==='halloween-sign'&&p.text==='Boo! 🎃')},'the Halloween pieces (and the sign’s text) never reached the island: '+JSON.stringify((cloud.users.alice.plan.data.sanctuaryDecor?.[pid]?.placements??[]).map(p=>[p.assetId,p.text])))
  await waitFor(()=>art.some(([p])=>p.endsWith('/pumpkin-house/night.webp')),'the night art for the pumpkin house never loaded: '+JSON.stringify(art))
  assert.ok(art.every(([,st])=>st===200),'a Halloween picture failed to load: '+JSON.stringify(art))
- if(process.env.KONO_SHOTS){await page.getByRole('button',{name:'Your island'}).click();await page.waitForTimeout(2500);await page.locator('.wb-island').screenshot({path:process.env.KONO_SHOTS+'/halloween-decor-island.png'})}
+ if(process.env.KONO_SHOTS){await page.getByRole('button',{name:'Done decorating'}).click();await page.waitForTimeout(2500);await page.locator('.wb-island').screenshot({path:process.env.KONO_SHOTS+'/halloween-decor-island.png'})}
 })
 test('Halloween on the island: in October KONO wears a pumpkin, a banner counts the 4 spooky stickers, finishing work earns the Pumpkin, and it goes on the island',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
@@ -2175,11 +2180,11 @@ test('Sanctuary: KONO today is a slim bar right under the island window, inside 
  if(process.env.KONO_SHOTS){await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar.png',clip:{x:b.x-10,y:b.y+docY-10,width:b.width+20,height:b.height+200}});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);const pb=await bar.evaluate(e=>{const r=e.getBoundingClientRect();return {y:r.top+scrollY,height:r.height}});await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar-phone.png',clip:{x:0,y:Math.max(0,pb.y-10),width:390,height:pb.height+160}});await page.setViewportSize({width:1280,height:900});await page.waitForTimeout(400)}
  assert.ok(b.height<160,'the KONO bar is slim (two short rows, even with a note from KONO): '+b.height+'px')
  assert.ok(Math.abs(above.gap)<=1,'the KONO bar sits right under the island window, in the same card: '+above.gap+'px')
- assert.ok(above.focusGap>=-1&&above.focusGap<60,'Focus session comes right after the KONO bar: '+above.focusGap+'px')
+ assert.ok(above.focusGap>=-1,'Focus session comes after the island card (its place on Home is yours to change): '+above.focusGap+'px')
  await page.getByRole('button',{name:'Decorate'}).click()
  const nav=page.getByRole('navigation',{name:'Decoration categories'})
  for(const cat of ['Homes','Trees','Ponds']){await nav.getByRole('button',{name:cat,exact:true}).click();await page.locator('.build-palette [role=button][aria-label^="Add "]').first().click()}
- await page.getByRole('button',{name:'Your island'}).click()
+ await page.getByRole('button',{name:'Done decorating'}).click()
  await (await openCorner(page)).getByRole('button',{name:/^Your stickers/}).click()
  await page.getByText(/^Earn stickers by keeping up with your work/).waitFor()
  await page.waitForTimeout(600)
@@ -2251,7 +2256,6 @@ test('Sanctuary › Today’s and Tomorrow’s schedule: ＋ Add saves an assign
  await todayCard.getByText('Tutoring').first().waitFor()
  if(process.env.KONO_SHOTS)await todayCard.screenshot({path:process.env.KONO_SHOTS+'/quick-day.png'})
  await todayForm.getByRole('button',{name:'Done'}).click()
- await todayCard.getByRole('tab',{name:/^Tomorrow/}).click()
  await tomorrowCard.getByRole('button',{name:'Add for tomorrow'}).click()
  const tomorrowForm=tomorrowCard.getByRole('form',{name:'Add for tomorrow'})
  await tomorrowForm.getByLabel('What to add for tomorrow').fill('Spanish quiz')
@@ -2814,7 +2818,7 @@ test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as
  assert.match(await emmaRow.innerText(),/1 due:/i);assert.match(await emmaRow.innerText(),/Fractions quiz/)
  await go(page,'Sanctuary')
  // Home's day: Emma's homework (from her plan), Leo's and mine; names tap off and on.
- const day=page.getByRole('region',{name:'Your day'}),people=day.getByRole('group',{name:'Whose things to show'}),also=day.locator('.tomorrow-extra-list').filter({hasText:'Also today'})
+ const day=page.getByRole('region',{name:'Your day'}),people=page.getByRole('region',{name:'Family schedule'}).getByRole('group',{name:'Whose things to show'}),also=day.locator('.tomorrow-extra-list').filter({hasText:'Also today'})
  for(const title of ['Spelling list','Science poster','Pay school fees'])await also.getByText(title,{exact:true}).waitFor()
  // Tap a name: only theirs. Tap it again: everyone. "Me" goes by the plan's name (Alice).
  await people.getByRole('button',{name:/Emma/}).click()
@@ -3333,7 +3337,7 @@ test('Family Home: one Today card says what is next for each kid, Kids today liv
  d.calendarEvents.push({id:'soccer',profileId:pid,date:'2026-10-15',title:'Soccer practice',kind:'sports',notes:'',time:'16:00',kidId:'kid-emma',location:'Riverside Park',travelMinutes:15})
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
- const day=page.getByRole('region',{name:'Your day'})
+ const day=page.getByRole('region',{name:'Family schedule'})
  await day.getByRole('list',{name:'What’s next for the kids'}).getByText(/Soccer practice 4:00 PM · leave 3:45 PM/).waitFor()
  assert.equal(await page.getByRole('region',{name:'Your kids'}).count(),0,'Kids today is on the Kids page')
  assert.equal(await page.locator('details.sanctuary-focus').count(),0,'no Focus session in a family plan')
@@ -3495,7 +3499,7 @@ test('Round 55: the world map: the beach is open (the forest opens with more hea
  const care=()=>cloud.users.alice.plan.data.konoCare?.[pid]??{log:[]}
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
- await page.getByRole('navigation',{name:'Sanctuary view'}).getByRole('button',{name:'World map'}).click()
+ await (await openCorner(page)).getByRole('button',{name:/^World map/}).click()
  const world=page.getByRole('dialog',{name:'World map'})
  await world.getByRole('button',{name:'Go to Sandy Beach Cove'}).waitFor()
  assert.equal(await world.getByRole('button',{name:/^Snowy Mountain Village, opens at 3 bond hearts$/}).isDisabled(),true,'the snowy village waits for more hearts')
@@ -3517,6 +3521,94 @@ test('Round 55: the world map: the beach is open (the forest opens with more hea
  await page.getByRole('dialog',{name:'World map'}).waitFor()
 })
 
+test('Round 58: your own Home: the week strip, Sanctuary, the family schedule, then the schedule (today and tomorrow together), the next 7 days and pinned notes; Customize Home hides and reorders, and it stays after a reload',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
+ d.notes.push({id:'n-pin',profileId:pid,subjectId:'',title:'Bring cleats',body:'Soccer Saturday',created:'2026-10-10T12:00:00.000Z',pinned:true})
+ d.calendarEvents.push({id:'e-rem',profileId:pid,subjectId:'',title:'Reminder: dentist form',date:'2026-10-17',kind:'personal',done:false})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const order=()=>page.evaluate(()=>[...document.querySelectorAll('.home-widgets>section,.home-widgets>details')].map(el=>el.getAttribute('aria-label')||el.className.split(' ').find(c=>c.startsWith('wb-island')||c.startsWith('kono-bar'))||el.tagName))
+ await page.getByRole('region',{name:'This week at a glance'}).waitFor()
+ await page.getByRole('region',{name:'Notes & reminders'}).getByText('Bring cleats').waitFor()
+ await page.getByRole('region',{name:'Notes & reminders'}).getByText('Reminder: dentist form').waitFor()
+ const day=page.getByRole('region',{name:'Your day'})
+ await day.getByRole('region',{name:'Today'}).waitFor();await day.getByRole('region',{name:'Tomorrow'}).waitFor()
+ assert.equal(await page.getByRole('tab',{name:/^Tomorrow/}).count(),0,'no Today / Tomorrow tabs any more')
+ const first=await order()
+ assert.ok(first.indexOf('This week at a glance')<first.indexOf('wb-island'),'the week strip sits above Sanctuary: '+first.join(' | '))
+ assert.ok(first.indexOf('wb-island')<first.indexOf('Your day')&&first.indexOf('Your day')<first.indexOf('Notes & reminders'),first.join(' | '))
+ if(process.env.KONO_SHOTS){await page.screenshot({path:process.env.KONO_SHOTS+'/home-desktop.png',fullPage:true});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(500);await page.screenshot({path:process.env.KONO_SHOTS+'/home-phone.png',fullPage:true});await page.setViewportSize({width:1280,height:900})}
+ // Customize: hide Sanctuary and move Notes & reminders to the top (⠿ with the arrow keys).
+ await page.getByRole('button',{name:'✏️ Customize Home'}).click()
+ const dialog=page.getByRole('dialog',{name:'Customize Home'})
+ await dialog.getByRole('checkbox',{name:/Sanctuary/}).uncheck()
+ const handle=dialog.getByRole('button',{name:/^Reorder Notes & reminders/})
+ for(let k=0;k<6;k++){await handle.focus();await page.keyboard.press('ArrowUp')}
+ if(process.env.KONO_SHOTS)await dialog.screenshot({path:process.env.KONO_SHOTS+'/home-customize.png'})
+ await dialog.getByRole('button',{name:'Done'}).click()
+ await page.locator('.wb-island').waitFor({state:'detached'})
+ let now=await order()
+ assert.equal(now[0],'Notes & reminders',now.join(' | '))
+ await page.reload();await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'Notes & reminders'}).waitFor()
+ now=await order()
+ assert.equal(now[0],'Notes & reminders','the order stays after a reload');assert.ok(!now.includes('wb-island'),'Sanctuary stays hidden')
+ // Back to the default.
+ await page.getByRole('button',{name:'✏️ Customize Home'}).click()
+ await page.getByRole('dialog',{name:'Customize Home'}).getByRole('button',{name:'Back to the default'}).click()
+ await page.getByRole('dialog',{name:'Customize Home'}).getByRole('button',{name:'Done'}).click()
+ await page.locator('.wb-island').waitFor()
+})
+
+test('Round 57: KONO blast clears a full row (the squares empty and the score jumps)',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.install({time:new Date('2026-10-15T15:00:00')})
+ d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:500}]}}
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
+ // Every piece is a single square from here on, so eight in a row fill it.
+ await page.evaluate(()=>{Math.random=()=>0})
+ await town.getByRole('button',{name:/KONO blast/}).click()
+ const board=page.getByRole('grid',{name:'KONO blast board'})
+ for(let c=1;c<=8;c++){
+  await page.getByRole('group',{name:'Pieces'}).getByRole('button').first().click()
+  await board.getByRole('gridcell',{name:new RegExp('^Row 1, column '+c+'(,|$)')}).click()
+ }
+ await page.waitForFunction(()=>Number(document.querySelector('.blast-score')?.textContent)>=18,null,{timeout:5000})
+ assert.equal(await board.getByRole('gridcell',{name:/filled$/}).count(),0,'the full row cleared')
+ if(process.env.KONO_SHOTS){await page.setViewportSize({width:390,height:844});await page.waitForTimeout(300);await page.screenshot({path:process.env.KONO_SHOTS+'/blast-fullscreen.png'});await page.setViewportSize({width:1280,height:900})}
+ // The same by dragging: eight squares dragged into row 3 clear it too.
+ const before=await page.evaluate(()=>Number(document.querySelector('.blast-score')?.textContent))
+ for(let c=1;c<=8;c++){
+  const from=await page.getByRole('group',{name:'Pieces'}).getByRole('button').first().boundingBox(),to=await board.getByRole('gridcell',{name:new RegExp('^Row 3, column '+c+'(,|$)')}).boundingBox()
+  await page.mouse.move(from.x+from.width/2,from.y+from.height/2);await page.mouse.down()
+  for(let k=1;k<=6;k++)await page.mouse.move(from.x+from.width/2+(to.x+to.width/2-from.x-from.width/2)*k/6,from.y+from.height/2+(to.y+to.height/2+56-from.y-from.height/2)*k/6)
+  await page.mouse.up()
+  if(c<8)await board.getByRole('gridcell',{name:'Row 3, column '+c+', filled'}).waitFor({timeout:3000})
+ }
+ await page.waitForFunction(n=>Number(document.querySelector('.blast-score')?.textContent)>=n+18,before,{timeout:5000})
+ assert.equal(await board.getByRole('gridcell',{name:/filled$/}).count(),0,'the dragged row cleared')
+ // Each clear paid a coin straight away (one line, then the second clear came after a non-clearing move).
+ const care=()=>cloud.users.alice.plan.data.konoCare?.[pid]??{log:[]}
+ await waitFor(()=>care().log.filter(e=>e.kind==='coin'&&e.item==='game:blast').length===2,'the clears’ coins never reached the account')
+ // Leave mid-game (it plays full screen), and it carries on where it was.
+ await page.getByRole('group',{name:'Pieces'}).getByRole('button').first().click()
+ await board.getByRole('gridcell',{name:'Row 5, column 5'}).click()
+ const kept=await page.evaluate(()=>Number(document.querySelector('.blast-score')?.textContent))
+ await page.getByRole('dialog',{name:'🧱 KONO blast'}).getByRole('button',{name:'✕ Leave'}).click()
+ await town.getByRole('button',{name:new RegExp('KONO blast.*Carry on your game \\('+kept+' points so far\\)')}).click()
+ await board.getByRole('gridcell',{name:'Row 5, column 5, filled'}).waitFor()
+ assert.equal(await page.evaluate(()=>Number(document.querySelector('.blast-score')?.textContent)),kept)
+ // End game finishes it (the best score is kept) and the next game starts fresh.
+ await page.getByRole('button',{name:'End game'}).click()
+ await town.getByText(/^KONO blast: \d+ points! 🧱/).waitFor()
+ await town.getByRole('button',{name:/KONO blast.*Fit the pieces/}).waitFor()
+})
+
 test('Round 56: each land has its own game: Shell chase on the beach, Acorn tumble in the forest (a cleared group scores and wins coins) and Sled dash in the snowy village; the arcade has KONO blast (tap or drag pieces on)',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.install({time:new Date('2026-10-15T15:00:00')})
@@ -3526,7 +3618,7 @@ test('Round 56: each land has its own game: Shell chase on the beach, Acorn tumb
  const care=()=>cloud.users.alice.plan.data.konoCare?.[pid]??{log:[]}
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
- await page.getByRole('navigation',{name:'Sanctuary view'}).getByRole('button',{name:'World map'}).click()
+ await (await openCorner(page)).getByRole('button',{name:/^World map/}).click()
  const world=page.getByRole('dialog',{name:'World map'})
  await world.getByRole('button',{name:'Go to Mossy Forest Glade'}).getByText('Acorn tumble').waitFor()
  // The beach: Shell chase. KONO walks right into the edge (no shells, so no coins and no coin round used).
@@ -3597,7 +3689,7 @@ test('Round 54: KONO uses the furniture; visit Emma’s KONO and leave a snack; 
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  // KONO's house: now and then KONO goes off to use a piece, here the bed.
- await page.getByRole('navigation',{name:'Sanctuary view'}).getByRole('button',{name:'KONO’s house'}).click()
+ await (await openCorner(page)).getByRole('button',{name:/^KONO’s house/}).click()
  const house=page.getByRole('dialog',{name:'KONO’s house'})
  const napping=house.getByText('KONO is napping in the cozy bed.')
  for(let i=0;i<12&&!await napping.isVisible();i++)await page.clock.runFor(3500)
@@ -3658,7 +3750,7 @@ test('Round 53: tap a house on the island and KONO walks in, the island zooms in
  await house.getByRole('button',{name:'Close dialog'}).click()
  await page.getByRole('button',{name:'Go into KONO’s house'}).waitFor()
  // The island's tab goes in through KONO's home as well.
- await page.getByRole('navigation',{name:'Sanctuary view'}).getByRole('button',{name:'KONO’s house'}).click()
+ await (await openCorner(page)).getByRole('button',{name:/^KONO’s house/}).click()
  await page.getByRole('dialog',{name:'KONO’s house'}).waitFor({timeout:15000})
 })
 
@@ -3773,6 +3865,8 @@ test('Round 51: KONO Town: a surprise to collect, coins in the KONO bar, the foo
  await town.getByRole('button',{name:/Bubble pop/}).click()
  await town.getByRole('button',{name:'Pop the bubble'}).first().dispatchEvent('pointerdown')
  await town.getByText(/^Pops: 1$/).waitFor()
+ // Games play full screen; Leave goes back to KONO Town.
+ await page.getByRole('dialog',{name:'🫧 Bubble pop'}).getByRole('button',{name:'✕ Leave'}).click()
  // Album: the beanie is in, with how far along the whole collection is.
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Album'}).click()
  await town.getByRole('region',{name:'Outfits'}).getByRole('listitem',{name:'Cozy beanie',exact:true}).waitFor()
