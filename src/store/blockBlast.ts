@@ -60,3 +60,11 @@ export const praise=(lines:number)=>['','Good!','Great!','Excellent!','Amazing!'
 export function deal(roll:()=>number):Piece[]{
  return Array.from({length:3},()=>({shape:SHAPES[Math.floor(roll()*SHAPES.length)%SHAPES.length],color:Math.floor(roll()*COLORS)%COLORS}))
 }
+
+/** A game in progress, saved on this device after every move so it carries on where it was left. */
+export type BlastSave={grid:Grid;tray:(Piece|null)[];score:number;streak:number}
+const SAVE_KEY='kono-blast-save'
+export function readBlastSave():BlastSave|null{
+ try{const s=JSON.parse(localStorage.getItem(SAVE_KEY)??'null') as BlastSave|null;return s&&Array.isArray(s.grid)&&s.grid.length===SIZE*SIZE&&Array.isArray(s.tray)&&s.tray.length===3?s:null}catch{return null}
+}
+export function writeBlastSave(s:BlastSave|null){try{if(s)localStorage.setItem(SAVE_KEY,JSON.stringify(s));else localStorage.removeItem(SAVE_KEY)}catch{/* storage unavailable */}}

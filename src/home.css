@@ -283,3 +283,45 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .kids-glance-face.has-ring{background:radial-gradient(closest-side,color-mix(in srgb,var(--kid-color) 25%,#fff) 82%,transparent 84%),conic-gradient(var(--kid-color) calc(var(--done)*1turn),color-mix(in srgb,var(--kid-color) 18%,transparent) 0)}
 /* The sidebar's plan card: "Whose plan?" spans the card under the name, like the old plan picker did. */
 .profile-dock .plan-switch-button{grid-column:1/-1;min-height:36px;justify-content:center;text-align:center;white-space:nowrap}
+/* Home's "This week at a glance" (WeekAhead strip): seven slim days, a dot for each thing on (up to four). */
+.week-strip{padding:8px!important}
+.week-strip ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.week-strip button{width:100%;display:grid!important;justify-items:center;gap:1px;min-height:0!important;padding:6px 2px!important;border-radius:12px!important;border:0!important;background:transparent!important;box-shadow:none!important;font-size:.7rem;text-transform:uppercase;letter-spacing:.04em}
+.week-strip button b{font-size:1.05rem;letter-spacing:0}
+.week-strip button.is-today{background:color-mix(in srgb,var(--k-accent,#c96f86) 14%,transparent)!important}
+.week-strip i{display:flex;gap:2px;height:6px}
+.week-strip em{width:5px;height:5px;border-radius:50%;background:var(--k-accent,#c96f86)}
+.week-strip button.has-test em:first-child{background:#e0a020}
+
+/* Your own Home (store/homeLayout): one column of widgets in your order (the island card's two parts stay
+ * joined), with ✏️ Customize Home at the bottom. */
+.workbench .home-grid.home-widgets{display:flex!important;flex-direction:column;align-items:stretch!important;gap:16px!important;width:100%;max-width:980px;margin-inline:auto}
+.workbench .home-grid.home-widgets>*{margin:0!important;order:0!important}
+.workbench .home-grid.home-widgets>.wb-island:not(.is-expanded)+.kono-bar{margin-top:-16px!important}
+.home-customize{display:flex;justify-content:center}
+.home-customize button{margin:0!important}
+.home-customize-panel{display:grid;gap:12px}
+.home-customize-panel p{margin:0}
+.home-customize-row{display:flex!important;flex-direction:row!important;align-items:center!important;gap:10px!important;margin:0!important;cursor:pointer}
+.home-customize-row input{width:20px!important;height:20px!important;flex:none;margin:0!important}
+.home-customize-row span{display:grid}
+.home-customize-row small{color:var(--wb-muted,inherit)}
+/* The schedule: Today, then Tomorrow, each under its own heading. */
+.today-card-head h2{margin:0}
+.today-card-day{display:flex;align-items:center;gap:8px;margin:14px 0 8px;font-size:1rem}
+.today-card-day small{font-weight:500;color:var(--wb-muted,inherit)}
+.today-card-day .quick-day-open{margin:0 0 0 auto!important;min-height:30px!important;padding:0 12px!important}
+.today-card-body.is-tomorrow{border-top:1px dashed var(--wb-line,#eee1d6);margin-top:12px;padding-top:4px}
+/* Notes & reminders: sticky notes on a board, reminders as little yellow ones. */
+.home-notes-board{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;align-items:start}
+.home-notes-board>*{min-width:0}
+.home-note:nth-child(3n+1){rotate:-1deg}.home-note:nth-child(3n+2){rotate:.8deg}
+.home-reminder .wb-record{background:#fff3a6!important;border-color:#f0dc72!important;color:#4a3b12;box-shadow:0 8px 16px -12px #8a6d1a99!important;rotate:-.6deg}
+.kono-sticky.is-loading{min-height:150px;border-radius:14px;background:#fff6c9}
+@media(prefers-reduced-motion:reduce){.home-note,.home-reminder .wb-record{rotate:none}}
+/* A reminder on the board is narrow: its parts stack instead of sitting side by side. */
+.home-notes-board .wb-record{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:6px!important;grid-template-columns:none!important;min-height:130px}
+.home-notes-board .wb-record>*{min-width:0!important;width:auto!important;max-width:none!important;grid-column:auto!important}
+.home-notes-board .wb-record h3{white-space:normal!important}
+.home-notes-board .wb-family-event{display:flex!important;flex-direction:column!important;gap:6px;grid-template-columns:none!important;background:#fff3a6!important;border-color:#f0dc72!important;color:#4a3b12;rotate:-.6deg;min-height:130px}
+.home-notes-board .wb-family-event>*,.home-notes-board .wb-family-event-main,.home-notes-board .wb-family-event-info{min-width:0!important;width:auto!important;flex:1 1 auto}

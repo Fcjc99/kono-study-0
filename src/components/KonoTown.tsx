@@ -21,7 +21,7 @@ const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-red
  * house), the prize wheel (one free spin a day),
  * the arcade (the first few rounds a day win coins) and the album of everything there is to collect.
  * Loaded only when opened. */
-export default function KonoTown({close,sound=true,balance,startTab='shops',quest,onGiveQuest,today,outfitsOwned,found,paints,furniture,rooms,onBuy,spin,onSpin,roundsLeft,onGame,album:albumInput}:{
+export default function KonoTown({onBlastCoins,close,sound=true,balance,startTab='shops',quest,onGiveQuest,today,outfitsOwned,found,paints,furniture,rooms,onBuy,spin,onSpin,roundsLeft,onGame,album:albumInput}:{
  close:()=>void
  /** Settings › Sounds: KONO Town's little sounds. */
  sound?:boolean
@@ -43,6 +43,8 @@ export default function KonoTown({close,sound=true,balance,startTab='shops',ques
  roundsLeft:number
  /** A finished arcade game: the coins it won (null when today's coin rounds are used up). */
  onGame:(game:GameId,score:number)=>number|null
+ /** KONO blast's coins for a clear (store/konoCoins › blastEvent): what was paid, or null at today's limit. */
+ onBlastCoins:(lines:number,streak:number)=>number|null
  album:AlbumInput
 }){
  const food=foodStock(today),outfits=outfitStock(outfitsOwned,today),treasures=treasureStock(found,today),album=albumSections(albumInput)
@@ -95,7 +97,7 @@ export default function KonoTown({close,sound=true,balance,startTab='shops',ques
    {tab==='wheel'&&<PrizeWheel spin={spin} onSpin={onSpin} sound={sound}/>}
    {tab==='arcade'&&<section className="town-arcade" aria-label="Arcade">
     <p className="town-rounds">{roundsLeft?<><strong>{roundsLeft} of {COIN_ROUNDS}</strong> coin rounds left today. After that, play just for fun.</>:<>Today’s coin rounds are used up. Play just for fun, or come back tomorrow!</>}</p>
-    <BreakGames startedAt={0} arcade sound={sound} onScore={(game,score)=>{const n=onGame(game,score);if(n){playSfx('coin',sound);coinBurst(document.querySelector('.town-purse'))}return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
+    <BreakGames startedAt={0} arcade sound={sound} onBlastCoins={onBlastCoins} onScore={(game,score)=>{const n=onGame(game,score);if(n){playSfx('coin',sound);coinBurst(document.querySelector('.town-purse'))}return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
    </section>}
    {tab==='album'&&<section className="town-album" aria-label="Album">
     <p className="town-album-count"><span><strong>{count.owned} of {count.total}</strong> collected</span><span className="town-album-bar" aria-hidden="true"><i style={{width:(count.total?count.owned/count.total*100:0)+'%'}}/></span></p>

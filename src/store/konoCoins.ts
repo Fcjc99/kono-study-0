@@ -73,6 +73,21 @@ export function gameEvent(log:CareEvent[],today:string,game:GameId,score:number,
  return null
 }
 
+/** KONO blast pays as you play: each move that clears lines banks coins straight away (so leaving a game
+ * keeps them): lines × lines (1, 4, 9…), times the combo (the clearing moves in a row, up to ×5), up to
+ * BLAST_DAILY a day. Each payout is its own entry, 'blast-<day>-<n>'. */
+export const BLAST_DAILY=75
+export const blastCoins=(lines:number,streak:number)=>lines*lines*(1+Math.min(streak,4))
+const blastPrefix=(today:string)=>'blast-'+today+'-'
+export const blastToday=(log:CareEvent[],today:string)=>log.filter(e=>e.kind==='coin'&&e.id.startsWith(blastPrefix(today))).reduce((n,e)=>n+(e.n??0),0)
+/** The entry for a clear's coins (less if it would pass today's limit), or null once the limit is reached. */
+export function blastEvent(log:CareEvent[],today:string,lines:number,streak:number,now:Date):CareEvent|null{
+ const n=Math.min(blastCoins(lines,streak),BLAST_DAILY-blastToday(log,today))
+ if(n<=0)return null
+ const k=log.filter(e=>e.id.startsWith(blastPrefix(today))).length+1
+ return {id:blastPrefix(today)+k+'-'+now.getTime().toString(36),kind:'coin',at:now.toISOString(),item:'game:blast',n}
+}
+
 /** Something has happened! About every other day a little surprise turns up on the island: a few coins to
  * collect. Which days (and what) is worked out from the plan and the date, so every device agrees. */
 export type Surprise={text:string;n:number;emoji:string}

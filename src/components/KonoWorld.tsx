@@ -12,14 +12,18 @@ import {paintPose,type PaintId} from '../store/konoLooks'
 import {HOME_SPOT,LANDS,findSrc,landFind,lookedToday,worldSrc,type Land,type LandId} from '../store/konoWorld'
 import {playSfx} from '../konoSounds'
 
+/** The land you were in, so the world map opens back there (this device only). */
+const SPOT_KEY='kono-world-spot'
+const readSpot=()=>{try{return localStorage.getItem(SPOT_KEY)??''}catch{return ''}}
+const saveSpot=(spot:string)=>{try{if(spot)localStorage.setItem(SPOT_KEY,spot);else localStorage.removeItem(SPOT_KEY)}catch{/* storage unavailable */}}
 const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /** KONO's world map (the island's "World map" tab, or KONO's corner): KONO's island and the lands around it.
  * Tap an open land and KONO travels there (the map zooms into it). In a land KONO walks about, there's one
  * look around a day for a treasure, a market with furniture found nowhere else, the land's own game at its
  * booth (components/LandGames) and the arcade's games.
- * Lands open as KONO's bond grows. Loaded only when opened. */
-export default function KonoWorld({close,today,hearts,paint,outfit,log,found,balance,owned,onBuy,onLook,roundsLeft,onGame,sound,onOpenHouse}:{
+ * Lands open as KONO's bond grows. It opens back in the land you were last in. Loaded only when opened. */
+export default function KonoWorld({onBlastCoins,close,today,hearts,paint,outfit,log,found,balance,owned,onBuy,onLook,roundsLeft,onGame,sound,onOpenHouse}:{
  close:()=>void
  today:string
  /** KONO's bond hearts (store/konoBond): each land opens at a number of them. */
@@ -32,10 +36,12 @@ export default function KonoWorld({close,today,hearts,paint,outfit,log,found,bal
  onLook:(land:LandId,findId:string)=>void
  roundsLeft:number
  onGame:(game:GameId,score:number)=>number|null
+ /** KONO blast's coins for a clear (store/konoCoins › blastEvent): what was paid, or null at today's limit. */
+ onBlastCoins:(lines:number,streak:number)=>number|null
  sound:boolean
  onOpenHouse:()=>void
 }){
- const [view,setView]=useState<'map'|LandId>('map'),[going,setGoing]=useState<Land|null>(null),[zoom,setZoom]=useState(false)
+ const [view,setView]=useState<'map'|LandId>(()=>{const spot=readSpot();return LANDS.find(l=>l.id===spot&&l.hearts<=hearts)?.id??'map'}),[going,setGoing]=useState<Land|null>(null),[zoom,setZoom]=useState(false)
  const [panel,setPanel]=useState<'market'|'game'|'play'|null>(null),[note,setNote]=useState('')
  const [kono,setKono]=useState({x:0.5,y:0.75})
  const land=view==='map'?null:LANDS.find(l=>l.id===view)!
@@ -48,12 +54,13 @@ export default function KonoWorld({close,today,hearts,paint,outfit,log,found,bal
  const travel=(l:Land)=>{
   if(l.hearts>hearts||going)return
   playSfx('door',sound)
+  saveSpot(l.id)
   if(reducedMotion()){setView(l.id);setKono({x:0.5,y:0.75});return}
   setGoing(l)
   window.setTimeout(()=>setZoom(true),900)
   window.setTimeout(()=>{setView(l.id);setGoing(null);setZoom(false);setKono({x:0.5,y:0.98});window.setTimeout(()=>setKono({x:0.5,y:0.75}),80)},1600)
  }
- const back=()=>{setView('map');setPanel(null);setNote('')}
+ const back=()=>{saveSpot('');setView('map');setPanel(null);setNote('')}
  const looked=land?lookedToday(log,land.id,today):undefined
  const lookAround=()=>{
   if(!land||looked)return
@@ -99,7 +106,7 @@ export default function KonoWorld({close,today,hearts,paint,outfit,log,found,bal
    </div>}
    {land&&panel==='play'&&<section className="world-play" aria-label="Play">
     <p>{roundsLeft?<><strong>{roundsLeft}</strong> coin rounds left today.</>:'Today’s coin rounds are used up. Play just for fun!'}</p>
-    <BreakGames startedAt={0} arcade sound={sound} onScore={(game,score)=>{const n=onGame(game,score);if(n)playSfx('coin',sound);return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
+    <BreakGames startedAt={0} arcade sound={sound} onBlastCoins={onBlastCoins} onScore={(game,score)=>{const n=onGame(game,score);if(n)playSfx('coin',sound);return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
    </section>}
   </div>
  </Modal>

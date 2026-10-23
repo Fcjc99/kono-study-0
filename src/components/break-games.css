@@ -15,10 +15,6 @@
 .snack-catch:focus-visible{outline:3px solid var(--accent,#c987a2);outline-offset:2px}
 .snack-catch .snack{position:absolute;transform:translate(-50%,-50%);font-size:1.6rem;pointer-events:none}
 .snack-catch-kono{position:absolute;bottom:4%;left:50%;width:64px;transform:translateX(-50%);image-rendering:pixelated;pointer-events:none}
-.memory-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:360px;margin:0 auto}
-.memory-card{aspect-ratio:1;margin:0!important;padding:0!important;min-height:0!important;border-radius:12px;font-size:1.4rem;font-weight:800;display:grid;place-items:center}
-.memory-card img{width:70%;height:70%;object-fit:contain;image-rendering:pixelated}
-.memory-card.is-matched{opacity:.6}
 .peekaboo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:330px;margin:0 auto}
 .peekaboo-bush{position:relative;aspect-ratio:1;margin:0!important;padding:0!important;min-height:0!important;border-radius:50% 50% 14px 14px;overflow:hidden;background:#d8efc8!important}
 .peekaboo-bush img{position:absolute;left:50%;bottom:18%;width:62%;transform:translateX(-50%);image-rendering:pixelated;animation:peekaboo-up .18s ease-out}
@@ -27,10 +23,6 @@
 @keyframes peekaboo-up{from{transform:translate(-50%,40%)}to{transform:translate(-50%,0)}}
 @keyframes peekaboo-boop{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-24px)}}
 @media(prefers-reduced-motion:reduce){.peekaboo-bush img,.peekaboo-boop{animation:none}}
-.bubble-pop{position:relative;height:300px;max-width:420px;margin:0 auto;overflow:hidden;border-radius:14px;background:linear-gradient(#bfe3ff,#eef8ff);touch-action:manipulation}
-.bubble-pop .bubble{position:absolute;bottom:-64px;width:56px;height:56px;min-height:0!important;margin:0!important;padding:0!important;border-radius:50%!important;display:grid;place-items:center;font-size:1.5rem;background:radial-gradient(circle at 32% 28%,#fff 0 12%,rgba(255,255,255,.45) 26%,rgba(140,200,255,.35) 70%,rgba(255,255,255,.7))!important;border:2px solid rgba(255,255,255,.9)!important;box-shadow:inset -4px -6px 10px rgba(90,150,220,.25)!important;animation:bubble-rise linear forwards;transform:translateX(-50%)}
-.bubble-popped{position:absolute;transform:translate(-50%,-50%);font-size:1.4rem;pointer-events:none;animation:peekaboo-boop .5s ease-out both}
-@keyframes bubble-rise{from{translate:0 0}25%{translate:-8px -100px}50%{translate:8px -200px}75%{translate:-6px -300px}to{translate:0 -390px}}
 .break-games.is-arcade{margin:0;border:0;padding:0;background:none}
 /* KONO blast (BlockBlast.tsx), in the look of the classic block games: a deep blue board with sunken slots,
    glossy beveled jewel blocks, and a burst and cheer when lines clear. Squares are divs (not buttons). */
@@ -75,7 +67,66 @@
 .blast-piece.is-stuck{opacity:.4;filter:grayscale(.6)}
 .blast-mini{display:grid;gap:2px;pointer-events:none}
 .blast-mini span{border-radius:4px}
-.blast-float{position:fixed;z-index:1000;display:grid;pointer-events:none;filter:drop-shadow(0 8px 10px rgba(0,0,0,.35))}
+.blast-float{position:fixed;left:0;top:0;z-index:1000;display:grid;pointer-events:none;will-change:transform;filter:drop-shadow(0 8px 10px rgba(0,0,0,.35));animation:blast-lift .12s ease-out}
+@keyframes blast-lift{from{opacity:.6;scale:.6}}
 .blast-float span{margin:2px;border-radius:5px}
-.blast-help{margin:0;font-size:.8rem;color:rgba(255,255,255,.75);text-align:center}
-@media(prefers-reduced-motion:reduce){.blast-score,.blast-burst span,.blast-gain,.blast-cheer,.blast-over{animation:none}}
+.blast-help{margin:0;font-size:.8rem;color:rgba(255,255,255,.75)}
+.blast-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;max-width:340px}
+.blast .blast-end{margin:0!important;min-height:34px!important;padding:4px 14px!important;border-radius:999px!important;background:rgba(255,255,255,.14)!important;color:#fff!important;border:1px solid rgba(255,255,255,.3)!important;box-shadow:none!important;font-weight:700}
+.blast-coins{position:absolute;right:0;top:0;font-weight:800;font-size:.95rem;color:#ffd84d;text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.blast-cheer em{font-style:normal;font-size:1.1rem;font-weight:900;color:#ffd84d;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+/* Without motion the burst isn't drawn at all (its squares would just sit over the cleared ones). */
+@media(prefers-reduced-motion:reduce){.blast-score,.blast-gain,.blast-cheer,.blast-over,.blast-float{animation:none}.blast-burst{display:none}}
+/* A game, full screen (GameScreen.tsx). */
+.game-screen{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;display:flex;flex-direction:column;background:var(--wb-bg,#fff8f1);color:inherit;overscroll-behavior:contain}
+.game-screen::backdrop{background:rgba(0,0,0,.35)}
+.game-screen>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px}
+.game-screen>header strong{font-size:1.1rem}
+.game-screen .game-screen-leave{margin:0!important;min-height:40px}
+.game-screen-body{flex:1;overflow:auto;display:grid;align-content:start;justify-items:center;padding:4px 12px calc(env(safe-area-inset-bottom) + 16px)}
+.game-screen-body>*{width:100%;max-width:520px}
+.game-screen.is-blast{background:radial-gradient(120% 70% at 50% 0%,#3a63d8 0%,#2443a6 45%,#172f7a 100%);color:#fff}
+.game-screen.is-blast>header .game-screen-leave{background:rgba(255,255,255,.15)!important;color:#fff!important;border-color:rgba(255,255,255,.3)!important}
+.game-screen.is-blast .break-game.blast{background:none}
+@media(min-height:700px){.game-screen-body{align-content:center}}
+/* Light buttons on the dark blast screen (stronger than the app's own button look). */
+dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast button.blast-end:not(#x):not(#y){background:rgba(255,255,255,.16)!important;color:#fff!important;border:1px solid rgba(255,255,255,.35)!important;box-shadow:none!important;text-shadow:none!important}
+/* KONO cheering under the board after a clear. */
+.blast-kono{min-height:44px;margin:0;display:flex;justify-content:center}
+.blast-kono span{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;background:rgba(255,255,255,.95);color:#5b3b2e;box-shadow:0 4px 10px rgba(0,0,0,.25);animation:blast-kono 2.4s ease-out both}
+.blast-kono img{width:36px!important;height:36px!important;image-rendering:pixelated}
+.blast-kono b{font-size:.95rem}
+@keyframes blast-kono{0%{opacity:0;transform:translateY(8px) scale(.9)}10%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.blast-kono span{animation:none}}
+.blast .blast-end{white-space:nowrap;flex:none}
+
+/* Every game in KONO blast's look (on the blue full screen): a navy board with sunken slots, glossy jewel
+   pieces, a big score and light buttons. The jewel colors are KONO blast's (.blast .is-c0 … is-c6). */
+.game-screen.is-blast{--j-red:#ef4b5c;--j-red-l:#ff8a96;--j-red-d:#b52b3b;--j-or:#f7922f;--j-or-l:#ffc078;--j-or-d:#c4650f;--j-ye:#f6cf33;--j-ye-l:#fff08a;--j-ye-d:#c79c0c;--j-gr:#46c35a;--j-gr-l:#8eeb98;--j-gr-d:#258f37;--j-bl:#3e6fe6;--j-bl-l:#86a8ff;--j-bl-d:#2346b0;--j-pu:#a35be0;--j-pu-l:#d1a2ff;--j-pu-d:#7134ad}
+.game-screen.is-blast :is(.break-game-status,.land-game-status){max-width:360px;width:100%;margin:0 auto 10px;color:#fff;font-weight:800;font-size:1.05rem;text-shadow:0 2px 0 rgba(0,0,0,.3);align-items:baseline}
+.game-screen.is-blast :is(.break-game-status,.land-game-status) strong{font-size:2rem;font-weight:900;color:#fff}
+.game-screen.is-blast :is(.snack-catch,.peekaboo-grid,.chase-board,.tumble-board,.sled-slope){background:#132457!important;box-shadow:inset 0 3px 8px rgba(0,0,0,.45),0 0 0 6px #132457,0 2px 0 6px rgba(255,255,255,.1)!important;border-radius:10px}
+/* Sunken slots drawn behind the pieces: navy lines over the slot color, one cell apart. */
+.game-screen.is-blast .chase-board{background:linear-gradient(90deg,#132457 3px,transparent 3px) 0 0/calc(100%/12) calc(100%/12),linear-gradient(#132457 3px,transparent 3px) 0 0/calc(100%/12) calc(100%/12),#1e3270!important}
+.game-screen.is-blast .tumble-board{background:linear-gradient(90deg,#132457 3px,transparent 3px) 0 0/calc(100%/7) calc(100%/8),linear-gradient(#132457 3px,transparent 3px) 0 0/calc(100%/7) calc(100%/8),#1e3270!important}
+.game-screen.is-blast .chase-crab{background:linear-gradient(160deg,var(--j-or-l) 0%,var(--j-or) 40%,var(--j-or-d) 100%);border-radius:5px;box-shadow:inset 0 3px 0 rgba(255,255,255,.45),inset 0 -4px 0 rgba(0,0,0,.28);font-size:.9em!important}
+.game-screen.is-blast .chase-shell{filter:drop-shadow(0 0 6px #ffe58a)}
+.game-screen.is-blast .snack-catch{background:radial-gradient(90% 60% at 50% 100%,#2443a6,#132457)!important}
+.game-screen.is-blast .snack-catch .snack{filter:drop-shadow(0 3px 0 rgba(0,0,0,.35))}
+.game-screen.is-blast .peekaboo-grid{padding:8px;gap:8px}
+.game-screen.is-blast .peekaboo-bush{border-radius:10px!important;background:#1e3270!important;box-shadow:inset 0 3px 6px rgba(0,0,0,.45)!important;border:0!important}
+.game-screen.is-blast .peekaboo-bush.is-up{background:linear-gradient(160deg,var(--j-gr-l) 0%,var(--j-gr) 40%,var(--j-gr-d) 100%)!important;box-shadow:inset 0 3px 0 rgba(255,255,255,.45),inset 0 -4px 0 rgba(0,0,0,.28)!important}
+.game-screen.is-blast .peekaboo-leaves{display:none}
+.game-screen.is-blast .tumble-board{padding:0}
+.game-screen.is-blast .land-game .tumble-tile{padding:2px!important}
+.game-screen.is-blast .land-game .tumble-tile span{display:grid;place-items:center;width:100%;height:100%;border-radius:6px;font-size:.85em;box-shadow:inset 0 3px 0 rgba(255,255,255,.45),inset 3px 0 0 rgba(255,255,255,.18),inset 0 -4px 0 rgba(0,0,0,.28),inset -3px 0 0 rgba(0,0,0,.14)}
+.game-screen.is-blast .tumble-tile[data-kind="0"] span{background:linear-gradient(160deg,var(--j-or-l),var(--j-or) 40%,var(--j-or-d))}
+.game-screen.is-blast .tumble-tile[data-kind="1"] span{background:linear-gradient(160deg,var(--j-red-l),var(--j-red) 40%,var(--j-red-d))}
+.game-screen.is-blast .tumble-tile[data-kind="2"] span{background:linear-gradient(160deg,var(--j-gr-l),var(--j-gr) 40%,var(--j-gr-d))}
+.game-screen.is-blast .tumble-tile[data-kind="3"] span{background:linear-gradient(160deg,var(--j-ye-l),var(--j-ye) 40%,var(--j-ye-d))}
+.game-screen.is-blast .tumble-gain{color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.4);font-size:1.3rem}
+.game-screen.is-blast .sled-slope{background:repeating-linear-gradient(90deg,transparent 0 calc(33.33% - 2px),rgba(255,255,255,.08) calc(33.33% - 2px) 33.33%),linear-gradient(#1e3270,#132457)!important}
+.game-screen.is-blast .sled-thing{filter:drop-shadow(0 3px 0 rgba(0,0,0,.35))}
+.game-screen.is-blast .sled-thing.is-star{filter:drop-shadow(0 0 6px #ffe58a)}
+.game-screen.is-blast :is(.land-game-pad button,.land-game-done button,.game-screen-timer):not(#x):not(#y){background:rgba(255,255,255,.16)!important;color:#fff!important;border:1px solid rgba(255,255,255,.35)!important;box-shadow:none!important}
+.game-screen.is-blast .game-screen-timer{margin:0 auto 8px;padding:4px 12px;border-radius:999px;font-weight:800;width:auto}

@@ -12,18 +12,26 @@ const shortTime=(t:string)=>classTime(t).replace(':00','').replace(' AM','a').re
 
 /** Home on Saturday and Sunday: how last week went, then the week ahead day by day (what's due, tests and
  * work shifts), Monday's work, and Plan my week, so the week gets planned in one place. */
+/** strip: just a slim row of the next seven days from today (Home's "This week at a glance"), each with how
+ * much is on; a day opens in the Planner. */
 /** family: the family plan's version, every day: the next seven days from today, with each day's events and
  * to-dos ("🧹 Clean house") as well as homework, tests and work shifts; no study recap or Plan my week. */
-export default function WeekAhead({data,monday,recap,tasks,exams,mondayWork,onPlan,onOpenDay,family=false,today,profileId}:{
+export default function WeekAhead({data,monday,recap,tasks,exams,mondayWork,onPlan,onOpenDay,family=false,strip=false,today,profileId}:{
  data:AppData;monday:string;recap:WeekRecap|null;tasks:Task[];exams:Exam[]
- mondayWork:ReactNode;onPlan:()=>void;onOpenDay:(date:string)=>void;family?:boolean;today?:string;profileId?:string
+ mondayWork:ReactNode;onPlan:()=>void;onOpenDay:(date:string)=>void;family?:boolean;strip?:boolean;today?:string;profileId?:string
 }){
- const start=family&&today?today:monday,pid=profileId??data.activeProfileId
+ const start=(family||strip)&&today?today:monday,pid=profileId??data.activeProfileId
  const days=Array.from({length:7},(_,i)=>{
   const date=addDays(start,i)
   return {date,due:tasks.filter(t=>!t.done&&t.due===date).length,tests:exams.filter(e=>!e.done&&e.due===date),shifts:shiftsOn(data,date),
-   events:family?data.calendarEvents.filter(e=>e.profileId===pid&&e.date===date&&!e.planFor).length:0,todos:family?todosOn(data,pid,date):[]}
+   events:family||strip?data.calendarEvents.filter(e=>e.profileId===pid&&e.date===date&&!e.planFor).length:0,todos:family||strip?todosOn(data,pid,date):[]}
  })
+ if(strip)return <section className="wb-panel week-strip" aria-label="This week at a glance">
+  <ol>{days.map(d=>{const n=d.events+d.todos.length+d.due+d.tests.length+d.shifts.length
+   return <li key={d.date}><button type="button" className={(d.date===today?'is-today':'')+(d.tests.length?' has-test':'')} onClick={()=>onOpenDay(d.date)} aria-label={weekday(d.date)+' '+dayNum(d.date)+': '+(n?n+' thing'+(n===1?'':'s'):'nothing on')+(d.tests.length?', with a test':'')}>
+    <span aria-hidden="true">{weekday(d.date)}</span><b aria-hidden="true">{dayNum(d.date)}</b><i aria-hidden="true">{Array.from({length:Math.min(n,4)},(_,k)=><em key={k}/>)}</i>
+   </button></li>})}</ol>
+ </section>
  const weekTests=days.flatMap(d=>d.tests.map(e=>e.title+' ('+weekday(d.date)+')'))
  const busiest=[...days].sort((a,b)=>b.due+b.tests.length*2+b.shifts.length-(a.due+a.tests.length*2+a.shifts.length))[0]
  const total=days.reduce((n,d)=>n+d.due+d.tests.length,0),shiftCount=days.reduce((n,d)=>n+d.shifts.length,0)
