@@ -3,6 +3,8 @@ import {useEffect,useState} from 'react'
 import Modal from './Modal'
 import KonoFace from './KonoFace'
 import BreakGames from './BreakGames'
+import LandGame from './LandGames'
+import {LAND_GAMES} from '../store/landGames'
 import type {CareEvent} from '../store/konoCare'
 import {COIN_ICON,coinText,type GameId,type ShopItem} from '../store/konoCoins'
 import {furnitureStock} from '../store/konoShops'
@@ -14,7 +16,8 @@ const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-red
 
 /** KONO's world map (the island's "World map" tab, or KONO's corner): KONO's island and the lands around it.
  * Tap an open land and KONO travels there (the map zooms into it). In a land KONO walks about, there's one
- * look around a day for a treasure, a market with furniture found nowhere else, and the arcade's games.
+ * look around a day for a treasure, a market with furniture found nowhere else, the land's own game at its
+ * booth (components/LandGames) and the arcade's games.
  * Lands open as KONO's bond grows. Loaded only when opened. */
 export default function KonoWorld({close,today,hearts,paint,outfit,log,found,balance,owned,onBuy,onLook,roundsLeft,onGame,sound,onOpenHouse}:{
  close:()=>void
@@ -33,7 +36,7 @@ export default function KonoWorld({close,today,hearts,paint,outfit,log,found,bal
  onOpenHouse:()=>void
 }){
  const [view,setView]=useState<'map'|LandId>('map'),[going,setGoing]=useState<Land|null>(null),[zoom,setZoom]=useState(false)
- const [panel,setPanel]=useState<'market'|'play'|null>(null),[note,setNote]=useState('')
+ const [panel,setPanel]=useState<'market'|'game'|'play'|null>(null),[note,setNote]=useState('')
  const [kono,setKono]=useState({x:0.5,y:0.75})
  const land=view==='map'?null:LANDS.find(l=>l.id===view)!
  // KONO strolls about the land now and then.
@@ -65,19 +68,20 @@ export default function KonoWorld({close,today,hearts,paint,outfit,log,found,bal
   <div className="kono-world">
    {!land?<div className={'world-map'+(zoom?' is-zooming':'')} style={{backgroundImage:`url(${worldSrc('world-map')})`,...(going?{['--to-x' as string]:going.map.x*100+'%',['--to-y' as string]:going.map.y*100+'%'}:{})}}>
     {LANDS.map(l=>{const open=l.hearts<=hearts;return <button type="button" key={l.id} className={'world-place'+(open?'':' is-locked')} style={{left:l.map.x*100+'%',top:l.map.y*100+'%'}} disabled={!open||!!going} aria-label={open?'Go to '+l.name:l.name+', opens at '+l.hearts+' bond hearts'} onClick={()=>travel(l)}>
-     <span aria-hidden="true">{open?l.emoji:'🔒'}</span><small>{l.name}</small>{!open&&<small className="world-lock">Opens at {l.hearts} 💗</small>}
+     <span aria-hidden="true">{open?l.emoji:'🔒'}</span><small>{l.name}</small>{open?<small className="world-game">{LAND_GAMES[l.id].emoji} {LAND_GAMES[l.id].name}</small>:<small className="world-lock">Opens at {l.hearts} 💗</small>}
     </button>})}
     <span className="world-kono" style={{left:konoAt.x*100+'%',top:konoAt.y*100+'%'}} aria-hidden="true"><span className="kono-face-box" style={{width:44,height:44}}><KonoFace pose={pose} outfit={outfit} size={44}/></span></span>
    </div>
    :<div className="world-land is-entering" style={{backgroundImage:`url(${worldSrc('land-'+land.id)})`}}>
     <button type="button" className="world-stall" style={{left:land.stall.x*100+'%',top:land.stall.y*100+'%'}} aria-label={'The '+land.name+' market'} onClick={()=>setPanel(p=>p==='market'?null:'market')}><span aria-hidden="true">🛒</span><small>Market</small></button>
+    <button type="button" className="world-stall is-game" style={{left:LAND_GAMES[land.id].booth.x*100+'%',top:LAND_GAMES[land.id].booth.y*100+'%'}} aria-label={'The '+LAND_GAMES[land.id].name+' booth'} aria-pressed={panel==='game'} onClick={()=>{setPanel(p=>p==='game'?null:'game');requestAnimationFrame(()=>document.querySelector('.world-play')?.scrollIntoView({block:'start',behavior:reducedMotion()?'auto':'smooth'}))}}><span aria-hidden="true">{LAND_GAMES[land.id].emoji}</span><small>{LAND_GAMES[land.id].name}</small></button>
     <span className="world-kono is-strolling" style={{left:kono.x*100+'%',top:kono.y*100+'%'}} aria-hidden="true"><span className="kono-face-box" style={{width:64,height:64}}><KonoFace pose={paintPose('/garden/kono/happy.webp',paint)} outfit={outfit} size={64}/></span></span>
    </div>}
    <p className="world-status" aria-live="polite">{note||(land?land.line:going?'KONO sets off for '+going.name+'…':'Where should KONO go? Tap a place on the map.')}</p>
    {land&&<div className="wb-toolbar world-tools">
     <button type="button" onClick={back}>← World map</button>
     <button type="button" className="primary" disabled={!!looked} onClick={lookAround}>{looked?'Looked around today ✓':'🔍 Look around'}</button>
-    <button type="button" aria-pressed={panel==='play'} onClick={()=>setPanel(p=>p==='play'?null:'play')}>🎮 Play</button>
+    <button type="button" aria-pressed={panel==='play'} onClick={()=>setPanel(p=>p==='play'?null:'play')}>🎮 Arcade</button>
    </div>}
    {land&&looked&&!note&&<p className="world-found"><img src={findSrc(looked.item??'')} alt=""/>Today KONO found something here already. Come back tomorrow for another look.</p>}
    {land&&panel==='market'&&<section className="world-market" aria-label="Market">
@@ -89,6 +93,10 @@ export default function KonoWorld({close,today,hearts,paint,outfit,log,found,bal
     </li>})}</ul>
     <p className="world-market-go"><button type="button" onClick={onOpenHouse}>🏠 Go to KONO’s house</button></p>
    </section>}
+   {land&&panel==='game'&&<div className="world-play">
+    <p>{roundsLeft?<><strong>{roundsLeft}</strong> coin rounds left today.</>:'Today’s coin rounds are used up. Play just for fun!'}</p>
+    <LandGame key={land.id} land={land.id} sound={sound} kono={paintPose('/garden/kono/happy.webp',paint)} onScore={(game,score)=>{const n=onGame(game,score);if(n)playSfx('coin',sound);return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
+   </div>}
    {land&&panel==='play'&&<section className="world-play" aria-label="Play">
     <p>{roundsLeft?<><strong>{roundsLeft}</strong> coin rounds left today.</>:'Today’s coin rounds are used up. Play just for fun!'}</p>
     <BreakGames startedAt={0} arcade sound={sound} onScore={(game,score)=>{const n=onGame(game,score);if(n)playSfx('coin',sound);return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>

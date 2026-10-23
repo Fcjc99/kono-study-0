@@ -40,6 +40,7 @@ test('arcade: three coin rounds a day, coins by score (capped), then just for fu
  assert.equal(coins.gameEvent(log,'2026-10-22','catch',12,now),null)
  assert.equal(coins.roundsLeft(log,'2026-10-23'),3,'a new day, new rounds')
  assert.equal(coins.gameCoins('catch',999),50);assert.equal(coins.gameCoins('memory',6),48);assert.equal(coins.gameCoins('memory',40),5);assert.equal(coins.gameCoins('peekaboo',0),0)
+ assert.equal(coins.gameCoins('chase',7),21);assert.equal(coins.gameCoins('tumble',240),30);assert.equal(coins.gameCoins('tumble',12),5);assert.equal(coins.gameCoins('sled',9),18)
 })
 test('shops: the same stock all day on every device; food includes this week’s favorite; owned outfits and found treasures aren’t sold',()=>{
  const a=shops.foodStock('2026-10-22'),b=shops.foodStock('2026-10-22')
@@ -132,5 +133,41 @@ test('world: each land’s market sells its own 4 pieces, KONO Town’s furnitur
  state=care.addCareEvent(state,'p',world.lookEvent('beach','2026-10-15','pebble',now),now)
  assert.equal(state.log.length,1,'one look around a day, even from two devices')
  assert.ok(world.lookedToday(state.log,'beach','2026-10-15'));assert.ok(!world.lookedToday(state.log,'forest','2026-10-15'))
+})
+test('land games: each land has its own game and booth; Acorn tumble clears touching groups of 2+, scores n × n, lets pieces fall and closes empty columns',()=>{
+ const games=load('src/store/landGames.ts'),world=load('src/store/konoWorld.ts')
+ assert.equal(world.LANDS.map(l=>games.LAND_GAMES[l.id].id).join(),'chase,tumble,sled')
+ for(const l of world.LANDS){const b=games.LAND_GAMES[l.id].booth;assert.ok(b.x>0&&b.x<1&&b.y>0&&b.y<1);assert.ok(Math.hypot(b.x-l.stall.x,b.y-l.stall.y)>0.2,l.id+': the booth stands away from the market')}
+ let id=0;const col=kinds=>kinds.map(kind=>({id:++id,kind}))
+ // Columns bottom-up: two acorns (0) touching across columns 0 and 1, a lone leaf (3) on top of column 0.
+ const cols=[col([0,3]),col([0]),col([1,2])]
+ assert.equal(games.clearGroup(cols,0,1),null,'a lone piece doesn’t clear')
+ assert.equal(games.clearGroup(cols,2,0),null)
+ const after=games.clearGroup(cols,0,0)
+ assert.equal(after.points,4)
+ assert.equal(JSON.stringify(after.cols.map(c=>c.map(t=>t.kind))),'[[3],[1,2]]','the leaf falls, and the empty column closes up')
+ assert.equal(games.hasMoves(after.cols),false)
+ assert.equal(games.hasMoves([col([1,1])]),true)
+ const big=games.clearGroup([col([2,2,2]),col([2,0,0])],0,0)
+ assert.equal(big.points,16,'a group of 4 scores 16')
+ const board=games.tumbleBoard()
+ assert.equal(board.length,games.COLS);assert.ok(board.every(c=>c.length===games.ROWS));assert.equal(new Set(board.flat().map(t=>t.id)).size,games.COLS*games.ROWS)
+})
+test('KONO blast: a full row or column clears (both at once count as two lines), points reward big clears and streaks, and the game knows when nothing fits',()=>{
+ const b=load('src/store/blockBlast.ts'),dot=b.SHAPES.find(s=>s.id==='dot'),three=b.SHAPES.find(s=>s.id==='three')
+ assert.ok(b.SHAPES.length>=25);assert.ok(b.SHAPES.every(s=>s.cells.length>=1&&s.cells.some(([r])=>r===0)&&s.cells.some(([,c])=>c===0)),'every piece starts at its top-left corner')
+ let g=b.emptyGrid()
+ for(let c=0;c<7;c++)g[c]=1
+ for(let r=1;r<8;r++)g[r*8+7]=2
+ assert.equal(b.fits(g,dot,0,7),true);assert.equal(b.fits(g,dot,0,0),false,'a filled square');assert.equal(b.fits(b.emptyGrid(),three,0,6),false,'off the edge')
+ const done=b.place(g,{shape:dot,color:3},0,7)
+ assert.equal(done.lines,2,'row 1 and column 8 together');assert.equal(done.cleared.length,15)
+ assert.ok(done.grid.every(v=>v===null),'the board is empty again')
+ assert.equal(b.place(g,{shape:dot,color:3},0,0),null)
+ assert.equal(b.movePoints(3,0,4),3,'no clear, no bonus');assert.equal(b.movePoints(1,2,0),41);assert.equal(b.movePoints(1,1,2),31,'a streak adds 10 per clearing move before')
+ const full=Array(64).fill(0);assert.equal(b.anyFits(full,dot),false);full[9]=null;assert.equal(b.anyFits(full,dot),true);assert.equal(b.anyFits(full,three),false)
+ let i=0;const rolls=[0,0.5,0.99,0.2,0.4,0.6];const hand=b.deal(()=>rolls[i++%rolls.length])
+ assert.equal(hand.length,3);assert.equal(hand[0].shape.id,'dot');assert.ok(hand.every(p=>p.color>=0&&p.color<b.COLORS))
+ assert.equal(coins.gameCoins('blast',300),25)
 })
 console.log(passed+'/'+passed+' coin checks passed.')

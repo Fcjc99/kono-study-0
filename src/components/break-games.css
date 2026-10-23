@@ -32,3 +32,50 @@
 .bubble-popped{position:absolute;transform:translate(-50%,-50%);font-size:1.4rem;pointer-events:none;animation:peekaboo-boop .5s ease-out both}
 @keyframes bubble-rise{from{translate:0 0}25%{translate:-8px -100px}50%{translate:8px -200px}75%{translate:-6px -300px}to{translate:0 -390px}}
 .break-games.is-arcade{margin:0;border:0;padding:0;background:none}
+/* KONO blast (BlockBlast.tsx), in the look of the classic block games: a deep blue board with sunken slots,
+   glossy beveled jewel blocks, and a burst and cheer when lines clear. Squares are divs (not buttons). */
+.break-game.blast{justify-items:center;gap:10px;padding:14px 10px 12px;border-radius:20px;background:radial-gradient(120% 80% at 50% 0%,#3a63d8 0%,#2443a6 45%,#172f7a 100%);color:#fff;user-select:none;-webkit-user-select:none}
+.blast-top{display:grid;justify-items:center;gap:0;width:100%;max-width:340px;position:relative}
+.blast-best{justify-self:start;font-weight:800;font-size:.95rem;color:#ffd84d;text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.blast-score{font-size:2.6rem;line-height:1;font-weight:900;letter-spacing:.02em;text-shadow:0 3px 0 rgba(0,0,0,.3);animation:blast-score .25s ease-out}
+@keyframes blast-score{from{transform:scale(1.18)}}
+.blast-frame{width:100%;max-width:340px;padding:6px;border-radius:12px;background:#132457;box-shadow:inset 0 3px 8px rgba(0,0,0,.45),0 2px 0 rgba(255,255,255,.12)}
+.blast-board{position:relative;display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;touch-action:none;outline:none}
+.blast-board:focus-visible{box-shadow:0 0 0 3px #ffd84d;border-radius:6px}
+.blast-cell{margin:2px;border-radius:5px;background:#1e3270;box-shadow:inset 0 2px 3px rgba(0,0,0,.35);cursor:pointer}
+.blast-cell.is-cursor{box-shadow:inset 0 0 0 2px #ffd84d}
+/* Jewel colors, with a bevel: light top and left, dark bottom and right, and a shine. */
+.blast .is-c0{--b:#ef4b5c;--l:#ff8a96;--d:#b52b3b}
+.blast .is-c1{--b:#f7922f;--l:#ffc078;--d:#c4650f}
+.blast .is-c2{--b:#f6cf33;--l:#fff08a;--d:#c79c0c}
+.blast .is-c3{--b:#46c35a;--l:#8eeb98;--d:#258f37}
+.blast .is-c4{--b:#2fc2e8;--l:#8ae6ff;--d:#1888ad}
+.blast .is-c5{--b:#3e6fe6;--l:#86a8ff;--d:#2346b0}
+.blast .is-c6{--b:#a35be0;--l:#d1a2ff;--d:#7134ad}
+.blast-cell.is-block,.blast-cell.is-lit,.blast-mini span,.blast-float span,.blast-burst span{background:linear-gradient(160deg,var(--l) 0%,var(--b) 38%,var(--b) 70%,var(--d) 100%);box-shadow:inset 0 3px 0 rgba(255,255,255,.45),inset 3px 0 0 rgba(255,255,255,.18),inset 0 -4px 0 rgba(0,0,0,.28),inset -3px 0 0 rgba(0,0,0,.14)}
+.blast-cell.is-lit.is-landing{opacity:.5}
+.blast-cell.is-lit:not(.is-landing){filter:brightness(1.25) saturate(1.1)}
+.blast.is-over .blast-cell.is-block{filter:grayscale(1) brightness(.75);transition:filter .6s}
+.blast-burst{position:absolute;inset:0;pointer-events:none}
+.blast-burst span{position:absolute;width:calc(12.5% - 4px);height:calc(12.5% - 4px);margin:2px;border-radius:5px;animation:blast-burst .55s cubic-bezier(.3,.6,.4,1) both}
+@keyframes blast-burst{0%{transform:none;filter:brightness(1)}25%{transform:scale(1.15);filter:brightness(2.2)}100%{transform:translate(var(--dx),var(--dy)) scale(.15) rotate(90deg);opacity:0}}
+.blast-gain{position:absolute;transform:translate(-50%,-50%);font-weight:900;font-size:1.3rem;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.35);pointer-events:none;animation:blast-gain .9s ease-out both}
+@keyframes blast-gain{from{opacity:1}to{opacity:0;translate:0 -36px}}
+.blast-cheer{position:absolute;left:50%;top:42%;margin:0;display:grid;justify-items:center;transform:translate(-50%,-50%);pointer-events:none;animation:blast-cheer 1.2s cubic-bezier(.2,1.4,.4,1) both;text-align:center;white-space:nowrap}
+.blast-cheer span{font-size:2.3rem;font-weight:900;background:linear-gradient(#fff6a8,#ffb92e 60%,#ff7a2e);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:1px rgba(120,50,0,.35);filter:drop-shadow(0 3px 0 rgba(0,0,0,.35))}
+.blast-cheer small{font-size:1.05rem;font-weight:900;color:#7ff0ff;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+@keyframes blast-cheer{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}18%{transform:translate(-50%,-50%) scale(1.15);opacity:1}30%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{transform:translate(-50%,-80%) scale(1);opacity:0}}
+.blast-over{position:absolute;left:50%;top:50%;margin:0;transform:translate(-50%,-50%);padding:10px 18px;border-radius:14px;background:rgba(12,22,60,.85);font-size:1.4rem;font-weight:900;white-space:nowrap;animation:blast-cheer-in .4s ease-out both}
+@keyframes blast-cheer-in{from{opacity:0;transform:translate(-50%,-50%) scale(.6)}}
+.blast-tray{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:340px}
+.blast-slot{display:grid;place-items:center;min-height:112px}
+.blast-piece{border-radius:14px;touch-action:none;cursor:grab;outline:none}
+.blast-piece:focus-visible,.blast-piece.is-picked{background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 2px #ffd84d}
+.blast-piece.is-dragging .blast-mini{opacity:0}
+.blast-piece.is-stuck{opacity:.4;filter:grayscale(.6)}
+.blast-mini{display:grid;gap:2px;pointer-events:none}
+.blast-mini span{border-radius:4px}
+.blast-float{position:fixed;z-index:1000;display:grid;pointer-events:none;filter:drop-shadow(0 8px 10px rgba(0,0,0,.35))}
+.blast-float span{margin:2px;border-radius:5px}
+.blast-help{margin:0;font-size:.8rem;color:rgba(255,255,255,.75);text-align:center}
+@media(prefers-reduced-motion:reduce){.blast-score,.blast-burst span,.blast-gain,.blast-cheer,.blast-over{animation:none}}

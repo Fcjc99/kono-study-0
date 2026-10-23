@@ -1,0 +1,44 @@
+/* Each land's own game (LandGames.tsx). Boards keep a fixed shape and fit a phone; pieces and controls
+   aren't styled as app buttons would be (no hover lift). */
+.land-game{display:grid;gap:8px}
+.land-game-intro{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:center;padding:12px;border:1px solid var(--wb-line,#e5ddd2);border-radius:16px;background:var(--wb-surface,#fff)}
+.land-game-emoji{font-size:2.2rem;line-height:1}
+.land-game-intro p{margin:2px 0;font-size:.9rem}
+.land-game-intro small{color:var(--wb-muted,inherit)}
+.land-game-intro>.land-game-result,.land-game-intro>button{grid-column:1/-1;margin:0!important}
+.land-game-result{font-weight:600}
+.land-game-play{display:grid;gap:8px;justify-items:center}
+.land-game-status{display:flex;justify-content:space-between;width:100%;max-width:360px;margin:0;font-variant-numeric:tabular-nums}
+.land-game-pad{display:grid;grid-template-columns:repeat(4,52px);gap:8px;justify-content:center}
+.land-game-pad.is-two{grid-template-columns:repeat(2,96px)}
+.land-game .land-game-pad button{min-height:46px!important;margin:0!important;padding:0!important;font-size:1.1rem;border-radius:14px!important;transform:none!important}
+.land-game-done{margin:0}
+.land-game-done button{margin:0!important}
+.chase-board:focus-visible,.sled-slope:focus-visible{outline:3px solid var(--accent,#c987a2);outline-offset:2px}
+
+/* Shell chase */
+.chase-board{position:relative;width:100%;max-width:360px;aspect-ratio:1;border-radius:14px;overflow:hidden;touch-action:none;background:repeating-linear-gradient(45deg,rgba(255,255,255,.12) 0 10px,transparent 10px 20px),linear-gradient(#f7e2b0,#efd093);box-shadow:inset 0 0 0 3px #e8c27d}
+.chase-board>span{position:absolute;display:grid;place-items:center;font-size:clamp(1.1rem,6vw,1.6rem);line-height:1;transition:left .1s linear,top .1s linear;pointer-events:none}
+.chase-shell{animation:chase-bob 1.2s ease-in-out infinite}
+@keyframes chase-bob{50%{transform:translateY(-12%)}}
+.chase-kono{z-index:1}
+.land-game .chase-kono img{width:160%!important;height:160%!important;max-width:none;object-fit:contain;image-rendering:pixelated}
+.chase-kono.is-bump,.sled-kono.is-bump{animation:land-bump .5s ease-out both}
+@keyframes land-bump{20%{transform:translate(-8%,0) rotate(-12deg)}40%{transform:translate(8%,0) rotate(10deg)}100%{transform:rotate(0)}}
+
+/* Acorn tumble */
+.tumble-board{position:relative;width:100%;max-width:330px;aspect-ratio:7/8;border-radius:14px;overflow:hidden;background:linear-gradient(#d9efc4,#b9dc9a);box-shadow:inset 0 0 0 3px #9bc77b}
+.land-game .tumble-tile{position:absolute;display:grid;place-items:center;margin:0!important;padding:0!important;min-height:0!important;border:0!important;border-radius:10px!important;background:none!important;box-shadow:none!important;font-size:clamp(1.1rem,6vw,1.6rem);line-height:1;transition:left .25s ease-in,bottom .25s ease-in!important;transform:none!important;cursor:pointer}
+.land-game .tumble-tile:hover span{transform:scale(1.12)}
+.tumble-tile span{transition:transform .1s}
+.tumble-gain{position:absolute;transform:translate(-50%,50%);font-weight:800;color:#5b3b2e;text-shadow:0 1px 0 #fff;pointer-events:none;animation:tumble-gain .8s ease-out both}
+@keyframes tumble-gain{from{opacity:1;translate:0 0}to{opacity:0;translate:0 -40px}}
+
+/* Sled dash */
+.sled-slope{position:relative;width:100%;max-width:360px;height:320px;border-radius:14px;overflow:hidden;touch-action:manipulation;cursor:pointer;background:repeating-linear-gradient(0deg,rgba(150,180,220,.12) 0 2px,transparent 2px 40px),linear-gradient(#f4f8ff,#dfeaf8)}
+.sled-thing{position:absolute;transform:translate(-50%,-50%);font-size:1.8rem;line-height:1;pointer-events:none}
+.sled-thing.is-star{font-size:1.4rem;filter:drop-shadow(0 0 4px #ffe58a)}
+.sled-kono{position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;transition:left .12s ease-out;pointer-events:none;z-index:1}
+.land-game .sled-kono img{width:100%!important;height:100%!important;object-fit:contain;image-rendering:pixelated}
+.sled-kono>span{position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);font-size:1.4rem}
+@media(prefers-reduced-motion:reduce){.chase-shell,.chase-kono.is-bump,.sled-kono.is-bump,.tumble-gain{animation:none}.land-game .tumble-tile,.chase-board>span,.sled-kono{transition:none!important}}

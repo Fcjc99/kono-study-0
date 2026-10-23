@@ -2,22 +2,25 @@ import './break-games.css'
 import {useEffect,useRef,useState} from 'react'
 import {FINDS,findSrc} from '../store/konoFinds'
 import {playSfx} from '../konoSounds'
+import BlockBlast from './BlockBlast'
+import {deal,type Piece} from '../store/blockBlast'
 
 /** Break-time games with KONO, offered when a focus session finishes ("Take a short break"). Three quick
  * ones: Snack catch (move KONO to catch falling treats, 30 seconds), Memory match (pairs of KONO's
  * finds) and Peekaboo (tap KONO when it pops out of a bush, 30 seconds). The break itself lasts five
  * minutes; when it's over the games stop and KONO says it's time for the next session. Best scores are
  * kept on this device only. Loaded only when opened, so it never adds to the app's startup.
- * The same games (and Bubble pop) are KONO Town's arcade: no break timer there, and `onScore` can turn a
+ * The same games (and Bubble pop and KONO blast, the block puzzle) are KONO Town's arcade: no break timer there, and `onScore` can turn a
  * score into coins (it returns what to add to the result line). */
-type Game='catch'|'memory'|'peekaboo'|'bubbles'
+type Game='catch'|'memory'|'peekaboo'|'bubbles'|'blast'
 export const BREAK_MINUTES=5
 const ROUND_MS=30_000
-const GAMES:{id:Game;emoji:string;name:string;how:string;best:(n:number)=>string}[]=[
+const GAMES:{id:Game;emoji:string;name:string;how:string;best:(n:number)=>string;arcade?:boolean}[]=[
  {id:'catch',emoji:'🍓',name:'Snack catch',how:'Move KONO to catch the falling snacks.',best:n=>'Best: '+n+' snacks'},
  {id:'memory',emoji:'🃏',name:'Memory match',how:'Find the pairs of KONO’s treasures.',best:n=>'Best: '+n+' moves'},
  {id:'peekaboo',emoji:'🌿',name:'Peekaboo',how:'Tap KONO when it peeks out of a bush.',best:n=>'Best: '+n+' boops'},
  {id:'bubbles',emoji:'🫧',name:'Bubble pop',how:'Pop the snack bubbles before they float away.',best:n=>'Best: '+n+' pops'},
+ {id:'blast',emoji:'🧱',name:'KONO blast',how:'Fit the pieces on the board; fill a row or column to clear it.',best:n=>'Best: '+n+' points',arcade:true},
 ]
 const bestKey=(g:Game)=>'kono-break-best:'+g
 function readBest(g:Game):number|null{try{const v=localStorage.getItem(bestKey(g));return v===null?null:Number(v)}catch{return null}}
@@ -33,7 +36,7 @@ const shuffled=<T,>(items:T[])=>{const deck=[...items];for(let i=deck.length-1;i
 
 /** `startedAt` is when the break games were opened (the break runs BREAK_MINUTES from then). */
 export default function BreakGames({startedAt,onClose,arcade=false,sound=false,onScore}:{startedAt:number;onClose?:()=>void;arcade?:boolean;sound?:boolean;onScore?:(game:Game,score:number)=>string|null}){
- const [game,setGame]=useState<Game|null>(null),[deck,setDeck]=useState<string[]>([])
+ const [game,setGame]=useState<Game|null>(null),[deck,setDeck]=useState<string[]>([]),[pieces,setPieces]=useState<Piece[]>([])
  const [now,setNow]=useState(startedAt)
  const [result,setResult]=useState<string|null>(null)
  useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return ()=>window.clearInterval(t)},[])
@@ -46,8 +49,9 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
   :game==='catch'?<SnackCatch onEnd={n=>finish('catch',n,'KONO caught '+n+' snack'+(n===1?'':'s')+'! 😋')}/>
   :game==='memory'?<MemoryMatch cards={deck} onEnd={n=>finish('memory',n,'All pairs found in '+n+' moves! 🧠')}/>
   :game==='peekaboo'?<Peekaboo onEnd={n=>finish('peekaboo',n,'You booped KONO '+n+' time'+(n===1?'':'s')+'! 🌿')}/>
+  :game==='blast'?<BlockBlast start={pieces} best={readBest('blast')} sound={sound} onEnd={n=>finish('blast',n,'KONO blast: '+n+' point'+(n===1?'':'s')+'! 🧱')}/>
   :game==='bubbles'?<BubblePop sound={sound} onEnd={n=>finish('bubbles',n,'You popped '+n+' bubble'+(n===1?'':'s')+'! 🫧')}/>
-  :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>{setResult(null);if(g.id==='memory')setDeck(shuffled([...MEMORY_IDS,...MEMORY_IDS]));setGame(g.id)}}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
+  :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.filter(g=>arcade||!g.arcade).map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>{setResult(null);if(g.id==='memory')setDeck(shuffled([...MEMORY_IDS,...MEMORY_IDS]));if(g.id==='blast')setPieces(deal(Math.random));setGame(g.id)}}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
  </section>
 }
 

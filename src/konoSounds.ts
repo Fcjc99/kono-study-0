@@ -1,7 +1,8 @@
+const WAVE:Partial<Record<Sfx,OscillatorType>>={tick:'square',pop:'square',place:'sine',clear:'square'}
 /** Little sounds for KONO Town (coins coming in, buying, the prize wheel turning and winning, popping a
- * bubble, a door opening), made with Web Audio so there's no sound file to download. They follow Settings ›
+ * bubble, a door opening, KONO blast's pieces landing and lines clearing), made with Web Audio so there's no sound file to download. They follow Settings ›
  * Sounds (the caller passes it). Browsers only allow sound after a tap, so they play for what you do. */
-export type Sfx='coin'|'buy'|'tick'|'win'|'pop'|'door'
+export type Sfx='coin'|'buy'|'tick'|'win'|'pop'|'door'|'place'|'clear'|'over'
 let context:AudioContext|null=null
 const NOTES:Record<Sfx,[number,number,number][]>={
  // [frequency, start (s), length (s)]
@@ -11,8 +12,12 @@ const NOTES:Record<Sfx,[number,number,number][]>={
  win:[[659,0,.1],[784,.1,.1],[988,.2,.1],[1319,.3,.28]],
  pop:[[620,0,.05]],
  door:[[392,0,.18],[523,.14,.26]],
+ place:[[330,0,.06],[196,.03,.1]],
+ clear:[[523,0,.07],[659,.05,.07],[784,.1,.07],[1047,.15,.07],[1319,.2,.22]],
+ over:[[392,0,.18],[330,.17,.18],[262,.34,.4]],
 }
-export function playSfx(kind:Sfx,enabled=true){
+/** `pitch` raises the whole sound (KONO blast's clears go up with each combo). */
+export function playSfx(kind:Sfx,enabled=true,pitch=1){
  if(!enabled)return
  try{context??=new AudioContext()}catch{return}
  const ctx=context
@@ -20,11 +25,12 @@ export function playSfx(kind:Sfx,enabled=true){
  const now=ctx.currentTime+.01
  for(const [freq,start,length] of NOTES[kind]){
   const osc=ctx.createOscillator(),gain=ctx.createGain(),at=now+start
-  osc.type=kind==='tick'||kind==='pop'?'square':'triangle'
-  osc.frequency.setValueAtTime(freq,at)
-  if(kind==='pop')osc.frequency.exponentialRampToValueAtTime(freq*2.2,at+length)
+  osc.type=WAVE[kind]??'triangle'
+  osc.frequency.setValueAtTime(freq*pitch,at)
+  if(kind==='pop')osc.frequency.exponentialRampToValueAtTime(freq*pitch*2.2,at+length)
+  if(kind==='place')osc.frequency.exponentialRampToValueAtTime(freq*.6,at+length)
   gain.gain.setValueAtTime(0,at)
-  gain.gain.linearRampToValueAtTime(kind==='tick'?.03:.08,at+.01)
+  gain.gain.linearRampToValueAtTime(kind==='tick'||kind==='clear'?.04:kind==='place'?.14:.08,at+.01)
   gain.gain.exponentialRampToValueAtTime(.0001,at+length)
   osc.connect(gain).connect(ctx.destination)
   osc.start(at);osc.stop(at+length+.02)
