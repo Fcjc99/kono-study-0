@@ -5,7 +5,8 @@ import KonoFace from './KonoFace'
 import {uid} from '../store/model'
 import type {HouseItem} from '../store/konoCare'
 import {ALL_TREATS,type Treat} from '../store/konoCare'
-import {FURNITURE,ROOM_SRC,SIZES,clampSpot,furnitureSrc,inStorage,paintPose,spotFor,type FurnitureUse,type PaintId} from '../store/konoLooks'
+import {paintPose,type PaintId} from '../store/konoLooks'
+import {FURNITURE,ROOM_SRC,SIZES,clampSpot,furnitureSrc,inStorage,spotFor,type FurnitureUse} from '../store/konoFurniture'
 
 const byId=new Map(FURNITURE.map(f=>[f.id,f]))
 const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches

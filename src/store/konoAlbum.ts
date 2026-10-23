@@ -6,7 +6,8 @@ import {PRESENTS,presentHow,presentSrc} from './konoStamps'
 import {STICKERS,stickerOffered} from './stickers'
 import {OUTFITS,outfitHow,type OutfitId} from './konoWardrobe'
 import {inSeasonWindow} from './seasonWindows'
-import {FURNITURE,PAINTS,furnitureSrc,paintSrc,type PaintId} from './konoLooks'
+import {PAINTS,paintSrc,type PaintId} from './konoLooks'
+import {FURNITURE,furnitureSrc} from './konoFurniture'
 
 /** KONO's album (KONO Town › Album): everything there is to collect, in one book. What's owned shows its
  * picture; what isn't shows as a shadow with how to get it. Seasonal things only show in their season,

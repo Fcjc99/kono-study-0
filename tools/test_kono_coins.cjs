@@ -82,7 +82,7 @@ test('surprises come about every other day and the quest asks for a real snack w
  assert.ok(days>15&&days<45,'surprise days: '+days)
  const q=coins.questToday('plan-1','2026-10-22');assert.ok(care.ALL_TREATS.some(t=>t.id===q.treat.id));assert.equal(q.reward,coins.foodPrice(q.treat)*3)
 })
-const looks=load('src/store/konoLooks.ts')
+const looks={...load('src/store/konoLooks.ts'),...load('src/store/konoFurniture.ts')}
 test('colors: KONO’s pictures in a color, only for frames that come in colors; the latest pick is worn if it’s owned',()=>{
  assert.equal(looks.paintPose('/garden/kono/happy.webp','starry'),'/garden/kono/colors/starry/happy.webp')
  assert.equal(looks.paintPose('/garden/kono/walk-up-02.webp','ghost'),'/garden/kono/colors/ghost/walk-up-02.webp')

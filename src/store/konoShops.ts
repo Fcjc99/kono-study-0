@@ -2,7 +2,8 @@ import {ALL_TREATS,favoriteSnack} from './konoCare'
 import {FINDS,findSrc,type Find} from './konoFinds'
 import {OUTFITS,type Outfit,type OutfitId} from './konoWardrobe'
 import {inSeasonWindow} from './seasonWindows'
-import {FURNITURE,PAINTS,furnitureSrc,paintSrc,type PaintId} from './konoLooks'
+import {PAINTS,paintSrc,type PaintId} from './konoLooks'
+import {FURNITURE,furnitureSrc} from './konoFurniture'
 import {foodPrice,type ShopItem} from './konoCoins'
 
 const hash=(text:string)=>{let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
