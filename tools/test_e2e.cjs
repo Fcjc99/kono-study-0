@@ -3570,7 +3570,7 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  const box=await board.boundingBox(),cell=box.width/8,centre=i=>({x:box.x+(i%8+0.5)*cell,y:box.y+(Math.floor(i/8)+0.5)*cell})
  const a=centre(swap[0]),b=centre(swap[1])
  await page.mouse.move(a.x,a.y);await page.mouse.down();await page.mouse.move((a.x+b.x)/2,(a.y+b.y)/2,{steps:4});await page.mouse.move(b.x,b.y,{steps:4});await page.mouse.up()
- await page.waitForFunction(()=>Number(document.querySelector('.match3 .blast-score')?.textContent)>0,null,{timeout:5000})
+ await page.waitForFunction(()=>Number(document.querySelector('.match3 .blast-score')?.textContent?.replace(/,/g,''))>0,null,{timeout:5000})
  if(process.env.KONO_SHOTS)await gems.screenshot({path:process.env.KONO_SHOTS+'/gem-blitz.png'})
  await gems.getByRole('button',{name:'✕ Leave'}).click()
  await gems.waitFor({state:'detached'})
@@ -3581,6 +3581,62 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  await candy.getByText('Level 1').waitFor();await candy.getByText(/^\d+ moves$/).waitFor()
  await candy.getByRole('progressbar',{name:/^Target \d+$/}).waitFor()
  if(process.env.KONO_SHOTS)await candy.screenshot({path:process.env.KONO_SHOTS+'/candy.png'})
+})
+
+test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with results), KONO.io (the map, a live leaderboard, steering, ■ End gives your share) and Meowdoku’s Undo, Hint and Auto ✕',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
+ d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:500}]}}
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
+ // Flappy KONO: waits on "Get ready!", one flap starts it, and without more KONO falls and the run ends.
+ await town.getByRole('button',{name:/Flappy KONO/}).click()
+ await startGame(page,'🐤 Flappy KONO')
+ const flappy=page.getByRole('dialog',{name:'🐤 Flappy KONO'})
+ await flappy.getByText('Get ready!').waitFor()
+ await page.waitForTimeout(500)
+ if(process.env.KONO_SHOTS)await flappy.screenshot({path:process.env.KONO_SHOTS+'/flappy-ready.png'})
+ await page.keyboard.press('Space')
+ await flappy.getByText('Get ready!').waitFor({state:'detached'})
+ if(process.env.KONO_SHOTS){await page.keyboard.press('Space');await page.waitForTimeout(250);await page.keyboard.press('Space');await page.waitForTimeout(150);await flappy.screenshot({path:process.env.KONO_SHOTS+'/flappy.png'})}
+ const fr=flappy.getByRole('region',{name:'Results'})
+ await fr.getByRole('heading',{name:/Bonk!|Nice flying!|medal!/}).waitFor({timeout:8000})
+ await fr.getByText(/\d+ pipes?/).first().waitFor()
+ await flappy.getByRole('button',{name:'Done'}).click();await flappy.waitFor({state:'detached'})
+ // KONO.io: the leaderboard lists you; steering works; ■ End shows your share of the map.
+ await town.getByRole('button',{name:/KONO\.io/}).click()
+ await startGame(page,'🟦 KONO.io')
+ const io=page.getByRole('dialog',{name:'🟦 KONO.io'}),lb=io.getByRole('list',{name:'Leaderboard'})
+ await lb.getByText(/\d+\. You/).waitFor()
+ assert.ok(await lb.getByRole('listitem').count()>=5,'you and the bots on the leaderboard')
+ await io.getByText(/^\d+\.\d%$/).first().waitFor()
+ for(const k of ['ArrowUp','ArrowRight','ArrowDown']){await page.keyboard.press(k);await page.waitForTimeout(220)}
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(400);await io.screenshot({path:process.env.KONO_SHOTS+'/kono-io.png'})}
+ await io.getByRole('button',{name:'■ End'}).click()
+ const ir=io.getByRole('region',{name:'Results'})
+ await ir.getByText(/You claimed [\d.]+% of the map/).waitFor()
+ await io.getByRole('button',{name:'Done'}).click();await io.waitFor({state:'detached'})
+ // Meowdoku: Hint places a right cat, Undo takes it back, Auto ✕ shades what a cat rules out.
+ await town.getByRole('button',{name:/Meowdoku/}).click()
+ await startGame(page,'🐱 Meowdoku')
+ const meow=page.getByRole('dialog',{name:'🐱 Meowdoku'}),grid=meow.getByRole('grid',{name:/^Meowdoku, \d by \d$/})
+ await grid.waitFor()
+ await meow.getByRole('button',{name:'💡 Hint'}).click()
+ await grid.getByRole('gridcell',{name:/, cat$/}).first().waitFor()
+ await meow.getByRole('button',{name:'Auto ✕'}).click()
+ assert.equal(await meow.getByRole('button',{name:'Auto ✕'}).getAttribute('aria-pressed'),'true')
+ assert.ok(await grid.getByRole('gridcell',{name:/, ruled out$/}).count()>=8,'a cat rules out its row, column, patch and neighbors')
+ if(process.env.KONO_SHOTS)await meow.screenshot({path:process.env.KONO_SHOTS+'/meow-tools.png'})
+ await meow.getByRole('button',{name:'↶ Undo'}).click()
+ assert.equal(await grid.getByRole('gridcell',{name:/, (cat|ruled out)$/}).count(),0,'Undo takes the cat back')
+ // Drag across a row: the empty squares become ✕.
+ const a=await grid.getByRole('gridcell',{name:/^Row 1, column 1(,|$)/}).boundingBox(),b=await grid.getByRole('gridcell',{name:/^Row 1, column 3(,|$)/}).boundingBox()
+ await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:6});await page.mouse.up()
+ assert.equal(await grid.getByRole('gridcell',{name:/^Row 1, column [123], marked$/}).count(),3,'a drag marks each square it crosses')
+ await meow.getByRole('button',{name:'Auto ✕'}).click()
 })
 
 test('Round 58: your own Home: the week strip, Sanctuary, the family schedule, then the schedule (today and tomorrow together), the next 7 days and pinned notes; Customize Home hides and reorders, and it stays after a reload',async({context,page})=>{

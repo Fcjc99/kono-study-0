@@ -5,9 +5,12 @@ import GameScreen,{type GameHandle,type GameResult} from './GameScreen'
 import {gameSound} from '../konoSounds'
 import Meowdoku from './Meowdoku'
 import Match3 from './Match3'
+import FlappyKono from './FlappyKono'
+import PaperKono from './PaperKono'
+import {flapMedal} from '../store/flappy'
 import {deal,readBlastSave,writeBlastSave,type BlastSave,type Piece} from '../store/blockBlast'
 import {meowLevel,newMeowPuzzle,type Puzzle} from '../store/meowdoku'
-import {candyLevelNow,freshBoard,maker,saveCandyLevel,type Board,type Maker} from '../store/match3'
+import {candyLevelNow,freshBoard,jellyFor,maker,saveCandyLevel,type Board,type Maker} from '../store/match3'
 
 /** Break-time games with KONO, offered when a focus session finishes ("Take a short break"). Two quick
  * ones: Snack catch (move KONO to catch falling treats, 30 seconds) and Peekaboo (tap KONO when it pops
@@ -15,9 +18,9 @@ import {candyLevelNow,freshBoard,maker,saveCandyLevel,type Board,type Maker} fro
  * minutes; when it's over the games stop and KONO says it's time for the next session. Best scores are
  * kept on this device only. Loaded only when opened, so it never adds to the app's startup.
  * The same games, and KONO blast (the block puzzle), Meowdoku (the cat puzzle), Gem blitz and Candy crush
- * (match-3), are KONO Town's arcade: no break timer there, and `onScore` can turn a
+ * (match-3), Flappy KONO and KONO.io (claim the map, after Paper.io 2), are KONO Town's arcade: no break timer there, and `onScore` can turn a
  * score into coins (it returns what to add to the result line). */
-type Game='catch'|'peekaboo'|'blast'|'meow'|'gems'|'candy'
+type Game='catch'|'peekaboo'|'blast'|'meow'|'gems'|'candy'|'flap'|'paper'
 export const BREAK_MINUTES=5
 const ROUND_MS=30_000
 const GAMES:{id:Game;emoji:string;name:string;how:string;best:(n:number)=>string;arcade?:boolean}[]=[
@@ -27,6 +30,8 @@ const GAMES:{id:Game;emoji:string;name:string;how:string;best:(n:number)=>string
  {id:'meow',emoji:'🐱',name:'Meowdoku',how:'One cat in every row, column and color, and no two cats touching.',best:n=>'Best: level '+n,arcade:true},
  {id:'gems',emoji:'💎',name:'Gem blitz',how:'Swap gems to match 3 or more. One minute, as many points as you can!',best:n=>'Best: '+n+' points',arcade:true},
  {id:'candy',emoji:'🍬',name:'Candy crush',how:'Match candies to reach each level’s target in the moves you have.',best:n=>'Best: level '+n,arcade:true},
+ {id:'flap',emoji:'🐤',name:'Flappy KONO',how:'Tap to flap KONO through the gaps in the pipes.',best:n=>'Best: '+n+' pipe'+(n===1?'':'s'),arcade:true},
+ {id:'paper',emoji:'🟦',name:'KONO.io',how:'Leave your land, loop around and come home to claim it. Cut the bots’ trails, and keep yours safe!',best:n=>'Best: '+n+'% of the map',arcade:true},
 ]
 const bestKey=(g:Game)=>'kono-break-best:'+g
 function readBest(g:Game):number|null{try{const v=localStorage.getItem(bestKey(g));return v===null?null:Number(v)}catch{return null}}
@@ -43,7 +48,7 @@ const clock=(ms:number)=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.flo
  * (`onBlastCoins`) and is saved as it goes, so Leave keeps it for next time. */
 export default function BreakGames({startedAt,onClose,arcade=false,sound=false,onScore,onBlastCoins}:{startedAt:number;onClose?:()=>void;arcade?:boolean;sound?:boolean;onScore?:(game:Game,score:number)=>string|null;onBlastCoins?:(lines:number,streak:number)=>number|null}){
  const [game,setGame]=useState<Game|null>(null),[pieces,setPieces]=useState<Piece[]>([]),[blastSave,setBlastSave]=useState<BlastSave|null>(null)
- const [meow,setMeow]=useState<{level:number;puzzle:Puzzle}|null>(null),[match,setMatch]=useState<{maker:Maker;board:Board;level:number}|null>(null)
+ const [meow,setMeow]=useState<{level:number;puzzle:Puzzle}|null>(null),[match,setMatch]=useState<{maker:Maker;board:Board;level:number;jelly?:Set<number>}|null>(null)
  const [ended,setEnded]=useState<GameResult|null>(null),[round,setRound]=useState(0),[started,setStarted]=useState(false)
  const handle=useRef<GameHandle>(null)
  const [now,setNow]=useState(startedAt)
@@ -64,16 +69,18 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
   setEnded(null);setRound(n=>n+1);setStarted(true)
   if(g==='blast'){if(fresh)writeBlastSave(null);setPieces(deal(Math.random));setBlastSave(fresh?null:readBlastSave())}
   if(g==='meow'){const level=meowLevel();setMeow({level,puzzle:newMeowPuzzle(level)})}
-  if(g==='gems'||g==='candy'){const mk=maker(6,Math.random);setMatch({maker:mk,board:freshBoard(mk),level:g==='candy'?candyLevelNow():1})}
+  if(g==='gems'||g==='candy'){const mk=maker(g,Math.random),level=g==='candy'?candyLevelNow():1;setMatch({maker:mk,board:freshBoard(mk),level,jelly:g==='candy'?jellyFor(level,Math.random):undefined})}
   setGame(g)
  }
  const info=GAMES.find(g=>g.id===game)
  const playing=over?null:game==='catch'?<SnackCatch key={round} ref={handle} sound={sound} onEnd={n=>finish('catch',n,'KONO caught '+n+' snack'+(n===1?'':'s')+'! 😋')}/>
   :game==='peekaboo'?<Peekaboo key={round} ref={handle} sound={sound} onEnd={n=>finish('peekaboo',n,'You booped KONO '+n+' time'+(n===1?'':'s')+'! 🌿')}/>
   :game==='blast'?<BlockBlast key={round} ref={handle} start={pieces} saved={blastSave} best={readBest('blast')} sound={sound} onCoins={onBlastCoins} onEnd={n=>finish('blast',n,'KONO blast: '+n+' point'+(n===1?'':'s')+'! 🧱')}/>
- :game==='meow'&&meow?<Meowdoku key={round} ref={handle} level={meow.level} puzzle={meow.puzzle} sound={sound} onEnd={(level,seconds,solved)=>solved?finish('meow',level,'Solved in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+'. Next up: level '+(level+1)+'.',{title:'Purr-fect!',coinScore:meow.puzzle.n,scoreText:'Level '+level}):finish('meow',0,'This one stays at level '+level+'. Play again for a new puzzle.',{title:'Puzzle skipped',coinScore:0,scoreText:'Level '+level,won:false})}/>
-  :(game==='gems'||game==='candy')&&match?<Match3 key={round} ref={handle} mode={game} level={match.level} start={match} sound={sound} onEnd={(score,won)=>{
-   if(game==='candy'){if(won)saveCandyLevel(match.level+1);finish('candy',won?match.level:match.level-1,won?'You reached the target with '+score+' points!':'So close! '+score+' points. Try the level again.',{title:won?'Level '+match.level+' complete!':'Out of moves',coinScore:won?score:Math.round(score/2),scoreText:score+' points',won})}
+ :game==='meow'&&meow?<Meowdoku key={round} ref={handle} level={meow.level} puzzle={meow.puzzle} sound={sound} onEnd={(level,seconds,solved,extra)=>solved?finish('meow',level,'Solved in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+(extra?.best?' — a new best for '+meow.puzzle.n+' × '+meow.puzzle.n+'!':'.')+(extra?.hints?' ('+extra.hints+' hint'+(extra.hints===1?'':'s')+')':'')+' Next up: level '+(level+1)+'.',{title:'Purr-fect!',coinScore:meow.puzzle.n,scoreText:'Level '+level}):finish('meow',0,'This one stays at level '+level+'. Play again for a new puzzle.',{title:'Puzzle skipped',coinScore:0,scoreText:'Level '+level,won:false})}/>
+  :game==='flap'?<FlappyKono key={round} ref={handle} best={readBest('flap')} sound={sound} onEnd={n=>{const medal=flapMedal(n);finish('flap',n,(medal?medal.emoji+' '+medal.name+' medal! ':'')+'KONO flew through '+n+' pipe'+(n===1?'':'s')+'.',{title:medal?medal.name+' medal!':n>0?'Nice flying!':'Bonk!',scoreText:n+' pipe'+(n===1?'':'s'),won:n>0})}}/>
+  :game==='paper'?<PaperKono key={round} ref={handle} sound={sound} onEnd={r=>finish('paper',r.share,'You claimed '+r.share+'% of the map'+(r.kills?' and cut '+r.kills+' trail'+(r.kills===1?'':'s'):'')+'. Rank #'+r.rank+'.',{title:r.rank===1?'Top of the map!':'Nice run!',coinScore:Math.round(r.share+r.kills*5),scoreText:r.share+'%',won:r.share>1})}/>
+  :(game==='gems'||game==='candy')&&match?<Match3 key={round} ref={handle} mode={game} level={match.level} start={match} sound={sound} onEnd={(score,won,stars)=>{
+   if(game==='candy'){if(won)saveCandyLevel(match.level+1);finish('candy',won?match.level:match.level-1,won?'★'.repeat(stars)+'☆'.repeat(3-stars)+' · '+score.toLocaleString()+' points!':'So close! '+score+' points. Try the level again.',{title:won?'Level '+match.level+' complete!':'Out of moves',coinScore:won?score:Math.round(score/2),scoreText:score+' points',won})}
    else finish('gems',score,'One minute of gem swapping!',{title:'Time’s up!'})
   }}/>
   :null

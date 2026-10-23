@@ -1,49 +1,90 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {check,saveMeowLevel,type Puzzle} from '../store/meowdoku'
+import {check,clashes,meowAuto,meowBest,ruledOut,saveMeowAuto,saveMeowBest,saveMeowLevel,solve,type Puzzle} from '../store/meowdoku'
 import {gameSound} from '../konoSounds'
 import type {GameHandle} from './GameScreen'
 
 /** Meowdoku (store/meowdoku has the rules): tap a square for ✕ (a note to yourself), again for a cat, and
- * again to clear it. Cats that break a rule shake red. Solving moves you up a level (saved on this device),
- * and the boards get bigger. In KONO blast's look: patches are the jewel colors on the navy board.
+ * again to clear it. Drag across squares to ✕ them all. Cats that break a rule shake red, and the row,
+ * column or patch they share lights up. Auto ✕ shades every square a cat rules out; Undo takes back the
+ * last change; Hint shows a cat that's wrong, or places one that's right. Solving sends a wave across the
+ * board, saves your best time for the size, and moves you up a level (saved on this device); the boards get
+ * bigger. In KONO blast's look: patches are the jewel colors on the navy board.
  * ■ End gives the puzzle up (the level stays); ↻ Restart clears the board. */
+type Mark='x'|'cat'|null
 const clock=(s:number)=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0')
-export default function Meowdoku({ref,level,puzzle,sound,onEnd}:{ref:Ref<GameHandle>;level:number;puzzle:Puzzle;sound:boolean;onEnd:(level:number,seconds:number,solved:boolean)=>void}){
- const [marks,setMarks]=useState<('x'|'cat'|null)[]>(()=>Array(puzzle.n*puzzle.n).fill(null))
- const [seconds,setSeconds]=useState(0),[solved,setSolved]=useState(false)
- const started=useRef(0)
+export default function Meowdoku({ref,level,puzzle,sound,onEnd}:{ref:Ref<GameHandle>;level:number;puzzle:Puzzle;sound:boolean;onEnd:(level:number,seconds:number,solved:boolean,extra?:{best:boolean;hints:number})=>void}){
+ const n=puzzle.n
+ const [marks,setMarks]=useState<Mark[]>(()=>Array(n*n).fill(null)),[history,setHistory]=useState<Mark[][]>([])
+ const [seconds,setSeconds]=useState(0),[solved,setSolved]=useState(false),[auto,setAuto]=useState(meowAuto)
+ const [flash,setFlash]=useState<number|null>(null),[best]=useState(()=>meowBest(n))
+ const started=useRef(0),drag=useRef<{from:number;moved:boolean;last:number}|null>(null),answer=useRef<number[]|null>(null),solvedRef=useRef(false),hintsUsed=useRef(0)
  useEffect(()=>{
   started.current=performance.now()
-  const t=window.setInterval(()=>setSeconds(Math.floor((performance.now()-started.current)/1000)),500)
+  const t=window.setInterval(()=>{if(!solvedRef.current)setSeconds(Math.floor((performance.now()-started.current)/1000))},500)
   return ()=>window.clearInterval(t)
  },[])
- const n=puzzle.n,cats=new Set(marks.flatMap((m,i)=>m==='cat'?[i]:[])),{wrong}=check(puzzle,cats)
- const tap=(i:number)=>{
-  if(solved)return
-  const next=[...marks];next[i]=marks[i]===null?'x':marks[i]==='x'?'cat':null;setMarks(next)
-  const nowCats=new Set(next.flatMap((m,k)=>m==='cat'?[k]:[]))
-  if(next[i]==='cat'){
-   const result=check(puzzle,nowCats)
-   gameSound(result.wrong.has(i)?'nope':'score',sound,nowCats.size)
-   if(result.solved){
-    setSolved(true);saveMeowLevel(level+1)
-    window.setTimeout(()=>onEnd(level,seconds,true),1300)
-   }
+ const cats=new Set(marks.flatMap((m,i)=>m==='cat'?[i]:[])),{wrong}=check(puzzle,cats),hot=clashes(puzzle,cats),out=auto?ruledOut(puzzle,cats):new Set<number>()
+ const commit=(next:Mark[],at:number|null)=>{
+  setHistory(h=>[...h.slice(-80),marks]);setMarks(next)
+  if(at===null||next[at]!=='cat')return
+  const nowCats=new Set(next.flatMap((m,k)=>m==='cat'?[k]:[])),result=check(puzzle,nowCats)
+  gameSound(result.wrong.has(at)?'nope':'score',sound,nowCats.size)
+  if(result.solved){
+   const secs=seconds
+   solvedRef.current=true;setSolved(true);saveMeowLevel(level+1)
+   const isBest=saveMeowBest(n,secs)
+   window.setTimeout(()=>onEnd(level,secs,true,{best:isBest,hints:hintsUsed.current}),1700)
   }
  }
+ const tap=(i:number)=>{
+  if(solved)return
+  const next=[...marks];next[i]=marks[i]===null?'x':marks[i]==='x'?'cat':null;commit(next,i)
+ }
+ const undo=()=>{if(solved||!history.length)return;setMarks(history[history.length-1]);setHistory(h=>h.slice(0,-1))}
+ // Hint: a cat in the wrong place blinks first; otherwise one of the answer's cats is placed.
+ const hint=()=>{
+  if(solved)return
+  answer.current??=solve(puzzle)
+  const right=new Set(answer.current),bad=[...cats].find(i=>!right.has(i))
+  hintsUsed.current++
+  if(bad!==undefined){setFlash(bad);window.setTimeout(()=>setFlash(f=>f===bad?null:f),1600);gameSound('nope',sound);return}
+  const at=answer.current.find(i=>marks[i]!=='cat')
+  if(at===undefined)return
+  const next=[...marks];next[at]='cat';setFlash(at);window.setTimeout(()=>setFlash(f=>f===at?null:f),1600);commit(next,at)
+ }
+ const toggleAuto=()=>{setAuto(a=>{saveMeowAuto(!a);return !a})}
  useImperativeHandle(ref,()=>({end:()=>{if(!solved)onEnd(level,seconds,false)}}),[solved,level,seconds,onEnd])
+ // Pointer: a tap cycles the square; dragging from it across others marks the empty ones ✕.
+ const cellAt=(x:number,y:number)=>{const el=document.elementFromPoint(x,y)?.closest<HTMLElement>('.meow-cell');return el?Number(el.dataset.i):-1}
+ const down=(e:React.PointerEvent)=>{if(solved)return;const i=cellAt(e.clientX,e.clientY);if(i<0)return;drag.current={from:i,moved:false,last:i}}
+ const move=(e:React.PointerEvent)=>{
+  const d=drag.current;if(!d)return
+  const i=cellAt(e.clientX,e.clientY);if(i<0||i===d.last)return
+  d.last=i
+  setMarks(m=>{
+   if(!d.moved){d.moved=true;setHistory(h=>[...h.slice(-80),m])}
+   const next=[...m];for(const k of [d.from,i])if(next[k]===null)next[k]='x';return next
+  })
+ }
+ const up=()=>{const d=drag.current;drag.current=null;if(d&&!d.moved)tap(d.from)}
  // Edges between patches are drawn thicker, so the patches read at a glance.
  const edge=(i:number,j:number|null)=>j===null||puzzle.regions[i]!==puzzle.regions[j]
  return <div className={'break-game meow'+(solved?' is-solved':'')}>
-  <p className="break-game-status"><span>Level <strong>{level}</strong></span><span>{n} × {n} · {clock(seconds)}</span></p>
-  <div className="meow-board" role="grid" aria-label={'Meowdoku, '+n+' by '+n} style={{gridTemplateColumns:'repeat('+n+',1fr)'}}>
-   {marks.map((m,i)=>{const r=Math.floor(i/n),c=i%n
-    return <div key={i} role="gridcell" tabIndex={0} data-r={r} data-c={c} className={'meow-cell is-c'+(puzzle.regions[i]%7)+(m==='cat'&&wrong.has(i)?' is-wrong':'')+(edge(i,c<n-1?i+1:null)?' edge-r':'')+(edge(i,r<n-1?i+n:null)?' edge-b':'')+(edge(i,c>0?i-1:null)?' edge-l':'')+(edge(i,r>0?i-n:null)?' edge-t':'')}
-     aria-label={'Row '+(r+1)+', column '+(c+1)+(m==='cat'?', cat':m==='x'?', marked':'')}
-     onClick={()=>tap(i)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tap(i)}}}>
-     {m==='cat'?<span className="meow-cat" aria-hidden="true">🐱</span>:m==='x'?<span className="meow-x" aria-hidden="true">✕</span>:null}
+  <p className="break-game-status"><span>Level <strong>{level}</strong></span><span>{n} × {n} · {clock(seconds)}{best!==null&&<small className="meow-best"> · best {clock(best)}</small>}</span></p>
+  <div className="meow-board" role="grid" aria-label={'Meowdoku, '+n+' by '+n} style={{gridTemplateColumns:'repeat('+n+',1fr)'}} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={()=>{drag.current=null}}>
+   {marks.map((m,i)=>{const r=Math.floor(i/n),c=i%n,shaded=m===null&&out.has(i)
+    return <div key={i} role="gridcell" tabIndex={0} data-i={i} data-r={r} data-c={c} style={{'--wave':(r+c)*70+'ms'} as React.CSSProperties}
+     className={'meow-cell is-c'+(puzzle.regions[i]%7)+(m==='cat'&&wrong.has(i)?' is-wrong':'')+(hot.has(i)?' is-hot':'')+(shaded?' is-out':'')+(flash===i?' is-flash':'')+(edge(i,c<n-1?i+1:null)?' edge-r':'')+(edge(i,r<n-1?i+n:null)?' edge-b':'')+(edge(i,c>0?i-1:null)?' edge-l':'')+(edge(i,r>0?i-n:null)?' edge-t':'')}
+     aria-label={'Row '+(r+1)+', column '+(c+1)+(m==='cat'?', cat':m==='x'?', marked':shaded?', ruled out':'')}
+     onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tap(i)}}}>
+     {m==='cat'?<span className="meow-cat" aria-hidden="true">🐱</span>:m==='x'||shaded?<span className="meow-x" aria-hidden="true">✕</span>:null}
     </div>})}
   </div>
-  <p className="meow-help">{solved?'Purr-fect! 🎉':'One 🐱 in every row, column and color. Cats can’t touch, even corner to corner. Tap once for ✕, twice for a cat.'}</p>
+  <div className="meow-tools">
+   <button type="button" className="meow-tool" onClick={undo} disabled={solved||!history.length}>↶ Undo</button>
+   <button type="button" className="meow-tool" onClick={hint} disabled={solved}>💡 Hint</button>
+   <button type="button" className={'meow-tool'+(auto?' is-on':'')} aria-pressed={auto} onClick={toggleAuto}>Auto ✕</button>
+  </div>
+  <p className="meow-help">{solved?'Purr-fect! 🎉':'One 🐱 in every row, column and color. Cats can’t touch, even corner to corner. Tap once for ✕, twice for a cat; drag to ✕ a few at once.'}</p>
  </div>
 }

@@ -1,69 +1,126 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {W,candyLevel,play,type Board,type Maker,type Piece} from '../store/match3'
+import {W,candyLevel,candyStars,finale,findMove,play,type Board,type Effect,type Frame,type Maker,type Piece} from '../store/match3'
 import {gameSound} from '../konoSounds'
 import type {GameHandle} from './GameScreen'
 
-/** Gem blitz and Candy crush (the rules are in store/match3), in KONO blast's look: swipe a piece toward a
- * neighbor (or tap one, then the other) to swap them. Pieces slide, cleared ones burst, new ones drop in
- * from the top, and cascades get a cheer.
- * - Gem blitz: one minute; as many points as you can.
- * - Candy crush: levels; reach the target score in the moves you have (store/match3 › candyLevel). */
-const GEMS=['◆','●','▲','■','★','♥'],CANDIES=['🍬','🍭','🍩','🧁','🍪','🍫']
-const BLITZ_MS=60_000
-const CASCADE_CHEERS=['Sweet!','Tasty!','Delicious!','Divine!','Sugar crush!']
-const GEM_CHEERS=['Good!','Excellent!','Awesome!','Spectacular!','Blazing!']
-type Burst={key:number;cells:{at:number;kind:number}[]}
-export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameHandle>;mode:'gems'|'candy';level:number;start:{maker:Maker;board:Board};sound:boolean;onEnd:(score:number,won:boolean)=>void}){
+/** Candy crush and Gem blitz (the rules are in store/match3), drawn and animated after the games they follow.
+ * Swipe a piece toward a neighbor (or tap one, then the other). Pieces slide and drop in, cleared ones
+ * burst into shards with the points floating up, a striped candy or a star gem fires a beam along its row
+ * or column, wrapped candies and flame gems explode in a ring, a color bomb or hypercube throws lightning
+ * at every piece it takes, and big moments shake the board. Stand still a few seconds and a move wiggles
+ * as a hint.
+ * - Candy crush: the six classic candies on a light board. Each level has a target and a number of moves
+ *   (even levels have jelly to clear too), with 1–3 stars. Cascades get "Sweet!", "Tasty!", "Delicious!",
+ *   "Divine!". Win with moves left and they turn into striped candies that all go off: Sugar crush!
+ * - Gem blitz: seven faceted gems on a dark board, one minute. Some gems carry +5 seconds, big cascades drop
+ *   in ×2 … ×8 multipliers, quick moves in a row build up to Blazing speed (two gems catch fire), and when
+ *   time's up every special left goes off in a Last hurrah. */
+const BLITZ_MS=60_000,SPEEDY_MS=1700
+const CANDY_CHEERS=['','','Sweet!','Tasty!','Delicious!','Divine!']
+const GEM_CHEERS=['','','Good!','Excellent!','Awesome!','Spectacular!','Extraordinary!','Unbelievable!']
+type Fx={key:number;effects:Effect[];cleared:{at:number;kind:number}[];pop:{n:number;x:number;y:number}|null;big:boolean}
+export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameHandle>;mode:'gems'|'candy';level:number;start:{maker:Maker;board:Board;jelly?:Set<number>};sound:boolean;onEnd:(score:number,won:boolean,stars:number)=>void}){
  const goal=candyLevel(level)
  const [board,setBoard]=useState<Board>(start.board),[born,setBorn]=useState<Set<number>>(new Set())
- const [sel,setSel]=useState<number|null>(null),[shake,setShake]=useState<number[]>([])
- const [score,setScore]=useState(0),[moves,setMoves]=useState(goal.moves),[left,setLeft]=useState(BLITZ_MS)
- const [burst,setBurst]=useState<Burst|null>(null),[cheer,setCheer]=useState<{key:number;text:string}|null>(null),[done,setDone]=useState<string|null>(null)
+ const [jelly,setJelly]=useState<Set<number>>(()=>new Set(start.jelly??[]))
+ const [sel,setSel]=useState<number|null>(null),[shake,setShake]=useState<number[]>([]),[hint,setHint]=useState<[number,number]|null>(null)
+ const [score,setScore]=useState(0),[moves,setMoves]=useState(goal.moves),[left,setLeft]=useState(BLITZ_MS),[mult,setMult]=useState(1),[speed,setSpeed]=useState(0),[blazing,setBlazing]=useState(false)
+ const [fx,setFx]=useState<Fx[]>([]),[cheer,setCheer]=useState<{key:number;text:string;big?:boolean}|null>(null),[done,setDone]=useState<string|null>(null),[quake,setQuake]=useState(0)
  const boardRef=useRef<HTMLDivElement>(null),busy=useRef(false),scoreRef=useRef(0),ended=useRef(false),keys=useRef(0),boardNow=useRef(start.board),movesLeft=useRef(goal.moves)
+ const jellyNow=useRef(new Set(start.jelly??[])),multNow=useRef(1),extraMs=useRef(0),lastMove=useRef(0),speedNow=useRef(0),idleAt=useRef(0)
  const press=useRef<{at:number;x:number;y:number;moved:boolean}|null>(null)
- const onEndRef=useRef(onEnd)
+ const onEndRef=useRef(onEnd),hurrah=useRef(()=>{})
  useEffect(()=>{onEndRef.current=onEnd},[onEnd])
- const finish=(won:boolean,text:string)=>{if(ended.current)return;ended.current=true;setDone(text);window.setTimeout(()=>onEndRef.current(scoreRef.current,won),1400)}
- // Gem blitz's minute (a move under way still finishes before time's up counts).
+ const stars=()=>candyStars(scoreRef.current,goal.target)
+ const finish=(won:boolean,text:string)=>{if(ended.current)return;ended.current=true;setDone(text);window.setTimeout(()=>onEndRef.current(scoreRef.current,won,mode==='candy'?(won?Math.max(1,stars()):0):0),1500)}
+ const say=(text:string,big=false)=>{const key=++keys.current;setCheer({key,text,big});window.setTimeout(()=>setCheer(c=>c?.key===key?null:c),1200)}
+ // Gem blitz's minute (and its +5 second gems); when it's up, a move under way finishes, then the Last hurrah.
  useEffect(()=>{
   if(mode!=='gems')return
   const startAt=performance.now()
-  const t=window.setInterval(()=>{const rest=BLITZ_MS-(performance.now()-startAt);setLeft(Math.max(0,rest));if(rest<=0&&!busy.current){window.clearInterval(t);finish(true,'Time’s up!')}},200)
+  const t=window.setInterval(()=>{
+   const rest=BLITZ_MS+extraMs.current-(performance.now()-startAt);setLeft(Math.max(0,rest))
+   if(rest<=0&&!busy.current&&!ended.current){window.clearInterval(t);hurrah.current()}
+  },200)
   return ()=>window.clearInterval(t)
+  // hurrah.current only reads refs.
  },[mode])
- // ■ End: finish now (Candy crush counts it as won only if the target's already reached).
- useImperativeHandle(ref,()=>({end:()=>{if(ended.current)return;ended.current=true;onEndRef.current(scoreRef.current,mode==='gems'||scoreRef.current>=goal.target)}}),[mode,goal.target])
+ // A hint: after five seconds without a move, a move that works wiggles.
+ useEffect(()=>{
+  idleAt.current=performance.now()
+  const t=window.setInterval(()=>{if(!busy.current&&!ended.current&&performance.now()-idleAt.current>5000){const mv=findMove(boardNow.current);setHint(mv)}},1000)
+  return ()=>window.clearInterval(t)
+ },[])
+ // ■ End: finish now (Candy crush counts it as won only if the level's goal is already met).
+ useImperativeHandle(ref,()=>({end:()=>{if(ended.current)return;ended.current=true;const won=mode==='gems'||(scoreRef.current>=goal.target&&!jellyNow.current.size);onEndRef.current(scoreRef.current,won,mode==='candy'&&won?Math.max(1,stars()):0)}}),[mode,goal.target]) // eslint-disable-line react-hooks/exhaustive-deps
  const show=(next:Board)=>{const had=new Set(boardNow.current.map(p=>p?.id));setBorn(new Set(next.flatMap(p=>p&&!had.has(p.id)?[p.id]:[])));boardNow.current=next;setBoard(next)}
+ // Plays a move's steps one after another, then `after`.
+ const run=(frames:Frame[],after:()=>void)=>{
+  busy.current=true;setHint(null)
+  let at=0
+  for(const f of frames){
+   window.setTimeout(()=>{
+    show(f.board)
+    if(f.time){extraMs.current+=f.time*1000;say('+'+f.time+' seconds!')}
+    if(f.mult>multNow.current){multNow.current=f.mult;setMult(f.mult);say('×'+f.mult+' multiplier!',true)}
+    if(!f.cleared.length)return
+    const pts=f.points*(mode==='gems'?multNow.current:1)
+    scoreRef.current+=pts;setScore(scoreRef.current)
+    // Jelly under a cleared square is gone.
+    if(jellyNow.current.size){let changed=false;for(const c of f.cleared)if(jellyNow.current.delete(c.at))changed=true;if(changed)setJelly(new Set(jellyNow.current))}
+    const xs=f.cleared.map(c=>c.at%W+0.5),ys=f.cleared.map(c=>Math.floor(c.at/W)+0.5)
+    const big=f.effects.length>=2||f.effects.some(e=>e.type==='color'||e.type==='board'||e.type==='nova')
+    const key=++keys.current
+    setFx(list=>[...list.slice(-3),{key,effects:f.effects,cleared:f.cleared,big,pop:{n:pts,x:xs.reduce((a,b)=>a+b,0)/xs.length,y:ys.reduce((a,b)=>a+b,0)/ys.length}}])
+    window.setTimeout(()=>setFx(list=>list.filter(x=>x.key!==key)),900)
+    if(big){setQuake(key);window.setTimeout(()=>setQuake(q=>q===key?0:q),420)}
+    if(f.effects.some(e=>e.type==='board'))say(mode==='candy'?'Sugar crush!':'Unbelievable!',true)
+    else if(f.cascade>=2)say((mode==='candy'?CANDY_CHEERS:GEM_CHEERS)[Math.min(f.cascade,(mode==='candy'?CANDY_CHEERS:GEM_CHEERS).length-1)])
+    gameSound(big||f.effects.length?'big':'score',sound,f.cascade-1)
+   },at)
+   at+=f.cleared.length?(f.effects.length?380:280):(f.points===0&&f.cascade===0?60:230)
+  }
+  window.setTimeout(()=>{busy.current=false;idleAt.current=performance.now();after()},at+40)
+ }
+ const lastHurrah=()=>{
+  if(ended.current)return
+  const specials=boardNow.current.some(p=>p?.special&&p.special!=='color')
+  if(!specials){finish(true,'Time’s up!');return}
+  say('Last hurrah!',true)
+  run(finale(boardNow.current,start.maker,0),()=>finish(true,'Time’s up!'))
+ }
+ useEffect(()=>{hurrah.current=lastHurrah})
  const attempt=(a:number,c:number)=>{
   if(busy.current||ended.current)return
   const frames=play(boardNow.current,a,c,start.maker)
   if(!frames){setShake([a,c]);gameSound('nope',sound);window.setTimeout(()=>setShake([]),380);return}
-  busy.current=true;setSel(null)
+  setSel(null)
   const swapped=[...boardNow.current];[swapped[a],swapped[c]]=[swapped[c],swapped[a]];show(swapped)
-  let at=200,top=0
-  for(const f of frames){
-   window.setTimeout(()=>{
-    show(f.board)
-    if(f.cleared.length){
-     scoreRef.current+=f.points;setScore(scoreRef.current);top=Math.max(top,f.cascade)
-     const key=++keys.current;setBurst({key,cells:f.cleared});window.setTimeout(()=>setBurst(b=>b?.key===key?null:b),600)
-     gameSound('score',sound,f.cascade-1)
-     if(f.cascade>=2){setCheer({key,text:(mode==='candy'?CASCADE_CHEERS:GEM_CHEERS)[Math.min(f.cascade-2,4)]});window.setTimeout(()=>setCheer(t=>t?.key===key?null:t),1100)}
-    }
-   },at)
-   at+=f.cleared.length?240:200
+  // Gem blitz's speed: quick moves in a row build up; five make Blazing speed (two gems catch fire).
+  if(mode==='gems'){
+   const now=performance.now();speedNow.current=now-lastMove.current<SPEEDY_MS?speedNow.current+1:0;lastMove.current=now;setSpeed(speedNow.current)
   }
-  window.setTimeout(()=>{
-   busy.current=false
-   if(top>=3)gameSound('big',sound,top-3)
+  window.setTimeout(()=>run(frames,()=>{
+   if(mode==='gems'&&speedNow.current>=5){
+    speedNow.current=0;setSpeed(0);setBlazing(true);window.setTimeout(()=>setBlazing(false),2600)
+    say('Blazing speed!',true);gameSound('big',sound,4)
+    const plain=boardNow.current.flatMap((p,i)=>p&&!p.special&&!p.bonus?[i]:[]),b=[...boardNow.current]
+    for(let k=0;k<2&&plain.length;k++){const i=plain.splice(Math.floor(Math.random()*plain.length),1)[0];b[i]={...b[i]!,special:'area'}}
+    show(b);scoreRef.current+=500*multNow.current;setScore(scoreRef.current)
+   }
    if(mode==='candy'){
     movesLeft.current-=1;setMoves(movesLeft.current)
-    if(scoreRef.current>=goal.target)finish(true,'Level '+level+' complete!');else if(movesLeft.current<=0)finish(false,'Out of moves')
+    const met=scoreRef.current>=goal.target&&!jellyNow.current.size
+    if(met){
+     // Sugar crush: each move left becomes a striped candy, and they all go off.
+     if(movesLeft.current>0){say('Sugar crush!',true);const extra=movesLeft.current;movesLeft.current=0;setMoves(0);window.setTimeout(()=>run(finale(boardNow.current,start.maker,extra),()=>finish(true,'Level '+level+' complete!')),700)}
+     else finish(true,'Level '+level+' complete!')
+    }else if(movesLeft.current<=0)finish(false,'Out of moves')
    }
-  },at)
+  }),170)
  }
  const indexAt=(x:number,y:number)=>{const r=boardRef.current?.getBoundingClientRect();if(!r)return -1;const c=Math.floor((x-r.left)/(r.width/W)),row=Math.floor((y-r.top)/(r.height/W));return c<0||row<0||c>=W||row>=W?-1:row*W+c}
- const down=(e:React.PointerEvent<HTMLDivElement>)=>{const at=indexAt(e.clientX,e.clientY);if(at<0)return;e.currentTarget.setPointerCapture(e.pointerId);press.current={at,x:e.clientX,y:e.clientY,moved:false}}
+ const down=(e:React.PointerEvent<HTMLDivElement>)=>{const at=indexAt(e.clientX,e.clientY);if(at<0)return;idleAt.current=performance.now();setHint(null);e.currentTarget.setPointerCapture(e.pointerId);press.current={at,x:e.clientX,y:e.clientY,moved:false}}
  const move=(e:React.PointerEvent<HTMLDivElement>)=>{
   const p=press.current;if(!p||p.moved)return
   const dx=e.clientX-p.x,dy=e.clientY-p.y;if(Math.max(Math.abs(dx),Math.abs(dy))<14)return
@@ -80,25 +137,50 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
   const near=Math.abs(s-p.at)===W||(Math.abs(s-p.at)===1&&Math.floor(s/W)===Math.floor(p.at/W))
   if(near)attempt(s,p.at);else setSel(p.at)
  }
- const look=(p:Piece)=>mode==='candy'?CANDIES[p.kind]:GEMS[p.kind]
  const pos=(i:number)=>({left:(i%W)*100/W+'%',top:Math.floor(i/W)*100/W+'%'})
- const clock=(ms:number)=>Math.ceil(ms/1000)
- return <div className={'break-game match3 is-'+mode}>
+ const label=(p:Piece)=>(mode==='candy'?['red','orange','yellow','green','blue','purple']:['red','orange','yellow','green','blue','purple','white'])[p.kind]+(p.special?' '+({row:mode==='candy'?'striped':'lightning',col:mode==='candy'?'striped':'lightning',area:mode==='candy'?'wrapped':'flame',cross:'star',color:mode==='candy'?'color bomb':'hypercube',nova:'supernova'})[p.special]:'')+(p.bonus==='time'?' +5 seconds':p.bonus==='mult'?' ×'+p.mult:'')
+ const progress=Math.min(1,score/(goal.target*2))
+ return <div className={'break-game match3 is-'+mode+(blazing?' is-blazing':'')}>
   <div className="blast-top">
-   <span className="blast-best">{mode==='candy'?'Level '+level:'⏱ '+clock(left)+'s'}</span>
-   {mode==='candy'&&<span className="blast-coins">{moves} move{moves===1?'':'s'}</span>}
-   <strong key={score} className="blast-score" aria-label={'Score '+score}>{score}</strong>
+   <span className="blast-best">{mode==='candy'?'Level '+level:'⏱ '+Math.ceil(left/1000)+'s'}</span>
+   {mode==='candy'?<span className="blast-coins">{moves} move{moves===1?'':'s'}</span>:<span className="blast-coins m3-mult" aria-label={'Multiplier ×'+mult}>×{mult}</span>}
+   <strong key={score} className="blast-score" aria-label={'Score '+score}>{score.toLocaleString()}</strong>
   </div>
-  {mode==='candy'&&<div className="match3-goal" role="progressbar" aria-label={'Target '+goal.target} aria-valuemin={0} aria-valuemax={goal.target} aria-valuenow={Math.min(score,goal.target)}><span style={{width:Math.min(100,score/goal.target*100)+'%'}}/><b>{Math.min(score,goal.target)} / {goal.target}</b></div>}
-  {mode==='gems'&&<div className="match3-goal is-time" aria-hidden="true"><span style={{width:left/BLITZ_MS*100+'%'}}/></div>}
-  <div className="blast-frame">
+  {mode==='candy'?<div className="match3-goal" role="progressbar" aria-label={'Target '+goal.target} aria-valuemin={0} aria-valuemax={goal.target} aria-valuenow={Math.min(score,goal.target)}>
+   <span style={{width:progress*100+'%'}}/>{[0.5,0.75,1].map((x,k)=><i key={k} className={progress>=x?'is-lit':''} style={{left:x*100+'%'}} aria-hidden="true">★</i>)}
+   <b>{goal.jelly?(jelly.size?jelly.size+' jelly left · ':'Jelly cleared ✓ · '):''}{Math.min(score,goal.target).toLocaleString()} / {goal.target.toLocaleString()}</b>
+  </div>
+  :<div className="match3-goal is-time" aria-hidden="true"><span style={{width:Math.min(1,left/BLITZ_MS)*100+'%'}}/><em className="m3-speed">{'🔥'.repeat(Math.min(5,speed))}</em></div>}
+  <div className={'blast-frame'+(quake?' is-quake':'')}>
    <div ref={boardRef} className="match3-board" role="grid" aria-label={mode==='candy'?'Candy board':'Gem board'} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={()=>{press.current=null}}>
-    {board.map((p,i)=>p&&<div key={p.id} role="gridcell" data-i={i} data-kind={p.kind} aria-label={'Row '+(Math.floor(i/W)+1)+', column '+(i%W+1)+(p.special?', special':'')} className={'match3-piece is-c'+p.kind+(p.special?' is-'+p.special:'')+(sel===i?' is-picked':'')+(shake.includes(i)?' is-shake':'')+(born.has(p.id)?' is-new':'')} style={pos(i)}><span aria-hidden="true">{p.special==='color'?'🌈':look(p)}</span></div>)}
-    {burst&&<div key={burst.key} className="match3-burst" aria-hidden="true">{burst.cells.map(b=><span key={b.at} className={'is-c'+b.kind} style={pos(b.at)}/>)}</div>}
-    {cheer&&<p key={cheer.key} className="blast-cheer" role="status"><span>{cheer.text}</span></p>}
+    {[...jelly].map(i=><span key={'j'+i} className="m3-jelly" style={pos(i)} aria-hidden="true"/>)}
+    {board.map((p,i)=>p&&<div key={p.id} role="gridcell" data-i={i} data-kind={p.kind} aria-label={'Row '+(Math.floor(i/W)+1)+', column '+(i%W+1)+': '+label(p)}
+     className={'match3-piece k'+p.kind+(p.special?' is-'+p.special:'')+(p.bonus?' has-'+p.bonus:'')+(sel===i?' is-picked':'')+(shake.includes(i)?' is-shake':'')+(born.has(p.id)?' is-new':'')+(hint?.includes(i)?' is-hint':'')} style={pos(i)}>
+     <span className="m3-gem" aria-hidden="true"/>{p.bonus==='mult'&&<b className="m3-badge" aria-hidden="true">×{p.mult}</b>}{p.bonus==='time'&&<b className="m3-badge is-time" aria-hidden="true">+5</b>}
+    </div>)}
+    {fx.map(f=><div key={f.key} className="m3-fx" aria-hidden="true">
+     {f.cleared.map(c=><span key={c.at} className={'m3-shard k'+c.kind} style={pos(c.at)}/>)}
+     {f.effects.map((e,k)=><Effect key={k} e={e}/>)}
+     {f.pop&&<span className="m3-pop" style={{left:f.pop.x*100/W+'%',top:f.pop.y*100/W+'%'}}>+{f.pop.n.toLocaleString()}</span>}
+    </div>)}
+    {cheer&&<p key={cheer.key} className={'blast-cheer m3-cheer'+(cheer.big?' is-big':'')} role="status"><span>{cheer.text}</span></p>}
     {done&&<p className="blast-over" role="status">{done}</p>}
    </div>
   </div>
-  <p className="blast-help">{mode==='candy'?'Swipe candies to match 3. Match 4 for a striped candy, an L or T for a bomb, 5 for a rainbow.':'Swipe gems to match 3 or more, as many as you can in a minute.'}</p>
+  <p className="blast-help">{mode==='candy'?'Match 4 for a striped candy, an L or T for a wrapped one, 5 for a color bomb. Swap two specials together for a combo!':'Match 4 for a flame gem, an L or T for a star, 5 for a hypercube, 6 for a supernova. Quick moves build speed!'}</p>
  </div>
+}
+
+/** What a special piece did: a beam along its row or column (three wide for a supernova), a ring for an
+ * explosion, lightning from a color bomb to each piece it takes, a flash for the whole board. */
+function Effect({e}:{e:Effect}){
+ const r=Math.floor(e.at/W),c=e.at%W
+ const beam=(kind:'row'|'col',n:number,wide=1)=><span key={kind+n} className={'m3-beam is-'+kind+(wide>1?' is-wide':'')} style={kind==='row'?{top:n*100/W+'%'}:{left:n*100/W+'%'}}/>
+ if(e.type==='row')return beam('row',r)
+ if(e.type==='col')return beam('col',c)
+ if(e.type==='cross')return <>{beam('row',r)}{beam('col',c)}</>
+ if(e.type==='nova')return <>{[r-1,r,r+1].filter(y=>y>=0&&y<W).map(y=>beam('row',y,3))}{[c-1,c,c+1].filter(x=>x>=0&&x<W).map(x=>beam('col',x,3))}</>
+ if(e.type==='area')return <span className={'m3-ring'+(e.cells.length>9?' is-big':'')} style={{left:(c+0.5)*100/W+'%',top:(r+0.5)*100/W+'%'}}/>
+ if(e.type==='board')return <span className="m3-flash"/>
+ return <svg className="m3-bolts" viewBox={'0 0 '+W+' '+W} preserveAspectRatio="none">{e.cells.map(i=>{const y=Math.floor(i/W)+0.5,x=i%W+0.5,mx=(x+c+0.5)/2+((i*7)%3-1)*0.4,my=(y+r+0.5)/2+((i*5)%3-1)*0.4;return <polyline key={i} points={(c+0.5)+','+(r+0.5)+' '+mx+','+my+' '+x+','+y}/>})}</svg>
 }

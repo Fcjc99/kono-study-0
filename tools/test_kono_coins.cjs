@@ -189,24 +189,108 @@ test('Meowdoku: every puzzle has exactly one answer; boards grow with the level;
  const q=m.makePuzzle(5,m.seeded(7));let answer=null
  const go=(r,cats)=>{if(answer)return;if(r===5){if(m.check(q,new Set(cats)).solved)answer=cats;return}for(let c=0;c<5;c++)go(r+1,[...cats,r*5+c])}
  go(0,[]);assert.ok(answer,'the puzzle has an answer that check() accepts')
+ assert.equal(JSON.stringify(m.solve(q)),JSON.stringify(answer),'solve() finds the one answer (for hints)')
+ // Auto-✕: a cat rules out its row, column, patch and neighbors; clashes light the shared row, column or patch.
+ const out=m.ruledOut(p,new Set([0]));assert.ok([1,2,3,4,8,12,5].every(i=>out.has(i)));assert.ok(!out.has(6)&&!out.has(0))
+ assert.equal([...m.clashes(p,new Set([0,2]))].sort((a,b)=>a-b).join(),'0,1,2,3','two cats in row 1')
+ assert.equal(m.clashes(p,new Set([0,6])).size,0)
 })
-test('match-3: a fresh board has no lines and a move; a swap that lines up three clears, drops and refills; 4 in a line makes a striped piece, 5 a rainbow orb',()=>{
- const g=load('src/store/match3.ts')
- const mk=g.maker(6,load('src/store/meowdoku.ts').seeded(3)),b=g.freshBoard(mk)
- assert.equal(b.length,64);assert.equal(g.lines(b).length,0);assert.ok(g.hasMove(b))
- // A hand-made board: row 0 is 0 0 1 0 …; swapping (0,2) with (1,2) (a 0) lines up four 0s.
- let id=1000;const P=k=>({id:++id,kind:k})
- const kinds=[0,0,1,0,2,3,4,5, 3,4,0,5,1,2,3,4, 1,2,3,4,5,0,1,2, 2,3,4,5,0,1,2,3, 3,4,5,0,1,2,3,4, 4,5,0,1,2,3,4,5, 5,0,1,2,3,4,5,0, 0,1,2,3,4,5,0,1]
- const board=kinds.map(P)
- assert.ok(!g.canSwap(board,0,9),'not side by side');assert.ok(g.canSwap(board,2,10))
- const frames=g.play(board,2,10,g.maker(6,()=>0.5))
- assert.ok(frames&&frames.length>=3)
- assert.equal(frames[0].cleared.length,3,'three 0s clear (the fourth stays as a striped piece)')
- assert.ok(frames[0].board.some(p=>p&&p.special==='row'),'four across makes a striped piece');assert.ok(frames[0].points>0)
- const settled=frames.at(-1).board;assert.equal(settled.filter(Boolean).length,64,'the board is full again');assert.ok(g.hasMove(settled))
- const five=[0,0,1,0,0,2,3,4, 5,4,0,5,1,2,3,4].concat(kinds.slice(16)).map(P)
- const f5=g.play(five,2,10,g.maker(6,()=>0.5))
- assert.ok(f5[0].board.some(p=>p&&p.special==='color'),'five in a line makes a rainbow orb')
- assert.deepEqual([g.candyLevel(1).moves>0,g.candyLevel(2).target>g.candyLevel(1).target],[true,true])
+test('match-3: fresh boards have no lines and a move; Candy crush makes striped (4), wrapped (L/T) and color bombs (5); Gem blitz makes flame (4), star (L/T), hypercube (5) and supernova (6) gems; combinations and the finale',()=>{
+ const g=load('src/store/match3.ts'),seeded=load('src/store/meowdoku.ts').seeded
+ for(const mode of ['candy','gems']){const mk=g.maker(mode,seeded(3)),b=g.freshBoard(mk);assert.equal(b.length,64);assert.equal(g.lines(b).length,0);assert.ok(g.hasMove(b));assert.ok(b.every(p=>p.kind<(mode==='gems'?7:6)))}
+ let id=1000;const P=(k,special)=>({id:++id,kind:k,...(special?{special}:{})})
+ // A filler that makes no lines of its own: kinds 1–5 in a shifting pattern.
+ const fill=()=>Array.from({length:64},(_,i)=>P(1+((Math.floor(i/8)*2+i%8)%5)))
+ const steady=mode=>g.maker(mode,seeded(42))
+ // Row 0: A A b A … — swapping (0,2) with (1,2) (an A) makes four across.
+ const four=()=>{const b=fill();b[0]=P(0);b[1]=P(0);b[3]=P(0);b[10]=P(0);return b}
+ assert.equal(g.lines(fill()).length,0,'the filler has no lines')
+ let f=g.play(four(),2,10,steady('candy'))
+ assert.ok(f[0].made.some(x=>x.special==='col'),'four across in Candy crush: a candy striped down (it clears its column)')
+ assert.equal(f[0].cleared.length,3)
+ f=g.play(four(),2,10,steady('gems'))
+ assert.ok(f[0].made.some(x=>x.special==='area'),'four in Gem blitz: a flame gem')
+ const five=()=>{const b=four();b[4]=P(0);return b}
+ assert.ok(g.play(five(),2,10,steady('candy'))[0].made.some(x=>x.special==='color'),'five: a color bomb')
+ const six=()=>{const b=five();b[5]=P(0);return b}
+ assert.ok(g.play(six(),2,10,steady('gems'))[0].made.some(x=>x.special==='nova'),'six in Gem blitz: a supernova')
+ // An L: A at (0,0),(0,1) and down column 2 at (1,2),(2,2); swapping (0,2) in from (0,3) makes the corner.
+ const ell=()=>{const b=fill();b[0]=P(0);b[1]=P(0);b[3]=P(0);b[10]=P(0);b[18]=P(0);return b}
+ f=g.play(ell(),2,3,steady('candy'))
+ assert.ok(f[0].made.some(x=>x.special==='area'),'an L in Candy crush: a wrapped candy')
+ assert.ok(g.play(ell(),2,3,steady('gems'))[0].made.some(x=>x.special==='cross'),'an L in Gem blitz: a star gem')
+ // A striped candy going off takes its whole row; a wrapped one explodes twice.
+ const striped=()=>{const b=fill();b[0]=P(0,'row');b[1]=P(0);b[3]=P(0);b[10]=P(0);return b}
+ f=g.play(striped(),2,10,steady('candy'))
+ assert.ok(f[0].effects.some(e=>e.type==='row'&&e.cells.length===8),'the striped candy clears its row')
+ const wrapped=()=>{const b=fill();b[0]=P(0,'area');b[1]=P(0);b[3]=P(0);b[10]=P(0);return b}
+ f=g.play(wrapped(),2,10,steady('candy'))
+ assert.equal(f.filter(x=>x.effects.some(e=>e.type==='area')).length,2,'a wrapped candy explodes, then explodes again after the fall')
+ // Combinations: two striped make a cross; a color bomb and a candy clear all of that color; two bombs clear the board.
+ const pair=(x,y)=>{const b=fill();b[27]=x;b[28]=y;return b}
+ f=g.play(pair(P(2,'row'),P(3,'col')),27,28,steady('candy'))
+ assert.ok(f[0].effects.some(e=>e.type==='cross'),'two striped: a cross')
+ f=g.play(pair(P(2,'area'),P(3,'area')),27,28,steady('candy'))
+ assert.ok(f[0].effects.some(e=>e.type==='area'&&e.cells.length===25),'two wrapped: a 5 × 5 blast')
+ const bomb=pair(P(0,'color'),P(1)),ones=bomb.filter(p=>p.kind===1).length
+ f=g.play(bomb,27,28,steady('candy'))
+ assert.ok(f[0].cleared.length>=ones,'a color bomb and a candy: every candy of that color')
+ f=g.play(pair(P(0,'color'),P(0,'color')),27,28,steady('candy'))
+ assert.equal(f[0].cleared.length,64,'two color bombs clear the board')
+ f=g.play(pair(P(0,'color'),P(4,'row')),27,28,steady('candy'))
+ assert.ok(f[0].effects.filter(e=>e.type==='row'||e.type==='col').length>=3,'a color bomb and a striped candy: that whole color goes off striped')
+ // Every move leaves a full board with a move to make.
+ for(const mode of ['candy','gems']){const mk=g.maker(mode,seeded(11));let b=g.freshBoard(mk);for(let k=0;k<25;k++){const mv=g.findMove(b);assert.ok(mv);const fr=g.play(b,mv[0],mv[1],mk);b=fr.at(-1).board;assert.equal(b.filter(Boolean).length,64);assert.ok(g.hasMove(b))}}
+ // The finale: moves left turn into striped candies that all go off.
+ const fin=g.finale(g.freshBoard(g.maker('candy',seeded(5))),g.maker('candy',seeded(6)),5)
+ assert.ok(fin.some(x=>x.effects.length>=5));assert.equal(fin.at(-1).board.filter(Boolean).length,64)
+ assert.equal(g.candyStars(1000,1000),1);assert.equal(g.candyStars(2000,1000),3);assert.equal(g.candyLevel(2).jelly>0,true);assert.equal(g.candyLevel(1).jelly,0)
+ assert.equal(g.jellyFor(4,seeded(2)).size,g.candyLevel(4).jelly)
+})
+test('Flappy KONO: KONO falls and a flap lifts it, pipes come in with a gap, flying through a gap scores, touching a pipe or the ground ends the run; medals at 10/20/30/40',()=>{
+ const f=load('src/store/flappy.ts'),half=()=>0.5
+ let fl=f.newFlight(),y0=fl.y
+ fl=f.step(fl,10,half).flight;assert.ok(fl.y>y0,'gravity pulls KONO down')
+ const up=f.step(f.flap(fl),1,half).flight;assert.ok(up.y<fl.y,'a flap lifts KONO')
+ // Keep KONO in the middle of every gap (as a perfect player would): points, no crash.
+ let run=f.newFlight(),points=0
+ for(let k=0;k<3000&&!run.dead;k++){const next=run.pipes.find(p=>p.x+f.FLAP.pipeW>f.FLAP.x-f.FLAP.r);const r=f.step({...run,y:next?next.gapY:run.y,vy:0},1,Math.random);run=r.flight;if(r.scored)points++}
+ assert.ok(!run.dead&&points>=15&&run.score===points,'flying through gaps scores ('+points+')')
+ let fall=f.newFlight();for(let k=0;k<400&&!fall.dead;k++)fall=f.step(fall,1,half).flight
+ assert.ok(fall.dead,'never flapping hits the ground')
+ assert.ok(f.crash({x:f.FLAP.x-10,gapY:300,scored:false,color:0},100),'inside the top pipe');assert.ok(!f.crash({x:f.FLAP.x-10,gapY:300,scored:false,color:0},300))
+ assert.equal(f.flapMedal(9),null);assert.equal(f.flapMedal(10).name,'Bronze');assert.equal(f.flapMedal(25).name,'Silver');assert.equal(f.flapMedal(41).name,'Diamond')
+})
+test('KONO.io: a loop out of your land claims the trail and what it closes in; touching a trail cuts it; your own trail or the edge ends you; bots play on their own',()=>{
+ const P=load('src/store/paper.ts'),seeded=load('src/store/meowdoku.ts').seeded,N=P.N
+ const a=P.newArena(seeded(3),0),me=a.players[0],mine=()=>a.own.filter(x=>x===1).length
+ assert.equal(mine(),21,'a round patch to start')
+ // Walk a loop: 5 right of home, then 6 down, 5 back left, up home.
+ a.own.fill(0);for(let y=10;y<=12;y++)for(let x=10;x<=12;x++)a.own[y*N+x]=1
+ Object.assign(me,{x:12,y:11,dir:1,want:1,trail:[]})
+ const go=(d,n)=>{for(let k=0;k<n;k++){P.steer(me,d);P.tick(a)}}
+ go(1,5);assert.equal(me.trail.length,5,'outside, KONO leaves a trail')
+ go(2,6);go(3,5)
+ const before=mine();go(0,5)
+ assert.ok(me.alive,'home safe');assert.equal(me.trail.length,0);assert.ok(mine()>before+20,'the loop and what it closes in are claimed ('+before+' → '+mine()+')')
+ assert.equal(a.own[14*N+15],1,'a square inside the loop is claimed')
+ // Back on yourself: no 180° turns, so steering straight back is ignored.
+ P.steer(me,(me.dir+2)%4);assert.notEqual(me.want,(me.dir+2)%4)
+ // Off the edge.
+ Object.assign(me,{x:0,y:0,dir:3,want:3});P.tick(a);assert.ok(!me.alive,'off the map ends you')
+ // A cut: a bot walks across your trail.
+ const b=P.newArena(seeded(5),1),you=b.players[0],bot=b.players[1]
+ b.own.fill(0);b.trail.fill(0)
+ for(let y=20;y<=22;y++)for(let x=20;x<=22;x++)b.own[y*N+x]=1
+ for(let y=40;y<=42;y++)for(let x=40;x<=42;x++)b.own[y*N+x]=2
+ Object.assign(you,{x:25,y:30,dir:1,want:1,trail:[30*N+23,30*N+24,30*N+25]});for(const i of you.trail)b.trail[i]=1
+ Object.assign(bot,{x:24,y:29,dir:2,want:2,trail:[]});bot.bot.plan=[2,2,2]
+ P.tick(b)
+ assert.ok(!you.alive,'your trail was cut');assert.equal(bot.kills,1);assert.equal(b.trail.filter(x=>x===1).length,0,'the cut trail is gone')
+ // A crowd of bots plays for a while without breaking the map.
+ const c=P.newArena(seeded(9),6)
+ for(let k=0;k<600;k++){c.players[0].alive=true;P.tick(c)}
+ const share=P.shares(c);assert.ok([...share.values()].reduce((x,y)=>x+y,0)<=100.0001)
+ assert.ok(c.players.slice(1).some(p=>share.get(p.id)>0.6),'bots grow their land')
 })
 console.log(passed+'/'+passed+' coin checks passed.')
