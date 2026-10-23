@@ -9,7 +9,7 @@ function load(relative){
  vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText,{module,exports:module.exports,require:requireLocal,Date,Intl,Set,Map,Math,JSON,structuredClone,crypto:{randomUUID},console,window:{addEventListener(){},removeEventListener(){},dispatchEvent(){}},Event:class{}})
  return module.exports
 }
-const {todosOn,tickTodo,todoDayLabel,nextTurn}=load('src/store/familyTodos.ts')
+const {todosOn,tickTodo,todoDayLabel,nextTurn,skipTurn}=load('src/store/familyTodos.ts')
 let passed=0;const test=(name,fn)=>{fn();passed++;console.log('PASS '+name)}
 const t=(id,extra)=>({id,profileId:'p',title:id,done:false,...extra})
 test('a to-do shows on its day, a weekly one on that weekday every week from its first day',()=>{
@@ -62,4 +62,12 @@ test('a saved weekly to-do from before reads as every week',()=>{
  assert.equal(out.familyTodos[0].weekly,true,'every week keeps the older weekly flag for older copies of the app')
  assert.equal(out.familyTodos[1].monthDay,1)
 })
-console.log(passed+'/7 family to-do groups passed.')
+test('skipping a turn of a repeating to-do moves it to the next turn without ticking it; a one-off can’t be skipped',()=>{
+ const t={id:'t',profileId:'p',title:'Trash out',done:false,due:'2026-10-05',repeat:'week',weekly:true}
+ const s=skipTurn(t)
+ assert.equal(s.due,'2026-10-12');assert.equal(s.done,false);assert.equal(s.doneAt,undefined)
+ assert.equal(skipTurn(t,'2026-10-19').due,'2026-10-26','a later turn shown on the Planner')
+ const once={id:'o',profileId:'p',title:'Slip',done:false,due:'2026-10-05'}
+ assert.equal(skipTurn(once),once)
+})
+console.log(passed+'/8 family to-do groups passed.')

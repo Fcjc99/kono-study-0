@@ -4,7 +4,9 @@ import Modal from './Modal'
 import KonoFace from './KonoFace'
 import {uid} from '../store/model'
 import type {HouseItem} from '../store/konoCare'
-import {FURNITURE,ROOM_SRC,SIZES,clampSpot,furnitureSrc,inStorage,paintPose,type PaintId} from '../store/konoLooks'
+import {ALL_TREATS,type Treat} from '../store/konoCare'
+import {paintPose,type PaintId} from '../store/konoLooks'
+import {FURNITURE,ROOM_SRC,SIZES,clampSpot,furnitureSrc,inStorage,spotFor,type FurnitureUse} from '../store/konoFurniture'
 
 const byId=new Map(FURNITURE.map(f=>[f.id,f]))
 const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -12,10 +14,14 @@ const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-red
 /** KONO's house (the island's "KONO's house" tab, KONO's corner, or KONO Town's furniture shop): a room KONO
  * potters about in, furnished with what was bought in the furniture shop. Arrange lets you place pieces
  * from storage, drag them around, make them bigger or smaller, flip them and put them away; each change
- * is saved straight away. Tap KONO for a pat. At night KONO sleeps (in its bed, if there is one).
+ * is saved straight away. Tap KONO for a pat. KONO uses the furniture now and then (naps in the bed, reads at
+ * the desk, dances to the music…), and at night it sleeps (in its bed, if there is one).
  * Loaded only when opened. */
-export default function KonoHouse({close,entering=false,homes=[],home=null,onHome,house,owned,paint,outfit,night,onSave,onPet,onShop}:{
+export default function KonoHouse({close,visit,entering=false,homes=[],home=null,onHome,house,owned,paint,outfit,night,onSave,onPet,onShop}:{
  close:()=>void
+ /** Visiting someone else's KONO (another plan in the family): their house to look round, nothing to
+  * arrange, and a gift to leave: a snack bought with your coins (`price`) and a note, for their KONO's snacks. */
+ visit?:{name:string;balance:number;price:(t:Treat)=>number;onGive:(t:Treat,note:string)=>void}
  /** Opened by KONO walking in through the door of its house on the island: the room swings into view and
   * KONO walks in from the front. */
  entering?:boolean
@@ -37,14 +43,34 @@ export default function KonoHouse({close,entering=false,homes=[],home=null,onHom
  const bed=house.find(h=>h.item==='bed')
  // Coming in through the door: KONO walks in from the front of the room.
  useEffect(()=>{if(!entering)return;const t=window.setTimeout(()=>setKono({x:0.5,y:0.72}),250);return ()=>window.clearTimeout(t)},[entering])
- // KONO wanders the floor now and then (not while asleep, or with reduced motion).
+ // What KONO is doing: walking to a piece of furniture, then using it once it's there (`at`).
+ const [doing,setDoing]=useState<{id:string;use:FurnitureUse;settled:boolean}|null>(null)
+ const houseRef=useRef(house)
+ useEffect(()=>{houseRef.current=house},[house])
+ // Now and then KONO goes off to use something in the room, or wanders the floor (not while asleep, while
+ // you arrange, or with reduced motion).
  useEffect(()=>{
-  if(night||reducedMotion())return
-  const t=window.setInterval(()=>setKono({x:0.2+Math.random()*0.6,y:0.55+Math.random()*0.35}),6500)
-  return ()=>window.clearInterval(t)
- },[night])
- const spot=night&&bed?{x:bed.x,y:bed.y-0.05}:kono
- const pose=paintPose('/garden/kono/'+(night?'sleep':happy?'excited':'idle')+'.webp',paint)
+  if(night||arranging||reducedMotion())return
+  let arrive=0
+  const t=window.setInterval(()=>{
+   window.clearTimeout(arrive)
+   const usable=houseRef.current.filter(h=>byId.get(h.item)?.use)
+   const pick=usable.length&&Math.random()<0.7?usable[Math.floor(Math.random()*usable.length)]:null
+   if(!pick){setDoing(null);setKono({x:0.2+Math.random()*0.6,y:0.55+Math.random()*0.35});return}
+   const f=byId.get(pick.item)!
+   setKono(spotFor(pick,f));setDoing({id:pick.id,use:f.use!,settled:false})
+   arrive=window.setTimeout(()=>setDoing(d=>d&&d.id===pick.id?{...d,settled:true}:d),2500)
+  },7000)
+  return ()=>{window.clearInterval(t);window.clearTimeout(arrive)}
+ },[night,arranging])
+ // A piece put away (or moved) while KONO uses it: KONO stops.
+ const using=doing&&house.some(h=>h.id===doing.id)?doing:null
+ const usingSpot=using?(()=>{const h=house.find(x=>x.id===using.id)!;return spotFor(h,byId.get(h.item)!)})():null
+ const spot=night&&bed?{x:bed.x,y:bed.y-0.05}:usingSpot??kono
+ const active=using?.settled&&!happy&&!night?using.use:null
+ const pose=paintPose('/garden/kono/'+(night?'sleep':happy?'excited':active?active.pose:'idle')+'.webp',paint)
+ // On a piece (the bed, a chair), KONO sits in front of it in the picture.
+ const onPiece=using?.use.on?house.find(h=>h.id===using.id):undefined
  const konoSize=Math.max(48,Math.round(width*0.15))
  const shown=house.map(h=>drag&&drag.id===h.id?{...h,x:drag.x,y:drag.y}:h)
  const order=[...shown].sort((a,b)=>Number(!!byId.get(b.item)?.rug)-Number(!!byId.get(a.item)?.rug)||a.y-b.y)
@@ -69,7 +95,9 @@ export default function KonoHouse({close,entering=false,homes=[],home=null,onHom
   if(!d)return
   e.preventDefault();const s=clampSpot(byId.get(h.item),h.x+d[0],h.y+d[1]);change(h.id,x=>({...x,...s}))
  }
- return <Modal title="KONO’s house" close={close}>
+ const [gift,setGift]=useState(ALL_TREATS[0].id),[giftNote,setGiftNote]=useState(''),[gave,setGave]=useState('')
+ const giftTreat=ALL_TREATS.find(t=>t.id===gift)??ALL_TREATS[0]
+ return <Modal title={visit?visit.name+'’s KONO':'KONO’s house'} close={close}>
   <div className={'kono-house'+(arranging?' is-arranging':'')+(night?' is-night':'')+(entering?' is-entering':'')}>
    <div ref={roomRef} className="house-room" style={{backgroundImage:`url(${ROOM_SRC})`}} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onClick={e=>{if(e.target===e.currentTarget)setSelected(null)}}>
     {order.map(h=>{const f=byId.get(h.item);if(!f)return null;// Not <button>s: the app's button styles (background, padding, hover lift) would change how pieces sit.
@@ -79,12 +107,24 @@ export default function KonoHouse({close,entering=false,homes=[],home=null,onHom
      <img src={furnitureSrc(h.item)} alt="" draggable={false} style={h.flip?{transform:'scaleX(-1)'}:undefined}/>
     </div>})}
     {width>0&&<div role="button" tabIndex={arranging||night?-1:0} aria-disabled={arranging||night} className={'house-kono'+(happy?' is-happy':'')} aria-label={night?'KONO is asleep':'Pet KONO'}
-     style={{left:spot.x*100+'%',top:spot.y*100+'%',width:konoSize,height:konoSize,zIndex:12+Math.round(spot.y*1000)}}
+     style={{left:spot.x*100+'%',top:spot.y*100+'%',width:konoSize,height:konoSize,zIndex:onPiece?11+Math.round(onPiece.y*1000):12+Math.round(spot.y*1000)}}
      onClick={pet} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pet()}}}>
      <span className="kono-face-box"><KonoFace pose={pose} outfit={night?null:outfit} size={konoSize}/></span>
      {happy&&<span className="house-heart" aria-hidden="true">💗</span>}
+     {active?.emoji&&<span key={using!.id} className="house-doing" aria-hidden="true">{active.emoji}</span>}
     </div>}
    </div>
+   <p className="house-status" aria-live="polite">{night?'KONO is fast asleep. 🌙':active?active.line:arranging?'Arranging KONO’s house.':visit?visit.name+'’s KONO is so happy you came to visit!':'KONO is pottering about.'}</p>
+   {visit&&<section className="house-gift" aria-label="Leave a gift">
+    <h3>Leave a gift <small>A snack for {visit.name}’s KONO, from your coins</small></h3>
+    {gave?<p role="status">🎁 {gave}</p>:<div className="house-gift-form">
+     <label>Snack<select value={gift} onChange={e=>setGift(e.target.value)}>{ALL_TREATS.map(t=><option key={t.id} value={t.id}>{t.emoji} {t.name} · 🪙 {visit.price(t)}</option>)}</select></label>
+     <label>Note<input value={giftNote} maxLength={140} placeholder="Hi from me!" onChange={e=>setGiftNote(e.target.value)}/></label>
+     <button type="button" className="primary" disabled={visit.price(giftTreat)>visit.balance} onClick={()=>{visit.onGive(giftTreat,giftNote.trim());setGave('Sent! '+visit.name+'’s KONO will find the '+giftTreat.name+' '+giftTreat.emoji+' with its snacks.')}}>Give {giftTreat.emoji}</button>
+     {visit.price(giftTreat)>visit.balance&&<small>You need {visit.price(giftTreat)-visit.balance} more coins.</small>}
+    </div>}
+   </section>}
+   {visit?null:<>
    {!house.length&&!arranging&&<p className="house-empty">KONO’s house is empty! {storage.length?'Tap Arrange to put your furniture in.':'Get furniture in KONO Town’s furniture shop (the rug is free).'}</p>}
    {homes.length>1&&onHome&&<label className="house-home-pick">KONO lives in<select value={home??homes[0].id} onChange={e=>onHome(e.target.value)}>{homes.map(h=><option key={h.id} value={h.id}>{h.label}{homes.filter(x=>x.label===h.label).length>1?' '+(homes.filter(x=>x.label===h.label).indexOf(h)+1):''}</option>)}</select></label>}
    {!homes.length&&<p className="house-hint">Put a house on the island (Decorate › Homes), then tap it: KONO walks over and goes in.</p>}
@@ -103,6 +143,7 @@ export default function KonoHouse({close,entering=false,homes=[],home=null,onHom
     <h3>Storage <small>{storage.length?'Tap a piece to put it in the room. Drag pieces to move them.':'Everything you have is in the room.'}</small></h3>
     {storage.length>0&&<ul>{storage.map(({furniture:f,count})=><li key={f.id}><button type="button" aria-label={'Place the '+f.name.toLowerCase()} onClick={()=>place(f.id)}><img src={furnitureSrc(f.id)} alt=""/><small>{f.name}{count>1?' ×'+count:''}</small></button></li>)}</ul>}
    </section>}
+   </>}
   </div>
  </Modal>
 }

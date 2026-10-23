@@ -135,3 +135,4 @@ html[data-motion=full] .welcome-tour-kono{animation:tour-kono-in .4s cubic-bezie
 .welcome-tour.is-loading{height:221px}
 @media(min-width:1300px){.welcome-tour.is-loading{height:196px}}
 @media(max-width:600px){.welcome-tour.is-loading{height:262px}}
+.delight-particle.is-coin{font-size:18px}

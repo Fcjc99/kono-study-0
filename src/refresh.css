@@ -632,3 +632,9 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .wb-sanctuary-zoom-wrap.is-entering::after{content:"";position:absolute;inset:0;z-index:50;pointer-events:none;background:radial-gradient(circle at var(--door-x,50%) var(--door-y,50%),rgba(255,226,170,.2) 0,rgba(255,214,150,.98) 55%);animation:door-light .8s ease-in forwards}
 @keyframes island-into-door{to{transform:scale(3.4)}}
 @keyframes door-light{from{opacity:0}to{opacity:1}}
+/* Visit family (KONO's corner): the other plans' KONOs. */
+.visit-list{display:grid;gap:8px;margin:0;padding:0 4px 8px;list-style:none}
+.visit-list button{display:grid;grid-template-columns:52px 1fr;grid-template-rows:auto auto;align-items:center;column-gap:10px;width:100%;margin:0!important;padding:8px 12px!important;text-align:left;border-radius:14px}
+.visit-list .kono-face-box{grid-row:1/3;display:block;width:48px;height:48px}
+.visit-list .kono-face-box>img:first-child{width:100%!important;height:100%!important;object-fit:contain;image-rendering:pixelated}
+.visit-list small{color:var(--wb-muted,inherit)}

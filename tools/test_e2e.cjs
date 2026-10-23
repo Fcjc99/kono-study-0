@@ -3488,6 +3488,51 @@ test('A repeating event from the Planner: a note on just one day stays on that d
  await editor.getByRole('button',{name:'Save'}).click()
  await waitFor(()=>soc(e=>e.date+' '+e.time).join('|')==='2026-10-15 17:00|2026-10-22 17:00|2026-10-29 17:00|2026-11-05 17:00','Nov 5 never joined the series')
 })
+test('Round 54: KONO uses the furniture; visit Emma’s KONO and leave a snack; Undo after Add all; skip one turn of a repeating to-do',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.install({time:new Date('2026-10-15T15:00:00')}) // a Thursday afternoon
+ d.profiles.push({id:'plan-emma',name:'Emma',label:'Emma’s plan',kind:'school',start:'2026-09-01',end:'2027-06-30',kidId:'kid-emma'})
+ d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:500},{id:'b-bed',kind:'buy',at:'2026-10-01T12:00:00.000Z',item:'furn:bed',n:120}],house:[{id:'h-bed',item:'bed',x:0.4,y:0.7}]},'plan-emma':{profileId:'plan-emma',log:[],house:[{id:'e-rug',item:'round-rug',x:0.5,y:0.7}]}}
+ d.familyTodos=[{id:'t-trash',profileId:pid,title:'Trash out',done:false,due:'2026-10-16',repeat:'week',weekly:true}]
+ const care=id=>cloud.users.alice.plan.data.konoCare?.[id]??{log:[]}
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ // KONO's house: now and then KONO goes off to use a piece, here the bed.
+ await page.getByRole('navigation',{name:'Sanctuary view'}).getByRole('button',{name:'KONO’s house'}).click()
+ const house=page.getByRole('dialog',{name:'KONO’s house'})
+ const napping=house.getByText('KONO is napping in the cozy bed.')
+ for(let i=0;i<12&&!await napping.isVisible();i++)await page.clock.runFor(3500)
+ await napping.waitFor()
+ await house.getByRole('button',{name:'Close dialog'}).click()
+ // Visit family: Emma's KONO, and a snack left for it with a note.
+ const corner=await openCorner(page)
+ await corner.getByRole('button',{name:/^Visit family/}).click()
+ await page.getByRole('dialog',{name:'Visit family'}).getByRole('button',{name:/Emma’s KONO/}).click()
+ const visit=page.getByRole('dialog',{name:'Emma’s KONO'})
+ await visit.getByRole('region',{name:'Leave a gift'}).getByLabel('Snack').selectOption('cookie')
+ await visit.getByRole('region',{name:'Leave a gift'}).getByLabel('Note').fill('From Mom!')
+ await visit.getByRole('button',{name:/^Give/}).click()
+ await visit.getByText('Sent!',{exact:false}).waitFor()
+ await waitFor(()=>care('plan-emma').log.some(e=>e.kind==='gift'&&e.item==='cookie'&&e.from==='Alice'&&e.note==='From Mom!')&&care(pid).log.some(e=>e.kind==='buy'&&e.item==='gift:cookie'&&e.n===12),'the gift never reached Emma’s KONO')
+ assert.equal(await visit.getByRole('button',{name:'🪑 Arrange'}).count(),0,'nothing to arrange in someone else’s house')
+ await visit.getByRole('button',{name:'Close dialog'}).click()
+ // Add all, then Undo takes the whole batch back.
+ const tasksBefore=cloud.users.alice.plan.data.tasks.length,examsBefore=cloud.users.alice.plan.data.exams.length
+ await page.locator('.wb-header').getByRole('button',{name:'＋ Add'}).click()
+ const box=page.locator('.quick-add-box textarea')
+ await box.fill('bio worksheet due fri\nmath quiz monday')
+ await page.getByRole('button',{name:'Add all 2'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.tasks.length===tasksBefore+1&&cloud.users.alice.plan.data.exams.length===examsBefore+1,'the batch never reached the account')
+ await page.getByRole('button',{name:'Undo'}).first().click()
+ await waitFor(()=>cloud.users.alice.plan.data.tasks.length===tasksBefore&&cloud.users.alice.plan.data.exams.length===examsBefore,'Undo never took the batch back')
+ // Skip this one: the weekly to-do moves to next week, not ticked.
+ await go(page,'Planner')
+ await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Week'}).click()
+ await page.getByRole('region',{name:'Week'}).getByRole('button',{name:/Trash out/}).click()
+ await page.getByRole('dialog',{name:'Trash out'}).getByRole('button',{name:'⏭ Skip this one'}).click()
+ await waitFor(()=>{const t=cloud.users.alice.plan.data.familyTodos.find(x=>x.id==='t-trash');return t.due==='2026-10-23'&&!t.done&&!t.doneAt},'Skip never moved the to-do to next week')
+})
+
 test('Round 53: tap a house on the island and KONO walks in, the island zooms into the door and KONO’s house opens; with two houses you pick KONO’s home',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.install({time:new Date('2026-10-02T15:00:00')})

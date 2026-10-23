@@ -39,3 +39,15 @@
 .house-home-pick select{width:auto}
 .house-hint{margin:0;font-size:.85rem;color:var(--wb-muted,inherit)}
 @media(prefers-reduced-motion:reduce){.kono-house.is-entering .house-room{animation:none}}
+/* KONO using a piece of furniture: a little emoji floats up now and then (a note while dancing, zzz in bed). */
+.house-doing{position:absolute;right:-4px;top:-2px;font-size:1.15rem;pointer-events:none;animation:house-doing 2.2s ease-in-out infinite}
+@keyframes house-doing{0%,100%{opacity:0;transform:translateY(4px)}30%,70%{opacity:1;transform:translateY(-6px)}}
+.house-status{margin:0;font-size:.9rem;color:var(--wb-muted,inherit)}
+@media(prefers-reduced-motion:reduce){.house-doing{animation:none}}
+/* Visiting another plan's KONO: a gift to leave. */
+.house-gift h3{margin:0 0 6px;font-size:1rem}
+.house-gift h3 small{font-weight:400;font-size:.8rem;color:var(--wb-muted,inherit)}
+.house-gift-form{display:flex;flex-wrap:wrap;align-items:end;gap:8px}
+.house-gift-form label{display:grid;gap:2px;flex:1 1 140px;margin:0}
+.house-gift-form button{margin:0!important}
+.house-gift p{margin:0;font-weight:600}

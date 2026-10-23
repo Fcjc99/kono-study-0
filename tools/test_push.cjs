@@ -164,3 +164,16 @@ console.log('PASS reminder planner: work shifts respected, morning summary, exam
  assert.equal(sameSecret('abc123','abc123'),true);assert.equal(sameSecret('abc123','abc124'),false);assert.equal(sameSecret('',''),false);assert.equal(sameSecret('abc','abcd'),false)
  console.log('PASS reminder sender: sends each, forgets gone devices, keeps going after errors; secrets compared safely')
 })().catch(e=>{console.error(e);process.exit(1)})
+
+{
+ // Family to-dos: a morning reminder on their day, and on each turn of a repeating one.
+ const plan=model.createFreshData(),pid=plan.activeProfileId
+ plan.familyTodos=[{id:'t1',profileId:pid,title:'Trash out',done:false,due:'2026-10-05',repeat:'week',weekly:true},{id:'t2',profileId:pid,title:'Return library books',done:false,due:'2026-10-06'},{id:'t3',profileId:pid,title:'Done already',done:true,due:'2026-10-05'}]
+ const rows=buildReminders(plan,new Date('2026-10-04T09:00:00'),10)
+ const mon=rows.find(r=>r.tag==='todo-2026-10-05'),tue=rows.find(r=>r.tag==='todo-2026-10-06'),nextMon=rows.find(r=>r.tag==='todo-2026-10-12')
+ assert.ok(mon&&/^To-do today: Trash out$/.test(mon.title),'the to-do on its day: '+JSON.stringify(mon))
+ assert.ok(tue&&tue.title==='To-do today: Return library books')
+ assert.ok(nextMon,'a weekly to-do comes back on its next turn')
+ assert.equal(new Date(mon.sendAt).getHours(),8)
+ console.log('PASS family to-dos: a reminder at 8 AM on their day, and on each turn of a repeating one; ticked ones don’t remind')
+}

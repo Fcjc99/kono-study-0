@@ -22,4 +22,5 @@ export default function TodoEditor({todo,kids,onSave,onDelete,onCancel}:{todo:Fa
 }
 
 /** What a page can do to a family to-do (the Workspace saves it, with Undo where it can surprise). */
-export type TodoOps={tick:(id:string,on?:string)=>void;update:(id:string,changes:TodoChanges)=>void;remove:(id:string)=>void;move:(id:string,date:string)=>void}
+/** `skip` passes over one turn of a repeating to-do (a holiday, a week off) without ticking it. */
+export type TodoOps={skip?:(id:string,on:string)=>void;tick:(id:string,on?:string)=>void;update:(id:string,changes:TodoChanges)=>void;remove:(id:string)=>void;move:(id:string,date:string)=>void}

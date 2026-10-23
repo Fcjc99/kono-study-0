@@ -46,6 +46,11 @@ export function tickTodo(t:FamilyTodo,today:string,on?:string):FamilyTodo{
  if(t.repeat&&t.due&&!t.done){let next=nextTurn(t,on??t.due);for(let i=0;i<500&&next<today;i++)next=nextTurn(t,next);return {...t,due:next,doneAt:new Date().toISOString()}}
  return {...t,done:!t.done,doneAt:t.done?undefined:new Date().toISOString()}
 }
+/** Skip one turn of a repeating to-do (the one on `on`, or its own day): it moves to the turn after, not ticked. */
+export function skipTurn(t:FamilyTodo,on?:string):FamilyTodo{
+ if(!t.repeat||!t.due)return t
+ return {...t,due:nextTurn(t,on&&on>t.due?on:t.due)}
+}
 /** "Saturday", "Today", "Tomorrow" or "Nov 1" for a to-do's day. */
 export function todoDayLabel(due:string,today:string):string{
  if(due===today)return 'Today'
