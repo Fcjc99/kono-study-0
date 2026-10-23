@@ -58,10 +58,11 @@ const WelcomeTour=lazy(()=>import('./components/WelcomeTour'))
 const KonoCorner=lazy(()=>import('./components/KonoCorner'))
 const KonoTown=lazy(()=>import('./components/KonoTown'))
 const KonoHouse=lazy(()=>import('./components/KonoHouse'))
+const NO_FURNITURE=new Map<string,number>()
 import {ownedFurniture,ownedPaints,paintPose,wornPaint,type PaintId} from './store/konoLooks'
 import type {HouseItem} from './store/konoCare'
 import type {TownTab} from './components/KonoTown'
-import {boughtOutfits,buyEvent,coinBalance,coinText,gameEvent,questEventId,questLine,questEvent,questToday,roundsLeft,spinEvent,spunToday,surpriseEvent,surpriseEventId,surpriseText,surpriseToday,wheelSlice,COIN_ICON,type GameId,type ShopItem} from './store/konoCoins'
+import {foodPrice,boughtOutfits,buyEvent,coinBalance,coinText,gameEvent,questEventId,questLine,questEvent,questToday,roundsLeft,spinEvent,spunToday,surpriseEvent,surpriseEventId,surpriseText,surpriseToday,wheelSlice,COIN_ICON,type GameId,type ShopItem} from './store/konoCoins'
 const RotationToday=lazy(()=>import('./components/RotationToday'))
 const ClassSheet=lazy(()=>import('./components/ClassSheet'))
 const PlanSwitcher=lazy(()=>import('./components/PlanSwitcher'))
@@ -114,6 +115,8 @@ import {hop,stagger,trackPointer} from './motionCore'
 const effects=()=>import('./delight')
 const celebrateDone=()=>void effects().then(m=>m.celebrateDone()).catch(()=>undefined)
 const floatHearts=(el:Element|null)=>void effects().then(m=>m.floatHearts(el)).catch(()=>undefined)
+const coinBurst=(el:Element|null)=>void effects().then(m=>m.coinBurst(el)).catch(()=>undefined)
+const sfx=(kind:import('./konoSounds').Sfx,on:boolean)=>{if(on)void import('./konoSounds').then(m=>m.playSfx(kind)).catch(()=>undefined)}
 import ActionIcon from './components/ActionIcon'
 import BrandLogo from './components/BrandLogo'
 import {currentStreak as streakFrom,recapDay,weekRecap} from './store/weekRecap'
@@ -127,7 +130,7 @@ import SwipeRow from './components/SwipeRow'
 import {uploadPendingPhotos} from './store/photoStore'
 import type {QuickAddGuess} from './store/quickAdd'
 import {readLinked} from './store/linkedCalendars'
-import {repeatFields,repeatLabel,tickTodo} from './store/familyTodos'
+import {repeatFields,repeatLabel,skipTurn,tickTodo,todosOn} from './store/familyTodos'
 import {rememberEvent} from './store/eventMemory'
 import type {TodoChanges,TodoOps} from './components/TodoEditor'
 import {currentPushSubscription} from './store/pushDevice'
@@ -246,7 +249,7 @@ function Workspace({store}:{store:Store}){
  const [phase,setPhase]=useState<'auto'|'morning'|'afternoon'|'evening'|'night'>('auto'),[expanded,setExpanded]=useState(false)
  const [quickDayOpen,setQuickDayOpen]=useState<'today'|'tomorrow'|null>(null)
  // Home's one Today card shows today or tomorrow; KONO's corner and the setup steps open on request.
- const [dayTab,setDayTab]=useState<'today'|'tomorrow'>('today'),[cornerOpen,setCornerOpen]=useState(false),[townOpen,setTownOpen]=useState<TownTab|null>(null),[houseOpen,setHouseOpen]=useState(false),[entering,setEntering]=useState<{at:number;x:number;y:number;ox:number;oy:number;zoom:boolean}|null>(null),[leaveSignal,setLeaveSignal]=useState<number|null>(null),[enteredHouse,setEnteredHouse]=useState(false),[setupOpen,setSetupOpen]=useState(false)
+ const [dayTab,setDayTab]=useState<'today'|'tomorrow'>('today'),[cornerOpen,setCornerOpen]=useState(false),[townOpen,setTownOpen]=useState<TownTab|null>(null),[houseOpen,setHouseOpen]=useState(false),[visitPick,setVisitPick]=useState(false),[visiting,setVisiting]=useState<string|null>(null),[entering,setEntering]=useState<{at:number;x:number;y:number;ox:number;oy:number;zoom:boolean}|null>(null),[leaveSignal,setLeaveSignal]=useState<number|null>(null),[enteredHouse,setEnteredHouse]=useState(false),[setupOpen,setSetupOpen]=useState(false)
  const [islandMode,setIslandMode]=useState<'view'|'decorate'>('view'),[decorateStart,setDecorateStart]=useState<string|undefined>(),[nextUpOpen,setNextUpOpen]=useState(false),[askOpen,setAskOpen]=useState(false)
  // View-only: Decorate mode has its own per-item Size control, and zooming the whole stage there
  // would resize the same Phaser canvas GardenCard already goes out of its way to keep paused and
@@ -341,7 +344,8 @@ function Workspace({store}:{store:Store}){
  // kidDueItems), labeled by name whenever an item is tagged to a kid. Quiet hours is per-kid rather
  // than a single flag, so it's folded into kidDueItems itself instead of gating the whole hook the
  // way a single-profile notificationsQuiet boolean would.
- const dueNotifyItems=kidDueItems(data,profile.id,today,nowClock)
+ // Family to-dos due today join the day's reminder too.
+ const dueNotifyItems=[...kidDueItems(data,profile.id,today,nowClock),...todosOn(data,profile.id,today).map(t=>({id:t.id,title:t.title,due:today,done:false}))]
  // KONO's mood about today (Sanctuary › "KONO today" and the mic button's face).
  const ownExams=data.exams.filter(e=>e.profileId===profile.id)
  const mood=konoMood({tasks,exams:ownExams,today,hour:Number(nowClock.slice(0,2))})
@@ -395,6 +399,20 @@ function Workspace({store}:{store:Store}){
  const homes=resolvePlacements(data.sanctuaryDecor[profile.id]?.placements??[]).filter(({asset})=>isHomeAsset(asset))
  const konoHome=homes.find(h=>h.placement.id===data.konoCare?.[profile.id]?.home)??homes[0]
  const setHome=(id:string)=>{void save(d=>({...d,konoCare:{...d.konoCare,[profile.id]:{...(d.konoCare[profile.id]??{profileId:profile.id,log:[]}),home:id}}}))}
+ // Family visits: look round another plan's KONO house (its KONO in its own color and outfit) and leave a
+ // snack bought with your coins, which waits with its snacks like a parent's gift.
+ const visitable=data.profiles.filter(p=>p.id!==profile.id)
+ const lookOf=(id:string)=>{const log=data.konoCare?.[id]?.log??[];return {paint:wornPaint(log,ownedPaints(log)),outfit:[...log].filter(e=>e.kind==='wear').sort((a,b)=>a.at.localeCompare(b.at)).at(-1)?.item||null}}
+ const visitingPlan=visiting?data.profiles.find(p=>p.id===visiting):undefined,visitingLook=lookOf(visiting??'')
+ const giveVisitGift=(id:string,treat:Treat,note:string)=>{
+  const price=foodPrice(treat);if(price>coins)return
+  const now=new Date(),them=data.profiles.find(p=>p.id===id)
+  void save(d=>({...d,konoCare:{...d.konoCare,
+   [profile.id]:addCareEvent(d.konoCare[profile.id],profile.id,{id:uid('buy'),kind:'buy',at:now.toISOString(),item:'gift:'+treat.id,n:price},now),
+   [id]:addCareEvent(d.konoCare[id],id,{id:uid('gift'),kind:'gift',at:now.toISOString(),item:treat.id,from:profile.name.slice(0,60),...(note?{note:note.slice(0,140)}:{})},now)}}))
+  sfx('buy',data.settings.sound)
+  announce({line:'🎁 You left '+(them?.name??'them')+'’s KONO '+(treat.name==='boba tea'?'':'a ')+treat.name+' '+treat.emoji+'!',pose:'/garden/kono/happy.webp',at:now.getTime(),ms:5000})
+ }
  const saveHouse=(items:HouseItem[])=>{void save(d=>({...d,konoCare:{...d.konoCare,[profile.id]:{...(d.konoCare[profile.id]??{profileId:profile.id,log:[]}),house:items}}}))}
  // KONO's notes (store/konoNotes): good luck the evening before a test, the study headband on test day,
  // "How did it go?" after it, and otherwise one gentle nudge a day. One at a time, in the KONO bar.
@@ -480,6 +498,7 @@ function Workspace({store}:{store:Store}){
  useEffect(()=>{enteringRef.current=entering},[entering])
  const openFromDoor=()=>{
   const e=enteringRef.current;if(!e||e.zoom)return
+  sfx('door',data.settings.sound)
   if(reduced){setEntering(null);setEnteredHouse(true);setHouseOpen(true);return}
   setEntering({...e,zoom:true})
   window.setTimeout(()=>{setEnteredHouse(true);setHouseOpen(true);window.setTimeout(()=>setEntering(null),120)},780)
@@ -522,7 +541,7 @@ function Workspace({store}:{store:Store}){
  // A surprise turns up a few seconds into the visit, not the moment the page opens.
  const [surpriseShown,setSurpriseShown]=useState(false)
  useEffect(()=>{if(!surpriseWaiting||page!=='Sanctuary')return;const timer=window.setTimeout(()=>setSurpriseShown(true),4000);return ()=>window.clearTimeout(timer)},[surpriseWaiting,page])
- const collectSurprise=()=>{if(!surprise||!surpriseWaiting)return;const now=new Date();logEvent(surpriseEvent(today,surprise,now),now);setSurpriseShown(false);setCareMoment({line:surprise.emoji+' +'+coinText(surprise.n)+'! '+COIN_ICON,pose:'/garden/kono/excited.webp',at:now.getTime(),ms:4500});setCelebrateSignal(now.getTime())}
+ const collectSurprise=()=>{if(!surprise||!surpriseWaiting)return;const now=new Date();logEvent(surpriseEvent(today,surprise,now),now);sfx('coin',data.settings.sound);coinBurst(document.querySelector('.kono-coins-open'));setSurpriseShown(false);setCareMoment({line:surprise.emoji+' +'+coinText(surprise.n)+'! '+COIN_ICON,pose:'/garden/kono/excited.webp',at:now.getTime(),ms:4500});setCelebrateSignal(now.getTime())}
  const buyItem=(item:ShopItem)=>{if(item.price>coins)return;const now=new Date();logEvent(buyEvent(uid('buy'),item,now),now)}
  const spinWheel=()=>{if(spunToday(careLog,today))return null;const now=new Date(),slice=wheelSlice(Math.random());logEvent(spinEvent(today,slice,now),now);return slice}
  const playedGame=(game:GameId,score:number)=>{const now=new Date(),event=gameEvent(careLog,today,game,score,now);if(!event)return null;logEvent(event,now);return event.n??0}
@@ -753,6 +772,7 @@ function Workspace({store}:{store:Store}){
    void run(()=>saveTodos(list=>list.map(x=>x.id===id?tickTodo(x,localDate(),on):x)),next.done?'Done: “'+t.title+'”.':t.done?'“'+t.title+'” is back on the list.':'Done: “'+t.title+'”. Next: '+dateLabel(next.due!)+'.',true)},
   update:(id,changes)=>void run(()=>saveTodos(list=>list.map(x=>{if(x.id!==id)return x;return {id:x.id,profileId:x.profileId,done:x.done,...(x.doneAt?{doneAt:x.doneAt}:{}),title:changes.title,...(changes.forKidId?{forKidId:changes.forKidId}:{}),...(changes.due?{due:changes.due}:{}),...repeatFields(changes.repeat,changes.due)}})),'Saved “'+changes.title+'”.'),
   remove:id=>void run(()=>saveTodos(list=>list.filter(x=>x.id!==id)),'Removed “'+(todoNamed(id)?.title??'the to-do')+'”.',true),
+  skip:(id,on)=>{const t=todoNamed(id);if(!t)return;const next=skipTurn(t,on);void run(()=>saveTodos(list=>list.map(x=>x.id===id?skipTurn(x,on):x)),'Skipped “'+t.title+'” on '+dateLabel(on)+'. Next: '+dateLabel(next.due!)+'.',true)},
   move:(id,date)=>void run(()=>saveTodos(list=>list.map(x=>x.id===id?{...x,due:date}:x)),'Moved “'+(todoNamed(id)?.title??'the to-do')+'” to '+dateLabel(date)+'.',true),
  }
  const tickKidTodo=(id:string)=>todoOps.tick(id)
@@ -1089,14 +1109,17 @@ function Workspace({store}:{store:Store}){
        {id:'bond',icon:'💗',label:'Bond',detail:bond.level+' heart'+(bond.level===1?'':'s')+' · '+bond.title,onOpen:()=>{setDecorateStart('presents');openDecorate()}},
        {id:'town',icon:'🏪',label:'KONO Town',detail:coinText(Math.max(0,coins)),ariaLabel:'KONO Town: shops, prize wheel and arcade. '+coinText(Math.max(0,coins)),onOpen:()=>setTownOpen('shops')},
        {id:'house',icon:'🏠',label:'KONO’s house',detail:house.length?house.length+' piece'+(house.length===1?'':'s')+' of furniture':'Empty for now',onOpen:openHouse},
+       ...(visitable.length?[{id:'visit',icon:'🧳',label:'Visit family',detail:visitable.length===1?visitable[0].name+'’s KONO':visitable.length+' KONOs to visit',onOpen:()=>setVisitPick(true)}]:[]),
        {id:'album',icon:'📖',label:'Album',detail:'Everything to collect',onOpen:()=>setTownOpen('album')},
       ]}
       notes={<>{islandEvent&&<span className="kono-season">{islandEvent.emoji} <strong>{islandEvent.label}:</strong> {islandEvent.stickers.filter(t=>earned.has(t.id)).length}/{islandEvent.stickers.length} special stickers until {islandEvent.until}</span>}</>}/></Suspense>}
-     {townOpen&&<Suspense fallback={null}><KonoTown close={()=>setTownOpen(null)} startTab={townOpen} balance={coins}
+     {townOpen&&<Suspense fallback={null}><KonoTown close={()=>setTownOpen(null)} sound={data.settings.sound} startTab={townOpen} balance={coins}
       quest={{treat:quest.treat,reward:quest.reward,done:questDone,canGive:!!questSnack}} onGiveQuest={giveQuest}
       today={today} outfitsOwned={unlockedOutfitIds} found={found} onBuy={buyItem}
       paints={{owned:paints,worn:paint,onWear:wearPaint}} furniture={{owned:furnitureOwned,onOpenHouse:()=>{setTownOpen(null);setHouseOpen(true)}}}
       spin={spunToday(careLog,today)?.n??null} onSpin={spinWheel} roundsLeft={roundsLeft(careLog,today)} onGame={playedGame} album={{today,outfits:unlockedOutfitIds,found,met:metFriends,tried,paints,furniture:furnitureOwned,stickers:earned,presents:new Set(stamps.presents.map(p=>p.id)),gifts:new Set(giftsAt(bond.level).map(g=>g.id))}}/></Suspense>}
+     {visitPick&&<Modal title="Visit family" close={()=>setVisitPick(false)}><ul className="visit-list">{visitable.map(p=>{const look=lookOf(p.id);return <li key={p.id}><button type="button" onClick={()=>{setVisitPick(false);setVisiting(p.id)}}><span className="kono-face-box"><KonoFace pose={paintPose('/garden/kono/happy.webp',look.paint)} outfit={look.outfit} size={48}/></span><strong>{p.name}’s KONO</strong><small>{(data.konoCare?.[p.id]?.house??[]).length?'Come see the house':'Say hi'}</small></button></li>})}</ul></Modal>}
+     {visitingPlan&&<Suspense fallback={null}><KonoHouse close={()=>setVisiting(null)} visit={{name:visitingPlan.name,balance:Math.max(0,coins),price:foodPrice,onGive:(t,n)=>giveVisitGift(visitingPlan.id,t,n)}} house={data.konoCare?.[visitingPlan.id]?.house??[]} owned={NO_FURNITURE} paint={visitingLook.paint} outfit={visitingLook.outfit} night={false} onSave={()=>undefined} onPet={()=>undefined} onShop={()=>undefined}/></Suspense>}
      {houseOpen&&<Suspense fallback={null}><KonoHouse close={closeHouse} entering={enteredHouse} homes={homes.map(h=>({id:h.placement.id,label:h.asset.label}))} home={konoHome?.placement.id??null} onHome={setHome} house={house} owned={furnitureOwned} paint={paint} outfit={shownOutfit} night={bed.tucked||meters.asleep} onSave={saveHouse} onPet={()=>petKono()} onShop={()=>{setHouseOpen(false);setTownOpen('home')}}/></Suspense>}
      {askOpen&&<AskKono data={data} today={today} name={profile.name} pose={konoPose} onClose={()=>setAskOpen(false)}/>}{nextUpOpen&&<NextUp items={nextUpList(tasks,today,ownExams)} onClose={()=>setNextUpOpen(false)} onStart={item=>{setNextUpOpen(false);startFocusSession(item.exam?'':item.id,item.minutes,item.exam?item.title:undefined)}} onDone={item=>void run(()=>save(d=>completeTask(d,item.id)),'Done: '+item.title,true,item.exam?undefined:item.id)}/>}
     </section>

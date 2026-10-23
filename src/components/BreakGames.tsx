@@ -1,6 +1,7 @@
 import './break-games.css'
 import {useEffect,useRef,useState} from 'react'
 import {FINDS,findSrc} from '../store/konoFinds'
+import {playSfx} from '../konoSounds'
 
 /** Break-time games with KONO, offered when a focus session finishes ("Take a short break"). Three quick
  * ones: Snack catch (move KONO to catch falling treats, 30 seconds), Memory match (pairs of KONO's
@@ -31,7 +32,7 @@ const clock=(ms:number)=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.flo
 const shuffled=<T,>(items:T[])=>{const deck=[...items];for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}return deck}
 
 /** `startedAt` is when the break games were opened (the break runs BREAK_MINUTES from then). */
-export default function BreakGames({startedAt,onClose,arcade=false,onScore}:{startedAt:number;onClose?:()=>void;arcade?:boolean;onScore?:(game:Game,score:number)=>string|null}){
+export default function BreakGames({startedAt,onClose,arcade=false,sound=false,onScore}:{startedAt:number;onClose?:()=>void;arcade?:boolean;sound?:boolean;onScore?:(game:Game,score:number)=>string|null}){
  const [game,setGame]=useState<Game|null>(null),[deck,setDeck]=useState<string[]>([])
  const [now,setNow]=useState(startedAt)
  const [result,setResult]=useState<string|null>(null)
@@ -45,7 +46,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,onScore}:{sta
   :game==='catch'?<SnackCatch onEnd={n=>finish('catch',n,'KONO caught '+n+' snack'+(n===1?'':'s')+'! 😋')}/>
   :game==='memory'?<MemoryMatch cards={deck} onEnd={n=>finish('memory',n,'All pairs found in '+n+' moves! 🧠')}/>
   :game==='peekaboo'?<Peekaboo onEnd={n=>finish('peekaboo',n,'You booped KONO '+n+' time'+(n===1?'':'s')+'! 🌿')}/>
-  :game==='bubbles'?<BubblePop onEnd={n=>finish('bubbles',n,'You popped '+n+' bubble'+(n===1?'':'s')+'! 🫧')}/>
+  :game==='bubbles'?<BubblePop sound={sound} onEnd={n=>finish('bubbles',n,'You popped '+n+' bubble'+(n===1?'':'s')+'! 🫧')}/>
   :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>{setResult(null);if(g.id==='memory')setDeck(shuffled([...MEMORY_IDS,...MEMORY_IDS]));setGame(g.id)}}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
  </section>
 }
@@ -137,7 +138,7 @@ function Peekaboo({onEnd}:{onEnd:(score:number)=>void}){
 
 /** Bubble pop: bubbles with snacks inside float up from the bottom; tap one to pop it before it floats away. */
 type Bubble={id:number;x:number;emoji:string;seconds:number}
-function BubblePop({onEnd}:{onEnd:(score:number)=>void}){
+function BubblePop({onEnd,sound}:{onEnd:(score:number)=>void;sound:boolean}){
  const [bubbles,setBubbles]=useState<Bubble[]>([]),[score,setScore]=useState(0),[left,setLeft]=useState(ROUND_MS),[pops,setPops]=useState<{id:number;x:number;y:number}[]>([])
  const onEndRef=useRef(onEnd),scoreRef=useRef(0),boxRef=useRef<HTMLDivElement>(null)
  useEffect(()=>{onEndRef.current=onEnd},[onEnd])
@@ -149,7 +150,7 @@ function BubblePop({onEnd}:{onEnd:(score:number)=>void}){
   return ()=>{window.clearInterval(timer);window.clearInterval(spawn)}
  },[])
  const pop=(b:Bubble,target:HTMLElement)=>{
-  scoreRef.current+=1;setScore(scoreRef.current)
+  scoreRef.current+=1;setScore(scoreRef.current);playSfx('pop',sound)
   const box=boxRef.current?.getBoundingClientRect(),r=target.getBoundingClientRect()
   if(box)setPops(p=>[...p.slice(-4),{id:b.id,x:r.left-box.left+r.width/2,y:r.top-box.top+r.height/2}])
   setBubbles(list=>list.filter(x=>x.id!==b.id))

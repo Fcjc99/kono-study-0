@@ -29,6 +29,21 @@ export function burst(x:number,y:number,count=16){
  }
 }
 
+/** Coins bursting up and out from an element (coins won, something bought in KONO Town). */
+export function coinBurst(target:Element|null,count=7){
+ if(!motionOn()||!target)return
+ const r=target.getBoundingClientRect()
+ for(let i=0;i<count;i++){
+  const angle=-Math.PI/2+(i-(count-1)/2)*.32,dist=46+Math.random()*30
+  const el=particle(i%3===2?'✨':'🪙',r.left+r.width/2,r.top+r.height/2,'is-coin')
+  el.animate([
+   {transform:'translate(-50%,-50%) scale(.4)',opacity:0},
+   {transform:`translate(calc(-50% + ${Math.cos(angle)*dist}px),calc(-50% + ${Math.sin(angle)*dist}px)) scale(1)`,opacity:1,offset:.45},
+   {transform:`translate(calc(-50% + ${Math.cos(angle)*dist*1.2}px),calc(-50% + ${Math.sin(angle)*dist+26}px)) scale(.7)`,opacity:0},
+  ],{duration:820,delay:i*40,easing:'cubic-bezier(.2,.8,.3,1)',fill:'backwards'}).finished.finally(()=>el.remove())
+ }
+}
+
 /** Hearts floating up from an element (patting KONO). */
 export function floatHearts(target:Element|null,count=3){
  if(!motionOn()||!target)return

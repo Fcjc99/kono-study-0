@@ -3,6 +3,8 @@ import {useState,type ReactNode} from 'react'
 import Modal from './Modal'
 import KonoFace from './KonoFace'
 import BreakGames from './BreakGames'
+import {playSfx} from '../konoSounds'
+import {coinBurst} from '../delight'
 import type {Treat} from '../store/konoCare'
 import {COIN_ICON,COIN_ROUNDS,WHEEL,coinText,type GameId,type ShopItem} from '../store/konoCoins'
 import {boughtLine,foodStock,furnitureStock,outfitStock,paintStock,treasureStock} from '../store/konoShops'
@@ -19,8 +21,10 @@ const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-red
  * house), the prize wheel (one free spin a day),
  * the arcade (the first few rounds a day win coins) and the album of everything there is to collect.
  * Loaded only when opened. */
-export default function KonoTown({close,balance,startTab='shops',quest,onGiveQuest,today,outfitsOwned,found,paints,furniture,onBuy,spin,onSpin,roundsLeft,onGame,album:albumInput}:{
+export default function KonoTown({close,sound=true,balance,startTab='shops',quest,onGiveQuest,today,outfitsOwned,found,paints,furniture,onBuy,spin,onSpin,roundsLeft,onGame,album:albumInput}:{
  close:()=>void
+ /** Settings › Sounds: KONO Town's little sounds. */
+ sound?:boolean
  balance:number
  startTab?:TownTab
  quest:{treat:Treat;reward:number;done:boolean;canGive:boolean}
@@ -41,14 +45,14 @@ export default function KonoTown({close,balance,startTab='shops',quest,onGiveQue
 }){
  const food=foodStock(today),outfits=outfitStock(outfitsOwned,today),treasures=treasureStock(found,today),album=albumSections(albumInput)
  const [tab,setTab]=useState<TownTab>(startTab),[note,setNote]=useState('')
- const buy=(item:ShopItem)=>{if(item.price>balance)return;onBuy(item);setNote(boughtLine(item))}
+ const buy=(item:ShopItem,el?:Element)=>{if(item.price>balance)return;onBuy(item);setNote(boughtLine(item));playSfx('buy',sound);coinBurst(el??null)}
  const shop=(title:string,blurb:string,items:ShopItem[],empty:string,owned?:(item:ShopItem)=>ReactNode,after?:ReactNode)=><section className="town-shop" aria-label={title}>
   <h3>{title} <small>{blurb}</small></h3>
   {items.length?<ul className="town-items">{items.map(item=>{const short=item.price-balance;return <li key={item.key} className={item.sale?'is-sale':undefined}>
    <span className={'town-item-art is-'+item.kind} aria-hidden="true">{item.kind==='outfit'?<span className="kono-face-box"><KonoFace pose="/garden/kono/happy.webp" outfit={item.id} size={56}/></span>:item.img?<img src={item.img} alt=""/>:<span>{item.emoji}</span>}</span>
    <strong>{item.name[0].toUpperCase()+item.name.slice(1)}</strong>
    {item.sale&&<em className="town-sale">Sale!</em>}
-   {owned?.(item)??<><button type="button" disabled={short>0} aria-label={'Buy '+item.name+' for '+(item.price?coinText(item.price):'free')} onClick={()=>buy(item)}>{item.price?<>{COIN_ICON} {item.price}</>:'Free'}</button>
+   {owned?.(item)??<><button type="button" disabled={short>0} aria-label={'Buy '+item.name+' for '+(item.price?coinText(item.price):'free')} onClick={e=>buy(item,e.currentTarget)}>{item.price?<>{COIN_ICON} {item.price}</>:'Free'}</button>
    {short>0&&<small className="town-short">{coinText(short)} more</small>}</>}
    {item.kind==='furniture'&&!!furniture.owned.get(item.id)&&<small className="town-short">You have {furniture.owned.get(item.id)}</small>}
   </li>})}</ul>:<p className="wb-muted">{empty}</p>}
@@ -67,7 +71,7 @@ export default function KonoTown({close,balance,startTab='shops',quest,onGiveQue
    <section className={'town-quest'+(quest.done?' is-done':'')} aria-label="KONO’s quest">
     <span className="town-quest-snack" aria-hidden="true">{quest.treat.emoji}</span>
     <p>{quest.done?<><strong>Quest done!</strong> KONO loved the {quest.treat.name}. A new quest tomorrow.</>:<><strong>KONO’s quest:</strong> KONO is craving a {quest.treat.name}! Bring one today for {coinText(quest.reward)}.</>}</p>
-    {!quest.done&&(quest.canGive?<button type="button" className="primary" onClick={onGiveQuest}>Give the {quest.treat.name}</button>:<button type="button" onClick={()=>setTab('shops')}>Find one</button>)}
+    {!quest.done&&(quest.canGive?<button type="button" className="primary" onClick={e=>{onGiveQuest();playSfx('win',sound);coinBurst(e.currentTarget)}}>Give the {quest.treat.name}</button>:<button type="button" onClick={()=>setTab('shops')}>Find one</button>)}
    </section>
    <nav className="town-tabs" aria-label="KONO Town">{TABS.map(t=><button type="button" key={t.id} aria-current={tab===t.id?'page':undefined} onClick={()=>{setTab(t.id);setNote('')}}><span aria-hidden="true">{t.icon}</span> {t.label}</button>)}</nav>
    {note&&<p className="town-note" role="status">{note}</p>}
@@ -80,10 +84,10 @@ export default function KonoTown({close,balance,startTab='shops',quest,onGiveQue
     {shop('Paint shop','Colors KONO keeps for good. Switch any time.',paintStock(),'',wearButton,paints.worn&&<p className="town-classic"><button type="button" onClick={()=>{paints.onWear(null);setNote('KONO is back to classic.')}}>Back to classic KONO</button></p>)}
     {shop('Furniture shop','For KONO’s house. Place it in the room.',furnitureStock(),'',undefined,<p className="town-classic"><button type="button" className="primary" onClick={furniture.onOpenHouse}>🏠 Go to KONO’s house</button></p>)}
    </>}
-   {tab==='wheel'&&<PrizeWheel spin={spin} onSpin={onSpin}/>}
+   {tab==='wheel'&&<PrizeWheel spin={spin} onSpin={onSpin} sound={sound}/>}
    {tab==='arcade'&&<section className="town-arcade" aria-label="Arcade">
     <p className="town-rounds">{roundsLeft?<><strong>{roundsLeft} of {COIN_ROUNDS}</strong> coin rounds left today. After that, play just for fun.</>:<>Today’s coin rounds are used up. Play just for fun, or come back tomorrow!</>}</p>
-    <BreakGames startedAt={0} arcade onScore={(game,score)=>{const n=onGame(game,score);return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
+    <BreakGames startedAt={0} arcade sound={sound} onScore={(game,score)=>{const n=onGame(game,score);if(n){playSfx('coin',sound);coinBurst(document.querySelector('.town-purse'))}return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
    </section>}
    {tab==='album'&&<section className="town-album" aria-label="Album">
     <p className="town-album-count"><span><strong>{count.owned} of {count.total}</strong> collected</span><span className="town-album-bar" aria-hidden="true"><i style={{width:(count.total?count.owned/count.total*100:0)+'%'}}/></span></p>
@@ -101,14 +105,17 @@ export default function KonoTown({close,balance,startTab='shops',quest,onGiveQue
 
 /** One free spin a day. The slice is picked when the button is pressed (and saved straight away); the wheel
  * then turns to it. */
-function PrizeWheel({spin,onSpin}:{spin:number|null;onSpin:()=>number|null}){
+function PrizeWheel({spin,onSpin,sound}:{spin:number|null;onSpin:()=>number|null;sound:boolean}){
  const at=(slice:number)=>-(slice*45+22.5)
  const [angle,setAngle]=useState(()=>spin===null?0:at(Math.max(0,WHEEL.indexOf(spin))))
  const [spinning,setSpinning]=useState(false),[won,setWon]=useState<number|null>(null)
  const go=()=>{
   const slice=onSpin();if(slice===null)return
   setSpinning(true);setAngle(360*6+at(slice))
-  window.setTimeout(()=>{setSpinning(false);setWon(WHEEL[slice])},reducedMotion()?0:3400)
+  // Ticks that slow down with the wheel, then a little tune for the win.
+  const quick=reducedMotion()
+  if(!quick)for(let i=0,t=0;i<26;i++){t+=60+i*i*0.9;if(t>3200)break;window.setTimeout(()=>playSfx('tick',sound),t)}
+  window.setTimeout(()=>{setSpinning(false);setWon(WHEEL[slice]);playSfx('win',sound);coinBurst(document.querySelector('.town-wheel-frame'))},quick?0:3400)
  }
  const done=spin!==null&&!spinning
  return <section className="town-wheel-box" aria-label="Prize wheel">

@@ -781,8 +781,10 @@ export class KonoMascotSystem {
     this.scene.tweens.add({ targets: this.shadow, alpha: 0, duration: 420 })
   }
 
-  /** Back out of the house, at its door. */
+  /** Back out of the house, at its door. If KONO was still on its way in (the house opened without it, after
+   * a few seconds), it just stops heading there, so it never goes in after the house has closed. */
   leaveHome(): void {
+    if (this.entering && !this.inside) { this.entering = null; this.forcedTarget = false; return }
     if (!this.inside || !this.sprite) return
     this.inside = false
     this.entering = null

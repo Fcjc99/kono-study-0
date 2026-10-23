@@ -1,3 +1,4 @@
+import { todosOn } from './familyTodos'
 import { classOccurrences, classTime } from './classSchedule'
 import { peopleOf, type AppData } from './model'
 import { schoolDay } from './schoolCalendar'
@@ -64,6 +65,9 @@ export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
     }
     const due = [...tasks.filter(t => t.due === date).map(t => t.title), ...exams.filter(e => e.due === date).map(e => e.title)]
     if (due.length) add(at(date, '07:00'), due.length === 1 ? 'Due today: ' + due[0] : due.length + ' things due today', list(due), 'due-' + date)
+    // Family to-dos with today as their day (a repeating one on each of its turns), in the morning.
+    const chores = todosOn(data, profileId, date).map(t => t.title)
+    if (chores.length) add(at(date, '08:00'), chores.length === 1 ? 'To-do today: ' + chores[0] : chores.length + ' to-dos today', list(chores), 'todo-' + date)
     const tomorrow = exams.filter(e => e.due === dateOf(next))
     if (tomorrow.length) add(at(date, '19:00'), tomorrow.length === 1 ? 'Tomorrow: ' + tomorrow[0].title : tomorrow.length + ' exams or tests tomorrow', tomorrow.length === 1 ? (subject(tomorrow[0].subjectId) ?? 'Good luck — a little review tonight helps.') : list(tomorrow.map(e => e.title)), 'exam-' + date)
     // Homework the night before: still-open assignments due tomorrow (done ones drop off when the queue is rebuilt).
