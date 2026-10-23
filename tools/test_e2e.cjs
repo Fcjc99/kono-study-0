@@ -3651,6 +3651,17 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:6});await page.mouse.up()
  assert.equal(await grid.getByRole('gridcell',{name:/^Row 1, column [123], marked$/}).count(),3,'a drag marks each square it crosses')
  await meow.getByRole('button',{name:'Auto ✕'}).click()
+ // As in the Meowdoku app: a double-tap places a cat, and a cat that isn't in the answer costs a heart.
+ await meow.getByRole('group',{name:'3 hearts left'}).or(meow.getByLabel('3 hearts left')).first().waitFor()
+ const wrong=await grid.evaluate(el=>{
+  const cells=[...el.querySelectorAll('[role=gridcell]')],n=Math.round(Math.sqrt(cells.length)),reg=cells.map(c=>[...c.classList].find(k=>/^is-c\d$/.test(k)))
+  const out=[],cols=new Set(),regs=new Set()
+  const go=r=>{if(r===n)return true;for(let c=0;c<n;c++){const i=r*n+c;if(cols.has(c)||regs.has(reg[i])||(r>0&&Math.abs(out[r-1]%n-c)<=1))continue;cols.add(c);regs.add(reg[i]);out.push(i);if(go(r+1))return true;out.pop();cols.delete(c);regs.delete(reg[i])}return false}
+  go(0);const i=[...Array(n*n).keys()].find(k=>!out.includes(k)&&k>=n*2);return {r:Math.floor(i/n)+1,c:i%n+1}
+ })
+ await grid.getByRole('gridcell',{name:new RegExp('^Row '+wrong.r+', column '+wrong.c+'(,|$)')}).dblclick()
+ await meow.getByLabel('2 hearts left').waitFor()
+ await grid.getByRole('gridcell',{name:new RegExp('^Row '+wrong.r+', column '+wrong.c+', marked$')}).waitFor()
 })
 
 test('Round 58: your own Home: the week strip, Sanctuary, the family schedule, then the schedule (today and tomorrow together), the next 7 days and pinned notes; Customize Home hides and reorders, and it stays after a reload',async({context,page})=>{

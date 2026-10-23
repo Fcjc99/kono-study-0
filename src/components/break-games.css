@@ -327,3 +327,20 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .paper-teams .is-blue{background:#3e6fe6}
 .paper-teams .is-red{background:#ef4b5c;justify-content:flex-end}
 .paper-teams b{display:grid;place-items:center;padding:0 10px;background:#132457;font-variant-numeric:tabular-nums}
+/* Gem blitz, after Bejeweled Blitz: the hypercube's dark storm, the Ignition meter, and a burning board. */
+.m3-dim{fill:rgba(4,8,30,.72);animation:m3-dim .75s ease-out both}
+@keyframes m3-dim{0%{opacity:0}15%{opacity:1}70%{opacity:1}100%{opacity:0}}
+.m3-ignite{position:relative;width:100%;max-width:min(440px,92vw);height:16px;border-radius:999px;background:rgba(0,0,0,.3);overflow:hidden}
+.m3-ignite span{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#ffd84d,#ff7a2e,#ff3d1f);border-radius:999px;transition:width .25s}
+.m3-ignite b{position:relative;display:block;text-align:center;font-size:.7rem;line-height:16px;letter-spacing:.04em;text-transform:uppercase;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+.m3-ignite.is-on span{animation:m3-ignite .25s ease-in-out infinite alternate}
+@keyframes m3-ignite{to{filter:brightness(1.35)}}
+.match3.is-blazing .match3-board::after{content:'';position:absolute;inset:0;border-radius:8px;pointer-events:none;background:radial-gradient(ellipse at 50% 120%,rgba(255,90,20,.55),transparent 60%),linear-gradient(0deg,rgba(255,140,40,.25),transparent 40%);animation:m3-burn .4s ease-in-out infinite alternate}
+@keyframes m3-burn{to{opacity:.6;transform:scaleY(1.04)}}
+@media(prefers-reduced-motion:reduce){.m3-dim,.m3-ignite span,.match3.is-blazing .match3-board::after{animation:none}}
+/* Meowdoku's hearts: three wrong cats and the level is over. */
+.meow-hearts{display:inline-flex;gap:2px;margin-right:8px;font-style:normal}
+.meow-hearts i{font-style:normal;transition:filter .3s,transform .3s}
+.meow-hearts i.is-lost{filter:grayscale(1) opacity(.35);transform:scale(.8)}
+.meow-cell.is-miss{animation:meow-shake .35s 2;background:linear-gradient(160deg,#ff8a96,#ef4b5c)!important}
+.meow.is-failed .meow-board{filter:grayscale(.5);transition:filter .5s}

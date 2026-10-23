@@ -1,4 +1,4 @@
-import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
+import {useEffect,useId,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {W,candyLevel,candyStars,finale,findMove,play,type Board,type Effect,type Frame,type Maker,type Piece} from '../store/match3'
 import {gameSound} from '../konoSounds'
 import type {GameHandle} from './GameScreen'
@@ -13,9 +13,11 @@ import type {GameHandle} from './GameScreen'
  *   (even levels have jelly to clear too), with 1–3 stars. Cascades get "Sweet!", "Tasty!", "Delicious!",
  *   "Divine!". Win with moves left and they turn into striped candies that all go off: Sugar crush!
  * - Gem blitz: seven faceted gems on a dark board, one minute. Some gems carry +5 seconds, big cascades drop
- *   in ×2 … ×8 multipliers, quick moves in a row build up to Blazing speed (two gems catch fire), and when
+ *   in ×2 … ×8 multipliers, quick moves in a row earn a Speed bonus (200, climbing to 1,000) and fill the
+ *   Ignition meter; full, it lights Blazing speed for eight seconds (the board burns and every match explodes
+ *   like a flame gem). A hypercube darkens the board so only the gems it takes stay lit. When
  *   time's up every special left goes off in a Last hurrah. */
-const BLITZ_MS=60_000,SPEEDY_MS=1700
+const BLITZ_MS=60_000,SPEEDY_MS=1700,IGNITE=9,BLAZE_MS=8000
 const CANDY_CHEERS=['','','Sweet!','Tasty!','Delicious!','Divine!']
 const GEM_CHEERS=['','','Good!','Excellent!','Awesome!','Spectacular!','Extraordinary!','Unbelievable!']
 type Fx={key:number;effects:Effect[];cleared:{at:number;kind:number}[];pop:{n:number;x:number;y:number}|null;big:boolean}
@@ -96,17 +98,19 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
   if(!frames){setShake([a,c]);gameSound('nope',sound);window.setTimeout(()=>setShake([]),380);return}
   setSel(null)
   const swapped=[...boardNow.current];[swapped[a],swapped[c]]=[swapped[c],swapped[a]];show(swapped)
-  // Gem blitz's speed: quick moves in a row build up; five make Blazing speed (two gems catch fire).
+  // Gem blitz's speed, as in Bejeweled Blitz: a quick move after a quick move is a Speed bonus (from the
+  // third on: 200, then 100 more each time, up to 1,000), and each one fills the Ignition meter.
   if(mode==='gems'){
-   const now=performance.now();speedNow.current=now-lastMove.current<SPEEDY_MS?speedNow.current+1:0;lastMove.current=now;setSpeed(speedNow.current)
+   const now=performance.now();speedNow.current=now-lastMove.current<SPEEDY_MS?speedNow.current+1:0;lastMove.current=now
+   if(!start.maker.blazing)setSpeed(speedNow.current)
+   if(speedNow.current>=2){const bonus=Math.min(1000,200+100*(speedNow.current-2))*multNow.current;scoreRef.current+=bonus;setScore(scoreRef.current);say('Speed +'+bonus.toLocaleString())}
   }
   window.setTimeout(()=>run(frames,()=>{
-   if(mode==='gems'&&speedNow.current>=5){
-    speedNow.current=0;setSpeed(0);setBlazing(true);window.setTimeout(()=>setBlazing(false),2600)
+   if(mode==='gems'&&!start.maker.blazing&&speedNow.current>=IGNITE){
+    // Blazing speed: for eight seconds every match bursts like a flame gem.
+    speedNow.current=0;setSpeed(0);start.maker.blazing=true;setBlazing(true)
+    window.setTimeout(()=>{start.maker.blazing=false;setBlazing(false)},BLAZE_MS)
     say('Blazing speed!',true);gameSound('big',sound,4)
-    const plain=boardNow.current.flatMap((p,i)=>p&&!p.special&&!p.bonus?[i]:[]),b=[...boardNow.current]
-    for(let k=0;k<2&&plain.length;k++){const i=plain.splice(Math.floor(Math.random()*plain.length),1)[0];b[i]={...b[i]!,special:'area'}}
-    show(b);scoreRef.current+=500*multNow.current;setScore(scoreRef.current)
    }
    if(mode==='candy'){
     movesLeft.current-=1;setMoves(movesLeft.current)
@@ -150,7 +154,8 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
    <span style={{width:progress*100+'%'}}/>{[0.5,0.75,1].map((x,k)=><i key={k} className={progress>=x?'is-lit':''} style={{left:x*100+'%'}} aria-hidden="true">★</i>)}
    <b>{goal.jelly?(jelly.size?jelly.size+' jelly left · ':'Jelly cleared ✓ · '):''}{Math.min(score,goal.target).toLocaleString()} / {goal.target.toLocaleString()}</b>
   </div>
-  :<div className="match3-goal is-time" aria-hidden="true"><span style={{width:Math.min(1,left/BLITZ_MS)*100+'%'}}/><em className="m3-speed">{'🔥'.repeat(Math.min(5,speed))}</em></div>}
+  :<div className="match3-goal is-time" aria-hidden="true"><span style={{width:Math.min(1,left/BLITZ_MS)*100+'%'}}/></div>}
+  {mode==='gems'&&<div className={'m3-ignite'+(blazing?' is-on':'')} role="meter" aria-label="Ignition" aria-valuemin={0} aria-valuemax={IGNITE} aria-valuenow={blazing?IGNITE:Math.min(IGNITE,speed)}><span style={{width:(blazing?100:Math.min(1,speed/IGNITE)*100)+'%'}}/><b>{blazing?'🔥 Blazing speed!':'Ignition'}</b></div>}
   <div className={'blast-frame'+(quake?' is-quake':'')}>
    <div ref={boardRef} className="match3-board" role="grid" aria-label={mode==='candy'?'Candy board':'Gem board'} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={()=>{press.current=null}}>
     {[...jelly].map(i=><span key={'j'+i} className="m3-jelly" style={pos(i)} aria-hidden="true"/>)}
@@ -167,13 +172,14 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
     {done&&<p className="blast-over" role="status">{done}</p>}
    </div>
   </div>
-  <p className="blast-help">{mode==='candy'?'Match 4 for a striped candy, an L or T for a wrapped one, 5 for a color bomb. Swap two specials together for a combo!':'Match 4 for a flame gem, an L or T for a star, 5 for a hypercube, 6 for a supernova. Quick moves build speed!'}</p>
+  <p className="blast-help">{mode==='candy'?'Match 4 for a striped candy, an L or T for a wrapped one, 5 for a color bomb. Swap two specials together for a combo!':'Match 4 for a flame gem, an L or T for a star, 5 for a hypercube, 6 for a supernova. Quick moves in a row light Blazing speed!'}</p>
  </div>
 }
 
 /** What a special piece did: a beam along its row or column (three wide for a supernova), a ring for an
  * explosion, lightning from a color bomb to each piece it takes, a flash for the whole board. */
 function Effect({e}:{e:Effect}){
+ const id=useId()
  const r=Math.floor(e.at/W),c=e.at%W
  const beam=(kind:'row'|'col',n:number,wide=1)=><span key={kind+n} className={'m3-beam is-'+kind+(wide>1?' is-wide':'')} style={kind==='row'?{top:n*100/W+'%'}:{left:n*100/W+'%'}}/>
  if(e.type==='row')return beam('row',r)
@@ -182,5 +188,9 @@ function Effect({e}:{e:Effect}){
  if(e.type==='nova')return <>{[r-1,r,r+1].filter(y=>y>=0&&y<W).map(y=>beam('row',y,3))}{[c-1,c,c+1].filter(x=>x>=0&&x<W).map(x=>beam('col',x,3))}</>
  if(e.type==='area')return <span className={'m3-ring'+(e.cells.length>9?' is-big':'')} style={{left:(c+0.5)*100/W+'%',top:(r+0.5)*100/W+'%'}}/>
  if(e.type==='board')return <span className="m3-flash"/>
- return <svg className="m3-bolts" viewBox={'0 0 '+W+' '+W} preserveAspectRatio="none">{e.cells.map(i=>{const y=Math.floor(i/W)+0.5,x=i%W+0.5,mx=(x+c+0.5)/2+((i*7)%3-1)*0.4,my=(y+r+0.5)/2+((i*5)%3-1)*0.4;return <polyline key={i} points={(c+0.5)+','+(r+0.5)+' '+mx+','+my+' '+x+','+y}/>})}</svg>
+ // A color bomb or hypercube darkens the board; only the pieces it takes stay lit while the lightning hits them.
+ return <svg className="m3-bolts" viewBox={'0 0 '+W+' '+W} preserveAspectRatio="none">
+  <defs><mask id={id}><rect width={W} height={W} fill="#fff"/>{e.cells.map(i=><rect key={i} x={i%W} y={Math.floor(i/W)} width={1} height={1} rx={0.25} fill="#000"/>)}</mask></defs>
+  <rect className="m3-dim" width={W} height={W} mask={'url(#'+id+')'}/>
+  {e.cells.map(i=>{const y=Math.floor(i/W)+0.5,x=i%W+0.5,mx=(x+c+0.5)/2+((i*7)%3-1)*0.4,my=(y+r+0.5)/2+((i*5)%3-1)*0.4;return <polyline key={i} points={(c+0.5)+','+(r+0.5)+' '+mx+','+my+' '+x+','+y}/>})}</svg>
 }

@@ -169,7 +169,7 @@ test('KONO blast: a full row or column clears (both at once count as two lines),
  let i=0;const rolls=[0,0.5,0.99,0.2,0.4,0.6];const hand=b.deal(()=>rolls[i++%rolls.length])
  assert.equal(hand.length,3);assert.equal(hand[0].shape.id,'dot');assert.ok(hand.every(p=>p.color>=0&&p.color<b.COLORS))
  assert.equal(coins.gameCoins('blast',300),25)
- assert.equal(coins.gameCoins('meow',6),30,'a 6 × 6 Meowdoku');assert.equal(coins.gameCoins('gems',3600),30);assert.equal(coins.gameCoins('candy',1800),30)
+ assert.equal(coins.gameCoins('meow',6),30,'a 6 × 6 Meowdoku');assert.equal(coins.gameCoins('gems',36000),30);assert.equal(coins.gameCoins('candy',1800),30)
  // Coins as you play: lines × lines, times the combo, up to 75 a day.
  assert.equal(coins.blastCoins(1,0),1);assert.equal(coins.blastCoins(2,0),4);assert.equal(coins.blastCoins(2,2),12);assert.equal(coins.blastCoins(1,9),5,'the combo tops out at ×5')
  const now=new Date('2026-10-22T15:00:00Z');let log=[]
@@ -246,6 +246,12 @@ test('match-3: fresh boards have no lines and a move; Candy crush makes striped 
  assert.ok(fin.some(x=>x.effects.length>=5));assert.equal(fin.at(-1).board.filter(Boolean).length,64)
  assert.equal(g.candyStars(1000,1000),1);assert.equal(g.candyStars(2000,1000),3);assert.equal(g.candyLevel(2).jelly>0,true);assert.equal(g.candyLevel(1).jelly,0)
  assert.equal(g.jellyFor(4,seeded(2)).size,g.candyLevel(4).jelly)
+ // Gem blitz: three is 250 points; Blazing speed makes a match burst like a flame gem; 12 gems in a move bring a ×2.
+ const three=()=>{const b=fill();b[0]=P(0);b[1]=P(0);b[10]=P(0);return b}
+ const plain=steady('gems');assert.equal(g.play(three(),2,10,plain)[0].points,250)
+ const hot=steady('gems');hot.blazing=true;const hf=g.play(three(),2,10,hot)[0];assert.ok(hf.effects.some(e=>e.type==='area')&&hf.cleared.length>3,'Blazing speed bursts')
+ const big=steady('gems'),bf=g.play(g.freshBoard(big).map((p,i)=>i===0?{...p,special:'color'}:p),0,1,big)
+ if(bf.reduce((k,f)=>k+f.cleared.length,0)>=12)assert.ok(bf.at(-1).board.some(p=>p&&p.bonus==='mult'&&p.mult===2),'a big move drops in a ×2')
 })
 test('Flappy KONO: KONO falls and a flap lifts it, pipes come in with a gap, flying through a gap scores, touching a pipe or the ground ends the run; medals at 10/20/30/40',()=>{
  const f=load('src/store/flappy.ts'),half=()=>0.5
