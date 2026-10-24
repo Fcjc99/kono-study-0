@@ -1,5 +1,5 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {COLS,FLOW_CELL,H,HIDDEN,KINDS,ROWS,cellsOf,ghostOf,hardDrop,holdPiece,move,newGame,rotate,shapeCells,softDrop,startFlow,tick,type FlowEvent,type Game,type Kind} from '../store/flow'
+import {COLS,FLOW_CELL,H,HIDDEN,KINDS,ROWS,cellsOf,ghostOf,hardDrop,holdPiece,move,musicPart,newGame,rotate,shapeCells,softDrop,startFlow,tick,type FlowEvent,type Game,type Kind} from '../store/flow'
 import {fx,musicSlow,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
 
@@ -26,6 +26,8 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
  const [size,setSize]=useState(stageSize)
  useEffect(()=>{const on=()=>setSize(stageSize());window.addEventListener('resize',on);window.visualViewport?.addEventListener('resize',on);return ()=>{window.removeEventListener('resize',on);window.visualViewport?.removeEventListener('resize',on)}},[])
  const vis=useRef<Vis>(newVis())
+ // The soundtrack playing (a big Flow can jump two levels, so this is what's compared, not the level before).
+ const part=useRef(1)
  const ended=useRef(false),onEndRef=useRef(onEnd),soundRef=useRef(sound),keys=useRef(0)
  const held=useRef<{dir:number;t:number;next:number}|null>(null),soft=useRef(false)
  useEffect(()=>{onEndRef.current=onEnd;soundRef.current=sound},[onEnd,sound])
@@ -50,7 +52,7 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
    if(e.b2b)say('Back to back!')
    if(e.combo>=2)say('Combo '+e.combo)
    if(e.perfect){say('Perfect clear!',true);fx('mega',s)}
-  }else if(e.t==='level'){say('Level '+e.level,true);fx('fanfare',s);const part=trackFor(e.level);if(part!==trackFor(e.level-1))startMusic('flow',s,part)}
+  }else if(e.t==='level'){say('Level '+e.level,true);fx('fanfare',s);const p=musicPart(e.level);if(p!==part.current){part.current=p;startMusic('flow',s,p)}}
   else if(e.t==='flowOn'){fx('flowOn',s);say('Flow',true);musicSlow(true)}
   else if(e.t==='flowStack'){fx('rows',s,Math.min(4,e.rows.length));for(let k=0;k<e.rows.length;k++)v.bands.push({y:H-1-(e.total-1-k),t:0,white:true})}
   else if(e.t==='flowEnd'){
@@ -235,8 +237,6 @@ function stageSize(){
  const w=Math.max(220,Math.min(440,vw*0.96,(vh-330)*LAYOUT.w/LAYOUT.h))
  return {w:Math.round(w),h:Math.round(w*LAYOUT.h/LAYOUT.w)}
 }
-/** The soundtrack for a level: a new track every three levels (1–3, 4–6, 7–9, 10–12, then 13 on). */
-const trackFor=(level:number)=>Math.min(5,Math.floor((level-1)/3)+1)
 /** The canvas in cells: the well (10 × 20) with a column for hold on the left and the queue on the right. */
 const LAYOUT={side:4,top:0.4,w:COLS+8,h:ROWS+0.8}
 /** A block of light: a rounded pane, darker at the rim and bright in the middle, with a glint. */

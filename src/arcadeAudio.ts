@@ -133,7 +133,7 @@ const SONGS:Record<Theme,Song>={
 
 const MUSIC_KEY='kono-arcade-music'
 export const musicOn=()=>{try{return localStorage.getItem(MUSIC_KEY)!=='0'}catch{return true}}
-let playing:{theme:Theme;timer:number;stop:boolean}|null=null,wanted:Theme|null=null,wantedPart=0
+let playing:{theme:Theme;timer:number;stop:boolean}|null=null,wanted:Theme|null=null,wantedPart=0,slow=false
 /** Starts a game's soundtrack (if Sounds and 🎵 are on); a soundtrack already playing gives way to it. */
 // Recorded soundtracks (made in Suno) live at /audio/games/<game>.mp3 and loop; a game without one plays
 // the soundtrack written below instead.
@@ -159,10 +159,10 @@ export function startMusic(theme:Theme,enabled:boolean,part=0){
  stopTimer();stopTrack(same?900:0)
  if(!enabled||!musicOn())return
  if(!missing.has(theme)){
-  const a=new Audio('/audio/games/'+theme+(part?'-'+part:'')+'.mp3');a.loop=true;a.volume=0;track=a
+  const a=new Audio('/audio/games/'+theme+(part?'-'+part:'')+'.mp3');a.loop=true;a.volume=0;a.preservesPitch=true;a.playbackRate=slow?0.8:1;track=a
   const fallback=()=>{if(track!==a)return;track=null;missing.add(theme);if(wanted===theme)startMusic(theme,enabled)}
   a.addEventListener('error',fallback,{once:true})
-  void a.play().then(()=>{const t0=performance.now();const up=()=>{if(track!==a)return;const k=Math.min(1,(performance.now()-t0)/600);a.volume=0.55*k;if(k<1)requestAnimationFrame(up)};requestAnimationFrame(up)}).catch(fallback)
+  void a.play().then(()=>{const t0=performance.now();const up=()=>{if(track!==a)return;const k=Math.min(1,(performance.now()-t0)/600);a.volume=(slow?0.3:0.55)*k;if(k<1)requestAnimationFrame(up)};requestAnimationFrame(up)}).catch(fallback)
   return
  }
  synth(theme)
@@ -194,7 +194,7 @@ function synth(theme:Theme){
 function stopTimer(){if(playing){playing.stop=true;window.clearInterval(playing.timer);playing=null}}
 /** Fades the soundtrack out (leaving a game, or the round is over). */
 export function stopMusic(){
- wanted=null
+ wanted=null;slow=false
  stopTrack(400)
  if(ctx&&musicBus&&playing){const t=ctx.currentTime;musicBus.gain.cancelScheduledValues(t);musicBus.gain.setValueAtTime(musicBus.gain.value,t);musicBus.gain.linearRampToValueAtTime(0.0001,t+0.4)}
  const p=playing;window.setTimeout(()=>{if(playing===p)stopTimer()},450)
@@ -206,8 +206,10 @@ export function setMusicOn(on:boolean,enabled:boolean){
  if(!on){stopTimer();stopTrack();wanted=theme}
  else if(theme)startMusic(theme,enabled,wantedPart)
 }
-/** KONO Flow's Flow: the recorded track slows (keeping its pitch) and softens while time stands still. */
+/** KONO Flow's Flow: the recorded track slows (keeping its pitch) and softens while time stands still (a track
+ * that starts meanwhile, after 🎵 is turned back on, starts slowed too). */
 export function musicSlow(on:boolean){
+ slow=on
  const a=track;if(!a)return
  a.preservesPitch=true;a.playbackRate=on?0.8:1;a.volume=on?0.3:0.55
 }
