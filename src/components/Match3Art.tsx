@@ -13,13 +13,13 @@ const CANDY_COLORS=[['#ff2e48','#ffa3ae','#9e0618'],['#ff8a14','#ffcf8f','#b04a0
 type Pt=[number,number]
 const polygon=(n:number,r:number,rot=0):Pt[]=>Array.from({length:n},(_,i)=>{const a=rot+i*2*Math.PI/n;return [50+Math.cos(a)*r,50+Math.sin(a)*r]})
 // Gem outlines in a 100 × 100 box: red square-cut, orange hexagon, yellow diamond, green emerald cut,
-// blue shield, purple triangle, white round.
+// blue diamond (flat top, pointed bottom), purple triangle, white round.
 const GEMS:Pt[][]=[
  [[22,8],[78,8],[92,22],[92,78],[78,92],[22,92],[8,78],[8,22]],
  [[50,4],[92,27],[92,73],[50,96],[8,73],[8,27]],
  [[50,3],[95,50],[50,97],[5,50]],
  [[33,6],[67,6],[94,33],[94,67],[67,94],[33,94],[6,67],[6,33]],
- [[50,4],[95,36],[80,94],[20,94],[5,36]],
+ [[24,8],[76,8],[96,34],[50,95],[4,34]],
  [[50,5],[97,90],[3,90]],
  polygon(12,45,Math.PI/12),
 ]

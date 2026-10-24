@@ -242,7 +242,8 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 @keyframes m3-blaze{to{box-shadow:0 0 0 3px #ffd84d,0 0 34px 10px #ff7a2e,inset 0 3px 8px rgba(0,0,0,.45)}}
 .m3-jelly{position:absolute;width:12.5%;height:12.5%;padding:.3%;pointer-events:none}
 .m3-jelly::before{content:'';display:block;height:100%;border-radius:7px;background:linear-gradient(160deg,rgba(255,170,220,.75),rgba(230,90,170,.6));box-shadow:inset 0 2px 0 rgba(255,255,255,.55)}
-.match3-piece{position:absolute;width:12.5%;height:12.5%;padding:.5%;transition:left .17s ease,top .22s cubic-bezier(.3,1.25,.5,1);cursor:pointer}
+.match3-piece{position:absolute;width:12.5%;height:12.5%;padding:.5%;transition:left .18s ease-in-out,top .18s ease-in-out;cursor:pointer}
+.match3-pieces{position:absolute;inset:0;overflow:hidden;border-radius:inherit}
 .m3-badge{position:absolute;right:2px;bottom:1px;padding:0 3px;border-radius:5px;background:#ffd84d;color:#5a2d00;font-size:.6rem;font-weight:900;line-height:1.3;pointer-events:none}
 .m3-badge.is-time{background:#4dd2ff;color:#003a55}
 @keyframes m3-wobble{50%{transform:scale(1.08) rotate(4deg)}}
@@ -257,8 +258,23 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .match3-piece.is-hint .m3-gem{animation:m3-hint .9s ease-in-out infinite}
 @keyframes m3-hint{0%,60%,100%{transform:none}70%{transform:rotate(-12deg) scale(1.1)}80%{transform:rotate(12deg) scale(1.1)}90%{transform:rotate(-6deg)}}
 .match3-piece.is-shake .m3-gem{animation:meow-shake .35s}
-.match3-piece.is-new .m3-gem{animation:m3-drop .38s cubic-bezier(.3,1.35,.5,1) both}
-@keyframes m3-drop{from{transform:translateY(-220%);opacity:0}60%{opacity:1}80%{transform:translateY(4%) scaleY(.9)}}
+/* How the originals move: a cleared piece flashes white and swells, then shrinks away into its shards;
+   a special just made pops in where the match was; pieces fall with gravity (picking up speed) and land
+   with a little squash and bounce; new ones fall in from above the board. */
+.match3-piece.is-clearing{z-index:2}
+.match3-piece.is-clearing .m3-gem{animation:m3-clear .24s ease-in both}
+@keyframes m3-clear{0%{transform:none;filter:brightness(1)}35%{transform:scale(1.22);filter:brightness(2.4) drop-shadow(0 0 10px #fff)}100%{transform:scale(.15) rotate(25deg);filter:brightness(3);opacity:0}}
+.match3.is-candy .match3-piece.is-clearing .m3-gem{animation-name:m3-clear-candy}
+@keyframes m3-clear-candy{0%{transform:none}30%{transform:scale(1.25,1.15);filter:brightness(1.6) drop-shadow(0 0 8px #fff)}60%{transform:scale(1.1,.9)}100%{transform:scale(0);opacity:0}}
+.match3-piece.is-made .m3-gem{animation:m3-made .38s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes m3-made{from{transform:scale(.2);filter:brightness(3)}60%{filter:brightness(1.6)}}
+.match3-piece.is-fall{transition:left .18s ease-in-out,top .3s cubic-bezier(.5,0,.9,.55)}
+.match3-piece.is-fall .m3-gem{animation:var(--land) .24s ease-out .29s}
+.match3-piece.is-new .m3-gem{animation:var(--fall) .3s cubic-bezier(.5,0,.9,.55) both,var(--land) .24s ease-out .29s}
+@keyframes m3-fall-a{from{transform:translateY(calc(var(--drop,1) * -110%))}to{transform:none}}
+@keyframes m3-fall-b{from{transform:translateY(calc(var(--drop,1) * -110%))}to{transform:none}}
+@keyframes m3-land-a{0%{transform:none}35%{transform:translateY(6%) scale(1.08,.86)}70%{transform:translateY(-4%) scale(.97,1.04)}100%{transform:none}}
+@keyframes m3-land-b{0%{transform:none}35%{transform:translateY(6%) scale(1.08,.86)}70%{transform:translateY(-4%) scale(.97,1.04)}100%{transform:none}}
 /* Effects over the board: shards, beams, explosion rings, lightning, a flash, floating points. */
 .m3-fx{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:8px}
 .m3-shard{position:absolute;width:12.5%;height:12.5%}
@@ -283,10 +299,12 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .m3-flash{position:absolute;inset:0;background:radial-gradient(circle,#fff,rgba(255,240,180,.8) 50%,rgba(255,140,240,.4));animation:m3-flash .7s ease-out both}
 @keyframes m3-flash{from{opacity:1}to{opacity:0}}
 .m3-pop{position:absolute;translate:-50% -50%;font-weight:900;font-size:1.15rem;color:#fff;-webkit-text-stroke:1px rgba(0,0,0,.35);text-shadow:0 2px 0 rgba(0,0,0,.4);animation:m3-pop .9s ease-out both;white-space:nowrap}
+.match3.is-gems .m3-pop{font-size:1.6rem;background:linear-gradient(#fffbe0,#ffd84d 55%,#e08a1e);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:0;filter:drop-shadow(0 2px 0 #5a2d00) drop-shadow(0 0 6px rgba(255,200,80,.6));z-index:4}
+.match3.is-candy .m3-pop{font-size:1.4rem;-webkit-text-stroke:2px #d6338a}
 @keyframes m3-pop{0%{transform:scale(.4);opacity:0}20%{transform:scale(1.2);opacity:1}100%{transform:translateY(-120%) scale(1);opacity:0}}
 .match3.is-candy .m3-cheer span{background:linear-gradient(#fff2fb,#ff7ad0 55%,#c42e9e);-webkit-background-clip:text;background-clip:text}
 .m3-cheer.is-big span{font-size:2.8rem}
-@media(prefers-reduced-motion:reduce){.match3-piece{transition:none}.match3-piece .m3-gem,.m3-fx,.blast-frame.is-quake,.match3.is-blazing .blast-frame,.meow-cat,.meow-cell.is-wrong{animation:none!important}.m3-fx{display:none}}
+@media(prefers-reduced-motion:reduce){.match3-piece{transition:none}.match3-piece .m3-gem,.m3-fx,.match3-piece.is-fall,.blast-frame.is-quake,.match3.is-blazing .blast-frame,.meow-cat,.meow-cell.is-wrong{animation:none!important}.m3-fx{display:none}}
 .game-screen .game-result h2:not(#x){color:#fff!important}
 /* The game's start card and the play tools (↻ Restart, ■ End) beside Leave. */
 .game-screen-tools{display:flex;gap:8px;align-items:center}
@@ -358,3 +376,18 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 @media(prefers-reduced-motion:reduce){.cat-eyes,.meow-bg::before{animation:none}}
 .game-screen:has(.meow)>header{color:#5a2350}
 .game-screen:has(.meow)>header :is(.game-screen-tool,.game-screen-leave):not(#x):not(#y){color:#5a2350!important;background:rgba(255,255,255,.5)!important;border-color:rgba(255,255,255,.8)!important}
+.match3-piece:is(.is-fall,.is-new) .m3-gem{transform-origin:50% 100%}
+
+/* The opening: every piece falls in from above the board, column by column. Gem blitz lets falling gems show
+   above the board (as Bejeweled does); Candy crush keeps them inside its tray. */
+.match3-piece.is-intro .m3-gem{animation:m3-intro .5s cubic-bezier(.5,0,.9,.55) both,m3-land-a .24s ease-out;animation-delay:var(--intro),calc(var(--intro) + .5s);transform-origin:50% 100%}
+@keyframes m3-intro{from{transform:translateY(calc(var(--rows) * -110% - 40%))}to{transform:none}}
+.match3.is-gems .match3-pieces{overflow:visible}
+.match3.is-gems .match3-board{z-index:1}
+
+/* Candy crush's points: each cleared candy's own number in its color, thickly outlined, as in the game. */
+.match3.is-candy .m3-pop.is-each{font-size:1.15rem;-webkit-text-stroke:0;paint-order:stroke fill;text-shadow:0 0 0 #fff,0 2px 0 #3a1030;color:var(--pc,#fff);filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff)}
+.match3.is-candy .m3-pop.k0{--pc:#ff2e48}.match3.is-candy .m3-pop.k1{--pc:#ff8a14}.match3.is-candy .m3-pop.k2{--pc:#ffd60a}.match3.is-candy .m3-pop.k3{--pc:#2fd14a}.match3.is-candy .m3-pop.k4{--pc:#1f8bff}.match3.is-candy .m3-pop.k5{--pc:#b44aff}
+/* "Sweet!", "Tasty!"…: big, golden and chunky with a thick brown outline. */
+.match3.is-candy .m3-cheer span{font-family:'Lobster','Pacifico','Comic Sans MS','Segoe Script',cursive;font-weight:900;font-size:2.9rem;background:linear-gradient(#fff6b0,#ffc93d 50%,#f08a12);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:0;filter:drop-shadow(3px 0 0 #6b2a00) drop-shadow(-3px 0 0 #6b2a00) drop-shadow(0 3px 0 #6b2a00) drop-shadow(0 -3px 0 #6b2a00) drop-shadow(0 5px 3px rgba(0,0,0,.35))}
+.match3.is-gems .m3-cheer span{font-size:2.5rem;background:linear-gradient(#fff,#bfe9ff 40%,#5aa8ff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(2px 0 0 #0a2a6a) drop-shadow(-2px 0 0 #0a2a6a) drop-shadow(0 2px 0 #0a2a6a) drop-shadow(0 -2px 0 #0a2a6a) drop-shadow(0 0 10px rgba(120,190,255,.7))}

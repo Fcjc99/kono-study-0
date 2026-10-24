@@ -28,7 +28,8 @@ function startServer(){
 
 let browser
 async function freshPage(options={}){
- const context=await browser.newContext({serviceWorkers:'block',acceptDownloads:true,viewport:{width:1280,height:900},...options})
+ // KONO_VIDEO=dir records each flow as a video there (to check animations by eye).
+ const context=await browser.newContext({serviceWorkers:'block',acceptDownloads:true,viewport:{width:1280,height:900},...(process.env.KONO_VIDEO?{recordVideo:{dir:process.env.KONO_VIDEO,size:{width:1280,height:900}}}:{}),...options})
  await context.route(url=>!url.href.startsWith(BASE),route=>route.abort())
  const page=await context.newPage(),errors=[]
  page.on('pageerror',error=>errors.push(error.message))
@@ -3574,9 +3575,13 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  })
  assert.ok(swap,'a fresh board always has a move')
  await gems.evaluate(d=>Promise.all(d.getAnimations().map(x=>x.finished)))
+ // The opening drop (every gem raining in) finishes before a move counts.
+ await page.waitForFunction(()=>!document.querySelector('.match3 .is-intro'))
  const box=await board.boundingBox(),cell=box.width/8,centre=i=>({x:box.x+(i%8+0.5)*cell,y:box.y+(Math.floor(i/8)+0.5)*cell})
  const a=centre(swap[0]),b=centre(swap[1])
  await page.mouse.move(a.x,a.y);await page.mouse.down();await page.mouse.move((a.x+b.x)/2,(a.y+b.y)/2,{steps:4});await page.mouse.move(b.x,b.y,{steps:4});await page.mouse.up()
+ // With KONO_SHOTS, a strip of frames through the move (swap, flash, burst, fall).
+ if(process.env.KONO_SHOTS)for(let k=0;k<10;k++){await board.screenshot({path:process.env.KONO_SHOTS+'/gem-move-'+k+'.png'});await page.waitForTimeout(60)}
  await page.waitForFunction(()=>Number(document.querySelector('.match3 .blast-score')?.textContent?.replace(/,/g,''))>0,null,{timeout:5000})
  if(process.env.KONO_SHOTS)await gems.screenshot({path:process.env.KONO_SHOTS+'/gem-blitz.png'})
  await gems.getByRole('button',{name:'✕ Leave'}).click()
