@@ -3592,6 +3592,23 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  const candy=page.getByRole('dialog',{name:'🍬 Candy crush'})
  await candy.getByText('Level 1').waitFor();await candy.getByText(/^\d+ moves$/).waitFor()
  await candy.getByRole('progressbar',{name:/^Target \d+$/}).waitFor()
+ // A swipe that lines up three scores and uses a move.
+ {
+  const cb=candy.getByRole('grid',{name:'Candy board'})
+  await page.waitForFunction(()=>!document.querySelector('.match3 .is-intro'))
+  const mv=await cb.evaluate(el=>{
+   const k=Array(64);for(const p of el.querySelectorAll('[role=gridcell]'))k[Number(p.dataset.i)]=Number(p.dataset.kind)
+   const line=b=>{for(let i=0;i<64;i++){const r=Math.floor(i/8),c=i%8;if(c<=5&&b[i]===b[i+1]&&b[i]===b[i+2])return true;if(r<=5&&b[i]===b[i+8]&&b[i]===b[i+16])return true}return false}
+   for(let i=0;i<64;i++)for(const j of [i%8<7?i+1:-1,i<56?i+8:-1]){if(j<0)continue;const b=[...k];[b[i],b[j]]=[b[j],b[i]];if(line(b))return [i,j]}
+   return null
+  })
+  const before=await candy.getByText(/^\d+ moves$/).innerText()
+  const bx=await cb.boundingBox(),cl=bx.width/8,at=i=>({x:bx.x+(i%8+0.5)*cl,y:bx.y+(Math.floor(i/8)+0.5)*cl})
+  const p0=at(mv[0]),p1=at(mv[1])
+  await page.mouse.move(p0.x,p0.y);await page.mouse.down();await page.mouse.move(p1.x,p1.y,{steps:6});await page.mouse.up()
+  await page.waitForFunction(()=>Number(document.querySelector('.match3 .blast-score')?.textContent?.replace(/,/g,''))>0,null,{timeout:5000})
+  await candy.getByText(Number(before.split(' ')[0])-1+' moves').waitFor()
+ }
  if(process.env.KONO_SHOTS)await candy.screenshot({path:process.env.KONO_SHOTS+'/candy.png'})
 })
 

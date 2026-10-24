@@ -3,16 +3,17 @@ import {useEffect,useImperativeHandle,useRef,type Ref} from 'react'
 /** A particle layer for the arcade: a canvas over a game board that throws sparks, shards, stars,
  * embers, confetti and shockwave rings. Positions are fractions of the layer (0–1), so a game just says
  * where on its board. Sparks and stars glow (they're drawn adding light); it only animates while
- * something is flying, and does nothing for people who'd rather have less motion. The canvas reaches a
+ * something is flying, and does nothing for people who'd rather have less motion (unless `always`: a game
+ * whose sparks are how it shows what happened). The canvas reaches a
  * little past its board on every side (`PAD`, as in .sparks), so sparks can fly off the edges. */
 const PAD=0.1,at=(f:number)=>(f+PAD)/(1+2*PAD)
 export type SparkKind='spark'|'shard'|'star'|'ember'|'confetti'|'heart'|'paw'
 export type SparksHandle={burst:(x:number,y:number,o?:{color?:string|string[];n?:number;kind?:SparkKind;speed?:number;size?:number})=>void;ring:(x:number,y:number,color?:string,size?:number)=>void;line:(x0:number,y0:number,x1:number,y1:number,color?:string)=>void}
 type P={x:number;y:number;vx:number;vy:number;life:number;max:number;size:number;color:string;kind:SparkKind|'ring';rot:number;vr:number;grav:number}
 const CONFETTI=['#ff4d6d','#ffd84d','#4dd2ff','#7dff6a','#c58bff','#ff9b3d']
-export default function Sparks({ref}:{ref:Ref<SparksHandle>}){
+export default function Sparks({ref,always=false}:{ref:Ref<SparksHandle>;always?:boolean}){
  const canvas=useRef<HTMLCanvasElement>(null),parts=useRef<P[]>([]),raf=useRef(0),still=useRef(false)
- useEffect(()=>{still.current=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false;return ()=>cancelAnimationFrame(raf.current)},[])
+ useEffect(()=>{still.current=!always&&(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false);return ()=>cancelAnimationFrame(raf.current)},[always])
  const loop=()=>{
   const c=canvas.current,g=c?.getContext('2d')
   if(!c||!g){raf.current=0;return}
