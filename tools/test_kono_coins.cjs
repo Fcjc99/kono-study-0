@@ -169,7 +169,7 @@ test('KONO blast: a full row or column clears (both at once count as two lines),
  let i=0;const rolls=[0,0.5,0.99,0.2,0.4,0.6];const hand=b.deal(()=>rolls[i++%rolls.length])
  assert.equal(hand.length,3);assert.equal(hand[0].shape.id,'dot');assert.ok(hand.every(p=>p.color>=0&&p.color<b.COLORS))
  assert.equal(coins.gameCoins('blast',300),25)
- assert.equal(coins.gameCoins('meow',6),30,'a 6 × 6 Meowdoku');assert.equal(coins.gameCoins('gems',3600),30);assert.equal(coins.gameCoins('candy',1800),30)
+ assert.equal(coins.gameCoins('meow',6),30,'a 6 × 6 Meowdoku');assert.equal(coins.gameCoins('gems',36000),30);assert.equal(coins.gameCoins('candy',1800),30)
  // Coins as you play: lines × lines, times the combo, up to 75 a day.
  assert.equal(coins.blastCoins(1,0),1);assert.equal(coins.blastCoins(2,0),4);assert.equal(coins.blastCoins(2,2),12);assert.equal(coins.blastCoins(1,9),5,'the combo tops out at ×5')
  const now=new Date('2026-10-22T15:00:00Z');let log=[]
@@ -246,6 +246,12 @@ test('match-3: fresh boards have no lines and a move; Candy crush makes striped 
  assert.ok(fin.some(x=>x.effects.length>=5));assert.equal(fin.at(-1).board.filter(Boolean).length,64)
  assert.equal(g.candyStars(1000,1000),1);assert.equal(g.candyStars(2000,1000),3);assert.equal(g.candyLevel(2).jelly>0,true);assert.equal(g.candyLevel(1).jelly,0)
  assert.equal(g.jellyFor(4,seeded(2)).size,g.candyLevel(4).jelly)
+ // Gem blitz: three is 250 points; Blazing speed makes a match burst like a flame gem; 12 gems in a move bring a ×2.
+ const three=()=>{const b=fill();b[0]=P(0);b[1]=P(0);b[10]=P(0);return b}
+ const plain=steady('gems');assert.equal(g.play(three(),2,10,plain)[0].points,250)
+ const hot=steady('gems');hot.blazing=true;const hf=g.play(three(),2,10,hot)[0];assert.ok(hf.effects.some(e=>e.type==='area')&&hf.cleared.length>3,'Blazing speed bursts')
+ const big=steady('gems'),bf=g.play(g.freshBoard(big).map((p,i)=>i===0?{...p,special:'color'}:p),0,1,big)
+ if(bf.reduce((k,f)=>k+f.cleared.length,0)>=12)assert.ok(bf.at(-1).board.some(p=>p&&p.bonus==='mult'&&p.mult===2),'a big move drops in a ×2')
 })
 test('Flappy KONO: KONO falls and a flap lifts it, pipes come in with a gap, flying through a gap scores, touching a pipe or the ground ends the run; medals at 10/20/30/40',()=>{
  const f=load('src/store/flappy.ts'),half=()=>0.5
@@ -292,5 +298,42 @@ test('KONO.io: a loop out of your land claims the trail and what it closes in; t
  for(let k=0;k<600;k++){c.players[0].alive=true;P.tick(c)}
  const share=P.shares(c);assert.ok([...share.values()].reduce((x,y)=>x+y,0)<=100.0001)
  assert.ok(c.players.slice(1).some(p=>share.get(p.id)>0.6),'bots grow their land')
+})
+test('KONO.io team battle: four a side, a team shares its land, teammates cross each other’s trails, the cut come back on their team’s land, and two minutes decide it',()=>{
+ const P=load('src/store/paper.ts'),seeded=load('src/store/meowdoku.ts').seeded,N=P.N
+ const a=P.newArena(seeded(4),6,'#3e6fe6','team')
+ assert.equal(a.players.length,8);assert.equal(a.players.filter(p=>p.team===1).length,4);assert.equal(a.players.filter(p=>p.team===2).length,4)
+ assert.ok([...a.own].every(x=>x===0||x===1||x===2),'land is held by a team')
+ const you=a.players[0],mate=a.players[1],foe=a.players[4]
+ for(const p of a.players.slice(1))p.bot.plan=[]
+ // A teammate walks across your trail: you're fine. The other team does it: you're out.
+ a.own.fill(0);a.trail.fill(0)
+ for(let y=20;y<=22;y++)for(let x=20;x<=22;x++)a.own[y*N+x]=1
+ for(let y=40;y<=42;y++)for(let x=40;x<=42;x++)a.own[y*N+x]=2
+ for(const p of a.players.slice(2))Object.assign(p,{alive:false,back:1e9})
+ foe.alive=true;Object.assign(foe,{x:45,y:45,dir:1,want:1,trail:[]});foe.bot.plan=[]
+ Object.assign(you,{x:25,y:30,dir:1,want:1,trail:[30*N+23,30*N+24,30*N+25]});for(const i of you.trail)a.trail[i]=1
+ Object.assign(mate,{x:24,y:29,dir:2,want:2,trail:[]});mate.bot.plan=[2]
+ a.players[0].want=1;P.tick(a)
+ assert.ok(you.alive&&mate.alive,'teammates pass over each other’s trails');assert.equal(a.trail[30*N+24],1,'your trail stays yours')
+ // Your loop claims land for Blue.
+ const blue=()=>a.own.filter(x=>x===1).length,before=blue()
+ Object.assign(you,{x:22,y:21,dir:1,want:1,trail:[]});for(let i=0;i<N*N;i++)if(a.trail[i]===1)a.trail[i]=0
+ mate.alive=false;mate.back=1e9
+ const go=(d,n)=>{for(let k=0;k<n;k++){P.steer(you,d);P.tick(a)}}
+ go(1,3);go(2,4);go(3,4);go(0,3)
+ assert.ok(you.alive);assert.ok(blue()>before,'the loop is Blue’s now');assert.ok(P.teamShares(a).get(1)>P.teamShares(a).get(2))
+ assert.equal(P.shares(a).get(1),P.teamShares(a).get(1),'your share is your team’s')
+ // Cut: you come back three seconds later on Blue land (and Blue keeps its land meanwhile).
+ Object.assign(you,{x:N-1,y:5,dir:1,want:1});P.tick(a);assert.ok(!you.alive)
+ assert.ok(blue()>0,'the team keeps its land')
+ for(let k=0;k<31;k++)P.tick(a)
+ assert.ok(you.alive,'back in team battle');assert.equal(a.own[you.y*N+you.x],1,'on Blue’s land')
+ assert.ok(!P.battleOver(a));a.ticks=P.TEAM_TICKS;assert.ok(P.battleOver(a))
+ assert.ok(!P.battleOver(P.newArena(seeded(1))),'solo has no clock')
+ // A full battle of bots keeps the map sane.
+ const c=P.newArena(seeded(11),6,'#3e6fe6','team')
+ for(let k=0;k<P.TEAM_TICKS;k++)P.tick(c)
+ const t=P.teamShares(c);assert.ok(t.get(1)+t.get(2)<=100.0001&&t.get(1)+t.get(2)>3,'both teams hold land ('+t.get(1).toFixed(1)+' / '+t.get(2).toFixed(1)+')')
 })
 console.log(passed+'/'+passed+' coin checks passed.')

@@ -25,9 +25,10 @@ export type Effect={type:Special|'board';at:number;cells:number[];kind?:number}
 /** A step of a move, for drawing: the board after it, what cleared (with kinds), the points, the specials
  * that went off, the special pieces made, and blitz's +seconds and multiplier gems collected. */
 export type Frame={board:Board;cleared:{at:number;kind:number}[];points:number;cascade:number;effects:Effect[];made:{at:number;special:Special}[];time:number;mult:number}
-export type Maker={mode:Mode;kinds:number;roll:()=>number;next:()=>number;bonusOdds:number;mult:number}
+/** `blazing`: Gem blitz's Blazing speed is on (every match explodes like a flame gem). */
+export type Maker={mode:Mode;kinds:number;roll:()=>number;next:()=>number;bonusOdds:number;mult:number;blazing:boolean}
 
-export const maker=(mode:Mode,roll:()=>number):Maker=>{let id=0;return {mode,kinds:mode==='gems'?7:6,roll,next:()=>++id,bonusOdds:mode==='gems'?0.02:0,mult:1}}
+export const maker=(mode:Mode,roll:()=>number):Maker=>{let id=0;return {mode,kinds:mode==='gems'?7:6,roll,next:()=>++id,bonusOdds:mode==='gems'?0.02:0,mult:1,blazing:false}}
 const pick=(m:Maker)=>Math.floor(m.roll()*m.kinds)%m.kinds
 const fresh=(m:Maker):Piece=>{const p:Piece={id:m.next(),kind:pick(m)};if(m.bonusOdds&&m.roll()<m.bonusOdds)p.bonus='time';return p}
 export const adjacent=(a:number,b:number)=>a>=0&&b>=0&&a<W*W&&b<W*W&&(Math.abs(a-b)===W||(Math.abs(a-b)===1&&Math.floor(a/W)===Math.floor(b/W)))
@@ -142,7 +143,15 @@ export function play(b0:Board,a:number,c:number,m:Maker):Frame[]|null{
   const effects:Effect[]=[],res=combo(b,a,c,effects)
   b=settle(b,res.gone,new Map(),m,frames,1,effects);after=res.after
  }
- return [...frames,...cascade(b,m,a,c,frames.length?2:1,after)]
+ const all=[...frames,...cascade(b,m,a,c,frames.length?2:1,after)]
+ // Gem blitz, as in Bejeweled Blitz: a move that takes 12 gems or more drops in a multiplier gem (×2), and
+ // after that each move of 16 or more drops in the next one (up to ×8).
+ const taken=all.reduce((k,f)=>k+f.cleared.length,0),last=all.at(-1)!
+ if(m.mode==='gems'&&m.mult<8&&taken>=(m.mult===1?12:16)){
+  const spots=last.board.flatMap((p,i)=>p&&!p.special&&!p.bonus?[i]:[]),at=spots[Math.floor(m.roll()*spots.length)]
+  if(at!==undefined){m.mult++;const nb=[...last.board];nb[at]={...nb[at]!,bonus:'mult',mult:m.mult};all[all.length-1]={...last,board:nb}}
+ }
+ return all
 }
 /** Lines clearing, specials made and going off, and wrapped candies' second explosions, until nothing moves. */
 function cascade(b0:Board,m:Maker,a:number,c:number,first:number,after0:number[]):Frame[]{
@@ -162,13 +171,13 @@ function cascade(b0:Board,m:Maker,a:number,c:number,first:number,after0:number[]
   }
   // A wrapped candy's second explosion, where it was.
   const start=[...found.flatMap(l=>l.cells),...after.flatMap(at=>{effects.push({type:'area',at,cells:inBox(...rc(at),1)});return inBox(...rc(at),1)})]
+  // Blazing speed: each match bursts like a flame gem, around its middle.
+  if(m.blazing)for(const l of found){const mid=l.cells[Math.floor(l.cells.length/2)],box=inBox(...rc(mid),1);effects.push({type:'area',at:mid,cells:box});start.push(...box.filter(i=>!make.has(i)))}
   const gone=spread(b,start,effects)
   // In Candy crush a wrapped candy that went off goes off once more after the fall.
   const next=m.mode==='candy'?effects.filter(e=>e.type==='area'&&b[e.at]?.special==='area'&&!after.includes(e.at)).map(e=>e.at):[]
   b=settle(b,gone,make,m,frames,n,effects)
   after=next
-  // A big cascade in Gem blitz drops in a multiplier gem.
-  if(m.mode==='gems'&&n===4){const spots=b.flatMap((p,i)=>p&&!p.special&&!p.bonus?[i]:[]);const at=spots[Math.floor(m.roll()*spots.length)];if(at!==undefined){m.mult=Math.min(8,m.mult+1);b=[...b];b[at]={...b[at]!,bonus:'mult',mult:m.mult}}}
  }
  // No moves left: shuffle (keeping the pieces) until there are.
  for(let guard=0;!hasMove(b)&&guard<50;guard++){
@@ -185,7 +194,9 @@ function settle(b:Board,gone:Set<number>,make:Map<number,Piece>,m:Maker,frames:F
  const cleared=[...gone].filter(at=>!make.has(at)&&b[at]).map(at=>({at,kind:b[at]!.kind}))
  const time=[...gone].filter(at=>b[at]?.bonus==='time').length*5
  const mult=Math.max(0,...[...gone].map(at=>b[at]?.bonus==='mult'?b[at]!.mult??0:0))
- const points=cleared.length*20*cascade+make.size*60+effects.length*40
+ // Candy crush: 20 a candy (60 for three), more down a cascade. Gem blitz: 250 for a match of three, as in
+ // Bejeweled Blitz (a little more for each extra gem), more down a cascade.
+ const points=m.mode==='gems'?Math.round(cleared.length*250/3)*cascade+make.size*500+effects.length*250:cleared.length*20*cascade+make.size*60+effects.length*40
  const after=b.map((p,i)=>make.get(i)??(gone.has(i)?null:p))
  frames.push({board:after,cleared,points,cascade,effects,made:[...make].map(([at,p])=>({at,special:p.special!})),time,mult})
  const fallen:Board=Array(W*W).fill(null)
