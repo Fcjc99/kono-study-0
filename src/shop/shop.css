@@ -1,0 +1,77 @@
+/* kono.shop: the polo collection and fitting room. Scoped to .kshop so the planner's themes never reach it. */
+.kshop{--ink:#1f2a24;--soft:#5d6b63;--line:#1f2a2414;--paper:#fbf8f2;--card-bg:#fff;--polo:#1f8a96;min-height:100vh;color:var(--ink);background:var(--paper);font-family:'DM Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif}
+.kshop a{color:inherit}
+.kshop-bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px clamp(16px,4vw,48px);background:color-mix(in srgb,var(--paper) 86%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.kshop-brand{display:flex;align-items:center;gap:8px;text-decoration:none}.kshop-brand b{letter-spacing:.12em}.kshop-brand span{color:var(--soft);font-weight:500}
+.kshop-bar nav{display:flex;align-items:center;gap:clamp(10px,2.4vw,26px);font-size:.92rem}.kshop-bar nav a{text-decoration:none;opacity:.8}.kshop-bar nav a:hover{opacity:1}
+.kshop-app{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;opacity:1!important}
+@media (max-width:620px){.kshop-bar nav a:not(.kshop-app){display:none}}
+
+.kshop-hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(20px,4vw,56px);max-width:1240px;margin:0 auto;padding:clamp(18px,4vw,48px) clamp(16px,4vw,48px)}
+@media (max-width:900px){.kshop-hero{grid-template-columns:1fr}}
+
+.kshop-frame{position:relative;display:grid;place-items:center;aspect-ratio:4/5;overflow:hidden;border-radius:28px;background:radial-gradient(120% 80% at 50% 0%,#fff,color-mix(in srgb,var(--polo) 14%,#f3efe6));box-shadow:0 1px 0 #fff inset,0 24px 60px -30px #1f2a2455;transition:background .4s}
+.kshop-frame.is-live{background:#111}
+.kshop-frame canvas{width:100%;height:100%;object-fit:contain;touch-action:none;cursor:grab}
+.kshop-frame canvas:active{cursor:grabbing}
+.kshop-frame.is-mirror canvas{transform:scaleX(-1)}
+.kshop-idle{position:absolute;inset:0;display:grid;grid-template-rows:1fr auto;justify-items:center;padding:6% 6% 28px}
+.kshop-idle-polo{width:auto;height:100%;max-width:100%;min-height:0;object-fit:contain;filter:drop-shadow(0 22px 26px #1f2a2433);animation:kshop-in .5s cubic-bezier(.2,.8,.2,1)}
+@keyframes kshop-in{from{opacity:0;transform:translateY(10px) scale(.97)}}
+.kshop-idle-cta{display:grid;justify-items:center;gap:10px}.kshop-idle-cta p{margin:0;font-family:Newsreader,Georgia,serif;font-size:1.35rem;font-weight:600}
+.kshop-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.kshop-hint{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);margin:0;padding:8px 14px;border-radius:999px;background:#000a;color:#fff;font-size:.88rem;white-space:nowrap}
+.kshop-close{position:absolute;top:12px;right:12px;width:38px;height:38px;border:0;border-radius:50%;background:#fffd;color:var(--ink);font-size:1.4rem;line-height:1}
+.kshop-status{margin:12px 2px 0;color:var(--soft)}
+.kshop-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px}
+.kshop-tools label{display:flex;align-items:center;gap:10px;margin-right:auto;font-size:.9rem;color:var(--soft)}.kshop-tools input{accent-color:var(--polo);width:140px}
+.kshop-private{margin:12px 2px 0;font-size:.82rem;color:var(--soft)}
+
+.kshop-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 22px;border-radius:999px;border:1px solid #1f2a2426;background:#fff;color:var(--ink);font-weight:600;transition:transform .15s,background .2s,box-shadow .2s}
+.kshop-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 18px -10px #1f2a2466}
+.kshop-btn:disabled{opacity:.55;cursor:default}
+.kshop-btn.is-primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.kshop-btn.is-small{min-height:38px;padding:0 16px;font-size:.88rem}
+.kshop-btn.is-wide{width:100%;margin-top:6px}
+.kshop :focus-visible{outline:3px solid color-mix(in srgb,var(--polo) 70%,#fff);outline-offset:2px}
+
+.kshop-info{align-self:start;position:sticky;top:90px;display:grid;gap:12px}
+@media (max-width:900px){.kshop-info{position:static}}
+.kshop-eyebrow{font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--polo)}
+.kshop-info h1{margin:0;font-family:Newsreader,Georgia,serif;font-size:clamp(2.2rem,5vw,3.4rem);font-weight:600;line-height:1}
+.kshop-colorway{margin:-4px 0 0;color:var(--soft);font-size:1.05rem}
+.kshop-price{margin:0;font-weight:700;font-size:1.15rem}
+.kshop-blurb{margin:0;line-height:1.55;max-width:46ch}
+.kshop-field{display:grid;gap:8px;margin-top:6px}.kshop-field>span{font-size:.82rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.kshop-swatches,.kshop-sizes{display:flex;flex-wrap:wrap;gap:10px}
+.kshop-swatch{width:64px;height:72px;padding:6px;border-radius:16px;border:2px solid transparent;box-shadow:0 0 0 1px var(--line)}
+.kshop-swatch img{width:100%;height:100%;object-fit:contain}
+.kshop-swatch[aria-checked=true]{border-color:var(--ink)}
+.kshop-size{min-width:52px;height:44px;border-radius:12px;border:1px solid #1f2a2426;background:#fff;font-weight:600}
+.kshop-size[aria-checked=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.kshop-details{margin:8px 0 0;padding:16px 0 0;border-top:1px solid var(--line);list-style:none;display:grid;gap:8px;color:var(--soft);font-size:.94rem}
+.kshop-details li::before{content:'';display:inline-block;width:7px;height:7px;margin-right:10px;border-radius:50%;background:var(--polo);vertical-align:middle}
+
+.kshop-collection{max-width:1240px;margin:0 auto;padding:clamp(24px,5vw,64px) clamp(16px,4vw,48px)}
+.kshop-collection h2{margin:0 0 20px;font-family:Newsreader,Georgia,serif;font-size:clamp(1.7rem,3.4vw,2.4rem);font-weight:600}
+.kshop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px}
+.kshop-card{position:relative;display:grid;gap:12px;padding:14px 14px 18px;border:1px solid var(--line);border-radius:24px;background:var(--card-bg);color:inherit;text-align:left;transition:transform .2s,box-shadow .2s}
+.kshop-card:hover{transform:translateY(-3px);box-shadow:0 18px 40px -26px #1f2a2470}
+.kshop-card.is-on{border-color:var(--ink)}
+.kshop-card-art{display:grid;place-items:center;aspect-ratio:1;border-radius:16px;background:color-mix(in srgb,var(--card) 35%,#fff)}
+.kshop-card-art img{width:78%;height:auto;filter:drop-shadow(0 12px 14px #1f2a2422)}
+.kshop-card-text{display:grid;gap:2px;padding:0 4px}.kshop-card-text span{color:var(--soft)}.kshop-card-text em{margin-top:4px;font-style:normal;font-weight:600}
+.kshop-card-try{position:absolute;top:24px;right:24px;padding:6px 12px;border-radius:999px;background:#fff;font-size:.8rem;font-weight:600;box-shadow:0 4px 12px -6px #0004;opacity:0;transition:opacity .2s}
+.kshop-card:hover .kshop-card-try,.kshop-card:focus-visible .kshop-card-try{opacity:1}
+
+.kshop-foot{display:flex;justify-content:space-between;gap:16px;max-width:1240px;margin:0 auto;padding:28px clamp(16px,4vw,48px) 40px;border-top:1px solid var(--line);color:var(--soft);font-size:.88rem}
+
+@media (prefers-color-scheme:dark){
+ .kshop{--ink:#f1ece4;--soft:#a9b2ac;--line:#ffffff1a;--paper:#141716;--card-bg:#1c201e}
+ .kshop-app,.kshop-btn,.kshop-size,.kshop-close,.kshop-card-try{background:#232826;color:var(--ink);border-color:#ffffff24}
+ .kshop-btn.is-primary,.kshop-size[aria-checked=true]{background:var(--ink);border-color:var(--ink);color:#141716}
+ .kshop-frame{background:radial-gradient(120% 80% at 50% 0%,#2a302d,color-mix(in srgb,var(--polo) 22%,#161a18))}
+ .kshop-card-art{background:color-mix(in srgb,var(--card) 18%,#232826)}
+ .kshop-swatch{box-shadow:0 0 0 1px #ffffff24}
+}
+@media (prefers-reduced-motion:reduce){.kshop *{animation:none!important;transition:none!important}}

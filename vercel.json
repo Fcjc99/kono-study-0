@@ -9,7 +9,7 @@
     "headers": [
       {"key": "X-Content-Type-Options", "value": "nosniff"},
       {"key": "Referrer-Policy", "value": "same-origin"},
-      {"key": "Permissions-Policy", "value": "camera=(), microphone=(self), geolocation=()"},
+      {"key": "Permissions-Policy", "value": "camera=(self), microphone=(self), geolocation=()"},
       {"key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.open-meteo.com https://geocoding-api.open-meteo.com https://generativelanguage.googleapis.com https://api.openai.com; object-src 'none'; base-uri 'self'; form-action 'self'"}
     ]
   }, {

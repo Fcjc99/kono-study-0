@@ -976,5 +976,11 @@
  "/garden/world/land-beach.webp",
  "/garden/world/land-forest.webp",
  "/garden/world/land-snow.webp",
- "/garden/world/world-map.webp"
+ "/garden/world/world-map.webp",
+ "/shop/polo-sakura-teal.webp",
+ "/shop/polo-tile-navy.webp",
+ "/shop/polo-hibiscus-sky.webp",
+ "/tryon/pose_landmarker_lite.task",
+ "/tryon/wasm/vision_wasm_internal.js",
+ "/tryon/wasm/vision_wasm_internal.wasm"
 ]

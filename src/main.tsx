@@ -11,7 +11,11 @@ const SanctuaryBuildStudio = lazy(() => import('./components/SanctuaryBuildStudi
 /** The island test page (dev only, ?sanctuaryQA). */
 // eslint-disable-next-line react-refresh/only-export-components -- the entry file has no exports to refresh
 const SanctuaryQA = lazy(() => import('./SanctuaryQA'))
+/** kono.shop: the polo collection and try-on, at /shop (or ?page=shop); its code and pose model only load there. */
+// eslint-disable-next-line react-refresh/only-export-components -- the entry file has no exports to refresh
+const KonoShop = lazy(() => import('./shop/KonoShop'))
 const params = new URLSearchParams(window.location.search)
+const isShop = window.location.pathname.replace(/\/+$/, '') === '/shop' || params.get('page') === 'shop'
 captureInstallPrompt()
 
 /** KONO's Google Fonts (DM Sans, Newsreader, Caveat; the Zen pair only once Zen Ink is picked). Added from
@@ -26,7 +30,7 @@ zenFont()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ErrorBoundary>{params.get('page') === 'build' ? <Suspense fallback={null}><SanctuaryBuildStudio /></Suspense> : import.meta.env.DEV && params.has('sanctuaryQA') ? <Suspense fallback={null}><SanctuaryQA /></Suspense> : <App />}</ErrorBoundary>
+    <ErrorBoundary>{isShop ? <Suspense fallback={null}><KonoShop /></Suspense> : params.get('page') === 'build' ? <Suspense fallback={null}><SanctuaryBuildStudio /></Suspense> : import.meta.env.DEV && params.has('sanctuaryQA') ? <Suspense fallback={null}><SanctuaryQA /></Suspense> : <App />}</ErrorBoundary>
   </StrictMode>,
 )
 

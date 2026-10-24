@@ -34,7 +34,7 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
   // K-Quiz records lectures (microphone, scoped to this site only) and calls the student's own AI
   // provider key directly from the browser to generate study materials — connect-src is widened to
   // just those two providers, never a general allowlist.
-  secure.headers.set('Permissions-Policy','camera=(), microphone=(self), geolocation=()')
+  secure.headers.set('Permissions-Policy','camera=(self), microphone=(self), geolocation=()')
   if(secure.headers.get('Content-Type')?.includes('text/html'))secure.headers.set('Content-Security-Policy',"default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://generativelanguage.googleapis.com https://api.openai.com; object-src 'none'; base-uri 'self'; form-action 'self'")
   return secure
  }
