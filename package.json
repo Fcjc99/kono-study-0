@@ -79,7 +79,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tesseract.js": "7.0.0",
-    "zod": "^4.5.4"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
