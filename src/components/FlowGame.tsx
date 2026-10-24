@@ -100,7 +100,7 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
  },[])
  // ---- Touch: drag to move, drag down to drop gently, flick down to drop, flick up to hold, tap to turn ----
  const touch=useRef<{x:number;y:number;t:number;mx:number;my:number;moved:boolean}|null>(null)
- const cellPx=()=>{const c=canvas.current;return c?c.getBoundingClientRect().width/LAYOUT.w:30}
+ const cellPx=()=>{const c=canvas.current;if(!c)return 30;const r=c.getBoundingClientRect();return Math.min(r.width/LAYOUT.w,r.height/LAYOUT.h)}
  const pdown=(e:React.PointerEvent)=>{e.currentTarget.setPointerCapture(e.pointerId);touch.current={x:e.clientX,y:e.clientY,t:performance.now(),mx:e.clientX,my:e.clientY,moved:false}}
  const pmove=(e:React.PointerEvent)=>{
   const t=touch.current;if(!t)return
@@ -159,7 +159,8 @@ function draw(c:HTMLCanvasElement|null,s:Game,dt:number,v:Vis){
   if(c.width!==w||c.height!==h){c.width=w;c.height=h}
   const x=c.getContext('2d');if(!x)return
   v.clock+=dt
-  const cs=w/LAYOUT.w,ox=LAYOUT.side*cs,oy=LAYOUT.top*cs
+  // Cells fit whatever box the canvas is given (the whole layout always shows), centred across it.
+  const cs=Math.min(w/LAYOUT.w,h/LAYOUT.h),ox=(w-LAYOUT.w*cs)/2+LAYOUT.side*cs,oy=LAYOUT.top*cs
   if(v.spriteSize!==Math.round(cs)){v.spriteSize=Math.round(cs);v.sprites=COLORS.map(col=>blockSprite(Math.round(cs),col))}
   // The field of light: points drifting toward you, faster with each level; it stills and turns deep blue in Flow.
   const inFlow=s.flowMs>0,target=inFlow?225:(200+s.level*37)%360
@@ -219,8 +220,8 @@ function draw(c:HTMLCanvasElement|null,s:Game,dt:number,v:Vis){
    x.globalAlpha=1
   }
   x.fillStyle='rgba(255,255,255,.75)';x.font=Math.round(cs*0.42)+'px system-ui, sans-serif';x.textAlign='center'
-  x.fillText('HOLD',ox/2,oy+cs*0.5);mini(s.hold,ox/2,oy+cs*1.6,cs*0.55,!s.canHold)
-  const rx=ox+COLS*cs+ox/2
+  x.fillText('HOLD',ox-LAYOUT.side*cs/2,oy+cs*0.5);mini(s.hold,ox-LAYOUT.side*cs/2,oy+cs*1.6,cs*0.55,!s.canHold)
+  const rx=ox+COLS*cs+LAYOUT.side*cs/2
   x.fillText('NEXT',rx,oy+cs*0.5)
   s.queue.slice(0,5).forEach((k,i)=>mini(k,rx,oy+cs*(1.6+i*2.1),cs*(i?0.45:0.6)))
  }
