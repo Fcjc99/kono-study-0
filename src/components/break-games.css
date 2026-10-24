@@ -498,10 +498,14 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 /* KONO Flow: the canvas well (18 × 20.8 cells), the Flow meter in quarters, the count during Flow, the words
    for big clears, and a pad of buttons for phones. */
 .break-game.flow-game{justify-items:center;gap:8px;color:#fff;user-select:none;-webkit-user-select:none}
-.flow-game .blast-top,.flow-meter,.flow-pad,.flow-game .blast-help{width:100%;max-width:min(440px,94vw)}
+/* Everything lines up with the well's edges (--fw, its width), and the game sits just under the header. */
+.flow-game .blast-top,.flow-meter,.flow-pad,.flow-game .blast-help{width:var(--fw,100%);max-width:none}
+.game-screen-body:has(.flow-game){align-content:start;padding-top:0}
+.game-screen-body>.flow-game{max-width:none}
+.flow-canvas{display:block}
 /* The well's width and height are set in pixels from the screen (FlowGame's stageSize), so nothing squeezes it. */
 .flow-stage{position:relative;flex:none;justify-self:center;max-width:none!important}
-.flow-canvas{display:block;width:100%;height:100%;border-radius:14px;touch-action:none;background:#05040f;box-shadow:0 10px 40px rgba(60,40,180,.45)}
+.flow-canvas{border-radius:14px;touch-action:none;background:#05040f;box-shadow:0 10px 40px rgba(60,40,180,.45)}
 .flow-count{position:absolute;left:50%;top:38%;translate:-50% -50%;margin:0;text-align:center;pointer-events:none;line-height:1}
 .flow-count b{display:block;font-size:4rem;font-weight:900;color:#fff;text-shadow:0 0 18px #8ad8ff,0 0 40px #5b8cff}
 .flow-count small{font-size:.85rem;letter-spacing:.12em;text-transform:uppercase;opacity:.85}

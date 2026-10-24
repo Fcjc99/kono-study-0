@@ -125,14 +125,14 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
   else if(!t.moved&&Math.hypot(dx,dy)<cellPx()*0.6&&dt<450)act(s=>rotate(s,1))
  }
  const can=hud.flow>=0.25&&!hud.flowMs
- return <div className="break-game flow-game">
+ return <div className="break-game flow-game" style={{'--fw':size.w+'px'} as React.CSSProperties}>
   <div className="blast-top">
    <span className="blast-best">Level {hud.level}</span>
    <span className="blast-coins">{hud.lines} line{hud.lines===1?'':'s'}</span>
    <strong className="blast-score" aria-label={'Score '+hud.score}>{hud.score.toLocaleString()}</strong>
   </div>
   <div className="flow-stage" style={{width:size.w,height:size.h}}>
-   <canvas ref={canvas} className="flow-canvas" aria-label="KONO Flow well" role="img" onPointerDown={pdown} onPointerMove={pmove} onPointerUp={pup} onPointerCancel={()=>{touch.current=null}}/>
+   <canvas ref={canvas} className="flow-canvas" style={{width:size.w,height:size.h}} aria-label="KONO Flow well" role="img" onPointerDown={pdown} onPointerMove={pmove} onPointerUp={pup} onPointerCancel={()=>{touch.current=null}}/>
    {hud.flowMs>0&&<p className="flow-count" aria-live="polite"><b>{hud.flowLines}</b><small>lines · {hud.flowMs}s</small></p>}
    <div className="flow-words" aria-live="polite">{words.map(w=><p key={w.key} className={w.big?'is-big':''}>{w.text}</p>)}</div>
   </div>
@@ -225,20 +225,21 @@ function draw(c:HTMLCanvasElement|null,s:Game,dt:number,v:Vis){
    x.globalAlpha=1
   }
   x.fillStyle='rgba(255,255,255,.75)';x.font=Math.round(cs*0.42)+'px system-ui, sans-serif';x.textAlign='center'
-  x.fillText('HOLD',ox-LAYOUT.side*cs/2,oy+cs*0.5);mini(s.hold,ox-LAYOUT.side*cs/2,oy+cs*1.6,cs*0.55,!s.canHold)
+  x.fillText('HOLD',ox-LAYOUT.side*cs/2,oy+cs*0.5);mini(s.hold,ox-LAYOUT.side*cs/2,oy+cs*1.6,cs*0.5,!s.canHold)
   const rx=ox+COLS*cs+LAYOUT.side*cs/2
   x.fillText('NEXT',rx,oy+cs*0.5)
-  s.queue.slice(0,5).forEach((k,i)=>mini(k,rx,oy+cs*(1.6+i*2.1),cs*(i?0.45:0.6)))
+  s.queue.slice(0,5).forEach((k,i)=>mini(k,rx,oy+cs*(1.6+i*2.1),cs*(i?0.4:0.52)))
  }
-/** The well's box: as wide as fits (up to 440 px), and short enough to leave room above for the header and
- * score and below for the meter, buttons and help (about 330 px together), in the canvas's proportions. */
+/** The well's box: as wide as fits (up to 460 px), and short enough to leave room above for the header and
+ * score and below for the meter, buttons and help (about 300 px together), in the canvas's proportions. */
 function stageSize(){
  const vw=window.visualViewport?.width??window.innerWidth,vh=window.visualViewport?.height??window.innerHeight
- const w=Math.max(220,Math.min(440,vw*0.96,(vh-330)*LAYOUT.w/LAYOUT.h))
+ // (The screen's body has 12 px of padding each side, so the well and its rows of controls stay inside it.)
+ const w=Math.max(220,Math.min(460,vw-28,(vh-300)*LAYOUT.w/LAYOUT.h))
  return {w:Math.round(w),h:Math.round(w*LAYOUT.h/LAYOUT.w)}
 }
 /** The canvas in cells: the well (10 × 20) with a column for hold on the left and the queue on the right. */
-const LAYOUT={side:4,top:0.4,w:COLS+8,h:ROWS+0.8}
+const LAYOUT={side:3.2,top:0.4,w:COLS+6.4,h:ROWS+0.8}
 /** A block of light: a rounded pane, darker at the rim and bright in the middle, with a glint. */
 function blockSprite(size:number,color:string):HTMLCanvasElement{
  const c=document.createElement('canvas');c.width=c.height=size
