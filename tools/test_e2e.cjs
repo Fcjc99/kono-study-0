@@ -3635,6 +3635,18 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  await fr.getByRole('heading',{name:/Bonk!|Nice flying!|medal!/}).waitFor({timeout:8000})
  await fr.getByText(/\d+ pipes?/).first().waitFor()
  await flappy.getByRole('button',{name:'Done'}).click();await flappy.waitFor({state:'detached'})
+ // KONO Flow: shapes drop and score; hold takes one; ■ End shows the results.
+ await town.getByRole('button',{name:/KONO Flow/}).click()
+ const flow=await startGame(page,'🌌 KONO Flow')
+ await flow.getByRole('img',{name:'KONO Flow well'}).waitFor()
+ await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowUp');await page.keyboard.press('Space')
+ await page.waitForFunction(()=>Number(document.querySelector('.flow-game .blast-score')?.textContent?.replace(/,/g,''))>0)
+ await flow.getByRole('button',{name:'Hold'}).click();await flow.getByRole('button',{name:'Drop'}).click()
+ await flow.getByRole('meter',{name:'Flow'}).waitFor()
+ if(process.env.KONO_SHOTS)await flow.screenshot({path:process.env.KONO_SHOTS+'/flow.png'})
+ await flow.getByRole('button',{name:'■ End'}).click()
+ await flow.getByRole('region',{name:'Results'}).getByText(/\d[\d,]* points/).first().waitFor()
+ await flow.getByRole('button',{name:'Done'}).click();await flow.waitFor({state:'detached'})
  // KONO.io: the leaderboard lists you; steering works; ■ End shows your share of the map.
  await town.getByRole('button',{name:/KONO\.io/}).click()
  await startGame(page,'🟦 KONO.io',/^Solo$/)

@@ -5,6 +5,7 @@ import GameScreen,{type GameHandle,type GameResult} from './GameScreen'
 import {gameSound} from '../konoSounds'
 import Meowdoku from './Meowdoku'
 import Match3 from './Match3'
+import FlowGame from './FlowGame'
 import FlappyKono from './FlappyKono'
 import PaperKono from './PaperKono'
 import {flapMedal} from '../store/flappy'
@@ -18,9 +19,9 @@ import {candyLevelNow,freshBoard,jellyFor,maker,saveCandyLevel,type Board,type M
  * minutes; when it's over the games stop and KONO says it's time for the next session. Best scores are
  * kept on this device only. Loaded only when opened, so it never adds to the app's startup.
  * The same games, and KONO blast (the block puzzle), Meowdoku (the cat puzzle), Gem blitz and Candy crush
- * (match-3), Flappy KONO and KONO.io (claim the map, after Paper.io 2), are KONO Town's arcade: no break timer there, and `onScore` can turn a
+ * (match-3), Flappy KONO, KONO.io (claim the map, after Paper.io 2) and KONO Flow (falling blocks), are KONO Town's arcade: no break timer there, and `onScore` can turn a
  * score into coins (it returns what to add to the result line). */
-type Game='catch'|'peekaboo'|'blast'|'meow'|'gems'|'candy'|'flap'|'paper'
+type Game='catch'|'peekaboo'|'blast'|'meow'|'gems'|'candy'|'flap'|'paper'|'flow'
 export const BREAK_MINUTES=5
 const ROUND_MS=30_000
 const GAMES:{id:Game;emoji:string;name:string;how:string;best:(n:number)=>string;arcade?:boolean}[]=[
@@ -30,6 +31,7 @@ const GAMES:{id:Game;emoji:string;name:string;how:string;best:(n:number)=>string
  {id:'meow',emoji:'🐱',name:'Meowdoku',how:'One cat in every row, column and color, and no two cats touching.',best:n=>'Best: level '+n,arcade:true},
  {id:'gems',emoji:'💎',name:'Gem blitz',how:'Swap gems to match 3 or more. One minute, as many points as you can!',best:n=>'Best: '+n+' points',arcade:true},
  {id:'candy',emoji:'🍬',name:'Candy crush',how:'Match candies to reach each level’s target in the moves you have.',best:n=>'Best: level '+n,arcade:true},
+ {id:'flow',emoji:'🌌',name:'KONO Flow',how:'Turn and drop the falling shapes to fill rows of light. Fill the Flow meter, then set it off: time stops while the rows you fill pile up, and they all clear at once!',best:n=>'Best: '+n.toLocaleString()+' points',arcade:true},
  {id:'flap',emoji:'🐤',name:'Flappy KONO',how:'Tap to flap KONO through the gaps in the pipes.',best:n=>'Best: '+n+' pipe'+(n===1?'':'s'),arcade:true},
  {id:'paper',emoji:'🟦',name:'KONO.io',how:'Leave your land, loop around and come home to claim it. Cut the bots’ trails, and keep yours safe! Play solo, or in a team battle: Blue against Red for two minutes.',best:n=>'Best: '+n+'% of the map',arcade:true},
 ]
@@ -79,6 +81,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
   :game==='blast'?<BlockBlast key={round} ref={handle} start={pieces} saved={blastSave} best={readBest('blast')} sound={sound} onCoins={onBlastCoins} onEnd={n=>finish('blast',n,'KONO blast: '+n+' point'+(n===1?'':'s')+'! 🧱')}/>
  :game==='meow'&&meow?<Meowdoku key={round} ref={handle} level={meow.level} puzzle={meow.puzzle} sound={sound} onEnd={(level,seconds,solved,extra)=>solved?finish('meow',level,'Solved in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+(extra?.best?' — a new best for '+meow.puzzle.n+' × '+meow.puzzle.n+'!':'.')+(extra?.hints?' ('+extra.hints+' hint'+(extra.hints===1?'':'s')+')':'')+' Next up: level '+(level+1)+'.',{title:'Purr-fect!',coinScore:meow.puzzle.n,scoreText:'Level '+level}):finish('meow',0,(extra?.lives===0?'Three wrong cats. ':'')+'This one stays at level '+level+'. Play again for a new puzzle.',{title:extra?.lives===0?'Out of hearts 💔':'Puzzle skipped',coinScore:0,scoreText:'Level '+level,won:false})}/>
   :game==='flap'?<FlappyKono key={round} ref={handle} best={readBest('flap')} sound={sound} onEnd={n=>{const medal=flapMedal(n);finish('flap',n,(medal?medal.emoji+' '+medal.name+' medal! ':'')+'KONO flew through '+n+' pipe'+(n===1?'':'s')+'.',{title:medal?medal.name+' medal!':n>0?'Nice flying!':'Bonk!',scoreText:n+' pipe'+(n===1?'':'s'),won:n>0})}}/>
+  :game==='flow'?<FlowGame key={round} ref={handle} sound={sound} onEnd={(score,lines,level)=>finish('flow',score,lines+' line'+(lines===1?'':'s')+', level '+level+'. 🌌',{title:'Game over',scoreText:score.toLocaleString()+' points'})}/>
   :game==='paper'?<PaperKono key={round} ref={handle} mode={paperMode} sound={sound} onEnd={r=>r.team?finish('paper',0,'Blue '+r.team.blue+'% · Red '+r.team.red+'%'+(r.kills?'. You cut '+r.kills+' trail'+(r.kills===1?'':'s'):'')+'.',{title:r.team.won?'Blue wins! 🏆':r.team.blue===r.team.red?'A tie!':'Red wins this time',coinScore:(r.team.won?25:10)+r.kills*5,scoreText:'Team battle',won:r.team.won}):finish('paper',r.share,'You claimed '+r.share+'% of the map'+(r.kills?' and cut '+r.kills+' trail'+(r.kills===1?'':'s'):'')+'. Rank #'+r.rank+'.',{title:r.rank===1?'Top of the map!':'Nice run!',coinScore:Math.round(r.share+r.kills*5),scoreText:r.share+'%',won:r.share>1})}/>
   :(game==='gems'||game==='candy')&&match?<Match3 key={round} ref={handle} mode={game} level={match.level} start={match} sound={sound} onEnd={(score,won,stars)=>{
    if(game==='candy'){if(won)saveCandyLevel(match.level+1);finish('candy',won?match.level:match.level-1,won?'★'.repeat(stars)+'☆'.repeat(3-stars)+' · '+score.toLocaleString()+' points!':'So close! '+score+' points. Try the level again.',{title:won?'Level '+match.level+' complete!':'Out of moves',coinScore:won?score:Math.round(score/2),scoreText:score+' points',won})}

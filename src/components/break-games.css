@@ -494,3 +494,32 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 @keyframes m3-hop{0%,100%{transform:none}25%{transform:scale(1.1,.88)}50%{transform:translateY(-16%) scale(.94,1.08)}80%{transform:translateY(0) scale(1.07,.93)}}
 .match3.is-gems .match3-piece.is-hop .m3-gem{animation:m3-catch .6s ease-in-out;transform-origin:50% 50%}
 @keyframes m3-catch{0%,100%{filter:none;transform:none}45%{filter:brightness(1.7) drop-shadow(0 0 6px #fff);transform:scale(1.08) rotate(-6deg)}}
+
+/* KONO Flow: the canvas well (18 × 20.8 cells), the Flow meter in quarters, the count during Flow, the words
+   for big clears, and a pad of buttons for phones. */
+.break-game.flow-game{justify-items:center;gap:8px;color:#fff;user-select:none;-webkit-user-select:none}
+.flow-game .blast-top,.flow-meter,.flow-pad,.flow-game .blast-help{width:100%;max-width:min(440px,94vw)}
+.flow-stage{position:relative;width:min(440px,94vw);max-height:68vh;aspect-ratio:18/20.8}
+.flow-canvas{display:block;width:100%;height:100%;border-radius:14px;touch-action:none;background:#05040f;box-shadow:0 10px 40px rgba(60,40,180,.45)}
+.flow-count{position:absolute;left:50%;top:38%;translate:-50% -50%;margin:0;text-align:center;pointer-events:none;line-height:1}
+.flow-count b{display:block;font-size:4rem;font-weight:900;color:#fff;text-shadow:0 0 18px #8ad8ff,0 0 40px #5b8cff}
+.flow-count small{font-size:.85rem;letter-spacing:.12em;text-transform:uppercase;opacity:.85}
+.flow-words{position:absolute;left:0;right:0;top:20%;display:grid;justify-items:center;gap:4px;pointer-events:none}
+.flow-words p{margin:0;font-weight:900;font-size:1.25rem;letter-spacing:.06em;text-transform:uppercase;color:#fff;text-shadow:0 0 10px #ffd84a,0 0 24px #ff7ad0;animation:flow-word 1.4s ease-out both}
+.flow-words p.is-big{font-size:2rem;text-shadow:0 0 14px #5ef2ff,0 0 34px #c37bff}
+@keyframes flow-word{0%{transform:scale(.4);opacity:0;filter:blur(6px)}15%{transform:scale(1.15);opacity:1;filter:none}70%{transform:none;opacity:1}100%{transform:translateY(-30px);opacity:0}}
+.flow-meter{position:relative;height:12px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden}
+.flow-meter span{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#5b8cff,#c37bff,#5ef2ff);border-radius:999px;transition:width .3s}
+.flow-meter span.is-ready{animation:flow-ready .8s ease-in-out infinite alternate}
+.flow-meter span.is-on{background:linear-gradient(90deg,#fff,#bfe9ff);animation:flow-ready .3s ease-in-out infinite alternate}
+.flow-meter i{position:absolute;top:0;bottom:0;width:2px;background:rgba(0,0,0,.4)}
+@keyframes flow-ready{to{filter:brightness(1.5) drop-shadow(0 0 6px #c37bff)}}
+.flow-pad{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.flow-pad button{min-height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:1.15rem;font-weight:800;touch-action:manipulation}
+.flow-pad button:active{background:rgba(255,255,255,.25)}
+.flow-pad .flow-go{font-size:.85rem}
+.flow-pad .flow-go.is-ready{background:linear-gradient(135deg,#5b8cff,#c37bff);border-color:#fff;box-shadow:0 0 14px #c37bff}
+.flow-pad button:disabled{opacity:.4}
+.flow-game .blast-help{font-size:.72rem;opacity:.7;text-align:center}
+.game-screen:has(.flow-game){background:radial-gradient(ellipse at 50% 20%,#1d1450,#04030c 70%)}
+@media(prefers-reduced-motion:reduce){.flow-words p{animation-duration:2s}}
