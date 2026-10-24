@@ -3,7 +3,9 @@ import {useEffect,useImperativeHandle,useRef,type Ref} from 'react'
 /** A particle layer for the arcade: a canvas over a game board that throws sparks, shards, stars,
  * embers, confetti and shockwave rings. Positions are fractions of the layer (0–1), so a game just says
  * where on its board. Sparks and stars glow (they're drawn adding light); it only animates while
- * something is flying, and does nothing for people who'd rather have less motion. */
+ * something is flying, and does nothing for people who'd rather have less motion. The canvas reaches a
+ * little past its board on every side (`PAD`, as in .sparks), so sparks can fly off the edges. */
+const PAD=0.1,at=(f:number)=>(f+PAD)/(1+2*PAD)
 export type SparkKind='spark'|'shard'|'star'|'ember'|'confetti'|'heart'|'paw'
 export type SparksHandle={burst:(x:number,y:number,o?:{color?:string|string[];n?:number;kind?:SparkKind;speed?:number;size?:number})=>void;ring:(x:number,y:number,color?:string,size?:number)=>void;line:(x0:number,y0:number,x1:number,y1:number,color?:string)=>void}
 type P={x:number;y:number;vx:number;vy:number;life:number;max:number;size:number;color:string;kind:SparkKind|'ring';rot:number;vr:number;grav:number}
@@ -41,8 +43,8 @@ export default function Sparks({ref}:{ref:Ref<SparksHandle>}){
  const go=()=>{if(!raf.current)raf.current=requestAnimationFrame(loop)}
  const add=(p:P)=>{if(still.current)return;if(parts.current.length<900)parts.current.push(p)}
  useImperativeHandle(ref,()=>({
-  burst:(x,y,{color='#fff',n=12,kind='spark',speed=1,size=6}={})=>{
-   const colors=Array.isArray(color)?color:kind==='confetti'?CONFETTI:[color]
+  burst:(bx,by,{color='#fff',n=12,kind='spark',speed=1,size=6}={})=>{
+   const x=at(bx),y=at(by),colors=Array.isArray(color)?color:kind==='confetti'?CONFETTI:[color]
    for(let i=0;i<n;i++){
     const a=Math.random()*Math.PI*2,v=(0.004+Math.random()*0.012)*speed
     add({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-(kind==='ember'?0.004:kind==='confetti'?0.01:0),life:0,max:kind==='confetti'?90+Math.random()*40:kind==='ember'?50+Math.random()*30:28+Math.random()*24,
@@ -50,9 +52,9 @@ export default function Sparks({ref}:{ref:Ref<SparksHandle>}){
    }
    go()
   },
-  ring:(x,y,color='#fff',size=80)=>{add({x,y,vx:0,vy:0,life:0,max:26,size,color,kind:'ring',rot:0,vr:0,grav:0});go()},
+  ring:(x,y,color='#fff',size=80)=>{add({x:at(x),y:at(y),vx:0,vy:0,life:0,max:26,size,color,kind:'ring',rot:0,vr:0,grav:0});go()},
   line:(x0,y0,x1,y1,color='#bfe9ff')=>{
-   for(let i=0;i<=24;i++){const t=i/24;add({x:x0+(x1-x0)*t,y:y0+(y1-y0)*t,vx:(Math.random()-0.5)*0.006,vy:(Math.random()-0.5)*0.006,life:0,max:20+Math.random()*16,size:5+Math.random()*4,color,kind:'spark',rot:0,vr:0,grav:0})}
+   for(let i=0;i<=24;i++){const t=i/24;add({x:at(x0+(x1-x0)*t),y:at(y0+(y1-y0)*t),vx:(Math.random()-0.5)*0.006,vy:(Math.random()-0.5)*0.006,life:0,max:20+Math.random()*16,size:5+Math.random()*4,color,kind:'spark',rot:0,vr:0,grav:0})}
    go()
   },
  }),[]) // eslint-disable-line react-hooks/exhaustive-deps

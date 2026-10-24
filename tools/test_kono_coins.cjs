@@ -267,68 +267,68 @@ test('Flappy KONO: KONO falls and a flap lifts it, pipes come in with a gap, fly
  assert.ok(f.crash({x:f.FLAP.x-10,gapY:300,scored:false,color:0},100),'inside the top pipe');assert.ok(!f.crash({x:f.FLAP.x-10,gapY:300,scored:false,color:0},300))
  assert.equal(f.flapMedal(9),null);assert.equal(f.flapMedal(10).name,'Bronze');assert.equal(f.flapMedal(25).name,'Silver');assert.equal(f.flapMedal(41).name,'Diamond')
 })
-test('KONO.io: a loop out of your land claims the trail and what it closes in; touching a trail cuts it; your own trail or the edge ends you; bots play on their own',()=>{
+test('KONO.io: steering curves (no grid turns); a loop out of your land claims the trail and what it closes in; touching a trail cuts it; your own trail or the edge ends you; bots play on their own',()=>{
  const P=load('src/store/paper.ts'),seeded=load('src/store/meowdoku.ts').seeded,N=P.N
  const a=P.newArena(seeded(3),0),me=a.players[0],mine=()=>a.own.filter(x=>x===1).length
- assert.equal(mine(),21,'a round patch to start')
- // Walk a loop: 5 right of home, then 6 down, 5 back left, up home.
- a.own.fill(0);for(let y=10;y<=12;y++)for(let x=10;x<=12;x++)a.own[y*N+x]=1
- Object.assign(me,{x:12,y:11,dir:1,want:1,trail:[]})
- const go=(d,n)=>{for(let k=0;k<n;k++){P.steer(me,d);P.tick(a)}}
- go(1,5);assert.equal(me.trail.length,5,'outside, KONO leaves a trail')
- go(2,6);go(3,5)
- const before=mine();go(0,5)
- assert.ok(me.alive,'home safe');assert.equal(me.trail.length,0);assert.ok(mine()>before+20,'the loop and what it closes in are claimed ('+before+' → '+mine()+')')
- assert.equal(a.own[14*N+15],1,'a square inside the loop is claimed')
- // Back on yourself: no 180° turns, so steering straight back is ignored.
- P.steer(me,(me.dir+2)%4);assert.notEqual(me.want,(me.dir+2)%4)
+ assert.ok(mine()>=25&&mine()<=45,'a round patch to start ('+mine()+')')
+ // Turning is gradual: one tick can't swing right round.
+ Object.assign(me,{angle:0,want:0});P.steer(me,Math.PI);P.tick(a);assert.ok(Math.abs(me.angle)<=P.TURN+1e-9,'a steady turn')
+ // Walk a loop: right out of home, down, left, then up back in.
+ a.own.fill(0);a.trail.fill(0);for(let y=20;y<=26;y++)for(let x=20;x<=26;x++)a.own[y*N+x]=1
+ Object.assign(me,{x:25.5,y:23.5,angle:0,want:0,trail:[],path:[]})
+ const go=(ang,n)=>{for(let k=0;k<n;k++){P.steer(me,ang);P.tick(a)}}
+ go(0,16);assert.ok(me.trail.length>3,'outside, KONO leaves a trail');assert.ok(me.path.length>0,'and the trail has a path to draw')
+ go(Math.PI/2,20);go(Math.PI,22)
+ const before=mine();go(-Math.PI/2,30)
+ assert.ok(me.alive,'home safe');assert.equal(me.trail.length,0);assert.ok(mine()>before+30,'the loop and what it closes in are claimed ('+before+' → '+mine()+')')
+ assert.equal(a.own[29*N+29],1,'a square inside the loop is claimed')
  // Off the edge.
- Object.assign(me,{x:0,y:0,dir:3,want:3});P.tick(a);assert.ok(!me.alive,'off the map ends you')
- // A cut: a bot walks across your trail.
+ Object.assign(me,{x:0.4,y:50.5,angle:Math.PI,want:Math.PI});P.tick(a);assert.ok(!me.alive,'off the map ends you')
+ // A cut: a bot heads down across your trail.
  const b=P.newArena(seeded(5),1),you=b.players[0],bot=b.players[1]
  b.own.fill(0);b.trail.fill(0)
  for(let y=20;y<=22;y++)for(let x=20;x<=22;x++)b.own[y*N+x]=1
- for(let y=40;y<=42;y++)for(let x=40;x<=42;x++)b.own[y*N+x]=2
- Object.assign(you,{x:25,y:30,dir:1,want:1,trail:[30*N+23,30*N+24,30*N+25]});for(const i of you.trail)b.trail[i]=1
- Object.assign(bot,{x:24,y:29,dir:2,want:2,trail:[]});bot.bot.plan=[2,2,2]
- P.tick(b)
+ for(let y=60;y<=62;y++)for(let x=60;x<=62;x++)b.own[y*N+x]=2
+ const tr=[30*N+23,30*N+24,30*N+25,30*N+26,30*N+27];Object.assign(you,{x:27.5,y:30.5,angle:0,want:0,trail:[...tr],path:[[23.5,30.5],[27.5,30.5]]});for(const i of tr)b.trail[i]=1
+ Object.assign(bot,{x:25.5,y:29.3,angle:Math.PI/2,want:Math.PI/2,trail:[],path:[]});bot.bot.goals=[[25.5,45]]
+ for(let k=0;k<4&&you.alive;k++)P.tick(b)
  assert.ok(!you.alive,'your trail was cut');assert.equal(bot.kills,1);assert.equal(b.trail.filter(x=>x===1).length,0,'the cut trail is gone')
- // A crowd of bots plays for a while without breaking the map.
+ assert.ok(b.log.some(e=>e.who===1&&e.by===bot.id&&e.x>0),'the cut is logged with where it happened')
+ // A crowd of bots plays for a while without breaking the map, and grows land.
  const c=P.newArena(seeded(9),6)
- for(let k=0;k<600;k++){c.players[0].alive=true;P.tick(c)}
+ const start=P.shares(c)
+ for(let k=0;k<1500;k++){c.players[0].alive=false;P.tick(c)}
  const share=P.shares(c);assert.ok([...share.values()].reduce((x,y)=>x+y,0)<=100.0001)
- assert.ok(c.players.slice(1).some(p=>share.get(p.id)>0.6),'bots grow their land')
+ assert.ok(c.players.slice(1).some(p=>share.get(p.id)>start.get(p.id)*1.5),'bots grow their land')
 })
 test('KONO.io team battle: four a side, a team shares its land, teammates cross each other’s trails, the cut come back on their team’s land, and two minutes decide it',()=>{
  const P=load('src/store/paper.ts'),seeded=load('src/store/meowdoku.ts').seeded,N=P.N
  const a=P.newArena(seeded(4),6,'#3e6fe6','team')
  assert.equal(a.players.length,8);assert.equal(a.players.filter(p=>p.team===1).length,4);assert.equal(a.players.filter(p=>p.team===2).length,4)
  assert.ok([...a.own].every(x=>x===0||x===1||x===2),'land is held by a team')
- const you=a.players[0],mate=a.players[1],foe=a.players[4]
- for(const p of a.players.slice(1))p.bot.plan=[]
- // A teammate walks across your trail: you're fine. The other team does it: you're out.
+ const you=a.players[0],mate=a.players[1]
  a.own.fill(0);a.trail.fill(0)
- for(let y=20;y<=22;y++)for(let x=20;x<=22;x++)a.own[y*N+x]=1
- for(let y=40;y<=42;y++)for(let x=40;x<=42;x++)a.own[y*N+x]=2
+ for(let y=20;y<=24;y++)for(let x=20;x<=24;x++)a.own[y*N+x]=1
+ for(let y=70;y<=74;y++)for(let x=70;x<=74;x++)a.own[y*N+x]=2
  for(const p of a.players.slice(2))Object.assign(p,{alive:false,back:1e9})
- foe.alive=true;Object.assign(foe,{x:45,y:45,dir:1,want:1,trail:[]});foe.bot.plan=[]
- Object.assign(you,{x:25,y:30,dir:1,want:1,trail:[30*N+23,30*N+24,30*N+25]});for(const i of you.trail)a.trail[i]=1
- Object.assign(mate,{x:24,y:29,dir:2,want:2,trail:[]});mate.bot.plan=[2]
- a.players[0].want=1;P.tick(a)
- assert.ok(you.alive&&mate.alive,'teammates pass over each other’s trails');assert.equal(a.trail[30*N+24],1,'your trail stays yours')
+ // A teammate walks across your trail: you're fine.
+ const tr=[35*N+30,35*N+31,35*N+32,35*N+33,35*N+34];Object.assign(you,{x:34.5,y:35.5,angle:0,want:0,trail:[...tr],path:[]});for(const i of tr)a.trail[i]=1
+ Object.assign(mate,{x:32.5,y:34.3,angle:Math.PI/2,want:Math.PI/2,trail:[],path:[]});mate.bot.goals=[[32.5,50]]
+ for(let k=0;k<4;k++){you.want=0;P.tick(a)}
+ assert.ok(you.alive&&mate.alive,'teammates pass over each other’s trails');assert.equal(a.trail[35*N+32],1,'your trail stays yours')
  // Your loop claims land for Blue.
+ for(let i=0;i<N*N;i++)if(a.trail[i])a.trail[i]=0
+ Object.assign(mate,{alive:false,back:1e9});Object.assign(you,{x:23.5,y:22.5,angle:0,want:0,trail:[],path:[]})
  const blue=()=>a.own.filter(x=>x===1).length,before=blue()
- Object.assign(you,{x:22,y:21,dir:1,want:1,trail:[]});for(let i=0;i<N*N;i++)if(a.trail[i]===1)a.trail[i]=0
- mate.alive=false;mate.back=1e9
- const go=(d,n)=>{for(let k=0;k<n;k++){P.steer(you,d);P.tick(a)}}
- go(1,3);go(2,4);go(3,4);go(0,3)
- assert.ok(you.alive);assert.ok(blue()>before,'the loop is Blue’s now');assert.ok(P.teamShares(a).get(1)>P.teamShares(a).get(2))
+ const go=(ang,n)=>{for(let k=0;k<n;k++){P.steer(you,ang);P.tick(a)}}
+ go(0,14);go(Math.PI/2,16);go(Math.PI,18);go(-Math.PI/2,26)
+ assert.ok(you.alive);assert.ok(blue()>before+10,'the loop is Blue’s now');assert.ok(P.teamShares(a).get(1)>P.teamShares(a).get(2))
  assert.equal(P.shares(a).get(1),P.teamShares(a).get(1),'your share is your team’s')
- // Cut: you come back three seconds later on Blue land (and Blue keeps its land meanwhile).
- Object.assign(you,{x:N-1,y:5,dir:1,want:1});P.tick(a);assert.ok(!you.alive)
+ // Crash: you come back three seconds later on Blue land (and Blue keeps its land meanwhile).
+ Object.assign(you,{x:N-0.2,y:5.5,angle:0,want:0});P.tick(a);assert.ok(!you.alive)
  assert.ok(blue()>0,'the team keeps its land')
- for(let k=0;k<31;k++)P.tick(a)
- assert.ok(you.alive,'back in team battle');assert.equal(a.own[you.y*N+you.x],1,'on Blue’s land')
+ for(let k=0;k<Math.round(3000/P.TICK_MS)+1;k++)P.tick(a)
+ assert.ok(you.alive,'back in team battle');assert.equal(a.own[Math.floor(you.y)*N+Math.floor(you.x)],1,'on Blue’s land')
  assert.ok(!P.battleOver(a));a.ticks=P.TEAM_TICKS;assert.ok(P.battleOver(a))
  assert.ok(!P.battleOver(P.newArena(seeded(1))),'solo has no clock')
  // A full battle of bots keeps the map sane.

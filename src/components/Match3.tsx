@@ -1,6 +1,6 @@
 import {useEffect,useId,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {W,candyLevel,candyStars,finale,findMove,play,type Board,type Effect,type Frame,type Maker,type Piece} from '../store/match3'
-import {announce,gameSound} from '../konoSounds'
+import {gameSound} from '../konoSounds'
 import {fx as play3,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
 import {ArtDefs,PieceArt} from './Match3Art'
@@ -24,28 +24,34 @@ import Sparks,{type SparksHandle} from './Sparks'
  * down a cascade, lasers, explosions, lightning, fire), sparks and shards flying from every clear
  * (Sparks), and their own scenery: a candy sky with drifting clouds, or a starry nebula. */
 const SPARK_GEMS=['#ff5468','#ff9a2e','#ffe03d','#3fe07a','#3d9bff','#c14dff','#eef3fb'],SPARK_CANDY=['#ff2e48','#ff8a14','#ffd60a','#2fd14a','#1f8bff','#a83ae8']
-const BLITZ_MS=60_000,SPEEDY_MS=1700,IGNITE=9,BLAZE_MS=8000
+const INTRO_MS=1100,CLEAR_MS=240,FALL_MS=320,SWAP_MS=180,BLITZ_MS=60_000,SPEEDY_MS=1700,IGNITE=9,BLAZE_MS=8000
 const CANDY_CHEERS=['','','Sweet!','Tasty!','Delicious!','Divine!']
 const GEM_CHEERS=['','','Good!','Excellent!','Awesome!','Spectacular!','Extraordinary!','Unbelievable!']
 type Fx={key:number;effects:Effect[];cleared:{at:number;kind:number}[];pop:{n:number;x:number;y:number}|null;big:boolean}
 export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameHandle>;mode:'gems'|'candy';level:number;start:{maker:Maker;board:Board;jelly?:Set<number>};sound:boolean;onEnd:(score:number,won:boolean,stars:number)=>void}){
  const goal=candyLevel(level)
  const [board,setBoard]=useState<Board>(start.board),[born,setBorn]=useState<Set<number>>(new Set())
+ // How a step moves: pieces clearing (they flash, swell and shrink away), specials just made (they pop in
+ // where the match was), and how many rows each piece falls (new ones fall in from above the board).
+ const [clearing,setClearing]=useState<Set<number>>(new Set()),[madeIds,setMadeIds]=useState<Set<number>>(new Set()),[drops,setDrops]=useState<Map<number,number>>(new Map()),[tick,setTick]=useState(0),[intro,setIntro]=useState(true)
  const [jelly,setJelly]=useState<Set<number>>(()=>new Set(start.jelly??[]))
- const [sel,setSel]=useState<number|null>(null),[shake,setShake]=useState<number[]>([]),[hint,setHint]=useState<[number,number]|null>(null)
+ const [sel,setSel]=useState<number|null>(null),[hint,setHint]=useState<[number,number]|null>(null)
  const [score,setScore]=useState(0),[moves,setMoves]=useState(goal.moves),[left,setLeft]=useState(BLITZ_MS),[mult,setMult]=useState(1),[speed,setSpeed]=useState(0),[blazing,setBlazing]=useState(false)
  const [fx,setFx]=useState<Fx[]>([]),[cheer,setCheer]=useState<{key:number;text:string;big?:boolean}|null>(null),[done,setDone]=useState<string|null>(null),[quake,setQuake]=useState(0)
- const sparks=useRef<SparksHandle>(null),boardRef=useRef<HTMLDivElement>(null),busy=useRef(false),scoreRef=useRef(0),ended=useRef(false),keys=useRef(0),boardNow=useRef(start.board),movesLeft=useRef(goal.moves)
+ const sparks=useRef<SparksHandle>(null),boardRef=useRef<HTMLDivElement>(null),busy=useRef(true),scoreRef=useRef(0),ended=useRef(false),keys=useRef(0),boardNow=useRef(start.board),movesLeft=useRef(goal.moves)
  const jellyNow=useRef(new Set(start.jelly??[])),multNow=useRef(1),extraMs=useRef(0),lastMove=useRef(0),speedNow=useRef(0),idleAt=useRef(0)
  const press=useRef<{at:number;x:number;y:number;moved:boolean}|null>(null)
  const onEndRef=useRef(onEnd),hurrah=useRef(()=>{})
  useEffect(()=>{onEndRef.current=onEnd},[onEnd])
+ // The start: the board is empty and every piece rains in from above, column by column, as the
+ // originals open a round; moves wait until it has landed.
+ useEffect(()=>{const t=window.setTimeout(()=>{setIntro(false);busy.current=false},INTRO_MS);return ()=>window.clearTimeout(t)},[])
  // The soundtrack plays for the round.
  useEffect(()=>{startMusic(mode,sound);return ()=>stopMusic()},[mode,sound])
  const stars=()=>candyStars(scoreRef.current,goal.target)
  const finish=(won:boolean,text:string)=>{if(ended.current)return;ended.current=true;setDone(text);stopMusic();if(won)sparks.current?.burst(0.5,0.4,{kind:'confetti',n:90,speed:2.2,size:9});window.setTimeout(()=>onEndRef.current(scoreRef.current,won,mode==='candy'?(won?Math.max(1,stars()):0):0),1500)}
- // Cheers are spoken too, like the originals' callouts (not the +5 seconds and Speed notes).
- const say=(text:string,big=false)=>{const key=++keys.current;setCheer({key,text,big});if(!/^(\+|×|Speed )/.test(text))announce(text,sound,mode);window.setTimeout(()=>setCheer(c=>c?.key===key?null:c),1200)}
+ // Cheers ring a little chime (not the +5 seconds and Speed notes).
+ const say=(text:string,big=false)=>{const key=++keys.current;setCheer({key,text,big});if(!/^(\+|×|Speed )/.test(text))play3('star',sound);window.setTimeout(()=>setCheer(c=>c?.key===key?null:c),1200)}
  // Gem blitz's minute (and its +5 second gems); when it's up, a move under way finishes, then the Last hurrah.
  useEffect(()=>{
   if(mode!=='gems')return
@@ -67,18 +73,41 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
  },[])
  // ■ End: finish now (Candy crush counts it as won only if the level's goal is already met).
  useImperativeHandle(ref,()=>({end:()=>{if(ended.current)return;ended.current=true;const won=mode==='gems'||(scoreRef.current>=goal.target&&!jellyNow.current.size);onEndRef.current(scoreRef.current,won,mode==='candy'&&won?Math.max(1,stars()):0)}}),[mode,goal.target]) // eslint-disable-line react-hooks/exhaustive-deps
- const show=(next:Board)=>{const had=new Set(boardNow.current.map(p=>p?.id));setBorn(new Set(next.flatMap(p=>p&&!had.has(p.id)?[p.id]:[])));boardNow.current=next;setBoard(next)}
+ const show=(next:Board,made:number[]=[])=>{
+  const was=new Map<number,number>();boardNow.current.forEach((p,i)=>{if(p)was.set(p.id,i)})
+  const madeAt=new Set(made),fresh=new Set<number>(),popped=new Set<number>(),fall=new Map<number,number>(),newInCol=Array(W).fill(0)
+  next.forEach((p,i)=>{if(p&&!was.has(p.id)&&!madeAt.has(i))newInCol[i%W]++})
+  next.forEach((p,i)=>{
+   if(!p)return
+   const from=was.get(p.id)
+   if(from===undefined){if(madeAt.has(i))popped.add(p.id);else{fresh.add(p.id);fall.set(p.id,newInCol[i%W])}}
+   else if(Math.floor(i/W)>Math.floor(from/W)&&from%W===i%W)fall.set(p.id,Math.floor(i/W)-Math.floor(from/W))
+  })
+  setBorn(fresh);setMadeIds(popped);setDrops(fall);setTick(t=>t+1)
+  boardNow.current=next;setBoard(next)
+ }
  // Plays a move's steps one after another, then `after`.
  const run=(frames:Frame[],after:()=>void)=>{
   busy.current=true;setHint(null)
   let at=0
   for(const f of frames){
    window.setTimeout(()=>{
-    show(f.board)
+    // A clear: the matched pieces flash and swell, the specials fire, and then the pieces burst away.
+    if(f.cleared.length){
+     setClearing(new Set(f.cleared.flatMap(c=>{const p=boardNow.current[c.at];return p?[p.id]:[]})))
+     play3('match',sound,f.cascade-1);fire(f)
+     window.setTimeout(()=>{setClearing(new Set());show(f.board,f.made.map(m=>m.at));land(f)},CLEAR_MS)
+    }else show(f.board)
+   },at)
+   at+=f.cleared.length?CLEAR_MS+(f.effects.length?110:16):(f.points===0&&f.cascade===0?60:FALL_MS)
+  }
+  window.setTimeout(()=>{busy.current=false;idleAt.current=performance.now();after()},at+40)
+ }
+ // What a clear does once its pieces are gone: shards, points, cheers.
+ const land=(f:Frame)=>{
     if(f.time){extraMs.current+=f.time*1000;say('+'+f.time+' seconds!');play3('time',sound)}
     if(f.mult>multNow.current){multNow.current=f.mult;setMult(f.mult);say('×'+f.mult+' multiplier!',true);play3('mult',sound)}
     for(const m of f.made){const [x,y]=centre(m.at);sparks.current?.burst(x,y,{kind:'star',n:10,color:['#fff','#ffe98a'],size:7});play3('make',sound)}
-    if(!f.cleared.length)return
     burst(f)
     const pts=f.points*(mode==='gems'?multNow.current:1)
     scoreRef.current+=pts;setScore(scoreRef.current)
@@ -92,18 +121,17 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
     if(big){setQuake(key);window.setTimeout(()=>setQuake(q=>q===key?0:q),420)}
     if(f.effects.some(e=>e.type==='board'))say(mode==='candy'?'Sugar crush!':'Unbelievable!',true)
     else if(f.cascade>=2)say((mode==='candy'?CANDY_CHEERS:GEM_CHEERS)[Math.min(f.cascade,(mode==='candy'?CANDY_CHEERS:GEM_CHEERS).length-1)])
-    play3('match',sound,f.cascade-1)
     if(f.cascade>=3)gameSound('big',sound,f.cascade-3)
-   },at)
-   at+=f.cleared.length?(f.effects.length?380:280):(f.points===0&&f.cascade===0?60:230)
-  }
-  window.setTimeout(()=>{busy.current=false;idleAt.current=performance.now();after()},at+40)
  }
  const centre=(at:number):[number,number]=>[(at%W+0.5)/W,(Math.floor(at/W)+0.5)/W]
  // A clear's particles and sounds: shards from every piece, and each special's own show.
  const burst=(f:Frame)=>{
   const sp=sparks.current,colors=mode==='gems'?SPARK_GEMS:SPARK_CANDY
-  for(const c of f.cleared){const [x,y]=centre(c.at);sp?.burst(x,y,{kind:mode==='gems'?'shard':'spark',n:mode==='gems'?5:6,color:[colors[c.kind]??'#fff','#fff'],size:mode==='gems'?7:6,speed:0.9})}
+  for(const c of f.cleared){const [x,y]=centre(c.at);sp?.burst(x,y,{kind:mode==='gems'?'shard':'spark',n:mode==='gems'?6:7,color:[colors[c.kind]??'#fff','#fff'],size:mode==='gems'?7:6,speed:0.9});sp?.burst(x,y,{kind:'star',n:2,color:'#fff',size:5,speed:0.4})}
+ }
+ // A special's own show, the moment it goes off.
+ const fire=(f:Frame)=>{
+  const sp=sparks.current
   for(const e of f.effects){
    const [x,y]=centre(e.at)
    if(e.type==='row'||e.type==='cross'||e.type==='nova'){sp?.line(0,y,1,y,mode==='gems'?'#bfe9ff':'#fff2a8');play3('laser',sound)}
@@ -124,7 +152,13 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
  const attempt=(a:number,c:number)=>{
   if(busy.current||ended.current)return
   const frames=play(boardNow.current,a,c,start.maker)
-  if(!frames){setShake([a,c]);play3('nope',sound);window.setTimeout(()=>setShake([]),380);return}
+  if(!frames){
+   // Not a match: the two slide over and straight back.
+   busy.current=true;play3('swap',sound)
+   const back=boardNow.current,tried=[...back];[tried[a],tried[c]]=[tried[c],tried[a]];show(tried)
+   window.setTimeout(()=>{show(back);play3('nope',sound);window.setTimeout(()=>{busy.current=false},SWAP_MS)},SWAP_MS+40)
+   return
+  }
   setSel(null);play3('swap',sound)
   const swapped=[...boardNow.current];[swapped[a],swapped[c]]=[swapped[c],swapped[a]];show(swapped)
   // Gem blitz's speed, as in Bejeweled Blitz: a quick move after a quick move is a Speed bonus (from the
@@ -150,7 +184,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
      else finish(true,'Level '+level+' complete!')
     }else if(movesLeft.current<=0)finish(false,'Out of moves')
    }
-  }),170)
+  }),SWAP_MS+30)
  }
  const indexAt=(x:number,y:number)=>{const r=boardRef.current?.getBoundingClientRect();if(!r)return -1;const c=Math.floor((x-r.left)/(r.width/W)),row=Math.floor((y-r.top)/(r.height/W));return c<0||row<0||c>=W||row>=W?-1:row*W+c}
  const down=(e:React.PointerEvent<HTMLDivElement>)=>{const at=indexAt(e.clientX,e.clientY);if(at<0)return;idleAt.current=performance.now();setHint(null);e.currentTarget.setPointerCapture(e.pointerId);press.current={at,x:e.clientX,y:e.clientY,moved:false}}
@@ -189,16 +223,22 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
   {mode==='gems'&&<div className={'m3-ignite'+(blazing?' is-on':'')} role="meter" aria-label="Ignition" aria-valuemin={0} aria-valuemax={IGNITE} aria-valuenow={blazing?IGNITE:Math.min(IGNITE,speed)}><span style={{width:(blazing?100:Math.min(1,speed/IGNITE)*100)+'%'}}/><b>{blazing?'🔥 Blazing speed!':'Ignition'}</b></div>}
   <div className={'blast-frame'+(quake?' is-quake':'')}>
    <div ref={boardRef} className="match3-board" role="grid" aria-label={mode==='candy'?'Candy board':'Gem board'} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={()=>{press.current=null}}>
+    <div className="match3-pieces">
     {[...jelly].map(i=><span key={'j'+i} className="m3-jelly" style={pos(i)} aria-hidden="true"/>)}
-    {board.map((p,i)=>p&&<div key={p.id} role="gridcell" data-i={i} data-kind={p.kind} aria-label={'Row '+(Math.floor(i/W)+1)+', column '+(i%W+1)+': '+label(p)}
-     className={'match3-piece k'+p.kind+(p.special?' is-'+p.special:'')+(p.bonus?' has-'+p.bonus:'')+(sel===i?' is-picked':'')+(shake.includes(i)?' is-shake':'')+(born.has(p.id)?' is-new':'')+(hint?.includes(i)?' is-hint':'')} style={{...pos(i),'--d':(p.id%29)*0.41+'s'} as React.CSSProperties}>
+    {/* In a fixed order (by piece), not board order: moving an element in the page skips its slide, so a
+        swap or a fall would jump instead of glide. Each piece is placed by its left and top. */}
+    {board.flatMap((p,i)=>p?[{p,i}]:[]).sort((x,y)=>x.p.id-y.p.id).map(({p,i})=><div key={p.id} role="gridcell" data-i={i} data-kind={p.kind} aria-label={'Row '+(Math.floor(i/W)+1)+', column '+(i%W+1)+': '+label(p)}
+     className={'match3-piece k'+p.kind+(p.special?' is-'+p.special:'')+(p.bonus?' has-'+p.bonus:'')+(sel===i?' is-picked':'')+(born.has(p.id)?' is-new':'')+(madeIds.has(p.id)?' is-made':'')+(clearing.has(p.id)?' is-clearing':'')+(intro?' is-intro':'')+(drops.has(p.id)&&!born.has(p.id)?' is-fall':'')+(hint?.includes(i)?' is-hint':'')} style={{...pos(i),'--d':(p.id%29)*0.41+'s','--drop':drops.get(p.id)??0,'--land':tick%2?'m3-land-a':'m3-land-b','--fall':tick%2?'m3-fall-a':'m3-fall-b','--intro':(i%W)*45+(W-1-Math.floor(i/W))*28+'ms','--rows':Math.floor(i/W)+2} as React.CSSProperties}>
      <span className="m3-gem" aria-hidden="true"><PieceArt mode={mode} kind={p.kind} special={p.special}/></span>{p.bonus==='mult'&&<b className="m3-badge" aria-hidden="true">×{p.mult}</b>}{p.bonus==='time'&&<b className="m3-badge is-time" aria-hidden="true">+5</b>}
     </div>)}
     {fx.map(f=><div key={f.key} className="m3-fx" aria-hidden="true">
      {f.cleared.map(c=><span key={c.at} className={'m3-shard k'+c.kind} style={pos(c.at)}/>)}
      {f.effects.map((e,k)=><Effect key={k} e={e}/>)}
-     {f.pop&&<span className="m3-pop" style={{left:f.pop.x*100/W+'%',top:f.pop.y*100/W+'%'}}>+{f.pop.n.toLocaleString()}</span>}
+     {/* Candy crush shows each candy's points over it, in its color; Gem blitz one total for the clear. */}
+     {mode==='candy'?f.cleared.slice(0,24).map(c=><span key={'p'+c.at} className={'m3-pop is-each k'+c.kind} style={{left:((c.at%W)+0.5)*100/W+'%',top:(Math.floor(c.at/W)+0.5)*100/W+'%'}}>{Math.max(1,Math.round((f.pop?.n??0)/f.cleared.length))}</span>)
+     :f.pop&&<span className="m3-pop" style={{left:f.pop.x*100/W+'%',top:f.pop.y*100/W+'%'}}>{f.pop.n.toLocaleString()}</span>}
     </div>)}
+    </div>
     <Sparks ref={sparks}/>
     {cheer&&<p key={cheer.key} className={'blast-cheer m3-cheer'+(cheer.big?' is-big':'')} role="status"><span>{cheer.text}</span></p>}
     {done&&<p className="blast-over" role="status">{done}</p>}
