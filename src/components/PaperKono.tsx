@@ -1,23 +1,26 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {N,TEAMS,TEAM_TICKS,battleOver,newArena,shares,steer,teamShares,tick,type Arena,type Dir,type Mode} from '../store/paper'
+import {N,TEAMS,TEAM_TICKS,TICK_MS,battleOver,newArena,shares,steer,teamShares,tick,type Arena,type Mode} from '../store/paper'
 import {gameSound} from '../konoSounds'
 import {fx,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
 
-/** KONO.io (the rules are in store/paper, after Paper.io 2): you're KONO's blue block. Swipe (or use the
- * arrow keys / WASD) to turn; leave your land to draw a trail and come back to claim everything it closes
- * in. Cut a bot's trail to knock it out; don't let one touch yours. The camera follows you over the map;
- * land is drawn as raised blocks, trails as a lighter path, and the leaderboard shows everyone's share.
+/** KONO.io (the rules are in store/paper, after Paper.io 2): you're KONO's blue block, steering freely.
+ * Drag anywhere (a joystick appears under your finger), point with the mouse, or hold the arrow keys /
+ * WASD (two at once go diagonally). Leave your land to draw a trail and come back to claim everything it
+ * closes in. Cut a bot's trail to knock it out; don't let one touch yours. Drawn the way Paper.io 2 looks:
+ * soft rounded land with a raised edge, smooth curving trails, the camera close on you, a round minimap of
+ * the whole map in the corner, and a shockwave where someone is knocked out.
  * The run ends when you're cut (or crash); your best share and knockouts become the score.
  * Team battle: you're on Blue with three bots against Red's four. Land comes in the team's color, a bar
  * shows Blue against Red with the two minutes ticking down, and when you're cut you're back on Blue's land
  * three seconds later. When time's up, the team with more of the map wins. */
-const TICK_MS=105,VIEW=22
+const VIEW=26
 export type PaperResult={share:number;kills:number;rank:number;team?:{blue:number;red:number;won:boolean}}
+type Boom={x:number;y:number;color:string;at:number;text?:string}
 const clock=(ticks:number)=>{const s=Math.max(0,Math.ceil(ticks*TICK_MS/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
 export default function PaperKono({ref,mode='solo',sound,onEnd}:{ref:Ref<GameHandle>;mode?:Mode;sound:boolean;onEnd:(r:PaperResult)=>void}){
- const frame=useRef<HTMLDivElement>(null),canvas=useRef<HTMLCanvasElement>(null),arena=useRef<Arena|null>(null),prev=useRef(new Map<number,{x:number;y:number}>())
- const kono=useRef<HTMLImageElement|null>(null),ended=useRef(false),best=useRef(0),seen=useRef(0)
+ const frame=useRef<HTMLDivElement>(null),canvas=useRef<HTMLCanvasElement>(null),mini=useRef<HTMLCanvasElement>(null),arena=useRef<Arena|null>(null),prev=useRef(new Map<number,{x:number;y:number}>())
+ const kono=useRef<HTMLImageElement|null>(null),ended=useRef(false),best=useRef(0),seen=useRef(0),booms=useRef<Boom[]>([]),stick=useRef<{x:number;y:number;fx:number;fy:number}|null>(null)
  const onEndRef=useRef(onEnd),soundRef=useRef(sound)
  useEffect(()=>{onEndRef.current=onEnd;soundRef.current=sound},[onEnd,sound])
  const [board,setBoard]=useState<{id:number;name:string;color:string;share:number}[]>([]),[mine,setMine]=useState(0),[feed,setFeed]=useState<{key:number;text:string}|null>(null),[out,setOut]=useState(false)
@@ -29,17 +32,28 @@ export default function PaperKono({ref,mode='solo',sound,onEnd}:{ref:Ref<GameHan
   const a=newArena(Math.random,6,'#3e6fe6',mode);arena.current=a
   const img=new Image();img.src='/garden/kono/excited.webp';kono.current=img
   const me=a.players[0]
-  const turn=(d:Dir)=>{if(!ended.current&&me.alive)steer(me,d)}
-  const keys:Record<string,Dir>={ArrowUp:0,KeyW:0,ArrowRight:1,KeyD:1,ArrowDown:2,KeyS:2,ArrowLeft:3,KeyA:3}
-  const key=(e:KeyboardEvent)=>{const d=keys[e.code];if(d!==undefined){e.preventDefault();turn(d)}}
-  window.addEventListener('keydown',key)
-  // Swipes: each 18px of finger travel turns toward it, so a finger can keep steering without lifting.
-  let origin:{x:number;y:number}|null=null
+  const aim=(angle:number)=>{if(!ended.current&&me.alive)steer(me,angle)}
+  // Keys: hold one (or two, for a diagonal) to point that way.
+  const held=new Set<string>(),dirs:Record<string,[number,number]>={ArrowUp:[0,-1],KeyW:[0,-1],ArrowDown:[0,1],KeyS:[0,1],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0]}
+  const keyAim=()=>{let x=0,y=0;for(const k of held){x+=dirs[k][0];y+=dirs[k][1]}if(x||y)aim(Math.atan2(y,x))}
+  const down=(e:KeyboardEvent)=>{if(!dirs[e.code])return;e.preventDefault();held.add(e.code);keyAim()}
+  const upKey=(e:KeyboardEvent)=>{held.delete(e.code);keyAim()}
+  window.addEventListener('keydown',down);window.addEventListener('keyup',upKey)
+  // Touch and drag: a joystick under the finger (its base follows if the finger goes far). A mouse with no
+  // button held points KONO toward the cursor.
   const el=frame.current!
-  const down=(e:PointerEvent)=>{origin={x:e.clientX,y:e.clientY}}
-  const move=(e:PointerEvent)=>{if(!origin)return;const dx=e.clientX-origin.x,dy=e.clientY-origin.y;if(Math.max(Math.abs(dx),Math.abs(dy))<18)return;turn(Math.abs(dx)>Math.abs(dy)?(dx>0?1:3):(dy>0?2:0));origin={x:e.clientX,y:e.clientY}}
-  const up=()=>{origin=null}
-  el.addEventListener('pointerdown',down);el.addEventListener('pointermove',move);el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up)
+  const pdown=(e:PointerEvent)=>{stick.current={x:e.clientX,y:e.clientY,fx:e.clientX,fy:e.clientY};el.setPointerCapture?.(e.pointerId)}
+  const pmove=(e:PointerEvent)=>{
+   const s=stick.current
+   if(s){
+    s.fx=e.clientX;s.fy=e.clientY
+    const dx=s.fx-s.x,dy=s.fy-s.y,d=Math.hypot(dx,dy)
+    if(d>8)aim(Math.atan2(dy,dx))
+    if(d>60){s.x=s.fx-dx/d*60;s.y=s.fy-dy/d*60}
+   }else if(e.pointerType==='mouse'){const r=el.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);if(Math.hypot(dx,dy)>12)aim(Math.atan2(dy,dx))}
+  }
+  const pup=()=>{stick.current=null}
+  el.addEventListener('pointerdown',pdown);el.addEventListener('pointermove',pmove);el.addEventListener('pointerup',pup);el.addEventListener('pointercancel',pup)
   gameSound('start',soundRef.current);startMusic('paper',soundRef.current)
   let raf=0,lastTick=performance.now(),lastBoard=0,trailWas=0
   const loop=(now:number)=>{
@@ -49,10 +63,12 @@ export default function PaperKono({ref,mode='solo',sound,onEnd}:{ref:Ref<GameHan
     const wasAlive=me.alive
     prev.current=new Map(a.players.map(p=>[p.id,{x:p.x,y:p.y}]))
     tick(a)
-    if(trailWas&&!me.trail.length&&me.alive)fx('claim',soundRef.current,Math.floor(trailWas/6))
+    if(trailWas&&!me.trail.length&&me.alive)fx('claim',soundRef.current,Math.floor(trailWas/10))
     trailWas=me.trail.length
     for(const e of a.log.slice(seen.current)){
-     if(e.by===1&&e.who!==1){setFeed({key:a.ticks,text:'You cut '+(a.players.find(p=>p.id===e.who)?.name??'')+'!'});fx('cut',soundRef.current);gameSound('big',soundRef.current,3)}
+     const victim=a.players.find(p=>p.id===e.who)
+     booms.current.push({x:e.x,y:e.y,color:victim?.color??'#fff',at:now,text:e.by===1&&e.who!==1?'+1 ⭐':undefined})
+     if(e.by===1&&e.who!==1){setFeed({key:a.ticks,text:'You cut '+(victim?.name??'')+'!'});fx('cut',soundRef.current);gameSound('big',soundRef.current,3)}
     }
     seen.current=a.log.length
     if(wasAlive&&!me.alive&&!ended.current){
@@ -74,15 +90,17 @@ export default function PaperKono({ref,mode='solo',sound,onEnd}:{ref:Ref<GameHan
     const s=shares(a);best.current=Math.max(best.current,s.get(1)??0);setMine(s.get(1)??0)
     setBoard(a.players.filter(p=>p.alive||p.id===1).map(p=>({id:p.id,name:p.name,color:p.color,share:s.get(p.id)??0})).sort((x,y)=>y.share-x.share))
     if(a.mode==='team'){const t=teamShares(a);setTeams({blue:t.get(1)!,red:t.get(2)!,left:TEAM_TICKS-a.ticks})}
+    drawMini(mini.current,a)
    }
-   draw(canvas.current,a,prev.current,Math.min(1,(now-lastTick)/TICK_MS),kono.current)
+   booms.current=booms.current.filter(b=>now-b.at<900)
+   draw(canvas.current,a,prev.current,Math.min(1,(now-lastTick)/TICK_MS),kono.current,booms.current,now,stick.current,el.getBoundingClientRect())
    raf=requestAnimationFrame(loop)
   }
   raf=requestAnimationFrame(loop)
   // The canvas matches the frame's size (sharp on high-density screens).
   const fit=new ResizeObserver(()=>{const c=canvas.current;if(!c)return;const r=el.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);c.width=Math.round(r.width*dpr);c.height=Math.round(r.height*dpr)})
   fit.observe(el)
-  return ()=>{cancelAnimationFrame(raf);fit.disconnect();stopMusic();window.removeEventListener('keydown',key);el.removeEventListener('pointerdown',down);el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',up);el.removeEventListener('pointercancel',up)}
+  return ()=>{cancelAnimationFrame(raf);fit.disconnect();stopMusic();window.removeEventListener('keydown',down);window.removeEventListener('keyup',upKey);el.removeEventListener('pointerdown',pdown);el.removeEventListener('pointermove',pmove);el.removeEventListener('pointerup',pup);el.removeEventListener('pointercancel',pup)}
   // result only reads refs; the mode is fixed for a round (a new one remounts).
  },[]) // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>{if(!feed)return;const t=window.setTimeout(()=>setFeed(f=>f?.key===feed.key&&!out?null:f),1800);return ()=>window.clearTimeout(t)},[feed,out])
@@ -90,6 +108,7 @@ export default function PaperKono({ref,mode='solo',sound,onEnd}:{ref:Ref<GameHan
  return <div className="break-game paper">
   <div ref={frame} className={'paper-frame'+(out?' is-out':'')}>
    <canvas ref={canvas} role="img" aria-label={'KONO.io map: you own '+mine.toFixed(1)+'%'}/>
+   <canvas ref={mini} className="paper-mini" width={N} height={N} aria-hidden="true"/>
    {mode==='team'?<div className="paper-teams" role="group" aria-label={'Blue '+teams.blue.toFixed(1)+'%, Red '+teams.red.toFixed(1)+'%, '+clock(teams.left)+' left'}>
     <span className="is-blue" style={{flexGrow:Math.max(0.5,teams.blue)}}>Blue {teams.blue.toFixed(1)}%</span>
     <b role="timer">{clock(teams.left)}</b>
@@ -100,46 +119,85 @@ export default function PaperKono({ref,mode='solo',sound,onEnd}:{ref:Ref<GameHan
    {mode==='solo'&&<p className="paper-mine" aria-label={'You own '+mine.toFixed(1)+'% of the map'}><b>{mine.toFixed(1)}%</b></p>}
    {feed&&<p key={feed.key} className={'blast-cheer paper-feed'+(out?' is-out':'')} role="status"><span>{feed.text}</span></p>}
   </div>
-  <p className="blast-help">{mode==='team'?'You’re on Blue (you have the white ring). Claim land for your team, cut Red’s trails, and have more of the map when the two minutes are up!':'Swipe or use the arrow keys to steer. Leave your land, loop around and come home to claim it. Don’t let anyone touch your trail!'}</p>
+  <p className="blast-help">{mode==='team'?'You’re on Blue (you have the white ring). Claim land for your team, cut Red’s trails, and have more of the map when the two minutes are up!':'Drag to steer (or point with the mouse, or the arrow keys). Leave your land, loop around and come home to claim it. Don’t let anyone touch your trail!'}</p>
  </div>
 }
 
-/** Paints the part of the map around you: land as raised blocks (a darker side shows below), trails as a
- * lighter path, and each player's block gliding between squares. */
-function draw(c:HTMLCanvasElement|null,a:Arena,prev:Map<number,{x:number;y:number}>,frac:number,kono:HTMLImageElement|null){
+/** Paints the map around you the way Paper.io 2 does: a pale floor, land as soft rounded shapes standing a
+ * little above it (a darker edge shows below), trails as smooth lines, each block gliding with its face,
+ * shockwaves where someone was knocked out, and the joystick under your finger. */
+function draw(c:HTMLCanvasElement|null,a:Arena,prev:Map<number,{x:number;y:number}>,frac:number,kono:HTMLImageElement|null,booms:Boom[],now:number,stick:{x:number;y:number;fx:number;fy:number}|null,rect:DOMRect){
  const g=c?.getContext('2d');if(!c||!g||!c.width)return
- const me=a.players[0],pos=(id:number,x:number,y:number)=>{const p=prev.get(id);if(!p||Math.abs(p.x-x)+Math.abs(p.y-y)>1)return {x,y};return {x:p.x+(x-p.x)*frac,y:p.y+(y-p.y)*frac}}
- const cam=pos(1,me.x,me.y),cell=Math.max(c.width,c.height)/VIEW,ox=c.width/2-(cam.x+0.5)*cell,oy=c.height/2-(cam.y+0.5)*cell
- // Trails are in their player's color; land in its owner's (a team's, in team battle).
+ const me=a.players[0],pos=(id:number,x:number,y:number)=>{const p=prev.get(id);if(!p||Math.hypot(p.x-x,p.y-y)>2)return {x,y};return {x:p.x+(x-p.x)*frac,y:p.y+(y-p.y)*frac}}
+ const cam=pos(1,me.x,me.y),cell=Math.max(c.width,c.height)/VIEW,ox=c.width/2-cam.x*cell,oy=c.height/2-cam.y*cell
  const colors=new Map(a.players.map(p=>[p.id,p.color])),lands=a.mode==='team'?new Map(TEAMS.map(t=>[t.id,t.color])):colors
- g.fillStyle='#c9cfe6';g.fillRect(0,0,c.width,c.height)
- g.fillStyle='#eef1fb';g.fillRect(ox,oy,N*cell,N*cell)
+ // Off the map is darker; the floor is pale with a soft dot pattern.
+ g.fillStyle='#d5dbea';g.fillRect(0,0,c.width,c.height)
+ g.fillStyle='#f4f6fb';g.fillRect(ox,oy,N*cell,N*cell)
  const x0=Math.max(0,Math.floor(-ox/cell)-1),y0=Math.max(0,Math.floor(-oy/cell)-1),x1=Math.min(N,Math.ceil((c.width-ox)/cell)+1),y1=Math.min(N,Math.ceil((c.height-oy)/cell)+1)
- g.strokeStyle='rgba(60,80,140,.08)';g.lineWidth=1;g.beginPath()
- for(let x=x0;x<=x1;x++){g.moveTo(ox+x*cell,oy+y0*cell);g.lineTo(ox+x*cell,oy+y1*cell)}
- for(let y=y0;y<=y1;y++){g.moveTo(ox+x0*cell,oy+y*cell);g.lineTo(ox+x1*cell,oy+y*cell)}
- g.stroke()
- const side=cell*0.28
- for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
-  const i=y*N+x,o=a.own[i],t=a.trail[i]
-  if(t){g.fillStyle=colors.get(t)!;g.globalAlpha=0.5;g.fillRect(ox+x*cell,oy+y*cell,cell+0.5,cell+0.5);g.globalAlpha=1}
-  if(!o)continue
-  const col=lands.get(o)!
-  if(y+1>=N||a.own[i+N]!==o){g.fillStyle=shade(col,-0.32);g.fillRect(ox+x*cell,oy+(y+1)*cell-0.5,cell+0.5,side)}
-  g.fillStyle=col;g.fillRect(ox+x*cell,oy+y*cell,cell+0.5,cell+0.5)
+ g.fillStyle='rgba(80,100,160,.09)'
+ for(let y=y0-(y0%4);y<y1;y+=4)for(let x=x0-(x0%4);x<x1;x+=4){g.beginPath();g.arc(ox+(x+2)*cell,oy+(y+2)*cell,cell*0.16,0,7);g.fill()}
+ // Land: inside squares as plain blocks, edge squares as round dabs, so the shapes come out soft and round.
+ const side=cell*0.3,r=cell*0.74
+ const edge=(i:number,o:number,x:number,y:number)=>x===0||y===0||x===N-1||y===N-1||a.own[i-1]!==o||a.own[i+1]!==o||a.own[i-N]!==o||a.own[i+N]!==o
+ for(const pass of [0,1]){
+  for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
+   const i=y*N+x,o=a.own[i];if(!o)continue
+   const col=lands.get(o)!,px=ox+x*cell,py=oy+y*cell+(pass===0?side:0)
+   g.fillStyle=pass===0?shade(col,-0.3):col
+   if(edge(i,o,x,y)){g.beginPath();g.arc(px+cell/2,py+cell/2,r,0,7);g.fill()}
+   else g.fillRect(px-0.5,py-0.5,cell+1,cell+1)
+  }
  }
- // Players: a block a little bigger than a square, lighter on top, with a face.
+ // Trails: smooth lines from where each left its land to where it is now.
+ g.lineCap='round';g.lineJoin='round'
+ for(const p of a.players){
+  if(!p.alive||!p.path.length)continue
+  const h=pos(p.id,p.x,p.y)
+  g.strokeStyle=shade(p.color,0.35);g.globalAlpha=0.85;g.lineWidth=cell*0.62
+  g.beginPath();g.moveTo(ox+p.path[0][0]*cell,oy+p.path[0][1]*cell);for(const [x,y] of p.path)g.lineTo(ox+x*cell,oy+y*cell);g.lineTo(ox+h.x*cell,oy+h.y*cell);g.stroke()
+  g.globalAlpha=1
+ }
+ // Players: a block a little bigger than a square, turned the way it's heading, with a face.
  for(const p of a.players){
   if(!p.alive)continue
-  const q=pos(p.id,p.x,p.y),px=ox+q.x*cell,py=oy+q.y*cell,s=cell*1.15,d=(s-cell)/2
-  g.fillStyle=shade(p.color,-0.4);round(g,px-d,py-d+side,s,s,cell*0.22);g.fill()
-  g.fillStyle=shade(p.color,0.22);round(g,px-d,py-d,s,s,cell*0.22);g.fill()
-  // In team battle your block has a white ring, so you can find yourself among your teammates.
-  if(p.id===1&&a.mode==='team'){g.lineWidth=Math.max(2,cell*0.1);g.strokeStyle='#fff';round(g,px-d,py-d,s,s,cell*0.22);g.stroke()}
-  if(p.id===1&&kono?.complete&&kono.naturalWidth)g.drawImage(kono,px-d,py-d-cell*0.15,s,s)
-  else if(p.face){g.font=Math.round(cell*0.8)+'px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText(p.face,px+cell/2,py+cell/2)}
-  g.font='800 '+Math.round(cell*0.5)+'px system-ui';g.textAlign='center';g.textBaseline='bottom';g.lineWidth=3;g.strokeStyle='rgba(255,255,255,.9)';g.strokeText(p.name,px+cell/2,py-d-2);g.fillStyle=shade(p.color,-0.35);g.fillText(p.name,px+cell/2,py-d-2)
+  const q=pos(p.id,p.x,p.y),px=ox+q.x*cell,py=oy+q.y*cell,s=cell*1.25
+  g.save();g.translate(px,py);g.rotate(p.angle+Math.PI/2)
+  g.fillStyle=shade(p.color,-0.4);round(g,-s/2,-s/2+side*0.8,s,s,cell*0.28);g.fill()
+  g.fillStyle=shade(p.color,0.15);round(g,-s/2,-s/2,s,s,cell*0.28);g.fill()
+  g.fillStyle='rgba(255,255,255,.35)';round(g,-s/2+s*0.12,-s/2+s*0.1,s*0.76,s*0.28,cell*0.14);g.fill()
+  if(p.id===1&&a.mode==='team'){g.lineWidth=Math.max(2,cell*0.12);g.strokeStyle='#fff';round(g,-s/2,-s/2,s,s,cell*0.28);g.stroke()}
+  g.restore()
+  if(p.id===1&&kono?.complete&&kono.naturalWidth)g.drawImage(kono,px-s*0.55,py-s*0.75,s*1.1,s*1.1)
+  else if(p.face){g.font=Math.round(cell*0.9)+'px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText(p.face,px,py-cell*0.1)}
+  g.font='800 '+Math.round(cell*0.55)+'px system-ui';g.textAlign='center';g.textBaseline='bottom';g.lineWidth=4;g.strokeStyle='rgba(255,255,255,.95)';g.strokeText(p.name,px,py-s*0.75);g.fillStyle=shade(p.color,-0.35);g.fillText(p.name,px,py-s*0.75)
  }
+ // Knock-outs: a white shockwave ringed in the player's color, and +1 ⭐ when it was your cut.
+ for(const b of booms){
+  const t=(now-b.at)/900,bx=ox+b.x*cell,by=oy+b.y*cell,rr=cell*(1+t*7)
+  g.globalAlpha=Math.max(0,1-t)
+  g.fillStyle='rgba(255,255,255,.75)';g.beginPath();g.arc(bx,by,rr,0,7);g.fill()
+  g.lineWidth=cell*0.6*(1-t)+2;g.strokeStyle=b.color;g.beginPath();g.arc(bx,by,rr,0,7);g.stroke()
+  g.lineWidth=cell*0.3*(1-t)+1;g.strokeStyle='#fff';g.beginPath();g.arc(bx,by,rr*0.55,0,7);g.stroke()
+  if(b.text){g.font='900 '+Math.round(cell*1.1)+'px system-ui';g.textAlign='center';g.textBaseline='middle';g.lineWidth=5;g.strokeStyle='#fff';g.strokeText(b.text,bx,by-rr*0.6);g.fillStyle='#ffb02e';g.fillText(b.text,bx,by-rr*0.6)}
+  g.globalAlpha=1
+ }
+ // The joystick, where the finger is.
+ if(stick){
+  const k=c.width/rect.width,sx=(stick.x-rect.left)*k,sy=(stick.y-rect.top)*k,fx=(stick.fx-rect.left)*k,fy=(stick.fy-rect.top)*k
+  g.fillStyle='rgba(30,40,80,.16)';g.beginPath();g.arc(sx,sy,60*k,0,7);g.fill()
+  g.fillStyle='rgba(255,255,255,.85)';g.beginPath();g.arc(fx,fy,24*k,0,7);g.fill()
+ }
+}
+/** The round minimap: every square of the map, one pixel each, with a dot for you. */
+function drawMini(c:HTMLCanvasElement|null,a:Arena){
+ const g=c?.getContext('2d');if(!c||!g)return
+ const img=g.createImageData(N,N),colors=new Map<number,[number,number,number]>()
+ const rgb=(hex:string):[number,number,number]=>{const n=parseInt(hex.slice(1),16);return [n>>16&255,n>>8&255,n&255]}
+ if(a.mode==='team')for(const t of TEAMS)colors.set(t.id,rgb(t.color));else for(const p of a.players)colors.set(p.id,rgb(p.color))
+ for(let i=0;i<N*N;i++){const o=a.own[i],c3=o?colors.get(o):null,k=i*4;img.data[k]=c3?c3[0]:236;img.data[k+1]=c3?c3[1]:240;img.data[k+2]=c3?c3[2]:248;img.data[k+3]=255}
+ g.putImageData(img,0,0)
+ const me=a.players[0];if(me.alive){g.fillStyle='#fff';g.beginPath();g.arc(me.x,me.y,3.5,0,7);g.fill();g.fillStyle='#1a2a6a';g.beginPath();g.arc(me.x,me.y,2,0,7);g.fill()}
 }
 function round(g:CanvasRenderingContext2D,x:number,y:number,w:number,h:number,r:number){g.beginPath();g.roundRect(x,y,w,h,r)}
 /** A color made lighter (amount > 0) or darker (< 0). */

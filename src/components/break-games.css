@@ -391,3 +391,8 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 /* "Sweet!", "Tasty!"…: big, golden and chunky with a thick brown outline. */
 .match3.is-candy .m3-cheer span{font-family:'Lobster','Pacifico','Comic Sans MS','Segoe Script',cursive;font-weight:900;font-size:2.9rem;background:linear-gradient(#fff6b0,#ffc93d 50%,#f08a12);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:0;filter:drop-shadow(3px 0 0 #6b2a00) drop-shadow(-3px 0 0 #6b2a00) drop-shadow(0 3px 0 #6b2a00) drop-shadow(0 -3px 0 #6b2a00) drop-shadow(0 5px 3px rgba(0,0,0,.35))}
 .match3.is-gems .m3-cheer span{font-size:2.5rem;background:linear-gradient(#fff,#bfe9ff 40%,#5aa8ff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(2px 0 0 #0a2a6a) drop-shadow(-2px 0 0 #0a2a6a) drop-shadow(0 2px 0 #0a2a6a) drop-shadow(0 -2px 0 #0a2a6a) drop-shadow(0 0 10px rgba(120,190,255,.7))}
+/* KONO.io's round minimap, bottom left (as in Paper.io 2). */
+.paper-frame .paper-mini{position:absolute;left:10px;bottom:10px;width:96px;height:96px;border-radius:50%;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.25);pointer-events:none;background:#ecf0f8}
+.paper .paper-board{background:rgba(255,255,255,.82);color:#1a2a5a}
+.paper .paper-board li.is-me{background:rgba(62,111,230,.15)}
+.paper .paper-mine{background:rgba(255,255,255,.85);color:#1a2a5a}
