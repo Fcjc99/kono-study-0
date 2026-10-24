@@ -2,7 +2,10 @@ import { z } from 'zod'
 import shell from 'virtual:kono-shell'
 import { normalizeData } from '../src/store/model'
 import { deletePlan, readPlan, writePlan, type Database } from './database'
-export type Env={DB:Database;ASSETS?:{fetch(request:Request):Promise<Response>}}
+import { mintTryOnToken, originAllowed } from '../src/shop/tryonToken'
+export type Env={DB:Database;ASSETS?:{fetch(request:Request):Promise<Response>};DECART_API_KEY?:string;KONO_SHOP_ORIGINS?:string}
+/** Secrets come from the worker's env, or the process when run under Vite in development. */
+const secret=(env:Env,name:'DECART_API_KEY'|'KONO_SHOP_ORIGINS')=>env[name]??(globalThis as {process?:{env:Record<string,string|undefined>}}).process?.env[name]
 const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin'}
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers})
 const version=z.number().int().min(0).max(Number.MAX_SAFE_INTEGER-1)
@@ -33,10 +36,20 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
   secure.headers.set('Referrer-Policy','same-origin')
   // K-Quiz records lectures (microphone, scoped to this site only) and calls the student's own AI
   // provider key directly from the browser to generate study materials — connect-src is widened to
-  // just those two providers, never a general allowlist.
+  // just those two providers, never a general allowlist. The shop's camera and AI fitting room add the
+  // camera (this site only) and Decart's realtime video servers (its API and LiveKit rooms).
   secure.headers.set('Permissions-Policy','camera=(self), microphone=(self), geolocation=()')
-  if(secure.headers.get('Content-Type')?.includes('text/html'))secure.headers.set('Content-Security-Policy',"default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://generativelanguage.googleapis.com https://api.openai.com; object-src 'none'; base-uri 'self'; form-action 'self'")
+  if(secure.headers.get('Content-Type')?.includes('text/html'))secure.headers.set('Content-Security-Policy',"default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.decart.ai wss://api.decart.ai https://*.decart.ai wss://*.decart.ai https://*.livekit.cloud wss://*.livekit.cloud https://api.open-meteo.com https://geocoding-api.open-meteo.com https://generativelanguage.googleapis.com https://api.openai.com; object-src 'none'; base-uri 'self'; form-action 'self'")
   return secure
+ }
+ // The shop's AI fitting room (src/shop/tryonToken.ts): public, no account needed, but only from our own pages.
+ if(url.pathname==='/api/tryon-token'){
+  if(request.method==='GET')return json({enabled:!!secret(env,'DECART_API_KEY')})
+  if(request.method!=='POST')return json({error:'Use POST.'},405)
+  const origin=request.headers.get('origin')??undefined
+  if(request.headers.get('sec-fetch-site')==='cross-site'||!originAllowed(origin,url.host,secret(env,'KONO_SHOP_ORIGINS')))return json({error:'Use the fitting room on the KONO shop.'},403)
+  try{const result=await mintTryOnToken(origin,{apiKey:secret(env,'DECART_API_KEY'),fetch});return json(result.body,result.status)}
+  catch{return json({error:'The AI fitting room couldn’t be reached. Try again in a moment.'},502)}
  }
  const user=authenticatedUser(request)
  if(url.pathname==='/api/session'&&request.method==='GET')return json({user})

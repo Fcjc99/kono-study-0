@@ -23,8 +23,8 @@ function precacheList(manifest:Record<string,ManifestChunk>):string[]{
   walk(entryKey)
   // Panels split out of the startup bundle (src/lazyPanel.tsx) still open offline: precache them in
   // the background, and the panels they open in turn (Settings screens, the Planner's week grid).
-  // Heavy or rare tools (PDF reading, the decorating studio, debug and QA pages) stay runtime-cached only.
-  const optional=/SanctuaryQA|SanctuaryBuild|DecorateDebugHUD|readSchedulePdf|kquizPdf|UpdatePlanScanner/
+  // Heavy or rare tools (PDF reading, the decorating studio, debug and QA pages, the shop) stay runtime-cached only.
+  const optional=/SanctuaryQA|SanctuaryBuild|DecorateDebugHUD|readSchedulePdf|kquizPdf|UpdatePlanScanner|KonoShop/
   const lazy=[...manifest[entryKey].dynamicImports??[]]
   for(let i=0;i<lazy.length;i++){
    const dep=lazy[i]

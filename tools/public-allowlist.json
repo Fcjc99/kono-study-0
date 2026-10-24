@@ -982,5 +982,8 @@
  "/shop/polo-hibiscus-sky.webp",
  "/tryon/pose_landmarker_lite.task",
  "/tryon/wasm/vision_wasm_internal.js",
- "/tryon/wasm/vision_wasm_internal.wasm"
+ "/tryon/wasm/vision_wasm_internal.wasm",
+ "/shop/ref-sakura-teal.jpg",
+ "/shop/ref-tile-navy.jpg",
+ "/shop/ref-hibiscus-sky.jpg"
 ]

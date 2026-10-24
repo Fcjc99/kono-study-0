@@ -20,6 +20,18 @@
 @keyframes kshop-in{from{opacity:0;transform:translateY(10px) scale(.97)}}
 .kshop-idle-cta{display:grid;justify-items:center;gap:10px}.kshop-idle-cta p{margin:0;font-family:Newsreader,Georgia,serif;font-size:1.35rem;font-weight:600}
 .kshop-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.kshop-ai{width:100%;height:100%;object-fit:cover;background:#111;transition:filter .4s}
+.kshop-ai.is-waiting{filter:saturate(.6) brightness(.75) blur(2px)}
+.kshop-frame.is-mirror .kshop-ai{transform:scaleX(-1)}
+.kshop-ai-status{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:10px;max-width:86%;margin:0;padding:12px 18px;border-radius:18px;background:#000b;color:#fff;font-weight:600;text-align:center}
+.kshop-spark{flex:none;width:14px;height:14px;border-radius:50%;background:conic-gradient(from 0deg,var(--polo),#fff,var(--polo));animation:kshop-spin 1s linear infinite}
+@keyframes kshop-spin{to{transform:rotate(1turn)}}
+.kshop-ai-badge{position:absolute;top:14px;left:14px;padding:6px 12px;border-radius:999px;background:#000a;color:#fff;font-size:.8rem;font-weight:700;letter-spacing:.04em}
+.kshop-ai-badge::before{content:'';display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;background:#ff4d5e;vertical-align:middle;animation:kshop-pulse 1.4s ease-in-out infinite}
+@keyframes kshop-pulse{50%{opacity:.35}}
+.kshop-mode{display:inline-flex;padding:4px;border-radius:999px;background:#1f2a240d;border:1px solid var(--line)}
+.kshop-mode button{min-height:32px;padding:0 14px;border:0;border-radius:999px;background:none;color:var(--soft);font-weight:600;font-size:.86rem}
+.kshop-mode button[aria-checked=true]{background:var(--ink);color:var(--paper)}
 .kshop-hint{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);margin:0;padding:8px 14px;border-radius:999px;background:#000a;color:#fff;font-size:.88rem;white-space:nowrap}
 .kshop-close{position:absolute;top:12px;right:12px;width:38px;height:38px;border:0;border-radius:50%;background:#fffd;color:var(--ink);font-size:1.4rem;line-height:1}
 .kshop-status{margin:12px 2px 0;color:var(--soft)}

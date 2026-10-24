@@ -4,8 +4,11 @@ import type { PoseLandmarker } from '@mediapipe/tasks-vision'
 import './shop.css'
 import { POLOS, POLO_DETAILS, SIZES } from './polos'
 import { defaultFit, drawPolo, ease, fitFromPose, loadPose, type Fit } from './tryOn'
+import { aiCameraConstraints, aiTryOnEnabled, startAiTryOn, type AiSession, type AiStatus } from './aiTryOn'
 
-type Source='none'|'camera'|'photo'
+/** 'ai' is Decart's generated video of the shopper wearing the polo; 'camera' and 'photo' are the quick fit,
+ * the polo cut-out drawn over them on this device. */
+type Source='none'|'ai'|'camera'|'photo'
 const NO_TWEAK={scale:1,dx:0,dy:0}
 const MAX_PHOTO=1400
 const price=(p:number|null)=>p==null?'Coming soon':new Intl.NumberFormat(undefined,{style:'currency',currency:'USD'}).format(p)
@@ -14,8 +17,10 @@ const price=(p:number|null)=>p==null?'Coming soon':new Intl.NumberFormat(undefin
 const shirtImages=new Map<string,HTMLImageElement>()
 const shirtFor=(src:string)=>{let img=shirtImages.get(src);if(!img){img=new Image();img.src=src;shirtImages.set(src,img)}return img}
 
-/** kono.shop: the polo collection with a live try-on. The camera or a photo stays in the browser; a pose model
- * (served from /tryon) finds the shoulders and hips and the polo is drawn over them, frame by frame. */
+/** kono.shop: the polo collection with a live try-on. With the AI fitting room switched on, the camera goes to
+ * Decart's realtime try-on model, which streams back video of the shopper wearing the polo. Otherwise (or when
+ * it's busy) the quick fit runs on the device: a pose model (served from /tryon) finds the shoulders and hips
+ * and the polo is drawn over them, frame by frame. Photos always use the quick fit and never leave the device. */
 export default function KonoShop(){
  const [poloId,setPoloId]=useState(POLOS[0].id)
  const [size,setSize]=useState<string>('M')
@@ -24,9 +29,13 @@ export default function KonoShop(){
  const [busy,setBusy]=useState(false)
  const [tweak,setTweak]=useState(NO_TWEAK)
  const [found,setFound]=useState(true)
+ const [aiOn,setAiOn]=useState(false)
+ const [ai,setAi]=useState<AiStatus|null>(null)
  const polo=POLOS.find(p=>p.id===poloId)??POLOS[0]
  const canvasRef=useRef<HTMLCanvasElement>(null)
  const videoRef=useRef<HTMLVideoElement>(null)
+ const aiVideoRef=useRef<HTMLVideoElement>(null)
+ const aiRef=useRef<AiSession|null>(null)
  const fileRef=useRef<HTMLInputElement>(null)
  const stageRef=useRef<HTMLDivElement>(null)
  const photoRef=useRef<HTMLImageElement|null>(null)
@@ -38,12 +47,20 @@ export default function KonoShop(){
 
  useEffect(()=>{POLOS.forEach(p=>shirtFor(p.image))},[])
  useEffect(()=>{document.title='KONO Shop: Polos';return()=>{document.title='KONO — Study Sanctuary'}},[])
+ useEffect(()=>{let on=true;aiTryOnEnabled().then(v=>{if(on)setAiOn(v)});return()=>{on=false}},[])
+ /** A new colour mid-session goes straight to the AI model, which redraws the shopper in it. */
+ useEffect(()=>{aiRef.current?.setPolo(polo).catch(()=>undefined)},[polo])
 
+ const stopAi=useCallback(()=>{
+  aiRef.current?.stop();aiRef.current=null;setAi(null)
+  const v=aiVideoRef.current;if(v)v.srcObject=null
+ },[])
  const stopCamera=useCallback(()=>{
+  stopAi()
   const video=videoRef.current,stream=video?.srcObject as MediaStream|null
   stream?.getTracks().forEach(t=>t.stop())
   if(video)video.srcObject=null
- },[])
+ },[stopAi])
  useEffect(()=>stopCamera,[stopCamera])
 
  const pose=async(mode:'VIDEO'|'IMAGE')=>{
@@ -87,21 +104,54 @@ export default function KonoShop(){
  },[polo.image,tweak])
  useEffect(()=>{if(source==='photo')drawPhoto()},[source,drawPhoto])
 
- const startCamera=async()=>{
+ const openCamera=async(video:MediaTrackConstraints)=>{
+  stopCamera()
+  const stream=await navigator.mediaDevices.getUserMedia({video,audio:false})
+  const el=videoRef.current!
+  el.srcObject=stream
+  await el.play()
+  return stream
+ }
+ const cameraError=(error:unknown)=>{
+  stopCamera();setSource('none')
+  setStatus(error instanceof DOMException&&error.name==='NotAllowedError'?'Camera access was blocked. Allow it in your browser, or upload a photo instead.':'The camera didn’t start. You can upload a photo instead.')
+ }
+
+ /** Quick fit on the live camera (also where the AI fitting room falls back to). */
+ const startQuickFit=async(message='')=>{
   if(!navigator.mediaDevices?.getUserMedia){setStatus('This browser can’t open a camera. Try a photo instead.');return}
   setBusy(true);setTweak(NO_TWEAK);fitRef.current=null
   try{
-   const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:960}},audio:false})
-   const video=videoRef.current!
-   video.srcObject=stream
-   await video.play()
+   const live=videoRef.current?.srcObject as MediaStream|null
+   if(live?.active){stopAi()}else await openCamera({facingMode:'user',width:{ideal:1280},height:{ideal:960}})
    await pose('VIDEO')
-   setSource('camera');setStatus('');stageRef.current?.scrollIntoView({behavior:'smooth',block:'center'})
+   setSource('camera');setStatus(message);stageRef.current?.scrollIntoView({behavior:'smooth',block:'center'})
+  }catch(error){cameraError(error)}
+  finally{setBusy(false)}
+ }
+
+ /** AI fitting room: the camera's own picture shows while Decart connects, then its generated video. */
+ const startAi=async()=>{
+  if(!navigator.mediaDevices?.getUserMedia){setStatus('This browser can’t open a camera. Try a photo instead.');return}
+  setBusy(true);setTweak(NO_TWEAK);setStatus('')
+  let stream:MediaStream
+  try{stream=await openCamera(await aiCameraConstraints())}catch(error){cameraError(error);setBusy(false);return}
+  const view=aiVideoRef.current!
+  view.srcObject=stream;view.play().catch(()=>undefined)
+  setSource('ai');setAi({kind:'connecting',text:'Opening the AI fitting room…'})
+  stageRef.current?.scrollIntoView({behavior:'smooth',block:'center'})
+  try{
+   aiRef.current=await startAiTryOn(stream,live.current.polo,{
+    onStream:remote=>{view.srcObject=remote;view.play().catch(()=>undefined)},
+    onStatus:setAi,
+    onEnded:message=>{aiRef.current=null;startQuickFit(message)},
+   })
   }catch(error){
-   stopCamera()
-   setStatus(error instanceof DOMException&&error.name==='NotAllowedError'?'Camera access was blocked. Allow it in your browser, or upload a photo instead.':'The camera didn’t start. You can upload a photo instead.')
+   aiRef.current=null
+   startQuickFit((error instanceof Error&&error.message?error.message+' ':'')+'Showing the quick fit instead.')
   }finally{setBusy(false)}
  }
+ const startCamera=()=>aiOn?startAi():startQuickFit()
 
  const choosePhoto=async(file:File|undefined)=>{
   if(!file)return
@@ -124,7 +174,16 @@ export default function KonoShop(){
 
  const close=()=>{stopCamera();setSource('none');setStatus('');fitRef.current=null;photoRef.current=null}
 
- const snapshot=()=>canvasRef.current?.toBlob(blob=>{
+ /** The picture to save: the canvas for the quick fit, or the current frame of the AI video. */
+ const pictureCanvas=()=>{
+  if(source!=='ai')return canvasRef.current
+  const v=aiVideoRef.current
+  if(!v?.videoWidth)return null
+  const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight
+  c.getContext('2d')?.drawImage(v,0,0)
+  return c
+ }
+ const snapshot=()=>pictureCanvas()?.toBlob(blob=>{
   if(!blob)return
   const a=document.createElement('a')
   a.href=URL.createObjectURL(blob);a.download=`kono-${polo.id}.png`;a.click()
@@ -151,32 +210,39 @@ export default function KonoShop(){
 
   <section className="kshop-hero" id="fitting">
    <div className="kshop-stage" ref={stageRef}>
-    <div className={'kshop-frame'+(source!=='none'?' is-live':'')+(source==='camera'?' is-mirror':'')}>
+    <div className={'kshop-frame'+(source!=='none'?' is-live':'')+(source==='camera'||source==='ai'?' is-mirror':'')}>
      <video ref={videoRef} playsInline muted hidden/>
-     <canvas ref={canvasRef} hidden={source==='none'} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} aria-label={`You wearing the ${polo.name} in ${polo.colorway}`}/>
+     <video ref={aiVideoRef} className={'kshop-ai'+(ai&&ai.kind!=='live'?' is-waiting':'')} playsInline muted hidden={source!=='ai'} aria-label={`You wearing the ${polo.name} in ${polo.colorway}`}/>
+     {source==='ai'&&ai&&ai.kind!=='live'&&<p className="kshop-ai-status" role="status"><span className="kshop-spark" aria-hidden="true"/>{ai.text}</p>}
+     {source==='ai'&&ai?.kind==='live'&&<span className="kshop-ai-badge">AI try-on</span>}
+     <canvas ref={canvasRef} hidden={source==='none'||source==='ai'} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} aria-label={`You wearing the ${polo.name} in ${polo.colorway}`}/>
      {source==='none'&&<div className="kshop-idle">
       <img key={polo.id} className="kshop-idle-polo" src={polo.image} alt={`${polo.name}, ${polo.colorway}`} width={796} height={1000}/>
       <div className="kshop-idle-cta">
        <p>See it on you</p>
        <div className="kshop-buttons">
-        <button type="button" className="kshop-btn is-primary" onClick={startCamera} disabled={busy}>{busy?'Opening…':'Use my camera'}</button>
+        <button type="button" className="kshop-btn is-primary" onClick={startCamera} disabled={busy}>{busy?'Opening…':aiOn?'Try it on live':'Use my camera'}</button>
         <button type="button" className="kshop-btn" onClick={()=>fileRef.current?.click()} disabled={busy}>Upload a photo</button>
        </div>
       </div>
      </div>}
-     {source!=='none'&&!found&&<p className="kshop-hint">{source==='camera'?'Step back so your shoulders are in view':'Couldn’t find shoulders. Drag the polo into place.'}</p>}
+     {(source==='camera'||source==='photo')&&!found&&<p className="kshop-hint">{source==='camera'?'Step back so your shoulders are in view':'Couldn’t find shoulders. Drag the polo into place.'}</p>}
      {source!=='none'&&<button type="button" className="kshop-close" onClick={close} aria-label="Close the fitting room">×</button>}
     </div>
     <input ref={fileRef} type="file" accept="image/*" hidden onChange={e=>choosePhoto(e.target.files?.[0])}/>
     {status&&<p className="kshop-status" role="status">{status}</p>}
     {source!=='none'&&<div className="kshop-tools">
-     <label>Size on you<input type="range" min={.8} max={1.3} step={.01} value={tweak.scale} onChange={e=>setTweak(t=>({...t,scale:+e.target.value}))}/></label>
-     <button type="button" className="kshop-btn is-small" onClick={()=>setTweak(NO_TWEAK)}>Reset fit</button>
+     {aiOn&&source!=='photo'&&<div className="kshop-mode" role="radiogroup" aria-label="Try-on mode">
+      <button type="button" role="radio" aria-checked={source==='ai'} onClick={()=>source!=='ai'&&startAi()} disabled={busy}>AI video</button>
+      <button type="button" role="radio" aria-checked={source==='camera'} onClick={()=>source!=='camera'&&startQuickFit()} disabled={busy}>Quick fit</button>
+     </div>}
+     {source!=='ai'&&<label>Size on you<input type="range" min={.8} max={1.3} step={.01} value={tweak.scale} onChange={e=>setTweak(t=>({...t,scale:+e.target.value}))}/></label>}
+     {source!=='ai'&&<button type="button" className="kshop-btn is-small" onClick={()=>setTweak(NO_TWEAK)}>Reset fit</button>}
      <button type="button" className="kshop-btn is-small" onClick={()=>fileRef.current?.click()}>{source==='photo'?'Another photo':'Use a photo'}</button>
      {source==='photo'&&<button type="button" className="kshop-btn is-small" onClick={startCamera}>Use camera</button>}
      <button type="button" className="kshop-btn is-small is-primary" onClick={snapshot}>Save picture</button>
     </div>}
-    <p className="kshop-private">Your camera and photos never leave this device. Nothing is uploaded.</p>
+    <p className="kshop-private">{aiOn?'The live AI try-on streams your camera to our video partner, Decart, only while it’s on, and nothing is saved. Photos and the quick fit stay on this device.':'Your camera and photos never leave this device. Nothing is uploaded.'}</p>
    </div>
 
    <div className="kshop-info">
