@@ -262,10 +262,13 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
    a special just made pops in where the match was; pieces fall with gravity (picking up speed) and land
    with a little squash and bounce; new ones fall in from above the board. */
 .match3-piece.is-clearing{z-index:2}
-.match3-piece.is-clearing .m3-gem{animation:m3-clear .24s ease-in both}
-@keyframes m3-clear{0%{transform:none;filter:brightness(1)}35%{transform:scale(1.22);filter:brightness(2.4) drop-shadow(0 0 10px #fff)}100%{transform:scale(.15) rotate(25deg);filter:brightness(3);opacity:0}}
-.match3.is-candy .match3-piece.is-clearing .m3-gem{animation-name:m3-clear-candy}
-@keyframes m3-clear-candy{0%{transform:none}30%{transform:scale(1.25,1.15);filter:brightness(1.6) drop-shadow(0 0 8px #fff)}60%{transform:scale(1.1,.9)}100%{transform:scale(0);opacity:0}}
+/* As in the recordings: Bejeweled's gem shrinks smoothly to a dot at its center, solid all the way, with
+   only a slight brightening; Candy crush's candy lights up for an instant, then shrinks fast while its
+   splash flies out. Neither swells, spins or fades. */
+.match3-piece.is-clearing.is-clearing .m3-gem{animation:m3-clear .21s cubic-bezier(.55,0,.85,.35) both;transform-origin:50% 50%}
+@keyframes m3-clear{0%{transform:scale(1);filter:brightness(1)}25%{filter:brightness(1.35)}100%{transform:scale(.04);filter:brightness(1.35)}}
+.match3.is-candy .match3-piece.is-clearing.is-clearing .m3-gem{animation-name:m3-clear-candy}
+@keyframes m3-clear-candy{0%{transform:scale(1);filter:brightness(1)}18%{transform:scale(1);filter:brightness(1.7) drop-shadow(0 0 6px #fff)}100%{transform:scale(.05);filter:brightness(1.4) drop-shadow(0 0 4px #fff)}}
 .match3-piece.is-made .m3-gem{animation:m3-made .38s cubic-bezier(.2,1.6,.4,1) both}
 @keyframes m3-made{from{transform:scale(.2);filter:brightness(3)}60%{filter:brightness(1.6)}}
 .match3-piece.is-fall{transition:left .18s ease-in-out,top .3s cubic-bezier(.5,0,.9,.55)}

@@ -1,5 +1,5 @@
-/** The arcade's music and sound effects, all made with Web Audio (no files to download): a looping
- * soundtrack for each game and the effects the games play (swaps, matches that climb a scale down a
+/** The arcade's music and sound effects: a looping soundtrack for each game (a recorded track from
+ * public/audio/games when there is one, otherwise written here and played with Web Audio) and the effects the games play (swaps, matches that climb a scale down a
  * cascade, laser beams, explosions, lightning, fire, meows…). Loaded only with the games. Everything
  * follows Settings › Sounds (the caller passes it); the music also has its own on/off switch (🎵 in a
  * game's header), kept on this device. Browsers only allow sound after a tap, and every game starts
@@ -126,10 +126,31 @@ const MUSIC_KEY='kono-arcade-music'
 export const musicOn=()=>{try{return localStorage.getItem(MUSIC_KEY)!=='0'}catch{return true}}
 let playing:{theme:Theme;timer:number;stop:boolean}|null=null,wanted:Theme|null=null
 /** Starts a game's soundtrack (if Sounds and 🎵 are on); a soundtrack already playing gives way to it. */
+// Recorded soundtracks (made in Suno) live at /audio/games/<game>.mp3 and loop; a game without one plays
+// the soundtrack written below instead.
+let track:HTMLAudioElement|null=null
+const missing=new Set<Theme>()
+function stopTrack(fade=0){
+ const a=track;track=null;if(!a)return
+ if(!fade){a.pause();return}
+ const v0=a.volume,t0=performance.now()
+ const step=()=>{const k=Math.min(1,(performance.now()-t0)/fade);a.volume=v0*(1-k);if(k<1)requestAnimationFrame(step);else a.pause()}
+ requestAnimationFrame(step)
+}
 export function startMusic(theme:Theme,enabled:boolean){
  wanted=theme
- stopTimer()
+ stopTimer();stopTrack()
  if(!enabled||!musicOn())return
+ if(!missing.has(theme)){
+  const a=new Audio('/audio/games/'+theme+'.mp3');a.loop=true;a.volume=0;track=a
+  const fallback=()=>{if(track!==a)return;track=null;missing.add(theme);if(wanted===theme)startMusic(theme,enabled)}
+  a.addEventListener('error',fallback,{once:true})
+  void a.play().then(()=>{const t0=performance.now();const up=()=>{if(track!==a)return;const k=Math.min(1,(performance.now()-t0)/600);a.volume=0.55*k;if(k<1)requestAnimationFrame(up)};requestAnimationFrame(up)}).catch(fallback)
+  return
+ }
+ synth(theme)
+}
+function synth(theme:Theme){
  const c=audio();if(!c||!musicBus)return
  const song=SONGS[theme],step=60/song.bpm/4,bars=song.chords.length
  let n=0,next=c.currentTime+0.08
@@ -157,6 +178,7 @@ function stopTimer(){if(playing){playing.stop=true;window.clearInterval(playing.
 /** Fades the soundtrack out (leaving a game, or the round is over). */
 export function stopMusic(){
  wanted=null
+ stopTrack(400)
  if(ctx&&musicBus&&playing){const t=ctx.currentTime;musicBus.gain.cancelScheduledValues(t);musicBus.gain.setValueAtTime(musicBus.gain.value,t);musicBus.gain.linearRampToValueAtTime(0.0001,t+0.4)}
  const p=playing;window.setTimeout(()=>{if(playing===p)stopTimer()},450)
 }
@@ -164,7 +186,7 @@ export function stopMusic(){
 export function setMusicOn(on:boolean,enabled:boolean){
  try{localStorage.setItem(MUSIC_KEY,on?'1':'0')}catch{/* storage unavailable */}
  const theme=wanted
- if(!on){stopTimer();wanted=theme}
+ if(!on){stopTimer();stopTrack();wanted=theme}
  else if(theme)startMusic(theme,enabled)
 }
 
