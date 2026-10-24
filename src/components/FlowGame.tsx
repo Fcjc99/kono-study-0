@@ -1,5 +1,5 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {COLS,FLOW_CELL,H,HIDDEN,KINDS,ROWS,cellsOf,ghostOf,hardDrop,holdPiece,move,newGame,rotate,shapeCells,softDrop,startFlow,tick,type FlowEvent,type Game,type Kind} from '../store/flow'
+import {COLS,FLOW_CELL,H,HIDDEN,KINDS,ROWS,cellsOf,ghostOf,hardDrop,holdPiece,move,musicPart,newGame,rotate,shapeCells,softDrop,startFlow,tick,type FlowEvent,type Game,type Kind} from '../store/flow'
 import {fx,musicSlow,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
 
@@ -22,7 +22,12 @@ const DAS=170,ARR=45,SOFT=40
 export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:boolean;onEnd:(score:number,lines:number,level:number)=>void}){
  const canvas=useRef<HTMLCanvasElement>(null),game=useRef<Game|null>(null)
  const [hud,setHud]=useState({score:0,lines:0,level:1,flow:0,flowMs:0,flowLines:0}),[words,setWords]=useState<Word[]>([])
+ // The well's size in pixels, worked out from the screen (CSS alone left it squeezed on some phones).
+ const [size,setSize]=useState(stageSize)
+ useEffect(()=>{const on=()=>setSize(stageSize());window.addEventListener('resize',on);window.visualViewport?.addEventListener('resize',on);return ()=>{window.removeEventListener('resize',on);window.visualViewport?.removeEventListener('resize',on)}},[])
  const vis=useRef<Vis>(newVis())
+ // The soundtrack playing (a big Flow can jump two levels, so this is what's compared, not the level before).
+ const part=useRef(1)
  const ended=useRef(false),onEndRef=useRef(onEnd),soundRef=useRef(sound),keys=useRef(0)
  const held=useRef<{dir:number;t:number;next:number}|null>(null),soft=useRef(false)
  useEffect(()=>{onEndRef.current=onEnd;soundRef.current=sound},[onEnd,sound])
@@ -47,7 +52,7 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
    if(e.b2b)say('Back to back!')
    if(e.combo>=2)say('Combo '+e.combo)
    if(e.perfect){say('Perfect clear!',true);fx('mega',s)}
-  }else if(e.t==='level'){say('Level '+e.level,true);fx('fanfare',s);const part=trackFor(e.level);if(part!==trackFor(e.level-1))startMusic('flow',s,part)}
+  }else if(e.t==='level'){say('Level '+e.level,true);fx('fanfare',s);const p=musicPart(e.level);if(p!==part.current){part.current=p;startMusic('flow',s,p)}}
   else if(e.t==='flowOn'){fx('flowOn',s);say('Flow',true);musicSlow(true)}
   else if(e.t==='flowStack'){fx('rows',s,Math.min(4,e.rows.length));for(let k=0;k<e.rows.length;k++)v.bands.push({y:H-1-(e.total-1-k),t:0,white:true})}
   else if(e.t==='flowEnd'){
@@ -126,7 +131,7 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
    <span className="blast-coins">{hud.lines} line{hud.lines===1?'':'s'}</span>
    <strong className="blast-score" aria-label={'Score '+hud.score}>{hud.score.toLocaleString()}</strong>
   </div>
-  <div className="flow-stage">
+  <div className="flow-stage" style={{width:size.w,height:size.h}}>
    <canvas ref={canvas} className="flow-canvas" aria-label="KONO Flow well" role="img" onPointerDown={pdown} onPointerMove={pmove} onPointerUp={pup} onPointerCancel={()=>{touch.current=null}}/>
    {hud.flowMs>0&&<p className="flow-count" aria-live="polite"><b>{hud.flowLines}</b><small>lines · {hud.flowMs}s</small></p>}
    <div className="flow-words" aria-live="polite">{words.map(w=><p key={w.key} className={w.big?'is-big':''}>{w.text}</p>)}</div>
@@ -225,8 +230,13 @@ function draw(c:HTMLCanvasElement|null,s:Game,dt:number,v:Vis){
   x.fillText('NEXT',rx,oy+cs*0.5)
   s.queue.slice(0,5).forEach((k,i)=>mini(k,rx,oy+cs*(1.6+i*2.1),cs*(i?0.45:0.6)))
  }
-/** The soundtrack for a level: a new track every three levels (1–3, 4–6, 7–9, 10–12, then 13 on). */
-const trackFor=(level:number)=>Math.min(5,Math.floor((level-1)/3)+1)
+/** The well's box: as wide as fits (up to 440 px), and short enough to leave room above for the header and
+ * score and below for the meter, buttons and help (about 330 px together), in the canvas's proportions. */
+function stageSize(){
+ const vw=window.visualViewport?.width??window.innerWidth,vh=window.visualViewport?.height??window.innerHeight
+ const w=Math.max(220,Math.min(440,vw*0.96,(vh-330)*LAYOUT.w/LAYOUT.h))
+ return {w:Math.round(w),h:Math.round(w*LAYOUT.h/LAYOUT.w)}
+}
 /** The canvas in cells: the well (10 × 20) with a column for hold on the left and the queue on the right. */
 const LAYOUT={side:4,top:0.4,w:COLS+8,h:ROWS+0.8}
 /** A block of light: a rounded pane, darker at the rim and bright in the middle, with a glint. */

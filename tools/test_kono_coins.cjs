@@ -347,6 +347,8 @@ test('KONO Flow: shuffled sets of seven, moving and turning with wall kicks, har
  const g7=f.newGame(seeded(1));for(let y=0;y<f.H;y++)for(let x=0;x<f.COLS;x++)if(x!==9||y<4)g7.board[y*f.COLS+x]=y<f.HIDDEN+1?0:5
  for(let k=0;k<6&&!g7.over;k++)f.hardDrop(g7);assert.ok(g7.over,'no room: game over')
  assert.ok(f.gravityMs(10)<f.gravityMs(1)/5,'faster each level')
+ // The soundtrack: a new one every three levels, five in all.
+ assert.deepEqual([1,3,4,6,7,9,10,12,13,30].map(f.musicPart),[1,1,2,2,3,3,4,4,5,5])
 })
 test('Flappy KONO: KONO falls and a flap lifts it, pipes come in with a gap, flying through a gap scores, touching a pipe or the ground ends the run; medals at 10/20/30/40',()=>{
  const f=load('src/store/flappy.ts'),half=()=>0.5

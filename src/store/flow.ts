@@ -58,6 +58,8 @@ const KICKS_I:Record<string,[number,number][]>={
  '3>0':[[0,0],[1,0],[-2,0],[1,-2],[-2,1]],'0>3':[[0,0],[-1,0],[2,0],[-1,2],[2,-1]],
 }
 export const LOCK_MS=500,MAX_RESETS=15,FLOW_MS_PER_QUARTER=5000
+/** Which of the five soundtracks plays at a level: a new one every three levels (1–3, 4–6, 7–9, 10–12, 13 on). */
+export const musicPart=(level:number)=>Math.min(5,Math.max(1,Math.floor((level-1)/3)+1))
 /** How long a row takes to fall at a level (ms): the standard curve, faster each level. */
 export const gravityMs=(level:number)=>1000*Math.pow(0.8-(level-1)*0.007,level-1)
 
