@@ -277,8 +277,13 @@ test('match-3 in real time: the opening rain settles; a swap slides and clears; 
  assert.ok(rt.events.some(e=>e.t==='match'&&e.cells.length===3&&e.level===1));calm(rt);assert.equal(L.boardOf(rt).filter(Boolean).length,64)
  // A striped candy across row 0: its beam reaches the far end later than its neighbor.
  const s=fill();s[0]=P(0,'row');s[1]=P(0);s[3]=P(0);s[10]=P(0)
- rt=L.live(g.maker('candy',seeded(4)),s,false);L.trySwap(rt,2,10);run(rt,260)
+ rt=L.live(g.maker('candy',seeded(4)),s,false);L.trySwap(rt,2,10);run(rt,520)
  const f=rt.events.find(e=>e.t==='fire');assert.ok(f&&f.e.type==='row');assert.ok(f.delays[f.e.cells.indexOf(7)]>f.delays[f.e.cells.indexOf(1)],'the beam travels')
+ // Before it goes off, a special charges up (it swells and glows); two specials swapped together pull in first.
+ rt=L.live(g.maker('candy',seeded(4)),s,false);L.trySwap(rt,2,10);run(rt,250)
+ assert.ok(L.view(rt).some(l=>l.charge>0&&l.p.special==='row')&&!rt.events.some(e=>e.t==='fire'),'the striped candy charges up first')
+ {const pb=fill();pb[27]=P(2,'row');pb[28]=P(3,'col');rt=L.live(g.maker('candy',seeded(3)),pb,false);L.trySwap(rt,27,28);run(rt,300)
+  assert.equal(L.view(rt).filter(l=>l.charge>0).length,2,'the two striped candies pull together');assert.ok(!rt.events.some(e=>e.t==='fire'));run(rt,300);assert.ok(rt.events.some(e=>e.t==='fire'&&e.e.type==='cross'&&e.combo))}
  // Four in a line: the others slide into the spot and a special appears there.
  const four=fill();four[0]=P(0);four[1]=P(0);four[3]=P(0);four[10]=P(0)
  rt=L.live(g.maker('gems',seeded(4)),four,false);L.trySwap(rt,2,10);run(rt,200)

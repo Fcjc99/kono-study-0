@@ -13,6 +13,9 @@
 import {W,adjacent,canSwap,findMove,fresh,freshBoard,hasMove,lines,made,reach,type Board,type Effect,type Maker,type Piece,type Special} from './match3'
 
 export const SWAP_MS=170,MERGE_MS=200,SHUFFLE_MS=520
+/** A special charging up before it goes off (a color bomb or hypercube winds up longer), and two specials
+ * swapped together pulling into each other before their combination. */
+export const CHARGE_MS=190,BOMB_CHARGE_MS=300,COMBO_MS=320
 export const BEAM_MS={gems:26,candy:34}
 const CLEAR_MS={gems:230,candy:170},BOLT_MS=38,BLAST_MS=45,WRAP_WAIT=320
 // Gravity and top speed, in squares per millisecond: a piece falls one square in about 0.13 s.
@@ -22,7 +25,7 @@ const G=0.00012,VMAX=0.03
  * the square it's in is its place in `cells`. `doom`: milliseconds until it starts clearing. `clear`:
  * milliseconds into clearing. `merge`: the square it slides into as it clears. `up`: what it turns into,
  * and when. `wrap`: a wrapped candy that has gone off once and goes off again when it lands. */
-export type Bit={p:Piece;y:number;vy:number;level:number;swap?:Slide;doom?:number;clear?:number;merge?:number;fired?:boolean;up?:{p:Piece;in:number;made:boolean};born?:number;landed?:number;wrap?:'armed'|'go';wait?:number;pts?:number}
+export type Bit={p:Piece;y:number;vy:number;level:number;swap?:Slide;doom?:number;clear?:number;charge?:number;pull?:{to:number;t:number};merge?:number;fired?:boolean;up?:{p:Piece;in:number;made:boolean};born?:number;landed?:number;wrap?:'armed'|'go';wait?:number;pts?:number}
 type Slide={fx:number;fy:number;tx:number;ty:number;t:number;ms:number;back?:boolean}
 /** What happened, for the game to draw and play: a match (its points and how deep in the cascade), a piece
  * starting to clear, a special going off (with when it reaches each square), a special made, the bonuses,
@@ -32,10 +35,12 @@ export type Ev=
  |{t:'clear';at:number;kind:number;special?:Special;merge?:number;pts:number}
  |{t:'fire';e:Effect;delays:number[];points:number;combo?:boolean}
  |{t:'made';at:number;special:Special}
+ |{t:'charge';at:number;special:Special;combo?:boolean}
  |{t:'time';n:number}|{t:'mult';n:number}|{t:'nope'}|{t:'shuffle'}
-export type Live={m:Maker;cells:(Bit|null)[];chain:number;spots:number[];taken:number;multNext:boolean;multGiven:boolean;events:Ev[];pend:{a:number;c:number;t:number}[]}
-/** How a piece is drawn this moment: where (in squares), its scale (and squash), opacity, brightness. */
-export type Look={id:number;p:Piece;at:number;x:number;y:number;sx:number;sy:number;o:number;b:number;z:number;born:boolean;clearing:boolean}
+export type Live={m:Maker;cells:(Bit|null)[];chain:number;spots:number[];taken:number;multNext:boolean;multGiven:boolean;events:Ev[];pend:{a:number;c:number;t:number}[];combos:{a:number;c:number;t:number}[]}
+/** How a piece is drawn this moment: where (in squares), its scale (and squash), turn, opacity, brightness,
+ * and how far a special has charged up (0–1, or 0 when it isn't). */
+export type Look={id:number;p:Piece;at:number;x:number;y:number;sx:number;sy:number;rot:number;o:number;b:number;z:number;born:boolean;clearing:boolean;charge:number}
 
 const rc=(i:number)=>[Math.floor(i/W),i%W] as const
 const base=(m:Maker)=>m.mode==='gems'?250/3:20
@@ -47,15 +52,15 @@ const band=(r:number,c:number)=>[...new Set([r-1,r,r+1].filter(y=>y>=0&&y<W).fla
 /** A board to play. With `intro`, every piece starts above the board and rains in, column by column. */
 export function live(m:Maker,b:Board,intro=true):Live{
  const cells=b.map((p,i)=>{const [r,c]=rc(i);return p?{p,y:intro?r-W-1-c*0.45:r,vy:0,level:1}:null})
- return {m,cells,chain:0,spots:[],taken:0,multNext:false,multGiven:false,events:[],pend:[]}
+ return {m,cells,chain:0,spots:[],taken:0,multNext:false,multGiven:false,events:[],pend:[],combos:[]}
 }
-const rests=(x:Bit|null,i:number):x is Bit=>!!x&&!x.swap&&x.doom===undefined&&x.clear===undefined&&!x.up&&!x.wrap&&x.vy===0&&x.y===Math.floor(i/W)
-const movable=(x:Bit|null)=>!!x&&!x.swap&&x.doom===undefined&&x.clear===undefined&&!x.up
+const rests=(x:Bit|null,i:number):x is Bit=>!!x&&!x.swap&&x.doom===undefined&&x.clear===undefined&&x.charge===undefined&&!x.pull&&!x.up&&!x.wrap&&x.vy===0&&x.y===Math.floor(i/W)
+const movable=(x:Bit|null)=>!!x&&!x.swap&&x.doom===undefined&&x.clear===undefined&&x.charge===undefined&&!x.pull&&!x.up
 export const boardOf=(rt:Live):Board=>rt.cells.map(x=>x?x.p:null)
 /** The pieces at rest (the rest left out): what can match and what can be swapped. */
 const still=(rt:Live):Board=>rt.cells.map((x,i)=>rests(x,i)?x.p:null)
 /** Nothing moving, clearing or waiting: the board has settled. */
-export const settled=(rt:Live)=>!rt.pend.length&&rt.cells.every((x,i)=>rests(x,i))
+export const settled=(rt:Live)=>!rt.pend.length&&!rt.combos.length&&rt.cells.every((x,i)=>rests(x,i))
 /** A move to hint at (only once the board has settled). */
 export const hintFor=(rt:Live)=>settled(rt)?findMove(boardOf(rt)):null
 
@@ -78,8 +83,8 @@ export function trySwap(rt:Live,a:number,c:number):'swap'|'nope'|null{
 /** Marks a piece to clear in `delay` ms (sooner if it's already marked); true if it wasn't marked yet. */
 function mark(rt:Live,i:number,delay:number,level:number,pts=0):boolean{
  const x=rt.cells[i]
- // (A special still forming isn't taken by the clear that made it.)
- if(!x||x.clear!==undefined||x.up?.made)return false
+ // (A special still forming, or just formed, isn't taken by the clear that made it.)
+ if(!x||x.clear!==undefined||x.charge!==undefined||x.pull||x.up?.made||(x.born!==undefined&&x.p.special))return false
  // A wrapped candy waiting to go off again goes off now.
  if(x.wrap==='armed'){x.wrap='go';x.fired=false}
  const fresh=x.doom===undefined
@@ -157,8 +162,9 @@ function startClear(rt:Live,i:number){
  // Gem blitz, as in Bejeweled Blitz: a move that takes 12 gems or more drops in a multiplier gem (×2), and
  // after that each move of 16 or more drops in the next one (up to ×8).
  if(rt.m.mode==='gems'&&!rt.multGiven&&rt.m.mult<8&&rt.taken>=(rt.m.mult===1?12:16)){rt.multNext=true;rt.multGiven=true}
- if(x.p.special&&!x.fired)fire(rt,i)
- if(x.clear!==undefined)rt.events.push({t:'clear',at:i,kind:x.p.kind,special:x.p.special,merge:x.merge,pts:x.pts??0})
+ // A special charges up first (it swells and glows), then goes off.
+ if(x.p.special&&!x.fired){x.clear=undefined;x.charge=0;rt.events.push({t:'charge',at:i,special:x.p.special});return}
+ rt.events.push({t:'clear',at:i,kind:x.p.kind,special:x.p.special,merge:x.merge,pts:x.pts??0})
 }
 /** Lines among the pieces at rest: they clear (sliding into the special they make, if they make one). */
 function matches(rt:Live){
@@ -260,7 +266,20 @@ export function step(rt:Live,dt:number):boolean{
   const A=rt.cells[s.a],C=rt.cells[s.c]
   if(!A||!C)continue
   rt.spots=[s.a,s.c]
-  if(A.clear===undefined&&C.clear===undefined&&A.doom===undefined&&C.doom===undefined&&(A.p.special==='color'||C.p.special==='color'||(A.p.special&&C.p.special)))combo(rt,s.a,s.c)
+  // Two specials (or a color bomb and anything): they pull into each other, then the combination goes off.
+  if(A.clear===undefined&&C.clear===undefined&&A.doom===undefined&&C.doom===undefined&&A.charge===undefined&&C.charge===undefined&&(A.p.special==='color'||C.p.special==='color'||(A.p.special&&C.p.special))){
+   A.pull={to:s.c,t:0};C.pull={to:s.a,t:0};rt.combos.push({a:s.a,c:s.c,t:COMBO_MS});rt.events.push({t:'charge',at:s.c,special:C.p.special??A.p.special!,combo:true})
+  }
+ }
+ for(const k of [...rt.combos]){
+  k.t-=dt;moving=true
+  for(const at of [k.a,k.c]){const x=rt.cells[at];if(x?.pull)x.pull.t+=dt}
+  if(k.t>0)continue
+  rt.combos.splice(rt.combos.indexOf(k),1)
+  const A=rt.cells[k.a],C=rt.cells[k.c]
+  if(A)A.pull=undefined
+  if(C)C.pull=undefined
+  if(A&&C)combo(rt,k.a,k.c)
  }
  rt.cells.forEach((x,i)=>{
   if(!x)return
@@ -269,6 +288,14 @@ export function step(rt:Live,dt:number):boolean{
  })
  rt.cells.forEach((x,i)=>{
   if(!x)return
+  if(x.charge!==undefined){
+   moving=true;x.charge+=dt
+   if(x.charge>=(x.p.special==='color'?BOMB_CHARGE_MS:CHARGE_MS)){
+    x.charge=undefined;x.clear=0;fire(rt,i)
+    if(x.clear!==undefined)rt.events.push({t:'clear',at:i,kind:x.p.kind,special:x.p.special,merge:x.merge,pts:x.pts??0})
+    return
+   }
+  }
   if(x.clear!==undefined){moving=true;x.clear+=dt;if(x.clear>=(x.merge!==undefined?MERGE_MS:CLEAR_MS[rt.m.mode]))rt.cells[i]=null}
   if(x.born!==undefined){moving=true;x.born+=dt;if(x.born>400)x.born=undefined}
   if(x.landed!==undefined){moving=true;x.landed+=dt;if(x.landed>240)x.landed=undefined}
@@ -308,7 +335,7 @@ export function view(rt:Live):Look[]{
  rt.cells.forEach((x,i)=>{
   if(!x)return
   const [r,c]=rc(i)
-  let px=c,py=x.y,sx=1,sy=1,o=1,b=1,z=1
+  let px=c,py=x.y,sx=1,sy=1,o=1,b=1,z=1,rot=0,charge=0
   if(x.swap){
    const s=x.swap,k=Math.min(1,s.t/s.ms),e=s.back?ease(k<0.5?k*2:(1-k)*2):ease(k)
    // From the old square to the new one (a swap that makes nothing goes there and comes back).
@@ -329,8 +356,21 @@ export function view(rt:Live):Look[]{
     const k=Math.min(1,x.clear/CLEAR_MS.candy);sx=sy=1+0.18*Math.min(1,k/0.45);b=1+1.2*Math.min(1,k/0.45);o=k<0.45?1:0
    }
   }
+  if(x.charge!==undefined){
+   // Charging up: it swells, brightens and trembles (a color bomb or hypercube spins up); a wrapped candy
+   // about to go off a second time does the same.
+   const k=Math.min(1,x.charge/(x.p.special==='color'?BOMB_CHARGE_MS:CHARGE_MS)),q=ease(k)
+   charge=Math.max(0.01,k);z=4;sx=sy=1+0.32*q;b=1+1.1*q
+   if(x.p.special==='color')rot=q*q*540
+   else{const t=Math.sin(x.charge*0.09)*3*q;px+=t*0.012;rot=t}
+  }
+  if(x.pull){
+   // Two specials swapped together pull into each other, glowing.
+   const k=Math.min(1,x.pull.t/COMBO_MS),q=ease(k),[tr,tc]=rc(x.pull.to)
+   px=c+(tc-c)*0.5*q;py=r+(tr-r)*0.5*q;sx=sy=1+0.25*q;b=1+q;z=4;charge=Math.max(0.01,k);rot=x.p.special==='color'?q*q*720:Math.sin(x.pull.t*0.08)*6*q
+  }
   if(x.landed!==undefined){const k=x.landed/240,q=Math.sin(Math.PI*Math.min(1,k*1.5))*(1-k)*0.2;sx*=1+q;sy*=1-q}
-  out.push({id:x.p.id,p:x.p,at:i,x:px,y:py,sx,sy,o,b,z,born:x.born!==undefined,clearing:x.clear!==undefined})
+  out.push({id:x.p.id,p:x.p,at:i,x:px,y:py,sx,sy,rot,o,b,z,born:x.born!==undefined,clearing:x.clear!==undefined,charge})
  })
  return out.sort((a,b)=>a.id-b.id)
 }

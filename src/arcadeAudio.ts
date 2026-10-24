@@ -195,7 +195,7 @@ export function setMusicOn(on:boolean,enabled:boolean){
 }
 
 // ---- Sound effects ----
-export type Fx='swap'|'nope'|'land'|'match'|'make'|'laser'|'boom'|'zap'|'mega'|'squish'|'time'|'mult'|'blaze'|'tick'|'timeup'|'fanfare'|'star'
+export type Fx='swap'|'nope'|'land'|'match'|'make'|'laser'|'boom'|'zap'|'mega'|'squish'|'time'|'mult'|'blaze'|'tick'|'timeup'|'fanfare'|'star'|'charge'
  |'meow'|'purr'|'paw'|'hiss'|'heart'|'flap'|'ding'|'thud'|'claim'|'cut'|'whoosh'
 const PENTA=[0,2,4,7,9,12,14,16,19,21,24]
 /** Plays an effect. `level` climbs: a match further down a cascade rings higher. */
@@ -218,6 +218,8 @@ export function fx(kind:Fx,enabled:boolean,level=0){
   case 'time':[0,7,12].forEach((k,i)=>tone(c,o,{freq:hz(84+k),at:t+i*0.07,dur:0.25,vol:0.1,wet:true}));break
   case 'mult':[0,4,7,11,14].forEach((k,i)=>tone(c,o,{type:'triangle',freq:hz(72+k),at:t+i*0.06,dur:0.4,vol:0.12,wet:true}));break
   case 'blaze':hiss(c,o,{at:t,dur:1.1,vol:0.3,type:'bandpass',freq:300,to:2400,q:0.6});tone(c,o,{type:'sawtooth',freq:80,to:320,at:t,dur:1,vol:0.08});break
+  // A special winding up before it goes off: a quick rising shimmer.
+  case 'charge':tone(c,o,{type:'triangle',freq:420,to:1500,at:t,dur:0.2,vol:0.07});hiss(c,o,{at:t,dur:0.2,vol:0.06,type:'bandpass',freq:1500,to:6000,q:1.5});break
   case 'tick':tone(c,o,{type:'square',freq:1400,at:t,dur:0.03,vol:0.06});break
   case 'timeup':tone(c,o,{type:'square',freq:220,at:t,dur:0.5,vol:0.1});tone(c,o,{type:'square',freq:165,at:t+0.25,dur:0.6,vol:0.1});break
   case 'fanfare':[[0,0],[4,0.12],[7,0.24],[12,0.36],[7,0.5],[12,0.62]].forEach(([k,d])=>{tone(c,o,{type:'square',freq:hz(72+k),at:t+d,dur:0.22,vol:0.07});tone(c,o,{freq:hz(60+k),at:t+d,dur:0.3,vol:0.1})});break
