@@ -3521,7 +3521,7 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
  const town=page.getByRole('dialog',{name:'KONO Town'})
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
- // Meowdoku: read the patches off the board, solve it, and tap each answer square twice (✕, then a cat).
+ // Meowdoku: read the patches off the board, solve it, and double-tap each answer square (a cat).
  await town.getByRole('button',{name:/Meowdoku/}).click()
  if(process.env.KONO_SHOTS){const d=page.getByRole('dialog',{name:'🐱 Meowdoku'});await d.getByRole('region',{name:'Start'}).waitFor();await page.waitForTimeout(600);await d.screenshot({path:process.env.KONO_SHOTS+'/game-start.png'})}
  await startGame(page,'🐱 Meowdoku',/^Start level 1$/)
@@ -3535,7 +3535,7 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
   go(0);return out.map(i=>({r:Math.floor(i/n)+1,c:i%n+1}))
  })
  assert.equal(answer.length,5)
- for(const {r,c} of answer){const cell=grid.getByRole('gridcell',{name:new RegExp('^Row '+r+', column '+c+'(,|$)')});await cell.click();await cell.click()}
+ for(const {r,c} of answer)await grid.getByRole('gridcell',{name:new RegExp('^Row '+r+', column '+c+'(,|$)')}).dblclick()
  if(process.env.KONO_SHOTS){await page.waitForTimeout(300);await meow.screenshot({path:process.env.KONO_SHOTS+'/meowdoku.png'})}
  const results=meow.getByRole('region',{name:'Results'})
  await results.getByRole('heading',{name:'Purr-fect!'}).waitFor({timeout:8000})
