@@ -22,9 +22,18 @@ const DAS=170,ARR=45,SOFT=40
 export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:boolean;onEnd:(score:number,lines:number,level:number)=>void}){
  const canvas=useRef<HTMLCanvasElement>(null),game=useRef<Game|null>(null)
  const [hud,setHud]=useState({score:0,lines:0,level:1,flow:0,flowMs:0,flowLines:0}),[words,setWords]=useState<Word[]>([])
- // The well's size in pixels, worked out from the screen (CSS alone left it squeezed on some phones).
+ // The well's size in pixels, from the space actually left on the screen: the full width (less the screen's
+ // padding), and the height between the well's top and the meter and buttons below it (CSS alone left it
+ // squeezed on some phones). Measured after layout, and again whenever the screen resizes or turns.
+ const stage=useRef<HTMLDivElement>(null),below=useRef<HTMLDivElement>(null)
  const [size,setSize]=useState(stageSize)
- useEffect(()=>{const on=()=>setSize(stageSize());window.addEventListener('resize',on);window.visualViewport?.addEventListener('resize',on);return ()=>{window.removeEventListener('resize',on);window.visualViewport?.removeEventListener('resize',on)}},[])
+ useEffect(()=>{
+  let raf=0
+  const fit=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{const top=stage.current?.getBoundingClientRect().top??200,rest=below.current?.getBoundingClientRect().height??90;const next=stageSize(top,rest);setSize(s=>s.w===next.w&&s.h===next.h?s:next)})}
+  fit()
+  window.addEventListener('resize',fit);window.visualViewport?.addEventListener('resize',fit);window.addEventListener('orientationchange',fit)
+  return ()=>{cancelAnimationFrame(raf);window.removeEventListener('resize',fit);window.visualViewport?.removeEventListener('resize',fit);window.removeEventListener('orientationchange',fit)}
+ },[])
  const vis=useRef<Vis>(newVis())
  // The soundtrack playing (a big Flow can jump two levels, so this is what's compared, not the level before).
  const part=useRef(1)
@@ -125,17 +134,18 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
   else if(!t.moved&&Math.hypot(dx,dy)<cellPx()*0.6&&dt<450)act(s=>rotate(s,1))
  }
  const can=hud.flow>=0.25&&!hud.flowMs
- return <div className="break-game flow-game">
+ return <div className="break-game flow-game" style={{'--fw':size.w+'px'} as React.CSSProperties}>
   <div className="blast-top">
    <span className="blast-best">Level {hud.level}</span>
    <span className="blast-coins">{hud.lines} line{hud.lines===1?'':'s'}</span>
    <strong className="blast-score" aria-label={'Score '+hud.score}>{hud.score.toLocaleString()}</strong>
   </div>
-  <div className="flow-stage" style={{width:size.w,height:size.h}}>
-   <canvas ref={canvas} className="flow-canvas" aria-label="KONO Flow well" role="img" onPointerDown={pdown} onPointerMove={pmove} onPointerUp={pup} onPointerCancel={()=>{touch.current=null}}/>
+  <div ref={stage} className="flow-stage" style={{width:size.w,height:size.h}}>
+   <canvas ref={canvas} className="flow-canvas" style={{width:size.w,height:size.h}} aria-label="KONO Flow well" role="img" onPointerDown={pdown} onPointerMove={pmove} onPointerUp={pup} onPointerCancel={()=>{touch.current=null}}/>
    {hud.flowMs>0&&<p className="flow-count" aria-live="polite"><b>{hud.flowLines}</b><small>lines · {hud.flowMs}s</small></p>}
    <div className="flow-words" aria-live="polite">{words.map(w=><p key={w.key} className={w.big?'is-big':''}>{w.text}</p>)}</div>
   </div>
+  <div ref={below} className="flow-below">
   <div className="flow-meter" role="meter" aria-label="Flow" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(hud.flow*100)}><span style={{width:(hud.flowMs?100:hud.flow*100)+'%'}} className={hud.flowMs?'is-on':can?'is-ready':''}/>{[0.25,0.5,0.75].map(q=><i key={q} style={{left:q*100+'%'}}/>)}</div>
   <div className="flow-pad">
    <button type="button" onClick={()=>act(s=>holdPiece(s))}>Hold</button>
@@ -147,6 +157,7 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
    <button type="button" className={'flow-go'+(can?' is-ready':'')} disabled={!can} onClick={()=>act(s=>startFlow(s))}>Flow</button>
   </div>
   <p className="blast-help">Drag to move · tap to turn · flick down to drop · flick up to hold. Keys: ← → ↓, ↑/X/Z turn, Space drop, C hold, F Flow.</p>
+  </div>
  </div>
 }
 /** What the drawing keeps from frame to frame (outside React): sparks, flashes, streaks, the field of light,
@@ -225,20 +236,23 @@ function draw(c:HTMLCanvasElement|null,s:Game,dt:number,v:Vis){
    x.globalAlpha=1
   }
   x.fillStyle='rgba(255,255,255,.75)';x.font=Math.round(cs*0.42)+'px system-ui, sans-serif';x.textAlign='center'
-  x.fillText('HOLD',ox-LAYOUT.side*cs/2,oy+cs*0.5);mini(s.hold,ox-LAYOUT.side*cs/2,oy+cs*1.6,cs*0.55,!s.canHold)
+  x.fillText('HOLD',ox-LAYOUT.side*cs/2,oy+cs*0.5);mini(s.hold,ox-LAYOUT.side*cs/2,oy+cs*1.6,cs*0.5,!s.canHold)
   const rx=ox+COLS*cs+LAYOUT.side*cs/2
   x.fillText('NEXT',rx,oy+cs*0.5)
-  s.queue.slice(0,5).forEach((k,i)=>mini(k,rx,oy+cs*(1.6+i*2.1),cs*(i?0.45:0.6)))
+  s.queue.slice(0,5).forEach((k,i)=>mini(k,rx,oy+cs*(1.6+i*2.1),cs*(i?0.4:0.52)))
  }
-/** The well's box: as wide as fits (up to 440 px), and short enough to leave room above for the header and
- * score and below for the meter, buttons and help (about 330 px together), in the canvas's proportions. */
-function stageSize(){
+/** The well's box: the full width (up to 520 px), and as tall as its proportions want or the room between
+ * `top` (where the well starts) and the controls below (`rest` tall) allows, whichever is less. The drawing
+ * fits its cells to the box and centres them, so a short screen still shows the whole well. */
+function stageSize(top=200,rest=90){
  const vw=window.visualViewport?.width??window.innerWidth,vh=window.visualViewport?.height??window.innerHeight
- const w=Math.max(220,Math.min(440,vw*0.96,(vh-330)*LAYOUT.w/LAYOUT.h))
- return {w:Math.round(w),h:Math.round(w*LAYOUT.h/LAYOUT.w)}
+ // The screen's body has 12 px of padding each side (and the phone's safe area at the bottom).
+ const w=Math.round(Math.max(240,Math.min(520,vw-28)))
+ const room=vh-top-rest-20
+ return {w,h:Math.round(Math.max(260,Math.min(w*LAYOUT.h/LAYOUT.w,room)))}
 }
 /** The canvas in cells: the well (10 × 20) with a column for hold on the left and the queue on the right. */
-const LAYOUT={side:4,top:0.4,w:COLS+8,h:ROWS+0.8}
+const LAYOUT={side:3.2,top:0.4,w:COLS+6.4,h:ROWS+0.8}
 /** A block of light: a rounded pane, darker at the rim and bright in the middle, with a glint. */
 function blockSprite(size:number,color:string):HTMLCanvasElement{
  const c=document.createElement('canvas');c.width=c.height=size
