@@ -242,7 +242,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
      {/* Candy crush shows each candy's points over it, in its color; Gem blitz one total for each clear. */}
      {pops.map(p=><span key={p.key} className={'m3-pop'+(p.each?' is-each k'+p.kind:'')} style={{left:p.x*100/W+'%',top:p.y*100/W+'%'}}>{p.n.toLocaleString()}</span>)}
     </div>
-    <Sparks ref={sparks}/>
+    <Sparks ref={sparks} always/>
     {cheer&&<p key={cheer.key} className={'blast-cheer m3-cheer'+(cheer.big?' is-big':'')} role="status"><span>{cheer.text}</span></p>}
     {done&&<p className="blast-over" role="status">{done}</p>}
    </div>

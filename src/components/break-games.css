@@ -293,7 +293,9 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 @keyframes m3-pop{0%{transform:scale(.4);opacity:0}20%{transform:scale(1.2);opacity:1}100%{transform:translateY(-120%) scale(1);opacity:0}}
 .match3.is-candy .m3-cheer span{background:linear-gradient(#fff2fb,#ff7ad0 55%,#c42e9e);-webkit-background-clip:text;background-clip:text}
 .m3-cheer.is-big span{font-size:2.8rem}
-@media(prefers-reduced-motion:reduce){.match3-piece{transition:none}.match3-piece .m3-gem,.m3-fx,.match3-piece.is-fall,.blast-frame.is-quake,.match3.is-blazing .blast-frame,.meow-cat,.meow-cell.is-wrong{animation:none!important}.m3-fx{display:none}}
+/* With less motion asked for, the match-3 games keep their clears and specials (they are how the game says
+   what happened) but the board doesn't shake or throb. */
+@media(prefers-reduced-motion:reduce){.blast-frame.is-quake,.match3.is-blazing .blast-frame,.meow-cat,.meow-cell.is-wrong{animation:none!important}}
 .game-screen .game-result h2:not(#x){color:#fff!important}
 /* The game's start card and the play tools (↻ Restart, ■ End) beside Leave. */
 .game-screen-tools{display:flex;gap:8px;align-items:center}
@@ -338,7 +340,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 @keyframes m3-ignite{to{filter:brightness(1.35)}}
 .match3.is-blazing .match3-board::after{content:'';position:absolute;inset:0;border-radius:8px;pointer-events:none;background:radial-gradient(ellipse at 50% 120%,rgba(255,90,20,.55),transparent 60%),linear-gradient(0deg,rgba(255,140,40,.25),transparent 40%);animation:m3-burn .4s ease-in-out infinite alternate}
 @keyframes m3-burn{to{opacity:.6;transform:scaleY(1.04)}}
-@media(prefers-reduced-motion:reduce){.m3-dim,.m3-ignite span,.match3.is-blazing .match3-board::after{animation:none}}
+@media(prefers-reduced-motion:reduce){.m3-ignite span,.match3.is-blazing .match3-board::after{animation:none}}
 /* Meowdoku's hearts: three wrong cats and the level is over. */
 .meow-hearts{display:inline-flex;gap:2px;margin-right:8px;font-style:normal}
 .meow-hearts i{font-style:normal;transition:filter .3s,transform .3s}
@@ -415,4 +417,3 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .m3-frag i.q2{clip-path:polygon(0 52%,48% 44%,54% 100%,0 100%);--dx:-50%;--dy:25%;--r:-110deg}
 .m3-frag i.q3{clip-path:polygon(46% 46%,100% 46%,100% 100%,52% 100%);--dx:55%;--dy:30%;--r:100deg}
 @keyframes m3-frag{0%{transform:none;opacity:1}35%{transform:translate(calc(var(--dx) * .7),calc(var(--dy) * .7)) rotate(calc(var(--r) * .4));opacity:1}100%{transform:translate(var(--dx),calc(var(--dy) + 90%)) rotate(var(--r)) scale(.55);opacity:0}}
-@media(prefers-reduced-motion:reduce){.m3-frag{display:none}}
