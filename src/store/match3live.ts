@@ -37,7 +37,7 @@ export type Ev=
  |{t:'made';at:number;special:Special}
  |{t:'charge';at:number;special:Special;combo?:boolean}
  |{t:'time';n:number}|{t:'mult';n:number}|{t:'nope'}|{t:'shuffle'}
-export type Live={m:Maker;cells:(Bit|null)[];chain:number;spots:number[];taken:number;multNext:boolean;multGiven:boolean;events:Ev[];pend:{a:number;c:number;t:number}[];combos:{a:number;c:number;t:number}[]}
+export type Live={m:Maker;cells:(Bit|null)[];chain:number;spots:number[];ignite:number[];taken:number;multNext:boolean;multGiven:boolean;events:Ev[];pend:{a:number;c:number;t:number}[];combos:{a:number;c:number;t:number}[]}
 /** How a piece is drawn this moment: where (in squares), its scale (and squash), turn, opacity, brightness,
  * and how far a special has charged up (0–1, or 0 when it isn't). */
 export type Look={id:number;p:Piece;at:number;x:number;y:number;sx:number;sy:number;rot:number;o:number;b:number;z:number;born:boolean;clearing:boolean;charge:number}
@@ -52,7 +52,7 @@ const band=(r:number,c:number)=>[...new Set([r-1,r,r+1].filter(y=>y>=0&&y<W).fla
 /** A board to play. With `intro`, every piece starts above the board and rains in, column by column. */
 export function live(m:Maker,b:Board,intro=true):Live{
  const cells=b.map((p,i)=>{const [r,c]=rc(i);return p?{p,y:intro?r-W-1-c*0.45:r,vy:0,level:1}:null})
- return {m,cells,chain:0,spots:[],taken:0,multNext:false,multGiven:false,events:[],pend:[],combos:[]}
+ return {m,cells,chain:0,spots:[],ignite:[],taken:0,multNext:false,multGiven:false,events:[],pend:[],combos:[]}
 }
 const rests=(x:Bit|null,i:number):x is Bit=>!!x&&!x.swap&&x.doom===undefined&&x.clear===undefined&&x.charge===undefined&&!x.pull&&!x.up&&!x.wrap&&x.vy===0&&x.y===Math.floor(i/W)
 const movable=(x:Bit|null)=>!!x&&!x.swap&&x.doom===undefined&&x.clear===undefined&&x.charge===undefined&&!x.pull&&!x.up
@@ -70,7 +70,10 @@ export function trySwap(rt:Live,a:number,c:number):'swap'|'nope'|null{
  const A=rt.cells[a],C=rt.cells[c]
  if(!adjacent(a,c)||!rests(A,a)||!rests(C,c))return null
  const [ar,ac]=rc(a),[cr,cc]=rc(c)
- if(!canSwap(still(rt),a,c)){
+ // Candy crush here: moving a striped or wrapped candy is always a move; it goes off where it lands, even
+ // if it lines nothing up.
+ const lit=rt.m.mode==='candy'&&!!(A.p.special||C.p.special)
+ if(!lit&&!canSwap(still(rt),a,c)){
   A.swap={fx:ac,fy:ar,tx:cc,ty:cr,t:0,ms:SWAP_MS*2+60,back:true};C.swap={fx:cc,fy:cr,tx:ac,ty:ar,t:0,ms:SWAP_MS*2+60,back:true}
   rt.events.push({t:'nope'});return 'nope'
  }
@@ -266,6 +269,7 @@ export function step(rt:Live,dt:number):boolean{
   const A=rt.cells[s.a],C=rt.cells[s.c]
   if(!A||!C)continue
   rt.spots=[s.a,s.c]
+  if(rt.m.mode==='candy')rt.ignite=[s.a,s.c].filter(at=>rt.cells[at]?.p.special)
   // Two specials (or a color bomb and anything): they pull into each other, then the combination goes off.
   if(A.clear===undefined&&C.clear===undefined&&A.doom===undefined&&C.doom===undefined&&A.charge===undefined&&C.charge===undefined&&(A.p.special==='color'||C.p.special==='color'||(A.p.special&&C.p.special))){
    A.pull={to:s.c,t:0};C.pull={to:s.a,t:0};rt.combos.push({a:s.a,c:s.c,t:COMBO_MS});rt.events.push({t:'charge',at:s.c,special:C.p.special??A.p.special!,combo:true})
@@ -304,6 +308,9 @@ export function step(rt:Live,dt:number):boolean{
  gravity(rt)
  if(fall(rt,dt))moving=true
  matches(rt)
+ // A moved special that lined nothing up (and isn't part of a combination) goes off now.
+ for(const at of rt.ignite){const x=rt.cells[at];if(rests(x,at))mark(rt,at,0,Math.max(1,rt.chain))}
+ rt.ignite=[]
  rt.spots=[]
  if(settled(rt)){
   rt.chain=0
@@ -340,6 +347,9 @@ export function view(rt:Live):Look[]{
    const s=x.swap,k=Math.min(1,s.t/s.ms),e=s.back?ease(k<0.5?k*2:(1-k)*2):ease(k)
    // From the old square to the new one (a swap that makes nothing goes there and comes back).
    px=s.fx+(s.tx-s.fx)*e;py=s.fy+(s.ty-s.fy)*e
+   // Stretching along the way it slides, then settling back.
+   const st=Math.sin(Math.PI*(s.back?(k<0.5?k*2:(1-k)*2):k))*0.14
+   if(s.fy===s.ty){sx=1+st;sy=1-st*0.7}else{sy=1+st;sx=1-st*0.7}
    z=3
   }
   if(x.clear!==undefined){

@@ -279,6 +279,9 @@ test('match-3 in real time: the opening rain settles; a swap slides and clears; 
  const s=fill();s[0]=P(0,'row');s[1]=P(0);s[3]=P(0);s[10]=P(0)
  rt=L.live(g.maker('candy',seeded(4)),s,false);L.trySwap(rt,2,10);run(rt,520)
  const f=rt.events.find(e=>e.t==='fire');assert.ok(f&&f.e.type==='row');assert.ok(f.delays[f.e.cells.indexOf(7)]>f.delays[f.e.cells.indexOf(1)],'the beam travels')
+ // Candy crush: moving a striped candy is always a move, and it goes off where it lands.
+ {const lone=fill();lone[27]=P(2,'row');rt=L.live(g.maker('candy',seeded(4)),lone,false);assert.equal(L.trySwap(rt,27,35),'swap');run(rt,700)
+  assert.ok(rt.events.some(e=>e.t==='fire'&&e.e.type==='row'&&e.e.at===35),'the moved striped candy clears its new row');calm(rt);assert.equal(L.boardOf(rt).filter(Boolean).length,64)}
  // Before it goes off, a special charges up (it swells and glows); two specials swapped together pull in first.
  rt=L.live(g.maker('candy',seeded(4)),s,false);L.trySwap(rt,2,10);run(rt,250)
  assert.ok(L.view(rt).some(l=>l.charge>0&&l.p.special==='row')&&!rt.events.some(e=>e.t==='fire'),'the striped candy charges up first')

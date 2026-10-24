@@ -41,6 +41,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
  const [rt0]=useState(()=>live(start.maker,start.board)),eng=useRef<Live>(rt0)
  const [looks,setLooks]=useState<Look[]>(()=>view(rt0)),[intro,setIntro]=useState(true)
  const [jelly,setJelly]=useState<Set<number>>(()=>new Set(start.jelly??[]))
+ const [hop,setHop]=useState<number|null>(null)
  const [sel,setSel]=useState<number|null>(null),[hint,setHint]=useState<[number,number]|null>(null)
  const [score,setScore]=useState(0),[moves,setMoves]=useState(goal.moves),[left,setLeft]=useState(BLITZ_MS),[mult,setMult]=useState(1),[speed,setSpeed]=useState(0),[blazing,setBlazing]=useState(false)
  const [fx,setFx]=useState<Fx[]>([]),[frags,setFrags]=useState<Frag[]>([]),[pops,setPops]=useState<Pop[]>([])
@@ -175,6 +176,19 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
   return ()=>window.clearInterval(t)
  },[]) // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>{onEvent.current=handle;onCalm.current=calm})
+ // The board idles with life: now and then a piece hops (a candy) or catches the light (a gem), and a glint
+ // twinkles somewhere on the board.
+ useEffect(()=>{
+  const t=window.setInterval(()=>{
+   const rt=eng.current
+   if(ended.current||!settled(rt))return
+   const at=Math.floor(Math.random()*W*W),x=rt.cells[at]
+   if(x){setHop(x.p.id);window.setTimeout(()=>setHop(h=>h===x.p.id?null:h),600)}
+   const g=Math.floor(Math.random()*W*W),[gx,gy]=centre(g)
+   sparks.current?.burst(gx+(Math.random()-0.5)*0.05,gy-0.03,{kind:'star',n:1,color:'#fff',size:mode==='gems'?7:6,speed:0.05})
+  },700)
+  return ()=>window.clearInterval(t)
+ },[]) // eslint-disable-line react-hooks/exhaustive-deps
  const attempt=(a:number,c:number)=>{
   if(!canPlay())return
   const r=trySwap(eng.current,a,c)
@@ -238,10 +252,11 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
         the board says, every frame. Gems above the board fade in as they drop toward it. */}
     {looks.map(l=>{const p=l.p,i=l.at,o=l.o*(mode==='gems'?Math.max(0,Math.min(1,l.y+1.6)):1),plain=l.sx===1&&l.sy===1&&o===1&&l.b===1&&l.rot===0
      return <div key={p.id} role="gridcell" data-i={i} data-kind={p.kind} aria-label={'Row '+(Math.floor(i/W)+1)+', column '+(i%W+1)+': '+label(p)}
-      className={'match3-piece k'+p.kind+(p.special?' is-'+p.special:'')+(p.bonus?' has-'+p.bonus:'')+(sel===i?' is-picked':'')+(l.born?' is-made':'')+(l.clearing?' is-clearing':'')+(intro?' is-intro':'')+(hint?.includes(i)&&!l.clearing?' is-hint':'')+(l.charge?' is-charging':'')} style={{transform:'translate('+l.x*100+'%,'+l.y*100+'%)',zIndex:l.z,'--d':(p.id%29)*0.41+'s','--charge':l.charge} as React.CSSProperties}>
+      className={'match3-piece k'+p.kind+(p.special?' is-'+p.special:'')+(p.bonus?' has-'+p.bonus:'')+(sel===i?' is-picked':'')+(l.born?' is-made':'')+(l.clearing?' is-clearing':'')+(intro?' is-intro':'')+(hint?.includes(i)&&!l.clearing?' is-hint':'')+(l.charge?' is-charging':'')+(hop===p.id&&!l.clearing?' is-hop':'')} style={{transform:'translate('+l.x*100+'%,'+l.y*100+'%)',zIndex:l.z,'--d':(p.id%29)*0.41+'s','--charge':l.charge} as React.CSSProperties}>
       {/* A special's own glow behind it (a halo that brightens as it charges up). */}
       {p.special&&!l.clearing&&<i className="m3-halo" aria-hidden="true"/>}
-      <span className="m3-gem" aria-hidden="true" style={plain?undefined:{transform:'scale('+l.sx.toFixed(3)+','+l.sy.toFixed(3)+')'+(l.rot?' rotate('+l.rot.toFixed(1)+'deg)':''),transformOrigin:l.clearing||l.charge?'50% 50%':'50% 100%',opacity:o,filter:l.b!==1?'brightness('+l.b.toFixed(2)+')':undefined}}><PieceArt mode={mode} kind={p.kind} special={p.special}/></span>{p.bonus==='mult'&&<b className="m3-badge" aria-hidden="true">×{p.mult}</b>}{p.bonus==='time'&&<b className="m3-badge is-time" aria-hidden="true">+5</b>}
+      {p.special&&!l.clearing&&<i className="m3-rays" aria-hidden="true"/>}
+      <span className="m3-gem" aria-hidden="true" style={plain?undefined:{transform:'scale('+l.sx.toFixed(3)+','+l.sy.toFixed(3)+')'+(l.rot?' rotate('+l.rot.toFixed(1)+'deg)':''),transformOrigin:l.clearing||l.charge?'50% 50%':'50% 100%',opacity:o,filter:l.b!==1?'brightness('+l.b.toFixed(2)+')':undefined}}><PieceArt mode={mode} kind={p.kind} special={p.special}/></span>{p.special&&!l.clearing&&<i className="m3-twinkle" aria-hidden="true"/>}{p.bonus==='mult'&&<b className="m3-badge" aria-hidden="true">×{p.mult}</b>}{p.bonus==='time'&&<b className="m3-badge is-time" aria-hidden="true">+5</b>}
      </div>})}
     </div>
     <div className="m3-fx" aria-hidden="true">
@@ -255,7 +270,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
     {done&&<p className="blast-over" role="status">{done}</p>}
    </div>
   </div>
-  <p className="blast-help">{mode==='candy'?'Match 4 for a striped candy, an L or T for a wrapped one, 5 for a color bomb. Swap two specials together for a combo!':'Match 4 for a flame gem, an L or T for a star, 5 for a hypercube, 6 for a supernova. Quick moves in a row light Blazing speed!'}</p>
+  <p className="blast-help">{mode==='candy'?'Match 4 for a striped candy, an L or T for a wrapped one, 5 for a color bomb. Move a special to set it off, or swap two together for a combo!':'Match 4 for a flame gem, an L or T for a star, 5 for a hypercube, 6 for a supernova. Quick moves in a row light Blazing speed!'}</p>
  </div>
 }
 

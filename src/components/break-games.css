@@ -472,3 +472,25 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 /* On Candy crush's light board the glows need to be stronger to show. */
 .match3.is-candy .match3-piece:is(.is-row,.is-col) .m3-halo{inset:-22%;background:radial-gradient(circle,#fff 0 18%,color-mix(in srgb,var(--hc) 85%,#fff) 30%,color-mix(in srgb,var(--hc) 55%,transparent) 45%,transparent 66%)}
 .match3.is-candy .match3-piece.is-area .m3-halo{inset:-22%}
+
+/* Special gems are cut stones catching the light: each turns in 3D (rocking on its axis, lifting a little),
+   radiates a pulsing glow in its color, throws slowly turning light rays, and twinkles with star glints.
+   Special candies get the rays and twinkles too, softer. */
+.match3.is-gems .match3-piece:is(.is-area,.is-cross,.is-row,.is-col,.is-nova) .m3-art{animation:m3-gem3d 2.6s ease-in-out infinite,m3-radiant 1.3s ease-in-out infinite alternate;animation-delay:var(--d,0s)}
+.match3.is-gems .match3-piece.is-color .m3-art{animation:m3-gem3d-spin 3.2s linear infinite,m3-hue 2s linear infinite}
+@keyframes m3-gem3d{0%,100%{transform:perspective(150px) rotateY(-30deg) rotateX(8deg) translateY(0)}50%{transform:perspective(150px) rotateY(30deg) rotateX(-8deg) translateY(-5%)}}
+@keyframes m3-gem3d-spin{from{transform:perspective(150px) rotateX(14deg) rotateY(0)}to{transform:perspective(150px) rotateX(14deg) rotateY(360deg)}}
+@keyframes m3-radiant{from{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px var(--hc)) brightness(1.05)}to{filter:drop-shadow(0 0 7px #fff) drop-shadow(0 0 16px var(--hc)) drop-shadow(0 0 26px var(--hc)) brightness(1.35)}}
+.m3-rays{position:absolute;inset:-42%;pointer-events:none;z-index:0;border-radius:50%;background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--hc) 45%,#fff) 0 5deg,transparent 5deg 30deg);-webkit-mask:radial-gradient(circle,#000 16%,transparent 60%);mask:radial-gradient(circle,#000 16%,transparent 60%);transform:scale(calc(1 + var(--charge,0) * .9));animation:m3-spin 7s linear infinite,m3-halo-pulse 1.2s ease-in-out infinite alternate}
+.match3.is-candy .m3-rays{background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.9) 0 5deg,transparent 5deg 36deg);opacity:.75}
+.match3-piece.is-charging .m3-rays{animation-duration:.9s,.12s}
+.m3-twinkle{position:absolute;inset:0;pointer-events:none;z-index:2}
+.m3-twinkle::before,.m3-twinkle::after{content:'';position:absolute;left:0;top:2%;width:30%;height:30%;background:#fff;clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);filter:drop-shadow(0 0 3px #fff);animation:m3-twinkle-star 1.7s ease-in-out infinite;animation-delay:var(--d,0s)}
+.m3-twinkle::after{left:auto;top:auto;right:2%;bottom:8%;width:22%;height:22%;animation-delay:calc(var(--d,0s) + .85s)}
+@keyframes m3-twinkle-star{0%,100%{transform:scale(0) rotate(0);opacity:0}50%{transform:scale(1) rotate(90deg);opacity:1}}
+
+/* The board at rest isn't still: a candy now and then hops, a gem catches the light. */
+.match3-piece.is-hop .m3-gem{animation:m3-hop .55s ease-out;transform-origin:50% 100%}
+@keyframes m3-hop{0%,100%{transform:none}25%{transform:scale(1.1,.88)}50%{transform:translateY(-16%) scale(.94,1.08)}80%{transform:translateY(0) scale(1.07,.93)}}
+.match3.is-gems .match3-piece.is-hop .m3-gem{animation:m3-catch .6s ease-in-out;transform-origin:50% 50%}
+@keyframes m3-catch{0%,100%{filter:none;transform:none}45%{filter:brightness(1.7) drop-shadow(0 0 6px #fff);transform:scale(1.08) rotate(-6deg)}}
