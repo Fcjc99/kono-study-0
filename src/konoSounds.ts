@@ -49,3 +49,17 @@ export function gameSound(kind:GameSound,enabled:boolean,level=0){
  if(kind==='big'||kind==='win'){playChime(level);return}
  playSfx(kind==='start'?'buy':kind==='score'?'pop':kind==='place'?'place':kind==='nope'?'tick':kind==='lose'?'over':'coin',true,kind==='score'?1+Math.min(level,8)*0.1:1)
 }
+
+/** A game's spoken callout, the way Bejeweled Blitz and Candy crush say theirs ("Excellent!",
+ * "Sugar crush!"): the device's own voice, deep and drawn out, and only one at a time (a newer callout
+ * cuts off the one before). Does nothing where the browser has no speech. */
+export function announce(text:string,enabled:boolean,style:'gems'|'candy'='gems'){
+ if(!enabled)return
+ try{
+  const speech=window.speechSynthesis;if(!speech||typeof SpeechSynthesisUtterance==='undefined')return
+  speech.cancel()
+  const u=new SpeechSynthesisUtterance(text.replace(/!+$/,''))
+  u.pitch=style==='gems'?0.55:0.4;u.rate=style==='gems'?0.82:0.75;u.volume=0.9
+  speech.speak(u)
+ }catch{/* no speech */}
+}

@@ -1,6 +1,6 @@
 import {useEffect,useId,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {W,candyLevel,candyStars,finale,findMove,play,type Board,type Effect,type Frame,type Maker,type Piece} from '../store/match3'
-import {gameSound} from '../konoSounds'
+import {announce,gameSound} from '../konoSounds'
 import type {GameHandle} from './GameScreen'
 
 /** Candy crush and Gem blitz (the rules are in store/match3), drawn and animated after the games they follow.
@@ -35,7 +35,8 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
  useEffect(()=>{onEndRef.current=onEnd},[onEnd])
  const stars=()=>candyStars(scoreRef.current,goal.target)
  const finish=(won:boolean,text:string)=>{if(ended.current)return;ended.current=true;setDone(text);window.setTimeout(()=>onEndRef.current(scoreRef.current,won,mode==='candy'?(won?Math.max(1,stars()):0):0),1500)}
- const say=(text:string,big=false)=>{const key=++keys.current;setCheer({key,text,big});window.setTimeout(()=>setCheer(c=>c?.key===key?null:c),1200)}
+ // Cheers are spoken too, like the originals' callouts (not the +5 seconds and Speed notes).
+ const say=(text:string,big=false)=>{const key=++keys.current;setCheer({key,text,big});if(!/^(\+|×|Speed )/.test(text))announce(text,sound,mode);window.setTimeout(()=>setCheer(c=>c?.key===key?null:c),1200)}
  // Gem blitz's minute (and its +5 second gems); when it's up, a move under way finishes, then the Last hurrah.
  useEffect(()=>{
   if(mode!=='gems')return
