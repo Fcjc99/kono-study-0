@@ -1,6 +1,7 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {N,TEAMS,TEAM_TICKS,battleOver,newArena,shares,steer,teamShares,tick,type Arena,type Dir,type Mode} from '../store/paper'
 import {gameSound} from '../konoSounds'
+import {fx,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
 
 /** KONO.io (the rules are in store/paper, after Paper.io 2): you're KONO's blue block. Swipe (or use the
@@ -39,7 +40,7 @@ export default function PaperKono({ref,mode='solo',sound,onEnd}:{ref:Ref<GameHan
   const move=(e:PointerEvent)=>{if(!origin)return;const dx=e.clientX-origin.x,dy=e.clientY-origin.y;if(Math.max(Math.abs(dx),Math.abs(dy))<18)return;turn(Math.abs(dx)>Math.abs(dy)?(dx>0?1:3):(dy>0?2:0));origin={x:e.clientX,y:e.clientY}}
   const up=()=>{origin=null}
   el.addEventListener('pointerdown',down);el.addEventListener('pointermove',move);el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up)
-  gameSound('start',soundRef.current)
+  gameSound('start',soundRef.current);startMusic('paper',soundRef.current)
   let raf=0,lastTick=performance.now(),lastBoard=0,trailWas=0
   const loop=(now:number)=>{
    if(!ended.current)while(now-lastTick>=TICK_MS){
@@ -48,22 +49,22 @@ export default function PaperKono({ref,mode='solo',sound,onEnd}:{ref:Ref<GameHan
     const wasAlive=me.alive
     prev.current=new Map(a.players.map(p=>[p.id,{x:p.x,y:p.y}]))
     tick(a)
-    if(trailWas&&!me.trail.length&&me.alive)gameSound('score',soundRef.current,Math.min(6,Math.floor(trailWas/6)))
+    if(trailWas&&!me.trail.length&&me.alive)fx('claim',soundRef.current,Math.floor(trailWas/6))
     trailWas=me.trail.length
     for(const e of a.log.slice(seen.current)){
-     if(e.by===1&&e.who!==1){setFeed({key:a.ticks,text:'You cut '+(a.players.find(p=>p.id===e.who)?.name??'')+'!'});gameSound('big',soundRef.current,3)}
+     if(e.by===1&&e.who!==1){setFeed({key:a.ticks,text:'You cut '+(a.players.find(p=>p.id===e.who)?.name??'')+'!'});fx('cut',soundRef.current);gameSound('big',soundRef.current,3)}
     }
     seen.current=a.log.length
     if(wasAlive&&!me.alive&&!ended.current){
      const last=a.log.at(-1),how=last&&last.who===1&&last.by?'Cut by '+(a.players.find(p=>p.id===last.by)?.name??'a bot')+'!':'Crashed!'
-     setOut(true);gameSound('nope',soundRef.current)
+     setOut(true);fx('thud',soundRef.current)
      // Team battle: back on Blue's land in three seconds. Solo: that's the run.
      if(a.mode==='team')setFeed({key:a.ticks,text:how+' Back in 3…'})
-     else{ended.current=true;setFeed({key:a.ticks,text:how});const r=result();window.setTimeout(()=>onEndRef.current(r),1400)}
+     else{ended.current=true;stopMusic();setFeed({key:a.ticks,text:how});const r=result();window.setTimeout(()=>onEndRef.current(r),1400)}
     }
     if(!wasAlive&&me.alive){setOut(false);setFeed(null);prev.current.delete(1)}
     if(battleOver(a)&&!ended.current){
-     ended.current=true
+     ended.current=true;stopMusic()
      const r=result();setFeed({key:a.ticks,text:r.team!.won?'Blue wins!':r.team!.blue===r.team!.red?'A tie!':'Red wins!'});gameSound(r.team!.won?'big':'nope',soundRef.current,4)
      window.setTimeout(()=>onEndRef.current(r),1600)
     }
@@ -81,7 +82,7 @@ export default function PaperKono({ref,mode='solo',sound,onEnd}:{ref:Ref<GameHan
   // The canvas matches the frame's size (sharp on high-density screens).
   const fit=new ResizeObserver(()=>{const c=canvas.current;if(!c)return;const r=el.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);c.width=Math.round(r.width*dpr);c.height=Math.round(r.height*dpr)})
   fit.observe(el)
-  return ()=>{cancelAnimationFrame(raf);fit.disconnect();window.removeEventListener('keydown',key);el.removeEventListener('pointerdown',down);el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',up);el.removeEventListener('pointercancel',up)}
+  return ()=>{cancelAnimationFrame(raf);fit.disconnect();stopMusic();window.removeEventListener('keydown',key);el.removeEventListener('pointerdown',down);el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',up);el.removeEventListener('pointercancel',up)}
   // result only reads refs; the mode is fixed for a round (a new one remounts).
  },[]) // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>{if(!feed)return;const t=window.setTimeout(()=>setFeed(f=>f?.key===feed.key&&!out?null:f),1800);return ()=>window.clearTimeout(t)},[feed,out])
