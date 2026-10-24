@@ -22,6 +22,9 @@ const DAS=170,ARR=45,SOFT=40
 export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:boolean;onEnd:(score:number,lines:number,level:number)=>void}){
  const canvas=useRef<HTMLCanvasElement>(null),game=useRef<Game|null>(null)
  const [hud,setHud]=useState({score:0,lines:0,level:1,flow:0,flowMs:0,flowLines:0}),[words,setWords]=useState<Word[]>([])
+ // The well's size in pixels, worked out from the screen (CSS alone left it squeezed on some phones).
+ const [size,setSize]=useState(stageSize)
+ useEffect(()=>{const on=()=>setSize(stageSize());window.addEventListener('resize',on);window.visualViewport?.addEventListener('resize',on);return ()=>{window.removeEventListener('resize',on);window.visualViewport?.removeEventListener('resize',on)}},[])
  const vis=useRef<Vis>(newVis())
  const ended=useRef(false),onEndRef=useRef(onEnd),soundRef=useRef(sound),keys=useRef(0)
  const held=useRef<{dir:number;t:number;next:number}|null>(null),soft=useRef(false)
@@ -126,7 +129,7 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
    <span className="blast-coins">{hud.lines} line{hud.lines===1?'':'s'}</span>
    <strong className="blast-score" aria-label={'Score '+hud.score}>{hud.score.toLocaleString()}</strong>
   </div>
-  <div className="flow-stage">
+  <div className="flow-stage" style={{width:size.w,height:size.h}}>
    <canvas ref={canvas} className="flow-canvas" aria-label="KONO Flow well" role="img" onPointerDown={pdown} onPointerMove={pmove} onPointerUp={pup} onPointerCancel={()=>{touch.current=null}}/>
    {hud.flowMs>0&&<p className="flow-count" aria-live="polite"><b>{hud.flowLines}</b><small>lines · {hud.flowMs}s</small></p>}
    <div className="flow-words" aria-live="polite">{words.map(w=><p key={w.key} className={w.big?'is-big':''}>{w.text}</p>)}</div>
@@ -225,6 +228,13 @@ function draw(c:HTMLCanvasElement|null,s:Game,dt:number,v:Vis){
   x.fillText('NEXT',rx,oy+cs*0.5)
   s.queue.slice(0,5).forEach((k,i)=>mini(k,rx,oy+cs*(1.6+i*2.1),cs*(i?0.45:0.6)))
  }
+/** The well's box: as wide as fits (up to 440 px), and short enough to leave room above for the header and
+ * score and below for the meter, buttons and help (about 330 px together), in the canvas's proportions. */
+function stageSize(){
+ const vw=window.visualViewport?.width??window.innerWidth,vh=window.visualViewport?.height??window.innerHeight
+ const w=Math.max(220,Math.min(440,vw*0.96,(vh-330)*LAYOUT.w/LAYOUT.h))
+ return {w:Math.round(w),h:Math.round(w*LAYOUT.h/LAYOUT.w)}
+}
 /** The soundtrack for a level: a new track every three levels (1–3, 4–6, 7–9, 10–12, then 13 on). */
 const trackFor=(level:number)=>Math.min(5,Math.floor((level-1)/3)+1)
 /** The canvas in cells: the well (10 × 20) with a column for hold on the left and the queue on the right. */
