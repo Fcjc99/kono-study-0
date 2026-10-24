@@ -3482,13 +3482,20 @@ test('A repeating event from the Planner: a note on just one day stays on that d
  await editor.getByRole('button',{name:'Save'}).click()
  await waitFor(()=>soc(e=>e.date+' '+e.time).join('|')==='2026-10-15 17:00|2026-10-22 17:00|2026-10-29 17:00|2026-11-05 17:00','Nov 5 never joined the series')
 })
-test('Round 55: the world map: the beach is open (the forest opens with more hearts); KONO travels there, looks around once a day, and the market sells beach furniture',async({context,page})=>{
+test('Round 55: the world map (its own button on the island): the beach is open (the forest opens with more hearts); KONO travels there, looks around once a day, and the market sells beach furniture',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.install({time:new Date('2026-10-15T15:00:00')})
  d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:500}]}}
  const care=()=>cloud.users.alice.plan.data.konoCare?.[pid]??{log:[]}
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
+ // The island's own World map button (beside Decorate) opens it; so does KONO's corner.
+ const mapButton=page.getByRole('navigation',{name:'Sanctuary view'}).getByRole('button',{name:'World map'})
+ if(process.env.KONO_SHOTS){await mapButton.waitFor();await page.locator('.wb-scene-toolbar').screenshot({path:process.env.KONO_SHOTS+'/island-toolbar.png'})}
+ await mapButton.click()
+ await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:'Go to Sandy Beach Cove'}).waitFor()
+ await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:'Close dialog'}).click()
+ await page.getByRole('dialog',{name:'World map'}).waitFor({state:'detached'})
  await (await openCorner(page)).getByRole('button',{name:/^World map/}).click()
  const world=page.getByRole('dialog',{name:'World map'})
  await world.getByRole('button',{name:'Go to Sandy Beach Cove'}).waitFor()
