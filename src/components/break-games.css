@@ -499,7 +499,8 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
    for big clears, and a pad of buttons for phones. */
 .break-game.flow-game{justify-items:center;gap:8px;color:#fff;user-select:none;-webkit-user-select:none}
 /* Everything lines up with the well's edges (--fw, its width), and the game sits just under the header. */
-.flow-game .blast-top,.flow-meter,.flow-pad,.flow-game .blast-help{width:var(--fw,100%);max-width:none}
+.flow-game .blast-top,.flow-below{width:var(--fw,100%);max-width:none}
+.flow-below{display:grid;gap:8px;justify-items:stretch}
 .game-screen-body:has(.flow-game){align-content:start;padding-top:0}
 .game-screen-body>.flow-game{max-width:none}
 .flow-canvas{display:block}
@@ -519,10 +520,12 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .flow-meter span.is-on{background:linear-gradient(90deg,#fff,#bfe9ff);animation:flow-ready .3s ease-in-out infinite alternate}
 .flow-meter i{position:absolute;top:0;bottom:0;width:2px;background:rgba(0,0,0,.4)}
 @keyframes flow-ready{to{filter:brightness(1.5) drop-shadow(0 0 6px #c37bff)}}
-.flow-pad{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.flow-pad button{min-height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:1.15rem;font-weight:800;touch-action:manipulation}
+.flow-pad{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.flow-pad button{min-width:0;padding:0;min-height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:1.15rem;font-weight:800;touch-action:manipulation}
 .flow-pad button:active{background:rgba(255,255,255,.25)}
-.flow-pad .flow-go{font-size:.85rem}
+.flow-pad .flow-go,.flow-pad button:first-child{font-size:clamp(.62rem,2.7vw,.9rem);letter-spacing:-.01em;overflow:hidden;white-space:nowrap}
+/* On a touch screen the keys don't apply, and the well wants the room. */
+@media(pointer:coarse){.flow-game .blast-help{display:none}}
 .flow-pad .flow-go.is-ready{background:linear-gradient(135deg,#5b8cff,#c37bff);border-color:#fff;box-shadow:0 0 14px #c37bff}
 .flow-pad button:disabled{opacity:.4}
 .flow-game .blast-help{font-size:.72rem;opacity:.7;text-align:center}
