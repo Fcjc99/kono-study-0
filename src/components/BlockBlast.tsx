@@ -1,6 +1,7 @@
-import {useImperativeHandle,useRef,useState,type Ref} from 'react'
+import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {SIZE,anyFits,deal,fits,movePoints,place,praise,shapeSize,writeBlastSave,type BlastSave,type Grid,type Piece} from '../store/blockBlast'
 import {gameSound} from '../konoSounds'
+import {startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
 
 /** KONO blast, the arcade's block puzzle (the rules are in store/blockBlast), in the look of the classic
@@ -24,6 +25,8 @@ const pickOne=(list:string[])=>list[Math.floor(Math.random()*list.length)]
 type Burst={key:number;cells:{j:number;color:number;delay:number;dx:number;dy:number}[]}
 export default function BlockBlast({ref,start,saved,best,sound,onCoins,onEnd}:{ref:Ref<GameHandle>;start:Piece[];saved:BlastSave|null;best:number|null;sound:boolean;onCoins?:(lines:number,streak:number)=>number|null;onEnd:(score:number)=>void}){
  const [grid,setGrid]=useState<Grid>(()=>saved?.grid??Array(SIZE*SIZE).fill(null))
+ // Its own soundtrack plays while you play.
+ useEffect(()=>{startMusic('blast',sound);return ()=>stopMusic()},[sound])
  const [tray,setTray]=useState<(Piece|null)[]>(saved?.tray??start)
  const [score,setScore]=useState(saved?.score??0),[streak,setStreak]=useState(saved?.streak??0),[picked,setPicked]=useState<number|null>(null)
  // The piece being dragged, where the drag started and the board's square size (the floating piece's start).

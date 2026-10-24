@@ -1,12 +1,14 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {FLAP,flap,flapMedal,newFlight,step,type Flight} from '../store/flappy'
 import {gameSound} from '../konoSounds'
+import {fx,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
 
 /** Flappy KONO (the rules are in store/flappy): tap, click or press Space to flap. KONO tilts up as it
  * flaps and noses down as it falls, through jewel pipes, over a night sky with twinkling stars, drifting
  * clouds and hills that slide slower than the ground (parallax). "Get ready" waits for the first tap;
- * a hit flashes the screen, KONO drops, and the run ends with its medal. */
+ * a hit flashes the screen, KONO drops, and the run ends with its medal. A chiptune soundtrack plays from the
+ * first flap, with a whoosh for each flap and a ding for each pipe. */
 const JEWELS=[['#ef4b5c','#ff8a96','#b52b3b'],['#f7922f','#ffc078','#c4650f'],['#f6cf33','#fff08a','#c79c0c'],['#46c35a','#8eeb98','#258f37'],['#2fc2e8','#8ae6ff','#1888ad'],['#3e6fe6','#86a8ff','#2346b0'],['#a35be0','#d1a2ff','#7134ad']]
 const STARS=Array.from({length:46},(_,k)=>({x:(k*73)%FLAP.w,y:(k*131)%(FLAP.ground-120),r:k%5===0?1.6:1,tw:k*0.7}))
 export default function FlappyKono({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;best:number|null;sound:boolean;onEnd:(score:number)=>void}){
@@ -18,8 +20,8 @@ export default function FlappyKono({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;b
  useImperativeHandle(ref,()=>({end:()=>{if(ended.current)return;ended.current=true;onEndRef.current(flight.current.score)}}),[])
  const press=()=>{
   if(ended.current||phase.current==='down')return
-  if(phase.current==='ready'){phase.current='fly';setStage('fly');gameSound('start',soundRef.current)}
-  flight.current=flap(flight.current);gameSound('place',soundRef.current)
+  if(phase.current==='ready'){phase.current='fly';setStage('fly');gameSound('start',soundRef.current);startMusic('flap',soundRef.current)}
+  flight.current=flap(flight.current);fx('flap',soundRef.current)
  }
  const pressRef=useRef(press)
  useEffect(()=>{pressRef.current=press})
@@ -32,14 +34,14 @@ export default function FlappyKono({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;b
    const n=Math.min(3,(now-last)/(1000/60));last=now;t+=n
    if(phase.current==='fly'||phase.current==='down'){
     const r=step(flight.current,n,Math.random);flight.current=r.flight
-    if(r.scored){setScore(r.flight.score);gameSound('score',soundRef.current,Math.min(6,Math.floor(r.flight.score/5)))}
-    if(r.hit){phase.current='down';setStage('down');setFlash(f=>f+1);gameSound('nope',soundRef.current);over()}
+    if(r.scored){setScore(r.flight.score);fx('ding',soundRef.current)}
+    if(r.hit){phase.current='down';setStage('down');setFlash(f=>f+1);fx('thud',soundRef.current);stopMusic();over()}
    }
    draw(canvas.current,flight.current,phase.current,t,kono.current)
    raf=requestAnimationFrame(loop)
   }
   raf=requestAnimationFrame(loop)
-  return ()=>{cancelAnimationFrame(raf);window.removeEventListener('keydown',key)}
+  return ()=>{cancelAnimationFrame(raf);window.removeEventListener('keydown',key);stopMusic()}
  },[])
  const medal=flapMedal(score)
  return <div className="break-game flappy">

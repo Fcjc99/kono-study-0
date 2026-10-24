@@ -191,64 +191,58 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .m3-mult{font-weight:900;color:#ffd84d}
 .blast-frame.is-quake{animation:m3-quake .4s}
 @keyframes m3-quake{20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-3px)}60%{transform:translate(-3px,-2px)}80%{transform:translate(2px,3px)}}
-.match3-board{position:relative;aspect-ratio:1;touch-action:none;border-radius:8px;background:repeating-conic-gradient(rgba(255,255,255,.07) 0 25%,transparent 0 50%) 0 0/25% 25%,#1e3270}
-.match3.is-candy .match3-board{background:repeating-conic-gradient(rgba(170,205,255,.34) 0 25%,rgba(120,160,230,.26) 0 50%) 0 0/25% 25%,#3a5fb8}
-.match3.is-gems .match3-board{background:repeating-conic-gradient(rgba(255,255,255,.06) 0 25%,rgba(0,0,0,.18) 0 50%) 0 0/25% 25%,#0f1a40}
+/* The boards: Candy crush's soft blue tiles in a white-edged tray; Gem blitz's dark glass in a gold frame. */
+.match3-board{position:relative;aspect-ratio:1;touch-action:none;border-radius:10px}
+.match3.is-candy .match3-board{background:repeating-conic-gradient(rgba(170,205,255,.42) 0 25%,rgba(120,160,230,.32) 0 50%) 0 0/25% 25%,rgba(40,70,150,.55);box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
+.match3.is-gems .match3-board{background:repeating-conic-gradient(rgba(255,255,255,.07) 0 25%,rgba(0,0,0,.25) 0 50%) 0 0/25% 25%,rgba(10,14,44,.78)}
+.match3.is-candy .blast-frame{background:linear-gradient(#fff6fb,#ffd2ec);padding:7px;border-radius:18px;box-shadow:0 0 0 3px #ff7ac4,0 10px 26px rgba(120,20,80,.35),inset 0 2px 0 #fff}
+.match3.is-gems .blast-frame{background:linear-gradient(145deg,#fff2b0,#c9922e 30%,#ffe9a3 50%,#9a6512 75%,#f5d27a);padding:7px;border-radius:12px;box-shadow:0 0 0 2px #5a3a08,0 0 30px rgba(140,90,255,.45),0 12px 30px rgba(0,0,0,.5)}
+.match3-piece .m3-gem{position:relative;display:block;width:100%;height:100%;pointer-events:none}
+.m3-art{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 3px 2px rgba(0,0,0,.35))}
+.match3.is-gems .m3-art{filter:drop-shadow(0 3px 3px rgba(0,0,0,.55))}
+/* A gem's glint sweeps across now and then, at a different moment on each gem. */
+.m3-glint{animation:m3-glint 5.5s ease-in-out infinite;animation-delay:var(--d,0s)}
+@keyframes m3-glint{0%,82%{transform:rotate(25deg) translateX(0)}100%{transform:rotate(25deg) translateX(190px)}}
+/* Specials. */
+.m3-flames{transform-origin:50% 90%;animation:m3-fire .18s ease-in-out infinite alternate}
+@keyframes m3-fire{to{transform:scale(1.12,1.2) translateY(-3px);opacity:.85}}
+.m3-art.is-area{filter:drop-shadow(0 0 6px #ff7a1f) drop-shadow(0 0 12px #ffb02e)}
+.m3-rays{transform-origin:50% 50%;animation:m3-spin 3s linear infinite;mix-blend-mode:screen}
+.m3-art.is-cross,.m3-art.is-row,.m3-art.is-col{filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px #bfe9ff)}
+.m3-art.is-cube{animation:m3-hue 2s linear infinite;filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 14px #c58bff)}
+@keyframes m3-hue{to{filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 14px #c58bff) hue-rotate(360deg)}}
+.m3-aura{transform-origin:50% 50%;animation:m3-aura .7s ease-in-out infinite alternate}
+@keyframes m3-aura{from{transform:scale(.85);opacity:.4}to{transform:scale(1.08);opacity:1}}
+.m3-art.is-nova{filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 16px #ff8bf0)}
+.m3-art.is-wrapped{animation:m3-wobble 1.4s ease-in-out infinite;filter:drop-shadow(0 0 6px rgba(255,255,255,.9)) drop-shadow(0 3px 2px rgba(0,0,0,.35))}
+.m3-art.is-bomb{animation:m3-spin 5s linear infinite;filter:drop-shadow(0 0 6px #fff) drop-shadow(0 3px 2px rgba(0,0,0,.4))}
+.match3-piece.has-mult .m3-art{filter:drop-shadow(0 0 7px #ffd84d) drop-shadow(0 3px 2px rgba(0,0,0,.5))}
+.match3-piece.has-time .m3-art{filter:drop-shadow(0 0 7px #4dd2ff) drop-shadow(0 3px 2px rgba(0,0,0,.5))}
+/* The particle layer over the board. */
+.sparks{position:absolute;inset:-10%;width:120%;height:120%;pointer-events:none;z-index:3}
+/* Scenery behind each game, filling the screen. */
+.m3-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.match3.is-candy .m3-bg{background:radial-gradient(ellipse at 50% 115%,#ff9ad5 0 30%,transparent 60%),linear-gradient(#7cc8ff,#b9a4ff 55%,#ffb6e1)}
+.match3.is-candy .m3-bg i{position:absolute;width:260px;height:80px;border-radius:999px;background:#fff;opacity:.75;filter:blur(2px);box-shadow:60px -30px 0 10px #fff,130px -10px 0 0 #fff;animation:m3-cloud 60s linear infinite}
+.match3.is-candy .m3-bg i:nth-child(1){top:10%;left:-30%}
+.match3.is-candy .m3-bg i:nth-child(2){top:34%;left:-60%;scale:.7;animation-duration:85s;animation-delay:-30s}
+.match3.is-candy .m3-bg i:nth-child(3){top:78%;left:-40%;scale:1.2;opacity:.5;animation-duration:110s;animation-delay:-60s}
+@keyframes m3-cloud{to{translate:180vw 0}}
+.match3.is-candy .m3-bg::after{content:'';position:absolute;left:0;right:0;bottom:0;height:22%;background:radial-gradient(circle at 10% 100%,#ff7ac4 0 18%,transparent 18.5%),radial-gradient(circle at 38% 110%,#ffb03d 0 22%,transparent 22.5%),radial-gradient(circle at 70% 105%,#7ad7ff 0 20%,transparent 20.5%),radial-gradient(circle at 95% 100%,#a37bff 0 16%,transparent 16.5%);opacity:.7}
+.match3.is-gems .m3-bg{background:radial-gradient(ellipse at 20% 20%,rgba(140,60,255,.45),transparent 50%),radial-gradient(ellipse at 85% 75%,rgba(0,170,255,.35),transparent 55%),radial-gradient(ellipse at 50% 50%,#1a1450,#05040f 75%)}
+.match3.is-gems .m3-bg i{position:absolute;inset:0;background-image:radial-gradient(1.5px 1.5px at 20px 30px,#fff,transparent),radial-gradient(1px 1px at 90px 120px,#fff,transparent),radial-gradient(2px 2px at 160px 60px,#cfe3ff,transparent),radial-gradient(1px 1px at 230px 180px,#fff,transparent),radial-gradient(1.5px 1.5px at 300px 90px,#ffe7ff,transparent);background-size:320px 220px;animation:m3-twinkle-bg 4s ease-in-out infinite alternate}
+.match3.is-gems .m3-bg i:nth-child(2){background-size:470px 330px;animation-delay:-2s;opacity:.7}
+.match3.is-gems .m3-bg i:nth-child(3){inset:-50%;background:conic-gradient(from 0deg,transparent 0 8%,rgba(255,255,255,.05) 10% 12%,transparent 14% 30%,rgba(255,255,255,.04) 32% 34%,transparent 36% 58%,rgba(255,255,255,.05) 60% 62%,transparent 64% 100%);animation:m3-spin 90s linear infinite}
+@keyframes m3-twinkle-bg{from{opacity:.4}to{opacity:1}}
+.match3 .blast-top,.match3 .match3-goal,.match3 .m3-ignite,.match3 .blast-help{position:relative}
+.match3.is-candy .blast-help{color:#5a1a4a;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+.match3.is-candy .blast-score{color:#fff;-webkit-text-stroke:2px #d6338a;text-shadow:0 4px 0 #d6338a}
+.match3.is-gems .blast-score{background:linear-gradient(#fff,#ffe39a 60%,#e0a22e);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 rgba(0,0,0,.5))}
 .match3.is-blazing .blast-frame{box-shadow:0 0 0 3px #ff9b3d,0 0 26px 6px #ff5a1f,inset 0 3px 8px rgba(0,0,0,.45);animation:m3-blaze .3s ease-in-out infinite alternate}
 @keyframes m3-blaze{to{box-shadow:0 0 0 3px #ffd84d,0 0 34px 10px #ff7a2e,inset 0 3px 8px rgba(0,0,0,.45)}}
 .m3-jelly{position:absolute;width:12.5%;height:12.5%;padding:.3%;pointer-events:none}
 .m3-jelly::before{content:'';display:block;height:100%;border-radius:7px;background:linear-gradient(160deg,rgba(255,170,220,.75),rgba(230,90,170,.6));box-shadow:inset 0 2px 0 rgba(255,255,255,.55)}
 .match3-piece{position:absolute;width:12.5%;height:12.5%;padding:.5%;transition:left .17s ease,top .22s cubic-bezier(.3,1.25,.5,1);cursor:pointer}
-.match3-piece .m3-gem{position:relative;display:block;width:100%;height:100%;pointer-events:none;filter:drop-shadow(0 2px 1px rgba(0,0,0,.35))}
-.match3-piece .m3-gem::before,.match3-piece .m3-gem::after{content:'';position:absolute;inset:0}
-/* Candies: red jelly bean, orange lozenge, yellow drop, green square, blue ball, purple cluster. */
-.match3.is-candy .k0{--b:#ee2a3c;--l:#ff8f8f;--d:#a1101e}.match3.is-candy .k1{--b:#ff8a1c;--l:#ffd08a;--d:#c25300}
-.match3.is-candy .k2{--b:#ffd21c;--l:#fff5a0;--d:#c99600}.match3.is-candy .k3{--b:#38c43a;--l:#a8f59a;--d:#167a1e}
-.match3.is-candy .k4{--b:#2a8cff;--l:#a6d4ff;--d:#0c4fb0}.match3.is-candy .k5{--b:#a03ae0;--l:#e3a8ff;--d:#5c1594}
-.match3.is-candy .m3-gem::before{background:radial-gradient(circle at 32% 28%,#fff 0 7%,var(--l) 14%,var(--b) 48%,var(--d) 100%)}
-.match3.is-candy .m3-gem::after{background:radial-gradient(ellipse at 40% 22%,rgba(255,255,255,.75) 0 12%,transparent 30%)}
-.match3.is-candy .k0 .m3-gem::before,.match3.is-candy .k0 .m3-gem::after{inset:14% 2%;border-radius:50%/60% 60% 40% 40%;rotate:-28deg}
-.match3.is-candy .k1 .m3-gem::before,.match3.is-candy .k1 .m3-gem::after{inset:8% 18%;border-radius:45%;rotate:45deg}
-.match3.is-candy .k2 .m3-gem::before,.match3.is-candy .k2 .m3-gem::after{inset:12%;border-radius:0 50% 50% 50%;rotate:45deg}
-.match3.is-candy .k3 .m3-gem::before,.match3.is-candy .k3 .m3-gem::after{inset:9%;border-radius:22%}
-.match3.is-candy .k4 .m3-gem::before{inset:6%;border-radius:50%;background:radial-gradient(circle at 32% 28%,#fff 0 6%,transparent 22%),repeating-conic-gradient(var(--b) 0 30deg,var(--l) 30deg 45deg),var(--b)}
-.match3.is-candy .k4 .m3-gem::after{inset:6%;border-radius:50%;background:radial-gradient(circle,transparent 45%,rgba(0,0,0,.25) 100%)}
-.match3.is-candy .k5 .m3-gem::before,.match3.is-candy .k5 .m3-gem::after{inset:4%;clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);border-radius:0}
-.match3.is-candy .k5 .m3-gem::before{background:radial-gradient(circle at 30% 30%,var(--l) 0 14%,transparent 15%),radial-gradient(circle at 70% 30%,var(--l) 0 14%,transparent 15%),radial-gradient(circle at 50% 66%,var(--l) 0 14%,transparent 15%),radial-gradient(circle at 40% 35%,var(--b),var(--d))}
-/* Striped candy: white stripes across (fires its row) or down (its column). Wrapped: a shiny wrapper with
-   twisted ends. Color bomb: a chocolate ball with sprinkles. */
-.match3.is-candy .is-row .m3-gem::after{background:repeating-linear-gradient(0deg,rgba(255,255,255,.85) 0 9%,transparent 9% 22%)}
-.match3.is-candy .is-col .m3-gem::after{background:repeating-linear-gradient(90deg,rgba(255,255,255,.85) 0 9%,transparent 9% 22%)}
-.match3.is-candy .is-row .m3-gem::before,.match3.is-candy .is-row .m3-gem::after,.match3.is-candy .is-col .m3-gem::before,.match3.is-candy .is-col .m3-gem::after{inset:10%;border-radius:28%;rotate:0deg;clip-path:none}
-.match3.is-candy .is-area .m3-gem::before{inset:16%;border-radius:30%;rotate:0deg;clip-path:none;box-shadow:0 0 0 3px rgba(255,255,255,.85),0 0 10px 3px var(--l)}
-.match3.is-candy .is-area .m3-gem::after{inset:-2% -14%;rotate:0deg;border-radius:0;clip-path:polygon(0 30%,16% 50%,0 70%,0 30%,100% 30%,84% 50%,100% 70%,100% 30%);background:var(--l)}
-.match3.is-candy .is-area .m3-gem{animation:m3-wobble 1.4s ease-in-out infinite}
-.match3.is-candy .is-color .m3-gem::before,.match3.is-candy .is-color .m3-gem::after{inset:6%;border-radius:50%;rotate:0deg;clip-path:none}
-.match3.is-candy .is-color .m3-gem::before{background:radial-gradient(circle at 25% 30%,#ff4d6a 0 6%,transparent 7%),radial-gradient(circle at 62% 22%,#ffe14d 0 6%,transparent 7%),radial-gradient(circle at 75% 55%,#4dd2ff 0 6%,transparent 7%),radial-gradient(circle at 40% 70%,#7dff6a 0 6%,transparent 7%),radial-gradient(circle at 55% 45%,#fff 0 5%,transparent 6%),radial-gradient(circle at 22% 58%,#d38bff 0 6%,transparent 7%),radial-gradient(circle at 35% 30%,#8a5432,#4a2512 70%)}
-.match3.is-candy .is-color .m3-gem::after{background:radial-gradient(ellipse at 38% 24%,rgba(255,255,255,.5) 0 10%,transparent 26%)}
-.match3.is-candy .is-color .m3-gem{animation:m3-spin 4s linear infinite}
-/* Gems: seven cut stones with a lit table facet. Flame gem burns, star gem flashes rays, the hypercube is a
-   spinning rainbow cube, the supernova pulses white. */
-.match3.is-gems .k0{--b:#e8263a;--l:#ff9aa4;--d:#7d0a17}.match3.is-gems .k1{--b:#ff8a1c;--l:#ffd08a;--d:#9a4300}
-.match3.is-gems .k2{--b:#ffd21c;--l:#fff7b0;--d:#9a7300}.match3.is-gems .k3{--b:#2fcf5a;--l:#b0ffc0;--d:#0d6b28}
-.match3.is-gems .k4{--b:#2a8cff;--l:#b0dcff;--d:#0a3f8a}.match3.is-gems .k5{--b:#b23ae8;--l:#eab0ff;--d:#52107a}
-.match3.is-gems .k6{--b:#e8eef8;--l:#ffffff;--d:#8a98b0}
-.match3.is-gems .m3-gem{--clip:polygon(18% 0,82% 0,100% 18%,100% 82%,82% 100%,18% 100%,0 82%,0 18%)}
-.match3.is-gems .k1 .m3-gem{--clip:polygon(50% 0,95% 25%,95% 75%,50% 100%,5% 75%,5% 25%)}
-.match3.is-gems .k2 .m3-gem{--clip:polygon(50% 0,100% 50%,50% 100%,0 50%)}
-.match3.is-gems .k3 .m3-gem{--clip:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%)}
-.match3.is-gems .k4 .m3-gem{--clip:polygon(50% 0,100% 38%,80% 100%,20% 100%,0 38%)}
-.match3.is-gems .k5 .m3-gem{--clip:polygon(50% 2%,100% 92%,0 92%)}
-.match3.is-gems .k6 .m3-gem{--clip:circle(48%)}
-.match3.is-gems .m3-gem::before{clip-path:var(--clip);background:linear-gradient(135deg,var(--l) 0%,var(--b) 35%,var(--b) 60%,var(--d) 100%)}
-.match3.is-gems .m3-gem::after{inset:24%;clip-path:var(--clip);background:linear-gradient(150deg,rgba(255,255,255,.85),var(--l) 30%,var(--b) 75%);opacity:.9}
-.match3.is-gems .is-area .m3-gem{filter:drop-shadow(0 0 4px #ff7a1f) drop-shadow(0 0 8px #ffb02e);animation:m3-flame .35s ease-in-out infinite alternate}
-.match3.is-gems .is-cross .m3-gem,.match3.is-gems .is-row .m3-gem,.match3.is-gems .is-col .m3-gem{filter:drop-shadow(0 0 5px #fff) drop-shadow(0 0 10px var(--l));animation:m3-twinkle 1s ease-in-out infinite}
-.match3.is-gems .is-cross .m3-gem::after,.match3.is-gems .is-row .m3-gem::after,.match3.is-gems .is-col .m3-gem::after{inset:-10%;clip-path:polygon(50% 0,58% 42%,100% 50%,58% 58%,50% 100%,42% 58%,0 50%,42% 42%);background:#fff;opacity:.9;animation:m3-spin 3s linear infinite}
-.match3.is-gems .is-color .m3-gem::before{clip-path:none;inset:8%;border-radius:4px;background:conic-gradient(from 45deg,#e8263a,#ff8a1c,#ffd21c,#2fcf5a,#2a8cff,#b23ae8,#e8263a);box-shadow:inset 0 0 0 2px rgba(255,255,255,.6)}
-.match3.is-gems .is-color .m3-gem::after{clip-path:none;inset:28%;border-radius:2px;background:rgba(255,255,255,.75)}
-.match3.is-gems .is-color .m3-gem{animation:m3-cube 2.4s linear infinite;filter:drop-shadow(0 0 6px #fff)}
-.match3.is-gems .is-nova .m3-gem{filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 14px #c58bff);animation:m3-nova .6s ease-in-out infinite alternate}
 .m3-badge{position:absolute;right:2px;bottom:1px;padding:0 3px;border-radius:5px;background:#ffd84d;color:#5a2d00;font-size:.6rem;font-weight:900;line-height:1.3;pointer-events:none}
 .m3-badge.is-time{background:#4dd2ff;color:#003a55}
 @keyframes m3-wobble{50%{transform:scale(1.08) rotate(4deg)}}
@@ -344,3 +338,23 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .meow-hearts i.is-lost{filter:grayscale(1) opacity(.35);transform:scale(.8)}
 .meow-cell.is-miss{animation:meow-shake .35s 2;background:linear-gradient(160deg,#ff8a96,#ef4b5c)!important}
 .meow.is-failed .meow-board{filter:grayscale(.5);transition:filter .5s}
+.match3.is-candy .blast-top :is(.blast-best,.blast-coins){color:#fff;text-shadow:0 2px 0 #d6338a,0 0 6px rgba(214,51,138,.6)}
+.match3.is-candy .match3-goal{background:rgba(120,40,110,.35)}
+/* Meowdoku's drawn cats and its cozy room. */
+.meow-board{position:relative}
+.meow-cat{display:block;width:84%;height:84%}
+.cat-art{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 3px 2px rgba(0,0,0,.3))}
+.cat-eyes{transform-origin:50% 55%;animation:cat-blink 4.5s ease-in-out infinite;animation-delay:calc(var(--wave,0ms) * 3)}
+@keyframes cat-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.cat-art.is-cross{animation:meow-shake .35s 2}
+.meow-cell .meow-x{color:rgba(60,30,60,.45);font-size:.6em}
+.meow-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 50% 0%,rgba(255,220,180,.6),transparent 60%),linear-gradient(#ffcfb8,#e9b8e6 55%,#a99be8)}
+.meow-bg::before{content:'';position:absolute;inset:-100px;background-image:radial-gradient(circle at 20px 20px,rgba(255,255,255,.35) 0 7px,transparent 8px),radial-gradient(circle at 8px 6px,rgba(255,255,255,.3) 0 3px,transparent 4px),radial-gradient(circle at 20px 4px,rgba(255,255,255,.3) 0 3px,transparent 4px),radial-gradient(circle at 32px 6px,rgba(255,255,255,.3) 0 3px,transparent 4px);background-size:90px 90px;animation:meow-drift 40s linear infinite}
+@keyframes meow-drift{to{translate:90px 90px}}
+.game-screen.is-blast .meow :is(.break-game-status,.meow-help){color:#5a2350;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+.game-screen.is-blast .meow .break-game-status strong:not(#x){color:#d6338a}
+.meow .meow-board{background:#7a3a6e;box-shadow:0 0 0 4px #fff4f9,0 12px 30px rgba(90,30,80,.35)}
+.meow .meow-tool:not(#x):not(#y){background:rgba(255,255,255,.55)!important;color:#5a2350!important;border-color:rgba(255,255,255,.8)!important}
+@media(prefers-reduced-motion:reduce){.cat-eyes,.meow-bg::before{animation:none}}
+.game-screen:has(.meow)>header{color:#5a2350}
+.game-screen:has(.meow)>header :is(.game-screen-tool,.game-screen-leave):not(#x):not(#y){color:#5a2350!important;background:rgba(255,255,255,.5)!important;border-color:rgba(255,255,255,.8)!important}

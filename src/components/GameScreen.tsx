@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState,type ReactNode} from 'react'
 import {gameSound} from '../konoSounds'
+import {musicOn,setMusicOn} from '../arcadeAudio'
 
 /** A game, full screen: its own dialog over everything (a native <dialog>, so it stacks above the dialog it
  * was opened from and Escape works). It slides in when it opens and out when it closes, and every game goes
@@ -8,7 +9,8 @@ import {gameSound} from '../konoSounds'
  *   beside Continue when a game is saved).
  * - Play: the game, with ↻ Restart and ■ End (finish now and see how you did) beside Leave.
  * - Results: the score, a new best, coins, with Play again and Done (a chime for a round won, a soft tune
- *   for one lost, then the coins coming in). */
+ *   for one lost, then the coins coming in).
+ * With Sounds on, 🎵 turns the games' music on and off (kept on this device). */
 export type GameResult={emoji:string;title:string;line:string;score?:string;best?:boolean;coins?:string|null;won?:boolean}
 export type GameIntro={emoji:string;name:string;how:string;best?:string|null;start?:string;alt?:{label:string;onClick:()=>void}}
 /** What a game lets its screen do: End finishes the round now with the score so far. */
@@ -19,7 +21,7 @@ export default function GameScreen({title,tone,sound=false,intro,started=true,on
  onRestart?:()=>void;onEnd?:()=>void;onLeave:()=>void
  result?:GameResult|null;onAgain?:()=>void;children:ReactNode
 }){
- const ref=useRef<HTMLDialogElement>(null),[closing,setClosing]=useState(false)
+ const ref=useRef<HTMLDialogElement>(null),[closing,setClosing]=useState(false),[music,setMusic]=useState(musicOn)
  useEffect(()=>{const d=ref.current;d?.showModal();return()=>d?.close()},[])
  // The results' sounds: a chime or a soft tune, then the coins.
  useEffect(()=>{
@@ -37,6 +39,7 @@ export default function GameScreen({title,tone,sound=false,intro,started=true,on
   <header><strong>{title}</strong><span className="game-screen-tools">
    {phase==='play'&&onRestart&&<button type="button" className="game-screen-tool" onClick={()=>{gameSound('start',sound);onRestart()}}>↻ Restart</button>}
    {phase==='play'&&onEnd&&<button type="button" className="game-screen-tool" onClick={onEnd}>■ End</button>}
+   {sound&&<button type="button" className="game-screen-tool" aria-pressed={music} aria-label="Music" onClick={()=>{setMusicOn(!music,sound);setMusic(!music)}}>{music?'🎵':'🔇'}</button>}
    <button type="button" className="game-screen-leave" onClick={leave}>✕ Leave</button>
   </span></header>
   <div className="game-screen-body">{phase==='start'&&intro?<section className="game-result game-start" aria-label="Start">

@@ -325,3 +325,9 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .home-notes-board .wb-record h3{white-space:normal!important}
 .home-notes-board .wb-family-event{display:flex!important;flex-direction:column!important;gap:6px;grid-template-columns:none!important;background:#fff3a6!important;border-color:#f0dc72!important;color:#4a3b12;rotate:-.6deg;min-height:130px}
 .home-notes-board .wb-family-event>*,.home-notes-board .wb-family-event-main,.home-notes-board .wb-family-event-info{min-width:0!important;width:auto!important;flex:1 1 auto}
+/* The island's World map button: bright, so the way to the beach, forest and village is easy to find. */
+.workbench .island-mode-tabs .wb-scene-world:not(#x):not(#y){display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#2fc2e8,#3e6fe6 55%,#a35be0)!important;color:#fff!important;border:0!important;border-radius:999px!important;font-weight:800!important;box-shadow:0 2px 0 rgba(0,0,0,.15),0 4px 12px rgba(62,111,230,.35)!important;white-space:nowrap;position:relative;overflow:hidden}
+.workbench .island-mode-tabs .wb-scene-world:not(#x):not(#y)::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);transform:translateX(-120%);animation:world-shine 4s ease-in-out infinite;pointer-events:none}
+.workbench .island-mode-tabs .wb-scene-world:not(#x):not(#y):hover{filter:brightness(1.08)}
+@keyframes world-shine{0%,70%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+@media(prefers-reduced-motion:reduce){.workbench .island-mode-tabs .wb-scene-world::after{animation:none}}
