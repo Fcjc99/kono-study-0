@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
-import type { PoseLandmarker } from '@mediapipe/tasks-vision'
 import './shop.css'
 import { POLOS, POLO_DETAILS, SIZES } from './polos'
-import { defaultFit, drawPolo, ease, fitFromPose, loadPose, type Fit } from './tryOn'
+import { TryOn, defaultFit, loadModels, setMode, type Models } from './tryOn'
 import { aiCameraConstraints, aiTryOnEnabled, startAiTryOn, type AiSession, type AiStatus } from './aiTryOn'
 
-/** 'ai' is Decart's generated video of the shopper wearing the polo; 'camera' and 'photo' are the quick fit,
- * the polo cut-out drawn over them on this device. */
+/** 'ai' is Decart's generated video of the shopper wearing the polo; 'camera' and 'photo' are the on-device
+ * fitting room (tryOn.ts). */
 type Source='none'|'ai'|'camera'|'photo'
 const NO_TWEAK={scale:1,dx:0,dy:0}
 const MAX_PHOTO=1400
@@ -19,8 +18,9 @@ const shirtFor=(src:string)=>{let img=shirtImages.get(src);if(!img){img=new Imag
 
 /** kono.shop: the polo collection with a live try-on. With the AI fitting room switched on, the camera goes to
  * Decart's realtime try-on model, which streams back video of the shopper wearing the polo. Otherwise (or when
- * it's busy) the quick fit runs on the device: a pose model (served from /tryon) finds the shoulders and hips
- * and the polo is drawn over them, frame by frame. Photos always use the quick fit and never leave the device. */
+ * it's busy) the fitting room runs on the device: pose and body-part models (served from /tryon) fit the polo
+ * to the shoulders, hips and arms, light it like the room and keep hands and hair in front, frame by frame.
+ * Photos always use it and never leave the device. */
 export default function KonoShop(){
  const [poloId,setPoloId]=useState(POLOS[0].id)
  const [size,setSize]=useState<string>('M')
@@ -39,8 +39,8 @@ export default function KonoShop(){
  const fileRef=useRef<HTMLInputElement>(null)
  const stageRef=useRef<HTMLDivElement>(null)
  const photoRef=useRef<HTMLImageElement|null>(null)
- const poseRef=useRef<PoseLandmarker|null>(null)
- const fitRef=useRef<Fit|null>(null)
+ const modelsRef=useRef<Models|null>(null)
+ const room=useRef(new TryOn())
  const live=useRef({polo,tweak})
  useEffect(()=>{live.current={polo,tweak}},[polo,tweak])
  const drag=useRef<{x:number;y:number;dx:number;dy:number}|null>(null)
@@ -63,31 +63,29 @@ export default function KonoShop(){
  },[stopAi])
  useEffect(()=>stopCamera,[stopCamera])
 
- const pose=async(mode:'VIDEO'|'IMAGE')=>{
+ const models=async(mode:'VIDEO'|'IMAGE')=>{
   setStatus('Getting the fitting room ready…')
-  const p=poseRef.current??(poseRef.current=await loadPose())
-  await p.setOptions({runningMode:mode})
-  return p
+  const m=modelsRef.current??(modelsRef.current=await loadModels())
+  await setMode(m,mode)
+  return m
  }
 
- /** Camera: each new video frame is drawn, the pose read, and the polo eased onto it. */
+ /** Camera: each new video frame is read (pose and body parts) and drawn with the polo on. */
  useEffect(()=>{
   if(source!=='camera')return
   const video=videoRef.current,canvas=canvasRef.current,ctx=canvas?.getContext('2d')
   if(!video||!canvas||!ctx)return
-  let raf=0,last=-1,misses=0
+  let raf=0,last=-1
   const tick=()=>{
    raf=requestAnimationFrame(tick)
-   if(video.readyState<2||video.currentTime===last)return
+   const m=modelsRef.current
+   if(!m||video.readyState<2||video.currentTime===last)return
    last=video.currentTime
    if(canvas.width!==video.videoWidth){canvas.width=video.videoWidth;canvas.height=video.videoHeight}
    const {width:w,height:h}=canvas
-   ctx.drawImage(video,0,0,w,h)
-   const lm=poseRef.current?.detectForVideo(video,performance.now()).landmarks[0]
-   const next=fitFromPose(lm,w,h)
-   if(next){misses=0;fitRef.current=ease(fitRef.current,next);setFound(true)}
-   else if(++misses>20){fitRef.current=null;setFound(false)}
-   if(fitRef.current)drawPolo(ctx,shirtFor(live.current.polo.image),fitRef.current,live.current.tweak)
+   room.current.read(m,video,w,h,performance.now())
+   setFound(!!room.current.fit)
+   room.current.draw(ctx,video,w,h,shirtFor(live.current.polo.image),live.current.tweak)
   }
   raf=requestAnimationFrame(tick)
   return()=>cancelAnimationFrame(raf)
@@ -97,10 +95,9 @@ export default function KonoShop(){
  const drawPhoto=useCallback(()=>{
   const img=photoRef.current,canvas=canvasRef.current,ctx=canvas?.getContext('2d')
   if(!img||!canvas||!ctx)return
-  ctx.drawImage(img,0,0,canvas.width,canvas.height)
-  const shirt=shirtFor(polo.image)
-  const draw=()=>drawPolo(ctx,shirt,fitRef.current??defaultFit(canvas.width,canvas.height),tweak)
-  if(shirt.complete)draw();else shirt.onload=()=>{ctx.drawImage(img,0,0,canvas.width,canvas.height);draw()}
+  const shirt=shirtFor(polo.image),{width:w,height:h}=canvas
+  const draw=()=>room.current.draw(ctx,img,w,h,shirt,tweak,defaultFit(w,h))
+  if(shirt.complete)draw();else{ctx.drawImage(img,0,0,w,h);shirt.onload=draw}
  },[polo.image,tweak])
  useEffect(()=>{if(source==='photo')drawPhoto()},[source,drawPhoto])
 
@@ -120,11 +117,11 @@ export default function KonoShop(){
  /** Quick fit on the live camera (also where the AI fitting room falls back to). */
  const startQuickFit=async(message='')=>{
   if(!navigator.mediaDevices?.getUserMedia){setStatus('This browser can’t open a camera. Try a photo instead.');return}
-  setBusy(true);setTweak(NO_TWEAK);fitRef.current=null
+  setBusy(true);setTweak(NO_TWEAK);room.current.reset()
   try{
    const live=videoRef.current?.srcObject as MediaStream|null
    if(live?.active){stopAi()}else await openCamera({facingMode:'user',width:{ideal:1280},height:{ideal:960}})
-   await pose('VIDEO')
+   await models('VIDEO')
    setSource('camera');setStatus(message);stageRef.current?.scrollIntoView({behavior:'smooth',block:'center'})
   }catch(error){cameraError(error)}
   finally{setBusy(false)}
@@ -163,16 +160,16 @@ export default function KonoShop(){
    const canvas=canvasRef.current!,k=Math.min(1,MAX_PHOTO/Math.max(img.naturalWidth,img.naturalHeight))
    canvas.width=Math.round(img.naturalWidth*k);canvas.height=Math.round(img.naturalHeight*k)
    photoRef.current=img
-   let fit:Fit|null=null
-   try{const p=await pose('IMAGE');fit=fitFromPose(p.detect(img).landmarks[0],img.naturalWidth,img.naturalHeight)}catch{/* falls back to placing by hand */}
-   fitRef.current=fit&&{...fit,x:fit.x*k,y:fit.y*k,sx:fit.sx*k,sy:fit.sy*k}
-   setFound(!!fit);setSource('photo');setStatus('')
+   room.current.reset()
+   let found=false
+   try{found=room.current.read(await models('IMAGE'),img,canvas.width,canvas.height)}catch{/* falls back to placing by hand */}
+   setFound(found);setSource('photo');setStatus('')
    stageRef.current?.scrollIntoView({behavior:'smooth',block:'center'})
   }catch{setStatus('That file didn’t open as a photo. Try a JPG or PNG.')}
   finally{setBusy(false);if(fileRef.current)fileRef.current.value=''}
  }
 
- const close=()=>{stopCamera();setSource('none');setStatus('');fitRef.current=null;photoRef.current=null}
+ const close=()=>{stopCamera();setSource('none');setStatus('');room.current.reset();photoRef.current=null}
 
  /** The picture to save: the canvas for the quick fit, or the current frame of the AI video. */
  const pictureCanvas=()=>{

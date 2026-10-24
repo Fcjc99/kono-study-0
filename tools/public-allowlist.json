@@ -985,5 +985,6 @@
  "/tryon/wasm/vision_wasm_internal.wasm",
  "/shop/ref-sakura-teal.jpg",
  "/shop/ref-tile-navy.jpg",
- "/shop/ref-hibiscus-sky.jpg"
+ "/shop/ref-hibiscus-sky.jpg",
+ "/tryon/selfie_multiclass_256x256.tflite"
 ]
