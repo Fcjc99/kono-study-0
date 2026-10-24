@@ -24,7 +24,7 @@ import Sparks,{type SparksHandle} from './Sparks'
  * down a cascade, lasers, explosions, lightning, fire), sparks and shards flying from every clear
  * (Sparks), and their own scenery: a candy sky with drifting clouds, or a starry nebula. */
 const SPARK_GEMS=['#ff5468','#ff9a2e','#ffe03d','#3fe07a','#3d9bff','#c14dff','#eef3fb'],SPARK_CANDY=['#ff2e48','#ff8a14','#ffd60a','#2fd14a','#1f8bff','#a83ae8']
-const INTRO_MS=1100,CLEAR_MS=240,FALL_MS=320,SWAP_MS=180,BLITZ_MS=60_000,SPEEDY_MS=1700,IGNITE=9,BLAZE_MS=8000
+const INTRO_MS=1100,CLEAR_MS=210,FALL_MS=320,SWAP_MS=180,BLITZ_MS=60_000,SPEEDY_MS=1700,IGNITE=9,BLAZE_MS=8000
 const CANDY_CHEERS=['','','Sweet!','Tasty!','Delicious!','Divine!']
 const GEM_CHEERS=['','','Good!','Excellent!','Awesome!','Spectacular!','Extraordinary!','Unbelievable!']
 type Fx={key:number;effects:Effect[];cleared:{at:number;kind:number}[];pop:{n:number;x:number;y:number}|null;big:boolean}
@@ -73,7 +73,8 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
  },[])
  // ■ End: finish now (Candy crush counts it as won only if the level's goal is already met).
  useImperativeHandle(ref,()=>({end:()=>{if(ended.current)return;ended.current=true;const won=mode==='gems'||(scoreRef.current>=goal.target&&!jellyNow.current.size);onEndRef.current(scoreRef.current,won,mode==='candy'&&won?Math.max(1,stars()):0)}}),[mode,goal.target]) // eslint-disable-line react-hooks/exhaustive-deps
- const show=(next:Board,made:number[]=[])=>{
+ // `swap`: pieces trading places slide; they aren't falling (so no landing bounce).
+ const show=(next:Board,made:number[]=[],swap=false)=>{
   const was=new Map<number,number>();boardNow.current.forEach((p,i)=>{if(p)was.set(p.id,i)})
   const madeAt=new Set(made),fresh=new Set<number>(),popped=new Set<number>(),fall=new Map<number,number>(),newInCol=Array(W).fill(0)
   next.forEach((p,i)=>{if(p&&!was.has(p.id)&&!madeAt.has(i))newInCol[i%W]++})
@@ -81,7 +82,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
    if(!p)return
    const from=was.get(p.id)
    if(from===undefined){if(madeAt.has(i))popped.add(p.id);else{fresh.add(p.id);fall.set(p.id,newInCol[i%W])}}
-   else if(Math.floor(i/W)>Math.floor(from/W)&&from%W===i%W)fall.set(p.id,Math.floor(i/W)-Math.floor(from/W))
+   else if(!swap&&Math.floor(i/W)>Math.floor(from/W)&&from%W===i%W)fall.set(p.id,Math.floor(i/W)-Math.floor(from/W))
   })
   setBorn(fresh);setMadeIds(popped);setDrops(fall);setTick(t=>t+1)
   boardNow.current=next;setBoard(next)
@@ -96,6 +97,8 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
     if(f.cleared.length){
      setClearing(new Set(f.cleared.flatMap(c=>{const p=boardNow.current[c.at];return p?[p.id]:[]})))
      play3('match',sound,f.cascade-1);fire(f)
+     // Candy crush splashes the moment its candies light up; Bejeweled's gems sparkle as they vanish.
+     if(mode==='candy')burst(f)
      window.setTimeout(()=>{setClearing(new Set());show(f.board,f.made.map(m=>m.at));land(f)},CLEAR_MS)
     }else show(f.board)
    },at)
@@ -108,7 +111,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
     if(f.time){extraMs.current+=f.time*1000;say('+'+f.time+' seconds!');play3('time',sound)}
     if(f.mult>multNow.current){multNow.current=f.mult;setMult(f.mult);say('×'+f.mult+' multiplier!',true);play3('mult',sound)}
     for(const m of f.made){const [x,y]=centre(m.at);sparks.current?.burst(x,y,{kind:'star',n:10,color:['#fff','#ffe98a'],size:7});play3('make',sound)}
-    burst(f)
+    if(mode==='gems')burst(f)
     const pts=f.points*(mode==='gems'?multNow.current:1)
     scoreRef.current+=pts;setScore(scoreRef.current)
     // Jelly under a cleared square is gone.
@@ -127,7 +130,13 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
  // A clear's particles and sounds: shards from every piece, and each special's own show.
  const burst=(f:Frame)=>{
   const sp=sparks.current,colors=mode==='gems'?SPARK_GEMS:SPARK_CANDY
-  for(const c of f.cleared){const [x,y]=centre(c.at);sp?.burst(x,y,{kind:mode==='gems'?'shard':'spark',n:mode==='gems'?6:7,color:[colors[c.kind]??'#fff','#fff'],size:mode==='gems'?7:6,speed:0.9});sp?.burst(x,y,{kind:'star',n:2,color:'#fff',size:5,speed:0.4})}
+  for(const c of f.cleared){
+   const [x,y]=centre(c.at),col=colors[c.kind]??'#fff'
+   // Candy crush: a splash of glassy shards in the candy's color, flung out and falling, with a soft glow.
+   if(mode==='candy'){sp?.burst(x,y,{kind:'shard',n:9,color:[col,col,'#fff'],size:8,speed:1.25});sp?.ring(x,y,'rgba(255,255,255,.8)',38)}
+   // Bejeweled: a few small sparks where the gem shrank away.
+   else{sp?.burst(x,y,{kind:'spark',n:5,color:[col,'#fff'],size:5,speed:0.7});sp?.burst(x,y,{kind:'star',n:1,color:'#fff',size:6,speed:0.2})}
+  }
  }
  // A special's own show, the moment it goes off.
  const fire=(f:Frame)=>{
@@ -155,12 +164,12 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
   if(!frames){
    // Not a match: the two slide over and straight back.
    busy.current=true;play3('swap',sound)
-   const back=boardNow.current,tried=[...back];[tried[a],tried[c]]=[tried[c],tried[a]];show(tried)
-   window.setTimeout(()=>{show(back);play3('nope',sound);window.setTimeout(()=>{busy.current=false},SWAP_MS)},SWAP_MS+40)
+   const back=boardNow.current,tried=[...back];[tried[a],tried[c]]=[tried[c],tried[a]];show(tried,[],true)
+   window.setTimeout(()=>{show(back,[],true);play3('nope',sound);window.setTimeout(()=>{busy.current=false},SWAP_MS)},SWAP_MS+40)
    return
   }
   setSel(null);play3('swap',sound)
-  const swapped=[...boardNow.current];[swapped[a],swapped[c]]=[swapped[c],swapped[a]];show(swapped)
+  const swapped=[...boardNow.current];[swapped[a],swapped[c]]=[swapped[c],swapped[a]];show(swapped,[],true)
   // Gem blitz's speed, as in Bejeweled Blitz: a quick move after a quick move is a Speed bonus (from the
   // third on: 200, then 100 more each time, up to 1,000), and each one fills the Ignition meter.
   if(mode==='gems'){

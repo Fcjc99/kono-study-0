@@ -976,5 +976,8 @@
  "/garden/world/land-beach.webp",
  "/garden/world/land-forest.webp",
  "/garden/world/land-snow.webp",
- "/garden/world/world-map.webp"
+ "/garden/world/world-map.webp",
+ "/audio/games/candy.mp3",
+ "/audio/games/gems.mp3",
+ "/audio/games/blast.mp3"
 ]
