@@ -304,6 +304,50 @@ test('match-3 in real time: the opening rain settles; a swap slides and clears; 
  assert.equal(rt.events.filter(e=>e.t==='fire'&&e.e.type==='area').length,2,'a wrapped candy explodes, falls, and explodes again')
  rt=L.live(g.maker('candy',seeded(5)),g.freshBoard(g.maker('candy',seeded(5))),false);assert.ok(L.blowAll(rt,4)>=4);calm(rt);assert.ok(rt.events.filter(e=>e.t==='fire').length>=4);assert.equal(L.boardOf(rt).filter(Boolean).length,64)
 })
+test('KONO Flow: shuffled sets of seven, moving and turning with wall kicks, hard drop and lock, clearing rows (100/300/500/800 × level), hold once per shape, T-spins, Flow stacks rows and clears them all at once, and game over',()=>{
+ const f=load('src/store/flow.ts'),seeded=load('src/store/meowdoku.ts').seeded
+ const g=f.newGame(seeded(7)),first=[g.piece.kind,...g.queue.slice(0,6)]
+ assert.equal(new Set(first).size,7,'every shape once in the first set of seven')
+ const x0=g.piece.x;assert.ok(f.move(g,-1));assert.equal(g.piece.x,x0-1)
+ for(let k=0;k<10;k++)f.move(g,-1);assert.ok(f.cellsOf(g.piece).every(([x])=>x>=0),'the wall stops it')
+ // Turning against the wall kicks it back in (or it just turns), and four turns come back round.
+ const before=g.piece.rot;if(g.piece.kind!=='O'){f.rotate(g,1);f.rotate(g,1);f.rotate(g,1);f.rotate(g,1);assert.equal(g.piece.rot,before)}
+ // Hard drop: it lands where its ghost is and locks; a new shape comes in.
+ const ghost=f.ghostOf(g),kind=g.piece.kind;f.hardDrop(g)
+ assert.ok(f.cellsOf(ghost).every(([x,y])=>g.board[y*f.COLS+x]===f.KINDS.indexOf(kind)+1),'locked where the ghost showed')
+ assert.ok(g.piece&&g.score>0)
+ // Gravity: it falls a row in about a second at level 1, and locks half a second after landing.
+ const g2=f.newGame(seeded(3)),y0=g2.piece.y;f.tick(g2,1010);assert.equal(g2.piece.y,y0+1)
+ for(let t=0;t<40000&&g2.board.every(c=>!c);t+=16)f.tick(g2,16);assert.ok(g2.board.some(c=>c),'it fell and locked on its own')
+ // Clearing: fill the bottom row but a gap, drop an I in it upright: one row (100 at level 1).
+ const fill=(g,rows,gap)=>{for(const y of rows)for(let x=0;x<f.COLS;x++)if(x!==gap)g.board[y*f.COLS+x]=2}
+ const g3=f.newGame(()=>0);g3.piece={kind:'I',rot:1,x:-2+0,y:0};fill(g3,[f.H-1,f.H-2,f.H-3,f.H-4],0)
+ g3.events.length=0;const s0=g3.score;f.hardDrop(g3)
+ const clr=g3.events.find(e=>e.t==='clear');assert.ok(clr&&clr.count===4,'four rows at once');assert.ok(clr.perfect,'the well is empty: a perfect clear');assert.equal(clr.points,800+2000)
+ assert.equal(g3.lines,4);assert.ok(g3.score>=s0+800)
+ // Hold: once per shape.
+ const g4=f.newGame(seeded(5)),k4=g4.piece.kind;assert.ok(f.holdPiece(g4));assert.equal(g4.hold,k4);assert.ok(!f.holdPiece(g4),'only once until it locks')
+ f.hardDrop(g4);assert.ok(f.holdPiece(g4));assert.equal(g4.piece.kind,k4,'the held shape comes back')
+ // A T-spin double: a T turned into a T-shaped slot two rows deep.
+ const g5=f.newGame(()=>0),B=f.H-1
+ for(const y of [B,B-1])for(let x=0;x<f.COLS;x++)g5.board[y*f.COLS+x]=3
+ g5.board[B*f.COLS+4]=0;g5.board[(B-1)*f.COLS+3]=0;g5.board[(B-1)*f.COLS+4]=0;g5.board[(B-1)*f.COLS+5]=0;g5.board[(B-2)*f.COLS+3]=3
+ g5.piece={kind:'T',rot:0,x:3,y:B-3};g5.lastRotate=false
+ // Turn it into the slot: from pointing up over it, a turn to point down drops it in with a kick.
+ g5.piece={kind:'T',rot:3,x:3,y:B-2};assert.ok(f.rotate(g5,-1)||f.rotate(g5,1));g5.events.length=0
+ f.hardDrop(g5);const ts=g5.events.find(e=>e.t==='clear');assert.ok(ts&&ts.tspin,'a T-spin');assert.ok(ts.points>=400)
+ // Flow: a quarter of the meter gives 5 seconds; rows filled stack at the bottom and clear together at the end.
+ const g6=f.newGame(()=>0);g6.flow=0.5;assert.ok(f.startFlow(g6));assert.equal(g6.flowMs,10000)
+ fill(g6,[f.H-1,f.H-2],0);g6.piece={kind:'I',rot:1,x:-2,y:0};f.hardDrop(g6)
+ assert.equal(g6.flowLines,2);assert.ok(g6.board.slice((f.H-2)*f.COLS).every(c=>c===f.FLOW_CELL),'the rows wait at the bottom')
+ const y6=g6.piece.y;f.tick(g6,3000);assert.equal(g6.piece.y,y6,'time stands still in Flow')
+ g6.events.length=0;f.tick(g6,8000);const fe=g6.events.find(e=>e.t==='flowEnd');assert.ok(fe&&fe.lines===2&&fe.points>0)
+ assert.ok(!g6.board.some(c=>c===f.FLOW_CELL),'they all cleared');assert.ok(!f.startFlow(g6),'the meter is spent')
+ // Game over: the well filled to the top.
+ const g7=f.newGame(seeded(1));for(let y=0;y<f.H;y++)for(let x=0;x<f.COLS;x++)if(x!==9||y<4)g7.board[y*f.COLS+x]=y<f.HIDDEN+1?0:5
+ for(let k=0;k<6&&!g7.over;k++)f.hardDrop(g7);assert.ok(g7.over,'no room: game over')
+ assert.ok(f.gravityMs(10)<f.gravityMs(1)/5,'faster each level')
+})
 test('Flappy KONO: KONO falls and a flap lifts it, pipes come in with a gap, flying through a gap scores, touching a pipe or the ground ends the run; medals at 10/20/30/40',()=>{
  const f=load('src/store/flappy.ts'),half=()=>0.5
  let fl=f.newFlight(),y0=fl.y

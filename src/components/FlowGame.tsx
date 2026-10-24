@@ -1,0 +1,241 @@
+import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
+import {COLS,FLOW_CELL,H,HIDDEN,KINDS,ROWS,cellsOf,ghostOf,hardDrop,holdPiece,move,newGame,rotate,shapeCells,softDrop,startFlow,tick,type FlowEvent,type Game,type Kind} from '../store/flow'
+import {fx,startMusic,stopMusic} from '../arcadeAudio'
+import type {GameHandle} from './GameScreen'
+
+/** KONO Flow (the rules are in store/flow): falling blocks made of light, drawn on a canvas.
+ * The well floats in a drifting field of light that takes on a new color every level; blocks are glowing
+ * panes with a bright core; the ghost shows where a shape will land; a hard drop leaves a streak; rows that
+ * clear flash and burst into sparks, with a word for the big ones (Double, Triple, Quad, T-spin, Combo,
+ * Back to back, Perfect clear). Every move plays a note in the soundtrack's key, so playing adds to the
+ * music. In Flow the field stills and turns deep blue, the rows you fill pile up white at the bottom with a
+ * count, and when it ends they all burst at once.
+ * Controls: arrow keys (← → move, ↓ soft drop, ↑ or X turn, Z turn back, Space hard drop, C hold, F Flow);
+ * on a phone, drag sideways to move, drag down to drop gently, flick down to drop, flick up to hold, tap to
+ * turn, or use the buttons. */
+// Each shape's light: I cyan, O gold, T violet, S green, Z pink-red, J blue, L orange; Flow rows white.
+const COLORS=['#000','#5ef2ff','#ffd84a','#c37bff','#62f08a','#ff5f87','#5b8cff','#ffa14a','#ffffff']
+type Spark={x:number;y:number;vx:number;vy:number;life:number;max:number;size:number;color:string}
+type Band={y:number;t:number;white?:boolean}
+type Word={key:number;text:string;big?:boolean}
+const DAS=170,ARR=45,SOFT=40
+export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:boolean;onEnd:(score:number,lines:number,level:number)=>void}){
+ const canvas=useRef<HTMLCanvasElement>(null),game=useRef<Game|null>(null)
+ const [hud,setHud]=useState({score:0,lines:0,level:1,flow:0,flowMs:0,flowLines:0}),[words,setWords]=useState<Word[]>([])
+ const vis=useRef<Vis>(newVis())
+ const ended=useRef(false),onEndRef=useRef(onEnd),soundRef=useRef(sound),keys=useRef(0)
+ const held=useRef<{dir:number;t:number;next:number}|null>(null),soft=useRef(false)
+ useEffect(()=>{onEndRef.current=onEnd;soundRef.current=sound},[onEnd,sound])
+ useImperativeHandle(ref,()=>({end:()=>{if(ended.current)return;ended.current=true;const s=game.current!;onEndRef.current(s.score,s.lines,s.level)}}),[])
+ const say=(text:string,big=false)=>{const key=++keys.current;setWords(w=>[...w.slice(-3),{key,text,big}]);window.setTimeout(()=>setWords(w=>w.filter(x=>x.key!==key)),1400)}
+ // What the game says happened: sounds, sparks, flashes and words.
+ const onEvent=(e:FlowEvent)=>{
+  const s=soundRef.current,p=game.current?.piece,v=vis.current
+  if(e.t==='move'||e.t==='rotate')fx('note',s,(p?p.x+(p.rot*2):0)+3)
+  else if(e.t==='hold')fx('whoosh',s)
+  else if(e.t==='lock'){
+   fx('lock',s);v.shake=Math.max(v.shake,e.drop>2?5:2)
+   const color=COLORS[(game.current?.board[(e.cells[0][1])*COLS+e.cells[0][0]])||1]
+   for(const [x,y] of e.cells)burst(v,x+0.5,y+0.9,color,4,0.6)
+   if(e.drop>1){const xs=e.cells.map(c=>c[0]),ys=e.cells.map(c=>c[1]);v.streaks.push({x0:Math.min(...xs),x1:Math.max(...xs)+1,y0:Math.min(...ys)-e.drop,y1:Math.max(...ys)+1,t:0,color})}
+  }else if(e.t==='clear'){
+   if(e.count){fx('rows',s,e.count);v.pulse=1;v.shake=e.count>=4?10:4
+    for(const y of e.rows){v.bands.push({y,t:0});for(let x=0;x<COLS;x++)burst(v,x+0.5,y+0.5,COLORS[1+((x+y)%7)],e.count>=4?7:5,1.4)}}
+   const name=['','Single','Double','Triple','Quad'][e.count]
+   if(e.tspin)say((e.tspin==='mini'?'T-spin mini':'T-spin')+(name?' '+name.toLowerCase():''),true)
+   else if(e.count>=2)say(name,e.count>=4)
+   if(e.b2b)say('Back to back!')
+   if(e.combo>=2)say('Combo '+e.combo)
+   if(e.perfect){say('Perfect clear!',true);fx('mega',s)}
+  }else if(e.t==='level'){say('Level '+e.level,true);fx('fanfare',s)}
+  else if(e.t==='flowOn'){fx('flowOn',s);say('Flow',true)}
+  else if(e.t==='flowStack'){fx('rows',s,Math.min(4,e.rows.length));for(let k=0;k<e.rows.length;k++)v.bands.push({y:H-1-(e.total-1-k),t:0,white:true})}
+  else if(e.t==='flowEnd'){
+   if(e.lines){fx('flowEnd',s);say(e.lines+' lines!',true);v.shake=14;v.pulse=1.5
+    for(let k=0;k<e.lines;k++){const y=H-1-k;v.bands.push({y,t:0,white:true});for(let x=0;x<COLS;x++)burst(v,x+0.5,y+0.5,'#ffffff',6,1.8)}}
+  }else if(e.t==='over'){stopMusic();fx('thud',s);if(!ended.current){ended.current=true;const st=game.current!;window.setTimeout(()=>onEndRef.current(st.score,st.lines,st.level),1400)}}
+ }
+ // Doing something: the game moves, and anything it says is heard and seen at once.
+ const act=(f:(s:Game)=>unknown)=>{const s=game.current;if(!s||s.over||ended.current)return;f(s);for(const e of s.events.splice(0))onEvent(e)}
+ const actRef=useRef(act)
+ useEffect(()=>{actRef.current=act})
+ useEffect(()=>{
+  game.current=newGame(Math.random)
+  startMusic('flow',soundRef.current)
+  const down=(e:KeyboardEvent)=>{
+   const k=e.code,A=actRef.current
+   if(['ArrowLeft','ArrowRight','ArrowDown','ArrowUp','Space'].includes(k))e.preventDefault()
+   if(e.repeat)return
+   if(k==='ArrowLeft'||k==='ArrowRight'){const dir=k==='ArrowLeft'?-1:1;A(s=>move(s,dir));held.current={dir,t:0,next:DAS}}
+   else if(k==='ArrowDown')soft.current=true
+   else if(k==='ArrowUp'||k==='KeyX')A(s=>rotate(s,1))
+   else if(k==='KeyZ'||k==='ControlLeft')A(s=>rotate(s,-1))
+   else if(k==='Space')A(s=>hardDrop(s))
+   else if(k==='KeyC'||k==='ShiftLeft')A(s=>holdPiece(s))
+   else if(k==='KeyF'||k==='KeyE')A(s=>startFlow(s))
+  }
+  const up=(e:KeyboardEvent)=>{
+   if((e.code==='ArrowLeft'&&held.current?.dir===-1)||(e.code==='ArrowRight'&&held.current?.dir===1))held.current=null
+   if(e.code==='ArrowDown')soft.current=false
+  }
+  window.addEventListener('keydown',down);window.addEventListener('keyup',up)
+  let raf=0,last=performance.now(),softT=0,shown=''
+  const loop=(now:number)=>{
+   const dt=Math.min(50,now-last);last=now
+   const A=actRef.current
+   // Held keys: auto-shift after a short wait, and soft drop while ↓ is down.
+   const h=held.current
+   if(h){h.t+=dt;while(h.t>=h.next){h.next+=ARR;A(s=>move(s,h.dir))}}
+   if(soft.current){softT+=dt;while(softT>=SOFT){softT-=SOFT;A(s=>softDrop(s))}}else softT=0
+   A(s=>tick(s,dt))
+   const s=game.current!
+   const next={score:s.score,lines:s.lines,level:s.level,flow:s.flow,flowMs:Math.ceil(Math.max(0,s.flowMs)/1000),flowLines:s.flowLines},key=JSON.stringify(next)
+   if(key!==shown){shown=key;setHud(next)}
+   draw(canvas.current,s,dt,vis.current)
+   raf=requestAnimationFrame(loop)
+  }
+  raf=requestAnimationFrame(loop)
+  return ()=>{cancelAnimationFrame(raf);window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);stopMusic()}
+ },[])
+ // ---- Touch: drag to move, drag down to drop gently, flick down to drop, flick up to hold, tap to turn ----
+ const touch=useRef<{x:number;y:number;t:number;mx:number;my:number;moved:boolean}|null>(null)
+ const cellPx=()=>{const c=canvas.current;return c?c.getBoundingClientRect().width/LAYOUT.w:30}
+ const pdown=(e:React.PointerEvent)=>{e.currentTarget.setPointerCapture(e.pointerId);touch.current={x:e.clientX,y:e.clientY,t:performance.now(),mx:e.clientX,my:e.clientY,moved:false}}
+ const pmove=(e:React.PointerEvent)=>{
+  const t=touch.current;if(!t)return
+  const c=cellPx()*0.9
+  // Small wobbles of a finger tapping don't count as a drag.
+  if(!t.moved&&Math.hypot(e.clientX-t.x,e.clientY-t.y)<cellPx()*0.5)return
+  while(e.clientX-t.mx>=c){t.mx+=c;t.moved=true;act(s=>move(s,1))}
+  while(t.mx-e.clientX>=c){t.mx-=c;t.moved=true;act(s=>move(s,-1))}
+  while(e.clientY-t.my>=c&&Math.abs(e.clientY-t.y)>Math.abs(e.clientX-t.x)){t.my+=c;t.moved=true;act(s=>softDrop(s))}
+ }
+ const pup=(e:React.PointerEvent)=>{
+  const t=touch.current;touch.current=null;if(!t)return
+  const dt=performance.now()-t.t,dy=e.clientY-t.y,dx=e.clientX-t.x,v=dy/Math.max(1,dt)
+  if(dy>cellPx()*1.5&&v>0.9)act(s=>hardDrop(s))
+  else if(-dy>cellPx()*1.5&&-dy>Math.abs(dx)*1.5)act(s=>holdPiece(s))
+  // A tap (a short touch that hardly moved) turns the shape, wherever it lands on the well.
+  else if(!t.moved&&Math.hypot(dx,dy)<cellPx()*0.6&&dt<450)act(s=>rotate(s,1))
+ }
+ const can=hud.flow>=0.25&&!hud.flowMs
+ return <div className="break-game flow-game">
+  <div className="blast-top">
+   <span className="blast-best">Level {hud.level}</span>
+   <span className="blast-coins">{hud.lines} line{hud.lines===1?'':'s'}</span>
+   <strong className="blast-score" aria-label={'Score '+hud.score}>{hud.score.toLocaleString()}</strong>
+  </div>
+  <div className="flow-stage">
+   <canvas ref={canvas} className="flow-canvas" aria-label="KONO Flow well" role="img" onPointerDown={pdown} onPointerMove={pmove} onPointerUp={pup} onPointerCancel={()=>{touch.current=null}}/>
+   {hud.flowMs>0&&<p className="flow-count" aria-live="polite"><b>{hud.flowLines}</b><small>lines · {hud.flowMs}s</small></p>}
+   <div className="flow-words" aria-live="polite">{words.map(w=><p key={w.key} className={w.big?'is-big':''}>{w.text}</p>)}</div>
+  </div>
+  <div className="flow-meter" role="meter" aria-label="Flow" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(hud.flow*100)}><span style={{width:(hud.flowMs?100:hud.flow*100)+'%'}} className={hud.flowMs?'is-on':can?'is-ready':''}/>{[0.25,0.5,0.75].map(q=><i key={q} style={{left:q*100+'%'}}/>)}</div>
+  <div className="flow-pad">
+   <button type="button" onClick={()=>act(s=>holdPiece(s))}>Hold</button>
+   <button type="button" aria-label="Turn left" onClick={()=>act(s=>rotate(s,-1))}>↺</button>
+   <button type="button" aria-label="Move left" onClick={()=>act(s=>move(s,-1))}>◀</button>
+   <button type="button" aria-label="Drop" onClick={()=>act(s=>hardDrop(s))}>⤓</button>
+   <button type="button" aria-label="Move right" onClick={()=>act(s=>move(s,1))}>▶</button>
+   <button type="button" aria-label="Turn right" onClick={()=>act(s=>rotate(s,1))}>↻</button>
+   <button type="button" className={'flow-go'+(can?' is-ready':'')} disabled={!can} onClick={()=>act(s=>startFlow(s))}>Flow</button>
+  </div>
+  <p className="blast-help">Drag to move · tap to turn · flick down to drop · flick up to hold. Keys: ← → ↓, ↑/X/Z turn, Space drop, C hold, F Flow.</p>
+ </div>
+}
+/** What the drawing keeps from frame to frame (outside React): sparks, flashes, streaks, the field of light,
+ * the block images, the background's color, and how much the well is shaking or pulsing. */
+type Vis={sparks:Spark[];bands:Band[];streaks:{x0:number;x1:number;y0:number;y1:number;t:number;color:string}[];sprites:HTMLCanvasElement[];spriteSize:number;field:{x:number;y:number;z:number}[];hue:number;clock:number;shake:number;pulse:number}
+const newVis=():Vis=>({sparks:[],bands:[],streaks:[],sprites:[],spriteSize:0,field:[],hue:220,clock:0,shake:0,pulse:0})
+function burst(v:Vis,x:number,y:number,color:string,n:number,speed:number){
+ for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,sp=(0.02+Math.random()*0.06)*speed;v.sparks.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-0.02*speed,life:0,max:30+Math.random()*30,size:0.08+Math.random()*0.14,color})}
+ if(v.sparks.length>1400)v.sparks.splice(0,v.sparks.length-1400)
+}
+/** Draws a frame: the field of light, the well and its blocks, the ghost, effects, hold and next. */
+function draw(c:HTMLCanvasElement|null,s:Game,dt:number,v:Vis){
+  if(!c)return
+  const r=c.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1),w=Math.round(r.width*dpr),h=Math.round(r.height*dpr)
+  if(c.width!==w||c.height!==h){c.width=w;c.height=h}
+  const x=c.getContext('2d');if(!x)return
+  v.clock+=dt
+  const cs=w/LAYOUT.w,ox=LAYOUT.side*cs,oy=LAYOUT.top*cs
+  if(v.spriteSize!==Math.round(cs)){v.spriteSize=Math.round(cs);v.sprites=COLORS.map(col=>blockSprite(Math.round(cs),col))}
+  // The field of light: points drifting toward you, faster with each level; it stills and turns deep blue in Flow.
+  const inFlow=s.flowMs>0,target=inFlow?225:(200+s.level*37)%360
+  v.hue+=((target-v.hue+540)%360-180)*0.02
+  const bg=x.createRadialGradient(w/2,h*0.45,0,w/2,h*0.45,Math.max(w,h)*0.75)
+  bg.addColorStop(0,'hsl('+v.hue+' 70% '+(inFlow?14:18+v.pulse*10)+'%)');bg.addColorStop(1,'hsl('+(v.hue+40)+' 80% 4%)')
+  x.fillStyle=bg;x.fillRect(0,0,w,h)
+  if(!v.field.length)v.field=Array.from({length:140},()=>({x:Math.random()*2-1,y:Math.random()*2-1,z:Math.random()}))
+  const speed=inFlow?0.00002:0.00008+s.level*0.00002
+  x.globalCompositeOperation='lighter'
+  for(const p of v.field){
+   p.z-=speed*dt*(1+v.pulse*3);if(p.z<=0.02){p.x=Math.random()*2-1;p.y=Math.random()*2-1;p.z=1}
+   const px=w/2+p.x/p.z*w*0.25,py=h*0.45+p.y/p.z*h*0.25,size=(1-p.z)*3*dpr
+   x.fillStyle='hsla('+(v.hue+p.x*60)+' 90% 75% / '+(1-p.z)*0.8+')';x.fillRect(px,py,size,size)
+  }
+  x.globalCompositeOperation='source-over'
+  v.pulse=Math.max(0,v.pulse-dt/700)
+  // The well (shaken a little by hard drops and big clears).
+  const sk=v.shake*dpr;v.shake=Math.max(0,v.shake-dt/40)
+  x.save();x.translate((Math.random()-0.5)*sk,(Math.random()-0.5)*sk)
+  x.fillStyle='rgba(4,6,20,.55)';x.fillRect(ox,oy,COLS*cs,ROWS*cs)
+  x.strokeStyle='hsla('+v.hue+' 90% 75% / .7)';x.lineWidth=2*dpr;x.shadowColor='hsl('+v.hue+' 90% 65%)';x.shadowBlur=14*dpr
+  x.strokeRect(ox-dpr,oy-dpr,COLS*cs+2*dpr,ROWS*cs+2*dpr);x.shadowBlur=0
+  x.strokeStyle='rgba(255,255,255,.04)';x.lineWidth=1
+  for(let i=1;i<COLS;i++){x.beginPath();x.moveTo(ox+i*cs,oy);x.lineTo(ox+i*cs,oy+ROWS*cs);x.stroke()}
+  for(let j=1;j<ROWS;j++){x.beginPath();x.moveTo(ox,oy+j*cs);x.lineTo(ox+COLS*cs,oy+j*cs);x.stroke()}
+  const cell=(cx:number,cy:number,kv:number,alpha=1)=>{if(cy<HIDDEN)return;x.globalAlpha=alpha;x.drawImage(v.sprites[kv],ox+cx*cs,oy+(cy-HIDDEN)*cs,cs,cs);x.globalAlpha=1}
+  for(let cy=HIDDEN;cy<H;cy++)for(let cx=0;cx<COLS;cx++){const kv=s.board[cy*COLS+cx];if(kv)cell(cx,cy,kv,s.over?0.35:kv===FLOW_CELL?0.75+0.25*Math.sin(v.clock/120+cy):1)}
+  if(s.piece){
+   const gh=ghostOf(s),kv=KINDS.indexOf(s.piece.kind)+1
+   if(gh){x.strokeStyle=COLORS[kv];x.globalAlpha=0.55;x.lineWidth=2*dpr;for(const [gx,gy] of cellsOf(gh))if(gy>=HIDDEN)x.strokeRect(ox+gx*cs+3*dpr,oy+(gy-HIDDEN)*cs+3*dpr,cs-6*dpr,cs-6*dpr);x.globalAlpha=1}
+   for(const [px,py] of cellsOf(s.piece))cell(px,py,kv)
+  }
+  // Hard-drop streaks, cleared-row flashes, sparks.
+  x.globalCompositeOperation='lighter'
+  for(const st of v.streaks){st.t+=dt;const k=1-st.t/260;if(k<=0)continue;const g=x.createLinearGradient(0,oy+(st.y0-HIDDEN)*cs,0,oy+(st.y1-HIDDEN)*cs);g.addColorStop(0,'transparent');g.addColorStop(1,st.color);x.globalAlpha=k*0.6;x.fillStyle=g;x.fillRect(ox+st.x0*cs,oy+Math.max(0,st.y0-HIDDEN)*cs,(st.x1-st.x0)*cs,(st.y1-Math.max(HIDDEN,st.y0))*cs)}
+  v.streaks=v.streaks.filter(st=>st.t<260)
+  for(const b of v.bands){b.t+=dt;const k=1-b.t/380;if(k<=0)continue;x.globalAlpha=k;x.fillStyle=b.white?'#fff':'hsl('+v.hue+' 100% 85%)';const grow=(1-k)*cs*0.6;x.fillRect(ox-grow,oy+(b.y-HIDDEN)*cs+cs*0.5*(1-k),COLS*cs+grow*2,cs*k)}
+  v.bands=v.bands.filter(b=>b.t<380)
+  x.globalAlpha=1
+  const list=v.sparks
+  for(let i=list.length-1;i>=0;i--){
+   const p=list[i];p.life+=dt/16;if(p.life>=p.max){list.splice(i,1);continue}
+   p.vy+=0.0025;p.x+=p.vx*dt/16;p.y+=p.vy*dt/16
+   const k=1-p.life/p.max;x.globalAlpha=k;x.fillStyle=p.color
+   const sz=p.size*cs*(0.5+k*0.5);x.fillRect(ox+p.x*cs-sz/2,oy+(p.y-HIDDEN)*cs-sz/2,sz,sz)
+  }
+  x.globalAlpha=1;x.globalCompositeOperation='source-over'
+  x.restore()
+  // Hold (left) and the next five (right).
+  const mini=(k:Kind|null,bx:number,by:number,size:number,dim=false)=>{
+   if(!k)return
+   const cellsK=shapeCells(k),minX=Math.min(...cellsK.map(c=>c[0])),maxX=Math.max(...cellsK.map(c=>c[0])),minY=Math.min(...cellsK.map(c=>c[1])),maxY=Math.max(...cellsK.map(c=>c[1]))
+   const cx=bx-(maxX-minX+1)*size/2,cy=by-(maxY-minY+1)*size/2
+   x.globalAlpha=dim?0.35:1
+   for(const [a,b] of cellsK)x.drawImage(v.sprites[KINDS.indexOf(k)+1],cx+(a-minX)*size,cy+(b-minY)*size,size,size)
+   x.globalAlpha=1
+  }
+  x.fillStyle='rgba(255,255,255,.75)';x.font=Math.round(cs*0.42)+'px system-ui, sans-serif';x.textAlign='center'
+  x.fillText('HOLD',ox/2,oy+cs*0.5);mini(s.hold,ox/2,oy+cs*1.6,cs*0.55,!s.canHold)
+  const rx=ox+COLS*cs+ox/2
+  x.fillText('NEXT',rx,oy+cs*0.5)
+  s.queue.slice(0,5).forEach((k,i)=>mini(k,rx,oy+cs*(1.6+i*2.1),cs*(i?0.45:0.6)))
+ }
+/** The canvas in cells: the well (10 × 20) with a column for hold on the left and the queue on the right. */
+const LAYOUT={side:4,top:0.4,w:COLS+8,h:ROWS+0.8}
+/** A block of light: a rounded pane, darker at the rim and bright in the middle, with a glint. */
+function blockSprite(size:number,color:string):HTMLCanvasElement{
+ const c=document.createElement('canvas');c.width=c.height=size
+ const x=c.getContext('2d');if(!x)return c
+ const p=Math.max(1,size*0.06),r=size*0.18
+ x.beginPath();x.roundRect(p,p,size-2*p,size-2*p,r)
+ const g=x.createRadialGradient(size*0.45,size*0.4,size*0.05,size/2,size/2,size*0.7)
+ g.addColorStop(0,'#ffffff');g.addColorStop(0.25,color);g.addColorStop(1,shade(color,-0.55))
+ x.fillStyle=g;x.shadowColor=color;x.shadowBlur=size*0.35;x.fill();x.shadowBlur=0
+ x.lineWidth=Math.max(1,size*0.06);x.strokeStyle=shade(color,0.35);x.stroke()
+ x.globalAlpha=0.55;x.fillStyle='#fff';x.beginPath();x.roundRect(size*0.2,size*0.16,size*0.42,size*0.12,size*0.06);x.fill()
+ return c
+}
+function shade(hex:string,k:number){const n=parseInt(hex.slice(1),16),f=(v:number)=>Math.round(k<0?v*(1+k):v+(255-v)*k);return 'rgb('+f((n>>16)&255)+','+f((n>>8)&255)+','+f(n&255)+')'}

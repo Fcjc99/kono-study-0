@@ -4,7 +4,7 @@
  * follows Settings › Sounds (the caller passes it); the music also has its own on/off switch (🎵 in a
  * game's header), kept on this device. Browsers only allow sound after a tap, and every game starts
  * from one. */
-export type Theme='candy'|'gems'|'meow'|'flap'|'paper'|'blast'
+export type Theme='candy'|'gems'|'meow'|'flap'|'paper'|'blast'|'flow'
 let ctx:AudioContext|null=null,master:GainNode|null=null,musicBus:GainNode|null=null,fxBus:GainNode|null=null,echo:GainNode|null=null,noise:AudioBuffer|null=null
 function audio(){
  if(!ctx){
@@ -113,6 +113,15 @@ const SONGS:Record<Theme,Song>={
   {inst:'pluck',oct:24,bars:['0.1.2.1.0.1.2.4.']},
   {inst:'kick',bars:['x...x...x...x...']},{inst:'snare',vel:0.6,bars:['....x.......x...']},{inst:'hat',bars:['..x...x...x...x.']},
  ]},
+ // KONO Flow: dreamy and floating, Dmaj7 – Bm7 – Gmaj7 – A, a slow pad, a bell arpeggio drifting up and a
+ // soft pulse (the moves add their own notes on top, in the same key).
+ flow:{bpm:92,chords:[C('D3','F#3','A3','C#4'),C('B2','D3','F#3','A3'),C('G2','B2','D3','F#3'),C('A2','C#3','E3','G3')],tracks:[
+  {inst:'pad',oct:12,len:16,bars:['0...............']},
+  {inst:'pad',oct:12,len:16,vel:0.7,bars:['2...............']},
+  {inst:'bell',oct:24,vel:0.55,bars:['0..1..2..3..2..1','0..2..3..5..3..2']},
+  {inst:'sub',bars:['0.......0...0...']},
+  {inst:'kick',vel:0.55,bars:['x.......x.......']},{inst:'hat',vel:0.4,bars:['..x...x...x...x.']},
+ ]},
  // KONO blast: steady and bright, F – C – Dm – Bb.
  blast:{bpm:108,chords:[C('F2','A2','C3'),C('C3','E3','G3'),C('D3','F3','A3'),C('Bb2','D3','F3')],tracks:[
   {inst:'bass',bars:['0...0...0.2.0...']},
@@ -133,7 +142,7 @@ let track:HTMLAudioElement|null=null
  * KONO blast ("Satisfying Resolutions"). Add a game here when its file goes in public/audio/games (and in
  * tools/public-allowlist.json). */
 const RECORDED=new Set<Theme>(['candy','gems','blast'])
-const missing=new Set<Theme>([...(['candy','gems','meow','flap','paper','blast'] as Theme[])].filter(t=>!RECORDED.has(t)))
+const missing=new Set<Theme>([...(['candy','gems','meow','flap','paper','blast','flow'] as Theme[])].filter(t=>!RECORDED.has(t)))
 function stopTrack(fade=0){
  const a=track;track=null;if(!a)return
  if(!fade){a.pause();return}
@@ -196,7 +205,7 @@ export function setMusicOn(on:boolean,enabled:boolean){
 
 // ---- Sound effects ----
 export type Fx='swap'|'nope'|'land'|'match'|'make'|'laser'|'boom'|'zap'|'mega'|'squish'|'time'|'mult'|'blaze'|'tick'|'timeup'|'fanfare'|'star'|'charge'
- |'meow'|'purr'|'paw'|'hiss'|'heart'|'flap'|'ding'|'thud'|'claim'|'cut'|'whoosh'
+ |'meow'|'purr'|'paw'|'hiss'|'heart'|'flap'|'ding'|'thud'|'claim'|'cut'|'whoosh'|'note'|'lock'|'rows'|'flowOn'|'flowEnd'
 const PENTA=[0,2,4,7,9,12,14,16,19,21,24]
 /** Plays an effect. `level` climbs: a match further down a cascade rings higher. */
 export function fx(kind:Fx,enabled:boolean,level=0){
@@ -220,6 +229,14 @@ export function fx(kind:Fx,enabled:boolean,level=0){
   case 'blaze':hiss(c,o,{at:t,dur:1.1,vol:0.3,type:'bandpass',freq:300,to:2400,q:0.6});tone(c,o,{type:'sawtooth',freq:80,to:320,at:t,dur:1,vol:0.08});break
   // A special winding up before it goes off: a quick rising shimmer.
   case 'charge':tone(c,o,{type:'triangle',freq:420,to:1500,at:t,dur:0.2,vol:0.07});hiss(c,o,{at:t,dur:0.2,vol:0.06,type:'bandpass',freq:1500,to:6000,q:1.5});break
+  // KONO Flow: every move and turn plays a soft note of the soundtrack's key (D major pentatonic, `level`
+  // picks it), so playing adds to the music; a lock chimes low, rows clearing ring a chord that grows with
+  // how many (`level`), and Flow sweeps in and ends in a big shimmering chord.
+  case 'note':{const s=[62,64,66,69,71,74,76,78,81,83];tone(c,o,{freq:hz(s[level%s.length]+12),at:t,dur:0.5,vol:0.06,wet:true});break}
+  case 'lock':tone(c,o,{type:'triangle',freq:hz(50),at:t,dur:0.18,vol:0.16});tone(c,o,{freq:hz(74),at:t,dur:0.4,vol:0.05,wet:true});break
+  case 'rows':{const ch=[[62,66,69],[62,66,69,74],[62,66,69,74,78],[62,66,69,74,78,81,86]][Math.min(3,Math.max(0,level-1))];ch.forEach((m,i)=>tone(c,o,{freq:hz(m+12),at:t+i*0.035,dur:1.1,vol:0.07,wet:true}));hiss(c,o,{at:t,dur:0.5,vol:0.08,type:'bandpass',freq:6000,to:1500,q:0.7});break}
+  case 'flowOn':tone(c,o,{type:'sawtooth',freq:880,to:110,at:t,dur:0.8,vol:0.06});hiss(c,o,{at:t,dur:0.9,vol:0.15,type:'lowpass',freq:6000,to:300});break
+  case 'flowEnd':[50,62,66,69,74,78,81,86].forEach((m,i)=>tone(c,o,{freq:hz(m),at:t+i*0.04,dur:1.8,vol:0.08,wet:true}));tone(c,o,{freq:90,to:35,at:t,dur:0.9,vol:0.5});hiss(c,o,{at:t,dur:1.2,vol:0.25,type:'lowpass',freq:4000,to:200});break
   case 'tick':tone(c,o,{type:'square',freq:1400,at:t,dur:0.03,vol:0.06});break
   case 'timeup':tone(c,o,{type:'square',freq:220,at:t,dur:0.5,vol:0.1});tone(c,o,{type:'square',freq:165,at:t+0.25,dur:0.6,vol:0.1});break
   case 'fanfare':[[0,0],[4,0.12],[7,0.24],[12,0.36],[7,0.5],[12,0.62]].forEach(([k,d])=>{tone(c,o,{type:'square',freq:hz(72+k),at:t+d,dur:0.22,vol:0.07});tone(c,o,{freq:hz(60+k),at:t+d,dur:0.3,vol:0.1})});break
