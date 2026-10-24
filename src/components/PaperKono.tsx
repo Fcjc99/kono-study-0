@@ -137,18 +137,42 @@ function draw(c:HTMLCanvasElement|null,a:Arena,prev:Map<number,{x:number;y:numbe
  const x0=Math.max(0,Math.floor(-ox/cell)-1),y0=Math.max(0,Math.floor(-oy/cell)-1),x1=Math.min(N,Math.ceil((c.width-ox)/cell)+1),y1=Math.min(N,Math.ceil((c.height-oy)/cell)+1)
  g.fillStyle='rgba(80,100,160,.09)'
  for(let y=y0-(y0%4);y<y1;y+=4)for(let x=x0-(x0%4);x<x1;x+=4){g.beginPath();g.arc(ox+(x+2)*cell,oy+(y+2)*cell,cell*0.16,0,7);g.fill()}
- // Land: inside squares as plain blocks, edge squares as round dabs, so the shapes come out soft and round.
- const side=cell*0.3,r=cell*0.74
- const edge=(i:number,o:number,x:number,y:number)=>x===0||y===0||x===N-1||y===N-1||a.own[i-1]!==o||a.own[i+1]!==o||a.own[i-N]!==o||a.own[i+N]!==o
- for(const pass of [0,1]){
-  for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
-   const i=y*N+x,o=a.own[i];if(!o)continue
-   const col=lands.get(o)!,px=ox+x*cell,py=oy+y*cell+(pass===0?side:0)
-   g.fillStyle=pass===0?shade(col,-0.3):col
-   if(edge(i,o,x,y)){g.beginPath();g.arc(px+cell/2,py+cell/2,r,0,7);g.fill()}
-   else g.fillRect(px-0.5,py-0.5,cell+1,cell+1)
+ // Land: a smooth outline for each owner's land. Each square's ownership is softened with its neighbors
+ // (1-2-1 weights each way), and the outline is traced where that reaches one half (marching squares,
+ // between square centers), so straight edges sit on the squares' sides while corners round off and
+ // staircases become smooth diagonals. The same shapes drawn a little lower, darker, are the raised edge.
+ const side=cell*0.3
+ const gx0=Math.max(0,x0-1),gy0=Math.max(0,y0-1),gx1=Math.min(N,x1+1),gy1=Math.min(N,y1+1),gw=gx1-gx0,gh=gy1-gy0
+ const owners=new Set<number>();for(let y=gy0;y<gy1;y++)for(let x=gx0;x<gx1;x++){const o=a.own[y*N+x];if(o)owners.add(o)}
+ const shapes:{col:string;path:Path2D}[]=[]
+ for(const o of owners){
+  const f=new Float32Array(gw*gh),is=(x:number,y:number)=>x>=0&&y>=0&&x<N&&y<N&&a.own[y*N+x]===o?1:0
+  for(let y=gy0;y<gy1;y++)for(let x=gx0;x<gx1;x++){
+   let v=0
+   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(is(x+dx,y+dy))v+=(dx?1:2)*(dy?1:2)
+   f[(y-gy0)*gw+(x-gx0)]=v/16
   }
+  const path=new Path2D(),cx=(x:number)=>ox+(x+0.5)*cell,cy=(y:number)=>oy+(y+0.5)*cell
+  for(let y=0;y<gh-1;y++)for(let x=0;x<gw-1;x++){
+   const k=y*gw+x,v=[f[k],f[k+1],f[k+gw+1],f[k+gw]]
+   if(v[0]<0.5&&v[1]<0.5&&v[2]<0.5&&v[3]<0.5)continue
+   const X=gx0+x,Y=gy0+y,corner:[number,number][]=[[cx(X),cy(Y)],[cx(X+1),cy(Y)],[cx(X+1),cy(Y+1)],[cx(X),cy(Y+1)]]
+   if(v[0]>=0.5&&v[1]>=0.5&&v[2]>=0.5&&v[3]>=0.5){path.rect(corner[0][0],corner[0][1],cell,cell);continue}
+   // Walk the square's corners; keep the ones inside and add the crossing on each edge that changes.
+   const poly:[number,number][]=[]
+   for(let c=0;c<4;c++){
+    const n=(c+1)%4,a0=v[c],a1=v[n]
+    if(a0>=0.5)poly.push(corner[c])
+    if((a0>=0.5)!==(a1>=0.5)){const t=(0.5-a0)/(a1-a0);poly.push([corner[c][0]+(corner[n][0]-corner[c][0])*t,corner[c][1]+(corner[n][1]-corner[c][1])*t])}
+   }
+   path.moveTo(poly[0][0],poly[0][1]);for(let q=1;q<poly.length;q++)path.lineTo(poly[q][0],poly[q][1]);path.closePath()
+  }
+  shapes.push({col:lands.get(o)??'#888',path})
  }
+ // Each shape is filled and lightly outlined in its own color, so the pieces join without hairlines.
+ g.lineWidth=1.2;g.lineJoin='round'
+ for(const {col,path} of shapes){g.save();g.translate(0,side);g.fillStyle=g.strokeStyle=shade(col,-0.3);g.fill(path);g.stroke(path);g.restore()}
+ for(const {col,path} of shapes){g.fillStyle=g.strokeStyle=col;g.fill(path);g.stroke(path)}
  // Trails: smooth lines from where each left its land to where it is now.
  g.lineCap='round';g.lineJoin='round'
  for(const p of a.players){

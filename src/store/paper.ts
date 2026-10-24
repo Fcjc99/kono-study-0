@@ -39,17 +39,18 @@ export function newArena(roll:()=>number,bots=6,color='#3e6fe6',mode:Mode='solo'
  for(const p of a.players)spawn(a,p)
  return a
 }
-const R=3
-/** Puts a player on a free round patch (radius 3), facing a random way. In team battle a player whose team
+const R=3,EDGE=12
+/** Puts a player on a free round patch (radius 3), at least EDGE squares in from the map's edge. In team battle a player whose team
  * still has land comes back on it instead. */
 function spawn(a:Arena,p:Player){
- const ready=(x:number,y:number)=>{p.x=x+0.5;p.y=y+0.5;p.angle=p.want=a.roll()*Math.PI*2;p.trail=[];p.path=[];p.alive=true;if(p.bot)p.bot.goals=[]}
+ // Facing roughly toward the middle of the map, so nobody starts by running off the edge.
+ const ready=(x:number,y:number)=>{p.x=x+0.5;p.y=y+0.5;p.angle=p.want=Math.atan2(N/2-y,N/2-x)+(a.roll()-0.5)*1.4;p.trail=[];p.path=[];p.alive=true;if(p.bot)p.bot.goals=[]}
  if(p.team){
   const land:number[]=[];for(let i=0;i<N*N;i++)if(a.own[i]===p.team&&!a.trail[i])land.push(i)
   if(land.length){const i=land[Math.floor(a.roll()*land.length)];ready(i%N,Math.floor(i/N));return}
  }
  for(let tries=0;tries<400;tries++){
-  const x=R+2+Math.floor(a.roll()*(N-2*R-4)),y=R+2+Math.floor(a.roll()*(N-2*R-4))
+  const x=EDGE+Math.floor(a.roll()*(N-2*EDGE)),y=EDGE+Math.floor(a.roll()*(N-2*EDGE))
   let free=true
   for(let dy=-R-1;dy<=R+1&&free;dy++)for(let dx=-R-1;dx<=R+1;dx++){const i=at(x+dx,y+dy);if(a.own[i]||a.trail[i]){free=false;break}}
   if(!free&&tries<300)continue
