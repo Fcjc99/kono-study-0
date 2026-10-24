@@ -242,7 +242,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 @keyframes m3-blaze{to{box-shadow:0 0 0 3px #ffd84d,0 0 34px 10px #ff7a2e,inset 0 3px 8px rgba(0,0,0,.45)}}
 .m3-jelly{position:absolute;width:12.5%;height:12.5%;padding:.3%;pointer-events:none}
 .m3-jelly::before{content:'';display:block;height:100%;border-radius:7px;background:linear-gradient(160deg,rgba(255,170,220,.75),rgba(230,90,170,.6));box-shadow:inset 0 2px 0 rgba(255,255,255,.55)}
-.match3-piece{position:absolute;width:12.5%;height:12.5%;padding:.5%;transition:left .18s ease-in-out,top .18s ease-in-out;cursor:pointer}
+.match3-piece{position:absolute;left:0;top:0;width:12.5%;height:12.5%;padding:.5%;cursor:pointer;will-change:transform}
 .match3-pieces{position:absolute;inset:0;overflow:hidden;border-radius:inherit}
 .m3-badge{position:absolute;right:2px;bottom:1px;padding:0 3px;border-radius:5px;background:#ffd84d;color:#5a2d00;font-size:.6rem;font-weight:900;line-height:1.3;pointer-events:none}
 .m3-badge.is-time{background:#4dd2ff;color:#003a55}
@@ -258,26 +258,12 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .match3-piece.is-hint .m3-gem{animation:m3-hint .9s ease-in-out infinite}
 @keyframes m3-hint{0%,60%,100%{transform:none}70%{transform:rotate(-12deg) scale(1.1)}80%{transform:rotate(12deg) scale(1.1)}90%{transform:rotate(-6deg)}}
 .match3-piece.is-shake .m3-gem{animation:meow-shake .35s}
-/* How the originals move: a cleared piece flashes white and swells, then shrinks away into its shards;
-   a special just made pops in where the match was; pieces fall with gravity (picking up speed) and land
-   with a little squash and bounce; new ones fall in from above the board. */
+/* How the originals move (store/match3live works it out, a frame at a time; each piece is placed and scaled
+   inline): swaps slide, cleared gems shrink to a dot, cleared candies light up and burst into pieces, pieces
+   making a special slide into it and it pops in, and pieces fall with gravity and land with a squash. */
 .match3-piece.is-clearing{z-index:2}
-/* As in the recordings: Bejeweled's gem shrinks smoothly to a dot at its center, solid all the way, with
-   only a slight brightening; Candy crush's candy lights up for an instant, then shrinks fast while its
-   splash flies out. Neither swells, spins or fades. */
-.match3-piece.is-clearing.is-clearing .m3-gem{animation:m3-clear .21s cubic-bezier(.55,0,.85,.35) both;transform-origin:50% 50%}
-@keyframes m3-clear{0%{transform:scale(1);filter:brightness(1)}25%{filter:brightness(1.35)}100%{transform:scale(.04);filter:brightness(1.35)}}
-.match3.is-candy .match3-piece.is-clearing.is-clearing .m3-gem{animation-name:m3-clear-candy}
-@keyframes m3-clear-candy{0%{transform:scale(1);filter:brightness(1)}18%{transform:scale(1);filter:brightness(1.7) drop-shadow(0 0 6px #fff)}100%{transform:scale(.05);filter:brightness(1.4) drop-shadow(0 0 4px #fff)}}
 .match3-piece.is-made .m3-gem{animation:m3-made .38s cubic-bezier(.2,1.6,.4,1) both}
 @keyframes m3-made{from{transform:scale(.2);filter:brightness(3)}60%{filter:brightness(1.6)}}
-.match3-piece.is-fall{transition:left .18s ease-in-out,top .3s cubic-bezier(.5,0,.9,.55)}
-.match3-piece.is-fall .m3-gem{animation:var(--land) .24s ease-out .29s}
-.match3-piece.is-new .m3-gem{animation:var(--fall) .3s cubic-bezier(.5,0,.9,.55) both,var(--land) .24s ease-out .29s}
-@keyframes m3-fall-a{from{transform:translateY(calc(var(--drop,1) * -110%))}to{transform:none}}
-@keyframes m3-fall-b{from{transform:translateY(calc(var(--drop,1) * -110%))}to{transform:none}}
-@keyframes m3-land-a{0%{transform:none}35%{transform:translateY(6%) scale(1.08,.86)}70%{transform:translateY(-4%) scale(.97,1.04)}100%{transform:none}}
-@keyframes m3-land-b{0%{transform:none}35%{transform:translateY(6%) scale(1.08,.86)}70%{transform:translateY(-4%) scale(.97,1.04)}100%{transform:none}}
 /* Effects over the board: shards, beams, explosion rings, lightning, a flash, floating points. */
 .m3-fx{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:8px}
 .m3-shard{position:absolute;width:12.5%;height:12.5%}
@@ -379,12 +365,9 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 @media(prefers-reduced-motion:reduce){.cat-eyes,.meow-bg::before{animation:none}}
 .game-screen:has(.meow)>header{color:#5a2350}
 .game-screen:has(.meow)>header :is(.game-screen-tool,.game-screen-leave):not(#x):not(#y){color:#5a2350!important;background:rgba(255,255,255,.5)!important;border-color:rgba(255,255,255,.8)!important}
-.match3-piece:is(.is-fall,.is-new) .m3-gem{transform-origin:50% 100%}
 
-/* The opening: every piece falls in from above the board, column by column. Gem blitz lets falling gems show
-   above the board (as Bejeweled does); Candy crush keeps them inside its tray. */
-.match3-piece.is-intro .m3-gem{animation:m3-intro .5s cubic-bezier(.5,0,.9,.55) both,m3-land-a .24s ease-out;animation-delay:var(--intro),calc(var(--intro) + .5s);transform-origin:50% 100%}
-@keyframes m3-intro{from{transform:translateY(calc(var(--rows) * -110% - 40%))}to{transform:none}}
+/* Gem blitz lets falling gems show just above the board (as Bejeweled does); Candy crush keeps them inside
+   its tray. */
 .match3.is-gems .match3-pieces{overflow:visible}
 .match3.is-gems .match3-board{z-index:1}
 
@@ -399,3 +382,37 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .paper .paper-board{background:rgba(255,255,255,.82);color:#1a2a5a}
 .paper .paper-board li.is-me{background:rgba(62,111,230,.15)}
 .paper .paper-mine{background:rgba(255,255,255,.85);color:#1a2a5a}
+
+/* A special going off. A beam runs out from the piece both ways along its row or column, a bright head in
+   front (`--t`: how long it takes to reach the edge); Candy crush's is white with the candy's glow, Gem
+   blitz's an electric blue. */
+.m3-fx{z-index:3}
+.m3-beam.is-run{animation:m3-run var(--t) linear both,m3-fade .35s ease-out var(--t) both;box-shadow:0 0 14px 5px var(--glow,rgba(140,220,255,.9))}
+.m3-beam.is-run.is-row{right:auto;--from:inset(0 0 0 100%)}
+.m3-beam.is-run.is-row.is-r{--from:inset(0 100% 0 0)}
+.m3-beam.is-run.is-col{bottom:auto;--from:inset(100% 0 0 0)}
+.m3-beam.is-run.is-col.is-d{--from:inset(0 0 100% 0)}
+@keyframes m3-run{from{clip-path:var(--from)}to{clip-path:inset(0)}}
+@keyframes m3-fade{from{opacity:1}to{opacity:0}}
+.m3-head{position:absolute;width:12.5%;height:12.5%;translate:-50% -50%;border-radius:50%;background:radial-gradient(circle,#fff 0 22%,var(--glow,#8ae6ff) 45%,transparent 70%);scale:1.8;animation:m3-head var(--t) linear both,m3-fade .2s ease-out var(--t) both}
+@keyframes m3-head{from{left:var(--x0);top:var(--y0)}to{left:var(--x1);top:var(--y1)}}
+.match3.is-candy .m3-fx{--glow:rgba(255,236,150,.95)}
+.match3.is-gems .m3-fx{--glow:rgba(120,200,255,.95)}
+.m3-beam.is-wide{--glow:rgba(255,140,240,.95)}
+/* An explosion: a white-hot core and a shockwave ring. */
+.m3-core{position:absolute;width:25%;height:25%;translate:-50% -50%;border-radius:50%;background:radial-gradient(circle,#fff 0 25%,rgba(255,230,140,.9) 45%,rgba(255,120,40,.5) 65%,transparent 72%);animation:m3-core .42s ease-out both}
+.m3-core.is-big{width:45%;height:45%}
+@keyframes m3-core{from{transform:scale(.3);opacity:1}50%{opacity:1}to{transform:scale(1.5);opacity:0}}
+.m3-wave{position:absolute;width:45%;height:45%;translate:-50% -50%;border-radius:50%;border:3px solid rgba(255,255,255,.9);box-shadow:0 0 12px rgba(255,220,140,.9),inset 0 0 12px rgba(255,220,140,.7);animation:m3-wave .5s ease-out both}
+.m3-wave.is-big{width:80%;height:80%}
+@keyframes m3-wave{from{transform:scale(.15);opacity:1}to{transform:scale(1.3);opacity:0}}
+/* A candy bursting: it splits into four pieces that fly apart, spin and fall away, with a flash. */
+.m3-frag{position:absolute;width:12.5%;height:12.5%;padding:.5%;pointer-events:none}
+.m3-frag::before{content:'';position:absolute;inset:-20%;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.95),rgba(255,255,255,.4) 40%,transparent 65%);animation:m3-poof .3s ease-out both}
+.m3-frag i{position:absolute;inset:.5%;animation:m3-frag .55s cubic-bezier(.25,.6,.5,1) both}
+.m3-frag i.q0{clip-path:polygon(0 0,52% 0,48% 46%,0 54%);--dx:-55%;--dy:-60%;--r:-70deg}
+.m3-frag i.q1{clip-path:polygon(48% 0,100% 0,100% 48%,48% 46%);--dx:60%;--dy:-55%;--r:80deg}
+.m3-frag i.q2{clip-path:polygon(0 52%,48% 44%,54% 100%,0 100%);--dx:-50%;--dy:25%;--r:-110deg}
+.m3-frag i.q3{clip-path:polygon(46% 46%,100% 46%,100% 100%,52% 100%);--dx:55%;--dy:30%;--r:100deg}
+@keyframes m3-frag{0%{transform:none;opacity:1}35%{transform:translate(calc(var(--dx) * .7),calc(var(--dy) * .7)) rotate(calc(var(--r) * .4));opacity:1}100%{transform:translate(var(--dx),calc(var(--dy) + 90%)) rotate(var(--r)) scale(.55);opacity:0}}
+@media(prefers-reduced-motion:reduce){.m3-frag{display:none}}

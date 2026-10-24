@@ -30,7 +30,7 @@ export type Maker={mode:Mode;kinds:number;roll:()=>number;next:()=>number;bonusO
 
 export const maker=(mode:Mode,roll:()=>number):Maker=>{let id=0;return {mode,kinds:mode==='gems'?7:6,roll,next:()=>++id,bonusOdds:mode==='gems'?0.02:0,mult:1,blazing:false}}
 const pick=(m:Maker)=>Math.floor(m.roll()*m.kinds)%m.kinds
-const fresh=(m:Maker):Piece=>{const p:Piece={id:m.next(),kind:pick(m)};if(m.bonusOdds&&m.roll()<m.bonusOdds)p.bonus='time';return p}
+export const fresh=(m:Maker):Piece=>{const p:Piece={id:m.next(),kind:pick(m)};if(m.bonusOdds&&m.roll()<m.bonusOdds)p.bonus='time';return p}
 export const adjacent=(a:number,b:number)=>a>=0&&b>=0&&a<W*W&&b<W*W&&(Math.abs(a-b)===W||(Math.abs(a-b)===1&&Math.floor(a/W)===Math.floor(b/W)))
 const rc=(i:number)=>[Math.floor(i/W),i%W] as const
 const inBox=(r0:number,c0:number,rad:number)=>{const out:number[]=[];for(let r=r0-rad;r<=r0+rad;r++)for(let c=c0-rad;c<=c0+rad;c++)if(r>=0&&c>=0&&r<W&&c<W)out.push(r*W+c);return out}
@@ -77,7 +77,7 @@ export function canSwap(b:Board,a:number,c:number):boolean{
 }
 
 /** What a special piece takes when it goes off (a color bomb takes every piece of `kindFor`). */
-function reach(b:Board,at:number,kindFor?:number):Effect{
+export function reach(b:Board,at:number,kindFor?:number):Effect{
  const p=b[at]!,[r,c]=rc(at),s=p.special!
  if(s==='row')return {type:s,at,cells:rowOf(r)}
  if(s==='col')return {type:s,at,cells:colOf(c)}
@@ -127,7 +127,7 @@ function combo(b:Board,a:number,c:number,effects:Effect[]):{gone:Set<number>;aft
  return {gone,after:type==='area'&&b[a]!.special==='area'&&b[c]!.special==='area'?[c]:[]}
 }
 /** The special a line (or crossing lines) makes, for this game. */
-function made(m:Maker,length:number,across:boolean,crossing:boolean):Special|null{
+export function made(m:Maker,length:number,across:boolean,crossing:boolean):Special|null{
  if(m.mode==='candy'){if(length>=5)return 'color';if(crossing)return 'area';if(length===4)return across?'col':'row';return null}
  if(length>=6)return 'nova';if(length===5)return 'color';if(crossing)return 'cross';if(length===4)return 'area';return null
 }

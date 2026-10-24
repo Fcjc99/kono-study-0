@@ -253,6 +253,49 @@ test('match-3: fresh boards have no lines and a move; Candy crush makes striped 
  const big=steady('gems'),bf=g.play(g.freshBoard(big).map((p,i)=>i===0?{...p,special:'color'}:p),0,1,big)
  if(bf.reduce((k,f)=>k+f.cleared.length,0)>=12)assert.ok(bf.at(-1).board.some(p=>p&&p.bonus==='mult'&&p.mult===2),'a big move drops in a ×2')
 })
+test('match-3 in real time: the opening rain settles; a swap slides and clears; a swap that makes nothing slides back; a striped candy’s beam travels; Gem blitz takes a swap while the board is still falling; the board always refills',()=>{
+ const g=load('src/store/match3.ts'),L=load('src/store/match3live.ts'),seeded=load('src/store/meowdoku.ts').seeded
+ const run=(rt,ms)=>{for(let t=0;t<ms;t+=16)L.step(rt,16)}
+ const calm=(rt,max=20000)=>{let t=0;while(!L.settled(rt)&&t<max){L.step(rt,16);t+=16}return t}
+ let id=5000;const P=(k,special)=>({id:++id,kind:k,...(special?{special}:{})})
+ const fill=()=>Array.from({length:64},(_,i)=>P(1+((Math.floor(i/8)*2+i%8)%5)))
+ for(const mode of ['candy','gems']){
+  const mk=g.maker(mode,seeded(7)),rt=L.live(mk,g.freshBoard(mk))
+  assert.ok(L.view(rt).every(l=>l.y<0),'the pieces start above the board');assert.ok(!L.settled(rt))
+  assert.ok(calm(rt)<3000,'the opening rain lands in under 3 seconds');assert.ok(L.view(rt).every(l=>l.y===Math.floor(l.at/8)))
+  // Twenty moves: each settles to a full board with a move left.
+  for(let k=0;k<20;k++){const mv=L.hintFor(rt);assert.ok(mv);assert.equal(L.trySwap(rt,mv[0],mv[1]),'swap');calm(rt);assert.equal(L.boardOf(rt).filter(Boolean).length,64);assert.ok(g.hasMove(L.boardOf(rt)))}
+  assert.ok(rt.events.some(e=>e.t==='match'))
+ }
+ // A swap that makes nothing slides over and back, and the board is as it was.
+ const mk=g.maker('candy',seeded(9)),b=fill();b[0]=P(0);b[1]=P(0);b[10]=P(0)
+ let rt=L.live(mk,b,false)
+ const before=L.boardOf(rt).map(p=>p.id).join()
+ assert.equal(L.trySwap(rt,40,41),'nope');run(rt,100);assert.ok(L.view(rt).some(l=>l.at===40&&l.x>0),'mid-way it has slid over');calm(rt);assert.equal(L.boardOf(rt).map(p=>p.id).join(),before)
+ // A match: the pieces clear (merging into nothing) and new ones fall in.
+ rt.events.length=0;assert.equal(L.trySwap(rt,2,10),'swap');run(rt,200)
+ assert.ok(rt.events.some(e=>e.t==='match'&&e.cells.length===3&&e.level===1));calm(rt);assert.equal(L.boardOf(rt).filter(Boolean).length,64)
+ // A striped candy across row 0: its beam reaches the far end later than its neighbor.
+ const s=fill();s[0]=P(0,'row');s[1]=P(0);s[3]=P(0);s[10]=P(0)
+ rt=L.live(g.maker('candy',seeded(4)),s,false);L.trySwap(rt,2,10);run(rt,260)
+ const f=rt.events.find(e=>e.t==='fire');assert.ok(f&&f.e.type==='row');assert.ok(f.delays[f.e.cells.indexOf(7)]>f.delays[f.e.cells.indexOf(1)],'the beam travels')
+ // Four in a line: the others slide into the spot and a special appears there.
+ const four=fill();four[0]=P(0);four[1]=P(0);four[3]=P(0);four[10]=P(0)
+ rt=L.live(g.maker('gems',seeded(4)),four,false);L.trySwap(rt,2,10);run(rt,200)
+ assert.ok(L.view(rt).some(l=>l.clearing&&l.at===0),'clearing');run(rt,400);assert.ok(rt.events.some(e=>e.t==='made'&&e.special==='area'),'a flame gem')
+ // Gem blitz in real time: right after a match, while new gems are still dropping in, another swap goes.
+ const gm=g.maker('gems',seeded(12));rt=L.live(gm,g.freshBoard(gm),false)
+ const m1=L.hintFor(rt);L.trySwap(rt,m1[0],m1[1]);run(rt,250);assert.ok(!L.settled(rt))
+ const idle=L.view(rt).filter(l=>!l.clearing&&l.y===Math.floor(l.at/8)).map(l=>l.at),pair=idle.flatMap(a=>idle.includes(a+1)&&a%8<7?[[a,a+1]]:[])[0]
+ assert.ok(pair);assert.ok(L.trySwap(rt,pair[0],pair[1])!==null,'pieces at rest can be swapped while the rest of the board moves')
+ calm(rt);assert.equal(L.boardOf(rt).filter(Boolean).length,64)
+ // Two color bombs together clear the whole board; a wrapped candy goes off twice; the finale sets off every special.
+ const bb=fill();bb[27]=P(0,'color');bb[28]=P(2,'color');rt=L.live(g.maker('candy',seeded(3)),bb,false);L.trySwap(rt,27,28);calm(rt)
+ assert.ok(rt.events.filter(e=>e.t==='clear').length>=62,'two color bombs clear the board')
+ const w=fill();w[0]=P(0,'area');w[1]=P(0);w[3]=P(0);w[10]=P(0);rt=L.live(g.maker('candy',seeded(3)),w,false);L.trySwap(rt,2,10);calm(rt)
+ assert.equal(rt.events.filter(e=>e.t==='fire'&&e.e.type==='area').length,2,'a wrapped candy explodes, falls, and explodes again')
+ rt=L.live(g.maker('candy',seeded(5)),g.freshBoard(g.maker('candy',seeded(5))),false);assert.ok(L.blowAll(rt,4)>=4);calm(rt);assert.ok(rt.events.filter(e=>e.t==='fire').length>=4);assert.equal(L.boardOf(rt).filter(Boolean).length,64)
+})
 test('Flappy KONO: KONO falls and a flap lifts it, pipes come in with a gap, flying through a gap scores, touching a pipe or the ground ends the run; medals at 10/20/30/40',()=>{
  const f=load('src/store/flappy.ts'),half=()=>0.5
  let fl=f.newFlight(),y0=fl.y
