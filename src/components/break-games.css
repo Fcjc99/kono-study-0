@@ -314,12 +314,12 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 /* Flappy KONO (FlappyKono.tsx): the canvas is the 288 × 512 world, scaled to fit the screen's height. */
 .break-game.flappy,.break-game.paper{justify-items:center;gap:8px;color:#fff;user-select:none;-webkit-user-select:none}
 .flappy .blast-top{max-width:min(320px,90vw);display:flex;justify-content:space-between}
-.flappy-frame{position:relative;height:min(68vh,560px);aspect-ratio:288/512;max-width:92vw;border-radius:14px;overflow:hidden;box-shadow:0 0 0 4px #132457,0 10px 30px rgba(0,0,0,.4);touch-action:none;cursor:pointer}
+.flappy-frame{position:relative;height:min(68vh,560px);aspect-ratio:288/512;max-width:92vw;border-radius:6px;image-rendering:pixelated;overflow:hidden;box-shadow:0 0 0 4px #132457,0 10px 30px rgba(0,0,0,.4);touch-action:none;cursor:pointer}
 .flappy-frame canvas{display:block;width:100%;height:100%}
-.flappy-score{position:absolute;left:50%;top:6%;translate:-50% 0;font-size:3rem;font-weight:900;color:#fff;-webkit-text-stroke:2px #132457;text-shadow:0 4px 0 #132457;animation:blast-score .25s ease-out;pointer-events:none}
-.flappy-ready{position:absolute;left:50%;top:30%;translate:-50% 0;margin:0;display:grid;justify-items:center;gap:6px;pointer-events:none;text-align:center}
-.flappy-ready b{font-size:2rem;font-weight:900;background:linear-gradient(#fff6a8,#ffb92e 60%,#ff7a2e);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 rgba(0,0,0,.35))}
-.flappy-ready span{padding:4px 12px;border-radius:999px;background:rgba(0,0,0,.3);font-weight:800;animation:meow-bounce .6s ease-in-out infinite alternate}
+.flappy-score{position:absolute;left:50%;top:7%;translate:-50% 0;font:900 3.4rem/1 'Courier New',ui-monospace,monospace;letter-spacing:.02em;color:#fff;-webkit-text-stroke:3px #000;paint-order:stroke fill;text-shadow:3px 3px 0 #000;animation:blast-score .25s ease-out;pointer-events:none}
+.flappy-ready{position:absolute;left:50%;top:17%;white-space:nowrap;translate:-50% 0;margin:0;display:grid;justify-items:center;gap:6px;pointer-events:none;text-align:center}
+.flappy-ready b{font:900 2.1rem/1 'Courier New',ui-monospace,monospace;color:#f8b733;-webkit-text-stroke:3px #fff;paint-order:stroke fill;text-shadow:0 0 0 #000,3px 3px 0 #543847,-1px -1px 0 #543847;letter-spacing:.02em}
+.flappy-ready span{padding:6px 14px;border-radius:8px;background:#ded895;color:#543847;border:3px solid #543847;font:900 .95rem/1 'Courier New',ui-monospace,monospace;animation:meow-bounce .6s ease-in-out infinite alternate}
 .flappy-flash{position:absolute;inset:0;background:#fff;animation:m3-flash .35s ease-out both;pointer-events:none}
 /* KONO.io (PaperKono.tsx): the map canvas fills the frame; the leaderboard and your share sit on top. */
 .paper-frame{position:relative;width:min(560px,94vw);height:min(66vh,560px);border-radius:14px;overflow:hidden;box-shadow:0 0 0 4px #132457,0 10px 30px rgba(0,0,0,.4);touch-action:none}
