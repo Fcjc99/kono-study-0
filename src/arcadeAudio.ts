@@ -129,7 +129,11 @@ let playing:{theme:Theme;timer:number;stop:boolean}|null=null,wanted:Theme|null=
 // Recorded soundtracks (made in Suno) live at /audio/games/<game>.mp3 and loop; a game without one plays
 // the soundtrack written below instead.
 let track:HTMLAudioElement|null=null
-const missing=new Set<Theme>()
+/** The games with a recorded track: Candy crush ("Skipping Motif"), Gem blitz ("Crystal Discoveries") and
+ * KONO blast ("Satisfying Resolutions"). Add a game here when its file goes in public/audio/games (and in
+ * tools/public-allowlist.json). */
+const RECORDED=new Set<Theme>(['candy','gems','blast'])
+const missing=new Set<Theme>([...(['candy','gems','meow','flap','paper','blast'] as Theme[])].filter(t=>!RECORDED.has(t)))
 function stopTrack(fade=0){
  const a=track;track=null;if(!a)return
  if(!fade){a.pause();return}
