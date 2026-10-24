@@ -116,12 +116,18 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
    const pts=e.points*(mode==='gems'?multNow.current:1);addScore(pts)
    const ef=e.e,[x,y]=centre(ef.at),key=++keys.current,span=Math.max(0,...e.delays)
    later(setFx,{key,e:ef,delays:e.delays,combo:e.combo},span+900,8)
-   if(ef.type==='row'||ef.type==='col'||ef.type==='cross'||ef.type==='nova')play3('laser',sound)
+   if(ef.type==='row'||ef.type==='col'||ef.type==='cross'||ef.type==='nova'){play3('laser',sound);sp?.burst(x,y,{kind:'spark',n:ef.type==='nova'?36:18,color:mode==='gems'?['#fff','#bfe9ff','#6fc3ff']:['#fff','#fff6b0','#ffd0f0'],speed:ef.type==='nova'?2.4:1.6,size:7})}
+   if(ef.type==='nova')sp?.burst(x,y,{kind:'star',n:14,color:['#fff','#ff8bf0','#ffe98a'],speed:1.8,size:9})
+   if(ef.type==='color'){sp?.burst(x,y,{kind:'star',n:18,color:['#ff4d6d','#ffd84d','#4dd2ff','#7dff6a','#c58bff','#fff'],speed:1.6,size:8});sp?.ring(x,y,'#fff',110)}
    if(ef.type==='area'){play3('boom',sound);sp?.burst(x,y,{kind:mode==='gems'?'ember':'spark',n:ef.cells.length>9?44:26,color:['#fff6c2','#ffb02e','#ff5a1f'],speed:ef.cells.length>9?2.2:1.6,size:8})}
    if(ef.type==='color')play3('zap',sound)
    if(ef.type==='board'){sp?.burst(0.5,0.5,{kind:'confetti',n:120,speed:2.6,size:9});sp?.ring(0.5,0.5,'#fff',400);play3('mega',sound);say(mode==='candy'?'Sugar crush!':'Unbelievable!',true)}
    if(e.combo||ef.type==='area'||ef.type==='nova'||ef.type==='board')shake()
    if(mode==='gems'){const xs=ef.cells.map(c=>c%W+0.5),ys=ef.cells.map(c=>Math.floor(c/W)+0.5);window.setTimeout(()=>later(setPops,{key:++keys.current,x:xs.reduce((a,b)=>a+b,0)/xs.length,y:ys.reduce((a,b)=>a+b,0)/ys.length,n:pts},900),Math.min(600,span))}
+  }else if(e.t==='charge'){
+   // A special winding up: a shimmer and a bright ring closing in on it.
+   const [x,y]=centre(e.at);play3('charge',sound);sp?.burst(x,y,{kind:'star',n:e.combo?10:5,color:['#fff','#fff6c2'],size:5,speed:0.5})
+   if(e.combo){say('Combo!',true);sp?.ring(x,y,'#fff',90)}
   }else if(e.t==='made'){
    const [x,y]=centre(e.at);sp?.burst(x,y,{kind:'star',n:10,color:['#fff','#ffe98a'],size:7});sp?.ring(x,y,'#fff',50);play3('make',sound)
   }else if(e.t==='time'){extraMs.current+=e.n*1000;say('+'+e.n+' seconds!');play3('time',sound)}
@@ -230,10 +236,12 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
     {[...jelly].map(i=><span key={'j'+i} className="m3-jelly" style={pos(i)} aria-hidden="true"/>)}
     {/* In a fixed order (by piece), so the page never moves an element; each piece is placed and scaled as
         the board says, every frame. Gems above the board fade in as they drop toward it. */}
-    {looks.map(l=>{const p=l.p,i=l.at,o=l.o*(mode==='gems'?Math.max(0,Math.min(1,l.y+1.6)):1),plain=l.sx===1&&l.sy===1&&o===1&&l.b===1
+    {looks.map(l=>{const p=l.p,i=l.at,o=l.o*(mode==='gems'?Math.max(0,Math.min(1,l.y+1.6)):1),plain=l.sx===1&&l.sy===1&&o===1&&l.b===1&&l.rot===0
      return <div key={p.id} role="gridcell" data-i={i} data-kind={p.kind} aria-label={'Row '+(Math.floor(i/W)+1)+', column '+(i%W+1)+': '+label(p)}
-      className={'match3-piece k'+p.kind+(p.special?' is-'+p.special:'')+(p.bonus?' has-'+p.bonus:'')+(sel===i?' is-picked':'')+(l.born?' is-made':'')+(l.clearing?' is-clearing':'')+(intro?' is-intro':'')+(hint?.includes(i)&&!l.clearing?' is-hint':'')} style={{transform:'translate('+l.x*100+'%,'+l.y*100+'%)',zIndex:l.z,'--d':(p.id%29)*0.41+'s'} as React.CSSProperties}>
-      <span className="m3-gem" aria-hidden="true" style={plain?undefined:{transform:'scale('+l.sx.toFixed(3)+','+l.sy.toFixed(3)+')',transformOrigin:l.clearing?'50% 50%':'50% 100%',opacity:o,filter:l.b!==1?'brightness('+l.b.toFixed(2)+')':undefined}}><PieceArt mode={mode} kind={p.kind} special={p.special}/></span>{p.bonus==='mult'&&<b className="m3-badge" aria-hidden="true">×{p.mult}</b>}{p.bonus==='time'&&<b className="m3-badge is-time" aria-hidden="true">+5</b>}
+      className={'match3-piece k'+p.kind+(p.special?' is-'+p.special:'')+(p.bonus?' has-'+p.bonus:'')+(sel===i?' is-picked':'')+(l.born?' is-made':'')+(l.clearing?' is-clearing':'')+(intro?' is-intro':'')+(hint?.includes(i)&&!l.clearing?' is-hint':'')+(l.charge?' is-charging':'')} style={{transform:'translate('+l.x*100+'%,'+l.y*100+'%)',zIndex:l.z,'--d':(p.id%29)*0.41+'s','--charge':l.charge} as React.CSSProperties}>
+      {/* A special's own glow behind it (a halo that brightens as it charges up). */}
+      {p.special&&!l.clearing&&<i className="m3-halo" aria-hidden="true"/>}
+      <span className="m3-gem" aria-hidden="true" style={plain?undefined:{transform:'scale('+l.sx.toFixed(3)+','+l.sy.toFixed(3)+')'+(l.rot?' rotate('+l.rot.toFixed(1)+'deg)':''),transformOrigin:l.clearing||l.charge?'50% 50%':'50% 100%',opacity:o,filter:l.b!==1?'brightness('+l.b.toFixed(2)+')':undefined}}><PieceArt mode={mode} kind={p.kind} special={p.special}/></span>{p.bonus==='mult'&&<b className="m3-badge" aria-hidden="true">×{p.mult}</b>}{p.bonus==='time'&&<b className="m3-badge is-time" aria-hidden="true">+5</b>}
      </div>})}
     </div>
     <div className="m3-fx" aria-hidden="true">
@@ -270,17 +278,19 @@ function Effect({e,delays,mode,combo}:{e:Effect;delays:number[];mode:'gems'|'can
   }
   return parts
  }
- if(e.type==='row')return <>{run('row',r,false)}</>
- if(e.type==='col')return <>{run('col',c,false)}</>
- if(e.type==='cross')return <>{run('row',r,!!combo)}{run('col',c,!!combo)}</>
- if(e.type==='nova')return <>{[r-1,r,r+1].filter(y=>y>=0&&y<W).map(y=>run('row',y,true))}{[c-1,c,c+1].filter(x=>x>=0&&x<W).map(x=>run('col',x,true))}</>
+ // The special's launch, where it was: a burst in its own style (see .m3-launch).
+ const launch=<span className={'m3-launch is-'+e.type+(combo?' is-combo':'')} style={{left:(c+0.5)*cell+'%',top:(r+0.5)*cell+'%'}}/>
+ if(e.type==='row')return <>{launch}{run('row',r,false)}</>
+ if(e.type==='col')return <>{launch}{run('col',c,false)}</>
+ if(e.type==='cross')return <>{launch}{run('row',r,!!combo)}{run('col',c,!!combo)}</>
+ if(e.type==='nova')return <>{launch}{[r-1,r,r+1].filter(y=>y>=0&&y<W).map(y=>run('row',y,true))}{[c-1,c,c+1].filter(x=>x>=0&&x<W).map(x=>run('col',x,true))}</>
  const big=e.cells.length>9,centre={left:(c+0.5)*cell+'%',top:(r+0.5)*cell+'%'}
- if(e.type==='area')return <><span className={'m3-core'+(big?' is-big':'')} style={centre}/><span className={'m3-wave'+(big?' is-big':'')} style={centre}/><span className={'m3-ring'+(big?' is-big':'')} style={centre}/></>
- if(e.type==='board')return <span className="m3-flash"/>
+ if(e.type==='area')return <>{launch}<span className={'m3-core'+(big?' is-big':'')} style={centre}/><span className={'m3-wave'+(big?' is-big':'')} style={centre}/><span className={'m3-ring'+(big?' is-big':'')} style={centre}/></>
+ if(e.type==='board')return <>{launch}<span className="m3-flash"/></>
  // A color bomb or hypercube darkens the board; only the pieces it takes stay lit while the lightning hits them.
  const span=Math.max(0,...delays)
- return <svg className="m3-bolts" viewBox={'0 0 '+W+' '+W} preserveAspectRatio="none">
+ return <>{launch}<svg className="m3-bolts" viewBox={'0 0 '+W+' '+W} preserveAspectRatio="none">
   <defs><mask id={id}><rect width={W} height={W} fill="#fff"/>{e.cells.map(i=><rect key={i} x={i%W} y={Math.floor(i/W)} width={1} height={1} rx={0.25} fill="#000"/>)}</mask></defs>
   <rect className="m3-dim" width={W} height={W} mask={'url(#'+id+')'} style={{animationDuration:span+750+'ms'}}/>
-  {e.cells.map((i,k)=>{const y=Math.floor(i/W)+0.5,x=i%W+0.5,mx=(x+c+0.5)/2+((i*7)%3-1)*0.4,my=(y+r+0.5)/2+((i*5)%3-1)*0.4;return <polyline key={i} style={{animationDelay:Math.max(0,delays[k]-60)+'ms'}} points={(c+0.5)+','+(r+0.5)+' '+mx+','+my+' '+x+','+y}/>})}</svg>
+  {e.cells.map((i,k)=>{const y=Math.floor(i/W)+0.5,x=i%W+0.5,mx=(x+c+0.5)/2+((i*7)%3-1)*0.4,my=(y+r+0.5)/2+((i*5)%3-1)*0.4;return <polyline key={i} style={{animationDelay:Math.max(0,delays[k]-60)+'ms'}} points={(c+0.5)+','+(r+0.5)+' '+mx+','+my+' '+x+','+y}/>})}</svg></>
 }
