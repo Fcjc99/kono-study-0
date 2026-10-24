@@ -133,15 +133,16 @@ const SONGS:Record<Theme,Song>={
 
 const MUSIC_KEY='kono-arcade-music'
 export const musicOn=()=>{try{return localStorage.getItem(MUSIC_KEY)!=='0'}catch{return true}}
-let playing:{theme:Theme;timer:number;stop:boolean}|null=null,wanted:Theme|null=null
+let playing:{theme:Theme;timer:number;stop:boolean}|null=null,wanted:Theme|null=null,wantedPart=0
 /** Starts a game's soundtrack (if Sounds and 🎵 are on); a soundtrack already playing gives way to it. */
 // Recorded soundtracks (made in Suno) live at /audio/games/<game>.mp3 and loop; a game without one plays
 // the soundtrack written below instead.
 let track:HTMLAudioElement|null=null
 /** The games with a recorded track: Candy crush ("Skipping Motif"), Gem blitz ("Crystal Discoveries") and
- * KONO blast ("Satisfying Resolutions"). Add a game here when its file goes in public/audio/games (and in
+ * KONO blast ("Satisfying Resolutions"), and KONO Flow's five (flow-1 … flow-5: "Floating Pads",
+ * "Shimmering Motif", "Late Night Pulse", "Soaring Euphoria", "Transcendent Arpeggios"). Add a game here when its file goes in public/audio/games (and in
  * tools/public-allowlist.json). */
-const RECORDED=new Set<Theme>(['candy','gems','blast'])
+const RECORDED=new Set<Theme>(['candy','gems','blast','flow'])
 const missing=new Set<Theme>([...(['candy','gems','meow','flap','paper','blast','flow'] as Theme[])].filter(t=>!RECORDED.has(t)))
 function stopTrack(fade=0){
  const a=track;track=null;if(!a)return
@@ -150,12 +151,15 @@ function stopTrack(fade=0){
  const step=()=>{const k=Math.min(1,(performance.now()-t0)/fade);a.volume=v0*(1-k);if(k<1)requestAnimationFrame(step);else a.pause()}
  requestAnimationFrame(step)
 }
-export function startMusic(theme:Theme,enabled:boolean){
- wanted=theme
- stopTimer();stopTrack()
+/** `part`: which of a game's tracks (KONO Flow has five, one for each stretch of levels: flow-1.mp3 …); a
+ * new part of the same game crossfades in. */
+export function startMusic(theme:Theme,enabled:boolean,part=0){
+ const same=wanted===theme&&!!track
+ wanted=theme;wantedPart=part
+ stopTimer();stopTrack(same?900:0)
  if(!enabled||!musicOn())return
  if(!missing.has(theme)){
-  const a=new Audio('/audio/games/'+theme+'.mp3');a.loop=true;a.volume=0;track=a
+  const a=new Audio('/audio/games/'+theme+(part?'-'+part:'')+'.mp3');a.loop=true;a.volume=0;track=a
   const fallback=()=>{if(track!==a)return;track=null;missing.add(theme);if(wanted===theme)startMusic(theme,enabled)}
   a.addEventListener('error',fallback,{once:true})
   void a.play().then(()=>{const t0=performance.now();const up=()=>{if(track!==a)return;const k=Math.min(1,(performance.now()-t0)/600);a.volume=0.55*k;if(k<1)requestAnimationFrame(up)};requestAnimationFrame(up)}).catch(fallback)
@@ -200,7 +204,12 @@ export function setMusicOn(on:boolean,enabled:boolean){
  try{localStorage.setItem(MUSIC_KEY,on?'1':'0')}catch{/* storage unavailable */}
  const theme=wanted
  if(!on){stopTimer();stopTrack();wanted=theme}
- else if(theme)startMusic(theme,enabled)
+ else if(theme)startMusic(theme,enabled,wantedPart)
+}
+/** KONO Flow's Flow: the recorded track slows (keeping its pitch) and softens while time stands still. */
+export function musicSlow(on:boolean){
+ const a=track;if(!a)return
+ a.preservesPitch=true;a.playbackRate=on?0.8:1;a.volume=on?0.3:0.55
 }
 
 // ---- Sound effects ----

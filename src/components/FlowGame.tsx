@@ -1,6 +1,6 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {COLS,FLOW_CELL,H,HIDDEN,KINDS,ROWS,cellsOf,ghostOf,hardDrop,holdPiece,move,newGame,rotate,shapeCells,softDrop,startFlow,tick,type FlowEvent,type Game,type Kind} from '../store/flow'
-import {fx,startMusic,stopMusic} from '../arcadeAudio'
+import {fx,musicSlow,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
 
 /** KONO Flow (the rules are in store/flow): falling blocks made of light, drawn on a canvas.
@@ -8,7 +8,7 @@ import type {GameHandle} from './GameScreen'
  * panes with a bright core; the ghost shows where a shape will land; a hard drop leaves a streak; rows that
  * clear flash and burst into sparks, with a word for the big ones (Double, Triple, Quad, T-spin, Combo,
  * Back to back, Perfect clear). Every move plays a note in the soundtrack's key, so playing adds to the
- * music. In Flow the field stills and turns deep blue, the rows you fill pile up white at the bottom with a
+ * music: five recorded tracks, a new one every three levels (slowed and softened in Flow). In Flow the field stills and turns deep blue, the rows you fill pile up white at the bottom with a
  * count, and when it ends they all burst at once.
  * Controls: arrow keys (← → move, ↓ soft drop, ↑ or X turn, Z turn back, Space hard drop, C hold, F Flow);
  * on a phone, drag sideways to move, drag down to drop gently, flick down to drop, flick up to hold, tap to
@@ -47,10 +47,11 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
    if(e.b2b)say('Back to back!')
    if(e.combo>=2)say('Combo '+e.combo)
    if(e.perfect){say('Perfect clear!',true);fx('mega',s)}
-  }else if(e.t==='level'){say('Level '+e.level,true);fx('fanfare',s)}
-  else if(e.t==='flowOn'){fx('flowOn',s);say('Flow',true)}
+  }else if(e.t==='level'){say('Level '+e.level,true);fx('fanfare',s);const part=trackFor(e.level);if(part!==trackFor(e.level-1))startMusic('flow',s,part)}
+  else if(e.t==='flowOn'){fx('flowOn',s);say('Flow',true);musicSlow(true)}
   else if(e.t==='flowStack'){fx('rows',s,Math.min(4,e.rows.length));for(let k=0;k<e.rows.length;k++)v.bands.push({y:H-1-(e.total-1-k),t:0,white:true})}
   else if(e.t==='flowEnd'){
+   musicSlow(false)
    if(e.lines){fx('flowEnd',s);say(e.lines+' lines!',true);v.shake=14;v.pulse=1.5
     for(let k=0;k<e.lines;k++){const y=H-1-k;v.bands.push({y,t:0,white:true});for(let x=0;x<COLS;x++)burst(v,x+0.5,y+0.5,'#ffffff',6,1.8)}}
   }else if(e.t==='over'){stopMusic();fx('thud',s);if(!ended.current){ended.current=true;const st=game.current!;window.setTimeout(()=>onEndRef.current(st.score,st.lines,st.level),1400)}}
@@ -61,7 +62,7 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
  useEffect(()=>{actRef.current=act})
  useEffect(()=>{
   game.current=newGame(Math.random)
-  startMusic('flow',soundRef.current)
+  startMusic('flow',soundRef.current,1)
   const down=(e:KeyboardEvent)=>{
    const k=e.code,A=actRef.current
    if(['ArrowLeft','ArrowRight','ArrowDown','ArrowUp','Space'].includes(k))e.preventDefault()
@@ -223,6 +224,8 @@ function draw(c:HTMLCanvasElement|null,s:Game,dt:number,v:Vis){
   x.fillText('NEXT',rx,oy+cs*0.5)
   s.queue.slice(0,5).forEach((k,i)=>mini(k,rx,oy+cs*(1.6+i*2.1),cs*(i?0.45:0.6)))
  }
+/** The soundtrack for a level: a new track every three levels (1–3, 4–6, 7–9, 10–12, then 13 on). */
+const trackFor=(level:number)=>Math.min(5,Math.floor((level-1)/3)+1)
 /** The canvas in cells: the well (10 × 20) with a column for hold on the left and the queue on the right. */
 const LAYOUT={side:4,top:0.4,w:COLS+8,h:ROWS+0.8}
 /** A block of light: a rounded pane, darker at the rim and bright in the middle, with a glint. */
