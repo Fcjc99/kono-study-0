@@ -924,6 +924,41 @@ test('Built-in AI: a signed-in student with no key of their own gets KONO’s AI
  assert.match(posts[0].body.prompt,/Marine Biology with Dr\. Lee/)
 })
 
+test('Round 62: KONO blast’s face blocks: choose a photo, drag and zoom it into the square, and the blocks show it (kept on this device); Remove goes back to plain blocks',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('navigation',{name:'Sanctuary view'}).getByRole('button',{name:'Arcade'}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByRole('button',{name:/KONO blast/}).click()
+ const blast=page.getByRole('dialog',{name:'🧱 KONO blast'}),card=blast.getByRole('region',{name:'Start'})
+ const faces=card.getByRole('group',{name:'Face blocks'})
+ await faces.getByRole('button',{name:'🖼️ Choose a photo'}).waitFor()
+ await faces.getByLabel('Photo for the blocks',{exact:true}).setInputFiles(path.join(ROOT,'public/garden/kono/happy.png'))
+ await faces.getByText('Drag your face into the square and zoom to fit.').waitFor()
+ // Drag it a little and zoom in.
+ const crop=faces.locator('.blast-face-crop'),cb=await crop.boundingBox()
+ await page.mouse.move(cb.x+100,cb.y+100);await page.mouse.down();await page.mouse.move(cb.x+120,cb.y+110,{steps:4});await page.mouse.up()
+ await faces.getByLabel('Zoom').fill('1.6')
+ if(process.env.KONO_SHOTS)await card.screenshot({path:process.env.KONO_SHOTS+'/blast-face-crop.png'})
+ await faces.getByRole('button',{name:'Use this face'}).click()
+ await faces.getByText('Face blocks on').waitFor()
+ assert.match(await page.evaluate(()=>localStorage.getItem('kono-blast-face')??''),/^data:image\/jpeg;base64,/,'the cropped face is kept on this device')
+ assert.ok(!JSON.stringify(cloud.users.alice.plan.data).includes('data:image/jpeg'),'the photo never goes to the account')
+ await startGame(page,'🧱 KONO blast')
+ await blast.locator('.blast.has-face').waitFor()
+ const bg=await blast.locator('.blast-mini span').first().evaluate(el=>getComputedStyle(el).backgroundImage)
+ assert.match(bg,/data:image\/jpeg/,'the pieces show the face')
+ if(process.env.KONO_SHOTS)await blast.screenshot({path:process.env.KONO_SHOTS+'/blast-face.png'})
+ // Leave, and Remove on the start card goes back to plain blocks.
+ await blast.getByRole('button',{name:'✕ Leave'}).click();await blast.waitFor({state:'detached'})
+ await town.getByRole('button',{name:/KONO blast/}).click()
+ await page.getByRole('dialog',{name:'🧱 KONO blast'}).getByRole('group',{name:'Face blocks'}).getByRole('button',{name:'Remove'}).click()
+ assert.equal(await page.evaluate(()=>localStorage.getItem('kono-blast-face')),null)
+ await startGame(page,'🧱 KONO blast')
+ assert.equal(await page.getByRole('dialog',{name:'🧱 KONO blast'}).locator('.blast.has-face').count(),0)
+})
+
 test('Round 61: Planner › Week: hold (or right-click) something for a small menu: Edit, Move (then tap the new time) and Delete; hold an empty time and drag to draw how long a new event runs',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  plan.settings.parentMode=false

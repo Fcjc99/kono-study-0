@@ -630,3 +630,27 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .match3.is-gems .match3-piece.is-shine .m3-gem{animation:m3-catch .7s ease-in-out}
 .match3.is-gems .match3-piece.is-shine .m3-gem::before{content:'';position:absolute;inset:8%;z-index:2;border-radius:20%;pointer-events:none;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.9) 50%,transparent 65%) 0 0/300% 100% no-repeat;animation:m3-sweep .7s ease-out both}
 @keyframes m3-sweep{from{background-position:120% 0}to{background-position:-60% 0}}
+/* KONO blast's face blocks (BlastFacePicker): the photo fills each block, tinted in the block's color with
+   its bevel kept, so the colors still read; and the start card's picker (choose or take a photo, then drag
+   and zoom it into the square). */
+.blast.has-face :is(.blast-cell.is-block,.blast-cell.is-lit,.blast-mini span,.blast-float span,.blast-burst span){background:linear-gradient(160deg,color-mix(in srgb,var(--l) 42%,transparent),color-mix(in srgb,var(--b) 22%,transparent) 45%,color-mix(in srgb,var(--d) 55%,transparent)),var(--face) center/cover no-repeat;box-shadow:inset 0 0 0 2px var(--b),inset 0 3px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(0,0,0,.25)}
+.blast.has-face .blast-cell.is-lit:not(.is-block){opacity:.6}
+.blast-face{display:grid;justify-items:center;gap:10px;margin:6px 0 0;width:100%;max-width:340px}
+.blast-face-add{display:grid;justify-items:center;gap:8px;width:100%;padding:12px;border-radius:16px;border:2px dashed rgba(255,255,255,.45);background:rgba(255,255,255,.08)}
+.blast-face-add p{margin:0;display:grid;gap:2px;text-align:center}
+.blast-face-add small,.blast-face-text small{opacity:.8;font-size:.78rem}
+.blast-face-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.blast-face-actions button,.blast-face-row button{margin:0!important}
+.blast-face-row{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:10px}
+.blast-face-preview{display:grid;grid-template-columns:repeat(2,26px);gap:3px}
+.blast-face-preview i{width:26px;height:26px;border-radius:6px;background-size:cover;background-position:center;box-shadow:inset 0 0 0 2px var(--b),inset 0 2px 0 rgba(255,255,255,.4)}
+.blast-face-preview i.is-c0{--b:#ef4b5c}.blast-face-preview i.is-c2{--b:#f6cf33}.blast-face-preview i.is-c4{--b:#2fc2e8}.blast-face-preview i.is-c6{--b:#a35be0}
+.blast-face-text{display:grid;text-align:left}
+.blast-face-how{margin:0;font-weight:700}
+.blast-face-crop{position:relative;overflow:hidden;border-radius:18px;touch-action:none;cursor:grab;background:#111;box-shadow:0 0 0 3px #fff,0 8px 24px rgba(0,0,0,.35)}
+.blast-face-crop:active{cursor:grabbing}
+.blast-face-crop img{position:absolute;max-width:none;pointer-events:none;user-select:none}
+.blast-face-crop::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle,transparent 58%,rgba(0,0,0,.28) 60%)}
+.blast-face-zoom{display:flex;align-items:center;gap:8px;font-weight:700}
+.blast-face-zoom input{width:160px}
+.blast-face-error{margin:0;color:#ffb3b3;font-weight:700}
