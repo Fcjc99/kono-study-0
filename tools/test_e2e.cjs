@@ -924,6 +924,61 @@ test('Built-in AI: a signed-in student with no key of their own gets KONO’s AI
  assert.match(posts[0].body.prompt,/Marine Biology with Dr\. Lee/)
 })
 
+test('Round 61: Planner › Week: hold (or right-click) something for a small menu: Edit, Move (then tap the new time) and Delete; hold an empty time and drag to draw how long a new event runs',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.settings.parentMode=false
+ plan.calendarEvents.push(
+  {id:'m-dentist',profileId:pid,date:'2026-09-30',time:'09:00',endTime:'10:00',title:'Dentist appointment',kind:'appointment',notes:''},
+  {id:'m-sports',profileId:pid,date:'2026-10-01',time:'17:00',endTime:'18:30',title:'Soccer practice',kind:'sports',notes:''})
+ await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Planner')
+ const week=page.getByRole('region',{name:'Week'})
+ const soccer=week.getByRole('button',{name:/^Soccer practice · 5:00 PM–6:30 PM/})
+ await soccer.waitFor()
+ // Right-click: the menu. Edit opens the editor.
+ await soccer.click({button:'right'})
+ let menu=page.getByRole('menu',{name:'Soccer practice'})
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(300);await page.screenshot({path:process.env.KONO_SHOTS+'/week-menu.png'})}
+ await menu.getByRole('menuitem',{name:'✏️ Edit'}).click()
+ const editor=page.getByRole('dialog',{name:'Edit event'})
+ assert.equal(await editor.getByLabel('Title').inputValue(),'Soccer practice')
+ await editor.getByRole('button',{name:'Close dialog'}).click();await editor.waitFor({state:'detached'})
+ // A finger: hold and let go without moving, and the menu opens. Move, then tap the new time: 9:30 AM on Oct 2.
+ const sb=await soccer.boundingBox()
+ const at={clientX:sb.x+sb.width/2,clientY:sb.y+8,pointerId:7,pointerType:'touch',isPrimary:true,button:0,buttons:1}
+ await soccer.dispatchEvent('pointerdown',at);await page.waitForTimeout(450);await soccer.dispatchEvent('pointerup',{...at,buttons:0})
+ menu=page.getByRole('menu',{name:'Soccer practice'})
+ await menu.getByRole('menuitem',{name:'↕️ Move'}).click()
+ await week.getByRole('status').getByText('Tap a new time for “Soccer practice”').waitFor()
+ const slot=week.getByRole('button',{name:'Move to 9:00 AM on Oct 2, 2026'})
+ await slot.scrollIntoViewIfNeeded();await slot.click({position:{x:12,y:24}})
+ await week.getByRole('button',{name:/^Soccer practice · 9:30 AM–11:00 AM · Oct 2, 2026/}).waitFor()
+ await waitFor(()=>{const e=cloud.users.alice.plan.data.calendarEvents.find(x=>x.id==='m-sports');return e?.date==='2026-10-02'&&e.time==='09:30'&&e.endTime==='11:00'},'the moved event reaches the account')
+ // A mouse held still opens the menu too. Delete sends it to Trash (with Undo).
+ const dentist=week.getByRole('button',{name:/^Dentist appointment · 9:00 AM/})
+ await dentist.scrollIntoViewIfNeeded()
+ const db=await dentist.boundingBox()
+ await page.mouse.move(db.x+db.width/2,db.y+8);await page.mouse.down();await page.waitForTimeout(650);await page.mouse.up()
+ await page.getByRole('menu',{name:'Dentist appointment'}).getByRole('menuitem',{name:'🗑 Delete'}).click()
+ await dentist.waitFor({state:'detached'})
+ await page.getByText('Moved “Dentist appointment” to Trash.',{exact:false}).first().waitFor()
+ await waitFor(()=>!cloud.users.alice.plan.data.calendarEvents.some(x=>x.id==='m-dentist'),'the deleted event leaves the calendar')
+ // Draw: press on 1:00 PM and drag down to 3:30 PM; the new event runs that long.
+ const one=week.getByRole('button',{name:'Add at 1:00 PM on Sep 30, 2026'}),three=week.getByRole('button',{name:'Add at 3:00 PM on Sep 30, 2026'})
+ await three.scrollIntoViewIfNeeded()
+ const ob=await one.boundingBox(),tb=await three.boundingBox()
+ await page.mouse.move(ob.x+ob.width/2,ob.y+3);await page.mouse.down()
+ for(let i=1;i<=8;i++)await page.mouse.move(ob.x+ob.width/2,ob.y+3+(tb.y+tb.height/2-ob.y-3)*i/8)
+ if(process.env.KONO_SHOTS)await week.screenshot({path:process.env.KONO_SHOTS+'/week-draw.png'})
+ await page.mouse.up()
+ const added=page.getByRole('dialog',{name:'New event'})
+ assert.equal(await added.getByLabel('Start time (optional)').inputValue(),'13:00')
+ assert.equal(await added.getByLabel('End time (optional)').inputValue(),'15:30')
+ assert.equal(await added.getByLabel('Date').inputValue(),'2026-09-30')
+})
+
 test('Planner › Week: the week by default, items at their hour, source chips hide a whole source, tapping an empty hour adds something then, tapping an item opens it right there, dragging moves it in 15-minute steps, and its bottom edge stretches it',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  plan.settings.parentMode=false // a student: an empty hour opens the event editor (parents get the quick add)
@@ -3149,7 +3204,7 @@ test('Planner › Week on a phone: press and hold moves an event, a quick swipe 
   await page.goto(BASE);await heading(page,'Sanctuary')
   await go(page,'Planner')
   const week=page.getByRole('region',{name:'Week'})
-  await page.getByText('Hold to move; drag the bottom edge',{exact:false}).waitFor()
+  await page.getByText('Hold something for Edit, Move or Delete',{exact:false}).waitFor()
   const piano=()=>week.getByRole('button',{name:/^Piano lesson · /})
   const cdp=await context.newCDPSession(page)
   const touch=(type,x,y)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:type==='touchEnd'?[]:[{x:Math.round(x),y:Math.round(y)}]})

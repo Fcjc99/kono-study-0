@@ -21,11 +21,11 @@ const QUICK_KIND_OPTIONS=[['sports','Sports'],['lesson','Lesson'],['appointment'
 // quickAddFamilyEvent) rather than opening the full EntryEditor.
 export type QuickFamilyPayload={location?:string;travelMinutes?:number;title:string;kind:CalendarEventKind;kidIds:string[];time?:string;endTime?:string;driver?:string;repeatDays:number[];until:string}
 const WEEKDAY_LETTERS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-export function QuickFamilyAdd({kids,time:startAt,date,until:defaultUntil,drivers=[],clashes,recall,onCancel,onSave}:{recall?:(title:string)=>Remembered|undefined;kids:Kid[];time?:string;date?:string;until?:string;drivers?:string[];clashes?:(payload:QuickFamilyPayload)=>{date:string;text:string}[];onCancel:()=>void;onSave:(payload:QuickFamilyPayload)=>Promise<void>}){
+export function QuickFamilyAdd({kids,time:startAt,endAt,date,until:defaultUntil,drivers=[],clashes,recall,onCancel,onSave}:{recall?:(title:string)=>Remembered|undefined;kids:Kid[];time?:string;endAt?:string;date?:string;until?:string;drivers?:string[];clashes?:(payload:QuickFamilyPayload)=>{date:string;text:string}[];onCancel:()=>void;onSave:(payload:QuickFamilyPayload)=>Promise<void>}){
  // Repeats: the same weekday as the date by default, through the end of the school year.
  const [repeatDays,setRepeatDays]=useState<number[]>([]),[until,setUntil]=useState(defaultUntil??''),[driver,setDriver]=useState('')
  const toggleDay=(d:number)=>setRepeatDays(v=>v.includes(d)?v.filter(x=>x!==d):[...v,d].sort())
- const [title,setTitle]=useState(''),[kidIds,setKidIds]=useState<string[]>(kids[0]?[kids[0].id]:[]),[kind,setKind]=useState<CalendarEventKind>('appointment'),[time,setTime]=useState(startAt??''),[endTime,setEndTime]=useState(startAt?String(Math.min(23,Number(startAt.slice(0,2))+1)).padStart(2,'0')+startAt.slice(2):''),[busy,setBusy]=useState(false),[error,setError]=useState('')
+ const [title,setTitle]=useState(''),[kidIds,setKidIds]=useState<string[]>(kids[0]?[kids[0].id]:[]),[kind,setKind]=useState<CalendarEventKind>('appointment'),[time,setTime]=useState(startAt??''),[endTime,setEndTime]=useState(endAt??(startAt?String(Math.min(23,Number(startAt.slice(0,2))+1)).padStart(2,'0')+startAt.slice(2):'')),[busy,setBusy]=useState(false),[error,setError]=useState('')
  // Typed again ("soccer practice"): last time's time, people, driver and place, one tap away.
  const [place,setPlace]=useState<{location?:string;travelMinutes?:number}>({}),[usedFor,setUsedFor]=useState('')
  const memory=title.trim()&&usedFor!==title.trim().toLowerCase()?recall?.(title):undefined
