@@ -95,6 +95,8 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
  useEffect(()=>{
   if(!mode)return
   game.current=newGame(Math.random,mode)
+  // Every game starts on the first song, so the songs change at the same levels again.
+  part.current=1
   startMusic('flow',soundRef.current,1)
   const down=(e:KeyboardEvent)=>{
    const k=e.code,A=actRef.current
@@ -126,23 +128,32 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
    const next={score:s.score,lines:s.lines,level:s.level,flow:s.flow,flowMs:Math.ceil(Math.max(0,s.flowMs)/1000),flowLines:s.flowLines,time:Math.floor(s.time/100)},key=JSON.stringify(next)
    if(key!==shown){shown=key;setHud(next)}
    draw(canvas.current,s,dt,vis.current)
+   // The falling shape's column, for the tests (no render).
+   if(canvas.current&&s.piece)canvas.current.dataset.col=String(s.piece.x)
    raf=requestAnimationFrame(loop)
   }
   raf=requestAnimationFrame(loop)
   return ()=>{cancelAnimationFrame(raf);window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);stopMusic()}
  },[mode])
  // ---- Touch: drag to move, drag down to drop gently, flick down to drop, flick up to hold, tap to turn ----
- const touch=useRef<{x:number;y:number;t:number;mx:number;my:number;moved:boolean}|null>(null)
+ const touch=useRef<{x:number;y:number;t:number;mx:number;my:number;moved:boolean;axis:'x'|'y'|null}|null>(null)
  const cellPx=()=>{const c=canvas.current;if(!c)return 30;const r=c.getBoundingClientRect();return Math.min(r.width/LAYOUT.w,r.height/LAYOUT.h)}
- const pdown=(e:React.PointerEvent)=>{e.currentTarget.setPointerCapture(e.pointerId);touch.current={x:e.clientX,y:e.clientY,t:performance.now(),mx:e.clientX,my:e.clientY,moved:false}}
+ const pdown=(e:React.PointerEvent)=>{e.currentTarget.setPointerCapture(e.pointerId);touch.current={x:e.clientX,y:e.clientY,t:performance.now(),mx:e.clientX,my:e.clientY,moved:false,axis:null}}
  const pmove=(e:React.PointerEvent)=>{
   const t=touch.current;if(!t)return
-  const c=cellPx()*0.9
+  const cell=cellPx(),c=cell*0.9
   // Small wobbles of a finger tapping don't count as a drag.
-  if(!t.moved&&Math.hypot(e.clientX-t.x,e.clientY-t.y)<cellPx()*0.5)return
-  while(e.clientX-t.mx>=c){t.mx+=c;t.moved=true;act(s=>move(s,1))}
-  while(t.mx-e.clientX>=c){t.mx-=c;t.moved=true;act(s=>move(s,-1))}
-  while(e.clientY-t.my>=c&&Math.abs(e.clientY-t.y)>Math.abs(e.clientX-t.x)){t.my+=c;t.moved=true;act(s=>softDrop(s))}
+  if(!t.moved&&Math.hypot(e.clientX-t.x,e.clientY-t.y)<cell*0.5)return
+  // A drag goes one way: sideways moves the piece between lanes, down drops it. Once it's going down, a finger
+  // drifting sideways (as a flick does) never shifts the lane. A sideways drag can still turn into a drop.
+  const dx=e.clientX-t.mx,dy=e.clientY-t.my
+  if(!t.axis)t.axis=Math.abs(dx)>Math.abs(dy)*1.2?'x':'y'
+  else if(t.axis==='x'&&dy>cell*1.5&&dy>Math.abs(dx)*2)t.axis='y'
+  t.moved=true
+  if(t.axis==='x'){
+   while(e.clientX-t.mx>=c){t.mx+=c;act(s=>move(s,1))}
+   while(t.mx-e.clientX>=c){t.mx-=c;act(s=>move(s,-1))}
+  }else while(e.clientY-t.my>=c){t.my+=c;act(s=>softDrop(s))}
  }
  const pup=(e:React.PointerEvent)=>{
   const t=touch.current;touch.current=null;if(!t)return

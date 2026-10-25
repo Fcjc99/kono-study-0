@@ -8,23 +8,36 @@ export type WeekItem={id:string;day:string;title:string;start?:string;end?:strin
 
 const minutes=(t:string)=>Number(t.slice(0,2))*60+Number(t.slice(3,5))
 const clock=(m:number)=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')
-const HOUR=44,SNAP=15,LONG_PRESS_MS=300
+const HOUR=44,SNAP=15,LONG_PRESS_MS=300,MOUSE_HOLD_MS=500
 const snap=(m:number)=>Math.round(m/SNAP)*SNAP
 
 /** Where a drag would land: an hour on a day (with the stretch's new end), or a day's All day row. */
 type Landing={day:string;from?:number;to?:number}
-type Drag={item:WeekItem;mode:'move'|'stretch';pointer:number;x:number;y:number;grab:number;length:number;active:boolean;landing:Landing|null;timer?:number}
+type Drag={item:WeekItem;mode:'move'|'stretch';pointer:number;x:number;y:number;grab:number;length:number;active:boolean;landing:Landing|null;timer?:number;held?:boolean;moved?:boolean}
+/** Drawing a new time on an empty stretch of a day: press (and on a touch screen hold), then drag. */
+type Draw={day:string;pointer:number;x:number;y:number;anchor:number;from:number;to:number;active:boolean;timer?:number}
 
 /** Planner › Week: seven days side by side with an hour grid. Tapping an empty hour adds something
- * then; tapping an item opens it to edit (onOpen). An item can be dragged onto another time or day
- * (onDrop, see store/weekDrop) and a timed one stretched by its bottom edge (onStretch), in 15-minute
- * steps. With a mouse a drag starts as soon as it moves; on a touch screen press and hold first, so a
- * swipe still scrolls (the bottom-edge grip stretches straight away). */
-export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,onDrop,onStretch,dayLabel}:{days:string[];items:WeekItem[];selected:string;onSelect:(day:string)=>void;onAddAt:(day:string,time:string)=>void;onOpen?:(item:WeekItem)=>void;onDrop?:(drag:string,day:string,time?:string)=>void;onStretch?:(drag:string,end:string)=>void;dayLabel:(day:string)=>string}){
+ * then; holding on an empty time and dragging draws how long it runs (onAddAt with an end). Tapping
+ * an item opens it to edit (onOpen). An item can be dragged onto another time or day (onDrop, see
+ * store/weekDrop) and a timed one stretched by its bottom edge (onStretch), in 15-minute steps. With a
+ * mouse a drag starts as soon as it moves; on a touch screen press and hold first, so a swipe still
+ * scrolls (the bottom-edge grip stretches straight away). Holding an item and letting go without
+ * moving it (or a right-click) opens a small menu: Edit, Move (then tap the new time) and Delete. */
+export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,onDrop,onStretch,onDelete,dayLabel}:{days:string[];items:WeekItem[];selected:string;onSelect:(day:string)=>void;onAddAt:(day:string,time:string,end?:string)=>void;onOpen?:(item:WeekItem)=>void;onDrop?:(drag:string,day:string,time?:string)=>void;onStretch?:(drag:string,end:string)=>void;onDelete?:(item:WeekItem)=>void;dayLabel:(day:string)=>string}){
  const [drag,setDrag]=useState<Drag|null>(null)
  const dragRef=useRef<Drag|null>(null),swallowClick=useRef(false)
  const columns=useRef(new Map<string,HTMLElement>()),allDayCells=useRef(new Map<string,HTMLElement>()),body=useRef<HTMLDivElement>(null)
  const update=(next:Drag|null)=>{dragRef.current=next;setDrag(next)}
+ const [draw,setDraw]=useState<Draw|null>(null),drawRef=useRef<Draw|null>(null),swallowSlot=useRef(false)
+ const updateDraw=(next:Draw|null)=>{drawRef.current=next;setDraw(next)}
+ // The hold menu (where it opens) and an item picked up with its Move (waiting for a tap on a new time).
+ const [menu,setMenu]=useState<{item:WeekItem;x:number;y:number}|null>(null),[moving,setMoving]=useState<WeekItem|null>(null)
+ useEffect(()=>{
+  if(!menu&&!moving)return
+  const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){setMenu(null);setMoving(null)}}
+  window.addEventListener('keydown',key);return ()=>window.removeEventListener('keydown',key)
+ },[menu,moving])
  const timed=items.filter(i=>i.start),allDay=items.filter(i=>!i.start)
  // A late-night event (ends before it starts) fills its evening to midnight; the next day shows the rest.
  const ends=timed.map(i=>i.end&&i.end!==i.start?(i.end>i.start!?minutes(i.end):24*60):minutes(i.start!)+60)
@@ -44,9 +57,9 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
 
  // Once a drag has started on a touch screen, the page mustn't scroll under the finger.
  useEffect(()=>{
-  const hold=(e:TouchEvent)=>{if(dragRef.current?.active)e.preventDefault()}
+  const hold=(e:TouchEvent)=>{if(dragRef.current?.active||drawRef.current?.active)e.preventDefault()}
   document.addEventListener('touchmove',hold,{passive:false})
-  return ()=>{document.removeEventListener('touchmove',hold);clearTimeout(dragRef.current?.timer)}
+  return ()=>{document.removeEventListener('touchmove',hold);clearTimeout(dragRef.current?.timer);clearTimeout(drawRef.current?.timer)}
  },[])
 
  const landingAt=(d:Drag,x:number,y:number):Landing|null=>{
@@ -74,8 +87,10 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
   try{el.setPointerCapture(e.pointerId)}catch{/* Not capturable (already released). */}
   const length=item.start?span(item).to-span(item).from:60
   const d:Drag={item,mode,pointer:e.pointerId,x:e.clientX,y:e.clientY,grab:item.start?Math.max(0,e.clientY-box.top):0,length,active:false,landing:null}
-  // A mouse drag (and a stretch) starts as soon as it moves; a finger has to press and hold.
-  if(e.pointerType==='touch'&&mode==='move')d.timer=window.setTimeout(()=>{const c=dragRef.current;if(c&&c.pointer===d.pointer&&!c.active){navigator.vibrate?.(15);update({...c,active:true,landing:landingAt(c,c.x,c.y)})}},LONG_PRESS_MS)
+  // A mouse drag (and a stretch) starts as soon as it moves; a finger has to press and hold. A hold that
+  // lets go without moving opens the menu instead.
+  if(mode==='move')d.timer=window.setTimeout(()=>{const c=dragRef.current;if(!c||c.pointer!==d.pointer||c.active)return
+   if(e.pointerType==='touch'){navigator.vibrate?.(15);update({...c,active:true,held:true,landing:landingAt(c,c.x,c.y)})}else update({...c,held:true})},e.pointerType==='touch'?LONG_PRESS_MS:MOUSE_HOLD_MS)
   update(d)
  }
  const move=(e:ReactPointerEvent<HTMLElement>)=>{
@@ -87,16 +102,20 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
    // A finger that moves before the hold is a scroll, not a drag.
    if(e.pointerType==='touch'&&d.mode==='move'){clearTimeout(d.timer);update(null);return}
   }
+  if(!far&&!d.moved)return
+  clearTimeout(d.timer)
   // Near the top or bottom of the hours, keep scrolling them.
   const b=body.current?.getBoundingClientRect()
   if(b&&body.current){if(e.clientY<b.top+28)body.current.scrollTop-=10;else if(e.clientY>b.bottom-28)body.current.scrollTop+=10}
-  update({...d,x:e.clientX,y:e.clientY,active:true,landing:landingAt(d,e.clientX,e.clientY)})
+  update({...d,x:e.clientX,y:e.clientY,active:true,moved:true,landing:landingAt(d,e.clientX,e.clientY)})
  }
  const end=(e:ReactPointerEvent<HTMLElement>)=>{
   const d=dragRef.current
   if(!d||d.pointer!==e.pointerId)return
   clearTimeout(d.timer);update(null)
-  if(!d.active||e.type==='pointercancel')return
+  if(e.type==='pointercancel')return
+  if(d.held&&!d.moved){swallowClick.current=true;setTimeout(()=>{swallowClick.current=false},0);setMenu({item:d.item,x:e.clientX,y:e.clientY});return}
+  if(!d.active)return
   swallowClick.current=true;setTimeout(()=>{swallowClick.current=false},0)
   const at=d.landing
   if(!at||!d.item.drag)return
@@ -106,7 +125,46 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
   onDrop?.(d.item.drag,at.day,time)
  }
  const open=(item:WeekItem)=>()=>{if(swallowClick.current){swallowClick.current=false;return}if(onOpen)onOpen(item);else onSelect(item.day)}
- const handlers=(item:WeekItem)=>item.drag&&(onDrop||onStretch)?{onPointerDown:begin(item,'move'),onPointerMove:move,onPointerUp:end,onPointerCancel:end,onContextMenu:(e:{preventDefault:()=>void})=>{if(dragRef.current)e.preventDefault()}}:{}
+ const handlers=(item:WeekItem)=>item.drag&&(onDrop||onStretch)?{onPointerDown:begin(item,'move'),onPointerMove:move,onPointerUp:end,onPointerCancel:end,onContextMenu:(e:{preventDefault:()=>void;clientX:number;clientY:number})=>{e.preventDefault();if(!dragRef.current)setMenu({item,x:e.clientX,y:e.clientY})}}:{}
+ // Drawing a new time: where the pointer is on a day, in 15-minute steps.
+ const minuteAt=(day:string,y:number)=>{const r=columns.current.get(day)?.getBoundingClientRect();return r?Math.max(first*60,Math.min(last*60,first*60+(y-r.top)/HOUR*60)):first*60}
+ const drawSpan=(d:Draw,y:number)=>{const at=snap(minuteAt(d.day,y));return at>=d.anchor+SNAP?{from:d.anchor,to:at}:at<d.anchor?{from:at,to:d.anchor+SNAP}:{from:d.anchor,to:d.anchor+SNAP}}
+ const drawBegin=(day:string)=>(e:ReactPointerEvent<HTMLElement>)=>{
+  if(e.button!==0||moving)return
+  try{e.currentTarget.setPointerCapture(e.pointerId)}catch{/* Not capturable. */}
+  const anchor=Math.min(last*60-SNAP,Math.floor(minuteAt(day,e.clientY)/SNAP)*SNAP)
+  const d:Draw={day,pointer:e.pointerId,x:e.clientX,y:e.clientY,anchor,from:anchor,to:Math.min(24*60,anchor+60),active:false}
+  // On a touch screen, hold first (a swipe still scrolls the hours); a mouse draws as soon as it drags.
+  if(e.pointerType==='touch')d.timer=window.setTimeout(()=>{const c=drawRef.current;if(c&&c.pointer===d.pointer&&!c.active){navigator.vibrate?.(15);updateDraw({...c,active:true})}},LONG_PRESS_MS)
+  updateDraw(d)
+ }
+ const drawMove=(e:ReactPointerEvent<HTMLElement>)=>{
+  const d=drawRef.current
+  if(!d||d.pointer!==e.pointerId)return
+  const far=Math.hypot(e.clientX-d.x,e.clientY-d.y)>6
+  if(!d.active){
+   if(!far)return
+   if(e.pointerType==='touch'){clearTimeout(d.timer);updateDraw(null);return}
+  }
+  const b=body.current?.getBoundingClientRect()
+  if(b&&body.current){if(e.clientY<b.top+28)body.current.scrollTop-=10;else if(e.clientY>b.bottom-28)body.current.scrollTop+=10}
+  if(!d.active&&!far)return
+  updateDraw({...d,active:true,...drawSpan(d,e.clientY)})
+ }
+ const drawEnd=(e:ReactPointerEvent<HTMLElement>)=>{
+  const d=drawRef.current
+  if(!d||d.pointer!==e.pointerId)return
+  clearTimeout(d.timer);updateDraw(null)
+  if(!d.active||e.type==='pointercancel')return
+  swallowSlot.current=true;setTimeout(()=>{swallowSlot.current=false},0)
+  onAddAt(d.day,clock(d.from),clock(Math.min(24*60-1,d.to)))
+ }
+ const slotTap=(day:string,h:number)=>(e:{clientY:number})=>{
+  if(swallowSlot.current){swallowSlot.current=false;return}
+  // Moving something (its menu's Move): the tap is its new time, to the quarter hour.
+  if(moving?.drag){const at=Math.min(last*60-SNAP,Math.max(h*60,snap(minuteAt(day,e.clientY))));onDrop?.(moving.drag,day,clock(at));setMoving(null);return}
+  onAddAt(day,clock(h*60))
+ }
 
  // Items that overlap share their hour side by side.
  const lanes=(day:string)=>{
@@ -128,15 +186,26 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
  const itemClass=(i:WeekItem,extra='')=>'week-item'+extra+(i.important?' is-important':'')+(i.drag&&onDrop?' is-movable':'')+(live?.item.id===i.id?' is-dragging':'')
  return <div className={'week-grid'+(live?' is-dragging':'')} role="region" aria-label="Week" style={{'--days':days.length} as CSSProperties}>
   <div className="week-grid-row week-grid-head"><span className="week-grid-gutter" aria-hidden="true"/>{days.map(day=><button type="button" key={day} aria-pressed={day===selected} aria-label={dayLabel(day)} className={day===todayIso?'is-today':''} onClick={()=>onSelect(day)}><small>{weekday(day)}</small><strong>{Number(day.slice(-2))}</strong></button>)}</div>
-  <div className="week-grid-row week-grid-allday"><span className="week-grid-gutter">All day</span>{days.map(day=><div key={day} ref={el=>{if(el)allDayCells.current.set(day,el);else allDayCells.current.delete(day)}} className={'week-grid-allday-cell'+(landing&&landing.day===day&&landing.from===undefined?' is-drop-target':'')}>{allDay.filter(i=>i.day===day).map(i=><button type="button" key={i.id} className={itemClass(i)} style={{'--item-color':i.color} as CSSProperties} aria-label={label(i)} onClick={open(i)} {...handlers(i)}>{i.important?'★ ':''}{i.title}</button>)}</div>)}</div>
+  {moving&&<div className="week-grid-moving" role="status"><span>Tap a new time for “{moving.title}”</span><button type="button" onClick={()=>setMoving(null)}>Cancel</button></div>}
+  <div className="week-grid-row week-grid-allday"><span className="week-grid-gutter">All day</span>{days.map(day=><div key={day} ref={el=>{if(el)allDayCells.current.set(day,el);else allDayCells.current.delete(day)}} className={'week-grid-allday-cell'+(landing&&landing.day===day&&landing.from===undefined?' is-drop-target':'')+(moving?' is-pickable':'')} onClick={moving?.drag?e=>{if(e.target!==e.currentTarget)return;onDrop?.(moving.drag!,day);setMoving(null)}:undefined}>{allDay.filter(i=>i.day===day).map(i=><button type="button" key={i.id} className={itemClass(i)} style={{'--item-color':i.color} as CSSProperties} aria-label={label(i)} onClick={open(i)} {...handlers(i)}>{i.important?'★ ':''}{i.title}</button>)}</div>)}</div>
   <div ref={body} className="week-grid-row week-grid-body" style={{'--hour':HOUR+'px'} as CSSProperties}>
    <div className="week-grid-gutter week-grid-hours">{hours.map(h=><span key={h}>{(h%12||12)+(h<12||h===24?' AM':' PM')}</span>)}</div>
    {days.map(day=><div key={day} ref={el=>{if(el)columns.current.set(day,el);else columns.current.delete(day)}} className={'week-grid-day'+(day===selected?' is-selected':'')+(day===todayIso?' is-today':'')} style={{height:hours.length*HOUR}}>
     {day===todayIso&&today.getHours()*60+today.getMinutes()>=first*60&&today.getHours()*60+today.getMinutes()<(first+hours.length)*60&&<div className="week-grid-now" aria-hidden="true" style={{top:(today.getHours()*60+today.getMinutes()-first*60)/60*HOUR}}/>}
-    {hours.map(h=><button type="button" key={h} className="week-grid-slot" style={{top:(h-first)*HOUR}} aria-label={'Add at '+classTime(clock(h*60))+' on '+dayLabel(day)} onClick={()=>onAddAt(day,clock(h*60))}><span aria-hidden="true">＋</span></button>)}
-    {lanes(day).map(({item,from,to,lane,of})=><button type="button" key={item.id} className={itemClass(item,' week-item-timed')} style={{'--item-color':item.color,top:(from-first*60)/60*HOUR,height:Math.max(22,(to-from)/60*HOUR-2),left:`calc(${lane/of*100}% + 2px)`,width:`calc(${100/of}% - 4px)`} as CSSProperties} aria-label={label(item)} onClick={open(item)} {...handlers(item)}><small>{classTime(item.start!)}</small>{item.important?'★ ':''}{item.title}{item.stretch&&onStretch&&<span className="week-item-grip" aria-hidden="true" onPointerDown={begin(item,'stretch')}/>}</button>)}
+    {hours.map(h=><button type="button" key={h} className={'week-grid-slot'+(moving?' is-pickable':'')} style={{top:(h-first)*HOUR}} aria-label={moving?'Move to '+classTime(clock(h*60))+' on '+dayLabel(day):'Add at '+classTime(clock(h*60))+' on '+dayLabel(day)} onClick={slotTap(day,h)} onPointerDown={drawBegin(day)} onPointerMove={drawMove} onPointerUp={drawEnd} onPointerCancel={drawEnd} onContextMenu={e=>{if(drawRef.current)e.preventDefault()}}><span aria-hidden="true">＋</span></button>)}
+    {draw?.active&&draw.day===day&&<div className="week-item-ghost is-drawing" aria-hidden="true" style={{top:(draw.from-first*60)/60*HOUR,height:Math.max(22,(draw.to-draw.from)/60*HOUR-2)} as CSSProperties}>＋ {classTime(clock(draw.from))}–{classTime(clock(Math.min(24*60-1,draw.to)))}</div>}
+    {lanes(day).map(({item,from,to,lane,of})=><button type="button" key={item.id} className={itemClass(item,' week-item-timed'+(moving?.id===item.id?' is-picked':''))} style={{'--item-color':item.color,top:(from-first*60)/60*HOUR,height:Math.max(22,(to-from)/60*HOUR-2),left:`calc(${lane/of*100}% + 2px)`,width:`calc(${100/of}% - 4px)`} as CSSProperties} aria-label={label(item)} onClick={open(item)} {...handlers(item)}><small>{classTime(item.start!)}</small>{item.important?'★ ':''}{item.title}{item.stretch&&onStretch&&<span className="week-item-grip" aria-hidden="true" onPointerDown={begin(item,'stretch')}/>}</button>)}
     {landing&&landing.day===day&&landing.from!==undefined&&<div className="week-item-ghost" aria-hidden="true" style={{'--item-color':live!.item.color,top:(landing.from-first*60)/60*HOUR,height:Math.max(22,(landing.to!-landing.from)/60*HOUR-2)} as CSSProperties}>{classTime(clock(landing.from))}–{classTime(clock(Math.min(24*60-1,landing.to!)))}</div>}
    </div>)}
   </div>
+  {menu&&<>
+   <button type="button" className="week-menu-backdrop" aria-label="Close menu" onClick={()=>setMenu(null)}/>
+   <div className="week-menu" role="menu" aria-label={menu.item.title} style={{left:Math.max(8,Math.min(menu.x-90,window.innerWidth-188)),top:Math.max(8,Math.min(menu.y+8,window.innerHeight-170))}}>
+    <strong>{menu.item.title}</strong>
+    <button type="button" role="menuitem" onClick={()=>{const i=menu.item;setMenu(null);if(onOpen)onOpen(i);else onSelect(i.day)}}>✏️ Edit</button>
+    {menu.item.drag&&onDrop&&<button type="button" role="menuitem" onClick={()=>{setMoving(menu.item);setMenu(null)}}>↕️ Move</button>}
+    {menu.item.drag&&onDelete&&<button type="button" role="menuitem" className="is-danger" onClick={()=>{const i=menu.item;setMenu(null);onDelete(i)}}>🗑 Delete</button>}
+   </div>
+  </>}
  </div>
 }

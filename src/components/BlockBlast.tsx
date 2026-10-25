@@ -23,7 +23,8 @@ const COMBO_CHEERS=['Combo! Keep it going! 🔥','You’re unstoppable!','KONO c
 const BIG_CHEERS=['Lines everywhere! Amazing!','WOW! KONO is doing a happy dance! 💃','That was incredible!']
 const pickOne=(list:string[])=>list[Math.floor(Math.random()*list.length)]
 type Burst={key:number;cells:{j:number;color:number;delay:number;dx:number;dy:number}[]}
-export default function BlockBlast({ref,start,saved,best,sound,onCoins,onEnd}:{ref:Ref<GameHandle>;start:Piece[];saved:BlastSave|null;best:number|null;sound:boolean;onCoins?:(lines:number,streak:number)=>number|null;onEnd:(score:number)=>void}){
+/** `face`: a photo for the blocks (store/blastFace), shown in each one tinted in its color. */
+export default function BlockBlast({ref,start,saved,best,sound,onCoins,onEnd,face}:{ref:Ref<GameHandle>;start:Piece[];saved:BlastSave|null;best:number|null;sound:boolean;onCoins?:(lines:number,streak:number)=>number|null;onEnd:(score:number)=>void;face?:string|null}){
  const [grid,setGrid]=useState<Grid>(()=>saved?.grid??Array(SIZE*SIZE).fill(null))
  // Its own soundtrack plays while you play.
  useEffect(()=>{startMusic('blast',sound);return ()=>stopMusic()},[sound])
@@ -108,7 +109,7 @@ export default function BlockBlast({ref,start,saved,best,sound,onCoins,onEnd}:{r
   else if(/^[123]$/.test(e.key))pick(Number(e.key)-1)
   else if(e.key==='Enter'&&picked!==null&&cursor){e.preventDefault();putDown(picked,cursor.r,cursor.c)}
  }
- return <div className={'break-game blast'+(over?' is-over':'')}>
+ return <div className={'break-game blast'+(over?' is-over':'')+(face?' has-face':'')} style={face?{['--face' as string]:`url(${face})`}:undefined}>
   <div className="blast-top">
    <span className="blast-best" aria-label={best===null?'No best yet':'Best '+best}>👑 {Math.max(best??0,score)}</span>
    {onCoins&&<span className="blast-coins" aria-label={'Coins this game: '+earned}>🪙 +{earned}</span>}

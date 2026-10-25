@@ -11,18 +11,6 @@
 .break-game-list .break-best{opacity:1;font-weight:700}
 .break-result,.break-over{margin:4px 0 10px;font-weight:700}
 .break-game-status{display:flex;justify-content:space-between;margin:0 0 8px;font-variant-numeric:tabular-nums}
-.snack-catch{position:relative;height:300px;max-width:420px;margin:0 auto;overflow:hidden;border-radius:14px;background:linear-gradient(#cfe8ff,#eaf6e2 72%,#b9dc9a 72%);touch-action:none;cursor:pointer}
-.snack-catch:focus-visible{outline:3px solid var(--accent,#c987a2);outline-offset:2px}
-.snack-catch .snack{position:absolute;transform:translate(-50%,-50%);font-size:1.6rem;pointer-events:none}
-.snack-catch-kono{position:absolute;bottom:4%;left:50%;width:64px;transform:translateX(-50%);image-rendering:pixelated;pointer-events:none}
-.peekaboo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:330px;margin:0 auto}
-.peekaboo-bush{position:relative;aspect-ratio:1;margin:0!important;padding:0!important;min-height:0!important;border-radius:50% 50% 14px 14px;overflow:hidden;background:#d8efc8!important}
-.peekaboo-bush img{position:absolute;left:50%;bottom:18%;width:62%;transform:translateX(-50%);image-rendering:pixelated;animation:peekaboo-up .18s ease-out}
-.peekaboo-leaves{position:absolute;left:0;right:0;bottom:-4px;font-size:2.4rem;line-height:1;text-align:center;pointer-events:none}
-.peekaboo-boop{position:absolute;left:50%;top:20%;transform:translateX(-50%);font-size:1.4rem;animation:peekaboo-boop .6s ease-out both}
-@keyframes peekaboo-up{from{transform:translate(-50%,40%)}to{transform:translate(-50%,0)}}
-@keyframes peekaboo-boop{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-24px)}}
-@media(prefers-reduced-motion:reduce){.peekaboo-bush img,.peekaboo-boop{animation:none}}
 .break-games.is-arcade{margin:0;border:0;padding:0;background:none}
 /* KONO blast (BlockBlast.tsx), in the look of the classic block games: a deep blue board with sunken slots,
    glossy beveled jewel blocks, and a burst and cheer when lines clear. Squares are divs (not buttons). */
@@ -105,18 +93,12 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .game-screen.is-blast{--j-red:#ef4b5c;--j-red-l:#ff8a96;--j-red-d:#b52b3b;--j-or:#f7922f;--j-or-l:#ffc078;--j-or-d:#c4650f;--j-ye:#f6cf33;--j-ye-l:#fff08a;--j-ye-d:#c79c0c;--j-gr:#46c35a;--j-gr-l:#8eeb98;--j-gr-d:#258f37;--j-bl:#3e6fe6;--j-bl-l:#86a8ff;--j-bl-d:#2346b0;--j-pu:#a35be0;--j-pu-l:#d1a2ff;--j-pu-d:#7134ad}
 .game-screen.is-blast :is(.break-game-status,.land-game-status){max-width:360px;width:100%;margin:0 auto 10px;color:#fff;font-weight:800;font-size:1.05rem;text-shadow:0 2px 0 rgba(0,0,0,.3);align-items:baseline}
 .game-screen.is-blast :is(.break-game-status,.land-game-status) strong{font-size:2rem;font-weight:900;color:#fff}
-.game-screen.is-blast :is(.snack-catch,.peekaboo-grid,.chase-board,.tumble-board,.sled-slope){background:#132457!important;box-shadow:inset 0 3px 8px rgba(0,0,0,.45),0 0 0 6px #132457,0 2px 0 6px rgba(255,255,255,.1)!important;border-radius:10px}
+.game-screen.is-blast :is(.chase-board,.tumble-board,.sled-slope){background:#132457!important;box-shadow:inset 0 3px 8px rgba(0,0,0,.45),0 0 0 6px #132457,0 2px 0 6px rgba(255,255,255,.1)!important;border-radius:10px}
 /* Sunken slots drawn behind the pieces: navy lines over the slot color, one cell apart. */
 .game-screen.is-blast .chase-board{background:linear-gradient(90deg,#132457 3px,transparent 3px) 0 0/calc(100%/12) calc(100%/12),linear-gradient(#132457 3px,transparent 3px) 0 0/calc(100%/12) calc(100%/12),#1e3270!important}
 .game-screen.is-blast .tumble-board{background:linear-gradient(90deg,#132457 3px,transparent 3px) 0 0/calc(100%/7) calc(100%/8),linear-gradient(#132457 3px,transparent 3px) 0 0/calc(100%/7) calc(100%/8),#1e3270!important}
 .game-screen.is-blast .chase-crab{background:linear-gradient(160deg,var(--j-or-l) 0%,var(--j-or) 40%,var(--j-or-d) 100%);border-radius:5px;box-shadow:inset 0 3px 0 rgba(255,255,255,.45),inset 0 -4px 0 rgba(0,0,0,.28);font-size:.9em!important}
 .game-screen.is-blast .chase-shell{filter:drop-shadow(0 0 6px #ffe58a)}
-.game-screen.is-blast .snack-catch{background:radial-gradient(90% 60% at 50% 100%,#2443a6,#132457)!important}
-.game-screen.is-blast .snack-catch .snack{filter:drop-shadow(0 3px 0 rgba(0,0,0,.35))}
-.game-screen.is-blast .peekaboo-grid{padding:8px;gap:8px}
-.game-screen.is-blast .peekaboo-bush{border-radius:10px!important;background:#1e3270!important;box-shadow:inset 0 3px 6px rgba(0,0,0,.45)!important;border:0!important}
-.game-screen.is-blast .peekaboo-bush.is-up{background:linear-gradient(160deg,var(--j-gr-l) 0%,var(--j-gr) 40%,var(--j-gr-d) 100%)!important;box-shadow:inset 0 3px 0 rgba(255,255,255,.45),inset 0 -4px 0 rgba(0,0,0,.28)!important}
-.game-screen.is-blast .peekaboo-leaves{display:none}
 .game-screen.is-blast .tumble-board{padding:0}
 .game-screen.is-blast .land-game .tumble-tile{padding:2px!important}
 .game-screen.is-blast .land-game .tumble-tile span{display:grid;place-items:center;width:100%;height:100%;border-radius:6px;font-size:.85em;box-shadow:inset 0 3px 0 rgba(255,255,255,.45),inset 3px 0 0 rgba(255,255,255,.18),inset 0 -4px 0 rgba(0,0,0,.28),inset -3px 0 0 rgba(0,0,0,.14)}
@@ -253,7 +235,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 @keyframes m3-twinkle{50%{filter:drop-shadow(0 0 9px #fff) drop-shadow(0 0 16px var(--l))}}
 @keyframes m3-nova{to{transform:scale(1.1);filter:drop-shadow(0 0 10px #fff) drop-shadow(0 0 20px #ff8bf0)}}
 .match3-piece.is-picked .m3-gem{animation:m3-picked .5s ease-in-out infinite alternate}
-.match3-piece.is-picked::before{content:'';position:absolute;inset:1px;border-radius:8px;box-shadow:inset 0 0 0 2px #ffe14d,0 0 10px #ffe14d}
+.match3-piece.is-picked::before{content:'';position:absolute;inset:1px;border-radius:8px;box-shadow:inset 0 0 0 2px #ffe14d,0 0 10px #ffe14d;animation:m3-pick-ring .9s ease-in-out infinite}
 @keyframes m3-picked{to{transform:scale(1.12)}}
 .match3-piece.is-hint .m3-gem{animation:m3-hint .9s ease-in-out infinite}
 @keyframes m3-hint{0%,60%,100%{transform:none}70%{transform:rotate(-12deg) scale(1.1)}80%{transform:rotate(12deg) scale(1.1)}90%{transform:rotate(-6deg)}}
@@ -565,3 +547,110 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .candy-map button.is-next:not(#x):not(#y){background:radial-gradient(circle at 35% 30%,#fff6b0,#ff9b3d)!important;box-shadow:0 4px 0 #c4650f,0 0 16px #ffd84d!important;animation:m3-armed .8s ease-in-out infinite alternate}
 .candy-map button.is-picked:not(#x):not(#y){outline:3px solid #7a2cff;outline-offset:3px}
 .candy-map button.is-locked:not(#x):not(#y){background:#d9c6d4!important;box-shadow:0 4px 0 #a796a3!important}
+/* A special's moment (Match3): while it winds up the board dims around it, a spotlight that tightens on it;
+   as it goes off its name pops up right there, big, and the board jolts. Candy crush's blasts run longer. */
+.m3-spot{position:absolute;inset:0;z-index:5;pointer-events:none;border-radius:inherit;background:radial-gradient(circle at var(--x) var(--y),transparent 0 9cqw,rgba(20,0,40,.22) 13cqw,rgba(20,0,40,.6) 40cqw);animation:m3-spot var(--ms) ease-in both}
+.match3-board{container-type:inline-size}
+@keyframes m3-spot{0%{opacity:0}35%{opacity:1}100%{opacity:1}}
+.m3-callout{position:absolute;z-index:9;margin:0;translate:-50% -50%;pointer-events:none;white-space:nowrap;animation:m3-callout 1.7s cubic-bezier(.2,1.5,.4,1) both}
+.m3-callout span{display:block;font-size:clamp(1.6rem,7.5vw,2.6rem);font-weight:900;line-height:1;letter-spacing:.01em;background:linear-gradient(#fff,#fff3a6 35%,#ff9ad8 70%,#c53fa6);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:1.5px rgba(110,20,80,.55);filter:drop-shadow(0 3px 0 rgba(110,20,80,.45)) drop-shadow(0 0 14px rgba(255,255,255,.9))}
+.match3.is-candy .m3-callout span{font-family:'Lobster','Pacifico','Comic Sans MS','Segoe Script',cursive}
+.m3-callout.is-area span{background:linear-gradient(#fff,#ffe07a 40%,#ff8a2e 75%,#d3401a);-webkit-background-clip:text;background-clip:text}
+.m3-callout.is-color span,.m3-callout.is-board span{background:linear-gradient(90deg,#ff5d8f,#ffd84d,#5df0a0,#5dc8ff,#c58bff);-webkit-background-clip:text;background-clip:text;animation:m3-rainbow .6s linear infinite}
+.m3-callout.is-row span,.m3-callout.is-col span{background:linear-gradient(#fff,#bff0ff 40%,#4ab8ff 80%,#1d6fd6);-webkit-background-clip:text;background-clip:text}
+.m3-callout.is-combo span{font-size:clamp(1.9rem,9vw,3.1rem)}
+.match3.is-gems .m3-callout span{font-family:inherit;background:linear-gradient(#fff,#bfe9ff 45%,#5aa8ff);-webkit-background-clip:text;background-clip:text;-webkit-text-stroke:1.5px rgba(10,40,100,.6)}
+@keyframes m3-callout{0%{scale:.2;rotate:-14deg;opacity:0}14%{scale:1.35;rotate:5deg;opacity:1}24%{scale:.95;rotate:-2deg}32%{scale:1.05;rotate:0deg}75%{opacity:1;translate:-50% -70%}100%{scale:1;opacity:0;translate:-50% -130%}}
+@keyframes m3-rainbow{to{filter:hue-rotate(360deg) drop-shadow(0 0 14px rgba(255,255,255,.9))}}
+.blast-frame.is-punch .match3-board{animation:m3-punch .38s cubic-bezier(.3,1.6,.5,1)}
+@keyframes m3-punch{0%{scale:1}25%{scale:1.035}55%{scale:.99}100%{scale:1}}
+.match3.is-candy .m3-launch.is-row,.match3.is-candy .m3-launch.is-col{animation-duration:.9s}
+.match3.is-candy .m3-launch.is-cross{animation-duration:1s}
+.match3.is-candy .m3-launch.is-area{animation-duration:1s}
+.match3.is-candy .m3-beam.is-run{animation:m3-run var(--t) linear both,m3-fade .8s ease-out var(--t) both;box-shadow:0 0 18px 8px var(--glow,rgba(255,170,230,.95))}
+.match3.is-candy .m3-head{scale:2.4}
+.match3.is-candy .m3-core{animation-duration:.8s}
+.match3.is-candy .m3-wave{animation-duration:.95s;border-width:4px}
+.match3.is-candy .m3-ring{animation-duration:1.05s}
+.match3.is-candy .m3-bolts polyline{animation-duration:1s;stroke-width:.12}
+.match3.is-candy .m3-flash{animation-duration:1.2s}
+.match3.is-candy .match3-piece.is-charging .m3-halo{scale:calc(1 + var(--charge,0)*1.4);opacity:calc(.4 + var(--charge,0)*.6)}
+@media(prefers-reduced-motion:reduce){.m3-callout{animation-duration:1.7s;animation-timing-function:ease}.blast-frame.is-punch .match3-board{animation:none}}
+
+/* The piece you've picked (Match3): it can't be missed. A breathing glow ring around it; a gem turns slowly
+   in 3D like Bejeweled's, a candy bounces like jelly; the four it can swap with lean toward it, and the rest
+   of the board dims a little. */
+@keyframes m3-pick-ring{0%,100%{box-shadow:inset 0 0 0 2px #ffe14d,0 0 6px 1px rgba(255,225,77,.7);opacity:.85}50%{box-shadow:inset 0 0 0 3px #fff6b8,0 0 18px 5px rgba(255,225,77,.95);opacity:1}}
+.match3-piece.is-picked{z-index:3!important}
+.match3.is-candy .match3-piece.is-picked .m3-gem{animation:m3-pick-jelly .8s ease-in-out infinite;transform-origin:50% 85%}
+@keyframes m3-pick-jelly{0%,100%{transform:scale(1.08,1.08) translateY(0)}25%{transform:scale(1.2,.94) translateY(2%)}50%{transform:scale(.96,1.2) translateY(-9%)}75%{transform:scale(1.12,1.02) translateY(-2%)}}
+.match3.is-gems .match3-piece.is-picked .m3-gem{animation:m3-pick-pulse .7s ease-in-out infinite alternate}
+.match3.is-gems .match3-piece.is-picked .m3-art{animation:m3-pick-spin 1.6s linear infinite!important}
+@keyframes m3-pick-pulse{from{transform:scale(1.06);filter:brightness(1.1)}to{transform:scale(1.18);filter:brightness(1.45) drop-shadow(0 0 6px rgba(255,255,255,.8))}}
+@keyframes m3-pick-spin{from{transform:perspective(160px) rotateY(0deg)}to{transform:perspective(160px) rotateY(360deg)}}
+.match3-piece.is-picked::after{content:'';position:absolute;inset:-6%;border-radius:50%;pointer-events:none;background:conic-gradient(from 0deg,transparent 0 70%,rgba(255,255,255,.9) 80%,transparent 90%);-webkit-mask:radial-gradient(closest-side,transparent 78%,#000 82%,transparent 96%);mask:radial-gradient(closest-side,transparent 78%,#000 82%,transparent 96%);animation:m3-pick-orbit 1.2s linear infinite}
+@keyframes m3-pick-orbit{to{rotate:360deg}}
+.match3-piece.is-near .m3-gem{animation:m3-lean 1s ease-in-out infinite}
+@keyframes m3-lean{0%,100%{translate:0 0}50%{translate:calc(var(--nx,0)*6%) calc(var(--ny,0)*6%)}}
+.match3-board.has-pick .match3-piece:not(.is-picked):not(.is-near):not(.is-clearing) .m3-gem{opacity:.72;transition:opacity .2s}
+.match3-board .match3-piece .m3-gem{transition:opacity .2s}
+/* Small details (Match3). A swap that doesn't match bumps and springs back; the moves counter beats red for
+   the last three; four or more pieces shiver as they gather into a special; a cascade warms the scenery;
+   points fly up to the score (bigger the bigger they are) and it bumps; a hint shows which way to swipe;
+   idle candies wiggle or blink and gems catch a sweep of light; Sugar crush's stars fly off the counter. */
+.match3-piece.is-nope .m3-gem{animation:m3-nope .38s ease-out;filter:brightness(.9) sepia(.3) hue-rotate(-20deg) saturate(1.6)}
+@keyframes m3-nope{0%,100%{translate:0 0}20%{translate:-9% 0;rotate:-6deg}40%{translate:8% 0;rotate:5deg}60%{translate:-5% 0;rotate:-3deg}80%{translate:3% 0}}
+.m3-moves.is-low{color:#ff5a6e!important;-webkit-text-stroke:0;text-shadow:0 0 10px rgba(255,90,110,.75);display:inline-block;animation:m3-heart .9s ease-in-out infinite}
+@keyframes m3-heart{0%,100%{scale:1}12%{scale:1.22}24%{scale:1}36%{scale:1.14}48%{scale:1}}
+.match3-piece.is-shiver .m3-gem{animation:m3-shiver .07s linear infinite;filter:brightness(1.3)}
+@keyframes m3-shiver{0%{translate:-2% 1%}25%{translate:2% -1%}50%{translate:-1% -2%}75%{translate:1% 2%}100%{translate:-2% 0}}
+.match3 .m3-bg{transition:filter .6s ease}
+.match3.is-hot .m3-bg{filter:brightness(calc(1 + var(--heat)*.35)) saturate(calc(1 + var(--heat)*.5))}
+.match3.is-hot .blast-frame{box-shadow:0 0 calc(8px + var(--heat)*34px) calc(var(--heat)*8px) rgba(255,200,90,calc(.15 + var(--heat)*.5));transition:box-shadow .4s ease}
+.match3.is-candy.is-hot .blast-frame{box-shadow:0 0 calc(8px + var(--heat)*34px) calc(var(--heat)*8px) rgba(255,120,210,calc(.15 + var(--heat)*.5))}
+.blast-frame{transition:box-shadow .8s ease}
+.m3-pop.is-big{font-size:1.9rem!important;z-index:8}
+.m3-pop.is-huge{font-size:2.5rem!important;z-index:8;animation-duration:1.2s}
+.m3-fly{position:absolute;z-index:10;pointer-events:none;translate:-50% -50%;white-space:nowrap;font-weight:900;animation:m3-fly var(--ms) cubic-bezier(.45,0,.6,1) both}
+.m3-fly.is-pts{font-size:1.05rem;color:#fff;background:linear-gradient(#fffbe0,#ffd84d 55%,#e08a1e);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 0 rgba(90,40,0,.7)) drop-shadow(0 0 6px rgba(255,220,120,.9))}
+.m3-fly.is-star{font-size:1.9rem;color:#ffe14d;text-shadow:0 0 10px #fff,0 0 18px #ffd84d}
+@keyframes m3-fly{0%{transform:translate(0,0) scale(.6);opacity:0}12%{transform:translate(0,-10px) scale(1.25);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(.55);opacity:.9}}
+.m3-fly.is-star{animation-name:m3-fly-star}
+@keyframes m3-fly-star{0%{transform:translate(0,0) scale(.5) rotate(0);opacity:0}15%{opacity:1;transform:translate(calc(var(--dx)*.1),calc(var(--dy)*.1 - 30px)) scale(1.4) rotate(90deg)}100%{transform:translate(var(--dx),var(--dy)) scale(.9) rotate(360deg);opacity:1}}
+.blast-score.is-bump{animation:m3-score-bump .3s cubic-bezier(.3,1.8,.5,1)}
+@keyframes m3-score-bump{0%{transform:scale(1)}40%{transform:scale(1.25);filter:brightness(1.4)}100%{transform:scale(1)}}
+.m3-hint-arrow{position:absolute;z-index:6;width:calc(100%/6);height:calc(100%/11);translate:-50% -50%;pointer-events:none;display:flex;align-items:center;justify-content:center;gap:2px}
+.m3-hint-arrow i{width:30%;height:100%;background:linear-gradient(#fff,#fff3a6);clip-path:polygon(0 0,55% 50%,0 100%,35% 100%,90% 50%,35% 0);filter:drop-shadow(0 0 4px rgba(255,255,255,.95)) drop-shadow(0 1px 2px rgba(60,0,60,.8));animation:m3-chev 1s ease-in-out infinite}
+.m3-hint-arrow i:nth-child(2){animation-delay:.15s}
+@keyframes m3-chev{0%,100%{opacity:.25;translate:-20% 0}50%{opacity:1;translate:20% 0}}
+.match3.is-candy .match3-piece.is-wiggle .m3-gem{animation:m3-wiggle .6s ease-in-out;transform-origin:50% 90%}
+@keyframes m3-wiggle{0%,100%{rotate:0deg}20%{rotate:-10deg}40%{rotate:9deg}60%{rotate:-6deg}80%{rotate:3deg}}
+.match3.is-candy .match3-piece.is-blink .m3-gem{animation:m3-blink .7s ease-in-out;transform-origin:50% 60%}
+@keyframes m3-blink{0%,100%{scale:1 1}30%{scale:1.06 .72}45%{scale:1.04 .8}60%{scale:1 1}}
+.match3.is-gems .match3-piece.is-shine .m3-gem{animation:m3-catch .7s ease-in-out}
+.match3.is-gems .match3-piece.is-shine .m3-gem::before{content:'';position:absolute;inset:8%;z-index:2;border-radius:20%;pointer-events:none;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.9) 50%,transparent 65%) 0 0/300% 100% no-repeat;animation:m3-sweep .7s ease-out both}
+@keyframes m3-sweep{from{background-position:120% 0}to{background-position:-60% 0}}
+/* KONO blast's face blocks (BlastFacePicker): the photo fills each block, tinted in the block's color with
+   its bevel kept, so the colors still read; and the start card's picker (choose or take a photo, then drag
+   and zoom it into the square). */
+.blast.has-face :is(.blast-cell.is-block,.blast-cell.is-lit,.blast-mini span,.blast-float span,.blast-burst span){background:linear-gradient(160deg,color-mix(in srgb,var(--l) 42%,transparent),color-mix(in srgb,var(--b) 22%,transparent) 45%,color-mix(in srgb,var(--d) 55%,transparent)),var(--face) center/cover no-repeat;box-shadow:inset 0 0 0 2px var(--b),inset 0 3px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(0,0,0,.25)}
+.blast.has-face .blast-cell.is-lit:not(.is-block){opacity:.6}
+.blast-face{display:grid;justify-items:center;gap:10px;margin:6px 0 0;width:100%;max-width:340px}
+.blast-face-add{display:grid;justify-items:center;gap:8px;width:100%;padding:12px;border-radius:16px;border:2px dashed rgba(255,255,255,.45);background:rgba(255,255,255,.08)}
+.blast-face-add p{margin:0;display:grid;gap:2px;text-align:center}
+.blast-face-add small,.blast-face-text small{opacity:.8;font-size:.78rem}
+.blast-face-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.blast-face-actions button,.blast-face-row button{margin:0!important}
+.blast-face-row{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:10px}
+.blast-face-preview{display:grid;grid-template-columns:repeat(2,26px);gap:3px}
+.blast-face-preview i{width:26px;height:26px;border-radius:6px;background-size:cover;background-position:center;box-shadow:inset 0 0 0 2px var(--b),inset 0 2px 0 rgba(255,255,255,.4)}
+.blast-face-preview i.is-c0{--b:#ef4b5c}.blast-face-preview i.is-c2{--b:#f6cf33}.blast-face-preview i.is-c4{--b:#2fc2e8}.blast-face-preview i.is-c6{--b:#a35be0}
+.blast-face-text{display:grid;text-align:left}
+.blast-face-how{margin:0;font-weight:700}
+.blast-face-crop{position:relative;overflow:hidden;border-radius:18px;touch-action:none;cursor:grab;background:#111;box-shadow:0 0 0 3px #fff,0 8px 24px rgba(0,0,0,.35)}
+.blast-face-crop:active{cursor:grabbing}
+.blast-face-crop img{position:absolute;max-width:none;pointer-events:none;user-select:none}
+.blast-face-crop::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle,transparent 58%,rgba(0,0,0,.28) 60%)}
+.blast-face-zoom{display:flex;align-items:center;gap:8px;font-weight:700}
+.blast-face-zoom input{width:160px}
+.blast-face-error{margin:0;color:#ffb3b3;font-weight:700}

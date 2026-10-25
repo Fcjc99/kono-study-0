@@ -924,6 +924,96 @@ test('Built-in AI: a signed-in student with no key of their own gets KONO’s AI
  assert.match(posts[0].body.prompt,/Marine Biology with Dr\. Lee/)
 })
 
+test('Round 62: KONO blast’s face blocks: choose a photo, drag and zoom it into the square, and the blocks show it (kept on this device); Remove goes back to plain blocks',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('navigation',{name:'Sanctuary view'}).getByRole('button',{name:'Arcade'}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByRole('button',{name:/KONO blast/}).click()
+ const blast=page.getByRole('dialog',{name:'🧱 KONO blast'}),card=blast.getByRole('region',{name:'Start'})
+ const faces=card.getByRole('group',{name:'Face blocks'})
+ await faces.getByRole('button',{name:'🖼️ Choose a photo'}).waitFor()
+ await faces.getByLabel('Photo for the blocks',{exact:true}).setInputFiles(path.join(ROOT,'public/garden/kono/happy.png'))
+ await faces.getByText('Drag your face into the square and zoom to fit.').waitFor()
+ // Drag it a little and zoom in.
+ const crop=faces.locator('.blast-face-crop'),cb=await crop.boundingBox()
+ await page.mouse.move(cb.x+100,cb.y+100);await page.mouse.down();await page.mouse.move(cb.x+120,cb.y+110,{steps:4});await page.mouse.up()
+ await faces.getByLabel('Zoom').fill('1.6')
+ if(process.env.KONO_SHOTS)await card.screenshot({path:process.env.KONO_SHOTS+'/blast-face-crop.png'})
+ await faces.getByRole('button',{name:'Use this face'}).click()
+ await faces.getByText('Face blocks on').waitFor()
+ assert.match(await page.evaluate(()=>localStorage.getItem('kono-blast-face')??''),/^data:image\/jpeg;base64,/,'the cropped face is kept on this device')
+ assert.ok(!JSON.stringify(cloud.users.alice.plan.data).includes('data:image/jpeg'),'the photo never goes to the account')
+ await startGame(page,'🧱 KONO blast')
+ await blast.locator('.blast.has-face').waitFor()
+ const bg=await blast.locator('.blast-mini span').first().evaluate(el=>getComputedStyle(el).backgroundImage)
+ assert.match(bg,/data:image\/jpeg/,'the pieces show the face')
+ if(process.env.KONO_SHOTS)await blast.screenshot({path:process.env.KONO_SHOTS+'/blast-face.png'})
+ // Leave, and Remove on the start card goes back to plain blocks.
+ await blast.getByRole('button',{name:'✕ Leave'}).click();await blast.waitFor({state:'detached'})
+ await town.getByRole('button',{name:/KONO blast/}).click()
+ await page.getByRole('dialog',{name:'🧱 KONO blast'}).getByRole('group',{name:'Face blocks'}).getByRole('button',{name:'Remove'}).click()
+ assert.equal(await page.evaluate(()=>localStorage.getItem('kono-blast-face')),null)
+ await startGame(page,'🧱 KONO blast')
+ assert.equal(await page.getByRole('dialog',{name:'🧱 KONO blast'}).locator('.blast.has-face').count(),0)
+})
+
+test('Round 61: Planner › Week: hold (or right-click) something for a small menu: Edit, Move (then tap the new time) and Delete; hold an empty time and drag to draw how long a new event runs',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.settings.parentMode=false
+ plan.calendarEvents.push(
+  {id:'m-dentist',profileId:pid,date:'2026-09-30',time:'09:00',endTime:'10:00',title:'Dentist appointment',kind:'appointment',notes:''},
+  {id:'m-sports',profileId:pid,date:'2026-10-01',time:'17:00',endTime:'18:30',title:'Soccer practice',kind:'sports',notes:''})
+ await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Planner')
+ const week=page.getByRole('region',{name:'Week'})
+ const soccer=week.getByRole('button',{name:/^Soccer practice · 5:00 PM–6:30 PM/})
+ await soccer.waitFor()
+ // Right-click: the menu. Edit opens the editor.
+ await soccer.click({button:'right'})
+ let menu=page.getByRole('menu',{name:'Soccer practice'})
+ if(process.env.KONO_SHOTS){await page.waitForTimeout(300);await page.screenshot({path:process.env.KONO_SHOTS+'/week-menu.png'})}
+ await menu.getByRole('menuitem',{name:'✏️ Edit'}).click()
+ const editor=page.getByRole('dialog',{name:'Edit event'})
+ assert.equal(await editor.getByLabel('Title').inputValue(),'Soccer practice')
+ await editor.getByRole('button',{name:'Close dialog'}).click();await editor.waitFor({state:'detached'})
+ // A finger: hold and let go without moving, and the menu opens. Move, then tap the new time: 9:30 AM on Oct 2.
+ const sb=await soccer.boundingBox()
+ const at={clientX:sb.x+sb.width/2,clientY:sb.y+8,pointerId:7,pointerType:'touch',isPrimary:true,button:0,buttons:1}
+ await soccer.dispatchEvent('pointerdown',at);await page.waitForTimeout(450);await soccer.dispatchEvent('pointerup',{...at,buttons:0})
+ menu=page.getByRole('menu',{name:'Soccer practice'})
+ await menu.getByRole('menuitem',{name:'↕️ Move'}).click()
+ await week.getByRole('status').getByText('Tap a new time for “Soccer practice”').waitFor()
+ const slot=week.getByRole('button',{name:'Move to 9:00 AM on Oct 2, 2026'})
+ await slot.scrollIntoViewIfNeeded();await slot.click({position:{x:12,y:24}})
+ await week.getByRole('button',{name:/^Soccer practice · 9:30 AM–11:00 AM · Oct 2, 2026/}).waitFor()
+ await waitFor(()=>{const e=cloud.users.alice.plan.data.calendarEvents.find(x=>x.id==='m-sports');return e?.date==='2026-10-02'&&e.time==='09:30'&&e.endTime==='11:00'},'the moved event reaches the account')
+ // A mouse held still opens the menu too. Delete sends it to Trash (with Undo).
+ const dentist=week.getByRole('button',{name:/^Dentist appointment · 9:00 AM/})
+ await dentist.scrollIntoViewIfNeeded()
+ const db=await dentist.boundingBox()
+ await page.mouse.move(db.x+db.width/2,db.y+8);await page.mouse.down();await page.waitForTimeout(650);await page.mouse.up()
+ await page.getByRole('menu',{name:'Dentist appointment'}).getByRole('menuitem',{name:'🗑 Delete'}).click()
+ await dentist.waitFor({state:'detached'})
+ await page.getByText('Moved “Dentist appointment” to Trash.',{exact:false}).first().waitFor()
+ await waitFor(()=>!cloud.users.alice.plan.data.calendarEvents.some(x=>x.id==='m-dentist'),'the deleted event leaves the calendar')
+ // Draw: press on 1:00 PM and drag down to 3:30 PM; the new event runs that long.
+ const one=week.getByRole('button',{name:'Add at 1:00 PM on Sep 30, 2026'}),three=week.getByRole('button',{name:'Add at 3:00 PM on Sep 30, 2026'})
+ await three.scrollIntoViewIfNeeded()
+ const ob=await one.boundingBox(),tb=await three.boundingBox()
+ await page.mouse.move(ob.x+ob.width/2,ob.y+3);await page.mouse.down()
+ for(let i=1;i<=8;i++)await page.mouse.move(ob.x+ob.width/2,ob.y+3+(tb.y+tb.height/2-ob.y-3)*i/8)
+ if(process.env.KONO_SHOTS)await week.screenshot({path:process.env.KONO_SHOTS+'/week-draw.png'})
+ await page.mouse.up()
+ const added=page.getByRole('dialog',{name:'New event'})
+ assert.equal(await added.getByLabel('Start time (optional)').inputValue(),'13:00')
+ assert.equal(await added.getByLabel('End time (optional)').inputValue(),'15:30')
+ assert.equal(await added.getByLabel('Date').inputValue(),'2026-09-30')
+})
+
 test('Planner › Week: the week by default, items at their hour, source chips hide a whole source, tapping an empty hour adds something then, tapping an item opens it right there, dragging moves it in 15-minute steps, and its bottom edge stretches it',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  plan.settings.parentMode=false // a student: an empty hour opens the event editor (parents get the quick add)
@@ -2677,7 +2767,7 @@ test('Bond hearts: KONO’s bond grows with what you do together; at 2 hearts a 
  await page.locator('.build-palette').getByRole('button',{name:'Add Heart cushion'}).click()
  await waitFor(()=>(data().sanctuaryDecor?.[pid]?.placements??[]).some(p=>p.assetId==='gift-cushion'),'the cushion never went on the island')
 })
-test('Break games: after a focus session KONO offers a break game; Peekaboo and Snack catch each play through (full screen), keep a best score, and the games stop when the five-minute break is over',async({context,page})=>{
+test('Break games: after a focus session KONO offers the arcade’s games for a break; one plays full screen and ends on its results, and the games stop when the five-minute break is over',async({context,page})=>{
  const cloud=fakeCloud()
  await page.clock.install({time:new Date('2026-09-15T15:00:00')})
  await signInAs(context,cloud,'alice')
@@ -2694,34 +2784,21 @@ test('Break games: after a focus session KONO offers a break game; Peekaboo and 
  await focus.getByRole('button',{name:'🎮 Break game with KONO'}).click()
  const games=focus.getByRole('region',{name:'Break games with KONO'})
  await games.getByRole('timer',{name:'Break time left'}).filter({hasText:'Break: 5:00'}).waitFor()
- // Peekaboo: thirty seconds of KONO popping out of bushes.
- await games.getByRole('button',{name:/Peekaboo/}).click()
- await startGame(page,'🌿 Peekaboo')
- await games.locator('.peekaboo-grid').waitFor()
- let boops=0
- for(let i=0;i<40&&boops<3;i++){await page.clock.runFor(300);const up=games.getByRole('button',{name:'Boop KONO!'});if(await up.count()){await up.click();boops++}}
- assert.ok(boops>=1,'KONO popped up to be booped')
- await page.clock.fastForward(31000);await page.clock.runFor(500)
- await games.getByText(new RegExp('^You booped KONO '+boops+' times?! 🌿 New best! 🎉$')).waitFor()
- // The round ends on its results card (in the game's screen); Done slides it away.
- const peekResults=page.getByRole('dialog',{name:'🌿 Peekaboo'}).getByRole('region',{name:'Results'})
- await peekResults.getByText('👑 New best!').waitFor()
- await peekResults.getByRole('button',{name:'Done'}).click()
- await page.getByRole('dialog',{name:'🌿 Peekaboo'}).waitFor({state:'detached'})
- await games.getByText('Best: '+boops+' boops').waitFor()
- // Snack catch: thirty seconds of falling snacks.
- await games.getByRole('button',{name:/Snack catch/}).click()
- await startGame(page,'🍓 Snack catch')
- await games.getByRole('application',{name:/Snack catch/}).waitFor()
- if(process.env.KONO_SHOTS){await page.clock.runFor(4000);await games.screenshot({path:process.env.KONO_SHOTS+'/break-catch.png'})}
- await page.clock.fastForward(31000);await page.clock.runFor(500)
- await games.getByText(/^KONO caught \d+ snacks?! 😋/).first().waitFor()
- await page.getByRole('dialog',{name:'🍓 Snack catch'}).getByRole('button',{name:'Done'}).click()
+ // The break offers the arcade's games (Snack catch and Peekaboo are gone): KONO blast plays full screen,
+ // and ■ End shows its results card; Done slides it away.
+ assert.equal(await games.getByRole('button',{name:/Snack catch|Peekaboo/}).count(),0)
+ await games.getByRole('button',{name:/Candy crush/}).waitFor()
+ await games.getByRole('button',{name:/KONO blast/}).click()
+ await startGame(page,'🧱 KONO blast')
+ await page.getByRole('dialog',{name:'🧱 KONO blast'}).getByRole('button',{name:'■ End'}).click()
+ await page.getByRole('dialog',{name:'🧱 KONO blast'}).getByRole('region',{name:'Results'}).getByRole('button',{name:'Done'}).click()
+ await page.getByRole('dialog',{name:'🧱 KONO blast'}).waitFor({state:'detached'})
+ await games.getByText(/^KONO blast: \d+ points?! 🧱/).first().waitFor()
  if(process.env.KONO_SHOTS)await games.screenshot({path:process.env.KONO_SHOTS+'/break-games.png'})
  // The break ends after five minutes (jumped to, rather than stepped through frame by frame).
  await page.clock.fastForward(5*60_000);await page.clock.runFor(1500)
  await games.getByText('That was a nice reset! KONO’s ready for the next session when you are. 📚').waitFor()
- assert.equal(await games.getByRole('button',{name:/Peekaboo/}).count(),0,'no more games after the break')
+ assert.equal(await games.getByRole('button',{name:/KONO blast/}).count(),0,'no more games after the break')
  await games.getByRole('button',{name:'Close'}).click()
  assert.equal(await focus.getByRole('region',{name:'Break games with KONO'}).count(),0)
 })
@@ -3149,7 +3226,7 @@ test('Planner › Week on a phone: press and hold moves an event, a quick swipe 
   await page.goto(BASE);await heading(page,'Sanctuary')
   await go(page,'Planner')
   const week=page.getByRole('region',{name:'Week'})
-  await page.getByText('Hold to move; drag the bottom edge',{exact:false}).waitFor()
+  await page.getByText('Hold something for Edit, Move or Delete',{exact:false}).waitFor()
   const piano=()=>week.getByRole('button',{name:/^Piano lesson · /})
   const cdp=await context.newCDPSession(page)
   const touch=(type,x,y)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:type==='touchEnd'?[]:[{x:Math.round(x),y:Math.round(y)}]})
@@ -3501,8 +3578,10 @@ test('Round 55: the world map (its own button on the island): the beach is open 
  await town.waitFor({state:'detached'})
  await mapButton.click()
  await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:'Go to Sandy Beach Cove'}).waitFor()
- // The explorer's passport: no land visited yet, and a treasure waits on the beach today.
+ // Full screen. The explorer's passport (its own panel): no land visited yet, and a treasure waits on the beach today.
+ await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:/^🧭 Passport/}).click()
  await page.getByRole('region',{name:'Explorer’s passport'}).getByText('0 of 3 lands',{exact:false}).waitFor()
+ await page.getByRole('button',{name:'Close passport'}).click()
  await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:'Go to Sandy Beach Cove'}).getByText('✨ Treasure today').waitFor()
  await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:'Close dialog'}).click()
  await page.getByRole('dialog',{name:'World map'}).waitFor({state:'detached'})
@@ -3525,6 +3604,7 @@ test('Round 55: the world map (its own button on the island): the beach is open 
  await waitFor(()=>care().log.some(e=>e.kind==='buy'&&e.item==='furn:hammock'),'the hammock never reached the account')
  if(process.env.KONO_SHOTS)await beach.screenshot({path:process.env.KONO_SHOTS+'/world-beach.png'})
  // Tap the sand and KONO walks there; say hello to the crab and it joins the passport.
+ await beach.getByRole('button',{name:'Close market'}).click()
  const sand=beach.locator('.world-land'),box=await sand.boundingBox()
  const before=await beach.locator('.world-land .world-kono').evaluate(el=>el.style.left)
  await page.mouse.click(box.x+box.width*0.3,box.y+box.height*0.7)
@@ -3533,6 +3613,7 @@ test('Round 55: the world map (its own button on the island): the beach is open 
  await beach.getByText('New friend in your passport!',{exact:false}).waitFor()
  await beach.getByRole('button',{name:'← World map'}).click()
  await page.getByRole('dialog',{name:'World map'}).waitFor()
+ await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:/^🧭 Passport/}).click()
  const passport=page.getByRole('region',{name:'Explorer’s passport'})
  await passport.getByText('1 of 3 lands · 1 of 7 friends',{exact:false}).waitFor()
  await passport.getByRole('list',{name:'Friends met'}).getByText('Crab').waitFor()
@@ -3669,7 +3750,19 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  await page.waitForFunction(()=>Number(document.querySelector('.flow-game .blast-score')?.textContent?.replace(/,/g,''))>0)
  await flow.getByRole('button',{name:'Hold'}).click();await flow.getByRole('button',{name:'Drop'}).click()
  await flow.getByRole('meter',{name:'Flow'}).waitFor()
- if(process.env.KONO_SHOTS)await flow.screenshot({path:process.env.KONO_SHOTS+'/flow.png'})
+ // Touch: a sideways drag moves the shape between lanes; a flick down that drifts sideways never shifts it.
+ const well=flow.getByRole('img',{name:'KONO Flow well'}),wb=await well.boundingBox(),cell=Math.min(wb.width/16.4,wb.height/20.8)
+ const col=()=>well.evaluate(el=>Number(el.dataset.col))
+ const cx=wb.x+wb.width/2,cy=wb.y+wb.height*0.3
+ let start=await col()
+ await page.mouse.move(cx,cy);await page.mouse.down()
+ for(let i=1;i<=6;i++)await page.mouse.move(cx+i*cell*0.5,cy+i*0.1)
+ await page.mouse.up();await page.waitForTimeout(150)
+ assert.ok(await col()>start,'a sideways drag moves the shape to the right')
+ await page.waitForTimeout(150);start=await col()
+ await page.mouse.move(cx,cy);await page.mouse.down()
+ for(let i=1;i<=6;i++){await page.mouse.move(cx+i*cell*0.35,cy+i*cell);await page.waitForTimeout(40);assert.equal(await col(),start,'a drag going down never shifts the lane')}
+ await page.mouse.up()
  await flow.getByRole('button',{name:'■ End'}).click()
  await flow.getByRole('region',{name:'Results'}).getByText(/\d[\d,]* points/).first().waitFor()
  await flow.getByRole('button',{name:'Done'}).click();await flow.waitFor({state:'detached'})
@@ -4083,9 +4176,9 @@ test('Round 51: KONO Town: a surprise to collect, coins in the KONO bar, the foo
  if(process.env.KONO_SHOTS)await town.screenshot({path:process.env.KONO_SHOTS+'/town-wheel.png'})
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
  await town.getByText('3 of 3',{exact:true}).waitFor()
- // The arcade has Snack catch, Peekaboo and KONO blast (Memory match and Bubble pop are gone).
+ // The arcade has KONO blast (Memory match, Bubble pop, Snack catch and Peekaboo are gone).
  await town.getByRole('button',{name:/KONO blast/}).waitFor()
- assert.equal(await town.getByRole('button',{name:/Memory match|Bubble pop/}).count(),0)
+ assert.equal(await town.getByRole('button',{name:/Memory match|Bubble pop|Snack catch|Peekaboo/}).count(),0)
  // Album: the beanie is in, with how far along the whole collection is.
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Album'}).click()
  await town.getByRole('region',{name:'Outfits'}).getByRole('listitem',{name:'Cozy beanie',exact:true}).waitFor()

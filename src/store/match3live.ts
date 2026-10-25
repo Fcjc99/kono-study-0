@@ -15,9 +15,11 @@ import {W,adjacent,canSwap,findMove,fresh,freshBoard,hasMove,lines,made,reach,ty
 export const SWAP_MS=170,MERGE_MS=200,SHUFFLE_MS=520
 /** A special charging up before it goes off (a color bomb or hypercube winds up longer), and two specials
  * swapped together pulling into each other before their combination. */
-export const CHARGE_MS=190,BOMB_CHARGE_MS=300,COMBO_MS=320
-export const BEAM_MS={gems:26,candy:34}
-const CLEAR_MS={gems:230,candy:170},BOLT_MS=38,BLAST_MS=45,WRAP_WAIT=320
+// Candy crush takes its time over a special: a long wind-up (the board dims around it), a slower beam
+// or blast, so you see what went off. Gem blitz stays quick (it's against the clock).
+export const CHARGE_MS={gems:190,candy:460},BOMB_CHARGE_MS={gems:300,candy:820},COMBO_MS={gems:320,candy:620}
+export const BEAM_MS={gems:26,candy:52}
+const CLEAR_MS={gems:230,candy:170},BOLT_MS={gems:38,candy:58},BLAST_MS={gems:45,candy:72},WRAP_WAIT=320
 // Gravity and top speed, in squares per millisecond: a piece falls one square in about 0.13 s.
 const G=0.00012,VMAX=0.03
 
@@ -35,6 +37,8 @@ export type Ev=
  |{t:'clear';at:number;kind:number;special?:Special;merge?:number;pts:number}
  |{t:'fire';e:Effect;delays:number[];points:number;combo?:boolean}
  |{t:'made';at:number;special:Special}
+ // Sugar crush: a move left is on its way to this candy (it turns striped `in` ms from now).
+ |{t:'aim';at:number;in:number}
  |{t:'charge';at:number;special:Special;combo?:boolean}
  |{t:'time';n:number}|{t:'mult';n:number}|{t:'nope'}|{t:'shuffle'}
 export type Live={m:Maker;cells:(Bit|null)[];chain:number;spots:number[];ignite:number[];taken:number;multNext:boolean;multGiven:boolean;events:Ev[];pend:{a:number;c:number;t:number}[];combos:{a:number;c:number;t:number}[]}
@@ -107,10 +111,10 @@ function mark(rt:Live,i:number,delay:number,level:number,pts=0):boolean{
  * the middle, lightning hits one piece after another (nearest first). */
 function delaysFor(e:Effect,mode:'gems'|'candy'):number[]{
  const [r,c]=rc(e.at),beam=BEAM_MS[mode]
- if(e.type==='color'){const order=[...e.cells].sort((x,y)=>dist(x,e.at)-dist(y,e.at));return e.cells.map(i=>order.indexOf(i)*BOLT_MS+60)}
+ if(e.type==='color'){const order=[...e.cells].sort((x,y)=>dist(x,e.at)-dist(y,e.at));return e.cells.map(i=>order.indexOf(i)*BOLT_MS[mode]+60)}
  return e.cells.map(i=>{
   const [y,x]=rc(i),dr=Math.abs(y-r),dc=Math.abs(x-c),wide=e.type==='nova'?1:0
-  if(e.type==='area'||e.type==='board')return Math.max(dr,dc)*BLAST_MS+20
+  if(e.type==='area'||e.type==='board')return Math.max(dr,dc)*BLAST_MS[mode]+20
   if(e.type==='row')return dc*beam
   if(e.type==='col')return dr*beam
   return Math.min(dr<=wide?dc*beam:1e9,dc<=wide?dr*beam:1e9)
@@ -281,7 +285,7 @@ export function step(rt:Live,dt:number):boolean{
   if(rt.m.mode==='candy')rt.ignite=[s.a,s.c].filter(at=>rt.cells[at]?.p.special)
   // Two specials (or a color bomb and anything): they pull into each other, then the combination goes off.
   if(A.clear===undefined&&C.clear===undefined&&A.doom===undefined&&C.doom===undefined&&A.charge===undefined&&C.charge===undefined&&(A.p.special==='color'||C.p.special==='color'||(A.p.special&&C.p.special))){
-   A.pull={to:s.c,t:0};C.pull={to:s.a,t:0};rt.combos.push({a:s.a,c:s.c,t:COMBO_MS});rt.events.push({t:'charge',at:s.c,special:C.p.special??A.p.special!,combo:true})
+   A.pull={to:s.c,t:0};C.pull={to:s.a,t:0};rt.combos.push({a:s.a,c:s.c,t:COMBO_MS[rt.m.mode]});rt.events.push({t:'charge',at:s.c,special:C.p.special??A.p.special!,combo:true})
   }
  }
  for(const k of [...rt.combos]){
@@ -303,7 +307,7 @@ export function step(rt:Live,dt:number):boolean{
   if(!x)return
   if(x.charge!==undefined){
    moving=true;x.charge+=dt
-   if(x.charge>=(x.p.special==='color'?BOMB_CHARGE_MS:CHARGE_MS)){
+   if(x.charge>=(x.p.special==='color'?BOMB_CHARGE_MS:CHARGE_MS)[rt.m.mode]){
     x.charge=undefined;x.clear=0;fire(rt,i)
     if(x.clear!==undefined)rt.events.push({t:'clear',at:i,kind:x.p.kind,special:x.p.special,merge:x.merge,pts:x.pts??0})
     return
@@ -330,14 +334,17 @@ export function step(rt:Live,dt:number):boolean{
 
 /** The finale (Sugar crush, Last hurrah): `extra` plain pieces turn striped one after another, then every
  * special on the board goes off in turn. The number of specials set off. */
-export function blowAll(rt:Live,extra:number):number{
+/** `gap`: the time between one move left becoming a striped candy and the next; `lead`: how long before
+ * the first does (each is announced with an 'aim' event, so a star can fly to it first). */
+export function blowAll(rt:Live,extra:number,gap=110,lead=0):number{
  const plain=rt.cells.flatMap((x,i)=>rests(x,i)&&!x.p.special?[i]:[])
  let k=0
  for(;k<extra&&plain.length;k++){
   const i=plain.splice(Math.floor(rt.m.roll()*plain.length),1)[0],x=rt.cells[i]!
-  x.up={p:{...x.p,special:rt.m.roll()<0.5?'row':'col'},in:k*110,made:false}
+  x.up={p:{...x.p,special:rt.m.roll()<0.5?'row':'col'},in:lead+k*gap,made:lead>0}
+  rt.events.push({t:'aim',at:i,in:k*gap})
  }
- const t0=k*110+350
+ const t0=lead+k*gap+350
  const all=rt.cells.flatMap((x,i)=>x&&x.clear===undefined&&x.doom===undefined&&(x.p.special||x.up?.p.special)?[i]:[])
  all.forEach((i,k)=>{const x=rt.cells[i]!;x.doom=t0+k*150;x.fired=false;x.level=2})
  return all.length
@@ -378,17 +385,19 @@ export function view(rt:Live):Look[]{
   if(x.charge!==undefined){
    // Charging up: it swells, brightens and trembles (a color bomb or hypercube spins up); a wrapped candy
    // about to go off a second time does the same.
-   const k=Math.min(1,x.charge/(x.p.special==='color'?BOMB_CHARGE_MS:CHARGE_MS)),q=ease(k)
-   charge=Math.max(0.01,k);z=4;sx=sy=1+0.32*q;b=1+1.1*q
-   if(x.p.special==='color')rot=q*q*540
-   else{const t=Math.sin(x.charge*0.09)*3*q;px+=t*0.012;rot=t}
+   const candy=rt.m.mode==='candy',k=Math.min(1,x.charge/(x.p.special==='color'?BOMB_CHARGE_MS:CHARGE_MS)[rt.m.mode]),q=ease(k)
+   // Candy: it swells bigger, pulses faster and faster, and shakes harder right up to the moment it goes.
+   charge=Math.max(0.01,k);z=4;sx=sy=1+(candy?0.55:0.32)*q+(candy?Math.sin(x.charge*(0.02+0.05*k))*0.08*q:0);b=1+(candy?1.5:1.1)*q
+   if(x.p.special==='color')rot=q*q*(candy?1080:540)
+   else{const t=Math.sin(x.charge*(candy?0.12:0.09))*(candy?5:3)*q;px+=t*0.012;rot=t}
   }
   if(x.pull){
    // Two specials swapped together pull into each other, glowing.
-   const k=Math.min(1,x.pull.t/COMBO_MS),q=ease(k),[tr,tc]=rc(x.pull.to)
+   const k=Math.min(1,x.pull.t/COMBO_MS[rt.m.mode]),q=ease(k),[tr,tc]=rc(x.pull.to)
    px=c+(tc-c)*0.5*q;py=r+(tr-r)*0.5*q;sx=sy=1+0.25*q;b=1+q;z=4;charge=Math.max(0.01,k);rot=x.p.special==='color'?q*q*720:Math.sin(x.pull.t*0.08)*6*q
   }
-  if(x.landed!==undefined){const k=x.landed/240,q=Math.sin(Math.PI*Math.min(1,k*1.5))*(1-k)*0.2;sx*=1+q;sy*=1-q}
+  // Landing: a squash, then a little stretch back up, settling (a candy is softer than a gem).
+  if(x.landed!==undefined){const k=x.landed/240,q=Math.sin(Math.PI*2.2*k)*(1-k)*(1-k)*(rt.m.mode==='candy'?0.34:0.22);sx*=1+q;sy*=1-q}
   out.push({id:x.p.id,p:x.p,at:i,x:px,y:py,sx,sy,rot,o,b,z,born:x.born!==undefined,clearing:x.clear!==undefined,charge})
  })
  return out.sort((a,b)=>a.id-b.id)

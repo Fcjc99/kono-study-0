@@ -144,13 +144,41 @@ let track:HTMLAudioElement|null=null
  * tools/public-allowlist.json). */
 const RECORDED=new Set<Theme>(['candy','gems','blast','flow'])
 const missing=new Set<Theme>([...(['candy','gems','meow','flap','paper','blast','flow'] as Theme[])].filter(t=>!RECORDED.has(t)))
+/** The track before this one, still finishing its fade-out while the next copy plays over it (a loop). */
+let tail:HTMLAudioElement|null=null
 function stopTrack(fade=0){
- const a=track;track=null;if(!a)return
- if(!fade){a.pause();return}
- const v0=a.volume,t0=performance.now()
- const step=()=>{const k=Math.min(1,(performance.now()-t0)/fade);a.volume=v0*(1-k);if(k<1)requestAnimationFrame(step);else a.pause()}
- requestAnimationFrame(step)
+ const a=track;track=null
+ for(const x of [a,tail]){if(!x)continue
+  if(!fade){x.pause();continue}
+  const v0=x.volume,t0=performance.now()
+  const step=()=>{const k=Math.min(1,(performance.now()-t0)/fade);x.volume=v0*(1-k);if(k<1)requestAnimationFrame(step);else x.pause()}
+  requestAnimationFrame(step)
+ }
+ tail=null
 }
+const trackVolume=()=>slow?0.3:0.55
+/** A combo stack (Match3): each step of a cascade nudges the track up a little in pitch and pace. */
+let lift=0
+const trackRate=()=>slow?0.8:1+lift*0.015
+const applyRate=(a:HTMLAudioElement)=>{a.preservesPitch=slow||!lift;a.playbackRate=trackRate()}
+/** Plays a recorded track. Each file fades in at its start and out at its end, so instead of a plain loop
+ * (a dip of a few seconds each time round) the next copy starts over the last 3 seconds. */
+function playTrack(src:string,onFail:()=>void){
+ const a=new Audio(src);a.volume=0;applyRate(a);track=a
+ let handed=false
+ a.addEventListener('error',()=>{if(track===a)onFail()},{once:true})
+ a.addEventListener('timeupdate',()=>{
+  if(handed||track!==a||!a.duration||a.duration-a.currentTime>3)return
+  handed=true;tail?.pause();tail=a;playTrack(src,onFail)
+ })
+ a.addEventListener('ended',()=>{if(tail===a)tail=null;if(track===a){a.currentTime=0;void a.play().catch(()=>{})}})
+ void a.play().then(()=>{const t0=performance.now();const up=()=>{if(track!==a)return;const k=Math.min(1,(performance.now()-t0)/600);a.volume=trackVolume()*k;if(k<1)requestAnimationFrame(up)};requestAnimationFrame(up)}).catch(()=>{if(track===a&&!document.hidden)onFail()})
+}
+// The music rests while the app is in the background and picks up where it was on coming back.
+if(typeof document!=='undefined')document.addEventListener('visibilitychange',()=>{
+ for(const x of [track,tail]){if(!x)continue;if(document.hidden)x.pause();else void x.play().catch(()=>{})}
+ if(ctx){if(document.hidden){if(playing)void ctx.suspend().catch(()=>undefined)}else if(ctx.state==='suspended')void ctx.resume().catch(()=>undefined)}
+})
 /** `part`: which of a game's tracks (KONO Flow has five, one for each stretch of levels: flow-1.mp3 …); a
  * new part of the same game crossfades in. */
 export function startMusic(theme:Theme,enabled:boolean,part=0){
@@ -159,10 +187,7 @@ export function startMusic(theme:Theme,enabled:boolean,part=0){
  stopTimer();stopTrack(same?900:0)
  if(!enabled||!musicOn())return
  if(!missing.has(theme)){
-  const a=new Audio('/audio/games/'+theme+(part?'-'+part:'')+'.mp3');a.loop=true;a.volume=0;a.preservesPitch=true;a.playbackRate=slow?0.8:1;track=a
-  const fallback=()=>{if(track!==a)return;track=null;missing.add(theme);if(wanted===theme)startMusic(theme,enabled)}
-  a.addEventListener('error',fallback,{once:true})
-  void a.play().then(()=>{const t0=performance.now();const up=()=>{if(track!==a)return;const k=Math.min(1,(performance.now()-t0)/600);a.volume=(slow?0.3:0.55)*k;if(k<1)requestAnimationFrame(up)};requestAnimationFrame(up)}).catch(fallback)
+  playTrack('/audio/games/'+theme+(part?'-'+part:'')+'.mp3',()=>{stopTrack();missing.add(theme);if(wanted===theme)startMusic(theme,enabled)})
   return
  }
  synth(theme)
@@ -194,7 +219,7 @@ function synth(theme:Theme){
 function stopTimer(){if(playing){playing.stop=true;window.clearInterval(playing.timer);playing=null}}
 /** Fades the soundtrack out (leaving a game, or the round is over). */
 export function stopMusic(){
- wanted=null;slow=false
+ wanted=null;slow=false;lift=0
  stopTrack(400)
  if(ctx&&musicBus&&playing){const t=ctx.currentTime;musicBus.gain.cancelScheduledValues(t);musicBus.gain.setValueAtTime(musicBus.gain.value,t);musicBus.gain.linearRampToValueAtTime(0.0001,t+0.4)}
  const p=playing;window.setTimeout(()=>{if(playing===p)stopTimer()},450)
@@ -210,8 +235,14 @@ export function setMusicOn(on:boolean,enabled:boolean){
  * that starts meanwhile, after 🎵 is turned back on, starts slowed too). */
 export function musicSlow(on:boolean){
  slow=on
- const a=track;if(!a)return
- a.preservesPitch=true;a.playbackRate=on?0.8:1;a.volume=on?0.3:0.55
+ for(const a of [track,tail])if(a)applyRate(a)
+ if(track)track.volume=trackVolume()
+}
+/** The cascade's step (0 when the board settles): the music climbs with it, up to four steps. */
+export function musicLift(n:number){
+ const next=Math.max(0,Math.min(4,n));if(next===lift)return
+ lift=next
+ for(const a of [track,tail])if(a)applyRate(a)
 }
 
 // ---- Sound effects ----
