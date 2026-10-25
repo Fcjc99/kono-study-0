@@ -1,6 +1,6 @@
 import {useEffect,useId,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {BOOSTERS,W,candyLevel,candyStars,type Board,type Effect,type Maker,type Piece,type Special,type BoosterId} from '../store/match3'
-import {BEAM_MS,SWAP_MS,blowAll,hintFor,live,settled,smash,specialsLeft,step,trySwap,view,type Ev,type Live,type Look} from '../store/match3live'
+import {BEAM_MS,BOMB_CHARGE_MS,CHARGE_MS,COMBO_MS,SWAP_MS,blowAll,hintFor,live,settled,smash,specialsLeft,step,trySwap,view,type Ev,type Live,type Look} from '../store/match3live'
 import {gameSound} from '../konoSounds'
 import {fx as play3,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
@@ -29,6 +29,11 @@ import Sparks,{type SparksHandle} from './Sparks'
 const SPARK_GEMS=['#ff5468','#ff9a2e','#ffe03d','#3fe07a','#3d9bff','#c14dff','#eef3fb'],SPARK_CANDY=['#ff2e48','#ff8a14','#ffd60a','#2fd14a','#1f8bff','#a83ae8']
 const BLITZ_MS=60_000,SPEEDY_MS=1700,IGNITE=9,BLAZE_MS=8000
 const CANDY_CHEERS=['','','Sweet!','Tasty!','Delicious!','Divine!']
+/** What a special shouts as it goes off, right where it is (so you can tell what just happened). */
+function calloutFor(mode:'gems'|'candy',type:Effect['type'],combo:boolean,size:number){
+ if(mode==='candy')return type==='row'||type==='col'?'Striped!':type==='cross'?(combo?'Double stripes!':'Striped!'):type==='nova'?'Giant stripes!':type==='area'?(size>9?'Mega wrap!':'Wrapped!'):type==='color'?(combo?'Rainbow blast!':'Color bomb!'):''
+ return type==='area'?(size>9?'Inferno!':'Flame!'):type==='cross'?'Star!':type==='nova'?'Supernova!':type==='color'?'Hypercube!':type==='row'||type==='col'?'Lightning!':''
+}
 const GEM_CHEERS=['','','Good!','Excellent!','Awesome!','Spectacular!','Extraordinary!','Unbelievable!']
 type Fx={key:number;e:Effect;delays:number[];combo?:boolean}
 type Frag={key:number;at:number;kind:number;special?:Special}
@@ -48,6 +53,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
  const [sel,setSel]=useState<number|null>(null),[hint,setHint]=useState<[number,number]|null>(null)
  const [score,setScore]=useState(0),[moves,setMoves]=useState(goal.moves),[left,setLeft]=useState(BLITZ_MS),[mult,setMult]=useState(1),[speed,setSpeed]=useState(0),[blazing,setBlazing]=useState(false)
  const [fx,setFx]=useState<Fx[]>([]),[frags,setFrags]=useState<Frag[]>([]),[pops,setPops]=useState<Pop[]>([])
+ const [callouts,setCallouts]=useState<{key:number;x:number;y:number;text:string;type:string}[]>([]),[spot,setSpot]=useState<{key:number;x:number;y:number;ms:number}|null>(null),[punch,setPunch]=useState(0)
  const [cheer,setCheer]=useState<{key:number;text:string;big?:boolean}|null>(null),[done,setDone]=useState<string|null>(null),[quake,setQuake]=useState(0)
  const sparks=useRef<SparksHandle>(null),boardRef=useRef<HTMLDivElement>(null),scoreRef=useRef(0),ended=useRef(false),keys=useRef(0),movesLeft=useRef(goal.moves)
  const jellyNow=useRef(new Set(start.jelly??[])),multNow=useRef(1),extraMs=useRef(0),lastMove=useRef(0),speedNow=useRef(0),idleAt=useRef(0)
@@ -119,7 +125,11 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
   }else if(e.t==='fire'){
    const pts=e.points*(mode==='gems'?multNow.current:1);addScore(pts)
    const ef=e.e,[x,y]=centre(ef.at),key=++keys.current,span=Math.max(0,...e.delays)
-   later(setFx,{key,e:ef,delays:e.delays,combo:e.combo},span+900,8)
+   later(setFx,{key,e:ef,delays:e.delays,combo:e.combo},span+(mode==='candy'?1500:900),8)
+   // Its name, big, where it went off; the board jolts with it (Candy crush).
+   const text=calloutFor(mode,ef.type,!!e.combo,ef.cells.length)
+   if(text)later(setCallouts,{key:++keys.current,x:Math.min(0.8,Math.max(0.2,x)),y:Math.min(0.85,Math.max(0.12,y)),text,type:ef.type+(e.combo?' is-combo':'')},mode==='candy'?1700:1100,3)
+   if(mode==='candy'){const k=++keys.current;setPunch(k);window.setTimeout(()=>setPunch(p=>p===k?0:p),380);setSpot(sp0=>sp0&&Math.abs(sp0.x-x)<0.01&&Math.abs(sp0.y-y)<0.01?null:sp0)}
    if(ef.type==='row'||ef.type==='col'||ef.type==='cross'||ef.type==='nova'){play3('laser',sound);sp?.burst(x,y,{kind:'spark',n:ef.type==='nova'?36:18,color:mode==='gems'?['#fff','#bfe9ff','#6fc3ff']:['#fff','#fff6b0','#ffd0f0'],speed:ef.type==='nova'?2.4:1.6,size:7})}
    if(ef.type==='nova')sp?.burst(x,y,{kind:'star',n:14,color:['#fff','#ff8bf0','#ffe98a'],speed:1.8,size:9})
    if(ef.type==='color'){sp?.burst(x,y,{kind:'star',n:18,color:['#ff4d6d','#ffd84d','#4dd2ff','#7dff6a','#c58bff','#fff'],speed:1.6,size:8});sp?.ring(x,y,'#fff',110)}
@@ -132,6 +142,8 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
    // A special winding up: a shimmer and a bright ring closing in on it.
    const [x,y]=centre(e.at);play3('charge',sound);sp?.burst(x,y,{kind:'star',n:e.combo?10:5,color:['#fff','#fff6c2'],size:5,speed:0.5})
    if(e.combo){say('Combo!',true);sp?.ring(x,y,'#fff',90)}
+   // Candy crush: the board dims around the special while it winds up, a spotlight on it.
+   if(mode==='candy'){const ms=e.combo?COMBO_MS.candy:(e.special==='color'?BOMB_CHARGE_MS:CHARGE_MS).candy,k=++keys.current;setSpot({key:k,x,y,ms});window.setTimeout(()=>setSpot(s0=>s0?.key===k?null:s0),ms+120);window.setTimeout(()=>sp?.ring(x,y,'rgba(255,255,255,.9)',60),ms*0.5)}
   }else if(e.t==='made'){
    const [x,y]=centre(e.at);sp?.burst(x,y,{kind:'star',n:10,color:['#fff','#ffe98a'],size:7});sp?.ring(x,y,'#fff',50);play3('make',sound)
   }else if(e.t==='time'){extraMs.current+=e.n*1000;say('+'+e.n+' seconds!');play3('time',sound)}
@@ -259,7 +271,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
   </div>
   :<div className="match3-goal is-time" aria-hidden="true"><span style={{width:Math.min(1,left/BLITZ_MS)*100+'%'}}/></div>}
   {mode==='gems'&&<div className={'m3-ignite'+(blazing?' is-on':'')} role="meter" aria-label="Ignition" aria-valuemin={0} aria-valuemax={IGNITE} aria-valuenow={blazing?IGNITE:Math.min(IGNITE,speed)}><span style={{width:(blazing?100:Math.min(1,speed/IGNITE)*100)+'%'}}/><b>{blazing?'🔥 Blazing speed!':'Ignition'}</b></div>}
-  <div className={'blast-frame'+(quake?' is-quake':'')}>
+  <div className={'blast-frame'+(quake?' is-quake':'')+(punch?' is-punch':'')}>
    <div ref={boardRef} className="match3-board" role="grid" aria-label={mode==='candy'?'Candy board':'Gem board'} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={()=>{press.current=null}}>
     <div className="match3-pieces">
     {[...jelly].map(i=><span key={'j'+i} className="m3-jelly" style={pos(i)} aria-hidden="true"/>)}
@@ -280,7 +292,9 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
      {/* Candy crush shows each candy's points over it, in its color; Gem blitz one total for each clear. */}
      {pops.map(p=><span key={p.key} className={'m3-pop'+(p.each?' is-each k'+p.kind:'')} style={{left:p.x*100/W+'%',top:p.y*100/W+'%'}}>{p.n.toLocaleString()}</span>)}
     </div>
+    {spot&&<span key={spot.key} className="m3-spot" aria-hidden="true" style={{'--x':spot.x*100+'%','--y':spot.y*100+'%','--ms':spot.ms+'ms'} as React.CSSProperties}/>}
     <Sparks ref={sparks} always/>
+    {callouts.map(c=><p key={c.key} className={'m3-callout is-'+c.type} aria-hidden="true" style={{left:c.x*100+'%',top:c.y*100+'%'}}><span>{c.text}</span></p>)}
     {cheer&&<p key={cheer.key} className={'blast-cheer m3-cheer'+(cheer.big?' is-big':'')} role="status"><span>{cheer.text}</span></p>}
     {done&&<p className="blast-over" role="status">{done}</p>}
    </div>

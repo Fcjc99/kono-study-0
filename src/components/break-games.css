@@ -565,3 +565,32 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .candy-map button.is-next:not(#x):not(#y){background:radial-gradient(circle at 35% 30%,#fff6b0,#ff9b3d)!important;box-shadow:0 4px 0 #c4650f,0 0 16px #ffd84d!important;animation:m3-armed .8s ease-in-out infinite alternate}
 .candy-map button.is-picked:not(#x):not(#y){outline:3px solid #7a2cff;outline-offset:3px}
 .candy-map button.is-locked:not(#x):not(#y){background:#d9c6d4!important;box-shadow:0 4px 0 #a796a3!important}
+/* A special's moment (Match3): while it winds up the board dims around it, a spotlight that tightens on it;
+   as it goes off its name pops up right there, big, and the board jolts. Candy crush's blasts run longer. */
+.m3-spot{position:absolute;inset:0;z-index:5;pointer-events:none;border-radius:inherit;background:radial-gradient(circle at var(--x) var(--y),transparent 0 9cqw,rgba(20,0,40,.22) 13cqw,rgba(20,0,40,.6) 40cqw);animation:m3-spot var(--ms) ease-in both}
+.match3-board{container-type:inline-size}
+@keyframes m3-spot{0%{opacity:0}35%{opacity:1}100%{opacity:1}}
+.m3-callout{position:absolute;z-index:9;margin:0;translate:-50% -50%;pointer-events:none;white-space:nowrap;animation:m3-callout 1.7s cubic-bezier(.2,1.5,.4,1) both}
+.m3-callout span{display:block;font-size:clamp(1.6rem,7.5vw,2.6rem);font-weight:900;line-height:1;letter-spacing:.01em;background:linear-gradient(#fff,#fff3a6 35%,#ff9ad8 70%,#c53fa6);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:1.5px rgba(110,20,80,.55);filter:drop-shadow(0 3px 0 rgba(110,20,80,.45)) drop-shadow(0 0 14px rgba(255,255,255,.9))}
+.match3.is-candy .m3-callout span{font-family:'Lobster','Pacifico','Comic Sans MS','Segoe Script',cursive}
+.m3-callout.is-area span{background:linear-gradient(#fff,#ffe07a 40%,#ff8a2e 75%,#d3401a);-webkit-background-clip:text;background-clip:text}
+.m3-callout.is-color span,.m3-callout.is-board span{background:linear-gradient(90deg,#ff5d8f,#ffd84d,#5df0a0,#5dc8ff,#c58bff);-webkit-background-clip:text;background-clip:text;animation:m3-rainbow .6s linear infinite}
+.m3-callout.is-row span,.m3-callout.is-col span{background:linear-gradient(#fff,#bff0ff 40%,#4ab8ff 80%,#1d6fd6);-webkit-background-clip:text;background-clip:text}
+.m3-callout.is-combo span{font-size:clamp(1.9rem,9vw,3.1rem)}
+.match3.is-gems .m3-callout span{font-family:inherit;background:linear-gradient(#fff,#bfe9ff 45%,#5aa8ff);-webkit-background-clip:text;background-clip:text;-webkit-text-stroke:1.5px rgba(10,40,100,.6)}
+@keyframes m3-callout{0%{scale:.2;rotate:-14deg;opacity:0}14%{scale:1.35;rotate:5deg;opacity:1}24%{scale:.95;rotate:-2deg}32%{scale:1.05;rotate:0deg}75%{opacity:1;translate:-50% -70%}100%{scale:1;opacity:0;translate:-50% -130%}}
+@keyframes m3-rainbow{to{filter:hue-rotate(360deg) drop-shadow(0 0 14px rgba(255,255,255,.9))}}
+.blast-frame.is-punch .match3-board{animation:m3-punch .38s cubic-bezier(.3,1.6,.5,1)}
+@keyframes m3-punch{0%{scale:1}25%{scale:1.035}55%{scale:.99}100%{scale:1}}
+.match3.is-candy .m3-launch.is-row,.match3.is-candy .m3-launch.is-col{animation-duration:.9s}
+.match3.is-candy .m3-launch.is-cross{animation-duration:1s}
+.match3.is-candy .m3-launch.is-area{animation-duration:1s}
+.match3.is-candy .m3-beam.is-run{animation:m3-run var(--t) linear both,m3-fade .8s ease-out var(--t) both;box-shadow:0 0 18px 8px var(--glow,rgba(255,170,230,.95))}
+.match3.is-candy .m3-head{scale:2.4}
+.match3.is-candy .m3-core{animation-duration:.8s}
+.match3.is-candy .m3-wave{animation-duration:.95s;border-width:4px}
+.match3.is-candy .m3-ring{animation-duration:1.05s}
+.match3.is-candy .m3-bolts polyline{animation-duration:1s;stroke-width:.12}
+.match3.is-candy .m3-flash{animation-duration:1.2s}
+.match3.is-candy .match3-piece.is-charging .m3-halo{scale:calc(1 + var(--charge,0)*1.4);opacity:calc(.4 + var(--charge,0)*.6)}
+@media(prefers-reduced-motion:reduce){.m3-callout{animation-duration:1.7s;animation-timing-function:ease}.blast-frame.is-punch .match3-board{animation:none}}
