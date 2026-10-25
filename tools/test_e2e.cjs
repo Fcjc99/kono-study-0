@@ -3669,7 +3669,19 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  await page.waitForFunction(()=>Number(document.querySelector('.flow-game .blast-score')?.textContent?.replace(/,/g,''))>0)
  await flow.getByRole('button',{name:'Hold'}).click();await flow.getByRole('button',{name:'Drop'}).click()
  await flow.getByRole('meter',{name:'Flow'}).waitFor()
- if(process.env.KONO_SHOTS)await flow.screenshot({path:process.env.KONO_SHOTS+'/flow.png'})
+ // Touch: a sideways drag moves the shape between lanes; a flick down that drifts sideways never shifts it.
+ const well=flow.getByRole('img',{name:'KONO Flow well'}),wb=await well.boundingBox(),cell=Math.min(wb.width/16.4,wb.height/20.8)
+ const col=()=>well.evaluate(el=>Number(el.dataset.col))
+ const cx=wb.x+wb.width/2,cy=wb.y+wb.height*0.3
+ let start=await col()
+ await page.mouse.move(cx,cy);await page.mouse.down()
+ for(let i=1;i<=6;i++)await page.mouse.move(cx+i*cell*0.5,cy+i*0.1)
+ await page.mouse.up();await page.waitForTimeout(150)
+ assert.ok(await col()>start,'a sideways drag moves the shape to the right')
+ await page.waitForTimeout(150);start=await col()
+ await page.mouse.move(cx,cy);await page.mouse.down()
+ for(let i=1;i<=6;i++){await page.mouse.move(cx+i*cell*0.35,cy+i*cell);await page.waitForTimeout(40);assert.equal(await col(),start,'a drag going down never shifts the lane')}
+ await page.mouse.up()
  await flow.getByRole('button',{name:'■ End'}).click()
  await flow.getByRole('region',{name:'Results'}).getByText(/\d[\d,]* points/).first().waitFor()
  await flow.getByRole('button',{name:'Done'}).click();await flow.waitFor({state:'detached'})
