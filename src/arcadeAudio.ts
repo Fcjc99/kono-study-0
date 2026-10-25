@@ -157,10 +157,14 @@ function stopTrack(fade=0){
  tail=null
 }
 const trackVolume=()=>slow?0.3:0.55
+/** A combo stack (Match3): each step of a cascade nudges the track up a little in pitch and pace. */
+let lift=0
+const trackRate=()=>slow?0.8:1+lift*0.015
+const applyRate=(a:HTMLAudioElement)=>{a.preservesPitch=slow||!lift;a.playbackRate=trackRate()}
 /** Plays a recorded track. Each file fades in at its start and out at its end, so instead of a plain loop
  * (a dip of a few seconds each time round) the next copy starts over the last 3 seconds. */
 function playTrack(src:string,onFail:()=>void){
- const a=new Audio(src);a.volume=0;a.preservesPitch=true;a.playbackRate=slow?0.8:1;track=a
+ const a=new Audio(src);a.volume=0;applyRate(a);track=a
  let handed=false
  a.addEventListener('error',()=>{if(track===a)onFail()},{once:true})
  a.addEventListener('timeupdate',()=>{
@@ -215,7 +219,7 @@ function synth(theme:Theme){
 function stopTimer(){if(playing){playing.stop=true;window.clearInterval(playing.timer);playing=null}}
 /** Fades the soundtrack out (leaving a game, or the round is over). */
 export function stopMusic(){
- wanted=null;slow=false
+ wanted=null;slow=false;lift=0
  stopTrack(400)
  if(ctx&&musicBus&&playing){const t=ctx.currentTime;musicBus.gain.cancelScheduledValues(t);musicBus.gain.setValueAtTime(musicBus.gain.value,t);musicBus.gain.linearRampToValueAtTime(0.0001,t+0.4)}
  const p=playing;window.setTimeout(()=>{if(playing===p)stopTimer()},450)
@@ -231,8 +235,14 @@ export function setMusicOn(on:boolean,enabled:boolean){
  * that starts meanwhile, after 🎵 is turned back on, starts slowed too). */
 export function musicSlow(on:boolean){
  slow=on
- for(const a of [track,tail]){if(!a)continue;a.preservesPitch=true;a.playbackRate=on?0.8:1}
+ for(const a of [track,tail])if(a)applyRate(a)
  if(track)track.volume=trackVolume()
+}
+/** The cascade's step (0 when the board settles): the music climbs with it, up to four steps. */
+export function musicLift(n:number){
+ const next=Math.max(0,Math.min(4,n));if(next===lift)return
+ lift=next
+ for(const a of [track,tail])if(a)applyRate(a)
 }
 
 // ---- Sound effects ----

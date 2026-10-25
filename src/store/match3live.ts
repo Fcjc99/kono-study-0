@@ -37,6 +37,8 @@ export type Ev=
  |{t:'clear';at:number;kind:number;special?:Special;merge?:number;pts:number}
  |{t:'fire';e:Effect;delays:number[];points:number;combo?:boolean}
  |{t:'made';at:number;special:Special}
+ // Sugar crush: a move left is on its way to this candy (it turns striped `in` ms from now).
+ |{t:'aim';at:number;in:number}
  |{t:'charge';at:number;special:Special;combo?:boolean}
  |{t:'time';n:number}|{t:'mult';n:number}|{t:'nope'}|{t:'shuffle'}
 export type Live={m:Maker;cells:(Bit|null)[];chain:number;spots:number[];ignite:number[];taken:number;multNext:boolean;multGiven:boolean;events:Ev[];pend:{a:number;c:number;t:number}[];combos:{a:number;c:number;t:number}[]}
@@ -332,14 +334,17 @@ export function step(rt:Live,dt:number):boolean{
 
 /** The finale (Sugar crush, Last hurrah): `extra` plain pieces turn striped one after another, then every
  * special on the board goes off in turn. The number of specials set off. */
-export function blowAll(rt:Live,extra:number):number{
+/** `gap`: the time between one move left becoming a striped candy and the next; `lead`: how long before
+ * the first does (each is announced with an 'aim' event, so a star can fly to it first). */
+export function blowAll(rt:Live,extra:number,gap=110,lead=0):number{
  const plain=rt.cells.flatMap((x,i)=>rests(x,i)&&!x.p.special?[i]:[])
  let k=0
  for(;k<extra&&plain.length;k++){
   const i=plain.splice(Math.floor(rt.m.roll()*plain.length),1)[0],x=rt.cells[i]!
-  x.up={p:{...x.p,special:rt.m.roll()<0.5?'row':'col'},in:k*110,made:false}
+  x.up={p:{...x.p,special:rt.m.roll()<0.5?'row':'col'},in:lead+k*gap,made:lead>0}
+  rt.events.push({t:'aim',at:i,in:k*gap})
  }
- const t0=k*110+350
+ const t0=lead+k*gap+350
  const all=rt.cells.flatMap((x,i)=>x&&x.clear===undefined&&x.doom===undefined&&(x.p.special||x.up?.p.special)?[i]:[])
  all.forEach((i,k)=>{const x=rt.cells[i]!;x.doom=t0+k*150;x.fired=false;x.level=2})
  return all.length
@@ -391,7 +396,8 @@ export function view(rt:Live):Look[]{
    const k=Math.min(1,x.pull.t/COMBO_MS[rt.m.mode]),q=ease(k),[tr,tc]=rc(x.pull.to)
    px=c+(tc-c)*0.5*q;py=r+(tr-r)*0.5*q;sx=sy=1+0.25*q;b=1+q;z=4;charge=Math.max(0.01,k);rot=x.p.special==='color'?q*q*720:Math.sin(x.pull.t*0.08)*6*q
   }
-  if(x.landed!==undefined){const k=x.landed/240,q=Math.sin(Math.PI*Math.min(1,k*1.5))*(1-k)*0.2;sx*=1+q;sy*=1-q}
+  // Landing: a squash, then a little stretch back up, settling (a candy is softer than a gem).
+  if(x.landed!==undefined){const k=x.landed/240,q=Math.sin(Math.PI*2.2*k)*(1-k)*(1-k)*(rt.m.mode==='candy'?0.34:0.22);sx*=1+q;sy*=1-q}
   out.push({id:x.p.id,p:x.p,at:i,x:px,y:py,sx,sy,rot,o,b,z,born:x.born!==undefined,clearing:x.clear!==undefined,charge})
  })
  return out.sort((a,b)=>a.id-b.id)

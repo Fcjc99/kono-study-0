@@ -612,3 +612,39 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 @keyframes m3-lean{0%,100%{translate:0 0}50%{translate:calc(var(--nx,0)*6%) calc(var(--ny,0)*6%)}}
 .match3-board.has-pick .match3-piece:not(.is-picked):not(.is-near):not(.is-clearing) .m3-gem{opacity:.72;transition:opacity .2s}
 .match3-board .match3-piece .m3-gem{transition:opacity .2s}
+/* Small details (Match3). A swap that doesn't match bumps and springs back; the moves counter beats red for
+   the last three; four or more pieces shiver as they gather into a special; a cascade warms the scenery;
+   points fly up to the score (bigger the bigger they are) and it bumps; a hint shows which way to swipe;
+   idle candies wiggle or blink and gems catch a sweep of light; Sugar crush's stars fly off the counter. */
+.match3-piece.is-nope .m3-gem{animation:m3-nope .38s ease-out;filter:brightness(.9) sepia(.3) hue-rotate(-20deg) saturate(1.6)}
+@keyframes m3-nope{0%,100%{translate:0 0}20%{translate:-9% 0;rotate:-6deg}40%{translate:8% 0;rotate:5deg}60%{translate:-5% 0;rotate:-3deg}80%{translate:3% 0}}
+.m3-moves.is-low{color:#ff5a6e!important;-webkit-text-stroke:0;text-shadow:0 0 10px rgba(255,90,110,.75);display:inline-block;animation:m3-heart .9s ease-in-out infinite}
+@keyframes m3-heart{0%,100%{scale:1}12%{scale:1.22}24%{scale:1}36%{scale:1.14}48%{scale:1}}
+.match3-piece.is-shiver .m3-gem{animation:m3-shiver .07s linear infinite;filter:brightness(1.3)}
+@keyframes m3-shiver{0%{translate:-2% 1%}25%{translate:2% -1%}50%{translate:-1% -2%}75%{translate:1% 2%}100%{translate:-2% 0}}
+.match3 .m3-bg{transition:filter .6s ease}
+.match3.is-hot .m3-bg{filter:brightness(calc(1 + var(--heat)*.35)) saturate(calc(1 + var(--heat)*.5))}
+.match3.is-hot .blast-frame{box-shadow:0 0 calc(8px + var(--heat)*34px) calc(var(--heat)*8px) rgba(255,200,90,calc(.15 + var(--heat)*.5));transition:box-shadow .4s ease}
+.match3.is-candy.is-hot .blast-frame{box-shadow:0 0 calc(8px + var(--heat)*34px) calc(var(--heat)*8px) rgba(255,120,210,calc(.15 + var(--heat)*.5))}
+.blast-frame{transition:box-shadow .8s ease}
+.m3-pop.is-big{font-size:1.9rem!important;z-index:8}
+.m3-pop.is-huge{font-size:2.5rem!important;z-index:8;animation-duration:1.2s}
+.m3-fly{position:absolute;z-index:10;pointer-events:none;translate:-50% -50%;white-space:nowrap;font-weight:900;animation:m3-fly var(--ms) cubic-bezier(.45,0,.6,1) both}
+.m3-fly.is-pts{font-size:1.05rem;color:#fff;background:linear-gradient(#fffbe0,#ffd84d 55%,#e08a1e);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 0 rgba(90,40,0,.7)) drop-shadow(0 0 6px rgba(255,220,120,.9))}
+.m3-fly.is-star{font-size:1.9rem;color:#ffe14d;text-shadow:0 0 10px #fff,0 0 18px #ffd84d}
+@keyframes m3-fly{0%{transform:translate(0,0) scale(.6);opacity:0}12%{transform:translate(0,-10px) scale(1.25);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(.55);opacity:.9}}
+.m3-fly.is-star{animation-name:m3-fly-star}
+@keyframes m3-fly-star{0%{transform:translate(0,0) scale(.5) rotate(0);opacity:0}15%{opacity:1;transform:translate(calc(var(--dx)*.1),calc(var(--dy)*.1 - 30px)) scale(1.4) rotate(90deg)}100%{transform:translate(var(--dx),var(--dy)) scale(.9) rotate(360deg);opacity:1}}
+.blast-score.is-bump{animation:m3-score-bump .3s cubic-bezier(.3,1.8,.5,1)}
+@keyframes m3-score-bump{0%{transform:scale(1)}40%{transform:scale(1.25);filter:brightness(1.4)}100%{transform:scale(1)}}
+.m3-hint-arrow{position:absolute;z-index:6;width:calc(100%/6);height:calc(100%/11);translate:-50% -50%;pointer-events:none;display:flex;align-items:center;justify-content:center;gap:2px}
+.m3-hint-arrow i{width:30%;height:100%;background:linear-gradient(#fff,#fff3a6);clip-path:polygon(0 0,55% 50%,0 100%,35% 100%,90% 50%,35% 0);filter:drop-shadow(0 0 4px rgba(255,255,255,.95)) drop-shadow(0 1px 2px rgba(60,0,60,.8));animation:m3-chev 1s ease-in-out infinite}
+.m3-hint-arrow i:nth-child(2){animation-delay:.15s}
+@keyframes m3-chev{0%,100%{opacity:.25;translate:-20% 0}50%{opacity:1;translate:20% 0}}
+.match3.is-candy .match3-piece.is-wiggle .m3-gem{animation:m3-wiggle .6s ease-in-out;transform-origin:50% 90%}
+@keyframes m3-wiggle{0%,100%{rotate:0deg}20%{rotate:-10deg}40%{rotate:9deg}60%{rotate:-6deg}80%{rotate:3deg}}
+.match3.is-candy .match3-piece.is-blink .m3-gem{animation:m3-blink .7s ease-in-out;transform-origin:50% 60%}
+@keyframes m3-blink{0%,100%{scale:1 1}30%{scale:1.06 .72}45%{scale:1.04 .8}60%{scale:1 1}}
+.match3.is-gems .match3-piece.is-shine .m3-gem{animation:m3-catch .7s ease-in-out}
+.match3.is-gems .match3-piece.is-shine .m3-gem::before{content:'';position:absolute;inset:8%;z-index:2;border-radius:20%;pointer-events:none;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.9) 50%,transparent 65%) 0 0/300% 100% no-repeat;animation:m3-sweep .7s ease-out both}
+@keyframes m3-sweep{from{background-position:120% 0}to{background-position:-60% 0}}
