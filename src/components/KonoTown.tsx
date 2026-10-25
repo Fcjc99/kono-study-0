@@ -97,7 +97,7 @@ export default function KonoTown({onBlastCoins,close,sound=true,balance,startTab
    {tab==='wheel'&&<PrizeWheel spin={spin} onSpin={onSpin} sound={sound}/>}
    {tab==='arcade'&&<section className="town-arcade" aria-label="Arcade">
     <p className="town-rounds">{roundsLeft?<><strong>{roundsLeft} of {COIN_ROUNDS}</strong> coin rounds left today. After that, play just for fun.</>:<>Today’s coin rounds are used up. Play just for fun, or come back tomorrow!</>}</p>
-    <BreakGames startedAt={0} arcade sound={sound} onBlastCoins={onBlastCoins} onScore={(game,score)=>{const n=onGame(game,score);if(n){playSfx('coin',sound);coinBurst(document.querySelector('.town-purse'))}return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
+    <BreakGames startedAt={0} arcade sound={sound} onBlastCoins={onBlastCoins} coins={{balance,onBuy}} onScore={(game,score)=>{const n=onGame(game,score);if(n){playSfx('coin',sound);coinBurst(document.querySelector('.town-purse'))}return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
    </section>}
    {tab==='album'&&<section className="town-album" aria-label="Album">
     <p className="town-album-count"><span><strong>{count.owned} of {count.total}</strong> collected</span><span className="town-album-bar" aria-hidden="true"><i style={{width:(count.total?count.owned/count.total*100:0)+'%'}}/></span></p>

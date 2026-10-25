@@ -1,5 +1,5 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {COLS,FLOW_CELL,H,HIDDEN,KINDS,ROWS,cellsOf,ghostOf,hardDrop,holdPiece,move,musicPart,newGame,rotate,shapeCells,softDrop,startFlow,tick,type FlowEvent,type Game,type Kind} from '../store/flow'
+import {COLS,FLOW_CELL,H,HIDDEN,KINDS,ROWS,SPRINT_LINES,ULTRA_MS,cellsOf,ghostOf,hardDrop,holdPiece,move,musicPart,newGame,rotate,shapeCells,softDrop,startFlow,tick,type FlowEvent,type Game,type Kind,type Mode} from '../store/flow'
 import {fx,musicSlow,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
 
@@ -10,6 +10,10 @@ import type {GameHandle} from './GameScreen'
  * Back to back, Perfect clear). Every move plays a note in the soundtrack's key, so playing adds to the
  * music: five recorded tracks, a new one every three levels (slowed and softened in Flow). In Flow the field stills and turns deep blue, the rows you fill pile up white at the bottom with a
  * count, and when it ends they all burst at once.
+ * Modes (picked before each game, each with its own best on this device): Marathon, Sprint (40 lines against
+ * the clock), Ultra (three minutes) and Zen (no game over). Every three levels the scene changes with the
+ * music: Drift (floating motes), Tide (rolling waves), Pulse (rings on the beat), Aurora (curtains of light)
+ * and Zenith (turning rays). Phones that can vibrate tap softly on a lock and harder on clears.
  * Controls: arrow keys (← → move, ↓ soft drop, ↑ or X turn, Z turn back, Space hard drop, C hold, F Flow);
  * on a phone, drag sideways to move, drag down to drop gently, flick down to drop, flick up to hold, tap to
  * turn, or use the buttons. */
@@ -19,9 +23,11 @@ type Spark={x:number;y:number;vx:number;vy:number;life:number;max:number;size:nu
 type Band={y:number;t:number;white?:boolean}
 type Word={key:number;text:string;big?:boolean}
 const DAS=170,ARR=45,SOFT=40
-export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:boolean;onEnd:(score:number,lines:number,level:number)=>void}){
+export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:boolean;onEnd:(r:FlowResult)=>void}){
+ // The mode, picked first (the game starts once it's chosen).
+ const [mode,setMode]=useState<Mode|null>(null)
  const canvas=useRef<HTMLCanvasElement>(null),game=useRef<Game|null>(null)
- const [hud,setHud]=useState({score:0,lines:0,level:1,flow:0,flowMs:0,flowLines:0}),[words,setWords]=useState<Word[]>([])
+ const [hud,setHud]=useState({score:0,lines:0,level:1,flow:0,flowMs:0,flowLines:0,time:0}),[words,setWords]=useState<Word[]>([])
  // The well's size in pixels, from the space actually left on the screen: the full width (less the screen's
  // padding), and the height between the well's top and the meter and buttons below it (CSS alone left it
  // squeezed on some phones). Measured after layout, and again whenever the screen resizes or turns.
@@ -40,20 +46,22 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
  const ended=useRef(false),onEndRef=useRef(onEnd),soundRef=useRef(sound),keys=useRef(0)
  const held=useRef<{dir:number;t:number;next:number}|null>(null),soft=useRef(false)
  useEffect(()=>{onEndRef.current=onEnd;soundRef.current=sound},[onEnd,sound])
- useImperativeHandle(ref,()=>({end:()=>{if(ended.current)return;ended.current=true;const s=game.current!;onEndRef.current(s.score,s.lines,s.level)}}),[])
+ const result=(s:Game,done:boolean):FlowResult=>({mode:s.mode,score:s.score,lines:s.lines,level:s.level,time:Math.round(s.time),done,best:saveFlowBest(s.mode,done,s.mode==='sprint'?s.time:s.score)})
+ useImperativeHandle(ref,()=>({end:()=>{if(ended.current)return;ended.current=true;const s=game.current;if(!s){onEndRef.current({mode:'marathon',score:0,lines:0,level:1,time:0,done:false,best:false});return}onEndRef.current(result(s,false))}}),[])
  const say=(text:string,big=false)=>{const key=++keys.current;setWords(w=>[...w.slice(-3),{key,text,big}]);window.setTimeout(()=>setWords(w=>w.filter(x=>x.key!==key)),1400)}
  // What the game says happened: sounds, sparks, flashes and words.
  const onEvent=(e:FlowEvent)=>{
   const s=soundRef.current,p=game.current?.piece,v=vis.current
   if(e.t==='move'||e.t==='rotate')fx('note',s,(p?p.x+(p.rot*2):0)+3)
+  else if(e.t==='zen'){say('Fresh start',true);fx('flowOn',s);v.pulse=1.5;buzz([20,40,20])}
   else if(e.t==='hold')fx('whoosh',s)
   else if(e.t==='lock'){
-   fx('lock',s);v.shake=Math.max(v.shake,e.drop>2?5:2)
+   fx('lock',s);v.shake=Math.max(v.shake,e.drop>2?5:2);buzz(e.drop>2?14:8)
    const color=COLORS[(game.current?.board[(e.cells[0][1])*COLS+e.cells[0][0]])||1]
    for(const [x,y] of e.cells)burst(v,x+0.5,y+0.9,color,4,0.6)
    if(e.drop>1){const xs=e.cells.map(c=>c[0]),ys=e.cells.map(c=>c[1]);v.streaks.push({x0:Math.min(...xs),x1:Math.max(...xs)+1,y0:Math.min(...ys)-e.drop,y1:Math.max(...ys)+1,t:0,color})}
   }else if(e.t==='clear'){
-   if(e.count){fx('rows',s,e.count);v.pulse=1;v.shake=e.count>=4?10:4
+   if(e.count){fx('rows',s,e.count);v.pulse=1;v.shake=e.count>=4?10:4;buzz(e.count>=4?[30,40,60]:[18+e.count*8])
     for(const y of e.rows){v.bands.push({y,t:0});for(let x=0;x<COLS;x++)burst(v,x+0.5,y+0.5,COLORS[1+((x+y)%7)],e.count>=4?7:5,1.4)}}
    const name=['','Single','Double','Triple','Quad'][e.count]
    if(e.tspin)say((e.tspin==='mini'?'T-spin mini':'T-spin')+(name?' '+name.toLowerCase():''),true)
@@ -61,21 +69,32 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
    if(e.b2b)say('Back to back!')
    if(e.combo>=2)say('Combo '+e.combo)
    if(e.perfect){say('Perfect clear!',true);fx('mega',s)}
-  }else if(e.t==='level'){say('Level '+e.level,true);fx('fanfare',s);const p=musicPart(e.level);if(p!==part.current){part.current=p;startMusic('flow',s,p)}}
+  }else if(e.t==='level'){
+   fx('fanfare',s);const p=musicPart(e.level)
+   // A new stretch of levels: a new scene and its song.
+   if(p!==part.current){part.current=p;startMusic('flow',s,p);say(STAGES[p-1].name,true);v.pulse=2}
+   say('Level '+e.level)
+  }
   else if(e.t==='flowOn'){fx('flowOn',s);say('Flow',true);musicSlow(true)}
   else if(e.t==='flowStack'){fx('rows',s,Math.min(4,e.rows.length));for(let k=0;k<e.rows.length;k++)v.bands.push({y:H-1-(e.total-1-k),t:0,white:true})}
   else if(e.t==='flowEnd'){
    musicSlow(false)
    if(e.lines){fx('flowEnd',s);say(e.lines+' lines!',true);v.shake=14;v.pulse=1.5
+    buzz([40,50,80])
     for(let k=0;k<e.lines;k++){const y=H-1-k;v.bands.push({y,t:0,white:true});for(let x=0;x<COLS;x++)burst(v,x+0.5,y+0.5,'#ffffff',6,1.8)}}
-  }else if(e.t==='over'){stopMusic();fx('thud',s);if(!ended.current){ended.current=true;const st=game.current!;window.setTimeout(()=>onEndRef.current(st.score,st.lines,st.level),1400)}}
+  }else if(e.t==='over'||e.t==='done'){
+   stopMusic();fx(e.t==='done'?'fanfare':'thud',s);buzz(e.t==='done'?[30,60,30,60,90]:200)
+   if(e.t==='done')say(game.current?.mode==='sprint'?'Finish!':'Time!',true)
+   if(!ended.current){ended.current=true;const st=game.current!,r=result(st,e.t==='done');window.setTimeout(()=>onEndRef.current(r),1400)}
+  }
  }
  // Doing something: the game moves, and anything it says is heard and seen at once.
  const act=(f:(s:Game)=>unknown)=>{const s=game.current;if(!s||s.over||ended.current)return;f(s);for(const e of s.events.splice(0))onEvent(e)}
  const actRef=useRef(act)
  useEffect(()=>{actRef.current=act})
  useEffect(()=>{
-  game.current=newGame(Math.random)
+  if(!mode)return
+  game.current=newGame(Math.random,mode)
   startMusic('flow',soundRef.current,1)
   const down=(e:KeyboardEvent)=>{
    const k=e.code,A=actRef.current
@@ -104,14 +123,14 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
    if(soft.current){softT+=dt;while(softT>=SOFT){softT-=SOFT;A(s=>softDrop(s))}}else softT=0
    A(s=>tick(s,dt))
    const s=game.current!
-   const next={score:s.score,lines:s.lines,level:s.level,flow:s.flow,flowMs:Math.ceil(Math.max(0,s.flowMs)/1000),flowLines:s.flowLines},key=JSON.stringify(next)
+   const next={score:s.score,lines:s.lines,level:s.level,flow:s.flow,flowMs:Math.ceil(Math.max(0,s.flowMs)/1000),flowLines:s.flowLines,time:Math.floor(s.time/100)},key=JSON.stringify(next)
    if(key!==shown){shown=key;setHud(next)}
    draw(canvas.current,s,dt,vis.current)
    raf=requestAnimationFrame(loop)
   }
   raf=requestAnimationFrame(loop)
   return ()=>{cancelAnimationFrame(raf);window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);stopMusic()}
- },[])
+ },[mode])
  // ---- Touch: drag to move, drag down to drop gently, flick down to drop, flick up to hold, tap to turn ----
  const touch=useRef<{x:number;y:number;t:number;mx:number;my:number;moved:boolean}|null>(null)
  const cellPx=()=>{const c=canvas.current;if(!c)return 30;const r=c.getBoundingClientRect();return Math.min(r.width/LAYOUT.w,r.height/LAYOUT.h)}
@@ -134,15 +153,20 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
   else if(!t.moved&&Math.hypot(dx,dy)<cellPx()*0.6&&dt<450)act(s=>rotate(s,1))
  }
  const can=hud.flow>=0.25&&!hud.flowMs
+ const secs=hud.time/10
  return <div className="break-game flow-game" style={{'--fw':size.w+'px'} as React.CSSProperties}>
   <div className="blast-top">
-   <span className="blast-best">Level {hud.level}</span>
-   <span className="blast-coins">{hud.lines} line{hud.lines===1?'':'s'}</span>
+   <span className="blast-best">{mode==='sprint'?clockText(secs*1000,true):mode==='ultra'?'⏱ '+clockText(Math.max(0,ULTRA_MS-secs*1000)):mode==='zen'?'Zen · level '+hud.level:'Level '+hud.level}</span>
+   <span className="blast-coins">{mode==='sprint'?hud.lines+' / '+SPRINT_LINES:hud.lines+' line'+(hud.lines===1?'':'s')}</span>
    <strong className="blast-score" aria-label={'Score '+hud.score}>{hud.score.toLocaleString()}</strong>
   </div>
   <div ref={stage} className="flow-stage" style={{width:size.w,height:size.h}}>
    <canvas ref={canvas} className="flow-canvas" style={{width:size.w,height:size.h}} aria-label="KONO Flow well" role="img" onPointerDown={pdown} onPointerMove={pmove} onPointerUp={pup} onPointerCancel={()=>{touch.current=null}}/>
    {hud.flowMs>0&&<p className="flow-count" aria-live="polite"><b>{hud.flowLines}</b><small>lines · {hud.flowMs}s</small></p>}
+   {!mode&&<div className="flow-modes" role="group" aria-label="Choose a mode">
+    <p>Choose a mode</p>
+    {MODES.map(m=><button key={m.id} type="button" onClick={()=>setMode(m.id)}><b>{m.name}</b><small>{m.how}</small>{flowBestText(m.id)&&<i>{flowBestText(m.id)}</i>}</button>)}
+   </div>}
    <div className="flow-words" aria-live="polite">{words.map(w=><p key={w.key} className={w.big?'is-big':''}>{w.text}</p>)}</div>
   </div>
   <div ref={below} className="flow-below">
@@ -179,7 +203,7 @@ function draw(c:HTMLCanvasElement|null,s:Game,dt:number,v:Vis){
   const cs=Math.min(w/LAYOUT.w,h/LAYOUT.h),ox=(w-LAYOUT.w*cs)/2+LAYOUT.side*cs,oy=LAYOUT.top*cs
   if(v.spriteSize!==Math.round(cs)){v.spriteSize=Math.round(cs);v.sprites=COLORS.map(col=>blockSprite(Math.round(cs),col))}
   // The field of light: points drifting toward you, faster with each level; it stills and turns deep blue in Flow.
-  const inFlow=s.flowMs>0,target=inFlow?225:(200+s.level*37)%360
+  const inFlow=s.flowMs>0,stg=STAGES[musicPart(s.level)-1],target=inFlow?225:stg.hue
   v.hue+=((target-v.hue+540)%360-180)*0.02
   const bg=x.createRadialGradient(w/2,h*0.45,0,w/2,h*0.45,Math.max(w,h)*0.75)
   bg.addColorStop(0,'hsl('+v.hue+' 70% '+(inFlow?14:18+v.pulse*10)+'%)');bg.addColorStop(1,'hsl('+(v.hue+40)+' 80% 4%)')
@@ -192,6 +216,7 @@ function draw(c:HTMLCanvasElement|null,s:Game,dt:number,v:Vis){
    const px=w/2+p.x/p.z*w*0.25,py=h*0.45+p.y/p.z*h*0.25,size=(1-p.z)*3*dpr
    x.fillStyle='hsla('+(v.hue+p.x*60)+' 90% 75% / '+(1-p.z)*0.8+')';x.fillRect(px,py,size,size)
   }
+  if(!inFlow)scene(x,stg.motif,w,h,dpr,v)
   x.globalCompositeOperation='source-over'
   v.pulse=Math.max(0,v.pulse-dt/700)
   // The well (shaken a little by hard drops and big clears).
@@ -251,6 +276,53 @@ function stageSize(top=200,rest=90){
  const room=vh-top-rest-20
  return {w,h:Math.round(Math.max(260,Math.min(w*LAYOUT.h/LAYOUT.w,room)))}
 }
+/** How a game went, for the results card: the mode, score, lines, level, time played (ms), whether it was
+ * finished (Sprint's 40 lines, Ultra's three minutes) and whether it's a new best for the mode. */
+export type FlowResult={mode:Mode;score:number;lines:number;level:number;time:number;done:boolean;best:boolean}
+const MODES:{id:Mode;name:string;how:string}[]=[
+ {id:'marathon',name:'Marathon',how:'Play until the well fills. Faster every 10 lines.'},
+ {id:'sprint',name:'Sprint',how:'Clear '+SPRINT_LINES+' lines as fast as you can.'},
+ {id:'ultra',name:'Ultra',how:'As many points as you can in 3 minutes.'},
+ {id:'zen',name:'Zen',how:'No game over. Just play.'},
+]
+/** The five scenes, one for each soundtrack (every three levels): a color, and what moves in the background. */
+const STAGES:{name:string;hue:number;motif:'drift'|'tide'|'pulse'|'aurora'|'zenith'}[]=[
+ {name:'Drift',hue:225,motif:'drift'},{name:'Tide',hue:190,motif:'tide'},{name:'Pulse',hue:300,motif:'pulse'},{name:'Aurora',hue:150,motif:'aurora'},{name:'Zenith',hue:28,motif:'zenith'},
+]
+/** A stage's moving background, drawn over the field of light (adding light). */
+function scene(x:CanvasRenderingContext2D,motif:string,w:number,h:number,dpr:number,v:Vis){
+ const t=v.clock/1000
+ if(motif==='tide'){
+  // Rolling waves across the lower half.
+  for(let k=0;k<4;k++){x.beginPath();const y0=h*(0.55+k*0.11);x.moveTo(0,h);for(let px=0;px<=w;px+=8*dpr)x.lineTo(px,y0+Math.sin(px/(w/3)+t*(0.6+k*0.25)+k)*h*0.03);x.lineTo(w,h);x.closePath();x.fillStyle='hsla('+(185+k*8)+' 90% 60% / '+(0.05+k*0.02)+')';x.fill()}
+ }else if(motif==='pulse'){
+  // Rings from the middle on the beat (the third track runs at about 112 beats a minute).
+  const beat=60/112
+  for(let k=0;k<3;k++){const ph=((t/beat)+k/3)%1;x.beginPath();x.arc(w/2,h*0.45,ph*Math.max(w,h)*0.7,0,Math.PI*2);x.strokeStyle='hsla(305 100% 70% / '+(1-ph)*0.35+')';x.lineWidth=(3+v.pulse*4)*dpr;x.stroke()}
+ }else if(motif==='aurora'){
+  // Curtains of light swaying across the top.
+  for(let k=0;k<3;k++){const g=x.createLinearGradient(0,0,0,h*0.6);g.addColorStop(0,'hsla('+(140+k*45)+' 90% 60% / 0)');g.addColorStop(0.5,'hsla('+(140+k*45)+' 90% 60% / .16)');g.addColorStop(1,'hsla('+(140+k*45)+' 90% 60% / 0)');x.fillStyle=g
+   x.beginPath();x.moveTo(0,0);for(let px=0;px<=w;px+=10*dpr)x.lineTo(px,h*(0.25+0.12*Math.sin(px/(w/2.2)+t*0.5+k*1.7)));x.lineTo(w,0);x.closePath();x.fill()}
+ }else if(motif==='zenith'){
+  // Rays turning slowly about the middle.
+  x.save();x.translate(w/2,h*0.45);x.rotate(t*0.15)
+  for(let k=0;k<12;k++){x.rotate(Math.PI/6);x.beginPath();x.moveTo(0,0);x.lineTo(Math.max(w,h),-w*0.05);x.lineTo(Math.max(w,h),w*0.05);x.closePath();x.fillStyle='hsla(45 100% 70% / '+(0.04+v.pulse*0.03)+')';x.fill()}
+  x.restore()
+ }
+}
+/** A short vibration, on phones that can (an Android phone; iPhones' browsers don't let pages vibrate). */
+function buzz(pattern:number|number[]){try{navigator.vibrate?.(pattern)}catch{/* not allowed */}}
+const clockText=(ms:number,tenths=false)=>{const s=Math.max(0,ms)/1000,m=Math.floor(s/60),r=s-m*60;return m+':'+(tenths?r.toFixed(1).padStart(4,'0'):String(Math.ceil(r)===60?59:Math.floor(r)).padStart(2,'0'))}
+/** Each mode's best on this device: the fastest finished Sprint, else the highest score. */
+const bestKey=(m:Mode)=>'kono-flow-best:'+m
+function readFlowBest(m:Mode):number|null{try{const v=localStorage.getItem(bestKey(m));return v===null?null:Number(v)}catch{return null}}
+function saveFlowBest(m:Mode,done:boolean,value:number):boolean{
+ if(m==='sprint'&&!done)return false
+ const old=readFlowBest(m),better=old===null||(m==='sprint'?value<old:value>old)
+ if(better&&value>0)try{localStorage.setItem(bestKey(m),String(Math.round(value)))}catch{/* storage unavailable */}
+ return better&&value>0
+}
+function flowBestText(m:Mode){const b=readFlowBest(m);return b===null?'':'Best: '+(m==='sprint'?clockText(b,true):b.toLocaleString())}
 /** The canvas in cells: the well (10 × 20) with a column for hold on the left and the queue on the right. */
 const LAYOUT={side:3.2,top:0.4,w:COLS+6.4,h:ROWS+0.8}
 /** A block of light: a rounded pane, darker at the rim and bright in the middle, with a glint. */

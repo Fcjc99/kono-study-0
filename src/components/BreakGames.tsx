@@ -11,7 +11,8 @@ import PaperKono from './PaperKono'
 import {flapMedal} from '../store/flappy'
 import {deal,readBlastSave,writeBlastSave,type BlastSave,type Piece} from '../store/blockBlast'
 import {meowLevel,newMeowPuzzle,type Puzzle} from '../store/meowdoku'
-import {candyLevelNow,freshBoard,jellyFor,maker,saveCandyLevel,type Board,type Maker} from '../store/match3'
+import {BOOSTERS,candyLevelNow,candyStarsKept,freshBoard,jellyFor,maker,saveCandyLevel,saveCandyStars,type Board,type Maker} from '../store/match3'
+import type {ShopItem} from '../store/konoCoins'
 
 /** Break-time games with KONO, offered when a focus session finishes ("Take a short break"). Two quick
  * ones: Snack catch (move KONO to catch falling treats, 30 seconds) and Peekaboo (tap KONO when it pops
@@ -48,10 +49,12 @@ const clock=(ms:number)=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.flo
 /** `startedAt` is when the break games were opened (the break runs BREAK_MINUTES from then). */
 /** Games play full screen (GameScreen); Leave goes back to the list. KONO blast pays coins as lines clear
  * (`onBlastCoins`) and is saved as it goes, so Leave keeps it for next time. */
-export default function BreakGames({startedAt,onClose,arcade=false,sound=false,onScore,onBlastCoins}:{startedAt:number;onClose?:()=>void;arcade?:boolean;sound?:boolean;onScore?:(game:Game,score:number)=>string|null;onBlastCoins?:(lines:number,streak:number)=>number|null}){
+export default function BreakGames({startedAt,onClose,arcade=false,sound=false,onScore,onBlastCoins,coins}:{startedAt:number;onClose?:()=>void;arcade?:boolean;sound?:boolean;onScore?:(game:Game,score:number)=>string|null;onBlastCoins?:(lines:number,streak:number)=>number|null;coins?:{balance:number;onBuy:(item:ShopItem)=>void}}){
  const [game,setGame]=useState<Game|null>(null),[pieces,setPieces]=useState<Piece[]>([]),[blastSave,setBlastSave]=useState<BlastSave|null>(null)
  const [meow,setMeow]=useState<{level:number;puzzle:Puzzle}|null>(null),[match,setMatch]=useState<{maker:Maker;board:Board;level:number;jelly?:Set<number>}|null>(null)
  const [paperMode,setPaperMode]=useState<'solo'|'team'>('solo')
+ // The Candy crush level picked on the map (the next one to beat, unless you pick one you've played).
+ const [candyPick,setCandyPick]=useState<number|null>(null)
  const [ended,setEnded]=useState<GameResult|null>(null),[round,setRound]=useState(0),[started,setStarted]=useState(false)
  const handle=useRef<GameHandle>(null)
  const [now,setNow]=useState(startedAt)
@@ -72,7 +75,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
   setEnded(null);setRound(n=>n+1);setStarted(true)
   if(g==='blast'){if(fresh)writeBlastSave(null);setPieces(deal(Math.random));setBlastSave(fresh?null:readBlastSave())}
   if(g==='meow'){const level=meowLevel();setMeow({level,puzzle:newMeowPuzzle(level)})}
-  if(g==='gems'||g==='candy'){const mk=maker(g,Math.random),level=g==='candy'?candyLevelNow():1;setMatch({maker:mk,board:freshBoard(mk),level,jelly:g==='candy'?jellyFor(level,Math.random):undefined})}
+  if(g==='gems'||g==='candy'){const mk=maker(g,Math.random),level=g==='candy'?candyPick??candyLevelNow():1;setMatch({maker:mk,board:freshBoard(mk),level,jelly:g==='candy'?jellyFor(level,Math.random):undefined})}
   setGame(g)
  }
  const info=GAMES.find(g=>g.id===game)
@@ -81,10 +84,15 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
   :game==='blast'?<BlockBlast key={round} ref={handle} start={pieces} saved={blastSave} best={readBest('blast')} sound={sound} onCoins={onBlastCoins} onEnd={n=>finish('blast',n,'KONO blast: '+n+' point'+(n===1?'':'s')+'! 🧱')}/>
  :game==='meow'&&meow?<Meowdoku key={round} ref={handle} level={meow.level} puzzle={meow.puzzle} sound={sound} onEnd={(level,seconds,solved,extra)=>solved?finish('meow',level,'Solved in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+(extra?.best?' — a new best for '+meow.puzzle.n+' × '+meow.puzzle.n+'!':'.')+(extra?.hints?' ('+extra.hints+' hint'+(extra.hints===1?'':'s')+')':'')+' Next up: level '+(level+1)+'.',{title:'Purr-fect!',coinScore:meow.puzzle.n,scoreText:'Level '+level}):finish('meow',0,(extra?.lives===0?'Three wrong cats. ':'')+'This one stays at level '+level+'. Play again for a new puzzle.',{title:extra?.lives===0?'Out of hearts 💔':'Puzzle skipped',coinScore:0,scoreText:'Level '+level,won:false})}/>
   :game==='flap'?<FlappyKono key={round} ref={handle} best={readBest('flap')} sound={sound} onEnd={n=>{const medal=flapMedal(n);finish('flap',n,(medal?medal.emoji+' '+medal.name+' medal! ':'')+'KONO flew through '+n+' pipe'+(n===1?'':'s')+'.',{title:medal?medal.name+' medal!':n>0?'Nice flying!':'Bonk!',scoreText:n+' pipe'+(n===1?'':'s'),won:n>0})}}/>
-  :game==='flow'?<FlowGame key={round} ref={handle} sound={sound} onEnd={(score,lines,level)=>finish('flow',score,lines+' line'+(lines===1?'':'s')+', level '+level+'. 🌌',{title:'Game over',scoreText:score.toLocaleString()+' points'})}/>
+  :game==='flow'?<FlowGame key={round} ref={handle} sound={sound} onEnd={r=>{
+   // Sprint is about time (its best is kept in the game); the others about points.
+   const t=Math.floor(r.time/60000)+':'+(r.time/1000%60).toFixed(2).padStart(5,'0')
+   if(r.mode==='sprint')finish('flow',0,r.done?(r.best?'A new best Sprint! ':'')+r.lines+' lines in '+t+'. 🌌':'Sprint stopped at '+r.lines+' of 40 lines.',{title:r.done?'Sprint done!':'Game over',coinScore:r.done?r.score:Math.round(r.score/2),scoreText:r.done?t:r.lines+' lines',won:r.done})
+   else finish('flow',r.mode==='marathon'?r.score:0,(r.best?'A new best '+(r.mode==='ultra'?'Ultra':r.mode==='zen'?'Zen':'Marathon')+'! ':'')+r.lines+' line'+(r.lines===1?'':'s')+', level '+r.level+'. 🌌',{title:r.mode==='ultra'?(r.done?'Time’s up!':'Game over'):r.mode==='zen'?'Nice and calm':'Game over',coinScore:r.score,scoreText:r.score.toLocaleString()+' points'})
+  }}/>
   :game==='paper'?<PaperKono key={round} ref={handle} mode={paperMode} sound={sound} onEnd={r=>r.team?finish('paper',0,'Blue '+r.team.blue+'% · Red '+r.team.red+'%'+(r.kills?'. You cut '+r.kills+' trail'+(r.kills===1?'':'s'):'')+'.',{title:r.team.won?'Blue wins! 🏆':r.team.blue===r.team.red?'A tie!':'Red wins this time',coinScore:(r.team.won?25:10)+r.kills*5,scoreText:'Team battle',won:r.team.won}):finish('paper',r.share,'You claimed '+r.share+'% of the map'+(r.kills?' and cut '+r.kills+' trail'+(r.kills===1?'':'s'):'')+'. Rank #'+r.rank+'.',{title:r.rank===1?'Top of the map!':'Nice run!',coinScore:Math.round(r.share+r.kills*5),scoreText:r.share+'%',won:r.share>1})}/>
-  :(game==='gems'||game==='candy')&&match?<Match3 key={round} ref={handle} mode={game} level={match.level} start={match} sound={sound} onEnd={(score,won,stars)=>{
-   if(game==='candy'){if(won)saveCandyLevel(match.level+1);finish('candy',won?match.level:match.level-1,won?'★'.repeat(stars)+'☆'.repeat(3-stars)+' · '+score.toLocaleString()+' points!':'So close! '+score+' points. Try the level again.',{title:won?'Level '+match.level+' complete!':'Out of moves',coinScore:won?score:Math.round(score/2),scoreText:score+' points',won})}
+  :(game==='gems'||game==='candy')&&match?<Match3 key={round} ref={handle} mode={game} level={match.level} start={match} sound={sound} boosters={game==='candy'&&coins?{balance:coins.balance,buy:id=>{const b=BOOSTERS[id];if(coins.balance<b.price)return false;coins.onBuy({key:'booster:'+id,kind:'booster',id,name:b.name,price:b.price,emoji:b.emoji});return true}}:undefined} onEnd={(score,won,stars)=>{
+   if(game==='candy'){if(won){saveCandyLevel(match.level+1);saveCandyStars(match.level,stars)};setCandyPick(null);finish('candy',won?match.level:match.level-1,won?'★'.repeat(stars)+'☆'.repeat(3-stars)+' · '+score.toLocaleString()+' points!':'So close! '+score+' points. Try the level again.',{title:won?'Level '+match.level+' complete!':'Out of moves',coinScore:won?score:Math.round(score/2),scoreText:score+' points',won})}
    else finish('gems',score,'One minute of gem swapping!',{title:'Time’s up!'})
   }}/>
   :null
@@ -94,7 +102,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
   {over?<p className="break-over" role="status">That was a nice reset! KONO’s ready for the next session when you are. 📚</p>
   :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.filter(g=>arcade||!g.arcade).map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>open(g.id)}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.id==='blast'&&kept?'Carry on your game ('+kept.score+' points so far)':g.id==='meow'&&meowLevel()>1?'Level '+meowLevel()+' is next':g.id==='candy'&&candyLevelNow()>1?'Level '+candyLevelNow()+' is next':g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
   {game&&!over&&info&&<GameScreen title={info.emoji+' '+info.name} tone="blast" sound={sound} result={ended}
-   intro={{emoji:info.emoji,name:info.name,how:info.how,best:readBest(game)!==null?info.best(readBest(game)!):null,...(game==='blast'&&kept?{start:'Continue ('+kept.score+' points)',alt:{label:'New game',onClick:()=>begin('blast',true)}}:game==='meow'?{start:'Start level '+meowLevel()}:game==='candy'?{start:'Start level '+candyLevelNow()}:game==='paper'?{start:'Solo',alt:{label:'Team battle',onClick:()=>{setPaperMode('team');begin('paper')}}}:{})}}
+   intro={{emoji:info.emoji,name:info.name,how:info.how,best:readBest(game)!==null?info.best(readBest(game)!):null,...(game==='blast'&&kept?{start:'Continue ('+kept.score+' points)',alt:{label:'New game',onClick:()=>begin('blast',true)}}:game==='meow'?{start:'Start level '+meowLevel()}:game==='candy'?{start:'Start level '+(candyPick??candyLevelNow()),extra:<CandyMap pick={candyPick??candyLevelNow()} onPick={setCandyPick}/>}:game==='paper'?{start:'Solo',alt:{label:'Team battle',onClick:()=>{setPaperMode('team');begin('paper')}}}:{})}}
    started={started} onStart={()=>{if(game==='paper')setPaperMode('solo');begin(game)}} onRestart={()=>begin(game,true)} onEnd={()=>handle.current?.end()}
    onAgain={()=>begin(game,true)} onLeave={()=>{setGame(null);setEnded(null);setStarted(false)}}>
    {!arcade&&<p className="game-screen-timer" role="timer">{'Break: '+clock(left)}</p>}
@@ -167,4 +175,23 @@ function Peekaboo({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:boolean;onEnd:(sc
   <p className="break-game-status"><span>Boops: <strong>{score}</strong></span><span>{clock(left)}</span></p>
   <div className="peekaboo-grid">{Array.from({length:9},(_,i)=><button type="button" key={i} className={'peekaboo-bush'+(at===i?' is-up':'')+(booped===i?' is-booped':'')} aria-label={at===i?'Boop KONO!':'Bush'} onClick={()=>boop(i)}>{at===i&&<img src="/garden/kono/happy.webp" alt=""/>}{booped===i&&<span className="peekaboo-boop" aria-hidden="true">💗</span>}<span className="peekaboo-leaves" aria-hidden="true">🌿</span></button>)}</div>
  </div>
+}
+/** Candy crush's level map: a winding path of levels, the ones you've beaten with their stars, the next one
+ * glowing, and a few locked ahead. Tap any you've reached to play it (replaying keeps your place). */
+const ROW=58,X=(n:number)=>[50,72,82,68,46,26,16,30][n%8]
+function CandyMap({pick,onPick}:{pick:number;onPick:(n:number)=>void}){
+ const now=candyLevelNow(),stars=candyStarsKept(),last=Math.max(now+3,8),levels=Array.from({length:last},(_,i)=>last-i)
+ // Opens scrolled to the next level (the newest are at the top, the first at the bottom).
+ const list=useRef<HTMLOListElement>(null)
+ useEffect(()=>{const el=list.current,next=el?.querySelector<HTMLElement>('.is-next')?.closest('li');if(el&&next)el.scrollTop=next.offsetTop-el.clientHeight/2+next.offsetHeight/2},[])
+ return <ol ref={list} className="candy-map" aria-label="Level map">
+  {/* The path winding through the levels, behind them. */}
+  <svg className="candy-map-path" viewBox={'0 0 100 '+levels.length*ROW} preserveAspectRatio="none" aria-hidden="true" style={{height:levels.length*ROW}}><polyline points={levels.map((n,i)=>X(n)+','+(i*ROW+ROW/2)).join(' ')}/></svg>
+  {levels.map(n=>{const open=n<=now,s=stars[n]??0
+   return <li key={n} style={{'--x':X(n)+'%'} as React.CSSProperties}>
+    <button type="button" disabled={!open} aria-pressed={n===pick} aria-label={'Level '+n+(open?(s?', '+s+' star'+(s===1?'':'s'):n===now?', next':''):', locked')} className={(n===pick?'is-picked ':'')+(n===now?'is-next ':'')+(open?'':'is-locked')} onClick={()=>onPick(n)}>
+     <b>{open?n:'🔒'}</b>{open&&n<now&&<small aria-hidden="true">{'★'.repeat(s)+'☆'.repeat(3-s)}</small>}
+    </button>
+   </li>})}
+ </ol>
 }

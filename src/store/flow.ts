@@ -26,12 +26,18 @@ export type FlowEvent=
  |{t:'clear';rows:number[];count:number;tspin:'full'|'mini'|null;b2b:boolean;combo:number;perfect:boolean;points:number}
  |{t:'level';level:number}
  |{t:'flowOn';ms:number}|{t:'flowStack';rows:number[];total:number}|{t:'flowEnd';lines:number;points:number}
- |{t:'over'}
+ |{t:'over'}|{t:'done'}|{t:'zen'}
+/** How a game is played: Marathon (until the well fills, faster every 10 lines), Sprint (40 lines as fast as
+ * you can), Ultra (as many points as you can in three minutes), Zen (no game over: a full well just clears,
+ * and it never gets faster than level 5). */
+export type Mode='marathon'|'sprint'|'ultra'|'zen'
+export const SPRINT_LINES=40,ULTRA_MS=180_000
 export type Game={
  board:Cell[];piece:Active|null;queue:Kind[];hold:Kind|null;canHold:boolean
  score:number;lines:number;level:number;combo:number;b2b:boolean
  fall:number;lockMs:number;resets:number;lowest:number;lastRotate:boolean;lastKick:number
  flow:number;flowMs:number;flowLines:number;flowRows:number;over:boolean;events:FlowEvent[];roll:()=>number
+ mode:Mode;time:number
 }
 
 // The shapes, each turn of them as the cells (x, y) it fills in its box (y down): the standard rotation system.
@@ -78,12 +84,18 @@ function spawn(g:Game,kind?:Kind){
  const k=kind??g.queue.shift()!
  const p:Active={kind:k,rot:0,x:3,y:HIDDEN-2+(k==='I'?-1:0)+1}
  g.piece=p;g.lockMs=0;g.resets=0;g.lowest=p.y;g.fall=0;g.lastRotate=false
- if(!fits(g,p)){g.over=true;g.piece=null;g.events.push({t:'over'})}
+ if(!fits(g,p))topOut(g)
  refill(g)
 }
-export function newGame(roll:()=>number):Game{
+/** No room left: the game is over, except in Zen, where the well clears and play goes on. */
+function topOut(g:Game){
+ if(g.mode!=='zen'){g.over=true;g.piece=null;g.events.push({t:'over'});return}
+ g.board.fill(0);g.flowRows=0;g.events.push({t:'zen'})
+ spawn(g)
+}
+export function newGame(roll:()=>number,mode:Mode='marathon'):Game{
  const g:Game={board:Array(COLS*H).fill(0),piece:null,queue:[],hold:null,canHold:true,score:0,lines:0,level:1,combo:-1,b2b:false,
-  fall:0,lockMs:0,resets:0,lowest:0,lastRotate:false,lastKick:0,flow:0,flowMs:0,flowLines:0,flowRows:0,over:false,events:[],roll}
+  fall:0,lockMs:0,resets:0,lowest:0,lastRotate:false,lastKick:0,flow:0,flowMs:0,flowLines:0,flowRows:0,over:false,events:[],roll,mode,time:0}
  spawn(g)
  return g
 }
@@ -151,7 +163,7 @@ function lock(g:Game,drop=0){
  for(const [x,y] of cells)if(y>=0)g.board[at(x,y)]=KINDS.indexOf(p.kind)+1
  g.events.push({t:'lock',cells,drop})
  // Locked entirely above the well: game over.
- if(cells.every(([,y])=>y<HIDDEN)){g.over=true;g.piece=null;g.events.push({t:'over'});return}
+ if(cells.every(([,y])=>y<HIDDEN)){g.piece=null;topOut(g);return}
  g.piece=null;g.canHold=true
  const full:number[]=[]
  for(let y=0;y<H-g.flowRows;y++){let all=true;for(let x=0;x<COLS;x++)if(!g.board[at(x,y)]){all=false;break};if(all)full.push(y)}
@@ -187,6 +199,8 @@ function lock(g:Game,drop=0){
   g.flow=Math.min(1,g.flow+n/16)
   g.events.push({t:'clear',rows:full,count:n,tspin:spin,b2b,combo:Math.max(0,g.combo),perfect,points})
   if(g.level>was)g.events.push({t:'level',level:g.level})
+  // Sprint is done at 40 lines.
+  if(g.mode==='sprint'&&g.lines>=SPRINT_LINES){g.over=true;g.piece=null;g.events.push({t:'done'});return}
  }else{
   g.combo=-1
   if(spin){const points=(spin==='full'?400:100)*g.level;g.score+=points;g.events.push({t:'clear',rows:[],count:0,tspin:spin,b2b:false,combo:0,perfect:false,points})}
@@ -218,6 +232,9 @@ function endFlow(g:Game){
  * for LOCK_MS; Flow counts down. */
 export function tick(g:Game,dt:number){
  if(g.over)return
+ g.time+=dt
+ // Ultra ends when its three minutes are up.
+ if(g.mode==='ultra'&&g.time>=ULTRA_MS){g.time=ULTRA_MS;g.over=true;g.piece=null;g.events.push({t:'done'});return}
  if(g.flowMs>0){
   g.flowMs-=dt
   // In Flow the shape doesn't fall, but still locks if it's left on the ground.
@@ -232,7 +249,7 @@ export function tick(g:Game,dt:number){
   return
  }
  g.fall+=dt
- const each=gravityMs(g.level)
+ const each=gravityMs(g.mode==='zen'?Math.min(5,g.level):g.level)
  while(g.fall>=each&&g.piece&&!grounded(g)){
   g.fall-=each;g.piece={...g.piece,y:g.piece.y+1};g.lastRotate=false
   // Reaching a new lowest row gives the lock wait back.

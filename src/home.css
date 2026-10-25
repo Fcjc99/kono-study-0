@@ -329,5 +329,8 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .workbench .island-mode-tabs .wb-scene-world:not(#x):not(#y){display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#2fc2e8,#3e6fe6 55%,#a35be0)!important;color:#fff!important;border:0!important;border-radius:999px!important;font-weight:800!important;box-shadow:0 2px 0 rgba(0,0,0,.15),0 4px 12px rgba(62,111,230,.35)!important;white-space:nowrap;position:relative;overflow:hidden}
 .workbench .island-mode-tabs .wb-scene-world:not(#x):not(#y)::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);transform:translateX(-120%);animation:world-shine 4s ease-in-out infinite;pointer-events:none}
 .workbench .island-mode-tabs .wb-scene-world:not(#x):not(#y):hover{filter:brightness(1.08)}
+/* The Arcade button beside it: warm arcade neon. */
+.workbench .island-mode-tabs .wb-scene-arcade:not(#x):not(#y){display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#ff7a59,#ff3d8b 55%,#8b5cf6)!important;color:#fff!important;border:0!important;border-radius:999px!important;font-weight:800!important;box-shadow:0 2px 0 rgba(0,0,0,.15),0 4px 12px rgba(255,61,139,.35)!important;white-space:nowrap}
+.workbench .island-mode-tabs .wb-scene-arcade:not(#x):not(#y):hover{filter:brightness(1.08)}
 @keyframes world-shine{0%,70%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
 @media(prefers-reduced-motion:reduce){.workbench .island-mode-tabs .wb-scene-world::after{animation:none}}

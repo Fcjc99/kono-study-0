@@ -3493,8 +3493,17 @@ test('Round 55: the world map (its own button on the island): the beach is open 
  // The island's own World map button (beside Decorate) opens it; so does KONO's corner.
  const mapButton=page.getByRole('navigation',{name:'Sanctuary view'}).getByRole('button',{name:'World map'})
  if(process.env.KONO_SHOTS){await mapButton.waitFor();await page.locator('.wb-scene-toolbar').screenshot({path:process.env.KONO_SHOTS+'/island-toolbar.png'})}
+ // Beside Decorate, an Arcade button opens KONO Town's arcade.
+ await page.getByRole('navigation',{name:'Sanctuary view'}).getByRole('button',{name:'Arcade'}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.locator('.town-arcade').waitFor()
+ await town.getByRole('button',{name:'Close dialog'}).click()
+ await town.waitFor({state:'detached'})
  await mapButton.click()
  await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:'Go to Sandy Beach Cove'}).waitFor()
+ // The explorer's passport: no land visited yet, and a treasure waits on the beach today.
+ await page.getByRole('region',{name:'Explorer’s passport'}).getByText('0 of 3 lands',{exact:false}).waitFor()
+ await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:'Go to Sandy Beach Cove'}).getByText('✨ Treasure today').waitFor()
  await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:'Close dialog'}).click()
  await page.getByRole('dialog',{name:'World map'}).waitFor({state:'detached'})
  await (await openCorner(page)).getByRole('button',{name:/^World map/}).click()
@@ -3515,8 +3524,18 @@ test('Round 55: the world map (its own button on the island): the beach is open 
  await beach.getByRole('region',{name:'Market'}).getByRole('button',{name:/^Buy Beach hammock for /}).click()
  await waitFor(()=>care().log.some(e=>e.kind==='buy'&&e.item==='furn:hammock'),'the hammock never reached the account')
  if(process.env.KONO_SHOTS)await beach.screenshot({path:process.env.KONO_SHOTS+'/world-beach.png'})
+ // Tap the sand and KONO walks there; say hello to the crab and it joins the passport.
+ const sand=beach.locator('.world-land'),box=await sand.boundingBox()
+ const before=await beach.locator('.world-land .world-kono').evaluate(el=>el.style.left)
+ await page.mouse.click(box.x+box.width*0.3,box.y+box.height*0.7)
+ await page.waitForFunction(b=>document.querySelector('.world-land .world-kono')?.style.left!==b,before)
+ await beach.getByRole('button',{name:'A crab! Say hello'}).click({force:true})
+ await beach.getByText('New friend in your passport!',{exact:false}).waitFor()
  await beach.getByRole('button',{name:'← World map'}).click()
  await page.getByRole('dialog',{name:'World map'}).waitFor()
+ const passport=page.getByRole('region',{name:'Explorer’s passport'})
+ await passport.getByText('1 of 3 lands · 1 of 7 friends',{exact:false}).waitFor()
+ await passport.getByRole('list',{name:'Friends met'}).getByText('Crab').waitFor()
 })
 
 test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a results card and coins, and the next level is bigger), Gem blitz (a swap that lines up three scores) and Candy crush (moves and a target)',async({context,page})=>{
@@ -3588,10 +3607,15 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  await gems.waitFor({state:'detached'})
  // Candy crush: level 1, with its moves and target.
  await town.getByRole('button',{name:/Candy crush/}).click()
+ // The start card has the level map: level 1 is next, the rest locked.
+ await page.getByRole('dialog',{name:'🍬 Candy crush'}).getByRole('list',{name:'Level map'}).getByRole('button',{name:'Level 1, next'}).waitFor()
+ if(process.env.KONO_SHOTS)await page.getByRole('dialog',{name:'🍬 Candy crush'}).screenshot({path:process.env.KONO_SHOTS+'/candy-map.png'})
  await startGame(page,'🍬 Candy crush',/^Start level 1$/)
  const candy=page.getByRole('dialog',{name:'🍬 Candy crush'})
  await candy.getByText('Level 1').waitFor();await candy.getByText(/^\d+ moves$/).waitFor()
  await candy.getByRole('progressbar',{name:/^Target \d+$/}).waitFor()
+ // Boosters show with their prices.
+ await candy.getByRole('group',{name:'Boosters'}).getByRole('button',{name:/Lollipop hammer/}).waitFor()
  // A swipe that lines up three scores and uses a move.
  {
   const cb=candy.getByRole('grid',{name:'Candy board'})
@@ -3635,10 +3659,12 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  await fr.getByRole('heading',{name:/Bonk!|Nice flying!|medal!/}).waitFor({timeout:8000})
  await fr.getByText(/\d+ pipes?/).first().waitFor()
  await flappy.getByRole('button',{name:'Done'}).click();await flappy.waitFor({state:'detached'})
- // KONO Flow: shapes drop and score; hold takes one; ■ End shows the results.
+ // KONO Flow: pick a mode; shapes drop and score; hold takes one; ■ End shows the results.
  await town.getByRole('button',{name:/KONO Flow/}).click()
  const flow=await startGame(page,'🌌 KONO Flow')
  await flow.getByRole('img',{name:'KONO Flow well'}).waitFor()
+ // Pick a mode first (Marathon, Sprint, Ultra or Zen).
+ await flow.getByRole('group',{name:'Choose a mode'}).getByRole('button',{name:/^Marathon/}).click()
  await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowUp');await page.keyboard.press('Space')
  await page.waitForFunction(()=>Number(document.querySelector('.flow-game .blast-score')?.textContent?.replace(/,/g,''))>0)
  await flow.getByRole('button',{name:'Hold'}).click();await flow.getByRole('button',{name:'Drop'}).click()

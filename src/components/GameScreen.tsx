@@ -12,7 +12,8 @@ import {musicOn,setMusicOn} from '../arcadeAudio'
  *   for one lost, then the coins coming in).
  * With Sounds on, 🎵 turns the games' music on and off (kept on this device). */
 export type GameResult={emoji:string;title:string;line:string;score?:string;best?:boolean;coins?:string|null;won?:boolean}
-export type GameIntro={emoji:string;name:string;how:string;best?:string|null;start?:string;alt?:{label:string;onClick:()=>void}}
+/** `extra`: more for the start card, under the how-to (Candy crush's level map). */
+export type GameIntro={emoji:string;name:string;how:string;best?:string|null;start?:string;alt?:{label:string;onClick:()=>void};extra?:React.ReactNode}
 /** What a game lets its screen do: End finishes the round now with the score so far. */
 export type GameHandle={end:()=>void}
 export default function GameScreen({title,tone,sound=false,intro,started=true,onStart,onRestart,onEnd,onLeave,result,onAgain,children}:{
@@ -47,6 +48,7 @@ export default function GameScreen({title,tone,sound=false,intro,started=true,on
    <h2>{intro.name}</h2>
    <p className="game-result-line">{intro.how}</p>
    {intro.best&&<p className="game-result-best">👑 {intro.best}</p>}
+   {intro.extra}
    <div className="game-result-actions"><button type="button" className="primary" onClick={start}>{intro.start??'Start'}</button>{intro.alt&&<button type="button" onClick={()=>{gameSound('start',sound);intro.alt!.onClick()}}>{intro.alt.label}</button>}</div>
   </section>:phase==='results'&&result?<section className="game-result" aria-live="polite" aria-label="Results">
    <span className="game-result-emoji" aria-hidden="true">{result.emoji}</span>
