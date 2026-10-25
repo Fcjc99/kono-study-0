@@ -3588,10 +3588,15 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  await gems.waitFor({state:'detached'})
  // Candy crush: level 1, with its moves and target.
  await town.getByRole('button',{name:/Candy crush/}).click()
+ // The start card has the level map: level 1 is next, the rest locked.
+ await page.getByRole('dialog',{name:'🍬 Candy crush'}).getByRole('list',{name:'Level map'}).getByRole('button',{name:'Level 1, next'}).waitFor()
+ if(process.env.KONO_SHOTS)await page.getByRole('dialog',{name:'🍬 Candy crush'}).screenshot({path:process.env.KONO_SHOTS+'/candy-map.png'})
  await startGame(page,'🍬 Candy crush',/^Start level 1$/)
  const candy=page.getByRole('dialog',{name:'🍬 Candy crush'})
  await candy.getByText('Level 1').waitFor();await candy.getByText(/^\d+ moves$/).waitFor()
  await candy.getByRole('progressbar',{name:/^Target \d+$/}).waitFor()
+ // Boosters show with their prices.
+ await candy.getByRole('group',{name:'Boosters'}).getByRole('button',{name:/Lollipop hammer/}).waitFor()
  // A swipe that lines up three scores and uses a move.
  {
   const cb=candy.getByRole('grid',{name:'Candy board'})

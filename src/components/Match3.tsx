@@ -1,6 +1,6 @@
 import {useEffect,useId,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {W,candyLevel,candyStars,type Board,type Effect,type Maker,type Piece,type Special} from '../store/match3'
-import {BEAM_MS,SWAP_MS,blowAll,hintFor,live,settled,specialsLeft,step,trySwap,view,type Ev,type Live,type Look} from '../store/match3live'
+import {BOOSTERS,W,candyLevel,candyStars,type Board,type Effect,type Maker,type Piece,type Special,type BoosterId} from '../store/match3'
+import {BEAM_MS,SWAP_MS,blowAll,hintFor,live,settled,smash,specialsLeft,step,trySwap,view,type Ev,type Live,type Look} from '../store/match3live'
 import {gameSound} from '../konoSounds'
 import {fx as play3,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
@@ -36,7 +36,10 @@ type Pop={key:number;x:number;y:number;n:number;kind?:number;each?:boolean}
 /** How the round is going: the opening drop, play, the finale (Sugar crush or Last hurrah, and the wait
  * before it), over. */
 type Phase='intro'|'play'|'wait'|'finale'|'done'
-export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameHandle>;mode:'gems'|'candy';level:number;start:{maker:Maker;board:Board;jelly?:Set<number>};sound:boolean;onEnd:(score:number,won:boolean,stars:number)=>void}){
+export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:Ref<GameHandle>;mode:'gems'|'candy';level:number;start:{maker:Maker;board:Board;jelly?:Set<number>};sound:boolean;onEnd:(score:number,won:boolean,stars:number)=>void;boosters?:{balance:number;buy:(id:BoosterId)=>boolean}}){
+ // Candy crush's boosters: one armed (tapped, waiting to be used), and whether the move under way was a
+ // booster's (it doesn't count as one of the level's moves).
+ const [armed,setArmed]=useState<BoosterId|null>(null),freeMove=useRef(false)
  const goal=candyLevel(level)
  const [rt0]=useState(()=>live(start.maker,start.board)),eng=useRef<Live>(rt0)
  const [looks,setLooks]=useState<Look[]>(()=>view(rt0)),[intro,setIntro]=useState(true)
@@ -156,7 +159,8 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
  }
  // A Candy crush move, once the board has settled from it.
  const counted=()=>{
-  movesLeft.current-=1;setMoves(movesLeft.current)
+  if(freeMove.current)freeMove.current=false
+  else{movesLeft.current-=1;setMoves(movesLeft.current)}
   const met=scoreRef.current>=goal.target&&!jellyNow.current.size
   if(met){
    // Sugar crush: each move left becomes a striped candy, and they all go off.
@@ -191,8 +195,12 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
  },[]) // eslint-disable-line react-hooks/exhaustive-deps
  const attempt=(a:number,c:number)=>{
   if(!canPlay())return
-  const r=trySwap(eng.current,a,c)
+  // The free swap: any two, paid for as it's used.
+  const free=armed==='swap'
+  if(free&&!boosters?.buy('swap'))return
+  const r=trySwap(eng.current,a,c,free)
   if(!r)return
+  if(free){setArmed(null);freeMove.current=true;say('Free swap!')}
   setSel(null);setHint(null);idleAt.current=performance.now();play3('swap',sound)
   // Not a match: the two slide over and straight back.
   if(r==='nope'){window.setTimeout(()=>play3('nope',sound),SWAP_MS+40);return}
@@ -221,6 +229,13 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
  const up=()=>{
   const p=press.current;press.current=null
   if(!p||p.moved)return
+  // The lollipop hammer: a tap smashes that candy (paid for as it's used).
+  if(armed==='hammer'){
+   if(!canPlay())return
+   if(!boosters?.buy('hammer'))return
+   if(smash(eng.current,p.at)){setArmed(null);freeMove.current=true;moved.current=true;play3('boom',sound);shake();const [x,y]=centre(p.at);sparks.current?.burst(x,y,{kind:'star',n:12,color:['#fff','#ff9de0','#ffd84d'],size:8,speed:1.4})}
+   return
+  }
   const s=sel
   if(s===null){setSel(p.at);return}
   if(s===p.at){setSel(null);return}
@@ -270,6 +285,10 @@ export default function Match3({ref,mode,level,start,sound,onEnd}:{ref:Ref<GameH
     {done&&<p className="blast-over" role="status">{done}</p>}
    </div>
   </div>
+  {mode==='candy'&&boosters&&<div className="m3-boosters" role="group" aria-label="Boosters">
+   {(Object.keys(BOOSTERS) as BoosterId[]).map(id=>{const b=BOOSTERS[id],short=boosters.balance<b.price
+    return <button key={id} type="button" aria-pressed={armed===id} className={armed===id?'is-armed':''} disabled={short&&armed!==id} onClick={()=>setArmed(a=>a===id?null:id)}><span aria-hidden="true">{b.emoji}</span><b>{b.name}</b><small>{armed===id?b.how+' · tap here to cancel':b.price+' coins'+(short?' (not enough)':'')}</small></button>})}
+  </div>}
   <p className="blast-help">{mode==='candy'?'Match 4 for a striped candy, an L or T for a wrapped one, 5 for a color bomb. Move a special to set it off, or swap two together for a combo!':'Match 4 for a flame gem, an L or T for a star, 5 for a hypercube, 6 for a supernova. Quick moves in a row light Blazing speed!'}</p>
  </div>
 }

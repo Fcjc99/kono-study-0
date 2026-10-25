@@ -106,7 +106,7 @@ export default function KonoWorld({onBlastCoins,close,today,hearts,paint,outfit,
    </div>}
    {land&&panel==='play'&&<section className="world-play" aria-label="Play">
     <p>{roundsLeft?<><strong>{roundsLeft}</strong> coin rounds left today.</>:'Today’s coin rounds are used up. Play just for fun!'}</p>
-    <BreakGames startedAt={0} arcade sound={sound} onBlastCoins={onBlastCoins} onScore={(game,score)=>{const n=onGame(game,score);if(n)playSfx('coin',sound);return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
+    <BreakGames startedAt={0} arcade sound={sound} onBlastCoins={onBlastCoins} coins={{balance,onBuy}} onScore={(game,score)=>{const n=onGame(game,score);if(n)playSfx('coin',sound);return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
    </section>}
   </div>
  </Modal>

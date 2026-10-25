@@ -66,14 +66,15 @@ export const hintFor=(rt:Live)=>settled(rt)?findMove(boardOf(rt)):null
 
 /** A swap of two side by side, if both are at rest: 'swap' (it does something), 'nope' (they slide over and
  * back), or null (not now). */
-export function trySwap(rt:Live,a:number,c:number):'swap'|'nope'|null{
+export function trySwap(rt:Live,a:number,c:number,force=false):'swap'|'nope'|null{
  const A=rt.cells[a],C=rt.cells[c]
  if(!adjacent(a,c)||!rests(A,a)||!rests(C,c))return null
  const [ar,ac]=rc(a),[cr,cc]=rc(c)
  // Candy crush here: moving a striped or wrapped candy is always a move; it goes off where it lands, even
  // if it lines nothing up.
  const lit=rt.m.mode==='candy'&&!!(A.p.special||C.p.special)
- if(!lit&&!canSwap(still(rt),a,c)){
+ // (`force`: Candy crush's free-swap booster swaps any two, line or not.)
+ if(!force&&!lit&&!canSwap(still(rt),a,c)){
   A.swap={fx:ac,fy:ar,tx:cc,ty:cr,t:0,ms:SWAP_MS*2+60,back:true};C.swap={fx:cc,fy:cr,tx:ac,ty:ar,t:0,ms:SWAP_MS*2+60,back:true}
   rt.events.push({t:'nope'});return 'nope'
  }
@@ -81,6 +82,14 @@ export function trySwap(rt:Live,a:number,c:number):'swap'|'nope'|null{
  A.swap={fx:ac,fy:ar,tx:cc,ty:cr,t:0,ms:SWAP_MS};C.swap={fx:cc,fy:cr,tx:ac,ty:ar,t:0,ms:SWAP_MS}
  rt.pend.push({a,c,t:SWAP_MS});rt.taken=0;rt.multGiven=false
  return 'swap'
+}
+
+/** Candy crush's lollipop hammer: smashes the candy at rest in a square (a special one goes off). True if it did. */
+export function smash(rt:Live,at:number):boolean{
+ const x=rt.cells[at]
+ if(!rests(x,at))return false
+ rt.chain=Math.max(1,rt.chain)
+ return mark(rt,at,0,1,Math.round(base(rt.m)))
 }
 
 /** Marks a piece to clear in `delay` ms (sooner if it's already marked); true if it wasn't marked yet. */

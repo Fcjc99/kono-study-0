@@ -222,6 +222,13 @@ export function finale(b0:Board,m:Maker,extra:number):Frame[]{
  return [...frames,...cascade(b,m,-1,-1,3,[])]
 }
 
+/** Candy crush's boosters, bought with coins when used (neither uses a move): the lollipop hammer smashes any
+ * one candy (a special one goes off), the free swap swaps any two side by side, line or not. */
+export type BoosterId='hammer'|'swap'
+export const BOOSTERS:Record<BoosterId,{name:string;emoji:string;price:number;how:string}>={
+ hammer:{name:'Lollipop hammer',emoji:'🍭',price:30,how:'Tap a candy to smash it'},
+ swap:{name:'Free swap',emoji:'🔄',price:20,how:'Swap any two candies'},
+}
 /** Candy crush's levels: odd ones are a score to reach, even ones have jelly to clear too; a level is
  * a little harder each time. Stars at the target, half as much again, and twice. */
 export const candyLevel=(level:number)=>({moves:20+(level%3)*2,target:1200+level*500,jelly:level%2===0?Math.min(28,8+level*2):0})
@@ -234,4 +241,9 @@ export function jellyFor(level:number,roll:()=>number):Set<number>{
 /** The Candy crush level you're on, kept on this device. */
 const CANDY_KEY='kono-candy-level'
 export const candyLevelNow=()=>{try{return Math.max(1,Number(localStorage.getItem(CANDY_KEY))||1)}catch{return 1}}
-export const saveCandyLevel=(n:number)=>{try{localStorage.setItem(CANDY_KEY,String(n))}catch{/* storage unavailable */}}
+/** Moves you on to level `n`, but never back (replaying an old level keeps your place). */
+export const saveCandyLevel=(n:number)=>{try{localStorage.setItem(CANDY_KEY,String(Math.max(n,candyLevelNow())))}catch{/* storage unavailable */}}
+/** The stars won on each Candy crush level (the best of each), kept on this device, for the level map. */
+const STARS_KEY='kono-candy-stars'
+export function candyStarsKept():Record<number,number>{try{const v=JSON.parse(localStorage.getItem(STARS_KEY)??'{}');return v&&typeof v==='object'?v:{}}catch{return {}}}
+export function saveCandyStars(level:number,stars:number){const all=candyStarsKept();if((all[level]??0)>=stars)return;all[level]=stars;try{localStorage.setItem(STARS_KEY,JSON.stringify(all))}catch{/* storage unavailable */}}

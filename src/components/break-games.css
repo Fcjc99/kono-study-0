@@ -543,3 +543,25 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .flow-modes b{font-size:1.05rem}
 .flow-modes small{opacity:.8;font-size:.78rem}
 .flow-modes i{font-style:normal;font-size:.72rem;color:#ffd84a}
+
+/* Candy crush's boosters, under the board: tap one to arm it (it glows), then use it on the board. */
+.m3-boosters{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:min(440px,92vw)}
+.m3-boosters button:not(#x):not(#y){display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;text-align:left;padding:8px 10px;border-radius:14px;border:2px solid #fff!important;background:linear-gradient(#ffe3f3,#ffc2e4)!important;color:#5a1a4a!important;box-shadow:0 3px 0 #d6338a!important;font:inherit;min-height:0}
+.m3-boosters button span{grid-row:span 2;font-size:1.6rem}
+.m3-boosters button b{font-size:.85rem}
+.m3-boosters button small{font-size:.7rem;opacity:.8}
+.m3-boosters button.is-armed:not(#x):not(#y){background:linear-gradient(#fff6b0,#ffc93d)!important;box-shadow:0 0 0 3px #ff7ac4,0 0 18px #ffd84d!important;animation:m3-armed .6s ease-in-out infinite alternate}
+.m3-boosters button:disabled{opacity:.5}
+@keyframes m3-armed{to{transform:scale(1.03)}}
+
+/* Candy crush's level map: a winding path, the newest levels at the top. */
+.candy-map{position:relative;isolation:isolate;list-style:none;margin:6px 0 10px;padding:6px 0;max-height:42vh;overflow:auto;display:grid;gap:4px;width:100%;background:radial-gradient(ellipse at 50% 0%,rgba(255,200,240,.35),transparent 70%);border-radius:16px}
+.candy-map li{position:relative;height:54px}
+.candy-map-path{position:absolute;left:0;top:6px;width:100%;z-index:-1;overflow:visible;pointer-events:none}
+.candy-map-path polyline{fill:none;stroke:#fff;stroke-width:10;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:2 14;vector-effect:non-scaling-stroke;opacity:.75}
+.candy-map button:not(#x):not(#y){position:absolute;left:var(--x);top:50%;translate:-50% -50%;width:50px!important;height:50px!important;min-width:0!important;border-radius:50%!important;padding:0!important;opacity:1!important;margin:0!important;display:grid;place-items:center;align-content:center;border:3px solid #fff!important;background:radial-gradient(circle at 35% 30%,#ffb3dd,#e0409a)!important;color:#fff!important;box-shadow:0 4px 0 #a0206a!important;font:inherit;z-index:1;min-height:0}
+.candy-map button b{font-size:1.05rem;line-height:1;text-shadow:0 1px 0 rgba(0,0,0,.3)}
+.candy-map button small{font-size:.55rem;color:#ffe14d;letter-spacing:-.05em;line-height:1}
+.candy-map button.is-next:not(#x):not(#y){background:radial-gradient(circle at 35% 30%,#fff6b0,#ff9b3d)!important;box-shadow:0 4px 0 #c4650f,0 0 16px #ffd84d!important;animation:m3-armed .8s ease-in-out infinite alternate}
+.candy-map button.is-picked:not(#x):not(#y){outline:3px solid #7a2cff;outline-offset:3px}
+.candy-map button.is-locked:not(#x):not(#y){background:#d9c6d4!important;box-shadow:0 4px 0 #a796a3!important}

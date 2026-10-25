@@ -282,6 +282,11 @@ test('match-3 in real time: the opening rain settles; a swap slides and clears; 
  // Candy crush: moving a striped candy is always a move, and it goes off where it lands.
  {const lone=fill();lone[27]=P(2,'row');rt=L.live(g.maker('candy',seeded(4)),lone,false);assert.equal(L.trySwap(rt,27,35),'swap');run(rt,700)
   assert.ok(rt.events.some(e=>e.t==='fire'&&e.e.type==='row'&&e.e.at===35),'the moved striped candy clears its new row');calm(rt);assert.equal(L.boardOf(rt).filter(Boolean).length,64)}
+ // Boosters: the hammer smashes one candy (a special one goes off); the free swap swaps two that make no line.
+ {rt=L.live(g.maker('candy',seeded(4)),fill(),false);assert.ok(L.smash(rt,20));run(rt,400);assert.ok(rt.events.some(e=>e.t==='clear'&&e.at===20));calm(rt);assert.equal(L.boardOf(rt).filter(Boolean).length,64)
+  const ids=L.boardOf(rt).map(p=>p.id);assert.equal(L.trySwap(rt,40,41),'nope');calm(rt)
+  assert.equal(L.trySwap(rt,40,41,true),'swap');calm(rt);const after=L.boardOf(rt).map(p=>p.id);assert.ok(after[40]===ids[41]&&after[41]===ids[40],'the free swap stays swapped')
+  const st=fill();st[20]=P(2,'row');rt=L.live(g.maker('candy',seeded(4)),st,false);L.smash(rt,20);run(rt,700);assert.ok(rt.events.some(e=>e.t==='fire'&&e.e.type==='row'),'a smashed striped candy goes off')}
  // Before it goes off, a special charges up (it swells and glows); two specials swapped together pull in first.
  rt=L.live(g.maker('candy',seeded(4)),s,false);L.trySwap(rt,2,10);run(rt,250)
  assert.ok(L.view(rt).some(l=>l.charge>0&&l.p.special==='row')&&!rt.events.some(e=>e.t==='fire'),'the striped candy charges up first')
