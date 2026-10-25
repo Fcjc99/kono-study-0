@@ -347,6 +347,12 @@ test('KONO Flow: shuffled sets of seven, moving and turning with wall kicks, har
  const g7=f.newGame(seeded(1));for(let y=0;y<f.H;y++)for(let x=0;x<f.COLS;x++)if(x!==9||y<4)g7.board[y*f.COLS+x]=y<f.HIDDEN+1?0:5
  for(let k=0;k<6&&!g7.over;k++)f.hardDrop(g7);assert.ok(g7.over,'no room: game over')
  assert.ok(f.gravityMs(10)<f.gravityMs(1)/5,'faster each level')
+ // Modes: Sprint is done at 40 lines; Ultra at three minutes; Zen never ends (a full well clears).
+ const sp=f.newGame(()=>0,'sprint');sp.lines=36;for(const y of [f.H-1,f.H-2,f.H-3,f.H-4])for(let x=1;x<f.COLS;x++)sp.board[y*f.COLS+x]=2
+ sp.piece={kind:'I',rot:1,x:-2,y:0};sp.events.length=0;f.hardDrop(sp);assert.ok(sp.over&&sp.events.some(e=>e.t==='done'),'40 lines: Sprint done')
+ const ul=f.newGame(seeded(2),'ultra');f.tick(ul,f.ULTRA_MS-10);assert.ok(!ul.over);f.tick(ul,20);assert.ok(ul.over&&ul.events.some(e=>e.t==='done'),'three minutes: Ultra done')
+ const zn=f.newGame(seeded(1),'zen');for(let y=0;y<f.H;y++)for(let x=0;x<f.COLS;x++)if(x!==9||y<4)zn.board[y*f.COLS+x]=y<f.HIDDEN+1?0:5
+ for(let k=0;k<6;k++)f.hardDrop(zn);assert.ok(!zn.over&&zn.events.some(e=>e.t==='zen')&&zn.piece,'Zen: the well clears and play goes on')
  // The soundtrack: a new one every three levels, five in all.
  assert.deepEqual([1,3,4,6,7,9,10,12,13,30].map(f.musicPart),[1,1,2,2,3,3,4,4,5,5])
 })

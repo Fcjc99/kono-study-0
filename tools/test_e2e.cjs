@@ -3635,10 +3635,12 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  await fr.getByRole('heading',{name:/Bonk!|Nice flying!|medal!/}).waitFor({timeout:8000})
  await fr.getByText(/\d+ pipes?/).first().waitFor()
  await flappy.getByRole('button',{name:'Done'}).click();await flappy.waitFor({state:'detached'})
- // KONO Flow: shapes drop and score; hold takes one; ■ End shows the results.
+ // KONO Flow: pick a mode; shapes drop and score; hold takes one; ■ End shows the results.
  await town.getByRole('button',{name:/KONO Flow/}).click()
  const flow=await startGame(page,'🌌 KONO Flow')
  await flow.getByRole('img',{name:'KONO Flow well'}).waitFor()
+ // Pick a mode first (Marathon, Sprint, Ultra or Zen).
+ await flow.getByRole('group',{name:'Choose a mode'}).getByRole('button',{name:/^Marathon/}).click()
  await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowUp');await page.keyboard.press('Space')
  await page.waitForFunction(()=>Number(document.querySelector('.flow-game .blast-score')?.textContent?.replace(/,/g,''))>0)
  await flow.getByRole('button',{name:'Hold'}).click();await flow.getByRole('button',{name:'Drop'}).click()

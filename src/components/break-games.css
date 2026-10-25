@@ -521,7 +521,10 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .flow-meter i{position:absolute;top:0;bottom:0;width:2px;background:rgba(0,0,0,.4)}
 @keyframes flow-ready{to{filter:brightness(1.5) drop-shadow(0 0 6px #c37bff)}}
 .flow-pad{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
-.flow-pad button{min-width:0;padding:0;min-height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:1.15rem;font-weight:800;touch-action:manipulation}
+.flow-pad button{min-width:0;padding:0;min-height:46px;border-radius:12px;font:inherit;font-size:1.15rem;font-weight:800;touch-action:manipulation}
+/* Dark glass, over the app's own button look. */
+.flow-pad button:not(#x):not(#y){border:1px solid rgba(255,255,255,.25)!important;background:rgba(255,255,255,.1)!important;color:#fff!important;box-shadow:none!important}
+.flow-pad .flow-go.is-ready:not(#x):not(#y){background:linear-gradient(135deg,#5b8cff,#c37bff)!important;border-color:#fff!important;box-shadow:0 0 14px #c37bff!important}
 .flow-pad button:active{background:rgba(255,255,255,.25)}
 .flow-pad .flow-go,.flow-pad button:first-child{font-size:clamp(.62rem,2.7vw,.9rem);letter-spacing:-.01em;overflow:hidden;white-space:nowrap}
 /* On a touch screen the keys don't apply, and the well wants the room. */
@@ -531,3 +534,12 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .flow-game .blast-help{font-size:.72rem;opacity:.7;text-align:center}
 .game-screen:has(.flow-game){background:radial-gradient(ellipse at 50% 20%,#1d1450,#04030c 70%)}
 @media(prefers-reduced-motion:reduce){.flow-words p{animation-duration:2s}}
+/* KONO Flow's mode picker, over the well before a game starts. */
+.flow-modes{position:absolute;inset:0;display:grid;align-content:center;gap:10px;padding:18px;background:rgba(5,4,18,.72);backdrop-filter:blur(3px);border-radius:14px}
+.flow-modes>p{margin:0 0 4px;text-align:center;font-weight:900;letter-spacing:.1em;text-transform:uppercase;font-size:.85rem;opacity:.8}
+.flow-modes button:not(#x):not(#y){display:grid;gap:2px;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.3)!important;background:linear-gradient(135deg,rgba(91,140,255,.32),rgba(195,123,255,.28))!important;color:#fff!important;font:inherit;cursor:pointer;box-shadow:0 0 18px rgba(140,110,255,.25)!important}
+.flow-modes button:not(#x):not(#y) small{color:rgba(255,255,255,.8)}
+.flow-modes button:active{transform:scale(.98)}
+.flow-modes b{font-size:1.05rem}
+.flow-modes small{opacity:.8;font-size:.78rem}
+.flow-modes i{font-style:normal;font-size:.72rem;color:#ffd84a}
