@@ -1,5 +1,5 @@
 import './kono-world.css'
-import {useEffect,useRef,useState,type MouseEvent} from 'react'
+import {useEffect,useRef,useState,type MouseEvent,type ReactNode} from 'react'
 import Modal from './Modal'
 import KonoFace from './KonoFace'
 import BreakGames from './BreakGames'
@@ -58,7 +58,7 @@ export default function KonoWorld({onBlastCoins,close,today,hearts,paint,outfit,
  onOpenHouse:()=>void
 }){
  const [view,setView]=useState<'map'|LandId>(()=>{const spot=readSpot();return LANDS.find(l=>l.id===spot&&l.hearts<=hearts)?.id??'map'}),[going,setGoing]=useState<Land|null>(null),[zoom,setZoom]=useState(false)
- const [panel,setPanel]=useState<'market'|'game'|'play'|null>(null),[note,setNote]=useState('')
+ const [panel,setPanel]=useState<'market'|'game'|'play'|'passport'|null>(null),[note,setNote]=useState('')
  const [light]=useState(()=>lightAt(hourNow()))
  const [visited,setVisited]=useState(()=>readSet(VISITED_KEY)),[met,setMet]=useState(()=>readSet(FRIENDS_KEY))
  const [sea,setSea]=useState<{friend:Friend;at:{x:number;y:number};key:number}|null>(null)
@@ -146,8 +146,14 @@ export default function KonoWorld({onBlastCoins,close,today,hearts,paint,outfit,
  const landPose=paintPose('/garden/kono/'+(kono.moving?'walk-'+kono.dir+'-0'+(step%2+1):'happy')+'.webp',paint)
  const critter=land?FRIENDS.find(f=>f.land===land.id):undefined
  const nextLand=LANDS.find(l=>l.hearts>hearts)
- return <Modal title={land?land.name:'World map'} close={close}>
-  <div className={'kono-world is-'+light}>
+ // Full screen: the picture as big as fits, with the same picture blurred behind it to the edges; the
+ // status floats on it, the tools sit along the bottom, and a panel (market, a game, the arcade, the
+ // passport) slides up over it.
+ const stageBg=worldSrc(land?'land-'+land.id:'world-map')
+ const sheet=(label:string,body:ReactNode)=><section className="world-sheet" aria-label={label}><button type="button" className="world-sheet-close" aria-label={'Close '+label.toLowerCase()} onClick={()=>setPanel(null)}>✕</button>{body}</section>
+ return <Modal full title={land?land.name:'World map'} close={close}>
+  <div className={'kono-world is-full is-'+light}>
+   <div className={'world-stage'+(land?'':' is-map')} style={{['--bg' as string]:`url(${stageBg})`}}>
    {!land?<div className={'world-map'+(zoom?' is-zooming':'')+(going?' is-going':'')} style={{backgroundImage:`url(${worldSrc('world-map')})`,...(going?{['--to-x' as string]:going.map.x*100+'%',['--to-y' as string]:going.map.y*100+'%'}:{})}} onClick={e=>{if(e.target!==e.currentTarget||going)return;const p=share(e);mark(p.x,p.y);playSfx('pop',sound,0.7+Math.random()*0.6)}}>
     <svg className="world-routes" viewBox="0 0 100 75" preserveAspectRatio="none" aria-hidden="true">
      {LANDS.map(l=><path key={l.id} d={route(l).d} className={l.hearts<=hearts?(going?.id===l.id?'is-going':'is-open'):'is-locked'}/>)}
@@ -156,7 +162,7 @@ export default function KonoWorld({onBlastCoins,close,today,hearts,paint,outfit,
     {LANDS.filter(l=>l.hearts>hearts).map(l=><span key={l.id} className="world-fog" style={{left:l.map.x*100+'%',top:l.map.y*100+'%'}} aria-hidden="true"/>)}
     {marks.map(m=><i key={m.key} className="world-ripple" style={{left:m.x*100+'%',top:m.y*100+'%'}} aria-hidden="true"/>)}
     {sea&&!going&&<button type="button" key={sea.key} className={'world-friend is-sea'+(met.has(sea.friend.id)?'':' is-new')} style={{left:sea.at.x*100+'%',top:sea.at.y*100+'%'}} aria-label={'A '+sea.friend.name.toLowerCase()+'! Say hello'} onClick={()=>{meet(sea.friend);mark(sea.at.x,sea.at.y);setSea(null)}}><span aria-hidden="true">{sea.friend.emoji}</span></button>}
-    {LANDS.map((l,i)=>{const open=l.hearts<=hearts,treasure=open&&!lookedToday(log,l.id,today);return <button type="button" key={l.id} className={'world-place'+(open?'':' is-locked')+(going?.id===l.id?' is-target':'')} style={{left:l.map.x*100+'%',top:l.map.y*100+'%',['--i' as string]:i,['--sx' as string]:l.map.x>0.75?'-72%':l.map.x<0.25?'-35%':'-50%'}} disabled={!open||!!going} aria-label={open?'Go to '+l.name:l.name+', opens at '+l.hearts+' bond hearts'} onClick={()=>travel(l)}>
+    {LANDS.map((l,i)=>{const open=l.hearts<=hearts,treasure=open&&!lookedToday(log,l.id,today);return <button type="button" key={l.id} className={'world-place'+(open?'':' is-locked')+(going?.id===l.id?' is-target':'')} style={{left:l.map.x*100+'%',top:l.map.y*100+'%',['--i' as string]:i,['--sx' as string]:l.map.x>0.75?'-90%':l.map.x<0.25?'-35%':'-50%'}} disabled={!open||!!going} aria-label={open?'Go to '+l.name:l.name+', opens at '+l.hearts+' bond hearts'} onClick={()=>travel(l)}>
      <span className="world-thumb" aria-hidden="true" style={{backgroundImage:`url(${worldSrc('land-'+l.id)})`}}><b>{open?l.emoji:'🔒'}</b></span><small>{l.name}</small>{open?<small className="world-game">{LAND_GAMES[l.id].emoji} {LAND_GAMES[l.id].name}</small>:<small className="world-lock">Opens at {l.hearts} 💗<span className="world-hearts" style={{['--p' as string]:Math.min(1,hearts/l.hearts)}}/></small>}
      {treasure&&<small className="world-treasure" aria-hidden="true">✨ Treasure today</small>}
     </button>})}
@@ -166,24 +172,21 @@ export default function KonoWorld({onBlastCoins,close,today,hearts,paint,outfit,
     <LandFx land={land.id} light={light}/>
     {marks.map(m=><i key={m.key} className="world-ripple is-step" style={{left:m.x*100+'%',top:m.y*100+'%'}} aria-hidden="true"/>)}
     <button type="button" className="world-stall" style={{left:land.stall.x*100+'%',top:land.stall.y*100+'%'}} aria-label={'The '+land.name+' market'} onClick={()=>setPanel(p=>p==='market'?null:'market')}><span aria-hidden="true">🛒</span><small>Market</small></button>
-    <button type="button" className="world-stall is-game" style={{left:LAND_GAMES[land.id].booth.x*100+'%',top:LAND_GAMES[land.id].booth.y*100+'%'}} aria-label={'The '+LAND_GAMES[land.id].name+' booth'} aria-pressed={panel==='game'} onClick={()=>{setPanel(p=>p==='game'?null:'game');requestAnimationFrame(()=>document.querySelector('.world-play')?.scrollIntoView({block:'start',behavior:reducedMotion()?'auto':'smooth'}))}}><span aria-hidden="true">{LAND_GAMES[land.id].emoji}</span><small>{LAND_GAMES[land.id].name}</small></button>
+    <button type="button" className="world-stall is-game" style={{left:LAND_GAMES[land.id].booth.x*100+'%',top:LAND_GAMES[land.id].booth.y*100+'%'}} aria-label={'The '+LAND_GAMES[land.id].name+' booth'} aria-pressed={panel==='game'} onClick={()=>setPanel(p=>p==='game'?null:'game')}><span aria-hidden="true">{LAND_GAMES[land.id].emoji}</span><small>{LAND_GAMES[land.id].name}</small></button>
     {critter&&<button type="button" className={'world-friend is-'+critter.id+(met.has(critter.id)?'':' is-new')} aria-label={'A '+critter.name.toLowerCase()+'! Say hello'} onClick={e=>{const r=(e.currentTarget.parentElement as HTMLElement).getBoundingClientRect(),b=e.currentTarget.getBoundingClientRect();tapped.current=Date.now();walkTo((b.left+b.width/2-r.left)/r.width,(b.top+b.height-r.top)/r.height+0.06);meet(critter)}}><span aria-hidden="true">{critter.emoji}</span></button>}
     <span className={'world-kono is-strolling'+(hop%2?' is-hop':hop?' is-hop2':'')} style={{left:kono.x*100+'%',top:kono.y*100+'%',transitionDuration:kono.ms+'ms'}} aria-hidden="true"><span className="kono-face-box" style={{width:64,height:64}}><KonoFace pose={landPose} outfit={outfit} size={64}/></span></span>
    </div>}
-   <p className="world-status" aria-live="polite">{note||(land?land.line+' Tap the ground and KONO walks there.':going?'KONO sets off for '+going.name+'…':'Where should KONO go? Tap a place on the map, or say hello to the sea friends.')}</p>
-   {!land&&<section className="world-passport" aria-label="Explorer’s passport">
+   <div className="world-status-wrap">
+    <p className="world-status" aria-live="polite">{note||(land?land.line+' Tap the ground and KONO walks there.':going?'KONO sets off for '+going.name+'…':'Where should KONO go? Tap a place on the map, or say hello to the sea friends.')}</p>
+    {land&&looked&&!note&&<p className="world-found"><img src={findSrc(looked.item??'')} alt=""/>Today KONO found something here already. Come back tomorrow for another look.</p>}
+   </div>
+   {!land&&panel==='passport'&&sheet('Passport',<div className="world-passport" role="region" aria-label="Explorer’s passport">
     <h3>🧭 Explorer’s passport <small>{visited.size} of {LANDS.length} lands · {met.size} of {FRIENDS.length} friends</small></h3>
     <ul className="world-stamps">{LANDS.map(l=>{const open=l.hearts<=hearts,been=visited.has(l.id);return <li key={l.id} className={been?'is-stamped':open?'is-open':'is-locked'}><span aria-hidden="true">{open?l.emoji:'🔒'}</span><small>{been?'Visited':open?'Not yet visited':l.hearts+' 💗 to open'}</small><strong>{l.name}</strong></li>})}</ul>
     <ul className="world-friends" aria-label="Friends met">{FRIENDS.map(f=><li key={f.id} className={met.has(f.id)?'is-met':''} title={met.has(f.id)?f.name:'Not met yet'}><span aria-hidden="true">{f.emoji}</span><span className="sr-only">{met.has(f.id)?f.name:'Not met yet'}</span></li>)}</ul>
     {nextLand&&<p className="world-next">💗 {nextLand.hearts-hearts} more bond {nextLand.hearts-hearts===1?'heart':'hearts'} opens {nextLand.name}. Care for KONO to grow your bond.</p>}
-   </section>}
-   {land&&<div className="wb-toolbar world-tools">
-    <button type="button" onClick={back}>← World map</button>
-    <button type="button" className="primary" disabled={!!looked} onClick={lookAround}>{looked?'Looked around today ✓':'🔍 Look around'}</button>
-    <button type="button" aria-pressed={panel==='play'} onClick={()=>setPanel(p=>p==='play'?null:'play')}>🎮 Arcade</button>
-   </div>}
-   {land&&looked&&!note&&<p className="world-found"><img src={findSrc(looked.item??'')} alt=""/>Today KONO found something here already. Come back tomorrow for another look.</p>}
-   {land&&panel==='market'&&<section className="world-market" aria-label="Market">
+   </div>)}
+   {land&&panel==='market'&&sheet('Market',<div className="world-market" role="region" aria-label="Market">
     <h3>{land.emoji} Market <small>Furniture you’ll only find here, for KONO’s house · {COIN_ICON} {coinText(Math.max(0,balance))}</small></h3>
     <ul>{furnitureStock(land.id).map(item=>{const short=item.price-balance;return <li key={item.key}>
      <img src={item.img} alt=""/><strong>{item.name}</strong>
@@ -191,15 +194,24 @@ export default function KonoWorld({onBlastCoins,close,today,hearts,paint,outfit,
      {owned.get(item.id)?<small>You have {owned.get(item.id)}</small>:short>0?<small>{coinText(short)} more</small>:null}
     </li>})}</ul>
     <p className="world-market-go"><button type="button" onClick={onOpenHouse}>🏠 Go to KONO’s house</button></p>
-   </section>}
-   {land&&panel==='game'&&<div className="world-play">
+   </div>)}
+   {land&&panel==='game'&&sheet(LAND_GAMES[land.id].name,<div className="world-play">
     <p>{roundsLeft?<><strong>{roundsLeft}</strong> coin rounds left today.</>:'Today’s coin rounds are used up. Play just for fun!'}</p>
     <LandGame key={land.id} land={land.id} sound={sound} kono={paintPose('/garden/kono/happy.webp',paint)} onScore={(game,score)=>{const n=onGame(game,score);if(n)playSfx('coin',sound);return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
-   </div>}
-   {land&&panel==='play'&&<section className="world-play" aria-label="Play">
+   </div>)}
+   {land&&panel==='play'&&sheet('Games',<div className="world-play" role="region" aria-label="Play">
     <p>{roundsLeft?<><strong>{roundsLeft}</strong> coin rounds left today.</>:'Today’s coin rounds are used up. Play just for fun!'}</p>
     <BreakGames startedAt={0} arcade sound={sound} onBlastCoins={onBlastCoins} coins={{balance,onBuy}} onScore={(game,score)=>{const n=onGame(game,score);if(n)playSfx('coin',sound);return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
-   </section>}
+   </div>)}
+   </div>
+   {!land&&<div className="wb-toolbar world-tools">
+    <button type="button" className="primary" aria-expanded={panel==='passport'} onClick={()=>setPanel(p=>p==='passport'?null:'passport')}>🧭 Passport <small>{visited.size}/{LANDS.length} · {met.size}/{FRIENDS.length}</small></button>
+   </div>}
+   {land&&<div className="wb-toolbar world-tools">
+    <button type="button" onClick={back}>← World map</button>
+    <button type="button" className="primary" disabled={!!looked} onClick={lookAround}>{looked?'Looked around today ✓':'🔍 Look around'}</button>
+    <button type="button" aria-pressed={panel==='play'} onClick={()=>setPanel(p=>p==='play'?null:'play')}>🎮 Arcade</button>
+   </div>}
   </div>
  </Modal>
 }

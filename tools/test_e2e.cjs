@@ -2732,7 +2732,7 @@ test('Bond hearts: KONO’s bond grows with what you do together; at 2 hearts a 
  await page.locator('.build-palette').getByRole('button',{name:'Add Heart cushion'}).click()
  await waitFor(()=>(data().sanctuaryDecor?.[pid]?.placements??[]).some(p=>p.assetId==='gift-cushion'),'the cushion never went on the island')
 })
-test('Break games: after a focus session KONO offers a break game; Peekaboo and Snack catch each play through (full screen), keep a best score, and the games stop when the five-minute break is over',async({context,page})=>{
+test('Break games: after a focus session KONO offers the arcade’s games for a break; one plays full screen and ends on its results, and the games stop when the five-minute break is over',async({context,page})=>{
  const cloud=fakeCloud()
  await page.clock.install({time:new Date('2026-09-15T15:00:00')})
  await signInAs(context,cloud,'alice')
@@ -2749,34 +2749,21 @@ test('Break games: after a focus session KONO offers a break game; Peekaboo and 
  await focus.getByRole('button',{name:'🎮 Break game with KONO'}).click()
  const games=focus.getByRole('region',{name:'Break games with KONO'})
  await games.getByRole('timer',{name:'Break time left'}).filter({hasText:'Break: 5:00'}).waitFor()
- // Peekaboo: thirty seconds of KONO popping out of bushes.
- await games.getByRole('button',{name:/Peekaboo/}).click()
- await startGame(page,'🌿 Peekaboo')
- await games.locator('.peekaboo-grid').waitFor()
- let boops=0
- for(let i=0;i<40&&boops<3;i++){await page.clock.runFor(300);const up=games.getByRole('button',{name:'Boop KONO!'});if(await up.count()){await up.click();boops++}}
- assert.ok(boops>=1,'KONO popped up to be booped')
- await page.clock.fastForward(31000);await page.clock.runFor(500)
- await games.getByText(new RegExp('^You booped KONO '+boops+' times?! 🌿 New best! 🎉$')).waitFor()
- // The round ends on its results card (in the game's screen); Done slides it away.
- const peekResults=page.getByRole('dialog',{name:'🌿 Peekaboo'}).getByRole('region',{name:'Results'})
- await peekResults.getByText('👑 New best!').waitFor()
- await peekResults.getByRole('button',{name:'Done'}).click()
- await page.getByRole('dialog',{name:'🌿 Peekaboo'}).waitFor({state:'detached'})
- await games.getByText('Best: '+boops+' boops').waitFor()
- // Snack catch: thirty seconds of falling snacks.
- await games.getByRole('button',{name:/Snack catch/}).click()
- await startGame(page,'🍓 Snack catch')
- await games.getByRole('application',{name:/Snack catch/}).waitFor()
- if(process.env.KONO_SHOTS){await page.clock.runFor(4000);await games.screenshot({path:process.env.KONO_SHOTS+'/break-catch.png'})}
- await page.clock.fastForward(31000);await page.clock.runFor(500)
- await games.getByText(/^KONO caught \d+ snacks?! 😋/).first().waitFor()
- await page.getByRole('dialog',{name:'🍓 Snack catch'}).getByRole('button',{name:'Done'}).click()
+ // The break offers the arcade's games (Snack catch and Peekaboo are gone): KONO blast plays full screen,
+ // and ■ End shows its results card; Done slides it away.
+ assert.equal(await games.getByRole('button',{name:/Snack catch|Peekaboo/}).count(),0)
+ await games.getByRole('button',{name:/Candy crush/}).waitFor()
+ await games.getByRole('button',{name:/KONO blast/}).click()
+ await startGame(page,'🧱 KONO blast')
+ await page.getByRole('dialog',{name:'🧱 KONO blast'}).getByRole('button',{name:'■ End'}).click()
+ await page.getByRole('dialog',{name:'🧱 KONO blast'}).getByRole('region',{name:'Results'}).getByRole('button',{name:'Done'}).click()
+ await page.getByRole('dialog',{name:'🧱 KONO blast'}).waitFor({state:'detached'})
+ await games.getByText(/^KONO blast: \d+ points?! 🧱/).first().waitFor()
  if(process.env.KONO_SHOTS)await games.screenshot({path:process.env.KONO_SHOTS+'/break-games.png'})
  // The break ends after five minutes (jumped to, rather than stepped through frame by frame).
  await page.clock.fastForward(5*60_000);await page.clock.runFor(1500)
  await games.getByText('That was a nice reset! KONO’s ready for the next session when you are. 📚').waitFor()
- assert.equal(await games.getByRole('button',{name:/Peekaboo/}).count(),0,'no more games after the break')
+ assert.equal(await games.getByRole('button',{name:/KONO blast/}).count(),0,'no more games after the break')
  await games.getByRole('button',{name:'Close'}).click()
  assert.equal(await focus.getByRole('region',{name:'Break games with KONO'}).count(),0)
 })
@@ -3556,8 +3543,10 @@ test('Round 55: the world map (its own button on the island): the beach is open 
  await town.waitFor({state:'detached'})
  await mapButton.click()
  await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:'Go to Sandy Beach Cove'}).waitFor()
- // The explorer's passport: no land visited yet, and a treasure waits on the beach today.
+ // Full screen. The explorer's passport (its own panel): no land visited yet, and a treasure waits on the beach today.
+ await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:/^🧭 Passport/}).click()
  await page.getByRole('region',{name:'Explorer’s passport'}).getByText('0 of 3 lands',{exact:false}).waitFor()
+ await page.getByRole('button',{name:'Close passport'}).click()
  await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:'Go to Sandy Beach Cove'}).getByText('✨ Treasure today').waitFor()
  await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:'Close dialog'}).click()
  await page.getByRole('dialog',{name:'World map'}).waitFor({state:'detached'})
@@ -3580,6 +3569,7 @@ test('Round 55: the world map (its own button on the island): the beach is open 
  await waitFor(()=>care().log.some(e=>e.kind==='buy'&&e.item==='furn:hammock'),'the hammock never reached the account')
  if(process.env.KONO_SHOTS)await beach.screenshot({path:process.env.KONO_SHOTS+'/world-beach.png'})
  // Tap the sand and KONO walks there; say hello to the crab and it joins the passport.
+ await beach.getByRole('button',{name:'Close market'}).click()
  const sand=beach.locator('.world-land'),box=await sand.boundingBox()
  const before=await beach.locator('.world-land .world-kono').evaluate(el=>el.style.left)
  await page.mouse.click(box.x+box.width*0.3,box.y+box.height*0.7)
@@ -3588,6 +3578,7 @@ test('Round 55: the world map (its own button on the island): the beach is open 
  await beach.getByText('New friend in your passport!',{exact:false}).waitFor()
  await beach.getByRole('button',{name:'← World map'}).click()
  await page.getByRole('dialog',{name:'World map'}).waitFor()
+ await page.getByRole('dialog',{name:'World map'}).getByRole('button',{name:/^🧭 Passport/}).click()
  const passport=page.getByRole('region',{name:'Explorer’s passport'})
  await passport.getByText('1 of 3 lands · 1 of 7 friends',{exact:false}).waitFor()
  await passport.getByRole('list',{name:'Friends met'}).getByText('Crab').waitFor()
@@ -4150,9 +4141,9 @@ test('Round 51: KONO Town: a surprise to collect, coins in the KONO bar, the foo
  if(process.env.KONO_SHOTS)await town.screenshot({path:process.env.KONO_SHOTS+'/town-wheel.png'})
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
  await town.getByText('3 of 3',{exact:true}).waitFor()
- // The arcade has Snack catch, Peekaboo and KONO blast (Memory match and Bubble pop are gone).
+ // The arcade has KONO blast (Memory match, Bubble pop, Snack catch and Peekaboo are gone).
  await town.getByRole('button',{name:/KONO blast/}).waitFor()
- assert.equal(await town.getByRole('button',{name:/Memory match|Bubble pop/}).count(),0)
+ assert.equal(await town.getByRole('button',{name:/Memory match|Bubble pop|Snack catch|Peekaboo/}).count(),0)
  // Album: the beanie is in, with how far along the whole collection is.
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Album'}).click()
  await town.getByRole('region',{name:'Outfits'}).getByRole('listitem',{name:'Cozy beanie',exact:true}).waitFor()

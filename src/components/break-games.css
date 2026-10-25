@@ -11,18 +11,6 @@
 .break-game-list .break-best{opacity:1;font-weight:700}
 .break-result,.break-over{margin:4px 0 10px;font-weight:700}
 .break-game-status{display:flex;justify-content:space-between;margin:0 0 8px;font-variant-numeric:tabular-nums}
-.snack-catch{position:relative;height:300px;max-width:420px;margin:0 auto;overflow:hidden;border-radius:14px;background:linear-gradient(#cfe8ff,#eaf6e2 72%,#b9dc9a 72%);touch-action:none;cursor:pointer}
-.snack-catch:focus-visible{outline:3px solid var(--accent,#c987a2);outline-offset:2px}
-.snack-catch .snack{position:absolute;transform:translate(-50%,-50%);font-size:1.6rem;pointer-events:none}
-.snack-catch-kono{position:absolute;bottom:4%;left:50%;width:64px;transform:translateX(-50%);image-rendering:pixelated;pointer-events:none}
-.peekaboo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:330px;margin:0 auto}
-.peekaboo-bush{position:relative;aspect-ratio:1;margin:0!important;padding:0!important;min-height:0!important;border-radius:50% 50% 14px 14px;overflow:hidden;background:#d8efc8!important}
-.peekaboo-bush img{position:absolute;left:50%;bottom:18%;width:62%;transform:translateX(-50%);image-rendering:pixelated;animation:peekaboo-up .18s ease-out}
-.peekaboo-leaves{position:absolute;left:0;right:0;bottom:-4px;font-size:2.4rem;line-height:1;text-align:center;pointer-events:none}
-.peekaboo-boop{position:absolute;left:50%;top:20%;transform:translateX(-50%);font-size:1.4rem;animation:peekaboo-boop .6s ease-out both}
-@keyframes peekaboo-up{from{transform:translate(-50%,40%)}to{transform:translate(-50%,0)}}
-@keyframes peekaboo-boop{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-24px)}}
-@media(prefers-reduced-motion:reduce){.peekaboo-bush img,.peekaboo-boop{animation:none}}
 .break-games.is-arcade{margin:0;border:0;padding:0;background:none}
 /* KONO blast (BlockBlast.tsx), in the look of the classic block games: a deep blue board with sunken slots,
    glossy beveled jewel blocks, and a burst and cheer when lines clear. Squares are divs (not buttons). */
@@ -105,18 +93,12 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .game-screen.is-blast{--j-red:#ef4b5c;--j-red-l:#ff8a96;--j-red-d:#b52b3b;--j-or:#f7922f;--j-or-l:#ffc078;--j-or-d:#c4650f;--j-ye:#f6cf33;--j-ye-l:#fff08a;--j-ye-d:#c79c0c;--j-gr:#46c35a;--j-gr-l:#8eeb98;--j-gr-d:#258f37;--j-bl:#3e6fe6;--j-bl-l:#86a8ff;--j-bl-d:#2346b0;--j-pu:#a35be0;--j-pu-l:#d1a2ff;--j-pu-d:#7134ad}
 .game-screen.is-blast :is(.break-game-status,.land-game-status){max-width:360px;width:100%;margin:0 auto 10px;color:#fff;font-weight:800;font-size:1.05rem;text-shadow:0 2px 0 rgba(0,0,0,.3);align-items:baseline}
 .game-screen.is-blast :is(.break-game-status,.land-game-status) strong{font-size:2rem;font-weight:900;color:#fff}
-.game-screen.is-blast :is(.snack-catch,.peekaboo-grid,.chase-board,.tumble-board,.sled-slope){background:#132457!important;box-shadow:inset 0 3px 8px rgba(0,0,0,.45),0 0 0 6px #132457,0 2px 0 6px rgba(255,255,255,.1)!important;border-radius:10px}
+.game-screen.is-blast :is(.chase-board,.tumble-board,.sled-slope){background:#132457!important;box-shadow:inset 0 3px 8px rgba(0,0,0,.45),0 0 0 6px #132457,0 2px 0 6px rgba(255,255,255,.1)!important;border-radius:10px}
 /* Sunken slots drawn behind the pieces: navy lines over the slot color, one cell apart. */
 .game-screen.is-blast .chase-board{background:linear-gradient(90deg,#132457 3px,transparent 3px) 0 0/calc(100%/12) calc(100%/12),linear-gradient(#132457 3px,transparent 3px) 0 0/calc(100%/12) calc(100%/12),#1e3270!important}
 .game-screen.is-blast .tumble-board{background:linear-gradient(90deg,#132457 3px,transparent 3px) 0 0/calc(100%/7) calc(100%/8),linear-gradient(#132457 3px,transparent 3px) 0 0/calc(100%/7) calc(100%/8),#1e3270!important}
 .game-screen.is-blast .chase-crab{background:linear-gradient(160deg,var(--j-or-l) 0%,var(--j-or) 40%,var(--j-or-d) 100%);border-radius:5px;box-shadow:inset 0 3px 0 rgba(255,255,255,.45),inset 0 -4px 0 rgba(0,0,0,.28);font-size:.9em!important}
 .game-screen.is-blast .chase-shell{filter:drop-shadow(0 0 6px #ffe58a)}
-.game-screen.is-blast .snack-catch{background:radial-gradient(90% 60% at 50% 100%,#2443a6,#132457)!important}
-.game-screen.is-blast .snack-catch .snack{filter:drop-shadow(0 3px 0 rgba(0,0,0,.35))}
-.game-screen.is-blast .peekaboo-grid{padding:8px;gap:8px}
-.game-screen.is-blast .peekaboo-bush{border-radius:10px!important;background:#1e3270!important;box-shadow:inset 0 3px 6px rgba(0,0,0,.45)!important;border:0!important}
-.game-screen.is-blast .peekaboo-bush.is-up{background:linear-gradient(160deg,var(--j-gr-l) 0%,var(--j-gr) 40%,var(--j-gr-d) 100%)!important;box-shadow:inset 0 3px 0 rgba(255,255,255,.45),inset 0 -4px 0 rgba(0,0,0,.28)!important}
-.game-screen.is-blast .peekaboo-leaves{display:none}
 .game-screen.is-blast .tumble-board{padding:0}
 .game-screen.is-blast .land-game .tumble-tile{padding:2px!important}
 .game-screen.is-blast .land-game .tumble-tile span{display:grid;place-items:center;width:100%;height:100%;border-radius:6px;font-size:.85em;box-shadow:inset 0 3px 0 rgba(255,255,255,.45),inset 3px 0 0 rgba(255,255,255,.18),inset 0 -4px 0 rgba(0,0,0,.28),inset -3px 0 0 rgba(0,0,0,.14)}
