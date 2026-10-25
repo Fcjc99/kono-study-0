@@ -1,5 +1,5 @@
 import {useEffect,useId,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {BOOSTERS,W,candyLevel,candyStars,type Board,type Effect,type Maker,type Piece,type Special,type BoosterId} from '../store/match3'
+import {BOOSTERS,W,adjacent,candyLevel,candyStars,type Board,type Effect,type Maker,type Piece,type Special,type BoosterId} from '../store/match3'
 import {BEAM_MS,BOMB_CHARGE_MS,CHARGE_MS,COMBO_MS,SWAP_MS,blowAll,hintFor,live,settled,smash,specialsLeft,step,trySwap,view,type Ev,type Live,type Look} from '../store/match3live'
 import {gameSound} from '../konoSounds'
 import {fx as play3,startMusic,stopMusic} from '../arcadeAudio'
@@ -272,14 +272,14 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
   :<div className="match3-goal is-time" aria-hidden="true"><span style={{width:Math.min(1,left/BLITZ_MS)*100+'%'}}/></div>}
   {mode==='gems'&&<div className={'m3-ignite'+(blazing?' is-on':'')} role="meter" aria-label="Ignition" aria-valuemin={0} aria-valuemax={IGNITE} aria-valuenow={blazing?IGNITE:Math.min(IGNITE,speed)}><span style={{width:(blazing?100:Math.min(1,speed/IGNITE)*100)+'%'}}/><b>{blazing?'🔥 Blazing speed!':'Ignition'}</b></div>}
   <div className={'blast-frame'+(quake?' is-quake':'')+(punch?' is-punch':'')}>
-   <div ref={boardRef} className="match3-board" role="grid" aria-label={mode==='candy'?'Candy board':'Gem board'} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={()=>{press.current=null}}>
+   <div ref={boardRef} className={'match3-board'+(sel!==null?' has-pick':'')} role="grid" aria-label={mode==='candy'?'Candy board':'Gem board'} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={()=>{press.current=null}}>
     <div className="match3-pieces">
     {[...jelly].map(i=><span key={'j'+i} className="m3-jelly" style={pos(i)} aria-hidden="true"/>)}
     {/* In a fixed order (by piece), so the page never moves an element; each piece is placed and scaled as
         the board says, every frame. Gems above the board fade in as they drop toward it. */}
     {looks.map(l=>{const p=l.p,i=l.at,o=l.o*(mode==='gems'?Math.max(0,Math.min(1,l.y+1.6)):1),plain=l.sx===1&&l.sy===1&&o===1&&l.b===1&&l.rot===0
      return <div key={p.id} role="gridcell" data-i={i} data-kind={p.kind} aria-label={'Row '+(Math.floor(i/W)+1)+', column '+(i%W+1)+': '+label(p)}
-      className={'match3-piece k'+p.kind+(p.special?' is-'+p.special:'')+(p.bonus?' has-'+p.bonus:'')+(sel===i?' is-picked':'')+(l.born?' is-made':'')+(l.clearing?' is-clearing':'')+(intro?' is-intro':'')+(hint?.includes(i)&&!l.clearing?' is-hint':'')+(l.charge?' is-charging':'')+(hop===p.id&&!l.clearing?' is-hop':'')} style={{transform:'translate('+l.x*100+'%,'+l.y*100+'%)',zIndex:l.z,'--d':(p.id%29)*0.41+'s','--charge':l.charge} as React.CSSProperties}>
+      className={'match3-piece k'+p.kind+(p.special?' is-'+p.special:'')+(p.bonus?' has-'+p.bonus:'')+(sel===i?' is-picked':sel!==null&&!l.clearing&&adjacent(sel,i)?' is-near':'')+(l.born?' is-made':'')+(l.clearing?' is-clearing':'')+(intro?' is-intro':'')+(hint?.includes(i)&&!l.clearing?' is-hint':'')+(l.charge?' is-charging':'')+(hop===p.id&&!l.clearing?' is-hop':'')} style={{transform:'translate('+l.x*100+'%,'+l.y*100+'%)',zIndex:l.z,'--d':(p.id%29)*0.41+'s','--charge':l.charge,...(sel!==null&&sel!==i?{'--nx':Math.sign(sel%W-i%W),'--ny':Math.sign(Math.floor(sel/W)-Math.floor(i/W))}:{})} as React.CSSProperties}>
       {/* A special's own glow behind it (a halo that brightens as it charges up). */}
       {p.special&&!l.clearing&&<i className="m3-halo" aria-hidden="true"/>}
       {p.special&&!l.clearing&&<i className="m3-rays" aria-hidden="true"/>}

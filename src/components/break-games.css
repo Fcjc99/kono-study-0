@@ -253,7 +253,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 @keyframes m3-twinkle{50%{filter:drop-shadow(0 0 9px #fff) drop-shadow(0 0 16px var(--l))}}
 @keyframes m3-nova{to{transform:scale(1.1);filter:drop-shadow(0 0 10px #fff) drop-shadow(0 0 20px #ff8bf0)}}
 .match3-piece.is-picked .m3-gem{animation:m3-picked .5s ease-in-out infinite alternate}
-.match3-piece.is-picked::before{content:'';position:absolute;inset:1px;border-radius:8px;box-shadow:inset 0 0 0 2px #ffe14d,0 0 10px #ffe14d}
+.match3-piece.is-picked::before{content:'';position:absolute;inset:1px;border-radius:8px;box-shadow:inset 0 0 0 2px #ffe14d,0 0 10px #ffe14d;animation:m3-pick-ring .9s ease-in-out infinite}
 @keyframes m3-picked{to{transform:scale(1.12)}}
 .match3-piece.is-hint .m3-gem{animation:m3-hint .9s ease-in-out infinite}
 @keyframes m3-hint{0%,60%,100%{transform:none}70%{transform:rotate(-12deg) scale(1.1)}80%{transform:rotate(12deg) scale(1.1)}90%{transform:rotate(-6deg)}}
@@ -594,3 +594,21 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .match3.is-candy .m3-flash{animation-duration:1.2s}
 .match3.is-candy .match3-piece.is-charging .m3-halo{scale:calc(1 + var(--charge,0)*1.4);opacity:calc(.4 + var(--charge,0)*.6)}
 @media(prefers-reduced-motion:reduce){.m3-callout{animation-duration:1.7s;animation-timing-function:ease}.blast-frame.is-punch .match3-board{animation:none}}
+
+/* The piece you've picked (Match3): it can't be missed. A breathing glow ring around it; a gem turns slowly
+   in 3D like Bejeweled's, a candy bounces like jelly; the four it can swap with lean toward it, and the rest
+   of the board dims a little. */
+@keyframes m3-pick-ring{0%,100%{box-shadow:inset 0 0 0 2px #ffe14d,0 0 6px 1px rgba(255,225,77,.7);opacity:.85}50%{box-shadow:inset 0 0 0 3px #fff6b8,0 0 18px 5px rgba(255,225,77,.95);opacity:1}}
+.match3-piece.is-picked{z-index:3!important}
+.match3.is-candy .match3-piece.is-picked .m3-gem{animation:m3-pick-jelly .8s ease-in-out infinite;transform-origin:50% 85%}
+@keyframes m3-pick-jelly{0%,100%{transform:scale(1.08,1.08) translateY(0)}25%{transform:scale(1.2,.94) translateY(2%)}50%{transform:scale(.96,1.2) translateY(-9%)}75%{transform:scale(1.12,1.02) translateY(-2%)}}
+.match3.is-gems .match3-piece.is-picked .m3-gem{animation:m3-pick-pulse .7s ease-in-out infinite alternate}
+.match3.is-gems .match3-piece.is-picked .m3-art{animation:m3-pick-spin 1.6s linear infinite!important}
+@keyframes m3-pick-pulse{from{transform:scale(1.06);filter:brightness(1.1)}to{transform:scale(1.18);filter:brightness(1.45) drop-shadow(0 0 6px rgba(255,255,255,.8))}}
+@keyframes m3-pick-spin{from{transform:perspective(160px) rotateY(0deg)}to{transform:perspective(160px) rotateY(360deg)}}
+.match3-piece.is-picked::after{content:'';position:absolute;inset:-6%;border-radius:50%;pointer-events:none;background:conic-gradient(from 0deg,transparent 0 70%,rgba(255,255,255,.9) 80%,transparent 90%);-webkit-mask:radial-gradient(closest-side,transparent 78%,#000 82%,transparent 96%);mask:radial-gradient(closest-side,transparent 78%,#000 82%,transparent 96%);animation:m3-pick-orbit 1.2s linear infinite}
+@keyframes m3-pick-orbit{to{rotate:360deg}}
+.match3-piece.is-near .m3-gem{animation:m3-lean 1s ease-in-out infinite}
+@keyframes m3-lean{0%,100%{translate:0 0}50%{translate:calc(var(--nx,0)*6%) calc(var(--ny,0)*6%)}}
+.match3-board.has-pick .match3-piece:not(.is-picked):not(.is-near):not(.is-clearing) .m3-gem{opacity:.72;transition:opacity .2s}
+.match3-board .match3-piece .m3-gem{transition:opacity .2s}
