@@ -432,3 +432,14 @@ button.kono-mood-face:focus-visible{outline:2px solid var(--accent,#6d8f6b);outl
 .week-menu-time span{font-size:.8rem;font-weight:700;color:var(--wb-muted,#7a6a64)}
 .week-menu .week-menu-time button:not(#x):not(#y){min-height:36px;min-width:52px;justify-content:center;text-align:center;font-variant-numeric:tabular-nums}
 .week-grid .week-item{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+/* KONO's icons (KonoIcon, and the tab bar's NavIcon): two-tone, rounded strokes over a soft fill of the
+   same color, so every place-and-action icon reads as one family. */
+.kono-icon{display:inline-block;flex:none;vertical-align:-4px}
+.kono-icon .ki-fill{opacity:.2}
+button .kono-icon,a .kono-icon{margin-right:2px}
+.wb-scene-arcade .kono-icon .ki-fill,.wb-scene-world .kono-icon .ki-fill,button.primary .kono-icon .ki-fill{opacity:.32}
+.nav-glyph>:first-child{fill:currentColor;fill-opacity:.16}
+[aria-current] .nav-glyph>:first-child,.active .nav-glyph>:first-child,[aria-pressed=true] .nav-glyph>:first-child{fill-opacity:.28}
+.town-tabs button{display:grid!important;justify-items:center;gap:4px}
+.town-tabs button .kono-icon{margin:0;color:var(--wb-accent,#a0466e)}
+.town-tabs button[aria-current] .kono-icon .ki-fill{opacity:.34}

@@ -1,3 +1,4 @@
+import KonoIcon,{type KonoIconName} from './KonoIcon'
 import './kono-town.css'
 import {useState,type ReactNode} from 'react'
 import Modal from './Modal'
@@ -13,7 +14,7 @@ import {albumCount,albumSections,type AlbumInput} from '../store/konoAlbum'
 import type {PaintId} from '../store/konoLooks'
 
 export type TownTab='shops'|'home'|'wheel'|'arcade'|'album'
-const TABS:{id:TownTab;icon:string;label:string}[]=[{id:'shops',icon:'🛍️',label:'Shops'},{id:'home',icon:'🎨',label:'Paint & home'},{id:'wheel',icon:'🎡',label:'Prize wheel'},{id:'arcade',icon:'🕹️',label:'Arcade'},{id:'album',icon:'📖',label:'Album'}]
+const TABS:{id:TownTab;icon:KonoIconName;label:string}[]=[{id:'shops',icon:'shop',label:'Shops'},{id:'home',icon:'palette',label:'Paint & home'},{id:'wheel',icon:'wheel',label:'Prize wheel'},{id:'arcade',icon:'arcade',label:'Arcade'},{id:'album',icon:'album',label:'Album'}]
 const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /** KONO Town (the coin button in the KONO bar, or KONO's corner): where coins are spent and won. Today's
@@ -82,7 +83,7 @@ export default function KonoTown({onBlastCoins,close,sound=true,balance,startTab
     <p>{quest.done?<><strong>Quest done!</strong> KONO loved the {quest.treat.name}. A new quest tomorrow.</>:<><strong>KONO’s quest:</strong> KONO is craving a {quest.treat.name}! Bring one today for {coinText(quest.reward)}.</>}</p>
     {!quest.done&&(quest.canGive?<button type="button" className="primary" onClick={e=>{onGiveQuest();playSfx('win',sound);coinBurst(e.currentTarget)}}>Give the {quest.treat.name}</button>:<button type="button" onClick={()=>setTab('shops')}>Find one</button>)}
    </section>
-   <nav className="town-tabs" aria-label="KONO Town">{TABS.map(t=><button type="button" key={t.id} aria-current={tab===t.id?'page':undefined} onClick={()=>{setTab(t.id);setNote('')}}><span aria-hidden="true">{t.icon}</span> {t.label}</button>)}</nav>
+   <nav className="town-tabs" aria-label="KONO Town">{TABS.map(t=><button type="button" key={t.id} aria-current={tab===t.id?'page':undefined} onClick={()=>{setTab(t.id);setNote('')}}><KonoIcon name={t.icon} size={24}/> {t.label}</button>)}</nav>
    {note&&<p className="town-note" role="status">{note}</p>}
    {tab==='shops'&&<>
     {shop('Food shop','For KONO’s snacks. New stock every day.',food,'Sold out! Come back tomorrow.')}

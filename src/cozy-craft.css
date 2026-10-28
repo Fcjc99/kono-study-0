@@ -1,0 +1,13 @@
+/* The cozy look's crafted surfaces (the default experience): the cards and panels are warm paper with a faint
+   grain, a soft highlight along the top and a pressed edge underneath, so they belong with the island's
+   hand-painted art instead of sitting on it as plain white boxes. KONO Town, KONO's corner and KONO's house
+   open in a wood-trimmed frame like a game window. Dark mode keeps its own surfaces. */
+:root{--paper-grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+:root:not([data-dark]) .workbench[data-experience='cozy'] :is(.wb-panel:not(.wb-board):not(.quick-today),.card:not(.subject-workspace)),
+:root:not([data-dark]) .workbench[data-experience='cozy'] .wb-island{background-image:var(--paper-grain),linear-gradient(180deg,color-mix(in srgb,var(--wb-surface,#fffaf4) 100%,#fff) 0%,color-mix(in srgb,var(--wb-surface,#fffaf4) 90%,#f3d9c6) 100%)!important;box-shadow:inset 0 2px 0 rgba(255,255,255,.85),0 2px 0 color-mix(in srgb,var(--wb-line,#e8cfc2) 75%,#c9a08a),0 10px 22px -16px rgba(110,60,40,.3)!important}
+:root:not([data-dark]) .workbench[data-experience='cozy'] .wb-island{border-color:color-mix(in srgb,var(--wb-line,#e8cfc2) 70%,#c99a7f)!important}
+/* Game windows: a wood frame and a plank title bar. */
+:root:not([data-dark]) .wb-dialog:not(.is-full):has(:is(.town-tabs,.kono-corner,.kono-house)){border:7px solid #9c6a48!important;box-shadow:inset 0 0 0 2px #d9ab83,0 0 0 2px #6e4630,0 18px 50px rgba(50,25,15,.45)!important;background-image:var(--paper-grain),linear-gradient(#fff9f0,#fbeedd)!important}
+:root:not([data-dark]) .wb-dialog:not(.is-full):has(:is(.town-tabs,.kono-corner,.kono-house))>header{margin:-16px -16px 12px!important;padding:14px 16px 12px!important;border:0!important;background:repeating-linear-gradient(90deg,rgba(0,0,0,0) 0 46px,rgba(70,35,20,.12) 46px 48px),linear-gradient(#b07a55,#8f5d3e)!important;color:#fff7ec!important;box-shadow:inset 0 -3px 0 rgba(60,30,15,.35),inset 0 2px 0 rgba(255,220,180,.35)}
+:root:not([data-dark]) .wb-dialog:not(.is-full):has(:is(.town-tabs,.kono-corner,.kono-house))>header h2{color:#fff7ec!important;text-shadow:0 2px 0 rgba(60,30,15,.45)}
+:root:not([data-dark]) .wb-dialog:not(.is-full):has(:is(.town-tabs,.kono-corner,.kono-house))>header .sheet-handle{background:rgba(255,240,220,.6)!important}
