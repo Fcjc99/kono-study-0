@@ -136,3 +136,18 @@ html[data-motion=full] .welcome-tour-kono{animation:tour-kono-in .4s cubic-bezie
 @media(min-width:1300px){.welcome-tour.is-loading{height:196px}}
 @media(max-width:600px){.welcome-tour.is-loading{height:262px}}
 .delight-particle.is-coin{font-size:18px}
+/* The bigger celebrations (delight.ts): a Done! stamp, confetti, KONO popping up to cheer. */
+.delight-particle.is-stamp{padding:6px 14px;border:4px solid #d64563;border-radius:10px;color:#d64563;font-size:30px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;background:rgba(255,240,244,.6);box-shadow:inset 0 0 0 2px rgba(214,69,99,.35);font-family:Georgia,'Times New Roman',serif}
+.delight-particle.is-confetti{width:9px;height:14px;border-radius:2px}
+.delight-kono-peek{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom) + 70px);z-index:2147483000;pointer-events:none;display:grid;justify-items:end;width:min(240px,calc(100vw - 28px));transform:translateY(115%)}
+.delight-kono-peek img{width:104px;image-rendering:pixelated;filter:drop-shadow(0 6px 6px rgba(60,30,20,.3))}
+.delight-kono-peek b{order:-1;margin:0 18px -4px 0;padding:6px 10px;border-radius:14px;background:#fff;color:#7a3352;font-size:.85rem;white-space:nowrap;box-shadow:0 3px 10px rgba(60,30,20,.2)}
+/* KONO keeps an eye on you (delight.ts › konoLook): its face leans toward your finger. */
+.kono-mood-face>:first-child{translate:var(--look-x,0) var(--look-y,0);rotate:var(--look-r,0deg);transition:translate .25s ease-out,rotate .25s ease-out}
+/* Late at night KONO in the bar is sleepy: it breathes slowly and drifts off with a little z. */
+.workbench[data-daylight=night] .kono-mood-face{position:relative}
+.workbench[data-daylight=night] .kono-mood-face>:first-child{animation:kono-sleepy 3.6s ease-in-out infinite}
+.workbench[data-daylight=night] .kono-mood-face::after{content:'z';position:absolute;right:-2px;top:-6px;font-weight:800;color:#7d86c9;font-size:.9rem;animation:kono-zz 3.6s ease-in-out infinite;pointer-events:none}
+@keyframes kono-sleepy{0%,100%{scale:1 1}50%{scale:1.03 .96}}
+@keyframes kono-zz{0%{opacity:0;translate:0 4px;scale:.6}40%{opacity:1}100%{opacity:0;translate:8px -14px;scale:1.2}}
+html[data-motion=reduced] :is(.kono-mood-face>:first-child,.kono-mood-face::after){animation:none!important;transition:none!important}

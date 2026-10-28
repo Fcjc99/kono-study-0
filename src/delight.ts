@@ -58,14 +58,56 @@ export function floatHearts(target:Element|null,count=3){
  }
 }
 
-/** Finishing an assignment: petals burst from where it was tapped and its card glows and settles. */
+/** A "Done!" stamp thumping down where the finished thing was tapped. */
+function stamp(x:number,y:number){
+ const el=particle('Done!',Math.min(innerWidth-90,Math.max(90,x+40)),Math.min(innerHeight-120,Math.max(80,y)),'is-stamp')
+ el.animate([
+  {transform:'translate(-50%,-50%) rotate(-16deg) scale(2.6)',opacity:0},
+  {transform:'translate(-50%,-50%) rotate(-12deg) scale(.92)',opacity:1,offset:.22},
+  {transform:'translate(-50%,-50%) rotate(-12deg) scale(1)',opacity:1,offset:.3},
+  {transform:'translate(-50%,-50%) rotate(-12deg) scale(1)',opacity:1,offset:.78},
+  {transform:'translate(-50%,-60%) rotate(-12deg) scale(1.05)',opacity:0},
+ ],{duration:1500,easing:'cubic-bezier(.3,1.3,.5,1)'}).finished.finally(()=>el.remove())
+}
+/** Confetti fluttering down from the top of the screen. */
+function confettiRain(count=34){
+ const colors=['#ff6b8a','#ffc93d','#5fd18a','#5aa9ff','#b98bff','#ff9a5a']
+ for(let i=0;i<count;i++){
+  const el=particle('',Math.random()*innerWidth,-12,'is-confetti')
+  el.style.background=colors[i%colors.length]
+  const drift=(Math.random()-.5)*160,fall=innerHeight*(.55+Math.random()*.4),spin=Math.random()*720-360
+  el.animate([
+   {transform:'translate(-50%,0) rotate(0deg)',opacity:1},
+   {transform:`translate(calc(-50% + ${drift}px),${fall}px) rotate(${spin}deg)`,opacity:0},
+  ],{duration:1400+Math.random()*900,delay:Math.random()*260,easing:'cubic-bezier(.25,.6,.4,1)',fill:'backwards'}).finished.finally(()=>el.remove())
+ }
+}
+/** KONO pops up from the bottom of the screen to cheer, then ducks back down. */
+function konoPeek(){
+ const el=document.createElement('span')
+ el.className='delight-kono-peek';el.setAttribute('aria-hidden','true')
+ el.innerHTML='<img src="/garden/kono/excited.webp" alt=""><b>Yay! You did it!</b>'
+ document.body.appendChild(el)
+ el.animate([
+  {transform:'translateY(110%) rotate(-6deg)'},{transform:'translateY(8%) rotate(4deg)',offset:.18},{transform:'translateY(14%) rotate(-3deg)',offset:.28},
+  {transform:'translateY(10%) rotate(2deg)',offset:.7},{transform:'translateY(115%) rotate(-4deg)'},
+ ],{duration:2300,easing:'cubic-bezier(.3,1.2,.5,1)'}).finished.finally(()=>el.remove())
+}
+/** Which celebration comes next: they take turns, so finishing things stays a little surprising. */
+let turn=0
+/** Finishing an assignment: petals burst from where it was tapped and its card glows and settles, and one of
+ * the bigger celebrations joins in by turns (a Done! stamp, confetti, KONO popping up to cheer). */
 export function celebrateDone(){
  if(!motionOn())return
  const point=lastTap()
  const card=point?.target?.closest('.cozy-task-row,.wb-record,.overdue-card li,.swipe-row,article')
  const r=card?.getBoundingClientRect()
  const x=point&&point.x>0?point.x:r?r.left+28:innerWidth/2,y=point&&point.y>0?point.y:r?r.top+r.height/2:innerHeight/2
- burst(x,y)
+ const kind=turn++%4
+ burst(x,y,kind===0?16:9)
+ if(kind===1)stamp(x,y)
+ else if(kind===2)confettiRain()
+ else if(kind===3)konoPeek()
  card?.animate([
   {transform:'scale(1)',boxShadow:'0 0 0 0 #6fcf9700'},{transform:'scale(1.025)',boxShadow:'0 0 0 6px #6fcf9755',offset:.35},
   {transform:'scale(1)',boxShadow:'0 0 0 0 #6fcf9700'},
@@ -73,3 +115,20 @@ export function celebrateDone(){
  hop(document.querySelector('.kono-mood-face > :first-child'))
 }
 
+/** KONO keeps an eye on you: the KONO bar's face leans a little toward wherever your finger or pointer is
+ * (started once by Workspace; cheap: one passive listener, one frame per move). */
+export function konoLook(){
+ if(!motionOn())return ()=>{}
+ let raf=0,px=0,py=0
+ const apply=()=>{raf=0
+  const face=document.querySelector<HTMLElement>('.kono-mood-face');if(!face)return
+  const r=face.getBoundingClientRect(),dx=px-(r.left+r.width/2),dy=py-(r.top+r.height/2),d=Math.hypot(dx,dy)
+  const k=d>700?0:1-d/700,lean=Math.max(-8,Math.min(8,dx/30))*k
+  face.style.setProperty('--look-x',(Math.max(-3,Math.min(3,dx/50))*k).toFixed(1)+'px')
+  face.style.setProperty('--look-y',(Math.max(-2,Math.min(2,dy/70))*k).toFixed(1)+'px')
+  face.style.setProperty('--look-r',lean.toFixed(1)+'deg')
+ }
+ const move=(e:PointerEvent)=>{px=e.clientX;py=e.clientY;if(!raf)raf=requestAnimationFrame(apply)}
+ window.addEventListener('pointermove',move,{passive:true});window.addEventListener('pointerdown',move,{passive:true})
+ return ()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerdown',move);cancelAnimationFrame(raf)}
+}
