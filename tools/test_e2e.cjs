@@ -985,12 +985,18 @@ test('Round 61: Planner › Week: hold (or right-click) something for a small me
  const at={clientX:sb.x+sb.width/2,clientY:sb.y+8,pointerId:7,pointerType:'touch',isPrimary:true,button:0,buttons:1}
  await soccer.dispatchEvent('pointerdown',at);await page.waitForTimeout(450);await soccer.dispatchEvent('pointerup',{...at,buttons:0})
  menu=page.getByRole('menu',{name:'Soccer practice'})
- await menu.getByRole('menuitem',{name:'↕️ Move'}).click()
+ // Its time nudges: 15 minutes later, then 15 longer (the menu stays open and follows it).
+ await menu.getByRole('menuitem',{name:'15 minutes later'}).click()
+ await week.getByRole('button',{name:/^Soccer practice · 5:15 PM–6:45 PM/}).waitFor()
+ await menu.getByRole('menuitem',{name:'15 minutes longer'}).click()
+ await week.getByRole('button',{name:/^Soccer practice · 5:15 PM–7:00 PM/}).waitFor()
+ await waitFor(()=>{const e=cloud.users.alice.plan.data.calendarEvents.find(x=>x.id==='m-sports');return e?.time==='17:15'&&e.endTime==='19:00'},'the nudged time reaches the account')
+ await menu.getByRole('menuitem',{name:/^↕️ Move/}).click()
  await week.getByRole('status').getByText('Tap a new time for “Soccer practice”').waitFor()
  const slot=week.getByRole('button',{name:'Move to 9:00 AM on Oct 2, 2026'})
  await slot.scrollIntoViewIfNeeded();await slot.click({position:{x:12,y:24}})
- await week.getByRole('button',{name:/^Soccer practice · 9:30 AM–11:00 AM · Oct 2, 2026/}).waitFor()
- await waitFor(()=>{const e=cloud.users.alice.plan.data.calendarEvents.find(x=>x.id==='m-sports');return e?.date==='2026-10-02'&&e.time==='09:30'&&e.endTime==='11:00'},'the moved event reaches the account')
+ await week.getByRole('button',{name:/^Soccer practice · 9:30 AM–11:15 AM · Oct 2, 2026/}).waitFor()
+ await waitFor(()=>{const e=cloud.users.alice.plan.data.calendarEvents.find(x=>x.id==='m-sports');return e?.date==='2026-10-02'&&e.time==='09:30'&&e.endTime==='11:15'},'the moved event reaches the account')
  // A mouse held still opens the menu too. Delete sends it to Trash (with Undo).
  const dentist=week.getByRole('button',{name:/^Dentist appointment · 9:00 AM/})
  await dentist.scrollIntoViewIfNeeded()

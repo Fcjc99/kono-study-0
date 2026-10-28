@@ -96,7 +96,8 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
  const move=(e:ReactPointerEvent<HTMLElement>)=>{
   const d=dragRef.current
   if(!d||d.pointer!==e.pointerId)return
-  const far=Math.hypot(e.clientX-d.x,e.clientY-d.y)>6
+  // A finger wobbles a little while it holds still; a mouse doesn't.
+  const far=Math.hypot(e.clientX-d.x,e.clientY-d.y)>(e.pointerType==='touch'?12:6)
   if(!d.active){
    if(!far)return
    // A finger that moves before the hold is a scroll, not a drag.
@@ -141,7 +142,8 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
  const drawMove=(e:ReactPointerEvent<HTMLElement>)=>{
   const d=drawRef.current
   if(!d||d.pointer!==e.pointerId)return
-  const far=Math.hypot(e.clientX-d.x,e.clientY-d.y)>6
+  // A finger wobbles a little while it holds still; a mouse doesn't.
+  const far=Math.hypot(e.clientX-d.x,e.clientY-d.y)>(e.pointerType==='touch'?12:6)
   if(!d.active){
    if(!far)return
    if(e.pointerType==='touch'){clearTimeout(d.timer);updateDraw(null);return}
@@ -198,14 +200,25 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
     {landing&&landing.day===day&&landing.from!==undefined&&<div className="week-item-ghost" aria-hidden="true" style={{'--item-color':live!.item.color,top:(landing.from-first*60)/60*HOUR,height:Math.max(22,(landing.to!-landing.from)/60*HOUR-2)} as CSSProperties}>{classTime(clock(landing.from))}–{classTime(clock(Math.min(24*60-1,landing.to!)))}</div>}
    </div>)}
   </div>
-  {menu&&<>
+  {menu&&(()=>{
+   // The menu follows the item as its time changes (its own buttons nudge it).
+   const it=items.find(i=>i.id===menu.item.id)??menu.item,timedMove=!!(it.start&&it.drag&&onDrop),from=it.start?minutes(it.start):0,to=it.start?span(it).to:0
+   const shift=(by:number)=>{const at=Math.max(0,Math.min(24*60-SNAP,from+by));onDrop?.(it.drag!,it.day,clock(at))}
+   const resize=(by:number)=>{const end=Math.max(from+SNAP,Math.min(24*60-1,to+by));onStretch?.(it.drag!,clock(end))}
+   return <>
    <button type="button" className="week-menu-backdrop" aria-label="Close menu" onClick={()=>setMenu(null)}/>
-   <div className="week-menu" role="menu" aria-label={menu.item.title} style={{left:Math.max(8,Math.min(menu.x-90,window.innerWidth-188)),top:Math.max(8,Math.min(menu.y+8,window.innerHeight-170))}}>
-    <strong>{menu.item.title}</strong>
-    <button type="button" role="menuitem" onClick={()=>{const i=menu.item;setMenu(null);if(onOpen)onOpen(i);else onSelect(i.day)}}>✏️ Edit</button>
-    {menu.item.drag&&onDrop&&<button type="button" role="menuitem" onClick={()=>{setMoving(menu.item);setMenu(null)}}>↕️ Move</button>}
-    {menu.item.drag&&onDelete&&<button type="button" role="menuitem" className="is-danger" onClick={()=>{const i=menu.item;setMenu(null);onDelete(i)}}>🗑 Delete</button>}
+   <div className="week-menu" role="menu" aria-label={it.title} style={{left:Math.max(8,Math.min(menu.x-100,window.innerWidth-208)),top:Math.max(8,Math.min(menu.y+8,window.innerHeight-(timedMove?290:170)))}}>
+    <strong>{it.title}{it.start&&<small>{classTime(it.start)}{it.end?'–'+classTime(clock(Math.min(24*60-1,to))):''}</small>}</strong>
+    {timedMove&&<div className="week-menu-time" role="group" aria-label="Time">
+     <span>Time</span><button type="button" role="menuitem" aria-label="15 minutes earlier" onClick={()=>shift(-SNAP)}>−15</button><button type="button" role="menuitem" aria-label="15 minutes later" onClick={()=>shift(SNAP)}>+15</button>
+    </div>}
+    {timedMove&&it.stretch&&onStretch&&<div className="week-menu-time" role="group" aria-label="Length">
+     <span>Length</span><button type="button" role="menuitem" aria-label="15 minutes shorter" disabled={to-from<=SNAP} onClick={()=>resize(-SNAP)}>−15</button><button type="button" role="menuitem" aria-label="15 minutes longer" onClick={()=>resize(SNAP)}>+15</button>
+    </div>}
+    <button type="button" role="menuitem" onClick={()=>{setMenu(null);if(onOpen)onOpen(it);else onSelect(it.day)}}>✏️ Edit</button>
+    {it.drag&&onDrop&&<button type="button" role="menuitem" onClick={()=>{setMoving(it);setMenu(null)}}>↕️ Move to…</button>}
+    {it.drag&&onDelete&&<button type="button" role="menuitem" className="is-danger" onClick={()=>{setMenu(null);onDelete(it)}}>🗑 Delete</button>}
    </div>
-  </>}
+  </>})()}
  </div>
 }
