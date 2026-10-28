@@ -871,6 +871,43 @@ test('Canvas two-way: connecting brings in the to-do list, a tick in KONO is sen
  assert.equal(calls.filter(c=>c.action==='mark').length,1,'only the changed item is sent')
 })
 
+test('Phone app: inside the iPhone/Android app the widgets get the plan, reminders are scheduled on the phone, and a focus session shows on the lock screen',async({context,page})=>{
+ // A stand-in for the app's native layer (Capacitor): records every plugin call.
+ await context.addInitScript(()=>{
+  const calls=window.__native=[],plugin=name=>new Proxy({},{get:(_,method)=>async options=>{calls.push({plugin:name,method,options:options===undefined?undefined:JSON.parse(JSON.stringify(options))})
+   if(method==='checkPermissions')return {display:'prompt'};if(method==='requestPermissions')return {display:'granted'};if(method==='getPending')return {notifications:[{id:7}]};return {}}})
+  window.Capacitor={isNativePlatform:()=>true,getPlatform:()=>'ios',Plugins:{KonoWidget:plugin('KonoWidget'),LocalNotifications:plugin('LocalNotifications')}}
+ })
+ await createPlan(page)
+ const calls=()=>page.evaluate(()=>window.__native)
+ const until=async(check,message)=>{for(let k=0;k<80;k++){if(check(await calls()))return;await page.waitForTimeout(250)}assert.fail(message+': '+JSON.stringify(await calls()).slice(0,600))}
+ await until(c=>c.some(x=>x.method==='setSnapshot'),'the widgets got the plan')
+ const snap=JSON.parse((await calls()).find(x=>x.method==='setSnapshot').options.json)
+ assert.ok(snap.updated&&snap.kono&&typeof snap.kono.full==='number'&&Array.isArray(snap.next)&&snap.today,'the widget data has next up, today and KONO')
+ await until(c=>c.some(x=>x.method==='checkPermissions'),'reminders checked permission')
+ // Turning on a timer shows it on the lock screen; pausing ends it.
+ const outer=page.locator('details.sanctuary-focus')
+ await outer.locator(':scope > summary').click()
+ const focus=outer.locator('details.focus-session')
+ await focus.locator(':scope > summary').click()
+ await focus.getByLabel('Minutes').fill('25');await focus.getByLabel('Seconds').fill('0')
+ await focus.getByRole('button',{name:'Start timer'}).click()
+ await until(c=>c.some(x=>x.method==='startFocus'),'the focus session went to the lock screen')
+ const start=(await calls()).find(x=>x.method==='startFocus').options
+ assert.ok(start.endsAt>Date.now()+24*60*1000&&start.endsAt<Date.now()+26*60*1000,'it ends when the timer does');assert.ok(start.title)
+ const before=(await calls()).filter(x=>x.method==='endFocus').length
+ await focus.getByRole('button',{name:/^Pause/}).first().click()
+ await until(c=>c.filter(x=>x.method==='endFocus').length>before,'pausing ended the lock-screen timer')
+})
+
+test('Phone app: on the web, KONO never touches the native bridge',async({page})=>{
+ await createPlan(page)
+ await page.waitForTimeout(2500)
+ assert.equal(await page.evaluate(()=>typeof window.Capacitor),'undefined')
+ const names=await page.evaluate(()=>performance.getEntriesByType('resource').map(e=>e.name).filter(n=>/nativeBridge|pushReminders/.test(n)))
+ assert.deepEqual(names,[],'the phone-app code isn’t downloaded on the web')
+})
+
 test('Linked calendar: a kept-up-to-date Canvas feed adds new assignments and moves changed dates on Check now',async({context,page})=>{
  const d=new Date(),ymd=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0'),inDays=n=>{const x=new Date(d);x.setDate(d.getDate()+n);return ymd(x)}
  const item=(uid,title,day,kind)=>['BEGIN:VEVENT','UID:'+uid,'SUMMARY:'+title,'DTSTART;VALUE=DATE:'+day,'URL:https://canvas.bc.edu/courses/1/'+kind+'/'+uid,'END:VEVENT']

@@ -32,6 +32,8 @@ import {useDueNotifications,useTimeBlockNotifications,useFamilyEventNotification
 import {usePushReminders} from './hooks/usePushReminders'
 import {useLinkedCalendars} from './hooks/useLinkedCalendars'
 import {useCanvasSync} from './hooks/useCanvasSync'
+import {useNativeApp} from './hooks/useNativeApp'
+import {isNativeApp} from './native'
 import {useLiveSanctuaryWeather} from './hooks/useLiveSanctuaryWeather'
 import ClassOccurrenceCard from './components/ClassOccurrenceCard'
 import {classOccurrences,classTime,type ClassOccurrence} from './store/classSchedule'
@@ -626,6 +628,8 @@ function Workspace({store}:{store:Store}){
  useEffect(()=>{if(!photoCloud)return;const sync=()=>void uploadPendingPhotos(photoCloud);sync();window.addEventListener('online',sync);return()=>window.removeEventListener('online',sync)},[photoCloud])
  useLinkedCalendars(profile.id,data,save,!store.support)
  useCanvasSync(profile.id,data,save,!store.support)
+ // KONO's phone apps: the home-screen widgets and reminders scheduled on the phone (hooks/useNativeApp).
+ useNativeApp(data,!isNativeApp()?null:{name:profile.name,next:nextUpList(tasks,today,ownExams).slice(0,3).map(n=>({title:n.step??n.title,why:n.why})),today:{done:ownTasks.filter(t=>t.done&&t.due===today).length,left:ownTasks.filter(t=>!t.done&&t.due<=today).length},kono:{mood:mood.id,line:mood.line,full:meters.full,happy:meters.happy,asleep:meters.asleep}},!store.support)
  const setting=<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>save(d=>({...d,settings:{...d.settings,[key]:value}}))
  // Off by default so a student sharing the app never sees a nav tab meant for a parent managing
  // multiple kids -- turned on from Settings > Family, the same way the schedule-setup flow picker

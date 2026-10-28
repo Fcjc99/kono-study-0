@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { nativeFocus } from '../native'
 import {useDraftState} from '../hooks/useDraftState'
 import type { Note, Task } from '../store/model'
 import { lazyPanel } from '../lazyPanel'
@@ -36,6 +37,10 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,draftKey
  useEffect(()=>{if(focusRequest&&rootRef.current)rootRef.current.open=true},[focusRequest])
  const task=studyLabel?undefined:tasks.find(t=>t.id===taskId&&!t.done)??tasks.filter(t=>!t.done).sort((a,b)=>a.due.localeCompare(b.due))[0]
  const seconds=until===null?remaining:Math.max(0,Math.ceil((until-now)/1000)),finished=until!==null&&seconds===0
+ // In KONO's iPhone app the timer also counts down on the lock screen and Dynamic Island.
+ const focusTitle=studyLabel||task?.title||'Focus session'
+ useEffect(()=>{nativeFocus(until!==null&&!finished?{title:focusTitle,endsAt:until}:null)},[until,finished,focusTitle])
+ useEffect(()=>()=>nativeFocus(null),[])
  const progress=duration>0?Math.min(1,Math.max(0,1-seconds/duration)):0
  // The running timer, not the locked overlay, is what makes KONO sit with you on the island (see
  // GardenCard's focusCompanionActive prop) -- so it starts on "Start timer" and ends on pause, reset
