@@ -80,7 +80,7 @@ html[data-theme='coral'] .topbar .eyebrow,html[data-theme='coral'] .eyebrow{colo
 html[data-theme='coral'] .search{width:min(320px,38vw);height:40px;border:1px solid var(--coral-line);border-radius:13px;background:rgba(255,253,248,.93);box-shadow:0 4px 14px rgba(89,48,36,.05)}
 html[data-theme='coral'] .page-stack{gap:22px;max-width:1380px;margin:0 auto}
 
-html[data-theme='coral'] .card,html[data-theme='coral'] .subject-manager{
+html[data-theme='coral'] .card{
   position:relative;background:linear-gradient(180deg,var(--coral-paper),#fff8f2);border:1px solid var(--coral-line);border-radius:22px;box-shadow:var(--coral-shadow)
 }
 html[data-theme='coral'] .card-head{padding-bottom:14px;border-bottom:1px dashed #edc7bb}
@@ -196,19 +196,17 @@ html[data-theme='coral'] .task-row-v2 .task-meta-v2{display:block!important;posi
 
 /* Subjects */
 html[data-theme='coral'] .subjects-layout{gap:22px}
-html[data-theme='coral'] .subject-manager{background:linear-gradient(180deg,#fff8f2,#ffe8de)!important}
+
 html[data-theme='coral'] .subject-tabs button{background:#fff9f4!important;border-color:#ebc9be!important;color:#745047!important}
 html[data-theme='coral'] .subject-tabs button:hover{background:#fff0e9!important}
 html[data-theme='coral'] .subject-label{color:#c8554a!important}
-html[data-theme='coral'] .subject-assignment-list{background:rgba(255,255,255,.5)!important;border-color:#eccbc0!important}
-html[data-theme='coral'] .subject-create-form,html[data-theme='coral'] .subject-add{background:#fff5ee!important;border-color:#edc8bc!important}
 
 /* Notes / Exam pages and corkboards */
 html[data-theme='coral'] .exam-compose{background:linear-gradient(180deg,#fffdf9,#fff3ec)!important}
 html[data-theme='coral'] .exam-sticky{border:1px solid rgba(116,62,44,.16)!important;box-shadow:0 12px 20px rgba(71,35,23,.22)!important}
 html[data-theme='coral'] .exam-sticky:after{content:"❀";position:absolute;right:10px;bottom:7px;color:rgba(220,92,76,.15);font-size:30px;pointer-events:none}
 html[data-theme='coral'] .push-pin{background:radial-gradient(circle at 35% 30%,#fff0c9 0 12%,#d99c4e 14% 58%,#9d632a 60%)!important;box-shadow:0 3px 5px rgba(66,31,20,.32)!important}
-html[data-theme='coral'] .subject-pill{color:white!important;box-shadow:inset 0 1px rgba(255,255,255,.28)}
+
 html[data-theme='coral'] .bubble-complete{background:#fff4ed!important;color:#c85147!important;border-color:#edb8aa!important}
 html[data-theme='coral'] .bubble-complete:hover{background:#f56f61!important;color:white!important}
 
@@ -246,21 +244,10 @@ html[data-theme='coral'] .exam-sticky:after{
   content:'';position:absolute;right:0;top:0;width:28px;height:28px;background:linear-gradient(225deg,rgba(110,65,48,.15) 0 49%,rgba(255,255,255,.8) 50%);border-radius:0 14px 0 8px;pointer-events:none
 }
 
-/* Subject-connected notebook notes */
-.subject-notes-panel{margin-top:24px;padding-top:22px;border-top:1px dashed rgba(185,104,83,.32)}
-.subject-notes-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}
-.subject-notes-head h3{margin:3px 0 0}
-.subject-notes-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.subject-note-preview{position:relative;min-width:0;padding:18px 17px 15px;border:1px solid rgba(111,64,47,.15);border-radius:16px;background:var(--paper);box-shadow:0 7px 15px rgba(92,49,34,.1)}
-.subject-note-preview small{font-weight:900;text-transform:uppercase;letter-spacing:.09em;opacity:.62}
-.subject-note-preview h4{margin:8px 28px 6px 0;font-size:18px}.subject-note-preview p{margin:0 0 13px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.45}
-.subject-note-preview button{border:0;border-radius:999px;padding:7px 11px;background:rgba(255,255,255,.68);color:inherit;font-weight:800;cursor:pointer}
-.subject-notes-empty{grid-column:1/-1;padding:26px;text-align:center;border:1px dashed #e5b9ab;border-radius:17px;background:#fff9f5}.subject-notes-empty span{font-size:28px}.subject-notes-empty strong{display:block;margin:7px 0}
-
 /* Mobile notes become a readable notebook stack rather than a shrunken corkboard */
 @media(max-width:760px){
  html[data-theme='coral'] .exam-sticky{width:100%!important;min-height:0!important;margin:0!important;padding:20px 18px 16px!important;transform:none!important}
- .subject-notes-grid{grid-template-columns:1fr}.subject-notes-head{align-items:flex-start;flex-direction:column}.subject-notes-head button{width:100%}
+
 }
 
 /* ========================================================================== 
@@ -273,11 +260,7 @@ html[data-theme='coral'] .exam-sticky:after{
   html[data-theme='coral'] main,
   html[data-theme='coral'] .page-stack{width:100%;max-width:100%;min-width:0}
   html[data-theme='coral'] .page-stack{align-items:stretch;margin-inline:auto}
-  html[data-theme='coral'] .page-stack>*,
-  html[data-theme='coral'] .card,
-  html[data-theme='coral'] .subjects-layout,
-  html[data-theme='coral'] .subject-workspace,
-  html[data-theme='coral'] .subject-manager{min-width:0;max-width:100%;width:100%;box-sizing:border-box}
+  html[data-theme='coral'] .page-stack>*,html[data-theme='coral'] .card,html[data-theme='coral'] .subjects-layout,html[data-theme='coral'] .subject-workspace{min-width:0;max-width:100%;width:100%;box-sizing:border-box}
   html[data-theme='coral'] .card-head>div:first-child{min-width:0}
   html[data-theme='coral'] h1,
   html[data-theme='coral'] h2,
@@ -323,18 +306,6 @@ html[data-theme='coral'] .exam-sticky:after{
   html[data-theme='coral'] .subject-workspace>.subject-label{max-width:calc(100% - 24px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html[data-theme='coral'] .subject-workspace>h1,
   html[data-theme='coral'] .subject-workspace>p{text-align:center;margin-left:auto;margin-right:auto}
-  html[data-theme='coral'] .subject-add,
-  html[data-theme='coral'] .subject-create-form{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:10px!important;width:100%!important}
-  html[data-theme='coral'] .subject-add>*,
-  html[data-theme='coral'] .subject-create-form>*{width:100%!important;min-width:0!important}
-  html[data-theme='coral'] .subject-color-swatches{justify-content:center!important;grid-column:auto!important}
-  html[data-theme='coral'] .subject-manager{text-align:center}
-  html[data-theme='coral'] .subject-manager>div:first-child{max-width:34rem;margin-inline:auto}
-  html[data-theme='coral'] .subject-assignment-list{width:100%;min-width:0}
-  html[data-theme='coral'] .subject-notes-head{display:flex!important;flex-direction:column!important;align-items:center!important;text-align:center;gap:10px}
-  html[data-theme='coral'] .subject-notes-head .secondary{width:100%;max-width:260px}
-  html[data-theme='coral'] .subject-notes-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important}
-  html[data-theme='coral'] .subject-note-preview{width:100%!important;max-width:100%!important;transform:none!important;margin:0!important;padding:18px!important}
 
   /* Center and constrain all page-specific grids */
   html[data-theme='coral'] .profile-grid,

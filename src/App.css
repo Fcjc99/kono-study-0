@@ -35,7 +35,7 @@ button{cursor:pointer}
 .primary{background:linear-gradient(145deg,var(--accent),var(--accent2));color:var(--wb-accent-ink,white);box-shadow:0 10px 24px color-mix(in srgb,var(--accent) 24%,transparent)}
 .secondary{background:var(--surface2);color:var(--ink);border:1px solid var(--line)}
 .page-stack{display:grid;gap:20px}
-.card,.subject-card,.exam-card{background:color-mix(in srgb,var(--surface) 94%,transparent);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
+.card,.exam-card{background:color-mix(in srgb,var(--surface) 94%,transparent);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
 .card{padding:22px}
 .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}
 .card-head h3{font-family:Newsreader;font-size:25px;margin:2px 0}
@@ -57,7 +57,7 @@ button{cursor:pointer}
 .swatch{height:70px;display:block;border-radius:11px}
 .swatch.sakura{background:linear-gradient(135deg,#e6aabd,#70987a)}
 .swatch.forest{background:linear-gradient(135deg,#315b41,#8eb087)}
-.swatch.sunset{background:linear-gradient(135deg,#c96f67,#e8ae78)}
+
 .swatch.midnight{background:linear-gradient(135deg,#263455,#7c88bf)}
 .swatch.winter{background:linear-gradient(135deg,#7096a7,#e8f1f4)}
 .settings-list{display:grid;gap:4px}
@@ -75,7 +75,7 @@ button{cursor:pointer}
 .subject-tabs strong,.subject-tabs small{display:block}
 .subject-tabs small{color:var(--muted);margin-top:3px}
 .subject-workspace h1{font-family:Newsreader;font-size:42px;margin:4px 0}
-.subject-add input,.exam-compose input,.exam-compose select,.exam-compose textarea,.profile-form input,.profile-form select{border:1px solid var(--line);background:var(--surface2);color:var(--ink);padding:12px;border-radius:12px}
+.exam-compose input,.exam-compose select,.exam-compose textarea,.profile-form input,.profile-form select{border:1px solid var(--line);background:var(--surface2);color:var(--ink);padding:12px;border-radius:12px}
 .task-list.spacious .task{padding:15px 4px}
 .profile-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .profile-grid button{border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:16px;padding:16px;text-align:left}
@@ -89,9 +89,9 @@ button{cursor:pointer}
 @media(max-width:720px){.subjects-layout{display:block}.subject-tabs{display:flex;overflow:auto;margin-bottom:12px}.subject-tabs button{min-width:190px}.exam-compose,.profile-form{grid-template-columns:1fr}.profile-grid{grid-template-columns:1fr}}
 .check{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center;padding:0;cursor:pointer}
 [data-motion='reduced'] *{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}
-.subject-color-swatches button.active{border-color:var(--ink);transform:scale(1.08)}
+
 .subject-label{display:inline-flex;color:white;border-radius:999px;padding:6px 12px;font-size:11px;font-weight:800;margin-bottom:12px;box-shadow:0 6px 16px color-mix(in srgb,var(--subject-color) 25%,transparent)}
-@media(max-width:900px){.subject-color-swatches,.subject-create-form .primary{grid-column:1/-1}.subjects-layout{grid-template-columns:1fr}.subject-tabs{display:flex;overflow:auto}}
+@media(max-width:900px){.subjects-layout{grid-template-columns:1fr}.subject-tabs{display:flex;overflow:auto}}
 /* v0.7.4 — two complete visual personalities (color variables now come from the :root alias above) */
 [data-theme='sakura'] body{
  background:
@@ -107,14 +107,14 @@ button{cursor:pointer}
 [data-theme='sakura'] .nav-button.active{box-shadow:inset 4px 0 #ef4f8b,0 7px 20px rgba(239,79,139,.09)}
 [data-theme='sakura'] .nav-icon{background:#fff;color:#ef4f8b;box-shadow:0 4px 12px rgba(239,79,139,.10)}
 [data-theme='sakura'] .season-card{background:linear-gradient(145deg,#fff,#ffedf4);border-color:#ffd4e2}
-[data-theme='sakura'] .topbar h2,[data-theme='sakura'] .card-head h3,[data-theme='sakura'] .subject-card h3,[data-theme='sakura'] .exam-sticky h2{font-family:'Newsreader',serif;color:#3f3151}
-[data-theme='sakura'] .card,[data-theme='sakura'] .subject-card,[data-theme='sakura'] .exam-card{border-radius:22px;border-color:rgba(225,113,158,.19);box-shadow:0 16px 38px rgba(190,92,139,.12)}
+[data-theme='sakura'] .topbar h2,[data-theme='sakura'] .card-head h3,[data-theme='sakura'] .exam-sticky h2{font-family:'Newsreader',serif;color:#3f3151}
+[data-theme='sakura'] .card,[data-theme='sakura'] .exam-card{border-radius:22px;border-color:rgba(225,113,158,.19);box-shadow:0 16px 38px rgba(190,92,139,.12)}
 [data-theme='sakura'] .card{position:relative;background:linear-gradient(160deg,rgba(255,255,255,.97),rgba(255,245,249,.96))}
 [data-theme='sakura'] .card:before{content:'✦';position:absolute;right:15px;top:11px;color:rgba(239,79,139,.25);font-size:17px;pointer-events:none}
 [data-theme='sakura'] .task{background:linear-gradient(90deg,#fff,#fff2f6);border:1px solid #ffe1eb}
 [data-theme='sakura'] .task:nth-child(3n+2){background:linear-gradient(90deg,#fff,#f4efff);border-color:#e9ddff}
 [data-theme='sakura'] .task:nth-child(3n){background:linear-gradient(90deg,#fff,#f2faea);border-color:#dcf0cc}
-[data-theme='sakura'] .subject-pill,[data-theme='sakura'] .subject-label{box-shadow:0 5px 14px rgba(87,56,118,.16)}
+[data-theme='sakura'] .subject-label{box-shadow:0 5px 14px rgba(87,56,118,.16)}
 [data-theme='sakura'] .primary{background:linear-gradient(135deg,#f4508c,#a465dc);box-shadow:0 10px 25px rgba(239,79,139,.24)}
 [data-theme='sakura'] .secondary{background:#fff5f8;border-color:#ffd6e4;color:#9f3564}
 [data-theme='sakura'] .progress{background:#f6e7ee}
@@ -232,7 +232,7 @@ html[data-theme='sakura'] .subject-tabs button.active{transform:translateX(8px);
 @media(max-width:560px){.kono-radio{grid-template-columns:40px minmax(0,1fr);grid-template-areas:'mascot copy' 'controls controls'}.task{min-height:82px!important;padding:13px!important;gap:10px!important}.task strong{font-size:16px!important}}
 /* Production 21.4 — planner events, subject customization, global weather locations */
 .subject-workspace-title{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
-.subject-edit-swatches button.active{border-color:#fff;box-shadow:0 0 0 3px var(--ink)}
+
 .weather-location-presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .weather-location-presets button{display:flex;align-items:center;gap:11px;text-align:left;min-height:68px;padding:11px 13px;border:1px solid var(--line);border-radius:15px;background:var(--surface2);color:var(--ink);cursor:pointer}
 .weather-location-presets button>span{font-size:24px}
@@ -242,4 +242,4 @@ html[data-theme='sakura'] .subject-tabs button.active{transform:translateX(8px);
 .weather-location-entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;margin-top:8px}
 .weather-location-entry input{min-height:48px;border:1px solid var(--line);border-radius:13px;background:var(--surface2);color:var(--ink);padding:11px 13px;font:inherit}
 html[data-theme='sakura'] .weather-location-presets button.active{background:#fff1f7!important}
-@media(max-width:680px){.subject-edit-grid,.weather-location-presets,.weather-location-entry{grid-template-columns:1fr}.subject-workspace-title{flex-direction:column}}
+@media(max-width:680px){.weather-location-presets,.weather-location-entry{grid-template-columns:1fr}.subject-workspace-title{flex-direction:column}}

@@ -169,7 +169,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .match3 .blast-frame,.match3 .match3-goal,.match3 .blast-top,.match3 .blast-help{max-width:min(440px,92vw)}
 .match3-goal b{z-index:2}
 .match3-goal i{margin-left:-.6em}
-.m3-speed{position:absolute;right:4px;top:-2px;font-style:normal;font-size:.6rem}
+
 .m3-mult{font-weight:900;color:#ffd84d}
 .blast-frame.is-quake{animation:m3-quake .4s}
 @keyframes m3-quake{20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-3px)}60%{transform:translate(-3px,-2px)}80%{transform:translate(2px,3px)}}
@@ -248,14 +248,10 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 @keyframes m3-made{from{transform:scale(.2);filter:brightness(3)}60%{filter:brightness(1.6)}}
 /* Effects over the board: shards, beams, explosion rings, lightning, a flash, floating points. */
 .m3-fx{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:8px}
-.m3-shard{position:absolute;width:12.5%;height:12.5%}
-.m3-shard::before,.m3-shard::after{content:'';position:absolute;left:50%;top:50%;width:22%;height:22%;margin:-11%;background:var(--l);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);animation:m3-shard .55s ease-out both}
-.m3-shard::before{--x:-150%;--y:-160%;box-shadow:0 0 6px var(--b)}
-.m3-shard::after{--x:170%;--y:-90%;background:var(--b);animation-delay:.03s}
-.m3-shard{background:radial-gradient(circle,rgba(255,255,255,.95) 0 15%,var(--l) 30%,transparent 62%);animation:m3-poof .4s ease-out both}
+
 @keyframes m3-shard{to{transform:translate(var(--x),var(--y)) rotate(200deg) scale(.4);opacity:0}}
 @keyframes m3-poof{from{transform:scale(.5);opacity:1}to{transform:scale(1.7);opacity:0}}
-.match3.is-candy .m3-shard{--l:#fff;--b:#ff9de0}
+
 .m3-beam{position:absolute;background:linear-gradient(90deg,transparent,rgba(255,255,255,.95) 20%,#fff 50%,rgba(255,255,255,.95) 80%,transparent);box-shadow:0 0 16px 6px rgba(140,220,255,.9);animation:m3-beam .5s ease-out both}
 .m3-beam.is-row{left:0;right:0;height:12.5%;transform-origin:center;--a:scaleX(0)}
 .m3-beam.is-col{top:0;bottom:0;width:12.5%;background:linear-gradient(transparent,#fff 20%,#fff 80%,transparent);--a:scaleY(0)}

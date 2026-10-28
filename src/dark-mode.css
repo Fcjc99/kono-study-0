@@ -16,18 +16,13 @@
 :root[data-dark]{--dark-raised:#2c2631;--dark-sunk:#1b171f}
 :root[data-dark] .workbench,:root[data-dark] .workbench[data-experience]{background:var(--wb-bg)!important;color:var(--wb-ink)}
 :root[data-dark] .workbench :is(
- .wb-header,.wb-panel:not(.wb-board),.wb-record:not(.wb-sticky):not(.wb-record-notes),.wb-notice,.wb-dialog,dialog,.card,.task,.task-row-v2,.cozy-task-row,
- .planner-day-sheet,.planner-day-paper,.planner-day-board,.week-grid,.week-grid-row,.week-grid-day,.week-grid-allday-cell,.week-recap,.week-recap-tiles li,
- .board-ribbon,.memory-board-header,.getting-started-steps li,.overdue-card li,.shared-with-me li,.save-to-email-banner,.save-status,
-.today-schedule-compact,.subject-workspace,.subject-manager,.calendar-shell,.month-grid,.calendar-grid,.season-card,.profile-dock,
- .team-color-grid button,.theme-picker-tile,.customizer-group,.kquiz-choice,.kquiz-material-row,.focus-session,.study-planner,.subject-quick-add,.tasks-card,
- .wb-calendar,.wb-board-heading,.mobile-desk-header,.mobile-profile-chip,.tomorrow-extra-list,.page-hero,.settings-hero,.illustrated-hero,.sanctuary-banner,.share-classmate,.share-classmate-list li,.peer-list li,.rotation-grid,.class-grid
+ .wb-header,.wb-panel:not(.wb-board),.wb-record:not(.wb-sticky):not(.wb-record-notes),.wb-notice,.wb-dialog,dialog,.card,.task,.task-row-v2,.cozy-task-row,.planner-day-paper,.planner-day-board,.week-grid,.week-grid-row,.week-grid-day,.week-grid-allday-cell,.week-recap,.week-recap-tiles li,.board-ribbon,.getting-started-steps li,.overdue-card li,.shared-with-me li,.save-to-email-banner,.save-status,.subject-workspace,.calendar-shell,.month-grid,.season-card,.profile-dock,.team-color-grid button,.theme-picker-tile,.kquiz-choice,.kquiz-material-row,.focus-session,.study-planner,.subject-quick-add,.wb-calendar,.wb-board-heading,.mobile-desk-header,.mobile-profile-chip,.tomorrow-extra-list,.share-classmate,.share-classmate-list li,.peer-list li,.rotation-grid,.class-grid
 ){background:var(--wb-surface)!important;background-image:none!important;color:var(--wb-ink)!important;border-color:var(--wb-line)!important;box-shadow:none}
 :root[data-dark] .workbench :is(.week-grid-slot,.week-grid-gutter,.week-grid-head button){background:transparent!important;color:var(--wb-ink)!important}
 :root[data-dark] .workbench :is(input,select,textarea){background:var(--dark-sunk)!important;color:var(--wb-ink)!important;border-color:var(--wb-line)!important}
 :root[data-dark] .workbench button:not(.primary):not(.active):not([aria-current='page']):not([aria-pressed='true']):not(.week-item):not([class*='swatch']):not(.theme-picker-tile):not([class*='kid-look-']){background:var(--dark-raised)!important;background-image:none!important;color:var(--wb-ink)!important;border-color:var(--wb-line)!important}
 :root[data-dark] .workbench :is(.wb-muted,small):not(:is(.active,[aria-current='page'],[aria-pressed='true'],.wb-sticky,.kono-sticky,.wb-record-notes,.week-item) *){color:var(--wb-muted)}
-:root[data-dark] .workbench :is(.memory-board-empty,.memory-board-empty strong,.memory-board-empty p){color:var(--wb-muted)!important}
+
 /* Headings are a fixed dark brown in Cozy. Sticky notes keep their own paper and ink, so they're left alone. */
 :root[data-dark] .workbench :is(h1,h2,h3,h4,h5,legend,summary):not(:is(.wb-sticky,.kono-sticky,.memory-note,.cozy-pin-mini,.wb-note-paper,[style*='--note-paper']) *){color:var(--wb-ink)!important}
 /* Items on the week grid: a dark tint of their own color. */

@@ -29,10 +29,6 @@
 .card-more>div button{flex:1 1 auto}
 .cozy-task-actions{align-items:center;flex-wrap:wrap}
 
-/* One shared "Show" filter above Today and Tomorrow. */
-.schedule-filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;padding:0 4px;font-size:.85rem;color:var(--wb-muted)}
-.schedule-filter-row>span{font-weight:700}
-.schedule-filter-row .schedule-view-picker{margin:0}
 .wb-agenda-empty-note{margin:10px 4px 0;font-size:.85rem}
 .settings-page-tools{justify-content:flex-end}
 .sign-in-fallback{margin-top:6px}
