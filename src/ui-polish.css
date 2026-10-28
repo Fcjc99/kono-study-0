@@ -424,3 +424,11 @@ button.kono-mood-face:focus-visible{outline:2px solid var(--accent,#6d8f6b);outl
 .week-grid .week-item-ghost.is-drawing{--item-color:var(--wb-accent,#e0705c);z-index:4}
 .week-grid .week-grid-slot{touch-action:pan-y}
 @media(pointer:coarse){.week-grid .week-item-grip{height:16px}.week-grid .week-item-grip::after{opacity:.6;width:24px;margin-left:-12px;height:4px}}
+/* The hold menu's time nudges (−15 / +15 for when it starts and how long it runs), and no phone text
+   selection or callout while holding an item. */
+.week-menu{width:200px}
+.week-menu strong small{display:block;font-weight:600;color:var(--wb-muted,#7a6a64);font-size:.72rem}
+.week-menu-time{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:6px;padding:2px 4px}
+.week-menu-time span{font-size:.8rem;font-weight:700;color:var(--wb-muted,#7a6a64)}
+.week-menu .week-menu-time button:not(#x):not(#y){min-height:36px;min-width:52px;justify-content:center;text-align:center;font-variant-numeric:tabular-nums}
+.week-grid .week-item{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
