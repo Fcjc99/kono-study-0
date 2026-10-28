@@ -160,3 +160,5 @@ html[data-motion=reduced] :is(.kono-mood-face>:first-child,.kono-mood-face::afte
 .workbench:not([data-daylight=night]) .kono-corner-face:not(.is-reacting) .kono-corner-facebox:has(>img){animation:kono-breathe 3.4s ease-in-out infinite;transform-origin:50% 100%}
 html[data-motion=reduced] :is(.kono-mood-face>img:first-child,.kono-corner-facebox){animation:none!important}
 @media (prefers-reduced-motion:reduce){:is(.kono-mood-face>img:first-child,.kono-corner-facebox){animation:none!important}}
+/* The sleeping animation draws its own z. */
+.kono-mood-face:has(.kono-sprite.is-sleep)::after{display:none}

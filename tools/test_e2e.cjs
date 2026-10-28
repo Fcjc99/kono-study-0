@@ -2016,7 +2016,8 @@ test('KONO today and stickers: KONO is worried about late work and sleepy late a
  await page.clock.setFixedTime(new Date('2026-09-30T23:15:00'))
  await page.reload();await heading(page,'Sanctuary')
  await today.getByText('It’s late. KONO is curled up for the night. Sleep well!').waitFor()
- assert.match(await today.locator('img').getAttribute('src'),/sleep\.webp$/)
+ // The sleep picture, or the sleeping animation (KonoSprite) when KONO is tucked in.
+ await today.locator('img[src$="sleep.webp"], .kono-sprite.is-sleep').first().waitFor()
 })
 
 test('What should I do now and the app icon number: late work first, "Something else" steps on, "Already done" finishes it, Start opens a focus sized to it; the icon shows due today plus late, and Settings can turn it off',async({context,page})=>{

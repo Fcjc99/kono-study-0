@@ -380,7 +380,7 @@ function Workspace({store}:{store:Store}){
  const ownExams=data.exams.filter(e=>e.profileId===profile.id)
  const mood=konoMood({tasks,exams:ownExams,today,hour:Number(nowClock.slice(0,2))})
  // `react` is a little extra on KONO's face for a moment: a tickle wiggle, a high five, a wave.
- type CareMomentValue={line:string;pose:string;at:number;ms?:number;icon?:string;react?:'tickle'|'highfive'|'wave'|'heart'}
+ type CareMomentValue={line:string;pose:string;at:number;ms?:number;icon?:string;react?:'tickle'|'highfive'|'wave'|'heart';eat?:boolean}
  // Taking care of KONO (store/konoCare): the meters, snacks from finished work, and pats. A feeding or
  // pat shows in place in the card for a moment (KONO's face and line); nothing else opens.
  const careLog=data.konoCare?.[profile.id]?.log??[],careNow=new Date()
@@ -480,7 +480,7 @@ function Workspace({store}:{store:Store}){
    if(isNew)care=addCareEvent(care,profile.id,{id:tasteEventId(next.treat.id),kind:'taste',at:now.toISOString(),item:next.treat.id},now)
    return {...d,konoCare:{...d.konoCare,[profile.id]:care}}
   })
-  setCareMoment({line:fedLine(next.treat,fav),pose:'/garden/kono/excited.webp',at:now.getTime(),ms:fav?5000:2800,react:fav?'tickle':undefined});setFeedSignal({at:now.getTime(),icon:next.treat.emoji})
+  setCareMoment({line:fedLine(next.treat,fav),pose:'/garden/kono/excited.webp',at:now.getTime(),ms:fav?5000:2800,react:fav?'tickle':undefined,eat:true});setFeedSignal({at:now.getTime(),icon:next.treat.emoji})
   if(isNew)announce({line:tasteLine(next.treat,tried.size+1),pose:'/garden/kono/happy.webp',at:now.getTime(),ms:5000})
  }
  // Play time from KONO's corner (once an hour counts): happier, and a little hungrier.
@@ -1144,7 +1144,7 @@ function Workspace({store}:{store:Store}){
         doing, one care action, stickers, and "do next" / "ask". The day's wish (and an island season)
         sit in a small line under it; Ask KONO and What should I do now? open below when asked. */}
     {islandSetting!=='off'&&<>
-    <section className={'wb-panel kono-mood kono-bar is-'+mood.id} aria-label="KONO today"><div className="kono-mood-row"><button type="button" className={'kono-mood-face'+(!cornerOpen&&careMoment&&!careMoment.pose.includes('sleep')?' is-reacting':'')+(!cornerOpen&&careMoment?.react?' is-'+careMoment.react:'')} data-costume={shownOutfit?undefined:islandEvent?.emoji} aria-label="Open KONO’s corner" aria-haspopup="dialog" onClick={()=>setCornerOpen(true)}>{shownOutfit||paint?<KonoFace imgKey={careMoment?.at} pose={konoPose} outfit={shownOutfit} size={40}/>:<KonoSprite size={40} pose={konoPose} asleep={bed.tucked||meters.asleep} react={cornerOpen||!careMoment?undefined:careMoment.react??'pet'} reactAt={cornerOpen?undefined:careMoment?.at} fallback={<KonoFace imgKey={careMoment?.at} pose={konoPose} outfit={shownOutfit} size={40}/>}/>}{!cornerOpen&&careMoment?.react&&careMoment.react!=='tickle'&&<span key={careMoment.at} className={'kono-react is-'+careMoment.react} aria-hidden="true">{careMoment.react==='wave'?'👋':careMoment.react==='heart'?'💗':'✋'}</span>}</button><p aria-live="polite">{konoLine}{careMoment?.icon&&<img className="kono-find-icon" src={careMoment.icon} alt=""/>}</p>
+    <section className={'wb-panel kono-mood kono-bar is-'+mood.id} aria-label="KONO today"><div className="kono-mood-row"><button type="button" className={'kono-mood-face'+(!cornerOpen&&careMoment&&!careMoment.pose.includes('sleep')?' is-reacting':'')+(!cornerOpen&&careMoment?.react?' is-'+careMoment.react:'')} data-costume={shownOutfit?undefined:islandEvent?.emoji} aria-label="Open KONO’s corner" aria-haspopup="dialog" onClick={()=>setCornerOpen(true)}>{shownOutfit||paint?<KonoFace imgKey={careMoment?.at} pose={konoPose} outfit={shownOutfit} size={40}/>:<KonoSprite size={40} pose={konoPose} asleep={bed.tucked||meters.asleep} react={cornerOpen||!careMoment?undefined:careMoment.eat?'eat':careMoment.react??'pet'} reactAt={cornerOpen?undefined:careMoment?.at} fallback={<KonoFace imgKey={careMoment?.at} pose={konoPose} outfit={shownOutfit} size={40}/>}/>}{!cornerOpen&&careMoment?.react&&careMoment.react!=='tickle'&&<span key={careMoment.at} className={'kono-react is-'+careMoment.react} aria-hidden="true">{careMoment.react==='wave'?'👋':careMoment.react==='heart'?'💗':'✋'}</span>}</button><p aria-live="polite">{konoLine}{careMoment?.icon&&<img className="kono-find-icon" src={careMoment.icon} alt=""/>}</p>
      <div className="kono-care" role="group" aria-label="How KONO is doing">
       {([['full','🍙','Full'],['rested','💤',meters.asleep?'Sleeping':'Rested'],['happy','💛','Happy']] as const).map(([key,icon,label])=><span key={key} className={'kono-care-meter is-'+key+(meters[key]<35&&!(key==='rested'&&meters.asleep)?' is-low':'')+(meterGain.some(g=>g.key===key)?' is-up':'')} role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={meters[key]} title={label+': '+meters[key]+'%'+(key==='full'?' · Finished work earns KONO snacks.':'')}><span aria-hidden="true">{icon}</span><span className="kono-care-bar"><i style={{width:meters[key]+'%'}}/></span>{meterGain.filter(g=>g.key===key).map(g=><b key={g.at} className="kono-care-gain" aria-hidden="true">+{g.n}</b>)}</span>)}
       {/* One action at a time: Wake up in the morning; in the evening dinner first (while KONO is hungry
@@ -1156,7 +1156,7 @@ function Workspace({store}:{store:Store}){
      {cornerOpen&&<Suspense fallback={null}><KonoCorner close={()=>setCornerOpen(false)} pose={konoPose} outfit={shownOutfit} costume={shownOutfit?undefined:islandEvent?.emoji} line={konoLine}
       faceClass={(careMoment&&!careMoment.pose.includes('sleep')?' is-reacting':'')+(careMoment?.react?' is-'+careMoment.react:'')}
       reaction={careMoment?.react&&careMoment.react!=='tickle'?<span key={careMoment.at} className={'kono-react is-'+careMoment.react} aria-hidden="true">{careMoment.react==='wave'?'👋':careMoment.react==='heart'?'💗':'✋'}</span>:null}
-      live={shownOutfit||paint?undefined:{react:careMoment?(careMoment.react??'pet'):undefined,reactAt:careMoment?.at}}
+      live={shownOutfit||paint?undefined:{react:careMoment?(careMoment.eat?'eat':careMoment.react??'pet'):undefined,reactAt:careMoment?.at}}
       onPet={tapAt=>petKono(tapAt)}
       meters={([['full','🍙','Full'],['rested','💤',meters.asleep?'Sleeping':'Rested'],['happy','💛','Happy']] as const).map(([key,icon,label])=>{const g=meterGain.find(x=>x.key===key);return {key,icon,label,value:meters[key],low:meters[key]<35&&!(key==='rested'&&meters.asleep),...(g?{gain:{n:g.n,at:g.at}}:{})}})}
       action={bed.tucked?null:bed.canWake||bed.canTuck&&(!snacks.length||meters.full>=70)?careAction:null}

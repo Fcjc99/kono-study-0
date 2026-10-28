@@ -1,20 +1,21 @@
 import {useEffect,useRef,useState,type ReactNode} from 'react'
 
 /** The animated KONO: flip-book frames (public/garden/kono/anim, 4 frames a sheet). At rest KONO breathes
- * and blinks now and then; a pat, a hello or a high five plays its own little animation, then KONO goes
- * back to resting. A mood with its own picture (tea, a book, asleep: `pose`, `asleep`) shows `fallback` at
- * rest and only animates for reactions. Reduced motion shows `fallback` always. */
-export type SpriteAnim='breathe'|'blink'|'pet'|'wave'|'cheer'
-const FRAME_MS:Record<SpriteAnim,number>={breathe:420,blink:70,pet:150,wave:160,cheer:150}
-const PLAYS:Partial<Record<SpriteAnim,number>>={wave:2}
+ * and blinks now and then, or sleeps (slow breaths, a z floating up) when tucked in; a pat, a hello, a high
+ * five or a snack plays its own little animation, then KONO goes back to resting. A mood with its own
+ * picture (tea, a book: `pose`) shows `fallback` at rest and only animates for reactions. Reduced motion
+ * shows `fallback` always. */
+export type SpriteAnim='breathe'|'blink'|'pet'|'wave'|'cheer'|'eat'|'sleep'
+const FRAME_MS:Record<SpriteAnim,number>={breathe:420,blink:70,pet:150,wave:160,cheer:150,eat:260,sleep:900}
+const PLAYS:Partial<Record<SpriteAnim,number>>={wave:2,eat:2}
 /** KONO's reactions (Workspace's careMoment.react) → the animation for them. */
-const SPRITE_FOR:Record<string,SpriteAnim>={wave:'wave',heart:'pet',tickle:'pet',pet:'pet',highfive:'cheer',cheer:'cheer'}
+const SPRITE_FOR:Record<string,SpriteAnim>={wave:'wave',heart:'pet',tickle:'pet',pet:'pet',highfive:'cheer',cheer:'cheer',eat:'eat'}
 /** Poses the animation draws (KONO standing, happy); the others (tea, a book, asleep…) keep their picture at rest. */
 const resting=(pose:string)=>/\/(idle|happy|excited)\.webp$/.test(pose)
 const src=(a:SpriteAnim)=>'/garden/kono/anim/'+a+'.webp'
 
 export default function KonoSprite({size,fallback,pose,asleep=false,react,reactAt}:{size:number;fallback:ReactNode;pose:string;asleep?:boolean;react?:string;reactAt?:number}){
- const still=asleep||!resting(pose)
+ const still=!asleep&&!resting(pose),rest:SpriteAnim=asleep?'sleep':'breathe'
  const reduced=typeof matchMedia==='function'&&(matchMedia('(prefers-reduced-motion: reduce)').matches||document.documentElement.dataset.motion==='reduced')
  const [anim,setAnim]=useState<SpriteAnim|null>(null),[frame,setFrame]=useState(0)
  const timer=useRef(0),animRef=useRef<SpriteAnim|null>(null)
@@ -34,13 +35,13 @@ export default function KonoSprite({size,fallback,pose,asleep=false,react,reactA
  useEffect(()=>{
   if(reduced||still)return
   let gone=false,t=0,breath=0,b=0
-  const tick=()=>{if(gone)return;b=(b+1)%4;setFrame(f=>animRef.current?f:b);breath=window.setTimeout(tick,FRAME_MS.breathe)}
+  const tick=()=>{if(gone)return;b=(b+1)%4;setFrame(f=>animRef.current?f:b);breath=window.setTimeout(tick,FRAME_MS[rest])}
   const blink=()=>{if(gone)return;if(!animRef.current)play('blink');t=window.setTimeout(blink,2600+Math.random()*3400)}
-  breath=window.setTimeout(tick,FRAME_MS.breathe);t=window.setTimeout(blink,1800+Math.random()*2000)
+  breath=window.setTimeout(tick,FRAME_MS[rest]);if(!asleep)t=window.setTimeout(blink,1800+Math.random()*2000)
   return()=>{gone=true;window.clearTimeout(t);window.clearTimeout(breath)}
- },[reduced,still])
+ },[reduced,still,asleep]) // eslint-disable-line react-hooks/exhaustive-deps -- rest follows asleep
  useEffect(()=>()=>window.clearTimeout(timer.current),[])
  if(reduced||(still&&!anim))return <>{fallback}</>
- const sheet=anim??'breathe'
+ const sheet=anim??rest
  return <span className={'kono-sprite is-'+sheet} aria-hidden="true" style={{width:size,height:size,backgroundImage:`url(${src(sheet)})`,backgroundPosition:`${frame*100/3}% 0`}}/>
 }
