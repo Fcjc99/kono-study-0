@@ -854,7 +854,7 @@ test('Canvas two-way: connecting brings in the to-do list, a tick in KONO is sen
  await panel.getByLabel('Canvas access token').fill('1234~abcdefghijklmnopqrstuvwxyz0123')
  await panel.getByRole('button',{name:'Connect Canvas'}).click()
  await panel.getByText('Connected as Jo',{exact:false}).waitFor()
- await panel.getByText(/3 new/).waitFor()
+ await panel.getByRole('status').getByText('3 new.',{exact:true}).waitFor()
  assert.equal(calls[0].base,'bc.instructure.com');assert.equal(calls[0].action,'items')
  await flushSave(page,'Cell quiz')
  const stored=await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('kono-canvas:')).length)
