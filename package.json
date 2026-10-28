@@ -23,6 +23,7 @@
     "assets:atmosphere": "python tools/generate_production_atmosphere.py"
   },
   "dependencies": {
+    "@rive-app/canvas-lite": "2.44.2",
     "@supabase/supabase-js": "^2.116.0",
     "@tesseract.js-data/eng": "1.0.0",
     "drizzle-orm": "^0.45.2",

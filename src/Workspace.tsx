@@ -1151,6 +1151,7 @@ function Workspace({store}:{store:Store}){
      {cornerOpen&&<Suspense fallback={null}><KonoCorner close={()=>setCornerOpen(false)} pose={konoPose} outfit={shownOutfit} costume={shownOutfit?undefined:islandEvent?.emoji} line={konoLine}
       faceClass={(careMoment&&!careMoment.pose.includes('sleep')?' is-reacting':'')+(careMoment?.react?' is-'+careMoment.react:'')}
       reaction={careMoment?.react&&careMoment.react!=='tickle'?<span key={careMoment.at} className={'kono-react is-'+careMoment.react} aria-hidden="true">{careMoment.react==='wave'?'👋':careMoment.react==='heart'?'💗':'✋'}</span>:null}
+      live={shownOutfit||paint?undefined:{mood:mood.id,react:careMoment?(careMoment.react??'pet'):undefined,reactAt:careMoment?.at}}
       onPet={tapAt=>petKono(tapAt)}
       meters={([['full','🍙','Full'],['rested','💤',meters.asleep?'Sleeping':'Rested'],['happy','💛','Happy']] as const).map(([key,icon,label])=>{const g=meterGain.find(x=>x.key===key);return {key,icon,label,value:meters[key],low:meters[key]<35&&!(key==='rested'&&meters.asleep),...(g?{gain:{n:g.n,at:g.at}}:{})}})}
       action={bed.tucked?null:bed.canWake||bed.canTuck&&(!snacks.length||meters.full>=70)?careAction:null}

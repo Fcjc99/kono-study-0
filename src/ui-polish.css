@@ -460,3 +460,9 @@ button .kono-icon,a .kono-icon{margin-right:2px}
 .canvas-connect-form label{display:grid;gap:4px}
 .canvas-connect-form .primary{justify-self:start}
 .canvas-connect details{margin-top:6px}
+
+/* The animated KONO (KonoRive): the pose picture shows until the animation's first frame is ready. */
+.kono-rive{position:relative;display:inline-grid;place-items:center}
+.kono-rive>*{grid-area:1/1}
+.kono-rive canvas{opacity:0;transition:opacity .25s}
+.kono-rive.is-ready canvas{opacity:1}
