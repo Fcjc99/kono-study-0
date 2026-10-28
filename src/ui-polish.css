@@ -451,3 +451,12 @@ button .kono-icon,a .kono-icon{margin-right:2px}
 }
 .week-grid-nav:not(#x){align-items:center}
 .week-grid-nav>button:not(.week-grid-help):not(#x):not(#y){min-height:40px!important;height:40px;min-width:44px;padding:0 12px!important}
+
+/* Two-way Canvas (CalendarImport › CanvasConnect): its own card above the calendar file/link import. */
+.canvas-connect{margin:0 0 18px;padding:16px 16px 14px;border:1px solid var(--line,rgba(0,0,0,.1));border-radius:18px;background:color-mix(in srgb,var(--surface,#fff) 90%,transparent)}
+.canvas-connect h4{margin:0 0 6px}
+.canvas-connect>p{margin:6px 0}
+.canvas-connect-form{display:grid;gap:10px;margin:10px 0}
+.canvas-connect-form label{display:grid;gap:4px}
+.canvas-connect-form .primary{justify-self:start}
+.canvas-connect details{margin-top:6px}

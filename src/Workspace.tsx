@@ -31,6 +31,7 @@ import {useReducedMotion,useMusicController,usePhoneWidth,usePrefersDark} from '
 import {useDueNotifications,useTimeBlockNotifications,useFamilyEventNotifications,useLeaveByNotifications} from './hooks/useDueNotifications'
 import {usePushReminders} from './hooks/usePushReminders'
 import {useLinkedCalendars} from './hooks/useLinkedCalendars'
+import {useCanvasSync} from './hooks/useCanvasSync'
 import {useLiveSanctuaryWeather} from './hooks/useLiveSanctuaryWeather'
 import ClassOccurrenceCard from './components/ClassOccurrenceCard'
 import {classOccurrences,classTime,type ClassOccurrence} from './store/classSchedule'
@@ -624,6 +625,7 @@ function Workspace({store}:{store:Store}){
  const photoCloud=useMemo(()=>repository.photoCloud(),[repository]) // Workspace remounts when the account changes
  useEffect(()=>{if(!photoCloud)return;const sync=()=>void uploadPendingPhotos(photoCloud);sync();window.addEventListener('online',sync);return()=>window.removeEventListener('online',sync)},[photoCloud])
  useLinkedCalendars(profile.id,data,save,!store.support)
+ useCanvasSync(profile.id,data,save,!store.support)
  const setting=<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>save(d=>({...d,settings:{...d.settings,[key]:value}}))
  // Off by default so a student sharing the app never sees a nav tab meant for a parent managing
  // multiple kids -- turned on from Settings > Family, the same way the schedule-setup flow picker

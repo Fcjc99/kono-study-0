@@ -839,6 +839,38 @@ test('Canvas: a Canvas calendar feed puts assignments in the Planner and quizzes
  await page.getByText('Essay 1').filter({visible:true}).first().waitFor()
 })
 
+test('Canvas two-way: connecting brings in the to-do list, a tick in KONO is sent to Canvas, and the token stays on this device',async({context,page})=>{
+ const calls=[],at=n=>{const x=new Date();x.setDate(x.getDate()+n);x.setHours(15,0,0,0);return x.toISOString()}
+ await context.route(BASE+'api/canvas',route=>{const body=route.request().postDataJSON();calls.push(body)
+  if(body.action==='mark')return route.fulfill({status:200,contentType:'application/json',body:'{"ok":true}'})
+  return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({name:'Jo',items:[
+   {type:'assignment',id:'11',title:'Lab report',at:at(-1),done:false,course:'BIOL 1100',url:'https://bc.instructure.com/courses/1/assignments/11'},
+   {type:'quiz',id:'12',title:'Cell quiz',at:at(3),done:false,course:'BIOL 1100'},
+   {type:'assignment',id:'13',title:'Reading notes',at:at(-2),done:true,course:'ENGL 1010'}]})})})
+ await createPlan(page)
+ await addToCalendar(page,'A calendar link')
+ const panel=page.getByRole('region',{name:'Canvas, two-way'})
+ await panel.getByLabel('Your school’s Canvas address').fill('bc.instructure.com')
+ await panel.getByLabel('Canvas access token').fill('1234~abcdefghijklmnopqrstuvwxyz0123')
+ await panel.getByRole('button',{name:'Connect Canvas'}).click()
+ await panel.getByText('Connected as Jo',{exact:false}).waitFor()
+ await panel.getByText(/3 new/).waitFor()
+ assert.equal(calls[0].base,'bc.instructure.com');assert.equal(calls[0].action,'items')
+ await flushSave(page,'Cell quiz')
+ const stored=await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('kono-canvas:')).length)
+ assert.equal(stored,1,'the connection is kept on this device')
+ const saved=await page.evaluate(()=>new Promise(resolve=>{const request=indexedDB.open('kono-recovery-and-sync',1);request.onsuccess=()=>{const db=request.result,get=db.transaction('plans').objectStore('plans').get('device');get.onsuccess=()=>{db.close();resolve(JSON.stringify(get.result??null))}}}))
+ assert.ok(!saved.includes('abcdefghijklmnopqrstuvwxyz'),'the token is never in the saved plan')
+ assert.match(saved,/"canvasRef":"quiz:12"/)
+ assert.match(saved,/"title":"Reading notes"[^}]*"done":true|"done":true[^}]*"title":"Reading notes"/,'done in Canvas comes in as done')
+ // Ticking the overdue lab report here ticks it in Canvas.
+ await go(page,'Sanctuary')
+ await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Lab report'}).click()
+ for(let k=0;k<60&&!calls.some(c=>c.action==='mark');k++)await page.waitForTimeout(250)
+ assert.ok(calls.some(c=>c.action==='mark'&&c.type==='assignment'&&c.id==='11'&&c.done===true),'the tick went to Canvas')
+ assert.equal(calls.filter(c=>c.action==='mark').length,1,'only the changed item is sent')
+})
+
 test('Linked calendar: a kept-up-to-date Canvas feed adds new assignments and moves changed dates on Check now',async({context,page})=>{
  const d=new Date(),ymd=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0'),inDays=n=>{const x=new Date(d);x.setDate(d.getDate()+n);return ymd(x)}
  const item=(uid,title,day,kind)=>['BEGIN:VEVENT','UID:'+uid,'SUMMARY:'+title,'DTSTART;VALUE=DATE:'+day,'URL:https://canvas.bc.edu/courses/1/'+kind+'/'+uid,'END:VEVENT']
