@@ -151,3 +151,12 @@ html[data-motion=full] .welcome-tour-kono{animation:tour-kono-in .4s cubic-bezie
 @keyframes kono-sleepy{0%,100%{scale:1 1}50%{scale:1.03 .96}}
 @keyframes kono-zz{0%{opacity:0;translate:0 4px;scale:.6}40%{opacity:1}100%{opacity:0;translate:8px -14px;scale:1.2}}
 html[data-motion=reduced] :is(.kono-mood-face>:first-child,.kono-mood-face::after){animation:none!important;transition:none!important}
+
+/* KONO breathes in every mood: the animated KONO (KonoSprite) has its own breathing; a mood with its own
+ * picture (tea, a book, a question) gets a gentle squash and stretch. Not at night (KONO's sleepy sway)
+ * or mid-reaction (the hop). */
+@keyframes kono-breathe{0%,100%{scale:1 1}50%{scale:1.025 .975}}
+.workbench:not([data-daylight=night]) .kono-bar .kono-mood-face:not(.is-reacting):not(:has(.kono-outfit))>img:first-child,
+.workbench:not([data-daylight=night]) .kono-corner-face:not(.is-reacting) .kono-corner-facebox:has(>img){animation:kono-breathe 3.4s ease-in-out infinite;transform-origin:50% 100%}
+html[data-motion=reduced] :is(.kono-mood-face>img:first-child,.kono-corner-facebox){animation:none!important}
+@media (prefers-reduced-motion:reduce){:is(.kono-mood-face>img:first-child,.kono-corner-facebox){animation:none!important}}

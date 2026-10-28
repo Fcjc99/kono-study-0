@@ -1,6 +1,6 @@
 import {useState,type DragEvent,type ReactNode} from 'react'
 import KonoFace from './KonoFace'
-import KonoRive from './KonoRive'
+import KonoSprite from './KonoSprite'
 import Modal from './Modal'
 import {lazyPanel} from '../lazyPanel'
 import type {PantryItem,Treat} from '../store/konoCare'
@@ -17,8 +17,8 @@ export type CornerTile={id:string;icon:string;label:string;detail:string;ariaLab
 export default function KonoCorner({close,pose,outfit,costume,line,faceClass,reaction,live,onPet,meters,action,extras,streak,week,tiles,notes,snacks,favorite,tried,allTreats,onFeed,asleep,playAt,onPlay,now}:{
  close:()=>void
  pose:string;outfit:string|null;costume?:string;line:string;faceClass:string;reaction:ReactNode
- /** For the animated KONO (KonoRive): the mood and the latest reaction. Left out when KONO wears an outfit or a paint the animation doesn't have. */
- live?:{mood:string;react?:string;reactAt?:number}
+ /** For the animated KONO (KonoSprite): the latest reaction. Left out when KONO wears an outfit or a paint the animation doesn't have. */
+ live?:{react?:string;reactAt?:number}
  onPet:(tapAt:number)=>void
  meters:CornerMeter[]
  action:ReactNode
@@ -40,7 +40,7 @@ export default function KonoCorner({close,pose,outfit,costume,line,faceClass,rea
  return <Modal title="KONO’s corner" close={close}>
   <div className="kono-corner">
    <div className="kono-corner-hero">
-    <button type="button" className={'kono-mood-face kono-corner-face '+faceClass+(dropping?' is-drop-target':'')} data-costume={costume} aria-label="Pet KONO" onClick={e=>onPet(e.timeStamp)} onDragOver={e=>{if(e.dataTransfer.types.includes(SNACK_TYPE)){e.preventDefault();setDropping(true)}}} onDragLeave={()=>setDropping(false)} onDrop={drop}><span className="kono-face-box kono-corner-facebox">{live?<KonoRive size={112} mood={live.mood} asleep={asleep} react={live.react} reactAt={live.reactAt} fallback={<KonoFace pose={pose} outfit={outfit} size={112}/>}/>:<KonoFace pose={pose} outfit={outfit} size={112}/>}</span>{reaction}</button>
+    <button type="button" className={'kono-mood-face kono-corner-face '+faceClass+(dropping?' is-drop-target':'')} data-costume={costume} aria-label="Pet KONO" onClick={e=>onPet(e.timeStamp)} onDragOver={e=>{if(e.dataTransfer.types.includes(SNACK_TYPE)){e.preventDefault();setDropping(true)}}} onDragLeave={()=>setDropping(false)} onDrop={drop}><span className="kono-face-box kono-corner-facebox">{live?<KonoSprite size={112} pose={pose} asleep={asleep} react={live.react} reactAt={live.reactAt} fallback={<KonoFace pose={pose} outfit={outfit} size={112}/>}/>:<KonoFace pose={pose} outfit={outfit} size={112}/>}</span>{reaction}</button>
     {/* The same line is announced by the KONO bar's live line, so here it's only drawn. */}
     <p className="kono-corner-line" data-line={line} aria-hidden="true"/>
    </div>

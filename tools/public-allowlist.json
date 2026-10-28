@@ -985,5 +985,10 @@
  "/audio/games/flow-3.mp3",
  "/audio/games/flow-4.mp3",
  "/audio/games/flow-5.mp3",
- "/icons/kono-icons.svg"
+ "/icons/kono-icons.svg",
+ "/garden/kono/anim/blink.webp",
+ "/garden/kono/anim/breathe.webp",
+ "/garden/kono/anim/pet.webp",
+ "/garden/kono/anim/wave.webp",
+ "/garden/kono/anim/cheer.webp"
 ]

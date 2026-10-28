@@ -461,8 +461,7 @@ button .kono-icon,a .kono-icon{margin-right:2px}
 .canvas-connect-form .primary{justify-self:start}
 .canvas-connect details{margin-top:6px}
 
-/* The animated KONO (KonoRive): the pose picture shows until the animation's first frame is ready. */
-.kono-rive{position:relative;display:inline-grid;place-items:center}
-.kono-rive>*{grid-area:1/1}
-.kono-rive canvas{opacity:0;transition:opacity .25s}
-.kono-rive.is-ready canvas{opacity:1}
+/* The animated KONO (KonoSprite): 4 frames a sheet, stepped by backgroundPosition. */
+.kono-sprite{display:inline-block;background-size:400% 100%;background-repeat:no-repeat;image-rendering:auto}
+.kono-sprite.is-wave{animation:kono-sprite-sway .32s ease-in-out infinite alternate;transform-origin:50% 90%}
+@keyframes kono-sprite-sway{from{rotate:-4deg}to{rotate:4deg}}
