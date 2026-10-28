@@ -435,11 +435,11 @@ button.kono-mood-face:focus-visible{outline:2px solid var(--accent,#6d8f6b);outl
 /* KONO's icons (KonoIcon, and the tab bar's NavIcon): two-tone, rounded strokes over a soft fill of the
    same color, so every place-and-action icon reads as one family. */
 .kono-icon{display:inline-block;flex:none;vertical-align:-4px}
-.kono-icon .ki-fill{opacity:.2}
+.kono-icon{--ki-fill:.2}
 button .kono-icon,a .kono-icon{margin-right:2px}
-.wb-scene-arcade .kono-icon .ki-fill,.wb-scene-world .kono-icon .ki-fill,button.primary .kono-icon .ki-fill{opacity:.32}
+.wb-scene-arcade .kono-icon,.wb-scene-world .kono-icon,button.primary .kono-icon{--ki-fill:.32}
 .nav-glyph>:first-child{fill:currentColor;fill-opacity:.16}
 [aria-current] .nav-glyph>:first-child,.active .nav-glyph>:first-child,[aria-pressed=true] .nav-glyph>:first-child{fill-opacity:.28}
 .town-tabs button{display:grid!important;justify-items:center;gap:4px}
 .town-tabs button .kono-icon{margin:0;color:var(--wb-accent,#a0466e)}
-.town-tabs button[aria-current] .kono-icon .ki-fill{opacity:.34}
+.town-tabs button[aria-current] .kono-icon{--ki-fill:.34}
