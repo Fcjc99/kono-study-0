@@ -3232,6 +3232,9 @@ test('Planner › Week on a phone: press and hold moves an event, a quick swipe 
   await page.goto(BASE);await heading(page,'Sanctuary')
   await go(page,'Planner')
   const week=page.getByRole('region',{name:'Week'})
+  // The how-to is behind the ? beside the dates (open by itself only the first time).
+  const help=page.getByRole('button',{name:'How the calendar works'})
+  if(await help.getAttribute('aria-expanded')!=='true')await help.click()
   await page.getByText('Hold something for Edit, Move or Delete',{exact:false}).waitFor()
   const piano=()=>week.getByRole('button',{name:/^Piano lesson · /})
   const cdp=await context.newCDPSession(page)

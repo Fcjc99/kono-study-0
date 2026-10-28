@@ -443,3 +443,15 @@ button .kono-icon,a .kono-icon{margin-right:2px}
 .town-tabs button{display:grid!important;justify-items:center;gap:4px}
 .town-tabs button .kono-icon{margin:0;color:var(--wb-accent,#a0466e)}
 .town-tabs button[aria-current] .kono-icon{--ki-fill:.34}
+/* Planner's week: the how-to behind a small ? beside the dates, and a slimmer filter row on a phone. */
+.week-grid-nav .week-grid-help:not(#x):not(#y){width:34px;height:34px;min-height:0!important;padding:0!important;margin:0 4px 0 auto!important;border-radius:50%!important;display:grid;place-items:center;color:var(--wb-accent,#a0466e)}
+.week-grid-nav .week-grid-help[aria-expanded=true]{--ki-fill:.4}
+.week-grid-hint{animation:week-hint-in .2s ease-out}
+@keyframes week-hint-in{from{opacity:0;translate:0 -4px}}
+@media(max-width:760px){
+ .planner-filters .people-filter :is(.person-chip-face,.person-avatar,.people-filter-all>span:first-child){width:38px!important;height:38px!important;min-width:38px!important;font-size:.95rem!important}
+ .planner-filters .people-filter .person-name{font-size:.72rem!important}
+ .planner-filters{gap:6px 10px!important;margin:2px 0 6px!important}
+}
+.week-grid-nav:not(#x){align-items:center}
+.week-grid-nav>button:not(.week-grid-help):not(#x):not(#y){min-height:40px!important;height:40px;min-width:44px;padding:0 12px!important}
