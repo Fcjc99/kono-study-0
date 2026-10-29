@@ -31,6 +31,18 @@ assert.ok(find('Due today: Bio quiz'),'an exam day also gets the morning note')
 assert.ok(rows.every(r=>new Date(r.sendAt)>now),'nothing in the past')
 assert.ok(rows.every((r,i)=>i===0||rows[i-1].sendAt<=r.sendAt),'in time order')
 const late=buildReminders(data,new Date('2026-09-28T08:50:00'));assert.ok(!late.some(r=>r.tag==='class-b1-2026-09-28'),'a class that already started is skipped');assert.ok(!late.some(r=>r.tag==='due-2026-09-28'))
+// Events: 15 minutes before by default, or the event's own "Remind me" (off is -1); leave-by when it has travel time.
+{const ev=model.createFreshData(),pid=ev.activeProfileId
+ ev.calendarEvents.push({id:'ev1',profileId:pid,date:'2026-09-28',time:'15:30',endTime:'16:30',title:'Dentist',kind:'appointment',notes:'',location:'Main St',travelMinutes:20},
+  {id:'ev2',profileId:pid,date:'2026-09-29',time:'10:00',title:'Field trip',kind:'other',notes:'',remind:1440},
+  {id:'ev3',profileId:pid,date:'2026-09-28',time:'18:00',title:'Quiet dinner',kind:'personal',notes:'',remind:-1},
+  {id:'ev4',profileId:pid,date:'2026-09-28',time:'12:00',title:'Lunch call',kind:'other',notes:'',remind:0})
+ const r=buildReminders(model.normalizeData(ev),now),tag=t=>r.find(x=>x.tag===t)
+ const dentist=tag('event-ev1');assert.equal(dentist.title,'In 15 min: Dentist');assert.equal(new Date(dentist.sendAt).getHours()*60+new Date(dentist.sendAt).getMinutes(),15*60+15)
+ assert.equal(dentist.body,'3:30 PM–4:30 PM · Main St · Leave by 3:10 PM')
+ const trip=tag('event-ev2');assert.equal(trip.title,'In 1 day: Field trip');assert.equal(new Date(trip.sendAt).toDateString(),new Date('2026-09-28T12:00:00').toDateString())
+ assert.ok(!tag('event-ev3'),'Remind me: Off');assert.equal(tag('event-ev4').title,'Now: Lunch call')
+}
 // Monday morning: the week ahead, in due-date order.
 const week=rows.find(r=>r.tag==='week-2026-09-28')
 assert.ok(week,'a Monday summary');assert.equal(week.title,'This week: 2 assignments, 1 exam')

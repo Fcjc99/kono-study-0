@@ -117,23 +117,14 @@ test('homework added in the Planner survives a reload',async({page})=>{
  await page.getByText('Read chapter 3 (e2e)').filter({visible:true}).first().waitFor()
 })
 
-test('Today in your own order, Settings search and search filters',async({page})=>{
+test('Today in time order, Settings search and search filters',async({page})=>{
  await createPlan(page)
  await addFromMenu(page,'tasks','First thing (e2e)')
  await addFromMenu(page,'tasks','Second thing (e2e)')
  await go(page,'Sanctuary')
- // Also today: the ⠿ handle moves an item with the arrow keys, and the order stays after a reload.
- const list=page.getByRole('list',{name:'Also today, in your order'})
- const titles=()=>list.locator('.reorder-row').allInnerTexts()
- await list.waitFor()
- const before=await titles(),last=before.length-1
- const moving=/Second thing/.test(before[last])?'Second thing (e2e)':'First thing (e2e)'
- const expected=[...before];[expected[last-1],expected[last]]=[expected[last],expected[last-1]]
- await list.getByRole('button',{name:'Reorder '+moving+' (use the up and down arrow keys)'}).press('ArrowUp')
- await page.waitForFunction(want=>JSON.stringify([...document.querySelectorAll('.reorder-row')].map(r=>r.innerText))===JSON.stringify(want),expected)
- await page.reload();await heading(page,'Sanctuary')
- const again=page.getByRole('list',{name:'Also today, in your order'});await again.waitFor()
- assert.deepEqual(await again.locator('.reorder-row').allInnerTexts(),expected,'the order is kept after a reload')
+ // Also today is in time order, with no handles to move things around.
+ await page.locator('.tomorrow-extra-list').getByText('Second thing (e2e)').waitFor()
+ assert.equal(await page.locator('.tomorrow-extra-list .reorder-handle').count(),0,'Today and Tomorrow can’t be rearranged by hand')
  // Settings search: "dark" finds Dark mode and opens Look & feel.
  await go(page,'Settings')
  await page.getByLabel('Search settings').fill('dark')
@@ -3333,6 +3324,25 @@ test('Planner › Week on a phone: press and hold moves an event, a quick swipe 
   await page.getByRole('dialog',{name:'Edit event'}).getByLabel('Title').waitFor()
   assert.deepEqual(phone.errors,[])
  }finally{await phone.context.close()}
+})
+
+test('Event editor: a quick length sets the end time, Remind me is saved, and the Planner offers reminders on this phone',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.settings.parentMode=false
+ plan.calendarEvents.push({id:'ev-len',profileId:pid,date:'2026-09-29',time:'15:00',endTime:'15:20',title:'Piano lesson',kind:'activity',notes:''})
+ await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Planner')
+ await page.getByRole('region',{name:'Reminders on this phone'}).waitFor()
+ await page.getByRole('region',{name:'Week'}).getByRole('button',{name:/^Piano lesson · /}).click()
+ const ed=page.getByRole('dialog',{name:'Edit event'})
+ await ed.getByRole('group',{name:'How long'}).getByRole('button',{name:'1.5 hr'}).click()
+ assert.equal(await ed.getByLabel('End time (optional)').inputValue(),'16:30')
+ assert.equal(await ed.getByRole('group',{name:'How long'}).getByRole('button',{name:'1.5 hr'}).getAttribute('aria-pressed'),'true')
+ await ed.getByLabel(/Remind me/).selectOption('60')
+ await ed.getByRole('button',{name:'Save',exact:true}).click()
+ await waitFor(()=>{const e=cloud.users.alice.plan.data.calendarEvents.find(x=>x.id==='ev-len');return e?.endTime==='16:30'&&e?.remind===60},'the length and reminder reach the account')
 })
 
 test('Phone check-up: on a 375px phone no page scrolls sideways, every tab label fits (Sanctuary reads Home), and the hour column fits "10 AM"',async()=>{

@@ -35,6 +35,10 @@ const at = (date: string, clock: string, minusMinutes = 0) => { const d = new Da
 const list = (titles: string[]) => titles.slice(0, 4).join(', ') + (titles.length > 4 ? ', …' : '')
 const cut = (s: string, n: number) => s.length > n ? s.slice(0, n - 1) + '…' : s
 
+/** "15 min", "1 hr", "1 day": how long before an event its reminder comes. */
+export const remindLabel = (m: number) => m >= 1440 && m % 1440 === 0 ? (m / 1440 === 1 ? '1 day' : m / 1440 + ' days') : m >= 60 && m % 60 === 0 ? (m / 60 === 1 ? '1 hr' : m / 60 + ' hr') : m + ' min'
+const clockBefore = (clock: string, mins: number) => { const t = Math.max(0, Number(clock.slice(0, 2)) * 60 + Number(clock.slice(3, 5)) - mins); return pad(Math.floor(t / 60)) + ':' + pad(t % 60) }
+
 export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
   // On a kid's device, the family plan's things for them count too (practices, appointments, tests).
   if (data.profiles.find(p => p.id === data.activeProfileId)?.kidId) data = kidPlanView(data, data.activeProfileId).data
@@ -128,7 +132,11 @@ export function buildReminders(data: AppData, now: Date, days = 7): Reminder[] {
     }
     for (const t of tasks.filter(t => t.due === date && t.plannedTime)) add(at(date, t.plannedTime!), 'Time to start: ' + t.title, t.estimatedMinutes ? `Planned for about ${t.estimatedMinutes} minutes.` : 'This is the time you planned for it.', 'block-' + t.id)
     for (const e of data.calendarEvents.filter(e => e.profileId === profileId && !e.done && e.date === date && e.time && e.planFor)) add(at(date, e.time!), 'Study time: ' + e.title, [e.endTime ? classTime(e.time!) + '–' + classTime(e.endTime) : classTime(e.time!), e.notes.split('\n')[0]].filter(Boolean).join(' · '), 'study-' + e.id)
-    if (parentMode && settings.familyEventReminders) for (const e of data.calendarEvents.filter(e => e.profileId === profileId && !e.done && e.date === date && e.time && !e.planFor)) add(at(date, e.time!, 15), 'In 15 min: ' + e.title, classTime(e.time!), 'event-' + e.id)
+    // Every timed event: its own "Remind me" (EntryEditor), 15 minutes before unless it says otherwise; off is -1.
+    for (const e of data.calendarEvents.filter(e => e.profileId === profileId && !e.done && e.date === date && e.time && !e.planFor && e.remind !== -1)) {
+      const before = e.remind ?? 15, leave = e.travelMinutes ? 'Leave by ' + classTime(clockBefore(e.time!, e.travelMinutes)) : ''
+      add(at(date, e.time!, before), (before === 0 ? 'Now: ' : 'In ' + remindLabel(before) + ': ') + e.title, [classTime(e.time!) + (e.endTime ? '–' + classTime(e.endTime) : ''), e.location, leave].filter(Boolean).join(' · '), 'event-' + e.id)
+    }
   }
   // KONO's notes: the meters are worked out from the care log alone, so they can be looked ahead.
   const care = data.konoCare?.[profileId]?.log ?? []

@@ -3,7 +3,7 @@
    hand-painted art instead of sitting on it as plain white boxes. KONO Town, KONO's corner and KONO's house
    open in a wood-trimmed frame like a game window. Dark mode keeps its own surfaces. */
 :root{--paper-grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-:root:not([data-dark]) .workbench[data-experience='cozy'] :is(.wb-panel:not(.wb-board):not(.quick-today),.card:not(.subject-workspace)),
+:root:not([data-dark]) .workbench[data-experience='cozy'] :is(.wb-panel:not(.wb-board):not(.quick-today):not(.home-notes),.card:not(.subject-workspace)),
 :root:not([data-dark]) .workbench[data-experience='cozy'] .wb-island{background-image:var(--paper-grain),linear-gradient(180deg,color-mix(in srgb,var(--wb-surface,#fffaf4) 100%,#fff) 0%,color-mix(in srgb,var(--wb-surface,#fffaf4) 90%,#f3d9c6) 100%)!important;box-shadow:inset 0 2px 0 rgba(255,255,255,.85),0 2px 0 color-mix(in srgb,var(--wb-line,#e8cfc2) 75%,#c9a08a),0 10px 22px -16px rgba(110,60,40,.3)!important}
 :root:not([data-dark]) .workbench[data-experience='cozy'] .wb-island{border-color:color-mix(in srgb,var(--wb-line,#e8cfc2) 70%,#c99a7f)!important}
 /* Game windows: a wood frame and a plank title bar. */
@@ -40,3 +40,7 @@
 @keyframes vt-out{to{opacity:0;translate:0 -6px}}
 @keyframes vt-in{from{opacity:0;translate:0 14px}}
 @media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none}}
+
+/* The phone tab bar is solid and always on top: the coral palette's old desktop-nav rule turns off its
+ * blur (backdrop-filter:none!important), and a 94% bar without the blur let cards show through it. */
+:root[data-experience='cozy'] .mobile-nav.is-tabbar{z-index:60!important;background:var(--wb-surface,#fffdf8)!important}
