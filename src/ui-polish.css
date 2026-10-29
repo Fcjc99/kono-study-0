@@ -484,3 +484,30 @@ button .kono-icon,a .kono-icon{margin-right:2px}
 .wb-event-series .wb-check{display:flex!important;align-items:center;gap:10px;min-height:40px!important}
 .wb-event-series input[type=radio]{flex:none;width:20px!important;height:20px!important;min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;box-shadow:none!important}
 :is(dialog,.workbench) .event-length-chips button[aria-pressed=true]:not(#x){background:var(--wb-accent,#e0607a)!important;color:var(--wb-accent-ink,#fff)!important;border-color:transparent!important;transform:none!important}
+
+/* Kids › Star chart (StarChart): a card per kid with their stars, chores and rewards, and the shelf. */
+.star-chart{margin-top:18px;display:grid;gap:14px}
+.star-chart-head h3{margin:0 0 2px}
+.star-chart-head p{margin:0}
+.star-chart-kids{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));gap:12px}
+.star-kid{padding:14px;border-radius:20px;border:2px solid color-mix(in srgb,var(--kid-color,#e0607a) 45%,transparent);background:color-mix(in srgb,var(--kid-color,#e0607a) 7%,var(--wb-surface,#fff));display:grid;gap:10px}
+.star-kid header{display:flex;align-items:center;gap:10px}
+.star-kid header>div{flex:1;display:grid}.star-kid header small{opacity:.7}
+.star-kid-total{font-size:1.4rem;font-weight:900;padding:4px 12px;border-radius:999px;background:linear-gradient(#ffe68a,#ffc93c);color:#6b4b00;box-shadow:0 3px 0 #d8a21f}
+.star-kid-cheer{margin:0;padding:8px 12px;border-radius:12px;background:#fff3c4;font-weight:800;animation:star-pop .5s cubic-bezier(.3,1.6,.5,1)}
+.star-kid-chores{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.star-kid-chores button{width:100%;display:flex;align-items:center;gap:8px;text-align:left;padding:8px 10px;border-radius:12px}
+.star-kid-chores button>span{font-size:1.1rem;opacity:.6}.star-kid-chores button b{margin-left:auto;white-space:nowrap}
+.star-kid-empty{margin:0}
+.star-kid-rewards{display:flex;flex-wrap:wrap;gap:6px}
+.star-kid-rewards button{padding:6px 10px;border-radius:999px;font-size:.85rem}
+.star-kid-rewards button:disabled{opacity:.45}
+.star-kid-log ul{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:4px}.star-kid-log li{display:flex;justify-content:space-between;gap:8px}.star-kid-log .is-spent{color:#b4475a}
+.star-shelf{padding:14px;border-radius:18px;border:1px dashed var(--wb-line,#e2d8cc)}
+.star-shelf h4{margin:0 0 8px}
+.star-shelf ul{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:6px}
+.star-shelf li{display:flex;align-items:center;gap:10px}.star-shelf li span{flex:1}
+.star-shelf-add{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.star-shelf-add input{min-width:0}.star-shelf-add .star-emoji{width:56px;text-align:center}.star-shelf-add label{display:grid;gap:2px;width:90px}
+@keyframes star-pop{from{transform:scale(.6);opacity:0}}
+@media(prefers-reduced-motion:reduce){.star-kid-cheer{animation:none}}

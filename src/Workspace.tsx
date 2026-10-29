@@ -33,6 +33,7 @@ import {usePushReminders} from './hooks/usePushReminders'
 import {useLinkedCalendars} from './hooks/useLinkedCalendars'
 import {useCanvasSync} from './hooks/useCanvasSync'
 import {useNativeApp} from './hooks/useNativeApp'
+import {starsAfterTick,starsOf} from './store/choreStars'
 import {isNativeApp} from './native'
 import {useLiveSanctuaryWeather} from './hooks/useLiveSanctuaryWeather'
 import ClassOccurrenceCard from './components/ClassOccurrenceCard'
@@ -72,6 +73,7 @@ const ClassSheet=lazy(()=>import('./components/ClassSheet'))
 const PlanSwitcher=lazy(()=>import('./components/PlanSwitcher'))
 const WhoIsUsing=lazy(()=>import('./components/WhoIsUsing'))
 const KidsGlance=lazy(()=>import('./components/KidsGlance'))
+const StarChart=lazy(()=>import('./components/StarChart'))
 const Pickups=lazy(()=>import('./components/Pickups'))
 const FamilyTodos=lazy(()=>import('./components/FamilyTodos'))
 const TodoEditor=lazy(()=>import('./components/TodoEditor'))
@@ -361,6 +363,8 @@ function Workspace({store}:{store:Store}){
  const recap=page==='Sanctuary'||page==='Planner'?weekRecap(data,today,sanctuaryProgress):null
  const openWeekPlan=()=>{setWeekPlanOpen(true);navigate('Planner')}
  const weekStart=addDays(today,-6)
+ // The star chart's "this week": since Monday morning.
+ const starWeek=(()=>{const d=new Date(today+'T00:00:00');d.setDate(d.getDate()-((d.getDay()+6)%7));return d.toISOString()})()
  const weekTasks=ownTasks.filter(t=>t.due>=weekStart&&t.due<=today)
  const weekDone=weekTasks.filter(t=>t.done).length,weekTotal=weekTasks.length
  const subjects=data.subjects.filter(s=>s.profileId===profile.id),notes=data.notes.filter(n=>n.profileId===profile.id),profileKids=data.kids.filter(k=>k.profileId===profile.id)
@@ -806,8 +810,9 @@ function Workspace({store}:{store:Store}){
  const todoNamed=(id:string)=>(data.familyTodos??[]).find(t=>t.id===id)
  const todoOps:TodoOps={
   tick:(id,on)=>{const t=todoNamed(id);if(!t)return;const next=tickTodo(t,localDate(),on)
-   void run(()=>saveTodos(list=>list.map(x=>x.id===id?tickTodo(x,localDate(),on):x)),next.done?'Done: “'+t.title+'”.':t.done?'“'+t.title+'” is back on the list.':'Done: “'+t.title+'”. Next: '+dateLabel(next.due!)+'.',true)},
-  update:(id,changes)=>void run(()=>saveTodos(list=>list.map(x=>{if(x.id!==id)return x;return {id:x.id,profileId:x.profileId,done:x.done,...(x.doneAt?{doneAt:x.doneAt}:{}),title:changes.title,...(changes.forKidId?{forKidId:changes.forKidId}:{}),...(changes.due?{due:changes.due}:{}),...repeatFields(changes.repeat,changes.due)}})),'Saved “'+changes.title+'”.'),
+   // A kid's chore earns its stars (store/choreStars); unticking takes them back.
+   void run(()=>save(d=>{const cur=(d.familyTodos??[]).find(x=>x.id===id);if(!cur)return d;const after=tickTodo(cur,localDate(),on);return {...d,familyTodos:(d.familyTodos??[]).map(x=>x.id===id?after:x),starLog:starsAfterTick(d.starLog??[],cur,after)}}),next.done&&t.forKidId?'Done: “'+t.title+'”. ⭐ +'+starsOf(t)+' for '+(data.kids.find(k=>k.id===t.forKidId)?.name??'them')+'.':next.done?'Done: “'+t.title+'”.':t.done?'“'+t.title+'” is back on the list.':'Done: “'+t.title+'”. Next: '+dateLabel(next.due!)+'.',true)},
+  update:(id,changes)=>void run(()=>saveTodos(list=>list.map(x=>{if(x.id!==id)return x;return {id:x.id,profileId:x.profileId,done:x.done,...(x.doneAt?{doneAt:x.doneAt}:{}),title:changes.title,...(changes.forKidId&&changes.stars!==undefined&&changes.stars!==1?{stars:changes.stars}:{}),...(changes.forKidId?{forKidId:changes.forKidId}:{}),...(changes.due?{due:changes.due}:{}),...repeatFields(changes.repeat,changes.due)}})),'Saved “'+changes.title+'”.'),
   remove:id=>void run(()=>saveTodos(list=>list.filter(x=>x.id!==id)),'Removed “'+(todoNamed(id)?.title??'the to-do')+'”.',true),
   skip:(id,on)=>{const t=todoNamed(id);if(!t)return;const next=skipTurn(t,on);void run(()=>saveTodos(list=>list.map(x=>x.id===id?skipTurn(x,on):x)),'Skipped “'+t.title+'” on '+dateLabel(on)+'. Next: '+dateLabel(next.due!)+'.',true)},
   move:(id,date)=>void run(()=>saveTodos(list=>list.map(x=>x.id===id?{...x,due:date}:x)),'Moved “'+(todoNamed(id)?.title??'the to-do')+'” to '+dateLabel(date)+'.',true),
@@ -1239,7 +1244,7 @@ function Workspace({store}:{store:Store}){
     {customizing&&<Suspense fallback={null}><HomeCustomize layout={homeLayout} available={homeAvailable} close={()=>setCustomizing(false)} onChange={l=>setHomeLine(isDefault(l)?'':writeLayout(l))}/></Suspense>}
    </div>}
    {page==='Planner'&&<PlannerPage w={w}/>}
-   {page==='Kids'&&<KidsPage onSetup={()=>setFamilySetupOpen(true)} data={data} create={create} edit={edit} remove={remove} patch={patch} openSettings={openSettings} onOpenKidPlan={makeKidPlan} cards={profileKids.length>0&&<Suspense fallback={null}><KidsGlance data={data} profileId={profile.id} today={today} from={myName==='Me'?'Your family':myName} save={save} onOpen={(_kid,planId)=>planId?switchPlan(planId):undefined} onMakePlan={makeKidPlan} onEdit={kid=>edit('kids',kid as unknown as Entry)} onRemove={kid=>remove('kids',kid as unknown as Entry)} onDayOff={()=>setDayOffFor(today)}/></Suspense>}/>}
+   {page==='Kids'&&<KidsPage onSetup={()=>setFamilySetupOpen(true)} data={data} create={create} edit={edit} remove={remove} patch={patch} openSettings={openSettings} onOpenKidPlan={makeKidPlan} cards={profileKids.length>0&&<Suspense fallback={null}><KidsGlance data={data} profileId={profile.id} today={today} from={myName==='Me'?'Your family':myName} save={save} onOpen={(_kid,planId)=>planId?switchPlan(planId):undefined} onMakePlan={makeKidPlan} onEdit={kid=>edit('kids',kid as unknown as Entry)} onRemove={kid=>remove('kids',kid as unknown as Entry)} onDayOff={()=>setDayOffFor(today)}/><StarChart data={data} profileId={profile.id} kids={profileKids} today={today} weekStart={starWeek} save={save} onTick={id=>todoOps.tick(id)}/></Suspense>}/>}
    {page==='Subjects'&&<SubjectsPage w={w}/>}
    {page==='Notes'&&<NotesPage w={w}/>}
    {page==='K-Quiz'&&<KQuizPage w={w}/>}

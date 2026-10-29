@@ -526,6 +526,26 @@ test('K-Quiz Play: a study set as a game, right answers earn KONO coins, a wrong
  await game.waitFor({state:'detached'})
 })
 
+test('Star chart: ticking a kid’s chore earns its stars, and stars buy a reward from the shelf',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.familyTodos=[{id:'chore-1',profileId:pid,title:'Feed the cat',done:false,forKidId:'kid-emma',stars:2}]
+ plan.starRewards=[{id:'rw-1',profileId:pid,title:'Pick dessert',cost:2,emoji:'🍦'}]
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ await go(page,'Kids')
+ const emma=page.getByRole('region',{name:'Star chart'}).getByRole('article',{name:'Emma’s stars'})
+ await emma.waitFor()
+ assert.equal(await emma.getByLabel('0 stars').count(),1)
+ await emma.getByRole('button',{name:'Done: Feed the cat'}).click()
+ await emma.getByLabel('2 stars').waitFor()
+ await waitFor(()=>(cloud.users.alice.plan.data.starLog??[]).reduce((n,e)=>n+(e.kidId==='kid-emma'?e.n:0),0)===2,'the stars reach the account')
+ page.once('dialog',d=>void d.accept())
+ await emma.getByRole('group',{name:'Rewards for Emma'}).getByRole('button',{name:/Pick dessert/}).click()
+ await emma.getByText('🎉 🍦 Pick dessert!').waitFor()
+ await emma.getByLabel('0 stars').waitFor()
+ await waitFor(()=>(cloud.users.alice.plan.data.starLog??[]).some(e=>e.n===-2),'the reward is spent in the account')
+})
+
 test('keyboard: K-Quiz practice questions and flashcards keep focus inside, close with Escape, and return focus',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
  plan.settings.familyStudyTabs=true // alice has kids: a family plan shows the study pages only when asked
