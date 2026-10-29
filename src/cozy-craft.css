@@ -40,3 +40,7 @@
 @keyframes vt-out{to{opacity:0;translate:0 -6px}}
 @keyframes vt-in{from{opacity:0;translate:0 14px}}
 @media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none}}
+
+/* The phone tab bar is solid and always on top: the coral palette's old desktop-nav rule turns off its
+ * blur (backdrop-filter:none!important), and a 94% bar without the blur let cards show through it. */
+:root[data-experience='cozy'] .mobile-nav.is-tabbar{z-index:60!important;background:var(--wb-surface,#fffdf8)!important}
