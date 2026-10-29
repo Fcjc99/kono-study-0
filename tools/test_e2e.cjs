@@ -496,6 +496,73 @@ test('KONO support can list every account, open one to add something for them, a
  assert.equal(await banner.count(),0)
 })
 
+test('K-Quiz Play: a study set as a game, right answers earn KONO coins, a wrong one costs a heart, and the round ends with a score',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.settings.familyStudyTabs=true
+ const mcq=(id,prompt,choices,correctIndex)=>({id,type:'mcq',prompt,choices,correctIndex})
+ plan.kquizSets=[{id:'set-play',profileId:pid,subjectId:'',title:'Cells (play)',createdAt:'2026-09-20T00:00:00Z',practiceTest:{questions:[mcq('p1','Powerhouse of the cell?',['Mitochondria','Nucleus','Ribosome','Golgi'],0),mcq('p2','Holds the DNA?',['Vacuole','Nucleus','Membrane','Cytoplasm'],1),mcq('p3','Makes proteins?',['Lysosome','Ribosome','Wall','Nucleolus'],1)]}}]
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ await go(page,'K-Quiz')
+ await page.getByRole('button',{name:/^Play \d+ questions/}).click()
+ const game=page.getByRole('dialog',{name:'Play: Cells (play)'})
+ await game.waitFor()
+ const answer=async right=>{const prompt=await game.locator('.kq-play-prompt').innerText(),key={'Powerhouse of the cell?':'Mitochondria','Holds the DNA?':'Nucleus','Makes proteins?':'Ribosome'}[prompt]
+  const tiles=game.getByRole('group',{name:'Answers'}).getByRole('button')
+  if(right)await tiles.filter({hasText:key}).click();else await tiles.filter({hasNotText:key}).first().click()
+  await game.getByRole('status').waitFor()
+  return game.getByRole('status').innerText()}
+ assert.match(await answer(true),/\+2 🪙/)
+ await game.getByRole('button',{name:'Continue'}).click()
+ assert.match(await answer(false),/Not quite[\s\S]*Answer:/)
+ assert.equal(await game.getByLabel('2 hearts left').count(),1,'a wrong answer costs a heart')
+ await game.getByRole('button',{name:'Continue'}).click()
+ await answer(true);await game.getByRole('button',{name:'Continue'}).click()
+ const end=game.getByRole('region',{name:'Round over'});await end.waitFor()
+ assert.match(await end.innerText(),/2\/3[\s\S]*4[\s\S]*coins earned/)
+ assert.match(await end.innerText(),/Look again at 1 question/)
+ await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).filter(e=>e.item==='game:quiz').reduce((n,e)=>n+e.n,0)===4,'the coins reach the account')
+ await end.getByRole('button',{name:'Done'}).click()
+ await game.waitFor({state:'detached'})
+})
+
+test('Star chart: ticking a kid’s chore earns its stars, and stars buy a reward from the shelf',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.familyTodos=[{id:'chore-1',profileId:pid,title:'Feed the cat',done:false,forKidId:'kid-emma',stars:2}]
+ plan.starRewards=[{id:'rw-1',profileId:pid,title:'Pick dessert',cost:2,emoji:'🍦'}]
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ await go(page,'Kids')
+ const emma=page.getByRole('region',{name:'Star chart'}).getByRole('article',{name:'Emma’s stars'})
+ await emma.waitFor()
+ assert.equal(await emma.getByLabel('0 stars').count(),1)
+ await emma.getByRole('button',{name:'Done: Feed the cat'}).click()
+ await emma.getByLabel('2 stars').waitFor()
+ await waitFor(()=>(cloud.users.alice.plan.data.starLog??[]).reduce((n,e)=>n+(e.kidId==='kid-emma'?e.n:0),0)===2,'the stars reach the account')
+ page.once('dialog',d=>void d.accept())
+ await emma.getByRole('group',{name:'Rewards for Emma'}).getByRole('button',{name:/Pick dessert/}).click()
+ await emma.getByText('🎉 🍦 Pick dessert!').waitFor()
+ await emma.getByLabel('0 stars').waitFor()
+ await waitFor(()=>(cloud.users.alice.plan.data.starLog??[]).some(e=>e.n===-2),'the reward is spent in the account')
+})
+
+test('Dinners & groceries: a dinner written on Home and groceries added and ticked reach the account',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ const card=page.getByRole('region',{name:'Dinners & groceries'})
+ await card.waitFor()
+ await card.getByRole('button',{name:'Add dinner for Today'}).click()
+ await card.getByLabel('Dinner on Today').fill('Tacos')
+ await card.getByLabel('Dinner on Today').press('Enter')
+ await card.getByRole('button',{name:'Dinner Today: Tacos'}).waitFor()
+ await card.getByLabel('Add groceries').fill('Milk, eggs')
+ await card.getByRole('button',{name:'Add',exact:true}).click()
+ await card.getByRole('checkbox',{name:'Milk'}).check()
+ await card.getByRole('button',{name:'Clear 1 in the cart'}).click()
+ await waitFor(()=>{const d=cloud.users.alice.plan.data;return (d.meals??[]).some(m=>m.title==='Tacos')&&JSON.stringify((d.groceries??[]).map(g=>g.title))==='["eggs"]'},'the dinner and the list reach the account')
+})
+
 test('keyboard: K-Quiz practice questions and flashcards keep focus inside, close with Escape, and return focus',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
  plan.settings.familyStudyTabs=true // alice has kids: a family plan shows the study pages only when asked

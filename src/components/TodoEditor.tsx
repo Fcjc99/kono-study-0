@@ -2,16 +2,18 @@ import {useState} from 'react'
 import type {FamilyTodo,Kid,TodoRepeat} from '../store/model'
 import {TODO_REPEATS} from '../store/familyTodos'
 
-export type TodoChanges=Pick<FamilyTodo,'title'|'forKidId'|'due'|'repeat'>
+export type TodoChanges=Pick<FamilyTodo,'title'|'forKidId'|'due'|'repeat'|'stars'>
 
-/** Change a family to-do: its words, who it's for, its day and how it repeats (a repeat needs a day).
+/** Change a family to-do: its words, who it's for (and, for a kid's chore, its stars on the star chart),
+ * its day and how it repeats (a repeat needs a day).
  * Used from the to-do list on Home and from a to-do tapped on the Planner. */
 export default function TodoEditor({todo,kids,onSave,onDelete,onCancel}:{todo:FamilyTodo;kids:Kid[];onSave:(changes:TodoChanges)=>void;onDelete:()=>void;onCancel:()=>void}){
- const [title,setTitle]=useState(todo.title),[forKid,setForKid]=useState(todo.forKidId??''),[due,setDue]=useState(todo.due??''),[repeat,setRepeat]=useState<TodoRepeat|''>(todo.repeat??'')
- const save=()=>{const text=title.trim();if(!text)return;onSave({title:text.slice(0,300),forKidId:forKid||undefined,due:due||undefined,repeat:due&&repeat?repeat:undefined})}
+ const [title,setTitle]=useState(todo.title),[forKid,setForKid]=useState(todo.forKidId??''),[due,setDue]=useState(todo.due??''),[repeat,setRepeat]=useState<TodoRepeat|''>(todo.repeat??''),[stars,setStars]=useState(todo.stars??1)
+ const save=()=>{const text=title.trim();if(!text)return;onSave({title:text.slice(0,300),forKidId:forKid||undefined,due:due||undefined,repeat:due&&repeat?repeat:undefined,...(forKid&&stars!==1?{stars}:{})})}
  return <form className="todo-editor" onSubmit={e=>{e.preventDefault();save()}}>
   <label>To-do<input value={title} maxLength={300} onChange={e=>setTitle(e.target.value)} autoFocus/></label>
   {kids.length>0&&<label>For<select value={forKid} onChange={e=>setForKid(e.target.value)}><option value="">Everyone</option>{kids.map(k=><option key={k.id} value={k.id}>{(k.emoji?k.emoji+' ':'')+k.name}</option>)}</select></label>}
+  {forKid&&<label>Stars for doing it<select value={stars} onChange={e=>setStars(Number(e.target.value))}>{[0,1,2,3,4,5,10].map(n=><option key={n} value={n}>{n===0?'No stars':'⭐ '+n}</option>)}</select></label>}
   <div className="todo-editor-when">
    <label>Day<input type="date" value={due} onChange={e=>setDue(e.target.value)}/></label>
    {due&&<button type="button" className="link-button" onClick={()=>{setDue('');setRepeat('')}}>Any day</button>}

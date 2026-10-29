@@ -12,6 +12,7 @@ const WIDGETS:Record<HomeWidget,{name:string;blurb:string}>={
  weekAhead:{name:'The next 7 days',blurb:'Day by day: events, to-dos and tests'},
  notes:{name:'Notes & reminders',blurb:'Pinned notes and the next week’s reminders, as sticky notes'},
  todos:{name:'To-dos',blurb:'The family to-do list'},
+ meals:{name:'Dinners & groceries',blurb:'This week’s dinners and the grocery list'},
  comingUp:{name:'Coming up',blurb:'Birthdays and countdowns'},
  focus:{name:'Focus session',blurb:'A study timer with KONO'},
 }

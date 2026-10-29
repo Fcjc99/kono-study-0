@@ -61,6 +61,8 @@ const morningBadge=d=>{
 self.addEventListener('push',event=>{
  let d={}
  try{d=event.data?event.data.json():{}}catch{d={title:'KONO',body:event.data?event.data.text():''}}
+ // A Declarative Web Push message (Safari) carries the same reminder under notification.
+ if(!d.title&&d.notification)d={title:d.notification.title,body:d.notification.body,tag:d.notification.tag}
  event.waitUntil(Promise.all([self.registration.showNotification(d.title||'KONO',{body:d.body||'',tag:d.tag||undefined,icon:'/icons/kono-192.png',badge:'/icons/kono-badge.png'}),morningBadge(d)]))
 })
 self.addEventListener('notificationclick',event=>{

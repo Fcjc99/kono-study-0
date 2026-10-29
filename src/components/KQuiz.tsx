@@ -12,14 +12,17 @@ import { saveRecording, loadRecording, deleteRecording } from '../store/audioSto
 import { buildKQuizSetPdf } from '../store/kquizPdf'
 import { downloadBlob } from '../store/localRepository'
 import KQuizGuide from './KQuizGuide'
+import KQuizPlay from './KQuizPlay'
+import { roundFrom, type PlayQuestion } from '../store/kquizRound'
 import './kquiz.css'
 import { aiReady } from '../store/aiProvider'
+import { COIN_ICON } from '../store/konoCoins'
 
 const formatDuration = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 
 const UNSORTED = '__unsorted__'
 
-export default function KQuiz({ profileId, lectures, sets, sources, decks, subjects, setData, onOpenAiSettings }: { profileId: string; onOpenAiSettings?: () => void; lectures: KQuizLecture[]; sets: KQuizSet[]; sources: KQuizSource[]; decks: FlashcardDeck[]; subjects: Subject[]; setData: (action: SetStateAction<AppData>) => Promise<boolean> }) {
+export default function KQuiz({ profileId, lectures, sets, sources, decks, subjects, setData, onOpenAiSettings, onCorrect }: { profileId: string; onOpenAiSettings?: () => void; onCorrect?: (streak: number) => number | null; lectures: KQuizLecture[]; sets: KQuizSet[]; sources: KQuizSource[]; decks: FlashcardDeck[]; subjects: Subject[]; setData: (action: SetStateAction<AppData>) => Promise<boolean> }) {
   const { provider, apiKey } = useAiHelper(profileId)
   const [busy, setBusy] = useState(false), [message, setMessage] = useState('')
   const [pendingTitle, setPendingTitle] = useState('')
@@ -43,6 +46,8 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
   const [test, setTest] = useState<{ setId: string; index: number; picked: number | null; revealed: boolean; score: number } | null>(null)
   const [flashSession, setFlashSession] = useState<{ deckId: string; index: number; revealed: boolean } | null>(null)
   const [playing, setPlaying] = useState<{ id: string; url: string } | null>(null)
+  // K-Quiz › Play: a study set as a game (KQuizPlay), its questions and flashcards mixed into one round.
+  const [game, setGame] = useState<{ title: string; questions: PlayQuestion[] } | null>(null)
   const recorder = useLectureRecorder()
   const saving = useRef(false)
   const photoInputRef = useRef<HTMLInputElement | null>(null)
@@ -329,6 +334,7 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
 
           <div className="kquiz-material-list">
             <p className="kquiz-material-label">Study this material</p>
+            {(() => { const round = roundFrom(set.practiceTest?.questions ?? [], deck?.cards ?? []); return round.length > 0 && <button type="button" className="kquiz-play-button" onClick={() => setGame({ title: set.title, questions: roundFrom(set.practiceTest?.questions ?? [], deck?.cards ?? []) })}><span aria-hidden="true">🎮</span><span><strong>Play</strong><small>{round.length} questions · earn {COIN_ICON} coins</small></span></button> })()}
             {deck && <button type="button" className="kquiz-material-row" onClick={() => setFlashSession({ deckId: deck.id, index: 0, revealed: false })}><span>🗂️ Flashcards</span><span className="wb-muted">{deck.cards.length} cards ›</span></button>}
             {set.practiceTest && <button type="button" className="kquiz-material-row" onClick={() => startTest(set)}><span>📝 Practice questions</span><span className="wb-muted">{set.practiceTest.questions.length} questions ›</span></button>}
           </div>
@@ -352,6 +358,7 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
       <button type="button" className="secondary" onClick={() => setTest(null)}>Close test</button>
     </div></ModalOverlay>}
 
+    {game && <KQuizPlay title={game.title} questions={game.questions} onCorrect={streak => onCorrect?.(streak) ?? null} onClose={() => setGame(null)} />}
     {flashSession && flashDeck && <ModalOverlay className="kquiz-test" label="Flashcards" onClose={() => setFlashSession(null)}><div className="kquiz-test-card">
       <p className="wb-muted">{flashDeck.title}</p>
       {flashCard ? <>

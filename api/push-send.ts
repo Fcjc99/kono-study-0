@@ -29,6 +29,7 @@ export default async function handler(req: Request, res: Response) {
       claim: async () => (await rpc('kono_push_claim', { p_secret: secret }) ?? []) as DueReminder[],
       forget: async endpoint => { await rpc('kono_push_forget', { p_secret: secret, p_endpoint: endpoint }) },
       send: (subscription, payload) => webpush.sendNotification(subscription, payload, { TTL: 3600, urgency: 'normal' }),
+      appUrl: process.env.KONO_APP_URL?.trim() || (production ? 'https://' + production : undefined),
     })
     res.status(200).json(result)
   } catch (error) {

@@ -6,11 +6,11 @@ function load(relative){
  if(cache.has(file))return cache.get(file).exports
  const module={exports:{}};cache.set(file,module)
  const requireLocal=name=>name.endsWith('.css')?{}:name.startsWith('.')?load(path.resolve(path.dirname(file),name+(path.extname(name)?'':fs.existsSync(path.resolve(path.dirname(file),name+'.ts'))?'.ts':'.tsx'))):require(name)
- vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText,{module,exports:module.exports,require:requireLocal,Date,Intl,Set,Map,Math,structuredClone,crypto:{randomUUID},console})
+ vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText,{module,exports:module.exports,require:requireLocal,Date,Intl,Set,Map,Math,structuredClone,URL,crypto:{randomUUID},console})
  return module.exports
 }
 // Lock-screen reminders: what the app queues for the week, and how the server sends due ones.
-const model=load('src/store/model.ts'),{buildReminders}=load('src/store/pushReminders.ts'),{sendDueReminders,sameSecret}=load('src/store/pushSender.ts')
+const model=load('src/store/model.ts'),{buildReminders}=load('src/store/pushReminders.ts'),{sendDueReminders,sameSecret,reminderPayload}=load('src/store/pushSender.ts')
 const now=new Date('2026-09-28T06:00:00')  // a Monday, 6 AM on this device
 const data=model.createFreshData(),id=data.activeProfileId
 data.subjects.push({id:'bio',profileId:id,name:'Biology',color:'#4169a8',resources:[]})
@@ -43,6 +43,11 @@ const late=buildReminders(data,new Date('2026-09-28T08:50:00'));assert.ok(!late.
  const trip=tag('event-ev2');assert.equal(trip.title,'In 1 day: Field trip');assert.equal(new Date(trip.sendAt).toDateString(),new Date('2026-09-28T12:00:00').toDateString())
  assert.ok(!tag('event-ev3'),'Remind me: Off');assert.equal(tag('event-ev4').title,'Now: Lunch call')
 }
+// The push message: plain for Chrome/Firefox, plus Declarative Web Push (Safari, iOS 18.4+) when the site's address is known.
+{const plain=JSON.parse(reminderPayload({title:'T',body:'B',tag:'x'}));assert.equal(plain.title,'T');assert.equal(plain.web_push,undefined)
+ const dwp=JSON.parse(reminderPayload({title:'T',body:'B',tag:'x'},'https://kono.example.com'))
+ assert.equal(dwp.web_push,8030);assert.equal(dwp.title,'T');assert.equal(dwp.notification.title,'T');assert.equal(dwp.notification.navigate,'https://kono.example.com/?page=planner');assert.equal(dwp.notification.tag,'x')
+ assert.equal(JSON.parse(reminderPayload({title:'T',body:'B',tag:null},'http://insecure')).web_push,undefined,'https only')}
 // Monday morning: the week ahead, in due-date order.
 const week=rows.find(r=>r.tag==='week-2026-09-28')
 assert.ok(week,'a Monday summary');assert.equal(week.title,'This week: 2 assignments, 1 exam')
