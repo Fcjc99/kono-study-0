@@ -3326,6 +3326,25 @@ test('Planner › Week on a phone: press and hold moves an event, a quick swipe 
  }finally{await phone.context.close()}
 })
 
+test('Event editor: a quick length sets the end time, Remind me is saved, and the Planner offers reminders on this phone',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.settings.parentMode=false
+ plan.calendarEvents.push({id:'ev-len',profileId:pid,date:'2026-09-29',time:'15:00',endTime:'15:20',title:'Piano lesson',kind:'activity',notes:''})
+ await page.clock.setFixedTime(new Date('2026-09-28T08:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Planner')
+ await page.getByRole('region',{name:'Reminders on this phone'}).waitFor()
+ await page.getByRole('region',{name:'Week'}).getByRole('button',{name:/^Piano lesson · /}).click()
+ const ed=page.getByRole('dialog',{name:'Edit event'})
+ await ed.getByRole('group',{name:'How long'}).getByRole('button',{name:'1.5 hr'}).click()
+ assert.equal(await ed.getByLabel('End time (optional)').inputValue(),'16:30')
+ assert.equal(await ed.getByRole('group',{name:'How long'}).getByRole('button',{name:'1.5 hr'}).getAttribute('aria-pressed'),'true')
+ await ed.getByLabel(/Remind me/).selectOption('60')
+ await ed.getByRole('button',{name:'Save',exact:true}).click()
+ await waitFor(()=>{const e=cloud.users.alice.plan.data.calendarEvents.find(x=>x.id==='ev-len');return e?.endTime==='16:30'&&e?.remind===60},'the length and reminder reach the account')
+})
+
 test('Phone check-up: on a 375px phone no page scrolls sideways, every tab label fits (Sanctuary reads Home), and the hour column fits "10 AM"',async()=>{
  const phone=await freshPage({viewport:{width:375,height:740},isMobile:true,hasTouch:true})
  try{

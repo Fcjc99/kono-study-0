@@ -465,3 +465,22 @@ button .kono-icon,a .kono-icon{margin-right:2px}
 .kono-sprite{display:inline-block;background-size:400% 100%;background-repeat:no-repeat;image-rendering:auto}
 .kono-sprite.is-wave{animation:kono-sprite-sway .32s ease-in-out infinite alternate;transform-origin:50% 90%}
 @keyframes kono-sprite-sway{from{rotate:-4deg}to{rotate:4deg}}
+
+/* Week: a short event (under 40 minutes) on one line, "12:10 Drop off sylvie", so the title isn't cut off. */
+.week-item-timed.is-short{display:flex!important;flex-direction:row!important;align-items:center;gap:4px;padding-top:0!important;padding-bottom:0!important;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.week-item-timed.is-short>small{flex:none;font-size:.85em;opacity:.85}
+.week-item-timed.is-short>.week-item-title{min-width:0;overflow:hidden;text-overflow:ellipsis}
+
+/* Planner: the one-tap "reminders on this phone" card (ReminderNudge). */
+.reminder-nudge{display:flex;gap:12px;align-items:flex-start;margin:0 0 14px;padding:14px 16px;border-radius:18px;border:1px solid color-mix(in srgb,var(--wb-accent,#e0607a) 35%,transparent);background:color-mix(in srgb,var(--wb-accent,#e0607a) 9%,var(--wb-surface,#fff))}
+.reminder-nudge-bell{font-size:1.6rem;line-height:1}
+.reminder-nudge p{margin:0 0 8px}
+/* The event editor's quick lengths and reminder. */
+.event-length-chips{display:flex;flex-wrap:wrap;gap:8px;margin:-2px 0 12px}
+.event-length-chips button{min-height:38px;padding:6px 14px;border-radius:999px}
+.event-length-chips button[aria-pressed=true]{background:var(--wb-accent,#e0607a);color:var(--wb-accent-ink,#fff);border-color:transparent}
+.event-remind{display:grid;gap:4px;margin:0 0 12px}
+/* "This repeats… Save changes to": three compact choices (phone input sizing made each one tall). */
+.wb-event-series .wb-check{display:flex!important;align-items:center;gap:10px;min-height:40px!important}
+.wb-event-series input[type=radio]{flex:none;width:20px!important;height:20px!important;min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;box-shadow:none!important}
+:is(dialog,.workbench) .event-length-chips button[aria-pressed=true]:not(#x){background:var(--wb-accent,#e0607a)!important;color:var(--wb-accent-ink,#fff)!important;border-color:transparent!important;transform:none!important}

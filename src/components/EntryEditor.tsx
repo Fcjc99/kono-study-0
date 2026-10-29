@@ -25,6 +25,8 @@ const dateLabel=(date:string)=>new Date(date+'T12:00:00').toLocaleDateString(und
 
 /** The event editor's quick lengths: tap one and the end time is set from the start (no clock needed). */
 const LENGTHS:[string,number][]=[['30 min',30],['1 hr',60],['1.5 hr',90],['2 hr',120]]
+/** When an event's reminder comes (store/pushReminders): 15 minutes before unless picked here. */
+const REMINDS:[string,number][]=[['Off',-1],['At the start',0],['5 min before',5],['10 min before',10],['15 min before',15],['30 min before',30],['1 hour before',60],['2 hours before',120],['1 day before',1440]]
 const pad=(n:number)=>String(n).padStart(2,'0')
 const addMinutes=(clock:string,mins:number)=>{const t=Math.min(Number(clock.slice(0,2))*60+Number(clock.slice(3,5))+mins,23*60+59);return pad(Math.floor(t/60))+':'+pad(t%60)}
 const nextHalfHour=()=>{const d=new Date(),t=Math.ceil((d.getHours()*60+d.getMinutes()+1)/30)*30;return t>=24*60?'23:30':pad(Math.floor(t/60))+':'+pad(t%60)}
@@ -111,6 +113,7 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
   {edit.key==='calendarEvents'&&<div className="wb-time-row"><label>Start time (optional)<input type="time" value={String(entry.time??'')} onChange={e=>field('time',e.target.value||undefined)}/></label><label>End time (optional)<input type="time" value={String(entry.endTime??'')} onChange={e=>field('endTime',e.target.value||undefined)}/></label></div>}
   {edit.key==='calendarEvents'&&<div className="event-length-chips" role="group" aria-label="How long">{LENGTHS.map(([label,mins])=>{const start=String(entry.time??''),on=!!start&&String(entry.endTime??'')===addMinutes(start,mins)
    return <button key={mins} type="button" aria-pressed={on} onClick={()=>{const from=start||nextHalfHour();if(!start)field('time',from);field('endTime',addMinutes(from,mins))}}>{label}</button>})}</div>}
+  {edit.key==='calendarEvents'&&!!entry.time&&<label className="event-remind">🔔 Remind me<select value={String((entry.remind as number|undefined)??15)} onChange={e=>field('remind',Number(e.target.value)===15?undefined:Number(e.target.value))}>{REMINDS.map(([label,m])=><option key={m} value={m}>{label}</option>)}</select></label>}
   {edit.key==='calendarEvents'&&isOvernight({time:entry.time as string|undefined,endTime:entry.endTime as string|undefined})&&<p className="wb-muted overnight-note">🌙 Ends the next day at {classTime(String(entry.endTime))}.</p>}
   {clashes.length>0&&<div className="clash-warning" role="status"><strong>⚠️ Heads up</strong><ul>{clashes.slice(0,3).map(c=><li key={c.date+c.text}>{c.text}</li>)}</ul>{clashes.length>3&&<small>And {clashes.length-3} more.</small>}</div>}
   {isEvent&&<div className="wb-place-row"><label>Where (optional)<input maxLength={300} value={String(entry.location??'')} onChange={e=>field('location',e.target.value||undefined)} placeholder="Riverside Park, field 3" autoComplete="street-address"/></label><label>Travel time<select value={String(entry.travelMinutes??'')} onChange={e=>field('travelMinutes',e.target.value?Number(e.target.value):undefined)}><option value="">None</option>{TRAVEL_CHOICES.map(m=><option key={m} value={m}>{m<60?m+' min':m===60?'1 hour':m/60+' hours'}</option>)}</select></label></div>}
