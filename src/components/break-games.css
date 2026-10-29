@@ -169,7 +169,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .match3 .blast-frame,.match3 .match3-goal,.match3 .blast-top,.match3 .blast-help{max-width:min(440px,92vw)}
 .match3-goal b{z-index:2}
 .match3-goal i{margin-left:-.6em}
-.m3-speed{position:absolute;right:4px;top:-2px;font-style:normal;font-size:.6rem}
+
 .m3-mult{font-weight:900;color:#ffd84d}
 .blast-frame.is-quake{animation:m3-quake .4s}
 @keyframes m3-quake{20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-3px)}60%{transform:translate(-3px,-2px)}80%{transform:translate(2px,3px)}}
@@ -248,14 +248,10 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 @keyframes m3-made{from{transform:scale(.2);filter:brightness(3)}60%{filter:brightness(1.6)}}
 /* Effects over the board: shards, beams, explosion rings, lightning, a flash, floating points. */
 .m3-fx{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:8px}
-.m3-shard{position:absolute;width:12.5%;height:12.5%}
-.m3-shard::before,.m3-shard::after{content:'';position:absolute;left:50%;top:50%;width:22%;height:22%;margin:-11%;background:var(--l);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);animation:m3-shard .55s ease-out both}
-.m3-shard::before{--x:-150%;--y:-160%;box-shadow:0 0 6px var(--b)}
-.m3-shard::after{--x:170%;--y:-90%;background:var(--b);animation-delay:.03s}
-.m3-shard{background:radial-gradient(circle,rgba(255,255,255,.95) 0 15%,var(--l) 30%,transparent 62%);animation:m3-poof .4s ease-out both}
+
 @keyframes m3-shard{to{transform:translate(var(--x),var(--y)) rotate(200deg) scale(.4);opacity:0}}
 @keyframes m3-poof{from{transform:scale(.5);opacity:1}to{transform:scale(1.7);opacity:0}}
-.match3.is-candy .m3-shard{--l:#fff;--b:#ff9de0}
+
 .m3-beam{position:absolute;background:linear-gradient(90deg,transparent,rgba(255,255,255,.95) 20%,#fff 50%,rgba(255,255,255,.95) 80%,transparent);box-shadow:0 0 16px 6px rgba(140,220,255,.9);animation:m3-beam .5s ease-out both}
 .m3-beam.is-row{left:0;right:0;height:12.5%;transform-origin:center;--a:scaleX(0)}
 .m3-beam.is-col{top:0;bottom:0;width:12.5%;background:linear-gradient(transparent,#fff 20%,#fff 80%,transparent);--a:scaleY(0)}
@@ -654,3 +650,77 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .blast-face-zoom{display:flex;align-items:center;gap:8px;font-weight:700}
 .blast-face-zoom input{width:160px}
 .blast-face-error{margin:0;color:#ffb3b3;font-weight:700}
+/* The arcade's game covers (GameCovers): a little moving scene at the top of each game's card. */
+.break-game-list button{overflow:hidden;padding:0 0 10px!important}
+.break-game-list button>:is(strong,small){padding:0 12px}
+.break-game-list button>strong{margin-top:6px}
+.game-cover{position:relative;display:block;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:13px 13px 0 0;margin-bottom:2px}
+.game-cover *{position:absolute}
+.game-cover i{display:block}
+/* KONO blast: a navy board with jewel blocks; an L piece drops in. */
+.game-cover.is-blast{background:radial-gradient(120% 90% at 50% 0,#3e5bd6,#1b2a6b 70%)}
+.gc-grid{inset:16% 10% 10%;display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.gc-grid i{position:static;border-radius:3px;background:rgba(255,255,255,.08)}
+.gc-grid i[class]{box-shadow:inset 0 2px 0 rgba(255,255,255,.45),inset 0 -2px 0 rgba(0,0,0,.25)}
+.gc-grid .c0{background:#ef4b5c}.gc-grid .c1{background:#f7922f}.gc-grid .c2{background:#f6cf33}.gc-grid .c3{background:#46c35a}.gc-grid .c4{background:#2fc2e8}.gc-grid .c5{background:#3e6fe6}.gc-grid .c6{background:#a35be0}
+.gc-drop{left:46%;top:2%;width:22%;height:40%;animation:gc-drop 2.6s cubic-bezier(.5,0,.75,0) infinite}
+.gc-drop i{width:42%;height:30%;border-radius:3px;background:#ff8fb1;box-shadow:inset 0 2px 0 rgba(255,255,255,.55),0 0 10px rgba(255,143,177,.8)}
+.gc-drop i:nth-child(1){left:0;top:0}.gc-drop i:nth-child(2){left:0;top:34%}.gc-drop i:nth-child(3){left:46%;top:34%}
+@keyframes gc-drop{0%{translate:0 -20%;opacity:0}15%{opacity:1}70%,100%{translate:0 95%;opacity:1}}
+/* Meowdoku: colored regions with cats in them. */
+.game-cover.is-meow{background:#fff3fb}
+.gc-meow{inset:10% 22%;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;border-radius:8px;overflow:hidden;box-shadow:0 0 0 3px #f3c6e0}
+.gc-meow i{position:static;display:grid!important;place-items:center;font-size:.9rem;font-style:normal}
+.gc-meow .is-a{background:#ffd3e2}.gc-meow .is-b{background:#d6ecff}.gc-meow .is-c{background:#fff1b8}.gc-meow .is-d{background:#d9f5d6}.gc-meow .is-e{background:#ead9ff}
+.gc-meow i:not(:empty){animation:gc-cat 2.4s ease-in-out infinite}
+.gc-meow i:nth-child(7){animation-delay:-.8s}.gc-meow i:nth-child(13){animation-delay:-1.6s}
+@keyframes gc-cat{0%,80%,100%{scale:1}88%{scale:1.25 .9}}
+/* Gem blitz: faceted gems in a row on a starry dark board, one twinkle. */
+.game-cover.is-gems{background:radial-gradient(90% 80% at 30% 20%,#2b2f7a,#0d1030 75%)}
+.gc-gems{inset:0;display:flex;align-items:center;justify-content:center;gap:6%}
+.gc-gems i{position:relative;width:13%;aspect-ratio:1;rotate:45deg;border-radius:3px;animation:gc-gem 2.6s ease-in-out infinite}
+.gc-gems .is-red{background:linear-gradient(135deg,#ffb3bd,#ff3654 50%,#a1122b)}
+.gc-gems .is-yellow{background:linear-gradient(135deg,#fff7b8,#ffd21f 50%,#b98a00)}
+.gc-gems .is-green{background:linear-gradient(135deg,#c9ffd9,#2fd46a 50%,#11793a)}
+.gc-gems .is-blue{background:linear-gradient(135deg,#c6e6ff,#2f8cff 50%,#103f9c)}
+.gc-gems .is-purple{background:linear-gradient(135deg,#ecc9ff,#b54dff 50%,#5c1599)}
+.gc-gems i::after{content:'';position:absolute;inset:18%;border-radius:2px;background:linear-gradient(135deg,rgba(255,255,255,.8),transparent 55%)}
+@keyframes gc-gem{0%,100%{translate:0 0;filter:brightness(1)}50%{translate:0 -8%;filter:brightness(1.25)}}
+.gc-twinkle{left:58%;top:26%;width:14px;height:14px;background:#fff;clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);animation:gc-twinkle 1.8s ease-in-out infinite}
+@keyframes gc-twinkle{0%,100%{scale:.2;opacity:0}50%{scale:1.2;opacity:1}}
+/* Candy crush: glossy candies and a wobbling striped one, on a candy sky. */
+.game-cover.is-candy{background:linear-gradient(#9fd6ff,#c9b7ff)}
+.gc-candy{inset:0;display:flex;align-items:center;justify-content:center;gap:5%}
+.gc-candy i{position:relative;width:14%;aspect-ratio:1;border-radius:50%;box-shadow:inset -3px -4px 0 rgba(0,0,0,.18),0 4px 6px rgba(60,30,90,.25)}
+.gc-candy i::after{content:'';position:absolute;left:22%;top:14%;width:34%;height:22%;border-radius:50%;background:rgba(255,255,255,.75)}
+.gc-candy .is-red{background:#ff2e48}.gc-candy .is-orange{background:#ff8a14;border-radius:40%}.gc-candy .is-blue{background:#1f8bff}.gc-candy .is-green{background:#2fd14a;border-radius:28%}
+.gc-candy .is-striped{width:16%;background:repeating-linear-gradient(90deg,#ff5fa8 0 18%,#fff 18% 30%);animation:gc-wobble 1.6s ease-in-out infinite}
+@keyframes gc-wobble{0%,100%{rotate:-8deg;scale:1}50%{rotate:8deg;scale:1.1}}
+/* KONO Flow: neon blocks stacked in a dark well, a T falling through. */
+.game-cover.is-flow{background:radial-gradient(100% 90% at 50% 0,#3a1c78,#0b0623 75%)}
+.gc-flow{inset:0}
+.gc-stack{left:20%;right:20%;bottom:8%;height:30%;display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:1fr;gap:2px}
+.gc-stack i{position:static;border-radius:2px;background:linear-gradient(#7af0ff,#3a8bff);box-shadow:0 0 8px rgba(122,240,255,.8)}
+.gc-stack i:nth-child(3n){background:linear-gradient(#ff9af2,#b44dff);box-shadow:0 0 8px rgba(255,154,242,.8)}
+.gc-stack i:nth-child(1),.gc-stack i:nth-child(6){visibility:hidden}
+.gc-fall{left:43%;top:0;width:14%;height:24%;animation:gc-fall 3s linear infinite}
+.gc-fall i{width:31%;height:46%;border-radius:2px;background:#fff6a0;box-shadow:0 0 10px #ffe75a}
+.gc-fall i:nth-child(1){left:0;top:0}.gc-fall i:nth-child(2){left:34%;top:0}.gc-fall i:nth-child(3){left:68%;top:0}.gc-fall i:nth-child(4){left:34%;top:52%}
+@keyframes gc-fall{from{translate:0 -60%}to{translate:0 160%}}
+/* Flappy KONO: KONO bobbing between two green pipes. */
+.game-cover.is-flap{background:linear-gradient(#8fd8ff,#d9f3ff 70%,#9ee07a 70%)}
+.gc-pipe{left:62%;width:13%;background:linear-gradient(90deg,#3fa83f,#7fe06a 45%,#2f8a2f);border:2px solid #1e5e1e}
+.gc-pipe.is-top{top:-2%;height:32%;border-top:0}.gc-pipe.is-bottom{bottom:30%;height:22%;border-bottom:0}
+.gc-flap img{left:28%;top:34%;width:20%;image-rendering:pixelated;animation:gc-flap 1.1s ease-in-out infinite;filter:drop-shadow(0 3px 2px rgba(0,0,0,.2))}
+@keyframes gc-flap{0%,100%{translate:0 0;rotate:-8deg}50%{translate:0 -26%;rotate:6deg}}
+/* KONO.io: two claimed lands and a trail looping between them. */
+.game-cover.is-paper{background:#eef3f7;background-image:linear-gradient(rgba(0,0,0,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.05) 1px,transparent 1px);background-size:12px 12px}
+.gc-paper{inset:0}
+.gc-paper .is-blue{left:12%;top:22%;width:34%;height:52%;border-radius:22% 40% 30% 36%;background:#5aa9ff;box-shadow:inset 0 -4px 0 rgba(0,0,0,.15)}
+.gc-paper .is-red{right:12%;top:30%;width:26%;height:40%;border-radius:40% 24% 38% 30%;background:#ff6b6b;box-shadow:inset 0 -4px 0 rgba(0,0,0,.15)}
+.gc-trail{left:40%;top:18%;width:28%;height:38%;border:3px dashed #2f7de0;border-left:0;border-radius:0 40% 40% 0;animation:gc-trail 1.4s linear infinite}
+@keyframes gc-trail{to{border-color:#5aa9ff}}
+@media(prefers-reduced-motion:reduce){.game-cover *{animation:none!important}}
+.gc-flap{inset:0}
+.break-game-list button>small:not(.break-best){display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.break-game-list button{align-content:start}

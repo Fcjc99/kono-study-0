@@ -129,9 +129,7 @@ button.needs-review-record{outline-offset:-2px}
 @media(hover:hover){.needs-review-nav-badge:hover{filter:brightness(1.08)}}
 .wb-island{position:relative;margin-bottom:24px;min-width:0}
 .wb-scene-toolbar{margin-bottom:8px}.wb-scene-toolbar label{display:flex;align-items:center;gap:10px}
-.wb-island-zoom{display:flex;align-items:center;gap:6px}
-.wb-island-zoom button{min-width:36px;padding:6px 10px}
-.wb-island-zoom span{min-width:3.4em;text-align:center;font-variant-numeric:tabular-nums;font-size:.8125rem;color:var(--wb-muted)}
+
 .workbench .sanctuary-card{width:100%;border-radius:var(--wb-radius);min-height:0!important}
 .workbench .sanctuary-card canvas{max-width:100%;touch-action:pan-y}
 .wb-sanctuary-stage{display:grid}
@@ -149,14 +147,13 @@ button.needs-review-record{outline-offset:-2px}
 .wb-scene-controls>*{flex:0 0 auto}
 .wb-scene-time{display:flex;align-items:center;gap:6px;padding:0 4px 0 10px;border:1px solid var(--wb-line);border-radius:999px;background:var(--wb-surface)}
 .workbench .wb-scene-time select{border:0;background:transparent;padding:6px 4px;min-height:0;box-shadow:none;font-size:.85rem}
-.wb-scene-controls .wb-island-zoom{padding:2px;border:1px solid var(--wb-line);border-radius:999px;background:var(--wb-surface);gap:2px}
-.workbench .wb-scene-controls .wb-island-zoom button{min-width:30px;min-height:30px;padding:2px 8px;border-radius:999px;box-shadow:none}
+
 .workbench .wb-scene-expand{border-radius:999px;padding:6px 14px;font-size:.85rem}
 @media(max-width:700px){
  .wb-scene-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"tabs expand" "time zoom" "stats stats";gap:8px}
  .wb-scene-left,.wb-scene-controls{display:contents}
  .wb-scene-toolbar .island-mode-tabs{grid-area:tabs}.wb-scene-toolbar .wb-scene-expand{grid-area:expand;justify-self:end}
- .wb-scene-toolbar .wb-scene-time{grid-area:time;justify-self:start}.wb-scene-toolbar .wb-island-zoom{grid-area:zoom;justify-self:end}
+ .wb-scene-toolbar .wb-scene-time{grid-area:time;justify-self:start}
 }
 /* Live weather chip beside the KONO name; opens Sanctuary weather from any page. */
 .workbench .kono-weather-chip,.workbench[data-experience] .kono-weather-chip{display:inline-flex!important;align-items:center;gap:3px;margin-left:auto;padding:3px 8px!important;min-height:0!important;min-width:0!important;width:auto!important;height:auto!important;border-radius:999px!important;font-size:.95rem;line-height:1;box-shadow:none!important;flex:0 0 auto;align-self:center}
@@ -165,11 +162,7 @@ html[data-theme] .brand:has(.kono-weather-chip):after,html[data-theme] .sidebar:
 .brand-title-row{display:flex;align-items:center;gap:8px}.brand-title-row .kono-weather-chip{margin-left:0}
 .wb-brand-row{display:flex;align-items:center;gap:8px}.wb-brand-row .wb-brand{flex:1;min-width:0}
 .workbench .kono-weather-chip small{font-size:.75rem;font-weight:700;font-variant-numeric:tabular-nums}
-/* Today's/Tomorrow's schedule side by side on desktop, the same shape as the notes/exams board pair
- * below them -- collapses to one column at the same width restored-board-pair already does. */
-.today-tomorrow-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
-.today-tomorrow-pair .wb-panel{margin:0}
-@media(max-width:1100px){.today-tomorrow-pair{grid-template-columns:minmax(0,1fr)}}
+
 /* The scaled stack (see .wb-sanctuary-zoom below) takes over the grid-area:1/1 slot .wb-sanctuary-
  * backdrop used to hold directly -- min-width/height:0 keeps this box from stretching to fit the
  * (visually larger, but layout-unchanged -- transform doesn't affect layout size) zoomed content
@@ -281,7 +274,7 @@ html[data-theme] .brand:has(.kono-weather-chip):after,html[data-theme] .sidebar:
 .workbench .wb-calendar button[aria-pressed="true"]{outline:2px solid var(--wb-accent);outline-offset:-2px}
 .wb-calendar .muted-day{opacity:.55}.wb-agenda-day{border-top:1px solid var(--wb-line);padding-top:16px}
 .wb-calendar button.is-selected{outline:2px solid var(--wb-accent);outline-offset:-2px}
-.family-notify-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+
 .kid-appearance-toggles{display:flex;flex-direction:column;gap:8px;margin:14px 0;padding:12px;border:1px solid var(--wb-line);border-radius:10px;background:var(--wb-surface)}
 .kid-look>p{margin:0 0 12px}
 .kid-look-tabs{display:flex;gap:6px;overflow-x:auto;margin:0 0 14px;padding:2px 2px 6px;scrollbar-width:thin}
@@ -295,7 +288,7 @@ html[data-theme] .brand:has(.kono-weather-chip):after,html[data-theme] .sidebar:
 .kid-look-emoji .kid-look-avatar{width:44px;height:44px;font-size:1.4rem}
 .kid-look-emoji input{flex:1;min-width:0;width:auto}
 .wb-dialog .kid-look-emoji button{flex:0 0 auto;padding-inline:16px}
-:root .wb-dialog .kid-look .kid-look-link{min-height:32px;margin-top:4px;padding:4px 2px;border:0;background:none;box-shadow:none;color:var(--wb-muted);font-size:.85rem;font-weight:500;text-decoration:underline;text-underline-offset:2px}
+
 .kid-look-colors{display:flex;flex-wrap:wrap;gap:10px}
 :root .wb-dialog .kid-look .kid-look-color{position:relative;display:block;flex:0 0 auto;width:36px;height:36px;min-height:0;padding:0;border:0;border-radius:50%;background:var(--swatch);box-shadow:inset 0 0 0 1px #0000001f;cursor:pointer}
 :root .wb-dialog .kid-look .kid-look-color:is([aria-checked="true"],.is-picked){box-shadow:0 0 0 2px var(--wb-surface),0 0 0 4px var(--swatch)}
@@ -389,8 +382,8 @@ html[data-theme] .brand:has(.kono-weather-chip):after,html[data-theme] .sidebar:
 .workbench .link-button{background:none;border:0;padding:0;min-height:0;color:var(--wb-accent);text-decoration:underline;font:inherit;cursor:pointer;box-shadow:none}
 .ai-helper-status{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .family-settings .kid-appearance-toggles{margin-top:10px}
-.workbench .schedule-builder-row{display:flex;flex-wrap:wrap;gap:10px}.workbench .time-12-input{display:flex;gap:4px}.workbench .time-12-input select{padding:8px 5px;min-width:54px}
-.workbench .season-toolbar{display:flex;flex-wrap:wrap;gap:10px}
+.workbench .time-12-input{display:flex;gap:4px}.workbench .time-12-input select{padding:8px 5px;min-width:54px}
+
 .workbench .weather-mode-grid{grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr))}
 .workbench.text-large{font-size:1.125rem}.text-large button,.text-large input,.text-large select,.text-large textarea{font-size:1.125rem}
 .workbench.density-compact .wb-panel{padding:16px;margin-bottom:14px}.density-compact .wb-record{padding:12px;margin:8px 0}

@@ -27,7 +27,7 @@ export function privateAddress(ip: string): boolean {
   return v6 === '::' || v6 === '::1' || /^f[cd]/.test(v6) || /^fe[89ab]/.test(v6) || /^ff/.test(v6)
 }
 
-async function checkHost(url: URL, lookup?: Lookup) {
+export async function checkHost(url: URL, lookup?: Lookup) {
   if (!lookup) return
   const addresses = await lookup(url.hostname).catch(() => { throw Error('That calendar address couldn’t be found. Check the link.') })
   if (!addresses.length || addresses.some(privateAddress)) throw Error('Use the calendar service’s public web address.')

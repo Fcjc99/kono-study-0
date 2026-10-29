@@ -839,6 +839,75 @@ test('Canvas: a Canvas calendar feed puts assignments in the Planner and quizzes
  await page.getByText('Essay 1').filter({visible:true}).first().waitFor()
 })
 
+test('Canvas two-way: connecting brings in the to-do list, a tick in KONO is sent to Canvas, and the token stays on this device',async({context,page})=>{
+ const calls=[],at=n=>{const x=new Date();x.setDate(x.getDate()+n);x.setHours(15,0,0,0);return x.toISOString()}
+ await context.route(BASE+'api/canvas',route=>{const body=route.request().postDataJSON();calls.push(body)
+  if(body.action==='mark')return route.fulfill({status:200,contentType:'application/json',body:'{"ok":true}'})
+  return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({name:'Jo',items:[
+   {type:'assignment',id:'11',title:'Lab report',at:at(-1),done:false,course:'BIOL 1100',url:'https://bc.instructure.com/courses/1/assignments/11'},
+   {type:'quiz',id:'12',title:'Cell quiz',at:at(3),done:false,course:'BIOL 1100'},
+   {type:'assignment',id:'13',title:'Reading notes',at:at(-2),done:true,course:'ENGL 1010'}]})})})
+ await createPlan(page)
+ await addToCalendar(page,'A calendar link')
+ const panel=page.getByRole('region',{name:'Canvas, two-way'})
+ await panel.getByLabel('Your school’s Canvas address').fill('bc.instructure.com')
+ await panel.getByLabel('Canvas access token').fill('1234~abcdefghijklmnopqrstuvwxyz0123')
+ await panel.getByRole('button',{name:'Connect Canvas'}).click()
+ await panel.getByText('Connected as Jo',{exact:false}).waitFor()
+ await panel.getByRole('status').getByText('3 new.',{exact:true}).waitFor()
+ assert.equal(calls[0].base,'bc.instructure.com');assert.equal(calls[0].action,'items')
+ await flushSave(page,'Cell quiz')
+ const stored=await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('kono-canvas:')).length)
+ assert.equal(stored,1,'the connection is kept on this device')
+ const saved=await page.evaluate(()=>new Promise(resolve=>{const request=indexedDB.open('kono-recovery-and-sync',1);request.onsuccess=()=>{const db=request.result,get=db.transaction('plans').objectStore('plans').get('device');get.onsuccess=()=>{db.close();resolve(JSON.stringify(get.result??null))}}}))
+ assert.ok(!saved.includes('abcdefghijklmnopqrstuvwxyz'),'the token is never in the saved plan')
+ assert.match(saved,/"canvasRef":"quiz:12"/)
+ assert.match(saved,/"title":"Reading notes"[^}]*"done":true|"done":true[^}]*"title":"Reading notes"/,'done in Canvas comes in as done')
+ // Ticking the overdue lab report here ticks it in Canvas.
+ await go(page,'Sanctuary')
+ await page.getByRole('region',{name:'Overdue'}).getByRole('button',{name:'Done: Lab report'}).click()
+ for(let k=0;k<60&&!calls.some(c=>c.action==='mark');k++)await page.waitForTimeout(250)
+ assert.ok(calls.some(c=>c.action==='mark'&&c.type==='assignment'&&c.id==='11'&&c.done===true),'the tick went to Canvas')
+ assert.equal(calls.filter(c=>c.action==='mark').length,1,'only the changed item is sent')
+})
+
+test('Phone app: inside the iPhone/Android app the widgets get the plan, reminders are scheduled on the phone, and a focus session shows on the lock screen',async({context,page})=>{
+ // A stand-in for the app's native layer (Capacitor): records every plugin call.
+ await context.addInitScript(()=>{
+  const calls=window.__native=[],plugin=name=>new Proxy({},{get:(_,method)=>async options=>{calls.push({plugin:name,method,options:options===undefined?undefined:JSON.parse(JSON.stringify(options))})
+   if(method==='checkPermissions')return {display:'prompt'};if(method==='requestPermissions')return {display:'granted'};if(method==='getPending')return {notifications:[{id:7}]};return {}}})
+  window.Capacitor={isNativePlatform:()=>true,getPlatform:()=>'ios',Plugins:{KonoWidget:plugin('KonoWidget'),LocalNotifications:plugin('LocalNotifications')}}
+ })
+ await createPlan(page)
+ const calls=()=>page.evaluate(()=>window.__native)
+ const until=async(check,message)=>{for(let k=0;k<80;k++){if(check(await calls()))return;await page.waitForTimeout(250)}assert.fail(message+': '+JSON.stringify(await calls()).slice(0,600))}
+ await until(c=>c.some(x=>x.method==='setSnapshot'),'the widgets got the plan')
+ const snap=JSON.parse((await calls()).find(x=>x.method==='setSnapshot').options.json)
+ assert.ok(snap.updated&&snap.kono&&typeof snap.kono.full==='number'&&Array.isArray(snap.next)&&snap.today,'the widget data has next up, today and KONO')
+ await until(c=>c.some(x=>x.method==='checkPermissions'),'reminders checked permission')
+ // Turning on a timer shows it on the lock screen; pausing ends it.
+ const outer=page.locator('details.sanctuary-focus')
+ await outer.locator(':scope > summary').click()
+ const focus=outer.locator('details.focus-session')
+ await focus.locator(':scope > summary').click()
+ await focus.getByLabel('Minutes').fill('25');await focus.getByLabel('Seconds').fill('0')
+ await focus.getByRole('button',{name:'Start timer'}).click()
+ await until(c=>c.some(x=>x.method==='startFocus'),'the focus session went to the lock screen')
+ const start=(await calls()).find(x=>x.method==='startFocus').options
+ assert.ok(start.endsAt>Date.now()+24*60*1000&&start.endsAt<Date.now()+26*60*1000,'it ends when the timer does');assert.ok(start.title)
+ const before=(await calls()).filter(x=>x.method==='endFocus').length
+ await focus.getByRole('button',{name:/^Pause/}).first().click()
+ await until(c=>c.filter(x=>x.method==='endFocus').length>before,'pausing ended the lock-screen timer')
+})
+
+test('Phone app: on the web, KONO never touches the native bridge',async({page})=>{
+ await createPlan(page)
+ await page.waitForTimeout(2500)
+ assert.equal(await page.evaluate(()=>typeof window.Capacitor),'undefined')
+ const names=await page.evaluate(()=>performance.getEntriesByType('resource').map(e=>e.name).filter(n=>/nativeBridge|pushReminders/.test(n)))
+ assert.deepEqual(names,[],'the phone-app code isn’t downloaded on the web')
+})
+
 test('Linked calendar: a kept-up-to-date Canvas feed adds new assignments and moves changed dates on Check now',async({context,page})=>{
  const d=new Date(),ymd=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,'0')+String(x.getDate()).padStart(2,'0'),inDays=n=>{const x=new Date(d);x.setDate(d.getDate()+n);return ymd(x)}
  const item=(uid,title,day,kind)=>['BEGIN:VEVENT','UID:'+uid,'SUMMARY:'+title,'DTSTART;VALUE=DATE:'+day,'URL:https://canvas.bc.edu/courses/1/'+kind+'/'+uid,'END:VEVENT']
@@ -1947,7 +2016,8 @@ test('KONO today and stickers: KONO is worried about late work and sleepy late a
  await page.clock.setFixedTime(new Date('2026-09-30T23:15:00'))
  await page.reload();await heading(page,'Sanctuary')
  await today.getByText('It’s late. KONO is curled up for the night. Sleep well!').waitFor()
- assert.match(await today.locator('img').getAttribute('src'),/sleep\.webp$/)
+ // The sleep picture, or the sleeping animation (KonoSprite) when KONO is tucked in.
+ await today.locator('img[src$="sleep.webp"], .kono-sprite.is-sleep').first().waitFor()
 })
 
 test('What should I do now and the app icon number: late work first, "Something else" steps on, "Already done" finishes it, Start opens a focus sized to it; the icon shows due today plus late, and Settings can turn it off',async({context,page})=>{
@@ -3232,6 +3302,9 @@ test('Planner › Week on a phone: press and hold moves an event, a quick swipe 
   await page.goto(BASE);await heading(page,'Sanctuary')
   await go(page,'Planner')
   const week=page.getByRole('region',{name:'Week'})
+  // The how-to is behind the ? beside the dates (open by itself only the first time).
+  const help=page.getByRole('button',{name:'How the calendar works'})
+  if(await help.getAttribute('aria-expanded')!=='true')await help.click()
   await page.getByText('Hold something for Edit, Move or Delete',{exact:false}).waitFor()
   const piano=()=>week.getByRole('button',{name:/^Piano lesson · /})
   const cdp=await context.newCDPSession(page)

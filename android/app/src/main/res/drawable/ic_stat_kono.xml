@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The small white icon in the status bar for KONO's reminders: a round KONO face with ears. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M6,3l3,4.2A8,8 0,0 1,15 7.2L18,3l0.6,6A8,8 0,1 1,5.4 9Z M9,12.5a1.2,1.2 0,1 0,0.01 0Z M15,12.5a1.2,1.2 0,1 0,0.01 0Z" android:fillType="evenOdd" />
+</vector>

@@ -104,9 +104,7 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
  :root[data-experience='cozy'] .workbench .today-card-head{display:flex!important;flex-direction:row!important;justify-content:space-between!important;gap:4px!important}
  :root[data-experience='cozy'] .workbench .today-card-head>.wb-toolbar{display:flex!important;flex-wrap:nowrap!important;width:auto!important;margin:0!important;gap:4px!important}
  :root[data-experience='cozy'] .workbench .today-card-head>.wb-toolbar>*{flex:none!important;width:auto!important}
- :root[data-experience='cozy'] .workbench .today-card-tabs{display:flex!important;width:auto!important;margin:0!important}
- :root[data-experience='cozy'] .workbench .today-card-tabs button{min-height:38px!important;padding:0 8px!important;font-size:.9rem!important}
- :root[data-experience='cozy'] .workbench .today-card-tabs button{display:inline-flex!important;align-items:center;gap:6px;white-space:nowrap}
+
  :root[data-experience='cozy'] .workbench .overdue-card>.wb-section-head{display:flex!important;flex-direction:row!important;align-items:flex-start!important;justify-content:space-between!important}
  :root[data-experience='cozy'] .workbench .overdue-card .wb-toolbar{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;width:auto!important;gap:8px!important}
  :root[data-experience='cozy'] .workbench .overdue-card .wb-toolbar>button{width:auto!important;flex:none!important;min-height:38px!important;padding:0 12px!important}
@@ -376,8 +374,7 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .wb-family-event-info>small{color:color-mix(in srgb,var(--kid-color,var(--wb-muted,#7a6670)) 42%,var(--wb-ink,#3a2b33))}
 .week-grid .week-item-timed small{opacity:1;color:color-mix(in srgb,var(--item-color) 45%,var(--wb-ink,#3a2b33))}
 .workbench .subject-tabs small,.profile-grid :is(span,small){color:color-mix(in srgb,var(--wb-muted,#7a6670) 75%,var(--wb-ink,#3a2b33))}
-/* Dark mode: the late count on Kids today, eyebrows and the picked plan card keep readable text. */
-:root[data-dark] .kids-glance-facts .is-late{color:#ffb4ab}
+
 :root[data-dark] .eyebrow{color:color-mix(in srgb,var(--wb-accent,#c76b8f) 55%,#fff)}
 :root[data-dark] .profile-grid button.active{background:color-mix(in srgb,var(--wb-accent,#c76b8f) 22%,var(--wb-surface,#221d27))!important;color:var(--wb-ink,#f3e9ee)!important}
 :root[data-dark] .profile-grid button.active :is(strong,span,small){color:inherit}
@@ -512,11 +509,10 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 :root[data-experience=cozy] .workbench .subject-section-tabs button{border:0!important;background:transparent!important;box-shadow:none!important;border-radius:12px!important;min-height:38px!important;font-weight:600!important;color:var(--wb-muted,#7a6670)!important}
 :root[data-experience=cozy] .workbench .subject-section-tabs button[aria-current]{background:var(--wb-surface,#fff)!important;color:var(--cute-ink,#3a2b33)!important;font-weight:800!important;box-shadow:0 1px 3px rgba(60,30,40,.15)!important}
 :root[data-experience=cozy][data-dark] .workbench .subject-section-tabs button[aria-current]{background:color-mix(in srgb,var(--wb-surface,#2a2228) 70%,#fff 12%)!important;color:var(--wb-ink,#f3e9ee)!important}
-/* Today/Tomorrow tabs use the app's typeface like everything around them. */
-.today-card-tabs button{font-family:inherit!important;font-weight:700}
+
 /* Phones: the Planner's filters are one row that scrolls sideways, and the big date is a little smaller,
    so the calendar starts higher up. */
-@media(max-width:760px){.planner-filters{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.planner-filters::-webkit-scrollbar{display:none}.planner-filters>*{flex:none}.wb-calendar-hero h2,.planner-hero h2{font-size:1.6rem}}
+@media(max-width:760px){.planner-filters{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.planner-filters::-webkit-scrollbar{display:none}.planner-filters>*{flex:none}}
 .trash-empty{display:flex;align-items:center;gap:14px;padding:18px;border-radius:16px;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 7%,var(--wb-surface,#fff))}
 .trash-empty img{width:64px;height:64px;object-fit:contain}
 .trash-empty p{margin:0;color:var(--wb-muted,#7a6670)}
@@ -586,7 +582,7 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 @media(max-width:430px){
  :root .workbench .today-card-head{flex-wrap:wrap!important;row-gap:8px!important}
  :root[data-experience] .workbench .today-card-head>.wb-toolbar{margin-left:auto!important}
- :root[data-experience] .workbench .today-card-tabs button{padding:0 6px!important}
+
  :root[data-experience] .workbench .today-card-head>.wb-toolbar>button{padding:0 8px!important}
 }
 .family-todo-add>input[aria-label="New family to-do"]{flex:1 1 100%}
@@ -638,3 +634,6 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .visit-list .kono-face-box{grid-row:1/3;display:block;width:48px;height:48px}
 .visit-list .kono-face-box>img:first-child{width:100%!important;height:100%!important;object-fit:contain;image-rendering:pixelated}
 .visit-list small{color:var(--wb-muted,inherit)}
+/* The class card's washi tape: a real strip of tape on the banner, striped in the class's
+   color and a little crooked (it read as a stray pink box). */
+:root .workbench .subject-workspace::after{content:''!important;display:block!important;position:absolute!important;top:12px!important;right:24px!important;left:auto!important;width:74px!important;height:22px!important;z-index:3!important;rotate:5deg;border-radius:2px!important;background:repeating-linear-gradient(-45deg,color-mix(in srgb,var(--subject,#d77a9c) 55%,#fff) 0 6px,color-mix(in srgb,var(--subject,#d77a9c) 32%,#fff) 6px 12px)!important;opacity:.85!important;box-shadow:0 1px 2px rgba(60,30,20,.18)!important;-webkit-mask:linear-gradient(90deg,transparent 0,#000 3px,#000 calc(100% - 3px),transparent 100%);mask:linear-gradient(90deg,transparent 0,#000 3px,#000 calc(100% - 3px),transparent 100%)}

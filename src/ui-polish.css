@@ -29,10 +29,6 @@
 .card-more>div button{flex:1 1 auto}
 .cozy-task-actions{align-items:center;flex-wrap:wrap}
 
-/* One shared "Show" filter above Today and Tomorrow. */
-.schedule-filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;padding:0 4px;font-size:.85rem;color:var(--wb-muted)}
-.schedule-filter-row>span{font-weight:700}
-.schedule-filter-row .schedule-view-picker{margin:0}
 .wb-agenda-empty-note{margin:10px 4px 0;font-size:.85rem}
 .settings-page-tools{justify-content:flex-end}
 .sign-in-fallback{margin-top:6px}
@@ -432,3 +428,40 @@ button.kono-mood-face:focus-visible{outline:2px solid var(--accent,#6d8f6b);outl
 .week-menu-time span{font-size:.8rem;font-weight:700;color:var(--wb-muted,#7a6a64)}
 .week-menu .week-menu-time button:not(#x):not(#y){min-height:36px;min-width:52px;justify-content:center;text-align:center;font-variant-numeric:tabular-nums}
 .week-grid .week-item{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+/* KONO's icons (KonoIcon, and the tab bar's NavIcon): two-tone, rounded strokes over a soft fill of the
+   same color, so every place-and-action icon reads as one family. */
+.kono-icon{display:inline-block;flex:none;vertical-align:-4px}
+.kono-icon{--ki-fill:.2}
+button .kono-icon,a .kono-icon{margin-right:2px}
+.wb-scene-arcade .kono-icon,.wb-scene-world .kono-icon,button.primary .kono-icon{--ki-fill:.32}
+.nav-glyph>:first-child{fill:currentColor;fill-opacity:.16}
+[aria-current] .nav-glyph>:first-child,.active .nav-glyph>:first-child,[aria-pressed=true] .nav-glyph>:first-child{fill-opacity:.28}
+.town-tabs button{display:grid!important;justify-items:center;gap:4px}
+.town-tabs button .kono-icon{margin:0;color:var(--wb-accent,#a0466e)}
+.town-tabs button[aria-current] .kono-icon{--ki-fill:.34}
+/* Planner's week: the how-to behind a small ? beside the dates, and a slimmer filter row on a phone. */
+.week-grid-nav .week-grid-help:not(#x):not(#y){width:34px;height:34px;min-height:0!important;padding:0!important;margin:0 4px 0 auto!important;border-radius:50%!important;display:grid;place-items:center;color:var(--wb-accent,#a0466e)}
+.week-grid-nav .week-grid-help[aria-expanded=true]{--ki-fill:.4}
+.week-grid-hint{animation:week-hint-in .2s ease-out}
+@keyframes week-hint-in{from{opacity:0;translate:0 -4px}}
+@media(max-width:760px){
+ .planner-filters .people-filter :is(.person-chip-face,.person-avatar,.people-filter-all>span:first-child){width:38px!important;height:38px!important;min-width:38px!important;font-size:.95rem!important}
+ .planner-filters .people-filter .person-name{font-size:.72rem!important}
+ .planner-filters{gap:6px 10px!important;margin:2px 0 6px!important}
+}
+.week-grid-nav:not(#x){align-items:center}
+.week-grid-nav>button:not(.week-grid-help):not(#x):not(#y){min-height:40px!important;height:40px;min-width:44px;padding:0 12px!important}
+
+/* Two-way Canvas (CalendarImport › CanvasConnect): its own card above the calendar file/link import. */
+.canvas-connect{margin:0 0 18px;padding:16px 16px 14px;border:1px solid var(--line,rgba(0,0,0,.1));border-radius:18px;background:color-mix(in srgb,var(--surface,#fff) 90%,transparent)}
+.canvas-connect h4{margin:0 0 6px}
+.canvas-connect>p{margin:6px 0}
+.canvas-connect-form{display:grid;gap:10px;margin:10px 0}
+.canvas-connect-form label{display:grid;gap:4px}
+.canvas-connect-form .primary{justify-self:start}
+.canvas-connect details{margin-top:6px}
+
+/* The animated KONO (KonoSprite): 4 frames a sheet, stepped by backgroundPosition. */
+.kono-sprite{display:inline-block;background-size:400% 100%;background-repeat:no-repeat;image-rendering:auto}
+.kono-sprite.is-wave{animation:kono-sprite-sway .32s ease-in-out infinite alternate;transform-origin:50% 90%}
+@keyframes kono-sprite-sway{from{rotate:-4deg}to{rotate:4deg}}

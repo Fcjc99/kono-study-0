@@ -1,3 +1,4 @@
+import KonoIcon,{type KonoIconName} from './KonoIcon'
 import './kono-town.css'
 import {useState,type ReactNode} from 'react'
 import Modal from './Modal'
@@ -13,7 +14,7 @@ import {albumCount,albumSections,type AlbumInput} from '../store/konoAlbum'
 import type {PaintId} from '../store/konoLooks'
 
 export type TownTab='shops'|'home'|'wheel'|'arcade'|'album'
-const TABS:{id:TownTab;icon:string;label:string}[]=[{id:'shops',icon:'🛍️',label:'Shops'},{id:'home',icon:'🎨',label:'Paint & home'},{id:'wheel',icon:'🎡',label:'Prize wheel'},{id:'arcade',icon:'🕹️',label:'Arcade'},{id:'album',icon:'📖',label:'Album'}]
+const TABS:{id:TownTab;icon:KonoIconName;label:string}[]=[{id:'shops',icon:'shop',label:'Shops'},{id:'home',icon:'palette',label:'Paint & home'},{id:'wheel',icon:'wheel',label:'Prize wheel'},{id:'arcade',icon:'arcade',label:'Arcade'},{id:'album',icon:'album',label:'Album'}]
 const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /** KONO Town (the coin button in the KONO bar, or KONO's corner): where coins are spent and won. Today's
@@ -21,6 +22,17 @@ const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-red
  * house), the prize wheel (one free spin a day),
  * the arcade (the first few rounds a day win coins) and the album of everything there is to collect.
  * Loaded only when opened. */
+/** A bought item's picture hops out of its card and arcs into the coin purse at the top (motion on only). */
+function flyToPurse(el?:Element){
+ if(document.documentElement.dataset.motion!=='full')return
+ const img=el?.closest('li')?.querySelector('img'),to=document.querySelector('.town-purse span')
+ if(!img||!to||typeof img.animate!=='function')return
+ const a=img.getBoundingClientRect(),b=to.getBoundingClientRect(),c=img.cloneNode(true) as HTMLImageElement
+ Object.assign(c.style,{position:'fixed',left:a.left+'px',top:a.top+'px',width:a.width+'px',height:a.height+'px',margin:'0',zIndex:'9999',pointerEvents:'none'})
+ ;(img.closest('dialog')??document.body).appendChild(c)
+ const dx=b.left+b.width/2-(a.left+a.width/2),dy=b.top+b.height/2-(a.top+a.height/2)
+ c.animate([{transform:'translate(0,0) scale(1)'},{transform:`translate(${dx*.45}px,${dy*.45-70}px) scale(1.15) rotate(-12deg)`,offset:.45},{transform:`translate(${dx}px,${dy}px) scale(.2) rotate(20deg)`,opacity:.2}],{duration:700,easing:'cubic-bezier(.45,0,.55,1)'}).onfinish=()=>c.remove()
+}
 export default function KonoTown({onBlastCoins,close,sound=true,balance,startTab='shops',quest,onGiveQuest,today,outfitsOwned,found,paints,furniture,rooms,onBuy,spin,onSpin,roundsLeft,onGame,album:albumInput}:{
  close:()=>void
  /** Settings › Sounds: KONO Town's little sounds. */
@@ -49,7 +61,7 @@ export default function KonoTown({onBlastCoins,close,sound=true,balance,startTab
 }){
  const food=foodStock(today),outfits=outfitStock(outfitsOwned,today),treasures=treasureStock(found,today),album=albumSections(albumInput)
  const [tab,setTab]=useState<TownTab>(startTab),[note,setNote]=useState('')
- const buy=(item:ShopItem,el?:Element)=>{if(item.price>balance)return;onBuy(item);setNote(boughtLine(item));playSfx('buy',sound);coinBurst(el??null)}
+ const buy=(item:ShopItem,el?:Element)=>{if(item.price>balance)return;onBuy(item);setNote(boughtLine(item));playSfx('buy',sound);coinBurst(el??null);flyToPurse(el)}
  const shop=(title:string,blurb:string,items:ShopItem[],empty:string,owned?:(item:ShopItem)=>ReactNode,after?:ReactNode)=><section className="town-shop" aria-label={title}>
   <h3>{title} <small>{blurb}</small></h3>
   {items.length?<ul className="town-items">{items.map(item=>{const short=item.price-balance;return <li key={item.key} className={item.sale?'is-sale':undefined}>
@@ -82,7 +94,7 @@ export default function KonoTown({onBlastCoins,close,sound=true,balance,startTab
     <p>{quest.done?<><strong>Quest done!</strong> KONO loved the {quest.treat.name}. A new quest tomorrow.</>:<><strong>KONO’s quest:</strong> KONO is craving a {quest.treat.name}! Bring one today for {coinText(quest.reward)}.</>}</p>
     {!quest.done&&(quest.canGive?<button type="button" className="primary" onClick={e=>{onGiveQuest();playSfx('win',sound);coinBurst(e.currentTarget)}}>Give the {quest.treat.name}</button>:<button type="button" onClick={()=>setTab('shops')}>Find one</button>)}
    </section>
-   <nav className="town-tabs" aria-label="KONO Town">{TABS.map(t=><button type="button" key={t.id} aria-current={tab===t.id?'page':undefined} onClick={()=>{setTab(t.id);setNote('')}}><span aria-hidden="true">{t.icon}</span> {t.label}</button>)}</nav>
+   <nav className="town-tabs" aria-label="KONO Town">{TABS.map(t=><button type="button" key={t.id} aria-current={tab===t.id?'page':undefined} onClick={()=>{setTab(t.id);setNote('')}}><KonoIcon name={t.icon} size={24}/> {t.label}</button>)}</nav>
    {note&&<p className="town-note" role="status">{note}</p>}
    {tab==='shops'&&<>
     {shop('Food shop','For KONO’s snacks. New stock every day.',food,'Sold out! Come back tomorrow.')}

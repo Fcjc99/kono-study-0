@@ -38,7 +38,7 @@ html[data-motion=reduced] .kono-care-gain,html[data-motion=reduced] .kono-care-m
 .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-left,.workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-controls{display:flex!important;align-items:center;gap:6px;min-width:0}
 .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-controls{margin-left:auto}
 @media(max-width:600px){
- .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-island-zoom{display:none!important}
+
  .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-expand .wb-btn-label{display:none}
  /* Phones: smaller tabs so the row fits; if it still doesn't, the time and expand controls drop below
     instead of sliding over the tabs. */
@@ -62,9 +62,7 @@ html[data-motion=reduced] .kono-care-gain,html[data-motion=reduced] .kono-care-m
 
 /* Your day: one card, Today / Tomorrow. */
 .today-card-head{align-items:center!important;flex-wrap:nowrap!important}
-.today-card-tabs{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--wb-ink,#3b2a25) 6%,transparent)}
-.today-card-tabs button{min-height:38px;border:0!important;box-shadow:none!important;background:transparent!important;border-radius:999px!important;padding:0 16px!important;font-family:Newsreader,Georgia,serif;font-size:1.15rem;font-weight:600;color:var(--wb-muted,#8a7469)}
-.today-card-tabs button[aria-selected=true]{background:var(--wb-surface,#fffdf9)!important;color:var(--wb-ink,#3b2a25);box-shadow:0 2px 8px -3px #8a5a4266!important}
+
 .today-card-count{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:7px;padding:0 6px;border-radius:999px;font:700 .72rem/1 system-ui,sans-serif;background:var(--wb-accent,#c76b8f);color:#fff;vertical-align:middle}
 .today-card-more{position:relative}
 .today-card-more>summary{list-style:none;cursor:pointer;display:grid;place-items:center;width:40px;height:40px;border-radius:999px;border:1px solid var(--wb-line,#eee1d6);background:var(--wb-surface,#fffdf9);font-weight:800}
@@ -74,7 +72,7 @@ html[data-motion=reduced] .kono-care-gain,html[data-motion=reduced] .kono-care-m
 .today-card-menu-title{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--wb-muted,#8a7469)}
 .today-card-body{display:grid;gap:10px}
 .today-card-body>.overdue-card,.today-card-body>section{margin:0!important;box-shadow:none!important}
-.today-card-date{margin:0;color:var(--wb-muted,#8a7469);font-weight:600}
+
 .today-card-empty{margin:4px 0;color:var(--wb-muted,#8a7469)}
 
 /* KONO's corner (tap KONO's face in the KONO bar). */
@@ -182,14 +180,6 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .class-sheet .class-sheet-note{all:unset;cursor:pointer;display:block}
 .class-sheet .class-sheet-subject{justify-self:start}
 
-/* Kids › Today (WorkspaceSettings › KidsToday). */
-.kids-today h3{margin:12px 0 6px}
-.kids-today>ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.kids-today>ul>li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:14px;border-left:4px solid var(--kid-color,#c76b8f);background:color-mix(in srgb,var(--kid-color,#c76b8f) 7%,var(--wb-surface,#fffdf9))}
-.kids-today>ul>li>div{display:grid;gap:4px}
-.kids-today small{opacity:.8}
-.kids-today-classes{margin:0;padding:0 0 0 2px;list-style:none;display:grid;gap:2px;font-size:.9rem}
-.kids-today-classes time{display:inline-block;min-width:4.6em;opacity:.75}
 /* Class names that open the class's page read as text links, not buttons (cozy buttons are pills). */
 .rotation-today .rotation-today-class,.wb-class .wb-class-open,.class-sheet .class-sheet-note{background:none!important;border:0!important;box-shadow:none!important;padding:0!important;min-height:0!important;height:auto!important;border-radius:0!important;font:inherit!important;color:inherit!important;text-transform:none!important;letter-spacing:inherit!important;transform:none!important;display:inline!important;text-align:left}
 .class-sheet .class-sheet-note{display:block!important}
@@ -223,11 +213,9 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .kids-glance ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .kids-glance li>button:first-child{min-width:0;display:flex!important;align-items:flex-start;gap:12px;text-align:left;padding:10px 12px!important;border-radius:16px!important;border-left:5px solid var(--kid-color)!important}
 .kids-glance-face{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:1.3rem;font-weight:800;background:color-mix(in srgb,var(--kid-color) 25%,#fff);color:#3a2b33}
-.kids-glance-main{display:grid;gap:4px;min-width:0}
-.kids-glance-main strong{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
 .kids-glance-day{padding:1px 8px;border-radius:999px;background:color-mix(in srgb,var(--kid-color) 20%,transparent);font-weight:700}
-.kids-glance-facts{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.9rem;font-weight:600}
-.kids-glance-facts .is-late{color:#b2384f}
+
 .workbench .rotation-today-calendar{justify-self:start;background:none!important;border:0!important;box-shadow:none!important;min-height:0!important;padding:2px 0!important;text-decoration:underline;font-weight:600;font-size:.88rem;color:inherit!important}
 .plan-switcher-manage summary{cursor:pointer;font-weight:700}
 .plan-switcher-manage[open]{display:grid;gap:10px}
@@ -242,7 +230,7 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .whose-pick label{display:inline-flex!important;align-items:center;gap:6px;font-weight:600}
 .whose-pick input{width:auto!important;margin:0}
 .whose-pick small{flex-basis:100%;opacity:.75}
-.kids-glance-facts .is-done{color:#2f7a4f}
+
 .kids-glance li{display:flex;align-items:stretch;gap:6px}
 .kids-glance li>button:first-child{flex:1}
 .workbench .kids-glance li>.kids-glance-gift{flex:none;width:48px;min-width:48px;display:grid!important;place-items:center;font-size:1.3rem;padding:0!important;border-radius:14px!important;border-left-width:1px!important}

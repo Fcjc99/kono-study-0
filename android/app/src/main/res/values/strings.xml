@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">KONO</string>
+    <string name="title_activity_main">KONO</string>
+    <string name="package_name">app.kono.study</string>
+    <string name="custom_url_scheme">app.kono.study</string>
+    <string name="kono_widget_title">Next up</string>
+    <string name="kono_widget_description">What to work on next, from your KONO plan.</string>
+</resources>

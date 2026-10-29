@@ -46,7 +46,7 @@ html[data-theme='sakura'] .season-card{background:linear-gradient(145deg,#fff,#f
 html[data-theme='sakura'] .search,html[data-theme='sakura'] input,html[data-theme='sakura'] select,html[data-theme='sakura'] textarea{background:rgba(255,255,255,.92);border:1px solid var(--kono-line);border-radius:14px;color:var(--kono-ink);outline:none;transition:.16s ease}
 html[data-theme='sakura'] input:focus,html[data-theme='sakura'] select:focus,html[data-theme='sakura'] textarea:focus{border-color:var(--kono-pink);box-shadow:0 0 0 4px rgba(219,111,153,.13)}
 html[data-theme='sakura'] .page-stack{gap:22px}
-html[data-theme='sakura'] .card,html[data-theme='sakura'] .subject-manager{background:rgba(255,253,251,.92);border:1px solid var(--kono-line);border-radius:var(--kono-r-lg);box-shadow:var(--kono-shadow-2)}
+html[data-theme='sakura'] .card{background:rgba(255,253,251,.92);border:1px solid var(--kono-line);border-radius:var(--kono-r-lg);box-shadow:var(--kono-shadow-2)}
 html[data-theme='sakura'] .card{padding:24px}
 html[data-theme='sakura'] .card h1,html[data-theme='sakura'] .card h2,html[data-theme='sakura'] .card h3{font-family:var(--kono-display);letter-spacing:-.035em;color:var(--kono-ink)}
 html[data-theme='sakura'] .primary,html[data-theme='sakura'] .secondary{min-height:42px;border-radius:14px;font-weight:850;transition:.16s ease}
@@ -100,7 +100,7 @@ html[data-theme='sakura'] .topbar{background:rgba(255,250,246,.82);border-bottom
 html[data-theme='sakura'] .topbar h2{font-size:28px;color:var(--sakura-plum)}
 html[data-theme='sakura'] .search{background:#fffdfa;border-color:#ebcbd6;box-shadow:inset 0 1px 0 #fff,0 5px 15px rgba(108,61,80,.05)}
 html[data-theme='sakura'] .page-stack{gap:26px}
-html[data-theme='sakura'] .card,html[data-theme='sakura'] .subject-manager{background:
+html[data-theme='sakura'] .card{background:
  linear-gradient(180deg,rgba(255,255,255,.96),rgba(255,250,246,.96));border:1px solid #ecd2dc;border-radius:24px;box-shadow:0 3px 0 rgba(255,255,255,.8) inset,0 16px 42px rgba(97,55,74,.09)}
 html[data-theme='sakura'] .card-head{padding-bottom:14px;border-bottom:1px dashed #ead0da;margin-bottom:16px}
 html[data-theme='sakura'] .task{border-radius:18px;padding:14px 16px;border:1px solid #eed4de;background:linear-gradient(180deg,#fff,#fffaf7);box-shadow:0 3px 9px rgba(91,52,68,.04)}
@@ -176,12 +176,6 @@ html[data-theme='sakura'] .check{width:34px;height:34px;border:2px solid #ce7b9b
 /* Planner / calendar as a paper desk planner */
 html[data-theme='sakura'] .quick-add{padding:20px;border-left:6px solid #d47798;background:#fffaf2}
 
-/* Subject identity cards */
-html[data-theme='sakura'] .subject-grid{gap:18px}
-html[data-theme='sakura'] .subject-card{padding:22px;border-top:5px solid var(--subject,#c95f88);overflow:hidden}
-html[data-theme='sakura'] .subject-card:after{content:"";position:absolute;right:-16px;bottom:-20px;width:88px;height:88px;border-radius:50%;background:color-mix(in srgb,var(--subject,#c95f88) 13%,transparent)}
-html[data-theme='sakura'] .subject-card h3{font:700 25px var(--kono-display)}
-
 /* Full note/exam walls */
 html[data-theme='sakura'] .exam-sticky{min-height:260px;padding:31px 21px 19px!important;text-align:left!important;box-shadow:0 13px 23px rgba(65,38,31,.2)!important}
 html[data-theme='sakura'] .exam-sticky:nth-child(3n+1){transform:rotate(-1.1deg)}
@@ -252,7 +246,7 @@ html[data-theme='sakura'] .search input{width:100%;min-width:0;color:var(--k-ink
 html[data-theme='sakura'] .card,html[data-theme='sakura'] .subject-card{padding:26px;border:1px solid var(--k-line);border-radius:20px;background:linear-gradient(180deg,#fffdf9,#fffaf4);box-shadow:var(--k-shadow)}
 html[data-theme='sakura'] .card:before{display:none}
 html[data-theme='sakura'] .card-head{margin-bottom:19px;align-items:center}
-html[data-theme='sakura'] .card-head h3,html[data-theme='sakura'] .subject-manager h3{font:700 27px/1.08 Newsreader,Georgia,serif;color:#4e3741;margin:3px 0}
+html[data-theme='sakura'] .card-head h3{font:700 27px/1.08 Newsreader,Georgia,serif;color:#4e3741;margin:3px 0}
 html[data-theme='sakura'] .eyebrow{font-size:9.5px;font-weight:800;letter-spacing:.17em;color:#a84e70}
 html[data-theme='sakura'] .primary,html[data-theme='sakura'] .secondary{min-height:42px;border-radius:12px;padding:10px 16px;font-size:12px;font-weight:750}
 html[data-theme='sakura'] .primary{background:linear-gradient(145deg,#cc678c,#b84e76);box-shadow:0 8px 18px rgba(171,64,103,.18)}
@@ -273,12 +267,6 @@ html[data-theme='sakura'] .check{width:32px;height:32px;border:1.5px solid #cc71
 html[data-theme='sakura'] .task.done{opacity:.58}.task.done strong{text-decoration:line-through}
 html[data-theme='sakura'] .task-subject-mark{width:33px;height:33px;border-radius:11px;display:grid;place-items:center;background:color-mix(in srgb,var(--subject) 16%,#fff);color:var(--subject);font-size:15px}
 
-/* Planner becomes a paper desk planner */
-
-/* Subject page: aligned notebook tabs and a calm workspace */
-html[data-theme='sakura'] .subject-manager{display:grid;grid-template-columns:minmax(220px,.7fr) minmax(0,1.3fr);gap:28px;align-items:start}
-html[data-theme='sakura'] .subject-create-form{display:grid;grid-template-columns:minmax(0,1fr) 150px auto;gap:10px;align-items:center}
-html[data-theme='sakura'] .subject-color-swatches{grid-column:1/-1;display:flex;gap:8px}.subject-color-swatches button{width:24px;height:24px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px var(--k-line)}
 html[data-theme='sakura'] .subjects-layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:22px;align-items:start}
 html[data-theme='sakura'] .subject-tabs{position:sticky;top:20px;padding:10px;border-radius:19px;background:#efe2d5;border:1px solid var(--k-line);display:grid;gap:6px}
 html[data-theme='sakura'] .subject-tabs button{display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:11px;width:100%;min-height:57px;padding:9px 11px;border:0;border-radius:12px;background:transparent;text-align:left!important;color:#665158}
@@ -289,7 +277,6 @@ html[data-theme='sakura'] .subject-tabs strong,html[data-theme='sakura'] .subjec
 html[data-theme='sakura'] .subject-workspace{padding:30px}
 html[data-theme='sakura'] .subject-workspace>h1{margin:10px 0 5px;font:700 42px/1 Newsreader,Georgia,serif;color:#4d3740}
 html[data-theme='sakura'] .subject-label{display:inline-flex;align-items:center;min-height:28px;padding:4px 11px;border-radius:999px;color:#fff;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-html[data-theme='sakura'] .subject-add{display:grid;grid-template-columns:minmax(0,1fr) 150px auto;gap:10px;margin:23px 0 20px;padding:16px;border-radius:16px;background:#f7ece1;border:1px solid var(--k-line)}
 
 /* Notes and exams: richer physical wall boards */
 html[data-theme='sakura'] .exam-sticky{position:relative;min-height:245px;padding:29px 22px 20px;border:0;border-radius:5px 8px 6px 4px;box-shadow:5px 10px 18px rgba(70,40,29,.19);transform:rotate(-1deg);text-align:left!important;overflow:visible}
@@ -299,7 +286,6 @@ html[data-theme='sakura'] .push-pin{position:absolute!important;left:50%!importa
 html[data-theme='sakura'] .exam-sticky h2{margin:14px 0 8px;font:700 25px/1.08 Newsreader,Georgia,serif;color:inherit;text-align:left!important}
 html[data-theme='sakura'] .exam-sticky p{font-size:13px;line-height:1.6;text-align:left!important}
 html[data-theme='sakura'] .exam-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:16px}.exam-actions button{border:0;border-radius:9px;background:rgba(255,255,255,.58);padding:7px 9px;font-size:10px;color:inherit}
-html[data-theme='sakura'] .subject-pill{display:inline-flex;align-items:center;max-width:75%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 9px;border-radius:999px;color:#fff;font-size:9px;font-weight:800;letter-spacing:.04em}
 
 /* Settings reads like notebook sections */
 html[data-theme='sakura'] .theme-name-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.theme-name-list button{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:11px;padding:16px;border:1px solid var(--k-line);border-radius:15px;background:#fffaf4;text-align:left!important;color:#58434b}.theme-name-list button.active{border-color:#cd7696;background:#fff4f7;box-shadow:inset 0 0 0 1px #cd7696}.theme-name-list strong,.theme-name-list small{display:block}.theme-name-list small{margin-top:3px;color:#917980}.theme-name-list em{font-size:9px;font-style:normal;text-transform:uppercase;color:#a84d6e;font-weight:800}
@@ -314,9 +300,9 @@ html[data-theme='sakura'] .settings-list label{display:grid;grid-template-column
 @media (prefers-reduced-motion:no-preference){html[data-theme='sakura'] .nav-button,html[data-theme='sakura'] .task,html[data-theme='sakura'] .primary,html[data-theme='sakura'] .secondary{transition:transform .18s ease,box-shadow .18s ease,background .18s ease}html[data-theme='sakura'] .primary:hover,html[data-theme='sakura'] .secondary:hover{transform:translateY(-1px)}html[data-theme='sakura'] .push-pin{animation:kono-pin .45s ease both}@keyframes kono-pin{0%{transform:translate(-50%,-8px) scale(.75)}70%{transform:translate(-50%,1px) scale(1.08)}100%{transform:translate(-50%,0) scale(1)}}}
 
 /* Responsive audit */
-@media(max-width:1100px){html[data-theme='sakura'] .sidebar{width:230px}.subject-manager{grid-template-columns:1fr!important}.subject-create-form{grid-template-columns:minmax(0,1fr) 140px auto!important}}
+@media(max-width:1100px){html[data-theme='sakura'] .sidebar{width:230px}}
 @media(max-width:900px){.sidebar{display:none!important}.topbar{align-items:flex-start!important;gap:13px}.search{min-width:0!important;flex:1}.subjects-layout{grid-template-columns:1fr!important}.subject-tabs{position:static!important;grid-template-columns:repeat(2,minmax(0,1fr))}.theme-assurance{grid-template-columns:1fr!important}}
-@media(max-width:680px){html[data-theme='sakura'] .topbar{display:block!important}.subject-create-form,.subject-add,.profile-form{grid-template-columns:1fr!important}.subject-color-swatches{grid-column:1!important}.task{grid-template-columns:34px 5px minmax(0,1fr)!important}.task>div,.task-copy{grid-template-columns:1fr!important}.task small{grid-column:1!important;text-align:left!important;margin-top:3px!important}.theme-name-list,.profile-grid{grid-template-columns:1fr!important}.subject-tabs{grid-template-columns:1fr!important}}
+@media(max-width:680px){html[data-theme='sakura'] .topbar{display:block!important}.profile-form{grid-template-columns:1fr!important}.task{grid-template-columns:34px 5px minmax(0,1fr)!important}.task>div,.task-copy{grid-template-columns:1fr!important}.task small{grid-column:1!important;text-align:left!important;margin-top:3px!important}.theme-name-list,.profile-grid{grid-template-columns:1fr!important}.subject-tabs{grid-template-columns:1fr!important}}
 
 html[data-motion='reduced'] *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 
@@ -394,22 +380,12 @@ html[data-theme='sakura'] .subject-workspace{
   border-left:9px solid color-mix(in srgb,var(--accent) 58%,#fff)!important;
 }
 html[data-theme='sakura'] .subject-workspace:after{content:"";position:absolute;right:18px;top:18px;width:56px;height:18px;background:rgba(240,183,203,.42);transform:rotate(3deg);clip-path:polygon(2% 8%,98% 0,96% 92%,0 100%)}
-html[data-theme='sakura'] .subject-workspace>.subject-label,
-html[data-theme='sakura'] .subject-workspace>.eyebrow,
-html[data-theme='sakura'] .subject-workspace>h1,
-html[data-theme='sakura'] .subject-workspace>p,
-html[data-theme='sakura'] .subject-workspace>.subject-add,
-html[data-theme='sakura'] .subject-workspace>.subject-assignment-list{position:relative;z-index:1;margin-left:44px}
-html[data-theme='sakura'] .subject-assignment-list{padding-bottom:10px}
-html[data-theme='sakura'] .subject-empty-tasks{padding:44px 20px;text-align:center;color:#8e7780}
-html[data-theme='sakura'] .subject-empty-tasks span{display:block;font-size:34px;color:#d381a1}
-html[data-theme='sakura'] .subject-empty-tasks strong{display:block;margin-top:8px;font:700 21px/1.2 Newsreader,Georgia,serif;color:#59414b}
-html[data-theme='sakura'] .subject-empty-tasks p{margin:6px 0 0;font-size:12px}
+html[data-theme='sakura'] .subject-workspace>.subject-label,html[data-theme='sakura'] .subject-workspace>.eyebrow,html[data-theme='sakura'] .subject-workspace>h1,html[data-theme='sakura'] .subject-workspace>p{position:relative;z-index:1;margin-left:44px}
 
 @media(max-width:680px){
  html[data-theme='sakura'] .task-row-v2{grid-template-columns:34px 5px minmax(0,1fr)!important;min-height:72px!important;padding:11px 12px!important}
  html[data-theme='sakura'] .task-title-v2{font-size:15px!important}
- html[data-theme='sakura'] .subject-workspace>.subject-label,html[data-theme='sakura'] .subject-workspace>.eyebrow,html[data-theme='sakura'] .subject-workspace>h1,html[data-theme='sakura'] .subject-workspace>p,html[data-theme='sakura'] .subject-workspace>.subject-add,html[data-theme='sakura'] .subject-workspace>.subject-assignment-list{margin-left:18px}
+ html[data-theme='sakura'] .subject-workspace>.subject-label,html[data-theme='sakura'] .subject-workspace>.eyebrow,html[data-theme='sakura'] .subject-workspace>h1,html[data-theme='sakura'] .subject-workspace>p{margin-left:18px}
 }
 
 /* KONO Tamagotchi 2.2 — final layout isolation and physical cassette/sidebar pass */
@@ -442,16 +418,8 @@ html[data-theme='sakura'] .radio-controls{grid-area:controls!important;display:f
 html[data-theme='sakura'] .radio-controls button{width:31px!important;height:25px!important;padding:0!important;border-radius:8px!important}
 html[data-theme='sakura'] .radio-controls .radio-play{width:41px!important}
 
-/* Completely isolate Planner + Subject rows from every legacy grid rule. */
-html[data-theme='sakura'] .subject-assignment-list{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:10px!important;width:100%!important;min-width:0!important;margin-left:0!important}
 html[data-theme='sakura'] .subject-workspace{min-width:0!important;padding:32px 34px 36px 76px!important}
-html[data-theme='sakura'] .subject-workspace>.subject-label,
-html[data-theme='sakura'] .subject-workspace>.eyebrow,
-html[data-theme='sakura'] .subject-workspace>h1,
-html[data-theme='sakura'] .subject-workspace>p,
-html[data-theme='sakura'] .subject-workspace>.subject-add,
-html[data-theme='sakura'] .subject-workspace>.subject-assignment-list{margin-left:0!important}
-html[data-theme='sakura'] .subject-add{width:100%!important;min-width:0!important}
+html[data-theme='sakura'] .subject-workspace>.subject-label,html[data-theme='sakura'] .subject-workspace>.eyebrow,html[data-theme='sakura'] .subject-workspace>h1,html[data-theme='sakura'] .subject-workspace>p{margin-left:0!important}
 
 /* Corkboard 2.0 header zone: titles live fully inside the frame and never sit behind the top rail. */
 
@@ -618,30 +586,3 @@ html[data-theme='sakura'] .sticky-note-system .exam-actions{
 .kono-sticky:hover .kono-pin{transform:translateX(-50%) rotate(-5deg)}
 @media(prefers-reduced-motion:reduce){.kono-sticky{animation:none!important;transition:none!important}}
 
-/* Production Build 02 — universal schedule alignment fallback. */
-
-/* Production 17.2 — subject bulk-completion / evolution QA */
-.subject-completion-tools{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:18px;
-  margin:16px 0 18px;
-  padding:15px 16px;
-  border:1px solid var(--line);
-  border-radius:16px;
-  background:color-mix(in srgb,var(--surface2) 86%,var(--accent) 14%);
-}
-.subject-completion-tools>div{min-width:0;display:grid;gap:3px}
-.subject-completion-tools strong{font-size:14px;color:var(--ink)}
-.subject-completion-tools small{font-size:12px;line-height:1.4;color:var(--muted)}
-.subject-completion-tools button{flex:0 0 auto;min-width:142px}
-html[data-theme='sakura'] .subject-completion-tools{
-  background:linear-gradient(135deg,#fff4ed,#fff9f5);
-  border-color:#ead2c3;
-  box-shadow:0 8px 22px rgba(112,73,72,.06);
-}
-@media(max-width:680px){
-  .subject-completion-tools{align-items:stretch;flex-direction:column}
-  .subject-completion-tools button{width:100%}
-}

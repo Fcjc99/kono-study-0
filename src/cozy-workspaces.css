@@ -65,7 +65,7 @@
 @media(max-width:760px){
  :root .workbench .restored-subjects .subject-tabs{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;overflow:visible!important;padding:8px!important}
  :root .workbench .restored-subjects .subject-tabs button{width:auto!important;min-width:0!important;max-width:none!important;min-height:52px!important;flex:auto!important;padding:7px 8px!important;gap:7px!important}
- :root .workbench .restored-subjects .subject-tabs i{width:5px!important;height:30px!important}
+ :root .workbench .restored-subjects .subject-tabs i{width:30px!important;height:30px!important;border-radius:9px!important;font-size:.85rem!important}
  :root .workbench .restored-subjects .subject-tabs strong{font-size:.83rem!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
  :root .workbench .restored-subjects .subject-tabs small{font-size:.75rem!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 }

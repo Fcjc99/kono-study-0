@@ -10,6 +10,7 @@ import PaperKono from './PaperKono'
 import {flapMedal} from '../store/flappy'
 import {readBlastFace} from '../store/blastFace'
 import BlastFacePicker from './BlastFacePicker'
+import GameCover from './GameCovers'
 import {deal,readBlastSave,writeBlastSave,type BlastSave,type Piece} from '../store/blockBlast'
 import {meowLevel,newMeowPuzzle,type Puzzle} from '../store/meowdoku'
 import {BOOSTERS,candyLevelNow,candyStarsKept,freshBoard,jellyFor,maker,saveCandyLevel,saveCandyStars,type Board,type Maker} from '../store/match3'
@@ -97,7 +98,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
  return <section className={'break-games'+(arcade?' is-arcade':'')} aria-label={arcade?'Arcade':'Break games with KONO'}>
   {!arcade&&<header><strong>🎮 Break time with KONO</strong><span role="timer" aria-label="Break time left">{over?'Break’s over':'Break: '+clock(left)}</span>{onClose&&<button type="button" onClick={onClose}>Close</button>}</header>}
   {over?<p className="break-over" role="status">That was a nice reset! KONO’s ready for the next session when you are. 📚</p>
-  :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>open(g.id)}><span aria-hidden="true">{g.emoji}</span><strong>{g.name}</strong><small>{g.id==='blast'&&kept?'Carry on your game ('+kept.score+' points so far)':g.id==='meow'&&meowLevel()>1?'Level '+meowLevel()+' is next':g.id==='candy'&&candyLevelNow()>1?'Level '+candyLevelNow()+' is next':g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
+  :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>open(g.id)}><GameCover game={g.id}/><strong>{g.name}</strong><small>{g.id==='blast'&&kept?'Carry on your game ('+kept.score+' points so far)':g.id==='meow'&&meowLevel()>1?'Level '+meowLevel()+' is next':g.id==='candy'&&candyLevelNow()>1?'Level '+candyLevelNow()+' is next':g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
   {game&&!over&&info&&<GameScreen title={info.emoji+' '+info.name} tone="blast" sound={sound} result={ended}
    intro={{emoji:info.emoji,name:info.name,how:info.how,best:readBest(game)!==null?info.best(readBest(game)!):null,...(game==='blast'?{...(kept?{start:'Continue ('+kept.score+' points)',alt:{label:'New game',onClick:()=>begin('blast',true)}}:{}),extra:<BlastFacePicker onChange={setBlastFace}/>}:game==='meow'?{start:'Start level '+meowLevel()}:game==='candy'?{start:'Start level '+(candyPick??candyLevelNow()),extra:<CandyMap pick={candyPick??candyLevelNow()} onPick={setCandyPick}/>}:game==='paper'?{start:'Solo',alt:{label:'Team battle',onClick:()=>{setPaperMode('team');begin('paper')}}}:{})}}
    started={started} onStart={()=>{if(game==='paper')setPaperMode('solo');begin(game)}} onRestart={()=>begin(game,true)} onEnd={()=>handle.current?.end()}
