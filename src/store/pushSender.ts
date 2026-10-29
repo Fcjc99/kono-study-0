@@ -6,6 +6,17 @@ export type PushDeps = {
   claim: () => Promise<DueReminder[]>
   forget: (endpoint: string) => Promise<void>
   send: (subscription: { endpoint: string; keys: { p256dh: string; auth: string } }, payload: string) => Promise<unknown>
+  /** This site's https address, for where a tapped reminder opens (Declarative Web Push needs it). */
+  appUrl?: string
+}
+
+/** A reminder's push message. KONO's service worker reads title/body/tag (Chrome, Firefox, Android);
+ * Safari on iPhone and Mac (iOS 18.4+) also reads the Declarative Web Push part (web_push 8030), so it
+ * can show the reminder even when the service worker isn't woken in time. */
+export function reminderPayload(r: Pick<DueReminder, 'title' | 'body' | 'tag'>, appUrl?: string) {
+  const base = { title: r.title, body: r.body, tag: r.tag ?? undefined }
+  if (!appUrl || !/^https:\/\//.test(appUrl)) return JSON.stringify(base)
+  return JSON.stringify({ ...base, web_push: 8030, notification: { title: r.title, body: r.body, navigate: new URL('/?page=planner', appUrl).href, ...(r.tag ? { tag: r.tag } : {}), lang: 'en-US', dir: 'ltr' } })
 }
 
 export async function sendDueReminders(deps: PushDeps) {
@@ -15,7 +26,7 @@ export async function sendDueReminders(deps: PushDeps) {
   for (const r of due) {
     if (gone.has(r.endpoint)) continue
     try {
-      await deps.send({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } }, JSON.stringify({ title: r.title, body: r.body, tag: r.tag ?? undefined }))
+      await deps.send({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } }, reminderPayload(r, deps.appUrl))
       sent++
     } catch (error) {
       const status = (error as { statusCode?: number }).statusCode
