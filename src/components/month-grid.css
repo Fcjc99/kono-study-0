@@ -57,3 +57,4 @@
 .workbench .month-grid.is-phone .month-pill:is(.is-special,.is-day-off,.is-holiday){width:auto;height:auto;min-height:0;background:transparent!important;box-shadow:none;justify-content:center}
 .month-pill-icon{font-size:.85rem;line-height:1}
 .workbench .month-grid.is-phone .month-pill.is-done{opacity:.4}
+.month-stickers{display:block;font-size:.95rem;line-height:1;margin-top:2px;letter-spacing:-2px}

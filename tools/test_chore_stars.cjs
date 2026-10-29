@@ -78,5 +78,25 @@ await test('adding to a day: last weeks’ events on that weekday, newest first,
  const out=mem.sameWeekdayBefore(data,pid,'2026-10-29')
  assert.equal(JSON.stringify(out.map(r=>[r.title,r.time])),JSON.stringify([['Soccer','16:00']]),'Piano is already on the day; a Wednesday and another plan’s event don’t count')
 })
-console.log(passed+'/4 star chart, meal, family and calendar groups passed.')
+await test('Kids view: pictures for events, routines earn stars once a day (and give them back), stickers toggle, all survive a save',()=>{
+ const kp=load('src/store/kidPlanner.ts');let data=model.createFreshData();const pid=data.activeProfileId
+ assert.equal(kp.pictureFor('Soccer practice'),'⚽');assert.equal(kp.pictureFor('Dentist checkup'),'🦷');assert.equal(kp.pictureFor('Zzz','appointment'),'🩺');assert.equal(kp.pictureFor('Something'),'📌')
+ data.kids.push({id:'kid-a',profileId:pid,name:'Ava',color:'#e0607a'})
+ const r=kp.routineFrom(kp.STARTER_ROUTINES[0],pid,'kid-a');data={...data,routines:[r]}
+ let earned=0
+ for(const st of r.steps){const out=kp.tickStep(data,r,'2026-10-29',st.id);data=out.data;earned+=out.earned}
+ assert.equal(earned,1);assert.equal(stars.balance(data.starLog,'kid-a'),1)
+ data=kp.tickStep(data,r,'2026-10-29',r.steps[0].id).data
+ assert.equal(stars.balance(data.starLog,'kid-a'),0,'unticking a step takes the star back')
+ data=kp.tickStep(data,r,'2026-10-29',r.steps[0].id).data
+ assert.equal(stars.balance(data.starLog,'kid-a'),1,'finishing again pays once')
+ assert.equal(kp.tickStep(data,r,'2026-10-30',r.steps[0].id).earned,0,'a new day starts fresh')
+ data=kp.setSticker(data,pid,'2026-10-29','🏆','kid-a');data=kp.setSticker(data,pid,'2026-10-29','🌈','kid-a')
+ assert.equal(JSON.stringify(kp.stickersOn(data,pid,'2026-10-29').map(x=>x.emoji)),'["🌈"]','one sticker a day per person')
+ assert.equal(kp.stickersOn(kp.setSticker(data,pid,'2026-10-29','🌈','kid-a'),pid,'2026-10-29').length,0,'the same one again takes it off')
+ const back=model.normalizeData(JSON.parse(JSON.stringify(data)))
+ assert.equal(back.routines.length,1);assert.equal(back.routines[0].steps.length,5);assert.equal(back.routineLog.length,1);assert.equal(back.dayStickers.length,1)
+ assert.equal(kp.sayTime('16:00'),"At 4 o'clock in the afternoon");assert.equal(kp.sayTime('08:30'),'At 8:30 in the morning')
+})
+console.log(passed+'/5 star chart, meal, family, calendar and Kids view groups passed.')
 })().catch(error=>{console.error('FAIL',error);process.exit(1)})

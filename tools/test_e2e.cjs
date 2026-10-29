@@ -611,6 +611,38 @@ test('Kids: you, also listed as a kid, can be merged back into Me',async({contex
  assert.equal(await page.getByRole('button',{name:'Merge into me'}).count(),0)
 })
 
+test('Planner › Kids view: picture day per person, a routine earns a star, a sticker lands on the month, sleeps until a birthday, and the timer runs',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ const iso=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')}
+ plan.calendarEvents.push({id:'k1',profileId:pid,date:iso(0),title:'Soccer practice',kind:'sports',time:'23:30',notes:'',done:false,kidId:'kid-emma',location:'Field 3'})
+ plan.specialDays=[{id:'s1',profileId:pid,kind:'birthday',title:'Emma',date:'2018-'+iso(3).slice(5),kidId:'kid-emma'}]
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ await go(page,'Planner')
+ await page.getByRole('button',{name:'🧸 Kids'}).click()
+ const view=page.getByRole('region',{name:'Kids view'})
+ await view.getByText('3 sleeps').waitFor()
+ const emma=view.getByRole('article',{name:'Emma’s day'})
+ await emma.getByRole('button',{name:/Soccer practice/}).first().waitFor()
+ await emma.getByRole('button',{name:'＋ Routine'}).click()
+ await emma.getByRole('button',{name:'🌙 Bedtime'}).click()
+ for(const step of ['Bath','Brush teeth','Pajamas','Story','Lights out'])await emma.getByRole('button',{name:step,exact:true}).click()
+ await emma.getByText(/Bedtime done! \+1⭐/).waitFor()
+ await emma.getByLabel('1 stars').waitFor()
+ await waitFor(()=>(cloud.users.alice.plan.data.starLog??[]).some(e=>e.kidId==='kid-emma'&&e.n===1),'the star reaches the account')
+ await emma.getByRole('group',{name:/Sticker for Emma/}).getByRole('button',{name:'🏆'}).click()
+ await waitFor(()=>(cloud.users.alice.plan.data.dayStickers??[]).some(x=>x.kidId==='kid-emma'&&x.emoji==='🏆'),'the sticker is saved')
+ await view.getByRole('button',{name:'⏳ Timer'}).click()
+ const timer=page.getByRole('dialog',{name:'Timer'})
+ await timer.getByRole('button',{name:'1 min'}).click()
+ await timer.getByRole('timer').waitFor()
+ await timer.getByRole('button',{name:'Close timer'}).click()
+ await page.reload();await mainHeading(page).waitFor();await go(page,'Planner')
+ await page.getByRole('region',{name:'Kids view'}).waitFor() // remembered on this device
+ await page.getByRole('button',{name:'Month',exact:true}).click()
+ await page.getByLabel('Stickers: 🏆').first().waitFor()
+})
+
 test('keyboard: K-Quiz practice questions and flashcards keep focus inside, close with Escape, and return focus',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
  plan.settings.familyStudyTabs=true // alice has kids: a family plan shows the study pages only when asked
