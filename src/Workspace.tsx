@@ -130,7 +130,6 @@ import type {QuickDayItem} from './components/QuickDayAdd'
 import type {StartStep} from './components/GettingStarted'
 import OverdueCard from './components/OverdueCard'
 import KidsNext from './components/KidsNext'
-import ReorderList from './components/ReorderList'
 import SwipeRow from './components/SwipeRow'
 import {uploadPendingPhotos} from './store/photoStore'
 import type {QuickAddGuess} from './store/quickAdd'
@@ -573,7 +572,6 @@ function Workspace({store}:{store:Store}){
  const lookInLand=(land:string,findId:string)=>{const now=new Date();logEvent({id:'land-'+land+'-'+today,kind:'find',at:now.toISOString(),item:findId},now)}
  const giveQuest=()=>{if(!questSnack||questDone)return;const now=new Date();feedKono(questSnack.taskId);logEvent(questEvent(today,quest,now),now);announce({line:questLine(quest),pose:'/garden/kono/excited.webp',at:now.getTime(),ms:6000})}
  // School days off and early releases in the next week (store/schoolHeadsUp); "Got it" hides each one on this device.
- const [todayOrder,setTodayOrder]=useLocalSetting('kono-today-order:'+profile.id,'')
  // Your own Home (store/homeLayout): the widgets' order and which are hidden, on this device for this plan.
  const [homeLine,setHomeLine]=useLocalSetting('kono-home-layout:'+profile.id,''),[customizing,setCustomizing]=useState(false)
  const homeLayout=readLayout(homeLine)
@@ -1074,14 +1072,8 @@ function Workspace({store}:{store:Store}){
   ...notes.filter(n=>!n.completed&&entryDate(n as unknown as Entry)===today).map(n=>({key:'notes' as Collection,entry:n as unknown as Entry,date:entryDate(n as unknown as Entry)})),
   ...view.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date===today).map(e=>({key:'calendarEvents' as Collection,entry:e as unknown as Entry,date:e.date})),
  ].filter(e=>personShown(e.entry)&&(!e.entry.subjectId||!todayClasses.some(c=>c.block.subjectId===e.entry.subjectId)))
-  // In time order (untimed last) until it's reordered by hand.
+  // In time order (untimed last).
   .sort((a,b)=>String((a.entry.time??a.entry.plannedTime)||'99:99').localeCompare(String((b.entry.time??b.entry.plannedTime)||'99:99')))
- // Today's and tomorrow's own order (drag the ⠿ handle), remembered on this device for each day: one line
- // "date|id,id;date|id,id" (tomorrow's order carries on once it's today).
- const dayRank=(date:string)=>todayOrder.split(';').find(p=>p.startsWith(date+'|'))?.slice(date.length+1).split(',')??[]
- const setDayRank=(date:string,ids:string[])=>setTodayOrder([...todayOrder.split(';').filter(p=>(p.startsWith(today+'|')||p.startsWith(tomorrow+'|'))&&!p.startsWith(date+'|')),date+'|'+ids.join(',')].join(';'))
- const byRank=(rank:string[])=>(a:{entry:Entry},b:{entry:Entry})=>{const ra=rank.indexOf(a.entry.id),rb=rank.indexOf(b.entry.id);return (ra<0?1e9:ra)-(rb<0?1e9:rb)}
- if(dayRank(today).length)todayLoose.sort(byRank(dayRank(today)))
  const tomorrowClasses=scheduleClasses(tomorrow)
  const tomorrowLoose=[
   ...viewTasks.filter(t=>!t.done&&t.due===tomorrow).map(t=>({key:'tasks' as Collection,entry:t as unknown as Entry,date:t.due})),
@@ -1090,7 +1082,6 @@ function Workspace({store}:{store:Store}){
   ...view.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date===tomorrow).map(e=>({key:'calendarEvents' as Collection,entry:e as unknown as Entry,date:e.date})),
  ].filter(e=>personShown(e.entry)&&(!e.entry.subjectId||!tomorrowClasses.some(c=>c.block.subjectId===e.entry.subjectId)))
   .sort((a,b)=>String((a.entry.time??a.entry.plannedTime)||'99:99').localeCompare(String((b.entry.time??b.entry.plannedTime)||'99:99')))
- if(dayRank(tomorrow).length)tomorrowLoose.sort(byRank(dayRank(tomorrow)))
  // Your day (Home): late work and past-due reminders lead Today; the tabs count what's on each day.
  const pastReminders=data.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date<today&&personShown(e)&&tracksDone('calendarEvents',e as unknown as Entry)).sort((a,b)=>a.date.localeCompare(b.date))
  // Home's Notes & reminders: pinned notes first, then the newest (six at most), and reminders for the next
@@ -1214,7 +1205,7 @@ function Workspace({store}:{store:Store}){
       {quickDayOpen==='today'&&<QuickDayAdd date={today} dayName="today" subjects={subjects} onAdd={item=>quickDay(today,item)} onClose={()=>setQuickDayOpen(null)}/>}
       {(!familyHome||tasks.some(t=>t.due===today))&&<AssignmentProgress tasks={tasks} date={today} label="Today's" streak={currentStreak} week={{done:weekDone,total:weekTotal}}/>}{weeklyDayLabels(today).map(label=><p className="school-day-label" key={label}>{label}</p>)}
       <div className="today-schedule-list">{todayClasses.map(renderCompactClass)}</div>
-      {todayLoose.length>0&&<div className="tomorrow-extra-list"><strong>Also today</strong>{todayLoose.length>1?<ReorderList label="Also today, in your order" items={todayLoose.map(e=>({id:e.entry.id,title:titleOf(e.entry),node:card(e.key,e.entry)}))} onReorder={ids=>setDayRank(today,ids)}/>:todayLoose.map(e=>card(e.key,e.entry))}</div>}
+      {todayLoose.length>0&&<div className="tomorrow-extra-list"><strong>Also today</strong>{todayLoose.map(e=>card(e.key,e.entry))}</div>}
       {!todayClasses.length&&!todayLoose.length&&<p className="today-card-empty"><img className="kono-empty-art" src="/garden/kono/tea.webp" alt="" aria-hidden="true"/>{season&&season.end<today?'Your schedule has ended. Update its dates in Settings.':'Nothing else on today.'}</p>}
      </div>
      <div className="today-card-body is-tomorrow" role="region" aria-label="Tomorrow">
@@ -1222,7 +1213,7 @@ function Workspace({store}:{store:Store}){
       {quickDayOpen==='tomorrow'&&<QuickDayAdd date={tomorrow} dayName="tomorrow" subjects={subjects} onAdd={item=>quickDay(tomorrow,item)} onClose={()=>setQuickDayOpen(null)}/>}
       {(!familyHome||tasks.some(t=>t.due===tomorrow))&&<AssignmentProgress tasks={tasks} date={tomorrow} label="Tomorrow's"/>}{schoolDayLabels(data,tomorrow).map(label=><p className="school-day-label" key={label}>{label}</p>)}
       <div className="today-schedule-list">{tomorrowClasses.map(renderCompactClass)}</div>
-      {tomorrowLoose.length>0&&<div className="tomorrow-extra-list"><strong>Also tomorrow</strong>{tomorrowLoose.length>1?<ReorderList label="Also tomorrow, in your order" items={tomorrowLoose.map(e=>({id:e.entry.id,title:titleOf(e.entry),node:card(e.key,e.entry)}))} onReorder={ids=>setDayRank(tomorrow,ids)}/>:tomorrowLoose.map(e=>card(e.key,e.entry))}</div>}
+      {tomorrowLoose.length>0&&<div className="tomorrow-extra-list"><strong>Also tomorrow</strong>{tomorrowLoose.map(e=>card(e.key,e.entry))}</div>}
       {!tomorrowClasses.length&&!tomorrowLoose.length&&<p className="today-card-empty"><img className="kono-empty-art" src="/garden/kono/sit.webp" alt="" aria-hidden="true"/>Nothing on tomorrow yet.</p>}
      </div>
     </section>}

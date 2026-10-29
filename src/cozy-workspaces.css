@@ -69,3 +69,17 @@
  :root .workbench .restored-subjects .subject-tabs strong{font-size:.83rem!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
  :root .workbench .restored-subjects .subject-tabs small{font-size:.75rem!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 }
+
+/* Home's Notes & reminders is a little cork pin board too: a wood frame, a cream title strip, the notes
+ * pinned on cork (the sticky notes bring their own pins) and a gentle tilt, like the Notes page's board. */
+:root .workbench[data-experience='cozy'] .wb-panel.home-notes{padding:0!important;overflow:hidden;border:10px solid #a56e4c!important;border-radius:22px!important;background:#d1a276!important;background-image:radial-gradient(circle at 1px 1px,#5a331d2e 1px,transparent 1.2px),radial-gradient(circle at 4px 4px,#ffffff26 .8px,transparent 1px)!important;background-size:7px 7px,11px 11px!important;box-shadow:inset 0 0 0 3px #d7a47f,0 7px 0 #613c2c!important}
+:root .workbench[data-experience='cozy'] .wb-panel.home-notes::before,
+:root .workbench[data-experience='cozy'] .wb-panel.home-notes::after{display:none!important}
+.workbench[data-experience='cozy'] .home-notes>.wb-section-head{margin:0;padding:14px 16px;background:linear-gradient(#fffaf3,#f6e7d8);border-bottom:2px solid #c99b77}
+.workbench[data-experience='cozy'] .home-notes>.wb-section-head h2{margin:0}
+.workbench[data-experience='cozy'] .home-notes-board{padding:24px 16px 20px}
+.workbench[data-experience='cozy'] .home-notes-board>*:nth-child(odd){rotate:-1.2deg}
+.workbench[data-experience='cozy'] .home-notes-board>*:nth-child(even){rotate:1deg}
+.workbench[data-experience='cozy'] .home-notes>.today-card-empty{margin:0;padding:30px 18px;text-align:center;color:#523929;font-weight:600}
+:root[data-dark] .workbench[data-experience='cozy'] .home-notes>.wb-section-head{background:linear-gradient(#3a2d29,#30251f);border-bottom-color:#6b4a36}
+@media (prefers-reduced-motion:reduce){.workbench[data-experience='cozy'] .home-notes-board>*{rotate:none}}

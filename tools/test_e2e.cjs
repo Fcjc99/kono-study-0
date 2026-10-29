@@ -117,23 +117,14 @@ test('homework added in the Planner survives a reload',async({page})=>{
  await page.getByText('Read chapter 3 (e2e)').filter({visible:true}).first().waitFor()
 })
 
-test('Today in your own order, Settings search and search filters',async({page})=>{
+test('Today in time order, Settings search and search filters',async({page})=>{
  await createPlan(page)
  await addFromMenu(page,'tasks','First thing (e2e)')
  await addFromMenu(page,'tasks','Second thing (e2e)')
  await go(page,'Sanctuary')
- // Also today: the ⠿ handle moves an item with the arrow keys, and the order stays after a reload.
- const list=page.getByRole('list',{name:'Also today, in your order'})
- const titles=()=>list.locator('.reorder-row').allInnerTexts()
- await list.waitFor()
- const before=await titles(),last=before.length-1
- const moving=/Second thing/.test(before[last])?'Second thing (e2e)':'First thing (e2e)'
- const expected=[...before];[expected[last-1],expected[last]]=[expected[last],expected[last-1]]
- await list.getByRole('button',{name:'Reorder '+moving+' (use the up and down arrow keys)'}).press('ArrowUp')
- await page.waitForFunction(want=>JSON.stringify([...document.querySelectorAll('.reorder-row')].map(r=>r.innerText))===JSON.stringify(want),expected)
- await page.reload();await heading(page,'Sanctuary')
- const again=page.getByRole('list',{name:'Also today, in your order'});await again.waitFor()
- assert.deepEqual(await again.locator('.reorder-row').allInnerTexts(),expected,'the order is kept after a reload')
+ // Also today is in time order, with no handles to move things around.
+ await page.locator('.tomorrow-extra-list').getByText('Second thing (e2e)').waitFor()
+ assert.equal(await page.locator('.tomorrow-extra-list .reorder-handle').count(),0,'Today and Tomorrow can’t be rearranged by hand')
  // Settings search: "dark" finds Dark mode and opens Look & feel.
  await go(page,'Settings')
  await page.getByLabel('Search settings').fill('dark')
