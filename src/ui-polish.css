@@ -511,3 +511,20 @@ button .kono-icon,a .kono-icon{margin-right:2px}
 .star-shelf-add input{min-width:0}.star-shelf-add .star-emoji{width:56px;text-align:center}.star-shelf-add label{display:grid;gap:2px;width:90px}
 @keyframes star-pop{from{transform:scale(.6);opacity:0}}
 @media(prefers-reduced-motion:reduce){.star-kid-cheer{animation:none}}
+
+/* Home › Dinners & groceries (MealPlan): seven dinner tiles, then the grocery list. */
+.meal-days{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.meal-days li{display:grid;gap:4px;min-width:0}
+.meal-days small{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;opacity:.65;text-align:center}
+.meal-days li.is-today small{opacity:1;color:var(--wb-accent,#e0607a)}
+.meal-days button:not(#x){min-height:64px;width:100%;min-width:0!important;max-width:100%;padding:6px!important;border-radius:14px!important;font-size:.82rem;font-weight:700;line-height:1.2;overflow-wrap:break-word;hyphens:auto;border:1.5px dashed var(--wb-line,#e2d8cc)!important;background:transparent!important;box-shadow:none!important}
+.meal-days li.has-meal button:not(#x){border-style:solid!important;background:color-mix(in srgb,#ffb35c 16%,var(--wb-surface,#fff))!important}
+.meal-days li.is-today button:not(#x){border-color:var(--wb-accent,#e0607a)!important}
+.meal-days .meal-empty{font-size:1.2rem;opacity:.4}
+.meal-days input{width:100%;min-height:64px;font-size:.85rem;padding:6px;border-radius:14px}
+.grocery-list h3{margin:0 0 8px;font-size:1rem}.grocery-list h3 small{opacity:.6;font-weight:600}
+.grocery-add{display:flex;gap:8px;margin-bottom:8px}.grocery-add input{flex:1;min-width:0}
+.grocery-list ul{list-style:none;margin:0 0 6px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(140px,100%),1fr));gap:2px 12px}
+.grocery-list li.is-done{opacity:.5;text-decoration:line-through}
+.grocery-list .link-button{background:none!important;border:0!important;box-shadow:none!important;text-decoration:underline;min-height:0!important;padding:4px!important}
+@media(max-width:560px){.meal-days{grid-template-columns:repeat(4,minmax(0,1fr))}}

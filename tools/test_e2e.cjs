@@ -546,6 +546,23 @@ test('Star chart: ticking a kid’s chore earns its stars, and stars buy a rewar
  await waitFor(()=>(cloud.users.alice.plan.data.starLog??[]).some(e=>e.n===-2),'the reward is spent in the account')
 })
 
+test('Dinners & groceries: a dinner written on Home and groceries added and ticked reach the account',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ const card=page.getByRole('region',{name:'Dinners & groceries'})
+ await card.waitFor()
+ await card.getByRole('button',{name:'Add dinner for Today'}).click()
+ await card.getByLabel('Dinner on Today').fill('Tacos')
+ await card.getByLabel('Dinner on Today').press('Enter')
+ await card.getByRole('button',{name:'Dinner Today: Tacos'}).waitFor()
+ await card.getByLabel('Add groceries').fill('Milk, eggs')
+ await card.getByRole('button',{name:'Add',exact:true}).click()
+ await card.getByRole('checkbox',{name:'Milk'}).check()
+ await card.getByRole('button',{name:'Clear 1 in the cart'}).click()
+ await waitFor(()=>{const d=cloud.users.alice.plan.data;return (d.meals??[]).some(m=>m.title==='Tacos')&&JSON.stringify((d.groceries??[]).map(g=>g.title))==='["eggs"]'},'the dinner and the list reach the account')
+})
+
 test('keyboard: K-Quiz practice questions and flashcards keep focus inside, close with Escape, and return focus',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
  plan.settings.familyStudyTabs=true // alice has kids: a family plan shows the study pages only when asked

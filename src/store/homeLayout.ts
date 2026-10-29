@@ -1,9 +1,9 @@
 /** Your own Home page (Sanctuary › ✏️ Customize Home): which widgets show and in what order. Kept per plan on
  * this device as one line, e.g. "week,sanctuary,-family,schedule": the order, with "-" before a hidden one.
  * Widgets added to KONO later join in their default place, so an older line still works. */
-export type HomeWidget='week'|'sanctuary'|'family'|'schedule'|'weekAhead'|'notes'|'todos'|'comingUp'|'focus'
+export type HomeWidget='week'|'sanctuary'|'family'|'schedule'|'weekAhead'|'notes'|'todos'|'meals'|'comingUp'|'focus'
 /** The default Home, top to bottom (components/HomeCustomize names and describes each). */
-export const DEFAULT_ORDER:HomeWidget[]=['week','sanctuary','family','schedule','weekAhead','notes','todos','comingUp','focus']
+export const DEFAULT_ORDER:HomeWidget[]=['week','sanctuary','family','schedule','weekAhead','notes','todos','meals','comingUp','focus']
 export type HomeLayout={order:HomeWidget[];hidden:Set<HomeWidget>}
 const known=new Set<string>(DEFAULT_ORDER)
 export function readLayout(text:string):HomeLayout{

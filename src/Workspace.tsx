@@ -74,6 +74,7 @@ const PlanSwitcher=lazy(()=>import('./components/PlanSwitcher'))
 const WhoIsUsing=lazy(()=>import('./components/WhoIsUsing'))
 const KidsGlance=lazy(()=>import('./components/KidsGlance'))
 const StarChart=lazy(()=>import('./components/StarChart'))
+const MealPlan=lazy(()=>import('./components/MealPlan'))
 const Pickups=lazy(()=>import('./components/Pickups'))
 const FamilyTodos=lazy(()=>import('./components/FamilyTodos'))
 const TodoEditor=lazy(()=>import('./components/TodoEditor'))
@@ -1094,7 +1095,7 @@ function Workspace({store}:{store:Store}){
  const homeNotes=notes.filter(n=>!n.completed).sort((a,b)=>Number(Boolean(b.pinned))-Number(Boolean(a.pinned))||String(b.created??'').localeCompare(String(a.created??''))).slice(0,6)
  const homeReminders=data.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date>=today&&e.date<=addDays(today,7)&&/^reminder\b|\breminder$/i.test(e.title)).sort((a,b)=>(a.date+(a.time??'')).localeCompare(b.date+(b.time??''))).slice(0,6)
  // The widgets that fit this plan (Customize Home only offers these).
- const homeAvailable:HomeWidget[]=homeLayout.order.filter(id=>id==='family'?familyHome:id==='todos'?kidTodos.length>0||(parentMode&&profileKids.length>0):id==='focus'?!familyLean:true)
+ const homeAvailable:HomeWidget[]=homeLayout.order.filter(id=>id==='family'?familyHome:id==='todos'?kidTodos.length>0||(parentMode&&profileKids.length>0):id==='meals'?profileKids.length>0&&!profile.kidId:id==='focus'?!familyLean:true)
  const todayCount=overdue.length+pastReminders.length+todayClasses.length+todayLoose.length,tomorrowCount=tomorrowClasses.length+tomorrowLoose.length
  const setupLeft=startSkipped.has('all')?0:startSteps.filter(st=>!st.done).length
  const w:PageContext={store,repository,data,view,profile,experience,islandSetting,simpleView,parentMode,reduced,lockedPlan,releaseLabel,draftScope,today,tasks,viewTasks,ownTasks,notes,subjects,profileKids,plans,recap,classmatesOn,peopleFilter,overdueCard,addChoices,plannerMoreRef,subject,setSubject,subjectTab,setSubjectTab,boardView,setBoardView,selectedDate,setSelectedDate,settingsTab,setSettingsTab,addOpen,addChoice,setAddChoice,recapOpen,setRecapOpen,weekPlanOpen,setWeekPlanOpen,planRequest,setPlanRequest,setSpecialOpen,setPickupsOpen,setWallOpen,setDayOffFor,setConfirmation,save,run,setting,navigate,openSettings,openAdd,closeAdd,openWeather,create,edit,remove,patch,reschedule,planAt,stretchTo,quickAddFamilyEvent,todoOps:parentMode&&profileKids.length>0?todoOps:undefined,personShown,card,renderClass,renderCompactClass}
@@ -1228,6 +1229,7 @@ function Workspace({store}:{store:Store}){
      {homeNotes.length||homeReminders.length?<div className="home-notes-board">{homeReminders.map(e=><div key={e.id} className="home-reminder">{card('calendarEvents',e as unknown as Entry)}</div>)}{homeNotes.map(n=><div key={n.id} className="home-note">{card('notes',n as unknown as Entry)}</div>)}</div>
      :<p className="today-card-empty">No notes yet. Pinned notes stay here, and reminders for the next week show up too.</p>}
     </section>}
+    {id==='meals'&&!showQuick&&homeAvailable.includes('meals')&&<Suspense fallback={null}><MealPlan data={data} profileId={profile.id} today={today} save={save}/></Suspense>}
     {id==='todos'&&<>
     {/* A kid's own plan: the family to-dos their parent made for them, to tick off here. */}
     {!showQuick&&kidTodos.length>0&&<section className="wb-panel family-todos kid-todos" aria-label="Your to-dos"><h2>Your to-dos</h2><ul>{kidTodos.map(t=><li key={t.id}><span className="family-todo-row"><input type="checkbox" aria-label={t.title} checked={false} onChange={()=>tickKidTodo(t.id)}/><span className="family-todo-title">{t.title}</span>{t.due&&<small className="family-todo-day">{t.repeat?'🔁 ':''}{dateLabel(t.due)}</small>}</span></li>)}</ul></section>}

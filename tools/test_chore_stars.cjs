@@ -13,7 +13,7 @@ function load(relative){
 let passed=0
 const test=async(name,fn)=>{await fn();passed++;console.log('PASS '+name)}
 // Star chart (store/choreStars) and meals (store/meals): what a tick, an untick and a reward do.
-const model=load('src/store/model.ts'),stars=load('src/store/choreStars.ts'),{tickTodo}=load('src/store/familyTodos.ts')
+const model=load('src/store/model.ts'),stars=load('src/store/choreStars.ts'),meals=load('src/store/meals.ts'),{tickTodo}=load('src/store/familyTodos.ts')
 ;(async()=>{
 await test('a kid’s chore earns its stars on a tick, unticking takes them back, and a repeat earns on every turn',()=>{
  const data=model.createFreshData(),pid=data.activeProfileId
@@ -35,5 +35,25 @@ await test('a kid’s chore earns its stars on a tick, unticking takes them back
  assert.equal(stars.redeem(spent,'kid-a',{...saved.starRewards[0],cost:5}),null,'not enough stars')
  assert.equal(model.normalizeData({...saved,starLog:[...saved.starLog,{id:'x',profileId:pid,kidId:'gone',at:new Date().toISOString(),n:5,note:''}]}).starLog.length,3,'stars for a removed kid are dropped')
 })
-console.log(passed+'/1 star chart groups passed.')
+await test('dinners: set, replace and clear a day; groceries skip repeats, tick, and clear what’s bought',()=>{
+ let data=model.createFreshData();const pid=data.activeProfileId
+ data=meals.setDinner(data,pid,'2026-10-29','Tacos','2026-10-29')
+ data=meals.setDinner(data,pid,'2026-10-29','  Pasta ','2026-10-29')
+ assert.equal(meals.dinnerOn(data,pid,'2026-10-29').title,'Pasta');assert.equal(data.meals.length,1)
+ data={...data,meals:[...data.meals,{id:'old',profileId:pid,date:'2026-06-01',title:'Old',meal:'dinner'}]}
+ data=meals.setDinner(data,pid,'2026-10-30','Soup','2026-10-29')
+ assert.ok(!data.meals.some(m=>m.id==='old'),'two-month-old dinners are let go')
+ data=meals.setDinner(data,pid,'2026-10-29','','2026-10-29')
+ assert.equal(meals.dinnerOn(data,pid,'2026-10-29'),undefined,'an empty title clears the day')
+ data=meals.addGroceries(data,pid,'Milk, eggs\napples, milk,  ')
+ assert.equal(JSON.stringify(data.groceries.map(g=>g.title)),JSON.stringify(['Milk','eggs','apples']))
+ assert.equal(meals.addGroceries(data,pid,'MILK'),data,'already on the list')
+ data=meals.toggleGrocery(data,data.groceries[0].id)
+ assert.equal(meals.addGroceries(data,pid,'Milk').groceries.length,4,'bought milk can go back on')
+ data=meals.clearBought(data,pid)
+ assert.equal(JSON.stringify(data.groceries.map(g=>g.title)),JSON.stringify(['eggs','apples']))
+ const back=model.normalizeData(JSON.parse(JSON.stringify(data)))
+ assert.equal(back.meals.length,1);assert.equal(back.groceries.length,2,'they survive a save')
+})
+console.log(passed+'/2 star chart and meal groups passed.')
 })().catch(error=>{console.error('FAIL',error);process.exit(1)})
