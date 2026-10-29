@@ -563,6 +563,86 @@ test('Dinners & groceries: a dinner written on Home and groceries added and tick
  await waitFor(()=>{const d=cloud.users.alice.plan.data;return (d.meals??[]).some(m=>m.title==='Tacos')&&JSON.stringify((d.groceries??[]).map(g=>g.title))==='["eggs"]'},'the dinner and the list reach the account')
 })
 
+test('Planner: adding to a day offers last week’s events on that weekday, and an event can be deleted from its editor',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ const iso=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')}
+ plan.calendarEvents.push({id:'ev-last',profileId:pid,date:iso(-7),title:'Soccer practice',kind:'activity',time:'16:00',endTime:'17:30',notes:'',done:false,kidId:'kid-emma',location:'Field 3'},
+  {id:'ev-today',profileId:pid,date:iso(0),title:'Dentist',kind:'appointment',time:'09:00',endTime:'10:00',notes:'',done:false})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ await go(page,'Planner')
+ await page.getByRole('button',{name:'Day',exact:true}).click()
+ await page.getByRole('button',{name:/^Add at 12:00 PM on /}).first().click()
+ const same=page.getByRole('group',{name:/Same as a past/})
+ await same.getByRole('button',{name:/Soccer practice/}).click()
+ await page.getByRole('dialog').getByRole('button',{name:'Add',exact:true}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.some(e=>e.date===iso(0)&&e.title==='Soccer practice'&&e.time==='16:00'&&e.endTime==='17:30'&&e.location==='Field 3'&&e.kidId==='kid-emma'),'last week’s soccer, same times, place and kid, lands today')
+ await page.getByRole('button',{name:'Dentist',exact:true}).first().click()
+ await page.getByRole('button',{name:'🗑 Delete'}).click()
+ await page.getByText('Moved “Dentist” to Trash.').waitFor()
+ await waitFor(()=>!cloud.users.alice.plan.data.calendarEvents.some(e=>e.id==='ev-today'),'the dentist is gone from the account')
+})
+
+test('Notes: tap a note’s title to change its text right on the board, and paper swatches show their colors',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,first=plan.notes[0].title
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ await page.getByRole('button',{name:'Edit text: '+first}).click()
+ await page.getByLabel('Note title').fill('Return iPhone at UPS')
+ await page.getByLabel('Note text').fill('Before Friday')
+ await page.getByRole('button',{name:'Done',exact:true}).click()
+ await page.getByRole('button',{name:'Edit text: Return iPhone at UPS'}).waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.notes.some(n=>n.title==='Return iPhone at UPS'&&n.body==='Before Friday'),'the change reaches the account')
+ await page.getByRole('button',{name:'＋ Note'}).click()
+ const blue=page.getByRole('button',{name:'Paper Blue'})
+ assert.equal(await blue.evaluate(b=>getComputedStyle(b).backgroundColor),'rgb(217, 239, 255)')
+ await blue.click();assert.equal(await blue.getAttribute('aria-pressed'),'true')
+})
+
+test('Kids: you, also listed as a kid, can be merged back into Me',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.kids.push({id:'kid-me',profileId:pid,name:plan.profiles[0].name,color:'#888'})
+ plan.calendarEvents.push({id:'ev-both',profileId:pid,date:'2026-11-02',title:'Dinner out',kind:'personal',notes:'',done:false,kidId:'kid-me',kidIds:['kid-me','kid-emma']})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ await go(page,'Kids')
+ await page.getByRole('button',{name:'Merge into me'}).click()
+ await waitFor(()=>{const d=cloud.users.alice.plan.data,e=d.calendarEvents.find(x=>x.id==='ev-both');return !d.kids.some(k=>k.id==='kid-me')&&e.kidId==='kid-emma'&&!e.kidIds},'merged: the kid is gone and Emma keeps the dinner')
+ assert.equal(await page.getByRole('button',{name:'Merge into me'}).count(),0)
+})
+
+test('Planner › Kids view: picture day per person, a routine earns a star, a sticker lands on the month, sleeps until a birthday, and the timer runs',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ const iso=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')}
+ plan.calendarEvents.push({id:'k1',profileId:pid,date:iso(0),title:'Soccer practice',kind:'sports',time:'23:30',notes:'',done:false,kidId:'kid-emma',location:'Field 3'})
+ plan.specialDays=[{id:'s1',profileId:pid,kind:'birthday',title:'Emma',date:'2018-'+iso(3).slice(5),kidId:'kid-emma'}]
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ await go(page,'Planner')
+ await page.getByRole('button',{name:'🧸 Kids'}).click()
+ const view=page.getByRole('region',{name:'Kids view'})
+ await view.getByText('3 sleeps').waitFor()
+ const emma=view.getByRole('article',{name:'Emma’s day'})
+ await emma.getByRole('button',{name:/Soccer practice/}).first().waitFor()
+ await emma.getByRole('button',{name:'＋ Routine'}).click()
+ await emma.getByRole('button',{name:'🌙 Bedtime'}).click()
+ for(const step of ['Bath','Brush teeth','Pajamas','Story','Lights out'])await emma.getByRole('button',{name:step,exact:true}).click()
+ await emma.getByText(/Bedtime done! \+1⭐/).waitFor()
+ await emma.getByLabel('1 stars').waitFor()
+ await waitFor(()=>(cloud.users.alice.plan.data.starLog??[]).some(e=>e.kidId==='kid-emma'&&e.n===1),'the star reaches the account')
+ await emma.getByRole('group',{name:/Sticker for Emma/}).getByRole('button',{name:'🏆'}).click()
+ await waitFor(()=>(cloud.users.alice.plan.data.dayStickers??[]).some(x=>x.kidId==='kid-emma'&&x.emoji==='🏆'),'the sticker is saved')
+ await view.getByRole('button',{name:'⏳ Timer'}).click()
+ const timer=page.getByRole('dialog',{name:'Timer'})
+ await timer.getByRole('button',{name:'1 min'}).click()
+ await timer.getByRole('timer').waitFor()
+ await timer.getByRole('button',{name:'Close timer'}).click()
+ await page.reload();await mainHeading(page).waitFor();await go(page,'Planner')
+ await page.getByRole('region',{name:'Kids view'}).waitFor() // remembered on this device
+ await page.getByRole('button',{name:'Month',exact:true}).click()
+ await page.getByLabel('Stickers: 🏆').first().waitFor()
+})
+
 test('keyboard: K-Quiz practice questions and flashcards keep focus inside, close with Escape, and return focus',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
  plan.settings.familyStudyTabs=true // alice has kids: a family plan shows the study pages only when asked
@@ -1853,7 +1933,7 @@ test('Share with a classmate: a student sends an exam from its editor to a conne
  await heading(page,'Sanctuary')
  assert.equal(await page.getByRole('region',{name:'Shared with you'}).count(),0,'nothing shared yet: no card')
  await go(page,'Exams')
- await page.locator('article').filter({hasText:'Cell biology test'}).first().getByRole('button',{name:'Edit'}).click()
+ await page.locator('article').filter({hasText:'Cell biology test'}).first().getByRole('button',{name:'✎ Edit'}).click()
  const editor=page.locator('dialog[open]')
  await editor.getByRole('button',{name:'Share with a classmate'}).click()
  const panel=editor.getByRole('region',{name:'Share with a classmate'})
@@ -2023,7 +2103,7 @@ test('Add from Siri or the share sheet, links and photos: /?add=… starts quick
  await chooser.waitFor({state:'detached'})
  const row=()=>page.locator('article.cozy-task-row').filter({hasText:'Lab report'}).first()
  assert.equal(await row().getByRole('link',{name:'🔗 Open link'}).getAttribute('href'),'https://docs.google.com/document/d/kono-test')
- await row().getByRole('button',{name:'Edit'}).click()
+ await row().getByRole('button',{name:'Lab report',exact:true}).click() // under Today, the title opens it
  const editor=page.locator('dialog[open]')
  assert.equal(await editor.getByLabel('Link (optional)').inputValue(),'https://docs.google.com/document/d/kono-test')
  await editor.locator('.assignment-photo-add input[type=file]').setInputFiles({name:'worksheet.png',mimeType:'image/png',buffer:PNG})
@@ -3466,7 +3546,7 @@ test('Two devices: each adds something while one is offline and nothing is lost 
   await editor.getByRole('button',{name:'Save',exact:true}).click();await editor.waitFor({state:'detached'})
   await a.page.locator('.planner-day-paper').getByRole('button',{name:'Next day'}).click()
   const onA=a.page.locator('.wb-family-event').filter({hasText:'Shared practice'}).first()
-  await onA.locator('summary',{hasText:'More actions'}).click();await onA.getByRole('button',{name:'Move to Trash'}).click()
+  await onA.getByLabel('More actions for Shared practice').click();await onA.getByRole('button',{name:'Move to Trash'}).click()
   await waitFor(()=>!cloud.users.alice.plan.data.calendarEvents.some(e=>e.id==='e-shared'),'A’s delete never reached the account')
   await b.context.setOffline(false)
   await b.page.evaluate(()=>window.dispatchEvent(new Event('online')))
@@ -4386,7 +4466,7 @@ test('Round 50: several lines in ＋ Add at once; an event typed again takes las
  const sat=page.locator('.wb-agenda-day').filter({hasText:'Oct 18, 2026'}).filter({hasText:'Swim lesson'})
  await sat.locator('summary').first().click()
  const tile=sat.locator('article, .wb-family-event').filter({hasText:'Swim lesson'}).first()
- await tile.getByText('More actions').click()
+ await tile.getByLabel('More actions for Swim lesson').click()
  await tile.getByRole('button',{name:'Delete this and the ones after'}).click()
  await page.getByRole('dialog',{name:'Confirm change'}).getByRole('button',{name:'Confirm'}).click()
  await waitFor(()=>swim()==='2026-10-16,2026-10-17','deleting from Oct 18 on kept the wrong dates')

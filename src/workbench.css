@@ -304,7 +304,7 @@ html[data-theme] .brand:has(.kono-weather-chip):after,html[data-theme] .sidebar:
 .people-filter{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
 .workbench .people-filter button{display:inline-flex;align-items:center;gap:7px;padding:6px 12px!important;min-height:34px;border-radius:999px!important;border:1.5px solid var(--kid-color)!important;background:color-mix(in srgb,var(--kid-color) 16%,var(--wb-surface,#fff))!important;color:inherit!important;box-shadow:none!important;font-weight:700}
 .workbench .people-filter button i{width:10px;height:10px;border-radius:50%;background:var(--kid-color)}
-.workbench .people-filter button[aria-pressed=false]{background:transparent!important;border-style:dashed!important;opacity:.55;text-decoration:line-through}
+.workbench .people-filter button[aria-pressed=false]{background:transparent!important;border-style:dashed!important;opacity:.45;filter:grayscale(.6)}
 .workbench .people-filter button[aria-pressed=false] i{background:transparent;border:1.5px solid var(--kid-color)}
 .wb-agenda-day-meta{display:flex;align-items:center;gap:10px}
 .quick-add-kid-event{min-height:30px;padding:2px 10px;border-radius:10px;border:1px solid var(--wb-line);background:var(--wb-surface);font-weight:600;font-size:.8rem}

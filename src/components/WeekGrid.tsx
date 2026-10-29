@@ -51,6 +51,10 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
  useEffect(()=>{const el=body.current;if(!el||firstStart===null)return;const at=(firstStart/60-first)*HOUR;if(at>el.clientHeight-HOUR)el.scrollTop=Math.max(0,at-HOUR/2)
  // eslint-disable-next-line react-hooks/exhaustive-deps -- only when a different week opens
  },[days[0],days.length])
+ // On a phone the week scrolls sideways: open it on the chosen day (today, at first), not on Sunday.
+ useEffect(()=>{const col=columns.current.get(selected),sc=col?.closest('.week-grid-scroll.is-wide') as HTMLElement|null;if(!col||!sc)return
+  const left=col.getBoundingClientRect().left-sc.getBoundingClientRect().left+sc.scrollLeft-56;if(left<sc.scrollLeft||left+col.offsetWidth>sc.scrollLeft+sc.clientWidth)sc.scrollLeft=Math.max(0,left)
+ },[selected,days.length])
  // A clock tick each minute moves the red "now" line down today's column.
  const [,setTick]=useState(0)
  useEffect(()=>{const t=window.setInterval(()=>setTick(n=>n+1),60000);return()=>window.clearInterval(t)},[])

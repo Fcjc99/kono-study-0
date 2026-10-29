@@ -1,4 +1,5 @@
-import type {Remembered} from './store/eventMemory'
+import type {Remembered,Repeatable} from './store/eventMemory'
+import RepeatSuggestions from './components/RepeatSuggestions'
 import {classTime} from './store/classSchedule'
 import {useState,type CSSProperties,type FormEvent,type ReactNode} from 'react'
 import Modal from './components/Modal'
@@ -21,7 +22,7 @@ const QUICK_KIND_OPTIONS=[['sports','Sports'],['lesson','Lesson'],['appointment'
 // quickAddFamilyEvent) rather than opening the full EntryEditor.
 export type QuickFamilyPayload={location?:string;travelMinutes?:number;title:string;kind:CalendarEventKind;kidIds:string[];time?:string;endTime?:string;driver?:string;repeatDays:number[];until:string}
 const WEEKDAY_LETTERS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-export function QuickFamilyAdd({kids,time:startAt,endAt,date,until:defaultUntil,drivers=[],clashes,recall,onCancel,onSave}:{recall?:(title:string)=>Remembered|undefined;kids:Kid[];time?:string;endAt?:string;date?:string;until?:string;drivers?:string[];clashes?:(payload:QuickFamilyPayload)=>{date:string;text:string}[];onCancel:()=>void;onSave:(payload:QuickFamilyPayload)=>Promise<void>}){
+export function QuickFamilyAdd({kids,time:startAt,endAt,date,until:defaultUntil,drivers=[],clashes,recall,repeats=[],onCancel,onSave}:{recall?:(title:string)=>Remembered|undefined;repeats?:Repeatable[];kids:Kid[];time?:string;endAt?:string;date?:string;until?:string;drivers?:string[];clashes?:(payload:QuickFamilyPayload)=>{date:string;text:string}[];onCancel:()=>void;onSave:(payload:QuickFamilyPayload)=>Promise<void>}){
  // Repeats: the same weekday as the date by default, through the end of the school year.
  const [repeatDays,setRepeatDays]=useState<number[]>([]),[until,setUntil]=useState(defaultUntil??''),[driver,setDriver]=useState('')
  const toggleDay=(d:number)=>setRepeatDays(v=>v.includes(d)?v.filter(x=>x!==d):[...v,d].sort())
@@ -30,12 +31,14 @@ export function QuickFamilyAdd({kids,time:startAt,endAt,date,until:defaultUntil,
  const [place,setPlace]=useState<{location?:string;travelMinutes?:number}>({}),[usedFor,setUsedFor]=useState('')
  const memory=title.trim()&&usedFor!==title.trim().toLowerCase()?recall?.(title):undefined
  const useMemory=()=>{if(!memory)return;setUsedFor(title.trim().toLowerCase());if(memory.time)setTime(memory.time);setEndTime(memory.endTime??'');if(memory.kidIds.length)setKidIds(memory.kidIds.filter(id=>kids.some(k=>k.id===id)));setKind(memory.kind);if(memory.driver)setDriver(memory.driver);setPlace({...(memory.location?{location:memory.location}:{}),...(memory.travelMinutes?{travelMinutes:memory.travelMinutes}:{})})}
+ const repeat=(r:Repeatable)=>{setTitle(r.title);setUsedFor(r.title.trim().toLowerCase());setTime(r.time??'');setEndTime(r.endTime??'');setKidIds(r.kidIds.filter(id=>kids.some(k=>k.id===id)));setKind(r.kind);setDriver(r.driver??'');setPlace({...(r.location?{location:r.location}:{}),...(r.travelMinutes?{travelMinutes:r.travelMinutes}:{})})}
  const submit=async(e:FormEvent)=>{
   e.preventDefault();if(busy||!title.trim())return
   setBusy(true);setError('')
   try{await onSave({title:title.trim(),kind,kidIds,time:time||undefined,endTime:endTime||undefined,driver:driver.trim()||undefined,repeatDays,until,...place})}catch(e){setError(e instanceof Error?e.message:'Could not save.')}finally{setBusy(false)}
  }
  return <form onSubmit={submit} className="quick-family-add"><fieldset disabled={busy}>
+  {!title.trim()&&date&&<RepeatSuggestions list={repeats} date={date} onPick={repeat}/>}
   <fieldset className="whose-pick"><legend>Who’s it for?</legend><label><input type="checkbox" checked={!kidIds.length} onChange={()=>setKidIds([])}/> Me / whole family</label>{kids.map(k=><label key={k.id}><input type="checkbox" checked={kidIds.includes(k.id)} onChange={()=>setKidIds(ids=>ids.includes(k.id)?ids.filter(x=>x!==k.id):[...ids,k.id])}/> {(k.emoji?k.emoji+' ':'')+k.name}</label>)}</fieldset>
   <label>Type<select value={kind} onChange={e=>setKind(e.target.value as CalendarEventKind)}>{QUICK_KIND_OPTIONS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
   <label>What is it?<input required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Soccer practice, Dentist, Work shift…"/></label>

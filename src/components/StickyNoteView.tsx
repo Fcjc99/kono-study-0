@@ -1,4 +1,4 @@
-import type {CSSProperties} from 'react'
+import {useState,type CSSProperties,type FocusEvent} from 'react'
 import SafeNoteBody from './SafeNoteBody'
 
 /** A note or exam drawn as a sticky note (Notes, Exams and Home's Notes & reminders). Loaded with the first
@@ -23,9 +23,15 @@ type StickyNoteViewProps={
   onDelete?:()=>void
   onTogglePin?:()=>void
   onToggleComplete?:()=>void
+  /** Tap the title or text to change them right on the note; saved when you tap away. */
+  onQuickEdit?:(changes:{title:string;body:string})=>void
 }
 
-export default function StickyNoteView({kind,color,textColor,font='rounded',pinned=false,completed=false,pinIndex=0,subject='Subject',subjectGlyph='•',title,body='',highlight='transparent',dateLabel,countdown,sourceLabel,onEdit,onDelete,onTogglePin,onToggleComplete}:StickyNoteViewProps){
+export default function StickyNoteView({kind,color,textColor,font='rounded',pinned=false,completed=false,pinIndex=0,subject='Subject',subjectGlyph='•',title,body='',highlight='transparent',dateLabel,countdown,sourceLabel,onEdit,onDelete,onTogglePin,onToggleComplete,onQuickEdit}:StickyNoteViewProps){
+ const [draft,setDraft]=useState<{title:string;body:string}|null>(null)
+ const open=()=>{if(onQuickEdit&&!draft)setDraft({title,body})}
+ const finish=()=>{if(draft&&onQuickEdit&&draft.title.trim()&&(draft.title!==title||draft.body!==body))onQuickEdit({title:draft.title.trim().slice(0,200),body:draft.body});setDraft(null)}
+ const leave=(e:FocusEvent<HTMLFormElement>)=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))finish()}
  const preview=kind.startsWith('preview')
  const exam=kind.includes('exam')
  return <article className={`kono-sticky sticky-note-system kono-sticky-${preview?'preview':'full'} kono-sticky-${exam?'exam':'note'} note-font-${font} ${pinned?'is-pinned':''} ${completed?'is-complete':''}`} style={{'--paper':color,'--ink':textColor,color:textColor} as CSSProperties}>
@@ -34,8 +40,14 @@ export default function StickyNoteView({kind,color,textColor,font='rounded',pinn
   {onDelete&&<button type="button" className="kono-sticky-delete" aria-label={`Delete ${exam?'exam':'note'}`} onClick={onDelete}>×</button>}
   <span className="kono-sticky-subject"><b>{subjectGlyph}</b>{subject}</span>
   {exam&&typeof countdown==='number'&&<div className="kono-countdown"><b>{countdown}</b><small>days</small></div>}
-  <h3>{title}</h3>
-  {body.trim()&&<div className="kono-sticky-body" style={{background:highlight}} ><SafeNoteBody text={body}/></div>}
+  {draft?<form className="kono-sticky-quick" onBlur={leave} onSubmit={e=>{e.preventDefault();finish()}} onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();setDraft(null)}}}>
+   <input aria-label="Note title" value={draft.title} maxLength={200} autoFocus onChange={e=>setDraft({...draft,title:e.target.value})}/>
+   <textarea aria-label="Note text" rows={4} value={draft.body} maxLength={100000} placeholder="Write something…" onChange={e=>setDraft({...draft,body:e.target.value})}/>
+   <button type="submit">Done</button>
+  </form>:<>
+  <h3>{onQuickEdit?<button type="button" className="kono-sticky-quick-open" aria-label={'Edit text: '+title} onClick={open}>{title}</button>:title}</h3>
+  {body.trim()?<div className="kono-sticky-body" style={{background:highlight}} onClick={onQuickEdit?e=>{if(!(e.target as HTMLElement).closest('a'))open()}:undefined}><SafeNoteBody text={body}/></div>
+  :onQuickEdit&&<button type="button" className="kono-sticky-quick-add" onClick={open}>＋ Add text</button>}</>}
   <footer className="kono-sticky-footer">
    <span>{dateLabel||sourceLabel||(pinned?'Pinned note':exam?'Upcoming exam':'Study note')}</span>
    <div className="kono-sticky-actions">
