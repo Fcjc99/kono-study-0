@@ -55,5 +55,28 @@ await test('dinners: set, replace and clear a day; groceries skip repeats, tick,
  const back=model.normalizeData(JSON.parse(JSON.stringify(data)))
  assert.equal(back.meals.length,1);assert.equal(back.groceries.length,2,'they survive a save')
 })
-console.log(passed+'/2 star chart and meal groups passed.')
+await test('you, also listed as a kid: found by first name, and merged back into Me without losing anyone else',()=>{
+ const sk=load('src/store/selfKid.ts'),data=model.createFreshData(),pid=data.activeProfileId
+ data.profiles[0].name='Jeffrey Chang'
+ data.kids.push({id:'kid-j',profileId:pid,name:'Jeffrey',color:'#888'},{id:'kid-s',profileId:pid,name:'Sylvie',color:'#e0607a'})
+ assert.equal(sk.selfKid(data,data.profiles[0]).id,'kid-j')
+ data.calendarEvents.push({id:'e1',profileId:pid,date:'2026-10-29',title:'Dinner',kind:'personal',notes:'',done:false,kidId:'kid-j',kidIds:['kid-j','kid-s']},{id:'e2',profileId:pid,date:'2026-10-29',title:'Gym',kind:'personal',notes:'',done:false,kidId:'kid-j'},{id:'e3',profileId:pid,date:'2026-10-29',title:'Ballet',kind:'personal',notes:'',done:false,kidId:'kid-s',kidIds:['kid-s','kid-j']})
+ data.daysOff=[{id:'d1',profileId:pid,date:'2026-10-30',kidIds:['kid-j'],reason:'sick'},{id:'d2',profileId:pid,date:'2026-10-31',kidIds:['kid-j','kid-s'],reason:'off'}]
+ const out=model.normalizeData(JSON.parse(JSON.stringify(sk.mergeSelfKid(data,'kid-j'))))
+ const ev=id=>out.calendarEvents.find(e=>e.id===id)
+ assert.equal(ev('e1').kidId,'kid-s','Sylvie keeps her dinner');assert.equal(ev('e1').kidIds,undefined)
+ assert.equal(ev('e2').kidId,undefined,'Gym is yours now');assert.equal(ev('e3').kidId,'kid-s')
+ assert.equal(JSON.stringify(out.daysOff.map(d=>[d.id,d.kidIds])),JSON.stringify([['d2',['kid-s']]]),'a sick day just for you goes; a shared day off stays for Sylvie')
+ assert.equal(out.kids.length,1);assert.equal(sk.selfKid(out,out.profiles[0]),undefined)
+ data.profiles.push({...data.profiles[0],id:'p-kid',kidId:'kid-j'})
+ assert.equal(sk.selfKid(data,data.profiles[0]),undefined,'not when that kid has a plan of their own')
+})
+await test('adding to a day: last weeks’ events on that weekday, newest first, one per name, none already there',()=>{
+ const mem=load('src/store/eventMemory.ts'),pid='p'
+ const ev=(id,date,title,time)=>({id,profileId:pid,date,title,kind:'activity',notes:'',done:false,...(time?{time}:{})})
+ const data={calendarEvents:[ev('a','2026-10-22','Soccer','16:00'),ev('b','2026-10-15','soccer','15:00'),ev('c','2026-10-15','Piano','18:00'),ev('d','2026-10-29','Piano','18:00'),ev('e','2026-10-21','Art','10:00'),{...ev('f','2026-10-22','Gym','07:00'),profileId:'other'}]}
+ const out=mem.sameWeekdayBefore(data,pid,'2026-10-29')
+ assert.equal(JSON.stringify(out.map(r=>[r.title,r.time])),JSON.stringify([['Soccer','16:00']]),'Piano is already on the day; a Wednesday and another plan’s event don’t count')
+})
+console.log(passed+'/4 star chart, meal, family and calendar groups passed.')
 })().catch(error=>{console.error('FAIL',error);process.exit(1)})

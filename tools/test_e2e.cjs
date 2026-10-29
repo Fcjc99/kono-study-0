@@ -563,6 +563,54 @@ test('Dinners & groceries: a dinner written on Home and groceries added and tick
  await waitFor(()=>{const d=cloud.users.alice.plan.data;return (d.meals??[]).some(m=>m.title==='Tacos')&&JSON.stringify((d.groceries??[]).map(g=>g.title))==='["eggs"]'},'the dinner and the list reach the account')
 })
 
+test('Planner: adding to a day offers last week’s events on that weekday, and an event can be deleted from its editor',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ const iso=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')}
+ plan.calendarEvents.push({id:'ev-last',profileId:pid,date:iso(-7),title:'Soccer practice',kind:'activity',time:'16:00',endTime:'17:30',notes:'',done:false,kidId:'kid-emma',location:'Field 3'},
+  {id:'ev-today',profileId:pid,date:iso(0),title:'Dentist',kind:'appointment',time:'09:00',endTime:'10:00',notes:'',done:false})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ await go(page,'Planner')
+ await page.getByRole('button',{name:'Day',exact:true}).click()
+ await page.getByRole('button',{name:/^Add at 12:00 PM on /}).first().click()
+ const same=page.getByRole('group',{name:/Same as a past/})
+ await same.getByRole('button',{name:/Soccer practice/}).click()
+ await page.getByRole('dialog').getByRole('button',{name:'Add',exact:true}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.some(e=>e.date===iso(0)&&e.title==='Soccer practice'&&e.time==='16:00'&&e.endTime==='17:30'&&e.location==='Field 3'&&e.kidId==='kid-emma'),'last week’s soccer, same times, place and kid, lands today')
+ await page.getByRole('button',{name:'Dentist',exact:true}).first().click()
+ await page.getByRole('button',{name:'🗑 Delete'}).click()
+ await page.getByText('Moved “Dentist” to Trash.').waitFor()
+ await waitFor(()=>!cloud.users.alice.plan.data.calendarEvents.some(e=>e.id==='ev-today'),'the dentist is gone from the account')
+})
+
+test('Notes: tap a note’s title to change its text right on the board, and paper swatches show their colors',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,first=plan.notes[0].title
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ await page.getByRole('button',{name:'Edit text: '+first}).click()
+ await page.getByLabel('Note title').fill('Return iPhone at UPS')
+ await page.getByLabel('Note text').fill('Before Friday')
+ await page.getByRole('button',{name:'Done',exact:true}).click()
+ await page.getByRole('button',{name:'Edit text: Return iPhone at UPS'}).waitFor()
+ await waitFor(()=>cloud.users.alice.plan.data.notes.some(n=>n.title==='Return iPhone at UPS'&&n.body==='Before Friday'),'the change reaches the account')
+ await page.getByRole('button',{name:'＋ Note'}).click()
+ const blue=page.getByRole('button',{name:'Paper Blue'})
+ assert.equal(await blue.evaluate(b=>getComputedStyle(b).backgroundColor),'rgb(217, 239, 255)')
+ await blue.click();assert.equal(await blue.getAttribute('aria-pressed'),'true')
+})
+
+test('Kids: you, also listed as a kid, can be merged back into Me',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.kids.push({id:'kid-me',profileId:pid,name:plan.profiles[0].name,color:'#888'})
+ plan.calendarEvents.push({id:'ev-both',profileId:pid,date:'2026-11-02',title:'Dinner out',kind:'personal',notes:'',done:false,kidId:'kid-me',kidIds:['kid-me','kid-emma']})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ await go(page,'Kids')
+ await page.getByRole('button',{name:'Merge into me'}).click()
+ await waitFor(()=>{const d=cloud.users.alice.plan.data,e=d.calendarEvents.find(x=>x.id==='ev-both');return !d.kids.some(k=>k.id==='kid-me')&&e.kidId==='kid-emma'&&!e.kidIds},'merged: the kid is gone and Emma keeps the dinner')
+ assert.equal(await page.getByRole('button',{name:'Merge into me'}).count(),0)
+})
+
 test('keyboard: K-Quiz practice questions and flashcards keep focus inside, close with Escape, and return focus',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
  plan.settings.familyStudyTabs=true // alice has kids: a family plan shows the study pages only when asked

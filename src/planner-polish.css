@@ -169,3 +169,4 @@
 /* No frame around the day's list (matching Today's schedule); it still lights up as a drop target. */
 .planner-day-paper .planner-day-board{margin-top:10px;padding:0;border:0;background:none}
 .planner-day-paper .planner-day-board.drop-target{padding:6px}
+@media(max-width:700px){.planner-add-menu>div{box-sizing:border-box;max-width:100%}.planner-add-menu>div button{white-space:normal;min-width:0;width:100%;box-sizing:border-box}}
