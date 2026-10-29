@@ -1,0 +1,73 @@
+/* K-Quiz › Play (KQuizPlay): a full-screen game, one question at a time on big chunky tiles. */
+.kq-play{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;gap:14px;padding:max(14px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));overflow-y:auto;color:#fff;background:radial-gradient(120% 70% at 50% 0%,#5b3a86 0%,#3a2457 45%,#24163a 100%);font-size:16px}
+.kq-play button{font:inherit;cursor:pointer}
+.kq-play-top{display:flex;align-items:center;gap:10px;max-width:760px;width:100%;margin:0 auto}
+.kq-play-close{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:#ffffff1f;color:#fff;font-size:1.1rem}
+.kq-play-progress{flex:1;height:14px;border-radius:999px;background:#ffffff26;overflow:hidden}
+.kq-play-progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#7cf0b1,#3fd1a0);box-shadow:inset 0 -3px #0002;transition:width .4s cubic-bezier(.3,1.4,.5,1)}
+.kq-play-streak,.kq-play-coins{flex:none;position:relative;font-weight:800;padding:6px 10px;border-radius:999px;background:#ffffff1a}
+.kq-play-streak.is-hot{background:linear-gradient(#ff9a3c,#ff5f3c);animation:kq-hot 1s ease-in-out infinite alternate}
+.kq-play-hearts{flex:none;display:flex;gap:2px}.kq-play-hearts b{transition:filter .3s,transform .3s}.kq-play-hearts .is-lost{filter:grayscale(1) opacity(.35);transform:scale(.8)}
+.kq-play-gain{position:absolute;right:4px;top:-6px;font-style:normal;color:#ffe066;font-weight:900;animation:kq-gain .9s ease-out forwards;pointer-events:none}
+.kq-play-card{position:relative;max-width:760px;width:100%;margin:8px auto 0;padding:26px 22px 24px;border-radius:26px;background:#fff;color:#2b1d3a;box-shadow:0 10px 0 #0000002e,0 18px 40px #0005;animation:kq-in .35s cubic-bezier(.3,1.4,.5,1)}
+.kq-play-count{display:block;font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem;color:#8a6aa8;margin-bottom:8px}
+.kq-play-prompt{margin:0;font-size:clamp(1.25rem,4.6vw,1.8rem);line-height:1.25;padding-right:64px}
+.kq-play-kono{display:grid;place-items:center}
+.kq-play-kono.is-small{position:absolute;right:12px;top:-26px}
+.kq-play-tiles{max-width:760px;width:100%;margin:0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(max-width:520px){.kq-play-tiles{grid-template-columns:1fr}}
+.kq-tile{display:flex;align-items:center;gap:12px;min-height:72px;padding:14px 16px;border:0;border-radius:18px;text-align:left;font-weight:700;font-size:1.05rem;color:#fff;box-shadow:0 6px 0 var(--edge);background:var(--face);transition:transform .08s,box-shadow .08s,opacity .2s;animation:kq-in .35s both}
+.kq-tile:nth-child(2){animation-delay:.04s}.kq-tile:nth-child(3){animation-delay:.08s}.kq-tile:nth-child(4){animation-delay:.12s}
+.kq-tile:active:not([aria-disabled=true]){transform:translateY(5px);box-shadow:0 1px 0 var(--edge)}
+.kq-tile.is-coral{--face:#ff6b7f;--edge:#c9455a}.kq-tile.is-sky{--face:#4aa8ff;--edge:#2b78c4}.kq-tile.is-mint{--face:#2fc79a;--edge:#1f9473}.kq-tile.is-sun{--face:#ffb43c;--edge:#c8821c}
+.kq-tile-key{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:#ffffff33;font-size:.9rem}
+.kq-tile.is-right{--face:#2fd08a;--edge:#1b9a63;animation:kq-pop .45s cubic-bezier(.3,1.6,.5,1)}
+.kq-tile.is-right .kq-tile-key::after{content:'✓'}.kq-tile.is-right .kq-tile-key{font-size:0}.kq-tile.is-right .kq-tile-key::after{font-size:1rem}
+.kq-tile.is-wrong{--face:#ff4d5e;--edge:#b52e3d;animation:kq-shake .4s}
+.kq-tile.is-dim{opacity:.45}
+.kq-play-written{max-width:760px;width:100%;margin:0 auto;display:grid;gap:10px}
+.kq-play-written textarea{border-radius:16px;border:0;padding:14px;font:inherit;color:#2b1d3a}
+.kq-play-model{margin:0;padding:14px;border-radius:16px;background:#ffffff1f}
+.kq-play-grade{display:flex;gap:10px}.kq-play-grade button{flex:1;min-height:52px;border:0;border-radius:14px;color:#fff;font-weight:800}
+.kq-play-grade .is-right{background:#2fd08a;box-shadow:0 5px 0 #1b9a63}.kq-play-grade .is-wrong{background:#ff4d5e;box-shadow:0 5px 0 #b52e3d}
+.kq-play-written .primary{min-height:52px;border-radius:14px}
+.kq-play-feedback{position:sticky;bottom:0;margin:auto -16px calc(-1 * max(16px,env(safe-area-inset-bottom)));padding:16px 16px max(16px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:12px;justify-content:space-between;animation:kq-up .3s cubic-bezier(.3,1.3,.5,1)}
+.kq-play-feedback>div{display:grid;gap:2px;max-width:600px}
+.kq-play-feedback strong{font-size:1.25rem}
+.kq-play-feedback.is-right{background:#d7ffe9;color:#126d45}.kq-play-feedback.is-wrong{background:#ffe1e4;color:#a1192b}
+.kq-play-feedback button{flex:none;min-height:52px;min-width:140px;border:0;border-radius:16px;color:#fff;font-weight:900;font-size:1.05rem}
+.kq-play-feedback.is-right button{background:#22b874;box-shadow:0 5px 0 #168650}.kq-play-feedback.is-wrong button{background:#e8384b;box-shadow:0 5px 0 #a8202f}
+.kq-play-end{max-width:520px;width:100%;margin:auto;display:grid;justify-items:center;gap:14px;text-align:center;animation:kq-in .4s}
+.kq-play-end h2{margin:0;font-size:2rem}
+.kq-play-ring{--pct:0;width:150px;height:150px;border-radius:50%;display:grid;place-content:center;background:radial-gradient(closest-side,#2f1f48 78%,transparent 79% 100%),conic-gradient(#7cf0b1 calc(var(--pct)*1%),#ffffff26 0)}
+.kq-play-ring strong{font-size:2rem}.kq-play-ring small{opacity:.8}
+.kq-play-stats{list-style:none;margin:0;padding:0;display:flex;gap:12px}.kq-play-stats li{display:grid;gap:2px;padding:12px 18px;border-radius:16px;background:#ffffff1a}.kq-play-stats b{font-size:1.3rem}
+.kq-play-missed{width:100%;text-align:left;padding:12px 14px;border-radius:16px;background:#ffffff14}.kq-play-missed ul{margin:8px 0 0;padding-left:18px;display:grid;gap:8px}.kq-play-missed span{display:block;opacity:.85}
+.kq-play-end-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.kq-play-end-actions button{min-height:50px;padding:0 20px;border:0;border-radius:14px;background:#ffffff26;color:#fff;font-weight:800}
+.kq-play-end-actions .primary{background:#2fd08a;box-shadow:0 5px 0 #1b9a63}
+@keyframes kq-in{from{opacity:0;transform:translateY(14px) scale(.97)}}
+@keyframes kq-pop{40%{transform:scale(1.06)}}
+@keyframes kq-shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+@keyframes kq-up{from{transform:translateY(100%)}}
+@keyframes kq-gain{to{transform:translateY(-26px);opacity:0}}
+@keyframes kq-hot{to{box-shadow:0 0 14px #ff8a3c}}
+html[data-motion=reduced] .kq-play *{animation:none!important;transition:none!important}
+@media(prefers-reduced-motion:reduce){.kq-play *{animation:none!important;transition:none!important}}
+/* The app's global button and heading styles are strong; the game keeps its own look. */
+.kq-play{z-index:2147483000}
+.kq-play :is(h2,strong,b):not(#x){color:inherit}
+.kq-play-end h2:not(#x){color:#fff}
+.kq-play .kq-tile:not(#x):not(#y){background:var(--face)!important;color:#fff!important;border:0!important;box-shadow:0 6px 0 var(--edge)!important;border-radius:18px!important;min-height:72px!important;font-weight:700!important}
+.kq-play .kq-tile:not(#x):not(#y):active:not([aria-disabled=true]){transform:translateY(5px)!important;box-shadow:0 1px 0 var(--edge)!important}
+.kq-play .kq-tile.is-dim:not(#x){opacity:.45}
+.kq-play .kq-play-close:not(#x){background:#ffffff1f!important;color:#fff!important;border:0!important;box-shadow:none!important;min-height:0!important}
+.kq-play .kq-play-feedback button:not(#x):not(#y){color:#fff!important;border:0!important;border-radius:16px!important;min-height:52px!important}
+.kq-play .kq-play-feedback.is-right button:not(#x):not(#y){background:#22b874!important;box-shadow:0 5px 0 #168650!important}
+.kq-play .kq-play-feedback.is-wrong button:not(#x):not(#y){background:#e8384b!important;box-shadow:0 5px 0 #a8202f!important}
+.kq-play .kq-play-end-actions button:not(#x):not(#y){background:#ffffff26!important;color:#fff!important;border:0!important;box-shadow:none!important}
+.kq-play .kq-play-end-actions .primary:not(#x):not(#y){background:#2fd08a!important;box-shadow:0 5px 0 #1b9a63!important}
+.kq-play .kq-play-grade .is-right:not(#x):not(#y){background:#2fd08a!important;color:#fff!important;box-shadow:0 5px 0 #1b9a63!important;border:0!important}
+.kq-play .kq-play-grade .is-wrong:not(#x):not(#y){background:#ff4d5e!important;color:#fff!important;box-shadow:0 5px 0 #b52e3d!important;border:0!important}
+.kq-play .kq-play-missed summary{color:#fff}
+body:has(.kq-play) .save-toast:not(.is-problem){display:none!important}

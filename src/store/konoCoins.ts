@@ -88,6 +88,20 @@ export function blastEvent(log:CareEvent[],today:string,lines:number,streak:numb
  return {id:blastPrefix(today)+k+'-'+now.getTime().toString(36),kind:'coin',at:now.toISOString(),item:'game:blast',n}
 }
 
+/** K-Quiz Play (components/KQuizPlay): each right answer earns coins, more on a streak (2, then 3 from a
+ * streak of 3, then 4 from 5), up to QUIZ_DAILY a day so studying pays without becoming a coin farm. */
+export const QUIZ_DAILY=60
+export const quizCoins=(streak:number)=>streak>=5?4:streak>=3?3:2
+const quizPrefix=(today:string)=>'quiz-'+today+'-'
+export const quizToday=(log:CareEvent[],today:string)=>log.filter(e=>e.kind==='coin'&&e.id.startsWith(quizPrefix(today))).reduce((n,e)=>n+(e.n??0),0)
+/** The entry for a right answer's coins (less if it would pass today's limit), or null once the limit is reached. */
+export function quizEvent(log:CareEvent[],today:string,streak:number,now:Date):CareEvent|null{
+ const n=Math.min(quizCoins(streak),QUIZ_DAILY-quizToday(log,today))
+ if(n<=0)return null
+ const k=log.filter(e=>e.id.startsWith(quizPrefix(today))).length+1
+ return {id:quizPrefix(today)+k+'-'+now.getTime().toString(36),kind:'coin',at:now.toISOString(),item:'game:quiz',n}
+}
+
 /** Something has happened! About every other day a little surprise turns up on the island: a few coins to
  * collect. Which days (and what) is worked out from the plan and the date, so every device agrees. */
 export type Surprise={text:string;n:number;emoji:string}

@@ -444,4 +444,19 @@ test('KONO.io team battle: four a side, a team shares its land, teammates cross 
  for(let k=0;k<P.TEAM_TICKS;k++)P.tick(c)
  const t=P.teamShares(c);assert.ok(t.get(1)+t.get(2)<=100.0001&&t.get(1)+t.get(2)>3,'both teams hold land ('+t.get(1).toFixed(1)+' / '+t.get(2).toFixed(1)+')')
 })
+test('K-Quiz Play: 2 coins a right answer, more on a streak, up to 60 a day; a round mixes questions and flashcards',()=>{
+ const today='2026-10-29',now=new Date('2026-10-29T15:00:00')
+ assert.deepEqual([1,3,5].map(coins.quizCoins),[2,3,4])
+ let log=[]
+ for(let k=0;k<40;k++){const e=coins.quizEvent(log,today,5,now);if(!e)break;log=[...log,e]}
+ assert.equal(coins.quizToday(log,today),coins.QUIZ_DAILY,'the daily limit');assert.equal(coins.quizEvent(log,today,5,now),null)
+ assert.equal(coinBalance(0,log),60,'quiz coins count in the purse');assert.equal(new Set(log.map(e=>e.id)).size,log.length)
+ const {roundFrom}=load('src/store/kquizRound.ts')
+ const cards=['a','b','c','d','e'].map(x=>({id:x,question:'Q '+x,answer:'A '+x}))
+ const round=roundFrom([{id:'q1',type:'mcq',prompt:'P',choices:['x','y'],correctIndex:1},{id:'q2',type:'written',prompt:'W',answer:'M'}],cards,42)
+ assert.equal(round.length,7)
+ for(const q of round.filter(q=>q.id.startsWith('card-'))){assert.equal(q.choices.length,4);assert.equal(q.choices[q.correct],'A '+q.id.slice(5));assert.equal(new Set(q.choices).size,4)}
+ assert.equal(roundFrom([],cards.slice(0,3),1).length,0,'too few cards for wrong answers')
+ assert.equal(roundFrom([],Array.from({length:30},(_,i)=>({id:'c'+i,question:'q'+i,answer:'a'+i})),1).length,10,'ten a round')
+})
 console.log(passed+'/'+passed+' coin checks passed.')

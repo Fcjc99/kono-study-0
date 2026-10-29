@@ -496,6 +496,36 @@ test('KONO support can list every account, open one to add something for them, a
  assert.equal(await banner.count(),0)
 })
 
+test('K-Quiz Play: a study set as a game, right answers earn KONO coins, a wrong one costs a heart, and the round ends with a score',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.settings.familyStudyTabs=true
+ const mcq=(id,prompt,choices,correctIndex)=>({id,type:'mcq',prompt,choices,correctIndex})
+ plan.kquizSets=[{id:'set-play',profileId:pid,subjectId:'',title:'Cells (play)',createdAt:'2026-09-20T00:00:00Z',practiceTest:{questions:[mcq('p1','Powerhouse of the cell?',['Mitochondria','Nucleus','Ribosome','Golgi'],0),mcq('p2','Holds the DNA?',['Vacuole','Nucleus','Membrane','Cytoplasm'],1),mcq('p3','Makes proteins?',['Lysosome','Ribosome','Wall','Nucleolus'],1)]}}]
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ await go(page,'K-Quiz')
+ await page.getByRole('button',{name:/^Play \d+ questions/}).click()
+ const game=page.getByRole('dialog',{name:'Play: Cells (play)'})
+ await game.waitFor()
+ const answer=async right=>{const prompt=await game.locator('.kq-play-prompt').innerText(),key={'Powerhouse of the cell?':'Mitochondria','Holds the DNA?':'Nucleus','Makes proteins?':'Ribosome'}[prompt]
+  const tiles=game.getByRole('group',{name:'Answers'}).getByRole('button')
+  if(right)await tiles.filter({hasText:key}).click();else await tiles.filter({hasNotText:key}).first().click()
+  await game.getByRole('status').waitFor()
+  return game.getByRole('status').innerText()}
+ assert.match(await answer(true),/\+2 🪙/)
+ await game.getByRole('button',{name:'Continue'}).click()
+ assert.match(await answer(false),/Not quite[\s\S]*Answer:/)
+ assert.equal(await game.getByLabel('2 hearts left').count(),1,'a wrong answer costs a heart')
+ await game.getByRole('button',{name:'Continue'}).click()
+ await answer(true);await game.getByRole('button',{name:'Continue'}).click()
+ const end=game.getByRole('region',{name:'Round over'});await end.waitFor()
+ assert.match(await end.innerText(),/2\/3[\s\S]*4[\s\S]*coins earned/)
+ assert.match(await end.innerText(),/Look again at 1 question/)
+ await waitFor(()=>(cloud.users.alice.plan.data.konoCare?.[pid]?.log??[]).filter(e=>e.item==='game:quiz').reduce((n,e)=>n+e.n,0)===4,'the coins reach the account')
+ await end.getByRole('button',{name:'Done'}).click()
+ await game.waitFor({state:'detached'})
+})
+
 test('keyboard: K-Quiz practice questions and flashcards keep focus inside, close with Escape, and return focus',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
  plan.settings.familyStudyTabs=true // alice has kids: a family plan shows the study pages only when asked

@@ -48,3 +48,8 @@ button.kquiz-material-row:hover{border-color:var(--wb-accent)}
 .kquiz-choice{text-align:left;padding:10px 14px;border-radius:10px;border:2px solid var(--wb-line);background:var(--wb-surface);cursor:pointer;font-weight:600}
 .kquiz-choice.is-correct{border-color:#2f8f52;background:#c9f0d6;color:#1c5c34}
 .kquiz-choice.is-wrong{border-color:#c23b3b;background:#f9c9c9;color:#7d2323}
+/* A study set's Play button (KQuizPlay): the game, big and bright above the plain study rows. */
+.kquiz-play-button{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 10px;padding:14px 16px;border:0;border-radius:18px;text-align:left;color:#fff;cursor:pointer;background:linear-gradient(135deg,#7b4fd6,#c04fd6);box-shadow:0 5px 0 #5a33a8;transition:transform .08s,box-shadow .08s}
+.kquiz-play-button:active{transform:translateY(4px);box-shadow:0 1px 0 #5a33a8}
+.kquiz-play-button>span:first-child{font-size:1.8rem}
+.kquiz-play-button strong{display:block;font-size:1.15rem}.kquiz-play-button small{opacity:.9}
