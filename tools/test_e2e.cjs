@@ -4076,8 +4076,21 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Jeff tier/}).waitFor()
  await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Easy/}).click()
  await beat.getByRole('button',{name:/^Skipping Motif/}).click()
- await beat.getByRole('button',{name:'Notes later'}).click();await beat.getByText('+10 ms').waitFor()
+ await beat.getByRole('button',{name:'Notes later'}).click();await beat.getByText('+5 ms').waitFor()
  await beat.getByRole('button',{name:'Notes earlier'}).click()
+ // Sync check: tapping 40 ms after each click (past the warm-up) sets Timing to +40 ms; then back to 0.
+ await beat.getByRole('button',{name:'Sync check'}).click()
+ await beat.getByRole('button',{name:'Start the sync check'}).click()
+ await page.evaluate(async()=>{const pad=document.querySelector('.beat-sync-pad');while(!pad.syncInfo)await new Promise(r=>setTimeout(r,5))
+  const {clicks,now}=pad.syncInfo
+  // Sleep until just before each click, then wait in a tight loop, so a busy test machine can't make it late.
+  for(const c of clicks){while(now()<c-0.25)await new Promise(r=>setTimeout(r,5));while(now()<c+0.04){/* exactly on time */}
+   window.dispatchEvent(new KeyboardEvent('keydown',{key:' '}))}})
+ await beat.getByText(/Timing is now \+(35|40|45) ms/).waitFor({timeout:15000})
+ await beat.getByRole('button',{name:'Done'}).first().click()
+ for(let i=0;i<20&&!(await beat.getByText(/^0 ms$/).count());i++){const t=await beat.locator('.beat-offset output').nth(1).textContent();await beat.getByRole('button',{name:Number(t.replace(/[^\d-]/g,''))>0?'Notes earlier':'Notes later'}).click()}
+ await beat.getByText(/^0 ms$/).waitFor()
+ await beat.getByLabel('Note ticks').check();await beat.getByLabel('Note ticks').uncheck()
  await beat.getByRole('button',{name:'Notes faster'}).click();await beat.getByText('5.5').waitFor()
  await beat.getByRole('button',{name:'Notes slower'}).click()
  await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click()
@@ -4087,7 +4100,7 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  for(const [t,lane] of easy){
   // Pressed from inside the page on the live song clock, so a slow machine's frames and key delivery can't
   // make it late.
-  await page.evaluate(async ([t,key])=>{const cv=document.querySelector('.beat-canvas');while(cv.songNow()<t-5)await new Promise(r=>setTimeout(r,2))
+  await page.evaluate(async ([t,key])=>{const cv=document.querySelector('.beat-canvas');while(cv.songNow()<t-250)await new Promise(r=>setTimeout(r,5));while(cv.songNow()<t){/* exactly on time */}
    window.dispatchEvent(new KeyboardEvent('keydown',{key}));window.dispatchEvent(new KeyboardEvent('keyup',{key}))},[t,'dfjk'[lane]])
  }
  if(process.env.KONO_SHOTS)await beat.screenshot({path:process.env.KONO_SHOTS+'/beat.png'})

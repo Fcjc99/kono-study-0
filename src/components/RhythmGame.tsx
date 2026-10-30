@@ -1,6 +1,8 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {LEVELS,CLEAR_AT,CLEAR_NAME,WINDOWS,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,readBeatBest,readOffset,readSpeed,ribbonX,saveBeatBest,saveOffset,saveSpeed,scoreOf,skyHit,judge,type Chart,type Clear,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
+import {LEVELS,CLEAR_AT,CLEAR_NAME,WINDOWS,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,readBeatBest,readOffset,readSpeed,readTicks,ribbonX,saveBeatBest,saveOffset,saveSpeed,saveTicks,scoreOf,skyHit,judge,type Chart,type Clear,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
 import {stopMusic} from '../arcadeAudio'
+import {click,heardNow} from '../game/audioClock'
+import BeatSync from './BeatSync'
 import charts from '../game/data/rhythmCharts.json'
 import type {GameHandle} from './GameScreen'
 import './rhythm-game.css'
@@ -42,7 +44,8 @@ const skyY=(f:Field,z:number)=>yAt(f,z)-f.skyH*persp(z)
  * (less the time sound takes to reach the speakers). Note speed and a timing nudge (for headphones that lag) are kept on this device. */
 export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:BeatResult)=>void}){
  const [song,setSong]=useState(SONGS[0].id),[level,setLevel]=useState<Level>('easy'),[playing,setPlaying]=useState(false)
- const [offset,setOffsetState]=useState(readOffset),[speed,setSpeedState]=useState(readSpeed)
+ const [offset,setOffsetState]=useState(readOffset),[speed,setSpeedState]=useState(readSpeed),[ticks,setTicks]=useState(readTicks),[syncing,setSyncing]=useState(false)
+ const tickedTo=useRef(0)
  const canvas=useRef<HTMLCanvasElement>(null),audio=useRef<{ctx:AudioContext;src:AudioBufferSourceNode;t0:number}|null>(null),[loading,setLoading]=useState(false)
  const play=useRef<Play>({notes:[],ribbons:[],ticks:[],total:0}),tally=useRef<Tally>(freshTally('easy')),done=useRef(false),nextTick=useRef(0)
  const fx=useRef<{x:number;sky:boolean;t:number;j:Judge}[]>([]),word=useRef<{j:Judge;t:number;off?:number}|null>(null)
@@ -51,12 +54,9 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
  const pressedAt=useRef([0,0,0,0]),startedAt=useRef(0),onEndRef=useRef(onEnd)
  useEffect(()=>{onEndRef.current=onEnd},[onEnd])
  const info=SONGS.find(s=>s.id===song)!
- // Where the song is (ms): what's reaching the speakers right now, so a note reaches the line as you hear its
- // hit. The sound card says what it played at a given moment (its clock moves in steps), so that's carried
- // forward on the frame clock; without that, it's the card's clock less its delay to the speakers.
- const songMs=()=>{const a=audio.current;if(!a)return 0;const c=a.ctx,ts=c.getOutputTimestamp?.()
-  const at=ts&&ts.contextTime!==undefined&&ts.performanceTime?ts.contextTime+(c.state==='running'?Math.max(0,performance.now()-ts.performanceTime)/1000:0):c.currentTime-(c.outputLatency||c.baseLatency||0)
-  return (at-a.t0)*1000}
+ // Where the song is (ms): what's reaching the speakers right now (game/audioClock), so a note reaches the
+ // line as you hear its hit; the device's own extra delay is the Timing (set by the Sync check).
+ const songMs=()=>{const a=audio.current;if(!a)return 0;return (heardNow(a.ctx)-a.t0)*1000}
  const stopSong=()=>{const a=audio.current;audio.current=null;if(!a)return;try{a.src.onended=null;a.src.stop()}catch{/* not started */}void a.ctx.close().catch(()=>undefined)}
  const judged=()=>play.current.notes.filter(n=>n.hit).length+nextTick.current
  const finish=()=>{
@@ -106,7 +106,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
   try{
    let buf=decoded.get(info.id)
    if(!buf){const data=await (await fetch('/audio/games/'+info.id+'.mp3')).arrayBuffer();buf=await ctx.decodeAudioData(data);decoded.clear();decoded.set(info.id,buf)}
-   play.current=playOf(info.charts[level],info.bpm);tally.current=freshTally(level);done.current=false;fx.current=[];word.current=null;nextTick.current=0
+   play.current=playOf(info.charts[level],info.bpm);tally.current=freshTally(level);done.current=false;fx.current=[];word.current=null;nextTick.current=0;tickedTo.current=0
    lanesHeld.current=[0,0,0,0];keysHeld.current.clear();pointers.current.clear()
    const src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination)
    await ctx.resume().catch(()=>undefined)
@@ -133,6 +133,11 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    ctx.setTransform(dpr,0,0,dpr,0,0)
    const f=fieldOf(W,H),now=songMs()-offset,pl=play.current,t=performance.now()
    cv.dataset.ms=String(Math.round(now)) // where the song is (the tests follow it)
+   // Note ticks: a soft click on every note, a little ahead, on the song's own clock (so they sound exactly
+   // with the music, whatever the device's delay).
+   if(ticks&&audio.current&&!done.current){const a=audio.current,ahead=now+offset+400
+    for(const n of pl.notes){if(n.t<tickedTo.current||n.t>=ahead)continue;if(n.t>=now+offset-20)click(a.ctx,a.t0+n.t/1000,{freq:n.kind==='hold'?1200:1600,gain:0.16})}
+    tickedTo.current=Math.max(tickedTo.current,ahead)}
    // Which ribbon pieces are at the line now, and is something on each one?
    const live=pl.ribbons.map((r,i)=>({r,i})).filter(({r})=>r.t0<=now&&now<r.t1)
    const fingerX=[...pointers.current.values()].map(p=>(p.x-(f.cx-f.floorW/2))/f.floorW)
@@ -287,12 +292,15 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    <p className="beat-blurb">{(()=>{const c=info.charts[level];return c.tap.length+c.hold.length+c.sky.length})()} notes · {lv.blurb}</p>
    <div className="beat-settings">
     <label className="beat-offset">Speed <button type="button" aria-label="Notes slower" onClick={()=>setSpeed(speed-0.5)}>−</button><output>{speed.toFixed(1)}</output><button type="button" aria-label="Notes faster" onClick={()=>setSpeed(speed+0.5)}>＋</button></label>
-    <label className="beat-offset">Timing <button type="button" aria-label="Notes earlier" onClick={()=>nudge(-10)}>−</button><output>{offset>0?'+':''}{offset} ms</output><button type="button" aria-label="Notes later" onClick={()=>nudge(10)}>＋</button></label>
+    <label className="beat-offset">Timing <button type="button" aria-label="Notes earlier" onClick={()=>nudge(-5)}>−</button><output>{offset>0?'+':''}{offset} ms</output><button type="button" aria-label="Notes later" onClick={()=>nudge(5)}>＋</button></label>
+    <button type="button" className="beat-sync-open" onClick={()=>setSyncing(true)}>Sync check</button>
+    <label className="beat-ticks"><input type="checkbox" checked={ticks} onChange={e=>{setTicks(e.target.checked);saveTicks(e.target.checked)}}/> Note ticks</label>
    </div>
+   {syncing&&<BeatSync onDone={ms=>{setOffsetState(ms);saveOffset(ms)}} onClose={()=>setSyncing(false)}/>}
    <button type="button" className="beat-play" onClick={()=>void start()} disabled={loading}>{loading?'Loading…':<>▶ Play <span>{info.title}</span></>}</button>
    <details className="beat-how"><summary>How to play</summary><ul>
     <li><span className="is-floor"/>Floor notes: hit them on the line (<kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd>, or tap the lane). Long ones: hold to the end.</li>
-    <li>{level==='jeff'?'Jeff tier: the gauge starts full and drains with misses. Run out and the song’s over.':'Fill the gauge past '+CLEAR_AT+'% by the end to clear the song.'} Notes land on the song’s beat; with Bluetooth headphones, nudge Timing up if they feel early.</li>
+    <li>{level==='jeff'?'Jeff tier: the gauge starts full and drains with misses. Run out and the song’s over.':'Fill the gauge past '+CLEAR_AT+'% by the end to clear the song.'} Notes land on the song’s beat. If they feel early or late (Bluetooth headphones often do), run the Sync check once; Note ticks play a click on every note so you can hear it.</li>
    </ul></details>
   </section>
  </div>
