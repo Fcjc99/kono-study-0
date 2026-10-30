@@ -560,3 +560,44 @@ button .kono-icon,a .kono-icon{margin-right:2px}
 /* Editor › Delete (to Trash, with Undo): at the far end, in a warning color. */
 .editor-actions .editor-delete:not(#x):not(#y){margin-left:auto;color:#b4475a!important;border-color:color-mix(in srgb,#b4475a 35%,transparent)!important;background:transparent!important}
 .editor-actions .editor-delete:not(#x):not(#y)+.editor-delete{margin-left:0}
+
+/* Planner › Week, Skylight-style: a white page with faint lines, soft pastel blocks in each person's
+ * color with the title first and the time under it, a letter for whose it is, and today in a red circle. */
+.week-grid:not(#x){background:#fff!important;border-color:#ece6ea;border-radius:16px;font-size:.78rem}
+.week-grid:not(#x) :is(.week-grid-row,.week-grid-body,.week-grid-day,.week-grid-allday-cell,.week-grid-gutter){background-color:#fff!important}
+.week-grid .week-grid-head:not(#x){border-bottom:1px solid #eee8ec}
+.week-grid .week-grid-head button:not(#x){display:flex!important;align-items:center;justify-content:center;gap:5px;padding:10px 2px!important;background:transparent!important}
+.week-grid .week-grid-head button small{font-size:.95rem;font-weight:600;opacity:1;color:#3d3442}
+.week-grid .week-grid-head button strong{font-size:.95rem;font-weight:600;color:#3d3442}
+.week-grid .week-grid-head button.is-today strong:not(#x){display:inline-grid;place-items:center;min-width:1.7em;height:1.7em;padding:0 .2em;border-radius:999px;background:#e5604d;color:#fff;font-size:.8rem;font-weight:800}
+.week-grid .week-grid-head button[aria-pressed=true]:not(#x){background:#faf6f8!important}
+.week-grid .week-grid-day.is-today:not(#x),.week-grid .week-grid-day.is-selected:not(#x){background:transparent}
+.week-grid .week-grid-day:not(#x){border-left:1px solid #f1ecef!important}
+.week-grid .week-grid-slot:not(#x){border-top:1px solid #f3eef1!important}
+.week-grid .week-grid-hours span{font-size:.72rem;color:#5d5262;opacity:1;text-transform:lowercase}
+.week-grid .week-item-timed:not(#x):not(#y),.week-grid .week-grid-allday-cell .week-item:not(#x):not(#y){position:absolute;background:color-mix(in srgb,var(--item-color) 30%,#fff)!important;border:0!important;border-left:0!important;border-radius:8px!important;box-shadow:none!important;color:#2e2633!important;padding:4px 22px 4px 7px!important;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:1px;text-align:left;overflow:hidden}
+.week-grid .week-grid-allday-cell .week-item:not(#x):not(#y){position:relative;align-items:center;padding:2px 22px 2px 8px!important;border-radius:999px!important;white-space:nowrap;text-overflow:ellipsis;display:block;font-weight:600;background:color-mix(in srgb,var(--item-color) 22%,#fff)!important}
+.week-grid .week-item-timed .week-item-title{font-weight:700;font-size:.78rem;line-height:1.2;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.week-grid .week-item-timed small:not(#x){font-size:.68rem;font-weight:500;color:#4a3f4f!important;opacity:.85;white-space:nowrap}
+.week-grid .week-item-timed.is-short:not(.is-tiny):not(#x):not(#y){flex-direction:column!important;align-items:flex-start!important;justify-content:center;padding-top:1px!important;padding-bottom:1px!important;gap:0;line-height:1.05}
+.week-grid .week-item-timed.is-short:not(.is-tiny) .week-item-title{font-size:.72rem}
+.week-grid .week-item-timed.is-short:not(.is-tiny) small:not(#x){font-size:.62rem}
+.week-grid .week-item-timed.is-tiny small:not(#x){display:none}
+.week-grid .week-item-timed.is-tiny:not(#x):not(#y){flex-direction:row!important;align-items:center!important;gap:5px;padding-top:0!important;padding-bottom:0!important}
+.week-grid .week-item-timed.is-short .week-item-title{-webkit-line-clamp:1;display:block;white-space:nowrap;text-overflow:ellipsis;max-width:100%}
+.week-grid .week-item-timed.is-short small:not(#x){line-height:1.1}
+.week-item-who{position:absolute;top:4px;right:4px;width:15px;height:15px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--item-color) 75%,#fff);color:#fff;font:700 .58rem/1 system-ui,sans-serif;font-style:normal}
+.week-grid .week-item-grip{opacity:.35}
+:root[data-dark] .week-grid:not(#x),:root[data-dark] .week-grid:not(#x) :is(.week-grid-row,.week-grid-body,.week-grid-day,.week-grid-allday-cell,.week-grid-gutter){background:#1f1b24!important;border-color:#3a3340}
+:root[data-dark] .week-grid .week-item-timed:not(#x):not(#y),:root[data-dark] .week-grid .week-grid-allday-cell .week-item:not(#x):not(#y){background:color-mix(in srgb,var(--item-color) 40%,#1f1b24)!important;color:#fff!important}
+:root[data-dark] .week-grid :is(.week-grid-head button small,.week-grid-head button strong,.week-item-timed small){color:#eee!important}
+
+/* Today, person by person (Skylight's progress strip) */
+.people-progress{list-style:none;margin:0 0 12px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 16px}
+.people-progress li{display:flex;align-items:center;gap:8px;min-width:0}
+.people-progress i{flex:none;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--kid-color) 75%,#fff);color:#fff;font:800 .8rem/1 system-ui,sans-serif;font-style:normal}
+.people-progress span{flex:1;min-width:0;display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 6px}
+.people-progress b{font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.people-progress small{font-size:.75rem;opacity:.65}
+.people-progress em{grid-column:1/-1;height:5px;border-radius:5px;background:#ece6ea;overflow:hidden}
+.people-progress u{display:block;height:100%;border-radius:5px;background:var(--kid-color);text-decoration:none;transition:width .4s ease}

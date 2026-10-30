@@ -68,3 +68,15 @@ export function sayTime(time?: string): string {
   const [h, m] = time.split(':').map(Number), hr = h % 12 || 12
   return 'At ' + (m ? hr + ':' + String(m).padStart(2, '0') : hr + " o'clock") + (h < 12 ? ' in the morning' : h < 17 ? ' in the afternoon' : ' in the evening')
 }
+
+/** Skylight's progress strip: how much of today a person has done -- their homework due today, chores
+ * (to-dos for them) and routine steps. personId '' is the plan's own person (untagged things). */
+export function progressToday(data: AppData, profileId: string, today: string, personId: string): { done: number; total: number } {
+  const mine = (kidId?: string) => (kidId ?? '') === personId
+  const tasks = data.tasks.filter(t => t.profileId === profileId && t.due === today && mine(t.kidIds?.[0] ?? t.kidId))
+  const steps = (data.routines ?? []).filter(r => r.profileId === profileId && mine(r.kidId)).flatMap(r => { const on = checkOf(data, r.id, today)?.steps ?? []; return r.steps.map(s => on.includes(s.id)) })
+  const openTodos = (data.familyTodos ?? []).filter(t => t.profileId === profileId && !t.done && t.due && t.due <= today && mine(t.forKidId)).length
+  const choresDone = personId ? (data.starLog ?? []).filter(e => e.kidId === personId && e.n > 0 && e.todoId && !e.todoId.startsWith('routine:') && new Date(e.at).toLocaleDateString('en-CA') === today).length : 0
+  const done = tasks.filter(t => t.done).length + steps.filter(Boolean).length + choresDone
+  return { done, total: done + tasks.filter(t => !t.done).length + steps.filter(x => !x).length + openTodos }
+}
