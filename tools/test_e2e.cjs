@@ -4078,10 +4078,12 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  await beat.getByRole('button',{name:/^Skipping Motif/}).click()
  await beat.getByRole('button',{name:'Notes later'}).click();await beat.getByText('+10 ms').waitFor()
  await beat.getByRole('button',{name:'Notes earlier'}).click()
+ await beat.getByRole('button',{name:'Notes faster'}).click();await beat.getByText('5.5').waitFor()
+ await beat.getByRole('button',{name:'Notes slower'}).click()
  await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click()
  const field=beat.getByRole('img',{name:'KONO Beat: Skipping Motif'});await field.waitFor()
  // The first notes (from the chart) hit right on time with their lane's key.
- const easy=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.easy.slice(0,3)
+ const easy=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.easy.tap.slice(0,3)
  for(const [t,lane] of easy){
   await page.waitForFunction(t=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>=t-90,t,{timeout:15000,polling:10})
   await page.keyboard.press('dfjk'[lane])
@@ -4089,9 +4091,30 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  if(process.env.KONO_SHOTS)await beat.screenshot({path:process.env.KONO_SHOTS+'/beat.png'})
  await beat.getByRole('button',{name:'■ End'}).click()
  const br=beat.getByRole('region',{name:'Results'})
- await br.getByText(/[SABCD] · \d+\.\d%/).first().waitFor()
+ await br.getByText(/^[\d,]+ · (S\+|S|A|B|C|D|F)$/).first().waitFor()
  const line=await br.textContent();const hits=/(\d+) perfect, (\d+) great, (\d+) good/.exec(line)
  assert.ok(hits&&Number(hits[1])+Number(hits[2])+Number(hits[3])>=2,'keys on time hit the notes: '+line)
+ if(process.env.KONO_SHOTS){
+  // Pictures of Medium mid-ribbon (Jeff tier would end with nobody playing), wide and on a phone.
+  const r0=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.medium.ribbon[0][0]
+  for(const [w,h,name] of [[1280,800,'beat-wide'],[390,844,'beat-phone']]){
+   await page.setViewportSize({width:w,height:h})
+   await beat.getByRole('button',{name:'Play again'}).click()
+   await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Medium/}).click()
+   if(name==='beat-wide')await beat.screenshot({path:process.env.KONO_SHOTS+'/beat-pick.png'})
+   await beat.getByRole('button',{name:/^▶ Play/}).click()
+   await page.waitForFunction(t=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>=t,r0-400,{timeout:60000})
+   const before=Number(await page.evaluate(()=>document.querySelector('.beat-canvas').dataset.score))
+   await page.keyboard.down('s');await page.keyboard.down('l')
+   await page.waitForFunction(t=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>=t,r0+700,{timeout:60000})
+   assert.ok(Number(await page.evaluate(()=>document.querySelector('.beat-canvas').dataset.score))>before+3000,'following the ribbon scores')
+   await beat.screenshot({path:process.env.KONO_SHOTS+'/'+name+'.png'})
+   assert.equal(await page.evaluate(()=>document.querySelector('.beat-canvas').dataset.follow),'1/1','holding S and L follows the ribbon')
+   await page.keyboard.up('s');await page.keyboard.up('l')
+   await beat.getByRole('button',{name:'■ End'}).click()
+  }
+  await page.setViewportSize({width:1280,height:800})
+ }
  await beat.getByRole('button',{name:'Done'}).click();await beat.waitFor({state:'detached'})
  // KONO.io: the leaderboard lists you; steering works; ■ End shows your share of the map.
  await town.getByRole('button',{name:/KONO\.io/}).click()

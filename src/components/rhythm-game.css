@@ -14,10 +14,18 @@
 .beat-levels .is-jeff b{background:linear-gradient(90deg,#ff4d8d,#ffb347);-webkit-background-clip:text;background-clip:text;color:transparent}
 @media(max-width:420px){.beat-levels{grid-template-columns:1fr}}
 .beat-go{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
-.beat-offset{display:flex;align-items:center;gap:6px;font-size:.85rem}
-.beat-offset button{width:36px;height:36px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:rgba(255,255,255,.7);font:inherit;cursor:pointer}
+.beat-pick .beat-offset:not(#x){display:flex;flex-direction:row;align-items:center;gap:6px;font-size:.85rem;white-space:nowrap;margin:0}
+.beat-pick .beat-offset button:not(#x){display:grid;place-items:center;padding:0;margin:0;min-width:0;width:36px;height:36px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:rgba(255,255,255,.7);font:inherit;cursor:pointer}
 .beat-offset output{min-width:58px;text-align:center;font-variant-numeric:tabular-nums}
 .beat-play{flex:1;min-height:48px;font-weight:800}
 .beat-how{margin:0;font-size:.82rem;opacity:.75}
 .beat-how kbd{display:inline-block;padding:0 6px;border-radius:5px;border:1px solid rgba(0,0,0,.2);font:700 .78rem system-ui,sans-serif}
 @media(prefers-color-scheme:dark){.beat-songs button,.beat-levels button,.beat-offset button{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)}.beat-how kbd{border-color:rgba(255,255,255,.3)}}
+.beat-songs i em{margin-left:4px;font-size:.7rem;font-style:normal;padding:1px 4px;border-radius:5px;background:#7a4dff;color:#fff;vertical-align:middle}
+.beat-settings{display:flex;flex-wrap:wrap;gap:12px;flex:none}
+.beat-how{list-style:none;padding:0;display:grid;gap:6px}
+.beat-how li{padding-left:26px;position:relative;line-height:1.6}
+.beat-how li>span{position:absolute;left:0;top:.55em;width:18px;height:8px;border-radius:4px}
+.beat-how .is-floor{background:linear-gradient(90deg,#ff7ab6,#7ad7ff,#9dff8a,#ffd36b)}
+.beat-how .is-sky:not(#x){left:3px;top:.45em;width:11px;height:11px;rotate:45deg;border-radius:2px;background:#c9f0ff;box-shadow:0 0 6px #8fe3ff}
+.beat-how .is-ribbon{height:6px;background:linear-gradient(90deg,#5fd3ff,#ff7ad1)}
