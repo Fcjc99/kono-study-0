@@ -707,6 +707,19 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .gc-fall i{width:31%;height:46%;border-radius:2px;background:#fff6a0;box-shadow:0 0 10px #ffe75a}
 .gc-fall i:nth-child(1){left:0;top:0}.gc-fall i:nth-child(2){left:34%;top:0}.gc-fall i:nth-child(3){left:68%;top:0}.gc-fall i:nth-child(4){left:34%;top:52%}
 @keyframes gc-fall{from{translate:0 -60%}to{translate:0 160%}}
+/* KONO Beat: notes falling down four lanes to a glowing line. */
+.game-cover.is-beat{background:linear-gradient(#160f2b,#2a1740)}
+.gc-beat{inset:0}
+.gc-lane{top:0;bottom:0;width:18%;background:rgba(255,255,255,.05);border-radius:3px}
+.gc-lane.is-0{left:12%;--c:#ff7ab6}.gc-lane.is-1{left:31%;--c:#7ad7ff}.gc-lane.is-2{left:50%;--c:#9dff8a}.gc-lane.is-3{left:69%;--c:#ffd36b}
+.gc-lane i{left:10%;width:80%;height:9%;border-radius:99px;background:var(--c);box-shadow:0 0 8px var(--c);animation:gc-note 1.6s linear infinite}
+.gc-lane i:nth-child(2){animation-delay:-.8s}
+.gc-lane.is-1 i{animation-delay:-.4s}.gc-lane.is-1 i:nth-child(2){animation-delay:-1.2s}
+.gc-lane.is-2 i{animation-delay:-1s}.gc-lane.is-2 i:nth-child(2){animation-delay:-.2s}
+.gc-lane.is-3 i{animation-delay:-.6s}.gc-lane.is-3 i:nth-child(2){animation-delay:-1.4s}
+.gc-line{left:10%;right:10%;bottom:18%;height:3px;background:#fff;box-shadow:0 0 10px #fff;opacity:.7}
+@keyframes gc-note{from{top:-10%}to{top:80%}}
+@media (prefers-reduced-motion:reduce){.gc-lane i{animation:none;top:40%}}
 /* Flappy KONO: KONO bobbing between two green pipes. */
 .game-cover.is-flap{background:linear-gradient(#8fd8ff,#d9f3ff 70%,#9ee07a 70%)}
 .gc-pipe{left:62%;width:13%;background:linear-gradient(90deg,#3fa83f,#7fe06a 45%,#2f8a2f);border:2px solid #1e5e1e}

@@ -4070,6 +4070,29 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  await flow.getByRole('button',{name:'■ End'}).click()
  await flow.getByRole('region',{name:'Results'}).getByText(/\d[\d,]* points/).first().waitFor()
  await flow.getByRole('button',{name:'Done'}).click();await flow.waitFor({state:'detached'})
+ // KONO Beat: pick a song and a level; the song is the clock; a key on time hits the note; ■ End scores it.
+ await town.getByRole('button',{name:/KONO Beat/}).click()
+ const beat=await startGame(page,'🥁 KONO Beat')
+ await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Jeff tier/}).waitFor()
+ await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Easy/}).click()
+ await beat.getByRole('button',{name:/^Skipping Motif/}).click()
+ await beat.getByRole('button',{name:'Notes later'}).click();await beat.getByText('+10 ms').waitFor()
+ await beat.getByRole('button',{name:'Notes earlier'}).click()
+ await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click()
+ const field=beat.getByRole('img',{name:'KONO Beat: Skipping Motif'});await field.waitFor()
+ // The first notes (from the chart) hit right on time with their lane's key.
+ const easy=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.easy.slice(0,3)
+ for(const [t,lane] of easy){
+  await page.waitForFunction(t=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>=t-90,t,{timeout:15000,polling:10})
+  await page.keyboard.press('dfjk'[lane])
+ }
+ if(process.env.KONO_SHOTS)await beat.screenshot({path:process.env.KONO_SHOTS+'/beat.png'})
+ await beat.getByRole('button',{name:'■ End'}).click()
+ const br=beat.getByRole('region',{name:'Results'})
+ await br.getByText(/[SABCD] · \d+\.\d%/).first().waitFor()
+ const line=await br.textContent();const hits=/(\d+) perfect, (\d+) great, (\d+) good/.exec(line)
+ assert.ok(hits&&Number(hits[1])+Number(hits[2])+Number(hits[3])>=2,'keys on time hit the notes: '+line)
+ await beat.getByRole('button',{name:'Done'}).click();await beat.waitFor({state:'detached'})
  // KONO.io: the leaderboard lists you; steering works; ■ End shows your share of the map.
  await town.getByRole('button',{name:/KONO\.io/}).click()
  await startGame(page,'🟦 KONO.io',/^Solo$/)

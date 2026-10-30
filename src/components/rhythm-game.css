@@ -1,0 +1,23 @@
+/* KONO Beat (RhythmGame): the song picker, then the four-lane field (drawn in a canvas). */
+.game-screen-body:has(.beat-stage){align-content:stretch;padding:0}
+.game-screen-body>.beat-stage{max-width:none}
+.beat-stage{display:flex;min-height:0;height:100%}
+.beat-canvas{flex:1;width:100%;height:calc(100dvh - 72px);min-height:360px;display:block;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:14px}
+.beat-pick{display:grid;gap:14px;padding:6px 0 16px}
+.beat-pick h3{margin:0 0 6px;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;opacity:.7}
+.beat-songs{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:42vh;overflow:auto}
+.beat-songs button,.beat-levels button{position:relative;display:grid;gap:2px;width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid rgba(0,0,0,.12);background:rgba(255,255,255,.7);color:inherit;font:inherit;cursor:pointer;min-height:44px}
+.beat-songs small,.beat-levels small{opacity:.72;font-size:.78rem}
+.beat-songs i{position:absolute;right:12px;top:50%;translate:0 -50%;font-style:normal;font-weight:900;font-size:1.1rem;color:#b44dff}
+.beat-songs button[aria-pressed=true],.beat-levels button[aria-pressed=true]{border-color:#7a4dff;background:linear-gradient(135deg,rgba(122,77,255,.16),rgba(255,122,182,.16));box-shadow:0 0 0 2px rgba(122,77,255,.35)}
+.beat-levels{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.beat-levels .is-jeff b{background:linear-gradient(90deg,#ff4d8d,#ffb347);-webkit-background-clip:text;background-clip:text;color:transparent}
+@media(max-width:420px){.beat-levels{grid-template-columns:1fr}}
+.beat-go{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.beat-offset{display:flex;align-items:center;gap:6px;font-size:.85rem}
+.beat-offset button{width:36px;height:36px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:rgba(255,255,255,.7);font:inherit;cursor:pointer}
+.beat-offset output{min-width:58px;text-align:center;font-variant-numeric:tabular-nums}
+.beat-play{flex:1;min-height:48px;font-weight:800}
+.beat-how{margin:0;font-size:.82rem;opacity:.75}
+.beat-how kbd{display:inline-block;padding:0 6px;border-radius:5px;border:1px solid rgba(0,0,0,.2);font:700 .78rem system-ui,sans-serif}
+@media(prefers-color-scheme:dark){.beat-songs button,.beat-levels button,.beat-offset button{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)}.beat-how kbd{border-color:rgba(255,255,255,.3)}}
