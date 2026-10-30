@@ -251,6 +251,8 @@ export class PlannerRepository {
   const next=normalizeData({...data??createFreshData(),activeProfileId:this.state.data.activeProfileId})
   await this.saveCache(next,remote.data,remote.revision,!!this.cache?.pending,generation)
  }
+ /** Check the account for changes now (the wall display waking up after a quiet night). */
+ refresh=()=>this.scheduleSync()
  private scheduleSync(){
   if(this.syncQueued||!this.state.user||this.blocked||this.state.needsMigration||this.state.conflicts.length)return
   this.syncQueued=true

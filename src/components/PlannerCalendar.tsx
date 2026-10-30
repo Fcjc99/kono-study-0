@@ -7,6 +7,7 @@ import {PLANNER_SOURCES,classSource,entrySource,sourcesInPlan,type PlannerSource
 import {holidayOn,schoolDayLabels} from '../store/schoolCalendar'
 import {specialOn} from '../store/specialDays'
 import {progressToday,stickersOn} from '../store/kidPlanner'
+import {withoutDuplicates} from '../store/familyHub'
 import {daysOffOn,dayOffIcon,dayOffLabel,eventOff} from '../store/daysOff'
 import {findClashes} from '../store/clashes'
 import {weekdayDates} from '../store/eventRepeat'
@@ -65,7 +66,8 @@ export default function PlannerCalendar({remove,todoOps,onWall,openSpecial,openD
   ...tasks.filter(t=>kidVisible(t)).map(t=>({key:'tasks' as Collection,entry:t as unknown as Entry,date:t.due})),
   ...own(data,'exams').filter(e=>kidVisible(e)).map(e=>({key:'exams' as Collection,entry:e,date:String(e.due)})),
   ...own(data,'notes').filter(n=>entryDate(n)).map(n=>({key:'notes' as Collection,entry:n,date:entryDate(n)})),
-  ...own(data,'calendarEvents').filter(e=>kidVisible(e)).map(e=>({key:'calendarEvents' as Collection,entry:e,date:String(e.date)})),
+  // The same event from two linked calendars shows once (store/familyHub).
+  ...(withoutDuplicates(own(data,'calendarEvents') as unknown as CalendarEvent[]) as unknown as Entry[]).filter(e=>kidVisible(e)).map(e=>({key:'calendarEvents' as Collection,entry:e,date:String(e.date)})),
  ].filter(e=>shown(entrySource(e.key,e.entry)))
  const selectedEntries=entries.filter(entry=>entry.date===date)
  // A family plan's to-dos with a day (and each turn of a repeating one), for whoever is shown.
@@ -180,7 +182,7 @@ export default function PlannerCalendar({remove,todoOps,onWall,openSpecial,openD
  const dayPaper=useRef<HTMLDivElement>(null)
  const openDay=(day:string)=>{selectDate(day);requestAnimationFrame(()=>dayPaper.current?.scrollIntoView({behavior:'smooth',block:'nearest'}))}
  const heroDate=new Date(date+'T12:00:00')
- return <section className="wb-panel cozy-calendar-shell"><div className="calendar-hero"><div className="calendar-hero-date"><small>{date===todayDate?'Today · ':''}{heroDate.toLocaleDateString(undefined,{weekday:'long'})}</small><h2>{heroDate.toLocaleDateString(undefined,{month:'long',day:'numeric'})}</h2></div><div className="calendar-hero-tools">{date!==todayDate&&<button type="button" className="calendar-today" title="Go back to today on the calendar and daily page" onClick={()=>{selectDate(todayDate);setMonth(todayDate.slice(0,7))}}>↩ Back to today</button>}{onWall&&<button type="button" className="calendar-wall" title="A big always-on view of today and tomorrow, for a tablet on the wall" onClick={onWall}><span aria-hidden="true">📺</span> Wall display</button>}<div className="calendar-views" role="group" aria-label="Calendar view">{views.map(([label,id,pick,on])=><button type="button" key={id} className={'calendar-view-'+id} aria-pressed={on} onClick={pick}>{label}</button>)}</div></div></div>
+ return <section className="wb-panel cozy-calendar-shell"><div className="calendar-hero"><div className="calendar-hero-date"><small>{date===todayDate?'Today · ':''}{heroDate.toLocaleDateString(undefined,{weekday:'long'})}</small><h2>{heroDate.toLocaleDateString(undefined,{month:'long',day:'numeric'})}</h2></div><div className="calendar-hero-tools">{date!==todayDate&&<button type="button" className="calendar-today" title="Go back to today on the calendar and daily page" onClick={()=>{selectDate(todayDate);setMonth(todayDate.slice(0,7))}}>↩ Back to today</button>}{onWall&&<button type="button" className="calendar-wall" title="KONO laid out for a tablet on the wall or the counter" onClick={onWall}><span aria-hidden="true">📺</span> Wall &amp; tablet mode</button>}<div className="calendar-views" role="group" aria-label="Calendar view">{views.map(([label,id,pick,on])=><button type="button" key={id} className={'calendar-view-'+id} aria-pressed={on} onClick={pick}>{label}</button>)}</div></div></div>
   <div className="planner-filters">
   {(available.length>1||hasTodos)&&<div className="planner-source-chips" role="group" aria-label="Show on calendar"><span className="planner-chips-label" aria-hidden="true">Show</span>{available.length>1&&PLANNER_SOURCES.filter(s=>available.includes(s.id)).map(s=><button type="button" key={s.id} title={s.title} aria-pressed={shown(s.id)} className={'source-chip source-'+s.id} onClick={()=>toggleSource(s.id)}>{s.label}</button>)}{hasTodos&&<button type="button" title="The family to-dos with a day" aria-pressed={!todosHidden} className="source-chip source-todos" onClick={toggleTodos}>✔ To-dos</button>}</div>}
 

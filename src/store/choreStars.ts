@@ -25,10 +25,15 @@ export function starsAfterTick(log: StarEntry[], before: FamilyTodo, after: Fami
 }
 
 /** Spending stars on a reward: refused (null) if the kid hasn't enough. */
-export function redeem(log: StarEntry[], kidId: string, reward: StarReward, now = new Date()): StarEntry[] | null {
+export function redeem(log: StarEntry[], kidId: string, reward: StarReward, now = new Date(), pending = false): StarEntry[] | null {
   if (balance(log, kidId) < reward.cost) return null
-  return [...log, { id: uid('star'), profileId: reward.profileId, kidId, at: now.toISOString(), n: -reward.cost, note: (reward.emoji ? reward.emoji + ' ' : '') + reward.title }]
+  return [...log, { id: uid('star'), profileId: reward.profileId, kidId, at: now.toISOString(), n: -reward.cost, note: (reward.emoji ? reward.emoji + ' ' : '') + reward.title, ...(pending ? { pending: true } : {}) }]
 }
+/** "Ask a grown-up" (Settings › Family: rewards need an OK): a kid's pick waits, its stars set aside, until a
+ * grown-up says yes (it's spent) or not now (the stars come back). */
+export const waiting = (log: StarEntry[], profileId: string) => log.filter(e => e.pending && e.profileId === profileId)
+export const approve = (log: StarEntry[], id: string): StarEntry[] => log.map(e => { if (e.id !== id) return e; const next = { ...e }; delete next.pending; return next })
+export const decline = (log: StarEntry[], id: string): StarEntry[] => log.filter(e => !(e.id === id && e.pending))
 
 /** A few rewards to start a shelf with, for a parent who hasn't made any. */
 export const STARTER_REWARDS: Omit<StarReward, 'id' | 'profileId'>[] = [

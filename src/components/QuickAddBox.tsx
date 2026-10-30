@@ -17,11 +17,13 @@ const splitLines=(text:string)=>text.split(/\n|\s+\/\s+|;/).map(l=>l.trim()).fil
  * whatever the line doesn't say. */
 type WithLink=QuickAddGuess&{link?:string}
 /** `clashIn`: the plan to check a typed event against (store/clashes), with how dates read. */
-export default function QuickAddBox({clashIn,subjects,people=[],today,initialText='',link='',recall,onAdd,onAddMany,onEdit}:{subjects:{id:string;name:string}[];people?:{id:string;name:string}[];clashIn?:{data:AppData;profileId:string;dateLabel:(date:string)=>string};today:string;initialText?:string;link?:string;recall?:(title:string)=>Remembered|undefined;onAdd:(guess:WithLink)=>void;onAddMany?:(list:QuickAddGuess[])=>void;onEdit:(guess:WithLink)=>void}){
+export default function QuickAddBox({clashIn,subjects,people=[],today,initialText='',link='',asEvents=false,recall,onAdd,onAddMany,onEdit}:{asEvents?:boolean;subjects:{id:string;name:string}[];people?:{id:string;name:string}[];clashIn?:{data:AppData;profileId:string;dateLabel:(date:string)=>string};today:string;initialText?:string;link?:string;recall?:(title:string)=>Remembered|undefined;onAdd:(guess:WithLink)=>void;onAddMany?:(list:QuickAddGuess[])=>void;onEdit:(guess:WithLink)=>void}){
  const clashes=clashIn?(g:QuickAddGuess)=>g.event?findClashes(clashIn.data,clashIn.profileId,{dates:[g.due,...weekdayDates(g.due,g.event.repeatDays,g.event.until)],time:g.time,endTime:g.event.endTime,kidIds:g.event.kidIds},clashIn.dateLabel):[]:undefined
  const [text,setText]=useState(initialText)
+ // Lines from a pasted email or flyer are events ("Picture day Nov 12 9am"), unless they're a test.
+ const asEvent=(g:QuickAddGuess):QuickAddGuess=>asEvents&&g.key==='tasks'?{...g,key:'calendarEvents',event:{kind:'personal',repeatDays:[],until:g.due,kidIds:[],people:[]}}:g
  const read=(line:string):QuickAddGuess=>{
-  const g=parseQuickAdd(line,subjects,today,people),m=g.event?recall?.(g.title):undefined
+  const g=asEvent(parseQuickAdd(line,subjects,today,people)),m=g.event?recall?.(g.title):undefined
   if(!g.event||!m)return g
   const ev=g.event,time=g.time??m.time
   return {...g,...(time?{time}:{}),event:{...ev,remembered:true,...(!g.time&&m.endTime&&!ev.endTime?{endTime:m.endTime}:{}),...(!ev.location&&m.location?{location:m.location}:{}),...(!ev.location&&m.travelMinutes?{travelMinutes:m.travelMinutes}:{}),...(m.driver?{driver:m.driver}:{}),...(!ev.kidIds.length&&m.kidIds.length?{kidIds:m.kidIds,people:m.kidIds.map(id=>people.find(p=>p.id===id)?.name).filter((n):n is string=>!!n)}:{}),...(ev.kind==='personal'?{kind:m.kind}:{})}}
