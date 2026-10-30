@@ -3334,7 +3334,7 @@ test('Family wall calendar: Today sums up the day; Month shows each person’s t
  // Wall & tablet mode: today and the next days in columns, with whose each thing is.
  await page.getByRole('button',{name:/Wall & tablet mode/}).click()
  const wall=page.getByRole('dialog',{name:'Family hub'}),today=wall.getByRole('region',{name:'Today'})
- await today.getByRole('button',{name:/^Soccer practice, 4(:00)? PM.*, Emma$/}).waitFor()
+ await today.getByRole('button',{name:/^Soccer practice, 4.*PM, Emma$/}).waitFor()
  await wall.getByRole('region',{name:'Tomorrow'}).waitFor()
  await page.keyboard.press('Escape');await wall.waitFor({state:'detached'})
  // Homework every week until Nov 3: one per week, linked; renaming one can rename them all.

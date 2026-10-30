@@ -97,9 +97,9 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
    {!items.length&&!daysOffOn(data,pid,date).length&&!todosOn(data,pid,date).length&&<p className="hub-empty">Nothing planned</p>}
   </section>}
  const card=(i:DayItem,date:string,allDay:boolean)=>{const p=personFor(i.kidId),past=date<today||(date===today&&!!(i.endTime??i.time)&&(i.endTime??i.time)!<clock&&i.kind!=='task')
-  return <button type="button" key={i.kind+i.id+(i.kidId??'')} className={'hub-card'+(allDay?' is-allday':'')+(past||i.done?' is-past':'')+(i.off?' is-off':'')} style={{'--p':p.color} as CSSProperties} onClick={()=>openItem(i)} aria-label={i.title+(i.time?', '+span(i.time,i.endTime):'')+', '+p.name}>
+  return <button type="button" key={i.kind+i.id+(i.kidId??'')} className={'hub-card'+(allDay?' is-allday':'')+(past||i.done?' is-past':'')+(i.off?' is-off':'')} style={{'--p':p.color} as CSSProperties} onClick={()=>openItem(i)} aria-label={i.title+(i.until?', until '+classTime(i.until):i.time?', '+span(i.time,i.endTime):'')+', '+p.name}>
    <span className="hub-card-title">{i.kind==='task'?'📌 ':i.kind==='exam'?'📝 ':''}{i.title}</span>
-   {!allDay&&<small>{i.until?'until '+classTime(i.until):span(i.time,i.endTime)}</small>}
+   {(!allDay||i.until)&&<small>{i.until?'until '+classTime(i.until):span(i.time,i.endTime)}</small>}
    <i className="hub-card-who" aria-hidden="true">{(p.name.trim()[0]??'').toUpperCase()}</i>
   </button>}
 
