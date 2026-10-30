@@ -120,6 +120,7 @@ import './home.css'
 import './pages.css'
 import './refresh.css'
 import './cozy-craft.css'
+import './studio.css'
 import {hop,stagger,trackPointer} from './motionCore'
 /** Petals and hearts load in their own file, fetched shortly after KONO opens. */
 const effects=()=>import('./delight')
@@ -594,7 +595,7 @@ function Workspace({store}:{store:Store}){
  useEffect(()=>{rememberBadgeChoice(appBadge==='on')},[appBadge])
  useDueNotifications(Boolean(data.settings.browserNotifications),dueNotifyItems,today)
  const [focusRequest,setFocusRequest]=useState<FocusRequest|null>(null)
- const sanctuaryFocusRef=useRef<HTMLDetailsElement>(null)
+ const sanctuaryFocusRef=useRef<HTMLDivElement>(null)
  const digestKey='kono-digest:'+(store.user?.id??'device')+':'+profile.id
  const [digestDismissed,setDigestDismissed]=useState(()=>{try{return sessionStorage.getItem(digestKey)===today}catch{return false}})
  const dueSoon=[...ownTasks.filter(t=>!t.done).map(t=>({id:t.id,title:t.title,due:t.due})),...data.exams.filter(e=>e.profileId===profile.id&&!e.done).map(e=>({id:e.id,title:e.title,due:e.due}))].filter(t=>t.due>=today&&t.due<=addDays(today,3)).sort((a,b)=>a.due.localeCompare(b.due))
@@ -713,10 +714,7 @@ function Workspace({store}:{store:Store}){
   navigate('Sanctuary')
   setFocusRequest({taskId,estimatedMinutes,requestId:Date.now(),label})
   requestAnimationFrame(()=>{
-   // FocusSession opens its own inner <details> once it sees the request, but this outer wrapper is
-   // a separate <details> one level up -- without also opening it, the inner one stays hidden inside
-   // a collapsed parent.
-   if(sanctuaryFocusRef.current)sanctuaryFocusRef.current.open=true
+   // The focus console is always open (beside the island, or in its own place on Home): bring it into view.
    sanctuaryFocusRef.current?.scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'})
   })
  }
@@ -1107,6 +1105,10 @@ function Workspace({store}:{store:Store}){
  // The light of the day over the whole app (the island's Sanctuary time, or the clock): a warm morning, a
  // golden evening, a cool night (cozy-craft.css).
  const hr=careNow.getHours(),daylight=phase!=='auto'?phase:hr<5||hr>20?'night':hr<9?'morning':hr>16?'evening':'afternoon'
+  // The focus console (FocusSession): beside the island when both are on Home (sanctuary-hero), otherwise in
+  // its own place in your Home order. Always open: the assignment, the length and Start are in view.
+  const focusConsole=<div ref={sanctuaryFocusRef} className="wb-panel sanctuary-focus"><FocusSession draftKey={draftScope+':focus'} tasks={tasks} notes={notes} focusRequest={focusRequest} onComplete={id=>void run(()=>save(d=>completeTask(d,id)),'Assignment completed.')} onSaveNote={body=>save(d=>({...d,notes:[...d.notes,{id:uid('note'),profileId:profile.id,subjectId:'',title:'Study session',body,created:new Date().toISOString(),pinned:true}]}))} onFocusActiveChange={setFocusCompanionActive} onSessionComplete={focusDone}/></div>
+  const focusInHero=!showQuick&&!familyLean&&islandSetting==='full'&&!homeLayout.hidden.has('focus')&&!homeLayout.hidden.has('sanctuary')
  return <div data-daylight={daylight} className={'workbench density-'+(data.settings.density??'comfortable')+' text-'+(data.settings.textSize??'normal')+(simpleView?' is-simple':'')} data-page={page.toLowerCase()} data-experience={experience} data-decoration={data.settings.decoration!==false}>
   <a className="skip-link" href="#workspace-main">Skip to content</a>
   {experience==='cozy'?<div className="cozy-navigation"><Sidebar hidden={hiddenPages} view={page==='Trash'?'Notes':page} onView={navigate} profile={profile.name} schoolYear={profile.label} profiles={data.profiles} activeProfileId={profile.id} onProfileChange={switchPlan} onOpenPlans={()=>setPlansOpen(true)} locked={!!lockedPlan} onAdd={()=>setAdding(true)} onMore={()=>setMore(true)} homeLabel={islandSetting==='off'?'Home':undefined} simple={simpleView} weekWeather={weather.reading?.daily??[]} weatherLocation={data.settings.sanctuaryWeatherLocations[profile.id]} music={music} parentMode={parentMode} weatherChip={weatherChip}/></div>:<aside className="wb-sidebar"><div className="wb-brand-row"><a className="wb-brand" href="?page=sanctuary" onClick={e=>{e.preventDefault();navigate('Sanctuary')}}><span className="brand-mark" aria-hidden="true"><BrandLogo/><i>✿</i></span><strong>KONO<small>Study Sanctuary</small></strong></a>{weatherChip}</div><div className="wb-tabs-label">Notebook tabs</div><nav aria-label="Main navigation">{visiblePages.map(p=><button key={p} aria-current={page===p?'page':undefined} onClick={()=>navigate(p)}><span className="wb-nav-icon">{p==='Trash'?<span aria-hidden="true">↶</span>:<NavIcon name={p} experience={experience}/>}</span><span>{p}</span></button>)}</nav><div className="sidebar-music-slot"><MusicPlayer controller={music} compact/></div><label className="wb-profile"><span className="wb-profile-title">{profile.label}</span>Study profile<select value={profile.id} onChange={e=>switchPlan(e.target.value)}>{data.profiles.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}</select></label></aside>}
@@ -1138,7 +1140,7 @@ function Workspace({store}:{store:Store}){
     {/* Your own Home (✏️ Customize Home, store/homeLayout): the widgets in your order, hidden ones left out. */}
     {homeLayout.order.filter(id=>!homeLayout.hidden.has(id)).map(id=><Fragment key={id}>
     {id==='week'&&!showQuick&&<WeekAhead strip today={today} profileId={profile.id} data={data} monday={monday} recap={null} tasks={tasks} exams={ownExams} onPlan={openWeekPlan} onOpenDay={date=>{setSelectedDate(date);navigate('Planner')}} mondayWork={null}/>}
-    {id==='sanctuary'&&<>
+    {id==='sanctuary'&&<div className={'sanctuary-hero'+(focusInHero?' has-focus':'')}><div className="sanctuary-stage">
     {showTour&&islandSetting==='full'&&<Suspense fallback={<TourPlaceholder/>}><WelcomeTour family={parentMode} onAdd={()=>setAdding(true)} onDone={()=>setTourDone('1')}/></Suspense>}
     {islandSetting!=='full'?null:showQuick?<section className="wb-panel quick-today" aria-label="Today view"><div><small>{new Date(today+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</small><h2>Today</h2></div><button type="button" onClick={()=>setQuickToday(false)}><span aria-hidden="true">🏝</span> Open your island</button>{installedApp()&&<label className="wb-check quick-today-pref"><input type="checkbox" checked={openToToday==='1'} onChange={e=>setOpenToToday(e.target.checked?'1':'0')}/>Open the app to Today</label>}</section>
     :<section className={'wb-island '+(expanded?'is-expanded':'')} data-kono-need={konoNeed??undefined}><div className="wb-scene-toolbar"><div className="wb-scene-left"><nav className="island-mode-tabs" aria-label="Sanctuary view">{islandMode==='decorate'?<button type="button" aria-pressed="true" onClick={()=>setIslandMode('view')}>✓ Done decorating</button>:<button type="button" aria-pressed="false" onClick={()=>{setDecorateStart(undefined);openDecorate()}}><KonoIcon name="decorate"/> Decorate</button>}{islandMode==='view'&&<button type="button" className="wb-scene-arcade" title="Arcade: KONO Flow, candy crush and more" aria-haspopup="dialog" onClick={()=>setTownOpen('arcade')}><KonoIcon name="arcade"/> Arcade</button>}{islandMode==='view'&&<button type="button" className="wb-scene-world" title="World map: beach, forest and snowy village" onClick={()=>setWorldOpen(true)}><KonoIcon name="map"/> World map</button>}</nav></div><div className="wb-scene-controls"><label className="wb-scene-time" title="Sanctuary time"><span aria-hidden="true">🕐</span><select aria-label="Sanctuary time" value={phase} onChange={e=>setPhase(e.target.value as typeof phase)}>{['auto','morning','afternoon','evening','night'].map(p=><option key={p} value={p}>{p==='auto'?'Live time':p[0].toUpperCase()+p.slice(1)}</option>)}</select></label>{islandMode==='view'&&islandZoom!==1&&<button type="button" className="wb-island-reset" onClick={resetIslandView}>Reset zoom</button>}{islandMode==='view'&&<button type="button" className="wb-scene-photo" title="Island photo" aria-label="Take a photo of your island" onClick={()=>setPhotoStage(islandStageRef.current)}><KonoIcon name="camera"/></button>}<button type="button" className="wb-scene-expand" title={expanded?'Close full screen':'Expand'} onClick={()=>setExpanded(v=>!v)}><KonoIcon name={expanded?'close':'expand'}/><span className="wb-btn-label">{expanded?'Close full screen':'Expand'}</span></button></div></div><div className="wb-sanctuary-stage"><div ref={islandStageRef} className={'wb-sanctuary-zoom-wrap'+(entering?.zoom?' is-entering':'')} style={entering?{['--door-x' as string]:entering.ox+'%',['--door-y' as string]:entering.oy+'%'}:undefined} onTouchStart={onIslandTouchStart} onTouchMove={onIslandTouchMove} onTouchEnd={onIslandTouchEnd} onPointerDown={onIslandPointerDown} onPointerMove={onIslandPointerMove} onPointerUp={onIslandPointerUp} onPointerCancel={onIslandPointerUp}><div className={'wb-sanctuary-zoom'+(islandMode==='view'&&islandZoom!==1?' is-zoomed':'')} style={islandMode==='view'?{transform:`translate(${islandPan.x}px, ${islandPan.y}px) scale(${islandZoom})`}:undefined}><div ref={islandSlotRef} className={'wb-sanctuary-backdrop'+(islandMode==='decorate'?' is-decorating':'')}>{!islandLive?<article className="sanctuary-card"><div className="sanctuary-viewport" role="img" aria-label="Your island" style={{backgroundImage:`url(${islandPosterSrc(islandPhase==='auto'?autoIslandPhase():islandPhase)})`}}/></article>:<GardenCard phase={islandPhase} weather={weather.weather} reducedMotion={reduced} progress={sanctuaryProgress} decorations={data.sanctuaryDecor[profile.id]?.placements} paused={islandMode==='decorate'} celebrateSignal={celebrateSignal} focusCompanionActive={focusCompanionActive} onKonoPet={islandPat} konoNeed={konoNeed} feedSignal={feedSignal} konoMood={meters.away?null:{full:meters.full,rested:meters.rested,happy:meters.happy,asleep:meters.asleep}} outfit={shownOutfit} paint={paint} visitor={visitor?.id??null} enterHome={entering} leaveHome={leaveSignal} onKonoInside={openFromDoor}/>}</div>{islandMode==='view'&&<SanctuaryDecorLayer data={data} phase={islandPhase} home={konoHome?.placement.id??null} onHome={tapHome}/>}</div></div>{islandMode==='decorate'&&<SanctuaryBuild data={data} save={save} phase={phase} earned={decorEarned} today={today} startCategory={decorateStart} wardrobe={{offered:outfitsOffered(unlockedOutfitIds,today),unlocked:unlockedOutfitIds,worn,stats:wardrobe,onWear:wearOutfit}} stamps={stamps} bond={bond}/>}</div></section>}
@@ -1188,7 +1190,7 @@ function Workspace({store}:{store:Store}){
      {askOpen&&<AskKono data={data} today={today} name={profile.name} pose={konoPose} onClose={()=>setAskOpen(false)}/>}{nextUpOpen&&<Suspense fallback={null}><NextUp items={nextUpList(tasks,today,ownExams)} onClose={()=>setNextUpOpen(false)} onStart={item=>{setNextUpOpen(false);startFocusSession(item.exam?'':item.id,item.minutes,item.exam?item.title:undefined)}} onDone={item=>void run(()=>save(d=>completeTask(d,item.id)),'Done: '+item.title,true,item.exam?undefined:item.id)}/></Suspense>}
     </section>
     </>}
-    </>}
+    </div>{focusInHero&&focusConsole}</div>}
     {/* The family schedule: whose is what (tap a name), the day at a glance and what's next for each person. */}
     {id==='family'&&familyHome&&<section className="wb-panel today-card family-schedule" aria-label="Family schedule">
      <div className="wb-section-head"><div><small>{dateLabel(today)}</small><h2>Family schedule</h2></div></div>
@@ -1244,7 +1246,7 @@ function Workspace({store}:{store:Store}){
     {!showQuick&&comingUp.length>0&&<section className="wb-panel coming-up" aria-label="Coming up"><div className="wb-section-head"><h2>Coming up</h2><button type="button" className="link-button" onClick={()=>setSpecialOpen(true)}>Birthdays & countdowns</button></div><ul>{comingUp.slice(0,4).map(x=><li key={x.day.id} className={x.daysAway===0?'is-today':undefined}><span aria-hidden="true">{x.icon}</span><span>{x.label}</span><b>{daysAwayLabel(x.daysAway)}</b></li>)}</ul></section>}
     </>}
     {id==='focus'&&<>
-    {!showQuick&&!familyLean&&<details ref={sanctuaryFocusRef} className="wb-panel sanctuary-focus"><summary>Focus session</summary><FocusSession draftKey={draftScope+':focus'} tasks={tasks} notes={notes} focusRequest={focusRequest} onComplete={id=>void run(()=>save(d=>completeTask(d,id)),'Assignment completed.')} onSaveNote={body=>save(d=>({...d,notes:[...d.notes,{id:uid('note'),profileId:profile.id,subjectId:'',title:'Study session',body,created:new Date().toISOString(),pinned:true}]}))} onFocusActiveChange={setFocusCompanionActive} onSessionComplete={focusDone}/></details>}
+    {!focusInHero&&!showQuick&&!familyLean&&focusConsole}
     </>}
     </Fragment>)}
     {!showQuick&&<p className="home-customize"><button type="button" onClick={()=>setCustomizing(true)}>✏️ Customize Home</button></p>}

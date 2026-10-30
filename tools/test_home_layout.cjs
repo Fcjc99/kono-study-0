@@ -5,10 +5,11 @@ vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOpti
 const h=mod.exports
 let passed=0
 const test=(name,fn)=>{fn();passed++;console.log('PASS '+name)}
-test('the default Home: the week strip, Sanctuary, the family schedule, the schedule, the next 7 days, then notes',()=>{
+test('the default Home: Sanctuary, the family schedule, the schedule, the next 7 days, then notes; the week strip is off (This week shows the same days)',()=>{
  const l=h.readLayout('')
  assert.equal(l.order.slice(0,6).join(),'week,sanctuary,family,schedule,weekAhead,notes')
- assert.equal(l.hidden.size,0);assert.ok(h.isDefault(l))
+ assert.deepEqual([...l.hidden],['week']);assert.ok(h.isDefault(l))
+ assert.equal(h.writeLayout(l),h.DEFAULT_LINE)
 })
 test('a saved order and hidden widgets come back as saved; unknown and repeated names are dropped',()=>{
  const l=h.readLayout('notes,-sanctuary,schedule,bogus,notes,week,family,weekAhead,todos,comingUp,focus')

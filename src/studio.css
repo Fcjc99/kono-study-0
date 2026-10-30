@@ -1,0 +1,129 @@
+/* KONO Studio: the redesigned shell and Sanctuary (docs/redesign-feature-checklist.md). Loaded last, on top of
+ * the older layers, and built only from the themes' own variables (--wb-*), so every theme, dark mode, large
+ * text, density and the simplified experiences keep working. Composition and hierarchy first: page titles
+ * that show, a slim header, the island beside a focus console, calm secondary controls, flat panels. */
+
+.workbench{
+ --studio-radius:18px;
+ --studio-shadow:0 1px 2px rgba(48,30,24,.05),0 6px 18px rgba(48,30,24,.05);
+ --studio-soft:color-mix(in srgb,var(--wb-accent) 7%,var(--wb-surface));
+ --studio-chip:color-mix(in srgb,var(--wb-ink) 6%,var(--wb-surface));
+}
+
+/* ── The header: the page's name is always shown (it was hidden on phones and on the Sanctuary), the bar is
+ * slim, flat paper, no gradient band. */
+#workspace-main .wb-header{display:flex!important;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+ margin:0 0 16px!important;padding:14px 4px!important;min-height:0!important;background:none!important;border:0!important;border-bottom:1px solid var(--wb-line)!important;border-radius:0!important;box-shadow:none!important}
+#workspace-main .wb-header>div:first-child{position:static!important;width:auto!important;height:auto!important;overflow:visible!important;clip-path:none!important;clip:auto!important;white-space:normal!important;min-width:0}
+#workspace-main .wb-header .wb-title-row{width:auto!important;min-width:0}
+#workspace-main .wb-header .wb-title-row>h1{position:static!important;width:auto!important;height:auto!important;margin:0!important;padding:0!important;overflow:visible!important;clip:auto!important;clip-path:none!important;white-space:nowrap!important;
+ font:650 clamp(1.45rem,2.6vw,1.9rem)/1.15 Newsreader,Georgia,serif!important;letter-spacing:-.01em;color:var(--wb-ink)}
+#workspace-main .wb-header .wb-title-row>h1::after,#workspace-main .cozy-heading-flower{display:none!important}
+
+/* ── The Sanctuary: the island and studying lead. On a wide screen the focus console sits beside the island
+ * (and stays in view); on a phone it comes first, so the next step is right under the title. */
+.workbench .sanctuary-hero{display:grid;gap:16px;min-width:0}
+.workbench .sanctuary-stage{display:grid;gap:0;min-width:0}
+@media (min-width:1100px){
+ .workbench .sanctuary-hero.has-focus{grid-template-columns:minmax(0,1fr) minmax(300px,340px);align-items:start}
+ .workbench .sanctuary-hero.has-focus>.sanctuary-focus{position:sticky;top:16px}
+}
+@media (max-width:760px){
+ .workbench .sanctuary-hero.has-focus{display:flex;flex-direction:column}
+ .workbench .sanctuary-hero.has-focus>.sanctuary-focus{order:-1}
+}
+
+/* Panels on Home: one flat card each, no gradients, double borders or glows. */
+.workbench[data-page=sanctuary] .home-grid>.wb-panel,.workbench[data-page=sanctuary] .sanctuary-stage>.wb-panel,
+.workbench[data-page=sanctuary] .sanctuary-stage>.wb-island{background:var(--wb-surface)!important;background-image:none!important;border:1px solid var(--wb-line)!important;border-radius:var(--studio-radius)!important;box-shadow:var(--studio-shadow)!important;outline:0!important}
+.workbench[data-page=sanctuary] .wb-panel::before,.workbench[data-page=sanctuary] .wb-panel::after{display:none!important}
+/* The notes on Home: a calm list of cards instead of a corkboard. */
+.workbench[data-page=sanctuary] .home-notes-board{background:none!important;border:0!important;box-shadow:none!important;padding:0!important}
+
+/* The island's own controls are secondary to studying: plain buttons, not gradients. */
+.workbench .wb-scene-toolbar :is(button,a,select,label):not(.wb-scene-expand){box-shadow:none!important}
+#workspace-main .wb-scene-toolbar :is(.wb-scene-arcade,.wb-scene-world,.island-mode-tabs button,.island-mode-tabs a):not(#x):not(#y){box-shadow:none!important;background:var(--wb-surface)!important;color:var(--wb-ink)!important;border:1px solid var(--wb-line)!important;background-image:none!important;text-shadow:none!important}
+.workbench .wb-scene-toolbar :is(.wb-scene-arcade,.wb-scene-world) svg{color:var(--wb-accent)}
+
+/* ── The focus console. */
+.workbench .sanctuary-focus{padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
+.workbench .sanctuary-focus>.focus-console{margin:0}
+.workbench .focus-console{display:grid;gap:14px;padding:20px!important;background:var(--wb-surface)!important;background-image:none!important;border:1px solid var(--wb-line)!important;border-radius:var(--studio-radius)!important;box-shadow:var(--studio-shadow)!important;color:var(--wb-ink)}
+.workbench .focus-console-head{display:grid;gap:2px}
+.workbench .focus-console-head .eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--wb-accent)}
+.workbench .focus-console-head h2{margin:0;font:650 1.35rem/1.2 Newsreader,Georgia,serif;color:var(--wb-ink)}
+.workbench .focus-field{display:grid;gap:6px;font-size:.78rem;font-weight:700;letter-spacing:.04em;color:var(--wb-muted)}
+.workbench .focus-field :is(select,textarea){width:100%;min-height:44px;padding:8px 12px;font:inherit;font-size:1rem;font-weight:500;letter-spacing:0;color:var(--wb-ink);background:var(--wb-surface);border:1px solid var(--wb-line);border-radius:12px}
+.workbench .focus-field textarea{min-height:88px;resize:vertical}
+.workbench .focus-task{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.workbench .focus-task p{margin:0;flex:1 1 160px;font-size:.88rem;color:var(--wb-muted)}
+.workbench .focus-complete,#workspace-main .focus-complete{min-height:36px;padding:0 12px!important;font-size:.82rem!important;font-weight:700;color:var(--wb-ink)!important;background:var(--wb-surface)!important;border:1px solid var(--wb-line)!important;border-radius:99px!important;box-shadow:none!important}
+.workbench .focus-study-label{margin:0;font-size:1.05rem}
+.workbench .focus-timer{display:grid!important;justify-items:center;gap:12px;margin:0!important;padding:18px 14px!important;border-radius:16px;background:var(--studio-soft)!important;border:0!important}
+.workbench .focus-time{font:300 3.4rem/1 ui-rounded,system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:var(--wb-ink)}
+.workbench .focus-time-edit{display:flex;align-items:center;justify-content:center;gap:2px;font:300 3.4rem/1 ui-rounded,system-ui,sans-serif;color:var(--wb-ink)}
+.workbench .focus-time-edit input,#workspace-main .focus-time-edit input{min-height:0!important;height:auto!important;width:2.3ch;padding:0!important;margin:0;font:inherit!important;font-variant-numeric:tabular-nums;text-align:center;color:inherit;background:transparent!important;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;box-shadow:none!important;-moz-appearance:textfield;appearance:textfield}
+.workbench .focus-time-edit input::-webkit-inner-spin-button,.workbench .focus-time-edit input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.workbench .focus-time-edit input:hover{border-bottom-color:var(--wb-line)!important}
+.workbench .focus-time-edit input:focus-visible{outline:none;border-bottom-color:var(--wb-accent)!important}
+.workbench .focus-presets{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:6px;width:100%}
+.workbench .focus-presets button,#workspace-main .focus-presets button{white-space:nowrap!important;font-size:.8rem!important;padding:0 6px!important;min-width:0!important;min-height:38px;padding:0 12px!important;font-size:.82rem!important;font-weight:700;color:var(--wb-ink)!important;background:var(--wb-surface)!important;border:1px solid var(--wb-line)!important;border-radius:99px!important;box-shadow:none!important}
+.workbench .focus-presets button[aria-pressed=true]{color:var(--wb-accent-ink,#fff)!important;background:var(--wb-accent)!important;border-color:var(--wb-accent)!important}
+.workbench .focus-timer .focus-progress-track{width:100%;height:6px;margin:0;border-radius:99px;background:color-mix(in srgb,var(--wb-ink) 9%,transparent);overflow:hidden}
+.workbench .focus-timer .focus-progress-track i{display:block;height:100%;background:var(--wb-accent);border-radius:inherit}
+.workbench .focus-actions{display:flex;flex-wrap:wrap;gap:8px;width:100%;align-items:center}
+.workbench .focus-actions>p{flex:1 1 100%;margin:0;text-align:center;font-weight:700}
+.workbench .focus-actions .primary{flex:1 1 auto;min-height:52px;font-size:1.05rem!important;font-weight:750;border-radius:14px!important}
+.workbench .focus-actions>button:not(.primary):not(.break-games-open),#workspace-main .focus-actions>button:not(.primary):not(.break-games-open){font-size:.9rem!important;font-weight:700!important;min-height:52px;padding:0 14px!important;color:var(--wb-muted)!important;background:transparent!important;border:1px solid var(--wb-line)!important;border-radius:14px!important;box-shadow:none!important}
+.workbench .focus-actions .break-games-open{flex:1 1 auto;min-height:48px}
+.workbench .focus-console-note{margin:0;font-size:.78rem;line-height:1.45;color:var(--wb-muted)}
+.workbench .focus-more{border-top:1px solid var(--wb-line);padding-top:10px}
+.workbench .focus-more>summary{cursor:pointer;min-height:36px;display:flex;align-items:center;font-size:.85rem;font-weight:750;color:var(--wb-ink);list-style:none}
+.workbench .focus-more>summary::-webkit-details-marker{display:none}
+.workbench .focus-more>summary::before{content:'›';display:inline-block;width:1.1em;color:var(--wb-muted);transition:transform .15s}
+.workbench .focus-more[open]>summary::before{transform:rotate(90deg)}
+.workbench .focus-more[open]{display:grid;gap:10px}
+.workbench .focus-more .wb-check{display:flex;gap:8px;align-items:center;font-weight:650}
+.workbench .focus-more .wb-muted{margin:0;font-size:.8rem}
+.workbench .focus-recent-note{padding:10px 12px;border:1px solid var(--wb-line);border-radius:12px}
+.workbench .focus-recent-note p{margin:4px 0 0;font-size:.82rem;color:var(--wb-muted)}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
+/* Phones: a compact console (it leads the page), and a shorter brand band above the title. */
+@media (max-width:760px){
+ .workbench .focus-console{padding:16px!important;gap:12px}
+ .workbench .focus-time,.workbench .focus-time-edit{font-size:2.8rem}
+ .workbench .focus-timer{padding:14px 12px!important}
+}
+
+@media (prefers-reduced-motion:reduce){.workbench .focus-more>summary::before{transition:none}}
+
+/* The island's toolbar in the narrower column beside the console: one tidy row that wraps cleanly. */
+#workspace-main .wb-scene-toolbar{display:flex!important;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px!important;grid-template-areas:none!important}
+#workspace-main .wb-scene-toolbar>*{grid-area:auto!important;position:static!important}
+#workspace-main .wb-scene-left,#workspace-main .wb-scene-controls{display:flex!important;flex-wrap:wrap;align-items:center;gap:6px!important}
+#workspace-main .wb-scene-toolbar .island-mode-tabs{display:flex!important;gap:6px!important;flex-wrap:wrap}
+#workspace-main .wb-scene-toolbar :is(.island-mode-tabs button,.wb-scene-arcade,.wb-scene-world):not(#x):not(#y){min-height:38px!important;padding:0 12px!important;font-size:.85rem!important;font-weight:700!important;border-radius:99px!important;flex-direction:row!important;gap:6px!important}
+
+/* Phones: the title row is the page's own header now (title on the left, its few actions on the right). */
+@media (max-width:760px){
+ #workspace-main .wb-header{padding:10px 2px!important;margin-bottom:12px!important}
+ #workspace-main .wb-header .wb-title-row>h1{font-size:1.5rem!important}
+ .mobile-desk-header{padding-top:8px!important;padding-bottom:8px!important}
+}
+#workspace-main .wb-scene-toolbar .wb-scene-world:not(#x):not(#y)::after{display:none!important}
+#workspace-main .wb-scene-toolbar :is(.wb-scene-arcade,.wb-scene-world):not(#x):not(#y):hover{filter:none;background:var(--studio-chip)!important}
+
+/* KONO's bar under the island, in the narrower column beside the console: still two short rows (its line,
+ * then the meters, one care action and the coins / Next / Ask tools). */
+#workspace-main .sanctuary-stage .kono-bar .kono-care{gap:4px!important}
+#workspace-main .sanctuary-stage .kono-bar .kono-care-meter{flex:0 0 40px!important}
+#workspace-main .sanctuary-stage .kono-bar :is(.kono-care button,.kono-bar-tools button){min-height:30px!important;padding:2px 9px!important;font-size:.78rem!important}
+#workspace-main .sanctuary-stage .kono-bar .kono-bar-tools{gap:4px!important}
+#workspace-main .sanctuary-stage .kono-bar{padding:6px 10px!important;gap:2px!important}
+#workspace-main .sanctuary-stage .kono-bar .kono-mood-row{row-gap:4px!important}
+#workspace-main .sanctuary-stage .kono-bar .kono-mood-row>p{flex-basis:150px!important}
+#workspace-main .sanctuary-stage .kono-bar .kono-bar-notes{margin:0!important;gap:2px!important}
+/* The island and KONO's bar read as one card: no gap, square inner corners, a dashed line between. */
+#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded):has(+.kono-bar){border-bottom-left-radius:0!important;border-bottom-right-radius:0!important;border-bottom:0!important}
+#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded)+.kono-bar{margin-top:0!important;border-top:1px dashed var(--wb-line)!important;border-top-left-radius:0!important;border-top-right-radius:0!important}

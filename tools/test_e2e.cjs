@@ -1096,10 +1096,9 @@ test('Phone app: inside the iPhone/Android app the widgets get the plan, reminde
  assert.ok(snap.updated&&snap.kono&&typeof snap.kono.full==='number'&&Array.isArray(snap.next)&&snap.today,'the widget data has next up, today and KONO')
  await until(c=>c.some(x=>x.method==='checkPermissions'),'reminders checked permission')
  // Turning on a timer shows it on the lock screen; pausing ends it.
- const outer=page.locator('details.sanctuary-focus')
- await outer.locator(':scope > summary').click()
- const focus=outer.locator('details.focus-session')
- await focus.locator(':scope > summary').click()
+ // The focus console is open beside the island: the assignment, the length and Start are in view.
+ const focus=page.locator('.sanctuary-focus section.focus-session')
+ await focus.getByRole('button',{name:'Start timer'}).waitFor()
  await focus.getByLabel('Minutes').fill('25');await focus.getByLabel('Seconds').fill('0')
  await focus.getByRole('button',{name:'Start timer'}).click()
  await until(c=>c.some(x=>x.method==='startFocus'),'the focus session went to the lock screen')
@@ -2255,7 +2254,7 @@ test('What should I do now and the app icon number: late work first, "Something 
  await until(async()=>await badge()===1,'the icon should drop to 1')
  await now.getByRole('button',{name:'Start a 30-minute focus'}).click()
  await now.waitFor({state:'detached'})
- await until(()=>page.evaluate(()=>document.querySelector('details.sanctuary-focus')?.open===true),'the focus session never opened')
+ await until(()=>page.evaluate(()=>{const r=document.querySelector('.sanctuary-focus')?.getBoundingClientRect();return !!r&&r.top<innerHeight&&r.bottom>0}),'the focus console never came into view')
  await go(page,'Settings')
  await settingsTab(page,'Notifications')
  await page.getByLabel('Show how many things are due today (and late) on KONO’s icon').uncheck()
@@ -2545,7 +2544,7 @@ test('Ask KONO: KONO greets and asks what you want to know and answers today, th
  await page.getByRole('button',{name:'What should I do now?'}).waitFor()
 })
 
-test('Sanctuary: KONO today is a slim bar right under the island window, inside the island card, with Focus session after it; Decorate opened from the sticker tile in KONO’s corner keeps the decorations on the island',async({context,page})=>{
+test('Sanctuary: KONO today is a slim bar right under the island window, inside the island card, with the focus console beside it; Decorate opened from the sticker tile in KONO’s corner keeps the decorations on the island',async({context,page})=>{
  const cloud=fakeCloud()
  await page.clock.setFixedTime(new Date('2026-10-02T15:00:00'))
  await signInAs(context,cloud,'alice')
@@ -2554,12 +2553,12 @@ test('Sanctuary: KONO today is a slim bar right under the island window, inside 
  // Measured together, in one read, once the page has settled: late content above (the setup row,
  // KONO's line, lazily loaded cards) can still move both for a moment, and two separate reads can
  // straddle that move. Settled = the same positions on two polls in a row.
- const above=await page.waitForFunction(()=>{const b=document.querySelector('.kono-bar')?.getBoundingClientRect(),i=document.querySelector('.wb-island')?.getBoundingClientRect(),f=document.querySelector('.sanctuary-focus')?.getBoundingClientRect();if(!b||!i||!f)return false;const key=Math.round(b.top)+':'+Math.round(i.bottom)+':'+Math.round(f.top),w=window;const settled=w.__konoBarKey===key;w.__konoBarKey=key;return settled&&{gap:b.top-i.bottom,focusGap:f.top-b.bottom}},null,{timeout:10000,polling:250}).then(h=>h.jsonValue())
+ const above=await page.waitForFunction(()=>{const b=document.querySelector('.kono-bar')?.getBoundingClientRect(),i=document.querySelector('.wb-island')?.getBoundingClientRect(),f=document.querySelector('.sanctuary-focus')?.getBoundingClientRect();if(!b||!i||!f)return false;const key=Math.round(b.top)+':'+Math.round(i.bottom)+':'+Math.round(f.top),w=window;const settled=w.__konoBarKey===key;w.__konoBarKey=key;return settled&&{gap:b.top-i.bottom,focusBeside:f.left-i.right,focusTop:f.top-i.top}},null,{timeout:10000,polling:250}).then(h=>h.jsonValue())
  const b=await bar.boundingBox(),i=await island.boundingBox(),docY=await page.evaluate(()=>scrollY)
  if(process.env.KONO_SHOTS){await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar.png',clip:{x:b.x-10,y:b.y+docY-10,width:b.width+20,height:b.height+200}});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);const pb=await bar.evaluate(e=>{const r=e.getBoundingClientRect();return {y:r.top+scrollY,height:r.height}});await page.screenshot({fullPage:true,path:process.env.KONO_SHOTS+'/kono-bar-phone.png',clip:{x:0,y:Math.max(0,pb.y-10),width:390,height:pb.height+160}});await page.setViewportSize({width:1280,height:900});await page.waitForTimeout(400)}
  assert.ok(b.height<160,'the KONO bar is slim (two short rows, even with a note from KONO): '+b.height+'px')
  assert.ok(Math.abs(above.gap)<=1,'the KONO bar sits right under the island window, in the same card: '+above.gap+'px')
- assert.ok(above.focusGap>=-1,'Focus session comes after the island card (its place on Home is yours to change): '+above.focusGap+'px')
+ assert.ok(above.focusBeside>=0&&Math.abs(above.focusTop)<=40,'on a wide screen the focus console sits beside the island, level with it: '+JSON.stringify(above))
  await page.getByRole('button',{name:'Decorate'}).click()
  const nav=page.getByRole('navigation',{name:'Decoration categories'})
  for(const cat of ['Homes','Trees','Ponds']){await nav.getByRole('button',{name:cat,exact:true}).click();await page.locator('.build-palette [role=button][aria-label^="Add "]').first().click()}
@@ -2938,15 +2937,14 @@ test('Focus finds: when a focus session runs all the way down, KONO (who read be
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  const today=page.getByRole('region',{name:'KONO today'})
- const outer=page.locator('details.sanctuary-focus')
- await outer.locator(':scope > summary').click()
- const focus=outer.locator('details.focus-session')
- await focus.locator(':scope > summary').click()
+ // The focus console is open beside the island: the assignment, the length and Start are in view.
+ const focus=page.locator('.sanctuary-focus section.focus-session')
+ await focus.getByRole('button',{name:'Start timer'}).waitFor()
  await focus.getByLabel('Minutes').fill('25');await focus.getByLabel('Seconds').fill('0')
  await focus.getByRole('button',{name:'Start timer'}).click()
  // The fake clock runs every animation frame of those 25 minutes: keep the island (which pauses while
  // it's off screen) out of view, or the test spends minutes drawing it.
- await focus.evaluate(el=>el.scrollIntoView({block:'start'}))
+ await page.evaluate(()=>window.scrollTo(0,document.documentElement.scrollHeight))
  await page.waitForFunction(()=>(document.querySelector('.wb-island')?.getBoundingClientRect().bottom??0)<=0)
  await page.waitForTimeout(300)
  await page.clock.runFor(25*60*1000+3000)
@@ -3058,10 +3056,9 @@ test('Break games: after a focus session KONO offers the arcade’s games for a 
  await page.clock.install({time:new Date('2026-09-15T15:00:00')})
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
- const outer=page.locator('details.sanctuary-focus')
- await outer.locator(':scope > summary').click()
- const focus=outer.locator('details.focus-session')
- await focus.locator(':scope > summary').click()
+ // The focus console is open beside the island: the assignment, the length and Start are in view.
+ const focus=page.locator('.sanctuary-focus section.focus-session')
+ await focus.getByRole('button',{name:'Start timer'}).waitFor()
  assert.equal(await focus.getByRole('button',{name:/Break game with KONO/}).count(),0,'no games while studying')
  await focus.getByLabel('Minutes').fill('0');await focus.getByLabel('Seconds').fill('5')
  await focus.getByRole('button',{name:'Start timer'}).click()
@@ -3712,7 +3709,7 @@ test('Family Home: one Today card says what is next for each kid, Kids today liv
  const day=page.getByRole('region',{name:'Family schedule'})
  await day.getByRole('list',{name:'What’s next for the kids'}).getByText(/Soccer practice 4:00 PM · leave 3:45 PM/).waitFor()
  assert.equal(await page.getByRole('region',{name:'Your kids'}).count(),0,'Kids today is on the Kids page')
- assert.equal(await page.locator('details.sanctuary-focus').count(),0,'no Focus session in a family plan')
+ assert.equal(await page.locator('.sanctuary-focus').count(),0,'no Focus session in a family plan')
  // Late work: once, behind its pill.
  assert.equal(await page.getByRole('region',{name:'Overdue'}).count(),0)
  await day.getByRole('button',{name:/1 late/}).click()
@@ -4182,22 +4179,22 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  await grid.getByRole('gridcell',{name:new RegExp('^Row '+wrong.r+', column '+wrong.c+', marked$')}).waitFor()
 })
 
-test('Round 58: your own Home: the week strip, Sanctuary, the family schedule, then the schedule (today and tomorrow together), the next 7 days and pinned notes; Customize Home hides and reorders, and it stays after a reload',async({context,page})=>{
+test('Round 58: your own Home: Sanctuary beside the focus console (the week strip is off by default; This week has the same days), the family schedule, then the schedule (today and tomorrow together), the next 7 days and pinned notes; Customize Home hides and reorders, and it stays after a reload',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
  d.notes.push({id:'n-pin',profileId:pid,subjectId:'',title:'Bring cleats',body:'Soccer Saturday',created:'2026-10-10T12:00:00.000Z',pinned:true})
  d.calendarEvents.push({id:'e-rem',profileId:pid,subjectId:'',title:'Reminder: dentist form',date:'2026-10-17',kind:'personal',done:false})
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
- const order=()=>page.evaluate(()=>[...document.querySelectorAll('.home-widgets>section,.home-widgets>details')].map(el=>el.getAttribute('aria-label')||el.className.split(' ').find(c=>c.startsWith('wb-island')||c.startsWith('kono-bar'))||el.tagName))
- await page.getByRole('region',{name:'This week at a glance'}).waitFor()
+ const order=()=>page.evaluate(()=>[...document.querySelectorAll('.home-widgets>section,.home-widgets>details,.home-widgets>.sanctuary-hero>.sanctuary-stage>section')].map(el=>el.getAttribute('aria-label')||el.className.split(' ').find(c=>c.startsWith('wb-island')||c.startsWith('kono-bar'))||el.tagName))
+ await page.getByRole('region',{name:'Your week ahead'}).waitFor()
  await page.getByRole('region',{name:'Notes & reminders'}).getByText('Bring cleats').waitFor()
  await page.getByRole('region',{name:'Notes & reminders'}).getByText('Reminder: dentist form').waitFor()
  const day=page.getByRole('region',{name:'Your day'})
  await day.getByRole('region',{name:'Today'}).waitFor();await day.getByRole('region',{name:'Tomorrow'}).waitFor()
  assert.equal(await page.getByRole('tab',{name:/^Tomorrow/}).count(),0,'no Today / Tomorrow tabs any more')
  const first=await order()
- assert.ok(first.indexOf('This week at a glance')<first.indexOf('wb-island'),'the week strip sits above Sanctuary: '+first.join(' | '))
+ assert.ok(!first.includes('This week at a glance'),'the week strip is off by default (This week shows the same days): '+first.join(' | '))
  assert.ok(first.indexOf('wb-island')<first.indexOf('Your day')&&first.indexOf('Your day')<first.indexOf('Notes & reminders'),first.join(' | '))
  if(process.env.KONO_SHOTS){await page.screenshot({path:process.env.KONO_SHOTS+'/home-desktop.png',fullPage:true});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(500);await page.screenshot({path:process.env.KONO_SHOTS+'/home-phone.png',fullPage:true});await page.setViewportSize({width:1280,height:900})}
  // Customize: hide Sanctuary and move Notes & reminders to the top (⠿ with the arrow keys).
