@@ -1,5 +1,5 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {LEVELS,CLEAR_AT,CLEAR_NAME,MAX_SCORE,WINDOWS,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,readBeatBest,readOffset,readSpeed,ribbonX,saveBeatBest,saveOffset,saveSpeed,scoreOf,skyHit,judge,type Chart,type Clear,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
+import {LEVELS,CLEAR_AT,CLEAR_NAME,WINDOWS,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,readBeatBest,readOffset,readSpeed,ribbonX,saveBeatBest,saveOffset,saveSpeed,scoreOf,skyHit,judge,type Chart,type Clear,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
 import {stopMusic} from '../arcadeAudio'
 import charts from '../game/data/rhythmCharts.json'
 import type {GameHandle} from './GameScreen'
@@ -10,6 +10,14 @@ const SONGS=(charts as unknown as {songs:Song[]}).songs
 const FROM:Record<string,string>={candy:'🍬 Candy crush',gems:'💎 Gem blitz',blast:'🧱 KONO blast','flow-1':'🌌 Flow · Drift','flow-2':'🌌 Flow · Tide','flow-3':'🌌 Flow · Pulse','flow-4':'🌌 Flow · Aurora','flow-5':'🌌 Flow · Zenith'}
 const LANE_COLORS=['#ff7ab6','#7ad7ff','#9dff8a','#ffd36b']
 const HAND_COLORS=['#5fd3ff','#ff7ad1']
+const LEVEL_COLORS:Record<Level,string>={easy:'#3fb59a',medium:'#e0953c',jeff:'#c65ad0'}
+// Each song's cover: an emoji on two colors.
+const JACKETS:Record<string,[string,string,string]>={candy:['🍬','#ff9ac8','#ffd58a'],gems:['💎','#7fd8ff','#a98bff'],blast:['🧱','#ffb36b','#ff6b8a'],'flow-1':['🌌','#3a3f9e','#8fa2ff'],'flow-2':['🌊','#2f7fb8','#9ff0ff'],'flow-3':['🌙','#2a2350','#c27bff'],'flow-4':['🌠','#4b2d8f','#ff9ae0'],'flow-5':['✨','#1d5a6e','#ffe28a']}
+function Jacket({id,big=false}:{id:string;big?:boolean}){const [e,a,b]=JACKETS[id]??['🎵','#888','#ccc'];return <span className={'beat-jacket'+(big?' is-big':'')} style={{'--j1':a,'--j2':b} as React.CSSProperties} aria-hidden="true"><span>{e}</span></span>}
+/** How hard a chart is, 1-12: how many things to do a second (holds, sky notes and ribbons count a bit more). */
+function ratingOf(s:Song,level:Level){const c=s.charts[level],busy=(c.tap.length+c.hold.length*1.3+c.sky.length*1.4+c.ribbon.length*0.5)/(s.ms/1000);return Math.max(1,Math.min(12,Math.round(1+busy*2.4)))}
+// Motes of light drifting up the sky behind the track (made once: x, y, size, brightness, speed, phase).
+const MOTES=Array.from({length:42},(_,i)=>{const r=(k:number)=>{const v=Math.sin(i*12.9898+k*78.233)*43758.5453;return v-Math.floor(v)};return {x:r(1),y:r(2),r:0.6+r(3)*1.8,a:0.2+r(4)*0.5,v:1+r(5)*3,p:r(6)*6}})
 const KEYS:Record<string,number>={d:0,f:1,j:2,k:3,arrowleft:0,arrowdown:1,arrowup:2,arrowright:3}
 const WORD:Record<Judge,string>={perfect:'Perfect',great:'Great',good:'Good',miss:'Miss'}
 const WORD_COLOR:Record<Judge,string>={perfect:'#ffe27a',great:'#7ae7ff',good:'#b9ff9e',miss:'#ff7a8a'}
@@ -38,7 +46,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
  const fx=useRef<{x:number;sky:boolean;t:number;j:Judge}[]>([]),word=useRef<{j:Judge;t:number;off?:number}|null>(null)
  // What's held down: floor lanes (keys or fingers), the ribbon keys, and each finger's place.
  const lanesHeld=useRef([0,0,0,0]),keysHeld=useRef<Set<string>>(new Set()),pointers=useRef(new Map<number,{x:number;y:number;lane:number}>())
- const pressedAt=useRef([0,0,0,0]),clock=useRef({a:-1,p:0}),onEndRef=useRef(onEnd)
+ const pressedAt=useRef([0,0,0,0]),startedAt=useRef(0),clock=useRef({a:-1,p:0}),onEndRef=useRef(onEnd)
  useEffect(()=>{onEndRef.current=onEnd},[onEnd])
  const info=SONGS.find(s=>s.id===song)!
  // Where the song is (ms), smoothed: the element's time only updates every so often, so between updates it
@@ -92,6 +100,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
   lanesHeld.current=[0,0,0,0];keysHeld.current.clear();pointers.current.clear()
   const a=new Audio('/audio/games/'+info.id+'.mp3');a.preload='auto';audio.current=a;clock.current={a:-1,p:0}
   a.addEventListener('ended',()=>finishRef.current(),{once:true})
+  startedAt.current=performance.now()
   setPlaying(true);void a.play().catch(()=>undefined)
  }
 
@@ -126,80 +135,103 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
     const last=Math.max(pl.notes.length?pl.notes[pl.notes.length-1].end??pl.notes[pl.notes.length-1].t:0,pl.ribbons.length?pl.ribbons[pl.ribbons.length-1].t1:0)
     if(now>last+2500)finishRef.current()
    }
-   // The sky and the track, pulsing a little on the beat.
+   // A twilight sky with a glow at the horizon and motes of light drifting up; the track is dark glass.
    const beat=60000/info.bpm,pulse=Math.max(0,1-(((now%beat)+beat)%beat)/beat)
-   const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0d0a24');g.addColorStop(0.55,'#2a1a52');g.addColorStop(1,'#14102c');ctx.fillStyle=g;ctx.fillRect(0,0,W,H)
+   const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#1a1d4a');g.addColorStop(0.42,'#4d4f9c');g.addColorStop(0.78,'#a99ad8');g.addColorStop(1,'#f0d6ea');ctx.fillStyle=g;ctx.fillRect(0,0,W,H)
+   const hg=ctx.createRadialGradient(f.cx,f.horizonY,0,f.cx,f.horizonY,Math.max(W,H)*0.55);hg.addColorStop(0,`rgba(255,238,250,${0.5+pulse*0.12})`);hg.addColorStop(1,'rgba(255,238,250,0)');ctx.fillStyle=hg;ctx.fillRect(0,0,W,H)
+   ctx.fillStyle='#fff'
+   for(const m of MOTES){const y=((m.y-t*m.v/1e5)%1+1)%1;ctx.globalAlpha=m.a*(0.55+0.45*Math.sin(t/900+m.p));ctx.beginPath();ctx.arc(m.x*W,y*H,m.r,0,Math.PI*2);ctx.fill()}
+   ctx.globalAlpha=1
    const far=1.15,L=(x:number,z:number)=>[xAt(f,x,z),yAt(f,z)] as const
-   ctx.beginPath();ctx.moveTo(...L(0,far));ctx.lineTo(...L(1,far));ctx.lineTo(...L(1,0));ctx.lineTo(...L(0,0));ctx.closePath()
-   const fg=ctx.createLinearGradient(0,f.horizonY,0,f.hitY);fg.addColorStop(0,'rgba(255,255,255,0.02)');fg.addColorStop(1,'rgba(160,140,255,0.16)');ctx.fillStyle=fg;ctx.fill()
-   for(let l=0;l<4;l++){const held=lanesHeld.current[l]>0||t-pressedAt.current[l]<120;if(held){ctx.beginPath();ctx.moveTo(...L(l/4,far));ctx.lineTo(...L((l+1)/4,far));ctx.lineTo(...L((l+1)/4,0));ctx.lineTo(...L(l/4,0));ctx.closePath();ctx.fillStyle='rgba(255,255,255,0.09)';ctx.fill()}}
-   ctx.strokeStyle='rgba(255,255,255,0.16)';ctx.lineWidth=1
-   for(let l=0;l<=4;l++){ctx.beginPath();ctx.moveTo(...L(l/4,far));ctx.lineTo(...L(l/4,0));ctx.stroke()}
-   // Beat lines run down the track.
-   ctx.strokeStyle='rgba(255,255,255,0.07)'
-   for(let b=Math.ceil(now/beat)*beat;b<now+ap*far;b+=beat){const z=(b-now)/ap;ctx.beginPath();ctx.moveTo(...L(0,z));ctx.lineTo(...L(1,z));ctx.stroke()}
-   // The line, and the sky line above it.
-   ctx.fillStyle=`rgba(255,255,255,${0.45+pulse*0.3})`;ctx.fillRect(xAt(f,0,0),f.hitY-2,f.floorW,4)
-   ctx.fillStyle='rgba(180,220,255,0.18)';ctx.fillRect(xAt(f,0,0),skyY(f,0)-1,f.floorW,2)
-   ctx.textAlign='center';ctx.font='700 12px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.45)'
+   const quad=(x0:number,x1:number,z0:number,z1:number)=>{ctx.beginPath();ctx.moveTo(...L(x0,z1));ctx.lineTo(...L(x1,z1));ctx.lineTo(...L(x1,z0));ctx.lineTo(...L(x0,z0));ctx.closePath()}
+   quad(0,1,0,far);const tg=ctx.createLinearGradient(0,f.horizonY,0,f.hitY);tg.addColorStop(0,'rgba(18,16,48,0.25)');tg.addColorStop(1,'rgba(18,16,48,0.72)');ctx.fillStyle=tg;ctx.fill()
+   for(let l=0;l<4;l++){if(lanesHeld.current[l]>0||t-pressedAt.current[l]<140){quad(l/4,(l+1)/4,0,far);const lg=ctx.createLinearGradient(0,f.hitY,0,f.horizonY);lg.addColorStop(0,LANE_COLORS[l]+'66');lg.addColorStop(1,LANE_COLORS[l]+'00');ctx.fillStyle=lg;ctx.fill()}}
+   ctx.lineWidth=1;ctx.strokeStyle='rgba(255,255,255,0.13)'
+   for(let l=1;l<4;l++){ctx.beginPath();ctx.moveTo(...L(l/4,far));ctx.lineTo(...L(l/4,0));ctx.stroke()}
+   ctx.strokeStyle='rgba(255,255,255,0.75)';ctx.lineWidth=2;ctx.shadowColor='#fff';ctx.shadowBlur=10
+   for(const e of [0,1]){ctx.beginPath();ctx.moveTo(...L(e,far));ctx.lineTo(...L(e,0));ctx.stroke()}
+   ctx.shadowBlur=0
+   // Beat lines run down the track, a bar line a little brighter.
+   for(let b=Math.ceil(now/beat)*beat;b<now+ap*far;b+=beat){const z=(b-now)/ap,bar=Math.round(b/beat)%4===0;ctx.strokeStyle=bar?'rgba(255,255,255,0.18)':'rgba(255,255,255,0.06)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(...L(0,z));ctx.lineTo(...L(1,z));ctx.stroke()}
+   // The line, glowing on the beat, and the sky line above it.
+   ctx.shadowColor='#fff';ctx.shadowBlur=14+pulse*12;ctx.fillStyle='#fff';ctx.fillRect(xAt(f,0,0),f.hitY-1.5,f.floorW,3);ctx.shadowBlur=0
+   const sy=skyY(f,0);ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1.5;ctx.setLineDash([6,8]);ctx.beginPath();ctx.moveTo(xAt(f,0,0),sy);ctx.lineTo(xAt(f,1,0),sy);ctx.stroke();ctx.setLineDash([])
+   for(const e of [0,1]){ctx.fillStyle='rgba(255,255,255,0.7)';ctx.beginPath();ctx.arc(xAt(f,e,0),sy,3,0,Math.PI*2);ctx.fill()}
+   ctx.textAlign='center';ctx.font='500 11px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.55)'
    for(let l=0;l<4;l++)ctx.fillText('DFJK'[l],xAt(f,(l+0.5)/4,0),f.hitY+22)
-   // Ribbons: the part still to come, from the line out to the distance.
+   // Ribbons: a soft wide glow under a bright core, from the line out to the distance.
    for(const r of pl.ribbons){
     if(r.t1<now||r.t0>now+ap*far)continue
-    const a=Math.max(r.t0,now),b=Math.min(r.t1,now+ap*far),steps=Math.max(2,Math.ceil((b-a)/40))
-    ctx.strokeStyle=HAND_COLORS[r.hand];ctx.shadowColor=HAND_COLORS[r.hand];ctx.shadowBlur=12;ctx.lineCap='round'
-    let px=0,py=0
-    for(let s=0;s<=steps;s++){const tt=a+(b-a)*s/steps,z=(tt-now)/ap,x=xAt(f,ribbonX(r,tt),z),y=skyY(f,z)
-     if(s){ctx.globalAlpha=0.55+0.4*persp(z);ctx.lineWidth=Math.max(2,20*persp(z));ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(x,y);ctx.stroke()}
-     px=x;py=y}
-    ctx.globalAlpha=1;ctx.shadowBlur=0
+    const a=Math.max(r.t0,now),b=Math.min(r.t1,now+ap*far),steps=Math.max(2,Math.ceil((b-a)/40)),pts:[number,number,number][]=[]
+    for(let s=0;s<=steps;s++){const tt=a+(b-a)*s/steps,z=(tt-now)/ap;pts.push([xAt(f,ribbonX(r,tt),z),skyY(f,z),persp(z)])}
+    ctx.lineCap='round'
+    for(const [wid,col,al] of [[26,HAND_COLORS[r.hand],0.28],[9,'#ffffff',0.85]] as const)for(let s=1;s<pts.length;s++){ctx.globalAlpha=al*(0.5+0.5*pts[s][2]);ctx.strokeStyle=col;ctx.lineWidth=Math.max(1.5,wid*pts[s][2]);ctx.beginPath();ctx.moveTo(pts[s-1][0],pts[s-1][1]);ctx.lineTo(pts[s][0],pts[s][1]);ctx.stroke()}
+    // Its shadow on the track, so you can tell where it is.
+    ctx.globalAlpha=0.18;ctx.strokeStyle=HAND_COLORS[r.hand];ctx.lineWidth=4;ctx.beginPath();for(let s=0;s<=steps;s++){const tt=a+(b-a)*s/steps,z=(tt-now)/ap,x=xAt(f,ribbonX(r,tt),z),y=yAt(f,z);if(s)ctx.lineTo(x,y);else ctx.moveTo(x,y)}ctx.stroke()
+    ctx.globalAlpha=1
    }
-   // Where to keep a finger: a ring on each ribbon at the line, filled while it's followed.
-   for(const {r,i} of live){const x=xAt(f,ribbonX(r,now),0),y=skyY(f,0),on=onRibbon(i);ctx.beginPath();ctx.arc(x,y,on?22:17,0,Math.PI*2);ctx.strokeStyle=HAND_COLORS[r.hand];ctx.lineWidth=3;ctx.stroke();if(on){ctx.fillStyle=HAND_COLORS[r.hand]+'55';ctx.fill()}}
-   // Notes, far ones first.
+   // Where to keep a finger: a ring on each ribbon at the line, lit while it's followed.
+   for(const {r,i} of live){const x=xAt(f,ribbonX(r,now),0),on=onRibbon(i);ctx.shadowColor=HAND_COLORS[r.hand];ctx.shadowBlur=on?22:8;ctx.beginPath();ctx.arc(x,sy,on?21:16,0,Math.PI*2);ctx.strokeStyle=on?'#fff':HAND_COLORS[r.hand];ctx.lineWidth=3;ctx.stroke();if(on){ctx.fillStyle=HAND_COLORS[r.hand]+'66';ctx.fill()}ctx.shadowBlur=0}
+   // Notes, far ones first: glassy bars on the floor, prisms in the sky.
    for(let i=pl.notes.length-1;i>=0;i--){
     const n=pl.notes[i],z=(n.t-now)/ap
     if(z>far)continue
     if(n.kind==='hold'&&n.end){
      if(n.end<now-60)continue
-     const z0=Math.max(0,z),z1=Math.min(far,(n.end-now)/ap),w=0.09,keeping=n.hit&&n.hit!=='miss'&&lanesHeld.current[n.lane]>0
-     if(z1>z0){ctx.beginPath();ctx.moveTo(xAt(f,n.x-w,z0),yAt(f,z0));ctx.lineTo(xAt(f,n.x+w,z0),yAt(f,z0));ctx.lineTo(xAt(f,n.x+w,z1),yAt(f,z1));ctx.lineTo(xAt(f,n.x-w,z1),yAt(f,z1));ctx.closePath();ctx.fillStyle=LANE_COLORS[n.lane]+(n.hit==='miss'?'33':keeping?'cc':'77');ctx.fill()}
+     const z0=Math.max(0,z),z1=Math.min(far,(n.end-now)/ap),w=0.085,keeping=n.hit&&n.hit!=='miss'&&lanesHeld.current[n.lane]>0
+     if(z1>z0){quad(n.x-w,n.x+w,z0,z1);const hg2=ctx.createLinearGradient(0,yAt(f,z0),0,yAt(f,z1));hg2.addColorStop(0,LANE_COLORS[n.lane]+(n.hit==='miss'?'30':keeping?'ee':'99'));hg2.addColorStop(1,LANE_COLORS[n.lane]+'22');ctx.fillStyle=hg2;ctx.fill();ctx.strokeStyle='rgba(255,255,255,'+(n.hit==='miss'?0.15:0.6)+')';ctx.lineWidth=1.5;ctx.stroke()}
      if(n.hit)continue
     }else if(n.hit||z<-0.2)continue
     const p=persp(z)
     if(n.kind==='sky'){
-     const x=xAt(f,n.x,z),y=skyY(f,z),s=16*p
-     ctx.strokeStyle='rgba(180,220,255,0.25)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,yAt(f,z));ctx.stroke()
-     ctx.fillStyle='#c9f0ff';ctx.shadowColor='#8fe3ff';ctx.shadowBlur=16;ctx.beginPath();ctx.moveTo(x,y-s);ctx.lineTo(x+s*1.6,y);ctx.lineTo(x,y+s);ctx.lineTo(x-s*1.6,y);ctx.closePath();ctx.fill();ctx.shadowBlur=0
+     const x=xAt(f,n.x,z),y=skyY(f,z),s=15*p
+     ctx.fillStyle='rgba(255,255,255,0.22)';ctx.beginPath();ctx.ellipse(x,yAt(f,z),s*1.4,s*0.35,0,0,Math.PI*2);ctx.fill()
+     ctx.shadowColor='#bfe9ff';ctx.shadowBlur=18*p
+     ctx.beginPath();ctx.moveTo(x,y-s*1.3);ctx.lineTo(x+s*1.5,y);ctx.lineTo(x,y+s*1.3);ctx.lineTo(x-s*1.5,y);ctx.closePath()
+     const pg=ctx.createLinearGradient(x-s,y-s,x+s,y+s);pg.addColorStop(0,'#ffffff');pg.addColorStop(1,'#9fd9ff');ctx.fillStyle=pg;ctx.fill();ctx.shadowBlur=0
+     ctx.strokeStyle='rgba(60,90,160,0.6)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x-s*1.5,y);ctx.lineTo(x+s*1.5,y);ctx.stroke()
      continue
     }
-    const x=xAt(f,n.x,z),y=yAt(f,z),w=f.floorW*0.2*p,h=Math.max(5,14*p)
-    ctx.fillStyle=LANE_COLORS[n.lane];ctx.shadowColor=LANE_COLORS[n.lane];ctx.shadowBlur=12*p
-    ctx.beginPath();ctx.roundRect(x-w/2,y-h/2,w,h,h/2);ctx.fill();ctx.shadowBlur=0
-    ctx.fillStyle='rgba(255,255,255,0.7)';ctx.beginPath();ctx.roundRect(x-w/2+4*p,y-h/2+2*p,w-8*p,h*0.3,h*0.15);ctx.fill()
+    const x=xAt(f,n.x,z),y=yAt(f,z),w=f.floorW*0.21*p,h=Math.max(5,13*p)
+    ctx.shadowColor=LANE_COLORS[n.lane];ctx.shadowBlur=16*p
+    const ng=ctx.createLinearGradient(0,y-h/2,0,y+h/2);ng.addColorStop(0,'#ffffff');ng.addColorStop(0.5,LANE_COLORS[n.lane]);ng.addColorStop(1,LANE_COLORS[n.lane]);ctx.fillStyle=ng
+    ctx.beginPath();ctx.roundRect(x-w/2,y-h/2,w,h,3*p+1);ctx.fill();ctx.shadowBlur=0
+    ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.lineWidth=1;ctx.stroke()
    }
-   // Hits: rings that open out where they landed.
-   fx.current=fx.current.filter(e=>t-e.t<400)
-   for(const e of fx.current){const k=(t-e.t)/400;ctx.beginPath();ctx.arc(xAt(f,e.x,0),e.sky?skyY(f,0):f.hitY,26+k*40,0,Math.PI*2);ctx.strokeStyle=WORD_COLOR[e.j];ctx.globalAlpha=1-k;ctx.lineWidth=4;ctx.stroke();ctx.globalAlpha=1}
+   // Hits: a ring and a few sparks where they landed.
+   fx.current=fx.current.filter(e=>t-e.t<450)
+   for(const e of fx.current){const k=(t-e.t)/450,x=xAt(f,e.x,0),y=e.sky?sy:f.hitY,c=WORD_COLOR[e.j]
+    ctx.globalAlpha=1-k;ctx.strokeStyle=c;ctx.lineWidth=3*(1-k)+1;ctx.beginPath();ctx.arc(x,y,20+k*44,0,Math.PI*2);ctx.stroke()
+    if(e.j!=='miss'){ctx.fillStyle='#fff';for(let q=0;q<8;q++){const ang=q*Math.PI/4+e.t%1,d=10+k*60;ctx.beginPath();ctx.arc(x+Math.cos(ang)*d,y+Math.sin(ang)*d*0.6,2.2*(1-k)+0.5,0,Math.PI*2);ctx.fill()}}
+    ctx.globalAlpha=1}
    // Fingers.
-   for(const p of pointers.current.values()){ctx.beginPath();ctx.arc(p.x,p.y,10,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.25)';ctx.fill()}
-   // Combo, the word (with Early or Late), score, gauge and how far into the song.
-   const s=tally.current
+   for(const p of pointers.current.values()){ctx.beginPath();ctx.arc(p.x,p.y,11,0,Math.PI*2);ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=2;ctx.stroke()}
+   // Combo and the word (with Early or Late), thin and spaced out.
+   const s=tally.current,spaced=(txt:string)=>txt.split('').join(' ')
    cv.dataset.score=String(scoreOf(s,pl.total))
    ctx.textAlign='center';ctx.fillStyle='#fff'
-   if(s.combo>=5){ctx.font='800 '+Math.round(26+Math.min(16,s.combo/12))+'px system-ui,sans-serif';ctx.globalAlpha=0.8;ctx.fillText(String(s.combo),f.cx,f.horizonY+(f.hitY-f.horizonY)*0.3);ctx.font='700 11px system-ui,sans-serif';ctx.fillText('COMBO',f.cx,f.horizonY+(f.hitY-f.horizonY)*0.3+16);ctx.globalAlpha=1}
+   if(s.combo>=5){const y=f.horizonY+(f.hitY-f.horizonY)*0.32;ctx.globalAlpha=0.85;ctx.font='200 '+Math.round(34+Math.min(14,s.combo/15))+'px system-ui,sans-serif';ctx.fillText(String(s.combo),f.cx,y);ctx.font='600 10px system-ui,sans-serif';ctx.fillText(spaced('COMBO'),f.cx,y+16);ctx.globalAlpha=1}
    const wd=word.current
-   if(wd&&t-wd.t<600){const y=f.horizonY+(f.hitY-f.horizonY)*0.45;ctx.globalAlpha=1-(t-wd.t)/600;ctx.font='900 24px system-ui,sans-serif';ctx.fillStyle=WORD_COLOR[wd.j];ctx.fillText(WORD[wd.j],f.cx,y)
-    if(wd.off!==undefined&&wd.j!=='miss'&&wd.j!=='perfect'){ctx.font='800 12px system-ui,sans-serif';ctx.fillStyle=wd.off<0?'#8fd0ff':'#ffb08f';ctx.fillText(wd.off<0?'EARLY':'LATE',f.cx,y+17)}
-    else if(wd.off!==undefined&&Math.abs(wd.off)<=WINDOWS[level][0]/2){ctx.font='800 11px system-ui,sans-serif';ctx.fillStyle='#fff6c2';ctx.fillText('✦',f.cx,y+16)}
+   if(wd&&t-wd.t<600){const y=f.horizonY+(f.hitY-f.horizonY)*0.48,k=(t-wd.t)/600;ctx.globalAlpha=1-k;ctx.font='300 '+Math.round(22+(1-Math.min(1,k*4))*4)+'px system-ui,sans-serif';ctx.fillStyle=WORD_COLOR[wd.j];ctx.shadowColor=WORD_COLOR[wd.j];ctx.shadowBlur=10;ctx.fillText(spaced(WORD[wd.j].toUpperCase()),f.cx,y);ctx.shadowBlur=0
+    if(wd.off!==undefined&&wd.j!=='miss'&&wd.j!=='perfect'){ctx.font='600 10px system-ui,sans-serif';ctx.fillStyle=wd.off<0?'#a9dcff':'#ffc2a9';ctx.fillText(spaced(wd.off<0?'EARLY':'LATE'),f.cx,y+16)}
+    else if(wd.off!==undefined&&Math.abs(wd.off)<=WINDOWS[level][0]/2){ctx.font='600 11px system-ui,sans-serif';ctx.fillStyle='#fff6c2';ctx.fillText('✦',f.cx,y+16)}
     ctx.globalAlpha=1}
-   ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='800 18px system-ui,sans-serif';ctx.fillText(String(scoreOf(s,pl.total)).padStart(7,'0').replace(/\B(?=(\d{3})+(?!\d))/g,','),12,28)
-   ctx.font='600 11px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.7)';ctx.fillText('of '+MAX_SCORE.toLocaleString(),12,44)
-   ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fillRect(0,0,W,4);ctx.fillStyle='#ffd36b';ctx.fillRect(0,0,W*Math.min(1,Math.max(0,now)/info.ms),4)
-   const gx=W-122,gw=110;ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fillRect(gx,16,gw,9)
-   ctx.fillStyle=level==='jeff'?(s.gauge>30?'#ff7ad1':'#ff4d5e'):s.gauge>=CLEAR_AT?'#9dff8a':'#7ad7ff';ctx.fillRect(gx,16,gw*s.gauge/100,9)
-   if(level!=='jeff'){ctx.fillStyle='#fff';ctx.fillRect(gx+gw*CLEAR_AT/100-1,13,2,15)}
-   ctx.font='700 10px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.7)';ctx.fillText(Math.floor(s.gauge)+'%',gx,40)
+   // Top: the song and level on the left; the score, with the gauge under it, on the right.
+   ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='300 15px system-ui,sans-serif';ctx.fillText(info.title,14,28)
+   const lv=LEVELS.find(l=>l.id===level)!,chip=lv.name+' '+ratingOf(info,level);ctx.font='700 10px system-ui,sans-serif';const cw=ctx.measureText(chip).width+14
+   ctx.fillStyle=LEVEL_COLORS[level];ctx.beginPath();ctx.roundRect(14,36,cw,17,8.5);ctx.fill();ctx.fillStyle='#fff';ctx.fillText(chip,21,48)
+   ctx.textAlign='right';ctx.font='200 28px system-ui,sans-serif';ctx.fillStyle='#fff';ctx.fillText(String(scoreOf(s,pl.total)).padStart(7,'0').replace(/\B(?=(\d{3})+(?!\d))/g,','),W-14,34)
+   const gw=Math.min(150,W*0.36),gx=W-14-gw;ctx.fillStyle='rgba(255,255,255,0.2)';ctx.beginPath();ctx.roundRect(gx,42,gw,6,3);ctx.fill()
+   ctx.fillStyle=level==='jeff'?(s.gauge>30?'#ff8ad8':'#ff4d6a'):s.gauge>=CLEAR_AT?'#9dffcf':'#a9c8ff';ctx.beginPath();ctx.roundRect(gx,42,Math.max(0,gw*s.gauge/100),6,3);ctx.fill()
+   if(level!=='jeff'){ctx.fillStyle='#fff';ctx.fillRect(gx+gw*CLEAR_AT/100-1,39,2,12)}
+   ctx.font='600 10px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.8)';ctx.fillText(Math.floor(s.gauge)+'%',W-14,64)
+   ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fillRect(0,H-3,W,3);ctx.fillStyle='#fff';ctx.fillRect(0,H-3,W*Math.min(1,Math.max(0,now)/info.ms),3)
+   // The start: the song's name slides in across a band of light.
+   const since=t-startedAt.current
+   if(since<2400){const k=since/2400,a=k<0.15?k/0.15:k>0.75?(1-k)/0.25:1,y=H*0.42
+    ctx.globalAlpha=a*0.85;const bg=ctx.createLinearGradient(0,0,W,0);bg.addColorStop(0,'rgba(255,255,255,0)');bg.addColorStop(0.5,'rgba(255,255,255,0.9)');bg.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=bg;ctx.fillRect(0,y-38,W,76)
+    ctx.globalAlpha=a;ctx.textAlign='center';ctx.fillStyle='#2a2858';ctx.font='300 '+Math.min(30,W/14)+'px system-ui,sans-serif';ctx.fillText(info.title,f.cx+(1-a)*30,y+4)
+    ctx.font='700 11px system-ui,sans-serif';ctx.fillStyle=LEVEL_COLORS[level];ctx.fillText(spaced((lv.name+' · '+ratingOf(info,level)).toUpperCase()),f.cx,y+24);ctx.globalAlpha=1}
   }
   raf=requestAnimationFrame(draw)
   return()=>cancelAnimationFrame(raf)
@@ -225,22 +257,30 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
  const nudge=(d:number)=>{const v=Math.max(-300,Math.min(300,offset+d));setOffsetState(v);saveOffset(v)}
  const setSpeed=(v:number)=>{const s=Math.max(1,Math.min(10,Math.round(v*2)/2));setSpeedState(s);saveSpeed(s)}
 
+ const best=readBeatBest(info.id,level),lv=LEVELS.find(l=>l.id===level)!
  if(!playing)return <div className="beat-pick">
-  <section aria-label="Songs"><h3>Pick a song</h3><ul className="beat-songs">{SONGS.map(s=>{const b=readBeatBest(s.id,level);return <li key={s.id}><button type="button" aria-pressed={song===s.id} onClick={()=>setSong(s.id)}><b>{s.title}</b><small>{FROM[s.id]} · {Math.round(s.bpm)} BPM · {Math.floor(s.ms/60000)}:{String(Math.floor(s.ms/1000)%60).padStart(2,'0')}</small>{b&&<i aria-label={'Best '+b.score.toLocaleString()+', '+b.grade+(b.clear!=='fail'?', '+CLEAR_NAME[b.clear]:'')}>{b.grade}{CLEAR_MARK[b.clear]&&<em>{CLEAR_MARK[b.clear]}</em>}</i>}</button></li>})}</ul></section>
-  <section aria-label="Difficulty"><h3>Difficulty</h3><div className="beat-levels" role="group" aria-label="Difficulty">{LEVELS.map(l=>{const c=info.charts[l.id];return <button type="button" key={l.id} aria-pressed={level===l.id} className={'is-'+l.id} onClick={()=>setLevel(l.id)}><b>{l.name}</b><small>{c.tap.length+c.hold.length+c.sky.length} notes · {l.blurb}</small></button>})}</div></section>
-  <div className="beat-go">
+  <section className="beat-list" aria-label="Songs"><h3>Songs</h3><ul className="beat-songs">{SONGS.map(s=>{const b=readBeatBest(s.id,level);return <li key={s.id}><button type="button" aria-pressed={song===s.id} onClick={()=>setSong(s.id)}><Jacket id={s.id}/><span className="beat-song-text"><b>{s.title}</b><small>{FROM[s.id]}</small></span>{b&&<i aria-label={'Best '+b.score.toLocaleString()+', '+b.grade+(b.clear!=='fail'?', '+CLEAR_NAME[b.clear]:'')}>{b.grade}{CLEAR_MARK[b.clear]&&<em>{CLEAR_MARK[b.clear]}</em>}</i>}</button></li>})}</ul></section>
+  <section className="beat-detail" aria-label="Song" style={{'--lv':LEVEL_COLORS[level]} as React.CSSProperties}>
+   <Jacket id={info.id} big/>
+   <div className="beat-info">
+    <h3>{info.title}</h3>
+    <p>{FROM[info.id]} · {Math.round(info.bpm)} BPM · {Math.floor(info.ms/60000)}:{String(Math.floor(info.ms/1000)%60).padStart(2,'0')}</p>
+    <p className="beat-best">{best?<>Best <b>{best.score.toLocaleString()}</b> <span>{best.grade}</span>{best.clear!=='fail'&&<span>{CLEAR_NAME[best.clear].replace('!','')}</span>}</>:'Not played yet on '+lv.name}</p>
+   </div>
+   <div className="beat-levels" role="group" aria-label="Difficulty">{LEVELS.map(l=><button type="button" key={l.id} aria-pressed={level===l.id} className={'is-'+l.id} style={{'--lv':LEVEL_COLORS[l.id]} as React.CSSProperties} onClick={()=>setLevel(l.id)}><span>{l.name}</span><b>{ratingOf(info,l.id)}</b></button>)}</div>
+   <p className="beat-blurb">{(()=>{const c=info.charts[level];return c.tap.length+c.hold.length+c.sky.length})()} notes · {lv.blurb}</p>
    <div className="beat-settings">
     <label className="beat-offset">Speed <button type="button" aria-label="Notes slower" onClick={()=>setSpeed(speed-0.5)}>−</button><output>{speed.toFixed(1)}</output><button type="button" aria-label="Notes faster" onClick={()=>setSpeed(speed+0.5)}>＋</button></label>
     <label className="beat-offset">Timing <button type="button" aria-label="Notes earlier" onClick={()=>nudge(-10)}>−</button><output>{offset>0?'+':''}{offset} ms</output><button type="button" aria-label="Notes later" onClick={()=>nudge(10)}>＋</button></label>
    </div>
-   <button type="button" className="primary beat-play" onClick={start}>▶ Play {info.title}</button>
-  </div>
-  <ul className="beat-how">
-   <li><span className="is-floor"/>Floor notes: hit them on the line (<kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd>, or tap the lane). Long ones: hold to the end.</li>
-   <li><span className="is-sky"/>Sky notes float up high: tap above the track (or <kbd>Space</kbd>).</li>
-   <li><span className="is-ribbon"/>Ribbons follow the melody: keep a finger on the ring (or hold <kbd>S</kbd> for blue, <kbd>L</kbd> for pink).</li>
-   <li>{level==='jeff'?'Jeff tier: the gauge starts full and drains with misses. Run out and the song’s over.':'Fill the gauge past '+CLEAR_AT+'% by the end to clear the song.'} Bluetooth headphones? Nudge Timing up if notes feel early.</li>
-  </ul>
+   <button type="button" className="beat-play" onClick={start}>▶ Play <span>{info.title}</span></button>
+   <details className="beat-how"><summary>How to play</summary><ul>
+    <li><span className="is-floor"/>Floor notes: hit them on the line (<kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd>, or tap the lane). Long ones: hold to the end.</li>
+    <li><span className="is-sky"/>Sky notes float up high: tap above the track (or <kbd>Space</kbd>).</li>
+    <li><span className="is-ribbon"/>Ribbons follow the melody: keep a finger on the ring (or hold <kbd>S</kbd> for blue, <kbd>L</kbd> for pink).</li>
+    <li>{level==='jeff'?'Jeff tier: the gauge starts full and drains with misses. Run out and the song’s over.':'Fill the gauge past '+CLEAR_AT+'% by the end to clear the song.'} Bluetooth headphones? Nudge Timing up if notes feel early.</li>
+   </ul></details>
+  </section>
  </div>
  return <div className="beat-stage"><canvas ref={canvas} className="beat-canvas" role="img" aria-label={'KONO Beat: '+info.title} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}/></div>
 }
