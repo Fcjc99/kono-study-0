@@ -5,6 +5,7 @@
  * game's header), kept on this device. Browsers only allow sound after a tap, and every game starts
  * from one. */
 export type Theme='candy'|'gems'|'meow'|'flap'|'paper'|'blast'|'flow'
+let room:GainNode|null=null,muffle:BiquadFilterNode|null=null,duck:GainNode|null=null
 let ctx:AudioContext|null=null,master:GainNode|null=null,musicBus:GainNode|null=null,fxBus:GainNode|null=null,echo:GainNode|null=null,noise:AudioBuffer|null=null
 function audio(){
  if(!ctx){
@@ -20,6 +21,15 @@ function audio(){
   echo=c.createGain();echo.gain.value=0.5
   echo.connect(delay);delay.connect(tone);tone.connect(fb);fb.connect(delay);tone.connect(master)
   noise=c.createBuffer(1,c.sampleRate,c.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1
+  // KONO Flow: one shared, soft room (a 2.2 s decaying-noise reverb) that its notes send a little to,
+  // instead of each note's own echo; and the path its recorded music plays through, so a clear can dip it
+  // a touch and Flow can muffle it (a low-pass) without slowing it down.
+  const len=Math.floor(c.sampleRate*2.2),ir=c.createBuffer(2,len,c.sampleRate)
+  for(let ch=0;ch<2;ch++){const x=ir.getChannelData(ch);for(let i=0;i<len;i++)x[i]=(Math.random()*2-1)*Math.pow(1-i/len,3)}
+  const conv=c.createConvolver(),dark=c.createBiquadFilter();conv.buffer=ir;dark.type='lowpass';dark.frequency.value=3500
+  room=c.createGain();room.gain.value=0.6;room.connect(conv);conv.connect(dark);dark.connect(master)
+  muffle=c.createBiquadFilter();muffle.type='lowpass';muffle.frequency.value=20000;muffle.Q.value=0.5
+  duck=c.createGain();duck.gain.value=1;muffle.connect(duck);duck.connect(c.destination)
  }
  if(ctx.state==='suspended')void ctx.resume().catch(()=>undefined)
  return ctx
@@ -133,6 +143,9 @@ const SONGS:Record<Theme,Song>={
 
 const MUSIC_KEY='kono-arcade-music'
 export const musicOn=()=>{try{return localStorage.getItem(MUSIC_KEY)!=='0'}catch{return true}}
+let synthClock:{start:number;bpm:number}|null=null,flowZone=false
+/** The Flow music path back to normal (not muffled, not dipped). */
+const openUp=()=>{flowZone=false;if(ctx&&muffle&&duck){const t=ctx.currentTime;muffle.frequency.cancelScheduledValues(t);muffle.frequency.setValueAtTime(20000,t);duck.gain.cancelScheduledValues(t);duck.gain.setValueAtTime(1,t)}}
 let playing:{theme:Theme;timer:number;stop:boolean}|null=null,wanted:Theme|null=null,wantedPart=0,slow=false
 /** Starts a game's soundtrack (if Sounds and 🎵 are on); a soundtrack already playing gives way to it. */
 // Recorded soundtracks (made in Suno) live at /audio/games/<game>.mp3 and loop; a game without one plays
@@ -165,6 +178,8 @@ const applyRate=(a:HTMLAudioElement)=>{a.preservesPitch=slow||!lift;a.playbackRa
  * (a dip of a few seconds each time round) the next copy starts over the last 3 seconds. */
 function playTrack(src:string,onFail:()=>void){
  const a=new Audio(src);a.volume=0;applyRate(a);track=a
+ // KONO Flow's songs play through Web Audio (see audio()) so its notes can keep time with them.
+ if(wanted==='flow'){const c=audio();if(c&&muffle)try{c.createMediaElementSource(a).connect(muffle)}catch{/* plays straight out */}}
  let handed=false
  a.addEventListener('error',()=>{if(track===a)onFail()},{once:true})
  a.addEventListener('timeupdate',()=>{
@@ -183,6 +198,7 @@ if(typeof document!=='undefined')document.addEventListener('visibilitychange',()
  * new part of the same game crossfades in. */
 export function startMusic(theme:Theme,enabled:boolean,part=0){
  const same=wanted===theme&&!!track
+ if(!same)openUp()
  wanted=theme;wantedPart=part
  stopTimer();stopTrack(same?900:0)
  if(!enabled||!musicOn())return
@@ -214,12 +230,13 @@ function synth(theme:Theme){
    n++;next+=step
   }
  }
+ synthClock={start:next,bpm:song.bpm}
  book();me.timer=window.setInterval(book,25);playing=me
 }
-function stopTimer(){if(playing){playing.stop=true;window.clearInterval(playing.timer);playing=null}}
+function stopTimer(){synthClock=null;if(playing){playing.stop=true;window.clearInterval(playing.timer);playing=null}}
 /** Fades the soundtrack out (leaving a game, or the round is over). */
 export function stopMusic(){
- wanted=null;slow=false;lift=0
+ wanted=null;slow=false;lift=0;openUp()
  stopTrack(400)
  if(ctx&&musicBus&&playing){const t=ctx.currentTime;musicBus.gain.cancelScheduledValues(t);musicBus.gain.setValueAtTime(musicBus.gain.value,t);musicBus.gain.linearRampToValueAtTime(0.0001,t+0.4)}
  const p=playing;window.setTimeout(()=>{if(playing===p)stopTimer()},450)
@@ -234,6 +251,14 @@ export function setMusicOn(on:boolean,enabled:boolean){
 /** KONO Flow's Flow: the recorded track slows (keeping its pitch) and softens while time stands still (a track
  * that starts meanwhile, after 🎵 is turned back on, starts slowed too). */
 export function musicSlow(on:boolean){
+ if(wanted==='flow'&&ctx&&muffle&&duck){
+  // Flow muffles the song (a low-pass and a little quieter) and keeps its tempo, so the notes stay in time.
+  const t=ctx.currentTime
+  muffle.frequency.cancelScheduledValues(t);muffle.frequency.setValueAtTime(muffle.frequency.value,t)
+  muffle.frequency.exponentialRampToValueAtTime(on?700:20000,t+(on?0.4:1.6))
+  flowZone=on;duck.gain.cancelScheduledValues(t);duck.gain.setTargetAtTime(on?0.5:1,t,on?0.1:0.5)
+  return
+ }
  slow=on
  for(const a of [track,tail])if(a)applyRate(a)
  if(track)track.volume=trackVolume()
@@ -247,7 +272,7 @@ export function musicLift(n:number){
 
 // ---- Sound effects ----
 export type Fx='swap'|'nope'|'land'|'match'|'make'|'laser'|'boom'|'zap'|'mega'|'squish'|'time'|'mult'|'blaze'|'tick'|'timeup'|'fanfare'|'star'|'charge'
- |'meow'|'purr'|'paw'|'hiss'|'heart'|'flap'|'ding'|'thud'|'claim'|'cut'|'whoosh'|'note'|'lock'|'rows'|'flowOn'|'flowEnd'
+ |'meow'|'purr'|'paw'|'hiss'|'heart'|'flap'|'ding'|'thud'|'claim'|'cut'
 const PENTA=[0,2,4,7,9,12,14,16,19,21,24]
 /** Plays an effect. `level` climbs: a match further down a cascade rings higher. */
 export function fx(kind:Fx,enabled:boolean,level=0){
@@ -256,7 +281,6 @@ export function fx(kind:Fx,enabled:boolean,level=0){
  const o=fxBus,t=c.currentTime+0.005
  switch(kind){
   case 'swap':hiss(c,o,{at:t,dur:0.16,vol:0.18,type:'bandpass',freq:900,to:3800,q:1.2});break
-  case 'whoosh':hiss(c,o,{at:t,dur:0.3,vol:0.2,type:'bandpass',freq:500,to:2500,q:0.8});break
   case 'nope':tone(c,o,{type:'triangle',freq:300,to:180,at:t,dur:0.12,vol:0.22});tone(c,o,{type:'triangle',freq:240,to:150,at:t+0.11,dur:0.14,vol:0.18});break
   case 'land':tone(c,o,{freq:180,to:90,at:t,dur:0.08,vol:0.18});break
   case 'match':{const base=72+PENTA[Math.min(level,PENTA.length-1)];for(const [k,d] of [[0,0],[4,0.03],[7,0.06]])tone(c,o,{freq:hz(base+k),at:t+d,dur:0.35,vol:0.12,wet:true});hiss(c,o,{at:t,dur:0.08,vol:0.06,freq:8000});break}
@@ -271,14 +295,6 @@ export function fx(kind:Fx,enabled:boolean,level=0){
   case 'blaze':hiss(c,o,{at:t,dur:1.1,vol:0.3,type:'bandpass',freq:300,to:2400,q:0.6});tone(c,o,{type:'sawtooth',freq:80,to:320,at:t,dur:1,vol:0.08});break
   // A special winding up before it goes off: a quick rising shimmer.
   case 'charge':tone(c,o,{type:'triangle',freq:420,to:1500,at:t,dur:0.2,vol:0.07});hiss(c,o,{at:t,dur:0.2,vol:0.06,type:'bandpass',freq:1500,to:6000,q:1.5});break
-  // KONO Flow: every move and turn plays a soft note of the soundtrack's key (D major pentatonic, `level`
-  // picks it), so playing adds to the music; a lock chimes low, rows clearing ring a chord that grows with
-  // how many (`level`), and Flow sweeps in and ends in a big shimmering chord.
-  case 'note':{const s=[62,64,66,69,71,74,76,78,81,83];tone(c,o,{freq:hz(s[level%s.length]+12),at:t,dur:0.5,vol:0.06,wet:true});break}
-  case 'lock':tone(c,o,{type:'triangle',freq:hz(50),at:t,dur:0.18,vol:0.16});tone(c,o,{freq:hz(74),at:t,dur:0.4,vol:0.05,wet:true});break
-  case 'rows':{const ch=[[62,66,69],[62,66,69,74],[62,66,69,74,78],[62,66,69,74,78,81,86]][Math.min(3,Math.max(0,level-1))];ch.forEach((m,i)=>tone(c,o,{freq:hz(m+12),at:t+i*0.035,dur:1.1,vol:0.07,wet:true}));hiss(c,o,{at:t,dur:0.5,vol:0.08,type:'bandpass',freq:6000,to:1500,q:0.7});break}
-  case 'flowOn':tone(c,o,{type:'sawtooth',freq:880,to:110,at:t,dur:0.8,vol:0.06});hiss(c,o,{at:t,dur:0.9,vol:0.15,type:'lowpass',freq:6000,to:300});break
-  case 'flowEnd':[50,62,66,69,74,78,81,86].forEach((m,i)=>tone(c,o,{freq:hz(m),at:t+i*0.04,dur:1.8,vol:0.08,wet:true}));tone(c,o,{freq:90,to:35,at:t,dur:0.9,vol:0.5});hiss(c,o,{at:t,dur:1.2,vol:0.25,type:'lowpass',freq:4000,to:200});break
   case 'tick':tone(c,o,{type:'square',freq:1400,at:t,dur:0.03,vol:0.06});break
   case 'timeup':tone(c,o,{type:'square',freq:220,at:t,dur:0.5,vol:0.1});tone(c,o,{type:'square',freq:165,at:t+0.25,dur:0.6,vol:0.1});break
   case 'fanfare':[[0,0],[4,0.12],[7,0.24],[12,0.36],[7,0.5],[12,0.62]].forEach(([k,d])=>{tone(c,o,{type:'square',freq:hz(72+k),at:t+d,dur:0.22,vol:0.07});tone(c,o,{freq:hz(60+k),at:t+d,dur:0.3,vol:0.1})});break
@@ -300,5 +316,104 @@ export function fx(kind:Fx,enabled:boolean,level=0){
   case 'thud':tone(c,o,{freq:160,to:40,at:t,dur:0.35,vol:0.5});hiss(c,o,{at:t,dur:0.2,vol:0.2,type:'lowpass',freq:900});break
   case 'claim':[0,4,7,12].forEach((k,i)=>tone(c,o,{type:'triangle',freq:hz(67+k+Math.min(level,7)),at:t+i*0.05,dur:0.3,vol:0.1,wet:true}));break
   case 'cut':tone(c,o,{type:'sawtooth',freq:1800,to:200,at:t,dur:0.25,vol:0.12});hiss(c,o,{at:t,dur:0.2,vol:0.2,freq:4000});break
+ }
+}
+
+// ---- KONO Flow: notes that keep time with the song ----
+// After Tetris Effect's way with sound (see reports/Tetris Effect audio design.md): every move, turn, lock
+// and clear is a soft note of the song's own scale, played on its beat (the next 16th note for a move, the
+// next 8th for a clear, the next bar for the end of Flow), short and quiet under the music, never more than
+// one of a kind per beat-slot, so playing fast adds a gentle rhythm instead of a pile of notes.
+/** Each Flow song's tempo and when its first beat falls (flow-1 … flow-5, as tools/make_rhythm_charts.py lines
+ * the grid up with the hits it hears; KONO Beat uses the same grids); all of
+ * them sit in D major / B minor, so one scale (D E F# A B) fits every note. */
+const FLOW_GRID=[{bpm:92,off:0},{bpm:90.738,off:0.575},{bpm:100.066,off:0.566},{bpm:113.398,off:0.072},{bpm:129.838,off:0.362},{bpm:136.458,off:0.309}]
+const PENTA_D=[62,64,66,69,71,74,76,78,81,83,86]
+/** The song's position now (seconds into it) and its beat, or a steady clock when it can't be read. */
+function songClock(c:AudioContext):{pos:number;rate:number;beat:number;off:number}{
+ const g=FLOW_GRID[track&&wanted==='flow'?Math.min(5,Math.max(1,wantedPart)):0]
+ if(track&&wanted==='flow'&&!track.paused)return {pos:track.currentTime,rate:track.playbackRate||1,beat:60/g.bpm,off:g.off}
+ if(synthClock)return {pos:c.currentTime-synthClock.start,rate:1,beat:60/synthClock.bpm,off:0}
+ return {pos:c.currentTime,rate:1,beat:60/FLOW_GRID[1].bpm,off:0}
+}
+/** When (in AudioContext time) the next slot of `div` per beat comes: 'next' waits for it; 'near' plays
+ * now if a slot only just went by, and waits only if one is about to come (a lock stays snappy). */
+function onBeat(c:AudioContext,div:number,mode:'next'|'near'='next'){
+ const {pos,rate,beat,off}=songClock(c),step=beat/div,now=c.currentTime
+ const k=Math.ceil((pos-off)/step-0.02),wait=(off+k*step-pos)/rate
+ if(mode==='near'){const since=step/rate-wait;if(since<0.035||wait>0.06)return {at:now+0.005,slot:k};}
+ return {at:now+Math.max(0.005,wait),slot:k*1000/div|0}
+}
+const lastSlot=new Map<string,number>(),voices:number[]=[]
+/** One per kind per slot, and no more than 8 notes sounding at once (moves give way first). */
+function claim(c:AudioContext,kind:string,slot:number,len:number,extra=false){
+ const now=c.currentTime;while(voices.length&&voices[0]<now)voices.shift()
+ if(lastSlot.get(kind)===slot)return false
+ if(voices.length>=8&&!extra)return false
+ lastSlot.set(kind,slot);voices.push(now+len);voices.sort((a,b)=>a-b);return true
+}
+/** A soft note: sine with a little triangle, darkened, a touch of the shared room. */
+function soft(c:AudioContext,{midi,at,dur,vol,room:send=0.15,bright=2600}:{midi:number;at:number;dur:number;vol:number;room?:number;bright?:number}){
+ if(!fxBus)return
+ const o=c.createOscillator(),o2=c.createOscillator(),f=c.createBiquadFilter(),g=c.createGain(),g2=c.createGain()
+ o.type='sine';o2.type='triangle';o.frequency.value=hz(midi);o2.frequency.value=hz(midi);g2.gain.value=0.25
+ f.type='lowpass';f.frequency.value=bright
+ g.gain.setValueAtTime(0.0001,at);g.gain.linearRampToValueAtTime(vol,at+0.006);g.gain.exponentialRampToValueAtTime(0.0001,at+dur)
+ o.connect(f);o2.connect(g2).connect(f);f.connect(g).connect(fxBus)
+ if(send&&room){const sg=c.createGain();sg.gain.value=send;g.connect(sg).connect(room)}
+ o.start(at);o2.start(at);o.stop(at+dur+0.05);o2.stop(at+dur+0.05)
+}
+/** A mallet: the note and a quiet bright overtone that fades fast. */
+function mallet(c:AudioContext,midi:number,at:number,vol:number,send=0.12){
+ soft(c,{midi,at,dur:0.16,vol,room:send,bright:3200})
+ soft(c,{midi:midi+19,at,dur:0.06,vol:vol*0.25,room:0,bright:6000})
+}
+/** Dips the song a little under a big moment, then lets it back. */
+function dip(at:number,depth=0.7){if(!duck||flowZone)return;duck.gain.cancelScheduledValues(at);duck.gain.setTargetAtTime(depth,at,0.03);duck.gain.setTargetAtTime(1,at+0.25,0.3)}
+let walk=5
+export type FlowSound='move'|'rotate'|'hold'|'lock'|'rows'|'perfect'|'levelUp'|'flowOn'|'flowStack'|'flowEnd'|'over'|'done'|'newPiece'
+/** KONO Flow's sounds. `arg`: a move's direction (−1/1, and `repeat` while a key is held); a lock's drop
+ * distance; how many rows cleared; a turn's rotation (0–3). */
+export function flowSound(kind:FlowSound,enabled:boolean,arg=0,repeat=false){
+ if(!enabled)return
+ const c=audio();if(!c)return
+ switch(kind){
+  case 'newPiece':walk=5;return
+  case 'move':{
+   // Steps along the scale with the direction (D5 in the middle), one note per 16th; held, one per 8th
+   // and softer, so sliding across is a light walk, not a run.
+   walk=Math.max(3,Math.min(8,walk+(arg<0?-1:1)))
+   const {at,slot}=onBeat(c,repeat?2:4);if(!claim(c,repeat?'moveHeld':'move',slot,0.1))return
+   soft(c,{midi:PENTA_D[walk]+12,at,dur:0.09,vol:repeat?0.022:0.035,room:0});return}
+  case 'rotate':{
+   const {at,slot}=onBeat(c,4);if(!claim(c,'rotate',slot,0.18))return
+   mallet(c,[81,78,74,71][arg&3],at,0.04);return}
+  case 'hold':{
+   const {at,slot}=onBeat(c,4);if(!claim(c,'hold',slot,0.3))return
+   soft(c,{midi:69,at,dur:0.12,vol:0.03});soft(c,{midi:74,at:at+0.07,dur:0.18,vol:0.03});return}
+  case 'lock':{
+   // A soft wooden tap on (or right by) the beat; a hard drop adds a low D under it.
+   const {at,slot}=onBeat(c,4,'near');if(!claim(c,'lock',slot,0.25,true))return
+   soft(c,{midi:50,at,dur:0.12,vol:0.11,room:0,bright:1400});tone(c,fxBus!,{freq:110,to:60,at,dur:0.07,vol:0.14})
+   if(arg>2)soft(c,{midi:38,at,dur:0.22,vol:0.12,room:0,bright:600})
+   return}
+  case 'rows':case 'flowStack':{
+   // A chord on the next 8th that grows with the rows: two notes for one, the full chord and a little
+   // climb up for four.
+   const n=Math.max(1,Math.min(4,arg)),{at,slot}=onBeat(c,2);if(!claim(c,kind,slot,1.2,true))return
+   const ch=[[74,81],[74,78,81],[74,78,81,86],[62,74,78,81,86,90]][n-1]
+   ch.forEach((m,i)=>soft(c,{midi:m,at:at+i*0.012,dur:kind==='flowStack'?0.5:1.1,vol:kind==='flowStack'?0.025:0.04,room:0.3}))
+   if(n>=4){const beat=songClock(c).beat/4;[86,90,93,98].forEach((m,i)=>mallet(c,m,at+(i+1)*beat,0.025,0.25))}
+   if(kind==='rows')dip(at,n>=4?0.6:0.75)
+   return}
+  case 'perfect':{const {at}=onBeat(c,1),b=songClock(c).beat/4;[74,76,78,81,83,86,88,90].forEach((m,i)=>mallet(c,m,at+i*b,0.03,0.3));dip(at,0.6);return}
+  case 'levelUp':{const {at}=onBeat(c,1),b=songClock(c).beat/4;[74,78,81,86].forEach((m,i)=>soft(c,{midi:m,at:at+i*b,dur:0.5,vol:0.03,room:0.25}));return}
+  case 'flowOn':{const t=c.currentTime+0.01;[50,57,62].forEach(m=>{const at=t;soft(c,{midi:m,at,dur:1.4,vol:0.035,room:0.3,bright:900})});return}
+  case 'flowEnd':{
+   // Released on the next bar: one wide D chord (with a ninth) over a soft low thump.
+   const {at}=onBeat(c,0.25);[50,57,62,66,69,74,76].forEach((m,i)=>soft(c,{midi:m,at:at+i*0.015,dur:2.4,vol:0.04,room:0.35,bright:3000}))
+   tone(c,fxBus!,{freq:80,to:40,at,dur:0.4,vol:0.25});return}
+  case 'done':{const {at}=onBeat(c,1),b=songClock(c).beat/2;[74,78,81,86,90].forEach((m,i)=>soft(c,{midi:m,at:at+i*b,dur:0.9,vol:0.035,room:0.3}));return}
+  case 'over':{const t=c.currentTime+0.02;[74,69,66,62].forEach((m,i)=>soft(c,{midi:m,at:t+i*0.22,dur:0.6,vol:0.035,room:0.3,bright:1800}));return}
  }
 }

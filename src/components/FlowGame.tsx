@@ -1,6 +1,6 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {COLS,FLOW_CELL,H,HIDDEN,KINDS,ROWS,SPRINT_LINES,ULTRA_MS,cellsOf,ghostOf,hardDrop,holdPiece,move,musicPart,newGame,rotate,shapeCells,softDrop,startFlow,tick,type FlowEvent,type Game,type Kind,type Mode} from '../store/flow'
-import {fx,musicSlow,startMusic,stopMusic} from '../arcadeAudio'
+import {flowSound,musicSlow,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
 
 /** KONO Flow (the rules are in store/flow): falling blocks made of light, drawn on a canvas.
@@ -45,6 +45,8 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
  const part=useRef(1)
  const ended=useRef(false),onEndRef=useRef(onEnd),soundRef=useRef(sound),keys=useRef(0)
  const held=useRef<{dir:number;t:number;next:number}|null>(null),soft=useRef(false)
+ // Where the piece was before a move (which way it went), and whether a held key is repeating it.
+ const lastX=useRef(0),repeating=useRef(false)
  useEffect(()=>{onEndRef.current=onEnd;soundRef.current=sound},[onEnd,sound])
  const result=(s:Game,done:boolean):FlowResult=>({mode:s.mode,score:s.score,lines:s.lines,level:s.level,time:Math.round(s.time),done,best:saveFlowBest(s.mode,done,s.mode==='sprint'?s.time:s.score)})
  useImperativeHandle(ref,()=>({end:()=>{if(ended.current)return;ended.current=true;const s=game.current;if(!s){onEndRef.current({mode:'marathon',score:0,lines:0,level:1,time:0,done:false,best:false});return}onEndRef.current(result(s,false))}}),[])
@@ -52,38 +54,41 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
  // What the game says happened: sounds, sparks, flashes and words.
  const onEvent=(e:FlowEvent)=>{
   const s=soundRef.current,p=game.current?.piece,v=vis.current
-  if(e.t==='move'||e.t==='rotate')fx('note',s,(p?p.x+(p.rot*2):0)+3)
-  else if(e.t==='zen'){say('Fresh start',true);fx('flowOn',s);v.pulse=1.5;buzz([20,40,20])}
-  else if(e.t==='hold')fx('whoosh',s)
+  // Sounds keep time with the song (arcadeAudio's flowSound): a move steps along the scale with its
+  // direction, a held key plays softer and less often.
+  if(e.t==='move'){const x=p?.x??0;flowSound('move',s,x<lastX.current?-1:1,repeating.current);lastX.current=x}
+  else if(e.t==='rotate')flowSound('rotate',s,p?.rot??0)
+  else if(e.t==='zen'){say('Fresh start',true);flowSound('flowOn',s);v.pulse=1.5;buzz([20,40,20])}
+  else if(e.t==='hold'){flowSound('hold',s);flowSound('newPiece',s);lastX.current=game.current?.piece?.x??0}
   else if(e.t==='lock'){
-   fx('lock',s);v.shake=Math.max(v.shake,e.drop>2?5:2);buzz(e.drop>2?14:8)
+   flowSound('lock',s,e.drop);flowSound('newPiece',s);lastX.current=game.current?.piece?.x??0;v.shake=Math.max(v.shake,e.drop>2?5:2);buzz(e.drop>2?14:8)
    const color=COLORS[(game.current?.board[(e.cells[0][1])*COLS+e.cells[0][0]])||1]
    for(const [x,y] of e.cells)burst(v,x+0.5,y+0.9,color,4,0.6)
    if(e.drop>1){const xs=e.cells.map(c=>c[0]),ys=e.cells.map(c=>c[1]);v.streaks.push({x0:Math.min(...xs),x1:Math.max(...xs)+1,y0:Math.min(...ys)-e.drop,y1:Math.max(...ys)+1,t:0,color})}
   }else if(e.t==='clear'){
-   if(e.count){fx('rows',s,e.count);v.pulse=1;v.shake=e.count>=4?10:4;buzz(e.count>=4?[30,40,60]:[18+e.count*8])
+   if(e.count){flowSound('rows',s,e.count);v.pulse=1;v.shake=e.count>=4?10:4;buzz(e.count>=4?[30,40,60]:[18+e.count*8])
     for(const y of e.rows){v.bands.push({y,t:0});for(let x=0;x<COLS;x++)burst(v,x+0.5,y+0.5,COLORS[1+((x+y)%7)],e.count>=4?7:5,1.4)}}
    const name=['','Single','Double','Triple','Quad'][e.count]
    if(e.tspin)say((e.tspin==='mini'?'T-spin mini':'T-spin')+(name?' '+name.toLowerCase():''),true)
    else if(e.count>=2)say(name,e.count>=4)
    if(e.b2b)say('Back to back!')
    if(e.combo>=2)say('Combo '+e.combo)
-   if(e.perfect){say('Perfect clear!',true);fx('mega',s)}
+   if(e.perfect){say('Perfect clear!',true);flowSound('perfect',s)}
   }else if(e.t==='level'){
-   fx('fanfare',s);const p=musicPart(e.level)
+   flowSound('levelUp',s);const p=musicPart(e.level)
    // A new stretch of levels: a new scene and its song.
    if(p!==part.current){part.current=p;startMusic('flow',s,p);say(STAGES[p-1].name,true);v.pulse=2}
    say('Level '+e.level)
   }
-  else if(e.t==='flowOn'){fx('flowOn',s);say('Flow',true);musicSlow(true)}
-  else if(e.t==='flowStack'){fx('rows',s,Math.min(4,e.rows.length));for(let k=0;k<e.rows.length;k++)v.bands.push({y:H-1-(e.total-1-k),t:0,white:true})}
+  else if(e.t==='flowOn'){flowSound('flowOn',s);say('Flow',true);musicSlow(true)}
+  else if(e.t==='flowStack'){flowSound('flowStack',s,Math.min(4,e.rows.length));for(let k=0;k<e.rows.length;k++)v.bands.push({y:H-1-(e.total-1-k),t:0,white:true})}
   else if(e.t==='flowEnd'){
    musicSlow(false)
-   if(e.lines){fx('flowEnd',s);say(e.lines+' lines!',true);v.shake=14;v.pulse=1.5
+   if(e.lines){flowSound('flowEnd',s);say(e.lines+' lines!',true);v.shake=14;v.pulse=1.5
     buzz([40,50,80])
     for(let k=0;k<e.lines;k++){const y=H-1-k;v.bands.push({y,t:0,white:true});for(let x=0;x<COLS;x++)burst(v,x+0.5,y+0.5,'#ffffff',6,1.8)}}
   }else if(e.t==='over'||e.t==='done'){
-   stopMusic();fx(e.t==='done'?'fanfare':'thud',s);buzz(e.t==='done'?[30,60,30,60,90]:200)
+   flowSound(e.t==='done'?'done':'over',s);stopMusic();buzz(e.t==='done'?[30,60,30,60,90]:200)
    if(e.t==='done')say(game.current?.mode==='sprint'?'Finish!':'Time!',true)
    if(!ended.current){ended.current=true;const st=game.current!,r=result(st,e.t==='done');window.setTimeout(()=>onEndRef.current(r),1400)}
   }
@@ -121,7 +126,7 @@ export default function FlowGame({ref,sound,onEnd}:{ref:Ref<GameHandle>;sound:bo
    const A=actRef.current
    // Held keys: auto-shift after a short wait, and soft drop while ↓ is down.
    const h=held.current
-   if(h){h.t+=dt;while(h.t>=h.next){h.next+=ARR;A(s=>move(s,h.dir))}}
+   if(h){h.t+=dt;while(h.t>=h.next){h.next+=ARR;repeating.current=true;A(s=>move(s,h.dir));repeating.current=false}}
    if(soft.current){softT+=dt;while(softT>=SOFT){softT-=SOFT;A(s=>softDrop(s))}}else softT=0
    A(s=>tick(s,dt))
    const s=game.current!
