@@ -51,9 +51,12 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
  const pressedAt=useRef([0,0,0,0]),startedAt=useRef(0),onEndRef=useRef(onEnd)
  useEffect(()=>{onEndRef.current=onEnd},[onEnd])
  const info=SONGS.find(s=>s.id===song)!
- // Where the song is (ms), on the sound card's own clock (exact to the sample), less the time the sound
- // takes to reach the speakers, so a note reaches the line as you hear its hit.
- const songMs=()=>{const a=audio.current;if(!a)return 0;const c=a.ctx;return (c.currentTime-a.t0-(c.outputLatency||c.baseLatency||0))*1000}
+ // Where the song is (ms): what's reaching the speakers right now, so a note reaches the line as you hear its
+ // hit. The sound card says what it played at a given moment (its clock moves in steps), so that's carried
+ // forward on the frame clock; without that, it's the card's clock less its delay to the speakers.
+ const songMs=()=>{const a=audio.current;if(!a)return 0;const c=a.ctx,ts=c.getOutputTimestamp?.()
+  const at=ts&&ts.contextTime!==undefined&&ts.performanceTime?ts.contextTime+(c.state==='running'?Math.max(0,performance.now()-ts.performanceTime)/1000:0):c.currentTime-(c.outputLatency||c.baseLatency||0)
+  return (at-a.t0)*1000}
  const stopSong=()=>{const a=audio.current;audio.current=null;if(!a)return;try{a.src.onended=null;a.src.stop()}catch{/* not started */}void a.ctx.close().catch(()=>undefined)}
  const judged=()=>play.current.notes.filter(n=>n.hit).length+nextTick.current
  const finish=()=>{
