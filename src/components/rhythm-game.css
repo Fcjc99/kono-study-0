@@ -59,3 +59,15 @@
 .beat-how .is-ribbon{height:6px;background:linear-gradient(90deg,#5fd3ff,#ff7ad1)}
 .beat-how kbd{display:inline-block;padding:0 6px;border-radius:5px;border:1px solid rgba(42,40,88,.25);background:#fff;font:700 .74rem system-ui,sans-serif}
 @media(prefers-reduced-motion:reduce){.beat-pick .beat-songs button:not(#x){transition:none}}
+/* The Sync check and the note ticks toggle. */
+.beat-pick .beat-sync-open:not(#x){min-height:34px;padding:0 14px;border-radius:99px;border:1px solid rgba(42,40,88,.18)!important;background:rgba(255,255,255,.8)!important;color:var(--ink)!important;font:inherit;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;box-shadow:none!important}
+.beat-pick .beat-ticks:not(#x){display:flex;flex-direction:row;align-items:center;gap:6px;margin:0;white-space:nowrap;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);cursor:pointer}
+.beat-sync{display:grid;gap:8px;justify-items:center;text-align:center;padding:12px;border-radius:16px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.95)}
+.beat-sync h3{margin:0}
+.beat-sync p{margin:0;font-size:.85rem;color:var(--ink)}
+.beat-pick .beat-sync-pad:not(#x){width:min(180px,50vw);aspect-ratio:1;border-radius:50%;border:0!important;font:inherit;font-size:1.3rem;font-weight:300;letter-spacing:.2em;text-transform:uppercase;color:#fff!important;cursor:pointer;touch-action:manipulation;
+ background:radial-gradient(circle at 35% 30%,#a99cff,#6b5cf0 70%)!important;box-shadow:0 10px 30px rgba(107,92,240,.45)!important}
+.beat-pick .beat-sync-pad:active{transform:scale(.96)}
+.beat-pick .beat-sync-close:not(#x){min-height:34px;padding:0 16px;border-radius:99px;border:1px solid rgba(42,40,88,.18)!important;background:transparent!important;color:var(--ink)!important;font:inherit;cursor:pointer;box-shadow:none!important}
+.beat-pick .beat-ticks input:not(#x){width:18px;height:18px;margin:0;flex:none;accent-color:#6b5cf0}
+.beat-settings{align-items:center}

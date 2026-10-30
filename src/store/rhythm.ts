@@ -8,9 +8,9 @@
  * game/data/rhythmCharts.json). */
 export type Level='easy'|'medium'|'jeff'
 export const LEVELS:{id:Level;name:string;blurb:string}[]=[
- {id:'easy',name:'Easy',blurb:'About a note a second, roomy timing, a gentle gauge.'},
- {id:'medium',name:'Medium',blurb:'Twice the notes, sky notes, longer ribbons.'},
- {id:'jeff',name:'Jeff tier',blurb:'Every hit in the song, chords, wild ribbons, and the gauge drains.'},
+ {id:'easy',name:'Easy',blurb:'About a note a second, on the beat; roomy timing and a gentle gauge.'},
+ {id:'medium',name:'Medium',blurb:'About two a second, on the beat and the 8ths, with holds.'},
+ {id:'jeff',name:'Jeff tier',blurb:'Every hit in the song down to the 16ths, chords, and the gauge drains.'},
 ]
 export type Judge='perfect'|'great'|'good'|'miss'
 /** How far off (ms) still counts, by level: Perfect, Great, Good. Half the Perfect window is dead on. */
@@ -111,3 +111,7 @@ export const saveOffset=(ms:number)=>{try{localStorage.setItem(OFFSET_KEY,String
 export const SPEED_KEY='kono-beat-speed'
 export const readSpeed=()=>{try{const v=Number(localStorage.getItem(SPEED_KEY));return v>=1&&v<=10?v:5}catch{return 5}}
 export const saveSpeed=(v:number)=>{try{localStorage.setItem(SPEED_KEY,String(v))}catch{/* this device only */}}
+/** Note ticks (a soft click on every note), on this device. */
+export const TICKS_KEY='kono-beat-ticks'
+export const readTicks=()=>{try{return localStorage.getItem(TICKS_KEY)==='1'}catch{return false}}
+export const saveTicks=(on:boolean)=>{try{localStorage.setItem(TICKS_KEY,on?'1':'0')}catch{/* this device only */}}
