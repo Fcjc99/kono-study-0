@@ -4085,8 +4085,10 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  // The first notes (from the chart) hit right on time with their lane's key.
  const easy=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.easy.tap.slice(0,3)
  for(const [t,lane] of easy){
-  await page.waitForFunction(t=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>=t-90,t,{timeout:15000,polling:10})
-  await page.keyboard.press('dfjk'[lane])
+  // Pressed from inside the page on the live song clock, so a slow machine's frames and key delivery can't
+  // make it late.
+  await page.evaluate(async ([t,key])=>{const cv=document.querySelector('.beat-canvas');while(cv.songNow()<t-5)await new Promise(r=>setTimeout(r,2))
+   window.dispatchEvent(new KeyboardEvent('keydown',{key}));window.dispatchEvent(new KeyboardEvent('keyup',{key}))},[t,'dfjk'[lane]])
  }
  if(process.env.KONO_SHOTS)await beat.screenshot({path:process.env.KONO_SHOTS+'/beat.png'})
  await beat.getByRole('button',{name:'■ End'}).click()

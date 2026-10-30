@@ -122,6 +122,8 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
   if(!playing)return
   const cv=canvas.current;if(!cv)return
   const ctx=cv.getContext('2d');if(!ctx)return
+  // The live song time, for the tests to press keys exactly on a note (frames can be slow on a test machine).
+  Object.assign(cv,{songNow:()=>songMs()-offset})
   const ap=approachFor(speed),tol=level==='easy'?0.16:level==='medium'?0.13:0.11
   let raf=0
   const draw=()=>{
