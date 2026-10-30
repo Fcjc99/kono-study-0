@@ -1,136 +1,148 @@
-"""Makes KONO Beat's charts from the arcade's songs. Notes come from where the music hits (onsets): the
-strongest ones that fit each difficulty (Easy about 1 a second, Medium about 2, Jeff tier about 4 with chords),
-snapped to the song's 16th notes where they're close, in a lane by how bright they sound (low left, high right).
-Then the extras: a note before a held sound becomes a hold; the brightest hits rise into the sky (tap up high);
-and now and then a ribbon follows the melody for two bars (trace it with a finger; the floor notes move to the
-other hand's side while it plays). Needs ffmpeg and numpy. Writes src/game/data/rhythmCharts.json.
+#!/usr/bin/env python3
+"""Makes KONO Beat's charts from the arcade's songs, with every note on the song's own beat grid.
+First the grid: the song's tempo and first beat are measured (fine-tuned around the listed tempo) and then
+re-locked every couple of bars, so a song that drifts a little still lines up. Then, for each difficulty, the
+grid's steps (Easy: beats, Medium: 8th notes, Jeff tier: 16th notes) that land on a hit in the music are
+scored by how strong the hit is, and the strongest are kept (Easy about 1 a second, Medium about 2, Jeff tier
+about 4, with chords on the big hits). A note before a sound that carries on becomes a hold. Lanes go by how
+bright the hit sounds (low left, high right). Only the four floor lanes for now (no sky notes or ribbons).
+Needs ffmpeg and numpy. Writes src/game/data/rhythmCharts.json.
   python3 tools/make_rhythm_charts.py"""
 import json, subprocess, numpy as np
-SR, N, HOP = 22050, 1024, 256
+SR, N, HOP = 22050, 1024, 64
 FPS = SR / HOP
-# file, title, bpm, first beat (from tools/measure_beat.py)
+# file, title, tempo to search around
 SONGS = [
-    ('candy', 'Skipping Motif', 120.00, 0.381),
-    ('gems', 'Crystal Discoveries', 99.98, 0.052),
-    ('blast', 'Satisfying Resolutions', 107.90, 0.129),
-    ('flow-1', 'Floating Pads', 90.78, 0.57),
-    ('flow-2', 'Shimmering Motif', 100.05, 0.53),
-    ('flow-3', 'Late Night Pulse', 113.2, 0.22),
-    ('flow-4', 'Soaring Euphoria', 129.85, 0.33),
-    ('flow-5', 'Transcendent Arpeggios', 136.6, 0.26),
+    ('candy', 'Skipping Motif', 120.0), ('gems', 'Crystal Discoveries', 100.0), ('blast', 'Satisfying Resolutions', 107.9),
+    ('flow-1', 'Floating Pads', 90.75), ('flow-2', 'Shimmering Motif', 100.05), ('flow-3', 'Late Night Pulse', 113.3),
+    ('flow-4', 'Soaring Euphoria', 129.9), ('flow-5', 'Transcendent Arpeggios', 136.6),
 ]
-LEVELS = {'easy': (0.42, 1.0), 'medium': (0.2, 2.2), 'jeff': (0.1, 4.3)}  # min gap (s), notes per second
+# Per level: grid steps a beat, min gap (s), notes a second, hold when the next note is this far off (s).
+LEVELS = {'easy': (1, 0.42, 1.0, 0.9), 'medium': (2, 0.2, 2.2, 0.6), 'jeff': (4, 0.1, 4.3, 0.45)}
 
 def load(path):
     raw = subprocess.run(['ffmpeg', '-v', 'quiet', '-i', path, '-ac', '1', '-ar', str(SR), '-f', 'f32le', '-'], capture_output=True).stdout
     return np.frombuffer(raw, dtype=np.float32)
 
 def analyse(x):
+    """The song's hits as one signal over time (`onset`), with how bright and how loud it is there. Two
+    detectors agree on it: loudness jumps (exact in time) and changes in the sound's colour (catch soft
+    notes); the second is lined up with the first before they're added."""
+    e = np.sqrt(np.convolve(x.astype(np.float64) ** 2, np.ones(256) / 256, 'same'))[::HOP]
+    rise = np.maximum(0, np.diff(np.log(e + 1e-6)))
+    times = (np.arange(len(rise)) + 0.5) * HOP / SR
     frames = np.lib.stride_tricks.sliding_window_view(x, N)[::HOP] * np.hanning(N)
     mag = np.abs(np.fft.rfft(frames, axis=1)); freqs = np.fft.rfftfreq(N, 1 / SR)
     spec = np.log1p(10 * mag)
     flux = np.maximum(0, np.diff(spec, axis=0)).sum(axis=1)
-    # Loudness changes over the song: compare each frame with what's around it (about 3 s).
-    w = int(3 * FPS); local = np.convolve(flux, np.ones(w) / w, 'same') + 1e-6
-    strength = flux / local
-    cent = (mag * freqs).sum(axis=1) / (mag.sum(axis=1) + 1e-9)
-    rms = np.sqrt((frames ** 2).mean(axis=1))
-    peaks = []
-    for i in range(3, len(strength) - 3):
-        s = strength[i]
-        if s > 1.35 and s == strength[i - 3:i + 4].max():
-            peaks.append(((i + 1) / FPS, float(s), float(cent[i + 1])))
-    return peaks, cent, rms
+    flux = np.maximum(0, flux - np.convolve(flux, np.ones(64) / 64, 'same'))
+    ft = (np.arange(len(flux)) + 1) * HOP / SR + N / 2 / SR
+    r = rise - rise.mean(); best, lag = -1, 0
+    for d in np.arange(-0.05, 0.0501, HOP / SR):
+        f = np.interp(times, ft + d, flux); c = np.dot(r, f - f.mean())
+        if c > best: best, lag = c, d
+    f = np.interp(times, ft + lag, flux)
+    onset = rise / (rise.std() + 1e-9) + f / (f.std() + 1e-9)
+    cent = np.interp(times, ft + lag, ((mag * freqs).sum(axis=1) / (mag.sum(axis=1) + 1e-9))[1:])
+    rms = e[:len(times)]
+    return onset, times, cent, rms
 
-# Per level: hold when the next note is this far off (s); share of hits that rise into the sky; a ribbon about
-# every so many seconds; how far a ribbon swings (0-1 of the track); whether floor notes stay during it.
-EXTRAS = {'easy': (0.9, 0.0, 22, 0.25, False), 'medium': (0.6, 0.07, 11, 0.45, True), 'jeff': (0.42, 0.12, 6.5, 0.7, True)}
+def phase(flux, times, bpm, sel=slice(None)):
+    z = np.sum(flux[sel] * np.exp(2j * np.pi * times[sel] * bpm / 60))
+    return abs(z) / (flux[sel].sum() + 1e-9), ((-np.angle(z)) / (2 * np.pi) * 60 / bpm) % (60 / bpm)
 
-def chart(peaks, cent, rms, dur, bpm, first, level):
-    gap, density = LEVELS[level]; hold_gap, sky_share, ribbon_every, swing, keep_floor = EXTRAS[level]
-    chords = level == 'jeff'
+def beat_grid(flux, times, near, dur):
+    """The song's beats: the tempo that lines the hits up best, then each 2-bar stretch nudged (at most 40 ms,
+    smoothed) to where its own hits sit."""
+    bpm = max(np.arange(near - 1.5, near + 1.5, 0.002), key=lambda b: phase(flux, times, b)[0])
+    steady, first = phase(flux, times, bpm)
+    beat = 60 / bpm; beats = np.arange(first, dur, beat)
+    corr = []
+    for i in range(0, len(beats), 8):
+        a, b = beats[i] - beat / 2, beats[min(i + 8, len(beats) - 1)] + beat / 2
+        sel = (times >= a) & (times < b)
+        _, f = phase(flux, times, bpm, sel)
+        d = ((f - first + beat / 2) % beat) - beat / 2
+        corr.append(float(np.clip(d, -0.04, 0.04)))
+    corr = np.convolve(np.pad(corr, 1, mode='edge'), [0.25, 0.5, 0.25], 'valid')
+    shift = np.interp(np.arange(len(beats)), np.arange(0, len(beats), 8)[:len(corr)], corr)
+    return bpm, first, steady, beats + shift
+
+def chart(flux, times, cent, rms, beats, dur, level):
+    div, gap, density, hold_gap = LEVELS[level]
     lo, hi = 2.0, dur - 4.0
-    cands = sorted([p for p in peaks if lo <= p[0] <= hi], key=lambda p: -p[1])
+    # The grid's steps for this level (between the beats, evenly).
+    steps = np.concatenate([beats[i] + (beats[i + 1] - beats[i]) * np.arange(div) / div for i in range(len(beats) - 1)])
+    steps = steps[(steps >= lo) & (steps <= hi)]
+    win = int(0.03 * FPS)
+    idx = np.searchsorted(times, steps)
+    strength = np.array([flux[max(0, i - win):i + win + 1].max() if i < len(flux) else 0 for i in idx])
+    # On-beat steps count a little more, so the main beat comes first.
+    on_beat = np.isclose(((steps - beats[0]) / (beats[1] - beats[0]) * 1) % 1, 0, atol=0.05) | np.isclose(((steps - beats[0]) / (beats[1] - beats[0])) % 1, 1, atol=0.05)
+    score = strength * np.where(on_beat, 1.25, 1.0)
+    # A step only counts if the music really hits there (a clear peak, not just the background).
+    floor = np.quantile(flux, 0.9)
     target = int((hi - lo) * density); kept = []
-    for p in cands:
+    for i in map(int, np.argsort(-score)):
         if len(kept) >= target: break
-        if all(abs(p[0] - k[0]) >= gap for k in kept): kept.append(p)
+        if strength[i] <= floor: continue
+        if all(abs(steps[i] - steps[k]) >= gap - 1e-3 for k in kept): kept.append(i)
     kept.sort()
-    # Snap to the song's 16th notes when within 40 ms (the beat feels steadier); otherwise keep the hit.
-    step = 60 / bpm / 4; out = []
-    snap = lambda t: first + round((t - first) / step) * step
-    for t, s, c in kept:
-        g = snap(t)
-        out.append((g if abs(g - t) < 0.04 else t, s, c))
-    # Ribbons: two bars that follow the melody (how bright it is), every so often, in the song's own bars.
-    bar = 4 * 60 / bpm; ribbons = []
-    cs_all = cent[int(lo * FPS):int(hi * FPS)]; c_lo, c_hi = np.quantile(cs_all, [0.1, 0.9])
-    t = first + bar * np.ceil((lo + ribbon_every * 0.6 - first) / bar)
-    while t + 2 * bar < hi:
-        t0, t1 = t, t + 2 * bar
-        div = 2 if level == 'easy' else 4 if level == 'medium' else 8
-        times = [t0 + i * bar / div for i in range(2 * div + 1)]
-        def x_at(tt):
-            a, b = int((tt - 0.12) * FPS), int((tt + 0.12) * FPS)
-            return float(np.clip((np.median(cent[a:b]) - c_lo) / (c_hi - c_lo + 1e-9), 0, 1))
-        xs = np.array([x_at(tt) for tt in times])
-        xs = np.convolve(np.pad(xs, 1, mode='edge'), [0.25, 0.5, 0.25], 'valid')
-        mid = float(np.mean(xs)); hand = 0 if mid < 0.5 else 1
-        # Each hand keeps to its side, and the swing grows with the level.
-        centre = 0.3 if hand == 0 else 0.7
-        xs = np.clip(centre + (xs - mid) * swing / max(1e-3, xs.max() - xs.min()), 0.06 if hand == 0 else 0.4, 0.6 if hand == 0 else 0.94)
-        for i in range(len(times) - 1):
-            ribbons.append([int(round(times[i] * 1000)), int(round(times[i + 1] * 1000)), int(round(xs[i] * 100)), int(round(xs[i + 1] * 100)), hand])
-        t += bar * max(4, round(ribbon_every / bar))
-    spans = [(r[0] / 1000, r[1] / 1000, r[4]) for r in ribbons]
-    def ribbon_at(tt):
-        for a, b, h in spans:
-            if a - 0.25 <= tt <= b + 0.15: return h
-        return None
-    # Lanes by brightness: the song's own quarters of its brightness range.
-    cs = np.array([c for _, _, c in out]); edges = np.quantile(cs, [0.25, 0.5, 0.75]) if len(cs) else [0, 0, 0]
-    sky_line = np.quantile(cs, 1 - sky_share) if len(cs) and sky_share else 9e9
-    strong = np.quantile([s for _, s, _ in out], 0.94) if out else 9e9
-    tap, sky, run, prev, last_chord = [], [], 0, -1, -9
-    for t, s, c in out:
-        h = ribbon_at(t)
-        if h is not None and not keep_floor: continue
-        lane = int(np.searchsorted(edges, c))
-        if h is not None: lane = 2 + lane % 2 if h == 0 else lane % 2
-        # No more than three in a row in one lane: step to the next one.
+    c = np.array([cent[min(len(cent) - 1, idx[i])] for i in kept])
+    edges = np.quantile(c, [0.25, 0.5, 0.75]) if len(c) else [0, 0, 0]
+    strong = np.quantile(strength[kept], 0.94) if kept else 9e9
+    tap, run, prev, last_chord = [], 0, -1, -9
+    for i, ci in zip(kept, c):
+        t = steps[i]; lane = int(np.searchsorted(edges, ci))
         run = run + 1 if lane == prev else 1
-        if run > 3: lane = (lane + 1 + int(t * 7) % 2) % 4 if h is None else (lane ^ 1); run = 1
-        prev = lane
-        ms = int(round(t * 1000))
-        if h is None and c >= sky_line:
-            sky.append([ms, 18 + lane * 21]); continue
-        if chords and h is None and s >= strong and t - last_chord > 0.6:
-            tap.append([ms, lane]); tap.append([ms, (lane + 2) % 4]); last_chord = t
+        if run > 3: lane = (lane + 1 + i % 2) % 4; run = 1
+        lane = int(lane); prev = lane; ms = int(round(t * 1000))
+        if level == 'jeff' and strength[i] >= strong and t - last_chord > 0.6:
+            tap += [[ms, lane], [ms, (lane + 2) % 4]]; last_chord = t
         else:
             tap.append([ms, lane])
-    # Holds: a note with room after it, before a sound that carries on.
-    hold, plain = [], []
-    times = sorted(set(n[0] for n in tap) | set(n[0] for n in sky) | set(r[0] for r in ribbons))
+    # Holds: a note with room after it, before a sound that carries on; it ends on the grid.
+    times_ms = sorted(set(n[0] for n in tap)); hold, plain = [], []
+    grid_ms = np.round(steps * 1000)
     for n in tap:
-        ms, lane = n; nxt = next((x for x in times if x > ms), None)
-        room = ((nxt if nxt is not None else ms + 2000) - ms) / 1000
-        i = int(ms / 1000 * FPS); peak = rms[i:i + 4].max() if i < len(rms) else 0
-        if room >= hold_gap and ribbon_at(ms / 1000) is None and peak > 0:
-            span = rms[i:i + int(room * FPS)]
-            held = np.argmax(span < peak * 0.45) if (span < peak * 0.45).any() else len(span)
-            length = min(room - step, held / FPS)
-            if length >= 2 * step:
-                end = snap(ms / 1000 + length)
-                hold.append([ms, lane, int(round(end * 1000))]); continue
+        ms, lane = n; nxt = next((x for x in times_ms if x > ms), ms + 2000)
+        room = (nxt - ms) / 1000
+        j = int(np.searchsorted(times, ms / 1000)); peak = rms[j:j + 8].max() if j < len(rms) else 0
+        if room >= hold_gap and peak > 0:
+            span = rms[j:j + int(room * FPS)]; quiet = span < peak * 0.45
+            held = (np.argmax(quiet) if quiet.any() else len(span)) / FPS
+            ends = grid_ms[(grid_ms > ms) & (grid_ms <= ms + min(room * 1000 - 120, held * 1000))]
+            if len(ends) and ends[-1] - ms >= 250:
+                hold.append([ms, lane, int(ends[-1])]); continue
         plain.append(n)
-    return {'tap': plain, 'hold': hold, 'sky': sky, 'ribbon': ribbons}
+    return {'tap': plain, 'hold': hold, 'sky': [], 'ribbon': []}
+
+def loud_hits(x):
+    """Times of clear jumps in loudness (the top 3%), for the last check."""
+    e = np.sqrt(np.convolve(x.astype(np.float64) ** 2, np.ones(256) / 256, 'same'))[::HOP]
+    rise = np.maximum(0, np.diff(np.log(e + 1e-6))); t = (np.arange(len(rise)) + 0.5) * HOP / SR
+    top = np.quantile(rise, 0.97)
+    return np.array([t[i] for i in range(2, len(rise) - 2) if rise[i] > top and rise[i] == rise[i - 2:i + 3].max()])
 
 songs = []
-for file, title, bpm, first in SONGS:
+for file, title, near in SONGS:
     x = load(f'public/audio/games/{file}.mp3'); dur = len(x) / SR
-    peaks, cent, rms = analyse(x)
-    charts = {name: chart(peaks, cent, rms, dur, bpm, first, name) for name in LEVELS}
-    songs.append({'id': file, 'title': title, 'bpm': bpm, 'ms': int(dur * 1000), 'charts': charts})
-    print(file, f'{dur:.0f}s', {k: {kk: len(vv) for kk, vv in v.items()} for k, v in charts.items()})
+    flux, times, cent, rms = analyse(x)  # flux: the song's hits (see analyse)
+    bpm, first, steady, beats = beat_grid(flux, times, near, dur)
+    # Last check: line the grid up with where the music really hits (plain loudness jumps, which are exact in
+    # time), so the notes land on what you hear, not a few ms before or after it.
+    hits = loud_hits(x)
+    for _ in range(5):
+        charts = {name: chart(flux, times, cent, rms, beats, dur, name) for name in LEVELS}
+        notes = np.array([n[0] for c in charts.values() for n in c['tap'] + c['hold']]) / 1000
+        j = np.clip(np.searchsorted(hits, notes), 1, len(hits) - 1)
+        near = np.where(abs(hits[j] - notes) < abs(hits[j - 1] - notes), hits[j], hits[j - 1]); off = near - notes
+        off = off[abs(off) < 0.06]
+        shift = float(np.median(off)) if len(off) else 0
+        if abs(shift) < 0.003: break
+        beats = beats + shift; first += shift
+    charts = {name: chart(flux, times, cent, rms, beats, dur, name) for name in LEVELS}
+    songs.append({'id': file, 'title': title, 'bpm': round(float(bpm), 3), 'first': round(float(first), 3), 'ms': int(dur * 1000), 'charts': charts})
+    print(f'{file:7s} {dur:.0f}s bpm {bpm:.3f} first {first:.3f} steady {steady:.2f}', {k: (len(v["tap"]), len(v["hold"])) for k, v in charts.items()})
 with open('src/game/data/rhythmCharts.json', 'w') as f:
     json.dump({'songs': songs}, f, separators=(',', ':'))

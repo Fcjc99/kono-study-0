@@ -21,6 +21,8 @@ const MOTES=Array.from({length:42},(_,i)=>{const r=(k:number)=>{const v=Math.sin
 const KEYS:Record<string,number>={d:0,f:1,j:2,k:3,arrowleft:0,arrowdown:1,arrowup:2,arrowright:3}
 const WORD:Record<Judge,string>={perfect:'Perfect',great:'Great',good:'Good',miss:'Miss'}
 const WORD_COLOR:Record<Judge,string>={perfect:'#ffe27a',great:'#7ae7ff',good:'#b9ff9e',miss:'#ff7a8a'}
+// The last song loaded (decoded once, so Play again starts straight away).
+const decoded=new Map<string,AudioBuffer>()
 const CLEAR_MARK:Record<Clear,string>={fail:'',clear:'✓',full:'FC',all:'AP'}
 export type BeatResult={song:string;title:string;level:Level;score:number;acc:number;grade:string;best:number;tally:Tally;clear:Clear;failed:boolean;newBest:boolean}
 
@@ -33,34 +35,30 @@ const xAt=(f:Field,x:number,z:number)=>f.cx+(x-0.5)*f.floorW*persp(z)
 const skyY=(f:Field,z:number)=>yAt(f,z)-f.skyH*persp(z)
 
 /** KONO Beat: the arcade's songs as a rhythm game on a track running off into the distance. Floor notes come
- * down four lanes (D F J K or the arrows, or tap the lanes; a hold stays pressed to its end); sky notes float
- * above the track (tap up high, or Space); ribbons wind through the sky with the melody (keep a finger on them,
- * or hold S for the blue one and L for the pink). Pick a song and Easy, Medium or Jeff tier (store/rhythm has
- * the rules). The song is the clock: notes are placed by how far into it it is, smoothed between the browser's
- * time updates. Note speed and a timing nudge (for headphones that lag) are kept on this device. */
+ * down four lanes (D F J K or the arrows, or tap the lanes; a hold stays pressed to its end). Sky notes (tap up
+ * high, or Space) and ribbons (keep a finger on them, or hold S / L) still work, but the charts leave them out
+ * for now. Pick a song and Easy, Medium or Jeff tier (store/rhythm has
+ * the rules). The song is the clock: it plays through Web Audio, and the notes follow the sound card's clock
+ * (less the time sound takes to reach the speakers). Note speed and a timing nudge (for headphones that lag) are kept on this device. */
 export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:BeatResult)=>void}){
  const [song,setSong]=useState(SONGS[0].id),[level,setLevel]=useState<Level>('easy'),[playing,setPlaying]=useState(false)
  const [offset,setOffsetState]=useState(readOffset),[speed,setSpeedState]=useState(readSpeed)
- const canvas=useRef<HTMLCanvasElement>(null),audio=useRef<HTMLAudioElement|null>(null)
+ const canvas=useRef<HTMLCanvasElement>(null),audio=useRef<{ctx:AudioContext;src:AudioBufferSourceNode;t0:number}|null>(null),[loading,setLoading]=useState(false)
  const play=useRef<Play>({notes:[],ribbons:[],ticks:[],total:0}),tally=useRef<Tally>(freshTally('easy')),done=useRef(false),nextTick=useRef(0)
  const fx=useRef<{x:number;sky:boolean;t:number;j:Judge}[]>([]),word=useRef<{j:Judge;t:number;off?:number}|null>(null)
  // What's held down: floor lanes (keys or fingers), the ribbon keys, and each finger's place.
  const lanesHeld=useRef([0,0,0,0]),keysHeld=useRef<Set<string>>(new Set()),pointers=useRef(new Map<number,{x:number;y:number;lane:number}>())
- const pressedAt=useRef([0,0,0,0]),startedAt=useRef(0),clock=useRef({a:-1,p:0}),onEndRef=useRef(onEnd)
+ const pressedAt=useRef([0,0,0,0]),startedAt=useRef(0),onEndRef=useRef(onEnd)
  useEffect(()=>{onEndRef.current=onEnd},[onEnd])
  const info=SONGS.find(s=>s.id===song)!
- // Where the song is (ms), smoothed: the element's time only updates every so often, so between updates it
- // runs on the frame clock, and snaps back if they drift apart.
- const songMs=()=>{const a=audio.current;if(!a)return 0;const at=a.currentTime*1000,now=performance.now(),c=clock.current
-  if(a.paused){c.a=at;c.p=now;return at}
-  const est=c.a+(now-c.p)
-  if(at!==c.a&&Math.abs(est-at)>25||c.a<0){c.a=at;c.p=now;return at}
-  if(at!==c.a){c.a=at;c.p=now}
-  return Math.max(at,est)}
+ // Where the song is (ms), on the sound card's own clock (exact to the sample), less the time the sound
+ // takes to reach the speakers, so a note reaches the line as you hear its hit.
+ const songMs=()=>{const a=audio.current;if(!a)return 0;const c=a.ctx;return (c.currentTime-a.t0-(c.outputLatency||c.baseLatency||0))*1000}
+ const stopSong=()=>{const a=audio.current;audio.current=null;if(!a)return;try{a.src.onended=null;a.src.stop()}catch{/* not started */}void a.ctx.close().catch(()=>undefined)}
  const judged=()=>play.current.notes.filter(n=>n.hit).length+nextTick.current
  const finish=()=>{
   if(done.current)return;done.current=true
-  audio.current?.pause()
+  stopSong()
   const t=tally.current,total=play.current.total,score=scoreOf(t,total),clear=clearOf(t,level,judged(),total)
   const newBest=clear!=='fail'&&saveBeatBest(info.id,level,score,clear)
   onEndRef.current({song:info.id,title:info.title,level,score,acc:accuracy(t,total),grade:clear==='fail'?'F':grade(score),best:t.best,tally:t,clear,failed:clear==='fail',newBest})
@@ -91,17 +89,29 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
   return()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up)}
  },[playing])
  // The song pauses with the app in the background.
- useEffect(()=>{const vis=()=>{const a=audio.current;if(!a||done.current||!playing)return;if(document.hidden)a.pause();else void a.play().catch(()=>undefined)};document.addEventListener('visibilitychange',vis);return()=>document.removeEventListener('visibilitychange',vis)},[playing])
- useEffect(()=>()=>{audio.current?.pause();audio.current=null},[])
+ useEffect(()=>{const vis=()=>{const a=audio.current;if(!a||done.current||!playing)return;void (document.hidden?a.ctx.suspend():a.ctx.resume()).catch(()=>undefined)};document.addEventListener('visibilitychange',vis);return()=>document.removeEventListener('visibilitychange',vis)},[playing])
+ const stopRef=useRef(stopSong);useEffect(()=>{stopRef.current=stopSong})
+ useEffect(()=>()=>stopRef.current(),[])
 
- const start=()=>{
-  stopMusic()
-  play.current=playOf(info.charts[level],info.bpm);tally.current=freshTally(level);done.current=false;fx.current=[];word.current=null;nextTick.current=0
-  lanesHeld.current=[0,0,0,0];keysHeld.current.clear();pointers.current.clear()
-  const a=new Audio('/audio/games/'+info.id+'.mp3');a.preload='auto';audio.current=a;clock.current={a:-1,p:0}
-  a.addEventListener('ended',()=>finishRef.current(),{once:true})
-  startedAt.current=performance.now()
-  setPlaying(true);void a.play().catch(()=>undefined)
+ // Play: the song is loaded whole and played through Web Audio (its clock is what the notes follow), starting
+ // a moment after the track appears.
+ const start=async()=>{
+  if(loading)return
+  stopMusic();setLoading(true)
+  const Ctx=window.AudioContext??(window as unknown as {webkitAudioContext:typeof AudioContext}).webkitAudioContext
+  const ctx=new Ctx()
+  try{
+   let buf=decoded.get(info.id)
+   if(!buf){const data=await (await fetch('/audio/games/'+info.id+'.mp3')).arrayBuffer();buf=await ctx.decodeAudioData(data);decoded.clear();decoded.set(info.id,buf)}
+   play.current=playOf(info.charts[level],info.bpm);tally.current=freshTally(level);done.current=false;fx.current=[];word.current=null;nextTick.current=0
+   lanesHeld.current=[0,0,0,0];keysHeld.current.clear();pointers.current.clear()
+   const src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination)
+   await ctx.resume().catch(()=>undefined)
+   const t0=ctx.currentTime+0.8;src.start(t0);src.onended=()=>finishRef.current()
+   audio.current={ctx,src,t0};startedAt.current=performance.now()
+   setPlaying(true)
+  }catch{void ctx.close().catch(()=>undefined)}
+  finally{setLoading(false)}
  }
 
  // Every frame while playing: judge what went by, then draw.
@@ -155,8 +165,9 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    for(let b=Math.ceil(now/beat)*beat;b<now+ap*far;b+=beat){const z=(b-now)/ap,bar=Math.round(b/beat)%4===0;ctx.strokeStyle=bar?'rgba(255,255,255,0.18)':'rgba(255,255,255,0.06)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(...L(0,z));ctx.lineTo(...L(1,z));ctx.stroke()}
    // The line, glowing on the beat, and the sky line above it.
    ctx.shadowColor='#fff';ctx.shadowBlur=14+pulse*12;ctx.fillStyle='#fff';ctx.fillRect(xAt(f,0,0),f.hitY-1.5,f.floorW,3);ctx.shadowBlur=0
-   const sy=skyY(f,0);ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1.5;ctx.setLineDash([6,8]);ctx.beginPath();ctx.moveTo(xAt(f,0,0),sy);ctx.lineTo(xAt(f,1,0),sy);ctx.stroke();ctx.setLineDash([])
-   for(const e of [0,1]){ctx.fillStyle='rgba(255,255,255,0.7)';ctx.beginPath();ctx.arc(xAt(f,e,0),sy,3,0,Math.PI*2);ctx.fill()}
+   const sy=skyY(f,0),hasSky=pl.ribbons.length>0||pl.notes.some(n=>n.kind==='sky')
+   if(hasSky){ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1.5;ctx.setLineDash([6,8]);ctx.beginPath();ctx.moveTo(xAt(f,0,0),sy);ctx.lineTo(xAt(f,1,0),sy);ctx.stroke();ctx.setLineDash([])
+   for(const e of [0,1]){ctx.fillStyle='rgba(255,255,255,0.7)';ctx.beginPath();ctx.arc(xAt(f,e,0),sy,3,0,Math.PI*2);ctx.fill()}}
    ctx.textAlign='center';ctx.font='500 11px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.55)'
    for(let l=0;l<4;l++)ctx.fillText('DFJK'[l],xAt(f,(l+0.5)/4,0),f.hitY+22)
    // Ribbons: a soft wide glow under a bright core, from the line out to the distance.
@@ -273,12 +284,10 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
     <label className="beat-offset">Speed <button type="button" aria-label="Notes slower" onClick={()=>setSpeed(speed-0.5)}>−</button><output>{speed.toFixed(1)}</output><button type="button" aria-label="Notes faster" onClick={()=>setSpeed(speed+0.5)}>＋</button></label>
     <label className="beat-offset">Timing <button type="button" aria-label="Notes earlier" onClick={()=>nudge(-10)}>−</button><output>{offset>0?'+':''}{offset} ms</output><button type="button" aria-label="Notes later" onClick={()=>nudge(10)}>＋</button></label>
    </div>
-   <button type="button" className="beat-play" onClick={start}>▶ Play <span>{info.title}</span></button>
+   <button type="button" className="beat-play" onClick={()=>void start()} disabled={loading}>{loading?'Loading…':<>▶ Play <span>{info.title}</span></>}</button>
    <details className="beat-how"><summary>How to play</summary><ul>
     <li><span className="is-floor"/>Floor notes: hit them on the line (<kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd>, or tap the lane). Long ones: hold to the end.</li>
-    <li><span className="is-sky"/>Sky notes float up high: tap above the track (or <kbd>Space</kbd>).</li>
-    <li><span className="is-ribbon"/>Ribbons follow the melody: keep a finger on the ring (or hold <kbd>S</kbd> for blue, <kbd>L</kbd> for pink).</li>
-    <li>{level==='jeff'?'Jeff tier: the gauge starts full and drains with misses. Run out and the song’s over.':'Fill the gauge past '+CLEAR_AT+'% by the end to clear the song.'} Bluetooth headphones? Nudge Timing up if notes feel early.</li>
+    <li>{level==='jeff'?'Jeff tier: the gauge starts full and drains with misses. Run out and the song’s over.':'Fill the gauge past '+CLEAR_AT+'% by the end to clear the song.'} Notes land on the song’s beat; with Bluetooth headphones, nudge Timing up if they feel early.</li>
    </ul></details>
   </section>
  </div>

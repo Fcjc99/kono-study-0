@@ -33,7 +33,7 @@ const GAMES:{id:Game;emoji:string;name:string;how:string;best:(n:number)=>string
  {id:'gems',emoji:'💎',name:'Gem blitz',how:'Swap gems to match 3 or more. One minute, as many points as you can!',best:n=>'Best: '+n+' points'},
  {id:'candy',emoji:'🍬',name:'Candy crush',how:'Match candies to reach each level’s target in the moves you have.',best:n=>'Best: level '+n},
  {id:'flow',emoji:'🌌',name:'KONO Flow',how:'Turn and drop the falling shapes to fill rows of light. Fill the Flow meter, then set it off: time stops while the rows you fill pile up, and they all clear at once!',best:n=>'Best: '+n.toLocaleString()+' points'},
- {id:'beat',emoji:'🥁',name:'KONO Beat',how:'The arcade’s songs as a rhythm game: hit the notes as they reach the line, tap the sky notes up high, and keep a finger on the ribbons as they wind with the melody. Easy, Medium, or Jeff tier!',best:n=>'Best: '+n.toLocaleString()},
+ {id:'beat',emoji:'🥁',name:'KONO Beat',how:'The arcade’s songs as a rhythm game: hit the notes on the beat as they reach the line, and hold the long ones. Easy, Medium, or Jeff tier!',best:n=>'Best: '+n.toLocaleString()},
  {id:'flap',emoji:'🐤',name:'Flappy KONO',how:'Tap to flap KONO through the gaps in the pipes.',best:n=>'Best: '+n+' pipe'+(n===1?'':'s')},
  {id:'paper',emoji:'🟦',name:'KONO.io',how:'Leave your land, loop around and come home to claim it. Cut the bots’ trails, and keep yours safe! Play solo, or in a team battle: Blue against Red for two minutes.',best:n=>'Best: '+n+'% of the map'},
 ]

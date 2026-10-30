@@ -4095,22 +4095,15 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  const line=await br.textContent();const hits=/(\d+) perfect, (\d+) great, (\d+) good/.exec(line)
  assert.ok(hits&&Number(hits[1])+Number(hits[2])+Number(hits[3])>=2,'keys on time hit the notes: '+line)
  if(process.env.KONO_SHOTS){
-  // Pictures of Medium mid-ribbon (Jeff tier would end with nobody playing), wide and on a phone.
-  const r0=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.medium.ribbon[0][0]
+  // Pictures of Medium a few bars in, wide and on a phone.
   for(const [w,h,name] of [[1280,800,'beat-wide'],[390,844,'beat-phone']]){
    await page.setViewportSize({width:w,height:h})
    await beat.getByRole('button',{name:'Play again'}).click()
    await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Medium/}).click()
    if(name==='beat-wide')await beat.screenshot({path:process.env.KONO_SHOTS+'/beat-pick.png'})
    await beat.getByRole('button',{name:/^▶ Play/}).click()
-   await page.waitForFunction(t=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>=t,r0-400,{timeout:60000})
-   const before=Number(await page.evaluate(()=>document.querySelector('.beat-canvas').dataset.score))
-   await page.keyboard.down('s');await page.keyboard.down('l')
-   await page.waitForFunction(t=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>=t,r0+700,{timeout:60000})
-   assert.ok(Number(await page.evaluate(()=>document.querySelector('.beat-canvas').dataset.score))>before+3000,'following the ribbon scores')
+   await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>=9000,null,{timeout:60000})
    await beat.screenshot({path:process.env.KONO_SHOTS+'/'+name+'.png'})
-   assert.equal(await page.evaluate(()=>document.querySelector('.beat-canvas').dataset.follow),'1/1','holding S and L follows the ribbon')
-   await page.keyboard.up('s');await page.keyboard.up('l')
    await beat.getByRole('button',{name:'■ End'}).click()
   }
   await page.setViewportSize({width:1280,height:800})

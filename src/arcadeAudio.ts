@@ -324,9 +324,10 @@ export function fx(kind:Fx,enabled:boolean,level=0){
 // and clear is a soft note of the song's own scale, played on its beat (the next 16th note for a move, the
 // next 8th for a clear, the next bar for the end of Flow), short and quiet under the music, never more than
 // one of a kind per beat-slot, so playing fast adds a gentle rhythm instead of a pile of notes.
-/** Each Flow song's tempo and when its first beat falls (measured from the files: flow-1 … flow-5); all of
+/** Each Flow song's tempo and when its first beat falls (flow-1 … flow-5, as tools/make_rhythm_charts.py lines
+ * the grid up with the hits it hears; KONO Beat uses the same grids); all of
  * them sit in D major / B minor, so one scale (D E F# A B) fits every note. */
-const FLOW_GRID=[{bpm:92,off:0},{bpm:90.78,off:0.57},{bpm:100.05,off:0.53},{bpm:113.2,off:0.22},{bpm:129.85,off:0.33},{bpm:136.6,off:0.26}]
+const FLOW_GRID=[{bpm:92,off:0},{bpm:90.738,off:0.575},{bpm:100.066,off:0.566},{bpm:113.398,off:0.072},{bpm:129.838,off:0.362},{bpm:136.458,off:0.309}]
 const PENTA_D=[62,64,66,69,71,74,76,78,81,83,86]
 /** The song's position now (seconds into it) and its beat, or a steady clock when it can't be read. */
 function songClock(c:AudioContext):{pos:number;rate:number;beat:number;off:number}{
