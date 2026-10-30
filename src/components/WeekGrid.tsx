@@ -4,11 +4,12 @@ import {classTime} from '../store/classSchedule'
 /** One thing on the week: timed ones sit at their hour, the rest in the "All day" row. */
 /** `drag` ("tasks:ID", "exams:ID", "calendarEvents:ID") lets it be moved onto an hour or a day;
  * `stretch` lets a timed one be made longer or shorter by its bottom edge. */
-export type WeekItem={id:string;day:string;title:string;start?:string;end?:string;color:string;important?:boolean;drag?:string;stretch?:boolean}
+/** who: whose it is, as a letter in their color on the item (Skylight-style); none for no one in particular. */
+export type WeekItem={id:string;day:string;title:string;start?:string;end?:string;color:string;who?:string;important?:boolean;drag?:string;stretch?:boolean}
 
 const minutes=(t:string)=>Number(t.slice(0,2))*60+Number(t.slice(3,5))
 const clock=(m:number)=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')
-const HOUR=44,SNAP=15,LONG_PRESS_MS=300,MOUSE_HOLD_MS=500
+const HOUR=56,SNAP=15,LONG_PRESS_MS=300,MOUSE_HOLD_MS=500
 const snap=(m:number)=>Math.round(m/SNAP)*SNAP
 
 /** Where a drag would land: an hour on a day (with the stretch's new end), or a day's All day row. */
@@ -188,6 +189,8 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
   close()
   return placed
  }
+ // "8 – 8:30 AM": the time range as Skylight writes it, the AM/PM once when both share it.
+ const timeSpan=(from:string,to?:string)=>{if(!to)return classTime(from);const a=classTime(from),b=classTime(to),same=a.slice(-2)===b.slice(-2);return (same?a.slice(0,-3).replace(/:00$/,''):a.replace(/:00 /,' '))+' – '+b.replace(/:00 /,' ')}
  const weekday=(day:string)=>new Date(day+'T12:00:00').toLocaleDateString(undefined,{weekday:'short'})
  const live=drag?.active?drag:null,landing=live?.landing
  const label=(i:WeekItem)=>i.title+(i.start?' · '+classTime(i.start)+(i.end?'–'+classTime(i.end):''):'')+' · '+dayLabel(i.day)
@@ -195,14 +198,14 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
  return <div className={'week-grid'+(live?' is-dragging':'')} role="region" aria-label="Week" style={{'--days':days.length} as CSSProperties}>
   <div className="week-grid-row week-grid-head"><span className="week-grid-gutter" aria-hidden="true"/>{days.map(day=><button type="button" key={day} aria-pressed={day===selected} aria-label={dayLabel(day)} className={day===todayIso?'is-today':''} onClick={()=>onSelect(day)}><small>{weekday(day)}</small><strong>{Number(day.slice(-2))}</strong></button>)}</div>
   {moving&&<div className="week-grid-moving" role="status"><span>Tap a new time for “{moving.title}”</span><button type="button" onClick={()=>setMoving(null)}>Cancel</button></div>}
-  <div className="week-grid-row week-grid-allday"><span className="week-grid-gutter">All day</span>{days.map(day=><div key={day} ref={el=>{if(el)allDayCells.current.set(day,el);else allDayCells.current.delete(day)}} className={'week-grid-allday-cell'+(landing&&landing.day===day&&landing.from===undefined?' is-drop-target':'')+(moving?' is-pickable':'')} onClick={moving?.drag?e=>{if(e.target!==e.currentTarget)return;onDrop?.(moving.drag!,day);setMoving(null)}:undefined}>{allDay.filter(i=>i.day===day).map(i=><button type="button" key={i.id} className={itemClass(i)} style={{'--item-color':i.color} as CSSProperties} aria-label={label(i)} onClick={open(i)} {...handlers(i)}>{i.important?'★ ':''}{i.title}</button>)}</div>)}</div>
+  <div className="week-grid-row week-grid-allday"><span className="week-grid-gutter">All day</span>{days.map(day=><div key={day} ref={el=>{if(el)allDayCells.current.set(day,el);else allDayCells.current.delete(day)}} className={'week-grid-allday-cell'+(landing&&landing.day===day&&landing.from===undefined?' is-drop-target':'')+(moving?' is-pickable':'')} onClick={moving?.drag?e=>{if(e.target!==e.currentTarget)return;onDrop?.(moving.drag!,day);setMoving(null)}:undefined}>{allDay.filter(i=>i.day===day).map(i=><button type="button" key={i.id} className={itemClass(i)} style={{'--item-color':i.color} as CSSProperties} aria-label={label(i)} onClick={open(i)} {...handlers(i)}>{i.important?'★ ':''}{i.title}{i.who&&<i className="week-item-who" aria-hidden="true">{i.who}</i>}</button>)}</div>)}</div>
   <div ref={body} className="week-grid-row week-grid-body" style={{'--hour':HOUR+'px'} as CSSProperties}>
-   <div className="week-grid-gutter week-grid-hours">{hours.map(h=><span key={h}>{(h%12||12)+(h<12||h===24?' AM':' PM')}</span>)}</div>
+   <div className="week-grid-gutter week-grid-hours">{hours.map(h=><span key={h}>{(h%12||12)+(h<12||h===24?' am':' pm')}</span>)}</div>
    {days.map(day=><div key={day} ref={el=>{if(el)columns.current.set(day,el);else columns.current.delete(day)}} className={'week-grid-day'+(day===selected?' is-selected':'')+(day===todayIso?' is-today':'')} style={{height:hours.length*HOUR}}>
     {day===todayIso&&today.getHours()*60+today.getMinutes()>=first*60&&today.getHours()*60+today.getMinutes()<(first+hours.length)*60&&<div className="week-grid-now" aria-hidden="true" style={{top:(today.getHours()*60+today.getMinutes()-first*60)/60*HOUR}}/>}
     {hours.map(h=><button type="button" key={h} className={'week-grid-slot'+(moving?' is-pickable':'')} style={{top:(h-first)*HOUR}} aria-label={moving?'Move to '+classTime(clock(h*60))+' on '+dayLabel(day):'Add at '+classTime(clock(h*60))+' on '+dayLabel(day)} onClick={slotTap(day,h)} onPointerDown={drawBegin(day)} onPointerMove={drawMove} onPointerUp={drawEnd} onPointerCancel={drawEnd} onContextMenu={e=>{if(drawRef.current)e.preventDefault()}}><span aria-hidden="true">＋</span></button>)}
     {draw?.active&&draw.day===day&&<div className="week-item-ghost is-drawing" aria-hidden="true" style={{top:(draw.from-first*60)/60*HOUR,height:Math.max(22,(draw.to-draw.from)/60*HOUR-2)} as CSSProperties}>＋ {classTime(clock(draw.from))}–{classTime(clock(Math.min(24*60-1,draw.to)))}</div>}
-    {lanes(day).map(({item,from,to,lane,of})=><button type="button" key={item.id} className={itemClass(item,' week-item-timed'+(to-from<40?' is-short':'')+(moving?.id===item.id?' is-picked':''))} style={{'--item-color':item.color,top:(from-first*60)/60*HOUR,height:Math.max(22,(to-from)/60*HOUR-2),left:`calc(${lane/of*100}% + 2px)`,width:`calc(${100/of}% - 4px)`} as CSSProperties} aria-label={label(item)} onClick={open(item)} {...handlers(item)}><small>{classTime(item.start!)}</small><span className="week-item-title">{item.important?'★ ':''}{item.title}</span>{item.stretch&&onStretch&&to-from>=40&&<span className="week-item-grip" aria-hidden="true" onPointerDown={begin(item,'stretch')}/>}</button>)}
+    {lanes(day).map(({item,from,to,lane,of})=><button type="button" key={item.id} className={itemClass(item,' week-item-timed'+(to-from<40?' is-short':'')+(to-from<25?' is-tiny':'')+(moving?.id===item.id?' is-picked':''))} style={{'--item-color':item.color,top:(from-first*60)/60*HOUR,height:Math.max(22,(to-from)/60*HOUR-2),left:`calc(${lane/of*100}% + 2px)`,width:`calc(${100/of}% - 4px)`} as CSSProperties} aria-label={label(item)} onClick={open(item)} {...handlers(item)}><span className="week-item-title">{item.important?'★ ':''}{item.title}</span><small>{timeSpan(item.start!,item.end)}</small>{item.who&&<i className="week-item-who" aria-hidden="true">{item.who}</i>}{item.stretch&&onStretch&&to-from>=40&&<span className="week-item-grip" aria-hidden="true" onPointerDown={begin(item,'stretch')}/>}</button>)}
     {landing&&landing.day===day&&landing.from!==undefined&&<div className="week-item-ghost" aria-hidden="true" style={{'--item-color':live!.item.color,top:(landing.from-first*60)/60*HOUR,height:Math.max(22,(landing.to!-landing.from)/60*HOUR-2)} as CSSProperties}>{classTime(clock(landing.from))}–{classTime(clock(Math.min(24*60-1,landing.to!)))}</div>}
    </div>)}
   </div>

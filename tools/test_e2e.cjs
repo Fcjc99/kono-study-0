@@ -643,6 +643,78 @@ test('Planner › Kids view: picture day per person, a routine earns a star, a s
  await page.getByLabel('Stickers: 🏆').first().waitFor()
 })
 
+test('Wall & tablet mode: a grown-up PIN locks it (kids can still tick, not add), a reward waits for a grown-up’s OK, setup keeps Home’s panels, Lists add a to-do and groceries',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.starLog=[{id:'s1',profileId:pid,kidId:'kid-emma',at:new Date().toISOString(),n:5,note:'Chores'}]
+ plan.starRewards=[{id:'rw',profileId:pid,title:'Pick dessert',cost:3,emoji:'🍦'}]
+ plan.settings.rewardApproval=true
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ await go(page,'Planner')
+ await page.getByRole('button',{name:/Wall & tablet mode/}).click()
+ const hub=page.getByRole('dialog',{name:'Family hub'})
+ // Setup: a PIN and Home's panels.
+ await hub.getByRole('button',{name:'Setup',exact:true}).click()
+ const setup=page.getByRole('dialog',{name:'Wall mode setup'})
+ await setup.getByLabel('New PIN').fill('2468');await setup.getByRole('button',{name:'Save PIN'}).click()
+ await setup.getByText('PIN saved on this tablet.').waitFor()
+ await setup.getByRole('checkbox',{name:'Counting down'}).uncheck()
+ await setup.getByRole('button',{name:'Done'}).click()
+ assert.equal(await hub.getByRole('region',{name:'Counting down'}).count(),0,'a hidden panel stays hidden')
+ // Lists: a to-do and groceries.
+ await hub.getByRole('button',{name:'Lists',exact:true}).click()
+ await hub.getByLabel('New to-do').fill('Call the plumber');await hub.getByLabel('New to-do').press('Enter')
+ await hub.getByLabel('Add groceries').fill('Milk, bread');await hub.getByLabel('Add groceries').press('Enter')
+ await waitFor(()=>{const d=cloud.users.alice.plan.data;return d.familyTodos?.some(t=>t.title==='Call the plumber')&&(d.groceries??[]).length===2},'the to-do and groceries reach the account')
+ // Lock: no Add, and unlocking takes the PIN.
+ await hub.getByRole('button',{name:'Lock',exact:true}).click()
+ assert.equal(await hub.getByRole('button',{name:'＋ Add'}).count(),0)
+ await hub.getByRole('button',{name:'Locked',exact:true}).click()
+ const pin=page.getByRole('dialog',{name:'Grown-up PIN'})
+ for(const k of ['1','1','1','1'])await pin.getByRole('button',{name:k,exact:true}).click()
+ await pin.getByRole('button',{name:'OK'}).click();await pin.getByText('Try again').waitFor()
+ for(const k of ['2','4','6','8'])await pin.getByRole('button',{name:k,exact:true}).click()
+ await pin.getByRole('button',{name:'OK'}).click();await pin.waitFor({state:'detached'})
+ await hub.getByRole('button',{name:'＋ Add'}).waitFor()
+ // Leaving takes the PIN too.
+ await hub.getByRole('button',{name:'Exit',exact:true}).click()
+ for(const k of ['2','4','6','8'])await page.getByRole('dialog',{name:'Grown-up PIN'}).getByRole('button',{name:k,exact:true}).click()
+ await page.getByRole('dialog',{name:'Grown-up PIN'}).getByRole('button',{name:'OK'}).click()
+ await hub.waitFor({state:'detached'})
+ // A kid's reward waits for a grown-up's OK (asked for with the PIN).
+ await go(page,'Kids')
+ page.on('dialog',d=>void d.accept(d.type()==='prompt'?'2468':undefined))
+ await page.getByRole('group',{name:'Rewards for Emma'}).getByRole('button',{name:/Pick dessert/}).click()
+ const asks=page.getByRole('list',{name:'Waiting for a grown-up'});await asks.getByText(/Emma/).waitFor()
+ assert.equal(await page.getByRole('article',{name:'Emma’s stars'}).getByLabel('2 stars').count(),1,'the stars are set aside while it waits')
+ await asks.getByRole('button',{name:'Yes'}).click()
+ await waitFor(()=>(cloud.users.alice.plan.data.starLog??[]).some(e=>e.n===-3&&!e.pending),'the grown-up’s yes spends the stars')
+})
+
+test('Recipe box and pasted emails: a recipe’s ingredients go to groceries in a tap, and a pasted school email becomes events to check',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ const iso=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')}
+ plan.meals=[{id:'m1',profileId:pid,date:iso(0),title:'Taco night',meal:'dinner'}]
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ const card=page.getByRole('region',{name:'Dinners & groceries'})
+ await card.getByText(/Recipe box/).click()
+ await card.getByLabel('Recipe name').fill('Taco night')
+ await card.getByLabel('Ingredients').fill('Tortillas\nGround beef\nCheese')
+ await card.getByRole('button',{name:'Save recipe'}).click()
+ await card.getByRole('button',{name:'Add Taco night ingredients to groceries'}).click()
+ await card.getByText('🛒 Taco night ingredients are on the list.').waitFor()
+ await waitFor(()=>JSON.stringify((cloud.users.alice.plan.data.groceries??[]).map(g=>g.title))==='["Tortillas","Ground beef","Cheese"]','the ingredients reach the grocery list')
+ await page.getByRole('button',{name:'＋ Add'}).first().click()
+ await page.getByRole('button',{name:'📨 Paste an email or flyer'}).click()
+ await page.getByLabel('Email or flyer text').fill('Hi families!\nPicture day is Thursday Nov 12 at 9am.\nPlease send a snack.\nBook fair Friday Nov 13 3pm')
+ await page.getByRole('button',{name:'Find events'}).click()
+ const add=page.getByRole('dialog',{name:'Add to your plan'})
+ await add.getByText('2 things to add').waitFor()
+ await add.getByRole('button',{name:/Add all 2/}).click()
+ await waitFor(()=>{const d=cloud.users.alice.plan.data;return d.calendarEvents.some(e=>/Picture day/i.test(e.title))&&d.calendarEvents.some(e=>/Book fair/i.test(e.title))},'both events are added')
+})
+
 test('keyboard: K-Quiz practice questions and flashcards keep focus inside, close with Escape, and return focus',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data
  plan.settings.familyStudyTabs=true // alice has kids: a family plan shows the study pages only when asked
@@ -3259,11 +3331,10 @@ test('Family wall calendar: Today sums up the day; Month shows each person’s t
  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.find(e=>e.id==='e-soccer')?.date==='2026-10-13','Undo never put the practice back')
  // Tapping a pill opens it.
  await pill.click();await page.getByRole('dialog',{name:'Edit event'}).getByRole('button',{name:'Cancel'}).click()
- // Wall display: big, today and tomorrow, with whose each thing is.
- await page.getByRole('button',{name:/Wall display/}).click()
- const wall=page.getByRole('dialog',{name:'Wall display'}),today=wall.getByRole('region',{name:'Today'})
- await today.getByText('Soccer practice').waitFor()
- assert.match(await today.locator('.wall-item').filter({hasText:'Soccer practice'}).innerText(),/4:00 PM[\s\S]*Emma/)
+ // Wall & tablet mode: today and the next days in columns, with whose each thing is.
+ await page.getByRole('button',{name:/Wall & tablet mode/}).click()
+ const wall=page.getByRole('dialog',{name:'Family hub'}),today=wall.getByRole('region',{name:'Today'})
+ await today.getByRole('button',{name:/^Soccer practice, 4.*PM, Emma$/}).waitFor()
  await wall.getByRole('region',{name:'Tomorrow'}).waitFor()
  await page.keyboard.press('Escape');await wall.waitFor({state:'detached'})
  // Homework every week until Nov 3: one per week, linked; renaming one can rename them all.
@@ -3380,25 +3451,21 @@ test('Family setup: a parent picks “My family” when starting, adds two kids 
  await context.close()
 })
 
-test('Wall display at night: after 8 PM it dims and leads with tomorrow, the Day/Night button switches by hand and is remembered on that tablet, and a wide screen shows the rest of the week',async()=>{
+test('Wall mode at night: ?wall asks for a tap to start (keeping the screen on), quiet hours go dark until tapped, and Calendar shows the week in columns',async()=>{
  const {context,page}=await freshPage({viewport:{width:1440,height:900}})
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
- d.calendarEvents.push({id:'e-tmw',profileId:pid,title:'Field trip',date:'2026-10-16',time:'08:00',kind:'activity',done:false,notes:'',kidId:'kid-emma'},{id:'e-sat',profileId:pid,title:'Pumpkin patch',date:'2026-10-17',time:'10:00',kind:'personal',done:false,notes:''})
+ d.calendarEvents.push({id:'e-tmw',profileId:pid,title:'Field trip',date:'2026-10-16',time:'08:00',kind:'activity',done:false,notes:'',kidId:'kid-emma'},{id:'e-sat',profileId:pid,title:'Pumpkin patch',date:'2026-10-17',time:'10:00',kind:'activity',done:false,notes:''})
  await page.clock.install({time:new Date('2026-10-15T21:30:00')});await signInAs(context,cloud,'alice')
+ await context.addInitScript(()=>{try{localStorage.setItem('kono-hub-quiet','21:00-06:30')}catch{}})
  await page.goto(BASE+'?wall')
- const wall=page.getByRole('dialog',{name:'Wall display'});await wall.waitFor()
- assert.match(await wall.getAttribute('class'),/is-night/)
- assert.equal(await wall.locator('.wall-day').first().getAttribute('aria-label'),'Tomorrow','at night tomorrow comes first')
- await wall.getByRole('region',{name:'Tomorrow'}).getByText('Field trip').waitFor()
- await wall.getByRole('region',{name:'Rest of the week'}).getByText('Pumpkin patch').waitFor()
- const toggle=wall.getByRole('button',{name:/Day$/});assert.equal(await toggle.getAttribute('aria-pressed'),'true')
- await toggle.click()
- assert.doesNotMatch(await wall.getAttribute('class'),/is-night/)
- assert.equal(await wall.locator('.wall-day').first().getAttribute('aria-label'),'Today')
- await page.reload();await wall.waitFor()
- assert.doesNotMatch(await wall.getAttribute('class'),/is-night/,'the tablet remembers the day look')
- await wall.getByRole('button',{name:/Night$/}).click()
- assert.match(await wall.getAttribute('class'),/is-night/)
+ await page.getByRole('button',{name:/Tap to start wall mode/}).click()
+ const quiet=page.getByRole('button',{name:/Quiet hours/});await quiet.waitFor()
+ await quiet.click();await quiet.waitFor({state:'detached'})
+ const hub=page.getByRole('dialog',{name:'Family hub'})
+ await hub.getByRole('region',{name:'Tomorrow'}).getByRole('button',{name:/^Field trip/}).waitFor()
+ await hub.getByRole('button',{name:'Calendar',exact:true}).click()
+ await hub.getByRole('group',{name:'Days shown'}).getByRole('button',{name:'Week'}).click()
+ await hub.getByRole('button',{name:/^Pumpkin patch/}).waitFor()
  await context.close()
 })
 
@@ -3623,10 +3690,11 @@ test('Out sick and late nights: marking Emma out sick skips her class and shows 
  await page.getByLabel('Today at a glance').getByText('Emma is out sick').waitFor()
  // The wall: her soccer is off; Leo's sleepover is still going this morning.
  await page.goto(BASE+'?wall')
- const wall=page.getByRole('dialog',{name:'Wall display'}),today=wall.getByRole('region',{name:'Today'})
+ await page.getByRole('button',{name:/Tap to start wall mode/}).click()
+ const wall=page.getByRole('dialog',{name:'Family hub'}),today=wall.getByRole('region',{name:'Today'})
  await today.getByText('Emma is out sick').waitFor()
- assert.match(await today.locator('.wall-item.is-off').filter({hasText:'Soccer practice'}).innerText(),/Off/)
- assert.match(await today.locator('.wall-item').filter({hasText:'Sleepover at Sam’s'}).innerText(),/Until\s+9:00 AM/)
+ assert.equal(await today.locator('.hub-card.is-off').filter({hasText:'Soccer practice'}).count(),1,'her soccer is off')
+ assert.match(await today.locator('.hub-card').filter({hasText:'Sleepover at Sam’s'}).innerText(),/until 9:00 AM/)
  // The Planner says so too, and Take back undoes it.
  await page.goto(BASE+'?page=planner');await heading(page,'Planner')
  const banner=page.locator('.special-day-banner.is-day-off').filter({hasText:'Emma is out sick'}).first()
@@ -3760,10 +3828,10 @@ test('Family to-dos, part 2: a to-do’s words, day and repeat can be changed; t
  await chip.click()
  await page.getByRole('button',{name:'To-do: Clean house · Oct 18, 2026'}).waitFor()
  // The wall: tomorrow's to-do under tomorrow, with whose it is.
- await page.getByRole('button',{name:/Wall display/}).click()
- const wall=page.getByRole('dialog',{name:'Wall display'})
+ await page.getByRole('button',{name:/Wall & tablet mode/}).click()
+ const wall=page.getByRole('dialog',{name:'Family hub'})
  assert.match(await wall.getByRole('list',{name:'Tomorrow’s to-dos'}).innerText(),/Sign permission slip\s*Leo/)
- assert.match(await wall.getByRole('list',{name:'Today’s to-dos'}).innerText(),/Groceries/,'today also lists the any-day ones')
+ assert.match(await wall.getByRole('region',{name:'To-dos'}).innerText(),/Groceries/,'Home’s to-dos also list the any-day ones')
 })
 test('A repeating event from the Planner: a note on just one day stays on that day, a new time for all of them keeps each day’s note, and more dates can be added to the series',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId

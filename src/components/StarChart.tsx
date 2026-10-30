@@ -1,6 +1,7 @@
 import {useState,type CSSProperties} from 'react'
 import {uid,type AppData,type Kid,type StarReward} from '../store/model'
-import {STARTER_REWARDS,chartFor,redeem,starsOf} from '../store/choreStars'
+import {STARTER_REWARDS,approve,chartFor,decline,redeem,starsOf,waiting} from '../store/choreStars'
+import {checkPin,hasPin} from '../store/familyHub'
 import type {PlannerRepository} from '../store/repository'
 import Avatar from './Avatar'
 
@@ -14,12 +15,19 @@ export default function StarChart({data,profileId,kids,today,weekStart,save,onTi
  const rewards=(data.starRewards??[]).filter(r=>r.profileId===profileId).sort((a,b)=>a.cost-b.cost)
  const addReward=(r:Omit<StarReward,'id'|'profileId'>)=>void save(d=>({...d,starRewards:[...(d.starRewards??[]),{id:uid('reward'),profileId,...r}]}))
  const removeReward=(id:string)=>void save(d=>({...d,starRewards:(d.starRewards??[]).filter(r=>r.id!==id)}))
+ const ask=data.settings.rewardApproval===true
  const spend=(kid:Kid,r:StarReward)=>{
-  if(!confirm(`Give ${kid.name} “${r.title}” for ${r.cost} stars?`))return
-  void save(d=>{const log=redeem(d.starLog??[],kid.id,r);return log?{...d,starLog:log}:d}).then(ok=>{if(ok)setCheer({kidId:kid.id,text:(r.emoji?r.emoji+' ':'')+r.title+'!'})})
+  if(!confirm(ask?`Ask a grown-up for “${r.title}” (${r.cost} stars)?`:`Give ${kid.name} “${r.title}” for ${r.cost} stars?`))return
+  void save(d=>{const log=redeem(d.starLog??[],kid.id,r,new Date(),ask);return log?{...d,starLog:log}:d}).then(ok=>{if(ok)setCheer({kidId:kid.id,text:ask?'✋ Asked a grown-up for '+r.title:(r.emoji?r.emoji+' ':'')+r.title+'!'})})
  }
+ // A grown-up's yes or not-now on a kid's pick; with a PIN on this device, it's asked first.
+ const grownUp=async()=>!hasPin()||checkPin(prompt('Grown-up PIN')??'')
+ const decide=async(id:string,yes:boolean)=>{if(!(await grownUp())){alert('That PIN didn’t match.');return}void save(d=>({...d,starLog:(yes?approve:decline)(d.starLog??[],id)}))}
+ const asks=waiting(data.starLog??[],profileId)
  return <section className="star-chart" aria-label="Star chart">
-  <div className="star-chart-head"><h3>⭐ Star chart</h3><p className="wb-muted">Chores for a kid earn stars when they’re ticked. Stars buy rewards from the shelf.</p></div>
+  <div className="star-chart-head"><h3>⭐ Star chart</h3><p className="wb-muted">Chores for a kid earn stars when they’re ticked. Stars buy rewards from the shelf.</p>
+   <label className="wb-check"><input type="checkbox" checked={ask} onChange={e=>void save(d=>({...d,settings:{...d.settings,rewardApproval:e.target.checked||undefined}}))}/>A grown-up OKs each reward</label></div>
+  {asks.length>0&&<ul className="star-asks" aria-label="Waiting for a grown-up">{asks.map(e=>{const kid=kids.find(k=>k.id===e.kidId);return <li key={e.id}><span>✋ <b>{kid?.name??'A kid'}</b> wants {e.note} <small>({-e.n}⭐)</small></span><button type="button" className="primary" onClick={()=>void decide(e.id,true)}>Yes</button><button type="button" onClick={()=>void decide(e.id,false)}>Not now</button></li>})}</ul>}
   <div className="star-chart-kids">{kids.map(kid=>{const c=chartFor(data,profileId,kid.id,weekStart)
    return <article key={kid.id} className="star-kid" style={{'--kid-color':kid.color} as CSSProperties} aria-label={kid.name+'’s stars'}>
     <header><KidAvatar kid={kid}/><div><strong>{kid.name}</strong><small>{c.week} this week</small></div><span className="star-kid-total" aria-label={c.stars+' stars'}>⭐ {c.stars}</span></header>

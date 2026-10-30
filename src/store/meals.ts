@@ -1,4 +1,4 @@
-import { uid, type AppData, type Grocery, type Meal } from './model'
+import { uid, type AppData, type Grocery, type Meal, type Recipe } from './model'
 
 /** Dinners & groceries (Home): what's for dinner each day this week, and one shared grocery list. */
 export const dinnerOn = (data: Pick<AppData, 'meals'>, profileId: string, date: string) => (data.meals ?? []).find(m => m.profileId === profileId && m.date === date && m.meal === 'dinner')
@@ -24,3 +24,13 @@ export function addGroceries(data: AppData, profileId: string, text: string): Ap
 }
 export const toggleGrocery = (data: AppData, id: string): AppData => ({ ...data, groceries: (data.groceries ?? []).map(g => g.id === id ? { ...g, done: !g.done } : g) })
 export const clearBought = (data: AppData, profileId: string): AppData => ({ ...data, groceries: (data.groceries ?? []).filter(g => g.profileId !== profileId || !g.done) })
+
+/** The recipe box: a family's dinners with their ingredients; one tap puts what's needed on the list. */
+export function addRecipe(data: AppData, profileId: string, title: string, ingredients: string, url = ''): AppData {
+  const t = title.trim().slice(0, 200), list = ingredients.split(/\r?\n|,/).map(x => x.trim().slice(0, 200)).filter(Boolean).slice(0, 80)
+  if (!t) return data
+  return { ...data, recipes: [...(data.recipes ?? []), { id: uid('recipe'), profileId, title: t, ingredients: list, ...(/^https?:\/\//.test(url.trim()) ? { url: url.trim().slice(0, 2000) } : {}) }] }
+}
+export const removeRecipe = (data: AppData, id: string): AppData => ({ ...data, recipes: (data.recipes ?? []).filter(r => r.id !== id) })
+export const recipeFor = (data: Pick<AppData, 'recipes'>, profileId: string, title: string) => (data.recipes ?? []).find(r => r.profileId === profileId && r.title.toLowerCase() === title.trim().toLowerCase())
+export const shopFor = (data: AppData, profileId: string, recipe: Recipe): AppData => addGroceries(data, profileId, recipe.ingredients.join('\n'))
