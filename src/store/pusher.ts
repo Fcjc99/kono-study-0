@@ -43,6 +43,11 @@ export type Cove = {
   wheels?: ({ seg: number; at: number } | null)[]; wheelQueue?: number[]
   /** The giant tower: medals banked by tower layers, released onto the field by the BIG BONUS. */
   bank?: number
+  /** FEVER TIME: all three pockets hit within FEVER_WINDOW frames; until `until`, pockets spin their wheel
+   * twice (and the cabinet throws a party). `hits` is when each pocket was last hit. */
+  fever?: { until: number } | null; hits?: number[]
+  /** Pockets one after another, each within COMBO_GAP frames of the last: COMBO ×n pays n medals. */
+  combo?: { n: number; at: number }
 }
 
 export const FIELD = { w: 100, h: 120, r: 3.1, ball: 4.4, back: 14, reach: 30, checkerW: 9 }
@@ -142,10 +147,20 @@ export type Pocket = 'spin' | 'lamp' | 'tower'
 export const POCKETS: Pocket[] = ['spin', 'lamp', 'tower']
 /** A medal in one of the pin board's pockets: that pocket's mini wheel spins (up to 3 spins wait their
  * turn). Every pocket also adds a medal to the jackpot. */
-export function pocket(c: Cove, kind: Pocket): Cove {
-  const i = POCKETS.indexOf(kind), q = [...(c.wheelQueue ?? [0, 0, 0])]
-  q[i] = Math.min(3, q[i] + 1)
-  return { ...c, jackpot: c.jackpot + 1, wheelQueue: q }
+export const FEVER_WINDOW = 600, FEVER_FRAMES = 1200, COMBO_GAP = 240
+export const inFever = (c: Cove) => !!c.fever && c.frame < c.fever.until
+export function pocket(c: Cove, kind: Pocket, random: () => number = Math.random): Cove {
+  const i = POCKETS.indexOf(kind), q = [...(c.wheelQueue ?? [0, 0, 0])], fever = inFever(c)
+  q[i] = Math.min(3, q[i] + (fever ? 2 : 1))
+  const hits = [...(c.hits ?? [-1e9, -1e9, -1e9])]; hits[i] = c.frame
+  let next: Cove = { ...c, jackpot: c.jackpot + 1, wheelQueue: q, hits }
+  // A combo: pockets in quick succession.
+  const n = c.combo && c.frame - c.combo.at <= COMBO_GAP ? c.combo.n + 1 : 1
+  next = { ...next, combo: { n, at: c.frame } }
+  if (n >= 2) next = say(shower(next, n, random), '🔥 COMBO ×' + n + '! +' + n)
+  // All three pockets within the window: FEVER TIME.
+  if (!fever && hits.every(h => c.frame - h <= FEVER_WINDOW)) next = say({ ...next, fever: { until: c.frame + FEVER_FRAMES }, hits: [-1e9, -1e9, -1e9] }, '🌈 FEVER TIME! Every pocket spins twice!')
+  return next
 }
 /** What a mini wheel's segment gives. */
 function wheelPrize(c: Cove, s: WheelSeg, random: () => number): Cove {
