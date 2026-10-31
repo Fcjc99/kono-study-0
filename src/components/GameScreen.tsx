@@ -11,7 +11,8 @@ import {musicOn,setMusicOn} from '../arcadeAudio'
  * - Results: the score, a new best, coins, with Play again and Done (a chime for a round won, a soft tune
  *   for one lost, then the coins coming in).
  * With Sounds on, 🎵 turns the games' music on and off (kept on this device). */
-export type GameResult={emoji:string;title:string;line:string;score?:string;best?:boolean;coins?:string|null;won?:boolean}
+/** `behind`: keep the finished game in view behind the results (KONO Stack's tower). */
+export type GameResult={emoji:string;title:string;line:string;score?:string;best?:boolean;coins?:string|null;won?:boolean;behind?:boolean}
 /** `extra`: more for the start card, under the how-to (Sweet swap's level map). */
 export type GameIntro={emoji:string;name:string;how:string;best?:string|null;start?:string;alt?:{label:string;onClick:()=>void};extra?:React.ReactNode}
 /** What a game lets its screen do: End finishes the round now with the score so far. */
@@ -36,6 +37,16 @@ export default function GameScreen({title,tone,sound=false,intro,started=true,on
  const leave=()=>{if(closing)return;setClosing(true);window.setTimeout(onLeave,matchMedia('(prefers-reduced-motion: reduce)').matches?0:240)}
  const start=()=>{gameSound('start',sound);onStart?.()}
  const phase=!started&&intro?'start':result?'results':'play'
+ // A game that keeps itself in view behind its results (`behind`) stays mounted under them.
+ const results=result?<section className={'game-result'+(result.behind?' is-over-game':'')} aria-live="polite" aria-label="Results">
+   <span className="game-result-emoji" aria-hidden="true">{result.emoji}</span>
+   <h2>{result.title}</h2>
+   {result.score&&<p className="game-result-score">{result.score}</p>}
+   {result.best&&<p className="game-result-best">👑 New best!</p>}
+   <p className="game-result-line">{result.line}</p>
+   {result.coins&&<p className="game-result-coins">{result.coins}</p>}
+   <div className="game-result-actions">{onAgain&&<button type="button" className="primary" onClick={()=>{gameSound('start',sound);onAgain()}}>Play again</button>}<button type="button" onClick={leave}>Done</button></div>
+  </section>:null
  return <dialog ref={ref} className={'game-screen'+(tone?' is-'+tone:'')+(closing?' is-closing':'')+' is-'+phase} aria-label={title} onCancel={e=>{e.preventDefault();leave()}}>
   <header><strong>{title}</strong><span className="game-screen-tools">
    {phase==='play'&&onRestart&&<button type="button" className="game-screen-tool" onClick={()=>{gameSound('start',sound);onRestart()}}>↻ Restart</button>}
@@ -50,14 +61,6 @@ export default function GameScreen({title,tone,sound=false,intro,started=true,on
    {intro.best&&<p className="game-result-best">👑 {intro.best}</p>}
    {intro.extra}
    <div className="game-result-actions"><button type="button" className="primary" onClick={start}>{intro.start??'Start'}</button>{intro.alt&&<button type="button" onClick={()=>{gameSound('start',sound);intro.alt!.onClick()}}>{intro.alt.label}</button>}</div>
-  </section>:phase==='results'&&result?<section className="game-result" aria-live="polite" aria-label="Results">
-   <span className="game-result-emoji" aria-hidden="true">{result.emoji}</span>
-   <h2>{result.title}</h2>
-   {result.score&&<p className="game-result-score">{result.score}</p>}
-   {result.best&&<p className="game-result-best">👑 New best!</p>}
-   <p className="game-result-line">{result.line}</p>
-   {result.coins&&<p className="game-result-coins">{result.coins}</p>}
-   <div className="game-result-actions">{onAgain&&<button type="button" className="primary" onClick={()=>{gameSound('start',sound);onAgain()}}>Play again</button>}<button type="button" onClick={leave}>Done</button></div>
-  </section>:children}</div>
+  </section>:phase==='results'&&result&&!result.behind?results:<>{children}{phase==='results'&&result&&<div className="game-result-over">{results}</div>}</>}</div>
  </dialog>
 }
