@@ -774,8 +774,6 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 .bloom-frame canvas{display:block;width:100%;height:100%;cursor:pointer}
 .bloom-score{position:absolute;top:10px;right:14px;font-size:1.6rem;font-weight:900;color:#3b5a3a;text-shadow:0 2px 0 #fff;pointer-events:none}
 .bloom-ladder{list-style:none;margin:0;padding:6px 10px;display:flex;gap:4px;flex-wrap:wrap;justify-content:center;border-radius:999px;background:rgb(255 255 255/.85)}
-.bloom-ladder li{font-size:1.25rem;filter:grayscale(1);opacity:.35}
-.bloom-ladder li.is-seen{filter:none;opacity:1}
 .game-screen:has(.kono-bloom){background:radial-gradient(ellipse at 50% 0,#c9f2c0,#7cc48a 55%,#3f7a5a)}
 .game-cover.is-bloom{background:linear-gradient(180deg,#eaf7ff,#cdeccf)}
 .gc-bloom{position:absolute;inset:0}
@@ -869,3 +867,83 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 @keyframes cove-big{0%{transform:scale(.2) rotate(-12deg);opacity:0}15%{transform:scale(1.35) rotate(4deg);opacity:1}28%{transform:scale(1) rotate(0)}80%{opacity:1}100%{opacity:0;transform:scale(1.15)}}
 .cove-fever{position:absolute;z-index:3;left:50%;top:64px;translate:-50% 0;padding:4px 14px;border-radius:999px;font-weight:900;color:#fff;background:linear-gradient(90deg,#ff6b8b,#ffb347,#ffe14d,#6fd38a,#5ab8ff,#b48cff) 0 0/200% 100%;box-shadow:0 0 0 2px #fff,0 4px 14px rgb(0 0 0/.2);animation:cove-shine 1.2s linear infinite}
 @media(prefers-reduced-motion:reduce){.cove-pop,.cove-pop.is-big{animation:none;opacity:1}.cove-fever{animation:none}}
+/* When the 3D machine can't start: why, Try again and Leave (both medal pushers). */
+.cove-fail{position:absolute;inset:0;z-index:5;display:grid;place-content:center;gap:10px;padding:24px;text-align:center;background:rgb(240 244 248/.96);color:#1f2a37}
+.cove-fail strong{font-size:1.15rem}
+.cove-fail p{margin:0;max-width:34ch;line-height:1.4}
+.cove-fail span{display:flex;gap:10px;justify-content:center}
+.game-screen .cove-fail button:not(#x):not(#y){min-height:44px;padding:0 18px;border-radius:999px;font-weight:800}
+/* Medal Cove's machine (prototype): the machine fills the view; every control sits under it. */
+.break-game.cove-machine{display:grid;gap:8px;width:min(760px,100%);max-width:none;margin:0 auto}
+.game-screen:has(.cove-machine){background:#cfd6de}
+.cove-stage.is-plain{height:min(calc(100dvh - 300px),620px,110vw);min-height:280px;border-radius:14px;box-shadow:0 8px 22px rgb(20 30 45/.28);cursor:default;background:#e4e9ef}
+.cove-gain{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);padding:4px 14px;border-radius:999px;background:rgb(31 42 55/.82);color:#ffe08a;font-weight:900;font-size:1.05rem;pointer-events:none;animation:cove-gain 1.4s ease-out forwards}
+.cove-gain.is-big{font-size:1.35rem}
+@keyframes cove-gain{0%{opacity:0;translate:0 8px}15%{opacity:1;translate:0 0}75%{opacity:1}100%{opacity:0;translate:0 -10px}}
+@media(prefers-reduced-motion:reduce){.cove-gain{animation:none}}
+.cove-controls{display:grid;gap:8px;padding:10px 12px;border-radius:14px;background:#f4f6f9;color:#1f2a37;box-shadow:0 2px 8px rgb(20 30 45/.12)}
+.cove-status{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:space-between;margin:0;font-size:.95rem}
+.cove-status b{font-variant-numeric:tabular-nums}
+.cove-aim{display:block}
+.cove-aim input{width:100%;height:44px;margin:0;accent-color:#d9a441;cursor:grab}
+.cove-buttons{display:grid;grid-template-columns:auto 1fr;gap:10px}
+.game-screen .cove-buttons button:not(#x):not(#y){min-height:52px;border-radius:14px;font-weight:900}
+.game-screen .cove-buttons .cove-drop:not(#x):not(#y){font-size:1.2rem;background:#f2c230!important;color:#3a2a00!important;border:0!important;box-shadow:0 3px 0 #b8860b!important;touch-action:none;user-select:none;-webkit-user-select:none}
+.game-screen .cove-buttons .cove-drop:not(#x):not(#y):active{transform:translateY(1px);filter:brightness(.95)}
+.cove-drop:disabled{opacity:.5}
+.game-screen .cove-buttons .cove-view-button:not(#x):not(#y){padding:0 14px;background:#fff!important;border:1px solid #c5ccd5!important;color:#1f2a37!important;box-shadow:none!important}
+.cove-device-note{color:#5b6673;font-size:.78rem;line-height:1.35}
+@media(max-width:600px){.cove-stage.is-plain{height:min(calc(100dvh - 330px),118vw)}.cove-device-note{font-size:.72rem}}
+.game-cover.is-machine{background:linear-gradient(180deg,#5c636d 0 28%,#b9c0c8 28%)}
+/* Results over the game (KONO Stack keeps its tower in view): the card sits at the bottom of the screen. */
+.game-screen-body{position:relative}
+.game-result-over{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 12px);display:grid;justify-items:center;padding:0 12px;pointer-events:none}
+.game-result.is-over-game{pointer-events:auto;margin:0;padding:16px 18px 14px;gap:4px;background:rgb(40 24 60/.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 10px 30px rgb(20 10 40/.4)}
+.game-result.is-over-game .game-result-emoji{font-size:2.2rem}
+.game-result.is-over-game h2{font-size:1.35rem}
+.is-results .kono-stack .blast-help,.is-results .kono-stack .stack-score{visibility:hidden}
+/* KONO Stack: three Perfects in a row make the floors wider; the pips beside the tower count toward it. */
+.stack-pips{position:absolute;z-index:3;right:12px;top:50%;translate:0 -50%;display:grid;justify-items:center;gap:6px;padding:8px 6px;border-radius:999px;background:rgb(255 255 255/.55);pointer-events:none}
+.stack-pips i{width:14px;height:14px;border-radius:50%;border:2px solid rgb(90 50 110/.55);background:transparent;transition:background .2s,transform .2s}
+.stack-pips i.is-on{background:#ffd34d;border-color:#c98a00;transform:scale(1.15)}
+.stack-pips small{font-size:.62rem;font-weight:900;color:#5a3270;writing-mode:vertical-rl;rotate:180deg}
+.stack-pips.is-growing{background:rgb(255 236 160/.85)}
+.stack-pips.is-growing i{animation:stack-pip .6s ease-in-out infinite alternate}
+@keyframes stack-pip{to{transform:scale(1.3)}}
+@media(prefers-reduced-motion:reduce){.stack-pips.is-growing i{animation:none}}
+.game-result.is-over-game .game-result-emoji{display:none}
+.game-result.is-over-game .game-result-score{font-size:2rem;margin:0}
+/* KONO Bloom: the jar big, with Next and the garden ladder readable beside it (under it on a phone). */
+.kono-bloom{grid-template-columns:auto}
+.bloom-side{display:grid;gap:8px;justify-items:center}
+.bloom-next{display:flex;align-items:center;gap:10px;margin:0;padding:6px 14px 6px 10px;border-radius:999px;background:#fff;color:#2f4a2e;box-shadow:0 3px 10px rgb(20 40 20/.2)}
+.bloom-next small{font-weight:900;text-transform:uppercase;letter-spacing:.06em;font-size:.72rem;color:#5a7a58}
+.bloom-next b{font-size:1rem}
+.bloom-next-ball{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;font-size:1.6rem;background:radial-gradient(circle at 35% 30%,#fff,var(--c) 45%,color-mix(in srgb,var(--c),#000 25%));box-shadow:inset 0 0 0 2px rgb(60 40 70/.2)}
+.bloom-ladder li{display:grid;justify-items:center;gap:1px;min-width:34px;padding:2px 3px;border-radius:12px;font-size:1.3rem;line-height:1.1;background:rgb(255 255 255/.5)}
+.bloom-ladder li small{font-size:.58rem;font-weight:800;color:#3b5a3a;line-height:1}
+.bloom-ladder li:not(.is-grown){opacity:.78}
+.bloom-ladder li.is-grown{background:color-mix(in srgb,var(--c),#fff 55%)}
+.bloom-ladder li.is-best{outline:3px solid #2f7a4a;outline-offset:-1px}
+.bloom-warn{position:absolute;z-index:2;left:50%;top:22%;translate:-50% 0;padding:4px 12px;border-radius:999px;background:#d63044;color:#fff;font-weight:900;font-size:.85rem;white-space:nowrap;pointer-events:none;animation:bloom-warn .5s ease-in-out infinite alternate}
+@keyframes bloom-warn{to{scale:1.06}}
+@media(prefers-reduced-motion:reduce){.bloom-warn{animation:none}}
+@media(min-width:900px){
+ .kono-bloom{width:auto;grid-template-columns:auto 220px;grid-template-areas:'top top' 'jar side' 'help help';align-items:start;column-gap:22px}
+ .kono-bloom>.blast-top{grid-area:top}
+ .kono-bloom>.bloom-frame{grid-area:jar;width:min(580px,calc((100dvh - 200px) * 100 / 140))}
+ .kono-bloom>.bloom-side{grid-area:side;align-self:center;justify-items:stretch}
+ .kono-bloom>.blast-help{grid-area:help}
+ .bloom-next{flex-direction:column;border-radius:22px;padding:12px}
+ .bloom-next-ball{width:72px;height:72px;font-size:2.6rem}
+ .bloom-ladder{flex-direction:column;flex-wrap:nowrap;border-radius:18px;padding:8px}
+ .bloom-ladder li{grid-template-columns:32px 1fr;justify-items:start;align-items:center;gap:8px;padding:3px 8px}
+ .bloom-ladder li small{font-size:.8rem}
+}
+@media(max-width:600px){
+ .bloom-side{grid-template-columns:auto 1fr;align-items:center;width:100%;gap:6px}
+ .bloom-next{padding:4px 10px 4px 6px;gap:6px}.bloom-next b{display:none}.bloom-next-ball{width:36px;height:36px;font-size:1.3rem}
+ .bloom-ladder{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding:4px 6px;min-width:0;max-width:100%}
+ .bloom-ladder li{min-width:28px;font-size:1.1rem}.bloom-ladder li small{display:none}
+ .kono-bloom>.blast-help{display:none}
+}

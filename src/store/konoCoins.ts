@@ -58,11 +58,11 @@ export const spinEvent=(today:string,slice:number,now:Date):CareEvent=>({id:spin
  * for fun. */
 export const COIN_ROUNDS=3
 /** The arcade's games, and each land's own game on the world map (components/LandGames). */
-export type GameId='catch'|'memory'|'peekaboo'|'bubbles'|'blast'|'meow'|'gems'|'candy'|'chase'|'tumble'|'sled'|'flap'|'paper'|'flow'|'beat'|'stack'|'bloom'|'cove'
+export type GameId='catch'|'memory'|'peekaboo'|'bubbles'|'blast'|'meow'|'gems'|'candy'|'chase'|'tumble'|'sled'|'flap'|'paper'|'flow'|'beat'|'stack'|'bloom'|'cove'|'machine'
 const gamePrefix=(today:string)=>'game-'+today+'-'
 export const roundsLeft=(log:CareEvent[],today:string)=>Math.max(0,COIN_ROUNDS-log.filter(e=>e.kind==='coin'&&e.id.startsWith(gamePrefix(today))).length)
 export function gameCoins(game:GameId,score:number):number{
- const n=game==='memory'?60-score*2:game==='peekaboo'||game==='chase'?score*3:game==='tumble'?score/8:game==='blast'?score/12:game==='meow'?score*5:game==='gems'?score/1200:game==='candy'?score/60:game==='flap'?score*3:game==='paper'?score:game==='flow'?score/400:game==='beat'?score:game==='stack'?score:game==='bloom'?score/30:game==='cove'?score/8:score*2
+ const n=game==='memory'?60-score*2:game==='peekaboo'||game==='chase'?score*3:game==='tumble'?score/8:game==='blast'?score/12:game==='meow'?score*5:game==='gems'?score/1200:game==='candy'?score/60:game==='flap'?score*3:game==='paper'?score:game==='flow'?score/400:game==='beat'?score:game==='stack'?score:game==='bloom'?score/30:game==='cove'?score/8:game==='machine'?score/4:score*2
  return Math.max(score>0?5:0,Math.min(50,Math.round(n)))
 }
 /** The next coin round's entry, or null when today's coin rounds are used up. */

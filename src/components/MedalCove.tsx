@@ -7,6 +7,8 @@ import {BANK_START,CHANCE_POCKETS,DISH,FIELD,LAMPS,POCKETS,inFever,WHEELS,WHEEL_
 import {gameSound} from '../konoSounds'
 import {fx} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
+import CoveFail,{type CoveFailure} from './CoveFail'
+import {webglWorks} from './webgl'
 
 /** KONO Medal Cove (rules in store/pusher), in 3D with real physics: a medal pusher cabinet on KONO's dock.
  * Every medal is a coin in a physics world (Rapier): they drop from the chute, land on each other, pile up
@@ -33,7 +35,8 @@ const VIEWS=[{yaw:0,pitch:0.5,dist:15},{yaw:0,pitch:0.95,dist:14},{yaw:0.55,pitc
 
 type Piece={body:RAPIER.RigidBody;ball:boolean;counted:number;board:boolean}
 
-export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;best:number|null;sound:boolean;onEnd:(medals:number,jackpots:number)=>void}){
+export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHandle>;best:number|null;sound:boolean;onEnd:(medals:number,jackpots:number)=>void;onFail?:()=>void}){
+ const [fail,setFail]=useState<CoveFailure|null>(null),[tries,setTries]=useState(0)
  const [start]=useState<Cove>(()=>newCove(Math.random,100,true))
  const cove=useRef<Cove>(start),host=useRef<HTMLDivElement>(null),aim=useRef(50),holding=useRef(false),lastDrop=useRef(0)
  const [hud,setHud]=useState({hand:start.hand,jp:start.jackpot,steps:0,pockets:1,queue:0,event:'',big:false,bank:BANK_START,reels:['🌺','🌺','🌺'] as string[],spinning:false,ready:false})
@@ -370,10 +373,17 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
  }
  useEffect(()=>{
   const el=host.current;if(!el)return
-  let disposed=false,cleanup=()=>{}
-  void RAPIER.init().then(()=>{if(!disposed)cleanup=build(el)})
-  return ()=>{disposed=true;cleanup()}
- },[])
+  // If the 3D machine can't start (no WebGL, the physics didn't load, or it's taking far too long), say why
+  // and offer Try again or Leave, instead of "Filling the machine…" forever.
+  let disposed=false,gaveUp=false,cleanup=()=>{}
+  const timer=window.setTimeout(()=>{if(!ready.current&&!disposed){gaveUp=true;setFail('slow')}},15000)
+  RAPIER.init().then(()=>{
+   if(disposed||gaveUp)return
+   if(!webglWorks()){setFail('webgl');return}
+   try{cleanup=build(el)}catch{ready.current=false;el.querySelectorAll('canvas').forEach(c=>c.remove());setFail('webgl')}
+  },()=>{if(!disposed&&!gaveUp)setFail('physics')})
+  return ()=>{disposed=true;window.clearTimeout(timer);cleanup()}
+ },[tries])
 
  useEffect(()=>{if(!hud.event)return;const t=window.setTimeout(()=>setHud(h=>({...h,event:''})),2200);return()=>window.clearTimeout(t)},[hud.event])
  return <div className="break-game medal-cove">
@@ -385,7 +395,8 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
    <div className={'cove-reels'+(hud.spinning?' is-spinning':'')} aria-label={'Lottery: '+hud.reels.join(' ')}>{hud.reels.map((r,i)=><span key={i}>{r}</span>)}</div>
    <div className="cove-queue" aria-label={hud.queue+' spins waiting'}>{Array.from({length:4},(_,i)=><i key={i} className={i<hud.queue?'is-on':undefined}/>)}</div>
   </div>
-   {!hud.ready&&<p className="cove-loading" role="status">Filling the machine with medals…</p>}
+   {!hud.ready&&!fail&&<p className="cove-loading" role="status">Filling the machine with medals…</p>}
+   {fail&&<CoveFail kind={fail} onRetry={()=>{setFail(null);setTries(n=>n+1)}} onLeave={onFail}/>}
    {hud.event&&<p key={hud.event} className={'cove-event'+(hud.big?' is-big':'')} role="status">{hud.event}</p>}
    {hud.event&&hud.big&&<span key={'f'+hud.event} className="cove-flash" aria-hidden="true"/>}
    {fever>0&&<span className="cove-fever" role="status" aria-label={'Fever time: '+fever+' seconds'}>🌈 FEVER {fever}s</span>}
