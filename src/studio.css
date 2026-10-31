@@ -127,3 +127,47 @@
 /* The island and KONO's bar read as one card: no gap, square inner corners, a dashed line between. */
 #workspace-main .sanctuary-stage>.wb-island:not(.is-expanded):has(+.kono-bar){border-bottom-left-radius:0!important;border-bottom-right-radius:0!important;border-bottom:0!important}
 #workspace-main .sanctuary-stage>.wb-island:not(.is-expanded)+.kono-bar{margin-top:0!important;border-top:1px dashed var(--wb-line)!important;border-top-left-radius:0!important;border-top-right-radius:0!important}
+
+/* ── The sidebar (default Coral and Sakura palettes; the other palettes and team themes keep their own
+ * colors): light paper with one quiet line, the current page marked in coral, no wood panel or glows. */
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y){
+ background:var(--wb-surface)!important;background-image:none!important;color:var(--wb-ink)!important;border-right:1px solid var(--wb-line)!important;box-shadow:none!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y)::after{display:none!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) :is(.brand,.brand *,.sidebar-section-label){color:var(--wb-ink)!important;text-shadow:none!important;border-color:var(--wb-line)!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) .sidebar-section-label{color:var(--wb-muted)!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) .nav-button{
+ min-height:42px!important;padding:8px 10px!important;border-radius:10px!important;background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;color:var(--wb-ink)!important;font-size:.95rem!important;font-weight:700!important;transform:none!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) .nav-button:hover{background:color-mix(in srgb,var(--wb-ink) 6%,transparent)!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) .nav-button.active{background:color-mix(in srgb,var(--wb-accent) 12%,var(--wb-surface))!important;color:var(--wb-accent)!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) .nav-button :is(.nav-petal,.nav-indicator){display:none!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) .nav-icon{width:30px!important;height:30px!important;border-radius:8px!important;background:color-mix(in srgb,var(--wb-ink) 5%,transparent)!important;box-shadow:none!important;border:0!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) :is(.profile-dock,.sidebar-music-slot>*){background:var(--wb-surface)!important;background-image:none!important;border:1px solid var(--wb-line)!important;box-shadow:none!important;color:var(--wb-ink)!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) .profile-dock *{color:inherit}
+
+/* ── Planner: the calendar leads; Plan my week and Add sit together in its header. */
+#workspace-main .planner-settings-link{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+#workspace-main .planner-settings-hint{color:var(--wb-muted);font-size:.9rem}
+#workspace-main .planner-plan-week:not(#x){min-height:40px;padding:0 14px!important;font-weight:750;color:var(--wb-ink)!important;background:var(--wb-surface)!important;border:1px solid var(--wb-line)!important;border-radius:10px!important;box-shadow:none!important}
+/* Plan my week as a drawer down the right on a wide screen (a sheet from the bottom on a phone, as before). */
+@media (min-width:761px){
+ dialog.wb-dialog.is-drawer:not(#x){position:fixed;inset:0 0 0 auto;margin:0;width:min(480px,100vw);max-width:none;height:100dvh;max-height:none;border-radius:0!important;border:0;border-left:1px solid var(--wb-line,#eadfd5);padding:0;overflow:auto}
+}
+/* Assignment cards: Focus on this, beside Edit. */
+#workspace-main .start-focus-button:not(#x){font-weight:750;color:var(--wb-accent)!important;background:color-mix(in srgb,var(--wb-accent) 10%,var(--wb-surface))!important;border:1px solid color-mix(in srgb,var(--wb-accent) 30%,var(--wb-line))!important;box-shadow:none!important}
+/* The editor: Focus on this, above the fields (studying is not editing). */
+.wb-dialog .editor-focus-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--wb-accent) 7%,var(--wb-surface))}
+.wb-dialog .editor-focus-row span{flex:1 1 200px;font-size:.82rem;color:var(--wb-muted)}
+.wb-dialog .editor-focus-row .start-focus-button{font-weight:750;color:var(--wb-accent);background:var(--wb-surface);border:1px solid color-mix(in srgb,var(--wb-accent) 30%,var(--wb-line));border-radius:99px;min-height:38px;padding:0 14px}
+/* The drawer's content gets room to breathe. */
+dialog.wb-dialog.is-drawer>:not(header){padding-left:20px;padding-right:20px}
+dialog.wb-dialog.is-drawer>header{padding:16px 20px}
+/* The reminders offer on the Planner: one quiet line, not a banner above the calendar. */
+#workspace-main .reminder-nudge:not(#x){display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px!important;margin:0 0 12px!important;border:1px solid var(--wb-line)!important;background:var(--wb-surface)!important;background-image:none!important;border-radius:12px!important;box-shadow:none!important;font-size:.88rem}
+#workspace-main .reminder-nudge:not(#x) button{min-height:34px!important;padding:0 12px!important;font-size:.85rem!important}
+/* The calendar's own header: the date, the views and Wall mode on one tidy row, so the grid starts higher. */
+#workspace-main .calendar-hero:not(#x){display:flex!important;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:0 0 10px!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important}
+#workspace-main .calendar-hero-date:not(#x) :is(h2,h3,strong,b){font:650 1.35rem/1.2 Newsreader,Georgia,serif!important;margin:0!important}
+#workspace-main .calendar-hero-date:not(#x) small{font-size:.75rem!important;letter-spacing:.08em}
+#workspace-main .calendar-hero-tools:not(#x){display:flex!important;flex-wrap:wrap;align-items:center;gap:8px!important}
+#workspace-main .calendar-wall:not(#x){min-height:36px!important;padding:0 12px!important;font-size:.85rem!important;font-weight:700!important;box-shadow:none!important}
+#workspace-main .calendar-views:not(#x) button{min-height:34px!important;padding:0 12px!important;font-size:.88rem!important}
