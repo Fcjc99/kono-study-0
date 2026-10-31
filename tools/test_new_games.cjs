@@ -14,19 +14,19 @@ let passed=0
 const test=async(name,fn)=>{await fn();passed++;console.log('PASS '+name)}
 const st=load('src/store/stack.ts'),bl=load('src/store/bloom.ts'),coins=load('src/store/konoCoins.ts')
 ;(async()=>{
-await test('KONO Stack: an exact drop is Perfect and keeps the width, an off one is trimmed, three Perfects grow it back, a miss ends it',()=>{
- let t=st.newTower();const base=t.layers[0]
- assert.equal(t.moving.x,100-t.moving.w,'the first comes in from the right')
- t={...t,moving:{...t.moving,x:base.x}}
- let r=st.drop(t);assert.equal(r.result,'perfect');assert.equal(r.tower.layers[1].w,base.w);t=r.tower
- t={...t,moving:{...t.moving,x:t.layers[1].x+10}};r=st.drop(t);assert.equal(r.result,'trim');assert.equal(Math.round(r.tower.layers[2].w),base.w-10,'the overhang falls off');assert.equal(r.tower.cuts.at(-1).side,'right');t=r.tower
- const w=t.layers[2].w
- for(let i=0;i<3;i++){t={...t,moving:{...t.moving,x:t.layers.at(-1).x}};t=st.drop(t).tower}
- assert.equal(t.streak,3);assert.equal(t.layers.at(-1).w,w+st.STACK.grow,'three Perfects in a row make it bigger');assert.equal(st.score(t),5)
+await test('KONO Stack: floors slide along x then z; an exact drop is Perfect and keeps the size, an off one is trimmed (the overhang breaks off), three Perfects grow it back, a miss ends it',()=>{
+ let t=st.newTower();const base=t.floors[0]
+ assert.equal(t.moving.axis,'x');assert.equal(Math.abs(t.moving.x),st.STACK.reach,'it comes in from the side')
+ t={...t,moving:{...t.moving,x:0.5}};let r=st.drop(t);assert.equal(r.result,'perfect');assert.equal(r.tower.floors[1].x,0);assert.equal(r.tower.floors[1].w,base.w);t=r.tower
+ assert.equal(t.moving.axis,'z','the next one slides the other way')
+ t={...t,moving:{...t.moving,z:6}};r=st.drop(t);assert.equal(r.result,'trim');assert.equal(r.tower.floors[2].d,base.d-6,'the overhang breaks off');assert.equal(r.tower.floors[2].z,3);assert.equal(r.tower.floors[2].w,base.w,'the other side is untouched')
+ const chip=r.tower.chips.at(-1);assert.equal(chip.d,6);assert.equal(chip.side,1);assert.equal(chip.z,23);t=r.tower
+ const d=t.floors[2].d
+ for(let i=0;i<3;i++){const top=t.floors.at(-1);t={...t,moving:{...t.moving,[t.moving.axis]:top[t.moving.axis]}};t=st.drop(t).tower}
+ assert.equal(t.streak,3);assert.equal(t.floors.at(-1).d,d+st.STACK.grow,'three Perfects in a row make it bigger');assert.equal(st.score(t),5)
  assert.ok(t.speed>st.STACK.speed,'it gets faster')
- t={...t,moving:{...t.moving,x:t.layers.at(-1).x+t.layers.at(-1).w+1}};r=st.drop(t);assert.equal(r.result,'miss');assert.equal(r.tower.over,true);assert.equal(st.score(r.tower),5)
- let s=st.newTower();for(let i=0;i<500;i++)s=st.slide(s,3);assert.ok(s.moving.x>=0&&s.moving.x<=100-s.moving.w,'sliding stays on the plate')
- assert.equal(st.toppingAt(10),'🍓');assert.equal(st.toppingAt(9),'')
+ const top=t.floors.at(-1),a=t.moving.axis;t={...t,moving:{...t.moving,[a]:top[a]+(a==='x'?top.w:top.d)+1}};r=st.drop(t);assert.equal(r.result,'miss');assert.equal(r.tower.over,true);assert.equal(st.score(r.tower),5)
+ let s=st.newTower();for(let i=0;i<800;i++){s=st.slide(s,3);assert.ok(Math.abs(s.moving.x)<=st.STACK.reach+1e-9,'it turns back at the far side')}
 })
 await test('KONO Bloom: a drop falls and settles on the soil, two the same grow into the next one (and score), two Great Trees make a rainbow, a jar filled past the line ends it',()=>{
  let seed=3;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647}

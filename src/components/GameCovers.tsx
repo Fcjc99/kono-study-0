@@ -1,7 +1,7 @@
 /** The arcade's game covers (BreakGames' game list): a small moving scene for each game, drawn in CSS
  * (break-games.css › .game-cover), so the list looks like a shelf of games, not a list of emoji.
  * KONO blast's piece drops into place; Meowdoku's cats sit in their colors; the gems twinkle; a striped
- * candy wobbles; KONO Flow's shape falls through neon; KONO Beat's notes fall down four lanes; KONO flaps between pipes; pancakes stack up with one sliding in; garden things pile up in a jar with a bean dropping in; KONO.io's trail loops
+ * candy wobbles; KONO Flow's shape falls through neon; KONO Beat's notes fall down four lanes; KONO flaps between pipes; KONO's tower climbs with a floor sliding in; garden things pile up in a jar with a bean dropping in; KONO.io's trail loops
  * home. Pictures only (the card's name and words say what each is). */
 const BLAST=['','c0','c0','','c3','','c5','c1','c1','c2','c3','c3','c5','c5','c1','c2','c2','c4','c4','c6','c6','','c2','c4','c4','','c6','']
 const MEOW=['a','a','b','b','a','c','c','b','d','c','e','e','d','d','e','e']

@@ -744,43 +744,27 @@ dialog.game-screen.game-screen.game-screen:has(.meow)>header button:is(.game-scr
 dialog.game-screen:has(.meow)>header strong{color:#5a2350}
 dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.game-screen:has(.meow)>header strong{text-shadow:none}
 
-/* ---- KONO Stack: pancakes on a plate, the sky climbing from morning to a starry night ---- */
+/* ---- KONO Stack: KONO's tower, built floor by floor, seen at an angle ---- */
 .kono-stack{display:grid;gap:10px;justify-items:center;width:min(440px,100%);margin:0 auto}
-.stack-frame{position:relative;width:100%;height:min(62vh,560px);border-radius:24px;overflow:hidden;cursor:pointer;touch-action:manipulation;user-select:none;
- background:linear-gradient(180deg,#8fd3ff,#cdeeff 60%,#fff4dc);box-shadow:inset 0 0 0 2px rgb(255 255 255/.5),0 12px 30px rgb(10 20 60/.35)}
-.stack-frame::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#ff8a6b,#ffc28a 55%,#ffe2b0);opacity:calc(min(1,var(--sky,0)*2));transition:opacity 1s}
-.stack-frame::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#120a3a,#3a2370 60%,#7a4a8a);opacity:calc(max(0,var(--sky,0)*2 - 1));transition:opacity 1s}
-.stack-stars{position:absolute;inset:0;z-index:1;opacity:calc(max(0,var(--sky,0)*2 - 1));background-image:radial-gradient(1.5px 1.5px at 20% 15%,#fff 50%,transparent),radial-gradient(1px 1px at 70% 25%,#fff 50%,transparent),radial-gradient(1.5px 1.5px at 40% 40%,#fff 50%,transparent),radial-gradient(1px 1px at 85% 55%,#fff 50%,transparent),radial-gradient(1.5px 1.5px at 10% 60%,#fff 50%,transparent),radial-gradient(1px 1px at 55% 8%,#fff 50%,transparent)}
-.stack-world{position:absolute;inset:0;z-index:2;transition:transform .35s cubic-bezier(.3,.8,.4,1)}
-.stack-plate{position:absolute;left:12%;right:12%;bottom:12px;height:18px;border-radius:50%;background:radial-gradient(ellipse at 50% 30%,#fff,#dfe6f0 60%,#b8c3d4);box-shadow:0 4px 10px rgb(0 0 0/.25)}
-.stack-cake{position:absolute;height:22px;border-radius:11px;box-shadow:inset 0 -2px 0 rgb(120 60 10/.25),0 2px 3px rgb(80 40 10/.25)}
-.stack-cake i{position:absolute;left:50%;top:-14px;translate:-50% 0;font-style:normal;font-size:18px;filter:drop-shadow(0 1px 1px rgb(0 0 0/.3))}
-.stack-cake.is-base{box-shadow:inset 0 -2px 0 rgb(120 60 10/.25),0 2px 3px rgb(80 40 10/.25),0 -1px 0 #fff8 inset}
-.stack-cake.is-moving{box-shadow:0 10px 14px rgb(40 20 0/.2)}
-.stack-cake.is-cut{animation:stack-fall .9s cubic-bezier(.4,0,.9,.6) forwards;pointer-events:none}
-.stack-cake.is-cut.is-left{--spin:-35deg;--dx:-30px}.stack-cake.is-cut.is-right{--spin:35deg;--dx:30px}
-@keyframes stack-fall{to{translate:var(--dx) 420px;rotate:var(--spin);opacity:0}}
-.stack-kono{position:absolute;width:44px;height:44px;object-fit:contain;transition:left .25s,bottom .25s;filter:drop-shadow(0 2px 2px rgb(0 0 0/.25));pointer-events:none}
-.stack-kono.is-hop{animation:stack-hop .45s cubic-bezier(.3,1.6,.5,1)}
-.stack-kono.is-oops{transform:rotate(-18deg)}
-@keyframes stack-hop{40%{translate:0 -22px}}
-.stack-score{position:absolute;z-index:3;top:14px;left:0;right:0;text-align:center;font-size:3rem;font-weight:900;color:#fff;-webkit-text-stroke:2px rgb(60 30 80/.55);text-shadow:0 3px 0 rgb(60 30 80/.35);animation:kids-pop .3s}
-.stack-call{position:absolute;z-index:3;top:84px;left:0;right:0;text-align:center;font-weight:900;font-size:1.3rem;color:#fff6b0;text-shadow:0 2px 0 #b5531f,0 0 12px #ff9d3d;animation:stack-call .9s ease-out forwards}
+.stack-frame{position:relative;width:min(100%,calc((100dvh - 250px) * 440 / 640));aspect-ratio:440/640;border-radius:24px;overflow:hidden;cursor:pointer;touch-action:manipulation;user-select:none;box-shadow:inset 0 0 0 2px rgb(255 255 255/.5),0 12px 30px rgb(10 20 60/.35)}
+.stack-frame canvas{display:block;width:100%;height:100%}
+.stack-score{position:absolute;z-index:3;top:14px;left:0;right:0;text-align:center;font-size:3rem;font-weight:900;color:#fff;-webkit-text-stroke:2px rgb(60 30 80/.55);text-shadow:0 3px 0 rgb(60 30 80/.35);animation:kids-pop .3s;pointer-events:none}
+.stack-call{position:absolute;z-index:3;top:84px;left:0;right:0;text-align:center;font-weight:900;font-size:1.3rem;color:#fff6b0;text-shadow:0 2px 0 #b5531f,0 0 12px #ff9d3d;animation:stack-call .9s ease-out forwards;pointer-events:none}
 @keyframes stack-call{from{transform:scale(.6);opacity:0}25%{transform:scale(1.1);opacity:1}to{transform:translateY(-20px);opacity:0}}
-.stack-hint{position:absolute;z-index:3;left:0;right:0;top:42%;margin:0;display:grid;justify-items:center;gap:2px;color:#3b2a6b;pointer-events:none}
+.stack-hint{position:absolute;z-index:3;left:0;right:0;top:20%;margin:0;display:grid;justify-items:center;gap:2px;color:#2f3a6b;pointer-events:none}
 .stack-hint b{font-size:1.5rem;font-weight:900;animation:stack-pulse 1.2s ease-in-out infinite}
 .stack-hint span{font-weight:700;opacity:.8}
 @keyframes stack-pulse{50%{transform:scale(1.08)}}
 
 .game-screen:has(.kono-stack){background:radial-gradient(ellipse at 50% 0,#6ab8ff,#3a5bd9 60%,#2a2a7a)}
-@media(prefers-reduced-motion:reduce){.stack-world,.stack-kono{transition:none}.stack-cake.is-cut,.stack-kono.is-hop,.stack-call,.stack-hint b{animation:none}}
+@media(prefers-reduced-motion:reduce){.stack-call,.stack-hint b,.stack-score{animation:none}}
 
-/* Covers: pancakes stacking with one sliding in; three mixed-up snack jars */
+/* Covers: a tower of floors with one sliding in; a garden jar */
 .game-cover.is-stack{background:linear-gradient(180deg,#8fd3ff,#ffe2b0)}
 .gc-stack-cakes{position:absolute;inset:0}
-.gc-stack-cakes i{position:absolute;left:calc(30% + var(--i) * 1.5%);width:40%;height:11%;bottom:calc(10% + var(--i) * 11%);border-radius:8px;background:linear-gradient(180deg,#ffd38a 0 22%,#e8a24e 22% 78%,#b8742e 78%)}
-.gc-cake-drop{position:absolute;width:40%;height:11%;bottom:68%;border-radius:8px;background:linear-gradient(180deg,#ffd38a 0 22%,#e8a24e 22% 78%,#b8742e 78%);animation:gc-slide 2.4s ease-in-out infinite alternate}
-@keyframes gc-slide{from{left:0}to{left:60%}}
+.gc-stack-cakes i{position:absolute;left:38%;width:24%;height:13%;bottom:calc(8% + var(--i) * 12%);background:linear-gradient(90deg,hsl(calc(var(--i) * 23) 55% 62%) 50%,hsl(calc(var(--i) * 23) 55% 72%) 50%);border-top:4px solid hsl(calc(var(--i) * 23) 60% 86%);border-radius:2px;box-shadow:inset 0 0 0 1px rgb(40 30 50/.2)}
+.gc-cake-drop{position:absolute;width:24%;height:13%;bottom:68%;background:linear-gradient(90deg,#e78fb3 50%,#f2b0cb 50%);border-top:4px solid #fbd9e7;border-radius:2px;animation:gc-slide 2.4s ease-in-out infinite alternate}
+@keyframes gc-slide{from{left:8%}to{left:68%}}
 @media(prefers-reduced-motion:reduce){.gc-cake-drop,.gc-bloom-drop{animation:none}}
 
 /* ---- KONO Bloom: a garden jar ---- */

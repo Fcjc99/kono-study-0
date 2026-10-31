@@ -4264,7 +4264,7 @@ test('Chores on Home: today’s chores sit in the schedule as their own checklis
  await page.getByRole('region',{name:'Tomorrow’s chores'}).getByText('Water the plants').waitFor()
 })
 
-test('New arcade games: KONO Stack (pancakes drop on Space, the stack grows, End gives the results) and KONO Bloom (tap to drop seeds into the jar, End gives what you grew)',async({context,page})=>{
+test('New arcade games: KONO Stack (a floor set down as it lines up builds the tower, End gives the results) and KONO Bloom (tap to drop seeds into the jar, End gives what you grew)',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
@@ -4272,13 +4272,15 @@ test('New arcade games: KONO Stack (pancakes drop on Space, the stack grows, End
  const town=page.getByRole('dialog',{name:'KONO Town'})
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
  await town.getByRole('button',{name:/KONO Stack/}).click()
- const stack=await startGame(page,'🥞 KONO Stack')
- await stack.getByRole('img',{name:'KONO Stack, 0 pancakes'}).waitFor()
- // The first pancake starts over the plate's right side, so dropping it at once still lands.
+ const stack=await startGame(page,'🏢 KONO Stack')
+ await stack.getByRole('img',{name:'KONO Stack, 0 floors'}).waitFor()
+ await stack.getByText('Tap to build').waitFor()
+ // Set the first floor down as it lines up with the base.
+ await page.waitForFunction(()=>Math.abs(Number(document.querySelector('.stack-frame')?.dataset.off))<1.2,null,{polling:'raf',timeout:10000})
  await page.keyboard.press('Space')
- await stack.getByRole('img',{name:'KONO Stack, 1 pancake'}).waitFor()
+ await stack.getByRole('img',{name:'KONO Stack, 1 floor'}).waitFor()
  await stack.getByRole('button',{name:'■ End'}).click()
- await stack.getByText('1 pancake',{exact:true}).waitFor()
+ await stack.getByText('1 floor',{exact:true}).waitFor()
  await stack.getByRole('button',{name:'Done'}).click()
  await town.getByRole('button',{name:/KONO Bloom/}).click()
  const bloom=await startGame(page,'🌸 KONO Bloom')
