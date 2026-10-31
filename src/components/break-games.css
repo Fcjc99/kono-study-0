@@ -737,3 +737,9 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .gc-flap{inset:0}
 .break-game-list button>small:not(.break-best){display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .break-game-list button{align-content:start}
+/* The game bar reads on any game's background: a frosted dark pill with white type (a light game like
+ * the candy level map washed the white buttons out), and Meowdoku's own plum-on-white. */
+dialog.game-screen.game-screen.game-screen>header button:is(.game-screen-tool,.game-screen-leave):not(#x):not(#y){background:rgb(24 16 44/.5)!important;color:#fff!important;border:1px solid rgb(255 255 255/.4)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+dialog.game-screen.game-screen.game-screen:has(.meow)>header button:is(.game-screen-tool,.game-screen-leave):not(#x):not(#y){background:rgb(255 255 255/.72)!important;color:#5a2350!important;border-color:rgb(255 255 255/.9)!important}
+dialog.game-screen:has(.meow)>header strong{color:#5a2350}
+dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.game-screen:has(.meow)>header strong{text-shadow:none}
