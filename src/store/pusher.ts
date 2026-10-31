@@ -88,7 +88,7 @@ export function drop(c: Cove, aim: number, random: () => number = Math.random): 
   // With the pin board, a medal goes in at the top (y -1 marks it) and the board decides where it lands.
   if (c.external) return add({ ...c, hand: c.hand - 1, dropped: c.dropped + 1 }, [{ x: Math.max(4, Math.min(96, aim)), y: -1, vx: 0, vy: 0 }])
   const x = Math.max(FIELD.r + 1, Math.min(FIELD.w - FIELD.r - 1, aim))
-  let next: Cove = { ...c, hand: c.hand - 1, dropped: c.dropped + 1 }
+  const next: Cove = { ...c, hand: c.hand - 1, dropped: c.dropped + 1 }
   if (Math.abs(x - c.checker) <= FIELD.checkerW / 2) {
     // With four spins already waiting, the medal just joins the pile.
     if (c.queue + (c.spinning ? 1 : 0) >= 4) return add(next, [{ x, y: c.pusher + FIELD.r + 0.5, vx: 0, vy: 0.4 }])
