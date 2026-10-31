@@ -1,4 +1,5 @@
-import { uid, type AppData, type DaySticker, type Routine, type RoutineCheck, type StarEntry } from './model'
+import { uid, type AppData, type DaySticker, type FamilyTodo, type Routine, type RoutineCheck, type StarEntry } from './model'
+import { todoOn } from './familyTodos'
 import { upcomingSpecial } from './specialDays'
 
 /** The Planner's Kids view (components/KidsPlanner): a picture day for each person, Skylight-style, with
@@ -9,12 +10,16 @@ const PICTURES: [RegExp, string][] = [
   [/soccer|football/, '⚽'], [/basketball/, '🏀'], [/baseball|softball|t-?ball/, '⚾'], [/tennis/, '🎾'], [/swim|pool/, '🏊'],
   [/dance|ballet/, '🩰'], [/gym(nastics)?|tumbl/, '🤸'], [/karate|taekwondo|martial/, '🥋'], [/hockey|skat/, '⛸️'], [/run|track/, '🏃'],
   [/piano|keyboard/, '🎹'], [/guitar/, '🎸'], [/violin|cello|orchestra/, '🎻'], [/drum/, '🥁'], [/sing|choir/, '🎤'], [/music|band/, '🎵'],
+  // Chores, so a chore card has its own picture
+  [/trash|garbage|recycl|\bbins?\b/, '🗑️'], [/laundry|clothes|fold|hamper/, '🧺'], [/dish|set the table|clear the table|unload/, '🍽️'],
+  [/plant|water the|garden/, '🪴'], [/vacuum|sweep|mop|dust/, '🧹'], [/feed|walk the dog|litter|fish tank/, '🐾'], [/make (the |your |my )?bed/, '🛏️'],
+  [/brush|floss/, '🪥'], [/shoes|coat|backpack|pack (the |your |my )?bag/, '🎒'], [/toys|\broom\b|tidy|clean|chore/, '🧸'], [/practice|instrument/, '🎵'],
   [/art|paint|draw|craft/, '🎨'], [/read|library|book/, '📚'], [/math/, '➗'], [/science|lab/, '🔬'], [/homework|study|tutor/, '✏️'],
   [/school|class/, '🏫'], [/bus/, '🚌'], [/dentist|teeth|ortho/, '🦷'], [/doctor|check-?up|clinic|vaccin/, '🩺'], [/haircut|hair/, '💇'],
   [/birthday|party/, '🎉'], [/play ?date|friend/, '🧸'], [/park|playground/, '🛝'], [/church|temple|mosque|synagogue/, '⛪'],
   [/dinner|lunch|breakfast|eat|pizza/, '🍽️'], [/movie|film/, '🎬'], [/zoo/, '🦁'], [/beach/, '🏖️'], [/camp/, '🏕️'], [/trip|travel|flight|airport/, '✈️'],
   [/grandma|grandpa|nana|papa|family/, '👨‍👩‍👧'], [/vet|dog|cat|pet/, '🐾'], [/bath/, '🛁'], [/bed|sleep|nap/, '😴'], [/shop|store|grocer/, '🛒'],
-  [/scout/, '⚜️'], [/chess/, '♟️'], [/coding|robot/, '🤖'], [/clean|chore|tidy/, '🧹'], [/work|shift/, '💼'],
+  [/scout/, '⚜️'], [/chess/, '♟️'], [/coding|robot/, '🤖'], [/work|shift/, '💼'],
 ]
 const KIND_PICTURE: Record<string, string> = { exam: '📝', test: '📝', quiz: '📝', assignment: '✏️', sports: '⚽', appointment: '🩺', activity: '🎨', lesson: '📖', study: '✏️', work: '💼', personal: '⭐', other: '✨' }
 export function pictureFor(title: string, kind?: string): string {
@@ -79,4 +84,42 @@ export function progressToday(data: AppData, profileId: string, today: string, p
   const choresDone = personId ? (data.starLog ?? []).filter(e => e.kidId === personId && e.n > 0 && e.todoId && !e.todoId.startsWith('routine:') && new Date(e.at).toLocaleDateString('en-CA') === today).length : 0
   const done = tasks.filter(t => t.done).length + steps.filter(Boolean).length + choresDone
   return { done, total: done + tasks.filter(t => !t.done).length + steps.filter(x => !x).length + openTodos }
+}
+
+/** The part of the day a clock time is in, for routines: morning until noon, afternoon until 5, then
+ * evening. Before 4 in the morning it's still last night, so nothing of the new day has passed yet. */
+export type DayPart = Routine['when']
+export const PARTS: DayPart[] = ['morning', 'afternoon', 'evening']
+export function partOfDay(clock: string): DayPart | 'night' {
+  const h = Number(clock.slice(0, 2))
+  return h < 4 ? 'night' : h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening'
+}
+/** Has this part of the day gone by (on this date, at this clock)? */
+export function partPassed(part: DayPart, date: string, today: string, clock: string): boolean {
+  if (date !== today) return date < today
+  const now = partOfDay(clock)
+  return now !== 'night' && PARTS.indexOf(part) < PARTS.indexOf(now)
+}
+
+/** Chores a person has on a day: family to-dos for them (personId '' is the plan's own person) that fall on
+ * it; on today also a kid's undated chores and one-off chores left from earlier days. And the ones ticked
+ * on that day, so they show as done instead of vanishing (a repeat has already moved to its next turn). */
+const dayOf = (iso?: string) => iso ? new Date(iso).toLocaleDateString('en-CA') : ''
+export function choresOn(data: Pick<AppData, 'familyTodos'>, profileId: string, personId: string, date: string, today: string): { open: FamilyTodo[]; done: FamilyTodo[] } {
+  const mine = (data.familyTodos ?? []).filter(t => t.profileId === profileId && (t.forKidId ?? '') === personId)
+  const open = mine.filter(t => !t.done && (todoOn(t, date) || (date === today && (!t.due ? !!personId : !t.repeat && t.due < today))))
+  const done = mine.filter(t => !open.includes(t) && dayOf(t.doneAt) === date && (t.done || !!t.repeat))
+  return { open, done }
+}
+/** Takes back a tick made on `date`: a one-off is open again; a repeat comes back to that day's turn. */
+export function untickChore(t: FamilyTodo, date: string): FamilyTodo {
+  const rest = { ...t }
+  delete rest.doneAt
+  return t.done ? { ...rest, done: false } : { ...rest, due: date }
+}
+
+/** One-tap chores to add for the day. */
+export const CHORE_IDEAS: Record<'kid' | 'grownup', string[]> = {
+  kid: ['Tidy room', 'Set the table', 'Feed the pet', 'Put laundry away', 'Read 20 minutes'],
+  grownup: ['Laundry', 'Dishes', 'Trash night', 'Water the plants'],
 }

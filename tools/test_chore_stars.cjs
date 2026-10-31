@@ -78,6 +78,21 @@ await test('adding to a day: last weeks’ events on that weekday, newest first,
  const out=mem.sameWeekdayBefore(data,pid,'2026-10-29')
  assert.equal(JSON.stringify(out.map(r=>[r.title,r.time])),JSON.stringify([['Soccer','16:00']]),'Piano is already on the day; a Wednesday and another plan’s event don’t count')
 })
+await test('Chores on the Kids view: a person’s chores on a day, ticked ones stay as done, a tick taken back, chore pictures, and the parts of the day that have gone',()=>{
+ const kp=load('src/store/kidPlanner.ts'),pid='p',today='2026-10-31'
+ const t=(id,extra)=>({id,profileId:pid,title:id,done:false,...extra})
+ const data={familyTodos:[t('daily',{forKidId:'k',due:'2026-10-20',repeat:'day'}),t('old',{forKidId:'k',due:'2026-10-29'}),t('weekly',{forKidId:'k',due:'2026-10-24',repeat:'week'}),t('mine',{due:today}),t('undated',{forKidId:'k'}),t('other',{forKidId:'j',due:today}),t('ticked',{forKidId:'k',due:'2026-11-01',repeat:'day',doneAt:new Date(today+'T09:00:00').toISOString()})]}
+ const on=kp.choresOn(data,pid,'k',today,today)
+ assert.equal(on.open.map(x=>x.id).sort().join(),'daily,old,undated,weekly','today: its turns, a one-off left from Thursday and an undated chore')
+ assert.equal(on.done.map(x=>x.id).join(),'ticked','ticked today stays, as done')
+ assert.equal(kp.choresOn(data,pid,'k','2026-11-01',today).open.map(x=>x.id).sort().join(),'daily,ticked','another day: only that day’s turns')
+ assert.equal(kp.choresOn(data,pid,'',today,today).open.map(x=>x.id).join(),'mine','the plan’s own person: their to-dos with a day')
+ assert.equal(kp.untickChore(data.familyTodos[6],today).due,today,'a repeat comes back to the day it was ticked')
+ assert.equal(kp.untickChore({...data.familyTodos[1],done:true,doneAt:'x'},today).done,false)
+ assert.equal(kp.pictureFor('Take out the trash'),'🗑️');assert.equal(kp.pictureFor('Make your bed'),'🛏️');assert.equal(kp.pictureFor('Tidy room'),'🧸');assert.equal(kp.pictureFor('Classroom visit'),'🏫')
+ assert.equal(kp.partOfDay('02:44'),'night');assert.equal(kp.partOfDay('13:00'),'afternoon')
+ assert.equal(kp.partPassed('morning',today,today,'13:00'),true);assert.equal(kp.partPassed('evening',today,today,'13:00'),false);assert.equal(kp.partPassed('morning',today,today,'02:44'),false,'at night, the new day has not started')
+})
 await test('Kids view: pictures for events, routines earn stars once a day (and give them back), stickers toggle, all survive a save',()=>{
  const kp=load('src/store/kidPlanner.ts');let data=model.createFreshData();const pid=data.activeProfileId
  assert.equal(kp.pictureFor('Soccer practice'),'⚽');assert.equal(kp.pictureFor('Dentist checkup'),'🦷');assert.equal(kp.pictureFor('Zzz','appointment'),'🩺');assert.equal(kp.pictureFor('Something'),'📌')
@@ -122,5 +137,5 @@ await test('Wall mode helpers: quiet hours past midnight, duplicate linked event
  const back=model.normalizeData(JSON.parse(JSON.stringify({...data,starLog:[...log,{...log[1],id:'p',pending:true}],settings:{...data.settings,rewardApproval:true}})))
  assert.equal(back.recipes.length,1);assert.equal(back.recipes[0].url,'https://example.com/tacos');assert.equal(back.settings.rewardApproval,true);assert.equal(back.starLog.filter(e=>e.pending).length,1)
 })
-console.log(passed+'/6 star chart, meal, family, calendar, Kids view and wall mode groups passed.')
+console.log(passed+'/7 star chart, meal, family, calendar, Kids view, chores and wall mode groups passed.')
 })().catch(error=>{console.error('FAIL',error);process.exit(1)})

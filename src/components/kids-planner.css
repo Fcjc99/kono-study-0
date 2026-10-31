@@ -26,14 +26,18 @@
 .kids-planner-jump button:not(#x):not(#y){flex:0 0 auto;min-height:38px!important;padding:4px 14px!important;border-radius:999px!important;background:color-mix(in srgb,var(--kid-color) 16%,#fff)!important;border:1.5px solid var(--kid-color)!important;font-weight:800}
 
 /* A column per person */
-.kids-planner-cols{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(280px,1fr);gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+.kids-planner-cols{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(264px,1fr);align-items:start;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px;-webkit-overflow-scrolling:touch}
 .kids-col{scroll-snap-align:start;display:flex;flex-direction:column;gap:12px;padding:0 0 14px;border-radius:24px;background:#fff;border:1px solid #efe4ea;box-shadow:0 6px 18px rgb(80 40 60/.07);overflow:hidden}
-.kids-col-head{display:flex;align-items:center;gap:10px;padding:12px 14px;background:color-mix(in srgb,var(--kid-color) 22%,#fff);border-bottom:3px solid var(--kid-color)}
-.kids-col-head strong{flex:1;font-size:1.25rem;font-weight:900}
+.kids-col-head{position:relative;display:flex;align-items:center;gap:10px;padding:12px 14px;background:color-mix(in srgb,var(--kid-color) 22%,#fff);border-bottom:3px solid var(--kid-color)}
+.kids-col-name{flex:1;min-width:0;display:grid;line-height:1.15}
+.kids-col-name strong{font-size:1.25rem;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kids-col-name small{font-weight:800;color:var(--kp-soft);font-size:.8rem}
+.kids-col-progress{height:6px;margin:-12px 0 0;background:color-mix(in srgb,var(--kid-color) 14%,#fff)}
+.kids-col-progress u{display:block;height:100%;background:var(--kid-color);border-radius:0 6px 6px 0;transition:width .4s ease}
 .kids-col-face{width:44px;height:44px;font-size:1.4rem;border:2px solid #fff;box-shadow:0 0 0 2px var(--kid-color)}
-.kids-col-stars{font-weight:900;padding:4px 12px;border-radius:999px;background:linear-gradient(#ffe68a,#ffc93c);color:#6b4b00;box-shadow:0 2px 0 #d8a21f}
+.kids-col-stars{flex:none;white-space:nowrap;font-weight:900;padding:4px 12px;border-radius:999px;background:linear-gradient(#ffe68a,#ffc93c);color:#6b4b00;box-shadow:0 2px 0 #d8a21f}
 .kids-col-cheer{margin:0 14px;padding:8px 12px;border-radius:14px;background:#fff3c4;font-weight:900;animation:kids-pop .5s cubic-bezier(.3,1.6,.5,1)}
-.kids-col-empty{margin:0 14px;padding:14px;border-radius:16px;background:#f7f3f8;color:var(--kp-soft);font-weight:700;text-align:center}
+.kids-col-empty{margin:0 14px;padding:10px 12px;border-radius:16px;background:#f7f3f8;color:var(--kp-soft);font-weight:700;text-align:center}
 
 /* Picture cards */
 .kids-cards{list-style:none;margin:0;padding:0 12px;display:grid;gap:8px}
@@ -50,13 +54,13 @@
 .kids-now::after{content:'';flex:1;height:3px;border-radius:3px;background:var(--wb-accent,#e0607a);opacity:.5}
 
 /* Routines */
-.kids-routines{display:grid;gap:10px;padding:0 12px}
+.kids-routines{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:0 12px}
 .kids-routine{padding:10px;border-radius:18px;background:#fbf8fc;border:1px dashed color-mix(in srgb,var(--kid-color) 45%,transparent)}
 .kids-routine.is-done{background:linear-gradient(135deg,#fff7d6,#eafbe7);border-style:solid}
-.kids-routine header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.kids-routine header{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-bottom:8px}
 .kids-routine header>span{font-size:1.4rem}
-.kids-routine header strong{font-size:1.05rem;font-weight:900}
-.kids-routine header small{margin-left:auto;font-weight:800;color:var(--kp-soft)}
+.kids-routine header strong{font-size:1.05rem;font-weight:900;min-width:0;overflow-wrap:anywhere}
+.kids-routine header small{margin-left:auto;font-weight:800;color:var(--kp-soft);white-space:nowrap}
 .kids-routine-edit:not(#x):not(#y){min-height:32px!important;width:32px;padding:0!important;border-radius:50%!important;background:#fff!important;border:1px solid #eadfe6!important}
 .kids-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
 .kids-steps button:not(#x):not(#y){width:100%;min-height:86px!important;display:grid;place-items:center;gap:2px;padding:8px 4px!important;border-radius:16px!important;background:#fff!important;border:2px solid #efe4ea!important;font-size:.8rem;font-weight:800;line-height:1.15;color:inherit!important}
@@ -73,9 +77,13 @@
 .kids-routine-add .link-button:not(#x):not(#y){border:0!important;text-decoration:underline}
 
 /* Sticker for the day */
-.kids-sticker{display:grid;gap:6px;margin:0 12px;padding:10px;border-radius:18px;background:#fbf8fc}
-.kids-sticker small{font-weight:800;color:var(--kp-soft)}
-.kids-sticker>div{display:flex;flex-wrap:wrap;gap:4px}
+.kids-sticker{margin:0 12px;padding:6px 10px;border-radius:18px;background:#fbf8fc}
+.kids-sticker summary{display:flex;align-items:center;gap:6px;min-height:36px;cursor:pointer;font-weight:800;color:var(--kp-soft);list-style:none}
+.kids-sticker summary::-webkit-details-marker{display:none}
+.kids-sticker summary::after{content:'›';margin-left:auto;font-size:1.2rem;transition:transform .2s}
+.kids-sticker[open] summary::after{transform:rotate(90deg)}
+.kids-sticker-on{font-size:1.4rem}
+.kids-sticker>div{display:flex;flex-wrap:wrap;gap:4px;padding:4px 0 6px}
 .kids-sticker button:not(#x):not(#y){width:40px;height:40px;min-height:40px!important;padding:0!important;border-radius:12px!important;font-size:1.3rem;background:#fff!important;border:1.5px solid transparent!important;filter:grayscale(.35)}
 .kids-sticker button[aria-pressed=true]:not(#x):not(#y){filter:none;border-color:var(--kid-color)!important;background:color-mix(in srgb,var(--kid-color) 18%,#fff)!important;transform:scale(1.12)!important}
 
@@ -114,3 +122,49 @@
 :root[data-dark] .kids-card-main:not(#x):not(#y){background:color-mix(in srgb,var(--kid-color) 16%,#2b2533)!important}
 .kids-planner-tools button:not(#x):not(#y){white-space:nowrap}
 @media(max-width:600px){.kids-planner-tools button:not(#x):not(#y){font-size:.95rem;padding:6px 10px!important}}
+
+/* Chores: big tick rows, a kid's stars on each, and adding one in a tap */
+.kids-chores{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin:0 12px;padding:10px;border-radius:18px;background:color-mix(in srgb,var(--kid-color) 7%,#fff);border:1px solid color-mix(in srgb,var(--kid-color) 22%,transparent)}
+.kids-chores h4{display:flex;align-items:center;gap:6px;margin:0;font-size:1.05rem;font-weight:900}
+.kids-chores h4 small{margin-left:auto;font-size:.8rem;font-weight:800;color:var(--kp-soft)}
+.kids-chore-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.kids-chore:not(#x):not(#y){width:100%;display:flex;align-items:center;gap:10px;min-height:58px!important;padding:8px 10px!important;border-radius:16px!important;background:#fff!important;border:2px solid #efe4ea!important;text-align:left;color:inherit!important}
+.kids-chore-pic{flex:none;width:38px;height:38px;display:grid;place-items:center;font-size:1.5rem;border-radius:12px;background:color-mix(in srgb,var(--kid-color) 12%,#fff)}
+.kids-chore-text{flex:1;min-width:0;display:grid;line-height:1.2}
+.kids-chore-text b{font-weight:900;overflow-wrap:anywhere}
+.kids-chore-text small{font-weight:700;color:var(--kp-soft);font-size:.78rem}
+.kids-chore-box{flex:none;width:30px;height:30px;display:grid;place-items:center;border-radius:10px;border:2.5px solid color-mix(in srgb,var(--kid-color) 60%,#bbb);font-weight:900;color:#fff}
+.kids-chore.is-done:not(#x):not(#y){background:#f0faef!important;border-color:#bfe3c4!important}
+.kids-chore.is-done .kids-chore-text b{text-decoration:line-through;opacity:.65}
+.kids-chore.is-done .kids-chore-box{background:#4caf6a;border-color:#4caf6a}
+.kids-chore.is-done .kids-chore-pic{filter:grayscale(.5);opacity:.7}
+.kids-chore-new:not(#x):not(#y){min-height:44px!important;padding:4px 14px!important;border-radius:14px!important;border:1.5px dashed color-mix(in srgb,var(--kid-color) 55%,#bbb)!important;background:#fff!important;font-weight:800;color:inherit!important}
+.kids-chore-none{margin:0;color:var(--kp-soft);font-weight:700;font-size:.9rem}
+.kids-chore-add{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;min-width:0}
+.kids-chore-add-row{display:flex;gap:6px}
+.kids-chore-add-row input{flex:1;min-width:0;min-height:44px;border-radius:12px;font-size:1rem}
+.kids-chore-add-row button:not(#x):not(#y){min-height:44px!important;padding:0 16px!important;border-radius:12px!important;font-weight:900}
+.kids-chore-repeat,.kids-chore-ideas{display:flex;flex-wrap:wrap;gap:6px}
+.kids-chore-repeat button:not(#x):not(#y){min-height:34px!important;padding:2px 12px!important;border-radius:999px!important;background:#fff!important;border:1.5px solid #e6dbe3!important;font-size:.85rem;font-weight:800;color:inherit!important}
+.kids-chore-repeat button[aria-pressed=true]:not(#x):not(#y){background:color-mix(in srgb,var(--kid-color) 22%,#fff)!important;border-color:var(--kid-color)!important}
+.kids-chore-ideas button:not(#x):not(#y){max-width:100%;min-height:36px!important;padding:2px 12px!important;border-radius:12px!important;background:#fff!important;border:1px solid #eadfe6!important;font-size:.85rem;font-weight:700;color:inherit!important}
+.kids-chore-close:not(#x):not(#y){justify-self:end;border:0!important;background:none!important;min-height:32px!important}
+
+/* The rest of the day: the routine for now stands out; the parts that have gone fold into chips */
+.kids-routine.is-now{border-style:solid;border-width:2px;background:#fff;box-shadow:0 4px 14px color-mix(in srgb,var(--kid-color) 22%,transparent)}
+.kids-now-tag{font-style:normal;font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:999px;background:var(--kid-color);color:#fff}
+.kids-earlier{display:flex;flex-wrap:wrap;gap:6px}
+.kids-earlier-chip:not(#x):not(#y){min-height:36px!important;padding:2px 12px!important;border-radius:999px!important;background:#f6f2f7!important;border:1px solid #eadfe6!important;font-weight:800;font-size:.85rem;color:inherit!important}
+.kids-earlier-chip small{color:var(--kp-soft);font-weight:800}
+.kids-earlier-chip.is-done:not(#x):not(#y){background:#f0faef!important;border-color:#bfe3c4!important}
+.kids-routine-editor label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700}
+.kids-routine-editor-foot{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.kids-routine-editor-foot button:not(.link-button):not(#x):not(#y){min-height:36px!important;padding:2px 16px!important;border-radius:999px!important;font-weight:800}
+
+:root[data-dark] .kids-chores{background:color-mix(in srgb,var(--kid-color) 10%,#241f2b);border-color:#463c50}
+:root[data-dark] :is(.kids-chore,.kids-chore-new,.kids-chore-repeat button,.kids-chore-ideas button,.kids-routine.is-now):not(#x):not(#y){background:#2b2533!important;border-color:#463c50!important}
+:root[data-dark] .kids-chore-pic{background:color-mix(in srgb,var(--kid-color) 22%,#2b2533)}
+:root[data-dark] .kids-chore.is-done:not(#x):not(#y){background:#20352a!important;border-color:#2f5a3e!important}
+:root[data-dark] .kids-earlier-chip:not(#x):not(#y){background:#241f2b!important;border-color:#463c50!important}
+:root[data-dark] .kids-col-progress{background:color-mix(in srgb,var(--kid-color) 18%,#241f2b)}
+@media(prefers-reduced-motion:reduce){.kids-col-progress u{transition:none}}

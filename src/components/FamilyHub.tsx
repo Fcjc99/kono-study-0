@@ -23,6 +23,8 @@ const MealPlan=lazy(()=>import('./MealPlan'))
 type Person={id:string;name:string;emoji?:string;photo?:string;color:string}
 type Tab='home'|'calendar'|'chores'|'meals'|'lists'
 const weatherEmoji:Record<DailyWeatherForecast['weather'],string>={clear:'☀️',cloudy:'☁️',rain:'🌧️',wind:'💨',snow:'❄️'}
+// The header's icon for right now: a clear night shows the moon, not the sun.
+const nowWeatherEmoji=(w:DailyWeatherForecast['weather'],hour:number)=>(hour>=19||hour<6)&&w==='clear'?'🌙':(hour>=19||hour<6)&&w==='cloudy'?'☁️':weatherEmoji[w]
 const TABS:[Tab,string,string][]=[['home','🏠','Home'],['calendar','🗓️','Calendar'],['chores','✅','Chores'],['meals','🍽️','Meals'],['lists','📝','Lists']]
 const nowMs=()=>Date.now()
 const IDLE_MS=5*60_000,WAKE_MS=5*60_000
@@ -138,7 +140,7 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
   </nav>
   <div className="hub-main">
    <header className="hub-head">
-    <div className="hub-title"><b>{familyName}</b><span className="hub-clock">{now.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}</span>{todayWeather&&<span className="hub-weather" aria-label={'Weather: high '+Math.round(todayWeather.highF)}>{weatherEmoji[todayWeather.weather]} {Math.round(todayWeather.highF)}°</span>}<small>{now.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</small></div>
+    <div className="hub-title"><b>{familyName}</b><span className="hub-clock">{now.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}</span>{todayWeather&&<span className="hub-weather" aria-label={'Weather: high '+Math.round(todayWeather.highF)}>{nowWeatherEmoji(todayWeather.weather,now.getHours())} {Math.round(todayWeather.highF)}°</span>}<small>{now.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</small></div>
     <div className="hub-people" role="group" aria-label="Show whose">{people.map(p=><button type="button" key={p.id} aria-pressed={!hidden.has(p.id)} aria-label={(hidden.has(p.id)?'Show ':'Hide ')+p.name} style={{'--p':p.color} as CSSProperties} onClick={()=>toggle(p.id)}><Avatar className="hub-face" who={p}/></button>)}</div>
     {!locked&&<button type="button" className="hub-add" onClick={()=>{touched();onAdd()}}>＋ Add</button>}
    </header>
@@ -151,7 +153,7 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
      <div role="group" aria-label="Days shown">{[1,3,5,7].map(n=><button type="button" key={n} aria-pressed={days===n} onClick={()=>{setDays(n);writeLocal(DAYS_KEY,String(n))}}>{n===1?'Day':n===7?'Week':n+' days'}</button>)}</div></div>
     <div className="hub-days" style={{'--n':days} as CSSProperties}>{Array.from({length:days},(_,i)=>column(addDays(today,offset+i),days>=5))}</div>
    </div>}
-   {tab==='chores'&&<Suspense fallback={null}><KidsPlanner data={data} date={choresDate} today={today} selectDate={setChoresDate} items={kidItems(choresDate)} kids={kids.filter(k=>shown(k.id))} familyName={me.name} save={save}/></Suspense>}
+   {tab==='chores'&&<Suspense fallback={null}><KidsPlanner data={data} date={choresDate} today={today} selectDate={setChoresDate} items={kidItems(choresDate)} kids={kids.filter(k=>shown(k.id))} familyName={me.name} me={me} locked={locked} save={save}/></Suspense>}
    {tab==='meals'&&<Suspense fallback={null}><MealPlan data={data} profileId={pid} today={today} save={save}/></Suspense>}
    {tab==='lists'&&<div className="hub-lists">
     <section className="hub-panel" aria-label="Family to-dos"><h3>To-dos</h3>
@@ -169,7 +171,7 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
   {idle&&!quietNow&&<button type="button" className="hub-ambient" aria-label="Wake the screen" onClick={touched}>
    <div className="hub-ambient-drift" style={{'--x':(now.getMinutes()%5)*6-12+'px','--y':(now.getMinutes()%3)*10-10+'px'} as CSSProperties}>
     <span className="hub-ambient-clock">{now.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}</span>
-    <span className="hub-ambient-date">{now.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}{todayWeather?' · '+weatherEmoji[todayWeather.weather]+' '+Math.round(todayWeather.highF)+'°':''}</span>
+    <span className="hub-ambient-date">{now.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}{todayWeather?' · '+nowWeatherEmoji(todayWeather.weather,now.getHours())+' '+Math.round(todayWeather.highF)+'°':''}</span>
     {next&&<span className="hub-ambient-next">Next: {next.title} · {classTime(next.time!)}</span>}
     <KonoSprite size={110} pose="/garden/kono/sit.webp" fallback={<img src="/garden/kono/sit.webp" alt="" width={110}/>}/>
    </div>
