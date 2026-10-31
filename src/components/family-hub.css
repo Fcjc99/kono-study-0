@@ -157,3 +157,8 @@
  .hub-rail button:not(#x):not(#y){flex:1 1 0;min-width:42px;min-height:54px!important;font-size:.66rem}
  .hub-rail button span{font-size:1.3rem}
 }
+/* Lists in portrait sit one under the other, not spread down the screen; a to-do on a day column reads
+ * as one line (tick and words) with whose it is under it, even in a narrow column. */
+.hub-lists{align-content:start}
+.hub-day-todos li:not(#x){display:grid;grid-template-columns:auto minmax(0,1fr);align-items:baseline;column-gap:6px}
+.hub-day-todos li small{grid-column:2;margin-left:0}

@@ -250,3 +250,10 @@ html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='
 .star-chore-add select{min-height:38px;border-radius:10px;font:inherit}
 .star-chore-add button{min-height:38px;padding:0 14px}
 .star-chore-repeat{color:var(--wb-muted,#6c6170)}
+
+/* Phones: the Planner's views (Day … Schedule, and 🧸 Kids for a family) don't fit one row at 390px, so the
+ * last ones ran off the card and Kids couldn't be reached. They sit in a 3-across grid instead. */
+@media(max-width:600px){
+ .workbench .calendar-views:not(#x){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;border-radius:18px;gap:2px}
+ .workbench .calendar-views button:not(#x){padding:0 4px!important;white-space:nowrap}
+}

@@ -168,3 +168,4 @@
 :root[data-dark] .kids-earlier-chip:not(#x):not(#y){background:#241f2b!important;border-color:#463c50!important}
 :root[data-dark] .kids-col-progress{background:color-mix(in srgb,var(--kid-color) 18%,#241f2b)}
 @media(prefers-reduced-motion:reduce){.kids-col-progress u{transition:none}}
+@media(max-width:600px){.kids-col-empty{font-size:.92rem;padding:8px 10px}}

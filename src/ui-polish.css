@@ -613,3 +613,6 @@ button .kono-icon,a .kono-icon{margin-right:2px}
 .recipe-add{display:grid;gap:6px;margin-top:8px}.recipe-add button{justify-self:start}
 .paste-import{display:grid;gap:10px}.paste-import textarea{width:100%;font:inherit}
 .quick-add-choice~.paste-import-button,.paste-import-button{display:block;width:100%;margin:8px 0 0}
+/* A chore's day and repeat sit under its name, not squeezed beside it */
+.star-chore-text{display:grid;min-width:0;line-height:1.2;font-size:inherit!important;opacity:1!important}
+.star-chore-text small{font-size:.75rem;font-weight:700;opacity:.7}

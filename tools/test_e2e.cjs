@@ -548,7 +548,7 @@ test('Star chart: ticking a kid’s chore earns its stars, stars buy a reward fr
  await emma.getByLabel('New chore for Emma today').fill('Make bed')
  await emma.getByLabel('Repeat for Emma’s chore').selectOption('day')
  await emma.getByRole('button',{name:'Add',exact:true}).click()
- await emma.getByRole('button',{name:'Done: Make bed'}).getByText('· every day').waitFor()
+ await emma.getByRole('button',{name:'Done: Make bed'}).getByText('🔁 every day').waitFor()
  await waitFor(()=>(cloud.users.alice.plan.data.familyTodos??[]).some(t=>t.title==='Make bed'&&t.repeat==='day'&&t.forKidId==='kid-emma'&&t.due),'the daily chore reaches the account')
  const firstDue=cloud.users.alice.plan.data.familyTodos.find(t=>t.title==='Make bed').due
  await emma.getByRole('button',{name:'Done: Make bed'}).click()
