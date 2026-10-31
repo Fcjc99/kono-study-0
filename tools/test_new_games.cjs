@@ -1,4 +1,4 @@
-// KONO Stack and Snack sort: the rules (store/stack, store/snackSort), no browser.
+// KONO Stack and KONO Bloom: the rules (store/stack, store/bloom), no browser.
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),ts=require('typescript')
 const root=path.resolve(__dirname,'..'),cache=new Map(),{randomUUID}=require('node:crypto')
 function load(relative){
@@ -12,7 +12,7 @@ function load(relative){
 }
 let passed=0
 const test=async(name,fn)=>{await fn();passed++;console.log('PASS '+name)}
-const st=load('src/store/stack.ts'),ss=load('src/store/snackSort.ts'),coins=load('src/store/konoCoins.ts')
+const st=load('src/store/stack.ts'),bl=load('src/store/bloom.ts'),coins=load('src/store/konoCoins.ts')
 ;(async()=>{
 await test('KONO Stack: an exact drop is Perfect and keeps the width, an off one is trimmed, three Perfects grow it back, a miss ends it',()=>{
  let t=st.newTower();const base=t.layers[0]
@@ -28,22 +28,27 @@ await test('KONO Stack: an exact drop is Perfect and keeps the width, an off one
  let s=st.newTower();for(let i=0;i<500;i++)s=st.slide(s,3);assert.ok(s.moving.x>=0&&s.moving.x<=100-s.moving.w,'sliding stays on the plate')
  assert.equal(st.toppingAt(10),'🍓');assert.equal(st.toppingAt(9),'')
 })
-await test('Snack sort: pours go onto the same snack or an empty jar (as many as fit), sorted means one snack per jar, every dealt level can be solved',()=>{
- const J=[['🍓','🫐','🫐'],['🫐'],[],['🍋','🍋','🍋','🍋']]
- assert.equal(ss.canPour(J,0,1),2,'both blueberries go onto the blueberry');assert.equal(ss.canPour(J,0,3),0,'not into a full jar');assert.equal(ss.canPour(J,1,0),1);assert.equal(ss.canPour(J,2,0),0,'nothing to pour from an empty jar')
- const after=ss.pour(J,0,1);assert.equal(after[1].join(''),'🫐🫐🫐');assert.equal(after[0].join(''),'🍓')
- assert.equal(ss.canPour([['🍓','🍓','🍓'],['🍋','🍋','🍋','🍓']],0,1),0)
- assert.equal(ss.canPour([['🫐','🫐','🫐'],['🍋','🫐']],0,1),2,'only as many as fit')
- assert.equal(ss.sorted([['🍓','🍓','🍓','🍓'],[]]),true);assert.equal(ss.sorted([['🍓','🍓','🍓'],['🍓']]),false)
- let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647}
- for(const level of [1,2,5,9,14]){const jars=ss.deal(level,rnd),{kinds,spare}=ss.levelShape(level)
-  assert.equal(jars.length,kinds+spare);assert.equal(jars.flat().length,kinds*ss.JAR);assert.ok(!ss.sorted(jars),'not already sorted');assert.ok(ss.solvable(jars,200000),'level '+level+' can be solved')}
- assert.equal(ss.levelShape(1).kinds,3);assert.equal(ss.levelShape(30).kinds,ss.SNACKS.length)
- assert.equal(ss.sortStars(9,3,false),3);assert.equal(ss.sortStars(9,3,true),2);assert.equal(ss.sortStars(40,3,false),1)
+await test('KONO Bloom: a drop falls and settles on the soil, two the same grow into the next one (and score), two Great Trees make a rainbow, a jar filled past the line ends it',()=>{
+ let seed=3;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647}
+ let g=bl.newGarden(rnd);assert.ok(g.next>=0&&g.next<=2,'it starts with something small')
+ g={...g,next:0};g=bl.drop(g,50,rnd);for(let i=0;i<400;i++)g=bl.step(g)
+ const b=g.balls[0];assert.ok(Math.abs(b.y-(bl.JAR.h-bl.RADIUS[0]))<0.6,'it lands on the soil');assert.ok(Math.abs(b.vy)<0.2,'and stays')
+ g={...g,next:0};g=bl.drop(g,50,rnd);for(let i=0;i<400;i++)g=bl.step(g)
+ assert.equal(g.balls.length,1);assert.equal(g.balls[0].tier,1,'two beans grow into a sprout');assert.equal(g.score,bl.points(1));assert.equal(g.best,1)
+ let t=bl.newGarden(rnd);const R=bl.RADIUS[10]
+ t={...t,balls:[{id:1,tier:10,x:R,y:bl.JAR.h-R,vx:0,vy:0,age:200},{id:2,tier:10,x:R*2-1,y:bl.JAR.h-R,vx:0,vy:0,age:200}],nextId:3}
+ t=bl.step(t);assert.equal(t.balls.length,0,'two Great Trees leave room');assert.equal(t.rainbows,1);assert.equal(t.score,100)
+ assert.equal(bl.clampX(-5,3),bl.RADIUS[3]);assert.equal(bl.clampX(500,3),bl.JAR.w-bl.RADIUS[3])
+ // Something settled sticking up past the line for about 2 seconds ends it; one just dropped doesn't count.
+ const high=(age,danger)=>({...bl.newGarden(rnd),balls:[{id:1,tier:5,x:50,y:20,vx:0,vy:0,age}],nextId:2,danger})
+ assert.equal(bl.step(high(200,120)).over,true,'over the line too long ends the round')
+ assert.equal(bl.step(high(200,10)).over,false,'not yet');assert.ok(bl.step(high(200,10)).danger>10,'the danger builds')
+ assert.equal(bl.step(high(5,120)).danger<120,true,'a fresh drop passing the line doesn’t count')
+ for(let i=0;i<200;i++)assert.ok(bl.dropTier(rnd,0)<=2,'small drops to start');assert.ok([...Array(300)].some(()=>bl.dropTier(rnd,9)===4),'bigger once you have grown big ones')
 })
-await test('Coins: a stack and a sorted pantry earn coins like the other games',()=>{
+await test('Coins: a stack and a garden earn coins like the other games',()=>{
  assert.equal(coins.gameCoins('stack',0),0);assert.equal(coins.gameCoins('stack',20),20);assert.equal(coins.gameCoins('stack',300),50,'capped')
- assert.equal(coins.gameCoins('sort',9),18);assert.equal(coins.gameCoins('sort',1),5,'at least 5 for any win')
+ assert.equal(coins.gameCoins('bloom',600),20);assert.equal(coins.gameCoins('bloom',10),5,'at least 5 for any score')
 })
-console.log(passed+'/3 KONO Stack and Snack sort groups passed.')
+console.log(passed+'/3 KONO Stack and KONO Bloom groups passed.')
 })().catch(error=>{console.error('FAIL',error);process.exit(1)})
