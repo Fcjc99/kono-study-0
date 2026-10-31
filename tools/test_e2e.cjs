@@ -268,7 +268,7 @@ test('panels that load on demand (K-Quiz, Flashcards) open without errors',async
  await go(page,'K-Quiz')
  await page.locator('[class*=kquiz]').first().waitFor()
  await go(page,'Notes')
- await page.getByText('Quiz me · Flashcards').click()
+ await page.getByText('Flashcards · spaced repetition, no AI').click()
  await page.getByText('Your flashcards').first().waitFor()
 })
 

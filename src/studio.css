@@ -171,3 +171,34 @@ dialog.wb-dialog.is-drawer>header{padding:16px 20px}
 #workspace-main .calendar-hero-tools:not(#x){display:flex!important;flex-wrap:wrap;align-items:center;gap:8px!important}
 #workspace-main .calendar-wall:not(#x){min-height:36px!important;padding:0 12px!important;font-size:.85rem!important;font-weight:700!important;box-shadow:none!important}
 #workspace-main .calendar-views:not(#x) button{min-height:34px!important;padding:0 12px!important;font-size:.88rem!important}
+
+/* ── Notes › List: compact, scannable rows. */
+#workspace-main .notes-list{list-style:none;margin:0;padding:0;display:grid;border:1px solid var(--wb-line);border-radius:14px;overflow:hidden;background:var(--wb-surface)}
+#workspace-main .notes-list li+li{border-top:1px solid var(--wb-line)}
+#workspace-main .notes-row:not(#x){display:grid!important;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 14px!important;text-align:left;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;color:var(--wb-ink)!important;font:inherit!important}
+#workspace-main .notes-row:hover{background:color-mix(in srgb,var(--wb-ink) 4%,transparent)!important}
+#workspace-main .notes-row-color{width:8px;height:34px;border-radius:4px}
+#workspace-main .notes-row-copy{display:grid;min-width:0}
+#workspace-main .notes-row-copy b{font-size:.95rem;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#workspace-main .notes-row-copy small{font-size:.8rem;color:var(--wb-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#workspace-main .notes-row-meta{display:flex;gap:8px;align-items:center;font-size:.78rem;color:var(--wb-muted);white-space:nowrap}
+#workspace-main .notes-row-pin{padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--wb-accent) 12%,var(--wb-surface));color:var(--wb-accent);font-weight:750}
+#workspace-main .notes-cards-note{margin:8px 0 12px;font-size:.85rem}
+
+/* ── K-Quiz: the four steps, and one way to add a source at a time. */
+#workspace-main .kquiz-steps{list-style:none;margin:12px 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#workspace-main .kquiz-steps li{padding:8px 12px;border:1px solid var(--wb-line);border-radius:12px;font-size:.78rem;color:var(--wb-muted);background:var(--wb-surface)}
+#workspace-main .kquiz-steps li b{display:block;font-size:.9rem;color:var(--wb-ink)}
+#workspace-main .kquiz-steps li.is-on{border-color:var(--wb-accent);background:color-mix(in srgb,var(--wb-accent) 8%,var(--wb-surface))}
+@media (max-width:760px){#workspace-main .kquiz-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#workspace-main .kquiz-entry{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 12px}
+@media (max-width:760px){#workspace-main .kquiz-entry{grid-template-columns:1fr}}
+#workspace-main .kquiz-entry button:not(#x){display:grid;gap:2px;justify-items:start;text-align:left;min-height:64px;padding:12px 14px!important;border-radius:14px!important;border:1px solid var(--wb-line)!important;background:var(--wb-surface)!important;box-shadow:none!important;color:var(--wb-ink)!important;font:inherit!important}
+#workspace-main .kquiz-entry button b{font-size:.95rem;font-weight:750}
+#workspace-main .kquiz-entry button span{font-size:.8rem;color:var(--wb-muted)}
+#workspace-main .kquiz-entry button[aria-pressed=true]:not(#x){border-color:var(--wb-accent)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--wb-accent) 20%,transparent)!important}
+/* Notes in List view: a plain panel (the cork, gradient head and wood tray belong to Board). */
+#workspace-main .wb-board:has(.notes-list):not(#x){background:var(--wb-surface)!important;background-image:none!important;border:1px solid var(--wb-line)!important;border-radius:var(--studio-radius)!important;box-shadow:var(--studio-shadow)!important;overflow:hidden}
+#workspace-main .wb-board:has(.notes-list) .wb-board-tray{display:none!important}
+#workspace-main .wb-board:has(.notes-list) :is(.wb-board-heading,.notes-filters):not(#x){background:none!important;background-image:none!important;border-color:var(--wb-line)!important;box-shadow:none!important}
+#workspace-main .wb-board:has(.notes-list) .notes-list{margin:0 12px 12px}
