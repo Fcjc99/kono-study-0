@@ -11,6 +11,10 @@ const IDEAS=['Tacos','Pasta','Stir fry','Pizza','Soup & sandwiches','Leftovers',
 export default function MealPlan({data,profileId,today,save}:{data:AppData;profileId:string;today:string;save:PlannerRepository['update']}){
  const days=Array.from({length:7},(_,i)=>addDays(today,i))
  const [editing,setEditing]=useState(''),[text,setText]=useState(''),[grocery,setGrocery]=useState(''),[shopped,setShopped]=useState('')
+ // A tick shows the moment it's tapped, while the save finishes (it can take a moment on a slow phone); a save
+ // that fails puts it back as it was.
+ const [ticking,setTicking]=useState<Record<string,boolean>>({})
+ const tick=(id:string,done:boolean)=>{setTicking(t=>({...t,[id]:!done}));void save(d=>toggleGrocery(d,id)).finally(()=>setTicking(t=>{const next={...t};delete next[id];return next}))}
  const recipes=(data.recipes??[]).filter(r=>r.profileId===profileId).sort((a,b)=>a.title.localeCompare(b.title))
  const shop=(title:string)=>{const r=recipeFor(data,profileId,title);if(!r)return;void save(d=>shopFor(d,profileId,r));setShopped(r.title)}
  const groceries=(data.groceries??[]).filter(g=>g.profileId===profileId)
@@ -44,7 +48,7 @@ export default function MealPlan({data,profileId,today,save}:{data:AppData;profi
     <input aria-label="Add groceries" placeholder="Milk, eggs, apples…" value={grocery} onChange={e=>setGrocery(e.target.value)} maxLength={600}/>
     <button type="submit" disabled={!grocery.trim()}>Add</button>
    </form>
-   {groceries.length?<ul aria-label="Grocery list">{[...left,...bought].map(g=><li key={g.id} className={g.done?'is-done':''}><label className="wb-check"><input type="checkbox" checked={g.done} onChange={()=>void save(d=>toggleGrocery(d,g.id))}/>{g.title}</label></li>)}</ul>
+   {groceries.length?<ul aria-label="Grocery list">{[...left,...bought].map(g=><li key={g.id} className={g.done?'is-done':''}><label className="wb-check"><input type="checkbox" checked={ticking[g.id]??g.done} onChange={()=>tick(g.id,ticking[g.id]??g.done)}/>{g.title}</label></li>)}</ul>
    :<p className="wb-muted">Nothing on the list. Anyone in the family can add to it.</p>}
    {bought.length>0&&<button type="button" className="link-button" onClick={()=>void save(d=>clearBought(d,profileId))}>Clear {bought.length} in the cart</button>}
   </div>
