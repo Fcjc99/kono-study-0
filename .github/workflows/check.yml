@@ -1,5 +1,10 @@
 name: KONO release checks
-on: [push, pull_request]
+# Once per change: on a pull request, and on main after a merge (a push to a PR's branch used to run
+# the same checks a second time).
+on:
+  pull_request:
+  push:
+    branches: [main]
 permissions:
   contents: read
 jobs:

@@ -60,3 +60,8 @@ export function todoDayLabel(due:string,today:string):string{
  const d=new Date(due+'T12:00:00'),days=dayNumber(due)-dayNumber(today)
  return days>0&&days<7?d.toLocaleDateString(undefined,{weekday:'long'}):d.toLocaleDateString(undefined,{month:'short',day:'numeric'})
 }
+/** A to-do after its editor's Save (components/TodoEditor): new words, who it's for (stars only on a kid's
+ * chore, and only when not the usual 1), its day and repeat; whether it's done stays as it was. */
+export function withChanges(x:FamilyTodo,changes:Pick<FamilyTodo,'title'|'forKidId'|'due'|'repeat'|'stars'>):FamilyTodo{
+ return {id:x.id,profileId:x.profileId,done:x.done,...(x.doneAt?{doneAt:x.doneAt}:{}),title:changes.title,...(changes.forKidId&&changes.stars!==undefined&&changes.stars!==1?{stars:changes.stars}:{}),...(changes.forKidId?{forKidId:changes.forKidId}:{}),...(changes.due?{due:changes.due}:{}),...repeatFields(changes.repeat,changes.due)}
+}

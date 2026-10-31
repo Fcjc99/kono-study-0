@@ -648,13 +648,17 @@ test('Planner › Kids view: picture day per person, a routine earns a star, a s
  await emma.getByRole('button',{name:'Every day'}).click()
  await emma.getByLabel('New chore for Emma').fill('Water the plants');await emma.getByLabel('New chore for Emma').press('Enter')
  await waitFor(()=>(cloud.users.alice.plan.data.familyTodos??[]).some(t=>t.title==='Water the plants'&&t.forKidId==='kid-emma'&&t.repeat==='day'&&t.due===iso(0)),'the daily chore reaches the account')
- await emma.getByRole('button',{name:/Tidy room/}).click()
+ await emma.getByLabel('New chore for Emma').fill('Tidy room');await emma.getByRole('button',{name:'Just today'}).click();await emma.getByLabel('New chore for Emma').press('Enter')
  await emma.getByRole('button',{name:'Done: Tidy room'}).click()
  await emma.getByRole('button',{name:'Not done yet: Tidy room'}).waitFor()
  await emma.getByLabel('2 stars').waitFor()
  await emma.getByRole('button',{name:'Not done yet: Tidy room'}).click()
  await emma.getByRole('button',{name:'Done: Tidy room'}).waitFor()
  await emma.getByLabel('1 stars').waitFor()
+ // A chore can be changed: its words and stars.
+ await emma.getByRole('button',{name:'Change Tidy room'}).click()
+ await emma.getByLabel('To-do').fill('Tidy your room');await emma.getByLabel('Stars for doing it').selectOption('3');await emma.getByRole('button',{name:'Save'}).click()
+ await emma.getByRole('button',{name:'Done: Tidy your room'}).getByText('+3⭐').waitFor()
  await emma.getByRole('button',{name:'Done: Water the plants'}).click()
  await emma.getByRole('button',{name:'Not done yet: Water the plants'}).waitFor()
  await waitFor(()=>(cloud.users.alice.plan.data.familyTodos??[]).find(t=>t.title==='Water the plants').due===iso(1),'a daily chore moves to tomorrow once ticked')
@@ -4246,7 +4250,21 @@ test('Round 58: your own Home: Sanctuary beside the focus console (the week stri
  await page.locator('.wb-island').waitFor()
 })
 
-test('New arcade games: KONO Stack (pancakes drop on Space, the stack grows, End gives the results) and Snack sort (lift a jar, tip it into an empty one, Undo, ＋ Jar once)',async({context,page})=>{
+test('Chores on Home: today’s chores sit in the schedule as their own checklist (whose, stars), ticking one there earns its stars, and tomorrow’s show under Tomorrow',async({context,page})=>{
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ const iso=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')}
+ plan.familyTodos=[{id:'c1',profileId:pid,title:'Feed Biscuit',done:false,forKidId:'kid-emma',due:iso(0),stars:2},{id:'c2',profileId:pid,title:'Water the plants',done:false,due:iso(1)}]
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await mainHeading(page).waitFor()
+ const today=page.getByRole('region',{name:'Today’s chores'})
+ await today.getByText('+2⭐').waitFor()
+ await today.getByRole('button',{name:'Tick off: Feed Biscuit (Emma)'}).click()
+ await waitFor(()=>(cloud.users.alice.plan.data.starLog??[]).some(e=>e.kidId==='kid-emma'&&e.n===2),'ticking it on Home earns the stars')
+ await today.getByRole('button',{name:'Done: Feed Biscuit (Emma)'}).waitFor()
+ await page.getByRole('region',{name:'Tomorrow’s chores'}).getByText('Water the plants').waitFor()
+})
+
+test('New arcade games: KONO Stack (a floor set down as it lines up builds the tower, End gives the results) and KONO Bloom (tap to drop seeds into the jar, End gives what you grew)',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
@@ -4254,29 +4272,23 @@ test('New arcade games: KONO Stack (pancakes drop on Space, the stack grows, End
  const town=page.getByRole('dialog',{name:'KONO Town'})
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
  await town.getByRole('button',{name:/KONO Stack/}).click()
- const stack=await startGame(page,'🥞 KONO Stack')
- await stack.getByRole('img',{name:'KONO Stack, 0 pancakes'}).waitFor()
- // The first pancake starts over the plate's right side, so dropping it at once still lands.
+ const stack=await startGame(page,'🏢 KONO Stack')
+ await stack.getByRole('img',{name:'KONO Stack, 0 floors'}).waitFor()
+ await stack.getByText('Tap to build').waitFor()
+ // Set the first floor down as it lines up with the base.
+ await page.waitForFunction(()=>Math.abs(Number(document.querySelector('.stack-frame')?.dataset.off))<1.2,null,{polling:'raf',timeout:10000})
  await page.keyboard.press('Space')
- await stack.getByRole('img',{name:'KONO Stack, 1 pancake'}).waitFor()
+ await stack.getByRole('img',{name:'KONO Stack, 1 floor'}).waitFor()
  await stack.getByRole('button',{name:'■ End'}).click()
- await stack.getByText('1 pancake',{exact:true}).waitFor()
+ await stack.getByText('1 floor',{exact:true}).waitFor()
  await stack.getByRole('button',{name:'Done'}).click()
- await town.getByRole('button',{name:/Snack sort/}).click()
- const sort=await startGame(page,'🫙 Snack sort',/^Start level 1/)
- const jars=sort.getByRole('group',{name:'Pantry jars'}).getByRole('button')
- assert.equal(await jars.count(),5,'level 1: three snacks in three jars, and two empty jars')
- const before=await jars.nth(0).getAttribute('aria-label')
- await jars.nth(0).click();assert.equal(await jars.nth(0).getAttribute('aria-pressed'),'true','lifted')
- await jars.nth(3).click()
- await sort.getByText('1 move').waitFor()
- assert.notEqual(await jars.nth(3).getAttribute('aria-label'),'Jar 4: empty','the snacks went in')
- await sort.getByRole('button',{name:'↶ Undo'}).click()
- assert.equal(await jars.nth(0).getAttribute('aria-label'),before,'Undo puts them back')
- await sort.getByRole('button',{name:'＋ Jar'}).click()
- assert.equal(await jars.count(),6);assert.equal(await sort.getByRole('button',{name:'＋ Jar'}).isDisabled(),true,'one extra jar a level')
- await sort.getByRole('button',{name:'■ End'}).click()
- await sort.getByText('Left for later').waitFor()
+ await town.getByRole('button',{name:/KONO Bloom/}).click()
+ const bloom=await startGame(page,'🌸 KONO Bloom')
+ const jar=bloom.getByRole('img',{name:/KONO Bloom garden jar/});await jar.waitFor()
+ for(let i=0;i<4;i++){await jar.click({position:{x:40+i*30,y:60}});await page.waitForTimeout(500)}
+ await bloom.getByRole('list',{name:'The garden ladder'}).waitFor()
+ await bloom.getByRole('button',{name:'■ End'}).click()
+ await bloom.getByText(/You grew up to/).waitFor()
 })
 
 test('Round 57: KONO blast clears a full row (the squares empty and the score jumps)',async({context,page})=>{

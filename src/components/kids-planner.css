@@ -144,10 +144,9 @@
 .kids-chore-add-row{display:flex;gap:6px}
 .kids-chore-add-row input{flex:1;min-width:0;min-height:44px;border-radius:12px;font-size:1rem}
 .kids-chore-add-row button:not(#x):not(#y){min-height:44px!important;padding:0 16px!important;border-radius:12px!important;font-weight:900}
-.kids-chore-repeat,.kids-chore-ideas{display:flex;flex-wrap:wrap;gap:6px}
+.kids-chore-repeat{display:flex;flex-wrap:wrap;gap:6px}
 .kids-chore-repeat button:not(#x):not(#y){min-height:34px!important;padding:2px 12px!important;border-radius:999px!important;background:#fff!important;border:1.5px solid #e6dbe3!important;font-size:.85rem;font-weight:800;color:inherit!important}
 .kids-chore-repeat button[aria-pressed=true]:not(#x):not(#y){background:color-mix(in srgb,var(--kid-color) 22%,#fff)!important;border-color:var(--kid-color)!important}
-.kids-chore-ideas button:not(#x):not(#y){max-width:100%;min-height:36px!important;padding:2px 12px!important;border-radius:12px!important;background:#fff!important;border:1px solid #eadfe6!important;font-size:.85rem;font-weight:700;color:inherit!important}
 .kids-chore-close:not(#x):not(#y){justify-self:end;border:0!important;background:none!important;min-height:32px!important}
 
 /* The rest of the day: the routine for now stands out; the parts that have gone fold into chips */
@@ -162,10 +161,18 @@
 .kids-routine-editor-foot button:not(.link-button):not(#x):not(#y){min-height:36px!important;padding:2px 16px!important;border-radius:999px!important;font-weight:800}
 
 :root[data-dark] .kids-chores{background:color-mix(in srgb,var(--kid-color) 10%,#241f2b);border-color:#463c50}
-:root[data-dark] :is(.kids-chore,.kids-chore-new,.kids-chore-repeat button,.kids-chore-ideas button,.kids-routine.is-now):not(#x):not(#y){background:#2b2533!important;border-color:#463c50!important}
+:root[data-dark] :is(.kids-chore,.kids-chore-new,.kids-chore-repeat button,.kids-routine.is-now):not(#x):not(#y){background:#2b2533!important;border-color:#463c50!important}
 :root[data-dark] .kids-chore-pic{background:color-mix(in srgb,var(--kid-color) 22%,#2b2533)}
 :root[data-dark] .kids-chore.is-done:not(#x):not(#y){background:#20352a!important;border-color:#2f5a3e!important}
 :root[data-dark] .kids-earlier-chip:not(#x):not(#y){background:#241f2b!important;border-color:#463c50!important}
 :root[data-dark] .kids-col-progress{background:color-mix(in srgb,var(--kid-color) 18%,#241f2b)}
 @media(prefers-reduced-motion:reduce){.kids-col-progress u{transition:none}}
 @media(max-width:600px){.kids-col-empty{font-size:.92rem;padding:8px 10px}}
+/* A chore's ✎: change its words, who it's for, its stars, day and repeat, or delete it */
+.kids-chore-row{display:flex;gap:6px;align-items:stretch}
+.kids-chore-row .kids-chore:not(#x):not(#y){flex:1;min-width:0}
+.kids-chore-edit:not(#x):not(#y){flex:none;width:40px;min-height:40px!important;padding:0!important;border-radius:14px!important;background:#fff!important;border:1.5px solid #efe4ea!important;color:var(--kp-soft)!important}
+.kids-chore-editing .todo-editor{display:grid;gap:8px;padding:10px;border-radius:16px;background:#fff;border:2px solid var(--kid-color)}
+.kids-chore-editing .todo-editor label{display:grid;gap:4px;font-weight:800;font-size:.85rem}
+.kids-chore-editing .wb-toolbar{display:flex;flex-wrap:wrap;gap:6px}
+:root[data-dark] :is(.kids-chore-edit,.kids-chore-editing .todo-editor):not(#x):not(#y){background:#2b2533!important;border-color:#463c50!important}

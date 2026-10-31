@@ -257,3 +257,23 @@ html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='
  .workbench .calendar-views:not(#x){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;border-radius:18px;gap:2px}
  .workbench .calendar-views button:not(#x){padding:0 4px!important;white-space:nowrap}
 }
+
+/* Chores in Home's schedule: a checklist set apart from the day's events (they're things to do, not
+ * places to be): a soft lined-paper card, round tick circles in each kid's color, whose and the stars. */
+.chores-day{margin:8px 0;padding:10px 12px;border-radius:16px;background:repeating-linear-gradient(180deg,transparent 0 31px,color-mix(in srgb,var(--wb-accent,#c2416b) 8%,transparent) 31px 32px),color-mix(in srgb,#ffd977 14%,var(--wb-surface,#fff));border:1.5px dashed color-mix(in srgb,#e0a800 45%,transparent)}
+.chores-day h4{display:flex;align-items:center;gap:6px;margin:0 0 6px;font-size:.95rem;font-weight:800}
+.chores-day h4 small{margin-left:auto;font-size:.78rem;font-weight:700;color:var(--wb-muted,#6c6170)}
+.chores-day ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.chores-day li{display:flex;align-items:center;gap:10px;min-height:44px}
+.workbench .chores-day-tick:not(#x):not(#y){flex:none;width:28px;height:28px;min-height:28px!important;padding:0!important;border-radius:50%!important;border:2.5px solid var(--kid-color)!important;background:var(--wb-surface,#fff)!important;box-shadow:none!important;display:grid;place-items:center;font-weight:900;color:#fff!important}
+.workbench .chores-day-tick:not(:disabled):hover{background:color-mix(in srgb,var(--kid-color) 18%,#fff)!important}
+.chores-day li.is-done .chores-day-tick:not(#x):not(#y){background:var(--kid-color)!important;opacity:1}
+.chores-day-pic{flex:none;font-size:1.25rem}
+.chores-day-text{flex:1;min-width:0;display:grid;line-height:1.2}
+.chores-day-text b{font-weight:800;overflow-wrap:anywhere}
+.chores-day-text small{font-size:.76rem;font-weight:700;color:color-mix(in srgb,var(--kid-color) 70%,var(--wb-ink,#3a2b33))}
+.chores-day-stars{flex:none;font-weight:800;font-size:.82rem;color:#8a6200}
+.chores-day li.is-done .chores-day-text b{text-decoration:line-through;opacity:.55}
+:root[data-dark] .chores-day{background:color-mix(in srgb,#ffd977 8%,#221d27);border-color:#6a5a2a}
+:root[data-dark] .chores-day-stars{color:#ffd46b}
+:root[data-dark] .workbench .chores-day-tick:not(#x):not(#y){background:#2b2533!important}
