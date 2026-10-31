@@ -202,3 +202,51 @@ dialog.wb-dialog.is-drawer>header{padding:16px 20px}
 #workspace-main .wb-board:has(.notes-list) .wb-board-tray{display:none!important}
 #workspace-main .wb-board:has(.notes-list) :is(.wb-board-heading,.notes-filters):not(#x){background:none!important;background-image:none!important;border-color:var(--wb-line)!important;box-shadow:none!important}
 #workspace-main .wb-board:has(.notes-list) .notes-list{margin:0 12px 12px}
+
+/* ── Every page's panels: one flat card (boards keep their own paper and cork). */
+#workspace-main .wb-panel:not(.wb-board):not(.sanctuary-focus):not(.wb-island):not(.kono-bar):not(#x){background-image:none!important;box-shadow:var(--studio-shadow)!important;border-radius:var(--studio-radius)!important}
+#workspace-main .wb-panel:not(.wb-board) .wb-section-head:not(#x){background:none!important;background-image:none!important}
+
+/* ── Exams: the upcoming list, a day countdown on each. */
+#workspace-main .exams-page{display:grid;gap:12px}
+#workspace-main .exam-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+#workspace-main .exam-row{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--wb-line);border-radius:14px;background:var(--wb-surface)}
+#workspace-main .exam-row.is-today{border-color:var(--wb-accent)}
+#workspace-main .exam-count{display:grid;justify-items:center;padding:8px 0;border-radius:12px;background:color-mix(in srgb,var(--wb-accent) 10%,var(--wb-surface));color:var(--wb-accent)}
+#workspace-main .exam-count b{font-size:1.6rem;line-height:1;font-variant-numeric:tabular-nums}
+#workspace-main .exam-count span{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+#workspace-main .exam-row.is-past .exam-count{background:color-mix(in srgb,var(--wb-ink) 6%,var(--wb-surface));color:var(--wb-muted)}
+#workspace-main .exam-copy h3{margin:0;font-size:1rem}
+#workspace-main .exam-copy p{margin:2px 0 0;font-size:.85rem;color:var(--wb-muted)}
+#workspace-main .exam-copy .exam-notes{font-size:.8rem}
+#workspace-main .exam-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+#workspace-main .exam-actions button:not(#x){min-height:36px;padding:0 12px!important;font-size:.85rem!important;border-radius:10px!important}
+@media (max-width:760px){#workspace-main .exam-row{grid-template-columns:58px minmax(0,1fr)}#workspace-main .exam-actions{grid-column:1/-1;justify-content:flex-start}}
+#workspace-main .exams-empty{display:grid;justify-items:center;text-align:center;gap:8px;padding:24px 16px}
+#workspace-main .exams-empty p{margin:0;max-width:46ch;color:var(--wb-muted)}
+#workspace-main .exam-past>summary{cursor:pointer;font-weight:750;padding:8px 0}
+
+/* ── Settings: the sections as a side list on a wide screen (a row of tabs on a phone, as before). */
+@media (min-width:1000px){
+ #workspace-main .settings-groups{display:grid!important;grid-template-columns:220px minmax(0,1fr);gap:12px 20px;align-items:start}
+ #workspace-main .settings-groups>*{grid-column:2;min-width:0}
+ #workspace-main .settings-groups>nav.subject-section-tabs:not(#x){grid-column:1;grid-row:1/span 30;position:sticky;top:16px;display:grid!important;gap:2px;padding:6px!important;border:1px solid var(--wb-line)!important;border-radius:14px!important;background:var(--wb-surface)!important;overflow:visible!important;flex-wrap:nowrap}
+ #workspace-main .settings-groups>nav.subject-section-tabs:not(#x) button{justify-content:flex-start;text-align:left;min-height:40px;padding:0 12px!important;border-radius:10px!important;background:transparent!important;border:0!important;box-shadow:none!important;font-size:.92rem!important;font-weight:700!important;color:var(--wb-ink)!important;white-space:normal}
+ #workspace-main .settings-groups>nav.subject-section-tabs:not(#x) button[aria-current=page]{background:color-mix(in srgb,var(--wb-accent) 12%,var(--wb-surface))!important;color:var(--wb-accent)!important}
+}
+#workspace-main .settings-page-tools small{color:var(--wb-muted)}
+
+/* ── Subjects: a calm header band (no gradient or tape) over the subject's details. */
+#workspace-main [class*=subject-hero]:not(#x),#workspace-main [class*=subject-banner]:not(#x){background-image:none!important}
+/* Phones (default Coral and Sakura palettes): the brand row is light paper like the sidebar, and slimmer. */
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .mobile-desk-header:not(#x):not(#y){background:var(--wb-surface)!important;background-image:none!important;color:var(--wb-ink)!important;border-bottom:1px solid var(--wb-line)!important;box-shadow:none!important;padding-top:8px!important;padding-bottom:8px!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .mobile-desk-header:not(#x):not(#y) :is(h1,p,.brand-title-row){color:var(--wb-ink)!important;text-shadow:none!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .mobile-desk-header:not(#x):not(#y) p{color:var(--wb-muted)!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .mobile-desk-header:not(#x):not(#y) .mobile-profile-chip{box-shadow:none!important;border:1px solid var(--wb-line)!important}
+
+/* Star chart: add a chore for today (once, or on repeat) right in a kid's card. */
+.star-chore-add{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.star-chore-add input{flex:1 1 160px;min-height:38px;padding:6px 10px;border:1px solid var(--wb-line,#eadfd5);border-radius:10px;font:inherit}
+.star-chore-add select{min-height:38px;border-radius:10px;font:inherit}
+.star-chore-add button{min-height:38px;padding:0 14px}
+.star-chore-repeat{color:var(--wb-muted,#6c6170)}

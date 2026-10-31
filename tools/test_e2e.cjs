@@ -2004,7 +2004,7 @@ test('Share with a classmate: a student sends an exam from its editor to a conne
  await heading(page,'Sanctuary')
  assert.equal(await page.getByRole('region',{name:'Shared with you'}).count(),0,'nothing shared yet: no card')
  await go(page,'Exams')
- await page.locator('article').filter({hasText:'Cell biology test'}).first().getByRole('button',{name:'✎ Edit'}).click()
+ await page.getByRole('button',{name:'Edit Cell biology test'}).click()
  const editor=page.locator('dialog[open]')
  await editor.getByRole('button',{name:'Share with a classmate'}).click()
  const panel=editor.getByRole('region',{name:'Share with a classmate'})
