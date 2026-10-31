@@ -77,6 +77,7 @@ const StarChart=lazy(()=>import('./components/StarChart'))
 const MealPlan=lazy(()=>import('./components/MealPlan'))
 const Pickups=lazy(()=>import('./components/Pickups'))
 const FamilyTodos=lazy(()=>import('./components/FamilyTodos'))
+const ChoresDay=lazy(()=>import('./components/ChoresDay'))
 const TodoEditor=lazy(()=>import('./components/TodoEditor'))
 /** Holds the tour's place while its code loads, so nothing below jumps when it arrives. */
 const TourPlaceholder=()=><section className="wb-panel welcome-tour is-loading" aria-hidden="true"/>
@@ -140,7 +141,7 @@ import SwipeRow from './components/SwipeRow'
 import {uploadPendingPhotos} from './store/photoStore'
 import type {QuickAddGuess} from './store/quickAdd'
 import {readLinked} from './store/linkedCalendars'
-import {repeatFields,repeatLabel,skipTurn,tickTodo,todosOn} from './store/familyTodos'
+import {repeatFields,repeatLabel,skipTurn,tickTodo,todosOn,withChanges} from './store/familyTodos'
 import {rememberEvent} from './store/eventMemory'
 import type {TodoChanges,TodoOps} from './components/TodoEditor'
 import {currentPushSubscription} from './store/pushDevice'
@@ -816,7 +817,7 @@ function Workspace({store}:{store:Store}){
   tick:(id,on)=>{const t=todoNamed(id);if(!t)return;const next=tickTodo(t,localDate(),on)
    // A kid's chore earns its stars (store/choreStars); unticking takes them back.
    void run(()=>save(d=>{const cur=(d.familyTodos??[]).find(x=>x.id===id);if(!cur)return d;const after=tickTodo(cur,localDate(),on);return {...d,familyTodos:(d.familyTodos??[]).map(x=>x.id===id?after:x),starLog:starsAfterTick(d.starLog??[],cur,after)}}),next.done&&t.forKidId?'Done: “'+t.title+'”. ⭐ +'+starsOf(t)+' for '+(data.kids.find(k=>k.id===t.forKidId)?.name??'them')+'.':next.done?'Done: “'+t.title+'”.':t.done?'“'+t.title+'” is back on the list.':'Done: “'+t.title+'”. Next: '+dateLabel(next.due!)+'.',true)},
-  update:(id,changes)=>void run(()=>saveTodos(list=>list.map(x=>{if(x.id!==id)return x;return {id:x.id,profileId:x.profileId,done:x.done,...(x.doneAt?{doneAt:x.doneAt}:{}),title:changes.title,...(changes.forKidId&&changes.stars!==undefined&&changes.stars!==1?{stars:changes.stars}:{}),...(changes.forKidId?{forKidId:changes.forKidId}:{}),...(changes.due?{due:changes.due}:{}),...repeatFields(changes.repeat,changes.due)}})),'Saved “'+changes.title+'”.'),
+  update:(id,changes)=>void run(()=>saveTodos(list=>list.map(x=>x.id!==id?x:withChanges(x,changes))),'Saved “'+changes.title+'”.'),
   remove:id=>void run(()=>saveTodos(list=>list.filter(x=>x.id!==id)),'Removed “'+(todoNamed(id)?.title??'the to-do')+'”.',true),
   skip:(id,on)=>{const t=todoNamed(id);if(!t)return;const next=skipTurn(t,on);void run(()=>saveTodos(list=>list.map(x=>x.id===id?skipTurn(x,on):x)),'Skipped “'+t.title+'” on '+dateLabel(on)+'. Next: '+dateLabel(next.due!)+'.',true)},
   move:(id,date)=>void run(()=>saveTodos(list=>list.map(x=>x.id===id?{...x,due:date}:x)),'Moved “'+(todoNamed(id)?.title??'the to-do')+'” to '+dateLabel(date)+'.',true),
@@ -1218,6 +1219,7 @@ function Workspace({store}:{store:Store}){
       {quickDayOpen==='today'&&<QuickDayAdd date={today} dayName="today" subjects={subjects} onAdd={item=>quickDay(today,item)} onClose={()=>setQuickDayOpen(null)}/>}
       {(!familyHome||tasks.some(t=>t.due===today))&&<AssignmentProgress tasks={tasks} date={today} label="Today's" streak={currentStreak} week={{done:weekDone,total:weekTotal}}/>}{weeklyDayLabels(today).map(label=><p className="school-day-label" key={label}>{label}</p>)}
       <div className="today-schedule-list">{todayClasses.map(renderCompactClass)}</div>
+      {parentMode&&profileKids.length>0&&<Suspense fallback={null}><ChoresDay data={data} profileId={profile.id} date={today} today={today} kids={profileKids} shown={id=>personShown(id)} onTick={(id,on)=>todoOps.tick(id,on)}/></Suspense>}
       {todayLoose.length>0&&<div className="tomorrow-extra-list"><strong>Also today</strong>{todayLoose.map(e=>card(e.key,e.entry,false,true))}</div>}
       {!todayClasses.length&&!todayLoose.length&&<p className="today-card-empty"><img className="kono-empty-art" src="/garden/kono/tea.webp" alt="" aria-hidden="true"/>{season&&season.end<today?'Your schedule has ended. Update its dates in Settings.':'Nothing else on today.'}</p>}
      </div>
@@ -1226,6 +1228,7 @@ function Workspace({store}:{store:Store}){
       {quickDayOpen==='tomorrow'&&<QuickDayAdd date={tomorrow} dayName="tomorrow" subjects={subjects} onAdd={item=>quickDay(tomorrow,item)} onClose={()=>setQuickDayOpen(null)}/>}
       {(!familyHome||tasks.some(t=>t.due===tomorrow))&&<AssignmentProgress tasks={tasks} date={tomorrow} label="Tomorrow's"/>}{schoolDayLabels(data,tomorrow).map(label=><p className="school-day-label" key={label}>{label}</p>)}
       <div className="today-schedule-list">{tomorrowClasses.map(renderCompactClass)}</div>
+      {parentMode&&profileKids.length>0&&<Suspense fallback={null}><ChoresDay data={data} profileId={profile.id} date={tomorrow} today={today} kids={profileKids} shown={id=>personShown(id)} onTick={(id,on)=>todoOps.tick(id,on)}/></Suspense>}
       {tomorrowLoose.length>0&&<div className="tomorrow-extra-list"><strong>Also tomorrow</strong>{tomorrowLoose.map(e=>card(e.key,e.entry,false,true))}</div>}
       {!tomorrowClasses.length&&!tomorrowLoose.length&&<p className="today-card-empty"><img className="kono-empty-art" src="/garden/kono/sit.webp" alt="" aria-hidden="true"/>Nothing on tomorrow yet.</p>}
      </div>

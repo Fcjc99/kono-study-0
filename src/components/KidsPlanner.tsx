@@ -1,9 +1,10 @@
 import {Fragment,lazy,Suspense,useEffect,useRef,useState,type CSSProperties} from 'react'
 import {uid,type AppData,type FamilyTodo,type Kid,type Routine,type TodoRepeat} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
-import {CHORE_IDEAS,STARTER_ROUTINES,STICKERS,checkOf,choresOn,partOfDay,partPassed,pictureFor,routineFrom,sayTime,setSticker,sleepsUntil,stickersOn,tickStep,untickChore} from '../store/kidPlanner'
+import {STARTER_ROUTINES,STICKERS,checkOf,choresOn,partOfDay,partPassed,pictureFor,routineFrom,sayTime,setSticker,sleepsUntil,stickersOn,tickStep,untickChore} from '../store/kidPlanner'
 import {balance,starsAfterTick,starsOf} from '../store/choreStars'
-import {TODO_REPEATS,repeatFields,repeatLabel,tickTodo} from '../store/familyTodos'
+import {TODO_REPEATS,repeatFields,repeatLabel,tickTodo,withChanges} from '../store/familyTodos'
+import TodoEditor from './TodoEditor'
 import {classTime} from '../store/classSchedule'
 import Avatar from './Avatar'
 import KonoSprite from './KonoSprite'
@@ -30,7 +31,7 @@ export default function KidsPlanner({data,date,today,selectDate,items,kids,famil
  const pid=data.activeProfileId
  const people:Person[]=[{id:'',name:familyName,color:me?.color??'#8c7265',emoji:me?.emoji??(me?.photo?undefined:'👪'),photo:me?.photo},...kids.map(k=>({id:k.id,name:k.name,color:k.color,kid:k,emoji:k.emoji,photo:k.photo}))]
  const [timer,setTimer]=useState(false),[cheer,setCheer]=useState<{who:string;text:string;at:number}|null>(null),[adding,setAdding]=useState(''),[editing,setEditing]=useState('')
- const [choreFor,setChoreFor]=useState(''),[choreText,setChoreText]=useState(''),[choreRepeat,setChoreRepeat]=useState<TodoRepeat|''>(''),[earlier,setEarlier]=useState('')
+ const [choreFor,setChoreFor]=useState(''),[choreText,setChoreText]=useState(''),[choreRepeat,setChoreRepeat]=useState<TodoRepeat|''>(''),[earlier,setEarlier]=useState(''),[editChore,setEditChore]=useState('')
  // A cheer shows for a few seconds, then goes (so "Morning done!" doesn't stay after a step is unticked).
  useEffect(()=>{if(!cheer)return;const t=window.setTimeout(()=>setCheer(null),4500);return()=>window.clearTimeout(t)},[cheer])
  const [clock,setClock]=useState(nowClock)
@@ -111,13 +112,12 @@ export default function KidsPlanner({data,date,today,selectDate,items,kids,famil
     <section className="kids-chores" aria-label={p.name+'’s chores'}>
      <h4><span aria-hidden="true">✅</span> {p.id?'Chores':'To-dos'}<small>{chores.open.length?chores.open.length+' left':chores.done.length?'All done':''}</small></h4>
      {chores.open.length+chores.done.length>0&&<ul className="kids-chore-list">
-      {chores.open.map(t=><li key={t.id}><button type="button" className="kids-chore" aria-pressed="false" aria-label={'Done: '+t.title} onClick={()=>tickChore(t,p.id)}><span className="kids-chore-pic" aria-hidden="true">{pictureFor(t.title).replace('📌','⭐')}</span><span className="kids-chore-text"><b>{t.title}</b>{(t.repeat||(t.due&&t.due<date)||(p.id&&starsOf(t)>0))&&<small>{[p.id&&starsOf(t)>0?'+'+starsOf(t)+'⭐':'',t.due&&t.due<date&&!t.repeat?'from '+new Date(t.due+'T12:00:00').toLocaleDateString(undefined,{weekday:'long'}):t.repeat?'🔁 '+repeatLabel(t.repeat).toLowerCase():''].filter(Boolean).join(' · ')}</small>}</span><span className="kids-chore-box" aria-hidden="true"/></button></li>)}
+      {chores.open.map(t=>editChore===t.id&&!locked?<li key={t.id} className="kids-chore-editing"><TodoEditor todo={t} kids={kids} onCancel={()=>setEditChore('')} onDelete={()=>{setEditChore('');void save(d=>({...d,familyTodos:(d.familyTodos??[]).filter(x=>x.id!==t.id)}))}} onSave={changes=>{setEditChore('');void save(d=>({...d,familyTodos:(d.familyTodos??[]).map(x=>x.id===t.id?withChanges(x,changes):x)}))}}/></li>:<li key={t.id} className="kids-chore-row"><button type="button" className="kids-chore" aria-pressed="false" aria-label={'Done: '+t.title} onClick={()=>tickChore(t,p.id)}><span className="kids-chore-pic" aria-hidden="true">{pictureFor(t.title).replace('📌','⭐')}</span><span className="kids-chore-text"><b>{t.title}</b>{(t.repeat||(t.due&&t.due<date)||(p.id&&starsOf(t)>0))&&<small>{[p.id&&starsOf(t)>0?'+'+starsOf(t)+'⭐':'',t.due&&t.due<date&&!t.repeat?'from '+new Date(t.due+'T12:00:00').toLocaleDateString(undefined,{weekday:'long'}):t.repeat?'🔁 '+repeatLabel(t.repeat).toLowerCase():''].filter(Boolean).join(' · ')}</small>}</span><span className="kids-chore-box" aria-hidden="true"/></button>{!locked&&<button type="button" className="kids-chore-edit" aria-label={'Change '+t.title} onClick={()=>setEditChore(t.id)}>✎</button>}</li>)}
       {chores.done.map(t=><li key={t.id}><button type="button" className="kids-chore is-done" aria-pressed="true" aria-label={'Not done yet: '+t.title} onClick={()=>untick(t)}><span className="kids-chore-pic" aria-hidden="true">{pictureFor(t.title).replace('📌','⭐')}</span><span className="kids-chore-text"><b>{t.title}</b></span><span className="kids-chore-box" aria-hidden="true">✓</span></button></li>)}
      </ul>}
      {!locked&&(choreFor===key?<form className="kids-chore-add" onSubmit={e=>{e.preventDefault();addChore(p,choreText)}}>
-      <div className="kids-chore-add-row"><input autoFocus aria-label={'New chore for '+p.name} placeholder={(p.id?'A chore':'A to-do')+' for '+(date===today?'today':dayName)} value={choreText} maxLength={300} onChange={e=>setChoreText(e.target.value)}/><button type="submit" className="primary" disabled={!choreText.trim()}>Add</button></div>
+      <div className="kids-chore-add-row"><input autoFocus aria-label={'New chore for '+p.name} placeholder={(p.id?'Your chore':'Your to-do')+', e.g. '+(p.id?'Feed Biscuit':'Pay the water bill')} value={choreText} maxLength={300} onChange={e=>setChoreText(e.target.value)}/><button type="submit" className="primary" disabled={!choreText.trim()}>Add</button></div>
       <div className="kids-chore-repeat" role="group" aria-label="How often">{([['','Just '+(date===today?'today':dayName)],...TODO_REPEATS.slice(0,2).map(r=>[r.id,r.label])] as [TodoRepeat|'',string][]).map(([id,label])=><button type="button" key={id||'once'} aria-pressed={choreRepeat===id} onClick={()=>setChoreRepeat(id)}>{label}</button>)}</div>
-      <div className="kids-chore-ideas" role="group" aria-label="Quick ideas">{CHORE_IDEAS[p.id?'kid':'grownup'].filter(t=>!chores.open.some(c=>c.title===t)).map(t=><button type="button" key={t} onClick={()=>addChore(p,t)}><span aria-hidden="true">{pictureFor(t)}</span> {t}</button>)}</div>
       <button type="button" className="link-button kids-chore-close" onClick={()=>{setChoreFor('');setChoreText('')}}>Close</button>
      </form>:<button type="button" className="kids-chore-new" onClick={()=>{setChoreFor(key);setChoreText('');setChoreRepeat('')}}>＋ Add {p.id?'a chore':'a to-do'}</button>)}
      {locked&&!chores.open.length&&!chores.done.length&&<p className="kids-chore-none">No chores {date===today?'today':'this day'}.</p>}

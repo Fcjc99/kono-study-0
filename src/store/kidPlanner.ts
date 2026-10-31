@@ -118,8 +118,3 @@ export function untickChore(t: FamilyTodo, date: string): FamilyTodo {
   return t.done ? { ...rest, done: false } : { ...rest, due: date }
 }
 
-/** One-tap chores to add for the day. */
-export const CHORE_IDEAS: Record<'kid' | 'grownup', string[]> = {
-  kid: ['Tidy room', 'Set the table', 'Feed the pet', 'Put laundry away', 'Read 20 minutes'],
-  grownup: ['Laundry', 'Dishes', 'Trash night', 'Water the plants'],
-}
