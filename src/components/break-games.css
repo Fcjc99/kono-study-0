@@ -825,3 +825,22 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 .cove-steps i.is-on{animation:cove-lamp 1s ease-in-out infinite alternate}
 @keyframes cove-lamp{to{box-shadow:0 0 16px #ffe14d,0 0 4px #fff}}
 @media(prefers-reduced-motion:reduce){.cove-event.is-big,.cove-steps i.is-on{animation:none}.cove-flash{display:none}}
+/* A compact backboard so the cabinet fits a phone */
+.cove-board{padding:6px 12px 6px;gap:4px 8px}
+.cove-jp b{font-size:1.7rem}
+.cove-reels span{width:50px;height:42px;font-size:1.6rem}
+.cove-steps i{width:13px;height:13px}
+.cove-steps{grid-template-columns:repeat(5,auto)}
+.cove-pockets small{white-space:nowrap}
+.cove-stage{height:min(calc(100dvh - 340px),600px)}
+/* The backboard sits over the top of the cabinet view */
+.cove-stage .cove-board{position:absolute;z-index:2;top:8px;left:8px;right:60px;grid-template-columns:auto 1fr auto;grid-template-areas:'steps jp pockets' 'reels reels reels';padding:6px 10px;border-radius:16px;background:linear-gradient(rgb(107 69 41/.92),rgb(58 35 22/.92));border-width:2px}
+.cove-stage .cove-queue{display:none}
+.cove-stage .cove-reels span{width:40px;height:34px;font-size:1.25rem}
+.cove-stage .cove-jp b{font-size:1.4rem}
+.cove-stage{height:min(calc(100dvh - 230px),640px)}
+.cove-stage .cove-event{top:34%}
+.cove-stage{height:min(calc(100dvh - 210px),640px)}
+.medal-cove>.blast-help{font-size:.78rem;margin:0}
+@media(max-width:600px){.medal-cove>.blast-help{display:none}.cove-stage{height:calc(100dvh - 150px)}}
+.cove-stage .cove-board{width:auto}

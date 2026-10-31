@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import {RoomEnvironment} from 'three/examples/jsm/environments/RoomEnvironment.js'
 import RAPIER from '@dimforge/rapier3d-compat'
 import {BloomEffect,EffectComposer,EffectPass,RenderPass,SMAAEffect} from 'postprocessing'
-import {CHANCE_POCKETS,DISH,FIELD,LAMPS,POCKETS,busy,drop,isWinPocket,newCove,pocket,settle,spawned,step,type Cove,type Reel} from '../store/pusher'
+import {BANK_START,CHANCE_POCKETS,DISH,FIELD,LAMPS,POCKETS,WHEELS,WHEEL_FRAMES,busy,drop,isWinPocket,newCove,pocket,settle,spawned,step,type Cove,type Reel} from '../store/pusher'
 import {gameSound} from '../konoSounds'
 import {fx} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
@@ -29,14 +29,14 @@ const PINS:[number,number][]=[];for(let row=0;row<5;row++)for(let col=-4;col<=4;
 const POCKET_FACE=['🏮','⭐','🗼']
 const wx=(x:number)=>(x-50)*U,wz=(y:number)=>y*U-6
 const REEL_FACES:Reel[]=['🪙','🗼','🔮','⭐','🐚','🌺']
-const VIEWS=[{yaw:0,pitch:0.56,dist:14},{yaw:0,pitch:1.0,dist:13},{yaw:0.55,pitch:0.48,dist:14},{yaw:-0.55,pitch:0.48,dist:14}]
+const VIEWS=[{yaw:0,pitch:0.5,dist:15},{yaw:0,pitch:0.95,dist:14},{yaw:0.55,pitch:0.45,dist:15},{yaw:-0.55,pitch:0.45,dist:15}]
 
 type Piece={body:RAPIER.RigidBody;ball:boolean;counted:number;board:boolean}
 
 export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;best:number|null;sound:boolean;onEnd:(medals:number,jackpots:number)=>void}){
  const [start]=useState<Cove>(()=>newCove(Math.random,100,true))
  const cove=useRef<Cove>(start),host=useRef<HTMLDivElement>(null),aim=useRef(50),holding=useRef(false),lastDrop=useRef(0)
- const [hud,setHud]=useState({hand:start.hand,jp:start.jackpot,steps:0,pockets:1,queue:0,event:'',big:false,reels:['🌺','🌺','🌺'] as string[],spinning:false,ready:false})
+ const [hud,setHud]=useState({hand:start.hand,jp:start.jackpot,steps:0,pockets:1,queue:0,event:'',big:false,bank:BANK_START,reels:['🌺','🌺','🌺'] as string[],spinning:false,ready:false})
  const [view,setView]=useState(0),viewRef=useRef(0),hudReels=useRef<string[]>(['🌺','🌺','🌺'])
  const ended=useRef(false),onEndRef=useRef(onEnd),soundRef=useRef(sound),quiet=useRef(0),ready=useRef(false)
  useEffect(()=>{onEndRef.current=onEnd;soundRef.current=sound},[onEnd,sound])
@@ -140,6 +140,18 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
    sPos.set([x,y,z],i*3);sVel.set([Math.cos(a)*r*v,Math.abs(u)*v+speed*0.6,Math.sin(a)*r*v],i*3);const col=palette[k%palette.length];sCol.set([col.r,col.g,col.b],i*3);sLife[i]=0.9+Math.random()*0.8}}
   const GOLD=[new THREE.Color(2.6,1.9,0.5),new THREE.Color(2.2,1.5,0.3)],CONFETTI=[new THREE.Color(2.6,0.6,0.7),new THREE.Color(2.6,2,0.4),new THREE.Color(0.5,1.6,2.8),new THREE.Color(0.7,2.4,1),new THREE.Color(2,0.9,2.6)]
   const POCKET_SPARK=[[new THREE.Color(2.8,0.9,0.6)],[new THREE.Color(2.8,2.2,0.5)],[new THREE.Color(0.6,1.8,2.8)]]
+  // The three mini wheels on top of the pin board, one for each pocket, in its colors.
+  const WHEEL_X=[-2.35,0,2.35],WHEEL_Y=BTOP+1.05
+  const miniWheels=WHEELS.map((segs,i)=>{const g=new THREE.Group();g.position.set(WHEEL_X[i],WHEEL_Y,BZ-0.05);scene.add(g)
+   const disc=new THREE.Mesh(new THREE.CircleGeometry(0.62,48),new THREE.MeshStandardMaterial({map:wheelSegTexture(segs,i),emissive:'#ffffff',emissiveMap:wheelSegTexture(segs,i),emissiveIntensity:.35,roughness:.5}));g.add(disc)
+   const rim=new THREE.Mesh(new THREE.TorusGeometry(0.64,0.05,8,40),new THREE.MeshStandardMaterial({color:'#ffe08a',metalness:.9,roughness:.25,emissive:'#ffb000',emissiveIntensity:.4}));g.add(rim)
+   const hub=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,0.08,16),new THREE.MeshStandardMaterial({color:'#fff',metalness:.8,roughness:.2}));hub.rotation.x=Math.PI/2;hub.position.z=0.03;g.add(hub)
+   const tick=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.22,12),new THREE.MeshStandardMaterial({color:'#fff',emissive:'#ff5a7a',emissiveIntensity:1.5}));tick.rotation.z=Math.PI;tick.position.set(0,0.74,0.05);g.add(tick)
+   return {g,disc,rim,angle:0,from:0,spinAt:-1,flash:0}})
+  // The giant tower: a column of medals behind the board that grows with every layer won.
+  const GIANT_MAX=60
+  const giant=new THREE.InstancedMesh(new THREE.CylinderGeometry(R*1.25,R*1.25,HALF*2.2,26),new THREE.MeshStandardMaterial({color:'#ffd24a',metalness:1,roughness:.3,map:coinFace(),envMapIntensity:1.4,emissive:'#4a3000',emissiveIntensity:.25}),GIANT_MAX);giant.castShadow=true;scene.add(giant)
+  const giantBase=new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.72,0.2,24),new THREE.MeshStandardMaterial({color:'#2f6fb3',roughness:.4}));giantBase.position.set(0,BTOP+1.85,BZ-0.6);scene.add(giantBase)
   // ---- The physics world ----
   const world=new RAPIER.World({x:0,y:-22,z:0})
   world.integrationParameters.numSolverIterations=4
@@ -175,7 +187,7 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   const orbit={yaw:VIEWS[0].yaw,pitch:VIEWS[0].pitch,dist:VIEWS[0].dist,dragYaw:0,dragPitch:0}
   const placeCamera=()=>{const v=VIEWS[viewRef.current]
    orbit.yaw+=(v.yaw+orbit.dragYaw-orbit.yaw)*0.12;orbit.pitch+=(Math.max(0.25,Math.min(1.25,v.pitch+orbit.dragPitch))-orbit.pitch)*0.12;orbit.dist+=(v.dist-orbit.dist)*0.12
-   camera.position.set(Math.sin(orbit.yaw)*Math.cos(orbit.pitch)*orbit.dist,Math.sin(orbit.pitch)*orbit.dist,Math.cos(orbit.yaw)*Math.cos(orbit.pitch)*orbit.dist+0.5);camera.lookAt(0,1.5,-0.6)}
+   camera.position.set(Math.sin(orbit.yaw)*Math.cos(orbit.pitch)*orbit.dist,Math.sin(orbit.pitch)*orbit.dist,Math.cos(orbit.yaw)*Math.cos(orbit.pitch)*orbit.dist+0.5);camera.lookAt(0,2.2,-1.2)}
   const resize=()=>{const w=el.clientWidth,h=el.clientHeight;renderer.setSize(w,h,false);composer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w/h<0.8?52:42;camera.updateProjectionMatrix()}
   resize();const ro=new ResizeObserver(resize);ro.observe(el)
   // ---- Touch ----
@@ -214,7 +226,8 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
     for(const m of c.medals){if(m.y<0)addCoin(Math.max(-4.5,Math.min(4.5,wx(m.x)+(Math.random()-.5)*0.08)),BTOP+0.3,BZ,false,(Math.random()-.5)*3,true);else addCoin(wx(m.x),1.6+Math.random()*1.4,wz(m.y),!!m.ball,(Math.random()-.5)*4)}
     c=spawned(c)
     // A tower stands as a real stack, a little in front of the pusher, until it's knocked over.
-    for(const t of c.towers)if(!builtTowers.has(t.at)){builtTowers.add(t.at);for(let i=0;i<t.n;i++)addCoin(wx(t.x)+Math.cos(i*0.55)*0.035,0.06+i*0.112,wz(c.pusher+9)+Math.sin(i*0.55)*0.035);emit(wx(t.x),1.5,wz(c.pusher+9),40,GOLD,2.5)}
+    for(const t of c.towers)if(!builtTowers.has(t.at)){builtTowers.add(t.at);const cols=Math.ceil(t.n/22),per=Math.ceil(t.n/cols)
+      for(let k=0;k<cols;k++){const cx=cols===1?wx(t.x):(k-(cols-1)/2)*0.78,cz=wz(c.pusher+9)+(k%2)*0.5;for(let i=0;i<per&&k*per+i<t.n;i++)addCoin(cx+Math.cos(i*0.55)*0.035,0.06+i*0.112+(cols>1?1.2:0),cz+Math.sin(i*0.55)*0.035);emit(cx,1.6,cz,cols>1?60:40,GOLD,cols>1?4:2.5)}}
     // The pusher moves, the world steps.
     pusherBody.setNextKinematicTranslation({x:0,y:0.3,z:wz(c.pusher)-3})
     world.step()
@@ -248,6 +261,17 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
     m4.compose(v3.set(t.x,t.y,t.z),q.set(r.x,r.y,r.z,r.w),s3)
     if(p.ball){if(b<16)balls.setMatrixAt(b++,m4)}else if(n<MAX)coins.setMatrixAt(n++,m4)}
    coins.count=n;coins.instanceMatrix.needsUpdate=true;balls.count=b;balls.instanceMatrix.needsUpdate=true
+   // The mini wheels spin down onto their segment; the giant tower stands as high as it's grown.
+   miniWheels.forEach((w,i)=>{const sp=c.wheels?.[i]
+    if(sp&&sp.at!==w.spinAt){w.spinAt=sp.at;w.from=w.angle;fx('charge',soundRef.current)}
+    if(sp){const t=Math.min(1,(f-sp.at)/WHEEL_FRAMES),target=sp.seg*Math.PI/4,base=w.from-(w.from%(Math.PI*2)),end=base+Math.PI*2*4+target
+     w.angle=w.from+(end-w.from)*(1-(1-t)**3);if(t>=1&&w.flash<0.5){w.flash=1;emit(WHEEL_X[i],WHEEL_Y,BZ+0.3,26,POCKET_SPARK[i],2)}}
+    else w.angle+=0.004
+    w.disc.rotation.z=w.angle;w.flash=Math.max(0,w.flash-0.02);(w.rim.material as THREE.MeshStandardMaterial).emissiveIntensity=0.4+w.flash*3+(sp?0.6*Math.abs(Math.sin(f/4)):0)
+    if(!sp&&w.flash<0.02)w.flash=0})
+   const bank=c.bank??BANK_START,gn=Math.min(GIANT_MAX,Math.round(bank/2))
+   for(let i=0;i<gn;i++){m4.compose(v3.set(Math.cos(i*0.5)*0.04,BTOP+1.98+i*0.124,BZ-0.6+Math.sin(i*0.5)*0.04),q.setFromEuler(new THREE.Euler(0,i*0.4,0)),s3);giant.setMatrixAt(i,m4)}
+   giant.count=gn;giant.instanceMatrix.needsUpdate=true
    // The show.
    const party=show.party>0;show.party=Math.max(0,show.party-1);show.shake*=0.92
    bulbSpots.forEach((_,i)=>{const on=party?((i+Math.floor(f/3))%2===0):((i+Math.floor(f/5))%5===0);bulbs.setColorAt(i,on?BULB[(i+Math.floor(f/(party?6:40)))%3]:dim)});if(bulbs.instanceColor)bulbs.instanceColor.needsUpdate=true
@@ -273,7 +297,7 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
    if(now-lastHud>120||c.spinning){lastHud=now
     const reels=c.spinning?[0,1,2].map(i=>f-c.spinning!.at<40+i*25?REEL_FACES[Math.floor((f+i*3)/3)%6]:c.spinning!.reels[i]):hudReels.current
     if(c.spinning)hudReels.current=reels
-    setHud(h=>h.hand===c.hand&&h.jp===c.jackpot&&h.steps===c.steps&&h.pockets===c.winPockets&&h.queue===c.queue&&h.reels.join()===reels.join()&&h.spinning===!!c.spinning?h:{...h,hand:c.hand,jp:c.jackpot,steps:c.steps,pockets:c.winPockets,queue:c.queue,reels,spinning:!!c.spinning})}
+    setHud(h=>h.bank===(c.bank??BANK_START)&&h.hand===c.hand&&h.jp===c.jackpot&&h.steps===c.steps&&h.pockets===c.winPockets&&h.queue===c.queue&&h.reels.join()===reels.join()&&h.spinning===!!c.spinning?h:{...h,bank:c.bank??BANK_START,hand:c.hand,jp:c.jackpot,steps:c.steps,pockets:c.winPockets,queue:c.queue,reels,spinning:!!c.spinning})}
    if(c.hand<=0&&!busy(c)){quiet.current+=1;if(quiet.current>300&&!ended.current){ended.current=true;onEndRef.current(c.hand,c.jpWins)}}else quiet.current=0
    raf=requestAnimationFrame(loop)
   }
@@ -292,21 +316,21 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
 
  useEffect(()=>{if(!hud.event)return;const t=window.setTimeout(()=>setHud(h=>({...h,event:''})),2200);return()=>window.clearTimeout(t)},[hud.event])
  return <div className="break-game medal-cove">
-  <div className="cove-board" aria-label="Backboard">
-   <div className="cove-steps" aria-label={hud.steps+' of '+LAMPS+' lamps'}>{Array.from({length:LAMPS},(_,i)=><i key={i} className={i<hud.steps?'is-on':undefined}/>)}<small>💡 lamps → BIG BONUS</small></div>
+  <div ref={host} className="cove-stage" role="img" aria-label={'KONO Medal Cove: '+hud.hand+' medals, jackpot '+hud.jp}>
+   <div className="cove-board" aria-label="Backboard">
+   <div className="cove-steps" aria-label={hud.steps+' of '+LAMPS+' lamps'}>{Array.from({length:LAMPS},(_,i)=><i key={i} className={i<hud.steps?'is-on':undefined}/>)}<small>💡 lamps</small></div>
    <div className="cove-jp"><small>JACKPOT</small><b>{hud.jp}</b></div>
-   <div className="cove-pockets"><b>🎯 {hud.pockets}/{CHANCE_POCKETS}</b><small>{best!==null?'Best '+best:'JP pockets'}</small></div>
+   <div className="cove-pockets"><b>🗼 {hud.bank}</b><small>giant tower</small><small>🎯 {hud.pockets}/{CHANCE_POCKETS} JP{best!==null?' · best '+best:''}</small></div>
    <div className={'cove-reels'+(hud.spinning?' is-spinning':'')} aria-label={'Lottery: '+hud.reels.join(' ')}>{hud.reels.map((r,i)=><span key={i}>{r}</span>)}</div>
    <div className="cove-queue" aria-label={hud.queue+' spins waiting'}>{Array.from({length:4},(_,i)=><i key={i} className={i<hud.queue?'is-on':undefined}/>)}</div>
   </div>
-  <div ref={host} className="cove-stage" role="img" aria-label={'KONO Medal Cove: '+hud.hand+' medals, jackpot '+hud.jp}>
    {!hud.ready&&<p className="cove-loading" role="status">Filling the machine with medals…</p>}
    {hud.event&&<p key={hud.event} className={'cove-event'+(hud.big?' is-big':'')} role="status">{hud.event}</p>}
    {hud.event&&hud.big&&<span key={'f'+hud.event} className="cove-flash" aria-hidden="true"/>}
    <button type="button" className="cove-view" aria-label="Change the camera" onClick={()=>setView(v=>(v+1)%VIEWS.length)}>🎥</button>
    <span className="cove-hand" aria-hidden="true">🪙 {hud.hand}</span>
   </div>
-  <p className="blast-help">Touch to aim along the top of the pin board and tap to drop (hold to keep dropping). Medals bounce down the pins into a pocket: 🏮 spins the lottery, ⭐ lights a lamp (5 lamps: BIG BONUS), 🗼 builds a medal tower. Drag around the edges to look around.</p>
+  <p className="blast-help">Touch to aim along the top of the pin board and tap to drop (hold to keep dropping). Medals bounce down the pins into a pocket, and its mini wheel spins: medals, giant-tower layers, a prize ball, a lamp or a lottery spin. Light all 5 lamps for the BIG BONUS: the giant tower comes down! Drag around the edges to look around.</p>
  </div>
 }
 
@@ -339,3 +363,10 @@ function emojiTexture(e:string){const [c,g]=canvas(128,128);g.font='96px system-
 function stripeTexture(){const [c,g]=canvas(64,256);for(let i=0;i<8;i++){g.fillStyle=i%2?'#f6f1e7':'#d8443a';g.fillRect(0,i*32,64,32)}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
 function sparkTexture(){const [c,g]=canvas(64,64);const grad=g.createRadialGradient(32,32,0,32,32,32);grad.addColorStop(0,'rgba(255,255,255,1)');grad.addColorStop(.25,'rgba(255,255,255,.8)');grad.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=grad;g.fillRect(0,0,64,64)
  g.strokeStyle='rgba(255,255,255,.9)';g.lineWidth=2;g.beginPath();g.moveTo(32,4);g.lineTo(32,60);g.moveTo(4,32);g.lineTo(60,32);g.stroke();return new THREE.CanvasTexture(c)}
+function wheelSegTexture(segs:{label:string;kind:string}[],w:number){const [c,g]=canvas(256,256),n=segs.length,cx=128,cy=128,r=126
+ const pal=[['#ff6b5e','#ffb3a8'],['#ffd34d','#fff0b8'],['#4fb3ff','#b9e2ff']][w]
+ segs.forEach((sg,k)=>{const a0=-Math.PI/2+k*2*Math.PI/n-Math.PI/n,a1=a0+2*Math.PI/n
+  g.fillStyle=sg.kind==='lamp'?'#fff3a0':sg.kind==='ball'?'#c8a8ff':sg.kind==='layers'?'#9fe0ff':pal[k%2];g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,r,a0,a1);g.closePath();g.fill();g.strokeStyle='#5a3a24';g.lineWidth=3;g.stroke()
+  g.save();g.translate(cx,cy);g.rotate((a0+a1)/2+Math.PI/2);g.fillStyle='#2b1a3a';g.font='bold '+(sg.label.length>6?15:20)+'px system-ui';g.textAlign='center'
+  g.fillText(sg.kind==='lamp'?'💡':sg.kind==='ball'?'🔮':sg.kind==='spin'?'🎰':sg.kind==='layers'?'🗼':'🪙',0,-r+30);g.fillText(sg.label.replace(' layers',' L').replace(' layer',' L'),0,-r+54);g.restore()})
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}

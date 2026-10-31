@@ -50,15 +50,24 @@ await test('Jackpot Chance: a miss pays a little, grows the jackpot and adds a w
  assert.equal(P.busy(d),true)
  assert.equal(coins.gameCoins('cove',80),10);assert.equal(coins.gameCoins('cove',0),0)
 })
-await test('the pin board: a drop goes in at the top; the 🏮 pocket spins the lottery, ⭐ lights a lamp (the fifth is the BIG BONUS), 🗼 builds a tower (three at most)',()=>{
+await test('the pin board: a drop goes in at the top; each pocket spins its own mini wheel (up to 3 waiting): medals, layers for the giant tower, a ball, a lamp or a lottery spin; 5 lamps bring the giant tower down',()=>{
  let c=P.newCove(rnd,100,true);assert.equal(c.medals.length,0,'the physics engine builds the pile')
- c=P.drop(c,30,rnd);assert.equal(c.hand,99);assert.equal(c.medals[0].y,-1,'in at the top of the board');assert.equal(c.queue,0,'the board, not the aim, decides')
- c=P.spawned(c);assert.equal(c.medals.length,0)
- c=P.pocket(c,'spin',rnd);assert.equal(c.queue,1);assert.equal(c.jackpot,P.JP_START+1)
- for(let i=0;i<P.LAMPS-1;i++)c=P.pocket(c,'lamp',rnd);assert.equal(c.steps,P.LAMPS-1)
- const before=c.medals.length;c=P.pocket(c,'lamp',rnd);assert.equal(c.steps,0);assert.ok(c.medals.length>=before+21,'BIG BONUS: a shower and a ball');assert.equal(c.towers.length,1,'and a tower')
- c=P.pocket(c,'tower',rnd);c=P.pocket(c,'tower',rnd);assert.equal(c.towers.length,3);c=P.pocket(c,'tower',rnd);assert.equal(c.towers.length,3,'three towers at most')
- c=P.settle(c,5,1,1);assert.equal(c.won,5);assert.equal(c.lost,1);assert.equal(c.dishQueue,1);assert.equal(c.hand,c.hand)
+ c=P.drop(c,30,rnd);assert.equal(c.hand,99);assert.equal(c.medals[0].y,-1,'in at the top of the board');c=P.spawned(c)
+ c=P.pocket(c,'tower');assert.equal(c.wheelQueue[2],1);assert.equal(c.jackpot,P.JP_START+1)
+ for(let i=0;i<5;i++)c=P.pocket(c,'tower');assert.equal(c.wheelQueue[2],3,'three spins at most wait')
+ c=run(c,1);assert.ok(c.wheels[2],'the 🗼 wheel spins');assert.equal(c.wheelQueue[2],2)
+ assert.equal(P.WHEELS.length,3);for(const w of P.WHEELS){assert.equal(w.length,8);assert.ok(w.some(s=>s.kind==='layers')&&w.some(s=>s.kind==='ball')&&w.some(s=>s.kind==='lamp'),'every wheel mixes layers, a ball and a lamp')}
+ // Each prize, forced: land the wheel on a segment and let it stop.
+ const land=(c,i,k)=>{const seg=P.WHEELS[i].findIndex(s=>s.kind===k);c={...c,wheels:c.wheels.map((w,j)=>j===i?{seg,at:c.frame-P.WHEEL_FRAMES}:w),wheelQueue:[0,0,0]};return P.step(c,rnd)}
+ let d=P.newCove(rnd,100,true);const bank=d.bank
+ d=land(d,2,'layers');assert.ok(d.bank>bank,'layers grow the giant tower');assert.match(d.events.at(-1).text,/giant tower grows/)
+ d=land(d,0,'medals');assert.ok(d.medals.length>0,'medals rain onto the field')
+ d=P.spawned(d);d=land(d,1,'ball');assert.ok(d.medals.some(m=>m.ball),'a prize ball')
+ d=land(d,0,'spin');assert.equal(d.queue+(d.spinning?1:0),1,'a lottery spin')
+ const grown=d.bank;d={...d,steps:P.LAMPS-1};d=land(d,1,'lamp')
+ assert.equal(d.steps,0);assert.equal(d.bank,P.BANK_START,'the tower starts again');assert.ok(d.towers.some(t=>t.n===grown),'5 lamps: the giant tower comes down with every medal banked');assert.match(d.events.at(-1).text,/BIG BONUS/)
+ assert.equal(P.busy(P.pocket(P.newCove(rnd,0,true),'spin')),true,'a waiting wheel spin keeps the round going')
+ c=P.settle(c,5,1,1);assert.equal(c.won,5);assert.equal(c.lost,1);assert.equal(c.dishQueue,1)
 })
 console.log(passed+'/5 KONO Medal Cove groups passed.')
 })().catch(error=>{console.error('FAIL',error);process.exit(1)})
