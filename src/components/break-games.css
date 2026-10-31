@@ -743,3 +743,68 @@ dialog.game-screen.game-screen.game-screen>header button:is(.game-screen-tool,.g
 dialog.game-screen.game-screen.game-screen:has(.meow)>header button:is(.game-screen-tool,.game-screen-leave):not(#x):not(#y){background:rgb(255 255 255/.72)!important;color:#5a2350!important;border-color:rgb(255 255 255/.9)!important}
 dialog.game-screen:has(.meow)>header strong{color:#5a2350}
 dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.game-screen:has(.meow)>header strong{text-shadow:none}
+
+/* ---- KONO Stack: pancakes on a plate, the sky climbing from morning to a starry night ---- */
+.kono-stack{display:grid;gap:10px;justify-items:center;width:min(440px,100%);margin:0 auto}
+.stack-frame{position:relative;width:100%;height:min(62vh,560px);border-radius:24px;overflow:hidden;cursor:pointer;touch-action:manipulation;user-select:none;
+ background:linear-gradient(180deg,#8fd3ff,#cdeeff 60%,#fff4dc);box-shadow:inset 0 0 0 2px rgb(255 255 255/.5),0 12px 30px rgb(10 20 60/.35)}
+.stack-frame::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#ff8a6b,#ffc28a 55%,#ffe2b0);opacity:calc(min(1,var(--sky,0)*2));transition:opacity 1s}
+.stack-frame::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#120a3a,#3a2370 60%,#7a4a8a);opacity:calc(max(0,var(--sky,0)*2 - 1));transition:opacity 1s}
+.stack-stars{position:absolute;inset:0;z-index:1;opacity:calc(max(0,var(--sky,0)*2 - 1));background-image:radial-gradient(1.5px 1.5px at 20% 15%,#fff 50%,transparent),radial-gradient(1px 1px at 70% 25%,#fff 50%,transparent),radial-gradient(1.5px 1.5px at 40% 40%,#fff 50%,transparent),radial-gradient(1px 1px at 85% 55%,#fff 50%,transparent),radial-gradient(1.5px 1.5px at 10% 60%,#fff 50%,transparent),radial-gradient(1px 1px at 55% 8%,#fff 50%,transparent)}
+.stack-world{position:absolute;inset:0;z-index:2;transition:transform .35s cubic-bezier(.3,.8,.4,1)}
+.stack-plate{position:absolute;left:12%;right:12%;bottom:12px;height:18px;border-radius:50%;background:radial-gradient(ellipse at 50% 30%,#fff,#dfe6f0 60%,#b8c3d4);box-shadow:0 4px 10px rgb(0 0 0/.25)}
+.stack-cake{position:absolute;height:22px;border-radius:11px;box-shadow:inset 0 -2px 0 rgb(120 60 10/.25),0 2px 3px rgb(80 40 10/.25)}
+.stack-cake i{position:absolute;left:50%;top:-14px;translate:-50% 0;font-style:normal;font-size:18px;filter:drop-shadow(0 1px 1px rgb(0 0 0/.3))}
+.stack-cake.is-base{box-shadow:inset 0 -2px 0 rgb(120 60 10/.25),0 2px 3px rgb(80 40 10/.25),0 -1px 0 #fff8 inset}
+.stack-cake.is-moving{box-shadow:0 10px 14px rgb(40 20 0/.2)}
+.stack-cake.is-cut{animation:stack-fall .9s cubic-bezier(.4,0,.9,.6) forwards;pointer-events:none}
+.stack-cake.is-cut.is-left{--spin:-35deg;--dx:-30px}.stack-cake.is-cut.is-right{--spin:35deg;--dx:30px}
+@keyframes stack-fall{to{translate:var(--dx) 420px;rotate:var(--spin);opacity:0}}
+.stack-kono{position:absolute;width:44px;height:44px;object-fit:contain;transition:left .25s,bottom .25s;filter:drop-shadow(0 2px 2px rgb(0 0 0/.25));pointer-events:none}
+.stack-kono.is-hop{animation:stack-hop .45s cubic-bezier(.3,1.6,.5,1)}
+.stack-kono.is-oops{transform:rotate(-18deg)}
+@keyframes stack-hop{40%{translate:0 -22px}}
+.stack-score{position:absolute;z-index:3;top:14px;left:0;right:0;text-align:center;font-size:3rem;font-weight:900;color:#fff;-webkit-text-stroke:2px rgb(60 30 80/.55);text-shadow:0 3px 0 rgb(60 30 80/.35);animation:kids-pop .3s}
+.stack-call{position:absolute;z-index:3;top:84px;left:0;right:0;text-align:center;font-weight:900;font-size:1.3rem;color:#fff6b0;text-shadow:0 2px 0 #b5531f,0 0 12px #ff9d3d;animation:stack-call .9s ease-out forwards}
+@keyframes stack-call{from{transform:scale(.6);opacity:0}25%{transform:scale(1.1);opacity:1}to{transform:translateY(-20px);opacity:0}}
+.stack-hint{position:absolute;z-index:3;left:0;right:0;top:42%;margin:0;display:grid;justify-items:center;gap:2px;color:#3b2a6b;pointer-events:none}
+.stack-hint b{font-size:1.5rem;font-weight:900;animation:stack-pulse 1.2s ease-in-out infinite}
+.stack-hint span{font-weight:700;opacity:.8}
+@keyframes stack-pulse{50%{transform:scale(1.08)}}
+
+/* ---- Snack sort: a pantry shelf of glass jars ---- */
+.snack-sort{display:grid;gap:12px;justify-items:center;width:min(520px,100%);margin:0 auto}
+.sort-shelf{display:grid;gap:14px 10px;width:100%;padding:18px 14px 22px;border-radius:24px;background:linear-gradient(180deg,#fff7ea,#ffe8cc);box-shadow:inset 0 -14px 0 #d9a46b,inset 0 -18px 0 #b9824a,0 12px 30px rgb(60 30 0/.3)}
+.sort-jar:not(#x):not(#y){position:relative;display:grid;justify-items:center;gap:0;padding:6px 0 0!important;min-height:0!important;border:0!important;background:none!important;box-shadow:none!important;cursor:pointer;transition:translate .15s}
+.sort-lid{width:72%;height:10px;border-radius:5px 5px 2px 2px;background:linear-gradient(#e7b56a,#b57a34);opacity:0;translate:0 -10px;transition:opacity .25s,translate .25s cubic-bezier(.3,1.6,.5,1)}
+.sort-jar.is-full .sort-lid{opacity:1;translate:0 0}
+.sort-glass{display:flex;flex-direction:column-reverse;justify-content:flex-start;gap:2px;width:min(64px,100%);height:min(186px,32vh);padding:6px 4px;border-radius:10px 10px 22px 22px;background:linear-gradient(90deg,rgb(255 255 255/.75),rgb(220 240 255/.35) 40%,rgb(255 255 255/.6));border:2.5px solid rgb(150 180 210/.9);box-shadow:inset 0 -6px 10px rgb(150 180 210/.25)}
+.sort-slot{flex:1;display:grid;place-items:center;font-size:clamp(1.2rem,5.5vw,1.9rem);line-height:1;transition:translate .18s cubic-bezier(.3,1.5,.5,1)}
+.sort-slot.is-up{translate:0 -18px;filter:drop-shadow(0 6px 3px rgb(0 0 0/.2))}
+.sort-jar.is-held .sort-glass{border-color:#ff9d3d;box-shadow:0 0 0 3px rgb(255 157 61/.35),inset 0 -6px 10px rgb(150 180 210/.25)}
+.sort-jar.is-full .sort-glass{border-color:#6cc38a;background:linear-gradient(90deg,rgb(240 255 244/.9),rgb(220 250 230/.5) 40%,rgb(240 255 244/.8))}
+.sort-jar.is-full::after{content:'✨';position:absolute;top:-6px;right:4px;font-size:1rem;animation:kids-pop .5s}
+.sort-jar.is-shake{animation:sort-shake .35s}
+@keyframes sort-shake{25%{translate:-5px 0}75%{translate:5px 0}}
+.sort-shelf.is-won .sort-jar{animation:stack-hop .6s cubic-bezier(.3,1.6,.5,1)}
+.sort-won{margin:0;font-size:1.4rem;font-weight:900;color:#fff;text-shadow:0 2px 0 rgb(60 30 80/.4)}
+.sort-tools{display:flex;gap:10px}
+.sort-tools button:not(#x):not(#y){min-height:44px!important;padding:0 18px!important;border-radius:999px!important;background:rgb(255 255 255/.92)!important;color:#4a2b6b!important;border:0!important;font-weight:900}
+.sort-tools button:disabled{opacity:.5}
+.game-screen:has(.snack-sort){background:radial-gradient(ellipse at 50% 0,#ffd9a8,#e88a5c 55%,#9a4a5e)}
+.game-screen:has(.kono-stack){background:radial-gradient(ellipse at 50% 0,#6ab8ff,#3a5bd9 60%,#2a2a7a)}
+@media(prefers-reduced-motion:reduce){.stack-world,.stack-kono,.sort-slot,.sort-lid{transition:none}.stack-cake.is-cut,.stack-kono.is-hop,.stack-call,.stack-hint b,.sort-jar.is-shake,.sort-shelf.is-won .sort-jar{animation:none}}
+
+/* Covers: pancakes stacking with one sliding in; three mixed-up snack jars */
+.game-cover.is-stack{background:linear-gradient(180deg,#8fd3ff,#ffe2b0)}
+.gc-stack-cakes{position:absolute;inset:0}
+.gc-stack-cakes i{position:absolute;left:calc(30% + var(--i) * 1.5%);width:40%;height:11%;bottom:calc(10% + var(--i) * 11%);border-radius:8px;background:linear-gradient(180deg,#ffd38a 0 22%,#e8a24e 22% 78%,#b8742e 78%)}
+.gc-cake-drop{position:absolute;width:40%;height:11%;bottom:68%;border-radius:8px;background:linear-gradient(180deg,#ffd38a 0 22%,#e8a24e 22% 78%,#b8742e 78%);animation:gc-slide 2.4s ease-in-out infinite alternate}
+@keyframes gc-slide{from{left:0}to{left:60%}}
+.game-cover.is-sort{background:linear-gradient(180deg,#fff7ea,#ffd8a8)}
+.gc-jars{position:absolute;inset:12% 10% 10%;display:flex;justify-content:space-around;align-items:flex-end}
+.gc-jars i,.gc-jars i span{position:static}
+.gc-jars i{display:flex;flex-direction:column-reverse;width:24%;height:90%;padding:3px 0;border:2px solid rgb(150 180 210/.9);border-radius:6px 6px 12px 12px;background:rgb(255 255 255/.6);font-style:normal;align-items:center;justify-content:flex-start;font-size:clamp(.7rem,2.6vw,1.05rem)}
+.gc-jars i:nth-child(2){animation:gc-lift 2s ease-in-out infinite}
+@keyframes gc-lift{50%{translate:0 -6px}}
+@media(prefers-reduced-motion:reduce){.gc-cake-drop,.gc-jars i{animation:none}}
