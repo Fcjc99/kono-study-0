@@ -90,7 +90,7 @@ type Song={bpm:number;chords:number[][];tracks:Track[]}
 const C=(...n:string[])=>n.map(note)
 function note(s:string){const m=/^([A-G])(#|b)?(\d)$/.exec(s);if(!m)return 60;const base={C:0,D:2,E:4,F:5,G:7,A:9,B:11}[m[1] as 'C'];return 12*(Number(m[3])+1)+base+(m[2]==='#'?1:m[2]==='b'?-1:0)}
 const SONGS:Record<Theme,Song>={
- // Candy crush: bouncy and sweet, C – Am – F – G.
+ // Sweet swap: bouncy and sweet, C – Am – F – G.
  candy:{bpm:118,chords:[C('C3','E3','G3'),C('A2','C3','E3'),C('F2','A2','C3'),C('G2','B2','D3')],tracks:[
   {inst:'bass',bars:['0...0.2.0...4.2.']},
   {inst:'pluck',oct:12,bars:['....012.....012.']},
@@ -112,7 +112,7 @@ const SONGS:Record<Theme,Song>={
   {inst:'bell',melody:true,vel:0.6,bars:['. . . . A5 . . . G5 . . . E5 . . .','. . . . G5 . . . . . D5 . . . . .','. . . . F5 . . . E5 . . . C5 . . .','. . . . E5 . . . D5 . . . . . . .']},
   {inst:'kick',vel:0.6,bars:['x.........x.....']},{inst:'brush',bars:['....x.......x...']},{inst:'hat',vel:0.5,bars:['x.x.x.x.x.x.x.x.']},
  ]},
- // Flappy KONO: chiptune, C – G – Am – F.
+ // KONO Hop: chiptune, C – G – Am – F.
  flap:{bpm:148,chords:[C('C3','E3','G3'),C('G2','B2','D3'),C('A2','C3','E3'),C('F2','A2','C3')],tracks:[
   {inst:'lead',melody:true,bars:['C5 . E5 . G5 . E5 . C6 . G5 . E5 . G5 .','B4 . D5 . G5 . D5 . B5 . G5 . D5 . G5 .','A4 . C5 . E5 . C5 . A5 . E5 . C5 . E5 .','F4 . A4 . C5 . A4 . F5 . C5 . A4 . C5 .']},
   {inst:'bass',bars:['0.0.0.0.0.0.0.0.']},{inst:'hat',bars:['x.x.x.x.x.x.x.x.']},{inst:'kick',bars:['x...x...x...x...']},
@@ -151,7 +151,7 @@ let playing:{theme:Theme;timer:number;stop:boolean}|null=null,wanted:Theme|null=
 // Recorded soundtracks (made in Suno) live at /audio/games/<game>.mp3 and loop; a game without one plays
 // the soundtrack written below instead.
 let track:HTMLAudioElement|null=null
-/** The games with a recorded track: Candy crush ("Skipping Motif"), Gem blitz ("Crystal Discoveries") and
+/** The games with a recorded track: Sweet swap ("Skipping Motif"), Gem blitz ("Crystal Discoveries") and
  * KONO blast ("Satisfying Resolutions"), and KONO Flow's five (flow-1 … flow-5: "Floating Pads",
  * "Shimmering Motif", "Late Night Pulse", "Soaring Euphoria", "Transcendent Arpeggios"). Add a game here when its file goes in public/audio/games (and in
  * tools/public-allowlist.json). */

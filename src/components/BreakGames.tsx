@@ -21,8 +21,8 @@ import {meowLevel,newMeowPuzzle,type Puzzle} from '../store/meowdoku'
 import {BOOSTERS,candyLevelNow,candyStarsKept,freshBoard,jellyFor,maker,saveCandyLevel,saveCandyStars,type Board,type Maker} from '../store/match3'
 import type {ShopItem} from '../store/konoCoins'
 
-/** KONO Town's arcade: KONO blast (the block puzzle), KONO Stack (drop pancakes), Snack sort (sort the jars), Meowdoku (the cat puzzle), Gem blitz and Candy crush
- * (match-3), KONO Flow (falling blocks), KONO Beat (the songs as a rhythm game), Flappy KONO and KONO.io (claim the map, after Paper.io 2). Every
+/** KONO Town's arcade: KONO blast (the block puzzle), KONO Stack (drop pancakes), Snack sort (sort the jars), Meowdoku (the cat puzzle), Gem blitz and Sweet swap
+ * (match-3), KONO Flow (falling blocks), KONO Beat (the songs as a rhythm game), KONO Hop and KONO.io (claim the map, after Paper.io 2). Every
  * game plays full screen in KONO blast's look, and `onScore` can turn a score into coins (it returns what to
  * add to the result line). The same games are the break games offered when a focus session finishes
  * ("Take a short break"): the break lasts five minutes, and when it's over the games stop and KONO says it's
@@ -34,12 +34,12 @@ const GAMES:{id:Game;emoji:string;name:string;how:string;best:(n:number)=>string
  {id:'blast',emoji:'🧱',name:'KONO blast',how:'Fit the pieces on the board; fill a row or column to clear it.',best:n=>'Best: '+n+' points'},
  {id:'meow',emoji:'🐱',name:'Meowdoku',how:'One cat in every row, column and color, and no two cats touching.',best:n=>'Best: level '+n},
  {id:'gems',emoji:'💎',name:'Gem blitz',how:'Swap gems to match 3 or more. One minute, as many points as you can!',best:n=>'Best: '+n+' points'},
- {id:'candy',emoji:'🍬',name:'Candy crush',how:'Match candies to reach each level’s target in the moves you have.',best:n=>'Best: level '+n},
+ {id:'candy',emoji:'🍬',name:'Sweet swap',how:'Match candies to reach each level’s target in the moves you have.',best:n=>'Best: level '+n},
  {id:'flow',emoji:'🌌',name:'KONO Flow',how:'Turn and drop the falling shapes to fill rows of light. Fill the Flow meter, then set it off: time stops while the rows you fill pile up, and they all clear at once!',best:n=>'Best: '+n.toLocaleString()+' points'},
  {id:'beat',emoji:'🥁',name:'KONO Beat',how:'The arcade’s songs as a rhythm game: hit the notes on the beat as they reach the line, and hold the long ones. Easy, Medium, or Jeff tier!',best:n=>'Best: '+n.toLocaleString()},
  {id:'stack',emoji:'🥞',name:'KONO Stack',how:'Pancakes slide in from the side: tap to drop each one on the stack. What hangs over the edge falls off, so line them up! Three Perfects in a row make them bigger again.',best:n=>'Best: '+n+' pancake'+(n===1?'':'s')},
  {id:'sort',emoji:'🫙',name:'Snack sort',how:'KONO’s pantry is a mess! Tap a jar to lift its top snacks, then tap a jar to tip them in, onto the same snack or into an empty jar. Fill every jar with one kind.',best:n=>'Best: level '+n},
- {id:'flap',emoji:'🐤',name:'Flappy KONO',how:'Tap to flap KONO through the gaps in the pipes.',best:n=>'Best: '+n+' pipe'+(n===1?'':'s')},
+ {id:'flap',emoji:'🐤',name:'KONO Hop',how:'Tap to hop KONO through the gaps in the pipes.',best:n=>'Best: '+n+' pipe'+(n===1?'':'s')},
  {id:'paper',emoji:'🟦',name:'KONO.io',how:'Leave your land, loop around and come home to claim it. Cut the bots’ trails, and keep yours safe! Play solo, or in a team battle: Blue against Red for two minutes.',best:n=>'Best: '+n+'% of the map'},
 ]
 const bestKey=(g:Game)=>'kono-break-best:'+g
@@ -61,7 +61,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
  const [paperMode,setPaperMode]=useState<'solo'|'team'>('solo'),[sortAt,setSortAt]=useState(1)
  // KONO blast's face blocks (a photo kept on this device), set on its start card.
  const [blastFace,setBlastFace]=useState(()=>readBlastFace())
- // The Candy crush level picked on the map (the next one to beat, unless you pick one you've played).
+ // The Sweet swap level picked on the map (the next one to beat, unless you pick one you've played).
  const [candyPick,setCandyPick]=useState<number|null>(null)
  const [ended,setEnded]=useState<GameResult|null>(null),[round,setRound]=useState(0),[started,setStarted]=useState(false)
  const handle=useRef<GameHandle>(null)
@@ -70,14 +70,14 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
  useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return ()=>window.clearInterval(t)},[])
  const left=startedAt+BREAK_MINUTES*60_000-now,over=!arcade&&left<=0
  // A finished round: its results card (in the game's screen), the best kept, and coins for it.
- // `coinScore` is what earns coins when it isn't the score kept as a best (Candy crush keeps the level).
+ // `coinScore` is what earns coins when it isn't the score kept as a best (Sweet swap keeps the level).
  const finish=(g:Game,score:number,line:string,{title='Nice game!',coinScore=score,scoreText,won=true}:{title?:string;coinScore?:number;scoreText?:string;won?:boolean}={})=>{
   const best=score>0&&saveBest(g,score),extra=g==='blast'?null:onScore?.(g,coinScore),info=GAMES.find(x=>x.id===g)!
   setResult(line+(best?' New best! 🎉':'')+(extra?' '+extra:''))
   setEnded({emoji:info.emoji,title,line,score:scoreText??info.best(score).replace(/^Best: /,''),best:Boolean(best),coins:extra,won})
  }
  // Opening a game shows its start card; Start (and Restart, and Play again) begins a round: a fresh board
- // (KONO blast carries on a saved game unless `fresh`; Meowdoku and Candy crush pick up at your level).
+ // (KONO blast carries on a saved game unless `fresh`; Meowdoku and Sweet swap pick up at your level).
  const open=(g:Game)=>{setResult(null);setEnded(null);setStarted(false);setGame(g)}
  const begin=(g:Game,fresh=false)=>{
   setEnded(null);setRound(n=>n+1);setStarted(true)
@@ -125,7 +125,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
  </section>
 }
 
-/** Candy crush's level map: a winding path of levels, the ones you've beaten with their stars, the next one
+/** Sweet swap's level map: a winding path of levels, the ones you've beaten with their stars, the next one
  * glowing, and a few locked ahead. Tap any you've reached to play it (replaying keeps your place). */
 const ROW=58,X=(n:number)=>[50,72,82,68,46,26,16,30][n%8]
 function CandyMap({pick,onPick}:{pick:number;onPick:(n:number)=>void}){

@@ -1,4 +1,4 @@
-/** Flappy KONO's rules (components/FlappyKono draws them). The world is 288 × 512 (scaled to fit):
+/** KONO Hop's rules (components/FlappyKono draws them). The world is 288 × 512 (scaled to fit):
  * KONO falls, a flap kicks it up, and jewel pipes slide in from the right with a gap to fly through.
  * Through a gap is a point; touching a pipe, the ground or the sky's top ends the run.
  * Everything moves per frame at 60 fps; `step` takes how many frames passed (so a slow phone keeps pace). */

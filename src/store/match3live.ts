@@ -1,7 +1,7 @@
-/** Candy crush and Gem blitz played in real time (components/Match3). The rules are store/match3's; this is
+/** Sweet swap and Gem blitz played in real time (components/Match3). The rules are store/match3's; this is
  * the board as it moves, a few milliseconds at a time, the way the originals play:
  * - A swap slides the two pieces past each other (and back, if it makes nothing).
- * - Matched pieces clear: in Gem blitz they shrink away, in Candy crush they burst. When a match makes a
+ * - Matched pieces clear: in Gem blitz they shrink away, in Sweet swap they burst. When a match makes a
  *   special piece, the others slide into its spot first.
  * - A special goes off where it is: a striped candy's or star gem's beam travels out along the row or
  *   column, taking pieces one after another; an explosion takes its neighbors; a color bomb's or hypercube's
@@ -9,13 +9,13 @@
  * - Pieces fall under gravity (each lands with a little squash) and new ones drop in from above.
  * - New lines clear as soon as the pieces in them come to rest, and each wave of the cascade counts more.
  * Only pieces at rest match or can be swapped, so in Gem blitz you keep playing while the rest of the board
- * explodes and falls (Candy crush waits for the board to settle, as the original does). */
+ * explodes and falls (Sweet swap waits for the board to settle, as the original does). */
 import {W,adjacent,canSwap,findMove,fresh,freshBoard,hasMove,lines,made,reach,type Board,type Effect,type Maker,type Piece,type Special} from './match3'
 
 export const SWAP_MS=170,MERGE_MS=200,SHUFFLE_MS=520
 /** A special charging up before it goes off (a color bomb or hypercube winds up longer), and two specials
  * swapped together pulling into each other before their combination. */
-// Candy crush takes its time over a special: a long wind-up (the board dims around it), a slower beam
+// Sweet swap takes its time over a special: a long wind-up (the board dims around it), a slower beam
 // or blast, so you see what went off. Gem blitz stays quick (it's against the clock).
 export const CHARGE_MS={gems:190,candy:460},BOMB_CHARGE_MS={gems:300,candy:820},COMBO_MS={gems:320,candy:620}
 export const BEAM_MS={gems:26,candy:52}
@@ -37,7 +37,7 @@ export type Ev=
  |{t:'clear';at:number;kind:number;special?:Special;merge?:number;pts:number}
  |{t:'fire';e:Effect;delays:number[];points:number;combo?:boolean}
  |{t:'made';at:number;special:Special}
- // Sugar crush: a move left is on its way to this candy (it turns striped `in` ms from now).
+ // Sweet finish: a move left is on its way to this candy (it turns striped `in` ms from now).
  |{t:'aim';at:number;in:number}
  |{t:'charge';at:number;special:Special;combo?:boolean}
  |{t:'time';n:number}|{t:'mult';n:number}|{t:'nope'}|{t:'shuffle'}
@@ -74,10 +74,10 @@ export function trySwap(rt:Live,a:number,c:number,force=false):'swap'|'nope'|nul
  const A=rt.cells[a],C=rt.cells[c]
  if(!adjacent(a,c)||!rests(A,a)||!rests(C,c))return null
  const [ar,ac]=rc(a),[cr,cc]=rc(c)
- // Candy crush here: moving a striped or wrapped candy is always a move; it goes off where it lands, even
+ // Sweet swap here: moving a striped or wrapped candy is always a move; it goes off where it lands, even
  // if it lines nothing up.
  const lit=rt.m.mode==='candy'&&!!(A.p.special||C.p.special)
- // (`force`: Candy crush's free-swap booster swaps any two, line or not.)
+ // (`force`: Sweet swap's free-swap booster swaps any two, line or not.)
  if(!force&&!lit&&!canSwap(still(rt),a,c)){
   A.swap={fx:ac,fy:ar,tx:cc,ty:cr,t:0,ms:SWAP_MS*2+60,back:true};C.swap={fx:cc,fy:cr,tx:ac,ty:ar,t:0,ms:SWAP_MS*2+60,back:true}
   rt.events.push({t:'nope'});return 'nope'
@@ -88,7 +88,7 @@ export function trySwap(rt:Live,a:number,c:number,force=false):'swap'|'nope'|nul
  return 'swap'
 }
 
-/** Candy crush's lollipop hammer: smashes the candy at rest in a square (a special one goes off). True if it did. */
+/** Sweet swap's lollipop hammer: smashes the candy at rest in a square (a special one goes off). True if it did. */
 export function smash(rt:Live,at:number):boolean{
  const x=rt.cells[at]
  if(!rests(x,at))return false
@@ -332,7 +332,7 @@ export function step(rt:Live,dt:number):boolean{
  return moving||rt.events.length>0
 }
 
-/** The finale (Sugar crush, Last hurrah): `extra` plain pieces turn striped one after another, then every
+/** The finale (Sweet finish, Last hurrah): `extra` plain pieces turn striped one after another, then every
  * special on the board goes off in turn. The number of specials set off. */
 /** `gap`: the time between one move left becoming a striped candy and the next; `lead`: how long before
  * the first does (each is announced with an 'aim' event, so a star can fly to it first). */
@@ -378,7 +378,7 @@ export function view(rt:Live):Look[]{
     // Bejeweled: the gem shrinks evenly to a point, brightening.
     const k=Math.min(1,x.clear/CLEAR_MS.gems);sx=sy=Math.max(0.02,1-k*k*(3-2*k)*0.98);b=1+0.6*k
    }else{
-    // Candy crush: the candy swells and lights up, then bursts (into the pieces the game throws out).
+    // Sweet swap: the candy swells and lights up, then bursts (into the pieces the game throws out).
     const k=Math.min(1,x.clear/CLEAR_MS.candy);sx=sy=1+0.18*Math.min(1,k/0.45);b=1+1.2*Math.min(1,k/0.45);o=k<0.45?1:0
    }
   }

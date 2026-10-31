@@ -195,7 +195,7 @@ test('Meowdoku: every puzzle has exactly one answer; boards grow with the level;
  assert.equal([...m.clashes(p,new Set([0,2]))].sort((a,b)=>a-b).join(),'0,1,2,3','two cats in row 1')
  assert.equal(m.clashes(p,new Set([0,6])).size,0)
 })
-test('match-3: fresh boards have no lines and a move; Candy crush makes striped (4), wrapped (L/T) and color bombs (5); Gem blitz makes flame (4), star (L/T), hypercube (5) and supernova (6) gems; combinations and the finale',()=>{
+test('match-3: fresh boards have no lines and a move; Sweet swap makes striped (4), wrapped (L/T) and color bombs (5); Gem blitz makes flame (4), star (L/T), hypercube (5) and supernova (6) gems; combinations and the finale',()=>{
  const g=load('src/store/match3.ts'),seeded=load('src/store/meowdoku.ts').seeded
  for(const mode of ['candy','gems']){const mk=g.maker(mode,seeded(3)),b=g.freshBoard(mk);assert.equal(b.length,64);assert.equal(g.lines(b).length,0);assert.ok(g.hasMove(b));assert.ok(b.every(p=>p.kind<(mode==='gems'?7:6)))}
  let id=1000;const P=(k,special)=>({id:++id,kind:k,...(special?{special}:{})})
@@ -206,7 +206,7 @@ test('match-3: fresh boards have no lines and a move; Candy crush makes striped 
  const four=()=>{const b=fill();b[0]=P(0);b[1]=P(0);b[3]=P(0);b[10]=P(0);return b}
  assert.equal(g.lines(fill()).length,0,'the filler has no lines')
  let f=g.play(four(),2,10,steady('candy'))
- assert.ok(f[0].made.some(x=>x.special==='col'),'four across in Candy crush: a candy striped down (it clears its column)')
+ assert.ok(f[0].made.some(x=>x.special==='col'),'four across in Sweet swap: a candy striped down (it clears its column)')
  assert.equal(f[0].cleared.length,3)
  f=g.play(four(),2,10,steady('gems'))
  assert.ok(f[0].made.some(x=>x.special==='area'),'four in Gem blitz: a flame gem')
@@ -217,7 +217,7 @@ test('match-3: fresh boards have no lines and a move; Candy crush makes striped 
  // An L: A at (0,0),(0,1) and down column 2 at (1,2),(2,2); swapping (0,2) in from (0,3) makes the corner.
  const ell=()=>{const b=fill();b[0]=P(0);b[1]=P(0);b[3]=P(0);b[10]=P(0);b[18]=P(0);return b}
  f=g.play(ell(),2,3,steady('candy'))
- assert.ok(f[0].made.some(x=>x.special==='area'),'an L in Candy crush: a wrapped candy')
+ assert.ok(f[0].made.some(x=>x.special==='area'),'an L in Sweet swap: a wrapped candy')
  assert.ok(g.play(ell(),2,3,steady('gems'))[0].made.some(x=>x.special==='cross'),'an L in Gem blitz: a star gem')
  // A striped candy going off takes its whole row; a wrapped one explodes twice.
  const striped=()=>{const b=fill();b[0]=P(0,'row');b[1]=P(0);b[3]=P(0);b[10]=P(0);return b}
@@ -279,7 +279,7 @@ test('match-3 in real time: the opening rain settles; a swap slides and clears; 
  const s=fill();s[0]=P(0,'row');s[1]=P(0);s[3]=P(0);s[10]=P(0)
  rt=L.live(g.maker('candy',seeded(4)),s,false);L.trySwap(rt,2,10);run(rt,900)
  const f=rt.events.find(e=>e.t==='fire');assert.ok(f&&f.e.type==='row');assert.ok(f.delays[f.e.cells.indexOf(7)]>f.delays[f.e.cells.indexOf(1)],'the beam travels')
- // Candy crush: moving a striped candy is always a move, and it goes off where it lands.
+ // Sweet swap: moving a striped candy is always a move, and it goes off where it lands.
  {const lone=fill();lone[27]=P(2,'row');rt=L.live(g.maker('candy',seeded(4)),lone,false);assert.equal(L.trySwap(rt,27,35),'swap');run(rt,1100)
   assert.ok(rt.events.some(e=>e.t==='fire'&&e.e.type==='row'&&e.e.at===35),'the moved striped candy clears its new row');calm(rt);assert.equal(L.boardOf(rt).filter(Boolean).length,64)}
  // Boosters: the hammer smashes one candy (a special one goes off); the free swap swaps two that make no line.
@@ -361,7 +361,7 @@ test('KONO Flow: shuffled sets of seven, moving and turning with wall kicks, har
  // The soundtrack: a new one every three levels, five in all.
  assert.deepEqual([1,3,4,6,7,9,10,12,13,30].map(f.musicPart),[1,1,2,2,3,3,4,4,5,5])
 })
-test('Flappy KONO: KONO falls and a flap lifts it, pipes come in with a gap, flying through a gap scores, touching a pipe or the ground ends the run; medals at 10/20/30/40',()=>{
+test('KONO Hop: KONO falls and a flap lifts it, pipes come in with a gap, flying through a gap scores, touching a pipe or the ground ends the run; medals at 10/20/30/40',()=>{
  const f=load('src/store/flappy.ts'),half=()=>0.5
  let fl=f.newFlight(),y0=fl.y
  fl=f.step(fl,10,half).flight;assert.ok(fl.y>y0,'gravity pulls KONO down')

@@ -159,7 +159,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .meow-help{margin:0;max-width:380px;text-align:center;font-size:.85rem;color:rgba(255,255,255,.85)}
 .meow .land-game-done{margin:0}
 .meow .land-game-done button:not(#x):not(#y){background:rgba(255,255,255,.16)!important;color:#fff!important;border:1px solid rgba(255,255,255,.35)!important;box-shadow:none!important;margin:0!important}
-/* Gem blitz and Candy crush (Match3.tsx): pieces slide between squares, new ones drop in, cleared ones burst. */
+/* Gem blitz and Sweet swap (Match3.tsx): pieces slide between squares, new ones drop in, cleared ones burst. */
 .match3-goal{position:relative;width:100%;max-width:340px;height:22px;border-radius:999px;background:rgba(0,0,0,.25);overflow:hidden}
 .match3-goal.is-time{height:10px}
 .match3-goal span{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#ffd84d,#ff9b3d);border-radius:999px;transition:width .3s}
@@ -173,7 +173,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .m3-mult{font-weight:900;color:#ffd84d}
 .blast-frame.is-quake{animation:m3-quake .4s}
 @keyframes m3-quake{20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-3px)}60%{transform:translate(-3px,-2px)}80%{transform:translate(2px,3px)}}
-/* The boards: Candy crush's soft blue tiles in a white-edged tray; Gem blitz's dark glass in a gold frame. */
+/* The boards: Sweet swap's soft blue tiles in a white-edged tray; Gem blitz's dark glass in a gold frame. */
 .match3-board{position:relative;aspect-ratio:1;touch-action:none;border-radius:10px}
 .match3.is-candy .match3-board{background:repeating-conic-gradient(rgba(170,205,255,.42) 0 25%,rgba(120,160,230,.32) 0 50%) 0 0/25% 25%,rgba(40,70,150,.55);box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
 .match3.is-gems .match3-board{background:repeating-conic-gradient(rgba(255,255,255,.07) 0 25%,rgba(0,0,0,.25) 0 50%) 0 0/25% 25%,rgba(10,14,44,.78)}
@@ -280,7 +280,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .game-screen.is-blast .game-screen-tool:not(#x):not(#y){margin:0!important;min-height:40px;padding:0 12px!important;background:rgba(255,255,255,.1)!important;color:#fff!important;border:1px solid rgba(255,255,255,.28)!important;box-shadow:none!important;font-weight:700}
 .game-start .game-result-line{font-size:1rem;max-width:300px}
 @media(max-width:420px){.game-screen>header strong{font-size:1rem}.game-screen-tools{gap:6px}.game-screen.is-blast .game-screen-tool:not(#x):not(#y){padding:0 9px!important;font-size:.85rem}}
-/* Flappy KONO (FlappyKono.tsx): the canvas is the 288 × 512 world, scaled to fit the screen's height. */
+/* KONO Hop (FlappyKono.tsx): the canvas is the 288 × 512 world, scaled to fit the screen's height. */
 .break-game.flappy,.break-game.paper{justify-items:center;gap:8px;color:#fff;user-select:none;-webkit-user-select:none}
 .flappy .blast-top{max-width:min(320px,90vw);display:flex;justify-content:space-between}
 .flappy-frame{position:relative;height:min(68vh,560px);aspect-ratio:288/512;max-width:92vw;border-radius:6px;image-rendering:pixelated;overflow:hidden;box-shadow:0 0 0 4px #132457,0 10px 30px rgba(0,0,0,.4);touch-action:none;cursor:pointer}
@@ -346,12 +346,12 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .game-screen:has(.meow)>header{color:#5a2350}
 .game-screen:has(.meow)>header :is(.game-screen-tool,.game-screen-leave):not(#x):not(#y){color:#5a2350!important;background:rgba(255,255,255,.5)!important;border-color:rgba(255,255,255,.8)!important}
 
-/* Gem blitz lets falling gems show just above the board (as Bejeweled does); Candy crush keeps them inside
+/* Gem blitz lets falling gems show just above the board (as Bejeweled does); Sweet swap keeps them inside
    its tray. */
 .match3.is-gems .match3-pieces{overflow:visible}
 .match3.is-gems .match3-board{z-index:1}
 
-/* Candy crush's points: each cleared candy's own number in its color, thickly outlined, as in the game. */
+/* Sweet swap's points: each cleared candy's own number in its color, thickly outlined, as in the game. */
 .match3.is-candy .m3-pop.is-each{font-size:1.15rem;-webkit-text-stroke:0;paint-order:stroke fill;text-shadow:0 0 0 #fff,0 2px 0 #3a1030;color:var(--pc,#fff);filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff)}
 .match3.is-candy .m3-pop.k0{--pc:#ff2e48}.match3.is-candy .m3-pop.k1{--pc:#ff8a14}.match3.is-candy .m3-pop.k2{--pc:#ffd60a}.match3.is-candy .m3-pop.k3{--pc:#2fd14a}.match3.is-candy .m3-pop.k4{--pc:#1f8bff}.match3.is-candy .m3-pop.k5{--pc:#b44aff}
 /* "Sweet!", "Tasty!"…: big, golden and chunky with a thick brown outline. */
@@ -364,7 +364,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .paper .paper-mine{background:rgba(255,255,255,.85);color:#1a2a5a}
 
 /* A special going off. A beam runs out from the piece both ways along its row or column, a bright head in
-   front (`--t`: how long it takes to reach the edge); Candy crush's is white with the candy's glow, Gem
+   front (`--t`: how long it takes to reach the edge); Sweet swap's is white with the candy's glow, Gem
    blitz's an electric blue. */
 .m3-fx{z-index:3}
 .m3-beam.is-run{animation:m3-run var(--t) linear both,m3-fade .35s ease-out var(--t) both;box-shadow:0 0 14px 5px var(--glow,rgba(140,220,255,.9))}
@@ -447,7 +447,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .m3-launch.is-nova{background:repeating-conic-gradient(#fff 0 5deg,rgba(255,139,240,.9) 5deg 10deg,transparent 10deg 22deg);-webkit-mask:radial-gradient(circle,#000 20%,transparent 70%);mask:radial-gradient(circle,#000 20%,transparent 70%);animation:m3-launch-nova .7s ease-out both}
 @keyframes m3-launch-nova{0%{transform:scale(.5) rotate(0);opacity:1}100%{transform:scale(9) rotate(-60deg);opacity:0}}
 .m3-launch.is-combo{scale:1.6}
-/* On Candy crush's light board the glows need to be stronger to show. */
+/* On Sweet swap's light board the glows need to be stronger to show. */
 .match3.is-candy .match3-piece:is(.is-row,.is-col) .m3-halo{inset:-22%;background:radial-gradient(circle,#fff 0 18%,color-mix(in srgb,var(--hc) 85%,#fff) 30%,color-mix(in srgb,var(--hc) 55%,transparent) 45%,transparent 66%)}
 .match3.is-candy .match3-piece.is-area .m3-halo{inset:-22%}
 
@@ -522,7 +522,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .flow-modes small{opacity:.8;font-size:.78rem}
 .flow-modes i{font-style:normal;font-size:.72rem;color:#ffd84a}
 
-/* Candy crush's boosters, under the board: tap one to arm it (it glows), then use it on the board. */
+/* Sweet swap's boosters, under the board: tap one to arm it (it glows), then use it on the board. */
 .m3-boosters{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:min(440px,92vw)}
 .m3-boosters button:not(#x):not(#y){display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;text-align:left;padding:8px 10px;border-radius:14px;border:2px solid #fff!important;background:linear-gradient(#ffe3f3,#ffc2e4)!important;color:#5a1a4a!important;box-shadow:0 3px 0 #d6338a!important;font:inherit;min-height:0}
 .m3-boosters button span{grid-row:span 2;font-size:1.6rem}
@@ -532,7 +532,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .m3-boosters button:disabled{opacity:.5}
 @keyframes m3-armed{to{transform:scale(1.03)}}
 
-/* Candy crush's level map: a winding path, the newest levels at the top. */
+/* Sweet swap's level map: a winding path, the newest levels at the top. */
 .candy-map{position:relative;isolation:isolate;list-style:none;margin:6px 0 10px;padding:6px 0;max-height:42vh;overflow:auto;display:grid;gap:4px;width:100%;background:radial-gradient(ellipse at 50% 0%,rgba(255,200,240,.35),transparent 70%);border-radius:16px}
 .candy-map li{position:relative;height:54px}
 .candy-map-path{position:absolute;left:0;top:6px;width:100%;z-index:-1;overflow:visible;pointer-events:none}
@@ -544,7 +544,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .candy-map button.is-picked:not(#x):not(#y){outline:3px solid #7a2cff;outline-offset:3px}
 .candy-map button.is-locked:not(#x):not(#y){background:#d9c6d4!important;box-shadow:0 4px 0 #a796a3!important}
 /* A special's moment (Match3): while it winds up the board dims around it, a spotlight that tightens on it;
-   as it goes off its name pops up right there, big, and the board jolts. Candy crush's blasts run longer. */
+   as it goes off its name pops up right there, big, and the board jolts. Sweet swap's blasts run longer. */
 .m3-spot{position:absolute;inset:0;z-index:5;pointer-events:none;border-radius:inherit;background:radial-gradient(circle at var(--x) var(--y),transparent 0 9cqw,rgba(20,0,40,.22) 13cqw,rgba(20,0,40,.6) 40cqw);animation:m3-spot var(--ms) ease-in both}
 .match3-board{container-type:inline-size}
 @keyframes m3-spot{0%{opacity:0}35%{opacity:1}100%{opacity:1}}
@@ -593,7 +593,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 /* Small details (Match3). A swap that doesn't match bumps and springs back; the moves counter beats red for
    the last three; four or more pieces shiver as they gather into a special; a cascade warms the scenery;
    points fly up to the score (bigger the bigger they are) and it bumps; a hint shows which way to swipe;
-   idle candies wiggle or blink and gems catch a sweep of light; Sugar crush's stars fly off the counter. */
+   idle candies wiggle or blink and gems catch a sweep of light; Sweet finish's stars fly off the counter. */
 .match3-piece.is-nope .m3-gem{animation:m3-nope .38s ease-out;filter:brightness(.9) sepia(.3) hue-rotate(-20deg) saturate(1.6)}
 @keyframes m3-nope{0%,100%{translate:0 0}20%{translate:-9% 0;rotate:-6deg}40%{translate:8% 0;rotate:5deg}60%{translate:-5% 0;rotate:-3deg}80%{translate:3% 0}}
 .m3-moves.is-low{color:#ff5a6e!important;-webkit-text-stroke:0;text-shadow:0 0 10px rgba(255,90,110,.75);display:inline-block;animation:m3-heart .9s ease-in-out infinite}
@@ -688,7 +688,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 @keyframes gc-gem{0%,100%{translate:0 0;filter:brightness(1)}50%{translate:0 -8%;filter:brightness(1.25)}}
 .gc-twinkle{left:58%;top:26%;width:14px;height:14px;background:#fff;clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);animation:gc-twinkle 1.8s ease-in-out infinite}
 @keyframes gc-twinkle{0%,100%{scale:.2;opacity:0}50%{scale:1.2;opacity:1}}
-/* Candy crush: glossy candies and a wobbling striped one, on a candy sky. */
+/* Sweet swap: glossy candies and a wobbling striped one, on a candy sky. */
 .game-cover.is-candy{background:linear-gradient(#9fd6ff,#c9b7ff)}
 .gc-candy{inset:0;display:flex;align-items:center;justify-content:center;gap:5%}
 .gc-candy i{position:relative;width:14%;aspect-ratio:1;border-radius:50%;box-shadow:inset -3px -4px 0 rgba(0,0,0,.18),0 4px 6px rgba(60,30,90,.25)}
@@ -720,7 +720,7 @@ dialog.game-screen.is-blast button.game-screen-leave:not(#x):not(#y),.blast butt
 .gc-line{left:10%;right:10%;bottom:18%;height:3px;background:#fff;box-shadow:0 0 10px #fff;opacity:.7}
 @keyframes gc-note{from{top:-10%}to{top:80%}}
 @media (prefers-reduced-motion:reduce){.gc-lane i{animation:none;top:40%}}
-/* Flappy KONO: KONO bobbing between two green pipes. */
+/* KONO Hop: KONO bobbing between two green pipes. */
 .game-cover.is-flap{background:linear-gradient(#8fd8ff,#d9f3ff 70%,#9ee07a 70%)}
 .gc-pipe{left:62%;width:13%;background:linear-gradient(90deg,#3fa83f,#7fe06a 45%,#2f8a2f);border:2px solid #1e5e1e}
 .gc-pipe.is-top{top:-2%;height:32%;border-top:0}.gc-pipe.is-bottom{bottom:30%;height:22%;border-bottom:0}

@@ -3097,7 +3097,7 @@ test('Break games: after a focus session KONO offers the arcade’s games for a 
  // The break offers the arcade's games (Snack catch and Peekaboo are gone): KONO blast plays full screen,
  // and ■ End shows its results card; Done slides it away.
  assert.equal(await games.getByRole('button',{name:/Snack catch|Peekaboo/}).count(),0)
- await games.getByRole('button',{name:/Candy crush/}).waitFor()
+ await games.getByRole('button',{name:/Sweet swap/}).waitFor()
  await games.getByRole('button',{name:/KONO blast/}).click()
  await startGame(page,'🧱 KONO blast')
  await page.getByRole('dialog',{name:'🧱 KONO blast'}).getByRole('button',{name:'■ End'}).click()
@@ -3947,7 +3947,7 @@ test('Round 55: the world map (its own button on the island): the beach is open 
  await passport.getByRole('list',{name:'Friends met'}).getByText('Crab').waitFor()
 })
 
-test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a results card and coins, and the next level is bigger), Gem blitz (a swap that lines up three scores) and Candy crush (moves and a target)',async({context,page})=>{
+test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a results card and coins, and the next level is bigger), Gem blitz (a swap that lines up three scores) and Sweet swap (moves and a target)',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.install({time:new Date('2026-10-15T15:00:00')})
  d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:500}]}}
@@ -4014,13 +4014,13 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  if(process.env.KONO_SHOTS)await gems.screenshot({path:process.env.KONO_SHOTS+'/gem-blitz.png'})
  await gems.getByRole('button',{name:'✕ Leave'}).click()
  await gems.waitFor({state:'detached'})
- // Candy crush: level 1, with its moves and target.
- await town.getByRole('button',{name:/Candy crush/}).click()
+ // Sweet swap: level 1, with its moves and target.
+ await town.getByRole('button',{name:/Sweet swap/}).click()
  // The start card has the level map: level 1 is next, the rest locked.
- await page.getByRole('dialog',{name:'🍬 Candy crush'}).getByRole('list',{name:'Level map'}).getByRole('button',{name:'Level 1, next'}).waitFor()
- if(process.env.KONO_SHOTS)await page.getByRole('dialog',{name:'🍬 Candy crush'}).screenshot({path:process.env.KONO_SHOTS+'/candy-map.png'})
- await startGame(page,'🍬 Candy crush',/^Start level 1$/)
- const candy=page.getByRole('dialog',{name:'🍬 Candy crush'})
+ await page.getByRole('dialog',{name:'🍬 Sweet swap'}).getByRole('list',{name:'Level map'}).getByRole('button',{name:'Level 1, next'}).waitFor()
+ if(process.env.KONO_SHOTS)await page.getByRole('dialog',{name:'🍬 Sweet swap'}).screenshot({path:process.env.KONO_SHOTS+'/candy-map.png'})
+ await startGame(page,'🍬 Sweet swap',/^Start level 1$/)
+ const candy=page.getByRole('dialog',{name:'🍬 Sweet swap'})
  await candy.getByText('Level 1').waitFor();await candy.getByText(/^\d+ moves$/).waitFor()
  await candy.getByRole('progressbar',{name:/^Target \d+$/}).waitFor()
  // Boosters show with their prices.
@@ -4045,7 +4045,7 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  if(process.env.KONO_SHOTS)await candy.screenshot({path:process.env.KONO_SHOTS+'/candy.png'})
 })
 
-test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with results), KONO.io (the map, a live leaderboard, steering, ■ End gives your share; team battle: Blue against Red on a clock) and Meowdoku’s Undo, Hint and Auto ✕',async({context,page})=>{
+test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with results), KONO.io (the map, a live leaderboard, steering, ■ End gives your share; team battle: Blue against Red on a clock) and Meowdoku’s Undo, Hint and Auto ✕',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
  d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:500}]}}
@@ -4054,10 +4054,10 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
  const town=page.getByRole('dialog',{name:'KONO Town'})
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
- // Flappy KONO: waits on "Get ready!", one flap starts it, and without more KONO falls and the run ends.
- await town.getByRole('button',{name:/Flappy KONO/}).click()
- await startGame(page,'🐤 Flappy KONO')
- const flappy=page.getByRole('dialog',{name:'🐤 Flappy KONO'})
+ // KONO Hop: waits on "Get ready!", one flap starts it, and without more KONO falls and the run ends.
+ await town.getByRole('button',{name:/KONO Hop/}).click()
+ await startGame(page,'🐤 KONO Hop')
+ const flappy=page.getByRole('dialog',{name:'🐤 KONO Hop'})
  await flappy.getByText('Get ready!').waitFor()
  await page.waitForTimeout(500)
  if(process.env.KONO_SHOTS)await flappy.screenshot({path:process.env.KONO_SHOTS+'/flappy-ready.png'})
