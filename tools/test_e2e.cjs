@@ -4273,9 +4273,13 @@ test('KONO Medal Cove: a medal pusher: tapping the field drops medals from your 
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
  await town.getByRole('button',{name:/KONO Medal Cove/}).click()
  const cove=await startGame(page,'🪙 KONO Medal Cove')
- const field=cove.locator('.cove-frame canvas');await field.waitFor()
- for(let i=0;i<5;i++){await field.click({position:{x:60+i*30,y:420}});await page.waitForTimeout(150)}
- await page.waitForFunction(()=>{const m=/: (\d+) medals/.exec(document.querySelector('.cove-frame canvas')?.getAttribute('aria-label')??'');return m&&Number(m[1])!==100},null,{timeout:5000})
+ const field=cove.getByRole('img',{name:/^KONO Medal Cove: 100 medals/});await field.waitFor()
+ await cove.getByLabel('Backboard').getByText('JACKPOT').waitFor()
+ // The field's middle, in front of the pusher: a tap there drops a medal.
+ const box=await field.boundingBox()
+ for(let i=0;i<5;i++){await page.mouse.click(box.x+box.width*(0.35+i*0.07),box.y+box.height*0.55);await page.waitForTimeout(150)}
+ await cove.getByRole('button',{name:'Change the camera'}).click()
+ await page.waitForFunction(()=>{const m=/: (\d+) medals/.exec(document.querySelector('.cove-stage')?.getAttribute('aria-label')??'');return m&&Number(m[1])!==100},null,{timeout:5000})
  await cove.getByRole('button',{name:'■ End'}).click()
  await cove.getByText(/You finished with \d+ medals?/).waitFor()
 })

@@ -786,10 +786,28 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 @keyframes gc-bloom-drop{0%,20%{translate:0 0;opacity:1}80%{translate:0 50px;opacity:1}100%{translate:0 50px;opacity:0}}
 
 /* ---- KONO Medal Cove: a medal pusher on KONO's dock ---- */
-.medal-cove{display:grid;gap:10px;justify-items:center;width:min(480px,100%);margin:0 auto}
-.cove-frame{position:relative;width:min(100%,calc((100dvh - 250px) * 720 / 1080));aspect-ratio:720/1080;border-radius:22px;overflow:hidden;box-shadow:0 12px 30px rgb(0 20 50/.45);touch-action:none}
-.cove-frame canvas{display:block;width:100%;height:100%;cursor:pointer}
-.cove-event{position:absolute;left:8%;right:8%;top:30%;margin:0;padding:10px 14px;border-radius:16px;text-align:center;font-weight:900;font-size:1.1rem;color:#3a2316;background:linear-gradient(#fff6c8,#ffd34d);box-shadow:0 6px 16px rgb(0 0 0/.3);animation:kids-pop .35s cubic-bezier(.3,1.6,.5,1);pointer-events:none}
+.medal-cove{display:grid;gap:8px;justify-items:center;width:min(480px,100%);margin:0 auto}
+.cove-board{position:relative;width:100%;display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:'steps jp pockets' 'reels reels reels' 'queue queue queue';align-items:center;gap:6px 10px;padding:10px 14px 8px;border-radius:20px 20px 8px 8px;background:linear-gradient(#6b4529,#3a2316);border:3px solid #8a5d36;box-shadow:inset 0 2px 0 rgb(255 255 255/.15),0 8px 18px rgb(0 0 0/.35);color:#ffe9a8}
+.cove-jp{grid-area:jp;display:grid;justify-items:center;line-height:1}
+.cove-jp small{font-weight:900;letter-spacing:.12em;font-size:.75rem}
+.cove-jp b{font-size:2rem;font-weight:900;color:#fff;text-shadow:0 0 12px #ffcf3d}
+.cove-steps{grid-area:steps;display:grid;grid-template-columns:repeat(3,auto);gap:4px;justify-items:center}
+.cove-steps i{width:16px;height:16px;border-radius:50%;background:#6d5440;box-shadow:inset 0 2px 3px rgb(0 0 0/.4)}
+.cove-steps i.is-on{background:#ffe14d;box-shadow:0 0 10px #ffe14d}
+.cove-steps small,.cove-pockets small{grid-column:1/-1;font-size:.65rem;font-weight:800;opacity:.85}
+.cove-pockets{grid-area:pockets;display:grid;justify-items:center;line-height:1.1}
+.cove-reels{grid-area:reels;display:flex;justify-content:center;gap:8px}
+.cove-reels span{display:grid;place-items:center;width:58px;height:52px;border-radius:10px;background:linear-gradient(#fffaf0,#efe2c8);font-size:2rem;box-shadow:inset 0 -3px 0 rgb(0 0 0/.12)}
+.cove-reels.is-spinning span{animation:cove-reel .12s linear infinite}
+@keyframes cove-reel{50%{transform:translateY(2px)}}
+.cove-queue{grid-area:queue;display:flex;justify-content:center;gap:6px}
+.cove-queue i{width:10px;height:10px;border-radius:50%;background:#5b3a24}
+.cove-queue i.is-on{background:#ffd34d;box-shadow:0 0 8px #ffd34d}
+.cove-stage{position:relative;width:100%;height:min(calc(100dvh - 380px),600px);min-height:300px;border-radius:8px 8px 22px 22px;overflow:hidden;box-shadow:0 12px 30px rgb(0 20 50/.45);touch-action:none;cursor:pointer}
+.cove-stage canvas{display:block;width:100%;height:100%}
+.cove-view:not(#x):not(#y){position:absolute;top:10px;right:10px;width:44px;height:44px;min-height:44px!important;padding:0!important;border-radius:50%!important;background:rgb(255 255 255/.85)!important;border:0!important;font-size:1.2rem}
+.cove-hand{position:absolute;left:12px;bottom:10px;padding:4px 12px;border-radius:999px;background:rgb(58 35 22/.85);color:#ffe9a8;font-weight:900;font-size:1.1rem;pointer-events:none}
+.cove-event{position:absolute;left:8%;right:8%;top:12%;margin:0;padding:10px 14px;border-radius:16px;text-align:center;font-weight:900;font-size:1.1rem;color:#3a2316;background:linear-gradient(#fff6c8,#ffd34d);box-shadow:0 6px 16px rgb(0 0 0/.3);animation:kids-pop .35s cubic-bezier(.3,1.6,.5,1);pointer-events:none;z-index:2}
 .game-screen:has(.medal-cove){background:radial-gradient(ellipse at 50% 0,#7fd0ff,#2f6fb3 55%,#123a66)}
 .game-cover.is-cove{background:linear-gradient(180deg,#5b3a24 0 28%,#c79a63 28%)}
 .gc-cove{position:absolute;inset:0}
@@ -797,4 +815,4 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 .gc-cove-pusher{position:absolute;left:8%;right:8%;top:28%;height:14%;background:#2f6fb3;border-radius:2px;animation:gc-push 2s ease-in-out infinite}
 .gc-cove i{position:absolute;width:12%;height:9%;border-radius:50%;background:radial-gradient(ellipse at 35% 35%,#fff1a6,#f2c230 55%,#c99012);left:calc(8% + (var(--i) * 37 % 76) * 1%);top:calc(48% + (var(--i) * 13 % 40) * 1%)}
 @keyframes gc-push{50%{translate:0 40%}}
-@media(prefers-reduced-motion:reduce){.gc-cove-pusher,.cove-event{animation:none}}
+@media(prefers-reduced-motion:reduce){.gc-cove-pusher,.cove-event,.cove-reels.is-spinning span{animation:none}}

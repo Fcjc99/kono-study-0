@@ -9,10 +9,11 @@ import FlappyKono from './FlappyKono'
 import PaperKono from './PaperKono'
 import KonoStack from './KonoStack'
 import KonoBloom from './KonoBloom'
-import MedalCove from './MedalCove'
 import {LADDER} from '../store/bloom'
 // KONO Beat brings its charts (every song, three levels): loaded when it's opened.
 const RhythmGame=lazy(()=>import('./RhythmGame'))
+// KONO Medal Cove is 3D (three.js): loaded only when it's opened.
+const MedalCove=lazy(()=>import('./MedalCove'))
 import {flapMedal} from '../store/flappy'
 import {readBlastFace} from '../store/blastFace'
 import BlastFacePicker from './BlastFacePicker'
@@ -93,7 +94,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
  :game==='meow'&&meow?<Meowdoku key={round} ref={handle} level={meow.level} puzzle={meow.puzzle} sound={sound} onEnd={(level,seconds,solved,extra)=>solved?finish('meow',level,'Solved in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+(extra?.best?' — a new best for '+meow.puzzle.n+' × '+meow.puzzle.n+'!':'.')+(extra?.hints?' ('+extra.hints+' hint'+(extra.hints===1?'':'s')+')':'')+' Next up: level '+(level+1)+'.',{title:'Purr-fect!',coinScore:meow.puzzle.n,scoreText:'Level '+level}):finish('meow',0,(extra?.lives===0?'Three wrong cats. ':'')+'This one stays at level '+level+'. Play again for a new puzzle.',{title:extra?.lives===0?'Out of hearts 💔':'Puzzle skipped',coinScore:0,scoreText:'Level '+level,won:false})}/>
   :game==='flap'?<FlappyKono key={round} ref={handle} best={readBest('flap')} sound={sound} onEnd={n=>{const medal=flapMedal(n);finish('flap',n,(medal?medal.emoji+' '+medal.name+' medal! ':'')+'KONO flew through '+n+' pipe'+(n===1?'':'s')+'.',{title:medal?medal.name+' medal!':n>0?'Nice flying!':'Bonk!',scoreText:n+' pipe'+(n===1?'':'s'),won:n>0})}}/>
   :game==='stack'?<KonoStack key={round} ref={handle} best={readBest('stack')} sound={sound} onEnd={(n,perfects)=>finish('stack',n,'KONO’s tower is '+n+' floor'+(n===1?'':'s')+' tall'+(perfects?', with '+perfects+' Perfect'+(perfects===1?'':'s'):'')+'. 🏢',{title:n>=50?'Sky-high!':n>=20?'What a tower!':n>0?'Nice building!':'Oops!',coinScore:n,scoreText:n+' floor'+(n===1?'':'s'),won:n>0})}/>
-  :game==='cove'?<MedalCove key={round} ref={handle} best={readBest('cove')} sound={sound} onEnd={(n,jps)=>finish('cove',n,(jps?'🎉 '+jps+' jackpot'+(jps===1?'':'s')+'! ':'')+'You finished with '+n+' medal'+(n===1?'':'s')+'. 🪙',{title:jps?'JACKPOT!':n>=100?'Big haul!':n>0?'Nice pushing!':'All pushed out',scoreText:n+' medals',won:n>0})}/>
+  :game==='cove'?<Suspense fallback={<p role="status">Setting up the cove…</p>}><MedalCove key={round} ref={handle} best={readBest('cove')} sound={sound} onEnd={(n,jps)=>finish('cove',n,(jps?'🎉 '+jps+' jackpot'+(jps===1?'':'s')+'! ':'')+'You finished with '+n+' medal'+(n===1?'':'s')+'. 🪙',{title:jps?'JACKPOT!':n>=100?'Big haul!':n>0?'Nice pushing!':'All pushed out',scoreText:n+' medals',won:n>0})}/></Suspense>
   :game==='bloom'?<KonoBloom key={round} ref={handle} best={readBest('bloom')} sound={sound} onEnd={(n,biggest)=>finish('bloom',n,'You grew up to '+LADDER[biggest].emoji+' '+LADDER[biggest].name+'. 🌸',{title:biggest>=10?'A Great Tree!':biggest>=7?'What a garden!':'Nice growing!',scoreText:n.toLocaleString()+' points',won:n>0})}/>
   :game==='flow'?<FlowGame key={round} ref={handle} sound={sound} onEnd={r=>{
    // Sprint is about time (its best is kept in the game); the others about points.
