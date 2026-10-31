@@ -54,7 +54,14 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   renderer.setPixelRatio(Math.min(small?1.5:2,window.devicePixelRatio||1));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap
   renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05
   el.appendChild(renderer.domElement);renderer.domElement.setAttribute('aria-hidden','true')
-  const scene=new THREE.Scene();scene.background=new THREE.Color('#2f7fc8');scene.fog=new THREE.Fog('#2f7fc8',18,34)
+  const scene=new THREE.Scene();scene.background=skyTexture();scene.fog=new THREE.Fog('#d9efff',22,40)
+  // Soft toon shading in three tones and pastel colors, to sit with the Sanctuary's art.
+  const tones=new THREE.DataTexture(new Uint8Array([150,150,150,255,205,205,205,255,255,255,255,255]),3,1,THREE.RGBAFormat);tones.magFilter=tones.minFilter=THREE.NearestFilter;tones.needsUpdate=true
+  const toon=(color:string,extra:THREE.MeshToonMaterialParameters={})=>new THREE.MeshToonMaterial({color,gradientMap:tones,...extra})
+  // The Sanctuary's own pixel art, as sprites standing in the scene (crisp pixels, bottom-centered).
+  const loader=new THREE.TextureLoader()
+  const pix=(name:string)=>{const t=loader.load('/games/cove/'+name+'.webp');t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;return t}
+  const sprite=(name:string,h:number,x:number,y:number,z:number)=>{const s=new THREE.Sprite(new THREE.SpriteMaterial({map:pix(name),alphaTest:0.04}));s.center.set(0.5,0);s.scale.set(h*(ASPECT[name]??1),h,1);s.position.set(x,y,z);scene.add(s);return s}
   const camera=new THREE.PerspectiveCamera(42,1,0.1,80)
   const pmrem=new THREE.PMREMGenerator(renderer),envRT=pmrem.fromScene(new RoomEnvironment(),0.04);scene.environment=envRT.texture;pmrem.dispose()
   scene.add(new THREE.HemisphereLight('#dff3ff','#4a3424',0.8))
@@ -64,24 +71,24 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   // and SMAA for smooth edges. Half-resolution bloom on phones.
   const composer=new EffectComposer(renderer,{multisampling:0})
   composer.addPass(new RenderPass(scene,camera))
-  const bloom=new BloomEffect({intensity:small?0.7:0.9,luminanceThreshold:0.82,luminanceSmoothing:0.2,mipmapBlur:true,resolutionScale:small?0.5:0.75})
+  const bloom=new BloomEffect({intensity:small?0.7:0.9,luminanceThreshold:0.92,luminanceSmoothing:0.2,mipmapBlur:true,resolutionScale:small?0.5:0.75})
   composer.addPass(new EffectPass(camera,bloom,new SMAAEffect()))
   // ---- The cabinet you see ----
-  const deckMat=new THREE.MeshStandardMaterial({map:woodTexture(),roughness:.85,color:'#e9c9a0'})
+  const deckMat=toon('#f6dcb4',{map:woodTexture()})
   const deck=new THREE.Mesh(new THREE.BoxGeometry(10.4,0.4,13.6),deckMat);deck.position.set(0,-0.2,-0.8);deck.receiveShadow=true;scene.add(deck)
-  const frameMat=new THREE.MeshStandardMaterial({color:'#5b3a24',roughness:.7})
-  const glass=new THREE.MeshPhysicalMaterial({color:'#cfefff',transparent:true,opacity:.18,roughness:.05})
+  const frameMat=toon('#f4a6c1')
+  const glass=new THREE.MeshPhysicalMaterial({color:'#e8f7ff',transparent:true,opacity:.14,roughness:.05})
   for(const s of [-1,1]){const g=new THREE.Mesh(new THREE.BoxGeometry(0.12,1.4,12),glass);g.position.set(s*5.15,0.7,-1.6);scene.add(g)
    const rail=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.18,12),frameMat);rail.position.set(s*5.2,1.45,-1.6);scene.add(rail)}
   const back=new THREE.Mesh(new THREE.BoxGeometry(10.8,2.6,0.4),frameMat);back.position.set(0,1.1,-7.8);back.castShadow=true;scene.add(back)
   const scraper=new THREE.Mesh(new THREE.BoxGeometry(10.2,1.0,0.3),frameMat);scraper.position.set(0,1.35,-6.55);scene.add(scraper)
   const tray=new THREE.Mesh(new THREE.BoxGeometry(10.4,0.3,2.6),frameMat);tray.position.set(0,-2.15,7.4);tray.receiveShadow=true;scene.add(tray)
   const seaGeo=new THREE.PlaneGeometry(60,60,48,48),seaBase=Float32Array.from(seaGeo.attributes.position.array as Float32Array)
-  const sea=new THREE.Mesh(seaGeo,new THREE.MeshStandardMaterial({color:'#1f6fb8',roughness:.22,metalness:.15,flatShading:true}));sea.rotation.x=-Math.PI/2;sea.position.y=-3;scene.add(sea)
-  const pusherMesh=new THREE.Mesh(new THREE.BoxGeometry(10.0,0.6,6),new THREE.MeshStandardMaterial({color:'#2f6fb3',roughness:.45}));pusherMesh.castShadow=true;pusherMesh.receiveShadow=true;scene.add(pusherMesh)
+  const sea=new THREE.Mesh(seaGeo,toon('#8fd3f0'));sea.rotation.x=-Math.PI/2;sea.position.y=-3;scene.add(sea)
+  const pusherMesh=new THREE.Mesh(new THREE.BoxGeometry(10.0,0.6,6),toon('#8fdcc2'));pusherMesh.castShadow=true;pusherMesh.receiveShadow=true;scene.add(pusherMesh)
   // The pin board: a painted backplate, chrome pins, and three glowing pockets.
-  const plate=new THREE.Mesh(new THREE.BoxGeometry(10.2,BTOP-BBOTTOM+1.1,0.12),new THREE.MeshStandardMaterial({map:boardTexture(),roughness:.6}));plate.position.set(0,(BTOP+BBOTTOM)/2+0.05,BZ-0.2);scene.add(plate)
-  const boardGlass=new THREE.Mesh(new THREE.BoxGeometry(10.2,BTOP-BBOTTOM+1.1,0.04),glass);boardGlass.position.set(0,(BTOP+BBOTTOM)/2+0.05,BZ+0.2);scene.add(boardGlass)
+  const plate=new THREE.Mesh(new THREE.BoxGeometry(10.2,BTOP-BBOTTOM+1.1,0.12),new THREE.MeshBasicMaterial({map:boardTexture(),toneMapped:false}));plate.position.set(0,(BTOP+BBOTTOM)/2+0.05,BZ-0.2);scene.add(plate)
+  const boardGlass=new THREE.Mesh(new THREE.BoxGeometry(10.2,BTOP-BBOTTOM+1.1,0.04),new THREE.MeshPhysicalMaterial({color:'#ffffff',transparent:true,opacity:.05,roughness:.05}));boardGlass.position.set(0,(BTOP+BBOTTOM)/2+0.05,BZ+0.2);scene.add(boardGlass)
   const pinMesh=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.06,0.06,0.42,10),new THREE.MeshStandardMaterial({color:'#eef3f8',metalness:1,roughness:.2}),PINS.length)
   PINS.forEach(([x,y],i)=>{const m=new THREE.Matrix4().makeRotationX(Math.PI/2);m.setPosition(x,y,BZ);pinMesh.setMatrixAt(i,m)});scene.add(pinMesh)
   const pocketMeshes=POCKET_W.map((w,i)=>{const g=new THREE.Group()
@@ -116,25 +123,36 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   const BULB=[new THREE.Color(2.4,1.7,0.5),new THREE.Color(2.2,0.7,1.4),new THREE.Color(0.6,1.8,2.4)],dim=new THREE.Color(0.35,0.25,0.12)
   // The lighthouse on the left of the dock: five rings that light up with the lamps, and a turning beacon.
   const house=new THREE.Group();house.position.set(-4.25,BTOP+0.6,BZ-0.35);house.scale.setScalar(0.62);scene.add(house)
-  const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(0.9,0),new THREE.MeshStandardMaterial({color:'#7a6a5a',roughness:.9,flatShading:true}));rock.scale.set(0.8,0.3,0.8);house.add(rock)
-  const towerMat=new THREE.MeshStandardMaterial({map:stripeTexture(),roughness:.6})
+  const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(0.9,0),toon('#b8a99a'));rock.scale.set(0.8,0.3,0.8);house.add(rock)
+  const towerMat=toon('#ffffff',{map:stripeTexture()})
   const tower=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.46,3,20),towerMat);tower.position.y=1.8;tower.castShadow=true;house.add(tower)
   const ringMats=Array.from({length:LAMPS},()=>new THREE.MeshStandardMaterial({color:'#3a3a3a',emissive:'#ffcf3d',emissiveIntensity:0}))
   ringMats.forEach((m,i)=>{const ring=new THREE.Mesh(new THREE.TorusGeometry(0.45-i*0.03,0.06,8,24),m);ring.rotation.x=Math.PI/2;ring.position.y=0.6+i*0.55;house.add(ring)})
   const lampRoom=new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.34,0.42,16),new THREE.MeshStandardMaterial({color:'#fff6d0',emissive:'#ffd36a',emissiveIntensity:1.6,transparent:true,opacity:.9}));lampRoom.position.y=3.5;house.add(lampRoom)
-  const roof=new THREE.Mesh(new THREE.ConeGeometry(0.44,0.45,16),new THREE.MeshStandardMaterial({color:'#c0392b'}));roof.position.y=3.93;house.add(roof)
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(0.44,0.45,16),toon('#ff8fa3'));roof.position.y=3.93;house.add(roof)
   const beam=new THREE.Mesh(new THREE.ConeGeometry(0.9,5,24,1,true),new THREE.MeshBasicMaterial({color:'#fff2b0',transparent:true,opacity:.16,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}))
   beam.geometry.translate(0,-2.5,0);beam.rotation.z=Math.PI/2;const beamPivot=new THREE.Group();beamPivot.position.y=3.5;beamPivot.add(beam);house.add(beamPivot)
   // KONO on a dock post on the right, bobbing, and jumping for joy on a big win.
-  const konoTex={happy:new THREE.TextureLoader().load('/garden/kono/happy.webp'),excited:new THREE.TextureLoader().load('/garden/kono/excited.webp')}
-  Object.values(konoTex).forEach(t=>{t.colorSpace=THREE.SRGBColorSpace})
-  const kono=new THREE.Sprite(new THREE.SpriteMaterial({map:konoTex.happy}));kono.scale.set(1.25,1.25,1);scene.add(kono)
+  // KONO's own animations (four frames each): breathing when it's quiet, waving as you drop, cheering on a win.
+  const konoAnim=Object.fromEntries(['breathe','wave','cheer'].map(n=>{const t=loader.load('/garden/kono/anim/'+n+'.webp');t.colorSpace=THREE.SRGBColorSpace;t.repeat.set(0.25,1);return [n,t]})) as Record<'breathe'|'wave'|'cheer',THREE.Texture>
+  const kono=new THREE.Sprite(new THREE.SpriteMaterial({map:konoAnim.breathe,alphaTest:0.04}));kono.center.set(0.5,0);kono.scale.set(1.5,1.5,1);scene.add(kono)
   // KONO sits on a little island on the cabinet's top right.
-  const isle=new THREE.Mesh(new THREE.CylinderGeometry(0.75,0.9,0.3,20),new THREE.MeshStandardMaterial({color:'#f2d79b',roughness:.9}));isle.position.set(4.1,BTOP+0.75,BZ-0.3);scene.add(isle)
+  // The Sanctuary's garden around the cabinet: trees behind, lanterns and flowers on the rails, the light
+  // arch behind the giant tower, clouds in the sky, butterflies, a bird and falling petals.
+  sprite('tree-blossom',5.6,-6.6,-0.6,-9);sprite('tree-leafy',5.2,6.7,-0.6,-9.2)
+  sprite('light-arch',3.2,0,BTOP+0.45,BZ-1.3)
+  sprite('lantern-post',1.5,-4.75,1.5,3.6);sprite('lantern-post',1.5,4.75,1.5,3.6).scale.x*=-1
+  sprite('paper-lanterns',0.9,-4.6,1.5,-1.4);sprite('paper-lanterns',0.9,4.6,1.5,-1.4)
+  ;[-4,-0.2,2.6].forEach((z,i)=>{sprite('flowers-'+(i%4+1),0.5,-5.25,1.5,z);sprite('flowers-'+((i+2)%4+1),0.5,5.25,1.5,z)})
+  const clouds=['cloud-a','cloud-b','cloud-a','cloud-b'].map((n,i)=>sprite(n,1.4+i*0.2,0,BTOP+3.2+(i%2)*1.3,-15-i))
+  const butterflies=['butterfly','butterfly-2'].map(n=>sprite(n,0.5,0,0,0))
+  const bird=sprite('bird',0.45,0,0,-9)
+  const petals=Array.from({length:24},(_,i)=>{const p=sprite(i%2?'petal-1':'petal-2',0.24,(Math.random()-.5)*12,Math.random()*(BTOP+4),-6+Math.random()*12);p.material.alphaTest=0.02;return p})
+  const isle=new THREE.Mesh(new THREE.CylinderGeometry(0.75,0.9,0.3,20),toon('#ffe6a8'));isle.position.set(4.1,BTOP+0.75,BZ-0.3);scene.add(isle)
   // Sparkles: gold glints, colored bursts and confetti, all in one additive point cloud.
   const SPARKS=500,sPos=new Float32Array(SPARKS*3),sCol=new Float32Array(SPARKS*3),sVel=new Float32Array(SPARKS*3),sLife=new Float32Array(SPARKS)
   const sGeo=new THREE.BufferGeometry();sGeo.setAttribute('position',new THREE.BufferAttribute(sPos,3));sGeo.setAttribute('color',new THREE.BufferAttribute(sCol,3))
-  const sparks=new THREE.Points(sGeo,new THREE.PointsMaterial({size:0.16,vertexColors:true,map:sparkTexture(),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));sparks.frustumCulled=false;scene.add(sparks)
+  const sparks=new THREE.Points(sGeo,new THREE.PointsMaterial({size:0.16,vertexColors:true,map:pix('sparkle'),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));sparks.frustumCulled=false;scene.add(sparks)
   let sNext=0
   const emit=(x:number,y:number,z:number,n:number,palette:THREE.Color[],speed=2)=>{for(let k=0;k<n;k++){const i=sNext++%SPARKS,a=Math.random()*Math.PI*2,u=Math.random()*2-1,r=Math.sqrt(1-u*u),v=speed*(0.4+Math.random()*0.8)
    sPos.set([x,y,z],i*3);sVel.set([Math.cos(a)*r*v,Math.abs(u)*v+speed*0.6,Math.sin(a)*r*v],i*3);const col=palette[k%palette.length];sCol.set([col.r,col.g,col.b],i*3);sLife[i]=0.9+Math.random()*0.8}}
@@ -277,7 +295,13 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
    bulbSpots.forEach((_,i)=>{const on=party?((i+Math.floor(f/3))%2===0):((i+Math.floor(f/5))%5===0);bulbs.setColorAt(i,on?BULB[(i+Math.floor(f/(party?6:40)))%3]:dim)});if(bulbs.instanceColor)bulbs.instanceColor.needsUpdate=true
    ringMats.forEach((m,i)=>{const lit=i<c.steps;m.emissiveIntensity=lit?2.2+0.6*Math.sin(f/6+i):party?(f/4+i)%2<1?2:0:0;m.color.set(lit?'#ffe08a':'#3a3a3a')})
    beamPivot.rotation.y=f*(party?0.12:0.03);(beam.material as THREE.MeshBasicMaterial).opacity=party?0.3:0.16
-   kono.material.map=party?konoTex.excited:konoTex.happy;kono.position.set(4.1,BTOP+1.5+Math.abs(Math.sin(f/(party?5:28)))*(party?0.6:0.12),BZ-0.25)
+   const anim=party?konoAnim.cheer:now-lastDrop.current<900?konoAnim.wave:konoAnim.breathe;anim.offset.x=Math.floor(f/(party?6:10))%4*0.25;kono.material.map=anim
+   kono.position.set(4.1,BTOP+0.9+(party?Math.abs(Math.sin(f/6))*0.5:0),BZ-0.25)
+   // The garden around the cabinet: clouds drift, butterflies flutter, a bird passes, petals fall.
+   clouds.forEach((cl,i)=>{cl.position.x=((f*0.004*(1+i*0.3)+i*7)%26)-13})
+   butterflies.forEach((b,i)=>{const t=f/90+i*2.4;b.position.set(Math.sin(t)*3.6,BTOP-0.6+Math.sin(t*2)*0.6+i*0.5,BZ+1.6+Math.cos(t)*1.4);b.scale.x=0.5*(ASPECT['butterfly']??1)*(0.35+0.65*Math.abs(Math.sin(f/4+i)))})
+   const bt=(f%1500)/1500;bird.visible=bt<0.35;bird.position.set(-9+bt/0.35*18,BTOP+2.6+Math.sin(f/20)*0.2,-9)
+   petals.forEach((pt,i)=>{const fall=(party?3:1)*0.006;pt.position.y-=fall;pt.position.x+=Math.sin(f/40+i)*0.008;pt.material.rotation+=0.02;if(pt.position.y<-0.5){pt.position.set((Math.random()-.5)*12,BTOP+3+Math.random()*2,-6+Math.random()*12)}})
    if(f%2===0){const pos=seaGeo.attributes.position as THREE.BufferAttribute,a=pos.array as Float32Array;for(let k=0;k<a.length;k+=3)a[k+2]=seaBase[k+2]+Math.sin(seaBase[k]*0.5+f*0.03)*0.18+Math.cos(seaBase[k+1]*0.45+f*0.025)*0.15;pos.needsUpdate=true;seaGeo.computeVertexNormals()}
    for(let i=0;i<SPARKS;i++){if(sLife[i]<=0){sPos[i*3+1]=-99;continue}sLife[i]-=1/60;sVel[i*3+1]-=0.06;sPos[i*3]+=sVel[i*3]/60;sPos[i*3+1]+=sVel[i*3+1]/60;sPos[i*3+2]+=sVel[i*3+2]/60;const k=Math.max(0,sLife[i]);sCol[i*3]*=0.985;sCol[i*3+1]*=0.985;sCol[i*3+2]*=0.985;if(k===0)sPos[i*3+1]=-99}
    ;(sGeo.attributes.position as THREE.BufferAttribute).needsUpdate=true;(sGeo.attributes.color as THREE.BufferAttribute).needsUpdate=true
@@ -320,7 +344,7 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
    <div className="cove-board" aria-label="Backboard">
    <div className="cove-steps" aria-label={hud.steps+' of '+LAMPS+' lamps'}>{Array.from({length:LAMPS},(_,i)=><i key={i} className={i<hud.steps?'is-on':undefined}/>)}<small>💡 lamps</small></div>
    <div className="cove-jp"><small>JACKPOT</small><b>{hud.jp}</b></div>
-   <div className="cove-pockets"><b>🗼 {hud.bank}</b><small>giant tower</small><small>🎯 {hud.pockets}/{CHANCE_POCKETS} JP{best!==null?' · best '+best:''}</small></div>
+   <div className="cove-pockets" aria-label={'Giant tower: '+hud.bank+' medals'}><b>🗼 {hud.bank}</b><small>giant tower</small><small>🎯 {hud.pockets}/{CHANCE_POCKETS} JP{best!==null?' · best '+best:''}</small></div>
    <div className={'cove-reels'+(hud.spinning?' is-spinning':'')} aria-label={'Lottery: '+hud.reels.join(' ')}>{hud.reels.map((r,i)=><span key={i}>{r}</span>)}</div>
    <div className="cove-queue" aria-label={hud.queue+' spins waiting'}>{Array.from({length:4},(_,i)=><i key={i} className={i<hud.queue?'is-on':undefined}/>)}</div>
   </div>
@@ -354,15 +378,25 @@ function wheelImage(winPockets:number){const [c,g]=canvas(512,512),cx=256,cy=256
   const am=(a0+a1)/2;g.fillStyle=win?'#5a3200':'#fff';g.font='bold 30px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText(win?'JP':'+10',cx+Math.cos(am)*R*.72,cy+Math.sin(am)*R*.72)}
  g.fillStyle='#2b1a3a';g.beginPath();g.arc(cx,cy,80,0,Math.PI*2);g.fill();g.fillStyle='#ffd34d';g.font='bold 30px system-ui';g.fillText('JACKPOT',cx,cy-14);g.fillText('CHANCE',cx,cy+22)
  return c}
-function boardTexture(){const [c,g]=canvas(512,256);const grad=g.createLinearGradient(0,0,0,256);grad.addColorStop(0,'#7fd0ff');grad.addColorStop(1,'#2f6fb3');g.fillStyle=grad;g.fillRect(0,0,512,256)
- g.fillStyle='rgba(255,255,255,.18)';for(let i=0;i<6;i++){g.beginPath();g.arc(60+i*80,40+(i%2)*30,26,0,Math.PI*2);g.fill()}
- g.fillStyle='rgba(255,233,168,.9)';g.font='bold 28px system-ui';g.textAlign='center';g.fillText('KONO MEDAL COVE',256,236)
- const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+/** The pin board's backplate: a soft sky with the Sanctuary's own trees, lanterns, clouds and flowers painted
+ * behind the pins (drawn in as each picture loads), and the cabinet's name. */
+function boardTexture(){const [c,g]=canvas(1024,384)
+ const paint=()=>{const grad=g.createLinearGradient(0,0,0,384);grad.addColorStop(0,'#bfe7ff');grad.addColorStop(.7,'#ffeef5');grad.addColorStop(1,'#ffe1ec');g.fillStyle=grad;g.fillRect(0,0,1024,384)}
+ paint()
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace
+ const parts:[string,number,number,number][]=[['cloud-a',90,40,170],['cloud-b',640,24,190],['cloud-a',820,70,150],['tree-blossom',-30,96,290],['tree-leafy',800,110,270],['lantern-post',250,190,170],['lantern-post',700,190,170],['flowers-1',120,316,130],['flowers-3',330,322,120],['flowers-2',520,316,130],['flowers-4',720,318,130],['flowers-1',900,320,120]]
+ const imgs=parts.map(([n])=>Object.assign(new Image(),{src:'/games/cove/'+n+'.webp'}))
+ let left=imgs.length
+ const draw=()=>{paint();g.imageSmoothingEnabled=false
+  parts.forEach(([,x,y,h],i)=>{const im=imgs[i];if(!im.complete||!im.naturalWidth)return;const w=h*im.naturalWidth/im.naturalHeight;g.globalAlpha=0.92;g.drawImage(im,x,y-(h-(384-y)>0?0:0),w,h);g.globalAlpha=1})
+  g.fillStyle='rgba(255,255,255,.85)';g.strokeStyle='rgba(214,112,150,.9)';g.lineWidth=6;g.font='900 44px system-ui';g.textAlign='center';g.strokeText('KONO MEDAL COVE',512,372);g.fillText('KONO MEDAL COVE',512,372)
+  t.needsUpdate=true}
+ imgs.forEach(im=>{im.onload=im.onerror=()=>{left--;draw()}})
+ if(!left)draw()
+ return t}
 function emojiTexture(e:string){const [c,g]=canvas(128,128);g.font='96px system-ui,"Apple Color Emoji","Noto Color Emoji"';g.textAlign='center';g.textBaseline='middle';g.fillText(e,64,70)
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
 function stripeTexture(){const [c,g]=canvas(64,256);for(let i=0;i<8;i++){g.fillStyle=i%2?'#f6f1e7':'#d8443a';g.fillRect(0,i*32,64,32)}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
-function sparkTexture(){const [c,g]=canvas(64,64);const grad=g.createRadialGradient(32,32,0,32,32,32);grad.addColorStop(0,'rgba(255,255,255,1)');grad.addColorStop(.25,'rgba(255,255,255,.8)');grad.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=grad;g.fillRect(0,0,64,64)
- g.strokeStyle='rgba(255,255,255,.9)';g.lineWidth=2;g.beginPath();g.moveTo(32,4);g.lineTo(32,60);g.moveTo(4,32);g.lineTo(60,32);g.stroke();return new THREE.CanvasTexture(c)}
 function wheelSegTexture(segs:{label:string;kind:string}[],w:number){const [c,g]=canvas(256,256),n=segs.length,cx=128,cy=128,r=126
  const pal=[['#ff6b5e','#ffb3a8'],['#ffd34d','#fff0b8'],['#4fb3ff','#b9e2ff']][w]
  segs.forEach((sg,k)=>{const a0=-Math.PI/2+k*2*Math.PI/n-Math.PI/n,a1=a0+2*Math.PI/n
@@ -370,3 +404,5 @@ function wheelSegTexture(segs:{label:string;kind:string}[],w:number){const [c,g]
   g.save();g.translate(cx,cy);g.rotate((a0+a1)/2+Math.PI/2);g.fillStyle='#2b1a3a';g.font='bold '+(sg.label.length>6?15:20)+'px system-ui';g.textAlign='center'
   g.fillText(sg.kind==='lamp'?'💡':sg.kind==='ball'?'🔮':sg.kind==='spin'?'🎰':sg.kind==='layers'?'🗼':'🪙',0,-r+30);g.fillText(sg.label.replace(' layers',' L').replace(' layer',' L'),0,-r+54);g.restore()})
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+const ASPECT:Record<string,number>={'lantern-post':117/192,'lantern-post-night':117/192,'paper-lanterns':192/151,'light-arch':256/236,'tree-blossom':253/256,'tree-leafy':227/256,'flowers-1':99/49,'flowers-2':112/61,'flowers-3':100/58,'flowers-4':110/64,'shell':72/56,'petal-1':36/48,'petal-2':43/48,'sparkle':1,'cloud-a':209/67,'cloud-b':220/70,'butterfly':60/33,'butterfly-2':42/33,'bird':63/42}
+function skyTexture(){const [c,g]=canvas(16,256);const grad=g.createLinearGradient(0,0,0,256);grad.addColorStop(0,'#a9dcff');grad.addColorStop(.55,'#d9efff');grad.addColorStop(1,'#ffe9f2');g.fillStyle=grad;g.fillRect(0,0,16,256);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
