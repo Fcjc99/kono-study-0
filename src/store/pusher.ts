@@ -117,7 +117,7 @@ export const LAMPS = 5
 /** All five lamps lit: the BIG BONUS. */
 function lampCheck(c: Cove, random: () => number): Cove {
   if (c.steps < LAMPS) return c
-  const t = { x: 30 + random() * 40, n: 15, at: c.frame }
+  const t = { x: 30 + random() * 40, n: 30, at: c.frame }
   return say(ballOnField(shower({ ...c, steps: 0, towers: [...c.towers, t] }, 20, random), random), '💡 All 5 lamps: BIG BONUS! +20, a prize ball and a tower')
 }
 export type Pocket = 'spin' | 'lamp' | 'tower'
@@ -129,7 +129,7 @@ export function pocket(c: Cove, kind: Pocket, random: () => number = Math.random
   const jp = { ...c, jackpot: c.jackpot + 1 }
   if (kind === 'spin') return c.queue + (c.spinning ? 1 : 0) >= 4 ? jp : { ...jp, queue: c.queue + 1 }
   if (kind === 'lamp') return lampCheck(say({ ...jp, steps: c.steps + 1 }, '⭐ A lamp lights up (' + (c.steps + 1) + '/' + LAMPS + ')'), random)
-  return c.towers.length >= 3 ? say(shower(jp, 3, random), '🗼 Three towers already: +3 medals') : say({ ...jp, towers: [...c.towers, { x: 20 + random() * 60, n: 12, at: c.frame }] }, '🗼 A medal tower!')
+  return c.towers.length >= 3 ? say(shower(jp, 3, random), '🗼 Three towers already: +3 medals') : say({ ...jp, towers: [...c.towers, { x: 20 + random() * 60, n: 24, at: c.frame }] }, '🗼 A medal tower!')
 }
 const SPIN_FRAMES = 110, DISH_FRAMES = 200, CHANCE_FRAMES = 230
 /** Is pocket `i` of the Jackpot Chance wheel a winning one (the first `winPockets`, spread round the wheel)? */

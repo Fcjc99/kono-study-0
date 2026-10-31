@@ -817,3 +817,11 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 @keyframes gc-push{50%{translate:0 40%}}
 @media(prefers-reduced-motion:reduce){.gc-cove-pusher,.cove-event,.cove-reels.is-spinning span{animation:none}}
 .cove-loading{position:absolute;inset:0;margin:0;display:grid;place-items:center;color:#fff;font-weight:900;background:rgb(10 30 60/.5)}
+/* Big wins: a gold banner that shines, and a flash over the whole cabinet */
+.cove-event.is-big{font-size:1.5rem;padding:14px 16px;background:linear-gradient(110deg,#ffd34d 20%,#fff6c8 40%,#ffd34d 60%) 0 0/250% 100%;animation:kids-pop .35s cubic-bezier(.3,1.6,.5,1),cove-shine 1.2s linear infinite;box-shadow:0 0 0 3px #fff,0 0 30px #ffcf3d}
+@keyframes cove-shine{to{background-position:-250% 0}}
+.cove-flash{position:absolute;inset:0;background:radial-gradient(circle,rgb(255 250 220/.9),rgb(255 210 80/.3) 50%,transparent 75%);animation:cove-flash .7s ease-out forwards;pointer-events:none;z-index:1}
+@keyframes cove-flash{from{opacity:1}to{opacity:0}}
+.cove-steps i.is-on{animation:cove-lamp 1s ease-in-out infinite alternate}
+@keyframes cove-lamp{to{box-shadow:0 0 16px #ffe14d,0 0 4px #fff}}
+@media(prefers-reduced-motion:reduce){.cove-event.is-big,.cove-steps i.is-on{animation:none}.cove-flash{display:none}}
