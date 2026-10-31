@@ -31,6 +31,10 @@ export type Cove = {
   chance: { pocket: number; at: number } | null; chanceQueue: number
   jackpot: number; jpWins: number; winPockets: number
   towers: { x: number; n: number; at: number }[]; events: { text: string; at: number }[]
+  /** The pile is moved by a real physics engine (components/MedalCove): `medals` then only holds medals and
+   * balls waiting to be put into the machine, towers stand until it builds them, and it reports what
+   * falls off (settle). */
+  external?: boolean
 }
 
 export const FIELD = { w: 100, h: 120, r: 3.1, ball: 4.4, back: 14, reach: 30, checkerW: 9 }
@@ -47,12 +51,13 @@ export const pusherAt = (frame: number) => FIELD.back + (FIELD.reach - FIELD.bac
 export const checkerAt = (frame: number) => 50 + 34 * Math.sin(frame / 47)
 
 /** A fresh machine: a big pile already on the field (the medals that make it a pusher), and a hand of medals. */
-export function newCove(random: () => number = Math.random, hand = 100): Cove {
+export function newCove(random: () => number = Math.random, hand = 100, external = false): Cove {
   const medals: Medal[] = []
   let id = 1
   // Rows of medals from the pusher's reach to near the front edge, packed with a little jitter.
   for (let y = FIELD.reach + 4; y < FIELD.h - 1.5; y += FIELD.r * 1.7) for (let x = 6; x < FIELD.w - 6; x += FIELD.r * 2.05) medals.push({ id: id++, x: x + (random() - 0.5) * 1.2, y: y + (random() - 0.5) * 1.2, vx: 0, vy: 0 })
-  return { medals, nextId: id, frame: 0, pusher: pusherAt(0), checker: checkerAt(0), hand, won: 0, lost: 0, dropped: 0, queue: 0, spinning: null, spinsDone: 0, steps: 0, dish: null, dishQueue: 0, chance: null, chanceQueue: 0, jackpot: JP_START, jpWins: 0, winPockets: 1, towers: [], events: [] }
+  if (external) medals.length = 0
+  return { ...(external ? { external } : {}), medals, nextId: id, frame: 0, pusher: pusherAt(0), checker: checkerAt(0), hand, won: 0, lost: 0, dropped: 0, queue: 0, spinning: null, spinsDone: 0, steps: 0, dish: null, dishQueue: 0, chance: null, chanceQueue: 0, jackpot: JP_START, jpWins: 0, winPockets: 1, towers: [], events: [] }
 }
 
 const say = (c: Cove, text: string): Cove => ({ ...c, events: [...c.events.slice(-4), { text, at: c.frame }] })
@@ -126,7 +131,7 @@ export function step(c0: Cove, random: () => number = Math.random, n = 1): Cove 
     if (c.steps >= 3) c = say(ballOnField({ ...c, steps: 0 }, random), '⭐⭐⭐ The lighthouse lights up: a prize ball!')
   }
   // A tower tips over after a moment: its medals spill onto the field around where it stood.
-  for (const t of c.towers.filter(t => c.frame - t.at >= 90)) c = add(c, Array.from({ length: t.n }, (_, i) => ({ x: Math.max(5, Math.min(95, t.x + (random() - 0.5) * 18)), y: pusher + 6 + (i / t.n) * 26 + random() * 4, vx: (random() - 0.5) * 0.6, vy: 0.4 + random() * 0.5 })))
+  if (!c.external) for (const t of c.towers.filter(t => c.frame - t.at >= 90)) c = add(c, Array.from({ length: t.n }, (_, i) => ({ x: Math.max(5, Math.min(95, t.x + (random() - 0.5) * 18)), y: pusher + 6 + (i / t.n) * 26 + random() * 4, vx: (random() - 0.5) * 0.6, vy: 0.4 + random() * 0.5 })))
   c = { ...c, towers: c.towers.filter(t => c.frame - t.at < 90) }
   if (!c.dish && c.dishQueue > 0) c = { ...c, dishQueue: c.dishQueue - 1, dish: { pocket: Math.floor(random() * DISH.length), at: c.frame } }
   if (c.dish && c.frame - c.dish.at >= DISH_FRAMES) {
@@ -142,6 +147,7 @@ export function step(c0: Cove, random: () => number = Math.random, n = 1): Cove 
     if (hit) c = say({ ...c, chance: null, won: c.won + c.jackpot, jpWins: c.jpWins + 1, jackpot: JP_START, winPockets: 1 }, '🎉 JACKPOT! +' + c.jackpot)
     else c = say({ ...c, chance: null, won: c.won + 10, jackpot: c.jackpot + 20, winPockets: Math.min(4, c.winPockets + 1) }, 'So close! +10, and a winning pocket is added')
   }
+  if (c.external) return c
   // The pile: the pusher shoves what's in front of it; medals push each other apart and slow down.
   const ms = c.medals.map(m => ({ ...m }))
   for (const m of ms) {
@@ -184,3 +190,12 @@ export function step(c0: Cove, random: () => number = Math.random, n = 1): Cove 
 
 /** Busy: a spin, a ball lottery, a chance, a tower or anything still waiting. */
 export const busy = (c: Cove) => !!(c.spinning || c.queue || c.dish || c.dishQueue || c.chance || c.chanceQueue || c.towers.length)
+
+/** With a physics engine moving the pile: what fell off since last time. Medals off the front are yours
+ * (back into your hand), off the sides are lost, and a prize ball off the front goes to the ball lottery. */
+export function settle(c: Cove, won: number, lost: number, balls: number): Cove {
+  if (!won && !lost && !balls) return c
+  return { ...c, won: c.won + won, hand: c.hand + won, lost: c.lost + lost, dishQueue: c.dishQueue + balls }
+}
+/** Takes the medals and balls waiting to go into the machine (the physics engine puts them in). */
+export const spawned = (c: Cove): Cove => c.medals.length ? { ...c, medals: [] } : c

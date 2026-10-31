@@ -816,3 +816,4 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 .gc-cove i{position:absolute;width:12%;height:9%;border-radius:50%;background:radial-gradient(ellipse at 35% 35%,#fff1a6,#f2c230 55%,#c99012);left:calc(8% + (var(--i) * 37 % 76) * 1%);top:calc(48% + (var(--i) * 13 % 40) * 1%)}
 @keyframes gc-push{50%{translate:0 40%}}
 @media(prefers-reduced-motion:reduce){.gc-cove-pusher,.cove-event,.cove-reels.is-spinning span{animation:none}}
+.cove-loading{position:absolute;inset:0;margin:0;display:grid;place-items:center;color:#fff;font-weight:900;background:rgb(10 30 60/.5)}
