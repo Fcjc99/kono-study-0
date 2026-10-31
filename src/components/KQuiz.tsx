@@ -29,6 +29,8 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
   // The active folder both filters what's shown below and decides what subject a newly recorded
   // lecture or generated study set files under — recording while browsing "Biology" lands in
   // Biology, the same way saving a file into an open folder does. '' means All, UNSORTED its own bucket.
+  // Which way to add a source is open (Record, Paste or Scan): one form at a time, not three stacked.
+  const [entry, setEntry] = useState<'record' | 'paste' | 'scan'>('paste')
   const [folder, setFolder] = useState('')
   const folderSubjectId = folder === UNSORTED ? '' : folder
   const [pendingRecording, setPendingRecording] = useState<{ blob: Blob; transcript: string; durationSeconds: number } | null>(null)
@@ -221,7 +223,12 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
 
     <AiHelperStatus profileId={profileId} onOpenSettings={onOpenAiSettings} />
 
-    <div className="wb-panel kquiz-record">
+    <ol className="kquiz-steps" aria-label="How a study set is made"><li className="is-on"><b>1 · Sources</b>Record, paste or scan</li><li><b>2 · Select</b>Tick what to use below</li><li><b>3 · Generate</b>A guide, cards and a test</li><li><b>4 · Review</b>Read, then play</li></ol>
+    <div className="kquiz-entry" role="group" aria-label="Add a source">
+      {([['record', 'Record a lecture', 'Speak or record class; KONO writes it out.'], ['paste', 'Paste text', 'Notes, a reading or a transcript.'], ['scan', 'Scan a photo', 'A page, a whiteboard or a handout.']] as const).map(([id, label, note]) => <button type="button" key={id} aria-pressed={entry === id} onClick={() => setEntry(id)}><b>{label}</b><span>{note}</span></button>)}
+    </div>
+
+    {(entry === 'record' || recorder.state !== 'idle' || pendingRecording) && <div className="wb-panel kquiz-record">
       <h4>Record a lecture</h4>
       {!recorder.supported && <p className="wb-muted">Recording needs microphone access, which this browser doesn't support here.</p>}
       {recorder.error && <p className="study-message" role="alert">{recorder.error}</p>}
@@ -236,18 +243,18 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
         <p className="wb-muted">{formatDuration(pendingRecording.durationSeconds)} recorded{pendingRecording.transcript ? ', transcript captured.' : '. No transcript was captured — live transcription may not be supported in this browser.'}</p>
         <div className="study-actions"><button className="primary">Save lecture</button><button type="button" className="secondary" onClick={discardRecording}>Discard</button></div>
       </fieldset></form>}
-    </div>
+    </div>}
 
-    <div className="wb-panel">
+    {entry === 'paste' && <div className="wb-panel">
       <h4>Paste notes / a transcript</h4>
       <form className="study-plan-form" onSubmit={savePastedNote}><fieldset disabled={busy}>
         <label>Title<input required maxLength={300} value={noteTitle} onChange={e => setNoteTitle(e.target.value)} placeholder="Chapter 4 — Cell biology" /></label>
         <label>Notes or transcript<textarea required rows={6} maxLength={60000} value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Paste lecture notes, a transcript, or reading material here." /></label>
         <div className="study-actions"><button className="primary">Save note</button></div>
       </fieldset></form>
-    </div>
+    </div>}
 
-    <div className="wb-panel kquiz-photo">
+    {entry === 'scan' && <div className="wb-panel kquiz-photo">
       <h4>Scan a photo of notes</h4>
       <p className="wb-muted">Take a picture of handwritten or printed notes — a page from your binder, a whiteboard, anything — and K-Quiz reads it into your running notes list below. No typing needed.</p>
       <div className="study-actions">
@@ -257,7 +264,7 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
          * this fixes — plain file input still offers "Take Photo" as one of its own options. */}
         <input ref={photoInputRef} type="file" accept="image/*" aria-label="Photo of your notes" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void scanPhoto(file) }} />
       </div>
-    </div>
+    </div>}
 
     {checkedCount > 0 && <div className="wb-panel kquiz-combine">
       <h4>{checkedCount} item{checkedCount === 1 ? '' : 's'} selected</h4>

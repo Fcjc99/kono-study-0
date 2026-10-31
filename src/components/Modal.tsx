@@ -2,8 +2,9 @@ import {useEffect,useRef,type PointerEvent,type ReactNode} from 'react'
 
 /** A dialog over the page (the native <dialog>, so Escape and focus are handled), with a title and ×.
  * On a phone it is a sheet from the bottom of the screen: drag its top edge down to close it. `full` fills
- * the whole screen instead (KONO's world map), with no sheet to drag. */
-export default function Modal({title,close,children,full=false}:{title:string;close:()=>void;children:ReactNode;full?:boolean}){
+ * the whole screen instead (KONO's world map), with no sheet to drag. `drawer` makes it a panel down the right
+ * side on a wide screen (Plan my week), still a sheet on a phone. */
+export default function Modal({title,close,children,full=false,drawer=false}:{title:string;close:()=>void;children:ReactNode;full?:boolean;drawer?:boolean}){
  const ref=useRef<HTMLDialogElement>(null),drag=useRef<{y:number;id:number}|null>(null)
  useEffect(()=>{const opener=document.activeElement as HTMLElement|null;ref.current?.showModal();return()=>opener?.focus()},[])
  const sheet=()=>!full&&matchMedia('(max-width: 600px)').matches
@@ -16,5 +17,5 @@ export default function Modal({title,close,children,full=false}:{title:string;cl
   dialog.animate?.([{transform:dialog.style.transform||'none'},{transform:'none'}],{duration:220,easing:'cubic-bezier(.2,1,.4,1)'})
   dialog.style.transform=''
  }
- return <dialog ref={ref} className={'wb-dialog'+(full?' is-full':'')} aria-label={title} onCancel={e=>{e.preventDefault();close()}}><header onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}><span className="sheet-handle" aria-hidden="true"/><h2>{title}</h2><button aria-label="Close dialog" onClick={close}>×</button></header>{children}</dialog>
+ return <dialog ref={ref} className={'wb-dialog'+(full?' is-full':'')+(drawer?' is-drawer':'')} aria-label={title} onCancel={e=>{e.preventDefault();close()}}><header onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}><span className="sheet-handle" aria-hidden="true"/><h2>{title}</h2><button aria-label="Close dialog" onClick={close}>×</button></header>{children}</dialog>
 }

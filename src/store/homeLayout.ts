@@ -6,7 +6,11 @@ export type HomeWidget='week'|'sanctuary'|'family'|'schedule'|'weekAhead'|'notes
 export const DEFAULT_ORDER:HomeWidget[]=['week','sanctuary','family','schedule','weekAhead','notes','todos','meals','comingUp','focus']
 export type HomeLayout={order:HomeWidget[];hidden:Set<HomeWidget>}
 const known=new Set<string>(DEFAULT_ORDER)
+/** The default Home hides the week strip: "This week" (weekAhead) shows the same days with more in them.
+ * Customize Home turns it back on. A line someone saved keeps whatever they chose. */
+export const DEFAULT_LINE='-'+DEFAULT_ORDER.join(',')
 export function readLayout(text:string):HomeLayout{
+ if(!text.trim())text=DEFAULT_LINE
  const order:HomeWidget[]=[],hidden=new Set<HomeWidget>()
  for(const part of text.split(',')){
   const off=part.startsWith('-'),id=(off?part.slice(1):part).trim()
@@ -18,4 +22,4 @@ export function readLayout(text:string):HomeLayout{
  return {order,hidden}
 }
 export const writeLayout=(l:HomeLayout)=>l.order.map(id=>(l.hidden.has(id)?'-':'')+id).join(',')
-export const isDefault=(l:HomeLayout)=>writeLayout(l)===DEFAULT_ORDER.join(',')
+export const isDefault=(l:HomeLayout)=>writeLayout(l)===DEFAULT_LINE

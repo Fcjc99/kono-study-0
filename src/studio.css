@@ -1,0 +1,252 @@
+/* KONO Studio: the redesigned shell and Sanctuary (docs/redesign-feature-checklist.md). Loaded last, on top of
+ * the older layers, and built only from the themes' own variables (--wb-*), so every theme, dark mode, large
+ * text, density and the simplified experiences keep working. Composition and hierarchy first: page titles
+ * that show, a slim header, the island beside a focus console, calm secondary controls, flat panels. */
+
+.workbench{
+ --studio-radius:18px;
+ --studio-shadow:0 1px 2px rgba(48,30,24,.05),0 6px 18px rgba(48,30,24,.05);
+ --studio-soft:color-mix(in srgb,var(--wb-accent) 7%,var(--wb-surface));
+ --studio-chip:color-mix(in srgb,var(--wb-ink) 6%,var(--wb-surface));
+}
+
+/* ── The header: the page's name is always shown (it was hidden on phones and on the Sanctuary), the bar is
+ * slim, flat paper, no gradient band. */
+#workspace-main .wb-header{display:flex!important;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+ margin:0 0 16px!important;padding:14px 4px!important;min-height:0!important;background:none!important;border:0!important;border-bottom:1px solid var(--wb-line)!important;border-radius:0!important;box-shadow:none!important}
+#workspace-main .wb-header>div:first-child{position:static!important;width:auto!important;height:auto!important;overflow:visible!important;clip-path:none!important;clip:auto!important;white-space:normal!important;min-width:0}
+#workspace-main .wb-header .wb-title-row{width:auto!important;min-width:0}
+#workspace-main .wb-header .wb-title-row>h1{position:static!important;width:auto!important;height:auto!important;margin:0!important;padding:0!important;overflow:visible!important;clip:auto!important;clip-path:none!important;white-space:nowrap!important;
+ font:650 clamp(1.45rem,2.6vw,1.9rem)/1.15 Newsreader,Georgia,serif!important;letter-spacing:-.01em;color:var(--wb-ink)}
+#workspace-main .wb-header .wb-title-row>h1::after,#workspace-main .cozy-heading-flower{display:none!important}
+
+/* ── The Sanctuary: the island and studying lead. On a wide screen the focus console sits beside the island
+ * (and stays in view); on a phone it comes first, so the next step is right under the title. */
+.workbench .sanctuary-hero{display:grid;gap:16px;min-width:0}
+.workbench .sanctuary-stage{display:grid;gap:0;min-width:0}
+@media (min-width:1100px){
+ .workbench .sanctuary-hero.has-focus{grid-template-columns:minmax(0,1fr) minmax(300px,340px);align-items:start}
+ .workbench .sanctuary-hero.has-focus>.sanctuary-focus{position:sticky;top:16px}
+}
+@media (max-width:760px){
+ .workbench .sanctuary-hero.has-focus{display:flex;flex-direction:column}
+ .workbench .sanctuary-hero.has-focus>.sanctuary-focus{order:-1}
+}
+
+/* Panels on Home: one flat card each, no gradients, double borders or glows. */
+.workbench[data-page=sanctuary] .home-grid>.wb-panel,.workbench[data-page=sanctuary] .sanctuary-stage>.wb-panel,
+.workbench[data-page=sanctuary] .sanctuary-stage>.wb-island{background:var(--wb-surface)!important;background-image:none!important;border:1px solid var(--wb-line)!important;border-radius:var(--studio-radius)!important;box-shadow:var(--studio-shadow)!important;outline:0!important}
+.workbench[data-page=sanctuary] .wb-panel::before,.workbench[data-page=sanctuary] .wb-panel::after{display:none!important}
+/* The notes on Home: a calm list of cards instead of a corkboard. */
+.workbench[data-page=sanctuary] .home-notes-board{background:none!important;border:0!important;box-shadow:none!important;padding:0!important}
+
+/* The island's own controls are secondary to studying: plain buttons, not gradients. */
+.workbench .wb-scene-toolbar :is(button,a,select,label):not(.wb-scene-expand){box-shadow:none!important}
+#workspace-main .wb-scene-toolbar :is(.wb-scene-arcade,.wb-scene-world,.island-mode-tabs button,.island-mode-tabs a):not(#x):not(#y){box-shadow:none!important;background:var(--wb-surface)!important;color:var(--wb-ink)!important;border:1px solid var(--wb-line)!important;background-image:none!important;text-shadow:none!important}
+.workbench .wb-scene-toolbar :is(.wb-scene-arcade,.wb-scene-world) svg{color:var(--wb-accent)}
+
+/* ── The focus console. */
+.workbench .sanctuary-focus{padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
+.workbench .sanctuary-focus>.focus-console{margin:0}
+.workbench .focus-console{display:grid;gap:14px;padding:20px!important;background:var(--wb-surface)!important;background-image:none!important;border:1px solid var(--wb-line)!important;border-radius:var(--studio-radius)!important;box-shadow:var(--studio-shadow)!important;color:var(--wb-ink)}
+.workbench .focus-console-head{display:grid;gap:2px}
+.workbench .focus-console-head .eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--wb-accent)}
+.workbench .focus-console-head h2{margin:0;font:650 1.35rem/1.2 Newsreader,Georgia,serif;color:var(--wb-ink)}
+.workbench .focus-field{display:grid;gap:6px;font-size:.78rem;font-weight:700;letter-spacing:.04em;color:var(--wb-muted)}
+.workbench .focus-field :is(select,textarea){width:100%;min-height:44px;padding:8px 12px;font:inherit;font-size:1rem;font-weight:500;letter-spacing:0;color:var(--wb-ink);background:var(--wb-surface);border:1px solid var(--wb-line);border-radius:12px}
+.workbench .focus-field textarea{min-height:88px;resize:vertical}
+.workbench .focus-task{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.workbench .focus-task p{margin:0;flex:1 1 160px;font-size:.88rem;color:var(--wb-muted)}
+.workbench .focus-complete,#workspace-main .focus-complete{min-height:36px;padding:0 12px!important;font-size:.82rem!important;font-weight:700;color:var(--wb-ink)!important;background:var(--wb-surface)!important;border:1px solid var(--wb-line)!important;border-radius:99px!important;box-shadow:none!important}
+.workbench .focus-study-label{margin:0;font-size:1.05rem}
+.workbench .focus-timer{display:grid!important;justify-items:center;gap:12px;margin:0!important;padding:18px 14px!important;border-radius:16px;background:var(--studio-soft)!important;border:0!important}
+.workbench .focus-time{font:300 3.4rem/1 ui-rounded,system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:var(--wb-ink)}
+.workbench .focus-time-edit{display:flex;align-items:center;justify-content:center;gap:2px;font:300 3.4rem/1 ui-rounded,system-ui,sans-serif;color:var(--wb-ink)}
+.workbench .focus-time-edit input,#workspace-main .focus-time-edit input{min-height:0!important;height:auto!important;width:2.3ch;padding:0!important;margin:0;font:inherit!important;font-variant-numeric:tabular-nums;text-align:center;color:inherit;background:transparent!important;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;box-shadow:none!important;-moz-appearance:textfield;appearance:textfield}
+.workbench .focus-time-edit input::-webkit-inner-spin-button,.workbench .focus-time-edit input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.workbench .focus-time-edit input:hover{border-bottom-color:var(--wb-line)!important}
+.workbench .focus-time-edit input:focus-visible{outline:none;border-bottom-color:var(--wb-accent)!important}
+.workbench .focus-presets{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:6px;width:100%}
+.workbench .focus-presets button,#workspace-main .focus-presets button{white-space:nowrap!important;font-size:.8rem!important;padding:0 6px!important;min-width:0!important;min-height:38px;padding:0 12px!important;font-size:.82rem!important;font-weight:700;color:var(--wb-ink)!important;background:var(--wb-surface)!important;border:1px solid var(--wb-line)!important;border-radius:99px!important;box-shadow:none!important}
+.workbench .focus-presets button[aria-pressed=true]{color:var(--wb-accent-ink,#fff)!important;background:var(--wb-accent)!important;border-color:var(--wb-accent)!important}
+.workbench .focus-timer .focus-progress-track{width:100%;height:6px;margin:0;border-radius:99px;background:color-mix(in srgb,var(--wb-ink) 9%,transparent);overflow:hidden}
+.workbench .focus-timer .focus-progress-track i{display:block;height:100%;background:var(--wb-accent);border-radius:inherit}
+.workbench .focus-actions{display:flex;flex-wrap:wrap;gap:8px;width:100%;align-items:center}
+.workbench .focus-actions>p{flex:1 1 100%;margin:0;text-align:center;font-weight:700}
+.workbench .focus-actions .primary{flex:1 1 auto;min-height:52px;font-size:1.05rem!important;font-weight:750;border-radius:14px!important}
+.workbench .focus-actions>button:not(.primary):not(.break-games-open),#workspace-main .focus-actions>button:not(.primary):not(.break-games-open){font-size:.9rem!important;font-weight:700!important;min-height:52px;padding:0 14px!important;color:var(--wb-muted)!important;background:transparent!important;border:1px solid var(--wb-line)!important;border-radius:14px!important;box-shadow:none!important}
+.workbench .focus-actions .break-games-open{flex:1 1 auto;min-height:48px}
+.workbench .focus-console-note{margin:0;font-size:.78rem;line-height:1.45;color:var(--wb-muted)}
+.workbench .focus-more{border-top:1px solid var(--wb-line);padding-top:10px}
+.workbench .focus-more>summary{cursor:pointer;min-height:36px;display:flex;align-items:center;font-size:.85rem;font-weight:750;color:var(--wb-ink);list-style:none}
+.workbench .focus-more>summary::-webkit-details-marker{display:none}
+.workbench .focus-more>summary::before{content:'›';display:inline-block;width:1.1em;color:var(--wb-muted);transition:transform .15s}
+.workbench .focus-more[open]>summary::before{transform:rotate(90deg)}
+.workbench .focus-more[open]{display:grid;gap:10px}
+.workbench .focus-more .wb-check{display:flex;gap:8px;align-items:center;font-weight:650}
+.workbench .focus-more .wb-muted{margin:0;font-size:.8rem}
+.workbench .focus-recent-note{padding:10px 12px;border:1px solid var(--wb-line);border-radius:12px}
+.workbench .focus-recent-note p{margin:4px 0 0;font-size:.82rem;color:var(--wb-muted)}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
+/* Phones: a compact console (it leads the page), and a shorter brand band above the title. */
+@media (max-width:760px){
+ .workbench .focus-console{padding:16px!important;gap:12px}
+ .workbench .focus-time,.workbench .focus-time-edit{font-size:2.8rem}
+ .workbench .focus-timer{padding:14px 12px!important}
+}
+
+@media (prefers-reduced-motion:reduce){.workbench .focus-more>summary::before{transition:none}}
+
+/* The island's toolbar in the narrower column beside the console: one tidy row that wraps cleanly. */
+#workspace-main .wb-scene-toolbar{display:flex!important;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px!important;grid-template-areas:none!important}
+#workspace-main .wb-scene-toolbar>*{grid-area:auto!important;position:static!important}
+#workspace-main .wb-scene-left,#workspace-main .wb-scene-controls{display:flex!important;flex-wrap:wrap;align-items:center;gap:6px!important}
+#workspace-main .wb-scene-toolbar .island-mode-tabs{display:flex!important;gap:6px!important;flex-wrap:wrap}
+#workspace-main .wb-scene-toolbar :is(.island-mode-tabs button,.wb-scene-arcade,.wb-scene-world):not(#x):not(#y){min-height:38px!important;padding:0 12px!important;font-size:.85rem!important;font-weight:700!important;border-radius:99px!important;flex-direction:row!important;gap:6px!important}
+
+/* Phones: the title row is the page's own header now (title on the left, its few actions on the right). */
+@media (max-width:760px){
+ #workspace-main .wb-header{padding:10px 2px!important;margin-bottom:12px!important}
+ #workspace-main .wb-header .wb-title-row>h1{font-size:1.5rem!important}
+ .mobile-desk-header{padding-top:8px!important;padding-bottom:8px!important}
+}
+#workspace-main .wb-scene-toolbar .wb-scene-world:not(#x):not(#y)::after{display:none!important}
+#workspace-main .wb-scene-toolbar :is(.wb-scene-arcade,.wb-scene-world):not(#x):not(#y):hover{filter:none;background:var(--studio-chip)!important}
+
+/* KONO's bar under the island, in the narrower column beside the console: still two short rows (its line,
+ * then the meters, one care action and the coins / Next / Ask tools). */
+#workspace-main .sanctuary-stage .kono-bar .kono-care{gap:4px!important}
+#workspace-main .sanctuary-stage .kono-bar .kono-care-meter{flex:0 0 40px!important}
+#workspace-main .sanctuary-stage .kono-bar :is(.kono-care button,.kono-bar-tools button){min-height:30px!important;padding:2px 9px!important;font-size:.78rem!important}
+#workspace-main .sanctuary-stage .kono-bar .kono-bar-tools{gap:4px!important}
+#workspace-main .sanctuary-stage .kono-bar{padding:6px 10px!important;gap:2px!important}
+#workspace-main .sanctuary-stage .kono-bar .kono-mood-row{row-gap:4px!important}
+#workspace-main .sanctuary-stage .kono-bar .kono-mood-row>p{flex-basis:150px!important}
+#workspace-main .sanctuary-stage .kono-bar .kono-bar-notes{margin:0!important;gap:2px!important}
+/* The island and KONO's bar read as one card: no gap, square inner corners, a dashed line between. */
+#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded):has(+.kono-bar){border-bottom-left-radius:0!important;border-bottom-right-radius:0!important;border-bottom:0!important}
+#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded)+.kono-bar{margin-top:0!important;border-top:1px dashed var(--wb-line)!important;border-top-left-radius:0!important;border-top-right-radius:0!important}
+
+/* ── The sidebar (default Coral and Sakura palettes; the other palettes and team themes keep their own
+ * colors): light paper with one quiet line, the current page marked in coral, no wood panel or glows. */
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y){
+ background:var(--wb-surface)!important;background-image:none!important;color:var(--wb-ink)!important;border-right:1px solid var(--wb-line)!important;box-shadow:none!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y)::after{display:none!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) :is(.brand,.brand *,.sidebar-section-label){color:var(--wb-ink)!important;text-shadow:none!important;border-color:var(--wb-line)!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) .sidebar-section-label{color:var(--wb-muted)!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) .nav-button{
+ min-height:42px!important;padding:8px 10px!important;border-radius:10px!important;background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;color:var(--wb-ink)!important;font-size:.95rem!important;font-weight:700!important;transform:none!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) .nav-button:hover{background:color-mix(in srgb,var(--wb-ink) 6%,transparent)!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) .nav-button.active{background:color-mix(in srgb,var(--wb-accent) 12%,var(--wb-surface))!important;color:var(--wb-accent)!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) .nav-button :is(.nav-petal,.nav-indicator){display:none!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) .nav-icon{width:30px!important;height:30px!important;border-radius:8px!important;background:color-mix(in srgb,var(--wb-ink) 5%,transparent)!important;box-shadow:none!important;border:0!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) :is(.profile-dock,.sidebar-music-slot>*){background:var(--wb-surface)!important;background-image:none!important;border:1px solid var(--wb-line)!important;box-shadow:none!important;color:var(--wb-ink)!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .sidebar:not(#x):not(#y) .profile-dock *{color:inherit}
+
+/* ── Planner: the calendar leads; Plan my week and Add sit together in its header. */
+#workspace-main .planner-settings-link{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+#workspace-main .planner-settings-hint{color:var(--wb-muted);font-size:.9rem}
+#workspace-main .planner-plan-week:not(#x){min-height:40px;padding:0 14px!important;font-weight:750;color:var(--wb-ink)!important;background:var(--wb-surface)!important;border:1px solid var(--wb-line)!important;border-radius:10px!important;box-shadow:none!important}
+/* Plan my week as a drawer down the right on a wide screen (a sheet from the bottom on a phone, as before). */
+@media (min-width:761px){
+ dialog.wb-dialog.is-drawer:not(#x){position:fixed;inset:0 0 0 auto;margin:0;width:min(480px,100vw);max-width:none;height:100dvh;max-height:none;border-radius:0!important;border:0;border-left:1px solid var(--wb-line,#eadfd5);padding:0;overflow:auto}
+}
+/* Assignment cards: Focus on this, beside Edit. */
+#workspace-main .start-focus-button:not(#x){font-weight:750;color:var(--wb-accent)!important;background:color-mix(in srgb,var(--wb-accent) 10%,var(--wb-surface))!important;border:1px solid color-mix(in srgb,var(--wb-accent) 30%,var(--wb-line))!important;box-shadow:none!important}
+/* The editor: Focus on this, above the fields (studying is not editing). */
+.wb-dialog .editor-focus-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--wb-accent) 7%,var(--wb-surface))}
+.wb-dialog .editor-focus-row span{flex:1 1 200px;font-size:.82rem;color:var(--wb-muted)}
+.wb-dialog .editor-focus-row .start-focus-button{font-weight:750;color:var(--wb-accent);background:var(--wb-surface);border:1px solid color-mix(in srgb,var(--wb-accent) 30%,var(--wb-line));border-radius:99px;min-height:38px;padding:0 14px}
+/* The drawer's content gets room to breathe. */
+dialog.wb-dialog.is-drawer>:not(header){padding-left:20px;padding-right:20px}
+dialog.wb-dialog.is-drawer>header{padding:16px 20px}
+/* The reminders offer on the Planner: one quiet line, not a banner above the calendar. */
+#workspace-main .reminder-nudge:not(#x){display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px!important;margin:0 0 12px!important;border:1px solid var(--wb-line)!important;background:var(--wb-surface)!important;background-image:none!important;border-radius:12px!important;box-shadow:none!important;font-size:.88rem}
+#workspace-main .reminder-nudge:not(#x) button{min-height:34px!important;padding:0 12px!important;font-size:.85rem!important}
+/* The calendar's own header: the date, the views and Wall mode on one tidy row, so the grid starts higher. */
+#workspace-main .calendar-hero:not(#x){display:flex!important;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:0 0 10px!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important}
+#workspace-main .calendar-hero-date:not(#x) :is(h2,h3,strong,b){font:650 1.35rem/1.2 Newsreader,Georgia,serif!important;margin:0!important}
+#workspace-main .calendar-hero-date:not(#x) small{font-size:.75rem!important;letter-spacing:.08em}
+#workspace-main .calendar-hero-tools:not(#x){display:flex!important;flex-wrap:wrap;align-items:center;gap:8px!important}
+#workspace-main .calendar-wall:not(#x){min-height:36px!important;padding:0 12px!important;font-size:.85rem!important;font-weight:700!important;box-shadow:none!important}
+#workspace-main .calendar-views:not(#x) button{min-height:34px!important;padding:0 12px!important;font-size:.88rem!important}
+
+/* ── Notes › List: compact, scannable rows. */
+#workspace-main .notes-list{list-style:none;margin:0;padding:0;display:grid;border:1px solid var(--wb-line);border-radius:14px;overflow:hidden;background:var(--wb-surface)}
+#workspace-main .notes-list li+li{border-top:1px solid var(--wb-line)}
+#workspace-main .notes-row:not(#x){display:grid!important;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 14px!important;text-align:left;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;color:var(--wb-ink)!important;font:inherit!important}
+#workspace-main .notes-row:hover{background:color-mix(in srgb,var(--wb-ink) 4%,transparent)!important}
+#workspace-main .notes-row-color{width:8px;height:34px;border-radius:4px}
+#workspace-main .notes-row-copy{display:grid;min-width:0}
+#workspace-main .notes-row-copy b{font-size:.95rem;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#workspace-main .notes-row-copy small{font-size:.8rem;color:var(--wb-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#workspace-main .notes-row-meta{display:flex;gap:8px;align-items:center;font-size:.78rem;color:var(--wb-muted);white-space:nowrap}
+#workspace-main .notes-row-pin{padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--wb-accent) 12%,var(--wb-surface));color:var(--wb-accent);font-weight:750}
+#workspace-main .notes-cards-note{margin:8px 0 12px;font-size:.85rem}
+
+/* ── K-Quiz: the four steps, and one way to add a source at a time. */
+#workspace-main .kquiz-steps{list-style:none;margin:12px 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#workspace-main .kquiz-steps li{padding:8px 12px;border:1px solid var(--wb-line);border-radius:12px;font-size:.78rem;color:var(--wb-muted);background:var(--wb-surface)}
+#workspace-main .kquiz-steps li b{display:block;font-size:.9rem;color:var(--wb-ink)}
+#workspace-main .kquiz-steps li.is-on{border-color:var(--wb-accent);background:color-mix(in srgb,var(--wb-accent) 8%,var(--wb-surface))}
+@media (max-width:760px){#workspace-main .kquiz-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#workspace-main .kquiz-entry{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 12px}
+@media (max-width:760px){#workspace-main .kquiz-entry{grid-template-columns:1fr}}
+#workspace-main .kquiz-entry button:not(#x){display:grid;gap:2px;justify-items:start;text-align:left;min-height:64px;padding:12px 14px!important;border-radius:14px!important;border:1px solid var(--wb-line)!important;background:var(--wb-surface)!important;box-shadow:none!important;color:var(--wb-ink)!important;font:inherit!important}
+#workspace-main .kquiz-entry button b{font-size:.95rem;font-weight:750}
+#workspace-main .kquiz-entry button span{font-size:.8rem;color:var(--wb-muted)}
+#workspace-main .kquiz-entry button[aria-pressed=true]:not(#x){border-color:var(--wb-accent)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--wb-accent) 20%,transparent)!important}
+/* Notes in List view: a plain panel (the cork, gradient head and wood tray belong to Board). */
+#workspace-main .wb-board:has(.notes-list):not(#x){background:var(--wb-surface)!important;background-image:none!important;border:1px solid var(--wb-line)!important;border-radius:var(--studio-radius)!important;box-shadow:var(--studio-shadow)!important;overflow:hidden}
+#workspace-main .wb-board:has(.notes-list) .wb-board-tray{display:none!important}
+#workspace-main .wb-board:has(.notes-list) :is(.wb-board-heading,.notes-filters):not(#x){background:none!important;background-image:none!important;border-color:var(--wb-line)!important;box-shadow:none!important}
+#workspace-main .wb-board:has(.notes-list) .notes-list{margin:0 12px 12px}
+
+/* ── Every page's panels: one flat card (boards keep their own paper and cork). */
+#workspace-main .wb-panel:not(.wb-board):not(.sanctuary-focus):not(.wb-island):not(.kono-bar):not(#x){background-image:none!important;box-shadow:var(--studio-shadow)!important;border-radius:var(--studio-radius)!important}
+#workspace-main .wb-panel:not(.wb-board) .wb-section-head:not(#x){background:none!important;background-image:none!important}
+
+/* ── Exams: the upcoming list, a day countdown on each. */
+#workspace-main .exams-page{display:grid;gap:12px}
+#workspace-main .exam-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+#workspace-main .exam-row{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--wb-line);border-radius:14px;background:var(--wb-surface)}
+#workspace-main .exam-row.is-today{border-color:var(--wb-accent)}
+#workspace-main .exam-count{display:grid;justify-items:center;padding:8px 0;border-radius:12px;background:color-mix(in srgb,var(--wb-accent) 10%,var(--wb-surface));color:var(--wb-accent)}
+#workspace-main .exam-count b{font-size:1.6rem;line-height:1;font-variant-numeric:tabular-nums}
+#workspace-main .exam-count span{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+#workspace-main .exam-row.is-past .exam-count{background:color-mix(in srgb,var(--wb-ink) 6%,var(--wb-surface));color:var(--wb-muted)}
+#workspace-main .exam-copy h3{margin:0;font-size:1rem}
+#workspace-main .exam-copy p{margin:2px 0 0;font-size:.85rem;color:var(--wb-muted)}
+#workspace-main .exam-copy .exam-notes{font-size:.8rem}
+#workspace-main .exam-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+#workspace-main .exam-actions button:not(#x){min-height:36px;padding:0 12px!important;font-size:.85rem!important;border-radius:10px!important}
+@media (max-width:760px){#workspace-main .exam-row{grid-template-columns:58px minmax(0,1fr)}#workspace-main .exam-actions{grid-column:1/-1;justify-content:flex-start}}
+#workspace-main .exams-empty{display:grid;justify-items:center;text-align:center;gap:8px;padding:24px 16px}
+#workspace-main .exams-empty p{margin:0;max-width:46ch;color:var(--wb-muted)}
+#workspace-main .exam-past>summary{cursor:pointer;font-weight:750;padding:8px 0}
+
+/* ── Settings: the sections as a side list on a wide screen (a row of tabs on a phone, as before). */
+@media (min-width:1000px){
+ #workspace-main .settings-groups{display:grid!important;grid-template-columns:220px minmax(0,1fr);gap:12px 20px;align-items:start}
+ #workspace-main .settings-groups>*{grid-column:2;min-width:0}
+ #workspace-main .settings-groups>nav.subject-section-tabs:not(#x){grid-column:1;grid-row:1/span 30;position:sticky;top:16px;display:grid!important;gap:2px;padding:6px!important;border:1px solid var(--wb-line)!important;border-radius:14px!important;background:var(--wb-surface)!important;overflow:visible!important;flex-wrap:nowrap}
+ #workspace-main .settings-groups>nav.subject-section-tabs:not(#x) button{justify-content:flex-start;text-align:left;min-height:40px;padding:0 12px!important;border-radius:10px!important;background:transparent!important;border:0!important;box-shadow:none!important;font-size:.92rem!important;font-weight:700!important;color:var(--wb-ink)!important;white-space:normal}
+ #workspace-main .settings-groups>nav.subject-section-tabs:not(#x) button[aria-current=page]{background:color-mix(in srgb,var(--wb-accent) 12%,var(--wb-surface))!important;color:var(--wb-accent)!important}
+}
+#workspace-main .settings-page-tools small{color:var(--wb-muted)}
+
+/* ── Subjects: a calm header band (no gradient or tape) over the subject's details. */
+#workspace-main [class*=subject-hero]:not(#x),#workspace-main [class*=subject-banner]:not(#x){background-image:none!important}
+/* Phones (default Coral and Sakura palettes): the brand row is light paper like the sidebar, and slimmer. */
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .mobile-desk-header:not(#x):not(#y){background:var(--wb-surface)!important;background-image:none!important;color:var(--wb-ink)!important;border-bottom:1px solid var(--wb-line)!important;box-shadow:none!important;padding-top:8px!important;padding-bottom:8px!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .mobile-desk-header:not(#x):not(#y) :is(h1,p,.brand-title-row){color:var(--wb-ink)!important;text-shadow:none!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .mobile-desk-header:not(#x):not(#y) p{color:var(--wb-muted)!important}
+html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='cozy'] .mobile-desk-header:not(#x):not(#y) .mobile-profile-chip{box-shadow:none!important;border:1px solid var(--wb-line)!important}
+
+/* Star chart: add a chore for today (once, or on repeat) right in a kid's card. */
+.star-chore-add{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.star-chore-add input{flex:1 1 160px;min-height:38px;padding:6px 10px;border:1px solid var(--wb-line,#eadfd5);border-radius:10px;font:inherit}
+.star-chore-add select{min-height:38px;border-radius:10px;font:inherit}
+.star-chore-add button{min-height:38px;padding:0 14px}
+.star-chore-repeat{color:var(--wb-muted,#6c6170)}

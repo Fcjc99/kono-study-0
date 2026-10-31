@@ -165,6 +165,7 @@ export function parseQuickTodo(text:string,today:string,people:Person[]):QuickAd
  if(take(/\b(?:every\s+(?:other|2(?:nd)?|two)\s+weeks?|biweekly|fortnightly)\b/i))repeat='2weeks'
  else if(take(/\b(?:every|each)\s+month\b|\bmonthly\b/i))repeat='month'
  else if(take(/\b(?:every|each)\s+week\b|\bweekly\b/i))repeat='week'
+ else if(take(/\b(?:every|each)\s+day\b|\bdaily\b/i))repeat='day'
  // "every other Tue", "every Sat", "Saturdays", "on Sat", "sat".
  if((m=take(new RegExp(String.raw`\b(?:(every|each)\s+(other\s+)?|on\s+)?${DAY}(s)?\b\.?`,'i')))){
   if(m[2])repeat='2weeks';else if((m[1]||m[4])&&!repeat)repeat='week'
