@@ -548,7 +548,7 @@ test('Star chart: ticking a kid’s chore earns its stars, stars buy a reward fr
  await emma.getByLabel('New chore for Emma today').fill('Make bed')
  await emma.getByLabel('Repeat for Emma’s chore').selectOption('day')
  await emma.getByRole('button',{name:'Add',exact:true}).click()
- await emma.getByRole('button',{name:'Done: Make bed'}).getByText('· every day').waitFor()
+ await emma.getByRole('button',{name:'Done: Make bed'}).getByText('🔁 every day').waitFor()
  await waitFor(()=>(cloud.users.alice.plan.data.familyTodos??[]).some(t=>t.title==='Make bed'&&t.repeat==='day'&&t.forKidId==='kid-emma'&&t.due),'the daily chore reaches the account')
  const firstDue=cloud.users.alice.plan.data.familyTodos.find(t=>t.title==='Make bed').due
  await emma.getByRole('button',{name:'Done: Make bed'}).click()
@@ -640,7 +640,24 @@ test('Planner › Kids view: picture day per person, a routine earns a star, a s
  await emma.getByText(/Bedtime done! \+1⭐/).waitFor()
  await emma.getByLabel('1 stars').waitFor()
  await waitFor(()=>(cloud.users.alice.plan.data.starLog??[]).some(e=>e.kidId==='kid-emma'&&e.n===1),'the star reaches the account')
+ await emma.getByText('How was the day?').click()
  await emma.getByRole('group',{name:/Sticker for Emma/}).getByRole('button',{name:'🏆'}).click()
+
+ // Chores: add one for today in a tap, tick it for a star, and tick it back.
+ await emma.getByRole('button',{name:'＋ Add a chore'}).click()
+ await emma.getByRole('button',{name:'Every day'}).click()
+ await emma.getByLabel('New chore for Emma').fill('Water the plants');await emma.getByLabel('New chore for Emma').press('Enter')
+ await waitFor(()=>(cloud.users.alice.plan.data.familyTodos??[]).some(t=>t.title==='Water the plants'&&t.forKidId==='kid-emma'&&t.repeat==='day'&&t.due===iso(0)),'the daily chore reaches the account')
+ await emma.getByRole('button',{name:/Tidy room/}).click()
+ await emma.getByRole('button',{name:'Done: Tidy room'}).click()
+ await emma.getByRole('button',{name:'Not done yet: Tidy room'}).waitFor()
+ await emma.getByLabel('2 stars').waitFor()
+ await emma.getByRole('button',{name:'Not done yet: Tidy room'}).click()
+ await emma.getByRole('button',{name:'Done: Tidy room'}).waitFor()
+ await emma.getByLabel('1 stars').waitFor()
+ await emma.getByRole('button',{name:'Done: Water the plants'}).click()
+ await emma.getByRole('button',{name:'Not done yet: Water the plants'}).waitFor()
+ await waitFor(()=>(cloud.users.alice.plan.data.familyTodos??[]).find(t=>t.title==='Water the plants').due===iso(1),'a daily chore moves to tomorrow once ticked')
  await waitFor(()=>(cloud.users.alice.plan.data.dayStickers??[]).some(x=>x.kidId==='kid-emma'&&x.emoji==='🏆'),'the sticker is saved')
  await view.getByRole('button',{name:'⏳ Timer'}).click()
  const timer=page.getByRole('dialog',{name:'Timer'})
@@ -3080,7 +3097,7 @@ test('Break games: after a focus session KONO offers the arcade’s games for a 
  // The break offers the arcade's games (Snack catch and Peekaboo are gone): KONO blast plays full screen,
  // and ■ End shows its results card; Done slides it away.
  assert.equal(await games.getByRole('button',{name:/Snack catch|Peekaboo/}).count(),0)
- await games.getByRole('button',{name:/Candy crush/}).waitFor()
+ await games.getByRole('button',{name:/Sweet swap/}).waitFor()
  await games.getByRole('button',{name:/KONO blast/}).click()
  await startGame(page,'🧱 KONO blast')
  await page.getByRole('dialog',{name:'🧱 KONO blast'}).getByRole('button',{name:'■ End'}).click()
@@ -3930,7 +3947,7 @@ test('Round 55: the world map (its own button on the island): the beach is open 
  await passport.getByRole('list',{name:'Friends met'}).getByText('Crab').waitFor()
 })
 
-test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a results card and coins, and the next level is bigger), Gem blitz (a swap that lines up three scores) and Candy crush (moves and a target)',async({context,page})=>{
+test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a results card and coins, and the next level is bigger), Gem blitz (a swap that lines up three scores) and Sweet swap (moves and a target)',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.install({time:new Date('2026-10-15T15:00:00')})
  d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:500}]}}
@@ -3997,13 +4014,13 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  if(process.env.KONO_SHOTS)await gems.screenshot({path:process.env.KONO_SHOTS+'/gem-blitz.png'})
  await gems.getByRole('button',{name:'✕ Leave'}).click()
  await gems.waitFor({state:'detached'})
- // Candy crush: level 1, with its moves and target.
- await town.getByRole('button',{name:/Candy crush/}).click()
+ // Sweet swap: level 1, with its moves and target.
+ await town.getByRole('button',{name:/Sweet swap/}).click()
  // The start card has the level map: level 1 is next, the rest locked.
- await page.getByRole('dialog',{name:'🍬 Candy crush'}).getByRole('list',{name:'Level map'}).getByRole('button',{name:'Level 1, next'}).waitFor()
- if(process.env.KONO_SHOTS)await page.getByRole('dialog',{name:'🍬 Candy crush'}).screenshot({path:process.env.KONO_SHOTS+'/candy-map.png'})
- await startGame(page,'🍬 Candy crush',/^Start level 1$/)
- const candy=page.getByRole('dialog',{name:'🍬 Candy crush'})
+ await page.getByRole('dialog',{name:'🍬 Sweet swap'}).getByRole('list',{name:'Level map'}).getByRole('button',{name:'Level 1, next'}).waitFor()
+ if(process.env.KONO_SHOTS)await page.getByRole('dialog',{name:'🍬 Sweet swap'}).screenshot({path:process.env.KONO_SHOTS+'/candy-map.png'})
+ await startGame(page,'🍬 Sweet swap',/^Start level 1$/)
+ const candy=page.getByRole('dialog',{name:'🍬 Sweet swap'})
  await candy.getByText('Level 1').waitFor();await candy.getByText(/^\d+ moves$/).waitFor()
  await candy.getByRole('progressbar',{name:/^Target \d+$/}).waitFor()
  // Boosters show with their prices.
@@ -4028,7 +4045,7 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  if(process.env.KONO_SHOTS)await candy.screenshot({path:process.env.KONO_SHOTS+'/candy.png'})
 })
 
-test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with results), KONO.io (the map, a live leaderboard, steering, ■ End gives your share; team battle: Blue against Red on a clock) and Meowdoku’s Undo, Hint and Auto ✕',async({context,page})=>{
+test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with results), KONO.io (the map, a live leaderboard, steering, ■ End gives your share; team battle: Blue against Red on a clock) and Meowdoku’s Undo, Hint and Auto ✕',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
  d.konoCare={...(d.konoCare??{}),[pid]:{profileId:pid,log:[{id:'bank-2026-01',kind:'bank',at:'2026-01-15T12:00:00.000Z',n:500}]}}
@@ -4037,10 +4054,10 @@ test('Round 60: more arcade: Flappy KONO (get ready, flap, a crash ends it with 
  await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
  const town=page.getByRole('dialog',{name:'KONO Town'})
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
- // Flappy KONO: waits on "Get ready!", one flap starts it, and without more KONO falls and the run ends.
- await town.getByRole('button',{name:/Flappy KONO/}).click()
- await startGame(page,'🐤 Flappy KONO')
- const flappy=page.getByRole('dialog',{name:'🐤 Flappy KONO'})
+ // KONO Hop: waits on "Get ready!", one flap starts it, and without more KONO falls and the run ends.
+ await town.getByRole('button',{name:/KONO Hop/}).click()
+ await startGame(page,'🐤 KONO Hop')
+ const flappy=page.getByRole('dialog',{name:'🐤 KONO Hop'})
  await flappy.getByText('Get ready!').waitFor()
  await page.waitForTimeout(500)
  if(process.env.KONO_SHOTS)await flappy.screenshot({path:process.env.KONO_SHOTS+'/flappy-ready.png'})
@@ -4227,6 +4244,39 @@ test('Round 58: your own Home: Sanctuary beside the focus console (the week stri
  await page.getByRole('dialog',{name:'Customize Home'}).getByRole('button',{name:'Back to the default'}).click()
  await page.getByRole('dialog',{name:'Customize Home'}).getByRole('button',{name:'Done'}).click()
  await page.locator('.wb-island').waitFor()
+})
+
+test('New arcade games: KONO Stack (pancakes drop on Space, the stack grows, End gives the results) and Snack sort (lift a jar, tip it into an empty one, Undo, ＋ Jar once)',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
+ await town.getByRole('button',{name:/KONO Stack/}).click()
+ const stack=await startGame(page,'🥞 KONO Stack')
+ await stack.getByRole('img',{name:'KONO Stack, 0 pancakes'}).waitFor()
+ // The first pancake starts over the plate's right side, so dropping it at once still lands.
+ await page.keyboard.press('Space')
+ await stack.getByRole('img',{name:'KONO Stack, 1 pancake'}).waitFor()
+ await stack.getByRole('button',{name:'■ End'}).click()
+ await stack.getByText('1 pancake',{exact:true}).waitFor()
+ await stack.getByRole('button',{name:'Done'}).click()
+ await town.getByRole('button',{name:/Snack sort/}).click()
+ const sort=await startGame(page,'🫙 Snack sort',/^Start level 1/)
+ const jars=sort.getByRole('group',{name:'Pantry jars'}).getByRole('button')
+ assert.equal(await jars.count(),5,'level 1: three snacks in three jars, and two empty jars')
+ const before=await jars.nth(0).getAttribute('aria-label')
+ await jars.nth(0).click();assert.equal(await jars.nth(0).getAttribute('aria-pressed'),'true','lifted')
+ await jars.nth(3).click()
+ await sort.getByText('1 move').waitFor()
+ assert.notEqual(await jars.nth(3).getAttribute('aria-label'),'Jar 4: empty','the snacks went in')
+ await sort.getByRole('button',{name:'↶ Undo'}).click()
+ assert.equal(await jars.nth(0).getAttribute('aria-label'),before,'Undo puts them back')
+ await sort.getByRole('button',{name:'＋ Jar'}).click()
+ assert.equal(await jars.count(),6);assert.equal(await sort.getByRole('button',{name:'＋ Jar'}).isDisabled(),true,'one extra jar a level')
+ await sort.getByRole('button',{name:'■ End'}).click()
+ await sort.getByText('Left for later').waitFor()
 })
 
 test('Round 57: KONO blast clears a full row (the squares empty and the score jumps)',async({context,page})=>{

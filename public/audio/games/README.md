@@ -5,10 +5,10 @@ isn't (src/arcadeAudio.ts; a new file also goes in its RECORDED list and in tool
 
 | File | Game |
 | --- | --- |
-| `candy.mp3` | Candy crush — “Skipping Motif” (Suno) |
+| `candy.mp3` | Sweet swap — “Skipping Motif” (Suno) |
 | `gems.mp3` | Gem blitz — “Crystal Discoveries” (Suno) |
 | `meow.mp3` | Meowdoku |
-| `flap.mp3` | Flappy KONO |
+| `flap.mp3` | KONO Hop |
 | `paper.mp3` | KONO.io |
 | `blast.mp3` | KONO blast — “Satisfying Resolutions” (Suno) |
 | `flow-1.mp3` … `flow-5.mp3` | KONO Flow, a new one every three levels — “Floating Pads”, “Shimmering Motif”, “Late Night Pulse”, “Soaring Euphoria”, “Transcendent Arpeggios” (Suno) |

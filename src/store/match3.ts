@@ -1,9 +1,9 @@
-/** The match-3 board behind Candy crush and Gem blitz (components/Match3): 8 × 8 pieces. Swap two side by side
+/** The match-3 board behind Sweet swap and Gem blitz (components/Match3): 8 × 8 pieces. Swap two side by side
  * to line up three or more of a kind; they clear, the rest fall, new ones drop in, and any new lines clear
  * too (a cascade, worth more each time). When no swap would make a line, the board is shuffled.
  *
  * Each game has its own special pieces, as in the games they follow:
- * - Candy crush: 4 in a line makes a striped candy (a line across makes one striped down, which clears its
+ * - Sweet swap: 4 in a line makes a striped candy (a line across makes one striped down, which clears its
  *   column; a line down makes one that clears its row); an L or T makes a wrapped candy, which explodes
  *   (3 × 3) and then explodes again once the board has fallen; 5 in a line makes a color bomb.
  * - Gem blitz: 4 in a line makes a flame gem (it explodes, 3 × 3); an L or T makes a star gem (lightning
@@ -174,7 +174,7 @@ function cascade(b0:Board,m:Maker,a:number,c:number,first:number,after0:number[]
   // Blazing speed: each match bursts like a flame gem, around its middle.
   if(m.blazing)for(const l of found){const mid=l.cells[Math.floor(l.cells.length/2)],box=inBox(...rc(mid),1);effects.push({type:'area',at:mid,cells:box});start.push(...box.filter(i=>!make.has(i)))}
   const gone=spread(b,start,effects)
-  // In Candy crush a wrapped candy that went off goes off once more after the fall.
+  // In Sweet swap a wrapped candy that went off goes off once more after the fall.
   const next=m.mode==='candy'?effects.filter(e=>e.type==='area'&&b[e.at]?.special==='area'&&!after.includes(e.at)).map(e=>e.at):[]
   b=settle(b,gone,make,m,frames,n,effects)
   after=next
@@ -194,7 +194,7 @@ function settle(b:Board,gone:Set<number>,make:Map<number,Piece>,m:Maker,frames:F
  const cleared=[...gone].filter(at=>!make.has(at)&&b[at]).map(at=>({at,kind:b[at]!.kind}))
  const time=[...gone].filter(at=>b[at]?.bonus==='time').length*5
  const mult=Math.max(0,...[...gone].map(at=>b[at]?.bonus==='mult'?b[at]!.mult??0:0))
- // Candy crush: 20 a candy (60 for three), more down a cascade. Gem blitz: 250 for a match of three, as in
+ // Sweet swap: 20 a candy (60 for three), more down a cascade. Gem blitz: 250 for a match of three, as in
  // Bejeweled Blitz (a little more for each extra gem), more down a cascade.
  const points=m.mode==='gems'?Math.round(cleared.length*250/3)*cascade+make.size*500+effects.length*250:cleared.length*20*cascade+make.size*60+effects.length*40
  const after=b.map((p,i)=>make.get(i)??(gone.has(i)?null:p))
@@ -208,7 +208,7 @@ function settle(b:Board,gone:Set<number>,make:Map<number,Piece>,m:Maker,frames:F
  frames.push({board:fallen,cleared:[],points:0,cascade,effects:[],made:[],time:0,mult:0})
  return fallen
 }
-/** The big finish: Candy crush's Sugar crush (each move left turns a candy striped) or Gem blitz's Last
+/** The big finish: Sweet swap's Sweet finish (each move left turns a candy striped) or Gem blitz's Last
  * hurrah; then every special on the board goes off, and the board settles. */
 export function finale(b0:Board,m:Maker,extra:number):Frame[]{
  let b=[...b0]
@@ -222,14 +222,14 @@ export function finale(b0:Board,m:Maker,extra:number):Frame[]{
  return [...frames,...cascade(b,m,-1,-1,3,[])]
 }
 
-/** Candy crush's boosters, bought with coins when used (neither uses a move): the lollipop hammer smashes any
+/** Sweet swap's boosters, bought with coins when used (neither uses a move): the lollipop hammer smashes any
  * one candy (a special one goes off), the free swap swaps any two side by side, line or not. */
 export type BoosterId='hammer'|'swap'
 export const BOOSTERS:Record<BoosterId,{name:string;emoji:string;price:number;how:string}>={
  hammer:{name:'Lollipop hammer',emoji:'🍭',price:30,how:'Tap a candy to smash it'},
  swap:{name:'Free swap',emoji:'🔄',price:20,how:'Swap any two candies'},
 }
-/** Candy crush's levels: odd ones are a score to reach, even ones have jelly to clear too; a level is
+/** Sweet swap's levels: odd ones are a score to reach, even ones have jelly to clear too; a level is
  * a little harder each time. Stars at the target, half as much again, and twice. */
 export const candyLevel=(level:number)=>({moves:20+(level%3)*2,target:1200+level*500,jelly:level%2===0?Math.min(28,8+level*2):0})
 export const candyStars=(score:number,target:number)=>score>=target*2?3:score>=target*1.5?2:score>=target?1:0
@@ -238,12 +238,12 @@ export function jellyFor(level:number,roll:()=>number):Set<number>{
  const n=candyLevel(level).jelly,order=Array.from({length:W*W},(_,i)=>i).sort((x,y)=>{const d=(i:number)=>Math.abs(Math.floor(i/W)-3.5)+Math.abs(i%W-3.5);return d(x)-d(y)+(roll()-0.5)*2})
  return new Set(order.slice(0,n))
 }
-/** The Candy crush level you're on, kept on this device. */
+/** The Sweet swap level you're on, kept on this device. */
 const CANDY_KEY='kono-candy-level'
 export const candyLevelNow=()=>{try{return Math.max(1,Number(localStorage.getItem(CANDY_KEY))||1)}catch{return 1}}
 /** Moves you on to level `n`, but never back (replaying an old level keeps your place). */
 export const saveCandyLevel=(n:number)=>{try{localStorage.setItem(CANDY_KEY,String(Math.max(n,candyLevelNow())))}catch{/* storage unavailable */}}
-/** The stars won on each Candy crush level (the best of each), kept on this device, for the level map. */
+/** The stars won on each Sweet swap level (the best of each), kept on this device, for the level map. */
 const STARS_KEY='kono-candy-stars'
 export function candyStarsKept():Record<number,number>{try{const v=JSON.parse(localStorage.getItem(STARS_KEY)??'{}');return v&&typeof v==='object'?v:{}}catch{return {}}}
 export function saveCandyStars(level:number,stars:number){const all=candyStarsKept();if((all[level]??0)>=stars)return;all[level]=stars;try{localStorage.setItem(STARS_KEY,JSON.stringify(all))}catch{/* storage unavailable */}}

@@ -9,7 +9,7 @@ import './rhythm-game.css'
 
 type Song={id:string;title:string;bpm:number;ms:number;charts:Record<Level,Chart>}
 const SONGS=(charts as unknown as {songs:Song[]}).songs
-const FROM:Record<string,string>={candy:'🍬 Candy crush',gems:'💎 Gem blitz',blast:'🧱 KONO blast','flow-1':'🌌 Flow · Drift','flow-2':'🌌 Flow · Tide','flow-3':'🌌 Flow · Pulse','flow-4':'🌌 Flow · Aurora','flow-5':'🌌 Flow · Zenith'}
+const FROM:Record<string,string>={candy:'🍬 Sweet swap',gems:'💎 Gem blitz',blast:'🧱 KONO blast','flow-1':'🌌 Flow · Drift','flow-2':'🌌 Flow · Tide','flow-3':'🌌 Flow · Pulse','flow-4':'🌌 Flow · Aurora','flow-5':'🌌 Flow · Zenith'}
 const LANE_COLORS=['#ff7ab6','#7ad7ff','#9dff8a','#ffd36b']
 const HAND_COLORS=['#5fd3ff','#ff7ad1']
 const LEVEL_COLORS:Record<Level,string>={easy:'#3fb59a',medium:'#e0953c',jeff:'#c65ad0'}

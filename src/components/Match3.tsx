@@ -7,17 +7,17 @@ import type {GameHandle} from './GameScreen'
 import {ArtDefs,PieceArt} from './Match3Art'
 import Sparks,{type SparksHandle} from './Sparks'
 
-/** Candy crush and Gem blitz (the rules are in store/match3), drawn and animated after the games they follow.
+/** Sweet swap and Gem blitz (the rules are in store/match3), drawn and animated after the games they follow.
  * The board plays in real time (store/match3live), drawn every frame: swaps slide, matched gems shrink away
  * and matched candies burst into pieces (sliding together first into a special they make), a striped candy's
  * or star gem's beam runs out along its row or column taking pieces as it goes, wrapped candies and flame
  * gems explode with a shockwave, a color bomb's or hypercube's lightning strikes its pieces one by one, and
  * big moments shake the board. Gem blitz lets you keep swapping while the rest of the board explodes and
- * falls; Candy crush waits for it to settle. Swipe a piece toward a neighbor (or tap one, then the other).
+ * falls; Sweet swap waits for it to settle. Swipe a piece toward a neighbor (or tap one, then the other).
  * Stand still a few seconds and a move wiggles as a hint.
- * - Candy crush: the six classic candies on a light board. Each level has a target and a number of moves
+ * - Sweet swap: the six classic candies on a light board. Each level has a target and a number of moves
  *   (even levels have jelly to clear too), with 1–3 stars. Cascades get "Sweet!", "Tasty!", "Delicious!",
- *   "Divine!". Win with moves left and they turn into striped candies that all go off: Sugar crush!
+ *   "Divine!". Win with moves left and they turn into striped candies that all go off: Sweet finish!
  * - Gem blitz: seven faceted gems on a dark board, one minute. Some gems carry +5 seconds, big cascades drop
  *   in ×2 … ×8 multipliers, quick moves in a row earn a Speed bonus (200, climbing to 1,000) and fill the
  *   Ignition meter; full, it lights Blazing speed for eight seconds (the board burns and every match explodes
@@ -44,11 +44,11 @@ type Flight={key:number;x0:number;y0:number;x1:number;y1:number;text:string;kind
 /** A tiny buzz on a phone that has one (a tick for a pick, a thump for a special). */
 function buzz(pattern:number|number[]){try{navigator.vibrate?.(pattern)}catch{/* not allowed */}}
 const FLY_MS=650,STAR_MS=420,FINALE_GAP=260
-/** How the round is going: the opening drop, play, the finale (Sugar crush or Last hurrah, and the wait
+/** How the round is going: the opening drop, play, the finale (Sweet finish or Last hurrah, and the wait
  * before it), over. */
 type Phase='intro'|'play'|'wait'|'finale'|'done'
 export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:Ref<GameHandle>;mode:'gems'|'candy';level:number;start:{maker:Maker;board:Board;jelly?:Set<number>};sound:boolean;onEnd:(score:number,won:boolean,stars:number)=>void;boosters?:{balance:number;buy:(id:BoosterId)=>boolean}}){
- // Candy crush's boosters: one armed (tapped, waiting to be used), and whether the move under way was a
+ // Sweet swap's boosters: one armed (tapped, waiting to be used), and whether the move under way was a
  // booster's (it doesn't count as one of the level's moves).
  const [armed,setArmed]=useState<BoosterId|null>(null),freeMove=useRef(false)
  const goal=candyLevel(level)
@@ -102,7 +102,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
   },200)
   return ()=>window.clearInterval(t)
  },[mode]) // eslint-disable-line react-hooks/exhaustive-deps
- // ■ End: finish now (Candy crush counts it as won only if the level's goal is already met).
+ // ■ End: finish now (Sweet swap counts it as won only if the level's goal is already met).
  useImperativeHandle(ref,()=>({end:()=>{if(ended.current)return;ended.current=true;const won=mode==='gems'||(scoreRef.current>=goal.target&&!jellyNow.current.size);onEndRef.current(scoreRef.current,won,mode==='candy'&&won?Math.max(1,stars()):0)}}),[mode,goal.target]) // eslint-disable-line react-hooks/exhaustive-deps
  const centre=(at:number):[number,number]=>[(at%W+0.5)/W,(Math.floor(at/W)+0.5)/W]
  const later=<T,>(set:React.Dispatch<React.SetStateAction<T[]>>,item:T&{key:number},ms:number,cap=40)=>{set(list=>[...list.slice(-cap),item]);window.setTimeout(()=>set(list=>list.filter(x=>(x as {key:number}).key!==item.key)),ms)}
@@ -125,7 +125,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
   if(e.t==='match'){
    play3('match',sound,e.level-1)
    const pts=e.points*(mode==='gems'?multNow.current:1);addScore(pts)
-   // Gem blitz shows one gold total for the match (Candy crush shows each candy's points as it bursts).
+   // Gem blitz shows one gold total for the match (Sweet swap shows each candy's points as it bursts).
    if(mode==='gems'){const xs=e.cells.map(c=>c%W+0.5),ys=e.cells.map(c=>Math.floor(c/W)+0.5);later(setPops,{key:++keys.current,x:xs.reduce((a,b)=>a+b,0)/xs.length,y:ys.reduce((a,b)=>a+b,0)/ys.length,n:pts,size:popSize(pts)},900)}
    // A combo stack: each step of a cascade warms the scenery and lifts the music a little.
    if(e.level>=2){setHeat(h=>Math.max(h,Math.min(5,e.level-1)));musicLift(e.level-1)}
@@ -138,7 +138,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
    // Jelly under a cleared square is gone.
    if(jellyNow.current.delete(e.at)){setJelly(new Set(jellyNow.current));play3('squish',sound)}
    if(mode==='candy'){
-    // Candy crush: the candy bursts into pieces with a splash of glassy shards in its color (one sliding
+    // Sweet swap: the candy bursts into pieces with a splash of glassy shards in its color (one sliding
     // into a new special just goes in).
     if(e.merge===undefined){later(setFrags,{key:++keys.current,at:e.at,kind:e.kind,special:e.special},620,48);sp?.burst(x,y,{kind:'shard',n:6,color:[col,col,'#fff'],size:7,speed:1.15});sp?.ring(x,y,'rgba(255,255,255,.75)',30)}
     if(e.pts)later(setPops,{key:++keys.current,x:e.at%W+0.5,y:Math.floor(e.at/W)+0.5,n:e.pts,kind:e.kind,each:true},900,64)
@@ -149,7 +149,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
    const pts=e.points*(mode==='gems'?multNow.current:1);addScore(pts)
    const ef=e.e,[x,y]=centre(ef.at),key=++keys.current,span=Math.max(0,...e.delays)
    later(setFx,{key,e:ef,delays:e.delays,combo:e.combo},span+(mode==='candy'?1500:900),8)
-   // Its name, big, where it went off; the board jolts with it (Candy crush).
+   // Its name, big, where it went off; the board jolts with it (Sweet swap).
    const text=calloutFor(mode,ef.type,!!e.combo,ef.cells.length)
    if(text)later(setCallouts,{key:++keys.current,x:Math.min(0.8,Math.max(0.2,x)),y:Math.min(0.85,Math.max(0.12,y)),text,type:ef.type+(e.combo?' is-combo':'')},mode==='candy'?1700:1100,3)
    if(mode==='candy'){const k=++keys.current;setPunch(k);window.setTimeout(()=>setPunch(p=>p===k?0:p),380);setSpot(sp0=>sp0&&Math.abs(sp0.x-x)<0.01&&Math.abs(sp0.y-y)<0.01?null:sp0)}
@@ -158,7 +158,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
    if(ef.type==='color'){sp?.burst(x,y,{kind:'star',n:18,color:['#ff4d6d','#ffd84d','#4dd2ff','#7dff6a','#c58bff','#fff'],speed:1.6,size:8});sp?.ring(x,y,'#fff',110)}
    if(ef.type==='area'){play3('boom',sound);sp?.burst(x,y,{kind:mode==='gems'?'ember':'spark',n:ef.cells.length>9?44:26,color:['#fff6c2','#ffb02e','#ff5a1f'],speed:ef.cells.length>9?2.2:1.6,size:8})}
    if(ef.type==='color')play3('zap',sound)
-   if(ef.type==='board'){sp?.burst(0.5,0.5,{kind:'confetti',n:120,speed:2.6,size:9});sp?.ring(0.5,0.5,'#fff',400);play3('mega',sound);say(mode==='candy'?'Sugar crush!':'Unbelievable!',true)}
+   if(ef.type==='board'){sp?.burst(0.5,0.5,{kind:'confetti',n:120,speed:2.6,size:9});sp?.ring(0.5,0.5,'#fff',400);play3('mega',sound);say(mode==='candy'?'Sweet finish!':'Unbelievable!',true)}
    if(e.combo||ef.type==='area'||ef.type==='nova'||ef.type==='board')shake()
    buzz(ef.type==='color'||ef.type==='board'?[40,30,90]:e.combo||ef.type==='area'||ef.type==='nova'?[25,20,40]:22)
    if(pts>0&&ef.type!=='board')window.setTimeout(()=>flyPoints(x,y,pts),Math.min(700,span)+150)
@@ -168,10 +168,10 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
    const [x,y]=centre(e.at);play3('charge',sound);sp?.burst(x,y,{kind:'star',n:e.combo?10:5,color:['#fff','#fff6c2'],size:5,speed:0.5})
    if(e.combo){say('Combo!',true);sp?.ring(x,y,'#fff',90)}
    buzz([12,30,12])
-   // Candy crush: the board dims around the special while it winds up, a spotlight on it.
+   // Sweet swap: the board dims around the special while it winds up, a spotlight on it.
    if(mode==='candy'){const ms=e.combo?COMBO_MS.candy:(e.special==='color'?BOMB_CHARGE_MS:CHARGE_MS).candy,k=++keys.current;setSpot({key:k,x,y,ms});window.setTimeout(()=>setSpot(s0=>s0?.key===k?null:s0),ms+120);window.setTimeout(()=>sp?.ring(x,y,'rgba(255,255,255,.9)',60),ms*0.5)}
   }else if(e.t==='aim'){
-   // Sugar crush: a move left flies off the counter as a star to the candy it turns striped.
+   // Sweet finish: a move left flies off the counter as a star to the candy it turns striped.
    window.setTimeout(()=>{
     const from=elMid(movesRef.current),b=boardBox();if(!from||!b)return
     const [x,y]=centre(e.at);fly({x0:from[0],y0:from[1],x1:x*b.width,y1:y*b.height,text:'★',kind:'star',ms:STAR_MS})
@@ -188,7 +188,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
    window.setTimeout(()=>{setNope(pair);buzz([12,40,12]);window.setTimeout(()=>setNope(n=>n===pair?[]:n),380)},SWAP_MS*2)
   }
  }
- // The board has settled: the opening drop is over, a Candy crush move is counted, or the finale goes on.
+ // The board has settled: the opening drop is over, a Sweet swap move is counted, or the finale goes on.
  const calm=()=>{
   cheered.current=0;setHeat(0);musicLift(0)
   if(phase.current==='intro'){phase.current='play';setIntro(false);idleAt.current=-1}
@@ -207,22 +207,22 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
   if(!specialsLeft(eng.current)){finish(true,'Time’s up!');return}
   say('Last hurrah!',true);play3('fanfare',sound);blowAll(eng.current,0)
  }
- // A Candy crush move, once the board has settled from it.
+ // A Sweet swap move, once the board has settled from it.
  const counted=()=>{
   if(freeMove.current)freeMove.current=false
   else{movesLeft.current-=1;setMoves(movesLeft.current);if(movesLeft.current>0&&movesLeft.current<=3)play3('tick',sound)}
   const met=scoreRef.current>=goal.target&&!jellyNow.current.size
   if(met){
-   // Sugar crush: each move left becomes a striped candy, and they all go off.
+   // Sweet finish: each move left becomes a striped candy, and they all go off.
    if(movesLeft.current>0){
-    say('Sugar crush!',true);play3('fanfare',sound);const extra=movesLeft.current
+    say('Sweet finish!',true);play3('fanfare',sound);const extra=movesLeft.current
     phase.current='wait';finaleText.current='Level '+level+' complete!'
     // Each move left counts down off the counter and flies onto the board as a star, one by one.
     window.setTimeout(()=>{if(ended.current)return;phase.current='finale';blowAll(eng.current,extra,FINALE_GAP,STAR_MS)},700)
    }else finish(true,'Level '+level+' complete!')
   }else if(movesLeft.current<=0)finish(false,'Out of moves')
  }
- // Gem blitz takes a swap whenever the two are at rest; Candy crush once the board has settled.
+ // Gem blitz takes a swap whenever the two are at rest; Sweet swap once the board has settled.
  const canPlay=()=>!ended.current&&phase.current==='play'&&(mode==='gems'?!timeUp.current:!moved.current&&settled(eng.current))
  // A hint: after five seconds without a move, a move that works wiggles.
  useEffect(()=>{
@@ -330,7 +330,7 @@ export default function Match3({ref,mode,level,start,sound,onEnd,boosters}:{ref:
     <div className="m3-fx" aria-hidden="true">
      {fx.map(f=><Effect key={f.key} e={f.e} delays={f.delays} mode={mode} combo={f.combo}/>)}
      {frags.map(f=><span key={f.key} className="m3-frag" style={pos(f.at)}>{[0,1,2,3].map(q=><i key={q} className={'q'+q}><PieceArt mode={mode} kind={f.kind} special={f.special}/></i>)}</span>)}
-     {/* Candy crush shows each candy's points over it, in its color; Gem blitz one total for each clear. */}
+     {/* Sweet swap shows each candy's points over it, in its color; Gem blitz one total for each clear. */}
      {pops.map(p=><span key={p.key} className={'m3-pop'+(p.each?' is-each k'+p.kind:'')+(p.size?' is-'+p.size:'')} style={{left:p.x*100/W+'%',top:p.y*100/W+'%'}}>{p.n.toLocaleString()}</span>)}
     </div>
     {spot&&<span key={spot.key} className="m3-spot" aria-hidden="true" style={{'--x':spot.x*100+'%','--y':spot.y*100+'%','--ms':spot.ms+'ms'} as React.CSSProperties}/>}

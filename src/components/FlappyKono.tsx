@@ -4,8 +4,8 @@ import {gameSound} from '../konoSounds'
 import {fx,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
 
-/** Flappy KONO (the rules are in store/flappy): tap, click or press Space to flap. KONO tilts up as it
- * flaps and noses down as it falls (its little wing flapping), drawn the way Flappy Bird looks: green pipes
+/** KONO Hop (the rules are in store/flappy): tap, click or press Space to flap. KONO tilts up as it
+ * flaps and noses down as it falls (its little wing flapping), drawn as a bright tap-to-fly game: green pipes
  * with a light stripe, a dark outline and a wide cap, a flat day-blue sky, puffy clouds, a pale city skyline
  * and bushes sliding slower than the striped sandy ground (parallax), crisp pixel edges, and the big
  * outlined score. "Get ready" waits for the first tap;
@@ -45,9 +45,9 @@ export default function FlappyKono({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;b
  },[])
  const medal=flapMedal(score)
  return <div className="break-game flappy">
-  <div className="blast-top"><span className="blast-best">{best!==null?'Best '+best:'Flappy KONO'}</span><span className="blast-coins">{medal?medal.emoji+' '+medal.name:''}</span></div>
+  <div className="blast-top"><span className="blast-best">{best!==null?'Best '+best:'KONO Hop'}</span><span className="blast-coins">{medal?medal.emoji+' '+medal.name:''}</span></div>
   <div className="flappy-frame" onPointerDown={e=>{e.preventDefault();press()}}>
-   <canvas ref={canvas} width={FLAP.w*2} height={FLAP.h*2} role="img" aria-label={'Flappy KONO, score '+score}/>
+   <canvas ref={canvas} width={FLAP.w*2} height={FLAP.h*2} role="img" aria-label={'KONO Hop, score '+score}/>
    <strong key={score} className="flappy-score" aria-live="polite">{score}</strong>
    {stage==='ready'&&<p className="flappy-ready"><b>Get ready!</b><span>Tap to flap</span></p>}
    {flash>0&&<span key={flash} className="flappy-flash" aria-hidden="true"/>}
@@ -61,7 +61,7 @@ function draw(c:HTMLCanvasElement|null,f:Flight,phase:'ready'|'fly'|'down',t:num
  g.setTransform(2,0,0,2,0,0);g.imageSmoothingEnabled=false
  const W=FLAP.w,G=FLAP.ground,scroll=phase==='down'?f.frames*FLAP.speed:(phase==='ready'?t:f.frames)*FLAP.speed
  const wrap=(x:number,span:number)=>((x%span)+span)%span
- // Flappy Bird's day: a flat sky-blue, a row of puffy clouds, a pale city skyline and green bushes, each
+ // A sunny day: a flat sky-blue, a row of puffy clouds, a pale city skyline and green bushes, each
  // sliding slower than the ground.
  g.fillStyle='#4ec0ca';g.fillRect(0,0,W,G)
  const cloudY=G-118
@@ -85,7 +85,7 @@ function draw(c:HTMLCanvasElement|null,f:Flight,phase:'ready'|'fly'|'down',t:num
  for(let k=-1;k<12;k++){const x=Math.round(wrap(k*30-scroll*0.5,W+30)-15);g.beginPath();g.arc(x,cityBase+6,17,0,7);g.arc(x+16,cityBase+2,14,0,7);g.fill()}
  g.fillRect(0,cityBase+6,W,G-cityBase-6)
  g.fillStyle='#4ac95c';g.fillRect(0,G-6,W,6)
- // Pipes: Flappy Bird green with a light stripe, a dark outline, and a wider cap at the open end.
+ // Pipes: bright green with a light stripe, a dark outline, and a wider cap at the open end.
  const OUT='#543847',BODY='#73bf2e',LIGHT='#9ce659',SHADE='#558022'
  const pipe=(x:number,y0:number,y1:number)=>{
   if(y1<=y0)return

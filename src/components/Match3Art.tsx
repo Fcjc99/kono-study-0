@@ -1,7 +1,7 @@
 import {memo} from 'react'
 import type {Special} from '../store/match3'
 
-/** The pieces of Gem blitz and Candy crush, drawn in SVG.
+/** The pieces of Gem blitz and Sweet swap, drawn in SVG.
  * Gems are cut stones: a lit table in the middle and facets all round, each shaded by which way it faces
  * the light (from the top left), with a glint that sweeps across now and then. Candies are glossy sweets:
  * a red jelly bean, an orange lozenge, a yellow lemon drop, a green gum square, a blue lollipop head and a

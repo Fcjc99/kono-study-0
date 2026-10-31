@@ -61,7 +61,7 @@ Legend: ✅ kept and checked · 🔁 moved or restyled, still there · ⏳ not r
   delete.
 
 ## Games and the world
-- Arcade (BreakGames): KONO blast, Meowdoku, Gem blitz, Candy crush, KONO Flow, KONO Beat, Flappy, KONO.io.
+- Arcade (BreakGames): KONO blast, Meowdoku, Gem blitz, Sweet swap, KONO Flow, KONO Beat, KONO Hop, KONO Stack, Snack sort, KONO.io.
   Land games, KONO Town shops, prize wheel, album, house, world map destinations, passport, reward rules
   (konoCoins, coin rounds).
 
