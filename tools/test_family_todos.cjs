@@ -70,4 +70,12 @@ test('skipping a turn of a repeating to-do moves it to the next turn without tic
  const once={id:'o',profileId:'p',title:'Slip',done:false,due:'2026-10-05'}
  assert.equal(skipTurn(once),once)
 })
-console.log(passed+'/8 family to-do groups passed.')
+test('a daily chore is on every day from its first day; ticking it moves it to tomorrow (a missed day lands on today)',()=>{
+ const make=t('Make bed',{forKidId:'k1',due:'2026-10-05',repeat:'day'})
+ assert.equal(todosOn({familyTodos:[make]},'p','2026-10-04').length,0,'not before its first day')
+ for(const d of ['2026-10-05','2026-10-06','2026-10-11'])assert.equal(todosOn({familyTodos:[make]},'p',d).length,1,'on '+d)
+ assert.equal(nextTurn(make,'2026-10-05'),'2026-10-06')
+ const ticked=tickTodo(make,'2026-10-05','2026-10-05');assert.equal(ticked.due,'2026-10-06');assert.equal(ticked.done,false)
+ const late=tickTodo(make,'2026-10-09');assert.equal(late.due,'2026-10-09','ticked on the 9th after missed days, it lands on today’s turn');assert.equal(tickTodo(make,'2026-10-09','2026-10-09').due,'2026-10-10','ticking today’s turn moves it to tomorrow')
+})
+console.log(passed+'/9 family to-do groups passed.')
