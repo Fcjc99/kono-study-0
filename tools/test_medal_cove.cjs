@@ -32,10 +32,10 @@ await test('a check: a medal through the lantern spins the lottery (and the jack
  const counts={};for(let i=0;i<4000;i++){const k=P.spinPrize(P.spinReels(rnd)).kind;counts[k]=(counts[k]??0)+1}
  assert.ok(counts.ball>100&&counts.step>350&&counts.none>1000,'the payout table holds: '+JSON.stringify(counts))
 })
-await test('the bonus chain: a shower lands on the field, three steps light the lighthouse for a prize ball, a ball off the front rolls into the ball lottery, and a tower tips over onto the field',()=>{
+await test('the bonus chain: a shower lands on the field, five lamps make the BIG BONUS, a ball off the front rolls into the ball lottery, and a tower tips over onto the field',()=>{
  let c=P.newCove(rnd);const n=c.medals.length
  c={...c,spinning:{reels:['🪙','🪙','🪙'],prize:{kind:'shower',n:12},at:c.frame-200}};c=P.step(c,rnd);assert.ok(c.medals.length>=n+12-2,'the shower lands');assert.match(c.events.at(-1).text,/shower/)
- c={...c,steps:2,spinning:{reels:['⭐','⭐','⭐'],prize:{kind:'step'},at:c.frame-200}};c=P.step(c,rnd);assert.equal(c.steps,0);assert.ok(c.medals.some(m=>m.ball),'the lighthouse gives a prize ball')
+ c={...c,steps:P.LAMPS-1,spinning:{reels:['⭐','⭐','⭐'],prize:{kind:'step'},at:c.frame-200}};c=P.step(c,rnd);assert.equal(c.steps,0);assert.ok(c.medals.some(m=>m.ball),'all five lamps: the big bonus has a prize ball');assert.match(c.events.at(-1).text,/BIG BONUS/)
  const ball=c.medals.find(m=>m.ball);c={...c,medals:c.medals.map(m=>m===ball?{...m,y:P.FIELD.h+1}:m)};c=P.step(c,rnd);assert.ok(c.dish||c.dishQueue,'off the front, the ball goes to the ball lottery')
  let t=P.newCove(rnd);const tn=t.medals.length;t={...t,towers:[{x:50,n:20,at:t.frame-100}]};t=P.step(t,rnd);assert.ok(t.medals.length>=tn+18,'the tower’s medals spill onto the field');assert.equal(t.towers.length,0)
 })
@@ -50,5 +50,15 @@ await test('Jackpot Chance: a miss pays a little, grows the jackpot and adds a w
  assert.equal(P.busy(d),true)
  assert.equal(coins.gameCoins('cove',80),10);assert.equal(coins.gameCoins('cove',0),0)
 })
-console.log(passed+'/4 KONO Medal Cove groups passed.')
+await test('the pin board: a drop goes in at the top; the 🏮 pocket spins the lottery, ⭐ lights a lamp (the fifth is the BIG BONUS), 🗼 builds a tower (three at most)',()=>{
+ let c=P.newCove(rnd,100,true);assert.equal(c.medals.length,0,'the physics engine builds the pile')
+ c=P.drop(c,30,rnd);assert.equal(c.hand,99);assert.equal(c.medals[0].y,-1,'in at the top of the board');assert.equal(c.queue,0,'the board, not the aim, decides')
+ c=P.spawned(c);assert.equal(c.medals.length,0)
+ c=P.pocket(c,'spin',rnd);assert.equal(c.queue,1);assert.equal(c.jackpot,P.JP_START+1)
+ for(let i=0;i<P.LAMPS-1;i++)c=P.pocket(c,'lamp',rnd);assert.equal(c.steps,P.LAMPS-1)
+ const before=c.medals.length;c=P.pocket(c,'lamp',rnd);assert.equal(c.steps,0);assert.ok(c.medals.length>=before+21,'BIG BONUS: a shower and a ball');assert.equal(c.towers.length,1,'and a tower')
+ c=P.pocket(c,'tower',rnd);c=P.pocket(c,'tower',rnd);assert.equal(c.towers.length,3);c=P.pocket(c,'tower',rnd);assert.equal(c.towers.length,3,'three towers at most')
+ c=P.settle(c,5,1,1);assert.equal(c.won,5);assert.equal(c.lost,1);assert.equal(c.dishQueue,1);assert.equal(c.hand,c.hand)
+})
+console.log(passed+'/5 KONO Medal Cove groups passed.')
 })().catch(error=>{console.error('FAIL',error);process.exit(1)})

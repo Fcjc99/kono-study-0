@@ -10,7 +10,11 @@
  * - The reels: three of a kind wins. 🪙 a shower of 12 medals onto the field; 🗼 a medal tower of 20 (a
  *   tall stack that tips over onto the field); 🔮 a prize ball onto the field; ⭐ a step; 🐚 a shower of 8.
  *   Two of a kind drops 2. Every spin also adds a medal to the jackpot.
- * - Steps: three steps light the lighthouse, which drops a prize ball.
+ * - Lamps: the lighthouse has five. A ⭐ on the reels (or a medal in the star pocket) lights one; all five
+ *   is the BIG BONUS: a medal shower, a prize ball and a medal tower.
+ * - The pin board (when the physics engine runs the machine): medals go in at the top of a pin board and
+ *   bounce down into one of three pockets: 🏮 spins the lottery, ⭐ lights a lamp, 🗼 builds a medal tower.
+ *   A miss drops onto the pusher's shelf and joins the pile.
  * - A prize ball pushed off the front rolls into the ball dish: it circles and settles in a pocket:
  *   medals, a tower, or JACKPOT CHANCE.
  * - Jackpot Chance: a big wheel with 12 pockets. A win pays the jackpot (it starts at 100 and grows with
@@ -72,6 +76,8 @@ function ballOnField(c: Cove, random: () => number): Cove { return add(c, [{ x: 
  * waiting); otherwise it lands in front of the pusher. */
 export function drop(c: Cove, aim: number, random: () => number = Math.random): Cove {
   if (c.hand <= 0) return c
+  // With the pin board, a medal goes in at the top (y -1 marks it) and the board decides where it lands.
+  if (c.external) return add({ ...c, hand: c.hand - 1, dropped: c.dropped + 1 }, [{ x: Math.max(4, Math.min(96, aim)), y: -1, vx: 0, vy: 0 }])
   const x = Math.max(FIELD.r + 1, Math.min(FIELD.w - FIELD.r - 1, aim))
   let next: Cove = { ...c, hand: c.hand - 1, dropped: c.dropped + 1 }
   if (Math.abs(x - c.checker) <= FIELD.checkerW / 2) {
@@ -107,6 +113,24 @@ export function spinReels(random: () => number): [Reel, Reel, Reel] {
   while (out.length < 3) { const f = faces[Math.floor(random() * faces.length)]; if (!out.includes(f)) out.push(f) }
   return out as [Reel, Reel, Reel]
 }
+export const LAMPS = 5
+/** All five lamps lit: the BIG BONUS. */
+function lampCheck(c: Cove, random: () => number): Cove {
+  if (c.steps < LAMPS) return c
+  const t = { x: 30 + random() * 40, n: 15, at: c.frame }
+  return say(ballOnField(shower({ ...c, steps: 0, towers: [...c.towers, t] }, 20, random), random), '💡 All 5 lamps: BIG BONUS! +20, a prize ball and a tower')
+}
+export type Pocket = 'spin' | 'lamp' | 'tower'
+/** The pin board's three pockets (left, the moving middle one, right). */
+export const POCKETS: Pocket[] = ['spin', 'lamp', 'tower']
+/** A medal in one of the pin board's pockets: a lottery spin (up to 4 waiting), a lamp, or a medal tower
+ * (up to 3 standing). Every pocket also adds a medal to the jackpot. */
+export function pocket(c: Cove, kind: Pocket, random: () => number = Math.random): Cove {
+  const jp = { ...c, jackpot: c.jackpot + 1 }
+  if (kind === 'spin') return c.queue + (c.spinning ? 1 : 0) >= 4 ? jp : { ...jp, queue: c.queue + 1 }
+  if (kind === 'lamp') return lampCheck(say({ ...jp, steps: c.steps + 1 }, '⭐ A lamp lights up (' + (c.steps + 1) + '/' + LAMPS + ')'), random)
+  return c.towers.length >= 3 ? say(shower(jp, 3, random), '🗼 Three towers already: +3 medals') : say({ ...jp, towers: [...c.towers, { x: 20 + random() * 60, n: 12, at: c.frame }] }, '🗼 A medal tower!')
+}
 const SPIN_FRAMES = 110, DISH_FRAMES = 200, CHANCE_FRAMES = 230
 /** Is pocket `i` of the Jackpot Chance wheel a winning one (the first `winPockets`, spread round the wheel)? */
 export const isWinPocket = (i: number, winPockets: number) => Array.from({ length: winPockets }, (_, k) => Math.round(k * CHANCE_POCKETS / winPockets)).includes(i)
@@ -128,7 +152,7 @@ export function step(c0: Cove, random: () => number = Math.random, n = 1): Cove 
     else if (p.kind === 'tower') c = say({ ...c, towers: [...c.towers, { x: 25 + random() * 50, n: p.n, at: c.frame }] }, '🗼 Medal tower!')
     else if (p.kind === 'ball') c = say(ballOnField(c, random), '🔮 Prize ball!')
     else if (p.kind === 'step') c = { ...c, steps: c.steps + 1 }
-    if (c.steps >= 3) c = say(ballOnField({ ...c, steps: 0 }, random), '⭐⭐⭐ The lighthouse lights up: a prize ball!')
+    c = lampCheck(c, random)
   }
   // A tower tips over after a moment: its medals spill onto the field around where it stood.
   if (!c.external) for (const t of c.towers.filter(t => c.frame - t.at >= 90)) c = add(c, Array.from({ length: t.n }, (_, i) => ({ x: Math.max(5, Math.min(95, t.x + (random() - 0.5) * 18)), y: pusher + 6 + (i / t.n) * 26 + random() * 4, vx: (random() - 0.5) * 0.6, vy: 0.4 + random() * 0.5 })))

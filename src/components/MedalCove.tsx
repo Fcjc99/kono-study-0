@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import {RoomEnvironment} from 'three/examples/jsm/environments/RoomEnvironment.js'
 import RAPIER from '@dimforge/rapier3d-compat'
 import {BloomEffect,EffectComposer,EffectPass,RenderPass,SMAAEffect} from 'postprocessing'
-import {CHANCE_POCKETS,DISH,FIELD,busy,drop,isWinPocket,newCove,settle,spawned,step,type Cove,type Reel} from '../store/pusher'
+import {CHANCE_POCKETS,DISH,FIELD,LAMPS,POCKETS,busy,drop,isWinPocket,newCove,pocket,settle,spawned,step,type Cove,type Reel} from '../store/pusher'
 import {gameSound} from '../konoSounds'
 import {fx} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
@@ -20,11 +20,18 @@ const U=0.1 // world units per field unit
 const MAX=520 // medal bodies at once (the oldest ones resting in the tray go first)
 const R=FIELD.r*U,HALF=0.055,BALL=FIELD.ball*U
 const FRONT=6 // the field's front edge (z)
+// The pin board at the back: medals go in at the top, bounce down the pins and land in a pocket or on the
+// pusher's shelf. Pockets: 🏮 (left), ⭐ (the middle one, sliding), 🗼 (right).
+const BZ=-6.15,BTOP=4.5,BBOTTOM=1.55,POCKET_W=[1.25,1.05,1.25]
+const pocketX=(i:number,f:number)=>i===0?-3.3:i===2?3.3:Math.sin(f/80)*1.6
+// Pins 1.2 apart, rows 0.5 apart and offset by half: every gap (straight and diagonal) lets a medal through.
+const PINS:[number,number][]=[];for(let row=0;row<5;row++)for(let col=-4;col<=4;col++){const x=col*1.2+(row%2?0.6:0);if(Math.abs(x)<4.5)PINS.push([x,BTOP-0.45-row*0.52])}
+const POCKET_FACE=['🏮','⭐','🗼']
 const wx=(x:number)=>(x-50)*U,wz=(y:number)=>y*U-6
 const REEL_FACES:Reel[]=['🪙','🗼','🔮','⭐','🐚','🌺']
 const VIEWS=[{yaw:0,pitch:0.62,dist:12.5},{yaw:0,pitch:1.05,dist:12},{yaw:0.55,pitch:0.5,dist:12.5},{yaw:-0.55,pitch:0.5,dist:12.5}]
 
-type Piece={body:RAPIER.RigidBody;ball:boolean;counted:number}
+type Piece={body:RAPIER.RigidBody;ball:boolean;counted:number;board:boolean}
 
 export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;best:number|null;sound:boolean;onEnd:(medals:number,jackpots:number)=>void}){
  const [start]=useState<Cove>(()=>newCove(Math.random,100,true))
@@ -53,7 +60,6 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   scene.add(new THREE.HemisphereLight('#dff3ff','#4a3424',0.8))
   const sun=new THREE.DirectionalLight('#fff4dc',2.2);sun.position.set(4,12,6);sun.castShadow=true;sun.shadow.mapSize.set(small?512:1024,small?512:1024)
   Object.assign(sun.shadow.camera,{left:-8,right:8,top:8,bottom:-8,near:1,far:30});scene.add(sun)
-  const lamp=new THREE.PointLight('#ffcf6a',4,6);scene.add(lamp)
   // One merged effect pass: bloom on what's bright (the lantern, the shine on the gold, the jackpot pieces)
   // and SMAA for smooth edges. Half-resolution bloom on phones.
   const composer=new EffectComposer(renderer,{multisampling:0})
@@ -72,11 +78,19 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   const tray=new THREE.Mesh(new THREE.BoxGeometry(10.4,0.3,2.6),frameMat);tray.position.set(0,-2.15,7.4);tray.receiveShadow=true;scene.add(tray)
   const sea=new THREE.Mesh(new THREE.PlaneGeometry(80,80),new THREE.MeshStandardMaterial({color:'#1d5f9e',roughness:.4}));sea.rotation.x=-Math.PI/2;sea.position.y=-3;scene.add(sea)
   const pusherMesh=new THREE.Mesh(new THREE.BoxGeometry(10.0,0.6,6),new THREE.MeshStandardMaterial({color:'#2f6fb3',roughness:.45}));pusherMesh.castShadow=true;pusherMesh.receiveShadow=true;scene.add(pusherMesh)
-  const lantern=new THREE.Mesh(new THREE.BoxGeometry(FIELD.checkerW*U,0.34,0.08),new THREE.MeshStandardMaterial({color:'#ffcf3d',emissive:'#ff9d00',emissiveIntensity:2.2}));scene.add(lantern)
+  // The pin board: a painted backplate, chrome pins, and three glowing pockets.
+  const plate=new THREE.Mesh(new THREE.BoxGeometry(10.2,BTOP-BBOTTOM+1.1,0.12),new THREE.MeshStandardMaterial({map:boardTexture(),roughness:.6}));plate.position.set(0,(BTOP+BBOTTOM)/2+0.05,BZ-0.2);scene.add(plate)
+  const boardGlass=new THREE.Mesh(new THREE.BoxGeometry(10.2,BTOP-BBOTTOM+1.1,0.04),glass);boardGlass.position.set(0,(BTOP+BBOTTOM)/2+0.05,BZ+0.2);scene.add(boardGlass)
+  const pinMesh=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.06,0.06,0.42,10),new THREE.MeshStandardMaterial({color:'#eef3f8',metalness:1,roughness:.2}),PINS.length)
+  PINS.forEach(([x,y],i)=>{const m=new THREE.Matrix4().makeRotationX(Math.PI/2);m.setPosition(x,y,BZ);pinMesh.setMatrixAt(i,m)});scene.add(pinMesh)
+  const pocketMeshes=POCKET_W.map((w,i)=>{const g=new THREE.Group()
+   const mat=new THREE.MeshStandardMaterial({color:['#ff6b5e','#ffd34d','#7fd0ff'][i],emissive:['#ff3b2f','#ffb000','#2fa8ff'][i],emissiveIntensity:.6,roughness:.4})
+   const cup=new THREE.Mesh(new THREE.BoxGeometry(w,0.34,0.36),mat);g.add(cup)
+   const label=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.5),new THREE.MeshBasicMaterial({map:emojiTexture(POCKET_FACE[i]),transparent:true}));label.position.set(0,0,0.19);g.add(label)
+   g.position.set(pocketX(i,0),BBOTTOM-0.2,BZ);scene.add(g);return {g,mat,flash:0}})
   const chute=new THREE.Mesh(new THREE.CylinderGeometry(R,R,HALF*2,28),new THREE.MeshStandardMaterial({color:'#f2c230',metalness:.85,roughness:.3,emissive:'#5a3a00'}));chute.rotation.x=Math.PI/2;scene.add(chute)
-  const guide=new THREE.Mesh(new THREE.PlaneGeometry(0.05,1),new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:.6}));scene.add(guide)
   const coins=new THREE.InstancedMesh(new THREE.CylinderGeometry(R,R,HALF*2,26),new THREE.MeshStandardMaterial({color:'#ffd24a',metalness:1,roughness:.32,map:coinFace(),envMapIntensity:1.3}),MAX)
-  coins.castShadow=true;coins.receiveShadow=true;coins.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(coins)
+  coins.castShadow=!small;coins.receiveShadow=true;coins.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(coins)
   const balls=new THREE.InstancedMesh(new THREE.SphereGeometry(BALL,24,16),new THREE.MeshPhysicalMaterial({color:'#9d6bff',roughness:.15,clearcoat:1,emissive:'#5a2fd0',emissiveIntensity:.8}),16);balls.castShadow=true;scene.add(balls)
   // The bonus pieces, out of sight until they're on.
   const bonus=new THREE.Group();scene.add(bonus)
@@ -91,7 +105,7 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   dishGroup.visible=false;wheelGroup.visible=false
   // ---- The physics world ----
   const world=new RAPIER.World({x:0,y:-22,z:0})
-  world.integrationParameters.numSolverIterations=small?4:6
+  world.integrationParameters.numSolverIterations=4
   const fixed=(hx:number,hy:number,hz:number,x:number,y:number,z:number,friction=0.5)=>world.createCollider(RAPIER.ColliderDesc.cuboid(hx,hy,hz).setTranslation(x,y,z).setFriction(friction))
   fixed(5.2,0.2,6.8,0,-0.2,FRONT-6.8)            // the deck, ending at the front edge
   fixed(0.1,1.2,5.6,-5.05,1.0,-1.6);fixed(0.1,1.2,5.6,5.05,1.0,-1.6) // side walls, open near the front (the side drops)
@@ -99,15 +113,23 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   fixed(5.0,0.5,0.15,0,1.36,-6.55)                // the scraper above the pusher's shelf
   fixed(5.2,0.15,1.3,0,-2.15,7.4,0.9)             // the tray
   fixed(0.1,0.6,1.3,-5.2,-1.6,7.4);fixed(0.1,0.6,1.3,5.2,-1.6,7.4);fixed(5.2,0.6,0.1,0,-1.6,8.7)
+  // The pin board: pins (cylinders across the board), its sides, and the backplate and glass (medals on the
+  // board can only move up, down and sideways anyway).
+  const across=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2)
+  for(const [x,y] of PINS)world.createCollider(RAPIER.ColliderDesc.cylinder(0.21,0.06).setTranslation(x,y,BZ).setRotation({x:across.x,y:across.y,z:across.z,w:across.w}).setRestitution(0.35).setFriction(0.02))
+  fixed(0.1,(BTOP-BBOTTOM)/2+0.4,0.3,-5.0,(BTOP+BBOTTOM)/2,BZ);fixed(0.1,(BTOP-BBOTTOM)/2+0.4,0.3,5.0,(BTOP+BBOTTOM)/2,BZ)
   const pusherBody=world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0,0.3,wz(FIELD.back)-3))
   world.createCollider(RAPIER.ColliderDesc.cuboid(5.0,0.3,3).setFriction(0.25),pusherBody)
   const pieces=new Map<number,Piece>()
-  const addCoin=(x:number,y:number,z:number,ball=false,spin=0)=>{
+  const addCoin=(x:number,y:number,z:number,ball=false,spin=0,board=false)=>{
    if(!ball&&[...pieces.values()].filter(p=>!p.ball).length>=MAX){const old=[...pieces.entries()].find(([,p])=>p.counted&&!p.ball)??[...pieces.entries()].find(([,p])=>!p.ball);if(old){world.removeRigidBody(old[1].body);pieces.delete(old[0])}}
-   const q=new THREE.Quaternion().setFromEuler(new THREE.Euler((Math.random()-.5)*0.2,Math.random()*6,(Math.random()-.5)*0.2))
-   const body=world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(x,y,z).setRotation({x:q.x,y:q.y,z:q.z,w:q.w}).setLinearDamping(0.15).setAngularDamping(0.4).setCcdEnabled(!ball).setAngvel({x:0,y:spin,z:0}))
+   // On the board a medal stands on its edge, facing you, and only moves across and down (and spins).
+   const q=board?across.clone():new THREE.Quaternion().setFromEuler(new THREE.Euler((Math.random()-.5)*0.2,Math.random()*6,(Math.random()-.5)*0.2))
+   const desc=RAPIER.RigidBodyDesc.dynamic().setTranslation(x,y,z).setRotation({x:q.x,y:q.y,z:q.z,w:q.w}).setLinearDamping(board?0.05:0.15).setAngularDamping(0.4).setAngvel(board?{x:0,y:0,z:spin}:{x:0,y:spin,z:0})
+   if(board)desc.enabledTranslations(true,true,false).enabledRotations(false,false,true)
+   const body=world.createRigidBody(desc)
    world.createCollider((ball?RAPIER.ColliderDesc.ball(BALL).setDensity(0.6):RAPIER.ColliderDesc.cylinder(HALF,R).setDensity(1.4)).setFriction(ball?0.4:0.45).setRestitution(0.08),body)
-   pieces.set(body.handle,{body,ball,counted:0})}
+   pieces.set(body.handle,{body,ball,counted:0,board})}
   // The pile to start with: a few layers across the field, settled before you play.
   for(let layer=0;layer<2;layer++)for(let z=wz(FIELD.reach+3);z<FRONT-0.4;z+=R*1.9)for(let x=-4.6;x<=4.6;x+=R*2.05)if(layer===0||Math.random()<0.55)addCoin(x+(Math.random()-.5)*0.1,0.06+layer*0.13,z+(Math.random()-.5)*0.1)
   pusherBody.setNextKinematicTranslation({x:0,y:0.3,z:wz(FIELD.back)-3})
@@ -116,12 +138,16 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   const orbit={yaw:VIEWS[0].yaw,pitch:VIEWS[0].pitch,dist:VIEWS[0].dist,dragYaw:0,dragPitch:0}
   const placeCamera=()=>{const v=VIEWS[viewRef.current]
    orbit.yaw+=(v.yaw+orbit.dragYaw-orbit.yaw)*0.12;orbit.pitch+=(Math.max(0.25,Math.min(1.25,v.pitch+orbit.dragPitch))-orbit.pitch)*0.12;orbit.dist+=(v.dist-orbit.dist)*0.12
-   camera.position.set(Math.sin(orbit.yaw)*Math.cos(orbit.pitch)*orbit.dist,Math.sin(orbit.pitch)*orbit.dist,Math.cos(orbit.yaw)*Math.cos(orbit.pitch)*orbit.dist+0.5);camera.lookAt(0,0,0.8)}
+   camera.position.set(Math.sin(orbit.yaw)*Math.cos(orbit.pitch)*orbit.dist,Math.sin(orbit.pitch)*orbit.dist,Math.cos(orbit.yaw)*Math.cos(orbit.pitch)*orbit.dist+0.5);camera.lookAt(0,0.9,0)}
   const resize=()=>{const w=el.clientWidth,h=el.clientHeight;renderer.setSize(w,h,false);composer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w/h<0.8?52:42;camera.updateProjectionMatrix()}
   resize();const ro=new ResizeObserver(resize);ro.observe(el)
   // ---- Touch ----
   const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3()
-  const fieldAt=(e:PointerEvent)=>{const r=renderer.domElement.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(ndc,camera);return ray.ray.intersectPlane(plane,hit)&&Math.abs(hit.x)<5.4&&hit.z>-7.5&&hit.z<6.4?hit:null}
+  const boardPlane=new THREE.Plane(new THREE.Vector3(0,0,1),-BZ)
+  // Touching the pin board or the field aims (across); anywhere else drags the view.
+  const fieldAt=(e:PointerEvent)=>{const r=renderer.domElement.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(ndc,camera)
+   if(ray.ray.intersectPlane(boardPlane,hit)&&Math.abs(hit.x)<5.2&&hit.y>BBOTTOM-0.5&&hit.y<BTOP+0.8)return hit
+   return ray.ray.intersectPlane(plane,hit)&&Math.abs(hit.x)<5.4&&hit.z>-7.5&&hit.z<6.4?hit:null}
   let drag:{x:number;y:number;yaw:number;pitch:number}|null=null
   const down=(e:PointerEvent)=>{renderer.domElement.setPointerCapture?.(e.pointerId);const p=fieldAt(e)
    if(p){aim.current=Math.max(4,Math.min(96,p.x/U+50));holding.current=true;dropRef.current()}else drag={x:e.clientX,y:e.clientY,yaw:orbit.dragYaw,pitch:orbit.dragPitch}}
@@ -148,13 +174,20 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
     let c=step(before)
     if(holding.current&&now-lastDrop.current>200&&c.hand>0){c=drop(c,aim.current);lastDrop.current=now}
     // Put what the rules dropped into the machine: medals fall from the chute, showers rain over the field.
-    for(const m of c.medals){const fromChute=Math.abs(m.y-(c.pusher+FIELD.r+0.5))<1;addCoin(wx(m.x),fromChute?1.3:1.6+Math.random()*1.4,wz(m.y)+(fromChute?0.05:0),!!m.ball,(Math.random()-.5)*4)}
+    for(const m of c.medals){if(m.y<0)addCoin(Math.max(-4.5,Math.min(4.5,wx(m.x)+(Math.random()-.5)*0.08)),BTOP+0.3,BZ,false,(Math.random()-.5)*3,true);else addCoin(wx(m.x),1.6+Math.random()*1.4,wz(m.y),!!m.ball,(Math.random()-.5)*4)}
     c=spawned(c)
     // A tower stands as a real stack, a little in front of the pusher, until it's knocked over.
     for(const t of c.towers)if(!builtTowers.has(t.at)){builtTowers.add(t.at);for(let i=0;i<t.n;i++)addCoin(wx(t.x)+(Math.random()-.5)*0.02,0.06+i*0.112,wz(c.pusher+9))}
     // The pusher moves, the world steps.
     pusherBody.setNextKinematicTranslation({x:0,y:0.3,z:wz(c.pusher)-3})
     world.step()
+    // The board's bottom: into a pocket, or out onto the pusher's shelf (where it tips over and joins the pile).
+    for(const [h,p] of pieces){if(!p.board)continue;const t=p.body.translation()
+     // A medal sitting still on a pin gets the little nudge a real cabinet's rattle gives it.
+     if(t.y>BBOTTOM){const v=p.body.linvel();if(Math.abs(v.x)+Math.abs(v.y)<0.25)p.body.setLinvel({x:(Math.random()<.5?-1:1)*(0.8+Math.random()*0.8),y:v.y,z:0},true);continue}
+     const hit=POCKET_W.findIndex((w,i)=>Math.abs(t.x-pocketX(i,c.frame))<w/2-0.05)
+     if(hit>=0){world.removeRigidBody(p.body);pieces.delete(h);c=pocket(c,POCKETS[hit]);pocketMeshes[hit].flash=1;fx(hit===1?'star':'zap',soundRef.current)}
+     else{p.board=false;p.body.setEnabledTranslations(true,true,true,true);p.body.setEnabledRotations(true,true,true,true);p.body.setLinvel({x:p.body.linvel().x*0.5,y:-1,z:0.6},true)}}
     // What fell: off the front is yours, off the sides is lost; a ball off the front goes to the ball lottery.
     let won=0,lost=0,ballsWon=0
     for(const [h,p] of pieces){const t=p.body.translation()
@@ -170,10 +203,8 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
    const c=cove.current,f=c.frame
    // Draw the machine where the physics has it.
    const pz=wz(c.pusher);pusherMesh.position.set(0,0.3,pz-3)
-   lantern.position.set(wx(c.checker),0.32,pz+0.02);lamp.position.set(wx(c.checker),0.8,pz+0.5)
-   ;(lantern.material as THREE.MeshStandardMaterial).emissiveIntensity=1.8+0.8*Math.sin(f/5)
-   const ax=wx(aim.current);chute.position.set(ax,1.3+Math.sin(f/12)*0.04,pz+R+0.05);guide.position.set(ax,0.75,pz+R+0.05);guide.lookAt(camera.position.x,0.75,camera.position.z)
-   chute.visible=c.hand>0;guide.visible=c.hand>0
+   const ax=Math.max(-4.5,Math.min(4.5,wx(aim.current)));chute.position.set(ax,BTOP+0.32+Math.sin(f/12)*0.03,BZ);chute.visible=c.hand>0
+   pocketMeshes.forEach((pm,i)=>{pm.g.position.x=pocketX(i,f);pm.flash=Math.max(0,pm.flash-0.03);pm.mat.emissiveIntensity=0.6+pm.flash*3})
    let n=0,b=0
    for(const p of pieces.values()){const t=p.body.translation(),r=p.body.rotation()
     m4.compose(v3.set(t.x,t.y,t.z),q.set(r.x,r.y,r.z,r.w),s3)
@@ -214,7 +245,7 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
  useEffect(()=>{if(!hud.event)return;const t=window.setTimeout(()=>setHud(h=>({...h,event:''})),2200);return()=>window.clearTimeout(t)},[hud.event])
  return <div className="break-game medal-cove">
   <div className="cove-board" aria-label="Backboard">
-   <div className="cove-steps" aria-label={hud.steps+' of 3 steps'}>{[0,1,2].map(i=><i key={i} className={i<hud.steps?'is-on':undefined}/>)}<small>⭐ steps</small></div>
+   <div className="cove-steps" aria-label={hud.steps+' of '+LAMPS+' lamps'}>{Array.from({length:LAMPS},(_,i)=><i key={i} className={i<hud.steps?'is-on':undefined}/>)}<small>💡 lamps → BIG BONUS</small></div>
    <div className="cove-jp"><small>JACKPOT</small><b>{hud.jp}</b></div>
    <div className="cove-pockets"><b>🎯 {hud.pockets}/{CHANCE_POCKETS}</b><small>{best!==null?'Best '+best:'JP pockets'}</small></div>
    <div className={'cove-reels'+(hud.spinning?' is-spinning':'')} aria-label={'Lottery: '+hud.reels.join(' ')}>{hud.reels.map((r,i)=><span key={i}>{r}</span>)}</div>
@@ -226,7 +257,7 @@ export default function MedalCove({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
    <button type="button" className="cove-view" aria-label="Change the camera" onClick={()=>setView(v=>(v+1)%VIEWS.length)}>🎥</button>
    <span className="cove-hand" aria-hidden="true">🪙 {hud.hand}</span>
   </div>
-  <p className="blast-help">Touch the field to aim and tap to drop (hold to keep dropping). Through the 🏮 lantern, a medal spins the lottery. Drag off the field to look around.</p>
+  <p className="blast-help">Touch to aim along the top of the pin board and tap to drop (hold to keep dropping). Medals bounce down the pins into a pocket: 🏮 spins the lottery, ⭐ lights a lamp (5 lamps: BIG BONUS), 🗼 builds a medal tower. Drag around the edges to look around.</p>
  </div>
 }
 
@@ -250,3 +281,9 @@ function wheelImage(winPockets:number){const [c,g]=canvas(512,512),cx=256,cy=256
   const am=(a0+a1)/2;g.fillStyle=win?'#5a3200':'#fff';g.font='bold 30px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText(win?'JP':'+10',cx+Math.cos(am)*R*.72,cy+Math.sin(am)*R*.72)}
  g.fillStyle='#2b1a3a';g.beginPath();g.arc(cx,cy,80,0,Math.PI*2);g.fill();g.fillStyle='#ffd34d';g.font='bold 30px system-ui';g.fillText('JACKPOT',cx,cy-14);g.fillText('CHANCE',cx,cy+22)
  return c}
+function boardTexture(){const [c,g]=canvas(512,256);const grad=g.createLinearGradient(0,0,0,256);grad.addColorStop(0,'#7fd0ff');grad.addColorStop(1,'#2f6fb3');g.fillStyle=grad;g.fillRect(0,0,512,256)
+ g.fillStyle='rgba(255,255,255,.18)';for(let i=0;i<6;i++){g.beginPath();g.arc(60+i*80,40+(i%2)*30,26,0,Math.PI*2);g.fill()}
+ g.fillStyle='rgba(255,233,168,.9)';g.font='bold 28px system-ui';g.textAlign='center';g.fillText('KONO MEDAL COVE',256,236)
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+function emojiTexture(e:string){const [c,g]=canvas(128,128);g.font='96px system-ui,"Apple Color Emoji","Noto Color Emoji"';g.textAlign='center';g.textBaseline='middle';g.fillText(e,64,70)
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
