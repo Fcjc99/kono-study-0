@@ -4264,6 +4264,22 @@ test('Chores on Home: today’s chores sit in the schedule as their own checklis
  await page.getByRole('region',{name:'Tomorrow’s chores'}).getByText('Water the plants').waitFor()
 })
 
+test('KONO Medal Cove: a medal pusher: tapping the field drops medals from your hand, the jackpot board and reels show, and End gives what you finished with',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
+ await town.getByRole('button',{name:/KONO Medal Cove/}).click()
+ const cove=await startGame(page,'🪙 KONO Medal Cove')
+ const field=cove.locator('.cove-frame canvas');await field.waitFor()
+ for(let i=0;i<5;i++){await field.click({position:{x:60+i*30,y:420}});await page.waitForTimeout(150)}
+ await page.waitForFunction(()=>{const m=/: (\d+) medals/.exec(document.querySelector('.cove-frame canvas')?.getAttribute('aria-label')??'');return m&&Number(m[1])!==100},null,{timeout:5000})
+ await cove.getByRole('button',{name:'■ End'}).click()
+ await cove.getByText(/You finished with \d+ medals?/).waitFor()
+})
+
 test('New arcade games: KONO Stack (a floor set down as it lines up builds the tower, End gives the results) and KONO Bloom (tap to drop seeds into the jar, End gives what you grew)',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
