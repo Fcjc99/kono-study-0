@@ -526,7 +526,7 @@ test('K-Quiz Play: a study set as a game, right answers earn KONO coins, a wrong
  await game.waitFor({state:'detached'})
 })
 
-test('Star chart: ticking a kid’s chore earns its stars, and stars buy a reward from the shelf',async({context,page})=>{
+test('Star chart: ticking a kid’s chore earns its stars, stars buy a reward from the shelf, and a daily chore can be added for today',async({context,page})=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
  plan.familyTodos=[{id:'chore-1',profileId:pid,title:'Feed the cat',done:false,forKidId:'kid-emma',stars:2}]
  plan.starRewards=[{id:'rw-1',profileId:pid,title:'Pick dessert',cost:2,emoji:'🍦'}]
@@ -544,6 +544,16 @@ test('Star chart: ticking a kid’s chore earns its stars, and stars buy a rewar
  await emma.getByText('🎉 🍦 Pick dessert!').waitFor()
  await emma.getByLabel('0 stars').waitFor()
  await waitFor(()=>(cloud.users.alice.plan.data.starLog??[]).some(e=>e.n===-2),'the reward is spent in the account')
+ // A chore for today, right in Emma's card: every day; ticking it moves it to tomorrow, and it earns a star.
+ await emma.getByLabel('New chore for Emma today').fill('Make bed')
+ await emma.getByLabel('Repeat for Emma’s chore').selectOption('day')
+ await emma.getByRole('button',{name:'Add',exact:true}).click()
+ await emma.getByRole('button',{name:'Done: Make bed'}).getByText('· every day').waitFor()
+ await waitFor(()=>(cloud.users.alice.plan.data.familyTodos??[]).some(t=>t.title==='Make bed'&&t.repeat==='day'&&t.forKidId==='kid-emma'&&t.due),'the daily chore reaches the account')
+ const firstDue=cloud.users.alice.plan.data.familyTodos.find(t=>t.title==='Make bed').due
+ await emma.getByRole('button',{name:'Done: Make bed'}).click()
+ await waitFor(()=>{const t=cloud.users.alice.plan.data.familyTodos.find(x=>x.title==='Make bed');return t&&!t.done&&t.due>firstDue},'ticking a daily chore moves it to the next day')
+ await emma.getByLabel('1 star').waitFor()
 })
 
 test('Dinners & groceries: a dinner written on Home and groceries added and ticked reach the account',async({context,page})=>{
