@@ -12,6 +12,8 @@ import KonoBloom from './KonoBloom'
 import {LADDER} from '../store/bloom'
 // KONO Beat brings its charts (every song, three levels): loaded when it's opened.
 const RhythmGame=lazy(()=>import('./RhythmGame'))
+// KONO Medal Cove is 3D (three.js): loaded only when it's opened.
+const MedalCove=lazy(()=>import('./MedalCove'))
 import {flapMedal} from '../store/flappy'
 import {readBlastFace} from '../store/blastFace'
 import BlastFacePicker from './BlastFacePicker'
@@ -21,14 +23,14 @@ import {meowLevel,newMeowPuzzle,type Puzzle} from '../store/meowdoku'
 import {BOOSTERS,candyLevelNow,candyStarsKept,freshBoard,jellyFor,maker,saveCandyLevel,saveCandyStars,type Board,type Maker} from '../store/match3'
 import type {ShopItem} from '../store/konoCoins'
 
-/** KONO Town's arcade: KONO blast (the block puzzle), KONO Stack (build a tower), KONO Bloom (drop and grow), Meowdoku (the cat puzzle), Gem blitz and Sweet swap
+/** KONO Town's arcade: KONO blast (the block puzzle), KONO Stack (build a tower), KONO Bloom (drop and grow), KONO Medal Cove (a medal pusher), Meowdoku (the cat puzzle), Gem blitz and Sweet swap
  * (match-3), KONO Flow (falling blocks), KONO Beat (the songs as a rhythm game), KONO Hop and KONO.io (claim the map, after Paper.io 2). Every
  * game plays full screen in KONO blast's look, and `onScore` can turn a score into coins (it returns what to
  * add to the result line). The same games are the break games offered when a focus session finishes
  * ("Take a short break"): the break lasts five minutes, and when it's over the games stop and KONO says it's
  * time for the next session. Best scores are kept on this device only. Loaded only when opened, so it never
  * adds to the app's startup. */
-type Game='blast'|'meow'|'gems'|'candy'|'flap'|'paper'|'flow'|'beat'|'stack'|'bloom'
+type Game='blast'|'meow'|'gems'|'candy'|'flap'|'paper'|'flow'|'beat'|'stack'|'bloom'|'cove'
 export const BREAK_MINUTES=5
 const GAMES:{id:Game;emoji:string;name:string;how:string;best:(n:number)=>string}[]=[
  {id:'blast',emoji:'🧱',name:'KONO blast',how:'Fit the pieces on the board; fill a row or column to clear it.',best:n=>'Best: '+n+' points'},
@@ -38,6 +40,7 @@ const GAMES:{id:Game;emoji:string;name:string;how:string;best:(n:number)=>string
  {id:'flow',emoji:'🌌',name:'KONO Flow',how:'Turn and drop the falling shapes to fill rows of light. Fill the Flow meter, then set it off: time stops while the rows you fill pile up, and they all clear at once!',best:n=>'Best: '+n.toLocaleString()+' points'},
  {id:'beat',emoji:'🥁',name:'KONO Beat',how:'The arcade’s songs as a rhythm game: hit the notes on the beat as they reach the line, and hold the long ones. Easy, Medium, or Jeff tier!',best:n=>'Best: '+n.toLocaleString()},
  {id:'stack',emoji:'🏢',name:'KONO Stack',how:'Build KONO’s tower floor by floor! Each floor slides across the top: tap to set it down. What hangs over breaks off, so line them up. Three Perfects in a row make the floors bigger again.',best:n=>'Best: '+n+' floor'+(n===1?'':'s')},
+ {id:'cove',emoji:'🪙',name:'KONO Medal Cove',how:'A medal pusher on KONO’s dock. Drop medals down the pin board: they bounce into a pocket (🏮 spins the lottery, ⭐ lights a lamp, 🗼 builds a medal tower) or onto the pusher, which shoves the pile off the edge to you. Light all 5 lamps for the BIG BONUS, and push prize balls off for the ball lottery and a shot at the JACKPOT!',best:n=>'Best: '+n+' medals'},
  {id:'bloom',emoji:'🌸',name:'KONO Bloom',how:'Drop seeds into KONO’s garden jar. Two the same grow into the next one: a bean into a sprout, all the way up to the Great Tree. Keep the jar under the dashed line!',best:n=>'Best: '+n.toLocaleString()+' points'},
  {id:'flap',emoji:'🐤',name:'KONO Hop',how:'Tap to hop KONO through the gaps in the pipes.',best:n=>'Best: '+n+' pipe'+(n===1?'':'s')},
  {id:'paper',emoji:'🟦',name:'KONO.io',how:'Leave your land, loop around and come home to claim it. Cut the bots’ trails, and keep yours safe! Play solo, or in a team battle: Blue against Red for two minutes.',best:n=>'Best: '+n+'% of the map'},
@@ -91,6 +94,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
  :game==='meow'&&meow?<Meowdoku key={round} ref={handle} level={meow.level} puzzle={meow.puzzle} sound={sound} onEnd={(level,seconds,solved,extra)=>solved?finish('meow',level,'Solved in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+(extra?.best?' — a new best for '+meow.puzzle.n+' × '+meow.puzzle.n+'!':'.')+(extra?.hints?' ('+extra.hints+' hint'+(extra.hints===1?'':'s')+')':'')+' Next up: level '+(level+1)+'.',{title:'Purr-fect!',coinScore:meow.puzzle.n,scoreText:'Level '+level}):finish('meow',0,(extra?.lives===0?'Three wrong cats. ':'')+'This one stays at level '+level+'. Play again for a new puzzle.',{title:extra?.lives===0?'Out of hearts 💔':'Puzzle skipped',coinScore:0,scoreText:'Level '+level,won:false})}/>
   :game==='flap'?<FlappyKono key={round} ref={handle} best={readBest('flap')} sound={sound} onEnd={n=>{const medal=flapMedal(n);finish('flap',n,(medal?medal.emoji+' '+medal.name+' medal! ':'')+'KONO flew through '+n+' pipe'+(n===1?'':'s')+'.',{title:medal?medal.name+' medal!':n>0?'Nice flying!':'Bonk!',scoreText:n+' pipe'+(n===1?'':'s'),won:n>0})}}/>
   :game==='stack'?<KonoStack key={round} ref={handle} best={readBest('stack')} sound={sound} onEnd={(n,perfects)=>finish('stack',n,'KONO’s tower is '+n+' floor'+(n===1?'':'s')+' tall'+(perfects?', with '+perfects+' Perfect'+(perfects===1?'':'s'):'')+'. 🏢',{title:n>=50?'Sky-high!':n>=20?'What a tower!':n>0?'Nice building!':'Oops!',coinScore:n,scoreText:n+' floor'+(n===1?'':'s'),won:n>0})}/>
+  :game==='cove'?<Suspense fallback={<p role="status">Setting up the cove…</p>}><MedalCove key={round} ref={handle} best={readBest('cove')} sound={sound} onEnd={(n,jps)=>finish('cove',n,(jps?'🎉 '+jps+' jackpot'+(jps===1?'':'s')+'! ':'')+'You finished with '+n+' medal'+(n===1?'':'s')+'. 🪙',{title:jps?'JACKPOT!':n>=100?'Big haul!':n>0?'Nice pushing!':'All pushed out',scoreText:n+' medals',won:n>0})}/></Suspense>
   :game==='bloom'?<KonoBloom key={round} ref={handle} best={readBest('bloom')} sound={sound} onEnd={(n,biggest)=>finish('bloom',n,'You grew up to '+LADDER[biggest].emoji+' '+LADDER[biggest].name+'. 🌸',{title:biggest>=10?'A Great Tree!':biggest>=7?'What a garden!':'Nice growing!',scoreText:n.toLocaleString()+' points',won:n>0})}/>
   :game==='flow'?<FlowGame key={round} ref={handle} sound={sound} onEnd={r=>{
    // Sprint is about time (its best is kept in the game); the others about points.
