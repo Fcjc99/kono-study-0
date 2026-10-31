@@ -56,7 +56,8 @@ await test('the pin board: a drop goes in at the top; each pocket spins its own 
  c=P.pocket(c,'tower');assert.equal(c.wheelQueue[2],1);assert.equal(c.jackpot,P.JP_START+1)
  for(let i=0;i<5;i++)c=P.pocket(c,'tower');assert.equal(c.wheelQueue[2],3,'three spins at most wait')
  c=run(c,1);assert.ok(c.wheels[2],'the 🗼 wheel spins');assert.equal(c.wheelQueue[2],2)
- assert.equal(P.WHEELS.length,3);for(const w of P.WHEELS){assert.equal(w.length,8);assert.ok(w.some(s=>s.kind==='layers')&&w.some(s=>s.kind==='ball')&&w.some(s=>s.kind==='lamp'),'every wheel mixes layers, a ball and a lamp')}
+ assert.equal(P.WHEELS.length,3);for(const w of P.WHEELS){assert.equal(w.length,8);assert.ok(w.some(s=>s.kind==='layers')&&w.some(s=>s.kind==='ball'),'every wheel mixes layers and a ball')}
+ assert.equal(P.WHEELS.filter(w=>w.some(s=>s.kind==='lamp')).length,2,'lamps on the ⭐ and 🗼 wheels')
  // Each prize, forced: land the wheel on a segment and let it stop.
  const land=(c,i,k)=>{const seg=P.WHEELS[i].findIndex(s=>s.kind===k);c={...c,wheels:c.wheels.map((w,j)=>j===i?{seg,at:c.frame-P.WHEEL_FRAMES}:w),wheelQueue:[0,0,0]};return P.step(c,rnd)}
  let d=P.newCove(rnd,100,true);const bank=d.bank
@@ -69,15 +70,18 @@ await test('the pin board: a drop goes in at the top; each pocket spins its own 
  assert.equal(P.busy(P.pocket(P.newCove(rnd,0,true),'spin')),true,'a waiting wheel spin keeps the round going')
  c=P.settle(c,5,1,1);assert.equal(c.won,5);assert.equal(c.lost,1);assert.equal(c.dishQueue,1)
 })
-await test('COMBO and FEVER TIME: pockets in quick succession build a combo that pays; all three pockets within 10 seconds start FEVER TIME, when every pocket spins its wheel twice',()=>{
+await test('COMBO and FEVER TIME: pockets in quick succession build a combo that pays; all three pockets within 3 seconds start FEVER TIME (then a rest), when every pocket spins its wheel twice',()=>{
  let c=P.newCove(rnd,100,true)
  c=P.pocket(c,'spin');assert.equal(c.combo.n,1)
- c={...c,frame:c.frame+60};c=P.pocket(c,'lamp');assert.equal(c.combo.n,2);assert.match(c.events.at(-1).text,/COMBO ×2/);assert.ok(c.medals.length>=2,'the combo pays')
+ c={...c,frame:c.frame+40};c=P.pocket(c,'lamp');assert.equal(c.combo.n,2)
+ c={...c,frame:c.frame+40};c=P.pocket(c,'tower');assert.equal(c.combo.n,3);assert.ok(c.events.some(e=>/COMBO ×3/.test(e.text)));assert.ok(c.medals.length>=3,'from ×3 the combo pays')
  c={...c,frame:c.frame+P.COMBO_GAP+1};c=P.pocket(c,'spin');assert.equal(c.combo.n,1,'too slow: the combo starts over')
- let f=P.newCove(rnd,100,true);f=P.pocket(f,'spin');f={...f,frame:f.frame+200};f=P.pocket(f,'lamp');assert.equal(P.inFever(f),false)
- f={...f,frame:f.frame+200};f=P.pocket(f,'tower');assert.equal(P.inFever(f),true,'all three pockets: FEVER TIME');assert.ok(f.events.some(e=>/FEVER/.test(e.text)))
+ let f=P.newCove(rnd,100,true);f=P.pocket(f,'spin');f={...f,frame:f.frame+70};f=P.pocket(f,'lamp');assert.equal(P.inFever(f),false)
+ f={...f,frame:f.frame+70};f=P.pocket(f,'tower');assert.equal(P.inFever(f),true,'all three pockets: FEVER TIME');assert.ok(f.events.some(e=>/FEVER/.test(e.text)))
  const q=f.wheelQueue[0];f=P.pocket(f,'spin');assert.equal(f.wheelQueue[0],Math.min(3,q+2),'in a fever every pocket spins twice')
  f={...f,frame:f.fever.until};assert.equal(P.inFever(f),false,'and it ends')
+ for(const k of ['spin','lamp','tower'])f=P.pocket(f,k);assert.equal(P.inFever(f),false,'a rest before the next one')
+ f={...f,frame:f.frame+P.FEVER_REST};for(const k of ['spin','lamp','tower'])f=P.pocket(f,k);assert.equal(P.inFever(f),true,'then it can come again')
  let slow=P.newCove(rnd,100,true);slow=P.pocket(slow,'spin');slow={...slow,frame:slow.frame+P.FEVER_WINDOW+1};slow=P.pocket(slow,'lamp');slow=P.pocket(slow,'tower');assert.equal(P.inFever(slow),false,'too far apart: no fever')
 })
 console.log(passed+'/6 KONO Medal Cove groups passed.')

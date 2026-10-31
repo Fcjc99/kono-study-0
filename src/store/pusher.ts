@@ -137,8 +137,8 @@ const seg = (label: string, kind: WheelSeg['kind'], n = 0): WheelSeg => ({ label
 /** The three wheels, one over each pocket, each with its own mix: the 🏮 wheel leans to medals and spins,
  * the ⭐ wheel to lamps, the 🗼 wheel to tower layers. Eight segments each. */
 export const WHEELS: WheelSeg[][] = [
-  [seg('+5', 'medals', 5), seg('+2 layers', 'layers', 2), seg('SPIN', 'spin'), seg('+10', 'medals', 10), seg('LAMP', 'lamp'), seg('+3', 'medals', 3), seg('BALL', 'ball'), seg('+1 layer', 'layers', 1)],
-  [seg('LAMP', 'lamp'), seg('+5', 'medals', 5), seg('+1 layer', 'layers', 1), seg('LAMP', 'lamp'), seg('BALL', 'ball'), seg('+3', 'medals', 3), seg('LAMP', 'lamp'), seg('SPIN', 'spin')],
+  [seg('+5', 'medals', 5), seg('+2 layers', 'layers', 2), seg('SPIN', 'spin'), seg('+10', 'medals', 10), seg('+1 layer', 'layers', 1), seg('+3', 'medals', 3), seg('BALL', 'ball'), seg('SPIN', 'spin')],
+  [seg('LAMP', 'lamp'), seg('+5', 'medals', 5), seg('+1 layer', 'layers', 1), seg('+2 layers', 'layers', 2), seg('BALL', 'ball'), seg('+3', 'medals', 3), seg('LAMP', 'lamp'), seg('SPIN', 'spin')],
   [seg('+2 layers', 'layers', 2), seg('+5', 'medals', 5), seg('+4 layers', 'layers', 4), seg('BALL', 'ball'), seg('+1 layer', 'layers', 1), seg('LAMP', 'lamp'), seg('+3 layers', 'layers', 3), seg('+3', 'medals', 3)],
 ]
 export const WHEEL_FRAMES = 100
@@ -147,7 +147,9 @@ export type Pocket = 'spin' | 'lamp' | 'tower'
 export const POCKETS: Pocket[] = ['spin', 'lamp', 'tower']
 /** A medal in one of the pin board's pockets: that pocket's mini wheel spins (up to 3 spins wait their
  * turn). Every pocket also adds a medal to the jackpot. */
-export const FEVER_WINDOW = 600, FEVER_FRAMES = 1200, COMBO_GAP = 240
+/** Tuned for about a FEVER a minute of steady play: all three pockets within 3 seconds, and a rest of 45
+ * seconds after one ends. A combo needs pockets within a second of each other, and pays from ×3. */
+export const FEVER_WINDOW = 180, FEVER_FRAMES = 1200, FEVER_REST = 2700, COMBO_GAP = 60
 export const inFever = (c: Cove) => !!c.fever && c.frame < c.fever.until
 export function pocket(c: Cove, kind: Pocket, random: () => number = Math.random): Cove {
   const i = POCKETS.indexOf(kind), q = [...(c.wheelQueue ?? [0, 0, 0])], fever = inFever(c)
@@ -157,9 +159,9 @@ export function pocket(c: Cove, kind: Pocket, random: () => number = Math.random
   // A combo: pockets in quick succession.
   const n = c.combo && c.frame - c.combo.at <= COMBO_GAP ? c.combo.n + 1 : 1
   next = { ...next, combo: { n, at: c.frame } }
-  if (n >= 2) next = say(shower(next, n, random), '🔥 COMBO ×' + n + '! +' + n)
+  if (n >= 3) next = say(shower(next, n, random), '🔥 COMBO ×' + n + '! +' + n)
   // All three pockets within the window: FEVER TIME.
-  if (!fever && hits.every(h => c.frame - h <= FEVER_WINDOW)) next = say({ ...next, fever: { until: c.frame + FEVER_FRAMES }, hits: [-1e9, -1e9, -1e9] }, '🌈 FEVER TIME! Every pocket spins twice!')
+  if (!fever && (!c.fever || c.frame >= c.fever.until + FEVER_REST) && hits.every(h => c.frame - h <= FEVER_WINDOW)) next = say({ ...next, fever: { until: c.frame + FEVER_FRAMES }, hits: [-1e9, -1e9, -1e9] }, '🌈 FEVER TIME! Every pocket spins twice!')
   return next
 }
 /** What a mini wheel's segment gives. */
