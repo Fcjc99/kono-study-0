@@ -71,18 +71,21 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   const toon=(color:string,extra:THREE.MeshToonMaterialParameters={})=>new THREE.MeshToonMaterial({color,gradientMap:tones,...extra})
   // The Sanctuary's own pixel art, as sprites standing in the scene (crisp pixels, bottom-centered).
   const loader=new THREE.TextureLoader()
-  const pix=(name:string)=>{const t=loader.load('/games/cove/'+name+'.webp');t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.NearestFilter;return t}
+  // The painted pieces are HD and drawn smooth; the little pixel-art ones (flowers, clouds, critters) stay crisp.
+  const PIXEL=/^(flowers|cloud|butterfly|bird|shell)/,aniso=renderer.capabilities.getMaxAnisotropy()
+  const pix=(name:string)=>{const t=loader.load('/games/cove/'+name+'.webp');t.colorSpace=THREE.SRGBColorSpace;if(PIXEL.test(name))t.magFilter=THREE.NearestFilter;else t.anisotropy=aniso;return t}
   const sprite=(name:string,h:number,x:number,y:number,z:number)=>{const s=new THREE.Sprite(new THREE.SpriteMaterial({map:pix(name),alphaTest:0.04}));s.center.set(0.5,0);s.scale.set(h*(ASPECT[name]??1),h,1);s.position.set(x,y,z);scene.add(s);return s}
   const camera=new THREE.PerspectiveCamera(42,1,0.1,80)
   const pmrem=new THREE.PMREMGenerator(renderer),envRT=pmrem.fromScene(new RoomEnvironment(),0.04);scene.environment=envRT.texture;pmrem.dispose()
   scene.add(new THREE.HemisphereLight('#dff3ff','#4a3424',0.8))
-  const sun=new THREE.DirectionalLight('#fff4dc',2.2);sun.position.set(4,12,6);sun.castShadow=true;sun.shadow.mapSize.set(small?512:1024,small?512:1024)
+  const sun=new THREE.DirectionalLight('#fff4dc',2.2);sun.position.set(4,12,6);sun.castShadow=true;sun.shadow.mapSize.set(small?1024:2048,small?1024:2048)
   Object.assign(sun.shadow.camera,{left:-8,right:8,top:8,bottom:-8,near:1,far:30});scene.add(sun)
   // One merged effect pass: bloom on what's bright (the lantern, the shine on the gold, the jackpot pieces)
   // and SMAA for smooth edges. Half-resolution bloom on phones.
-  const composer=new EffectComposer(renderer,{multisampling:0})
+  // Smooth edges: multisampling where the device has it (and SMAA on top), full-resolution glow.
+  const composer=new EffectComposer(renderer,{multisampling:Math.min(small?2:4,renderer.capabilities.maxSamples||0)})
   composer.addPass(new RenderPass(scene,camera))
-  const bloom=new BloomEffect({intensity:small?0.7:0.9,luminanceThreshold:0.92,luminanceSmoothing:0.2,mipmapBlur:true,resolutionScale:small?0.5:0.75})
+  const bloom=new BloomEffect({intensity:small?0.7:0.9,luminanceThreshold:0.92,luminanceSmoothing:0.2,mipmapBlur:true,resolutionScale:small?0.75:1})
   composer.addPass(new EffectPass(camera,bloom,new SMAAEffect()))
   // ---- The cabinet you see ----
   const deckMat=toon('#f6dcb4',{map:woodTexture()})
@@ -108,7 +111,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
    const label=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.5),new THREE.MeshBasicMaterial({map:emojiTexture(POCKET_FACE[i]),transparent:true}));label.position.set(0,0,0.19);g.add(label)
    g.position.set(pocketX(i,0),BBOTTOM-0.2,BZ);scene.add(g);return {g,mat,flash:0}})
   const chute=new THREE.Mesh(new THREE.CylinderGeometry(R,R,HALF*2,28),new THREE.MeshStandardMaterial({color:'#f2c230',metalness:.85,roughness:.3,emissive:'#5a3a00'}));chute.rotation.x=Math.PI/2;scene.add(chute)
-  const coins=new THREE.InstancedMesh(new THREE.CylinderGeometry(R,R,HALF*2,26),new THREE.MeshStandardMaterial({color:'#ffd24a',metalness:1,roughness:.32,map:coinFace(),envMapIntensity:1.3}),MAX)
+  const coins=new THREE.InstancedMesh(new THREE.CylinderGeometry(R,R,HALF*2,40),new THREE.MeshStandardMaterial({color:'#ffd24a',metalness:1,roughness:.32,map:coinFace(),envMapIntensity:1.3}),MAX)
   coins.castShadow=!small;coins.receiveShadow=true;coins.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(coins)
   const balls=new THREE.InstancedMesh(new THREE.SphereGeometry(BALL,24,16),new THREE.MeshPhysicalMaterial({color:'#9d6bff',roughness:.15,clearcoat:1,emissive:'#5a2fd0',emissiveIntensity:.8}),16);balls.castShadow=true;scene.add(balls)
   // The bonus pieces, out of sight until they're on.
@@ -188,6 +191,8 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   const flyMesh=new THREE.InstancedMesh(giant.geometry,giant.material,48);flyMesh.frustumCulled=false;scene.add(flyMesh)
   const LAYER_TINT=[new THREE.Color(1,1,1),new THREE.Color(1,0.74,0.7),new THREE.Color(0.86,1,0.86),new THREE.Color(0.9,0.86,1)]
   const giantBase=new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.72,0.2,24),new THREE.MeshStandardMaterial({color:'#2f6fb3',roughness:.4}));giantBase.position.set(0,BTOP+1.85,BZ-0.6);scene.add(giantBase)
+  // Every texture sharp at an angle (the field, the coins, the wheels).
+  scene.traverse(o=>{const mat=(o as THREE.Mesh).material as THREE.Material|THREE.Material[]|undefined;(Array.isArray(mat)?mat:mat?[mat]:[]).forEach(m=>{const t=(m as THREE.MeshStandardMaterial).map;if(t&&t.magFilter!==THREE.NearestFilter)t.anisotropy=aniso})})
   // ---- The physics world ----
   const world=new RAPIER.World({x:0,y:-22,z:0})
   world.integrationParameters.numSolverIterations=4
@@ -501,20 +506,21 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
 }
 
 // ---- Textures, drawn once ----
-function canvas(w:number,h:number){const c=document.createElement('canvas');c.width=w;c.height=h;return [c,c.getContext('2d')!] as const}
-function woodTexture(){const [c,g]=canvas(512,512);g.fillStyle='#c79a63';g.fillRect(0,0,512,512)
+/** A canvas `w` × `h` in drawing units, `k` times as many pixels (so the textures are HD). */
+function canvas(w:number,h:number,k=1){const c=document.createElement('canvas');c.width=w*k;c.height=h*k;const g=c.getContext('2d')!;g.scale(k,k);return [c,g] as const}
+function woodTexture(){const [c,g]=canvas(512,512,2);g.fillStyle='#c79a63';g.fillRect(0,0,512,512)
  for(let i=0;i<10;i++){g.fillStyle=i%2?'#bf9058':'#cfa36c';g.fillRect(i*51.2,0,51.2,512);g.strokeStyle='rgba(90,55,25,.45)';g.lineWidth=3;g.beginPath();g.moveTo(i*51.2,0);g.lineTo(i*51.2,512);g.stroke()
   for(let k=0;k<6;k++){g.strokeStyle='rgba(120,80,40,.18)';g.lineWidth=1.5;g.beginPath();const x=i*51.2+8+k*7;g.moveTo(x,0);g.bezierCurveTo(x+6,170,x-6,340,x+3,512);g.stroke()}}
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t}
-function coinFace(){const [c,g]=canvas(128,128);const grad=g.createRadialGradient(54,48,6,64,64,64);grad.addColorStop(0,'#fff3b0');grad.addColorStop(.6,'#f2c230');grad.addColorStop(1,'#b8860b');g.fillStyle=grad;g.fillRect(0,0,128,128)
+function coinFace(){const [c,g]=canvas(128,128,4);const grad=g.createRadialGradient(54,48,6,64,64,64);grad.addColorStop(0,'#fff3b0');grad.addColorStop(.6,'#f2c230');grad.addColorStop(1,'#b8860b');g.fillStyle=grad;g.fillRect(0,0,128,128)
  g.strokeStyle='rgba(140,90,10,.7)';g.lineWidth=5;g.beginPath();g.arc(64,64,44,0,Math.PI*2);g.stroke();g.fillStyle='rgba(140,90,10,.75)';g.font='bold 44px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText('K',64,66)
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
-function dishTexture(){const [c,g]=canvas(512,512);g.fillStyle='#fff6e0';g.fillRect(0,0,512,512)
+function dishTexture(){const [c,g]=canvas(512,512,2);g.fillStyle='#fff6e0';g.fillRect(0,0,512,512)
  // The lathe maps around (x) and outward (y); the pockets sit near the rim as colored bands.
  DISH.forEach((p,i)=>{const x0=i/DISH.length*512;g.fillStyle=p.prize.kind==='chance'?'#ff5a7a':p.prize.kind==='tower'?'#ffb347':'#7fd0ff';g.fillRect(x0+2,300,512/DISH.length-4,180)
   g.save();g.translate(x0+512/DISH.length/2,390);g.fillStyle='#2b1a3a';g.font='bold 22px system-ui';g.textAlign='center';g.fillText(p.label.replace('JP CHANCE','JP!'),0,8);g.restore()})
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
-function wheelImage(winPockets:number){const [c,g]=canvas(512,512),cx=256,cy=256,R=250
+function wheelImage(winPockets:number){const [c,g]=canvas(512,512,2),cx=256,cy=256,R=250
  for(let i=0;i<CHANCE_POCKETS;i++){const a0=i/CHANCE_POCKETS*Math.PI*2-Math.PI/2-Math.PI/CHANCE_POCKETS,a1=a0+Math.PI*2/CHANCE_POCKETS,win=isWinPocket(i,winPockets)
   g.fillStyle=win?'#ffd34d':i%2?'#6a4bc4':'#8a6ae0';g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,R,a0,a1);g.closePath();g.fill();g.strokeStyle='#2b1a3a';g.lineWidth=3;g.stroke()
   const am=(a0+a1)/2;g.fillStyle=win?'#5a3200':'#fff';g.font='bold 30px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText(win?'JP':'+10',cx+Math.cos(am)*R*.72,cy+Math.sin(am)*R*.72)}
@@ -522,23 +528,23 @@ function wheelImage(winPockets:number){const [c,g]=canvas(512,512),cx=256,cy=256
  return c}
 /** The pin board's backplate: a soft sky with the Sanctuary's own trees, lanterns, clouds and flowers painted
  * behind the pins (drawn in as each picture loads), and the cabinet's name. */
-function boardTexture(){const [c,g]=canvas(1024,384)
+function boardTexture(){const [c,g]=canvas(1024,384,2)
  const paint=()=>{const grad=g.createLinearGradient(0,0,0,384);grad.addColorStop(0,'#bfe7ff');grad.addColorStop(.7,'#ffeef5');grad.addColorStop(1,'#ffe1ec');g.fillStyle=grad;g.fillRect(0,0,1024,384)}
  paint()
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace
  const parts:[string,number,number,number][]=[['cloud-a',90,40,170],['cloud-b',640,24,190],['cloud-a',820,70,150],['tree-blossom',-30,96,290],['tree-leafy',800,110,270],['lantern-post',250,190,170],['lantern-post',700,190,170],['flowers-1',120,316,130],['flowers-3',330,322,120],['flowers-2',520,316,130],['flowers-4',720,318,130],['flowers-1',900,320,120]]
  const imgs=parts.map(([n])=>Object.assign(new Image(),{src:'/games/cove/'+n+'.webp'}))
  let left=imgs.length
- const draw=()=>{paint();g.imageSmoothingEnabled=false
+ const draw=()=>{paint();g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high'
   parts.forEach(([,x,y,h],i)=>{const im=imgs[i];if(!im.complete||!im.naturalWidth)return;const w=h*im.naturalWidth/im.naturalHeight;g.globalAlpha=0.92;g.drawImage(im,x,y-(h-(384-y)>0?0:0),w,h);g.globalAlpha=1})
   g.fillStyle='rgba(255,255,255,.85)';g.strokeStyle='rgba(214,112,150,.9)';g.lineWidth=6;g.font='900 44px system-ui';g.textAlign='center';g.strokeText('KONO MEDAL COVE',512,372);g.fillText('KONO MEDAL COVE',512,372)
   t.needsUpdate=true}
  imgs.forEach(im=>{im.onload=im.onerror=()=>{left--;draw()}})
  if(!left)draw()
  return t}
-function emojiTexture(e:string){const [c,g]=canvas(128,128);g.font='96px system-ui,"Apple Color Emoji","Noto Color Emoji"';g.textAlign='center';g.textBaseline='middle';g.fillText(e,64,70)
+function emojiTexture(e:string){const [c,g]=canvas(128,128,2);g.font='96px system-ui,"Apple Color Emoji","Noto Color Emoji"';g.textAlign='center';g.textBaseline='middle';g.fillText(e,64,70)
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
-function stripeTexture(){const [c,g]=canvas(64,256);for(let i=0;i<8;i++){g.fillStyle=i%2?'#f6f1e7':'#d8443a';g.fillRect(0,i*32,64,32)}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+function stripeTexture(){const [c,g]=canvas(64,256,2);for(let i=0;i<8;i++){g.fillStyle=i%2?'#f6f1e7':'#d8443a';g.fillRect(0,i*32,64,32)}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
 function wheelSegTexture(segs:{label:string;kind:string}[],w:number){const [c,g]=canvas(512,512),n=segs.length,cx=256,cy=256,r=252
  const pal=[['#ff6b5e','#ffb3a8'],['#ffd34d','#fff0b8'],['#4fb3ff','#b9e2ff']][w]
  segs.forEach((sg,k)=>{const a0=-Math.PI/2+k*2*Math.PI/n-Math.PI/n,a1=a0+2*Math.PI/n
@@ -546,7 +552,7 @@ function wheelSegTexture(segs:{label:string;kind:string}[],w:number){const [c,g]
   g.save();g.translate(cx,cy);g.rotate((a0+a1)/2+Math.PI/2);g.fillStyle='#2b1a3a';g.font='900 '+(sg.label.length>6?34:42)+'px system-ui';g.textAlign='center'
   g.fillText(sg.kind==='lamp'?'💡':sg.kind==='ball'?'🔮':sg.kind==='spin'?'🎰':sg.kind==='layers'?'🗼':'🪙',0,-r+66);g.fillText(sg.label.replace(' layers',' L').replace(' layer',' L'),0,-r+118);g.restore()})
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t}
-const ASPECT:Record<string,number>={'lantern-post':117/192,'lantern-post-night':117/192,'paper-lanterns':192/151,'light-arch':256/236,'tree-blossom':253/256,'tree-leafy':227/256,'flowers-1':99/49,'flowers-2':112/61,'flowers-3':100/58,'flowers-4':110/64,'shell':72/56,'petal-1':36/48,'petal-2':43/48,'sparkle':1,'cloud-a':209/67,'cloud-b':220/70,'butterfly':60/33,'butterfly-2':42/33,'bird':63/42}
+const ASPECT:Record<string,number>={'lantern-post':293/480,'lantern-post-night':293/480,'paper-lanterns':480/379,'light-arch':640/590,'tree-blossom':564/570,'tree-leafy':492/554,'flowers-1':99/49,'flowers-2':112/61,'flowers-3':100/58,'flowers-4':110/64,'shell':72/56,'petal-1':91/120,'petal-2':107/120,'sparkle':160/157,'cloud-a':209/67,'cloud-b':247/79,'butterfly':60/33,'butterfly-2':42/33,'bird':63/42}
 function skyTexture(){const [c,g]=canvas(16,256);const grad=g.createLinearGradient(0,0,0,256);grad.addColorStop(0,'#a9dcff');grad.addColorStop(.55,'#d9efff');grad.addColorStop(1,'#ffe9f2');g.fillStyle=grad;g.fillRect(0,0,16,256);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
 const segIcon=(kind:string)=>kind==='lamp'?'💡':kind==='ball'?'🔮':kind==='spin'?'🎰':kind==='layers'?'🗼':'🪙'
 function segColor(kind:string,w:number,k:number){const pal=[['#ff6b5e','#ffb3a8'],['#ffd34d','#fff0b8'],['#4fb3ff','#b9e2ff']][w]
