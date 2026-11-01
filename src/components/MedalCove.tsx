@@ -180,7 +180,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   // The three mini wheels on top of the pin board, one for each pocket, in its colors.
   const WHEEL_X=[-2.35,0,2.35],WHEEL_Y=BTOP+1.05
   const miniWheels=WHEELS.map((segs,i)=>{const g=new THREE.Group();g.position.set(WHEEL_X[i],WHEEL_Y,BZ-0.05);scene.add(g)
-   const disc=new THREE.Mesh(new THREE.CircleGeometry(0.62,64),new THREE.MeshStandardMaterial({map:wheelSegTexture(segs,i),emissive:'#ffffff',emissiveMap:wheelSegTexture(segs,i),emissiveIntensity:.35,roughness:.5}));g.add(disc)
+   const disc=new THREE.Mesh(new THREE.CircleGeometry(0.62,64),new THREE.MeshBasicMaterial({map:wheelSegTexture(segs,i),toneMapped:false,color:'#d6d6d6'}));g.add(disc)
    const rim=new THREE.Mesh(new THREE.TorusGeometry(0.64,0.05,8,40),new THREE.MeshStandardMaterial({color:'#ffe08a',metalness:.9,roughness:.25,emissive:'#ffb000',emissiveIntensity:.4}));g.add(rim)
    const hub=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,0.08,16),new THREE.MeshStandardMaterial({color:'#fff',metalness:.8,roughness:.2}));hub.rotation.x=Math.PI/2;hub.position.z=0.03;g.add(hub)
    const tick=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.22,12),new THREE.MeshStandardMaterial({color:'#fff',emissive:'#ff5a7a',emissiveIntensity:1.5}));tick.rotation.z=Math.PI;tick.position.set(0,0.74,0.05);g.add(tick)
