@@ -33,12 +33,19 @@ const POCKET_FACE=['🏮','⭐','🗼']
 const RAMP_X=4.49,RAMP_HALF=0.52
 const RAMPS=[0,1].map(()=>{const top={z:-5.72,y:2.3},bot={z:-4.25,y:0.82},dz=bot.z-top.z,dy=top.y-bot.y
  return {top,bot,len:Math.hypot(dz,dy),angle:Math.atan2(dy,dz),dir:{y:dy/Math.hypot(dz,dy),z:dz/Math.hypot(dz,dy)}}})
+// The ball run: a zig-zag track down the left of the pin board that ends at the top of the left slide.
+const RUN:[number,number,number][]=[[-4.95,6.0,-5.45],[-4.0,5.45,-5.45],[-4.95,4.9,-5.45],[-4.0,4.35,-5.45],[-4.95,3.8,-5.45],[-4.49,2.95,-5.45]]
+const RUN_LEN=RUN.slice(1).reduce((a,p,i)=>a+Math.hypot(p[0]-RUN[i][0],p[1]-RUN[i][1],p[2]-RUN[i][2]),0)
+// The seesaw tray at the foot of the right slide (fills, then tips onto the field), KONO's bucket (one medal
+// for each pocket hit, thrown onto the field when full) and the turntable in the middle of the field.
+const SEESAW={x:4.32,y:0.86,z:-3.72,full:8},BUCKET_FULL=6,TURN={z:-1.35,r:1.25}
 const TOPPLE_AT=70 // frames into the BIG BONUS when the giant tower starts to fall
 const wx=(x:number)=>(x-50)*U,wz=(y:number)=>y*U-6
 const REEL_FACES:Reel[]=['🪙','🗼','🔮','⭐','🐚','🌺']
 const VIEWS=[{yaw:0,pitch:0.5,dist:15},{yaw:0,pitch:0.95,dist:14},{yaw:0.55,pitch:0.45,dist:15},{yaw:-0.55,pitch:0.45,dist:15}]
 
-type Piece={body:RAPIER.RigidBody;ball:boolean;counted:number;board:boolean}
+/** `ramp`: which side slide it came down (1 left, 2 right), for the seesaw. */
+type Piece={body:RAPIER.RigidBody;ball:boolean;counted:number;board:boolean;ramp?:number}
 
 export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHandle>;best:number|null;sound:boolean;onEnd:(medals:number,jackpots:number)=>void;onFail?:()=>void}){
  const [fail,setFail]=useState<CoveFailure|null>(null),[tries,setTries]=useState(0)
@@ -225,6 +232,33 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   fixed(5.0,0.5,0.15,0,1.36,-6.55)                // the scraper above the pusher's shelf
   fixed(5.2,0.15,1.3,0,-2.15,7.4,0.9)             // the tray
   fixed(0.1,0.6,1.3,-5.2,-1.6,7.4);fixed(0.1,0.6,1.3,5.2,-1.6,7.4);fixed(5.2,0.6,0.1,0,-1.6,8.7)
+  // ---- The gadgets ----
+  // The ball run: a gold track zig-zagging down beside the pin board; a prize ball rolls down it (drawn
+  // along the track), then onto the left slide as a real ball.
+  const runCurve=new THREE.CurvePath<THREE.Vector3>();for(let i=1;i<RUN.length;i++)runCurve.add(new THREE.LineCurve3(new THREE.Vector3(...RUN[i-1]).add(new THREE.Vector3(0,-BALL-0.04,0)),new THREE.Vector3(...RUN[i]).add(new THREE.Vector3(0,-BALL-0.04,0))))
+  const runMat=new THREE.MeshStandardMaterial({color:'#ffe08a',metalness:.9,roughness:.22,emissive:'#ffb000',emissiveIntensity:.15})
+  for(const dz of [-0.17,0.17]){const tube=new THREE.Mesh(new THREE.TubeGeometry(runCurve,120,0.035,8,false),runMat);tube.position.z=dz;tube.castShadow=true;scene.add(tube)}
+  RUN.forEach(([x,y,z],i)=>{if(i===0||i===RUN.length-1)return;const post=new THREE.Mesh(new THREE.SphereGeometry(0.09,12,8),runMat);post.position.set(x,y-BALL-0.04,z);scene.add(post)})
+  const runBalls=Array.from({length:4},()=>{const m=new THREE.Mesh(new THREE.SphereGeometry(BALL,24,16),new THREE.MeshPhysicalMaterial({color:'#9d6bff',roughness:.15,clearcoat:1,emissive:'#5a2fd0',emissiveIntensity:.8}));m.visible=false;m.castShadow=true;scene.add(m);return m})
+  const ballRuns:{t:number;seg:number}[]=[]
+  // The turntable: a real spinning plate (kinematic) that drags the medals on it round and sideways.
+  const turnBody=world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0,0.03,TURN.z))
+  world.createCollider(RAPIER.ColliderDesc.cylinder(0.03,TURN.r).setFriction(0.7),turnBody)
+  const turnMesh=new THREE.Mesh(new THREE.CylinderGeometry(TURN.r,TURN.r,0.06,64),[toon('#ffc7da'),new THREE.MeshStandardMaterial({map:turnTexture(),roughness:.5}),toon('#ffc7da')]);turnMesh.position.set(0,0.03,TURN.z);turnMesh.receiveShadow=true;scene.add(turnMesh)
+  let turnAngle=0
+  // The seesaw tray: open-topped, it catches what comes down the right slide; full, it tips onto the field.
+  const seesaw=new THREE.Group();seesaw.position.set(SEESAW.x+0.55,SEESAW.y-0.12,SEESAW.z);scene.add(seesaw)
+  const trayMat=toon('#8fdcc2'),trayParts:[number,number,number,number,number,number][]=[[-0.55,0,0,1.1,0.05,0.95],[-0.55,0.13,-0.47,1.1,0.26,0.04],[-0.55,0.13,0.47,1.1,0.26,0.04],[0,0.13,0,0.05,0.26,0.95],[-1.1,0.06,0,0.04,0.12,0.95]]
+  for(const [x,y,z,w,h,d] of trayParts){const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),trayMat);b.position.set(x,y,z);b.castShadow=true;seesaw.add(b)}
+  const seesawCoins=new THREE.InstancedMesh(new THREE.CylinderGeometry(R,R,HALF*2,32),coinsMaterial(),SEESAW.full+4);seesaw.add(seesawCoins);seesawCoins.count=0
+  const see={n:0,tip:-1}
+  // KONO's bucket, beside KONO: a medal goes in for every pocket hit; full, KONO throws them onto the field.
+  const bucket=new THREE.Group();scene.add(bucket)
+  const pail=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.22,0.36,20,1,true),new THREE.MeshStandardMaterial({color:'#7fd0ff',metalness:.4,roughness:.35,side:THREE.DoubleSide}));bucket.add(pail)
+  const pailBottom=new THREE.Mesh(new THREE.CircleGeometry(0.22,20),pail.material);pailBottom.rotation.x=-Math.PI/2;pailBottom.position.y=-0.17;bucket.add(pailBottom)
+  const handle=new THREE.Mesh(new THREE.TorusGeometry(0.3,0.02,6,20,Math.PI),new THREE.MeshStandardMaterial({color:'#c9d6e3',metalness:.9,roughness:.2}));handle.position.y=0.18;bucket.add(handle)
+  const bucketCoins=new THREE.InstancedMesh(new THREE.CylinderGeometry(R*0.6,R*0.6,HALF*1.6,24),coinsMaterial(),BUCKET_FULL);bucket.add(bucketCoins);bucketCoins.count=0
+  const pail2={n:0,toss:-1}
   // The pin board: pins (cylinders across the board), its sides, and the backplate and glass (medals on the
   // board can only move up, down and sideways anyway).
   const across=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2)
@@ -304,12 +338,20 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
     // Put what the rules dropped into the machine: medals fall from the chute, showers rain over the field.
     // A drop goes in at the top of the pin board; every prize medal and ball queues for a side slide.
     for(const m of c.medals){if(m.y<0)addCoin(Math.max(-4.5,Math.min(4.5,wx(m.x)+(Math.random()-.5)*0.08)),BTOP+0.3,BZ,false,(Math.random()-.5)*3,true)
-     else{const side=rampQ[0].length<rampQ[1].length?0:rampQ[1].length<rampQ[0].length?1:m.x<50?0:1;rampQ[side].push(!!m.ball)}}
+     else if(m.ball)ballRuns.push({t:-ballRuns.length*40,seg:0})
+     else{const side=rampQ[0].length<rampQ[1].length?0:rampQ[1].length<rampQ[0].length?1:m.x<50?0:1;rampQ[side].push(false)}}
     // The slides let them out one at a time: medals slide (and sometimes roll on their edge), balls roll.
     for(const side of [0,1]){const q=rampQ[side];if(!q.length||c.frame-rampLast[side]<(q[0]?18:6))continue
      const ball=q.shift()!,s=side?1:-1,r=RAMPS[side];rampLast[side]=c.frame;rampGlow[side]=1
      const b=addCoin(s*(RAMP_X+(Math.random()-.5)*0.16),r.top.y+(ball?BALL:0.12)+0.06,r.top.z+0.25,ball,(Math.random()-.5)*2)
-     b.setLinvel({x:0,y:-r.dir.y*1.2,z:r.dir.z*1.2},true);if(!ball&&Math.random()<0.25)b.setAngvel({x:(Math.random()-.5)*10,y:0,z:0},true)}
+     b.setLinvel({x:0,y:-r.dir.y*1.2,z:r.dir.z*1.2},true);if(!ball&&Math.random()<0.25)b.setAngvel({x:(Math.random()-.5)*10,y:0,z:0},true);pieces.get(b.handle)!.ramp=side+1}
+    // The ball run: each ball speeds up down the track, clicks at each corner, then drops onto the left slide.
+    for(let k=ballRuns.length-1;k>=0;k--){const br=ballRuns[k];br.t++;if(br.t<0)continue
+     const sd=0.035*br.t*(1+br.t/90),seg=Math.min(RUN.length-2,Math.floor(sd/RUN_LEN*(RUN.length-1)))
+     if(seg!==br.seg){br.seg=seg;fx('tick',soundRef.current)}
+     if(sd>=RUN_LEN){ballRuns.splice(k,1);const r=RAMPS[0],b=addCoin(-RAMP_X,r.top.y+BALL+0.06,r.top.z+0.25,true);b.setLinvel({x:0,y:-r.dir.y*2,z:r.dir.z*2},true);rampGlow[0]=1;fx('zap',soundRef.current)}}
+    // The turntable turns, slowly.
+    turnAngle+=0.006;turnBody.setNextKinematicRotation({x:0,y:Math.sin(turnAngle/2),z:0,w:Math.cos(turnAngle/2)})
     c=spawned(c)
     // A tower stands as a real stack, a little in front of the pusher, until it's knocked over.
     const evNow=c.events[c.events.length-1]
@@ -332,9 +374,23 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
      // A medal sitting still on a pin gets the little nudge a real cabinet's rattle gives it.
      if(t.y>BBOTTOM){const v=p.body.linvel();if(Math.abs(v.x)+Math.abs(v.y)<0.25)p.body.setLinvel({x:(Math.random()<.5?-1:1)*(0.8+Math.random()*0.8),y:v.y,z:0},true);continue}
      const hit=POCKET_W.findIndex((w,i)=>Math.abs(t.x-pocketX(i,c.frame))<w*wide/2-0.05)
-     if(hit>=0){world.removeRigidBody(p.body);pieces.delete(h);c=pocket(c,POCKETS[hit]);pop('IN! '+POCKET_FACE[hit],pocketX(hit,c.frame),BBOTTOM+0.4,BZ+0.3,'in'+hit);buzz(30);pocketMeshes[hit].flash=1;emit(pocketX(hit,c.frame),BBOTTOM,BZ+0.3,30,POCKET_SPARK[hit],2.2);fx(hit===1?'star':'zap',soundRef.current)}
+     if(hit>=0){world.removeRigidBody(p.body);pieces.delete(h);c=pocket(c,POCKETS[hit]);if(pail2.toss<0&&pail2.n<BUCKET_FULL)pail2.n++;pop('IN! '+POCKET_FACE[hit],pocketX(hit,c.frame),BBOTTOM+0.4,BZ+0.3,'in'+hit);buzz(30);pocketMeshes[hit].flash=1;emit(pocketX(hit,c.frame),BBOTTOM,BZ+0.3,30,POCKET_SPARK[hit],2.2);fx(hit===1?'star':'zap',soundRef.current)}
      else{p.board=false;p.body.setEnabledTranslations(true,true,true,true);p.body.setEnabledRotations(true,true,true,true);p.body.setLinvel({x:p.body.linvel().x*0.5,y:-1,z:0.6},true)}}
     // What fell: off the front is yours, off the sides is lost; a ball off the front goes to the ball lottery.
+    // The seesaw catches what comes off the right slide; full (or at the end of a session), it tips it all out.
+    for(const [h,p] of pieces){if(p.ramp!==2||p.counted||see.tip>=0||see.n>=SEESAW.full)continue;const t=p.body.translation()
+     if(t.x>3.7&&t.z>SEESAW.z-0.55&&t.z<SEESAW.z+0.5&&t.y<1.35&&t.y>0.55){world.removeRigidBody(p.body);pieces.delete(h);see.n++;fx('tick',soundRef.current)}}
+    if(see.tip<0&&see.n>0&&(see.n>=SEESAW.full||(c.hand<=0&&!rampQ[1].length)))see.tip=0
+    if(see.tip>=0){see.tip++
+     if(see.tip===14){for(let k=0;k<see.n;k++){const b=addCoin(SEESAW.x-0.25+(Math.random()-.5)*0.4,SEESAW.y+0.25+k*0.05,SEESAW.z+(Math.random()-.5)*0.6);b.setLinvel({x:-2.6-Math.random(),y:1.2,z:0.6+Math.random()*0.6},true)}
+      emit(SEESAW.x-0.4,SEESAW.y+0.3,SEESAW.z,14,GOLD,1.6);fx('land',soundRef.current);buzz(20);see.n=0}
+     if(see.tip>60)see.tip=-1}
+    // KONO's bucket: full, KONO cheers and throws the medals over the pin board onto the field.
+    if(pail2.toss<0&&pail2.n>=BUCKET_FULL){pail2.toss=0;pop('KONO’s bucket!',3.4,BTOP+1.9,BZ,'prize2');fx('fanfare',soundRef.current)}
+    if(pail2.toss>=0){pail2.toss++
+     if(pail2.toss===34){const at=bucket.position;for(let k=0;k<pail2.n;k++){const b=addCoin(at.x-0.1+(Math.random()-.5)*0.2,at.y+0.15+k*0.06,at.z+0.2,false,(Math.random()-.5)*8);b.setLinvel({x:-1-Math.random()*2.4,y:1.6+Math.random(),z:4+Math.random()*1.6},true)}
+      emit(at.x,at.y+0.2,at.z,24,GOLD,2.4);pail2.n=0;fx('star',soundRef.current)}
+     if(pail2.toss>80)pail2.toss=-1}
     let won=0,lost=0,ballsWon=0
     for(const [h,p] of pieces){const t=p.body.translation()
      if(!p.counted&&t.y<-0.4){p.counted=c.frame;if(t.z>FRONT-0.2&&Math.abs(t.x)<5.3){if(p.ball)ballsWon++;else won++;emit(t.x,-0.3,FRONT+0.2,4,GOLD,1.4)}else{if(p.ball)ballsWon++;else lost++}}
@@ -430,6 +486,17 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
     m4.compose(v3.set(fly.from.x*(1-e),fly.from.y+(topY-fly.from.y)*e+Math.sin(p*Math.PI)*1.8,fly.from.z+(baseZ-fly.from.z)*e+Math.sin(p*Math.PI)*0.5),q.setFromEuler(new THREE.Euler(p*9,p*4,p*6)),s3);flyMesh.setMatrixAt(nFly++,m4)}
    flyMesh.count=nFly;flyMesh.instanceMatrix.needsUpdate=true
    if(cine&&ct>TOPPLE_AT+150)cine=null
+   // The gadgets as they are now: balls on the run, the turntable, the seesaw and its medals, KONO's bucket.
+   runBalls.forEach((m,k)=>{const br=ballRuns[k];m.visible=!!br&&br.t>=0;if(!m.visible)return
+    const sd=0.035*br.t*(1+br.t/90),u=Math.min(0.999,sd/RUN_LEN);m.position.copy(runCurve.getPointAt(u)).add(new THREE.Vector3(0,BALL+0.04,0));m.rotation.z=-sd/BALL})
+   turnMesh.rotation.y=turnAngle
+   {const tipT=see.tip<0?0:see.tip<14?see.tip/14:see.tip<30?1:Math.max(0,1-(see.tip-30)/30);seesaw.rotation.z=tipT*0.9
+    for(let k=0;k<see.n;k++){m4.compose(v3.set(-0.55+((k%3)-1)*0.28,0.08+Math.floor(k/3)*0.12,((k*7)%3-1)*0.24),q.setFromEuler(new THREE.Euler(0,k,0)),s3);seesawCoins.setMatrixAt(k,m4)}
+    seesawCoins.count=see.n;seesawCoins.instanceMatrix.needsUpdate=true}
+   {const tt=pail2.toss,tip=tt<0?0:tt<20?0:tt<34?(tt-20)/14:tt<50?1:Math.max(0,1-(tt-50)/30)
+    bucket.position.set(kono.position.x-0.75,kono.position.y+0.3+(tt>=0&&tt<34?Math.sin(tt/34*Math.PI)*0.5:0),kono.position.z+0.15);bucket.rotation.set(tip*1.6,0,tip*0.4)
+    for(let k=0;k<pail2.n;k++){m4.compose(v3.set(0,-0.14+k*0.05,0),q.setFromEuler(new THREE.Euler(0,k*0.8,0)),s3);bucketCoins.setMatrixAt(k,m4)}
+    bucketCoins.count=pail2.n;bucketCoins.instanceMatrix.needsUpdate=true}
    // The slides' mouths glow as they let medals out.
    mouths.forEach((m,i)=>{rampGlow[i]=Math.max(0,rampGlow[i]-0.04);m.emissiveIntensity=0.4+rampGlow[i]*2.2})
    // The show.
@@ -438,7 +505,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
    bulbSpots.forEach((_,i)=>{if(feverOn){bulbs.setColorAt(i,RAINBOW[(i+Math.floor(f/3))%RAINBOW.length]);return}const on=party?((i+Math.floor(f/3))%2===0):((i+Math.floor(f/5))%5===0);bulbs.setColorAt(i,on?BULB[(i+Math.floor(f/(party?6:40)))%3]:dim)});if(bulbs.instanceColor)bulbs.instanceColor.needsUpdate=true
    ringMats.forEach((m,i)=>{const lit=i<c.steps;m.emissiveIntensity=lit?2.2+0.6*Math.sin(f/6+i):party?(f/4+i)%2<1?2:0:0;m.color.set(lit?'#ffe08a':'#3a3a3a')})
    beamPivot.rotation.y=f*(party?0.12:0.03);(beam.material as THREE.MeshBasicMaterial).opacity=party?0.3:0.16
-   const anim=party?konoAnim.cheer:now-lastDrop.current<900?konoAnim.wave:konoAnim.breathe;anim.offset.x=Math.floor(f/(party?6:10))%4*0.25;kono.material.map=anim
+   const anim=party||pail2.toss>=0?konoAnim.cheer:now-lastDrop.current<900?konoAnim.wave:konoAnim.breathe;anim.offset.x=Math.floor(f/(party?6:10))%4*0.25;kono.material.map=anim
    kono.position.set(4.1,BTOP+0.9+(party?Math.abs(Math.sin(f/6))*0.5:0),BZ-0.25)
    // The garden around the cabinet: clouds drift, butterflies flutter, a bird passes, petals fall.
    clouds.forEach((cl,i)=>{cl.position.x=((f*0.004*(1+i*0.3)+i*7)%26)-13})
@@ -485,7 +552,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
     if(c.spinning)hudReels.current=reels
     setHud(h=>h.bank===(c.bank??BANK_START)&&h.hand===c.hand&&h.jp===c.jackpot&&h.steps===c.steps&&h.pockets===c.winPockets&&h.queue===c.queue&&h.reels.join()===reels.join()&&h.spinning===!!c.spinning&&h.chance===!!c.chance?h:{...h,chance:!!c.chance,bank:c.bank??BANK_START,hand:c.hand,jp:c.jackpot,steps:c.steps,pockets:c.winPockets,queue:c.queue,reels,spinning:!!c.spinning})}
    const fl=feverOn&&c.fever?Math.ceil((c.fever.until-f)/60):0;if(fl!==feverRef.current){feverRef.current=fl;setFever(fl)}
-   if(c.hand<=0&&!busy(c)&&!rampQ[0].length&&!rampQ[1].length){quiet.current+=1;if(quiet.current>300&&!ended.current){ended.current=true;onEndRef.current(c.hand,c.jpWins)}}else quiet.current=0
+   if(c.hand<=0&&!busy(c)&&!rampQ[0].length&&!rampQ[1].length&&!ballRuns.length&&see.n===0&&see.tip<0){quiet.current+=1;if(quiet.current>300&&!ended.current){ended.current=true;onEndRef.current(c.hand,c.jpWins)}}else quiet.current=0
    raf=requestAnimationFrame(loop)
   }
   raf=requestAnimationFrame(loop)
@@ -618,3 +685,9 @@ function WheelDial({i,segs,state,turn}:{i:number;segs:{label:string;kind:string;
   <figcaption>{state.spin?'Spinning…':state.prize||'Drop into '+POCKET_FACE[i]}</figcaption>
  </figure>
 }
+/** The turntable's top: pink and cream wedges round a star, so you can see it turn. */
+function turnTexture(){const [c,g]=canvas(256,256,2);for(let k=0;k<12;k++){g.fillStyle=k%2?'#fff1e0':'#ffb3cc';g.beginPath();g.moveTo(128,128);g.arc(128,128,128,k*Math.PI/6,(k+1)*Math.PI/6);g.closePath();g.fill()}
+ g.fillStyle='#ffd34d';g.beginPath();for(let k=0;k<10;k++){const r=k%2?18:40,a=k*Math.PI/5-Math.PI/2;g.lineTo(128+Math.cos(a)*r,128+Math.sin(a)*r)}g.closePath();g.fill()
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+/** The gold medal look, for the little stacks in the seesaw and KONO's bucket. */
+function coinsMaterial(){return new THREE.MeshStandardMaterial({color:'#ffd24a',metalness:1,roughness:.32,map:coinFace(),envMapIntensity:1.3})}
