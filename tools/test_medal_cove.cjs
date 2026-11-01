@@ -26,15 +26,15 @@ await test('a check: a medal through the lantern spins the lottery (and the jack
  let c=P.newCove(rnd);c=P.drop(c,c.checker,rnd);assert.equal(c.queue,1);assert.equal(c.hand,99)
  c=P.step(c,rnd);assert.ok(c.spinning,'the reels spin');assert.equal(c.jackpot,P.JP_START+1,'every spin adds to the jackpot')
  for(let i=0;i<6;i++)c=P.drop(c,c.checker,rnd);assert.equal(c.queue+(c.spinning?1:0),4,'four spins at most wait')
- assert.equal(JSON.stringify(P.spinPrize(['🪙','🪙','🪙'])),JSON.stringify({kind:'shower',n:12}));assert.equal(JSON.stringify(P.spinPrize(['🗼','🗼','🗼'])),JSON.stringify({kind:'tower',n:20}));assert.equal(JSON.stringify(P.spinPrize(['🔮','🔮','🔮'])),JSON.stringify({kind:'ball'}))
- assert.equal(JSON.stringify(P.spinPrize(['⭐','⭐','⭐'])),JSON.stringify({kind:'step'}));assert.equal(JSON.stringify(P.spinPrize(['🐚','🌺','🐚'])),JSON.stringify({kind:'shower',n:2}));assert.equal(JSON.stringify(P.spinPrize(['🐚','🌺','⭐'])),JSON.stringify({kind:'none'}))
+ assert.equal(JSON.stringify(P.spinPrize(['🪙','🪙','🪙'])),JSON.stringify({kind:'shower',n:20}));assert.equal(JSON.stringify(P.spinPrize(['🗼','🗼','🗼'])),JSON.stringify({kind:'tower',n:20}));assert.equal(JSON.stringify(P.spinPrize(['🔮','🔮','🔮'])),JSON.stringify({kind:'ball'}))
+ assert.equal(JSON.stringify(P.spinPrize(['⭐','⭐','⭐'])),JSON.stringify({kind:'step'}));assert.equal(JSON.stringify(P.spinPrize(['🐚','🌺','🐚'])),JSON.stringify({kind:'shower',n:4}));assert.equal(JSON.stringify(P.spinPrize(['🐚','🌺','⭐'])),JSON.stringify({kind:'none'}))
  const total=P.ODDS.reduce((n,o)=>n+o[2],0);assert.ok(total<1,'some spins miss')
  const counts={};for(let i=0;i<4000;i++){const k=P.spinPrize(P.spinReels(rnd)).kind;counts[k]=(counts[k]??0)+1}
  assert.ok(counts.ball>100&&counts.step>350&&counts.none>1000,'the payout table holds: '+JSON.stringify(counts))
 })
 await test('the bonus chain: a shower lands on the field, five lamps make the BIG BONUS, a ball off the front rolls into the ball lottery, and a tower tips over onto the field',()=>{
  let c=P.newCove(rnd);const n=c.medals.length
- c={...c,spinning:{reels:['🪙','🪙','🪙'],prize:{kind:'shower',n:12},at:c.frame-200}};c=P.step(c,rnd);assert.ok(c.medals.length>=n+12-2,'the shower lands');assert.match(c.events.at(-1).text,/shower/)
+ c={...c,spinning:{reels:['🪙','🪙','🪙'],prize:{kind:'shower',n:20},at:c.frame-200}};c=P.step(c,rnd);assert.ok(c.medals.length>=n+20-2,'the shower lands');assert.match(c.events.at(-1).text,/shower/)
  c={...c,steps:P.LAMPS-1,spinning:{reels:['⭐','⭐','⭐'],prize:{kind:'step'},at:c.frame-200}};c=P.step(c,rnd);assert.equal(c.steps,0);assert.ok(c.medals.some(m=>m.ball),'all five lamps: the big bonus has a prize ball');assert.match(c.events.at(-1).text,/BIG BONUS/)
  const ball=c.medals.find(m=>m.ball);c={...c,medals:c.medals.map(m=>m===ball?{...m,y:P.FIELD.h+1}:m)};c=P.step(c,rnd);assert.ok(c.dish||c.dishQueue,'off the front, the ball goes to the ball lottery')
  let t=P.newCove(rnd);const tn=t.medals.length;t={...t,towers:[{x:50,n:20,at:t.frame-100}]};t=P.step(t,rnd);assert.ok(t.medals.length>=tn+18,'the tower’s medals spill onto the field');assert.equal(t.towers.length,0)

@@ -32,19 +32,21 @@ const POCKET_FACE=['🏮','⭐','🗼']
 // The side slides: one each side of the cabinet, from outside it, over a gap in the side wall, down toward
 // the middle; each ends up high over the pusher's shelf (so the medals on the shelf pass under it) and the
 // medals drop off its end onto the shelf.
-const RAMP_Z=-5.25,RAMP_HALF=0.52,RAMP_OUT=6.5,RAMP_IN=4.35
-const RAMPS=[0,1].map(side=>{const s=side?1:-1,top={x:s*RAMP_OUT,y:2.6},bot={x:s*RAMP_IN,y:1.2},dx=RAMP_OUT-RAMP_IN,dy=top.y-bot.y,len=Math.hypot(dx,dy)
+const RAMP_Z=-5.25,RAMP_HALF=0.52,RAMP_OUT=6.6,RAMP_IN=5.12
+const RAMPS=[0,1].map(side=>{const s=side?1:-1,top={x:s*RAMP_OUT,y:2.6},bot={x:s*RAMP_IN,y:1.58},dx=RAMP_OUT-RAMP_IN,dy=top.y-bot.y,len=Math.hypot(dx,dy)
  return {s,top,bot,len,angle:Math.atan2(dy,dx),dir:{x:-s*dx/len,y:-dy/len},at:(x:number)=>bot.y+(Math.abs(x)-RAMP_IN)/dx*dy}})
 // The ball run: a zig-zag track outside the cabinet on the left that ends at the top of the left slide.
 const RUN:[number,number,number][]=[[-5.9,6.3,RAMP_Z],[-6.95,5.75,RAMP_Z],[-5.9,5.2,RAMP_Z],[-6.95,4.65,RAMP_Z],[-5.9,4.1,RAMP_Z],[-6.35,3.15,RAMP_Z]]
 const RUN_LEN=RUN.slice(1).reduce((a,p,i)=>a+Math.hypot(p[0]-RUN[i][0],p[1]-RUN[i][1],p[2]-RUN[i][2]),0)
 // The seesaw tray at the foot of the right slide (fills, then tips onto the field), KONO's bucket (one medal
 // for each pocket hit, thrown onto the field when full) and the turntable in the middle of the field.
-const SEESAW={x:3.85,y:1.12,z:RAMP_Z,full:8},BUCKET_FULL=6,TURN={z:-1.35,r:1.25}
+const SEESAW={x:4.45,y:1.12,z:RAMP_Z,full:8},BUCKET_FULL=6,TURN={z:-1.35,r:1.25}
+// The giant tower is drawn as big medals, one for every MEDALS_PER banked, GSTEP apart.
+const MEDALS_PER=5,GSTEP=0.17
 const TOPPLE_AT=70 // frames into the BIG BONUS when the giant tower starts to fall
 const wx=(x:number)=>(x-50)*U,wz=(y:number)=>y*U-6
 const REEL_FACES:Reel[]=['🪙','🗼','🔮','⭐','🐚','🌺']
-const VIEWS=[{yaw:0,pitch:0.5,dist:15},{yaw:0,pitch:0.95,dist:14},{yaw:0.55,pitch:0.45,dist:15},{yaw:-0.55,pitch:0.45,dist:15}]
+const VIEWS=[{yaw:0,pitch:0.46,dist:14.2},{yaw:0,pitch:0.95,dist:14},{yaw:0.55,pitch:0.45,dist:15},{yaw:-0.55,pitch:0.45,dist:15}]
 
 /** `ramp`: which side slide it came down (1 left, 2 right), for the seesaw. */
 type Piece={body:RAPIER.RigidBody;ball:boolean;counted:number;board:boolean;ramp?:number}
@@ -57,6 +59,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
  const [pops,setPops]=useState<{id:number;text:string;x:number;y:number;kind:string}[]>([]),popId=useRef(0)
  const [fever,setFever]=useState(0)
  const [jpWin,setJpWin]=useState<number|null>(null),jpCount=useRef<HTMLElement>(null)
+ const [bigWin,setBigWin]=useState<number|null>(null),bbCount=useRef<HTMLElement>(null),[win,setWin]=useState<{n:number;id:number}|null>(null)
  // The zoomed-in wheels under the cabinet: each turns with its wheel; a spin lights it up and its prize shows.
  const dialEls=useRef<(SVGGElement|null)[]>([])
  const [dials,setDials]=useState(()=>[0,1,2].map(()=>({spin:false,prize:'',kind:'',at:0})))
@@ -81,19 +84,18 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   renderer.setPixelRatio(soft?1:Math.min(2,window.devicePixelRatio||1));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap
   renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05
   el.appendChild(renderer.domElement);renderer.domElement.setAttribute('aria-hidden','true')
-  const scene=new THREE.Scene();scene.background=skyTexture();scene.fog=new THREE.Fog('#d9efff',22,40)
+  // An arcade at night behind the cabinet: deep plum with soft out-of-focus lights.
+  const scene=new THREE.Scene();scene.background=arcadeBackdrop();scene.fog=new THREE.Fog('#2a1446',28,60)
   // Soft toon shading in three tones and pastel colors, to sit with the Sanctuary's art.
   const tones=new THREE.DataTexture(new Uint8Array([150,150,150,255,205,205,205,255,255,255,255,255]),3,1,THREE.RGBAFormat);tones.magFilter=tones.minFilter=THREE.NearestFilter;tones.needsUpdate=true
   const toon=(color:string,extra:THREE.MeshToonMaterialParameters={})=>new THREE.MeshToonMaterial({color,gradientMap:tones,...extra})
-  // The Sanctuary's own pixel art, as sprites standing in the scene (crisp pixels, bottom-centered).
-  const loader=new THREE.TextureLoader()
-  // The painted pieces are HD and drawn smooth; the little pixel-art ones (flowers, clouds, critters) stay crisp.
-  const PIXEL=/^(flowers|cloud|butterfly|bird|shell)/,aniso=renderer.capabilities.getMaxAnisotropy()
-  const pix=(name:string)=>{const t=loader.load('/games/cove/'+name+'.webp');t.colorSpace=THREE.SRGBColorSpace;if(PIXEL.test(name))t.magFilter=THREE.NearestFilter;else t.anisotropy=aniso;return t}
-  const sprite=(name:string,h:number,x:number,y:number,z:number)=>{const s=new THREE.Sprite(new THREE.SpriteMaterial({map:pix(name),alphaTest:0.04}));s.center.set(0.5,0);s.scale.set(h*(ASPECT[name]??1),h,1);s.position.set(x,y,z);scene.add(s);return s}
+  const loader=new THREE.TextureLoader(),aniso=renderer.capabilities.getMaxAnisotropy()
+  const pix=(name:string)=>{const t=loader.load('/games/cove/'+name+'.webp');t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=aniso;return t}
   const camera=new THREE.PerspectiveCamera(42,1,0.1,80)
   const pmrem=new THREE.PMREMGenerator(renderer),envRT=pmrem.fromScene(new RoomEnvironment(),0.04);scene.environment=envRT.texture;pmrem.dispose()
-  scene.add(new THREE.HemisphereLight('#dff3ff','#4a3424',0.8))
+  scene.add(new THREE.HemisphereLight('#f3e8ff','#3a2040',0.9))
+  // Colored rim lights from the arcade: pink from the left, aqua from the right.
+  const rimL=new THREE.PointLight('#ff7ab8',30,30);rimL.position.set(-9,6,2);scene.add(rimL);const rimR=new THREE.PointLight('#6fd8ff',30,30);rimR.position.set(9,6,2);scene.add(rimR)
   const sun=new THREE.DirectionalLight('#fff4dc',2.2);sun.position.set(4,12,6);sun.castShadow=true;sun.shadow.mapSize.setScalar(soft?512:small?1024:2048)
   Object.assign(sun.shadow.camera,{left:-8,right:8,top:8,bottom:-8,near:1,far:30});scene.add(sun)
   // One merged effect pass: bloom on what's bright (the lantern, the shine on the gold, the jackpot pieces)
@@ -114,8 +116,17 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   const back=new THREE.Mesh(new THREE.BoxGeometry(10.8,2.6,0.4),frameMat);back.position.set(0,1.1,-7.8);back.castShadow=true;scene.add(back)
   const scraper=new THREE.Mesh(new THREE.BoxGeometry(10.2,1.0,0.3),frameMat);scraper.position.set(0,1.35,-6.55);scene.add(scraper)
   const tray=new THREE.Mesh(new THREE.BoxGeometry(10.4,0.3,2.6),frameMat);tray.position.set(0,-2.15,7.4);tray.receiveShadow=true;scene.add(tray)
-  const seaGeo=new THREE.PlaneGeometry(60,60,48,48),seaBase=Float32Array.from(seaGeo.attributes.position.array as Float32Array)
-  const sea=new THREE.Mesh(seaGeo,toon('#8fd3f0'));sea.rotation.x=-Math.PI/2;sea.position.y=-3;scene.add(sea)
+  // The cabinet itself: a solid body under the field, tall side pillars beside the pin board with gold trim,
+  // and a marquee above the board that the bonus wheels sit on. It stands on a glossy arcade floor.
+  const bodyMat=toon('#ffd3e4'),trimMat=new THREE.MeshStandardMaterial({color:'#ffd34d',metalness:.9,roughness:.25,emissive:'#7a4a00',emissiveIntensity:.25})
+  const solid=(w:number,h:number,d:number,x:number,y:number,z:number,mat:THREE.Material)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);b.position.set(x,y,z);b.castShadow=b.receiveShadow=true;scene.add(b);return b}
+  solid(11.2,2.2,13.8,0,-1.5,-1.0,bodyMat)                                  // the body under the field
+  solid(11.3,0.08,0.1,0,-0.42,5.95,trimMat)                                // gold trim along the front edge
+  for(const s of [-1,1]){solid(0.8,BTOP+4.7,2.2,s*5.62,(BTOP+2.25-2.6)/2+0.03,-6.95,bodyMat)   // side pillars
+   solid(0.1,BTOP+4.7,0.1,s*5.22,(BTOP+2.25-2.6)/2+0.03,-5.85,trimMat);solid(0.1,BTOP+4.7,0.1,s*6.02,(BTOP+2.25-2.6)/2+0.03,-5.85,trimMat)}
+  const marquee=solid(10.6,1.85,0.5,0,BTOP+1.32,BZ-0.5,toon('#3b1f63'))
+  solid(10.8,0.09,0.6,0,BTOP+2.27,BZ-0.5,trimMat);solid(10.8,0.09,0.6,0,BTOP+0.39,BZ-0.5,trimMat);marquee.receiveShadow=true
+  const floor=new THREE.Mesh(new THREE.CircleGeometry(40,64),new THREE.MeshBasicMaterial({map:floorTexture()}));floor.rotation.x=-Math.PI/2;floor.position.y=-2.6;floor.receiveShadow=true;scene.add(floor)
   const pusherMesh=new THREE.Mesh(new THREE.BoxGeometry(10.0,0.6,6),toon('#8fdcc2'));pusherMesh.castShadow=true;pusherMesh.receiveShadow=true;scene.add(pusherMesh)
   // The pin board: a painted backplate, chrome pins, and three glowing pockets.
   const plate=new THREE.Mesh(new THREE.BoxGeometry(10.2,BTOP-BBOTTOM+1.1,0.12),new THREE.MeshBasicMaterial({map:boardTexture(),toneMapped:false}));plate.position.set(0,(BTOP+BBOTTOM)/2+0.05,BZ-0.2);scene.add(plate)
@@ -157,34 +168,17 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   const bulbs=new THREE.InstancedMesh(new THREE.SphereGeometry(0.075,10,8),new THREE.MeshBasicMaterial({color:'#ffffff',toneMapped:false}),bulbSpots.length)
   bulbSpots.forEach(([x,y,z],i)=>{bulbs.setMatrixAt(i,new THREE.Matrix4().setPosition(x,y,z));bulbs.setColorAt(i,new THREE.Color(1,1,1))});scene.add(bulbs)
   const BULB=[new THREE.Color(2.4,1.7,0.5),new THREE.Color(2.2,0.7,1.4),new THREE.Color(0.6,1.8,2.4)],dim=new THREE.Color(0.35,0.25,0.12)
-  // The lighthouse on the left of the dock: five rings that light up with the lamps, and a turning beacon.
-  const house=new THREE.Group();house.position.set(-4.25,BTOP+0.6,BZ-0.35);house.scale.setScalar(0.62);scene.add(house)
-  const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(0.9,0),toon('#b8a99a'));rock.scale.set(0.8,0.3,0.8);house.add(rock)
-  const towerMat=toon('#ffffff',{map:stripeTexture()})
-  const tower=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.46,3,20),towerMat);tower.position.y=1.8;tower.castShadow=true;house.add(tower)
-  const ringMats=Array.from({length:LAMPS},()=>new THREE.MeshStandardMaterial({color:'#3a3a3a',emissive:'#ffcf3d',emissiveIntensity:0}))
-  ringMats.forEach((m,i)=>{const ring=new THREE.Mesh(new THREE.TorusGeometry(0.45-i*0.03,0.06,8,24),m);ring.rotation.x=Math.PI/2;ring.position.y=0.6+i*0.55;house.add(ring)})
-  const lampRoom=new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.34,0.42,16),new THREE.MeshStandardMaterial({color:'#fff6d0',emissive:'#ffd36a',emissiveIntensity:1.6,transparent:true,opacity:.9}));lampRoom.position.y=3.5;house.add(lampRoom)
-  const roof=new THREE.Mesh(new THREE.ConeGeometry(0.44,0.45,16),toon('#ff8fa3'));roof.position.y=3.93;house.add(roof)
-  const beam=new THREE.Mesh(new THREE.ConeGeometry(0.9,5,24,1,true),new THREE.MeshBasicMaterial({color:'#fff2b0',transparent:true,opacity:.16,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}))
-  beam.geometry.translate(0,-2.5,0);beam.rotation.z=Math.PI/2;const beamPivot=new THREE.Group();beamPivot.position.y=3.5;beamPivot.add(beam);house.add(beamPivot)
+  // BIG BONUS: a sign on top of the cabinet, left of the giant tower, with five big lamps. A lamp lights for each
+  // 💡 a wheel lands on; all five bring the giant tower down.
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(2.7,1.05),new THREE.MeshBasicMaterial({map:bigBonusSign(),transparent:true,toneMapped:false}));sign.position.set(-3.45,BTOP+2.86,BZ-0.42);scene.add(sign)
+  const lampMats=Array.from({length:LAMPS},()=>new THREE.MeshStandardMaterial({color:'#5a4a3a',emissive:'#ffcf3d',emissiveIntensity:0,roughness:.3}))
+  lampMats.forEach((m,i)=>{const bulb=new THREE.Mesh(new THREE.SphereGeometry(0.17,20,14),m);bulb.position.set(-4.45+i*0.5,BTOP+2.62,BZ-0.3);scene.add(bulb)})
   // KONO on a dock post on the right, bobbing, and jumping for joy on a big win.
   // KONO's own animations (four frames each): breathing when it's quiet, waving as you drop, cheering on a win.
   const konoAnim=Object.fromEntries(['breathe','wave','cheer'].map(n=>{const t=loader.load('/garden/kono/anim/'+n+'.webp');t.colorSpace=THREE.SRGBColorSpace;t.repeat.set(0.25,1);return [n,t]})) as Record<'breathe'|'wave'|'cheer',THREE.Texture>
   const kono=new THREE.Sprite(new THREE.SpriteMaterial({map:konoAnim.breathe,alphaTest:0.04}));kono.center.set(0.5,0);kono.scale.set(1.5,1.5,1);scene.add(kono)
-  // KONO sits on a little island on the cabinet's top right.
-  // The Sanctuary's garden around the cabinet: trees behind, lanterns and flowers on the rails, the light
-  // arch behind the giant tower, clouds in the sky, butterflies, a bird and falling petals.
-  sprite('tree-blossom',5.6,-6.6,-0.6,-9);sprite('tree-leafy',5.2,6.7,-0.6,-9.2)
-  sprite('light-arch',3.2,0,BTOP+0.45,BZ-1.3)
-  sprite('lantern-post',1.5,-4.75,1.5,3.6);sprite('lantern-post',1.5,4.75,1.5,3.6).scale.x*=-1
-  sprite('paper-lanterns',0.9,-4.6,1.5,-1.4);sprite('paper-lanterns',0.9,4.6,1.5,-1.4)
-  ;[-4,-0.2,2.6].forEach((z,i)=>{sprite('flowers-'+(i%4+1),0.5,-5.25,1.5,z);sprite('flowers-'+((i+2)%4+1),0.5,5.25,1.5,z)})
-  const clouds=['cloud-a','cloud-b','cloud-a','cloud-b'].map((n,i)=>sprite(n,1.4+i*0.2,0,BTOP+3.2+(i%2)*1.3,-15-i))
-  const butterflies=['butterfly','butterfly-2'].map(n=>sprite(n,0.5,0,0,0))
-  const bird=sprite('bird',0.45,0,0,-9)
-  const petals=Array.from({length:24},(_,i)=>{const p=sprite(i%2?'petal-1':'petal-2',0.24,(Math.random()-.5)*12,Math.random()*(BTOP+4),-6+Math.random()*12);p.material.alphaTest=0.02;return p})
-  const isle=new THREE.Mesh(new THREE.CylinderGeometry(0.75,0.9,0.3,20),toon('#ffe6a8'));isle.position.set(4.1,BTOP+0.75,BZ-0.3);scene.add(isle)
+  // KONO stands on a gold pedestal on top of the cabinet, right of the giant tower.
+  const pedestal=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.65,0.22,28),trimMat);pedestal.position.set(3.45,BTOP+2.42,BZ-0.45);scene.add(pedestal)
   // Sparkles: gold glints, colored bursts and confetti, all in one additive point cloud.
   const SPARKS=500,sPos=new Float32Array(SPARKS*3),sCol=new Float32Array(SPARKS*3),sVel=new Float32Array(SPARKS*3),sLife=new Float32Array(SPARKS)
   const sGeo=new THREE.BufferGeometry();sGeo.setAttribute('position',new THREE.BufferAttribute(sPos,3));sGeo.setAttribute('color',new THREE.BufferAttribute(sCol,3))
@@ -203,15 +197,16 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
    const tick=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.22,12),new THREE.MeshStandardMaterial({color:'#fff',emissive:'#ff5a7a',emissiveIntensity:1.5}));tick.rotation.z=Math.PI;tick.position.set(0,0.74,0.05);g.add(tick)
    return {g,disc,rim,angle:0,from:0,spinAt:-1,flash:0,seg:-1,end:0}})
   // The giant tower: a column of medals behind the board that grows with every layer won.
-  const GIANT_MAX=60
-  const giant=new THREE.InstancedMesh(new THREE.CylinderGeometry(R*1.25,R*1.25,HALF*2.2,26),new THREE.MeshStandardMaterial({color:'#ffd24a',metalness:1,roughness:.3,map:coinFace(),envMapIntensity:1.4,emissive:'#4a3000',emissiveIntensity:.25}),GIANT_MAX);giant.castShadow=true;scene.add(giant)
+  const GIANT_MAX=20
+  const giant=new THREE.InstancedMesh(new THREE.CylinderGeometry(R*2.1,R*2.1,GSTEP*0.92,32),new THREE.MeshStandardMaterial({color:'#ffd24a',metalness:1,roughness:.3,map:coinFace(),envMapIntensity:1.4,emissive:'#4a3000',emissiveIntensity:.25}),GIANT_MAX);giant.castShadow=true;scene.add(giant)
   const flyMesh=new THREE.InstancedMesh(giant.geometry,giant.material,48);flyMesh.frustumCulled=false;scene.add(flyMesh)
   const LAYER_TINT=[new THREE.Color(1,1,1),new THREE.Color(1,0.74,0.7),new THREE.Color(0.86,1,0.86),new THREE.Color(0.9,0.86,1)]
-  const giantBase=new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.72,0.2,24),new THREE.MeshStandardMaterial({color:'#2f6fb3',roughness:.4}));giantBase.position.set(0,BTOP+1.85,BZ-0.6);scene.add(giantBase)
+  const giantBase=new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.72,0.2,24),new THREE.MeshStandardMaterial({color:'#2f6fb3',roughness:.4}));giantBase.position.set(0,BTOP+2.4,BZ-0.5);giantBase.scale.set(1.3,1,1.3);scene.add(giantBase)
   // Every texture sharp at an angle (the field, the coins, the wheels).
   scene.traverse(o=>{const mat=(o as THREE.Mesh).material as THREE.Material|THREE.Material[]|undefined;(Array.isArray(mat)?mat:mat?[mat]:[]).forEach(m=>{const t=(m as THREE.MeshStandardMaterial).map;if(t&&t.magFilter!==THREE.NearestFilter)t.anisotropy=aniso})})
   // ---- The physics world ----
-  const world=new RAPIER.World({x:0,y:-22,z:0})
+  // The field slopes a touch toward you (as a real cabinet's does): medals hold by friction, balls roll forward.
+  const world=new RAPIER.World({x:0,y:-22,z:0.9})
   world.integrationParameters.numSolverIterations=4
   const fixed=(hx:number,hy:number,hz:number,x:number,y:number,z:number,friction=0.5)=>world.createCollider(RAPIER.ColliderDesc.cuboid(hx,hy,hz).setTranslation(x,y,z).setFriction(friction))
   fixed(5.2,0.2,6.8,0,-0.2,FRONT-6.8)            // the deck, ending at the front edge
@@ -292,7 +287,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   const orbit={yaw:VIEWS[0].yaw,pitch:VIEWS[0].pitch,dist:VIEWS[0].dist,dragYaw:0,dragPitch:0}
   const placeCamera=()=>{const v=VIEWS[viewRef.current]
    orbit.yaw+=(v.yaw+orbit.dragYaw-orbit.yaw)*0.12;orbit.pitch+=(Math.max(0.25,Math.min(1.25,v.pitch+orbit.dragPitch))-orbit.pitch)*0.12;orbit.dist+=(v.dist-orbit.dist)*0.12
-   camera.position.set(Math.sin(orbit.yaw)*Math.cos(orbit.pitch)*orbit.dist,Math.sin(orbit.pitch)*orbit.dist,Math.cos(orbit.yaw)*Math.cos(orbit.pitch)*orbit.dist+0.5);camera.lookAt(0,2.2,-1.2)}
+   camera.position.set(Math.sin(orbit.yaw)*Math.cos(orbit.pitch)*orbit.dist,Math.sin(orbit.pitch)*orbit.dist,Math.cos(orbit.yaw)*Math.cos(orbit.pitch)*orbit.dist+0.5);camera.lookAt(0,3.3,-1.7)}
   const resize=()=>{const w=el.clientWidth,h=el.clientHeight;renderer.setSize(w,h,false);composer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w/h<0.8?52:42;camera.updateProjectionMatrix()}
   resize();const ro=new ResizeObserver(resize);ro.observe(el)
   // Big words that pop up where things happen ("IN!", a wheel's prize, COMBO, TIMBER!), and a buzz.
@@ -303,13 +298,15 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   // The moment: slow motion as a medal is about to drop into a pocket; a cinematic for the BIG BONUS.
   let slow=1,cine:{at:number;bank:number;released:boolean}|null=null
   // The giant tower as drawn: it grows a medal at a time toward what's banked, swaying as each one lands.
-  let giantShown=Math.min(60,Math.round(BANK_START/2)),giantWhole=Math.floor(giantShown),sway=0
+  let giantShown=Math.min(20,Math.round(BANK_START/MEDALS_PER)),giantWhole=Math.floor(giantShown),sway=0
   // Tower layers arrive as medals flying in an arc from the wheel that won them to the top of the tower;
-  // the tower only grows as each one lands (`giantHave`, one drawn medal for every two banked).
-  let giantHave=Math.round(BANK_START/2),bankSeen=BANK_START,bankOwed=0,layerFrom=2
+  // the tower only grows as each one lands (`giantHave`, one drawn medal for every MEDALS_PER banked).
+  let giantHave=Math.round(BANK_START/MEDALS_PER),bankSeen=BANK_START,bankOwed=0,layerFrom=2
   const fliers:{from:THREE.Vector3;t:number}[]=[]
   // A jackpot win: the big counter counts up while it rains medals and fireworks go off.
   let jpAt=-1,jpAmount=0
+  // Medals into the tray, added up over a moment and shown as "+n" by your medals; the BIG BONUS banner's count.
+  let winAcc=0,winAt=0,bbAt=-1,bbAmount=0
   const wheelSeg=[-1,-1,-1],chanceTick={last:-1}
   // ---- Touch ----
   const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3()
@@ -387,7 +384,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
     // What fell: off the front is yours, off the sides is lost; a ball off the front goes to the ball lottery.
     // The seesaw catches what comes off the right slide; full (or at the end of a session), it tips it all out.
     for(const [h,p] of pieces){if(p.ramp!==2||p.counted||see.tip>=0||see.n>=SEESAW.full)continue;const t=p.body.translation()
-     if(t.x>3.3&&t.x<4.45&&Math.abs(t.z-SEESAW.z)<0.55&&t.y<1.45&&t.y>0.9){world.removeRigidBody(p.body);pieces.delete(h);see.n++;fx('tick',soundRef.current)}}
+     if(t.x>3.8&&t.x<5.05&&Math.abs(t.z-SEESAW.z)<0.55&&t.y<1.5&&t.y>0.9){world.removeRigidBody(p.body);pieces.delete(h);see.n++;fx('tick',soundRef.current)}}
     if(see.tip<0&&see.n>0&&(see.n>=SEESAW.full||(c.hand<=0&&!rampQ[1].length)))see.tip=0
     if(see.tip>=0){see.tip++
      if(see.tip===14){for(let k=0;k<see.n;k++){const b=addCoin(SEESAW.x-0.25+(Math.random()-.5)*0.4,SEESAW.y+0.25+k*0.05,SEESAW.z+(Math.random()-.5)*0.6);b.setLinvel({x:-2.6-Math.random(),y:1.2,z:0.6+Math.random()*0.6},true)}
@@ -405,9 +402,9 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
      if(p.counted&&(p.ball||t.y<-3.5||c.frame-p.counted>150)){world.removeRigidBody(p.body);pieces.delete(h)}}
     c=settle(c,won,lost,ballsWon)
     cove.current=c;acc-=1000/60
-    if(won)fx('ding',soundRef.current)
+    if(won){fx('ding',soundRef.current);winAcc+=won;winAt=now}
     const ev=c.events[c.events.length-1];if(ev&&ev!==before.events[before.events.length-1]){setHud(h=>({...h,event:ev.text,big:/BIG BONUS|JACKPOT[!]/.test(ev.text)}))
-     if(/BIG BONUS/.test(ev.text)){show.party=300;buzz([60,40,60,40,200]);pop('BIG BONUS!',0,BTOP+2.6,BZ,'big');fx('fanfare',soundRef.current)}
+     if(/BIG BONUS/.test(ev.text)){show.party=300;buzz([60,40,60,40,200]);fx('fanfare',soundRef.current);bbAmount=before.bank??BANK_START;bbAt=-1;setBigWin(bbAmount)}
      else if(/FEVER/.test(ev.text)){show.party=180;emit(0,BTOP,BZ+1,160,CONFETTI,4);pop('🌈 FEVER TIME!',0,BTOP-0.5,BZ+0.5,'big');buzz([40,30,40,30,120]);fx('blaze',soundRef.current)}
      else if(/COMBO/.test(ev.text)){const m=/×(\d+)/.exec(ev.text);pop('COMBO ×'+(m?.[1]??''),0,BTOP-1,BZ+0.5,'combo');fx('mult',soundRef.current)}
      if(/JACKPOT[!]/.test(ev.text)){show.party=420;show.shake=1.6;emit(0,3,0,300,CONFETTI,6);buzz([100,50,100,50,300,80,300]);jpAt=c.frame;jpAmount=Number(/\+(\d+)/.exec(ev.text)?.[1]??0);setJpWin(jpAmount)}
@@ -449,22 +446,22 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
    if(!cine||cine.released){
     // New layers banked: send their medals flying, a few frames apart.
     const bank=c.bank??BANK_START
-    if(bank>bankSeen){bankOwed+=bank-bankSeen;const n=Math.floor(bankOwed/2);bankOwed-=n*2;for(let k=0;k<n;k++)fliers.push({from:new THREE.Vector3(WHEEL_X[layerFrom],WHEEL_Y,BZ+0.15),t:-k*5-fliers.length*0})}
+    if(bank>bankSeen){bankOwed+=bank-bankSeen;const n=Math.floor(bankOwed/MEDALS_PER);bankOwed-=n*MEDALS_PER;for(let k=0;k<n;k++)fliers.push({from:new THREE.Vector3(WHEEL_X[layerFrom],WHEEL_Y,BZ+0.15),t:-k*5-fliers.length*0})}
     bankSeen=bank
     const want=Math.min(GIANT_MAX,giantHave)
     if(giantShown<want){giantShown=Math.min(want,giantShown+0.3);if(Math.floor(giantShown)!==giantWhole){giantWhole=Math.floor(giantShown);sway=Math.min(1,sway+0.5);if(giantWhole%2===0)fx('tick',soundRef.current)}}
     else if(giantShown>want){giantShown=want;giantWhole=Math.floor(want)}}
    sway*=0.94
    const whole=Math.floor(giantShown),part=giantShown-whole,gn=Math.min(GIANT_MAX,whole+(part>0?1:0))
-   const baseY=BTOP+1.92,baseZ=BZ-0.6
+   const baseY=BTOP+2.52+GSTEP/2,baseZ=BZ-0.5
    let tilt=0,lean=0,omega=0
    if(cine&&!cine.released){
     if(ct<TOPPLE_AT){lean=Math.sin(ct*0.45)*0.07*Math.min(1,ct/TOPPLE_AT)**1.5}
     else{const k=ct-TOPPLE_AT;tilt=0.04*Math.cosh(0.104*k);omega=0.04*0.104*Math.sinh(0.104*k)}
     if(ct===TOPPLE_AT){pop('TIMBER!',0,BTOP+2.6,BZ,'big');fx('charge',soundRef.current)}
     // It's fallen far enough: every medal it held becomes a real one, flying on with the tower's swing.
-    if(tilt>=1.25){cine.released=true;builtTowers.add(cine.at)
-     const n=Math.max(1,cine.bank),len=Math.max(0.3,gn*0.124),dir=new THREE.Vector3(0,Math.cos(tilt),Math.sin(tilt)),tan=new THREE.Vector3(0,-Math.sin(tilt),Math.cos(tilt))
+    if(tilt>=1.25){cine.released=true;builtTowers.add(cine.at);bbAt=f
+     const n=Math.max(1,cine.bank),len=Math.max(0.3,gn*GSTEP),dir=new THREE.Vector3(0,Math.cos(tilt),Math.sin(tilt)),tan=new THREE.Vector3(0,-Math.sin(tilt),Math.cos(tilt))
      for(let k=0;k<n;k++){const r=(k+0.5)/n*len,p=new THREE.Vector3(0,baseY,baseZ).addScaledVector(dir,r),v=tan.clone().multiplyScalar(omega*60*r*0.8)
       addCoin(p.x+(Math.random()-.5)*0.5,p.y+(Math.random()-.5)*0.2,Math.max(BZ+0.5,p.z+(Math.random()-.5)*0.3),false,(Math.random()-.5)*6)
       const body=[...pieces.values()].pop()?.body;body?.setLinvel({x:(Math.random()-.5)*1.5,y:v.y,z:v.z},true)}
@@ -476,19 +473,19 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
    for(let i=0;i<drawn;i++){
     // The newest medal falls the last bit onto the top.
     const drop=i===whole&&part>0?(1-part)*1.4:0
-    const local=new THREE.Vector3(Math.cos(i*0.5)*0.04,i*0.124+drop,Math.sin(i*0.5)*0.04).applyQuaternion(tip)
+    const local=new THREE.Vector3(Math.cos(i*0.5)*0.04,i*GSTEP+drop,Math.sin(i*0.5)*0.04).applyQuaternion(tip)
     spin.setFromEuler(new THREE.Euler(0,i*0.4,0));m4.compose(v3.set(local.x,baseY+local.y,baseZ+local.z),q.copy(tip).multiply(spin),s3);giant.setMatrixAt(i,m4)}
    giant.count=drawn;giant.instanceMatrix.needsUpdate=true
    // Each layer in its own tint, so you can see the tower's layers; it glows more the taller it gets.
-   for(let i=0;i<drawn;i++)giant.setColorAt(i,LAYER_TINT[Math.floor(i*2/LAYER)%LAYER_TINT.length]);if(giant.instanceColor)giant.instanceColor.needsUpdate=true
-   ;(giant.material as THREE.MeshStandardMaterial).emissiveIntensity=0.2+Math.min(0.9,giantHave/50)*(0.8+0.2*Math.sin(f/7))
+   for(let i=0;i<drawn;i++)giant.setColorAt(i,LAYER_TINT[Math.floor(i*MEDALS_PER/LAYER)%LAYER_TINT.length]);if(giant.instanceColor)giant.instanceColor.needsUpdate=true
+   ;(giant.material as THREE.MeshStandardMaterial).emissiveIntensity=0.2+Math.min(0.9,giantHave/20)*(0.8+0.2*Math.sin(f/7))
    // The flying medals: up from the wheel in an arc, tumbling, onto the top. Each landing grows the tower.
    let nFly=0
-   const topY=baseY+giantHave*0.124+0.2
+   const topY=baseY+giantHave*GSTEP+0.2
    for(let k=fliers.length-1;k>=0;k--){const fly=fliers[k];fly.t++;if(fly.t<0)continue
     const p=Math.min(1,fly.t/26),e=p*p*(3-2*p)
     if(p>=1){fliers.splice(k,1);if(cine&&!cine.released)continue;giantHave++;sway=Math.min(1,sway+0.4);emit(0,topY,baseZ+0.2,5,GOLD,1.2);fx('tick',soundRef.current)
-     if(giantHave*2%20===0){pop('🗼 '+giantHave*2+'!',0,topY+0.6,baseZ+0.4,'prize2');emit(0,topY,baseZ+0.3,40,GOLD,2.8);fx('star',soundRef.current)}
+     if(giantHave*MEDALS_PER%20===0){pop('🗼 '+giantHave*MEDALS_PER+'!',0,topY+0.6,baseZ+0.4,'prize2');emit(0,topY,baseZ+0.3,40,GOLD,2.8);fx('star',soundRef.current)}
      continue}
     if(nFly>=48)continue
     m4.compose(v3.set(fly.from.x*(1-e),fly.from.y+(topY-fly.from.y)*e+Math.sin(p*Math.PI)*1.8,fly.from.z+(baseZ-fly.from.z)*e+Math.sin(p*Math.PI)*0.5),q.setFromEuler(new THREE.Euler(p*9,p*4,p*6)),s3);flyMesh.setMatrixAt(nFly++,m4)}
@@ -511,16 +508,10 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
    const party=show.party>0;show.party=Math.max(0,show.party-1);show.shake*=0.92
    const feverOn=inFever(c)||!!c.chance||jpAt>=0,RAINBOW=CONFETTI
    bulbSpots.forEach((_,i)=>{if(feverOn){bulbs.setColorAt(i,RAINBOW[(i+Math.floor(f/3))%RAINBOW.length]);return}const on=party?((i+Math.floor(f/3))%2===0):((i+Math.floor(f/5))%5===0);bulbs.setColorAt(i,on?BULB[(i+Math.floor(f/(party?6:40)))%3]:dim)});if(bulbs.instanceColor)bulbs.instanceColor.needsUpdate=true
-   ringMats.forEach((m,i)=>{const lit=i<c.steps;m.emissiveIntensity=lit?2.2+0.6*Math.sin(f/6+i):party?(f/4+i)%2<1?2:0:0;m.color.set(lit?'#ffe08a':'#3a3a3a')})
-   beamPivot.rotation.y=f*(party?0.12:0.03);(beam.material as THREE.MeshBasicMaterial).opacity=party?0.3:0.16
+   // The BIG BONUS lamps: lit ones glow and pulse; all of them flash during a party.
+   lampMats.forEach((m,i)=>{const lit=i<c.steps;m.emissiveIntensity=lit?2.4+0.6*Math.sin(f/6+i):party?(f/4+i)%2<1?2.2:0:0;m.color.set(lit?'#fff2b0':'#5a4a3a')})
    const anim=party||pail2.toss>=0?konoAnim.cheer:now-lastDrop.current<900?konoAnim.wave:konoAnim.breathe;anim.offset.x=Math.floor(f/(party?6:10))%4*0.25;kono.material.map=anim
-   kono.position.set(4.1,BTOP+0.9+(party?Math.abs(Math.sin(f/6))*0.5:0),BZ-0.25)
-   // The garden around the cabinet: clouds drift, butterflies flutter, a bird passes, petals fall.
-   clouds.forEach((cl,i)=>{cl.position.x=((f*0.004*(1+i*0.3)+i*7)%26)-13})
-   butterflies.forEach((b,i)=>{const t=f/90+i*2.4;b.position.set(Math.sin(t)*3.6,BTOP-0.6+Math.sin(t*2)*0.6+i*0.5,BZ+1.6+Math.cos(t)*1.4);b.scale.x=0.5*(ASPECT['butterfly']??1)*(0.35+0.65*Math.abs(Math.sin(f/4+i)))})
-   const bt=(f%1500)/1500;bird.visible=bt<0.35;bird.position.set(-9+bt/0.35*18,BTOP+2.6+Math.sin(f/20)*0.2,-9)
-   petals.forEach((pt,i)=>{const fall=(party?3:1)*0.006;pt.position.y-=fall;pt.position.x+=Math.sin(f/40+i)*0.008;pt.material.rotation+=0.02;if(pt.position.y<-0.5){pt.position.set((Math.random()-.5)*12,BTOP+3+Math.random()*2,-6+Math.random()*12)}})
-   if(f%2===0){const pos=seaGeo.attributes.position as THREE.BufferAttribute,a=pos.array as Float32Array;for(let k=0;k<a.length;k+=3)a[k+2]=seaBase[k+2]+Math.sin(seaBase[k]*0.5+f*0.03)*0.18+Math.cos(seaBase[k+1]*0.45+f*0.025)*0.15;pos.needsUpdate=true;seaGeo.computeVertexNormals()}
+   kono.position.set(3.45,BTOP+2.52+(party?Math.abs(Math.sin(f/6))*0.5:0),BZ-0.45)
    for(let i=0;i<SPARKS;i++){if(sLife[i]<=0){sPos[i*3+1]=-99;continue}sLife[i]-=1/60;sVel[i*3+1]-=0.06;sPos[i*3]+=sVel[i*3]/60;sPos[i*3+1]+=sVel[i*3+1]/60;sPos[i*3+2]+=sVel[i*3+2]/60;const k=Math.max(0,sLife[i]);sCol[i*3]*=0.985;sCol[i*3+1]*=0.985;sCol[i*3+2]*=0.985;if(k===0)sPos[i*3+1]=-99}
    ;(sGeo.attributes.position as THREE.BufferAttribute).needsUpdate=true;(sGeo.attributes.color as THREE.BufferAttribute).needsUpdate=true
    placeCamera()
@@ -530,7 +521,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
     // the board and pour onto the field (rather than fall into the camera).
     const side=Math.min(1,Math.max(0,(t-TOPPLE_AT+12)/30)),sd=side*side*(3-2*side)
     const camAt=new THREE.Vector3(0,BTOP+3.4,BZ+6.2).lerp(new THREE.Vector3(10.5,BTOP+4.5,4),sd),lookAt=new THREE.Vector3(0,BTOP+2.4,BZ-0.6).lerp(new THREE.Vector3(0,BTOP+1.6,BZ+2.4),sd)
-    camera.position.lerp(camAt,e);camera.lookAt(new THREE.Vector3(0,2.2,-1.2).lerp(lookAt,e))}
+    camera.position.lerp(camAt,e);camera.lookAt(new THREE.Vector3(0,3.3,-1.7).lerp(lookAt,e))}
    if(show.shake>0.02)camera.position.add(new THREE.Vector3((Math.random()-.5)*show.shake*0.35,(Math.random()-.5)*show.shake*0.25,0))
    const showing=!!(c.dish||c.chance)
    const sm=shade.material as THREE.MeshBasicMaterial;sm.opacity+=((showing?0.55:0)-sm.opacity)*0.15;shade.visible=sm.opacity>0.01
@@ -549,6 +540,9 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
     const done=t>=1,chase=Math.floor(f/(t<0.7?2:t<0.95?4:8))
     for(let k=0;k<JP_BULBS;k++)jpBulbs.setColorAt(k,done?(f%10<5?CONFETTI[k%CONFETTI.length]:dim):(k+chase)%4===0?BULB[(k>>2)%3]:dim)
     if(jpBulbs.instanceColor)jpBulbs.instanceColor.needsUpdate=true}
+   // The BIG BONUS banner counts the tower's medals out as they pour; collected medals pop by your medals.
+   if(bbAt>=0){const bt=f-bbAt;if(bbCount.current)bbCount.current.textContent=String(Math.min(bbAmount,Math.round(bbAmount*Math.min(1,bt/110))));if(bt>230){bbAt=-1;setBigWin(null)}}
+   if(winAcc&&now-winAt>450){const n=winAcc;winAcc=0;setWin({n,id:now})}
    // The jackpot: the counter counts up as the medals rain, fireworks burst over the cabinet for a few seconds.
    if(jpAt>=0){const jt=f-jpAt
     if(jpCount.current)jpCount.current.textContent=String(Math.min(jpAmount,Math.round(jpAmount*Math.min(1,jt/170))))
@@ -583,23 +577,26 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   return ()=>{disposed=true;window.clearTimeout(timer);cleanup()}
  },[tries])
 
+ useEffect(()=>{if(!win)return;const t=window.setTimeout(()=>setWin(null),1400);return()=>window.clearTimeout(t)},[win])
  useEffect(()=>{if(!hud.event)return;const t=window.setTimeout(()=>setHud(h=>({...h,event:''})),2200);return()=>window.clearTimeout(t)},[hud.event])
  return <div className="break-game medal-cove">
   <div className="cove-dials" aria-label="Bonus wheels">
    {WHEELS.map((segs,i)=><WheelDial key={i} i={i} segs={segs} state={dials[i]} turn={el=>{dialEls.current[i]=el}}/>)}
   </div>
-  <div ref={host} className="cove-stage" role="img" aria-label={'KONO Medal Cove: '+hud.hand+' medals, jackpot '+hud.jp}>
    <div className="cove-board" aria-label="Backboard">
-   <div className="cove-steps" aria-label={hud.steps+' of '+LAMPS+' lamps'}>{Array.from({length:LAMPS},(_,i)=><i key={i} className={i<hud.steps?'is-on':undefined}/>)}<small>💡 lamps</small></div>
+   <div className="cove-steps" aria-label={hud.steps+' of '+LAMPS+' lamps'}>{Array.from({length:LAMPS},(_,i)=><i key={i} className={i<hud.steps?'is-on':undefined}/>)}<small>BIG BONUS</small></div>
    <div className="cove-jp"><small>JACKPOT</small><b key={hud.jp} className="is-bump">{hud.jp}</b></div>
    <div className="cove-pockets" aria-label={'Giant tower: '+hud.bank+' medals'}><b>🗼 {hud.bank}</b><small>giant tower</small><small>🎯 {hud.pockets}/{CHANCE_POCKETS} JP{best!==null?' · best '+best:''}</small></div>
    <div className={'cove-reels'+(hud.spinning?' is-spinning':'')} aria-label={'Lottery: '+hud.reels.join(' ')}>{hud.reels.map((r,i)=><span key={i}>{r}</span>)}</div>
    <div className="cove-queue" aria-label={hud.queue+' spins waiting'}>{Array.from({length:4},(_,i)=><i key={i} className={i<hud.queue?'is-on':undefined}/>)}</div>
   </div>
+  <div ref={host} className="cove-stage" role="img" aria-label={'KONO Medal Cove: '+hud.hand+' medals, jackpot '+hud.jp}>
    {!hud.ready&&!fail&&<p className="cove-loading" role="status">Filling the machine with medals…</p>}
    {fail&&<CoveFail kind={fail} onRetry={()=>{setFail(null);setTries(n=>n+1)}} onLeave={onFail}/>}
    {hud.event&&<p key={hud.event} className={'cove-event'+(hud.big?' is-big':'')} role="status">{hud.event}</p>}
    {hud.event&&hud.big&&<span key={'f'+hud.event} className="cove-flash" aria-hidden="true"/>}
+   {bigWin!==null&&jpWin===null&&<div className="cove-jp-win is-big-bonus" role="status" aria-label={'Big bonus! The tower drops '+bigWin+' medals'}><b>BIG BONUS!</b><em>🗼 TOWER DROP</em><span><i aria-hidden="true">🪙</i> +<strong ref={bbCount}>0</strong></span></div>}
+   {win&&<b key={win.id} className={'cove-win'+(win.n>=10?' is-big':'')} aria-hidden="true">+{win.n} 🪙</b>}
    {jpWin!==null&&<div className="cove-jp-win" role="status" aria-label={'Jackpot! '+jpWin+' medals'}><b>JACKPOT!!</b><span><i aria-hidden="true">🪙</i> +<strong ref={jpCount}>0</strong></span></div>}
    {hud.chance&&jpWin===null&&<div className="cove-chance" aria-hidden="true"><b>JACKPOT CHANCE</b><span>🎯 {hud.pockets} of {CHANCE_POCKETS} pockets win · JP {hud.jp}</span></div>}
    {fever>0&&<span className="cove-fever" role="status" aria-label={'Fever time: '+fever+' seconds'}>🌈 FEVER {fever}s</span>}
@@ -607,7 +604,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
    <button type="button" className="cove-view" aria-label="Change the camera" onClick={()=>setView(v=>(v+1)%VIEWS.length)}>🎥</button>
    <span className="cove-hand" aria-hidden="true">🪙 {hud.hand}</span>
   </div>
-  <p className="blast-help">Touch to aim along the top of the pin board and tap to drop (hold to keep dropping). Medals bounce down the pins into a pocket, and its mini wheel spins: medals, giant-tower layers, a prize ball, a lamp or a lottery spin. Light all 5 lamps for the BIG BONUS: the giant tower comes down! Drag around the edges to look around.</p>
+  <p className="blast-help cove-help">Touch to aim along the top of the pin board and tap to drop (hold to keep dropping). Medals bounce down the pins into a pocket, and its mini wheel spins: medals, giant-tower layers, a prize ball, a lamp or a lottery spin. Light all 5 lamps for the BIG BONUS: the giant tower comes down! Drag around the edges to look around.</p>
  </div>
 }
 
@@ -638,25 +635,32 @@ function wheelImage(winPockets:number){const [c,g]=canvas(512,512,TEX),cx=256,cy
   const am=(a0+a1)/2;g.fillStyle=win?'#5a3200':'#fff';g.font='bold 30px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText(win?'JP':'+10',cx+Math.cos(am)*R*.72,cy+Math.sin(am)*R*.72)}
  g.fillStyle='#2b1a3a';g.beginPath();g.arc(cx,cy,80,0,Math.PI*2);g.fill();g.fillStyle='#ffd34d';g.font='bold 30px system-ui';g.fillText('JACKPOT',cx,cy-14);g.fillText('CHANCE',cx,cy+22)
  return c}
-/** The pin board's backplate: a soft sky with the Sanctuary's own trees, lanterns, clouds and flowers painted
- * behind the pins (drawn in as each picture loads), and the cabinet's name. */
+/** The pin board's backplate: deep night blue to plum, a fine lattice of little stars, a gold inner frame and
+ * the cabinet's name across the bottom. */
 function boardTexture(){const [c,g]=canvas(1024,384,TEX)
- const paint=()=>{const grad=g.createLinearGradient(0,0,0,384);grad.addColorStop(0,'#bfe7ff');grad.addColorStop(.7,'#ffeef5');grad.addColorStop(1,'#ffe1ec');g.fillStyle=grad;g.fillRect(0,0,1024,384)}
- paint()
- const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace
- const parts:[string,number,number,number][]=[['cloud-a',90,40,170],['cloud-b',640,24,190],['cloud-a',820,70,150],['tree-blossom',-30,96,290],['tree-leafy',800,110,270],['lantern-post',250,190,170],['lantern-post',700,190,170],['flowers-1',120,316,130],['flowers-3',330,322,120],['flowers-2',520,316,130],['flowers-4',720,318,130],['flowers-1',900,320,120]]
- const imgs=parts.map(([n])=>Object.assign(new Image(),{src:'/games/cove/'+n+'.webp'}))
- let left=imgs.length
- const draw=()=>{paint();g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high'
-  parts.forEach(([,x,y,h],i)=>{const im=imgs[i];if(!im.complete||!im.naturalWidth)return;const w=h*im.naturalWidth/im.naturalHeight;g.globalAlpha=0.92;g.drawImage(im,x,y-(h-(384-y)>0?0:0),w,h);g.globalAlpha=1})
-  g.fillStyle='rgba(255,255,255,.85)';g.strokeStyle='rgba(214,112,150,.9)';g.lineWidth=6;g.font='900 44px system-ui';g.textAlign='center';g.strokeText('KONO MEDAL COVE',512,372);g.fillText('KONO MEDAL COVE',512,372)
-  t.needsUpdate=true}
- imgs.forEach(im=>{im.onload=im.onerror=()=>{left--;draw()}})
- if(!left)draw()
- return t}
+ const grad=g.createLinearGradient(0,0,0,384);grad.addColorStop(0,'#1d1f5e');grad.addColorStop(.6,'#3b1f6e');grad.addColorStop(1,'#5a2378');g.fillStyle=grad;g.fillRect(0,0,1024,384)
+ const glow=g.createRadialGradient(512,170,20,512,170,420);glow.addColorStop(0,'rgba(255,190,240,.28)');glow.addColorStop(1,'rgba(255,190,240,0)');g.fillStyle=glow;g.fillRect(0,0,1024,384)
+ for(let y=18;y<330;y+=26)for(let x=(y/26%2)*20+10;x<1024;x+=40){g.fillStyle='rgba(255,236,190,'+(0.18+((x*7+y*3)%5)*0.05)+')';g.beginPath();g.arc(x,y,1.6,0,Math.PI*2);g.fill()}
+ g.strokeStyle='rgba(255,211,77,.85)';g.lineWidth=5;g.strokeRect(10,10,1004,364);g.strokeStyle='rgba(255,211,77,.35)';g.lineWidth=2;g.strokeRect(22,22,980,340)
+ g.font='900 44px system-ui';g.textAlign='center';g.lineWidth=8;g.strokeStyle='rgba(90,30,90,.9)';g.strokeText('KONO MEDAL COVE',512,362);const gold=g.createLinearGradient(0,330,0,370);gold.addColorStop(0,'#fff3b0');gold.addColorStop(1,'#f2b53a');g.fillStyle=gold;g.fillText('KONO MEDAL COVE',512,362)
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+/** The arcade floor: dark plum with a soft pink glow under the cabinet. */
+function floorTexture(){const [c,g]=canvas(256,256,1),grad=g.createRadialGradient(128,128,10,128,128,128);grad.addColorStop(0,'#4a2368');grad.addColorStop(.35,'#26123c');grad.addColorStop(1,'#120a1f');g.fillStyle=grad;g.fillRect(0,0,256,256)
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+/** The BIG BONUS sign over the lamps on top of the cabinet. */
+function bigBonusSign(){const [c,g]=canvas(512,200,TEX)
+ g.fillStyle='rgba(43,20,70,.92)';g.beginPath();g.roundRect(6,6,500,188,36);g.fill();g.strokeStyle='#ffd34d';g.lineWidth=8;g.stroke()
+ g.font='900 62px system-ui';g.textAlign='center';g.textBaseline='middle';const gold=g.createLinearGradient(0,30,0,100);gold.addColorStop(0,'#fff3b0');gold.addColorStop(1,'#f2b53a');g.fillStyle=gold;g.fillText('BIG BONUS',256,62)
+ g.font='800 26px system-ui';g.fillStyle='#ffd7f0';g.fillText('light all 5 lamps 💡',256,164)
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+/** The arcade behind the cabinet at night: deep plum, darker at the floor, with soft out-of-focus lights. */
+function arcadeBackdrop(){const [c,g]=canvas(512,1024,1)
+ const grad=g.createLinearGradient(0,0,0,1024);grad.addColorStop(0,'#160b2a');grad.addColorStop(.45,'#3a1a5c');grad.addColorStop(.75,'#2a1446');grad.addColorStop(1,'#120a1f');g.fillStyle=grad;g.fillRect(0,0,512,1024)
+ const cols=['255,120,200','255,210,90','110,210,255','190,140,255']
+ for(let k=0;k<46;k++){const x=(k*137)%512,y=60+((k*263)%560),r=10+((k*53)%38),col=cols[k%4],b=g.createRadialGradient(x,y,0,x,y,r);b.addColorStop(0,'rgba('+col+',.55)');b.addColorStop(.6,'rgba('+col+',.18)');b.addColorStop(1,'rgba('+col+',0)');g.fillStyle=b;g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill()}
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
 function emojiTexture(e:string){const [c,g]=canvas(128,128,TEX);g.font='96px system-ui,"Apple Color Emoji","Noto Color Emoji"';g.textAlign='center';g.textBaseline='middle';g.fillText(e,64,70)
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
-function stripeTexture(){const [c,g]=canvas(64,256,TEX);for(let i=0;i<8;i++){g.fillStyle=i%2?'#f6f1e7':'#d8443a';g.fillRect(0,i*32,64,32)}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
 function wheelSegTexture(segs:{label:string;kind:string}[],w:number){const [c,g]=canvas(256,256,TEX),n=segs.length,cx=128,cy=128,r=126
  const pal=[['#ff6b5e','#ffb3a8'],['#ffd34d','#fff0b8'],['#4fb3ff','#b9e2ff']][w]
  segs.forEach((sg,k)=>{const a0=-Math.PI/2+k*2*Math.PI/n-Math.PI/n,a1=a0+2*Math.PI/n
@@ -664,8 +668,6 @@ function wheelSegTexture(segs:{label:string;kind:string}[],w:number){const [c,g]
   g.save();g.translate(cx,cy);g.rotate((a0+a1)/2+Math.PI/2);g.fillStyle='#2b1a3a';g.font='900 '+(sg.label.length>6?17:21)+'px system-ui';g.textAlign='center'
   g.fillText(sg.kind==='lamp'?'💡':sg.kind==='ball'?'🔮':sg.kind==='spin'?'🎰':sg.kind==='layers'?'🗼':'🪙',0,-r+33);g.fillText(sg.label.replace(' layers',' L').replace(' layer',' L'),0,-r+59);g.restore()})
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t}
-const ASPECT:Record<string,number>={'lantern-post':293/480,'lantern-post-night':293/480,'paper-lanterns':480/379,'light-arch':640/590,'tree-blossom':564/570,'tree-leafy':492/554,'flowers-1':99/49,'flowers-2':112/61,'flowers-3':100/58,'flowers-4':110/64,'shell':72/56,'petal-1':91/120,'petal-2':107/120,'sparkle':160/157,'cloud-a':209/67,'cloud-b':247/79,'butterfly':60/33,'butterfly-2':42/33,'bird':63/42}
-function skyTexture(){const [c,g]=canvas(16,256);const grad=g.createLinearGradient(0,0,0,256);grad.addColorStop(0,'#a9dcff');grad.addColorStop(.55,'#d9efff');grad.addColorStop(1,'#ffe9f2');g.fillStyle=grad;g.fillRect(0,0,16,256);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
 const segIcon=(kind:string)=>kind==='lamp'?'💡':kind==='ball'?'🔮':kind==='spin'?'🎰':kind==='layers'?'🗼':'🪙'
 function segColor(kind:string,w:number,k:number){const pal=[['#ff6b5e','#ffb3a8'],['#ffd34d','#fff0b8'],['#4fb3ff','#b9e2ff']][w]
  return kind==='lamp'?'#fff3a0':kind==='ball'?'#c8a8ff':kind==='layers'?'#9fe0ff':pal[k%2]}

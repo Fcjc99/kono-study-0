@@ -961,3 +961,32 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 @keyframes cove-jp-rainbow{to{background-position:200% 0}}
 @keyframes cove-jp-throb{to{transform:scale(1.07)}}
 @media(prefers-reduced-motion:reduce){.cove-jp b.is-bump,.cove-chance,.cove-jp-win,.cove-jp-win b{animation:none}}
+/* Medal Cove, full screen: the wheels across the top, the cabinet filling the rest of the screen. */
+.game-screen-body:has(>.medal-cove){align-content:stretch;padding-bottom:calc(env(safe-area-inset-bottom) + 6px)}
+.break-game.medal-cove{display:flex;flex-direction:column;gap:6px;width:min(100%,1100px);height:100%;min-height:0;margin:0 auto}
+.medal-cove>.cove-stage.cove-stage{flex:1;height:auto;min-height:300px;border-radius:18px}
+.medal-cove>.cove-help{display:none}
+.medal-cove>.cove-dials{flex:none}
+@media(max-height:820px){.cove-dial svg{width:min(100%,92px)!important}.cove-dial-name{font-size:.62rem}.cove-dial figcaption{font-size:.72rem}}
+.game-screen:has(.medal-cove){background:radial-gradient(ellipse at 50% 0,#4a2475,#24113d 60%,#140a24)}
+/* "+n" as medals land in the tray, by your medal count. */
+.cove-win{position:absolute;z-index:3;left:18px;bottom:52px;padding:2px 12px;border-radius:999px;background:#ffd34d;color:#5a3200;font-weight:900;font-size:1.15rem;box-shadow:0 3px 10px rgb(0 0 0/.3);pointer-events:none;animation:cove-win 1.4s ease-out forwards}
+.cove-win.is-big{font-size:1.5rem;background:linear-gradient(90deg,#ffd34d,#ff8fb1)}
+@keyframes cove-win{0%{opacity:0;transform:translateY(10px) scale(.7)}15%{opacity:1;transform:translateY(0) scale(1.15)}30%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-24px)}}
+.cove-jp-win em{font-style:normal;font-weight:900;font-size:1.3rem;color:#fff;text-shadow:0 2px 0 rgb(90 30 60/.6)}
+.cove-jp-win.is-big-bonus{background:radial-gradient(circle at 50% 45%,rgb(120 220 255/.5),rgb(190 120 255/.25) 45%,transparent 70%)}
+@media(prefers-reduced-motion:reduce){.cove-win{animation:none}}
+/* The jackpot, lamps, lottery reels and tower count: a slim bar between the wheels and the cabinet, so
+   nothing covers the top of the cabinet (the giant tower, the BIG BONUS lamps, KONO). */
+.medal-cove>.cove-board{flex:none;grid-template-columns:auto auto 1fr auto;grid-template-areas:'steps jp reels pockets';align-items:center;gap:4px 10px;padding:4px 12px;border-radius:999px;background:linear-gradient(rgb(255 248 236/.96),rgb(255 232 214/.96));border:2px solid #e8a8bd;color:#7a3b52;box-shadow:0 4px 12px rgb(0 0 0/.25)}
+.medal-cove>.cove-board .cove-jp small,.medal-cove>.cove-board .cove-steps small,.medal-cove>.cove-board .cove-pockets small{color:#a0607a;font-size:.6rem;font-weight:900}
+.medal-cove>.cove-board .cove-jp b{color:#d2457a;font-size:1.25rem}
+.medal-cove>.cove-board .cove-pockets b{color:#7a3b52}
+.medal-cove>.cove-board .cove-pockets small:last-child{display:none}
+.medal-cove>.cove-board .cove-reels span{width:30px;height:26px;font-size:.95rem;background:#fff;box-shadow:inset 0 0 0 1.5px #f2c6d4}
+.medal-cove>.cove-board .cove-steps{display:grid;grid-template-columns:repeat(5,auto);gap:3px;justify-items:center}
+.medal-cove>.cove-board .cove-steps small{grid-column:1/-1}
+.medal-cove>.cove-board .cove-steps i{background:#f2d6df;box-shadow:inset 0 1px 2px rgb(122 59 82/.3)}
+.medal-cove>.cove-board .cove-steps i.is-on{background:#ffd34d;box-shadow:0 0 6px #ffb000}
+.medal-cove>.cove-board .cove-queue{display:none}
+@media(max-height:700px){.cove-dial svg{width:min(100%,66px)!important}.cove-dial-name{display:none}.cove-dials{padding:4px 6px}.medal-cove>.cove-board .cove-reels span{width:26px;height:22px}}

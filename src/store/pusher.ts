@@ -105,8 +105,8 @@ export function drop(c: Cove, aim: number, random: () => number = Math.random): 
 /** What three reels pay. */
 export function spinPrize(reels: Reel[]): SpinPrize {
   const [a, b, c] = reels
-  if (a === b && b === c) return a === '🪙' ? { kind: 'shower', n: 12 } : a === '🗼' ? { kind: 'tower', n: 20 } : a === '🔮' ? { kind: 'ball' } : a === '⭐' ? { kind: 'step' } : { kind: 'shower', n: 8 }
-  if (a === b || b === c || a === c) return { kind: 'shower', n: 2 }
+  if (a === b && b === c) return a === '🪙' ? { kind: 'shower', n: 20 } : a === '🗼' ? { kind: 'tower', n: 20 } : a === '🔮' ? { kind: 'ball' } : a === '⭐' ? { kind: 'step' } : { kind: 'shower', n: 12 }
+  if (a === b || b === c || a === c) return { kind: 'shower', n: 4 }
   return { kind: 'none' }
 }
 /** A spin's outcome, from a payout table (as real machines tune theirs), then reels drawn to show it. */
@@ -142,9 +142,9 @@ const seg = (label: string, kind: WheelSeg['kind'], n = 0): WheelSeg => ({ label
 /** The three wheels, one over each pocket, each with its own mix: the 🏮 wheel leans to medals and spins,
  * the ⭐ wheel to lamps, the 🗼 wheel to tower layers. Eight segments each. */
 export const WHEELS: WheelSeg[][] = [
-  [seg('+5', 'medals', 5), seg('+2 layers', 'layers', 2), seg('SPIN', 'spin'), seg('+10', 'medals', 10), seg('+1 layer', 'layers', 1), seg('+3', 'medals', 3), seg('BALL', 'ball'), seg('SPIN', 'spin')],
-  [seg('LAMP', 'lamp'), seg('+5', 'medals', 5), seg('+1 layer', 'layers', 1), seg('+2 layers', 'layers', 2), seg('BALL', 'ball'), seg('+3', 'medals', 3), seg('LAMP', 'lamp'), seg('SPIN', 'spin')],
-  [seg('+2 layers', 'layers', 2), seg('+5', 'medals', 5), seg('+4 layers', 'layers', 4), seg('BALL', 'ball'), seg('+1 layer', 'layers', 1), seg('LAMP', 'lamp'), seg('+3 layers', 'layers', 3), seg('+3', 'medals', 3)],
+  [seg('+10', 'medals', 10), seg('+2 layers', 'layers', 2), seg('SPIN', 'spin'), seg('+20', 'medals', 20), seg('+1 layer', 'layers', 1), seg('+6', 'medals', 6), seg('BALL', 'ball'), seg('SPIN', 'spin')],
+  [seg('LAMP', 'lamp'), seg('+20', 'medals', 20), seg('+1 layer', 'layers', 1), seg('+2 layers', 'layers', 2), seg('BALL', 'ball'), seg('+6', 'medals', 6), seg('LAMP', 'lamp'), seg('SPIN', 'spin')],
+  [seg('+2 layers', 'layers', 2), seg('+10', 'medals', 10), seg('+4 layers', 'layers', 4), seg('BALL', 'ball'), seg('+1 layer', 'layers', 1), seg('LAMP', 'lamp'), seg('+3 layers', 'layers', 3), seg('+6', 'medals', 6)],
 ]
 export const WHEEL_FRAMES = 100
 export type Pocket = 'spin' | 'lamp' | 'tower'
