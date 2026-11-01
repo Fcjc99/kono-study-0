@@ -1,5 +1,5 @@
 /** What the medal pusher shows when its 3D machine can't start (instead of waiting forever): what went
- * wrong in plain words, Try again, and Leave. Shared by KONO Medal Cove and its machine prototype. */
+ * wrong in plain words, Try again, and Leave. Used by KONO Medal Cove. */
 export type CoveFailure='webgl'|'physics'|'slow'|'crash'
 const WHY:Record<CoveFailure,string>={
  webgl:'This browser or device has 3D graphics (WebGL) turned off or unavailable. Turning on hardware acceleration in the browser’s settings, or using a different browser, usually fixes it.',

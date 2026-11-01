@@ -14,7 +14,6 @@ export default function GameCover({game}:{game:string}){
   :game==='flow'?<span className="gc-flow"><span className="gc-stack">{Array.from({length:14},(_,i)=><i key={i}/>)}</span><span className="gc-fall"><i/><i/><i/><i/></span></span>
   :game==='beat'?<span className="gc-beat">{[0,1,2,3].map(l=><span key={l} className={'gc-lane is-'+l}><i/><i/></span>)}<b className="gc-line"/></span>
   :game==='stack'?<span className="gc-stack-cakes">{[0,1,2,3,4].map(i=><i key={i} style={{'--i':i} as React.CSSProperties}/>)}<b className="gc-cake-drop"/></span>
-  :game==='machine'?<span className="gc-cove"><b className="gc-cove-pusher"/>{Array.from({length:10},(_,i)=><i key={i} style={{'--i':i} as React.CSSProperties}/>)}<em>🗼</em></span>
   :game==='cove'?<span className="gc-cove"><b className="gc-cove-pusher"/>{Array.from({length:14},(_,i)=><i key={i} style={{'--i':i} as React.CSSProperties}/>)}<em>JP</em></span>
   :game==='bloom'?<span className="gc-bloom">{['🌳','🎃','🌻','🌷','🍀','🌱'].map((e,i)=><i key={i} className={'is-'+i}>{e}</i>)}<b className="gc-bloom-drop">🫘</b></span>
   :game==='flap'?<span className="gc-flap"><i className="gc-pipe is-top"/><i className="gc-pipe is-bottom"/><img src="/garden/kono/happy.webp" alt="" loading="lazy"/></span>

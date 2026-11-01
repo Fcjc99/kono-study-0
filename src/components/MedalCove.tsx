@@ -29,16 +29,18 @@ const pocketX=(i:number,f:number)=>i===0?-3.3:i===2?3.3:Math.sin(f/80)*1.6
 // Pins 1.2 apart, rows 0.5 apart and offset by half: every gap (straight and diagonal) lets a medal through.
 const PINS:[number,number][]=[];for(let row=0;row<5;row++)for(let col=-4;col<=4;col++){const x=col*1.2+(row%2?0.6:0);if(Math.abs(x)<4.5)PINS.push([x,BTOP-0.45-row*0.52])}
 const POCKET_FACE=['🏮','⭐','🗼']
-// The side slides, one each side (x = ±RAMP_X), from beside the pin board down onto the pusher's shelf.
-const RAMP_X=4.49,RAMP_HALF=0.52
-const RAMPS=[0,1].map(()=>{const top={z:-5.72,y:2.3},bot={z:-4.25,y:0.82},dz=bot.z-top.z,dy=top.y-bot.y
- return {top,bot,len:Math.hypot(dz,dy),angle:Math.atan2(dy,dz),dir:{y:dy/Math.hypot(dz,dy),z:dz/Math.hypot(dz,dy)}}})
-// The ball run: a zig-zag track down the left of the pin board that ends at the top of the left slide.
-const RUN:[number,number,number][]=[[-4.95,6.0,-5.45],[-4.0,5.45,-5.45],[-4.95,4.9,-5.45],[-4.0,4.35,-5.45],[-4.95,3.8,-5.45],[-4.49,2.95,-5.45]]
+// The side slides: one each side of the cabinet, from outside it, over a gap in the side wall, down toward
+// the middle; each ends up high over the pusher's shelf (so the medals on the shelf pass under it) and the
+// medals drop off its end onto the shelf.
+const RAMP_Z=-5.25,RAMP_HALF=0.52,RAMP_OUT=6.5,RAMP_IN=4.35
+const RAMPS=[0,1].map(side=>{const s=side?1:-1,top={x:s*RAMP_OUT,y:2.6},bot={x:s*RAMP_IN,y:1.2},dx=RAMP_OUT-RAMP_IN,dy=top.y-bot.y,len=Math.hypot(dx,dy)
+ return {s,top,bot,len,angle:Math.atan2(dy,dx),dir:{x:-s*dx/len,y:-dy/len},at:(x:number)=>bot.y+(Math.abs(x)-RAMP_IN)/dx*dy}})
+// The ball run: a zig-zag track outside the cabinet on the left that ends at the top of the left slide.
+const RUN:[number,number,number][]=[[-5.9,6.3,RAMP_Z],[-6.95,5.75,RAMP_Z],[-5.9,5.2,RAMP_Z],[-6.95,4.65,RAMP_Z],[-5.9,4.1,RAMP_Z],[-6.35,3.15,RAMP_Z]]
 const RUN_LEN=RUN.slice(1).reduce((a,p,i)=>a+Math.hypot(p[0]-RUN[i][0],p[1]-RUN[i][1],p[2]-RUN[i][2]),0)
 // The seesaw tray at the foot of the right slide (fills, then tips onto the field), KONO's bucket (one medal
 // for each pocket hit, thrown onto the field when full) and the turntable in the middle of the field.
-const SEESAW={x:4.32,y:0.86,z:-3.72,full:8},BUCKET_FULL=6,TURN={z:-1.35,r:1.25}
+const SEESAW={x:3.85,y:1.12,z:RAMP_Z,full:8},BUCKET_FULL=6,TURN={z:-1.35,r:1.25}
 const TOPPLE_AT=70 // frames into the BIG BONUS when the giant tower starts to fall
 const wx=(x:number)=>(x-50)*U,wz=(y:number)=>y*U-6
 const REEL_FACES:Reel[]=['🪙','🗼','🔮','⭐','🐚','🌺']
@@ -107,7 +109,8 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   const frameMat=toon('#f4a6c1')
   const glass=new THREE.MeshPhysicalMaterial({color:'#e8f7ff',transparent:true,opacity:.14,roughness:.05})
   for(const s of [-1,1]){const g=new THREE.Mesh(new THREE.BoxGeometry(0.12,1.4,12),glass);g.position.set(s*5.15,0.7,-1.6);scene.add(g)
-   const rail=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.18,12),frameMat);rail.position.set(s*5.2,1.45,-1.6);scene.add(rail)}
+   // The top rail, with a gap where the slide comes over.
+   for(const [z0,z1] of [[-7.6,RAMP_Z-RAMP_HALF-0.08],[RAMP_Z+RAMP_HALF+0.08,4.4]]){const rail=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.18,z1-z0),frameMat);rail.position.set(s*5.2,1.45,(z0+z1)/2);scene.add(rail)}}
   const back=new THREE.Mesh(new THREE.BoxGeometry(10.8,2.6,0.4),frameMat);back.position.set(0,1.1,-7.8);back.castShadow=true;scene.add(back)
   const scraper=new THREE.Mesh(new THREE.BoxGeometry(10.2,1.0,0.3),frameMat);scraper.position.set(0,1.35,-6.55);scene.add(scraper)
   const tray=new THREE.Mesh(new THREE.BoxGeometry(10.4,0.3,2.6),frameMat);tray.position.set(0,-2.15,7.4);tray.receiveShadow=true;scene.add(tray)
@@ -212,25 +215,27 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   world.integrationParameters.numSolverIterations=4
   const fixed=(hx:number,hy:number,hz:number,x:number,y:number,z:number,friction=0.5)=>world.createCollider(RAPIER.ColliderDesc.cuboid(hx,hy,hz).setTranslation(x,y,z).setFriction(friction))
   fixed(5.2,0.2,6.8,0,-0.2,FRONT-6.8)            // the deck, ending at the front edge
-  fixed(0.1,1.2,5.6,-5.05,1.0,-1.6);fixed(0.1,1.2,5.6,5.05,1.0,-1.6) // side walls, open near the front (the side drops)
+  // Side walls, open near the front (the side drops), with a gap at the top where each slide comes over.
+  for(const s of [-1,1]){const g0=RAMP_Z-RAMP_HALF-0.08,g1=RAMP_Z+RAMP_HALF+0.08
+   fixed(0.1,1.2,(g0+7.2)/2,s*5.05,1.0,(g0-7.2)/2);fixed(0.1,1.2,(4.0-g1)/2,s*5.05,1.0,(4.0+g1)/2);fixed(0.1,0.625,(g1-g0)/2,s*5.05,0.425,RAMP_Z)}
   // The two side slides: troughs from up beside the pin board down onto the pusher's shelf (rails each side,
   // a stop at the top). Prize medals slide down them and balls roll; see the release in the loop.
   const rampQ:boolean[][]=[[],[]],rampLast=[-99,-99],rampGlow=[0,0]
   const rampMat=toon('#ffd7e6'),railMat=new THREE.MeshStandardMaterial({color:'#ffe08a',metalness:.85,roughness:.25,emissive:'#ffb000',emissiveIntensity:.15})
   const mouths:THREE.MeshStandardMaterial[]=[]
-  RAMPS.forEach((r,side)=>{const s=side?1:-1,tilt=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),r.angle),rot={x:tilt.x,y:tilt.y,z:tilt.z,w:tilt.w}
-   const mid=new THREE.Vector3(s*RAMP_X,(r.top.y+r.bot.y)/2,(r.top.z+r.bot.z)/2),n=new THREE.Vector3(0,Math.cos(r.angle),Math.sin(r.angle))
+  RAMPS.forEach(r=>{const s=r.s,tilt=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),s*r.angle),rot={x:tilt.x,y:tilt.y,z:tilt.z,w:tilt.w}
+   const mid=new THREE.Vector3((r.top.x+r.bot.x)/2,(r.top.y+r.bot.y)/2,RAMP_Z),n=new THREE.Vector3(-s*Math.sin(r.angle),Math.cos(r.angle),0)
    const part=(hx:number,hy:number,hz:number,off:THREE.Vector3,mat:THREE.Material,friction:number)=>{const at=mid.clone().add(off)
     world.createCollider(RAPIER.ColliderDesc.cuboid(hx,hy,hz).setTranslation(at.x,at.y,at.z).setRotation(rot).setFriction(friction).setRestitution(0.05))
     const mesh=new THREE.Mesh(new THREE.BoxGeometry(hx*2,hy*2,hz*2),mat);mesh.position.copy(at);mesh.quaternion.copy(tilt);mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh)}
-   part(RAMP_HALF,0.04,r.len/2,n.clone().multiplyScalar(-0.04),rampMat,0.08)                                   // the slide
-   part(0.03,0.16,r.len/2,new THREE.Vector3(-s*(RAMP_HALF-0.03),0,0).add(n.clone().multiplyScalar(0.12)),railMat,0.02) // inner rail
-   part(0.03,0.16,r.len/2,new THREE.Vector3(s*(RAMP_HALF-0.03),0,0).add(n.clone().multiplyScalar(0.12)),railMat,0.02)  // outer rail
-   // The stop at the top, and the glowing mouth the medals come out of.
-   const top=new THREE.Vector3(s*RAMP_X,r.top.y,r.top.z)
-   world.createCollider(RAPIER.ColliderDesc.cuboid(RAMP_HALF,0.3,0.04).setTranslation(top.x,top.y+0.25,top.z-0.05))
+   part(r.len/2,0.04,RAMP_HALF,n.clone().multiplyScalar(-0.04),rampMat,0.08)                                       // the slide
+   part(r.len/2,0.16,0.03,new THREE.Vector3(0,0,-(RAMP_HALF-0.03)).add(n.clone().multiplyScalar(0.12)),railMat,0.02) // back rail
+   part(r.len/2,0.16,0.03,new THREE.Vector3(0,0,RAMP_HALF-0.03).add(n.clone().multiplyScalar(0.12)),railMat,0.02)    // front rail
+   // The stop at the outer top, a post holding it up out of the sea, and the glowing mouth the medals come out of.
+   world.createCollider(RAPIER.ColliderDesc.cuboid(0.04,0.3,RAMP_HALF).setTranslation(r.top.x+s*0.05,r.top.y+0.25,RAMP_Z))
+   const post=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.12,r.top.y+2.6,12),railMat);post.position.set(r.top.x-s*0.1,(r.top.y-2.6)/2,RAMP_Z);scene.add(post)
    const mouthMat=new THREE.MeshStandardMaterial({color:'#fff3c0',emissive:'#ffcf3d',emissiveIntensity:.4,metalness:.3,roughness:.4});mouths.push(mouthMat)
-   const mouth=new THREE.Mesh(new THREE.CylinderGeometry(RAMP_HALF*0.9,RAMP_HALF*0.9,0.5,24,1,true),mouthMat);mouth.material.side=THREE.DoubleSide;mouth.rotation.x=Math.PI/2;mouth.position.set(top.x,top.y+0.3,top.z-0.2);scene.add(mouth)})
+   const mouth=new THREE.Mesh(new THREE.CylinderGeometry(RAMP_HALF*0.9,RAMP_HALF*0.9,0.5,24,1,true),mouthMat);mouth.material.side=THREE.DoubleSide;mouth.rotation.z=Math.PI/2;mouth.position.set(r.top.x+s*0.15,r.top.y+0.32,RAMP_Z);scene.add(mouth)})
   fixed(5.2,1.5,0.2,0,1.1,-7.8)                   // back wall
   fixed(5.0,0.5,0.15,0,1.36,-6.55)                // the scraper above the pusher's shelf
   fixed(5.2,0.15,1.3,0,-2.15,7.4,0.9)             // the tray
@@ -345,14 +350,14 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
      else{const side=rampQ[0].length<rampQ[1].length?0:rampQ[1].length<rampQ[0].length?1:m.x<50?0:1;rampQ[side].push(false)}}
     // The slides let them out one at a time: medals slide (and sometimes roll on their edge), balls roll.
     for(const side of [0,1]){const q=rampQ[side];if(!q.length||c.frame-rampLast[side]<(q[0]?18:6))continue
-     const ball=q.shift()!,s=side?1:-1,r=RAMPS[side];rampLast[side]=c.frame;rampGlow[side]=1
-     const b=addCoin(s*(RAMP_X+(Math.random()-.5)*0.16),r.top.y+(ball?BALL:0.12)+0.06,r.top.z+0.25,ball,(Math.random()-.5)*2)
-     b.setLinvel({x:0,y:-r.dir.y*1.2,z:r.dir.z*1.2},true);if(!ball&&Math.random()<0.25)b.setAngvel({x:(Math.random()-.5)*10,y:0,z:0},true);pieces.get(b.handle)!.ramp=side+1}
+     const ball=q.shift()!,s=side?1:-1,r=RAMPS[side],x=s*(RAMP_OUT-0.3);rampLast[side]=c.frame;rampGlow[side]=1
+     const b=addCoin(x,r.at(x)+(ball?BALL:0.12)+0.06,RAMP_Z+(Math.random()-.5)*0.3,ball,(Math.random()-.5)*2)
+     b.setLinvel({x:r.dir.x*1.2,y:r.dir.y*1.2,z:0},true);if(!ball&&Math.random()<0.25)b.setAngvel({x:(Math.random()-.5)*10,y:0,z:0},true);pieces.get(b.handle)!.ramp=side+1}
     // The ball run: each ball speeds up down the track, clicks at each corner, then drops onto the left slide.
     for(let k=ballRuns.length-1;k>=0;k--){const br=ballRuns[k];br.t++;if(br.t<0)continue
      const sd=0.035*br.t*(1+br.t/90),seg=Math.min(RUN.length-2,Math.floor(sd/RUN_LEN*(RUN.length-1)))
      if(seg!==br.seg){br.seg=seg;fx('tick',soundRef.current)}
-     if(sd>=RUN_LEN){ballRuns.splice(k,1);const r=RAMPS[0],b=addCoin(-RAMP_X,r.top.y+BALL+0.06,r.top.z+0.25,true);b.setLinvel({x:0,y:-r.dir.y*2,z:r.dir.z*2},true);rampGlow[0]=1;fx('zap',soundRef.current)}}
+     if(sd>=RUN_LEN){ballRuns.splice(k,1);const r=RAMPS[0],x=-(RAMP_OUT-0.3),b=addCoin(x,r.at(x)+BALL+0.06,RAMP_Z,true);b.setLinvel({x:r.dir.x*2,y:r.dir.y*2,z:0},true);rampGlow[0]=1;fx('zap',soundRef.current)}}
     // The turntable turns, slowly.
     turnAngle+=0.006;turnBody.setNextKinematicRotation({x:0,y:Math.sin(turnAngle/2),z:0,w:Math.cos(turnAngle/2)})
     c=spawned(c)
@@ -382,7 +387,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
     // What fell: off the front is yours, off the sides is lost; a ball off the front goes to the ball lottery.
     // The seesaw catches what comes off the right slide; full (or at the end of a session), it tips it all out.
     for(const [h,p] of pieces){if(p.ramp!==2||p.counted||see.tip>=0||see.n>=SEESAW.full)continue;const t=p.body.translation()
-     if(t.x>3.7&&t.z>SEESAW.z-0.55&&t.z<SEESAW.z+0.5&&t.y<1.35&&t.y>0.55){world.removeRigidBody(p.body);pieces.delete(h);see.n++;fx('tick',soundRef.current)}}
+     if(t.x>3.3&&t.x<4.45&&Math.abs(t.z-SEESAW.z)<0.55&&t.y<1.45&&t.y>0.9){world.removeRigidBody(p.body);pieces.delete(h);see.n++;fx('tick',soundRef.current)}}
     if(see.tip<0&&see.n>0&&(see.n>=SEESAW.full||(c.hand<=0&&!rampQ[1].length)))see.tip=0
     if(see.tip>=0){see.tip++
      if(see.tip===14){for(let k=0;k<see.n;k++){const b=addCoin(SEESAW.x-0.25+(Math.random()-.5)*0.4,SEESAW.y+0.25+k*0.05,SEESAW.z+(Math.random()-.5)*0.6);b.setLinvel({x:-2.6-Math.random(),y:1.2,z:0.6+Math.random()*0.6},true)}

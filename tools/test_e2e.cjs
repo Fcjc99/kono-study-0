@@ -4286,36 +4286,6 @@ test('KONO Medal Cove: a medal pusher: tapping the field drops medals from your 
  await cove.getByText(/You finished with \d+ medals?/).waitFor()
 })
 
-test('Medal Cove machine (prototype): Drop and the slider are outside the view, it keeps the machine on this device to continue, End cashes out once, and no WebGL says so',async({context,page})=>{
- const cloud=fakeCloud()
- await signInAs(context,cloud,'alice')
- const open=async()=>{await page.goto(BASE);await heading(page,'Sanctuary')
-  await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
-  const town=page.getByRole('dialog',{name:'KONO Town'})
-  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
-  await town.getByRole('button',{name:/Medal Cove: the machine/}).click()}
- await open()
- const g=await startGame(page,'🛠️ Medal Cove: the machine (prototype)')
- await page.waitForFunction(()=>!document.querySelector('.cove-loading'),null,{timeout:30000})
- await g.getByLabel('Drop position').fill('-1.5')
- for(let i=0;i<3;i++){await g.getByRole('button',{name:'Drop'}).click();await page.waitForTimeout(200)}
- await g.getByText('Saved on this device only (not synced).',{exact:false}).waitFor()
- await page.waitForFunction(()=>JSON.parse(localStorage.getItem('kono-cove-machine:v1')||'{"hand":60}').hand<60,null,{timeout:10000})
- await open()
- const card=page.getByRole('dialog',{name:/Medal Cove: the machine/})
- await card.getByRole('button',{name:/^Continue my machine \(\d+ medals\)/}).click()
- await card.getByRole('button',{name:'Drop'}).waitFor()
- await card.getByRole('button',{name:'■ End'}).click()
- await card.getByText(/You cashed out \d+ medals?/).waitFor()
- assert.equal(await page.evaluate(()=>localStorage.getItem('kono-cove-machine:v1')),null,'cashing out clears the machine, so nothing is paid twice')
- await page.addInitScript(()=>{const orig=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(t,...a){return /webgl/.test(t)?null:orig.call(this,t,...a)}})
- await open()
- const again=await startGame(page,'🛠️ Medal Cove: the machine (prototype)')
- await again.getByRole('alert').getByText('The medal machine couldn’t start').waitFor({timeout:30000})
- await again.getByRole('button',{name:'Back to the games'}).click()
- await again.getByText('Machine unavailable').waitFor()
-})
-
 test('New arcade games: KONO Stack (a floor set down as it lines up builds the tower, End gives the results) and KONO Bloom (tap to drop seeds into the jar, End gives what you grew)',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
