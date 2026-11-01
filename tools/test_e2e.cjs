@@ -4273,8 +4273,10 @@ test('KONO Medal Cove: a medal pusher: tapping the field drops medals from your 
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
  await town.getByRole('button',{name:/KONO Medal Cove/}).click()
  const cove=await startGame(page,'🪙 KONO Medal Cove')
- const field=cove.getByRole('img',{name:/^KONO Medal Cove: 100 medals/});await field.waitFor()
+ const field=cove.getByRole('img',{name:/^KONO Medal Cove: 100 medals/});await field.waitFor({timeout:30000})
  await cove.getByLabel('Backboard').getByText('JACKPOT').waitFor()
+ // The three bonus wheels, zoomed in under the cabinet.
+ await cove.getByRole('figure',{name:/🏮 wheel/}).waitFor();await cove.getByRole('figure',{name:/⭐ wheel/}).waitFor();await cove.getByRole('figure',{name:/🗼 wheel/}).waitFor()
  // The field's middle, in front of the pusher: a tap there drops a medal.
  const box=await field.boundingBox()
  for(let i=0;i<5;i++){await page.mouse.click(box.x+box.width*(0.35+i*0.07),box.y+box.height*0.55);await page.waitForTimeout(150)}

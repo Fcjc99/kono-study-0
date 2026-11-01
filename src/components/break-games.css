@@ -947,3 +947,39 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
  .bloom-ladder li{min-width:28px;font-size:1.1rem}.bloom-ladder li small{display:none}
  .kono-bloom>.blast-help{display:none}
 }
+/* Medal Cove: the three bonus wheels, zoomed in over the cabinet. They turn with the wheels in the machine;
+   a spinning one lifts and its bulbs chase, and its prize shows under it. */
+.cove-dials{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;padding:8px 8px 6px;border-radius:20px;background:radial-gradient(ellipse at 50% 0,#5a2f86,#2e1650 70%);border:3px solid #f2c230;box-shadow:0 6px 18px rgb(40 10 60/.4),inset 0 0 0 2px rgb(255 255 255/.15)}
+.cove-dial{margin:0;display:grid;justify-items:center;gap:3px;transition:transform .25s ease-out}
+.cove-dial-name{font-size:.72rem;font-weight:900;color:#ffe9a8;letter-spacing:.02em;white-space:nowrap}
+.cove-dial svg{width:min(100%,150px);aspect-ratio:128/132;display:block;filter:drop-shadow(0 4px 6px rgb(0 0 0/.35))}
+.cove-dial .cove-dial-icon{font-size:16px}
+.cove-dial .cove-dial-label{font-size:12px;font-weight:900;fill:#2b1a3a;paint-order:stroke;stroke:#fff;stroke-width:2.5px}
+.cove-dial-bulbs circle{fill:#fff6c8;animation:cove-bulb 1s steps(1) infinite}
+@keyframes cove-bulb{50%{fill:#8a6a20}}
+.cove-dial.is-spinning .cove-dial-bulbs circle{animation-duration:.22s;fill:#fffbe0}
+.cove-dial figcaption{min-height:1.5em;padding:1px 10px;border-radius:999px;font-weight:900;font-size:.85rem;color:#ffe9a8;background:rgb(0 0 0/.25)}
+.cove-dial.is-spinning{transform:scale(1.07)}
+.cove-dial.is-spinning svg{filter:drop-shadow(0 0 12px #ffd34d) drop-shadow(0 4px 6px rgb(0 0 0/.35))}
+.cove-dial.is-won figcaption{background:#ff4d6d;color:#fff;animation:cove-dial-win .5s ease-out}
+.cove-dial.is-c1.is-won figcaption{background:#e0a400}.cove-dial.is-c2.is-won figcaption{background:#2f8fd8}
+@keyframes cove-dial-win{from{transform:scale(1.5)}}
+@media(prefers-reduced-motion:reduce){.cove-dial,.cove-dial.is-won figcaption,.cove-dial-bulbs circle{transition:none;animation:none}}
+@media(max-width:600px){.cove-stage{height:calc(100dvh - 330px)}.cove-dials{padding:6px 4px 4px;gap:2px}.cove-dial-name{font-size:.62rem}.cove-dial figcaption{font-size:.72rem;padding:0 6px}}
+@media(min-width:601px){.cove-stage{height:min(calc(100dvh - 430px),600px);min-height:280px}.cove-dial svg{width:min(100%,136px)}}
+/* Medal Cove's jackpot: the number on the board bumps when it grows; Jackpot Chance gets its banner; a win
+   takes over the screen with a counter that counts up as the medals rain. */
+.cove-jp b.is-bump{display:inline-block;animation:cove-jp-bump .45s ease-out}
+@keyframes cove-jp-bump{30%{transform:scale(1.35);color:#ff2f6d}}
+.cove-chance{position:absolute;z-index:3;left:50%;top:58px;translate:-50% 0;display:grid;justify-items:center;padding:6px 18px;border-radius:16px;background:linear-gradient(#6a3cc4,#3a1d6e);border:3px solid #ffd34d;color:#fff;box-shadow:0 0 22px rgb(255 211 77/.7);pointer-events:none;white-space:nowrap;animation:cove-chance-glow .6s ease-in-out infinite alternate}
+.cove-chance b{font-size:1.25rem;font-weight:900;letter-spacing:.06em;color:#ffe08a;text-shadow:0 2px 0 #7a4a00}
+.cove-chance span{font-size:.8rem;font-weight:800}
+@keyframes cove-chance-glow{to{box-shadow:0 0 36px rgb(255 211 77/1)}}
+.cove-jp-win{position:absolute;z-index:4;inset:0;display:grid;place-content:center;justify-items:center;gap:4px;pointer-events:none;background:radial-gradient(circle at 50% 45%,rgb(255 230 120/.55),rgb(255 120 180/.25) 45%,transparent 70%);animation:cove-jp-in .5s cubic-bezier(.2,1.6,.4,1)}
+.cove-jp-win b{font-size:clamp(2.6rem,13vw,4.6rem);font-weight:900;line-height:1;background:linear-gradient(90deg,#ff5a7a,#ffd34d,#7fe08a,#4fb3ff,#c08aff,#ff5a7a);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:2px #fff;filter:drop-shadow(0 4px 0 rgb(90 30 60/.5));animation:cove-jp-rainbow 1.2s linear infinite,cove-jp-throb .5s ease-in-out infinite alternate}
+.cove-jp-win span{display:flex;align-items:center;gap:6px;padding:4px 18px;border-radius:999px;background:rgb(58 35 22/.88);color:#ffe08a;font-size:2rem;font-weight:900;font-variant-numeric:tabular-nums;border:3px solid #ffd34d}
+.cove-jp-win i{font-style:normal}
+@keyframes cove-jp-in{from{transform:scale(.3);opacity:0}}
+@keyframes cove-jp-rainbow{to{background-position:200% 0}}
+@keyframes cove-jp-throb{to{transform:scale(1.07)}}
+@media(prefers-reduced-motion:reduce){.cove-jp b.is-bump,.cove-chance,.cove-jp-win,.cove-jp-win b{animation:none}}

@@ -21,7 +21,7 @@
  *   every spin and every miss); a miss adds a winning pocket for next time (up to 4) and pays a few medals.
  *
  * Pure apart from the random numbers, so it can be tested. Time is in frames at 60 a second. */
-export type Medal = { id: number; x: number; y: number; vx: number; vy: number; ball?: boolean }
+export type Medal = { id: number; x: number; y: number; vx: number; vy: number; ball?: boolean; high?: boolean }
 export type Reel = '🪙' | '🗼' | '🔮' | '⭐' | '🐚' | '🌺'
 export type Spin = { reels: [Reel, Reel, Reel]; prize: SpinPrize; at: number }
 export type SpinPrize = { kind: 'shower'; n: number } | { kind: 'tower'; n: number } | { kind: 'ball' } | { kind: 'step' } | { kind: 'none' }
@@ -43,6 +43,8 @@ export type Cove = {
   wheels?: ({ seg: number; at: number } | null)[]; wheelQueue?: number[]
   /** The giant tower: medals banked by tower layers, released onto the field by the BIG BONUS. */
   bank?: number
+  /** Medals still to rain into the machine from a prize (with the pin board the prizes are real medals). */
+  rain?: number
   /** FEVER TIME: all three pockets hit within FEVER_WINDOW frames; until `until`, pockets spin their wheel
    * twice (and the cabinet throws a party). `hits` is when each pocket was last hit. */
   fever?: { until: number } | null; hits?: number[]
@@ -79,6 +81,9 @@ const add = (c: Cove, list: Omit<Medal, 'id'>[]): Cove => ({ ...c, medals: [...c
 function shower(c: Cove, n: number, random: () => number): Cove {
   return add(c, Array.from({ length: n }, () => ({ x: 14 + random() * 72, y: c.pusher + 4 + random() * 22, vx: (random() - 0.5) * 0.3, vy: 0.2 + random() * 0.3 })))
 }
+/** Pays `n` medals: straight into the tray (and your hand), or, with the pin board, as real medals that rain
+ * down onto the field from above, a few a frame (`rain`). */
+function pay(c: Cove, n: number): Cove { return c.external ? { ...c, rain: (c.rain ?? 0) + n } : { ...c, won: c.won + n } }
 function ballOnField(c: Cove, random: () => number): Cove { return add(c, [{ x: 30 + random() * 40, y: c.pusher + FIELD.ball + 1, vx: 0, vy: 0.3, ball: true }]) }
 
 /** Drops a medal from your hand at `aim` (0–100). Through the lantern hole it's a check (a spin, up to 4
@@ -212,15 +217,20 @@ export function step(c0: Cove, random: () => number = Math.random, n = 1): Cove 
   if (c.dish && c.frame - c.dish.at >= DISH_FRAMES) {
     const p = DISH[c.dish.pocket].prize
     c = { ...c, dish: null }
-    if (p.kind === 'medals') c = say({ ...c, won: c.won + p.n }, '🔮 Ball lottery: +' + p.n + ' medals')
+    if (p.kind === 'medals') c = say(pay(c, p.n), '🔮 Ball lottery: +' + p.n + ' medals')
     else if (p.kind === 'tower') c = say({ ...c, towers: [...c.towers, { x: 50, n: p.n, at: c.frame }] }, '🔮 Ball lottery: a medal tower!')
     else c = say({ ...c, chanceQueue: c.chanceQueue + 1 }, '🔮 JACKPOT CHANCE!')
   }
   if (!c.chance && c.chanceQueue > 0) c = { ...c, chanceQueue: c.chanceQueue - 1, chance: { pocket: Math.floor(random() * CHANCE_POCKETS), at: c.frame } }
   if (c.chance && c.frame - c.chance.at >= CHANCE_FRAMES) {
     const hit = isWinPocket(c.chance.pocket, c.winPockets)
-    if (hit) c = say({ ...c, chance: null, won: c.won + c.jackpot, jpWins: c.jpWins + 1, jackpot: JP_START, winPockets: 1 }, '🎉 JACKPOT! +' + c.jackpot)
-    else c = say({ ...c, chance: null, won: c.won + 10, jackpot: c.jackpot + 20, winPockets: Math.min(4, c.winPockets + 1) }, 'So close! +10, and a winning pocket is added')
+    if (hit) c = say({ ...pay(c, c.jackpot), chance: null, jpWins: c.jpWins + 1, jackpot: JP_START, winPockets: 1 }, '🎉 JACKPOT! +' + c.jackpot)
+    else c = say({ ...pay(c, 10), chance: null, jackpot: c.jackpot + 20, winPockets: Math.min(4, c.winPockets + 1) }, 'So close! +10, and a winning pocket is added')
+  }
+  // A prize's medals rain from high above the field, two a frame, spread across it.
+  if (c.external && c.rain) {
+    const k = Math.min(c.rain, 2)
+    c = { ...add(c, Array.from({ length: k }, () => ({ x: 10 + random() * 80, y: c.pusher + 4 + random() * 26, vx: 0, vy: 0, high: true }))), rain: c.rain - k }
   }
   if (c.external) return c
   // The pile: the pusher shoves what's in front of it; medals push each other apart and slow down.
@@ -264,7 +274,7 @@ export function step(c0: Cove, random: () => number = Math.random, n = 1): Cove 
 }
 
 /** Busy: a spin, a ball lottery, a chance, a tower or anything still waiting. */
-export const busy = (c: Cove) => !!(c.spinning || c.queue || c.dish || c.dishQueue || c.chance || c.chanceQueue || c.towers.length || c.wheels?.some(Boolean) || c.wheelQueue?.some(n => n > 0))
+export const busy = (c: Cove) => !!(c.rain || c.spinning || c.queue || c.dish || c.dishQueue || c.chance || c.chanceQueue || c.towers.length || c.wheels?.some(Boolean) || c.wheelQueue?.some(n => n > 0))
 
 /** With a physics engine moving the pile: what fell off since last time. Medals off the front are yours
  * (back into your hand), off the sides are lost, and a prize ball off the front goes to the ball lottery. */
