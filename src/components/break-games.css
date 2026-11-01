@@ -947,19 +947,23 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
  .bloom-ladder li{min-width:28px;font-size:1.1rem}.bloom-ladder li small{display:none}
  .kono-bloom>.blast-help{display:none}
 }
-/* Medal Cove: the three bonus wheels, zoomed in under the cabinet. They turn with the wheels in the machine;
-   a spinning one lifts and glows, and its prize shows under it. */
-.cove-dials{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;padding:6px 8px;border-radius:18px;background:linear-gradient(rgb(255 248 236/.95),rgb(255 232 214/.95));border:2px solid #e8a8bd;box-shadow:0 4px 12px rgb(122 59 82/.18)}
-.cove-dial{margin:0;display:grid;justify-items:center;gap:2px;transition:transform .25s}
-.cove-dial svg{width:min(100%,128px);aspect-ratio:1;display:block;filter:drop-shadow(0 3px 4px rgb(90 40 60/.25))}
-.cove-dial .cove-dial-icon{font-size:17px}
-.cove-dial .cove-dial-label{font-size:14px;font-weight:900;fill:#2b1a3a}
-.cove-dial figcaption{min-height:1.4em;padding:0 10px;border-radius:999px;font-weight:900;font-size:.9rem;color:#7a3b52}
-.cove-dial.is-spinning{transform:scale(1.08)}
-.cove-dial.is-spinning svg{filter:drop-shadow(0 0 10px #ffd34d) drop-shadow(0 3px 4px rgb(90 40 60/.25))}
-.cove-dial.is-won figcaption{background:#ff5a7a;color:#fff;animation:cove-dial-win .5s ease-out}
+/* Medal Cove: the three bonus wheels, zoomed in over the cabinet. They turn with the wheels in the machine;
+   a spinning one lifts and its bulbs chase, and its prize shows under it. */
+.cove-dials{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;padding:8px 8px 6px;border-radius:20px;background:radial-gradient(ellipse at 50% 0,#5a2f86,#2e1650 70%);border:3px solid #f2c230;box-shadow:0 6px 18px rgb(40 10 60/.4),inset 0 0 0 2px rgb(255 255 255/.15)}
+.cove-dial{margin:0;display:grid;justify-items:center;gap:3px;transition:transform .25s ease-out}
+.cove-dial-name{font-size:.72rem;font-weight:900;color:#ffe9a8;letter-spacing:.02em;white-space:nowrap}
+.cove-dial svg{width:min(100%,150px);aspect-ratio:128/132;display:block;filter:drop-shadow(0 4px 6px rgb(0 0 0/.35))}
+.cove-dial .cove-dial-icon{font-size:16px}
+.cove-dial .cove-dial-label{font-size:12px;font-weight:900;fill:#2b1a3a;paint-order:stroke;stroke:#fff;stroke-width:2.5px}
+.cove-dial-bulbs circle{fill:#fff6c8;animation:cove-bulb 1s steps(1) infinite}
+@keyframes cove-bulb{50%{fill:#8a6a20}}
+.cove-dial.is-spinning .cove-dial-bulbs circle{animation-duration:.22s;fill:#fffbe0}
+.cove-dial figcaption{min-height:1.5em;padding:1px 10px;border-radius:999px;font-weight:900;font-size:.85rem;color:#ffe9a8;background:rgb(0 0 0/.25)}
+.cove-dial.is-spinning{transform:scale(1.07)}
+.cove-dial.is-spinning svg{filter:drop-shadow(0 0 12px #ffd34d) drop-shadow(0 4px 6px rgb(0 0 0/.35))}
+.cove-dial.is-won figcaption{background:#ff4d6d;color:#fff;animation:cove-dial-win .5s ease-out}
 .cove-dial.is-c1.is-won figcaption{background:#e0a400}.cove-dial.is-c2.is-won figcaption{background:#2f8fd8}
 @keyframes cove-dial-win{from{transform:scale(1.5)}}
-@media(prefers-reduced-motion:reduce){.cove-dial,.cove-dial.is-won figcaption{transition:none;animation:none}}
-@media(max-width:600px){.cove-stage{height:calc(100dvh - 300px)}.cove-dial svg{width:min(100%,104px)}}
-@media(min-width:601px){.cove-stage{height:min(calc(100dvh - 400px),600px);min-height:280px}.cove-dial svg{width:min(100%,112px)}}
+@media(prefers-reduced-motion:reduce){.cove-dial,.cove-dial.is-won figcaption,.cove-dial-bulbs circle{transition:none;animation:none}}
+@media(max-width:600px){.cove-stage{height:calc(100dvh - 330px)}.cove-dials{padding:6px 4px 4px;gap:2px}.cove-dial-name{font-size:.62rem}.cove-dial figcaption{font-size:.72rem;padding:0 6px}}
+@media(min-width:601px){.cove-stage{height:min(calc(100dvh - 430px),600px);min-height:280px}.cove-dial svg{width:min(100%,136px)}}

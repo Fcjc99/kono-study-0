@@ -61,7 +61,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   // ---- Renderer, camera, light and glow ----
   const small=el.clientWidth<600
   const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance',stencil:false,depth:true})
-  renderer.setPixelRatio(Math.min(small?1.5:2,window.devicePixelRatio||1));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap
+  renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap
   renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05
   el.appendChild(renderer.domElement);renderer.domElement.setAttribute('aria-hidden','true')
   const scene=new THREE.Scene();scene.background=skyTexture();scene.fog=new THREE.Fog('#d9efff',22,40)
@@ -171,7 +171,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   // The three mini wheels on top of the pin board, one for each pocket, in its colors.
   const WHEEL_X=[-2.35,0,2.35],WHEEL_Y=BTOP+1.05
   const miniWheels=WHEELS.map((segs,i)=>{const g=new THREE.Group();g.position.set(WHEEL_X[i],WHEEL_Y,BZ-0.05);scene.add(g)
-   const disc=new THREE.Mesh(new THREE.CircleGeometry(0.62,48),new THREE.MeshStandardMaterial({map:wheelSegTexture(segs,i),emissive:'#ffffff',emissiveMap:wheelSegTexture(segs,i),emissiveIntensity:.35,roughness:.5}));g.add(disc)
+   const disc=new THREE.Mesh(new THREE.CircleGeometry(0.62,64),new THREE.MeshStandardMaterial({map:wheelSegTexture(segs,i),emissive:'#ffffff',emissiveMap:wheelSegTexture(segs,i),emissiveIntensity:.35,roughness:.5}));g.add(disc)
    const rim=new THREE.Mesh(new THREE.TorusGeometry(0.64,0.05,8,40),new THREE.MeshStandardMaterial({color:'#ffe08a',metalness:.9,roughness:.25,emissive:'#ffb000',emissiveIntensity:.4}));g.add(rim)
    const hub=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,0.08,16),new THREE.MeshStandardMaterial({color:'#fff',metalness:.8,roughness:.2}));hub.rotation.x=Math.PI/2;hub.position.z=0.03;g.add(hub)
    const tick=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.22,12),new THREE.MeshStandardMaterial({color:'#fff',emissive:'#ff5a7a',emissiveIntensity:1.5}));tick.rotation.z=Math.PI;tick.position.set(0,0.74,0.05);g.add(tick)
@@ -431,6 +431,9 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
 
  useEffect(()=>{if(!hud.event)return;const t=window.setTimeout(()=>setHud(h=>({...h,event:''})),2200);return()=>window.clearTimeout(t)},[hud.event])
  return <div className="break-game medal-cove">
+  <div className="cove-dials" aria-label="Bonus wheels">
+   {WHEELS.map((segs,i)=><WheelDial key={i} i={i} segs={segs} state={dials[i]} turn={el=>{dialEls.current[i]=el}}/>)}
+  </div>
   <div ref={host} className="cove-stage" role="img" aria-label={'KONO Medal Cove: '+hud.hand+' medals, jackpot '+hud.jp}>
    <div className="cove-board" aria-label="Backboard">
    <div className="cove-steps" aria-label={hud.steps+' of '+LAMPS+' lamps'}>{Array.from({length:LAMPS},(_,i)=><i key={i} className={i<hud.steps?'is-on':undefined}/>)}<small>💡 lamps</small></div>
@@ -447,19 +450,6 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
    {pops.map(p=><b key={p.id} className={'cove-pop is-'+p.kind.replace(/\d/,'')+(p.kind.match(/\d/)?' is-c'+p.kind.match(/\d/)![0]:'')} style={{left:p.x+'%',top:p.y+'%'}} aria-hidden="true">{p.text}</b>)}
    <button type="button" className="cove-view" aria-label="Change the camera" onClick={()=>setView(v=>(v+1)%VIEWS.length)}>🎥</button>
    <span className="cove-hand" aria-hidden="true">🪙 {hud.hand}</span>
-  </div>
-  <div className="cove-dials" aria-label="Bonus wheels">
-   {WHEELS.map((segs,i)=>{const d=dials[i];return <figure key={i} className={'cove-dial is-c'+i+(d.spin?' is-spinning':'')+(d.prize?' is-won':'')} aria-label={POCKET_FACE[i]+' wheel'+(d.spin?', spinning':d.prize?', won '+d.prize:'')}>
-    <svg viewBox="-60 -60 120 120" aria-hidden="true">
-     <g ref={el=>{dialEls.current[i]=el}}>{segs.map((sg,k)=>{const a0=(k-0.5)*Math.PI/4-Math.PI/2,a1=a0+Math.PI/4,am=(a0+a1)/2
-      return <g key={k}><path d={'M0 0L'+(52*Math.cos(a0)).toFixed(2)+' '+(52*Math.sin(a0)).toFixed(2)+'A52 52 0 0 1 '+(52*Math.cos(a1)).toFixed(2)+' '+(52*Math.sin(a1)).toFixed(2)+'Z'} fill={segColor(sg.kind,i,k)} stroke="#5a3a24" strokeWidth="1.5"/>
-       <text className="cove-dial-icon" x={(37*Math.cos(am)).toFixed(2)} y={(37*Math.sin(am)).toFixed(2)} transform={'rotate('+(am*180/Math.PI+90).toFixed(1)+' '+(37*Math.cos(am)).toFixed(2)+' '+(37*Math.sin(am)).toFixed(2)+')'} textAnchor="middle" dominantBaseline="middle">{segIcon(sg.kind)}</text>
-       {(sg.kind==='medals'||sg.kind==='layers')&&<text className="cove-dial-label" x={(21*Math.cos(am)).toFixed(2)} y={(21*Math.sin(am)).toFixed(2)} transform={'rotate('+(am*180/Math.PI+90).toFixed(1)+' '+(21*Math.cos(am)).toFixed(2)+' '+(21*Math.sin(am)).toFixed(2)+')'} textAnchor="middle" dominantBaseline="middle">{'+'+sg.n}</text>}</g>})}</g>
-     <circle r="53" fill="none" stroke="#ffe08a" strokeWidth="4"/><circle r="8" fill="#fff" stroke="#c9a14a" strokeWidth="2"/>
-     <path d="M-7 -62 L7 -62 L0 -48 Z" fill="#ff5a7a" stroke="#fff" strokeWidth="1.5"/>
-    </svg>
-    <figcaption>{d.prize||POCKET_FACE[i]}</figcaption>
-   </figure>})}
   </div>
   <p className="blast-help">Touch to aim along the top of the pin board and tap to drop (hold to keep dropping). Medals bounce down the pins into a pocket, and its mini wheel spins: medals, giant-tower layers, a prize ball, a lamp or a lottery spin. Light all 5 lamps for the BIG BONUS: the giant tower comes down! Drag around the edges to look around.</p>
  </div>
@@ -504,16 +494,45 @@ function boardTexture(){const [c,g]=canvas(1024,384)
 function emojiTexture(e:string){const [c,g]=canvas(128,128);g.font='96px system-ui,"Apple Color Emoji","Noto Color Emoji"';g.textAlign='center';g.textBaseline='middle';g.fillText(e,64,70)
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
 function stripeTexture(){const [c,g]=canvas(64,256);for(let i=0;i<8;i++){g.fillStyle=i%2?'#f6f1e7':'#d8443a';g.fillRect(0,i*32,64,32)}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
-function wheelSegTexture(segs:{label:string;kind:string}[],w:number){const [c,g]=canvas(256,256),n=segs.length,cx=128,cy=128,r=126
+function wheelSegTexture(segs:{label:string;kind:string}[],w:number){const [c,g]=canvas(512,512),n=segs.length,cx=256,cy=256,r=252
  const pal=[['#ff6b5e','#ffb3a8'],['#ffd34d','#fff0b8'],['#4fb3ff','#b9e2ff']][w]
  segs.forEach((sg,k)=>{const a0=-Math.PI/2+k*2*Math.PI/n-Math.PI/n,a1=a0+2*Math.PI/n
-  g.fillStyle=sg.kind==='lamp'?'#fff3a0':sg.kind==='ball'?'#c8a8ff':sg.kind==='layers'?'#9fe0ff':pal[k%2];g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,r,a0,a1);g.closePath();g.fill();g.strokeStyle='#5a3a24';g.lineWidth=3;g.stroke()
-  g.save();g.translate(cx,cy);g.rotate((a0+a1)/2+Math.PI/2);g.fillStyle='#2b1a3a';g.font='bold '+(sg.label.length>6?15:20)+'px system-ui';g.textAlign='center'
-  g.fillText(sg.kind==='lamp'?'💡':sg.kind==='ball'?'🔮':sg.kind==='spin'?'🎰':sg.kind==='layers'?'🗼':'🪙',0,-r+30);g.fillText(sg.label.replace(' layers',' L').replace(' layer',' L'),0,-r+54);g.restore()})
- const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+  g.fillStyle=sg.kind==='lamp'?'#fff3a0':sg.kind==='ball'?'#c8a8ff':sg.kind==='layers'?'#9fe0ff':pal[k%2];g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,r,a0,a1);g.closePath();g.fill();g.strokeStyle='#5a3a24';g.lineWidth=6;g.stroke()
+  g.save();g.translate(cx,cy);g.rotate((a0+a1)/2+Math.PI/2);g.fillStyle='#2b1a3a';g.font='900 '+(sg.label.length>6?34:42)+'px system-ui';g.textAlign='center'
+  g.fillText(sg.kind==='lamp'?'💡':sg.kind==='ball'?'🔮':sg.kind==='spin'?'🎰':sg.kind==='layers'?'🗼':'🪙',0,-r+66);g.fillText(sg.label.replace(' layers',' L').replace(' layer',' L'),0,-r+118);g.restore()})
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t}
 const ASPECT:Record<string,number>={'lantern-post':117/192,'lantern-post-night':117/192,'paper-lanterns':192/151,'light-arch':256/236,'tree-blossom':253/256,'tree-leafy':227/256,'flowers-1':99/49,'flowers-2':112/61,'flowers-3':100/58,'flowers-4':110/64,'shell':72/56,'petal-1':36/48,'petal-2':43/48,'sparkle':1,'cloud-a':209/67,'cloud-b':220/70,'butterfly':60/33,'butterfly-2':42/33,'bird':63/42}
 function skyTexture(){const [c,g]=canvas(16,256);const grad=g.createLinearGradient(0,0,0,256);grad.addColorStop(0,'#a9dcff');grad.addColorStop(.55,'#d9efff');grad.addColorStop(1,'#ffe9f2');g.fillStyle=grad;g.fillRect(0,0,16,256);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
 const segIcon=(kind:string)=>kind==='lamp'?'💡':kind==='ball'?'🔮':kind==='spin'?'🎰':kind==='layers'?'🗼':'🪙'
 function segColor(kind:string,w:number,k:number){const pal=[['#ff6b5e','#ffb3a8'],['#ffd34d','#fff0b8'],['#4fb3ff','#b9e2ff']][w]
  return kind==='lamp'?'#fff3a0':kind==='ball'?'#c8a8ff':kind==='layers'?'#9fe0ff':pal[k%2]}
 function prizeText(seg:{kind:string;n?:number}){return seg.kind==='medals'?'+'+seg.n+' 🪙':seg.kind==='layers'?'+'+seg.n+' 🗼':seg.kind==='ball'?'🔮 Ball!':seg.kind==='lamp'?'💡 Lamp!':'🎰 Spin!'}
+
+/** One bonus wheel, zoomed in: glossy segments (icon and amount on each), a gold rim of bulbs that chase
+ * (fast while it spins), the pointer at the top, and its pocket and last prize under it. The rotating
+ * group (`turn`) is turned by the game's loop to match the wheel in the machine. */
+const POCKET_NAME=['Lottery wheel','Lamp wheel','Tower wheel']
+function WheelDial({i,segs,state,turn}:{i:number;segs:{label:string;kind:string;n:number}[];state:{spin:boolean;prize:string;kind:string};turn:(el:SVGGElement|null)=>void}){
+ const R=50,seg=(k:number)=>{const a0=(k-0.5)*Math.PI/4-Math.PI/2,a1=a0+Math.PI/4;return {a0,a1,am:(a0+a1)/2}}
+ const at=(r:number,a:number)=>(r*Math.cos(a)).toFixed(2)+' '+(r*Math.sin(a)).toFixed(2)
+ const spoke=(r:number,a:number,deg:number)=>({x:(r*Math.cos(a)).toFixed(2),y:(r*Math.sin(a)).toFixed(2),transform:'rotate('+deg.toFixed(1)+' '+at(r,a)+')'})
+ return <figure className={'cove-dial is-c'+i+(state.spin?' is-spinning':'')+(state.prize&&!state.spin?' is-won':'')} aria-label={POCKET_FACE[i]+' wheel'+(state.spin?', spinning':state.prize?', won '+state.prize:'')}>
+  <b className="cove-dial-name"><span aria-hidden="true">{POCKET_FACE[i]}</span> {POCKET_NAME[i]}</b>
+  <svg viewBox="-64 -68 128 132" aria-hidden="true">
+   <defs>
+    <radialGradient id={'cove-shine-'+i} cx="35%" cy="28%" r="75%"><stop offset="0" stopColor="#fff" stopOpacity=".55"/><stop offset=".45" stopColor="#fff" stopOpacity=".08"/><stop offset="1" stopColor="#000" stopOpacity=".18"/></radialGradient>
+    <linearGradient id={'cove-rim-'+i} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff3b8"/><stop offset=".5" stopColor="#f2c230"/><stop offset="1" stopColor="#b8860b"/></linearGradient>
+   </defs>
+   <circle r="61" fill={'url(#cove-rim-'+i+')'} stroke="#7a5200" strokeWidth="1.5"/>
+   <g ref={turn}>{segs.map((sg,k)=>{const {a0,a1,am}=seg(k),deg=am*180/Math.PI+90
+    return <g key={k}><path d={'M0 0L'+at(R,a0)+'A'+R+' '+R+' 0 0 1 '+at(R,a1)+'Z'} fill={segColor(sg.kind,i,k)} stroke="#fff" strokeWidth="1.6"/>
+     <text className="cove-dial-icon" {...spoke(38,am,deg)} textAnchor="middle" dominantBaseline="central">{segIcon(sg.kind)}</text>
+     {(sg.kind==='medals'||sg.kind==='layers')&&<text className="cove-dial-label" {...spoke(23,am,am*180/Math.PI)} textAnchor="middle" dominantBaseline="central">{'+'+sg.n}</text>}</g>})}</g>
+   <circle r={R} fill={'url(#cove-shine-'+i+')'} pointerEvents="none"/>
+   <g className="cove-dial-bulbs">{Array.from({length:16},(_,k)=><circle key={k} cx={(56*Math.cos(k*Math.PI/8)).toFixed(2)} cy={(56*Math.sin(k*Math.PI/8)).toFixed(2)} r="2.6" style={{animationDelay:(k%2?-0.5:0)+'s'}}/>)}</g>
+   <circle r="9" fill="#fff" stroke="#c9a14a" strokeWidth="2.5"/><circle r="4" fill="#f2c230"/>
+   <path d="M-9 -67 L9 -67 L0 -45 Z" fill="#ff4d6d" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/>
+  </svg>
+  <figcaption>{state.spin?'Spinning…':state.prize||'Drop into '+POCKET_FACE[i]}</figcaption>
+ </figure>
+}
