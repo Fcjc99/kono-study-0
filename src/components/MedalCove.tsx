@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import {RoomEnvironment} from 'three/examples/jsm/environments/RoomEnvironment.js'
 import RAPIER from '@dimforge/rapier3d-compat'
 import {BloomEffect,EffectComposer,EffectPass,RenderPass,SMAAEffect} from 'postprocessing'
-import {BANK_START,CHANCE_POCKETS,DISH,FIELD,LAMPS,POCKETS,inFever,WHEELS,WHEEL_FRAMES,busy,drop,isWinPocket,newCove,pocket,settle,spawned,step,type Cove,type Reel} from '../store/pusher'
+import {BANK_START,CHANCE_POCKETS,DISH,FIELD,LAMPS,LAYER,POCKETS,inFever,WHEELS,WHEEL_FRAMES,busy,drop,isWinPocket,newCove,pocket,settle,spawned,step,type Cove,type Reel} from '../store/pusher'
 import {gameSound} from '../konoSounds'
 import {fx} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
@@ -40,9 +40,10 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
  const [fail,setFail]=useState<CoveFailure|null>(null),[tries,setTries]=useState(0)
  const [start]=useState<Cove>(()=>newCove(Math.random,100,true))
  const cove=useRef<Cove>(start),host=useRef<HTMLDivElement>(null),aim=useRef(50),holding=useRef(false),lastDrop=useRef(0)
- const [hud,setHud]=useState({hand:start.hand,jp:start.jackpot,steps:0,pockets:1,queue:0,event:'',big:false,bank:BANK_START,reels:['🌺','🌺','🌺'] as string[],spinning:false,ready:false})
+ const [hud,setHud]=useState({hand:start.hand,jp:start.jackpot,steps:0,pockets:1,queue:0,event:'',big:false,bank:BANK_START,reels:['🌺','🌺','🌺'] as string[],spinning:false,ready:false,chance:false})
  const [pops,setPops]=useState<{id:number;text:string;x:number;y:number;kind:string}[]>([]),popId=useRef(0)
  const [fever,setFever]=useState(0)
+ const [jpWin,setJpWin]=useState<number|null>(null),jpCount=useRef<HTMLElement>(null)
  // The zoomed-in wheels under the cabinet: each turns with its wheel; a spin lights it up and its prize shows.
  const dialEls=useRef<(SVGGElement|null)[]>([])
  const [dials,setDials]=useState(()=>[0,1,2].map(()=>({spin:false,prize:'',kind:'',at:0})))
@@ -118,8 +119,13 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   const dishBall=new THREE.Mesh(new THREE.SphereGeometry(0.2,24,16),new THREE.MeshPhysicalMaterial({color:'#9d6bff',roughness:.15,clearcoat:1,emissive:'#5a2fd0',emissiveIntensity:.8}));dishGroup.add(dishBall)
   const wheelGroup=new THREE.Group();bonus.add(wheelGroup)
   const wheelTex={tex:new THREE.CanvasTexture(document.createElement('canvas')),pockets:-1}
-  const wheel=new THREE.Mesh(new THREE.CylinderGeometry(2.3,2.3,0.25,64),[new THREE.MeshStandardMaterial({color:'#3a1d6e'}),new THREE.MeshStandardMaterial({map:wheelTex.tex,emissive:'#ffffff',emissiveMap:wheelTex.tex,emissiveIntensity:.25}),new THREE.MeshStandardMaterial({color:'#3a1d6e'})]);wheel.rotation.x=Math.PI/2;wheelGroup.add(wheel)
+  const wheel=new THREE.Mesh(new THREE.CylinderGeometry(2.3,2.3,0.25,64),[new THREE.MeshStandardMaterial({color:'#f2c230',metalness:.8,roughness:.3}),new THREE.MeshBasicMaterial({map:wheelTex.tex,toneMapped:false,color:'#d8d8d8'}),new THREE.MeshStandardMaterial({color:'#3a1d6e'})]);wheel.rotation.x=Math.PI/2;wheelGroup.add(wheel)
   const pointer=new THREE.Mesh(new THREE.ConeGeometry(0.22,0.5,16),new THREE.MeshStandardMaterial({color:'#fff',emissive:'#ffd34d',emissiveIntensity:1.5}));pointer.rotation.z=Math.PI;pointer.position.set(0,2.55,0.2);wheelGroup.add(pointer)
+  // A ring of bulbs round the Jackpot Chance wheel that chase while it spins and flash on the result.
+  const JP_BULBS=28,jpBulbs=new THREE.InstancedMesh(new THREE.SphereGeometry(0.09,10,8),new THREE.MeshBasicMaterial({color:'#ffffff',toneMapped:false}),JP_BULBS)
+  for(let k=0;k<JP_BULBS;k++){const a=k/JP_BULBS*Math.PI*2;jpBulbs.setMatrixAt(k,new THREE.Matrix4().setPosition(Math.cos(a)*2.48,Math.sin(a)*2.48,0.18));jpBulbs.setColorAt(k,new THREE.Color(1,1,1))}
+  wheelGroup.add(jpBulbs)
+  const jpRim=new THREE.Mesh(new THREE.TorusGeometry(2.42,0.1,10,64),new THREE.MeshStandardMaterial({color:'#ffd34d',metalness:.9,roughness:.25,emissive:'#7a4a00',emissiveIntensity:.5}));jpRim.position.z=0.13;wheelGroup.add(jpRim)
   dishGroup.visible=false;wheelGroup.visible=false
   // ---- The show: marquee bulbs, the lighthouse and its lamps, KONO on the dock, sparkles ----
   const show={shake:0,party:0}
@@ -179,6 +185,8 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   // The giant tower: a column of medals behind the board that grows with every layer won.
   const GIANT_MAX=60
   const giant=new THREE.InstancedMesh(new THREE.CylinderGeometry(R*1.25,R*1.25,HALF*2.2,26),new THREE.MeshStandardMaterial({color:'#ffd24a',metalness:1,roughness:.3,map:coinFace(),envMapIntensity:1.4,emissive:'#4a3000',emissiveIntensity:.25}),GIANT_MAX);giant.castShadow=true;scene.add(giant)
+  const flyMesh=new THREE.InstancedMesh(giant.geometry,giant.material,48);flyMesh.frustumCulled=false;scene.add(flyMesh)
+  const LAYER_TINT=[new THREE.Color(1,1,1),new THREE.Color(1,0.74,0.7),new THREE.Color(0.86,1,0.86),new THREE.Color(0.9,0.86,1)]
   const giantBase=new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.72,0.2,24),new THREE.MeshStandardMaterial({color:'#2f6fb3',roughness:.4}));giantBase.position.set(0,BTOP+1.85,BZ-0.6);scene.add(giantBase)
   // ---- The physics world ----
   const world=new RAPIER.World({x:0,y:-22,z:0})
@@ -227,6 +235,12 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   let slow=1,cine:{at:number;bank:number;released:boolean}|null=null
   // The giant tower as drawn: it grows a medal at a time toward what's banked, swaying as each one lands.
   let giantShown=Math.min(60,Math.round(BANK_START/2)),giantWhole=Math.floor(giantShown),sway=0
+  // Tower layers arrive as medals flying in an arc from the wheel that won them to the top of the tower;
+  // the tower only grows as each one lands (`giantHave`, one drawn medal for every two banked).
+  let giantHave=Math.round(BANK_START/2),bankSeen=BANK_START,bankOwed=0,layerFrom=2
+  const fliers:{from:THREE.Vector3;t:number}[]=[]
+  // A jackpot win: the big counter counts up while it rains medals and fireworks go off.
+  let jpAt=-1,jpAmount=0
   const wheelSeg=[-1,-1,-1],chanceTick={last:-1}
   // ---- Touch ----
   const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3()
@@ -261,7 +275,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
     let c=step(before)
     if(holding.current&&now-lastDrop.current>200&&c.hand>0){c=drop(c,aim.current);lastDrop.current=now}
     // Put what the rules dropped into the machine: medals fall from the chute, showers rain over the field.
-    for(const m of c.medals){if(m.y<0)addCoin(Math.max(-4.5,Math.min(4.5,wx(m.x)+(Math.random()-.5)*0.08)),BTOP+0.3,BZ,false,(Math.random()-.5)*3,true);else addCoin(wx(m.x),1.6+Math.random()*1.4,wz(m.y),!!m.ball,(Math.random()-.5)*4)}
+    for(const m of c.medals){if(m.y<0)addCoin(Math.max(-4.5,Math.min(4.5,wx(m.x)+(Math.random()-.5)*0.08)),BTOP+0.3,BZ,false,(Math.random()-.5)*3,true);else if(m.high)addCoin(wx(m.x),5.5+Math.random()*2.5,wz(m.y),false,(Math.random()-.5)*8);addCoin(wx(m.x),1.6+Math.random()*1.4,wz(m.y),!!m.ball,(Math.random()-.5)*4)}
     c=spawned(c)
     // A tower stands as a real stack, a little in front of the pusher, until it's knocked over.
     const evNow=c.events[c.events.length-1]
@@ -298,7 +312,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
      if(/BIG BONUS/.test(ev.text)){show.party=300;buzz([60,40,60,40,200]);pop('BIG BONUS!',0,BTOP+2.6,BZ,'big');fx('fanfare',soundRef.current)}
      else if(/FEVER/.test(ev.text)){show.party=180;emit(0,BTOP,BZ+1,160,CONFETTI,4);pop('🌈 FEVER TIME!',0,BTOP-0.5,BZ+0.5,'big');buzz([40,30,40,30,120]);fx('blaze',soundRef.current)}
      else if(/COMBO/.test(ev.text)){const m=/×(\d+)/.exec(ev.text);pop('COMBO ×'+(m?.[1]??''),0,BTOP-1,BZ+0.5,'combo');fx('mult',soundRef.current)}
-     if(/JACKPOT[!]/.test(ev.text)){show.party=360;show.shake=1.4;emit(0,3,0,300,CONFETTI,6);pop('🎉 JACKPOT!!',0,2,1,'big');buzz([100,50,100,50,300])}
+     if(/JACKPOT[!]/.test(ev.text)){show.party=420;show.shake=1.6;emit(0,3,0,300,CONFETTI,6);buzz([100,50,100,50,300,80,300]);jpAt=c.frame;jpAmount=Number(/\+(\d+)/.exec(ev.text)?.[1]??0);setJpWin(jpAmount)}
      else if(/So close/.test(ev.text))pop('So close…',0,2,1,'')
      if(/CHANCE/.test(ev.text)&&!/FEVER/.test(ev.text)){show.party=120;emit(0,2.5,0,90,CONFETTI,3.5)}else if(/shower/i.test(ev.text))emit(0,3,-1,60,GOLD,3);if(/JACKPOT!/.test(ev.text)){fx('mega',soundRef.current);gameSound('win',soundRef.current)}else if(/CHANCE|tower|shower|ball/i.test(ev.text))fx('fanfare',soundRef.current)}
     if(c.spinning&&!before.spinning)fx('charge',soundRef.current)
@@ -325,7 +339,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
      const under=Math.round(w.angle/(Math.PI/4));if(under!==wheelSeg[i]&&t<1){wheelSeg[i]=under;fx('tick',soundRef.current)}}
     if(w.seg>=0&&t>=1){if(!sp)w.angle=w.end;w.flash=1;emit(WHEEL_X[i],WHEEL_Y,BZ+0.3,40,POCKET_SPARK[i],2.6);const seg=WHEELS[i][w.seg];w.seg=-1;fx(seg.kind==='lamp'||seg.kind==='ball'?'star':'ding',soundRef.current)
      pop(seg.kind==='medals'?'+'+seg.n+' 🪙':seg.kind==='layers'?'+'+seg.n+' 🗼 '+(seg.n===1?'LAYER':'LAYERS'):seg.kind==='ball'?'🔮 BALL!':seg.kind==='lamp'?'💡 LAMP!':'🎰 SPIN!',WHEEL_X[i],WHEEL_Y+0.5,BZ,'prize'+i)
-     setDials(d=>d.map((x,k)=>k===i?{spin:false,prize:prizeText(seg),kind:seg.kind,at:f}:x))}
+     if(seg.kind==='layers')layerFrom=i;setDials(d=>d.map((x,k)=>k===i?{spin:false,prize:prizeText(seg),kind:seg.kind,at:f}:x))}
     else if(!sp&&w.seg<0)w.angle+=0.004
     w.disc.rotation.z=w.angle;dialEls.current[i]?.setAttribute('transform','rotate('+(-w.angle*180/Math.PI).toFixed(2)+')');w.flash=Math.max(0,w.flash-0.02);(w.rim.material as THREE.MeshStandardMaterial).emissiveIntensity=0.4+w.flash*3+(sp?0.6*Math.abs(Math.sin(f/4)):0)
     if(!sp&&w.flash<0.02)w.flash=0})
@@ -334,8 +348,13 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
    // topples forward like a falling pole (slowly, then fast), and at the end every medal in it pours out as a
    // real medal onto the field.
    const ct=cine?f-cine.at:-1
-   if(!cine||cine.released){const want=Math.min(GIANT_MAX,Math.round((c.bank??BANK_START)/2))
-    if(giantShown<want){giantShown=Math.min(want,giantShown+0.12);if(Math.floor(giantShown)!==giantWhole){giantWhole=Math.floor(giantShown);sway=Math.min(1,sway+0.5);if(giantWhole%2===0)fx('tick',soundRef.current)}}
+   if(!cine||cine.released){
+    // New layers banked: send their medals flying, a few frames apart.
+    const bank=c.bank??BANK_START
+    if(bank>bankSeen){bankOwed+=bank-bankSeen;const n=Math.floor(bankOwed/2);bankOwed-=n*2;for(let k=0;k<n;k++)fliers.push({from:new THREE.Vector3(WHEEL_X[layerFrom],WHEEL_Y,BZ+0.15),t:-k*5-fliers.length*0})}
+    bankSeen=bank
+    const want=Math.min(GIANT_MAX,giantHave)
+    if(giantShown<want){giantShown=Math.min(want,giantShown+0.3);if(Math.floor(giantShown)!==giantWhole){giantWhole=Math.floor(giantShown);sway=Math.min(1,sway+0.5);if(giantWhole%2===0)fx('tick',soundRef.current)}}
     else if(giantShown>want){giantShown=want;giantWhole=Math.floor(want)}}
    sway*=0.94
    const whole=Math.floor(giantShown),part=giantShown-whole,gn=Math.min(GIANT_MAX,whole+(part>0?1:0))
@@ -352,7 +371,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
       addCoin(p.x+(Math.random()-.5)*0.5,p.y+(Math.random()-.5)*0.2,Math.max(BZ+0.5,p.z+(Math.random()-.5)*0.3),false,(Math.random()-.5)*6)
       const body=[...pieces.values()].pop()?.body;body?.setLinvel({x:(Math.random()-.5)*1.5,y:v.y,z:v.z},true)}
      emit(0,BTOP,BZ+1.5,160,GOLD,4);show.shake=1.4;buzz([120,40,200]);fx('boom',soundRef.current)
-     giantShown=0;giantWhole=0}}
+     giantShown=0;giantWhole=0;giantHave=0;bankSeen=0;bankOwed=0;fliers.length=0}}
    const spin=new THREE.Quaternion(),tip=new THREE.Quaternion().setFromEuler(new THREE.Euler(tilt,0,lean+Math.sin(f*0.3)*sway*0.025))
    const showTower=!(cine&&cine.released&&ct<TOPPLE_AT+120)||giantShown>0
    const drawn=showTower?gn:0
@@ -362,10 +381,24 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
     const local=new THREE.Vector3(Math.cos(i*0.5)*0.04,i*0.124+drop,Math.sin(i*0.5)*0.04).applyQuaternion(tip)
     spin.setFromEuler(new THREE.Euler(0,i*0.4,0));m4.compose(v3.set(local.x,baseY+local.y,baseZ+local.z),q.copy(tip).multiply(spin),s3);giant.setMatrixAt(i,m4)}
    giant.count=drawn;giant.instanceMatrix.needsUpdate=true
+   // Each layer in its own tint, so you can see the tower's layers; it glows more the taller it gets.
+   for(let i=0;i<drawn;i++)giant.setColorAt(i,LAYER_TINT[Math.floor(i*2/LAYER)%LAYER_TINT.length]);if(giant.instanceColor)giant.instanceColor.needsUpdate=true
+   ;(giant.material as THREE.MeshStandardMaterial).emissiveIntensity=0.2+Math.min(0.9,giantHave/50)*(0.8+0.2*Math.sin(f/7))
+   // The flying medals: up from the wheel in an arc, tumbling, onto the top. Each landing grows the tower.
+   let nFly=0
+   const topY=baseY+giantHave*0.124+0.2
+   for(let k=fliers.length-1;k>=0;k--){const fly=fliers[k];fly.t++;if(fly.t<0)continue
+    const p=Math.min(1,fly.t/26),e=p*p*(3-2*p)
+    if(p>=1){fliers.splice(k,1);if(cine&&!cine.released)continue;giantHave++;sway=Math.min(1,sway+0.4);emit(0,topY,baseZ+0.2,5,GOLD,1.2);fx('tick',soundRef.current)
+     if(giantHave*2%20===0){pop('🗼 '+giantHave*2+'!',0,topY+0.6,baseZ+0.4,'prize2');emit(0,topY,baseZ+0.3,40,GOLD,2.8);fx('star',soundRef.current)}
+     continue}
+    if(nFly>=48)continue
+    m4.compose(v3.set(fly.from.x*(1-e),fly.from.y+(topY-fly.from.y)*e+Math.sin(p*Math.PI)*1.8,fly.from.z+(baseZ-fly.from.z)*e+Math.sin(p*Math.PI)*0.5),q.setFromEuler(new THREE.Euler(p*9,p*4,p*6)),s3);flyMesh.setMatrixAt(nFly++,m4)}
+   flyMesh.count=nFly;flyMesh.instanceMatrix.needsUpdate=true
    if(cine&&ct>TOPPLE_AT+150)cine=null
    // The show.
    const party=show.party>0;show.party=Math.max(0,show.party-1);show.shake*=0.92
-   const feverOn=inFever(c),RAINBOW=CONFETTI
+   const feverOn=inFever(c)||!!c.chance||jpAt>=0,RAINBOW=CONFETTI
    bulbSpots.forEach((_,i)=>{if(feverOn){bulbs.setColorAt(i,RAINBOW[(i+Math.floor(f/3))%RAINBOW.length]);return}const on=party?((i+Math.floor(f/3))%2===0):((i+Math.floor(f/5))%5===0);bulbs.setColorAt(i,on?BULB[(i+Math.floor(f/(party?6:40)))%3]:dim)});if(bulbs.instanceColor)bulbs.instanceColor.needsUpdate=true
    ringMats.forEach((m,i)=>{const lit=i<c.steps;m.emissiveIntensity=lit?2.2+0.6*Math.sin(f/6+i):party?(f/4+i)%2<1?2:0:0;m.color.set(lit?'#ffe08a':'#3a3a3a')})
    beamPivot.rotation.y=f*(party?0.12:0.03);(beam.material as THREE.MeshBasicMaterial).opacity=party?0.3:0.16
@@ -399,12 +432,22 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
     dishGroup.rotation.set(-1.1,0,0);dish.rotation.y=f/90;dishBall.position.set(Math.cos(a+dish.rotation.y)*rr,0.06*(rr/0.5)**2*0.25+0.2,-Math.sin(a+dish.rotation.y)*rr)}
    if(c.chance){if(wheelTex.pockets!==c.winPockets){wheelTex.pockets=c.winPockets;wheelTex.tex.image=wheelImage(c.winPockets);wheelTex.tex.needsUpdate=true}
     const t=Math.min(1,(f-c.chance.at)/200),gap=Math.floor(2+t*16);if(t<1&&f-chanceTick.last>=gap){chanceTick.last=f;fx('tick',soundRef.current)}
-    if(f===c.chance.at+1)pop('JACKPOT CHANCE',0,3.6,1,'big');wheel.rotation.y=(1-(1-t)**3)*Math.PI*2*5+c.chance.pocket/CHANCE_POCKETS*Math.PI*2}
+    if(f===c.chance.at+1)pop('JACKPOT CHANCE',0,3.6,1,'big');// Slows hard at the end and creeps the last bit, rocking on the pocket before it settles.
+    const creep=t>0.88?Math.sin((t-0.88)/0.12*Math.PI*2)*0.05*(1-t)/0.12:0
+    wheel.rotation.y=(1-(1-t)**4)*Math.PI*2*6+c.chance.pocket/CHANCE_POCKETS*Math.PI*2+creep
+    const done=t>=1,chase=Math.floor(f/(t<0.7?2:t<0.95?4:8))
+    for(let k=0;k<JP_BULBS;k++)jpBulbs.setColorAt(k,done?(f%10<5?CONFETTI[k%CONFETTI.length]:dim):(k+chase)%4===0?BULB[(k>>2)%3]:dim)
+    if(jpBulbs.instanceColor)jpBulbs.instanceColor.needsUpdate=true}
+   // The jackpot: the counter counts up as the medals rain, fireworks burst over the cabinet for a few seconds.
+   if(jpAt>=0){const jt=f-jpAt
+    if(jpCount.current)jpCount.current.textContent=String(Math.min(jpAmount,Math.round(jpAmount*Math.min(1,jt/170))))
+    if(jt<330&&jt%14===0){const col=[CONFETTI[(jt/14)%CONFETTI.length|0]];emit((Math.random()-.5)*8,4+Math.random()*3,-3+Math.random()*3,70,jt%28===0?CONFETTI:col,3.6);if(jt%42===0)fx('zap',soundRef.current)}
+    if(jt>420){jpAt=-1;setJpWin(null)}}
    composer.render()
    if(now-lastHud>120||c.spinning){lastHud=now
     const reels=c.spinning?[0,1,2].map(i=>f-c.spinning!.at<40+i*25?REEL_FACES[Math.floor((f+i*3)/3)%6]:c.spinning!.reels[i]):hudReels.current
     if(c.spinning)hudReels.current=reels
-    setHud(h=>h.bank===(c.bank??BANK_START)&&h.hand===c.hand&&h.jp===c.jackpot&&h.steps===c.steps&&h.pockets===c.winPockets&&h.queue===c.queue&&h.reels.join()===reels.join()&&h.spinning===!!c.spinning?h:{...h,bank:c.bank??BANK_START,hand:c.hand,jp:c.jackpot,steps:c.steps,pockets:c.winPockets,queue:c.queue,reels,spinning:!!c.spinning})}
+    setHud(h=>h.bank===(c.bank??BANK_START)&&h.hand===c.hand&&h.jp===c.jackpot&&h.steps===c.steps&&h.pockets===c.winPockets&&h.queue===c.queue&&h.reels.join()===reels.join()&&h.spinning===!!c.spinning&&h.chance===!!c.chance?h:{...h,chance:!!c.chance,bank:c.bank??BANK_START,hand:c.hand,jp:c.jackpot,steps:c.steps,pockets:c.winPockets,queue:c.queue,reels,spinning:!!c.spinning})}
    const fl=feverOn&&c.fever?Math.ceil((c.fever.until-f)/60):0;if(fl!==feverRef.current){feverRef.current=fl;setFever(fl)}
    if(c.hand<=0&&!busy(c)){quiet.current+=1;if(quiet.current>300&&!ended.current){ended.current=true;onEndRef.current(c.hand,c.jpWins)}}else quiet.current=0
    raf=requestAnimationFrame(loop)
@@ -437,7 +480,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   <div ref={host} className="cove-stage" role="img" aria-label={'KONO Medal Cove: '+hud.hand+' medals, jackpot '+hud.jp}>
    <div className="cove-board" aria-label="Backboard">
    <div className="cove-steps" aria-label={hud.steps+' of '+LAMPS+' lamps'}>{Array.from({length:LAMPS},(_,i)=><i key={i} className={i<hud.steps?'is-on':undefined}/>)}<small>💡 lamps</small></div>
-   <div className="cove-jp"><small>JACKPOT</small><b>{hud.jp}</b></div>
+   <div className="cove-jp"><small>JACKPOT</small><b key={hud.jp} className="is-bump">{hud.jp}</b></div>
    <div className="cove-pockets" aria-label={'Giant tower: '+hud.bank+' medals'}><b>🗼 {hud.bank}</b><small>giant tower</small><small>🎯 {hud.pockets}/{CHANCE_POCKETS} JP{best!==null?' · best '+best:''}</small></div>
    <div className={'cove-reels'+(hud.spinning?' is-spinning':'')} aria-label={'Lottery: '+hud.reels.join(' ')}>{hud.reels.map((r,i)=><span key={i}>{r}</span>)}</div>
    <div className="cove-queue" aria-label={hud.queue+' spins waiting'}>{Array.from({length:4},(_,i)=><i key={i} className={i<hud.queue?'is-on':undefined}/>)}</div>
@@ -446,6 +489,8 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
    {fail&&<CoveFail kind={fail} onRetry={()=>{setFail(null);setTries(n=>n+1)}} onLeave={onFail}/>}
    {hud.event&&<p key={hud.event} className={'cove-event'+(hud.big?' is-big':'')} role="status">{hud.event}</p>}
    {hud.event&&hud.big&&<span key={'f'+hud.event} className="cove-flash" aria-hidden="true"/>}
+   {jpWin!==null&&<div className="cove-jp-win" role="status" aria-label={'Jackpot! '+jpWin+' medals'}><b>JACKPOT!!</b><span><i aria-hidden="true">🪙</i> +<strong ref={jpCount}>0</strong></span></div>}
+   {hud.chance&&jpWin===null&&<div className="cove-chance" aria-hidden="true"><b>JACKPOT CHANCE</b><span>🎯 {hud.pockets} of {CHANCE_POCKETS} pockets win · JP {hud.jp}</span></div>}
    {fever>0&&<span className="cove-fever" role="status" aria-label={'Fever time: '+fever+' seconds'}>🌈 FEVER {fever}s</span>}
    {pops.map(p=><b key={p.id} className={'cove-pop is-'+p.kind.replace(/\d/,'')+(p.kind.match(/\d/)?' is-c'+p.kind.match(/\d/)![0]:'')} style={{left:p.x+'%',top:p.y+'%'}} aria-hidden="true">{p.text}</b>)}
    <button type="button" className="cove-view" aria-label="Change the camera" onClick={()=>setView(v=>(v+1)%VIEWS.length)}>🎥</button>

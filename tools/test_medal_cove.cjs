@@ -48,6 +48,11 @@ await test('Jackpot Chance: a miss pays a little, grows the jackpot and adds a w
  assert.equal(c.jpWins,1);assert.ok(c.hand>=h+jp,'the jackpot is paid');assert.equal(c.jackpot,P.JP_START);assert.equal(c.winPockets,1)
  let d=P.newCove(rnd);d={...d,dish:{pocket:P.DISH.findIndex(p=>p.prize.kind==='chance'),at:d.frame-300}};d=P.step(d,rnd);assert.equal(d.chanceQueue+(d.chance?1:0),1,'a JP CHANCE pocket starts a Jackpot Chance')
  assert.equal(P.busy(d),true)
+ // With the pin board (3D), prizes are real medals: the jackpot rains down onto the field, two a frame.
+ let e=P.newCove(rnd,100,true);const ejp=e.jackpot,eh=e.hand;e={...e,chance:{pocket:win,at:e.frame-300}};e=P.step(e,rnd)
+ assert.equal(e.jpWins,1);assert.equal(e.hand,eh,'nothing is paid without the medals');assert.equal(e.rain+e.medals.length,ejp,'the jackpot is all on its way');assert.ok(e.medals.every(m=>m.high),'from high above');assert.ok(P.busy(e))
+ let rained=e.medals.length;for(let i=0;i<200&&e.rain;i++){e=P.spawned(e);e=P.step(e,rnd);rained+=e.medals.length}
+ assert.equal(rained,ejp,'every jackpot medal comes down');assert.equal(e.rain,0)
  assert.equal(coins.gameCoins('cove',80),10);assert.equal(coins.gameCoins('cove',0),0)
 })
 await test('the pin board: a drop goes in at the top; each pocket spins its own mini wheel (up to 3 waiting): medals, layers for the giant tower, a ball, a lamp or a lottery spin; 5 lamps bring the giant tower down',()=>{
