@@ -73,7 +73,10 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   // ---- Renderer, camera, light and glow ----
   const small=el.clientWidth<600
   const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance',stencil:false,depth:true})
-  renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap
+  // HD on a real graphics chip; a device drawing 3D in software (no GPU) gets the lighter settings, or it
+  // would stall for seconds building HD textures and then crawl.
+  const soft=softwareGL(renderer.getContext());TEX=soft?1:2
+  renderer.setPixelRatio(soft?1:Math.min(2,window.devicePixelRatio||1));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap
   renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05
   el.appendChild(renderer.domElement);renderer.domElement.setAttribute('aria-hidden','true')
   const scene=new THREE.Scene();scene.background=skyTexture();scene.fog=new THREE.Fog('#d9efff',22,40)
@@ -89,14 +92,14 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   const camera=new THREE.PerspectiveCamera(42,1,0.1,80)
   const pmrem=new THREE.PMREMGenerator(renderer),envRT=pmrem.fromScene(new RoomEnvironment(),0.04);scene.environment=envRT.texture;pmrem.dispose()
   scene.add(new THREE.HemisphereLight('#dff3ff','#4a3424',0.8))
-  const sun=new THREE.DirectionalLight('#fff4dc',2.2);sun.position.set(4,12,6);sun.castShadow=true;sun.shadow.mapSize.set(small?1024:2048,small?1024:2048)
+  const sun=new THREE.DirectionalLight('#fff4dc',2.2);sun.position.set(4,12,6);sun.castShadow=true;sun.shadow.mapSize.setScalar(soft?512:small?1024:2048)
   Object.assign(sun.shadow.camera,{left:-8,right:8,top:8,bottom:-8,near:1,far:30});scene.add(sun)
   // One merged effect pass: bloom on what's bright (the lantern, the shine on the gold, the jackpot pieces)
   // and SMAA for smooth edges. Half-resolution bloom on phones.
   // Smooth edges: multisampling where the device has it (and SMAA on top), full-resolution glow.
-  const composer=new EffectComposer(renderer,{multisampling:Math.min(small?2:4,renderer.capabilities.maxSamples||0)})
+  const composer=new EffectComposer(renderer,{multisampling:soft?0:Math.min(small?2:4,renderer.capabilities.maxSamples||0)})
   composer.addPass(new RenderPass(scene,camera))
-  const bloom=new BloomEffect({intensity:small?0.7:0.9,luminanceThreshold:0.92,luminanceSmoothing:0.2,mipmapBlur:true,resolutionScale:small?0.75:1})
+  const bloom=new BloomEffect({intensity:small?0.7:0.9,luminanceThreshold:0.92,luminanceSmoothing:0.2,mipmapBlur:true,resolutionScale:soft?0.5:small?0.75:1})
   composer.addPass(new EffectPass(camera,bloom,new SMAAEffect()))
   // ---- The cabinet you see ----
   const deckMat=toon('#f6dcb4',{map:woodTexture()})
@@ -604,21 +607,27 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
 }
 
 // ---- Textures, drawn once ----
+/** How many pixels per drawing unit the textures get: 2 (HD) unless the device draws 3D in software. */
+let TEX=2
+/** Whether WebGL is running in software (SwiftShader, llvmpipe, Microsoft's basic renderer): no GPU. */
+function softwareGL(gl:WebGLRenderingContext|WebGL2RenderingContext){
+ try{const ext=gl.getExtension('WEBGL_debug_renderer_info');const name=String(ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER));return /swiftshader|llvmpipe|software|basic render/i.test(name)}catch{return false}
+}
 /** A canvas `w` × `h` in drawing units, `k` times as many pixels (so the textures are HD). */
 function canvas(w:number,h:number,k=1){const c=document.createElement('canvas');c.width=w*k;c.height=h*k;const g=c.getContext('2d')!;g.scale(k,k);return [c,g] as const}
-function woodTexture(){const [c,g]=canvas(512,512,2);g.fillStyle='#c79a63';g.fillRect(0,0,512,512)
+function woodTexture(){const [c,g]=canvas(512,512,TEX);g.fillStyle='#c79a63';g.fillRect(0,0,512,512)
  for(let i=0;i<10;i++){g.fillStyle=i%2?'#bf9058':'#cfa36c';g.fillRect(i*51.2,0,51.2,512);g.strokeStyle='rgba(90,55,25,.45)';g.lineWidth=3;g.beginPath();g.moveTo(i*51.2,0);g.lineTo(i*51.2,512);g.stroke()
   for(let k=0;k<6;k++){g.strokeStyle='rgba(120,80,40,.18)';g.lineWidth=1.5;g.beginPath();const x=i*51.2+8+k*7;g.moveTo(x,0);g.bezierCurveTo(x+6,170,x-6,340,x+3,512);g.stroke()}}
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t}
-function coinFace(){const [c,g]=canvas(128,128,4);const grad=g.createRadialGradient(54,48,6,64,64,64);grad.addColorStop(0,'#fff3b0');grad.addColorStop(.6,'#f2c230');grad.addColorStop(1,'#b8860b');g.fillStyle=grad;g.fillRect(0,0,128,128)
+function coinFace(){const [c,g]=canvas(128,128,TEX*2);const grad=g.createRadialGradient(54,48,6,64,64,64);grad.addColorStop(0,'#fff3b0');grad.addColorStop(.6,'#f2c230');grad.addColorStop(1,'#b8860b');g.fillStyle=grad;g.fillRect(0,0,128,128)
  g.strokeStyle='rgba(140,90,10,.7)';g.lineWidth=5;g.beginPath();g.arc(64,64,44,0,Math.PI*2);g.stroke();g.fillStyle='rgba(140,90,10,.75)';g.font='bold 44px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText('K',64,66)
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
-function dishTexture(){const [c,g]=canvas(512,512,2);g.fillStyle='#fff6e0';g.fillRect(0,0,512,512)
+function dishTexture(){const [c,g]=canvas(512,512,TEX);g.fillStyle='#fff6e0';g.fillRect(0,0,512,512)
  // The lathe maps around (x) and outward (y); the pockets sit near the rim as colored bands.
  DISH.forEach((p,i)=>{const x0=i/DISH.length*512;g.fillStyle=p.prize.kind==='chance'?'#ff5a7a':p.prize.kind==='tower'?'#ffb347':'#7fd0ff';g.fillRect(x0+2,300,512/DISH.length-4,180)
   g.save();g.translate(x0+512/DISH.length/2,390);g.fillStyle='#2b1a3a';g.font='bold 22px system-ui';g.textAlign='center';g.fillText(p.label.replace('JP CHANCE','JP!'),0,8);g.restore()})
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
-function wheelImage(winPockets:number){const [c,g]=canvas(512,512,2),cx=256,cy=256,R=250
+function wheelImage(winPockets:number){const [c,g]=canvas(512,512,TEX),cx=256,cy=256,R=250
  for(let i=0;i<CHANCE_POCKETS;i++){const a0=i/CHANCE_POCKETS*Math.PI*2-Math.PI/2-Math.PI/CHANCE_POCKETS,a1=a0+Math.PI*2/CHANCE_POCKETS,win=isWinPocket(i,winPockets)
   g.fillStyle=win?'#ffd34d':i%2?'#6a4bc4':'#8a6ae0';g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,R,a0,a1);g.closePath();g.fill();g.strokeStyle='#2b1a3a';g.lineWidth=3;g.stroke()
   const am=(a0+a1)/2;g.fillStyle=win?'#5a3200':'#fff';g.font='bold 30px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText(win?'JP':'+10',cx+Math.cos(am)*R*.72,cy+Math.sin(am)*R*.72)}
@@ -626,7 +635,7 @@ function wheelImage(winPockets:number){const [c,g]=canvas(512,512,2),cx=256,cy=2
  return c}
 /** The pin board's backplate: a soft sky with the Sanctuary's own trees, lanterns, clouds and flowers painted
  * behind the pins (drawn in as each picture loads), and the cabinet's name. */
-function boardTexture(){const [c,g]=canvas(1024,384,2)
+function boardTexture(){const [c,g]=canvas(1024,384,TEX)
  const paint=()=>{const grad=g.createLinearGradient(0,0,0,384);grad.addColorStop(0,'#bfe7ff');grad.addColorStop(.7,'#ffeef5');grad.addColorStop(1,'#ffe1ec');g.fillStyle=grad;g.fillRect(0,0,1024,384)}
  paint()
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace
@@ -640,15 +649,15 @@ function boardTexture(){const [c,g]=canvas(1024,384,2)
  imgs.forEach(im=>{im.onload=im.onerror=()=>{left--;draw()}})
  if(!left)draw()
  return t}
-function emojiTexture(e:string){const [c,g]=canvas(128,128,2);g.font='96px system-ui,"Apple Color Emoji","Noto Color Emoji"';g.textAlign='center';g.textBaseline='middle';g.fillText(e,64,70)
+function emojiTexture(e:string){const [c,g]=canvas(128,128,TEX);g.font='96px system-ui,"Apple Color Emoji","Noto Color Emoji"';g.textAlign='center';g.textBaseline='middle';g.fillText(e,64,70)
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
-function stripeTexture(){const [c,g]=canvas(64,256,2);for(let i=0;i<8;i++){g.fillStyle=i%2?'#f6f1e7':'#d8443a';g.fillRect(0,i*32,64,32)}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
-function wheelSegTexture(segs:{label:string;kind:string}[],w:number){const [c,g]=canvas(512,512),n=segs.length,cx=256,cy=256,r=252
+function stripeTexture(){const [c,g]=canvas(64,256,TEX);for(let i=0;i<8;i++){g.fillStyle=i%2?'#f6f1e7':'#d8443a';g.fillRect(0,i*32,64,32)}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+function wheelSegTexture(segs:{label:string;kind:string}[],w:number){const [c,g]=canvas(256,256,TEX),n=segs.length,cx=128,cy=128,r=126
  const pal=[['#ff6b5e','#ffb3a8'],['#ffd34d','#fff0b8'],['#4fb3ff','#b9e2ff']][w]
  segs.forEach((sg,k)=>{const a0=-Math.PI/2+k*2*Math.PI/n-Math.PI/n,a1=a0+2*Math.PI/n
-  g.fillStyle=sg.kind==='lamp'?'#fff3a0':sg.kind==='ball'?'#c8a8ff':sg.kind==='layers'?'#9fe0ff':pal[k%2];g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,r,a0,a1);g.closePath();g.fill();g.strokeStyle='#5a3a24';g.lineWidth=6;g.stroke()
-  g.save();g.translate(cx,cy);g.rotate((a0+a1)/2+Math.PI/2);g.fillStyle='#2b1a3a';g.font='900 '+(sg.label.length>6?34:42)+'px system-ui';g.textAlign='center'
-  g.fillText(sg.kind==='lamp'?'💡':sg.kind==='ball'?'🔮':sg.kind==='spin'?'🎰':sg.kind==='layers'?'🗼':'🪙',0,-r+66);g.fillText(sg.label.replace(' layers',' L').replace(' layer',' L'),0,-r+118);g.restore()})
+  g.fillStyle=sg.kind==='lamp'?'#fff3a0':sg.kind==='ball'?'#c8a8ff':sg.kind==='layers'?'#9fe0ff':pal[k%2];g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,r,a0,a1);g.closePath();g.fill();g.strokeStyle='#5a3a24';g.lineWidth=3;g.stroke()
+  g.save();g.translate(cx,cy);g.rotate((a0+a1)/2+Math.PI/2);g.fillStyle='#2b1a3a';g.font='900 '+(sg.label.length>6?17:21)+'px system-ui';g.textAlign='center'
+  g.fillText(sg.kind==='lamp'?'💡':sg.kind==='ball'?'🔮':sg.kind==='spin'?'🎰':sg.kind==='layers'?'🗼':'🪙',0,-r+33);g.fillText(sg.label.replace(' layers',' L').replace(' layer',' L'),0,-r+59);g.restore()})
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t}
 const ASPECT:Record<string,number>={'lantern-post':293/480,'lantern-post-night':293/480,'paper-lanterns':480/379,'light-arch':640/590,'tree-blossom':564/570,'tree-leafy':492/554,'flowers-1':99/49,'flowers-2':112/61,'flowers-3':100/58,'flowers-4':110/64,'shell':72/56,'petal-1':91/120,'petal-2':107/120,'sparkle':160/157,'cloud-a':209/67,'cloud-b':247/79,'butterfly':60/33,'butterfly-2':42/33,'bird':63/42}
 function skyTexture(){const [c,g]=canvas(16,256);const grad=g.createLinearGradient(0,0,0,256);grad.addColorStop(0,'#a9dcff');grad.addColorStop(.55,'#d9efff');grad.addColorStop(1,'#ffe9f2');g.fillStyle=grad;g.fillRect(0,0,16,256);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
@@ -686,7 +695,7 @@ function WheelDial({i,segs,state,turn}:{i:number;segs:{label:string;kind:string;
  </figure>
 }
 /** The turntable's top: pink and cream wedges round a star, so you can see it turn. */
-function turnTexture(){const [c,g]=canvas(256,256,2);for(let k=0;k<12;k++){g.fillStyle=k%2?'#fff1e0':'#ffb3cc';g.beginPath();g.moveTo(128,128);g.arc(128,128,128,k*Math.PI/6,(k+1)*Math.PI/6);g.closePath();g.fill()}
+function turnTexture(){const [c,g]=canvas(256,256,TEX);for(let k=0;k<12;k++){g.fillStyle=k%2?'#fff1e0':'#ffb3cc';g.beginPath();g.moveTo(128,128);g.arc(128,128,128,k*Math.PI/6,(k+1)*Math.PI/6);g.closePath();g.fill()}
  g.fillStyle='#ffd34d';g.beginPath();for(let k=0;k<10;k++){const r=k%2?18:40,a=k*Math.PI/5-Math.PI/2;g.lineTo(128+Math.cos(a)*r,128+Math.sin(a)*r)}g.closePath();g.fill()
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
 /** The gold medal look, for the little stacks in the seesaw and KONO's bucket. */
