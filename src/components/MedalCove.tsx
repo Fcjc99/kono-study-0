@@ -29,6 +29,10 @@ const pocketX=(i:number,f:number)=>i===0?-3.3:i===2?3.3:Math.sin(f/80)*1.6
 // Pins 1.2 apart, rows 0.5 apart and offset by half: every gap (straight and diagonal) lets a medal through.
 const PINS:[number,number][]=[];for(let row=0;row<5;row++)for(let col=-4;col<=4;col++){const x=col*1.2+(row%2?0.6:0);if(Math.abs(x)<4.5)PINS.push([x,BTOP-0.45-row*0.52])}
 const POCKET_FACE=['🏮','⭐','🗼']
+// The side slides, one each side (x = ±RAMP_X), from beside the pin board down onto the pusher's shelf.
+const RAMP_X=4.49,RAMP_HALF=0.52
+const RAMPS=[0,1].map(()=>{const top={z:-5.72,y:2.3},bot={z:-4.25,y:0.82},dz=bot.z-top.z,dy=top.y-bot.y
+ return {top,bot,len:Math.hypot(dz,dy),angle:Math.atan2(dy,dz),dir:{y:dy/Math.hypot(dz,dy),z:dz/Math.hypot(dz,dy)}}})
 const TOPPLE_AT=70 // frames into the BIG BONUS when the giant tower starts to fall
 const wx=(x:number)=>(x-50)*U,wz=(y:number)=>y*U-6
 const REEL_FACES:Reel[]=['🪙','🗼','🔮','⭐','🐚','🌺']
@@ -199,6 +203,24 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
   const fixed=(hx:number,hy:number,hz:number,x:number,y:number,z:number,friction=0.5)=>world.createCollider(RAPIER.ColliderDesc.cuboid(hx,hy,hz).setTranslation(x,y,z).setFriction(friction))
   fixed(5.2,0.2,6.8,0,-0.2,FRONT-6.8)            // the deck, ending at the front edge
   fixed(0.1,1.2,5.6,-5.05,1.0,-1.6);fixed(0.1,1.2,5.6,5.05,1.0,-1.6) // side walls, open near the front (the side drops)
+  // The two side slides: troughs from up beside the pin board down onto the pusher's shelf (rails each side,
+  // a stop at the top). Prize medals slide down them and balls roll; see the release in the loop.
+  const rampQ:boolean[][]=[[],[]],rampLast=[-99,-99],rampGlow=[0,0]
+  const rampMat=toon('#ffd7e6'),railMat=new THREE.MeshStandardMaterial({color:'#ffe08a',metalness:.85,roughness:.25,emissive:'#ffb000',emissiveIntensity:.15})
+  const mouths:THREE.MeshStandardMaterial[]=[]
+  RAMPS.forEach((r,side)=>{const s=side?1:-1,tilt=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),r.angle),rot={x:tilt.x,y:tilt.y,z:tilt.z,w:tilt.w}
+   const mid=new THREE.Vector3(s*RAMP_X,(r.top.y+r.bot.y)/2,(r.top.z+r.bot.z)/2),n=new THREE.Vector3(0,Math.cos(r.angle),Math.sin(r.angle))
+   const part=(hx:number,hy:number,hz:number,off:THREE.Vector3,mat:THREE.Material,friction:number)=>{const at=mid.clone().add(off)
+    world.createCollider(RAPIER.ColliderDesc.cuboid(hx,hy,hz).setTranslation(at.x,at.y,at.z).setRotation(rot).setFriction(friction).setRestitution(0.05))
+    const mesh=new THREE.Mesh(new THREE.BoxGeometry(hx*2,hy*2,hz*2),mat);mesh.position.copy(at);mesh.quaternion.copy(tilt);mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh)}
+   part(RAMP_HALF,0.04,r.len/2,n.clone().multiplyScalar(-0.04),rampMat,0.08)                                   // the slide
+   part(0.03,0.16,r.len/2,new THREE.Vector3(-s*(RAMP_HALF-0.03),0,0).add(n.clone().multiplyScalar(0.12)),railMat,0.02) // inner rail
+   part(0.03,0.16,r.len/2,new THREE.Vector3(s*(RAMP_HALF-0.03),0,0).add(n.clone().multiplyScalar(0.12)),railMat,0.02)  // outer rail
+   // The stop at the top, and the glowing mouth the medals come out of.
+   const top=new THREE.Vector3(s*RAMP_X,r.top.y,r.top.z)
+   world.createCollider(RAPIER.ColliderDesc.cuboid(RAMP_HALF,0.3,0.04).setTranslation(top.x,top.y+0.25,top.z-0.05))
+   const mouthMat=new THREE.MeshStandardMaterial({color:'#fff3c0',emissive:'#ffcf3d',emissiveIntensity:.4,metalness:.3,roughness:.4});mouths.push(mouthMat)
+   const mouth=new THREE.Mesh(new THREE.CylinderGeometry(RAMP_HALF*0.9,RAMP_HALF*0.9,0.5,24,1,true),mouthMat);mouth.material.side=THREE.DoubleSide;mouth.rotation.x=Math.PI/2;mouth.position.set(top.x,top.y+0.3,top.z-0.2);scene.add(mouth)})
   fixed(5.2,1.5,0.2,0,1.1,-7.8)                   // back wall
   fixed(5.0,0.5,0.15,0,1.36,-6.55)                // the scraper above the pusher's shelf
   fixed(5.2,0.15,1.3,0,-2.15,7.4,0.9)             // the tray
@@ -219,7 +241,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
    if(board)desc.enabledTranslations(true,true,false).enabledRotations(false,false,true)
    const body=world.createRigidBody(desc)
    world.createCollider((ball?RAPIER.ColliderDesc.ball(BALL).setDensity(0.6):RAPIER.ColliderDesc.cylinder(HALF,R).setDensity(1.4)).setFriction(ball?0.4:0.45).setRestitution(0.08),body)
-   pieces.set(body.handle,{body,ball,counted:0,board})}
+   pieces.set(body.handle,{body,ball,counted:0,board});return body}
   // The pile to start with: a few layers across the field, settled before you play.
   for(let layer=0;layer<2;layer++)for(let z=wz(FIELD.reach+3);z<FRONT-0.4;z+=R*1.9)for(let x=-4.6;x<=4.6;x+=R*2.05)if(layer===0||Math.random()<0.55)addCoin(x+(Math.random()-.5)*0.1,0.06+layer*0.13,z+(Math.random()-.5)*0.1)
   pusherBody.setNextKinematicTranslation({x:0,y:0.3,z:wz(FIELD.back)-3})
@@ -280,7 +302,14 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
     let c=step(before)
     if(holding.current&&now-lastDrop.current>200&&c.hand>0){c=drop(c,aim.current);lastDrop.current=now}
     // Put what the rules dropped into the machine: medals fall from the chute, showers rain over the field.
-    for(const m of c.medals){if(m.y<0)addCoin(Math.max(-4.5,Math.min(4.5,wx(m.x)+(Math.random()-.5)*0.08)),BTOP+0.3,BZ,false,(Math.random()-.5)*3,true);else if(m.high)addCoin(wx(m.x),5.5+Math.random()*2.5,wz(m.y),false,(Math.random()-.5)*8);addCoin(wx(m.x),1.6+Math.random()*1.4,wz(m.y),!!m.ball,(Math.random()-.5)*4)}
+    // A drop goes in at the top of the pin board; every prize medal and ball queues for a side slide.
+    for(const m of c.medals){if(m.y<0)addCoin(Math.max(-4.5,Math.min(4.5,wx(m.x)+(Math.random()-.5)*0.08)),BTOP+0.3,BZ,false,(Math.random()-.5)*3,true)
+     else{const side=rampQ[0].length<rampQ[1].length?0:rampQ[1].length<rampQ[0].length?1:m.x<50?0:1;rampQ[side].push(!!m.ball)}}
+    // The slides let them out one at a time: medals slide (and sometimes roll on their edge), balls roll.
+    for(const side of [0,1]){const q=rampQ[side];if(!q.length||c.frame-rampLast[side]<(q[0]?18:6))continue
+     const ball=q.shift()!,s=side?1:-1,r=RAMPS[side];rampLast[side]=c.frame;rampGlow[side]=1
+     const b=addCoin(s*(RAMP_X+(Math.random()-.5)*0.16),r.top.y+(ball?BALL:0.12)+0.06,r.top.z+0.25,ball,(Math.random()-.5)*2)
+     b.setLinvel({x:0,y:-r.dir.y*1.2,z:r.dir.z*1.2},true);if(!ball&&Math.random()<0.25)b.setAngvel({x:(Math.random()-.5)*10,y:0,z:0},true)}
     c=spawned(c)
     // A tower stands as a real stack, a little in front of the pusher, until it's knocked over.
     const evNow=c.events[c.events.length-1]
@@ -401,6 +430,8 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
     m4.compose(v3.set(fly.from.x*(1-e),fly.from.y+(topY-fly.from.y)*e+Math.sin(p*Math.PI)*1.8,fly.from.z+(baseZ-fly.from.z)*e+Math.sin(p*Math.PI)*0.5),q.setFromEuler(new THREE.Euler(p*9,p*4,p*6)),s3);flyMesh.setMatrixAt(nFly++,m4)}
    flyMesh.count=nFly;flyMesh.instanceMatrix.needsUpdate=true
    if(cine&&ct>TOPPLE_AT+150)cine=null
+   // The slides' mouths glow as they let medals out.
+   mouths.forEach((m,i)=>{rampGlow[i]=Math.max(0,rampGlow[i]-0.04);m.emissiveIntensity=0.4+rampGlow[i]*2.2})
    // The show.
    const party=show.party>0;show.party=Math.max(0,show.party-1);show.shake*=0.92
    const feverOn=inFever(c)||!!c.chance||jpAt>=0,RAINBOW=CONFETTI
@@ -454,7 +485,7 @@ export default function MedalCove({ref,best,sound,onEnd,onFail}:{ref:Ref<GameHan
     if(c.spinning)hudReels.current=reels
     setHud(h=>h.bank===(c.bank??BANK_START)&&h.hand===c.hand&&h.jp===c.jackpot&&h.steps===c.steps&&h.pockets===c.winPockets&&h.queue===c.queue&&h.reels.join()===reels.join()&&h.spinning===!!c.spinning&&h.chance===!!c.chance?h:{...h,chance:!!c.chance,bank:c.bank??BANK_START,hand:c.hand,jp:c.jackpot,steps:c.steps,pockets:c.winPockets,queue:c.queue,reels,spinning:!!c.spinning})}
    const fl=feverOn&&c.fever?Math.ceil((c.fever.until-f)/60):0;if(fl!==feverRef.current){feverRef.current=fl;setFever(fl)}
-   if(c.hand<=0&&!busy(c)){quiet.current+=1;if(quiet.current>300&&!ended.current){ended.current=true;onEndRef.current(c.hand,c.jpWins)}}else quiet.current=0
+   if(c.hand<=0&&!busy(c)&&!rampQ[0].length&&!rampQ[1].length){quiet.current+=1;if(quiet.current>300&&!ended.current){ended.current=true;onEndRef.current(c.hand,c.jpWins)}}else quiet.current=0
    raf=requestAnimationFrame(loop)
   }
   raf=requestAnimationFrame(loop)
