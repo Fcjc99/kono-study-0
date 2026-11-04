@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Makes KONO Beat's charts from the arcade's songs, with every note on the song's own beat grid.
-First the grid: the song's tempo and first beat are measured (fine-tuned around the listed tempo) and then
-re-locked every couple of bars, so a song that drifts a little still lines up. Then the levels, each from the
-one above (see chart_all): Jeff tier on 16th notes where the music clearly hits (up to about 4 a second, with
-chords on the big hits), Medium the strongest of those on 8th notes (about 2), Easy the strongest of Medium's
-on the beat (about 1). A note before a sound that carries on becomes a hold. Lanes go by how
-bright the hit sounds (low left, high right). Only the four floor lanes for now (no sky notes or ribbons).
+"""Makes KONO Beat's charts from the arcade's songs: a tile for each note of the song's lead melody, on the
+song's own beat grid. First the grid: the song's tempo and beats are tracked (fine-tuned around the listed
+tempo) and lined up with where the lead really plays. Then the melody (tools/melody.py) and the levels from it
+(see chart_melody): Jeff tier every melody note, Medium the strongest at least 0.2 s apart, Easy the strongest
+of those at least 0.42 s apart. A note that rings on is a long tile. Columns follow the tune: higher notes to
+the right, lower to the left, a repeated note in the same column.
 Needs ffmpeg and numpy. Writes src/game/data/rhythmCharts.json.
   python3 tools/make_rhythm_charts.py"""
-import json, subprocess, numpy as np
+import json, subprocess, sys, os, numpy as np
+sys.path.insert(0, os.path.dirname(__file__))
+import melody
 SR, N, HOP = 22050, 1024, 64
 FPS = SR / HOP
 # file, title, tempo to search around
@@ -17,8 +18,6 @@ SONGS = [
     ('flow-1', 'Floating Pads', 90.75), ('flow-2', 'Shimmering Motif', 100.05), ('flow-3', 'Late Night Pulse', 113.3),
     ('flow-4', 'Soaring Euphoria', 129.9), ('flow-5', 'Transcendent Arpeggios', 136.6),
 ]
-# Per level: grid steps a beat, min gap (s), notes a second, hold when the next note is this far off (s).
-LEVELS = {'easy': (1, 0.42, 1.0, 0.9), 'medium': (2, 0.2, 2.2, 0.6), 'jeff': (4, 0.1, 4.3, 0.45)}
 
 def load(path):
     raw = subprocess.run(['ffmpeg', '-v', 'quiet', '-i', path, '-ac', '1', '-ar', str(SR), '-f', 'f32le', '-'], capture_output=True).stdout
@@ -81,86 +80,67 @@ def swing_of(beats, hits):
     h, e = np.histogram(ph, bins=40, range=(0.4, 0.8)); h = np.convolve(h, [1, 2, 1], 'same')
     return float(np.clip((e[np.argmax(h)] + e[np.argmax(h) + 1]) / 2, 0.5, 0.67)) if h.max() > 0 else 0.5
 
-def chart_all(flux, times, cent, rms, beats, dur, swing=0.5):
-    """All three levels, each built from the one above it, so they agree: Jeff tier takes the 16th-note steps
-    where the music clearly hits; Medium keeps the strongest of those on 8th notes; Easy the strongest of
-    Medium's on the beat. A note has the same lane on every level. Each 2-bar stretch gets its share of notes
-    by how much is going on in it (silent stretches get none), so a quieter part still has notes instead of
-    the loudest part taking them all; and a stretch with music but nothing picked gets its strongest beat."""
+def lanes_of(pitches):
+    """Columns for a run of notes, the way a piano reads: higher notes to the right, lower to the left, a
+    repeated note in the same column. Each note's column comes from where its pitch sits among its
+    neighbours (about two bars either side), then is nudged so it moves the same way the tune does."""
+    p = np.array(pitches, float); out = []
+    for i in range(len(p)):
+        w = p[max(0, i - 8):i + 9]; lo, hi = np.percentile(w, 10), np.percentile(w, 90)
+        lane = int(np.clip(round((p[i] - lo) / max(1, hi - lo) * 3), 0, 3))
+        if out:
+            prev, d = out[-1], p[i] - p[i - 1]
+            if d == 0: lane = prev
+            elif d > 0 and lane <= prev: lane = prev + 1 if prev < 3 else 2
+            elif d < 0 and lane >= prev: lane = prev - 1 if prev > 0 else 1
+        out.append(lane)
+    return out
+
+def chart_melody(notes, beats, dur, swing=0.5):
+    """All three levels from the song's lead melody (tools/melody.py), so every tile is a note you hear the
+    lead play. Each note's start is put on the song's 16th-note grid when it's within 35 ms of it (they nearly
+    always are), so it lands exactly with the music. Jeff tier gets every melody note (at least 0.1 s apart),
+    Medium the strongest of those at least 0.2 s apart, Easy the strongest of Medium's at least 0.42 s apart,
+    favouring notes on the beat. A note that rings on becomes a long tile that ends when it does."""
     lo, hi = 2.0, dur - 4.0
-    steps, pos = [], []
-    # The 16th-note steps of each beat; the off-beat 8th sits where this song swings it.
     at = (0, swing / 2, swing, swing + (1 - swing) / 2)
+    steps, pos = [], []
     for i in range(len(beats) - 1):
-        for k in range(4):
-            steps.append(beats[i] + (beats[i + 1] - beats[i]) * at[k]); pos.append(k)
+        for k in range(4): steps.append(beats[i] + (beats[i + 1] - beats[i]) * at[k]); pos.append(k)
     steps, pos = np.array(steps), np.array(pos)
-    keep = (steps >= lo) & (steps <= hi); steps, pos = steps[keep], pos[keep]
-    win = int(0.03 * FPS); idx = np.searchsorted(times, steps)
-    strength = np.array([flux[max(0, i - win):i + win + 1].max() if i < len(flux) else 0 for i in idx])
-    hit = np.quantile(flux, 0.9)  # a clear hit, not just the background
-    score = strength * np.where(pos == 0, 1.25, np.where(pos == 2, 1.1, 1.0))
-    # 2-bar stretches: how busy each is, and whether it's silent.
-    bar2 = 8 * (beats[1] - beats[0]); wid = ((steps - steps[0]) // bar2).astype(int)
-    med_s = np.median(strength[strength > 0]); med_r = np.median(rms)
-    busy, silent = {}, {}
-    for w in np.unique(wid):
-        m = wid == w; j0, j1 = idx[m][0], idx[m][-1] + 1
-        busy[w] = float(np.clip(strength[m].mean() / med_s, 0.5, 1.15))
-        silent[w] = rms[j0:j1].mean() < 0.08 * med_r
-    chosen = {}
-    def pick(level, pool):
-        div, gap, density, _ = LEVELS[level]; out = []
-        for w in np.unique(wid):
-            if silent[w]: continue
-            cand = [i for i in pool if wid[i] == w]
-            quota = int(round(density * bar2 * busy[w]))
-            for i in sorted(cand, key=lambda i: -score[i]):
-                if sum(1 for k in out if wid[k] == w) >= quota: break
-                if all(abs(steps[i] - steps[k]) >= gap - 1e-3 for k in out): out.append(i)
-        return sorted(out)
-    chosen['jeff'] = pick('jeff', [i for i in range(len(steps)) if strength[i] > hit])
-    chosen['medium'] = pick('medium', [i for i in chosen['jeff'] if pos[i] % 2 == 0])
-    chosen['easy'] = pick('easy', [i for i in chosen['medium'] if pos[i] == 0])
-    # A stretch with music but no notes on a level gets its strongest step there (on all the harder levels too).
-    for level, ok in (('easy', lambda i: pos[i] == 0), ('medium', lambda i: pos[i] % 2 == 0)):
-        for w in np.unique(wid):
-            if silent[w] or any(wid[k] == w for k in chosen[level]): continue
-            cand = [i for i in range(len(steps)) if wid[i] == w and ok(i) and strength[i] > hit * 0.5]
-            if not cand: continue
-            i = max(cand, key=lambda i: score[i])
-            for lv in ('easy', 'medium', 'jeff')[('easy', 'medium').index(level):]:
-                gap = LEVELS[lv][1]
-                if i not in chosen[lv] and all(abs(steps[i] - steps[k]) >= gap - 1e-3 for k in chosen[lv]): chosen[lv] = sorted(chosen[lv] + [i])
-    # Lanes, once, on Jeff tier's notes (every level uses the same): by how bright, no more than 3 in a row.
-    every = sorted(set(chosen['jeff']) | set(chosen['medium']) | set(chosen['easy']))
-    c = np.array([cent[min(len(cent) - 1, idx[i])] for i in every]); edges = np.quantile(c, [0.25, 0.5, 0.75])
-    lane_of, run, prev = {}, 0, -1
-    for i, ci in zip(every, c):
-        lane = int(np.searchsorted(edges, ci)); run = run + 1 if lane == prev else 1
-        if run > 3: lane = int((lane + 1 + i % 2) % 4); run = 1
-        lane_of[i] = lane; prev = lane
-    strong = np.quantile(strength[chosen['jeff']], 0.94)
-    grid_ms = np.round(steps * 1000); charts = {}
-    for level in LEVELS:
-        hold_gap = LEVELS[level][3]; tap, last_chord = [], -9
-        for i in chosen[level]:
-            ms = int(round(steps[i] * 1000)); tap.append([ms, lane_of[i]])
-            if level == 'jeff' and strength[i] >= strong and steps[i] - last_chord > 0.6:
-                tap.append([ms, (lane_of[i] + 2) % 4]); last_chord = steps[i]
-        # Holds: a note with room after it, before a sound that carries on; it ends on the grid.
-        times_ms = sorted(set(n[0] for n in tap)); hold, plain = [], []
-        for n in tap:
-            ms, lane = n; nxt = next((x for x in times_ms if x > ms), ms + 2000); room = (nxt - ms) / 1000
-            j = int(np.searchsorted(times, ms / 1000)); peak = rms[j:j + 8].max() if j < len(rms) else 0
-            if room >= hold_gap and peak > 0 and sum(1 for m in tap if m[0] == ms) == 1:
-                span = rms[j:j + int(room * FPS)]; quiet = span < peak * 0.45
-                held = (np.argmax(quiet) if quiet.any() else len(span)) / FPS
-                ends = grid_ms[(grid_ms > ms) & (grid_ms <= ms + min(room * 1000 - 120, held * 1000))]
-                if len(ends) and ends[-1] - ms >= 250:
-                    hold.append([ms, lane, int(ends[-1])]); continue
-            plain.append(n)
-        charts[level] = {'tap': plain, 'hold': hold, 'sky': [], 'ribbon': []}
+    cand = {}
+    for start, end, pitch, strength in notes:
+        if start < lo or start > hi: continue
+        j = int(np.argmin(abs(steps - start)))
+        t = steps[j] if abs(steps[j] - start) <= 0.035 else start
+        k = pos[j] if abs(steps[j] - start) <= 0.035 else -1
+        key = round(t, 3)
+        if key not in cand or strength > cand[key][3]:
+            cand[key] = (t, end, pitch, strength, k)
+    every = sorted(cand.values())
+    def pick(pool, gap, bonus):
+        prio = sorted(range(len(pool)), key=lambda i: -(pool[i][3] * min(1.0, (pool[i][1] - pool[i][0]) / 0.25 + 0.4) * bonus(pool[i][4])))
+        taken = []
+        for i in prio:
+            if all(abs(pool[i][0] - pool[k][0]) >= gap - 1e-3 for k in taken): taken.append(i)
+        return [pool[i] for i in sorted(taken)]
+    level_notes = {'jeff': pick(every, 0.1, lambda k: 1.0)}
+    level_notes['medium'] = pick(level_notes['jeff'], 0.2, lambda k: 1.3 if k in (0, 2) else 1.0)
+    level_notes['easy'] = pick(level_notes['medium'], 0.42, lambda k: 1.5 if k == 0 else 1.15 if k == 2 else 1.0)
+    charts = {}
+    for level, ns in level_notes.items():
+        hold_min = 0.5 if level == 'easy' else 0.4
+        lanes = lanes_of([n[2] for n in ns]); tap, hold = [], []
+        for i, (t, end, pitch, strength, k) in enumerate(ns):
+            ms = int(round(t * 1000)); nxt = ns[i + 1][0] if i + 1 < len(ns) else t + 3
+            # A long tile ends on the grid step nearest where the note stops (and leaves room before the next).
+            stop = min(end, nxt - 0.12)
+            ends = steps[(steps > t + 0.25) & (steps <= stop + 0.03)]
+            if end - t >= hold_min and len(ends):
+                hold.append([ms, lanes[i], int(round(ends[-1] * 1000)), int(pitch)])
+            else:
+                tap.append([ms, lanes[i], int(pitch)])
+        charts[level] = {'tap': tap, 'hold': [h[:3] for h in hold], 'sky': [], 'ribbon': [], 'pitch': [n[2] for n in tap] + [h[3] for h in hold]}
     return charts
 
 def loud_hits(x):
@@ -173,24 +153,23 @@ def loud_hits(x):
 songs = []
 for file, title, near in SONGS:
     x = load(f'public/audio/games/{file}.mp3'); dur = len(x) / SR
-    flux, times, cent, rms = analyse(x)  # flux: the song's hits (see analyse)
-    hits = loud_hits(x)
+    flux, times, cent, rms = analyse(x)
     beats, bpm = track_beats(flux, times, near)
-    swing = swing_of(beats, hits)
-    # Last check: line the beats up with where the music really hits (plain loudness jumps, which are exact in
-    # time), so the notes land on what you hear, not a few ms before or after it.
-    for _ in range(4):
-        charts = chart_all(flux, times, cent, rms, beats, dur, swing)
-        notes = np.array([n[0] for c in charts.values() for n in c['tap'] + c['hold']]) / 1000
-        j = np.clip(np.searchsorted(hits, notes), 1, len(hits) - 1)
-        near_hit = np.where(abs(hits[j] - notes) < abs(hits[j - 1] - notes), hits[j], hits[j - 1]); off = near_hit - notes
-        off = off[abs(off) < 0.05]
-        shift = float(np.median(off)) if len(off) else 0
-        if abs(shift) < 0.003: break
+    swing = swing_of(beats, loud_hits(x))
+    notes = melody.notes_of(x)
+    # Line the grid up with where the lead really plays (its attacks are exact): shift the beats by how far,
+    # in the middle, the melody's notes sit from their nearest grid step.
+    for _ in range(3):
+        grid = np.sort(np.concatenate([beats[:-1] + (beats[1:] - beats[:-1]) * k / 4 for k in range(4)]))
+        st = np.array([n[0] for n in notes]); j = np.clip(np.searchsorted(grid, st), 1, len(grid) - 1)
+        near_step = np.where(abs(grid[j] - st) < abs(grid[j - 1] - st), grid[j], grid[j - 1]); off = st - near_step
+        off = off[abs(off) < 0.035]; shift = float(np.median(off)) if len(off) else 0
+        if abs(shift) < 0.002: break
         beats = beats + shift
-    charts = chart_all(flux, times, cent, rms, beats, dur, swing)
+    charts = chart_melody(notes, beats, dur, swing)
+    for c in charts.values(): c.pop('pitch')
     first = float(beats[0] % (60 / bpm))
-    print(f'{file:7s} {dur:.0f}s bpm {bpm:.2f} swing {swing:.2f} beats {len(beats)}', {k: (len(v["tap"]), len(v["hold"])) for k, v in charts.items()})
+    print(f'{file:7s} {dur:.0f}s bpm {bpm:.2f} swing {swing:.2f} melody notes {len(notes)}', {k: (len(v["tap"]), len(v["hold"])) for k, v in charts.items()})
     songs.append({'id': file, 'title': title, 'bpm': round(float(bpm), 3), 'first': round(first, 3), 'swing': round(swing, 3), 'ms': int(dur * 1000), 'charts': charts})
 with open('src/game/data/rhythmCharts.json', 'w') as f:
     json.dump({'songs': songs}, f, separators=(',', ':'))

@@ -1,16 +1,16 @@
-/** KONO Beat (components/RhythmGame): the arcade's songs as a rhythm game on a track that runs off into the
- * distance. Floor notes come down four lanes (tap; holds stay pressed to the end); sky notes float above the
- * track (tap up high); ribbons wind through the sky with the melody (keep a finger on them). How close a hit is
- * decides Perfect, Great or Good, with Early or Late; holds and ribbons count Perfect for every moment they're
- * kept. The score is out of 1,000,000 (plus one for each dead-on hit), and a clear gauge decides if the song is
- * cleared: on Easy and Medium it fills from empty and needs 70% at the end; on Jeff tier it starts full and the
- * song is over if it runs out. The charts are made from the songs themselves (tools/make_rhythm_charts.py →
- * game/data/rhythmCharts.json). */
+/** KONO Beat (components/RhythmGame): the arcade's songs as a piano-tiles game. Black tiles come down four
+ * columns, one for each note the song's lead melody plays (higher notes to the right); tap a tile's column as
+ * it reaches the line, and hold a long tile to its end. How close a tap is decides Perfect, Great or Good, with
+ * Early or Late; a long tile counts Perfect for every moment it's held. (The rules still know sky notes and
+ * ribbons from the old 3D track; the charts don't use them.) The score is out of 1,000,000 (plus one for each
+ * dead-on hit), and a clear gauge decides if the song is cleared: on Easy and Medium it fills from empty and
+ * needs 70% at the end; on Jeff tier it starts full and the song is over if it runs out. The charts are made
+ * from the songs themselves (tools/make_rhythm_charts.py → game/data/rhythmCharts.json). */
 export type Level='easy'|'medium'|'jeff'
 export const LEVELS:{id:Level;name:string;blurb:string}[]=[
- {id:'easy',name:'Easy',blurb:'About a note a second, on the beat; roomy timing and a gentle gauge.'},
- {id:'medium',name:'Medium',blurb:'About two a second, on the beat and the 8ths, with holds.'},
- {id:'jeff',name:'Jeff tier',blurb:'Every hit in the song down to the 16ths, chords, and the gauge drains.'},
+ {id:'easy',name:'Easy',blurb:'The melody’s main notes, about one and a half a second; roomy timing and a gentle gauge.'},
+ {id:'medium',name:'Medium',blurb:'Most of the melody, about three a second, with long tiles.'},
+ {id:'jeff',name:'Jeff tier',blurb:'Every note the lead plays, and the gauge drains.'},
 ]
 export type Judge='perfect'|'great'|'good'|'miss'
 /** How far off (ms) still counts, by level: Perfect, Great, Good. Half the Perfect window is dead on. */
