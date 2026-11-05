@@ -4134,9 +4134,12 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  if(process.env.KONO_SHOTS)await beat.screenshot({path:process.env.KONO_SHOTS+'/beat.png'})
  await beat.getByRole('button',{name:'■ End'}).click()
  const br=beat.getByRole('region',{name:'Results'})
- await br.getByText(/^[\d,]+ · (S\+|S|A|B|C|D|F)$/).first().waitFor()
+ await br.getByLabel(/^Grade (S\+|S|A|B|C|D|F)$/).waitFor();assert.match(await br.locator('.game-result-score').textContent(),/^[\d,]+$/)
  const line=await br.textContent();const hits=/(\d+) perfect, (\d+) great, (\d+) good/.exec(line)
  assert.ok(hits&&Number(hits[1])+Number(hits[2])+Number(hits[3])>=2,'keys on time hit the notes: '+line)
+ // The breakdown: the grade, a bar for each kind of hit, and the song as a strip of tiles.
+ await br.getByRole('list',{name:'Hits'}).waitFor();await br.getByLabel(/^Grade /).waitFor();await br.getByRole('img',{name:/^The song, tile by tile/}).waitFor()
+ if(process.env.KONO_SHOTS)await beat.screenshot({path:process.env.KONO_SHOTS+'/beat-results.png'})
  // Classic: a tap on the wrong column as the first tile arrives stops the song there.
  await beat.getByRole('button',{name:'Play again'}).click()
  await beat.getByLabel('Tap notes').waitFor();await beat.getByLabel('Classic').check()

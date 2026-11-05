@@ -12,7 +12,8 @@ import {musicOn,setMusicOn} from '../arcadeAudio'
  *   for one lost, then the coins coming in).
  * With Sounds on, 🎵 turns the games' music on and off (kept on this device). */
 /** `behind`: keep the finished game in view behind the results (KONO Stack's tower). */
-export type GameResult={emoji:string;title:string;line:string;score?:string;best?:boolean;coins?:string|null;won?:boolean;behind?:boolean}
+/** `detail`: more for the results, under the score (KONO Beat's breakdown of the song). */
+export type GameResult={emoji:string;title:string;line:string;score?:string;best?:boolean;coins?:string|null;won?:boolean;behind?:boolean;detail?:ReactNode}
 /** `extra`: more for the start card, under the how-to (Sweet swap's level map). */
 export type GameIntro={emoji:string;name:string;how:string;best?:string|null;start?:string;alt?:{label:string;onClick:()=>void};extra?:React.ReactNode}
 /** What a game lets its screen do: End finishes the round now with the score so far. */
@@ -43,6 +44,7 @@ export default function GameScreen({title,tone,sound=false,intro,started=true,on
    <h2>{result.title}</h2>
    {result.score&&<p className="game-result-score">{result.score}</p>}
    {result.best&&<p className="game-result-best">👑 New best!</p>}
+   {result.detail}
    <p className="game-result-line">{result.line}</p>
    {result.coins&&<p className="game-result-coins">{result.coins}</p>}
    <div className="game-result-actions">{onAgain&&<button type="button" className="primary" onClick={()=>{gameSound('start',sound);onAgain()}}>Play again</button>}<button type="button" onClick={leave}>Done</button></div>

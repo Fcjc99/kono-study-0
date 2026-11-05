@@ -12,6 +12,7 @@ import KonoBloom from './KonoBloom'
 import {LADDER} from '../store/bloom'
 // KONO Beat brings its charts (every song, three levels): loaded when it's opened.
 const RhythmGame=lazy(()=>import('./RhythmGame'))
+import BeatSummary from './BeatSummary'
 // KONO Medal Cove is 3D (three.js): loaded only when it's opened.
 const MedalCove=lazy(()=>import('./MedalCoveGame'))
 import {flapMedal} from '../store/flappy'
@@ -74,10 +75,10 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
  const left=startedAt+BREAK_MINUTES*60_000-now,over=!arcade&&left<=0
  // A finished round: its results card (in the game's screen), the best kept, and coins for it.
  // `coinScore` is what earns coins when it isn't the score kept as a best (Sweet swap keeps the level).
- const finish=(g:Game,score:number,line:string,{title='Nice game!',coinScore=score,scoreText,won=true,behind=false}:{title?:string;coinScore?:number;scoreText?:string;won?:boolean;behind?:boolean}={})=>{
+ const finish=(g:Game,score:number,line:string,{title='Nice game!',coinScore=score,scoreText,won=true,behind=false,detail}:{title?:string;coinScore?:number;scoreText?:string;won?:boolean;behind?:boolean;detail?:React.ReactNode}={})=>{
   const best=score>0&&saveBest(g,score),extra=g==='blast'?null:onScore?.(g,coinScore),info=GAMES.find(x=>x.id===g)!
   setResult(line+(best?' New best! 🎉':'')+(extra?' '+extra:''))
-  setEnded({emoji:info.emoji,title,line,score:scoreText??info.best(score).replace(/^Best: /,''),best:Boolean(best),coins:extra,won,behind})
+  setEnded({emoji:info.emoji,title,line,score:scoreText??info.best(score).replace(/^Best: /,''),best:Boolean(best),coins:extra,won,behind,detail})
  }
  // Opening a game shows its start card; Start (and Restart, and Play again) begins a round: a fresh board
  // (KONO blast carries on a saved game unless `fresh`; Meowdoku and Sweet swap pick up at your level).
@@ -107,7 +108,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
   :game==='beat'?<Suspense fallback={<p role="status">Loading the songs…</p>}><RhythmGame key={round} ref={handle} onEnd={r=>{
    // Coins follow how well it went, more for harder levels; the best kept is the score.
    const mult=r.level==='jeff'?1.8:r.level==='medium'?1.4:1,lvl=r.level==='jeff'?'Jeff tier':r.level==='medium'?'Medium':'Easy',t=r.tally
-   finish('beat',r.failed?0:r.score,r.title+' ('+lvl+'): '+t.perfect+' perfect, '+t.great+' great, '+t.good+' good, '+t.miss+' missed'+(t.early+t.late?' ('+t.early+' early, '+t.late+' late)':'')+'. Best combo '+t.best+'.'+(r.failed?(r.classic?' Classic: stopped at tile '+r.tiles+' of '+r.of+'.':' Clear the gauge to finish the song!'):' 🥁'),{title:r.clear==='fail'?(r.classic?'Classic: '+r.tiles+' tiles':'Song failed'):r.clear==='all'?'All perfect! 🌟':r.clear==='full'?'Full combo! ✨':'Song clear!',coinScore:Math.round(r.acc/100*(r.failed?10:30)*mult),scoreText:r.score.toLocaleString()+' · '+r.grade,won:!r.failed})
+   finish('beat',r.failed?0:r.score,r.title+' ('+lvl+'): '+t.perfect+' perfect, '+t.great+' great, '+t.good+' good, '+t.miss+' missed'+(t.early+t.late?' ('+t.early+' early, '+t.late+' late)':'')+'. Best combo '+t.best+'.'+(r.failed?(r.classic?' Classic: stopped at tile '+r.tiles+' of '+r.of+'.':' Clear the gauge to finish the song!'):' 🥁'),{title:r.clear==='fail'?(r.classic?'Classic: '+r.tiles+' tiles':'Song failed'):r.clear==='all'?'All perfect! 🌟':r.clear==='full'?'Full combo! ✨':'Song clear!',coinScore:Math.round(r.acc/100*(r.failed?10:30)*mult),scoreText:r.score.toLocaleString(),won:!r.failed,detail:<BeatSummary r={r}/>})
   }}/></Suspense>
   :game==='paper'?<PaperKono key={round} ref={handle} mode={paperMode} sound={sound} onEnd={r=>r.team?finish('paper',0,'Blue '+r.team.blue+'% · Red '+r.team.red+'%'+(r.kills?'. You cut '+r.kills+' trail'+(r.kills===1?'':'s'):'')+'.',{title:r.team.won?'Blue wins! 🏆':r.team.blue===r.team.red?'A tie!':'Red wins this time',coinScore:(r.team.won?25:10)+r.kills*5,scoreText:'Team battle',won:r.team.won}):finish('paper',r.share,'You claimed '+r.share+'% of the map'+(r.kills?' and cut '+r.kills+' trail'+(r.kills===1?'':'s'):'')+'. Rank #'+r.rank+'.',{title:r.rank===1?'Top of the map!':'Nice run!',coinScore:Math.round(r.share+r.kills*5),scoreText:r.share+'%',won:r.share>1})}/>
   :(game==='gems'||game==='candy')&&match?<Match3 key={round} ref={handle} mode={game} level={match.level} start={match} sound={sound} boosters={game==='candy'&&coins?{balance:coins.balance,buy:id=>{const b=BOOSTERS[id];if(coins.balance<b.price)return false;coins.onBuy({key:'booster:'+id,kind:'booster',id,name:b.name,price:b.price,emoji:b.emoji});return true}}:undefined} onEnd={(score,won,stars)=>{

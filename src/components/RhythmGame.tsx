@@ -23,7 +23,9 @@ const WORD_COLOR:Record<Judge,string>={perfect:'#ffe27a',great:'#7ae7ff',good:'#
 // The last song loaded (decoded once, so Play again starts straight away).
 const decoded=new Map<string,AudioBuffer>()
 const CLEAR_MARK:Record<Clear,string>={fail:'',clear:'✓',full:'FC',all:'AP'}
-export type BeatResult={song:string;title:string;level:Level;score:number;acc:number;grade:string;best:number;tally:Tally;clear:Clear;failed:boolean;newBest:boolean;classic?:boolean;tiles:number;of:number}
+export type BeatResult={song:string;title:string;level:Level;score:number;acc:number;grade:string;best:number;tally:Tally;clear:Clear;failed:boolean;newBest:boolean;classic?:boolean;tiles:number;of:number
+ /** Each tile, in order: when (ms into the song) and how it went (unplayed if the song stopped first). */
+ timeline:{t:number;j:Judge|null}[];ms:number}
 
 /** The board: four columns of tiles, side by side and centered (narrow and tall, like a piano's keys seen
  * from above), with the line near the bottom. Tiles come down from the top and reach the line on their note. */
@@ -59,7 +61,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
   stopSong()
   const t=tally.current,total=play.current.total,score=scoreOf(t,total),clear=clearOf(t,level,judged(),total)
   const newBest=clear!=='fail'&&saveBeatBest(info.id,level,score,clear)
-  onEndRef.current({song:info.id,title:info.title,level,score,acc:accuracy(t,total),grade:clear==='fail'?'F':grade(score),best:t.best,tally:t,clear,failed:clear==='fail',newBest,classic,tiles:play.current.notes.filter(n=>n.hit&&n.hit!=='miss').length,of:play.current.notes.length})
+  onEndRef.current({song:info.id,title:info.title,level,score,acc:accuracy(t,total),grade:clear==='fail'?'F':grade(score),best:t.best,tally:t,clear,failed:clear==='fail',newBest,classic,tiles:play.current.notes.filter(n=>n.hit&&n.hit!=='miss').length,of:play.current.notes.length,timeline:play.current.notes.filter(n=>n.kind!=='sky').map(n=>({t:n.t,j:n.hit??null})),ms:info.ms})
  }
  const finishRef=useRef(finish);useEffect(()=>{finishRef.current=finish})
  useImperativeHandle(ref,()=>({end:()=>finishRef.current()}),[])
