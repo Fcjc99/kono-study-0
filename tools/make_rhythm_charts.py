@@ -140,7 +140,7 @@ def chart_melody(notes, beats, dur, swing=0.5):
                 hold.append([ms, lanes[i], int(round(ends[-1] * 1000)), int(pitch)])
             else:
                 tap.append([ms, lanes[i], int(pitch)])
-        charts[level] = {'tap': tap, 'hold': [h[:3] for h in hold], 'sky': [], 'ribbon': [], 'pitch': [n[2] for n in tap] + [h[3] for h in hold]}
+        charts[level] = {'tap': tap, 'hold': hold, 'sky': [], 'ribbon': []}
     return charts
 
 def loud_hits(x):
@@ -167,7 +167,6 @@ for file, title, near in SONGS:
         if abs(shift) < 0.002: break
         beats = beats + shift
     charts = chart_melody(notes, beats, dur, swing)
-    for c in charts.values(): c.pop('pitch')
     first = float(beats[0] % (60 / bpm))
     print(f'{file:7s} {dur:.0f}s bpm {bpm:.2f} swing {swing:.2f} melody notes {len(notes)}', {k: (len(v["tap"]), len(v["hold"])) for k, v in charts.items()})
     songs.append({'id': file, 'title': title, 'bpm': round(float(bpm), 3), 'first': round(first, 3), 'swing': round(swing, 3), 'ms': int(dur * 1000), 'charts': charts})

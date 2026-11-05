@@ -4137,6 +4137,15 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  await br.getByText(/^[\d,]+ · (S\+|S|A|B|C|D|F)$/).first().waitFor()
  const line=await br.textContent();const hits=/(\d+) perfect, (\d+) great, (\d+) good/.exec(line)
  assert.ok(hits&&Number(hits[1])+Number(hits[2])+Number(hits[3])>=2,'keys on time hit the notes: '+line)
+ // Classic: a tap on the wrong column as the first tile arrives stops the song there.
+ await beat.getByRole('button',{name:'Play again'}).click()
+ await beat.getByLabel('Tap notes').waitFor();await beat.getByLabel('Classic').check()
+ await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor()
+ await page.evaluate(async ([t,key])=>{const cv=document.querySelector('.beat-canvas');while(!cv?.songNow||cv.songNow()<t)await new Promise(r=>setTimeout(r,5))
+  window.dispatchEvent(new KeyboardEvent('keydown',{key}));window.dispatchEvent(new KeyboardEvent('keyup',{key}))},[easy[0][0],'dfjk'[(easy[0][1]+2)%4]])
+ await br.getByText(/Classic: stopped at tile 0 of \d+/).waitFor({timeout:15000})
+ await beat.getByRole('button',{name:'Play again'}).click();await beat.getByLabel('Classic').uncheck()
+ await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor();await beat.getByRole('button',{name:'■ End'}).click();await br.waitFor()
  if(process.env.KONO_SHOTS){
   // Pictures of Medium a few bars in, wide and on a phone.
   for(const [w,h,name] of [[1280,800,'beat-wide'],[390,844,'beat-phone']]){

@@ -32,3 +32,12 @@ export function click(ctx:AudioContext,when:number,{freq=1600,gain=0.22,accent=f
  g.gain.setValueAtTime(0,when);g.gain.linearRampToValueAtTime(accent?gain*1.3:gain,when+0.002);g.gain.exponentialRampToValueAtTime(0.0001,when+0.06)
  o.connect(g).connect(ctx.destination);o.start(when);o.stop(when+0.07)
 }
+
+/** A soft piano-like note (MIDI `midi`) at `when`: a few sine partials, a quick strike and a long fade (longer
+ * for a long tile). KONO Beat plays one for each tile you hit, the same note the melody plays there. */
+export function keyNote(ctx:AudioContext,when:number,midi:number,{gain=0.14,long=false}:{gain?:number;long?:boolean}={}){
+ const f=440*2**((midi-69)/12),fade=long?1.6:0.9,out=ctx.createGain(),lp=ctx.createBiquadFilter()
+ lp.type='lowpass';lp.frequency.value=Math.min(9000,f*6);lp.connect(ctx.destination);out.connect(lp)
+ out.gain.setValueAtTime(0,when);out.gain.linearRampToValueAtTime(gain,when+0.004);out.gain.exponentialRampToValueAtTime(gain*0.35,when+0.12);out.gain.exponentialRampToValueAtTime(0.0001,when+fade)
+ for(const [h,g] of [[1,1],[2,0.35],[3,0.12],[4,0.06]] as const){const o=ctx.createOscillator(),og=ctx.createGain();o.type='sine';o.frequency.value=f*h;og.gain.value=g;o.connect(og).connect(out);o.start(when);o.stop(when+fade+0.05)}
+}

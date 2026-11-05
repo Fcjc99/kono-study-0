@@ -29,7 +29,7 @@ Medal Cove is developed as its own project and copied into KONO whole. This is v
 - `npm run test:cove:slow` runs the passing ones that take longer (1–2 min each).
 - These don't apply in KONO, because they check the stand-alone page (`src/main.tsx`, `standalone.css`):
   `test_framing`, `test_gameplay`, `test_music_runtime`, `test_sound_access`.
-- These already fail in the v36 package itself; they describe earlier versions of the machine:
+- These already fail in the v36 package itself (each one sorted in [TEST_TRIAGE.md](TEST_TRIAGE.md): 5 out of date, 9 worth a look):
   - `test_tide`, `test_tower_park`, `test_whole_route`, `test_sanctuary_tide`, `test_delivery_presentation`,
     `test_scene_geometry`
   - `test_board_clear_transport`, `test_board_clear_lifecycle`, `test_compact_cabinet`, `test_rear_backstop`

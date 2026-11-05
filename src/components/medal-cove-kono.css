@@ -268,3 +268,6 @@
 .cove-sound small{font-size:8px}
 @media(max-width:370px){.cove-screen-label{display:none}.cove-brand-mark{display:none}.cove-brand strong>span{font-size:9px;margin-left:2px}}
 @media(max-width:600px){.cove-screen-label{display:none}.cove-brand{gap:5px}.cove-brand strong>span{display:block;margin-left:0;font-size:9px}.cove-brand small{display:none}.medal-cove .cove-shell-header button{padding:0 6px;min-width:40px}.cove-shell-header nav{gap:1px}.cove-shell-header{padding-inline:6px}}
+/* KONO's Large text setting: the dashboard, controls and tools grow with it (their sizes are fixed pixels, so
+   they're zoomed as a whole, keeping their layout). */
+.text-large .medal-cove :is(.cove-dashboard,.cove-controls,.cove-play-tools,.cove-practice-panel){zoom:1.15}
