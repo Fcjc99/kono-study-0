@@ -4137,6 +4137,15 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  await br.getByText(/^[\d,]+ · (S\+|S|A|B|C|D|F)$/).first().waitFor()
  const line=await br.textContent();const hits=/(\d+) perfect, (\d+) great, (\d+) good/.exec(line)
  assert.ok(hits&&Number(hits[1])+Number(hits[2])+Number(hits[3])>=2,'keys on time hit the notes: '+line)
+ // Classic: a tap on the wrong column as the first tile arrives stops the song there.
+ await beat.getByRole('button',{name:'Play again'}).click()
+ await beat.getByLabel('Tap notes').waitFor();await beat.getByLabel('Classic').check()
+ await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor()
+ await page.evaluate(async ([t,key])=>{const cv=document.querySelector('.beat-canvas');while(!cv?.songNow||cv.songNow()<t)await new Promise(r=>setTimeout(r,5))
+  window.dispatchEvent(new KeyboardEvent('keydown',{key}));window.dispatchEvent(new KeyboardEvent('keyup',{key}))},[easy[0][0],'dfjk'[(easy[0][1]+2)%4]])
+ await br.getByText(/Classic: stopped at tile 0 of \d+/).waitFor({timeout:15000})
+ await beat.getByRole('button',{name:'Play again'}).click();await beat.getByLabel('Classic').uncheck()
+ await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor();await beat.getByRole('button',{name:'■ End'}).click();await br.waitFor()
  if(process.env.KONO_SHOTS){
   // Pictures of Medium a few bars in, wide and on a phone.
   for(const [w,h,name] of [[1280,800,'beat-wide'],[390,844,'beat-phone']]){
@@ -4264,7 +4273,7 @@ test('Chores on Home: today’s chores sit in the schedule as their own checklis
  await page.getByRole('region',{name:'Tomorrow’s chores'}).getByText('Water the plants').waitFor()
 })
 
-test('KONO Medal Cove: a medal pusher: tapping the field drops medals from your hand, the jackpot board and reels show, and End gives what you finished with',async({context,page})=>{
+test('KONO Medal Cove: a medal pusher: DROP feeds medals from your hand onto the pin board, the three bonus wheels show, and End gives what you finished with',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
@@ -4273,15 +4282,15 @@ test('KONO Medal Cove: a medal pusher: tapping the field drops medals from your 
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
  await town.getByRole('button',{name:/KONO Medal Cove/}).click()
  const cove=await startGame(page,'🪙 KONO Medal Cove')
- const field=cove.getByRole('img',{name:/^KONO Medal Cove: 100 medals/});await field.waitFor({timeout:30000})
- await cove.getByLabel('Backboard').getByText('JACKPOT').waitFor()
- // The three bonus wheels, zoomed in under the cabinet.
+ await cove.locator('.cove-stage[aria-label^="KONO Medal Cove: 100 medals"]').waitFor({timeout:30000})
+ // The three bonus wheels, one for each ship's pocket.
  await cove.getByRole('figure',{name:/🏮 wheel/}).waitFor();await cove.getByRole('figure',{name:/⭐ wheel/}).waitFor();await cove.getByRole('figure',{name:/🗼 wheel/}).waitFor()
- // The field's middle, in front of the pusher: a tap there drops a medal.
- const box=await field.boundingBox()
- for(let i=0;i<5;i++){await page.mouse.click(box.x+box.width*(0.35+i*0.07),box.y+box.height*0.55);await page.waitForTimeout(150)}
- await cove.getByRole('button',{name:'Change the camera'}).click()
- await page.waitForFunction(()=>{const m=/: (\d+) medals/.exec(document.querySelector('.cove-stage')?.getAttribute('aria-label')??'');return m&&Number(m[1])!==100},null,{timeout:5000})
+ // DROP feeds medals from your hand (once the machine is filled and ready).
+ const drop=cove.getByRole('button',{name:/^DROP/});await page.waitForFunction(()=>{const b=[...document.querySelectorAll('.cove-drop')][0];return b&&!b.disabled},null,{timeout:30000})
+ // Pressed where it is on screen (the game holds its layout steady, so there's nothing to scroll).
+ const db=await drop.boundingBox()
+ for(let i=0;i<5;i++){await page.mouse.click(db.x+db.width/2,db.y+db.height/2);await page.waitForTimeout(250)}
+ await page.waitForFunction(()=>{const m=/: (\d+) medals/.exec(document.querySelector('.cove-stage')?.getAttribute('aria-label')??'');return m&&Number(m[1])<100},null,{timeout:15000})
  await cove.getByRole('button',{name:'■ End'}).click()
  await cove.getByText(/You finished with \d+ medals?/).waitFor()
 })

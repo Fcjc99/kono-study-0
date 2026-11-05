@@ -6,12 +6,12 @@
  *
  * The bonus chain:
  * - A lantern hole slides back and forth on the pusher's face. A medal dropped through it is a "check":
- *   it spins the lottery (three reels). Up to 4 spins wait their turn.
- * - The reels: three of a kind wins. 🪙 a shower of 12 medals onto the field; 🗼 a medal tower of 20 (a
- *   tall stack that tips over onto the field); 🔮 a prize ball onto the field; ⭐ a step; 🐚 a shower of 8.
- *   Two of a kind drops 2. Every spin also adds a medal to the jackpot.
+ *   it spins the lottery (three reels). Every earned spin waits its turn, without a queue cap.
+ * - The reels: three of a kind wins. 🪙 a shower of 20 medals onto the field; 🗼 a medal tower of 20 (a
+ *   tall stack that tips over onto the field); 🔮 a prize ball onto the field; ⭐ a step; 🐚 a shower of 12.
+ *   Two of a kind drops 4. Every spin also adds a medal to the jackpot.
  * - Lamps: the lighthouse has five. A ⭐ on the reels (or a medal in the star pocket) lights one; all five
- *   is the BIG BONUS: a medal shower, a prize ball and a medal tower.
+ *   is the BIG BONUS: release the full tower reserve and add a prize ball.
  * - The pin board (when the physics engine runs the machine): medals go in at the top of a pin board and
  *   bounce down into one of three pockets: 🏮 spins the lottery, ⭐ lights a lamp, 🗼 builds a medal tower.
  *   A miss drops onto the pusher's shelf and joins the pile.
@@ -26,20 +26,37 @@ export type Reel = '🪙' | '🗼' | '🔮' | '⭐' | '🐚' | '🌺'
 export type Spin = { reels: [Reel, Reel, Reel]; prize: SpinPrize; at: number }
 export type SpinPrize = { kind: 'shower'; n: number } | { kind: 'tower'; n: number } | { kind: 'ball' } | { kind: 'step' } | { kind: 'none' }
 export type DishPocket = { label: string; prize: { kind: 'medals'; n: number } | { kind: 'tower'; n: number } | { kind: 'chance' } }
+export type BonusDrawState = { pocket: number; at: number; launchId?: number }
+export type BonusResult = { kind: 'dish' | 'chance'; pocket: number; label: string; n: number; at: number; until: number; winPockets?: number }
+export type TideAward = {id:number;n:number;at:number;practice:boolean}
 export type Cove = {
   medals: Medal[]; nextId: number; frame: number
   pusher: number; checker: number
   hand: number; won: number; lost: number; dropped: number
   queue: number; spinning: Spin | null; spinsDone: number; steps: number
-  dish: { pocket: number; at: number } | null; dishQueue: number
-  chance: { pocket: number; at: number } | null; chanceQueue: number
+  dish: BonusDrawState | null; dishQueue: number
+  chance: BonusDrawState | null; chanceQueue: number
+  bonusSequence?: number
   jackpot: number; jpWins: number; winPockets: number
-  towers: { x: number; n: number; at: number }[]; events: { text: string; at: number }[]
+  /** One optional clear per earned JP. A clear never awards a numeric payout;
+   * the renderer must collect the existing physical medals through the tray. */
+  boardClears?: number; boardClearBusy?: boolean; boardClearPractice?: boolean
+  /** Authoritative supply to the field, not collection or spendable hand. */
+  fieldAwards?: number; ballsAwarded?: number; ballsCaptured?: number
+  /** Real starting field balls, not earned or Practice awards. Recorded once per fresh round. */
+  ballsStartingSupply?: number
+  /** Fixed jackpot delivery rights. Consumed once by the physical Tide FIFO.
+   * A selected lane changes placement only; it never participates in a draw. */
+  tides?: TideAward[]; tideSequence?: number; tideBusy?: boolean
+  reelResultUntil?: number
+  bonusResult?: BonusResult | null; lastReels?: [Reel, Reel, Reel]
+  wheelResults?: ({ seg: number; at: number } | null)[]
+  towers: { x: number; n: number; at: number; source?: 'bank' }[]; events: { text: string; at: number }[]
   /** The pile is moved by a real physics engine (components/MedalCove): `medals` then only holds medals and
    * balls waiting to be put into the machine, towers stand until it builds them, and it reports what
    * falls off (settle). */
   external?: boolean
-  /** The pin board's three mini wheels: one spinning per pocket, and spins waiting (up to 3 each). */
+  /** The pin board's three mini wheels: one spinning per pocket, and all earned spins waiting. Display capacity never caps entitlement. */
   wheels?: ({ seg: number; at: number } | null)[]; wheelQueue?: number[]
   /** The giant tower: medals banked by tower layers, released onto the field by the BIG BONUS. */
   bank?: number
@@ -72,31 +89,51 @@ export function newCove(random: () => number = Math.random, hand = 100, external
   // Rows of medals from the pusher's reach to near the front edge, packed with a little jitter.
   for (let y = FIELD.reach + 4; y < FIELD.h - 1.5; y += FIELD.r * 1.7) for (let x = 6; x < FIELD.w - 6; x += FIELD.r * 2.05) medals.push({ id: id++, x: x + (random() - 0.5) * 1.2, y: y + (random() - 0.5) * 1.2, vx: 0, vy: 0 })
   if (external) medals.length = 0
-  return { ...(external ? { external } : {}), medals, nextId: id, frame: 0, pusher: pusherAt(0), checker: checkerAt(0), hand, won: 0, lost: 0, dropped: 0, queue: 0, spinning: null, spinsDone: 0, steps: 0, dish: null, dishQueue: 0, chance: null, chanceQueue: 0, jackpot: JP_START, jpWins: 0, winPockets: 1, towers: [], events: [], wheels: [null, null, null], wheelQueue: [0, 0, 0], bank: BANK_START }
+  return { ...(external ? { external } : {}), medals, nextId: id, frame: 0, pusher: pusherAt(0), checker: checkerAt(0), hand, won: 0, lost: 0, dropped: 0, queue: 0, spinning: null, spinsDone: 0, steps: 0, dish: null, dishQueue: 0, chance: null, chanceQueue: 0, jackpot: JP_START, jpWins: 0, winPockets: 1, boardClears: 0, boardClearBusy: false, boardClearPractice: false, towers: [], events: [], wheels: [null, null, null], wheelQueue: [0, 0, 0], wheelResults: [null, null, null], bank: BANK_START, fieldAwards: 0, ballsAwarded: 0, ballsStartingSupply: 0, ballsCaptured: 0, bonusResult: null }
 }
 
 const say = (c: Cove, text: string): Cove => ({ ...c, events: [...c.events.slice(-4), { text, at: c.frame }] })
 const add = (c: Cove, list: Omit<Medal, 'id'>[]): Cove => ({ ...c, medals: [...c.medals, ...list.map((m, i) => ({ ...m, id: c.nextId + i }))], nextId: c.nextId + list.length })
+/** Record an actually instantiated starting supply. This is deliberately not an
+ * award/rail request and grants neither a challenge nor spendable medals. A
+ * second setup attempt cannot silently duplicate the round's initial supply. */
+export function recordStartingBalls(c:Cove,n:number):Cove {
+ if(!Number.isSafeInteger(n)||n<4||n>6)throw new Error('Starting ball supply must contain 4–6 real bodies.')
+ if((c.ballsStartingSupply??0)!==0)throw new Error('Starting ball supply already recorded for this round.')
+ return {...c,ballsStartingSupply:n}
+}
+/** Claim one earned clear, once. Requesting it never changes a medal balance,
+ * supply ledger, queued reward, ball or tower reserve. Physics completes it. */
+export function claimBoardClear(c:Cove):Cove {
+ const available=c.boardClears??0
+ if(c.boardClearBusy||!Number.isSafeInteger(available)||available<1)return c
+ return {...c,boardClears:available-1,boardClearBusy:true,boardClearPractice:false}
+}
+/** Commit a medal quantity exactly once when its award is resolved. */
+export const awardField = (c: Cove, n: number): Cove => ({ ...c, fieldAwards: (c.fieldAwards ?? 0) + n })
+export const awardTide = (c:Cove,n:number,practice=false):Cove => {
+ const id=(c.tideSequence??0)+1
+ return {...awardField(c,n),tideSequence:id,tides:[...(c.tides??[]),{id,n,at:c.frame,practice}]}
+}
+export const awardTower = (c: Cove, n: number, x = 50, source?: 'bank'): Cove => ({ ...awardField(c, n), towers: [...c.towers, { x, n, at: c.frame, ...(source ? { source } : {}) }] })
 /** Medals raining onto the middle of the field. */
 function shower(c: Cove, n: number, random: () => number): Cove {
-  return add(c, Array.from({ length: n }, () => ({ x: 14 + random() * 72, y: c.pusher + 4 + random() * 22, vx: (random() - 0.5) * 0.3, vy: 0.2 + random() * 0.3 })))
+  return add(awardField(c, n), Array.from({ length: n }, () => ({ x: 14 + random() * 72, y: c.pusher + 4 + random() * 22, vx: (random() - 0.5) * 0.3, vy: 0.2 + random() * 0.3 })))
 }
 /** Pays `n` medals: straight into the tray (and your hand), or, with the pin board, as real medals that rain
  * down onto the field from above, a few a frame (`rain`). */
-function pay(c: Cove, n: number): Cove { return c.external ? { ...c, rain: (c.rain ?? 0) + n } : { ...c, won: c.won + n } }
-function ballOnField(c: Cove, random: () => number): Cove { return add(c, [{ x: 30 + random() * 40, y: c.pusher + FIELD.ball + 1, vx: 0, vy: 0.3, ball: true }]) }
+function pay(c: Cove, n: number): Cove { c = awardField(c, n); return c.external ? { ...c, rain: (c.rain ?? 0) + n } : { ...c, won: c.won + n } }
+function ballOnField(c: Cove, random: () => number): Cove { return add({ ...c, ballsAwarded: (c.ballsAwarded ?? 0) + 1 }, [{ x: 30 + random() * 40, y: c.pusher + FIELD.ball + 1, vx: 0, vy: 0.3, ball: true }]) }
 
-/** Drops a medal from your hand at `aim` (0–100). Through the lantern hole it's a check (a spin, up to 4
+/** Drops a medal from your hand at `aim` (0–100). Through the lantern hole it's a check (a spin, with all earned spins
  * waiting); otherwise it lands in front of the pusher. */
 export function drop(c: Cove, aim: number, random: () => number = Math.random): Cove {
-  if (c.hand <= 0) return c
+  if (c.hand <= 0 || c.boardClearBusy) return c
   // With the pin board, a medal goes in at the top (y -1 marks it) and the board decides where it lands.
   if (c.external) return add({ ...c, hand: c.hand - 1, dropped: c.dropped + 1 }, [{ x: Math.max(4, Math.min(96, aim)), y: -1, vx: 0, vy: 0 }])
   const x = Math.max(FIELD.r + 1, Math.min(FIELD.w - FIELD.r - 1, aim))
   const next: Cove = { ...c, hand: c.hand - 1, dropped: c.dropped + 1 }
   if (Math.abs(x - c.checker) <= FIELD.checkerW / 2) {
-    // With four spins already waiting, the medal just joins the pile.
-    if (c.queue + (c.spinning ? 1 : 0) >= 4) return add(next, [{ x, y: c.pusher + FIELD.r + 0.5, vx: 0, vy: 0.4 }])
     return { ...next, queue: next.queue + 1 }
   }
   return add(next, [{ x, y: c.pusher + FIELD.r + 0.5, vx: (random() - 0.5) * 0.2, vy: 0.5 }])
@@ -105,8 +142,8 @@ export function drop(c: Cove, aim: number, random: () => number = Math.random): 
 /** What three reels pay. */
 export function spinPrize(reels: Reel[]): SpinPrize {
   const [a, b, c] = reels
-  if (a === b && b === c) return a === '🪙' ? { kind: 'shower', n: 12 } : a === '🗼' ? { kind: 'tower', n: 20 } : a === '🔮' ? { kind: 'ball' } : a === '⭐' ? { kind: 'step' } : { kind: 'shower', n: 8 }
-  if (a === b || b === c || a === c) return { kind: 'shower', n: 2 }
+  if (a === b && b === c) return a === '🪙' ? { kind: 'shower', n: 20 } : a === '🗼' ? { kind: 'tower', n: 20 } : a === '🔮' ? { kind: 'ball' } : a === '⭐' ? { kind: 'step' } : { kind: 'shower', n: 12 }
+  if (a === b || b === c || a === c) return { kind: 'shower', n: 4 }
   return { kind: 'none' }
 }
 /** A spin's outcome, from a payout table (as real machines tune theirs), then reels drawn to show it. */
@@ -133,7 +170,7 @@ export const LAMPS = 5, BANK_START = 20, LAYER = 5
 function lampCheck(c: Cove, random: () => number): Cove {
   if (c.steps < LAMPS) return c
   const bank = c.bank ?? BANK_START
-  return say(ballOnField({ ...c, steps: 0, bank: BANK_START, towers: [...c.towers, { x: 50, n: bank, at: c.frame }] }, random), '💡 BIG BONUS! The giant tower comes down: ' + bank + ' medals!')
+  return say(ballOnField(awardTower({ ...c, steps: 0, bank: BANK_START }, bank, 50, 'bank'), random), '💡 BIG BONUS! Build and release ' + bank + ' tower medals!')
 }
 /** A mini wheel's segment: medals onto the field, layers for the giant tower, a prize ball, a lamp, or a
  * lottery spin. */
@@ -142,15 +179,15 @@ const seg = (label: string, kind: WheelSeg['kind'], n = 0): WheelSeg => ({ label
 /** The three wheels, one over each pocket, each with its own mix: the 🏮 wheel leans to medals and spins,
  * the ⭐ wheel to lamps, the 🗼 wheel to tower layers. Eight segments each. */
 export const WHEELS: WheelSeg[][] = [
-  [seg('+5', 'medals', 5), seg('+2 layers', 'layers', 2), seg('SPIN', 'spin'), seg('+10', 'medals', 10), seg('+1 layer', 'layers', 1), seg('+3', 'medals', 3), seg('BALL', 'ball'), seg('SPIN', 'spin')],
-  [seg('LAMP', 'lamp'), seg('+5', 'medals', 5), seg('+1 layer', 'layers', 1), seg('+2 layers', 'layers', 2), seg('BALL', 'ball'), seg('+3', 'medals', 3), seg('LAMP', 'lamp'), seg('SPIN', 'spin')],
-  [seg('+2 layers', 'layers', 2), seg('+5', 'medals', 5), seg('+4 layers', 'layers', 4), seg('BALL', 'ball'), seg('+1 layer', 'layers', 1), seg('LAMP', 'lamp'), seg('+3 layers', 'layers', 3), seg('+3', 'medals', 3)],
+  [seg('+10', 'medals', 10), seg('+2 layers', 'layers', 2), seg('SPIN', 'spin'), seg('+20', 'medals', 20), seg('+1 layer', 'layers', 1), seg('+6', 'medals', 6), seg('BALL', 'ball'), seg('SPIN', 'spin')],
+  [seg('LAMP', 'lamp'), seg('+20', 'medals', 20), seg('+1 layer', 'layers', 1), seg('+2 layers', 'layers', 2), seg('BALL', 'ball'), seg('+6', 'medals', 6), seg('LAMP', 'lamp'), seg('SPIN', 'spin')],
+  [seg('+2 layers', 'layers', 2), seg('+10', 'medals', 10), seg('+4 layers', 'layers', 4), seg('BALL', 'ball'), seg('+1 layer', 'layers', 1), seg('LAMP', 'lamp'), seg('+3 layers', 'layers', 3), seg('+6', 'medals', 6)],
 ]
 export const WHEEL_FRAMES = 100
 export type Pocket = 'spin' | 'lamp' | 'tower'
 /** The pin board's three pockets (left, the moving middle one, right), each with its mini wheel. */
 export const POCKETS: Pocket[] = ['spin', 'lamp', 'tower']
-/** A medal in one of the pin board's pockets: that pocket's mini wheel spins (up to 3 spins wait their
+/** A medal in one of the pin board's pockets: that pocket's mini wheel spins (every earned spin waits its
  * turn). Every pocket also adds a medal to the jackpot. */
 /** Tuned for about a FEVER a minute of steady play: all three pockets within 3 seconds, and a rest of 45
  * seconds after one ends. A combo needs pockets within a second of each other, and pays from ×3. */
@@ -158,7 +195,7 @@ export const FEVER_WINDOW = 180, FEVER_FRAMES = 1200, FEVER_REST = 2700, COMBO_G
 export const inFever = (c: Cove) => !!c.fever && c.frame < c.fever.until
 export function pocket(c: Cove, kind: Pocket, random: () => number = Math.random): Cove {
   const i = POCKETS.indexOf(kind), q = [...(c.wheelQueue ?? [0, 0, 0])], fever = inFever(c)
-  q[i] = Math.min(3, q[i] + (fever ? 2 : 1))
+  q[i] += fever ? 2 : 1
   const hits = [...(c.hits ?? [-1e9, -1e9, -1e9])]; hits[i] = c.frame
   let next: Cove = { ...c, jackpot: c.jackpot + 1, wheelQueue: q, hits }
   // A combo: pockets in quick succession.
@@ -174,10 +211,17 @@ function wheelPrize(c: Cove, s: WheelSeg, random: () => number): Cove {
   if (s.kind === 'medals') return say(shower(c, s.n, random), '🎡 +' + s.n + ' medals')
   if (s.kind === 'layers') return say({ ...c, bank: (c.bank ?? BANK_START) + s.n * LAYER }, '🗼 The giant tower grows +' + s.n + (s.n === 1 ? ' layer' : ' layers') + ' (' + ((c.bank ?? BANK_START) + s.n * LAYER) + ')')
   if (s.kind === 'ball') return say(ballOnField(c, random), '🔮 A prize ball!')
-  if (s.kind === 'spin') return c.queue + (c.spinning ? 1 : 0) >= 4 ? c : say({ ...c, queue: c.queue + 1 }, '🎰 A lottery spin!')
+  if (s.kind === 'spin') return say({ ...c, queue: c.queue + 1 }, '🎰 A lottery spin queued!')
   return lampCheck(say({ ...c, steps: c.steps + 1 }, '💡 A lamp lights up (' + (c.steps + 1) + '/' + LAMPS + ')'), random)
 }
-const SPIN_FRAMES = 110, DISH_FRAMES = 200, CHANCE_FRAMES = 230
+export const BONUS_ARM_FRAMES = 60
+/** Start only the currently armed immutable draw. Never selects, spends or awards. */
+export function launchBonus(c:Cove,kind:'dish'|'chance',id:number):Cove{
+ const draw=c[kind]
+ if(!Number.isSafeInteger(id)||id<=0||c.boardClearBusy||!draw||draw.launchId!==id||c.frame>=draw.at)return c
+ return {...c,[kind]:{...draw,at:c.frame}}
+}
+export const SPIN_FRAMES = 110, DISH_FRAMES = 170, CHANCE_FRAMES = 200, RESULT_FRAMES = 100, WHEEL_RESULT_FRAMES = 36, REEL_RESULT_FRAMES = 72
 /** Is pocket `i` of the Jackpot Chance wheel a winning one (the first `winPockets`, spread round the wheel)? */
 export const isWinPocket = (i: number, winPockets: number) => Array.from({ length: winPockets }, (_, k) => Math.round(k * CHANCE_POCKETS / winPockets)).includes(i)
 
@@ -187,45 +231,53 @@ export function step(c0: Cove, random: () => number = Math.random, n = 1): Cove 
   const pusher = pusherAt(c.frame), checker = checkerAt(c.frame)
   c = { ...c, pusher, checker }
   // Bonuses: one spin, ball lottery and jackpot chance at a time.
-  if (!c.spinning && c.queue > 0) {
+  if (!c.spinning && c.queue > 0 && c.frame >= (c.reelResultUntil ?? 0)) {
     const reels = spinReels(random)
     c = { ...c, queue: c.queue - 1, spinning: { reels, prize: spinPrize(reels), at: c.frame }, jackpot: c.jackpot + 1 }
   }
   if (c.spinning && c.frame - c.spinning.at >= SPIN_FRAMES) {
     const p = c.spinning.prize
-    c = { ...c, spinning: null, spinsDone: c.spinsDone + 1 }
+    c = { ...c, spinning: null, spinsDone: c.spinsDone + 1, lastReels: c.spinning.reels, reelResultUntil: c.frame + REEL_RESULT_FRAMES }
     if (p.kind === 'shower') c = say(shower(c, p.n, random), p.n >= 10 ? '🪙 Medal shower! +' + p.n : '+' + p.n + ' medals')
-    else if (p.kind === 'tower') c = say({ ...c, towers: [...c.towers, { x: 25 + random() * 50, n: p.n, at: c.frame }] }, '🗼 Medal tower!')
+    else if (p.kind === 'tower') c = say(awardTower(c, p.n, 25 + random() * 50), '🗼 Build a ' + p.n + '-medal tower!')
     else if (p.kind === 'ball') c = say(ballOnField(c, random), '🔮 Prize ball!')
     else if (p.kind === 'step') c = { ...c, steps: c.steps + 1 }
     c = lampCheck(c, random)
   }
   // A tower tips over after a moment: its medals spill onto the field around where it stood.
   if (!c.external) for (const t of c.towers.filter(t => c.frame - t.at >= 90)) c = add(c, Array.from({ length: t.n }, (_, i) => ({ x: Math.max(5, Math.min(95, t.x + (random() - 0.5) * 18)), y: pusher + 6 + (i / t.n) * 26 + random() * 4, vx: (random() - 0.5) * 0.6, vy: 0.4 + random() * 0.5 })))
-  c = { ...c, towers: c.towers.filter(t => c.frame - t.at < 90) }
+  if (!c.external) c = { ...c, towers: c.towers.filter(t => c.frame - t.at < 90) }
   // The mini wheels: each starts its next spin when it's free, and pays when it stops.
   if (c.wheels && c.wheelQueue) {
-    const wheels = [...c.wheels], q = [...c.wheelQueue]
+    const wheels = [...c.wheels], q = [...c.wheelQueue], results = [...(c.wheelResults ?? [null, null, null])]
     for (let i = 0; i < 3; i++) {
       const w = wheels[i]
-      if (w && c.frame - w.at >= WHEEL_FRAMES) { wheels[i] = null; c = wheelPrize({ ...c, wheels, wheelQueue: q }, WHEELS[i][w.seg], random) }
-      if (!wheels[i] && q[i] > 0) { q[i]--; wheels[i] = { seg: Math.floor(random() * WHEELS[i].length), at: c.frame } }
+      if (w && c.frame - w.at >= WHEEL_FRAMES) { wheels[i] = null; results[i] = { seg: w.seg, at: c.frame }; c = wheelPrize({ ...c, wheels, wheelQueue: q }, WHEELS[i][w.seg], random) }
+      if (!wheels[i] && q[i] > 0 && (!results[i] || c.frame - results[i]!.at >= WHEEL_RESULT_FRAMES)) { q[i]--; wheels[i] = { seg: Math.floor(random() * WHEELS[i].length), at: c.frame } }
     }
-    c = { ...c, wheels, wheelQueue: q }
+    c = { ...c, wheels, wheelQueue: q, wheelResults: results }
   }
-  if (!c.dish && c.dishQueue > 0) c = { ...c, dishQueue: c.dishQueue - 1, dish: { pocket: Math.floor(random() * DISH.length), at: c.frame } }
+  // A single presentation lane: one captured ball owns its dish → result → JP
+  // chain. Other balls wait; the pusher, ordinary inputs and mini wheels continue.
+  if (c.bonusResult && c.frame >= c.bonusResult.until) c = { ...c, bonusResult: null }
+  if (!c.dish && !c.chance && !c.bonusResult) {
+    if (c.chanceQueue > 0) c = { ...c, bonusSequence:(c.bonusSequence??0)+1, chanceQueue: c.chanceQueue - 1, chance: { pocket: Math.floor(random() * CHANCE_POCKETS), at: c.frame + BONUS_ARM_FRAMES, launchId:(c.bonusSequence??0)+1 } }
+    else if (c.dishQueue > 0) c = { ...c, bonusSequence:(c.bonusSequence??0)+1, dishQueue: c.dishQueue - 1, dish: { pocket: Math.floor(random() * DISH.length), at: c.frame + BONUS_ARM_FRAMES, launchId:(c.bonusSequence??0)+1 } }
+  }
   if (c.dish && c.frame - c.dish.at >= DISH_FRAMES) {
-    const p = DISH[c.dish.pocket].prize
-    c = { ...c, dish: null }
-    if (p.kind === 'medals') c = say(pay(c, p.n), '🔮 Ball lottery: +' + p.n + ' medals')
-    else if (p.kind === 'tower') c = say({ ...c, towers: [...c.towers, { x: 50, n: p.n, at: c.frame }] }, '🔮 Ball lottery: a medal tower!')
-    else c = say({ ...c, chanceQueue: c.chanceQueue + 1 }, '🔮 JACKPOT CHANCE!')
+    const at = c.dish.pocket, p = DISH[at].prize
+    const label = p.kind === 'chance' ? 'JACKPOT CHANCE next' : p.kind === 'tower' ? p.n + ' medals → tower build' : p.n + ' medals awarded → field'
+    c = { ...c, dish: null, bonusResult: { kind: 'dish', pocket: at, label, n: p.kind === 'chance' ? 0 : p.n, at: c.frame, until: c.frame + RESULT_FRAMES } }
+    if (p.kind === 'medals') c = say(pay(c, p.n), '🔮 Ball lottery: +' + p.n + ' medals to field')
+    else if (p.kind === 'tower') c = say(awardTower(c, p.n), '🔮 Ball lottery: build a ' + p.n + '-medal tower!')
+    else c = say({ ...c, chanceQueue: c.chanceQueue + 1 }, '🔮 JACKPOT CHANCE queued!')
   }
-  if (!c.chance && c.chanceQueue > 0) c = { ...c, chanceQueue: c.chanceQueue - 1, chance: { pocket: Math.floor(random() * CHANCE_POCKETS), at: c.frame } }
   if (c.chance && c.frame - c.chance.at >= CHANCE_FRAMES) {
-    const hit = isWinPocket(c.chance.pocket, c.winPockets)
-    if (hit) c = say({ ...pay(c, c.jackpot), chance: null, jpWins: c.jpWins + 1, jackpot: JP_START, winPockets: 1 }, '🎉 JACKPOT! +' + c.jackpot)
-    else c = say({ ...pay(c, 10), chance: null, jackpot: c.jackpot + 20, winPockets: Math.min(4, c.winPockets + 1) }, 'So close! +10, and a winning pocket is added')
+    const at = c.chance.pocket, winning = c.winPockets, hit = isWinPocket(at, winning), amount = hit ? c.jackpot : 10
+    const progress=winning<4?'winning pocket added':'4 winning pockets retained (maximum)'
+    c = { ...c, bonusResult: { kind: 'chance', pocket: at, winPockets: winning, label: hit ? 'JACKPOT! ' + amount + ' fixed medals → Sanctuary Tide' : '10 medals to field · '+progress, n: amount, at: c.frame, until: c.frame + RESULT_FRAMES } }
+    if (hit) c = say({ ...(c.external?awardTide(c,amount):pay(c, amount)), chance: null, jpWins: c.jpWins + 1, boardClears: (c.boardClears ?? 0) + 1, jackpot: JP_START, winPockets: 1 }, '🎉 JACKPOT! +' + amount + ' fixed medals · Sanctuary Tide')
+    else c = say({ ...pay(c, 10), chance: null, jackpot: c.jackpot + 20, winPockets: Math.min(4, c.winPockets + 1) }, 'JP miss · +10 to field · '+progress+' · jackpot +20')
   }
   // A prize's medals rain from high above the field, two a frame, spread across it.
   if (c.external && c.rain) {
@@ -274,13 +326,13 @@ export function step(c0: Cove, random: () => number = Math.random, n = 1): Cove 
 }
 
 /** Busy: a spin, a ball lottery, a chance, a tower or anything still waiting. */
-export const busy = (c: Cove) => !!(c.rain || c.spinning || c.queue || c.dish || c.dishQueue || c.chance || c.chanceQueue || c.towers.length || c.wheels?.some(Boolean) || c.wheelQueue?.some(n => n > 0))
+export const busy = (c: Cove) => !!(c.boardClearBusy || (c.boardClears ?? 0) > 0 || c.tideBusy || c.tides?.length || c.rain || (c.external && c.medals.length) || c.bonusResult || c.spinning || c.queue || c.dish || c.dishQueue || c.chance || c.chanceQueue || c.towers.length || c.wheels?.some(Boolean) || c.wheelQueue?.some(n => n > 0))
 
 /** With a physics engine moving the pile: what fell off since last time. Medals off the front are yours
  * (back into your hand), off the sides are lost, and a prize ball off the front goes to the ball lottery. */
 export function settle(c: Cove, won: number, lost: number, balls: number): Cove {
   if (!won && !lost && !balls) return c
-  return { ...c, won: c.won + won, hand: c.hand + won, lost: c.lost + lost, dishQueue: c.dishQueue + balls }
+  return { ...c, won: c.won + won, hand: c.hand + won, lost: c.lost + lost, dishQueue: c.dishQueue + balls, ballsCaptured: (c.ballsCaptured ?? 0) + balls }
 }
 /** Takes the medals and balls waiting to go into the machine (the physics engine puts them in). */
 export const spawned = (c: Cove): Cove => c.medals.length ? { ...c, medals: [] } : c

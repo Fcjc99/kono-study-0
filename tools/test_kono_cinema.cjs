@@ -1,0 +1,15 @@
+const fs=require('fs'),vm=require('vm'),ts=require('typescript'),assert=require('assert/strict');
+let setup,paints=[],images=[];const canvas={getContext:()=>({}),getBoundingClientRect:()=>({width:390,height:122})};
+const React={useRef:()=>({current:canvas}),useEffect:fn=>setup=fn};
+let subscribers=[],modeListeners=[];const reveals={mode:'full',reduced:false,subscribeEvent(fn){subscribers.push(fn);return()=>subscribers=subscribers.filter(x=>x!==fn)},subscribe(fn){modeListeners.push(fn);return()=>modeListeners=modeListeners.filter(x=>x!==fn)}};
+const timeline={current:null,age:0,emit(e){this.current=e;this.age=0},update(dt){this.age+=dt;if(this.current&&this.age>=3.6){this.current=null;this.age=0}}};
+const module2={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/components/KonoCinema.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module:module2,exports:module2.exports,require:n=>n==='react'?React:n==='react/jsx-runtime'?require(n):n.includes('machineEventScreen')?{CINEMA_ASSETS:{breathe:'breathe.webp',wave:'wave.webp',cheer:'cheer.webp',backdrop:'backdrop.webp',butterfly:'butterfly.webp'},createScreenTimeline:()=>timeline,paintSanctuaryScene:(...args)=>paints.push(args)}:n.includes('BonusDraw')?{bonusPresentation:c=>c.bonus??null}:n.includes('BonusCanvas')?{bonusCanvasStory:d=>({kind:'ball',age:d.progress??0,reward:d.resolved?'coins':undefined})}:{},Image:class{constructor(){images.push(this)}},Map,Math,JSON});
+const frameRef={current:null};module2.exports.KonoCinema({reveals,frameRef});const clean=setup(),c={};
+frameRef.current(1/60,c);paints=[];for(let i=0;i<60;i++)frameRef.current(1/60,c);assert.ok(paints.length>=15&&paints.length<=25);assert.notEqual(paints[0][2],paints.at(-1)[2]);
+paints=[];for(let i=0;i<60;i++)frameRef.current(0,c);assert.equal(paints.length,0);
+reveals.mode='off';modeListeners.forEach(f=>f());frameRef.current(0,c);paints=[];for(let i=0;i<60;i++)frameRef.current(1/60,c);assert.equal(paints.length,0);
+frameRef.current(1/60,{bonus:{kind:'dish',resolved:true,selected:0,label:'10',progress:1}});assert.equal(paints.length,1);assert.equal(paints[0][6],false);assert.equal(paints[0][7],'coins');
+reveals.mode='full';subscribers.forEach(f=>f({kind:'tide',phase:'award'}));frameRef.current(1/60,c);assert.equal(paints.at(-1)[1].kind,'tide');
+reveals.mode='off';modeListeners.forEach(f=>f());frameRef.current(0,c);paints=[];for(let i=0;i<240;i++)frameRef.current(1/60,c);assert.equal(paints.length,1,'completed event cleans up once even with motion off');assert.equal(paints[0][1],null);
+clean();assert.equal(frameRef.current,null);assert.equal(subscribers.length,0);assert.equal(modeListeners.length,0);assert.ok(images.every(i=>i.onload===null));
+console.log('PASS continuous bounded idle, pause freeze, Off freeze, exact result refresh, event reaction and cleanup');

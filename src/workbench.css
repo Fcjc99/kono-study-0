@@ -35,10 +35,10 @@ body:has(.workbench)::before,body:has(.workbench)::after{display:none!important}
 .workbench h1{font:600 clamp(1.5rem,3vw,2.2rem)/1.2 Georgia,serif;margin:0}
 .workbench h2{font-size:1.3rem;margin:0 0 12px}
 .workbench h3{font-size:1.08rem;margin:8px 0}
-.workbench small,.wb-dialog small{font-size:.8125rem}
+.workbench small:where(:not(.medal-cove small)),.wb-dialog small:where(:not(.medal-cove small)){font-size:.8125rem}
 .workbench p{margin:10px 0}
 .workbench button,.workbench summary,.wb-dialog button{cursor:pointer}
-.workbench button,.workbench select,.workbench input,.workbench textarea,.wb-dialog button,.wb-dialog input,.wb-dialog select,.wb-dialog textarea{font:inherit;min-height:44px;border:1px solid var(--wb-line);border-radius:10px;color:var(--wb-ink);background:var(--wb-surface);padding:9px 12px;max-width:100%;box-shadow:none}
+.workbench button:where(:not(.medal-cove button)),.workbench select,.workbench input,.workbench textarea,.wb-dialog button:where(:not(.medal-cove button)),.wb-dialog input,.wb-dialog select,.wb-dialog textarea{font:inherit;min-height:44px;border:1px solid var(--wb-line);border-radius:10px;color:var(--wb-ink);background:var(--wb-surface);padding:9px 12px;max-width:100%;box-shadow:none}
 .workbench button:disabled,.wb-dialog button:disabled{opacity:.5;cursor:not-allowed}
 .workbench button:hover:not(:disabled),.wb-dialog button:hover:not(:disabled){border-color:var(--wb-accent)}
 .workbench :focus-visible,.wb-dialog :focus-visible{outline:3px solid var(--wb-accent);outline-offset:3px}
@@ -385,7 +385,7 @@ html[data-theme] .brand:has(.kono-weather-chip):after,html[data-theme] .sidebar:
 .workbench .time-12-input{display:flex;gap:4px}.workbench .time-12-input select{padding:8px 5px;min-width:54px}
 
 .workbench .weather-mode-grid{grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr))}
-.workbench.text-large{font-size:1.125rem}.text-large button,.text-large input,.text-large select,.text-large textarea{font-size:1.125rem}
+.workbench.text-large{font-size:1.125rem}.text-large button:where(:not(.medal-cove button)),.text-large input:where(:not(.medal-cove input)),.text-large select,.text-large textarea{font-size:1.125rem}
 .workbench.density-compact .wb-panel{padding:16px;margin-bottom:14px}.density-compact .wb-record{padding:12px;margin:8px 0}
 .workbench[data-decoration="false"] .wb-sticky{box-shadow:none}.workbench[data-decoration="false"] .wb-brand>span{border-radius:6px}
 .wb-bottom-nav{display:none}

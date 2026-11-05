@@ -1,0 +1,34 @@
+/* Fixed event budget: 12px title + 44px targets + 12px accounting + 3px rail. */
+.cove-event-slot>.cove-tide-panel.tide-mechanism-panel{display:flex;flex-direction:column;gap:1px;padding:3px 4px;min-width:0;overflow:hidden}
+.cove-event-slot .tide-mechanism-panel .cove-tide-title{display:flex;flex-wrap:nowrap;height:12px;min-height:12px;line-height:12px}
+.cove-event-slot .tide-mechanism-panel .cove-tide-title>b{font-size:9px;color:#e4c78b;letter-spacing:.04em}
+.cove-event-slot .tide-mechanism-panel .cove-tide-title>strong{font-size:10px;margin:0}
+.tide-mechanism-scene{position:relative;flex:none;height:44px;min-width:0;background:linear-gradient(180deg,#0c242a88,#34535b44);border-radius:5px;overflow:hidden}
+.tide-mechanism{display:block;width:100%;height:44px;overflow:visible;pointer-events:none}
+.tide-track{fill:none;stroke:#9ac5c7;stroke-width:.7;opacity:.22}
+.tide-selector{fill:#fff0b6;transition:transform 220ms cubic-bezier(.2,.8,.2,1)}
+.tide-bay{transition:transform 160ms linear}
+.tide-path{fill:none;stroke:#77babc;stroke-width:1;opacity:.25}
+.tide-glass{fill:#28454e;stroke:#81b6b5;stroke-width:.8}
+.tide-gate{fill:#b8945d;stroke:#ffe3a4;stroke-width:.5;transition:transform 150ms linear}
+.tide-cargo{stroke:#e8c57e;stroke-width:1.3}
+.tide-bay.is-selected .tide-path{stroke:#b7fff0;stroke-width:2;opacity:1}
+.tide-bay.is-selected .tide-glass{fill:#357276;stroke:#d2fff1;stroke-width:1.2}
+.tide-placement-targets{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,minmax(44px,1fr));gap:2px}
+.standalone .cove-event-slot .tide-placement-targets button{display:flex;align-items:flex-end;justify-content:center;min-width:44px;min-height:44px;height:44px;padding:0 0 1px;border:1px solid #7bbaba55;border-radius:5px;background:transparent;box-shadow:none;font-size:9px;line-height:11px;text-transform:capitalize;color:#fff0cb;touch-action:manipulation}
+.standalone .cove-event-slot .tide-placement-targets button:hover{background:#caffed15;border-color:#baf5e3}
+.standalone .cove-event-slot .tide-placement-targets button:active{background:#baf5e333;box-shadow:inset 0 2px 5px #0008}
+.standalone .cove-event-slot .tide-placement-targets button:focus-visible{outline:2px solid #ffe7a6;outline-offset:-3px}
+.standalone .cove-event-slot .tide-placement-targets button:disabled{opacity:.5;cursor:default}
+.tide-stage-readout{position:absolute;inset:auto 0 0;text-align:center;height:12px;line-height:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px;color:#d8f4ea;background:#142d39e6;pointer-events:none}
+.tide-mechanism-panel[data-blocked=true] .tide-stage-readout{color:#ffe2a5}
+.tide-delivery-totals{display:flex;justify-content:space-between;gap:3px;font-size:8px;line-height:11px;white-space:nowrap;color:#dce9df}
+.cove-event-slot .tide-mechanism-panel progress.tide-delivery-progress{flex:none;width:100%;height:3px;margin:0;accent-color:#8fdcc6}
+.tide-release-confirmed{position:absolute;inset:0;pointer-events:none;border-bottom:2px solid #aff9e0;animation:tide-release-confirmed 420ms ease-out both}
+@keyframes tide-release-confirmed{from{opacity:1;transform:translateY(-5px)}to{opacity:0;transform:translateY(0)}}
+.tide-mechanism-panel[data-effects=subtle] .tide-release-confirmed{animation-name:tide-release-subtle}
+@keyframes tide-release-subtle{from{opacity:.6}to{opacity:0}}
+.tide-mechanism-panel[data-effects=off] *{animation:none!important;transition:none!important}
+.tide-mechanism-panel[data-effects=off] .tide-release-confirmed{display:none}
+.tide-mechanism-panel[data-blocked=true] .tide-bay,.tide-mechanism-panel[data-blocked=true] .tide-gate{transition:none}
+@media(prefers-reduced-motion:reduce){.tide-mechanism-panel *{animation:none!important;transition:none!important}.tide-release-confirmed{display:none}}

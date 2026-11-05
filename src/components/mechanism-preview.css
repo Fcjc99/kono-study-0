@@ -1,0 +1,20 @@
+.mechanism-preview{display:grid;grid-template-columns:minmax(240px,1fr) minmax(210px,.8fr);align-items:center;gap:20px;width:min(100%,770px);margin:0 auto;text-align:left;color:#f8e9f6}
+.mechanism-art{position:relative;min-width:0;background:radial-gradient(ellipse at 50% 48%,#67456e88,transparent 70%);border:1px solid #ffffff10;border-radius:24px}
+.mechanism-art svg{width:100%;max-height:380px;display:block}
+.mechanism-watermark{text-align:center;font-size:8px;font-weight:800;letter-spacing:.13em;color:#c7b0d2;padding:0 4px 12px}
+.mechanism-copy>strong{display:block;font-size:1.05rem;line-height:1.3;margin:15px 0 8px;color:#ffe4a2}
+.mechanism-copy>p{font-size:.82rem;line-height:1.6;margin:0 0 12px;max-width:38ch!important;color:#e2cfe9}
+.mechanism-copy>small{display:block;font-size:.73rem;line-height:1.5;color:#bfa4ca;max-width:38ch}
+.mechanism-tabs{display:flex;flex-wrap:wrap;gap:6px}
+.mechanism-tabs button{min-height:36px!important;padding:6px 11px!important;font-size:.68rem!important;border:1px solid #e7c2ef40!important;color:#e9d9ef!important;background:#34223e!important}
+.mechanism-tabs button[aria-pressed=true]{background:#ffdda1!important;border-color:#ffdda1!important;color:#53364e!important}
+@media(max-width:650px){.mechanism-preview{display:flex;flex-direction:column;gap:8px;max-width:360px}.mechanism-art{width:min(100%,340px)}.mechanism-art svg{max-height:300px}.mechanism-copy{width:100%;text-align:center}.mechanism-tabs{justify-content:center}.mechanism-copy>strong{font-size:.85rem;margin:10px 0 5px}.mechanism-copy>p{font-size:.74rem;margin:0 auto 7px;line-height:1.45}.mechanism-copy>small{font-size:.67rem;margin:0 auto}.mechanism-watermark{font-size:7px;padding-bottom:8px}}
+@media(max-height:740px) and (max-width:650px){.mechanism-art svg{max-height:215px}.mechanism-copy>small{display:none}.mechanism-copy>p{font-size:.68rem}.mechanism-art{width:100%}}
+@media(prefers-reduced-motion:reduce){.mechanism-traveller{display:none}}
+.mechanism-preview,.mechanism-copy,.mechanism-art{min-width:0;max-width:100%;flex-shrink:0}
+.mechanism-tabs{min-width:0;max-width:100%}
+.mechanism-tabs button{min-height:44px!important;font-size:11px!important}
+@media(max-width:370px){.mechanism-tabs{gap:4px}.mechanism-tabs button{padding:6px 8px!important;font-size:10px!important}.mechanism-copy>strong{font-size:13px}.mechanism-copy>p{font-size:11px;line-height:1.5}.mechanism-watermark{font-size:7px;letter-spacing:.06em}.mechanism-art svg{max-height:220px}}
+/* The fallback is still a labeled illustration, now in the same Sanctuary setting. */
+.mechanism-preview{color:#365a72}.mechanism-art{background:radial-gradient(ellipse at 50% 45%,#c7ebf6aa,transparent 75%);border-color:#b8d4df77}.mechanism-watermark{color:#5b768b}.mechanism-copy>strong{color:#86566e}.mechanism-copy>p{color:#47677d}.mechanism-copy>small{color:#607b8f}
+.mechanism-tabs button{background:#e4f1f9!important;color:#3e6077!important;border-color:#a8c7da!important}.mechanism-tabs button[aria-pressed=true]{background:#ffe7ae!important;color:#765329!important;border-color:#d9b257!important}

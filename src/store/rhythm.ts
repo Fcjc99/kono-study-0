@@ -1,16 +1,17 @@
-/** KONO Beat (components/RhythmGame): the arcade's songs as a rhythm game on a track that runs off into the
- * distance. Floor notes come down four lanes (tap; holds stay pressed to the end); sky notes float above the
- * track (tap up high); ribbons wind through the sky with the melody (keep a finger on them). How close a hit is
- * decides Perfect, Great or Good, with Early or Late; holds and ribbons count Perfect for every moment they're
- * kept. The score is out of 1,000,000 (plus one for each dead-on hit), and a clear gauge decides if the song is
- * cleared: on Easy and Medium it fills from empty and needs 70% at the end; on Jeff tier it starts full and the
- * song is over if it runs out. The charts are made from the songs themselves (tools/make_rhythm_charts.py →
- * game/data/rhythmCharts.json). */
+/** KONO Beat (components/RhythmGame): the arcade's songs as a piano-tiles game. Black tiles come down four
+ * columns, one for each note the song's lead melody plays (higher notes to the right); tap a tile's column as
+ * it reaches the line, and hold a long tile to its end. How close a tap is decides Perfect, Great or Good, with
+ * Early or Late; a long tile counts Perfect for every moment it's held. (The rules still know sky notes and
+ * ribbons from the old 3D track; the charts don't use them.) The score is out of 1,000,000 (plus one for each
+ * dead-on hit), and a clear gauge decides if the song is cleared: on Easy and Medium it fills from empty and
+ * needs 70% at the end; on Jeff tier it starts full and the song is over if it runs out. The charts are made
+ * from the songs themselves (tools/make_rhythm_charts.py → game/data/rhythmCharts.json). Classic (an option):
+ * the first missed tile, or a tap on the wrong column, ends the song, like the original piano-tiles games. */
 export type Level='easy'|'medium'|'jeff'
 export const LEVELS:{id:Level;name:string;blurb:string}[]=[
- {id:'easy',name:'Easy',blurb:'About a note a second, on the beat; roomy timing and a gentle gauge.'},
- {id:'medium',name:'Medium',blurb:'About two a second, on the beat and the 8ths, with holds.'},
- {id:'jeff',name:'Jeff tier',blurb:'Every hit in the song down to the 16ths, chords, and the gauge drains.'},
+ {id:'easy',name:'Easy',blurb:'The melody’s main notes, about one and a half a second; roomy timing and a gentle gauge.'},
+ {id:'medium',name:'Medium',blurb:'Most of the melody, about three a second, with long tiles.'},
+ {id:'jeff',name:'Jeff tier',blurb:'Every note the lead plays, and the gauge drains.'},
 ]
 export type Judge='perfect'|'great'|'good'|'miss'
 /** How far off (ms) still counts, by level: Perfect, Great, Good. Half the Perfect window is dead on. */
@@ -22,10 +23,12 @@ export const judge=(offMs:number,level:Level):Judge=>{const a=Math.abs(offMs),[p
 /** Note speed (1-10, kept on this device): how long a note takes to come down the track. */
 export const approachFor=(speed:number)=>Math.round(9000/(speed+1))
 
-// The chart as stored: tap [ms,lane]; hold [ms,lane,endMs]; sky [ms,x 0-100]; ribbon piece [ms,endMs,x0,x1,hand].
+// The chart as stored: tap [ms,lane,midi]; hold [ms,lane,endMs,midi]; sky [ms,x 0-100]; ribbon piece
+// [ms,endMs,x0,x1,hand]. midi is the melody's pitch there.
 export type Chart={tap:number[][];hold:number[][];sky:number[][];ribbon:number[][]}
-/** A note to hit: floor (lane 0-3, `end` for a hold) or sky (x across the track, 0-1). */
-export type Note={kind:'tap'|'hold'|'sky';t:number;lane:number;x:number;end?:number;hit?:Judge;off?:number}
+/** A note to hit: floor (lane 0-3, `end` for a hold) or sky (x across the track, 0-1); `midi` is the melody's
+ * pitch there (the note a tap plays). */
+export type Note={kind:'tap'|'hold'|'sky';t:number;lane:number;x:number;end?:number;midi?:number;hit?:Judge;off?:number}
 /** One piece of a ribbon: it runs from x0 to x1 between t0 and t1, for one hand (0 left, 1 right). */
 export type Ribbon={t0:number;t1:number;x0:number;x1:number;hand:0|1}
 /** A moment of a hold or ribbon that has to be kept: `of` is the hold's note or the ribbon piece. */
@@ -35,7 +38,7 @@ export const laneX=(lane:number)=>0.125+lane*0.25
 /** Turns a stored chart into a play: notes in time order, ribbon pieces, and the ticks of holds and ribbons
  * (about every 8th note, so a long one is worth more than a tap). */
 export function playOf(c:Chart,bpm:number):Play{
- const notes:Note[]=[...c.tap.map(([t,lane])=>({kind:'tap' as const,t,lane,x:laneX(lane)})),...c.hold.map(([t,lane,end])=>({kind:'hold' as const,t,lane,x:laneX(lane),end})),...c.sky.map(([t,x])=>({kind:'sky' as const,t,lane:-1,x:x/100}))].sort((a,b)=>a.t-b.t||a.x-b.x)
+ const notes:Note[]=[...c.tap.map(([t,lane,midi])=>({kind:'tap' as const,t,lane,x:laneX(lane),midi})),...c.hold.map(([t,lane,end,midi])=>({kind:'hold' as const,t,lane,x:laneX(lane),end,midi})),...c.sky.map(([t,x])=>({kind:'sky' as const,t,lane:-1,x:x/100}))].sort((a,b)=>a.t-b.t||a.x-b.x)
  const ribbons:Ribbon[]=c.ribbon.map(([t0,t1,x0,x1,hand])=>({t0,t1,x0:x0/100,x1:x1/100,hand:hand?1:0}))
  const step=Math.max(110,60000/bpm/2),ticks:Tick[]=[]
  notes.forEach((n,i)=>{if(n.end)for(let t=n.t+step;t<=n.end;t+=step)ticks.push({t,kind:'hold',of:i})})
@@ -80,6 +83,12 @@ export function hitIn(notes:Note[],lane:number,ms:number,level:Level):number{
  for(let i=0;i<notes.length;i++){const n=notes[i];if(n.t-ms>far)return -1;if(n.hit||n.kind==='sky'||n.lane!==lane)continue;if(Math.abs(n.t-ms)<=far)return i}
  return -1
 }
+/** Classic: a tap in a column with no tile near it while another column has one (the wrong tile). */
+export function wrongColumn(notes:Note[],lane:number,ms:number,level:Level):boolean{
+ const far=WINDOWS[level][2];let other=false
+ for(const n of notes){if(n.t-ms>far)break;if(n.hit||n.kind==='sky'||Math.abs(n.t-ms)>far)continue;if(n.lane===lane)return false;other=true}
+ return other
+}
 /** A tap up in the sky at `x` (0-1; null from the keyboard, which takes the next one anywhere). */
 export function skyHit(notes:Note[],x:number|null,ms:number,level:Level):number{
  const far=WINDOWS[level][2]
@@ -115,3 +124,11 @@ export const saveSpeed=(v:number)=>{try{localStorage.setItem(SPEED_KEY,String(v)
 export const TICKS_KEY='kono-beat-ticks'
 export const readTicks=()=>{try{return localStorage.getItem(TICKS_KEY)==='1'}catch{return false}}
 export const saveTicks=(on:boolean)=>{try{localStorage.setItem(TICKS_KEY,on?'1':'0')}catch{/* this device only */}}
+/** Tap notes (each tile you hit plays its melody note), on this device: on unless turned off. */
+export const KEYS_KEY='kono-beat-keys'
+export const readKeys=()=>{try{return localStorage.getItem(KEYS_KEY)!=='0'}catch{return true}}
+export const saveKeys=(on:boolean)=>{try{localStorage.setItem(KEYS_KEY,on?'1':'0')}catch{/* this device only */}}
+/** Classic (one missed or wrong tile ends the song), on this device. */
+export const CLASSIC_KEY='kono-beat-classic'
+export const readClassic=()=>{try{return localStorage.getItem(CLASSIC_KEY)==='1'}catch{return false}}
+export const saveClassic=(on:boolean)=>{try{localStorage.setItem(CLASSIC_KEY,on?'1':'0')}catch{/* this device only */}}

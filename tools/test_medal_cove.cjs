@@ -22,19 +22,19 @@ await test('the pile: a fresh machine has a big pile; the pusher shoves it, meda
  assert.ok(c.won>c.dropped*0.4,'medals come back off the front ('+c.won+' of '+c.dropped+')');assert.equal(c.hand,before-c.dropped+c.won,'what’s won goes back in your hand')
  for(const m of c.medals){assert.ok(m.x>=0&&m.x<=P.FIELD.w,'the walls keep the pile in');assert.ok(m.y>=c.pusher,'nothing behind the pusher')}
 })
-await test('a check: a medal through the lantern spins the lottery (and the jackpot grows), up to 4 wait, and three of a kind pays',()=>{
+await test('a check: a medal through the lantern spins the lottery (and the jackpot grows), every earned check waits, and three of a kind pays',()=>{
  let c=P.newCove(rnd);c=P.drop(c,c.checker,rnd);assert.equal(c.queue,1);assert.equal(c.hand,99)
  c=P.step(c,rnd);assert.ok(c.spinning,'the reels spin');assert.equal(c.jackpot,P.JP_START+1,'every spin adds to the jackpot')
- for(let i=0;i<6;i++)c=P.drop(c,c.checker,rnd);assert.equal(c.queue+(c.spinning?1:0),4,'four spins at most wait')
- assert.equal(JSON.stringify(P.spinPrize(['🪙','🪙','🪙'])),JSON.stringify({kind:'shower',n:12}));assert.equal(JSON.stringify(P.spinPrize(['🗼','🗼','🗼'])),JSON.stringify({kind:'tower',n:20}));assert.equal(JSON.stringify(P.spinPrize(['🔮','🔮','🔮'])),JSON.stringify({kind:'ball'}))
- assert.equal(JSON.stringify(P.spinPrize(['⭐','⭐','⭐'])),JSON.stringify({kind:'step'}));assert.equal(JSON.stringify(P.spinPrize(['🐚','🌺','🐚'])),JSON.stringify({kind:'shower',n:2}));assert.equal(JSON.stringify(P.spinPrize(['🐚','🌺','⭐'])),JSON.stringify({kind:'none'}))
+ for(let i=0;i<6;i++)c=P.drop(c,c.checker,rnd);assert.equal(c.queue+(c.spinning?1:0),7,'every earned check is retained')
+ assert.equal(JSON.stringify(P.spinPrize(['🪙','🪙','🪙'])),JSON.stringify({kind:'shower',n:20}));assert.equal(JSON.stringify(P.spinPrize(['🗼','🗼','🗼'])),JSON.stringify({kind:'tower',n:20}));assert.equal(JSON.stringify(P.spinPrize(['🔮','🔮','🔮'])),JSON.stringify({kind:'ball'}))
+ assert.equal(JSON.stringify(P.spinPrize(['⭐','⭐','⭐'])),JSON.stringify({kind:'step'}));assert.equal(JSON.stringify(P.spinPrize(['🐚','🌺','🐚'])),JSON.stringify({kind:'shower',n:4}));assert.equal(JSON.stringify(P.spinPrize(['🐚','🌺','⭐'])),JSON.stringify({kind:'none'}))
  const total=P.ODDS.reduce((n,o)=>n+o[2],0);assert.ok(total<1,'some spins miss')
  const counts={};for(let i=0;i<4000;i++){const k=P.spinPrize(P.spinReels(rnd)).kind;counts[k]=(counts[k]??0)+1}
  assert.ok(counts.ball>100&&counts.step>350&&counts.none>1000,'the payout table holds: '+JSON.stringify(counts))
 })
 await test('the bonus chain: a shower lands on the field, five lamps make the BIG BONUS, a ball off the front rolls into the ball lottery, and a tower tips over onto the field',()=>{
  let c=P.newCove(rnd);const n=c.medals.length
- c={...c,spinning:{reels:['🪙','🪙','🪙'],prize:{kind:'shower',n:12},at:c.frame-200}};c=P.step(c,rnd);assert.ok(c.medals.length>=n+12-2,'the shower lands');assert.match(c.events.at(-1).text,/shower/)
+ c={...c,spinning:{reels:['🪙','🪙','🪙'],prize:{kind:'shower',n:20},at:c.frame-200}};c=P.step(c,rnd);assert.ok(c.medals.length>=n+20-2,'the shower lands');assert.match(c.events.at(-1).text,/shower/)
  c={...c,steps:P.LAMPS-1,spinning:{reels:['⭐','⭐','⭐'],prize:{kind:'step'},at:c.frame-200}};c=P.step(c,rnd);assert.equal(c.steps,0);assert.ok(c.medals.some(m=>m.ball),'all five lamps: the big bonus has a prize ball');assert.match(c.events.at(-1).text,/BIG BONUS/)
  const ball=c.medals.find(m=>m.ball);c={...c,medals:c.medals.map(m=>m===ball?{...m,y:P.FIELD.h+1}:m)};c=P.step(c,rnd);assert.ok(c.dish||c.dishQueue,'off the front, the ball goes to the ball lottery')
  let t=P.newCove(rnd);const tn=t.medals.length;t={...t,towers:[{x:50,n:20,at:t.frame-100}]};t=P.step(t,rnd);assert.ok(t.medals.length>=tn+18,'the tower’s medals spill onto the field');assert.equal(t.towers.length,0)
@@ -48,19 +48,19 @@ await test('Jackpot Chance: a miss pays a little, grows the jackpot and adds a w
  assert.equal(c.jpWins,1);assert.ok(c.hand>=h+jp,'the jackpot is paid');assert.equal(c.jackpot,P.JP_START);assert.equal(c.winPockets,1)
  let d=P.newCove(rnd);d={...d,dish:{pocket:P.DISH.findIndex(p=>p.prize.kind==='chance'),at:d.frame-300}};d=P.step(d,rnd);assert.equal(d.chanceQueue+(d.chance?1:0),1,'a JP CHANCE pocket starts a Jackpot Chance')
  assert.equal(P.busy(d),true)
- // With the pin board (3D), prizes are real medals: the jackpot rains down onto the field, two a frame.
+ // With the pin board (3D), JP is a fixed physical Tide right, not rain or hand credit.
  let e=P.newCove(rnd,100,true);const ejp=e.jackpot,eh=e.hand;e={...e,chance:{pocket:win,at:e.frame-300}};e=P.step(e,rnd)
- assert.equal(e.jpWins,1);assert.equal(e.hand,eh,'nothing is paid without the medals');assert.equal(e.rain+e.medals.length,ejp,'the jackpot is all on its way');assert.ok(e.medals.every(m=>m.high),'from high above');assert.ok(P.busy(e))
- let rained=e.medals.length;for(let i=0;i<200&&e.rain;i++){e=P.spawned(e);e=P.step(e,rnd);rained+=e.medals.length}
- assert.equal(rained,ejp,'every jackpot medal comes down');assert.equal(e.rain,0)
- assert.equal(coins.gameCoins('cove',80),10);assert.equal(coins.gameCoins('cove',0),0)
+ assert.equal(e.jpWins,1);assert.equal(e.hand,eh,'nothing is paid without the medals');assert.equal(e.tides.reduce((n,t)=>n+t.n,0),ejp,'all fixed jackpot medals await the gate');assert.equal(e.rain??0,0);assert.equal(e.medals.length,0);assert.ok(P.busy(e))
+ const fixed=JSON.stringify(e.tides);for(let i=0;i<200;i++){e=P.spawned(e);e=P.step(e,rnd)}
+ assert.equal(JSON.stringify(e.tides),fixed,'the right cannot expire or mutate while awaiting delivery');assert.equal(e.fieldAwards,ejp)
+
 })
-await test('the pin board: a drop goes in at the top; each pocket spins its own mini wheel (up to 3 waiting): medals, layers for the giant tower, a ball, a lamp or a lottery spin; 5 lamps bring the giant tower down',()=>{
+await test('the pin board: a drop goes in at the top; each pocket spins its own mini wheel (all earned entries wait): medals, layers for the giant tower, a ball, a lamp or a lottery spin; 5 lamps bring the giant tower down',()=>{
  let c=P.newCove(rnd,100,true);assert.equal(c.medals.length,0,'the physics engine builds the pile')
  c=P.drop(c,30,rnd);assert.equal(c.hand,99);assert.equal(c.medals[0].y,-1,'in at the top of the board');c=P.spawned(c)
  c=P.pocket(c,'tower');assert.equal(c.wheelQueue[2],1);assert.equal(c.jackpot,P.JP_START+1)
- for(let i=0;i<5;i++)c=P.pocket(c,'tower');assert.equal(c.wheelQueue[2],3,'three spins at most wait')
- c=run(c,1);assert.ok(c.wheels[2],'the 🗼 wheel spins');assert.equal(c.wheelQueue[2],2)
+ for(let i=0;i<5;i++)c=P.pocket(c,'tower');assert.equal(c.wheelQueue[2],6,'all six earned entries wait')
+ c=run(c,1);assert.ok(c.wheels[2],'the 🗼 wheel spins');assert.equal(c.wheelQueue[2],5)
  assert.equal(P.WHEELS.length,3);for(const w of P.WHEELS){assert.equal(w.length,8);assert.ok(w.some(s=>s.kind==='layers')&&w.some(s=>s.kind==='ball'),'every wheel mixes layers and a ball')}
  assert.equal(P.WHEELS.filter(w=>w.some(s=>s.kind==='lamp')).length,2,'lamps on the ⭐ and 🗼 wheels')
  // Each prize, forced: land the wheel on a segment and let it stop.
@@ -83,11 +83,13 @@ await test('COMBO and FEVER TIME: pockets in quick succession build a combo that
  c={...c,frame:c.frame+P.COMBO_GAP+1};c=P.pocket(c,'spin');assert.equal(c.combo.n,1,'too slow: the combo starts over')
  let f=P.newCove(rnd,100,true);f=P.pocket(f,'spin');f={...f,frame:f.frame+70};f=P.pocket(f,'lamp');assert.equal(P.inFever(f),false)
  f={...f,frame:f.frame+70};f=P.pocket(f,'tower');assert.equal(P.inFever(f),true,'all three pockets: FEVER TIME');assert.ok(f.events.some(e=>/FEVER/.test(e.text)))
- const q=f.wheelQueue[0];f=P.pocket(f,'spin');assert.equal(f.wheelQueue[0],Math.min(3,q+2),'in a fever every pocket spins twice')
+ const q=f.wheelQueue[0];f=P.pocket(f,'spin');assert.equal(f.wheelQueue[0],q+2,'in a fever every pocket spins twice')
  f={...f,frame:f.fever.until};assert.equal(P.inFever(f),false,'and it ends')
  for(const k of ['spin','lamp','tower'])f=P.pocket(f,k);assert.equal(P.inFever(f),false,'a rest before the next one')
  f={...f,frame:f.frame+P.FEVER_REST};for(const k of ['spin','lamp','tower'])f=P.pocket(f,k);assert.equal(P.inFever(f),true,'then it can come again')
  let slow=P.newCove(rnd,100,true);slow=P.pocket(slow,'spin');slow={...slow,frame:slow.frame+P.FEVER_WINDOW+1};slow=P.pocket(slow,'lamp');slow=P.pocket(slow,'tower');assert.equal(P.inFever(slow),false,'too far apart: no fever')
 })
+// In KONO: medals finished with pay coins at the arcade's rate for the cove (1 for every 8).
+assert.equal(coins.gameCoins('cove',80),10);assert.equal(coins.gameCoins('cove',0),0)
 console.log(passed+'/6 KONO Medal Cove groups passed.')
 })().catch(error=>{console.error('FAIL',error);process.exit(1)})

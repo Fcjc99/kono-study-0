@@ -1,0 +1,12 @@
+// Focused empty-boundary fairness regression. Real Rapier; not a render test.
+const fs=require('fs'),vm=require('vm'),ts=require('typescript'),assert=require('assert/strict'),R=require('@dimforge/rapier3d-compat');
+const m={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/store/tide.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,{module:m,exports:m.exports,require,Math,Number,Array,Set,Map});
+(async()=>{await R.init();const world=new R.World({x:0,y:-9.81,z:0}),{TIDE:T,createTideMachine}=m.exports;let owner=false,yielding=true,created=0,release=0,complete=0;
+const machine=createTideMachine(world,{room:()=>1000,routeAvailable:()=>owner,yieldRequested:()=>yielding,clear:()=>owner,needsClearing:()=>!owner,gateClear:()=>owner,createCoin(at){created++;const b=world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(at.x,at.y,at.z).setCcdEnabled(true));world.createCollider(R.ColliderDesc.cylinder(T.halfHeight,T.radius),b);return b},onRelease(){release++},onComplete(){complete++}});
+const id=machine.enqueue(24);machine.enqueue(3);assert.equal(machine.chooseLane(id,'center'),true);let frame=0;const tick=()=>{const s=machine.update(++frame);world.step();assert.equal(s.planned,s.pending+s.released);return s};
+for(let i=0;i<100;i++)tick();assert.equal(machine.status().stage,'waiting');assert.equal(created,0);assert.equal(machine.status().waitReason,'shared-route'); // No foreign-cargo purge bypass.
+owner=true;let parked=null;for(let i=0;i<1800;i++){const s=tick();if(s.routeSafe&&s.requestReleased===12){parked=s;break}}
+assert.ok(parked,'center must park between waves when another machine waits');assert.equal(parked.stage,'waiting');assert.equal(parked.held,0);assert.equal(parked.lane,'center');assert.equal(parked.remaining,12);assert.equal(complete,0);assert.equal(parked.waitingRequests,1);
+owner=false;for(let i=0;i<100;i++)tick();assert.equal(created,12);assert.equal(release,12);assert.equal(machine.status().pending,15);
+owner=true;yielding=false;for(let i=0;i<1800&&complete===0;i++)tick();assert.equal(complete,1);assert.equal(release,24);assert.equal(machine.status().stage,'choosing');assert.equal(machine.status().pending,3);assert.equal(machine.status().lane,null);
+console.log('PASS center Tide safely parks after12/24, ownership pause preserves selected lane/FIFO, resumes remaining12; next3 retain explicit choice. '+frame+' frames.');world.free()})().catch(e=>{console.error(e);process.exitCode=1});

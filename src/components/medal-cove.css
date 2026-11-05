@@ -1,0 +1,270 @@
+/* KONO Medal Cove's styles, taken from KONO's arcade stylesheet (break-games.css). */
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.blast.has-face :is(.blast-cell.is-block,.blast-cell.is-lit,.blast-mini span,.blast-float span,.blast-burst span){background:linear-gradient(160deg,color-mix(in srgb,var(--l) 42%,transparent),color-mix(in srgb,var(--b) 22%,transparent) 45%,color-mix(in srgb,var(--d) 55%,transparent)),var(--face) center/cover no-repeat;box-shadow:inset 0 0 0 2px var(--b),inset 0 3px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(0,0,0,.25)}
+.blast-face-preview i{width:26px;height:26px;border-radius:6px;background-size:cover;background-position:center;box-shadow:inset 0 0 0 2px var(--b),inset 0 2px 0 rgba(255,255,255,.4)}
+.game-cover{position:relative;display:block;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:13px 13px 0 0;margin-bottom:2px}
+.game-cover *{position:absolute}
+.game-cover i{display:block}
+.game-cover.is-blast{background:radial-gradient(120% 90% at 50% 0,#3e5bd6,#1b2a6b 70%)}
+.game-cover.is-meow{background:#fff3fb}
+.game-cover.is-gems{background:radial-gradient(90% 80% at 30% 20%,#2b2f7a,#0d1030 75%)}
+.game-cover.is-candy{background:linear-gradient(#9fd6ff,#c9b7ff)}
+.game-cover.is-flow{background:radial-gradient(100% 90% at 50% 0,#3a1c78,#0b0623 75%)}
+.game-cover.is-beat{background:linear-gradient(#160f2b,#2a1740)}
+.game-cover.is-flap{background:linear-gradient(#8fd8ff,#d9f3ff 70%,#9ee07a 70%)}
+.game-cover.is-paper{background:#eef3f7;background-image:linear-gradient(rgba(0,0,0,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.05) 1px,transparent 1px);background-size:12px 12px}
+@media(prefers-reduced-motion:reduce){.game-cover *{animation:none!important}}
+.game-cover.is-stack{background:linear-gradient(180deg,#8fd3ff,#ffe2b0)}
+.game-cover.is-bloom{background:linear-gradient(180deg,#eaf7ff,#cdeccf)}
+.medal-cove{display:grid;gap:8px;justify-items:center;width:min(480px,100%);margin:0 auto}
+.cove-board{position:relative;width:100%;display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:'steps jp pockets' 'reels reels reels' 'queue queue queue';align-items:center;gap:6px 10px;padding:10px 14px 8px;border-radius:20px 20px 8px 8px;background:linear-gradient(#6b4529,#3a2316);border:3px solid #8a5d36;box-shadow:inset 0 2px 0 rgb(255 255 255/.15),0 8px 18px rgb(0 0 0/.35);color:#ffe9a8}
+.cove-jp{grid-area:jp;display:grid;justify-items:center;line-height:1}
+.cove-jp small{font-weight:900;letter-spacing:.12em;font-size:.75rem}
+.cove-jp b{font-size:2rem;font-weight:900;color:#fff;text-shadow:0 0 12px #ffcf3d}
+.cove-steps{grid-area:steps;display:grid;grid-template-columns:repeat(3,auto);gap:4px;justify-items:center}
+.cove-steps i{width:16px;height:16px;border-radius:50%;background:#6d5440;box-shadow:inset 0 2px 3px rgb(0 0 0/.4)}
+.cove-steps i.is-on{background:#ffe14d;box-shadow:0 0 10px #ffe14d}
+.cove-steps small,.cove-pockets small{grid-column:1/-1;font-size:.65rem;font-weight:800;opacity:.85}
+.cove-pockets{grid-area:pockets;display:grid;justify-items:center;line-height:1.1}
+.cove-reels{grid-area:reels;display:flex;justify-content:center;gap:8px}
+.cove-reels span{display:grid;place-items:center;width:58px;height:52px;border-radius:10px;background:linear-gradient(#fffaf0,#efe2c8);font-size:2rem;box-shadow:inset 0 -3px 0 rgb(0 0 0/.12)}
+.cove-reels.is-spinning span{animation:cove-reel .12s linear infinite}
+@keyframes cove-reel{50%{transform:translateY(2px)}}
+.cove-queue{grid-area:queue;display:flex;justify-content:center;gap:6px}
+.cove-queue i{width:10px;height:10px;border-radius:50%;background:#5b3a24}
+.cove-queue i.is-on{background:#ffd34d;box-shadow:0 0 8px #ffd34d}
+.cove-stage{position:relative;width:100%;height:min(calc(100dvh - 380px),600px);min-height:300px;border-radius:8px 8px 22px 22px;overflow:hidden;box-shadow:0 12px 30px rgb(0 20 50/.45);touch-action:none;cursor:pointer}
+.cove-stage canvas{display:block;width:100%;height:100%}
+.cove-view:not(#x):not(#y){position:absolute;top:10px;right:10px;width:44px;height:44px;min-height:44px!important;padding:0!important;border-radius:50%!important;background:rgb(255 255 255/.85)!important;border:0!important;font-size:1.2rem}
+.cove-hand{position:absolute;left:12px;bottom:10px;padding:4px 12px;border-radius:999px;background:rgb(58 35 22/.85);color:#ffe9a8;font-weight:900;font-size:1.1rem;pointer-events:none}
+.game-screen:has(.medal-cove){background:radial-gradient(ellipse at 50% 0,#7fd0ff,#2f6fb3 55%,#123a66)}
+.game-cover.is-cove{background:linear-gradient(180deg,#5b3a24 0 28%,#c79a63 28%)}
+.gc-cove{position:absolute;inset:0}
+.gc-cove em{position:absolute;top:4%;left:50%;translate:-50% 0;font-style:normal;font-weight:900;font-size:.85rem;color:#ffe9a8}
+.gc-cove-pusher{position:absolute;left:8%;right:8%;top:28%;height:14%;background:#2f6fb3;border-radius:2px;animation:gc-push 2s ease-in-out infinite}
+.gc-cove i{position:absolute;width:12%;height:9%;border-radius:50%;background:radial-gradient(ellipse at 35% 35%,#fff1a6,#f2c230 55%,#c99012);left:calc(8% + (var(--i) * 37 % 76) * 1%);top:calc(48% + (var(--i) * 13 % 40) * 1%)}
+@media(prefers-reduced-motion:reduce){.gc-cove-pusher,.cove-reels.is-spinning span{animation:none}}
+.cove-loading{position:absolute;inset:0;margin:0;display:grid;place-items:center;color:#fff;font-weight:900;background:rgb(10 30 60/.5)}
+@keyframes cove-shine{to{background-position:-250% 0}}
+.cove-flash{position:absolute;inset:0;background:radial-gradient(circle,rgb(255 250 220/.9),rgb(255 210 80/.3) 50%,transparent 75%);animation:cove-flash .7s ease-out forwards;pointer-events:none;z-index:1}
+@keyframes cove-flash{from{opacity:1}to{opacity:0}}
+.cove-steps i.is-on{animation:cove-lamp 1s ease-in-out infinite alternate}
+@keyframes cove-lamp{to{box-shadow:0 0 16px #ffe14d,0 0 4px #fff}}
+@media(prefers-reduced-motion:reduce){.cove-steps i.is-on{animation:none}.cove-flash{display:none}}
+.cove-board{padding:6px 12px 6px;gap:4px 8px}
+.cove-jp b{font-size:1.7rem}
+.cove-reels span{width:50px;height:42px;font-size:1.6rem}
+.cove-steps i{width:13px;height:13px}
+.cove-steps{grid-template-columns:repeat(5,auto)}
+.cove-pockets small{white-space:nowrap}
+.cove-stage{height:min(calc(100dvh - 340px),600px)}
+.cove-stage .cove-board{position:absolute;z-index:2;top:8px;left:8px;right:60px;grid-template-columns:auto 1fr auto;grid-template-areas:'steps jp pockets' 'reels reels reels';padding:6px 10px;border-radius:16px;background:linear-gradient(rgb(107 69 41/.92),rgb(58 35 22/.92));border-width:2px}
+.cove-stage .cove-queue{display:none}
+.cove-stage .cove-reels span{width:40px;height:34px;font-size:1.25rem}
+.cove-stage .cove-jp b{font-size:1.4rem}
+.cove-stage{height:min(calc(100dvh - 230px),640px)}
+.cove-stage{height:min(calc(100dvh - 210px),640px)}
+.medal-cove>.blast-help{font-size:.78rem;margin:0}
+@media(max-width:600px){.medal-cove>.blast-help{display:none}.cove-stage{height:calc(100dvh - 150px)}}
+.cove-stage .cove-board{width:auto}
+.cove-stage .cove-board{grid-template-columns:auto auto 1fr auto;grid-template-areas:'steps jp reels pockets';align-items:center;padding:4px 10px;border-radius:999px;background:linear-gradient(rgb(255 248 236/.94),rgb(255 232 214/.94));border:2px solid #e8a8bd;color:#7a3b52;box-shadow:0 4px 12px rgb(122 59 82/.18)}
+.cove-stage .cove-jp small,.cove-stage .cove-steps small,.cove-stage .cove-pockets small{color:#a0607a}
+.cove-stage .cove-jp b{color:#d2457a;text-shadow:0 0 8px #ffd6e4;font-size:1.25rem}
+.cove-stage .cove-pockets b{color:#7a3b52}
+.cove-stage .cove-pockets small:last-child{display:none}
+.cove-stage .cove-reels span{width:32px;height:28px;font-size:1rem;background:#fff;box-shadow:inset 0 0 0 1.5px #f2c6d4}
+.cove-stage .cove-steps i{background:#f2d6df;box-shadow:inset 0 1px 2px rgb(122 59 82/.3)}
+.cove-stage .cove-steps i.is-on{background:#ffd34d}
+.cove-stage .cove-steps small{display:none}
+.cove-stage .cove-board{right:62px}
+.cove-stage .cove-pockets small{display:none}
+.cove-stage .cove-reels{gap:4px}
+.cove-pop{position:absolute;z-index:3;translate:-50% -50%;pointer-events:none;white-space:nowrap;font-weight:900;font-size:1.05rem;color:#fff;-webkit-text-stroke:1.5px rgb(150 60 100/.7);text-shadow:0 2px 0 rgb(150 60 100/.45),0 0 12px rgb(255 255 255/.7);animation:cove-pop 1.3s cubic-bezier(.2,1.4,.4,1) forwards}
+.cove-pop.is-in{font-size:1.4rem;color:#fff6c8}
+.cove-pop.is-c0{-webkit-text-stroke-color:#d9483b}.cove-pop.is-c1{-webkit-text-stroke-color:#c98a00}.cove-pop.is-c2{-webkit-text-stroke-color:#2f86c8}
+.cove-pop.is-prize{font-size:1.15rem;padding:2px 10px;border-radius:999px;background:rgb(255 255 255/.85);color:#7a3b52;-webkit-text-stroke:0;text-shadow:none;box-shadow:0 4px 12px rgb(122 59 82/.25)}
+.cove-pop.is-combo{font-size:1.8rem;color:#ffd34d;-webkit-text-stroke:2px #c2416b;animation-duration:1.3s}
+.cove-pop.is-big{font-size:2.3rem;color:#fff3a0;-webkit-text-stroke:2.5px #d2457a;text-shadow:0 4px 0 #a02f5c,0 0 24px #ffcf3d;animation:cove-big 2.2s cubic-bezier(.2,1.5,.4,1) forwards}
+@keyframes cove-pop{0%{transform:scale(.3);opacity:0}18%{transform:scale(1.25);opacity:1}35%{transform:scale(1)}75%{opacity:1;translate:-50% -90%}100%{opacity:0;translate:-50% -140%}}
+@keyframes cove-big{0%{transform:scale(.2) rotate(-12deg);opacity:0}15%{transform:scale(1.35) rotate(4deg);opacity:1}28%{transform:scale(1) rotate(0)}80%{opacity:1}100%{opacity:0;transform:scale(1.15)}}
+.cove-fever{position:absolute;z-index:3;left:50%;top:64px;translate:-50% 0;padding:4px 14px;border-radius:999px;font-weight:900;color:#fff;background:linear-gradient(90deg,#ff6b8b,#ffb347,#ffe14d,#6fd38a,#5ab8ff,#b48cff) 0 0/200% 100%;box-shadow:0 0 0 2px #fff,0 4px 14px rgb(0 0 0/.2);animation:cove-shine 1.2s linear infinite}
+@media(prefers-reduced-motion:reduce){.cove-pop,.cove-pop.is-big{animation:none;opacity:1}.cove-fever{animation:none}}
+.cove-fail{position:absolute;inset:0;z-index:5;display:grid;place-content:center;gap:10px;padding:24px;text-align:center;background:rgb(240 244 248/.96);color:#1f2a37}
+.cove-fail strong{font-size:1.15rem}
+.cove-fail p{margin:0;max-width:34ch;line-height:1.4}
+.cove-fail span{display:flex;gap:10px;justify-content:center}
+.game-screen .cove-fail button:not(#x):not(#y){min-height:44px;padding:0 18px;border-radius:999px;font-weight:800}
+.cove-dials{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;padding:8px 8px 6px;border-radius:20px;background:radial-gradient(ellipse at 50% 0,#5a2f86,#2e1650 70%);border:3px solid #f2c230;box-shadow:0 6px 18px rgb(40 10 60/.4),inset 0 0 0 2px rgb(255 255 255/.15)}
+.cove-dial{margin:0;display:grid;justify-items:center;gap:3px;transition:transform .25s ease-out}
+.cove-dial-name{font-size:.72rem;font-weight:900;color:#ffe9a8;letter-spacing:.02em;white-space:nowrap}
+.cove-dial svg{width:min(100%,150px);aspect-ratio:128/132;display:block;filter:drop-shadow(0 4px 6px rgb(0 0 0/.35))}
+.cove-dial .cove-dial-icon{font-size:16px}
+.cove-dial .cove-dial-label{font-size:12px;font-weight:900;fill:#2b1a3a;paint-order:stroke;stroke:#fff;stroke-width:2.5px}
+.cove-dial-bulbs circle{fill:#fff6c8;animation:cove-bulb 1s steps(1) infinite}
+@keyframes cove-bulb{50%{fill:#8a6a20}}
+.cove-dial.is-spinning .cove-dial-bulbs circle{animation-duration:.22s;fill:#fffbe0}
+.cove-dial figcaption{min-height:1.5em;padding:1px 10px;border-radius:999px;font-weight:900;font-size:.85rem;color:#ffe9a8;background:rgb(0 0 0/.25)}
+.cove-dial.is-spinning{transform:scale(1.07)}
+.cove-dial.is-spinning svg{filter:drop-shadow(0 0 12px #ffd34d) drop-shadow(0 4px 6px rgb(0 0 0/.35))}
+.cove-dial.is-won figcaption{background:#ff4d6d;color:#fff;animation:cove-dial-win .5s ease-out}
+.cove-dial.is-c1.is-won figcaption{background:#e0a400}.cove-dial.is-c2.is-won figcaption{background:#2f8fd8}
+@keyframes cove-dial-win{from{transform:scale(1.5)}}
+@media(prefers-reduced-motion:reduce){.cove-dial,.cove-dial.is-won figcaption,.cove-dial-bulbs circle{transition:none;animation:none}}
+@media(max-width:600px){.cove-stage{height:calc(100dvh - 330px)}.cove-dials{padding:6px 4px 4px;gap:2px}.cove-dial-name{font-size:.62rem}.cove-dial figcaption{font-size:.72rem;padding:0 6px}}
+@media(min-width:601px){.cove-stage{height:min(calc(100dvh - 430px),600px);min-height:280px}.cove-dial svg{width:min(100%,136px)}}
+.cove-jp b.is-bump{display:inline-block;animation:cove-jp-bump .45s ease-out}
+@keyframes cove-jp-bump{30%{transform:scale(1.35);color:#ff2f6d}}
+.cove-chance{position:absolute;z-index:3;left:50%;top:58px;translate:-50% 0;display:grid;justify-items:center;padding:6px 18px;border-radius:16px;background:linear-gradient(#6a3cc4,#3a1d6e);border:3px solid #ffd34d;color:#fff;box-shadow:0 0 22px rgb(255 211 77/.7);pointer-events:none;white-space:nowrap;animation:cove-chance-glow .6s ease-in-out infinite alternate}
+.cove-chance b{font-size:1.25rem;font-weight:900;letter-spacing:.06em;color:#ffe08a;text-shadow:0 2px 0 #7a4a00}
+.cove-chance span{font-size:.8rem;font-weight:800}
+@keyframes cove-chance-glow{to{box-shadow:0 0 36px rgb(255 211 77/1)}}
+@media(prefers-reduced-motion:reduce){.cove-jp b.is-bump,.cove-chance{animation:none}}
+.game-screen-body:has(>.medal-cove){align-content:stretch;padding-bottom:calc(env(safe-area-inset-bottom) + 6px)}
+.break-game.medal-cove{display:flex;flex-direction:column;gap:6px;width:min(100%,1100px);height:100%;min-height:0;margin:0 auto}
+.medal-cove>.cove-stage.cove-stage{flex:1;height:auto;min-height:300px;border-radius:18px}
+.medal-cove>.cove-help{display:none}
+.cove-dashboard>.cove-dials{flex:none}
+@media(max-height:820px){.cove-dial svg{width:min(100%,92px)!important}.cove-dial-name{font-size:.62rem}.cove-dial figcaption{font-size:.72rem}}
+.game-screen:has(.medal-cove){background:radial-gradient(ellipse at 50% 0,#4a2475,#24113d 60%,#140a24)}
+.cove-win{position:absolute;z-index:3;left:18px;bottom:52px;padding:2px 12px;border-radius:999px;background:#ffd34d;color:#5a3200;font-weight:900;font-size:1.15rem;box-shadow:0 3px 10px rgb(0 0 0/.3);pointer-events:none;animation:cove-win 1.4s ease-out forwards}
+.cove-win.is-big{font-size:1.5rem;background:linear-gradient(90deg,#ffd34d,#ff8fb1)}
+@keyframes cove-win{0%{opacity:0;transform:translateY(10px) scale(.7)}15%{opacity:1;transform:translateY(0) scale(1.15)}30%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-24px)}}
+@media(prefers-reduced-motion:reduce){.cove-win{animation:none}}
+.cove-dashboard>.cove-board{flex:none;grid-template-columns:auto auto 1fr auto;grid-template-areas:'steps jp reels pockets';align-items:center;gap:4px 10px;padding:4px 12px;border-radius:999px;background:linear-gradient(rgb(255 248 236/.96),rgb(255 232 214/.96));border:2px solid #e8a8bd;color:#7a3b52;box-shadow:0 4px 12px rgb(0 0 0/.25)}
+.cove-dashboard>.cove-board .cove-jp small,.cove-dashboard>.cove-board .cove-steps small,.cove-dashboard>.cove-board .cove-pockets small{color:#a0607a;font-size:.6rem;font-weight:900}
+.cove-dashboard>.cove-board .cove-jp b{color:#d2457a;font-size:1.25rem}
+.cove-dashboard>.cove-board .cove-pockets b{color:#7a3b52}
+.cove-dashboard>.cove-board .cove-pockets small:last-child{display:none}
+.cove-dashboard>.cove-board .cove-reels span{width:30px;height:26px;font-size:.95rem;background:#fff;box-shadow:inset 0 0 0 1.5px #f2c6d4}
+.cove-dashboard>.cove-board .cove-steps{display:grid;grid-template-columns:repeat(5,auto);gap:3px;justify-items:center}
+.cove-dashboard>.cove-board .cove-steps small{grid-column:1/-1}
+.cove-dashboard>.cove-board .cove-steps i{background:#f2d6df;box-shadow:inset 0 1px 2px rgb(122 59 82/.3)}
+.cove-dashboard>.cove-board .cove-steps i.is-on{background:#ffd34d;box-shadow:0 0 6px #ffb000}
+.cove-dashboard>.cove-board .cove-queue{display:none}
+@media(max-height:700px){.cove-dial svg{width:min(100%,66px)!important}.cove-dial-name{display:none}.cove-dials{padding:4px 6px}.cove-dashboard>.cove-board .cove-reels span{width:26px;height:22px}}
+
+/* Standalone polish pass: the machine is the hero; wheels are a compact instrument strip. */
+.break-game.medal-cove{gap:7px;width:min(100%,1100px)}
+.cove-dashboard>.cove-dials{border:1px solid #d5a8da33;border-radius:16px;padding:6px 12px;gap:12px;background:linear-gradient(115deg,#432951cc,#2a1b3dcc);box-shadow:inset 0 1px 0 #ffffff0a}
+.cove-dial{grid-template-columns:auto 1fr;grid-template-rows:1fr 1fr;gap:0 8px;text-align:left;justify-items:start;align-items:center;min-width:0}
+.cove-dial svg{grid-column:1;grid-row:1/3;width:54px!important;filter:drop-shadow(0 2px 4px #0004)}
+.cove-dial-name{grid-column:2;grid-row:1;align-self:end;font-size:.65rem;font-weight:750;letter-spacing:.01em;color:#dfc9e5}
+.cove-dial figcaption{grid-column:2;grid-row:2;align-self:start;min-height:0;line-height:1.5;padding:1px 0;background:none;color:#bba0c9;font-size:.64rem;white-space:nowrap}
+.cove-dial.is-won figcaption{padding:0 6px;color:#fff3d1;background:#754766}
+.cove-dial.is-spinning{transform:none}.cove-dial.is-spinning figcaption{color:#ffdfa0}
+.cove-dashboard>.cove-board{border-radius:12px;background:#f8e7df;border:1px solid #eab6cb;padding:6px 14px;box-shadow:0 2px 8px #0002}
+.cove-dashboard>.cove-board .cove-jp small{font-size:.52rem;letter-spacing:.1em}.cove-dashboard>.cove-board .cove-jp b{font-size:1.16rem}
+.cove-dashboard>.cove-board .cove-pockets b{font-size:.85rem}.cove-dashboard>.cove-board .cove-pockets small{font-size:.52rem}
+.cove-dashboard>.cove-board .cove-steps i{width:9px;height:9px}.cove-dashboard>.cove-board .cove-steps small{font-size:.5rem;letter-spacing:.04em}
+.cove-dashboard>.cove-board .cove-reels{gap:4px}.cove-dashboard>.cove-board .cove-reels span{width:27px;height:26px;font-size:.9rem}
+.medal-cove>.cove-stage.cove-stage{min-height:250px;border:1px solid #d5b6d522;border-radius:16px;box-shadow:0 16px 36px #0d061a4d;background:#251534}
+.cove-stage .cove-hand{background:#2d1d3dcc;border:1px solid #efd0b52e;color:#ffe2a6;font-size:.8rem;bottom:12px;left:12px;padding:7px 12px;backdrop-filter:blur(8px)}
+.cove-view:not(#x):not(#y){background:#362447e8!important;color:#ffdfab;border:1px solid #ebcbb64d!important;box-shadow:0 4px 12px #0004;font-size:1rem}
+.cove-stage .cove-fail{overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(ellipse at 50% 30%,#493154,#24172f 75%);color:#f6e6f4;padding:24px}
+.cove-fail-notice{display:flex;align-items:center;gap:12px;text-align:left;width:min(100%,770px);padding:12px 15px;border:1px solid #e4bdd32e;border-radius:12px;background:#20132b70}
+.cove-fail .cove-fail-mark{display:grid;place-items:center;width:30px;height:30px;flex:none;color:#ffdca8;font-size:28px}.cove-fail-notice>div{flex:1}.cove-fail-notice strong{display:block;font-size:.8rem;color:#f7e4ed}.cove-fail-notice p{max-width:none;font-size:.67rem;line-height:1.5;color:#bca6c9;margin-top:4px}.cove-fail-notice button{flex:none;min-height:36px;padding:0 12px;font-size:.7rem;color:#ffe0a6;border-color:#f4d19b55}.cove-fail .cove-preview-leave{min-height:32px;padding:0 12px;font-size:.65rem;background:transparent;color:#c9aed4;border:none}
+@media(max-width:650px){.break-game.medal-cove{gap:5px}.cove-dashboard>.cove-dials{padding:5px 7px;gap:4px;border-radius:12px}.cove-dial{grid-template-columns:42px 1fr;gap:0 4px}.cove-dial svg{width:42px!important}.cove-dial-name{font-size:.5rem}.cove-dial-name>span{display:none}.cove-dial figcaption{font-size:.5rem;white-space:normal;line-height:1.3}.cove-dashboard>.cove-board{padding:5px 10px;gap:4px 7px}.cove-dashboard>.cove-board .cove-pockets b{font-size:.72rem}.cove-dashboard>.cove-board .cove-reels span{width:24px;height:23px;font-size:.82rem}.medal-cove>.cove-stage.cove-stage{min-height:280px;border-radius:13px}.cove-stage .cove-fail{justify-content:flex-start;padding:12px 10px;gap:10px}.cove-fail-notice{padding:10px;gap:8px}.cove-fail .cove-fail-mark{display:none}.cove-fail-notice strong{font-size:.7rem}.cove-fail-notice p{font-size:.61rem;line-height:1.4}.cove-fail-notice button{font-size:.6rem;padding:0 8px;min-height:34px}.cove-fail .cove-preview-leave{font-size:.6rem;min-height:25px}}
+@media(max-height:700px){.cove-dial-name{display:block}.cove-dial svg{width:42px!important}.cove-stage .cove-fail{gap:8px}}
+@media(min-width:900px){.cove-dial svg{width:48px!important}.cove-dial{justify-self:center}.cove-dashboard>.cove-dials{padding:4px 14px}}
+.cove-controls{display:flex;align-items:center;gap:10px;flex:none;width:100%;padding:9px 12px;border:1px solid #e9c2db20;border-radius:15px;background:linear-gradient(120deg,#3d284a,#30213d)}
+.cove-aim{display:flex;align-items:center;gap:10px;flex:1;min-width:0;font-size:.65rem;color:#cbb0d4;font-weight:800;letter-spacing:.03em}
+.cove-aim input[type=range]{width:100%;min-width:50px;accent-color:#ffda91;height:28px;cursor:ew-resize;touch-action:pan-y}
+.standalone .cove-controls .cove-drop{min-height:44px;padding:0 24px;background:linear-gradient(145deg,#ffe5ac,#f4bf70);border-color:#ffe2a7;color:#5d3544;box-shadow:inset 0 1px 0 #ffffff88,0 3px 10px #0e071733;font-size:.78rem;font-weight:850;white-space:nowrap}
+.standalone .cove-controls .cove-drop:disabled{opacity:.5;cursor:not-allowed}.standalone .cove-controls .cove-camera-mode{min-height:40px;padding:0 14px;font-size:.68rem;white-space:nowrap}
+.standalone .cove-controls .cove-camera-mode[aria-pressed=true]{background:#b990db22;border-color:#c9a2e6;color:#eddbfa}
+.cove-delivery{position:absolute;bottom:12px;right:12px;padding:7px 10px;background:#261a36c9;border:1px solid #d6bbdc26;border-radius:99px;font-size:.64rem;color:#d6bddf;pointer-events:none;backdrop-filter:blur(8px)}
+.cove-demo{position:relative;flex:none;align-self:center;color:#ac92bb;font-size:.62rem;text-align:center;padding:2px 8px 0}
+.cove-demo summary{cursor:pointer;min-height:24px;line-height:24px;font-size:.62rem;letter-spacing:.035em;list-style-position:inside}
+.cove-demo[open]{width:100%;padding:6px 10px 10px;background:#39274699;border:1px solid #d9b9df22;border-radius:12px}
+.cove-demo p{font-size:.63rem;color:#ae95ba;margin:3px auto 8px;line-height:1.5}.cove-demo>div{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}.standalone .cove-demo button{font-size:.62rem;min-height:32px;padding:0 12px;margin:2px}
+@media(max-width:650px){.cove-controls{padding:7px 9px;gap:8px;border-radius:12px}.cove-aim{display:grid;gap:0;font-size:.55rem}.cove-aim input[type=range]{margin:0;height:24px}.standalone .cove-controls .cove-drop{padding:0 16px;font-size:.68rem;min-height:42px}.standalone .cove-controls .cove-camera-mode{font-size:.57rem;padding:0 10px;min-height:40px}.cove-delivery{font-size:.5rem;right:8px;bottom:12px;padding:7px 8px}.cove-stage .cove-hand{left:8px;font-size:.7rem;padding:6px 9px}.cove-demo summary{font-size:.55rem;min-height:22px;line-height:22px}}
+@media(max-width:370px){.standalone .cove-controls .cove-drop{padding:0 11px}.standalone .cove-controls .cove-camera-mode{padding:0 7px}.cove-controls{gap:6px}}
+.cove-stage:has(.cove-fail){touch-action:auto;cursor:default}
+.cove-fail{touch-action:pan-y}
+@media(max-width:650px){.cove-dial-name{font-size:.58rem;white-space:normal}.cove-dial figcaption{font-size:.56rem}.cove-fail-notice p{font-size:.67rem}.cove-fail-notice strong{font-size:.74rem}}
+
+.cove-drop small{display:block;font-size:.5rem;font-weight:650;opacity:.7;margin-top:1px}
+.cove-hand small{font-size:.6rem;font-weight:650;color:#d6bddf}
+.cove-stage:has(.cove-fail)>.cove-hand,.cove-stage:has(.cove-fail)>.cove-delivery,.cove-stage:has(.cove-fail)>.cove-view{display:none}
+.standalone button:disabled{cursor:not-allowed;opacity:.45}
+
+/* Constrain intrinsic grid sizes: a long tower or camera label must not widen the page. */
+.break-game.medal-cove,.medal-cove>.cove-stage,.cove-controls,.cove-dashboard>.cove-board,.cove-dashboard>.cove-dials{min-width:0;max-width:100%}
+.cove-dashboard>.cove-dials{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cove-dial{grid-template-columns:auto minmax(0,1fr)}
+.cove-dial-name,.cove-dial figcaption,.cove-pockets,.cove-jp,.cove-reels,.cove-steps{min-width:0;max-width:100%}
+.cove-dial figcaption{overflow-wrap:anywhere}
+.cove-pockets small{white-space:normal;text-align:center;line-height:1.25}
+.cove-fail-notice,.cove-fail-notice>div{min-width:0;max-width:100%}
+.cove-fail-notice p{overflow-wrap:anywhere}
+.standalone .cove-fail-notice button,.standalone .cove-controls .cove-drop,.standalone .cove-controls .cove-camera-mode,.standalone .cove-demo button,.standalone .cove-preview-leave{min-height:44px}
+.cove-demo summary{min-height:44px;line-height:44px}
+@media(max-width:650px){
+ .cove-dashboard>.cove-board{grid-template-columns:58px 44px 70px minmax(0,1fr);gap:4px 6px;padding:6px 8px}
+ .cove-dashboard>.cove-board .cove-jp small,.cove-dashboard>.cove-board .cove-pockets small,.cove-dashboard>.cove-board .cove-steps small{font-size:9px}
+ .cove-dashboard>.cove-board .cove-reels{gap:3px}
+ .cove-dashboard>.cove-board .cove-reels span{width:20px;height:24px;flex:none}
+ .cove-dial{grid-template-columns:36px minmax(0,1fr);gap:0 4px}
+ .cove-dial svg{width:36px!important;max-width:100%}
+ .cove-dial-name,.cove-dial figcaption{font-size:10px;line-height:1.25}
+ .standalone .cove-controls .cove-camera-mode{white-space:normal;line-height:1.2;max-width:110px;font-size:10px}
+ .cove-aim{font-size:10px}
+ .cove-delivery{font-size:9px;max-width:58%;white-space:normal;text-align:right}
+ .standalone .cove-demo button{font-size:11px}
+ .cove-demo summary{font-size:10px;line-height:1.3;display:flex;align-items:center;justify-content:center}
+ .standalone .cove-fail-notice button{font-size:11px}
+ .standalone .cove-preview-leave{font-size:11px}
+}
+@media(max-width:370px){
+ .cove-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 8px;padding:7px 10px}
+ .cove-aim{grid-column:1/-1;display:grid;grid-template-columns:30px minmax(0,1fr);align-items:center;gap:8px}
+ .cove-aim input[type=range]{min-width:0;width:100%;height:24px}
+ .standalone .cove-controls .cove-drop,.standalone .cove-controls .cove-camera-mode{width:100%;max-width:none;min-width:0;padding:4px 8px;min-height:44px;font-size:11px}
+ .cove-dial{grid-template-columns:32px minmax(0,1fr);gap:0 3px}
+ .cove-dial svg{width:32px!important}
+ .cove-dial-name,.cove-dial figcaption{font-size:9px}
+ .cove-fail-notice{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:10px}
+ .cove-fail-notice button{justify-self:start}
+ .cove-fail-notice strong{font-size:12px}
+ .cove-fail-notice p{font-size:11px;line-height:1.45}
+ .cove-stage .cove-fail{padding:10px 8px}
+}
+
+/* Restore the original three-wheel presentation: always side by side, full faces,
+   label above and earned result below. Never collapse them into tiny instruments. */
+.cove-dashboard>.cove-dials{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:8px 12px 7px;border:3px solid #e9bf45;border-radius:20px;background:radial-gradient(ellipse at 50% 0,#603a85,#2e1650 75%);box-shadow:0 5px 14px #214f7830,inset 0 0 0 2px #fff2;}
+.cove-dashboard>.cove-dials .cove-dial{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:100%;min-width:0;justify-self:center;text-align:center}
+.cove-dashboard>.cove-dials .cove-dial svg{width:min(100%,clamp(112px,18dvh,160px))!important;max-width:100%;height:auto;flex:none;filter:drop-shadow(0 3px 5px #0004)}
+.cove-dashboard>.cove-dials .cove-dial-name{display:block;align-self:center;font-size:clamp(10px,1.6vw,13px);line-height:1.3;color:#ffe9a8;font-weight:850;white-space:nowrap;letter-spacing:.01em}
+.cove-dashboard>.cove-dials .cove-dial-name>span{display:inline}
+.cove-dashboard>.cove-dials .cove-dial figcaption{align-self:center;min-height:20px;padding:2px 8px;max-width:100%;border-radius:999px;color:#ffe9a8;background:#180d2d55;font-size:clamp(10px,1.5vw,12px);line-height:1.3;white-space:normal}
+.cove-dashboard>.cove-dials .cove-dial.is-won figcaption{background:#e7537e;color:white}.cove-dashboard>.cove-dials .cove-dial.is-c1.is-won figcaption{background:#bb8800}.cove-dashboard>.cove-dials .cove-dial.is-c2.is-won figcaption{background:#2f86bf}
+.cove-dashboard>.cove-board{background:linear-gradient(#fff8ec,#ffe8d6);border:2px solid #e8a8bd;border-radius:999px;box-shadow:0 3px 9px #526b8b26}
+.medal-cove>.cove-stage.cove-stage{min-height:240px;background:linear-gradient(#a9dcff,#d9efff 55%,#ffe9f2);box-shadow:0 8px 24px #16446b33}
+.cove-controls{background:#eaf6fff0;border-color:#b6d8e7;box-shadow:0 2px 8px #27547d18}.cove-aim{color:#3d637b}
+.standalone .cove-controls .cove-camera-mode{color:#385d78;border-color:#abcbdc;background:#fff8}.standalone .cove-controls .cove-camera-mode[aria-pressed=true]{color:#62456f;background:#ecdff8;border-color:#be9cdb}
+.cove-demo{color:#f3faff}.cove-demo[open]{background:#27557abf;border-color:#d3ecff77}.cove-demo p{color:#e0f0fa}
+.cove-stage .cove-fail{background:linear-gradient(#e4f5ff,#fff1f6);color:#345269}
+.cove-fail-notice{background:#ffffffd9;border-color:#c5dbe7}.cove-fail-notice strong{color:#36546a}.cove-fail-notice p{color:#536c7e}.cove-fail .cove-fail-mark{color:#b88620}
+.standalone .cove-fail-notice button{color:#375a72;border-color:#9cbdd2;background:#e6f2fc}.standalone .cove-fail .cove-preview-leave{color:#4c6680}
+@media(max-width:650px){.cove-dashboard>.cove-dials{gap:4px;padding:6px 5px 5px;border-radius:16px}.cove-dashboard>.cove-dials .cove-dial{gap:3px}.cove-dashboard>.cove-dials .cove-dial figcaption{padding:2px 5px}.cove-dashboard>.cove-dials .cove-dial-name{font-size:10px}.medal-cove>.cove-stage.cove-stage{min-height:220px}.cove-demo summary{font-size:10px}}
+@media(max-width:370px){.cove-dashboard>.cove-dials .cove-dial-name>span{display:none}.cove-dashboard>.cove-dials .cove-dial-name{font-size:10px}.cove-dashboard>.cove-dials .cove-dial figcaption{font-size:10px}.medal-cove>.cove-stage.cove-stage{min-height:200px}}
+
+/* Bonus notices belong to the existing dashboard, never over the live journey. */
+.cove-progress-strip .cove-tower-progress,.cove-progress-strip .cove-event-line{min-width:0;overflow-wrap:anywhere;line-height:1.35}
+.cove-progress-strip .cove-tower-progress>b{color:#88642e;font-weight:800}
+.cove-progress-strip .cove-tower-progress strong{font-size:inherit;color:inherit;font-weight:800}
+.cove-progress-strip .cove-event-line{color:#6c577a;font-weight:700;padding-top:2px}
+
+/* Earned Board Clear stays in the dashboard; it never covers coins or changes
+   the three approved wheels. Cyan halos in the scene identify magnetic cargo. */
+.cove-clear-strip{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px 12px;padding:9px 12px;border:1px solid #71c5c8;border-radius:13px;background:linear-gradient(110deg,#e2fcf5,#edf7ff);color:#285d68;min-width:0}
+.cove-clear-strip>div{display:grid;gap:2px;min-width:0}.cove-clear-strip b{font-size:11px;letter-spacing:.07em}.cove-clear-strip span,.cove-clear-strip small{font-size:11px;line-height:1.35;overflow-wrap:anywhere}
+.cove-clear-strip>small:last-child{grid-column:1/-1}.cove-clear-strip progress{width:clamp(70px,14vw,160px);height:8px;accent-color:#22a99c}
+.standalone .cove-clear-strip button{min-height:44px;padding:0 15px;background:#286f78;border-color:#286f78;color:white;font-weight:800;font-size:12px}
+.cove-clear-strip.is-active{border-color:#2aa99e;box-shadow:inset 3px 0 #23ad9c}
+@media(max-width:420px){.cove-clear-strip{padding:7px 9px;gap:4px 7px}.cove-clear-strip b,.cove-clear-strip span,.cove-clear-strip small{font-size:10px}.standalone .cove-clear-strip button{padding:0 10px;font-size:11px}}
+/* The automatic flipper replaces the manual aiming rail, keeping DROP prominent. */
+.cove-flipper-help{flex:1;min-width:0;text-align:center;color:#486377;font-size:10px;font-weight:850;letter-spacing:.06em}
+.cove-flipper-help small{display:block;font-size:9px;font-weight:600;letter-spacing:0;margin-top:3px}
+@media(max-width:370px){.cove-flipper-help{display:none}}
