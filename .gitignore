@@ -35,3 +35,4 @@ test-results/
 tools/_tmp_*.cjs
 .claude/worktrees/
 tools/zz_shoot.cjs
+__pycache__/
