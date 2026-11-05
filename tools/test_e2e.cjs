@@ -4264,7 +4264,7 @@ test('Chores on Home: today’s chores sit in the schedule as their own checklis
  await page.getByRole('region',{name:'Tomorrow’s chores'}).getByText('Water the plants').waitFor()
 })
 
-test('KONO Medal Cove: a medal pusher: tapping the field drops medals from your hand, the jackpot board and reels show, and End gives what you finished with',async({context,page})=>{
+test('KONO Medal Cove: a medal pusher: DROP feeds medals from your hand onto the pin board, the three bonus wheels show, and End gives what you finished with',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
@@ -4273,15 +4273,15 @@ test('KONO Medal Cove: a medal pusher: tapping the field drops medals from your 
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
  await town.getByRole('button',{name:/KONO Medal Cove/}).click()
  const cove=await startGame(page,'🪙 KONO Medal Cove')
- const field=cove.getByRole('img',{name:/^KONO Medal Cove: 100 medals/});await field.waitFor({timeout:30000})
- await cove.getByLabel('Backboard').getByText('JACKPOT').waitFor()
- // The three bonus wheels, zoomed in under the cabinet.
+ await cove.locator('.cove-stage[aria-label^="KONO Medal Cove: 100 medals"]').waitFor({timeout:30000})
+ // The three bonus wheels, one for each ship's pocket.
  await cove.getByRole('figure',{name:/🏮 wheel/}).waitFor();await cove.getByRole('figure',{name:/⭐ wheel/}).waitFor();await cove.getByRole('figure',{name:/🗼 wheel/}).waitFor()
- // The field's middle, in front of the pusher: a tap there drops a medal.
- const box=await field.boundingBox()
- for(let i=0;i<5;i++){await page.mouse.click(box.x+box.width*(0.35+i*0.07),box.y+box.height*0.55);await page.waitForTimeout(150)}
- await cove.getByRole('button',{name:'Change the camera'}).click()
- await page.waitForFunction(()=>{const m=/: (\d+) medals/.exec(document.querySelector('.cove-stage')?.getAttribute('aria-label')??'');return m&&Number(m[1])!==100},null,{timeout:5000})
+ // DROP feeds medals from your hand (once the machine is filled and ready).
+ const drop=cove.getByRole('button',{name:/^DROP/});await page.waitForFunction(()=>{const b=[...document.querySelectorAll('.cove-drop')][0];return b&&!b.disabled},null,{timeout:30000})
+ // Pressed where it is on screen (the game holds its layout steady, so there's nothing to scroll).
+ const db=await drop.boundingBox()
+ for(let i=0;i<5;i++){await page.mouse.click(db.x+db.width/2,db.y+db.height/2);await page.waitForTimeout(250)}
+ await page.waitForFunction(()=>{const m=/: (\d+) medals/.exec(document.querySelector('.cove-stage')?.getAttribute('aria-label')??'');return m&&Number(m[1])<100},null,{timeout:15000})
  await cove.getByRole('button',{name:'■ End'}).click()
  await cove.getByText(/You finished with \d+ medals?/).waitFor()
 })

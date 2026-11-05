@@ -34,6 +34,8 @@ function audio(){
  if(ctx.state==='suspended')void ctx.resume().catch(()=>undefined)
  return ctx
 }
+/** Resume only from an explicit visitor gesture; does not start music. */
+export function unlockArcadeAudio(){audio()}
 const hz=(midi:number)=>440*2**((midi-69)/12)
 /** One note: an oscillator through a gain envelope (attack, then an exponential fade). */
 function tone(c:AudioContext,out:AudioNode,{type='sine',freq,at,dur,vol=0.3,attack=0.005,to,detune=0,wet=false}:{type?:OscillatorType;freq:number;at:number;dur:number;vol?:number;attack?:number;to?:number;detune?:number;wet?:boolean}){
@@ -271,15 +273,33 @@ export function musicLift(n:number){
 }
 
 // ---- Sound effects ----
-export type Fx='swap'|'nope'|'land'|'match'|'make'|'laser'|'boom'|'zap'|'mega'|'squish'|'time'|'mult'|'blaze'|'tick'|'timeup'|'fanfare'|'star'|'charge'
+export type Fx='coinDrop'|'coinPin'|'coinTray'|'swap'|'nope'|'land'|'match'|'make'|'laser'|'boom'|'zap'|'mega'|'squish'|'time'|'mult'|'blaze'|'tick'|'timeup'|'fanfare'|'star'|'charge'
  |'meow'|'purr'|'paw'|'hiss'|'heart'|'flap'|'ding'|'thud'|'claim'|'cut'
+// Global and per-kind caps prevent crowded payouts spawning an audio node storm.
+let lastCoinSound=-Infinity
+const coinSoundAt:Record<string,number>={}
 const PENTA=[0,2,4,7,9,12,14,16,19,21,24]
 /** Plays an effect. `level` climbs: a match further down a cascade rings higher. */
 export function fx(kind:Fx,enabled:boolean,level=0){
  if(!enabled)return
  const c=audio();if(!c||!fxBus)return
  const o=fxBus,t=c.currentTime+0.005
+ if(kind.startsWith('coin')){
+  const gap=kind==='coinPin'?.055:.09
+  if(t-lastCoinSound<.025||t-(coinSoundAt[kind]??-Infinity)<gap)return
+  lastCoinSound=t;coinSoundAt[kind]=t
+ }
  switch(kind){
+  case 'coinDrop':
+   hiss(c,o,{at:t,dur:.035,vol:.1,type:'bandpass',freq:3200,q:1.8});
+   tone(c,o,{freq:1780,to:1450,at:t,dur:.075,vol:.085});break
+  case 'coinPin':
+   tone(c,o,{freq:2900+(Math.abs(level)%7)*110,at:t,dur:.045,vol:.045});
+   tone(c,o,{freq:4750,at:t,dur:.025,vol:.018});break
+  case 'coinTray':
+   hiss(c,o,{at:t,dur:.1,vol:.09,type:'bandpass',freq:3900,q:1});
+   tone(c,o,{freq:2100,at:t,dur:.11,vol:.08});
+   tone(c,o,{freq:3100,at:t+.035,dur:.07,vol:.05});break
   case 'swap':hiss(c,o,{at:t,dur:0.16,vol:0.18,type:'bandpass',freq:900,to:3800,q:1.2});break
   case 'nope':tone(c,o,{type:'triangle',freq:300,to:180,at:t,dur:0.12,vol:0.22});tone(c,o,{type:'triangle',freq:240,to:150,at:t+0.11,dur:0.14,vol:0.18});break
   case 'land':tone(c,o,{freq:180,to:90,at:t,dur:0.08,vol:0.18});break

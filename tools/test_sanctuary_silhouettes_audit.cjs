@@ -1,0 +1,23 @@
+// Independent authored-geometry inspection, not a GPU/readability claim.
+const R=require('@dimforge/rapier3d-compat'),assert=require('node:assert/strict'),THREE=require('three'),{start}=require('./production_runtime.cjs');
+(async()=>{const h=await start(),A=h.load('src/components/sanctuaryAssets.ts'),B=h.load('src/components/referenceCabinet.ts'),mat=new THREE.MeshBasicMaterial(),texture=new THREE.Texture();let checked=0;
+function outsideSlab(group,halfDepth){group.updateMatrixWorld(true);group.traverse(o=>{if(!o.isMesh)return;const box=new THREE.Box3().setFromObject(o);assert.ok(box.min.z>halfDepth||box.max.z< -halfDepth,`${o.name} invades true medal passage: ${box.min.z}..${box.max.z}`);checked++})}
+for(let i=0;i<3;i++)outsideSlab(B.createBoatTarget(1.2,i,mat,texture),.14);
+outsideSlab(A.createInputChute(mat).chute,.055);
+for(const side of [-1,1])outsideSlab(A.createRampMouth(mat,mat,side),.52);
+// Added contact-bearing tray faces must match actual existing fixed colliders.
+const C=h.load('src/store/motion.ts').CABINET,group=new THREE.Group();A.addSanctuaryCabinetTrim(group,{halfWidth:C.halfWidth,frameMat:mat,woodMat:mat,goldMat:mat});group.updateMatrixWorld(true);let walls=0;
+group.traverse(o=>{if(!/^tray-physical-/.test(o.name))return;const box=new THREE.Box3().setFromObject(o),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());let found=false;h.rt.world.forEachCollider(c=>{if(c.parent()||typeof c.halfExtents!=='function')return;const e=c.halfExtents();if(!e)return;const p=c.translation();if(['x','y','z'].every(axis=>Math.abs(p[axis]-center[axis])<1e-5&&Math.abs(e[axis]*2-size[axis])<1e-5))found=true});assert.ok(found,o.name+' matches a real contact collider');walls++});assert.equal(walls,3);assert.ok(checked>=20);
+const bay=h.rt.scene.getObjectByName('reference-open-build-bay');assert.ok(bay,'actual transparent right bay integrated');let matched=0;const contacts=[];bay.updateMatrixWorld(true);bay.traverse(o=>{if(!o.isMesh)return;const at=o.getWorldPosition(new THREE.Vector3()),v=o.geometry.attributes.position.array;assert.deepEqual(o.scale.toArray(),[1,1,1]);assert.equal(o.rotation.x+o.rotation.y+o.rotation.z,0);let match=false;h.rt.world.forEachCollider(c=>{const p=c.translation(),shape=c.shape;if(!['x','y','z'].every(a=>Math.abs(p[a]-at[a])<1e-5))return;if(o.userData.collider==='convexHull'){
+ if(shape.type!==R.ShapeType.ConvexPolyhedron)return;
+ // Convex-hull generation may omit collinear face vertices; every retained
+ // contact vertex must be authored, every authored vertex on the solid surface.
+ if(!Array.from({length:shape.vertices.length/3},(_,i)=>i).every(i=>Array.from({length:v.length/3},(_,j)=>j).some(j=>[0,1,2].every(k=>Math.abs(shape.vertices[i*3+k]-v[j*3+k])<1e-5))))return;
+ for(let i=0;i<v.length;i+=3){const point={x:v[i]+at.x,y:v[i+1]+at.y,z:v[i+2]+at.z},hit=c.projectPoint(point,false);assert.ok(Math.hypot(hit.point.x-point.x,hit.point.y-point.y,hit.point.z-point.z)<1e-5,'authored wedge surface matches convex contact')}
+ match=true;contacts.push(c)
+ }else if(shape.type===R.ShapeType.TriMesh&&shape.vertices.length===v.length&&shape.vertices.every((n,i)=>Math.abs(n-v[i])<1e-6)){match=true;contacts.push(c)}
+ });assert.ok(match,o.name+' has matching visible contact vertices');matched++});assert.equal(matched,4);
+let initialPenetration=0;for(const c of contacts)for(const p of h.rt.pieces.values()){const hit=c.contactCollider(p.body.collider(0),.001);if(hit)initialPenetration=Math.max(initialPenetration,-hit.distance)}assert.ok(initialPenetration<.001,'bay must not intersect starting stock or inject startup drift: '+initialPenetration);
+const tower=h.load('src/store/tower.ts'),T=tower.TOWER;
+for(const side of [-1,1]){const poses=[[T.x,T.buildTop,0],[T.dockX,T.buildTop,0],[T.dockX,T.releaseTop,0],[T.dockX,T.releaseTop,T.opening],[T.dockX,T.resetTop,T.opening],[T.dockX,T.resetTop,0],[T.x,T.resetTop,0],[T.x,T.parkTop,0]].map(([x,y,opening])=>({x,y:y-T.leafHalfHeight,z:T.z+side*(T.leafHalfDepth+opening)}));for(let i=1;i<poses.length;i++)assert.equal(tower.towerSupportSweepBlocked(h.rt.world,poses[i-1],poses[i],()=>true),false,'complete support route leg '+i+' clears fixed architecture')}
+console.log('PASS all4 right-bay mesh/collider surfaces match; complete fore/aft support route clears fixed architecture, zero initial bay/stock penetration.');console.log(`PASS ${checked} carved shell meshes stay outside true medal apertures; all ${walls} visible tray walls match existing Rapier solids (geometry only).`);h.cleanup()})().catch(e=>{console.error('FAIL silhouette audit',e);process.exit(1)});

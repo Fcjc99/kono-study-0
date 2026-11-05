@@ -1,0 +1,7 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript'),vm=require('node:vm');
+const mod={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/store/flipper.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:mod.exports,module:mod});const {flipperPose,FLIPPER_PERIOD}=mod.exports;
+assert.equal(flipperPose(0,4).x,0);assert.ok(Math.abs(flipperPose(FLIPPER_PERIOD/4,4).x-3.76)<1e-9);assert.ok(Math.abs(flipperPose(FLIPPER_PERIOD*3/4,4).x+3.76)<1e-9);
+for(let i=0;i<2000;i++){const p=flipperPose(i,4);assert.ok(p.x>=-3.76&&p.x<=3.76);assert.ok(p.aim>=4&&p.aim<=96);assert.ok(Math.abs(p.x-flipperPose(i+1,4).x)<.07)}
+assert.equal(JSON.stringify(flipperPose(44,4)),JSON.stringify(flipperPose(44,4)));assert.equal(flipperPose(NaN,4).x,0);
+const src=fs.readFileSync('src/components/MedalCove.tsx','utf8');assert.ok(!src.includes('setPlayerAim'));assert.ok(!src.includes('Drag the feed nozzle'));assert.ok(!src.includes("e.code==='ArrowLeft'"));assert.ok(src.includes('if(!lookRef.current)flipperFrame++'));assert.ok(src.includes('const x=flipper.x;'));assert.ok(src.includes('chute.position.set(flipper.x,'));assert.ok(src.includes('inputQueue.length&&!lookRef.current'));
+console.log('PASS flipper cycle, bounds, continuous travel, deterministic pause, invalid input, manual controls absent and physical launch wired to visible flipper.');

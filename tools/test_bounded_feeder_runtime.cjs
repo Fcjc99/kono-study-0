@@ -1,0 +1,5 @@
+// Production input path + Rapier. Automatic flipper, no renderer/pixel claim.
+const assert=require('assert/strict'),{start}=require('./production_runtime.cjs');
+(async()=>{const h=await start(),v=h.review,r=h.rt;v.dropOne();v.dropOne();for(let i=0;i<100;i++)v.dropOne();assert.equal(v.cove.current.dropped,2);assert.equal(v.cove.current.hand,98);
+h.advance();assert.ok(r.queues.input<=2);v.beginFeed('test');let full=0,accepted=0,prev=v.cove.current.dropped;for(let i=0;i<360;i++){h.advance();const c=v.cove.current;assert.ok(r.queues.input+c.medals.filter(m=>m.y<0).length<=2);assert.equal(c.hand,100-c.dropped+c.won);if(r.queues.input===2){full++;assert.equal(v.feed.current.active,true)}accepted+=c.dropped-prev;prev=c.dropped}
+assert.ok(accepted>2,'held feed resumes naturally after admission');v.stopFeed();const count=v.cove.current.dropped;h.advance(60);assert.equal(v.cove.current.dropped,count);console.log('PASS production auto-flipper bounded admission, conserved hand, held feed resumes without debit backlog; '+v.cove.current.frame+' frames, max2 queued, '+count+' accepted, '+full+' full frames.');h.cleanup()})().catch(e=>{console.error(e);process.exitCode=1});

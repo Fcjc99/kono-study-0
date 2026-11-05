@@ -1,16 +1,15 @@
-/** What the medal pusher shows when its 3D machine can't start (instead of waiting forever): what went
- * wrong in plain words, Try again, and Leave. Used by KONO Medal Cove. */
+import MechanismPreview from './MechanismPreview'
 export type CoveFailure='webgl'|'physics'|'slow'|'crash'
 const WHY:Record<CoveFailure,string>={
- webgl:'This browser or device has 3D graphics (WebGL) turned off or unavailable. Turning on hardware acceleration in the browser’s settings, or using a different browser, usually fixes it.',
- physics:'The physics engine didn’t load. That can happen on a weak or interrupted connection.',
- slow:'The machine is taking too long to start. The device may be busy or low on memory.',
- crash:'Something went wrong while setting up the machine.',
+ webgl:'3D graphics (WebGL) aren’t available in this browser. Try another browser or enable hardware acceleration to play the original 3D game.',
+ physics:'The physics engine didn’t load. Check the connection and try again.',
+ slow:'The machine is taking too long to start. Try again when the device is less busy.',
+ crash:'The 3D machine stopped. Restart begins a fresh round with 100 medals; the interrupted round is not resumed.',
 }
 export default function CoveFail({kind,onRetry,onLeave}:{kind:CoveFailure;onRetry:()=>void;onLeave?:()=>void}){
- return <div className="cove-fail" role="alert">
-  <strong>The medal machine couldn’t start</strong>
-  <p>{WHY[kind]}</p>
-  <span><button type="button" onClick={onRetry}>Try again</button>{onLeave&&<button type="button" onClick={onLeave}>Back to the games</button>}</span>
+ return <div className="cove-fail">
+  <div className="cove-fail-notice" role="alert"><span className="cove-fail-mark" aria-hidden="true">◇</span><div><strong>The 3D machine couldn’t start</strong><p>{WHY[kind]}</p></div><button type="button" onClick={onRetry}>{kind==='crash'?'Restart round':'Try again'}</button></div>
+  <MechanismPreview compact/>
+  {onLeave&&<button className="cove-preview-leave" type="button" onClick={onLeave}>Open mechanism review</button>}
  </div>
 }

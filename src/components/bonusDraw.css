@@ -1,0 +1,62 @@
+.cove-event-slot .cove-bonus-draw{display:flex;align-items:center;gap:6px;min-width:0;height:100%;padding:3px 6px;border:0;border-radius:0;background:transparent;color:#fff0d3}
+.cove-draw-bowl{width:76px;height:76px;flex:none;filter:drop-shadow(0 3px 3px #050d1844)}
+.cove-draw-copy{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}.cove-draw-kicker{font-size:9px;letter-spacing:.06em;color:#e4c78b}.cove-draw-copy>b{font-size:12px;line-height:1.2;color:#ffe3a2}.cove-draw-copy>small{font-size:9px;line-height:1.3;color:#c8d9e4}
+.standalone .cove-draw-map-button{min-height:44px;padding:0 7px;font-size:10px;color:#e6d7ee;background:#fff0d30a;border-color:#c1a27644}
+.cove-draw-details .cove-draw-bowl{display:block;width:min(290px,100%);height:auto;margin:0 auto}.cove-draw-details>p{font-size:12px;line-height:1.6;color:#cfdeea}
+.cove-draw-details .cove-outcome-map{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;list-style:none;padding:0;margin:16px 0}.cove-draw-details .cove-outcome-map li{display:flex;align-items:center;justify-content:flex-start;gap:8px;min-height:36px;padding:6px 9px;color:#ffe8bb;background:#ffffff08;border:1px solid #d9bd7e33;font-size:12px;border-radius:8px}.cove-draw-details .cove-outcome-map li>span{font-size:10px;color:#bcd1df}.cove-draw-details .cove-outcome-map li.is-result{background:#f9d87d;color:#49372c;border-color:#fff0bb}.cove-draw-details .cove-outcome-map li small{font-size:9px}
+.cove-bonus-draw[data-effects=full] .cove-captured-ball{animation:cove-ball-entry .35s ease-out both}.cove-bonus-draw[data-effects=subtle][data-resolved=true] .cove-draw-copy>b{animation:cove-result-ink .45s ease-out both}
+@keyframes cove-ball-entry{from{transform:translateY(-40px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes cove-result-ink{from{opacity:.55}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.cove-bonus-draw *{animation:none!important;transition:none!important}}
+/* The bowl stays in the existing event slot; only its frame-derived SVG moves. */
+.cove-bonus-draw>.cove-draw-bowl{width:76px;height:76px}
+.cove-bonus-draw>.cove-draw-map-button{order:3;align-self:center;flex:none}
+.standalone .cove-draw-copy .cove-draw-launch{min-height:44px;align-self:flex-start;padding:4px 12px;font-size:11px;font-weight:800;color:#312344;background:linear-gradient(#ffe7ad,#d5a75f);border:1px solid #fff0c6;border-radius:8px;box-shadow:0 2px 0 #6b4d33}
+.cove-draw-launch:active{transform:translateY(1px)}
+.cove-draw-launch:focus-visible{outline:3px solid #b6e9ff;outline-offset:2px}
+@media(max-width:480px){.cove-bonus-draw>.cove-draw-bowl{width:65px;height:65px}.standalone .cove-bonus-draw>.cove-draw-map-button{padding:0 5px}}
+
+.cove-bonus-draw[data-phase=armed] .cove-draw-copy{gap:1px}.cove-bonus-draw[data-phase=armed] .cove-draw-copy>small{display:none}
+/* When a previous Tide still owns the delivery route, the draw retains its own
+   compact launch/map controls without borrowing vertical playfield space. */
+.standalone .cove-event-slot:has(>.cove-tide-panel)>.cove-bonus-draw{display:grid;grid-template-columns:32px minmax(44px,1fr)44px;grid-template-rows:22px 44px;gap:1px 2px;padding:3px;align-content:center}
+.standalone .cove-event-slot:has(>.cove-tide-panel) .cove-bonus-draw>.cove-draw-bowl{grid-column:1;grid-row:1/3;width:32px;height:32px;align-self:center}
+.standalone .cove-event-slot:has(>.cove-tide-panel) .cove-bonus-draw>.cove-draw-map-button{grid-column:3;grid-row:1/3;width:44px;height:44px;min-height:44px;align-self:center;justify-self:center}
+.standalone .cove-event-slot:has(>.cove-tide-panel) .cove-bonus-draw>.cove-draw-copy{display:contents}
+.standalone .cove-event-slot:has(>.cove-tide-panel) .cove-bonus-draw .cove-draw-kicker,.standalone .cove-event-slot:has(>.cove-tide-panel) .cove-bonus-draw .cove-draw-copy>small{display:none}
+.standalone .cove-event-slot:has(>.cove-tide-panel) .cove-bonus-draw .cove-draw-copy>b{grid-column:2;grid-row:1/3;align-self:center;font-size:10px;line-height:1.2;overflow-wrap:anywhere}
+.standalone .cove-event-slot:has(>.cove-tide-panel) .cove-bonus-draw[data-phase=armed] .cove-draw-copy>b{grid-row:1;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.standalone .cove-event-slot:has(>.cove-tide-panel) .cove-bonus-draw .cove-draw-launch{grid-column:2;grid-row:2;min-width:44px;width:100%;height:44px;padding:2px;font-size:10px}
+.standalone .cove-event-slot .cove-bonus-draw>.cove-draw-map-button{width:44px;height:44px;min-height:44px;padding:0;flex:none}
+/* The bonus strip is now an animation screen rather than an icon beside prose. */
+.standalone .cove-event-slot .cove-bonus-draw{position:relative;display:block;overflow:hidden;padding:0;isolation:isolate;min-width:0;background:linear-gradient(110deg,#39294780,#142d4680)}
+.cove-draw-scene{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.standalone .cove-bonus-draw .cove-draw-copy{position:absolute;left:7px;top:4px;max-width:39%;gap:1px;pointer-events:none;text-shadow:0 1px 3px #10152e}
+.standalone .cove-bonus-draw .cove-draw-kicker{font-size:8px;letter-spacing:.05em}
+.standalone .cove-bonus-draw .cove-draw-copy>b{font-size:10px;line-height:1.1}
+.standalone .cove-bonus-draw .cove-draw-copy>small{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.standalone .cove-bonus-draw .cove-draw-copy .cove-draw-launch{pointer-events:auto;min-height:44px;height:44px;padding:0 9px;margin-top:1px;font-size:10px;background:#e8c88ddd}
+.standalone .cove-bonus-draw>.cove-draw-map-button{position:absolute;right:0;bottom:0;background:#172940cc;z-index:2;font-size:9px}
+.standalone .cove-event-slot:has(>.cove-tide-panel)>.cove-bonus-draw{display:block;min-width:0;padding:0}
+.standalone .cove-event-slot:has(>.cove-tide-panel) .cove-bonus-draw>.cove-draw-copy{display:flex;max-width:50%;left:3px;top:2px}
+.standalone .cove-event-slot:has(>.cove-tide-panel) .cove-bonus-draw .cove-draw-copy>b{font-size:9px;white-space:normal}
+.standalone .cove-event-slot:has(>.cove-tide-panel) .cove-bonus-draw .cove-draw-launch{width:auto;min-width:44px;padding:0 4px;font-size:9px}
+.standalone .cove-event-slot:has(>.cove-tide-panel) .cove-bonus-draw>.cove-draw-map-button{position:absolute;right:0;bottom:0}
+
+/* Fit the whole story in the fixed-height screen. A width-filled slice crops
+   KONO and the chest on wide phones/tablets; the surrounding sky extends instead. */
+.standalone .cove-event-slot .cove-bonus-draw{background:linear-gradient(#34405e,#746887 78%,#477c7c 79%)}
+.cove-draw-scene{object-fit:contain}
+
+/* Keep a clear center lane for KONO between the two44px controls, even when
+   a Tide shares the screen. Launch remains available in the same place. */
+.standalone .cove-bonus-draw .cove-draw-copy .cove-draw-launch{min-width:44px;width:44px;padding:0;font-size:9px}
+.standalone .cove-event-slot:has(>.cove-tide-panel) .cove-bonus-draw .cove-draw-launch{min-width:44px;width:44px;padding:0;font-size:8px}
+
+/* The bonus scene now shares the cabinet cinema painter and palette. */
+.standalone .cove-event-slot .cove-bonus-draw{background:linear-gradient(#111e32,#214e5c)}
+
+/* Character-first cinema: prose remains accessible, not painted over the action. */
+.standalone .cove-bonus-draw .cove-draw-copy,
+.standalone .cove-event-slot:has(>.cove-tide-panel) .cove-bonus-draw>.cove-draw-copy{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);pointer-events:none}
+.standalone .cove-bonus-draw>.cove-draw-launch{position:absolute;left:2px;bottom:2px;width:44px;height:44px;min-height:44px;padding:0;font-size:9px;background:#183848cc;border:1px solid #e7c58b88;border-radius:8px;color:#fff0c6;z-index:2}
+.cove-draw-reward-badge{position:absolute;right:5px;top:3px;padding:2px 5px;border-radius:5px;background:#102a3dcc;color:#ffe3a1;font-size:10px;line-height:1.2;pointer-events:none}
