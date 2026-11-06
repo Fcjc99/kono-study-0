@@ -300,6 +300,134 @@ test('the backup export contains the plan',async({page})=>{
  assert.ok(JSON.stringify(backup).includes('Back me up (e2e)'))
 })
 
+test('launch check: if this browser can’t store anything mid-edit, the draft stays open and visible, and a backup with the draft in it downloads',async({page})=>{
+ await createPlan(page)
+ // Storage breaks (full or blocked) after the plan is open.
+ await page.evaluate(()=>{const fail=()=>{throw new DOMException('The quota has been exceeded.','QuotaExceededError')};Storage.prototype.setItem=fail;IDBObjectStore.prototype.put=fail;IDBObjectStore.prototype.add=fail})
+ await addFromMenu(page,'tasks','Draft while storage is broken')
+ const editor=page.getByRole('dialog',{name:'New assignment'})
+ await editor.getByText('Draft storage is unavailable',{exact:false}).waitFor()
+ await editor.getByRole('button',{name:'Cancel'}).click()
+ await editor.waitFor({timeout:1000});assert.equal(await editor.getByLabel(/^Title/).first().inputValue(),'Draft while storage is broken','the editor stays open with the draft')
+ const [download]=await Promise.all([page.waitForEvent('download'),editor.getByRole('button',{name:'⬇ Download a backup with this draft'}).click()])
+ const backup=JSON.parse(fs.readFileSync(await download.path(),'utf8'))
+ assert.equal(backup.format,'kono-backup');assert.ok(backup.data.tasks.some(t=>t.title==='Draft while storage is broken'),'the draft is in the backup')
+})
+
+test('launch check: backups: Export, then Import shows what’s in it before replacing, Use this backup restores it, and an older cloud revision downloads and restores too',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ page.on('dialog',d=>void d.accept())
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await addFromMenu(page,'tasks','Before the backup')
+ await waitFor(()=>cloud.users.alice.plan.data.tasks.some(t=>t.title==='Before the backup'),'saved to the account')
+ await go(page,'Settings');await settingsTab(page,'Import & export')
+ const [exported]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'Export backup'}).click()])
+ const file=await exported.path(),backup=JSON.parse(fs.readFileSync(file,'utf8')).data
+ await addFromMenu(page,'tasks','After the backup')
+ await waitFor(()=>cloud.users.alice.plan.data.tasks.some(t=>t.title==='After the backup'),'saved to the account')
+ const withAfter=cloud.users.alice.plan.revision
+ await go(page,'Settings');await settingsTab(page,'Import & export')
+ const restore=async path=>{
+  await page.locator('label:has-text("Import backup") input[type=file]').setInputFiles(path)
+  const review=page.locator('.recovery-notice').filter({hasText:'Review backup before replacing'})
+  return review
+ }
+ let review=await restore(file)
+ await review.getByText(`${backup.profiles.length} plans · ${backup.tasks.length} assignments · ${backup.notes.length} notes · ${backup.exams.length} exams`).waitFor()
+ await review.getByRole('button',{name:'Use this backup'}).click()
+ await waitFor(()=>{const t=cloud.users.alice.plan.data.tasks;return t.some(x=>x.title==='Before the backup')&&!t.some(x=>x.title==='After the backup')},'the backup replaced the plan')
+ // The revision that still had "After the backup": from Recovery snapshots, downloaded, reviewed and restored.
+ await page.getByText('Recovery snapshots').click()
+ await page.getByRole('button',{name:'Show cloud history'}).click()
+ const [older]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'Download revision '+withAfter,exact:true}).click()])
+ const olderData=JSON.parse(fs.readFileSync(await older.path(),'utf8')).data
+ assert.ok(olderData.tasks.some(t=>t.title==='After the backup'),'the older revision has what was there then')
+ review=await restore(await older.path())
+ await review.getByText(`${olderData.tasks.length} assignments`,{exact:false}).waitFor()
+ await review.getByRole('button',{name:'Use this backup'}).click()
+ await waitFor(()=>cloud.users.alice.plan.data.tasks.some(x=>x.title==='After the backup'),'the older revision is back')
+})
+
+test('launch check: switching plans with a note half-edited keeps the note in its own plan, and an exam editor can’t be left open across a switch',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const mine=cloud.users.alice.plan.data.activeProfileId,first=cloud.users.alice.plan.data.notes.find(n=>n.profileId===mine).title
+ await go(page,'Kids');await page.getByRole('button',{name:'Make Emma’s plan'}).click();await heading(page,'Sanctuary')
+ await waitFor(()=>cloud.users.alice.plan.data.profiles.some(p=>p.kidId==='kid-emma'),'Emma’s plan')
+ const emma=()=>cloud.users.alice.plan.data.profiles.find(p=>p.kidId==='kid-emma').id
+ const sheet=page.getByRole('dialog',{name:'Whose plan?'})
+ await page.getByRole('button',{name:'Whose plan?'}).first().click();await sheet.getByRole('button',{name:/My study plan/}).click();await sheet.waitFor({state:'detached'})
+ await heading(page,'Sanctuary')
+ // Halfway through changing a note's text right on the board, switch to Emma's plan.
+ await page.getByRole('button',{name:'Edit text: '+first}).click()
+ await page.getByLabel('Note title').fill('Half-edited note')
+ await page.getByRole('button',{name:'Whose plan?'}).first().click();await sheet.getByRole('button',{name:/Emma’s plan/}).click();await sheet.waitFor({state:'detached'})
+ await page.waitForTimeout(1500)
+ const notes=cloud.users.alice.plan.data.notes
+ assert.ok(!notes.some(n=>n.profileId===emma()&&(n.title==='Half-edited note'||n.title===first)),'nothing moved into Emma’s plan')
+ assert.ok(notes.some(n=>n.profileId===mine&&(n.title===first||n.title==='Half-edited note')),'the note is still in my plan')
+ assert.equal(await page.getByLabel('Note title').count(),0,'the half-done edit doesn’t follow into Emma’s plan')
+ // An exam's editor covers the page (a modal: the rest is inert), so the plan can't change under it.
+ await addFromMenu(page,'exams','Emma’s spelling test',async editor=>{
+  assert.ok(await editor.evaluate(d=>d.matches(':modal')),'the editor is modal')
+  await assert.rejects(page.getByRole('button',{name:'Whose plan?'}).first().click({timeout:1500}),'Whose plan? can’t be reached with the editor open')
+ })
+ await waitFor(()=>cloud.users.alice.plan.data.exams.some(e=>e.title==='Emma’s spelling test'&&e.profileId===emma()),'the exam is in Emma’s plan')
+})
+
+test('launch check: one song at a time (KONO’s music pauses while a game plays its own and comes back after), and a phone set to reduce motion stills KONO’s animations',async({context,page})=>{
+ await context.addInitScript(()=>{window.__media=new Set();const play=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(){window.__media.add(this);return play.call(this).catch(()=>undefined)}})
+ const cloud=fakeCloud();Object.assign(cloud.users.alice.plan.data.settings,{ambient:true,sound:true})
+ await signInAs(context,cloud,'alice')
+ await page.emulateMedia({reducedMotion:'reduce'})
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ assert.equal(await page.evaluate(()=>document.documentElement.dataset.motion),'reduced','the phone’s Reduce Motion is followed')
+ assert.ok(await page.evaluate(()=>{const el=document.createElement('div');el.style.transition='opacity 2s';document.body.append(el);const ms=parseFloat(getComputedStyle(el).transitionDuration)*1000;el.remove();return ms<1}),'transitions are cut short')
+ await page.emulateMedia({reducedMotion:'no-preference'})
+ await page.waitForFunction(()=>document.documentElement.dataset.motion==='full')
+ const waitAsync=async(check,message)=>{for(let i=0;i<60;i++){if(await check())return;await new Promise(r=>setTimeout(r,250))}assert.fail(message)}
+ const playing=()=>page.evaluate(()=>[...window.__media].filter(a=>!a.paused).map(a=>a.src.split('/').pop()).sort())
+ await page.getByRole('button',{name:/Play music/}).first().click()
+ await waitAsync(async()=>JSON.stringify(await playing())==='["main-theme.mp3"]','KONO’s music plays')
+ await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
+ await town.getByRole('button',{name:/KONO blast/}).click()
+ const game=await startGame(page,'🧱 KONO blast')
+ await waitAsync(async()=>JSON.stringify(await playing())==='["blast.mp3"]','only the game’s song while it’s open')
+ await game.getByRole('button',{name:'✕ Leave'}).click();await game.waitFor({state:'detached'})
+ await waitAsync(async()=>(await playing()).includes('main-theme.mp3'),'KONO’s music comes back after the game')
+})
+
+test('launch check: in every plan, finishing a task, reopening it and finishing it again counts once, and stays that way after a reload',async({context,page})=>{
+ const cloud=fakeCloud(),data=()=>cloud.users.alice.plan.data
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const mine=data().activeProfileId
+ await go(page,'Kids');await page.getByRole('button',{name:'Make Emma’s plan'}).click();await heading(page,'Sanctuary')
+ await waitFor(()=>data().profiles.some(p=>p.kidId==='kid-emma'),'Emma’s plan')
+ const emma=data().profiles.find(p=>p.kidId==='kid-emma').id
+ const credits=pid=>data().sanctuaryProgress?.[pid]?.totalCredits??0
+ const sheet=page.getByRole('dialog',{name:'Whose plan?'})
+ for(const [plan,pid,title] of [[/Emma’s plan/,emma,'Emma’s reading log'],[/My study plan/,mine,'My lab report']]){
+  await page.getByRole('button',{name:'Whose plan?'}).first().click();await sheet.getByRole('button',{name:plan}).filter({hasNotText:'Lock'}).first().click();await sheet.waitFor({state:'detached'})
+  await heading(page,'Sanctuary')
+  const other=pid===mine?emma:mine,before=credits(pid),otherBefore=credits(other)
+  await addFromMenu(page,'tasks',title)
+  await waitFor(()=>data().tasks.some(t=>t.title===title&&t.profileId===pid),title+' in its plan')
+  await go(page,'Planner')
+  const complete=page.getByRole('button',{name:'Complete '+title}).first(),reopen=page.getByRole('button',{name:'Reopen '+title}).first()
+  await complete.click();await reopen.waitFor();await reopen.click();await complete.waitFor();await complete.click();await reopen.waitFor()
+  await waitFor(()=>data().tasks.find(t=>t.title===title)?.done===true&&credits(pid)===before+1,title+': finished, counted once (credits '+credits(pid)+', was '+before+')')
+  await page.reload();await mainHeading(page).waitFor();await go(page,'Planner')
+  await page.getByRole('button',{name:'Reopen '+title}).first().waitFor()
+  await page.waitForTimeout(800)
+  assert.equal(credits(pid),before+1,'still once after the reload');assert.equal(credits(other),otherBefore,'the other plan’s progress is untouched')
+ }
+})
+
 test('phone-sized screens have no sideways scrolling on the main pages',async({context,page})=>{
  await context.close()
  const phone=await freshPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true})
@@ -387,7 +515,7 @@ async function routeCloud(context,cloud){
   cloud.calls.push({method,where,body,as:cloud.me})
   const reply=(json,status=200)=>route.fulfill({status,headers:{...cors,'content-type':'application/json'},body:JSON.stringify(json)})
   const denied=()=>reply({code:'P0001',message:'KONO support access only'},400)
-  const saveTo=(owner,expected)=>{if(owner.plan.revision!==expected)return reply({revision:owner.plan.revision,conflict:true});owner.plan={revision:expected+1,data:body.p_data};return reply({revision:owner.plan.revision,conflict:false})}
+  const saveTo=(owner,expected)=>{if(owner.plan.revision!==expected)return reply({revision:owner.plan.revision,conflict:true});owner.plan={revision:expected+1,data:body.p_data};owner.history=[...(owner.history??[]),{revision:owner.plan.revision,created_at:new Date().toISOString(),changed_by:cloud.me,data:body.p_data}];return reply({revision:owner.plan.revision,conflict:false})}
   switch(where){
    case '/auth/v1/token':return reply(sessionFor(cloud,cloud.me))
    case '/auth/v1/otp':cloud.emails=[...(cloud.emails??[]),body.email];return reply({})
@@ -417,6 +545,7 @@ async function routeCloud(context,cloud){
     if(method==='DELETE'){const id=(url.searchParams.get('id')??'').replace('eq.','');cloud.shared=cloud.shared.filter(r=>!(r.id===id&&(r.recipient_id===cloud.me||r.sender_id===cloud.me)));return reply([],204)}
     return reply(cloud.shared.filter(r=>r.recipient_id===cloud.me))
    }
+   case '/rest/v1/kono_plan_history':{const h=me.history??[],r=url.searchParams.get('revision');if(r)return reply(h.filter(x=>'eq.'+x.revision===r).map(x=>({data:x.data})));return reply(h.map(({data:_,...x})=>x).reverse().slice(0,20))}
    case '/rest/v1/kono_plan_nightly':{const n=cloud.nightly[cloud.me];return reply(n?[n]:[])}
    case '/rest/v1/rpc/kono_admin_get_nightly':{if(!me.admin)return denied();return reply(cloud.nightly[body.p_owner]??null)}
    case '/rest/v1/kono_client_errors':if(method==='POST'){const rows=Array.isArray(body)?body:[body];for(const r of rows)cloud.errors.push({id:cloud.errors.length+1,user_id:cloud.me,created_at:new Date().toISOString(),...r});return reply([],201)}return reply(me.admin?[...cloud.errors].reverse():[])

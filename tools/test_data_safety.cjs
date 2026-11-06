@@ -311,4 +311,18 @@ test('two devices: lists of dates and people merge item by item, a setting keeps
  const del=clone(base),edit=clone(base);del.calendarEvents=[];edit.calendarEvents[0].notes='bring water'
  assert.equal(mergeData(base,model.normalizeData(del),model.normalizeData(edit)).conflicts.length,1,'deleted here, edited there: ask')
 });
+test('two devices: different records edited on each both keep their change; the same field changed to two different values is a conflict that asks, never a silent pick',()=>{
+ const {mergeData}=load('src/store/merge.ts'),d=make(),pid=d.profiles[0].id
+ d.tasks=[{id:'t1',profileId:pid,title:'Essay',due:'2026-11-10',done:false},{id:'t2',profileId:pid,title:'Lab',due:'2026-11-11',done:false}]
+ const base=model.normalizeData(clone(d))
+ let left=clone(base),right=clone(base);left.tasks.find(t=>t.id==='t1').title='Essay draft';right.tasks.find(t=>t.id==='t2').due='2026-11-12'
+ let m=mergeData(base,model.normalizeData(left),model.normalizeData(right))
+ assert.equal(m.conflicts.length,0);assert.equal(m.data.tasks.find(t=>t.id==='t1').title,'Essay draft');assert.equal(m.data.tasks.find(t=>t.id==='t2').due,'2026-11-12')
+ left=clone(base);right=clone(base);left.tasks.find(t=>t.id==='t1').title='Essay v2';right.tasks.find(t=>t.id==='t1').title='Essay final'
+ m=mergeData(base,model.normalizeData(left),model.normalizeData(right))
+ assert.equal(m.conflicts.length,1,'the same title changed on both');assert.match(JSON.stringify(m.conflicts[0].path),/title/)
+ assert.deepEqual([m.conflicts[0].local,m.conflicts[0].remote],['Essay v2','Essay final'],'both versions are kept for the person to choose')
+ left=clone(base);right=clone(base);left.tasks.find(t=>t.id==='t1').title='Same';right.tasks.find(t=>t.id==='t1').title='Same'
+ assert.equal(mergeData(base,model.normalizeData(left),model.normalizeData(right)).conflicts.length,0,'the same change on both is no conflict')
+});
 (async()=>{let failed=0;for(const {name,fn}of tests){defaults();try{await fn();console.log('PASS '+name)}catch(e){failed++;console.error('FAIL '+name+'\n'+e.stack)}}console.log(`${tests.length-failed}/${tests.length} positive regression groups passed. Isolated hooks/SQLite; no Site or user-data writes.`);if(failed)process.exitCode=1})().catch(e=>{console.error(e);process.exitCode=1});
