@@ -29,6 +29,6 @@ Release decisions:
 - [x] Launch audience and public/private access approved: a public website. Anyone can sign up, and shared links show a KONO preview card.
 - [ ] Real-device and production identity/database checks recorded.
 - [x] Support contact and privacy/retention wording approved: the owner is the support contact, and Settings › Privacy & storage stays as written. Asset licensing: still to confirm (the art, music and fonts KONO ships).
-- [ ] Figma/Trello connections: both wanted. Connect them at claude.ai › Customize › Connectors. They're used from a new session once connected.
+- [x] Figma/Trello connections: Figma wanted (connect it at claude.ai › Customize › Connectors and use it from a new session). Trello skipped; this checklist is the launch tracker.
 
 Each external tracker card should include reproduction steps, expected result, owner, test evidence and date. Suggested lists: Launch blockers, Ready to build, In progress, Ready for QA, Verified. Do not mark a card Verified based only on implementation.
