@@ -12,14 +12,13 @@ under `public/`, the fonts and the code libraries in `package.json`.
 | Sound effects made in code (coin clinks, ticks, Meowdoku/KONO Hop/KONO.io tunes) | `src/arcadeAudio.ts`, `src/game/audioClock.ts` | KONO's own |
 | Nothing from other companies | — | The SEGA links in `docs/medal-cove/HISTORY.md` are design references only. No SEGA, Nintendo or stock image or sound is in the app. |
 
-## Needs the owner's answer
+## Confirmed by the owner (November 2026)
 
-| What | Where | Made with | What to confirm |
+| What | Where | Made with | License |
 |---|---|---|---|
-| Arcade songs: Sweet swap, Gem blitz, KONO blast, KONO Flow 1–5 (also KONO Beat's songs) | `public/audio/games/` | Suno (per its README) | Made on a paid Suno plan (Pro or Premier)? Under Suno's terms, songs made on a paid plan belong to you for any use. Songs made on the free plan stay Suno's and are for non-commercial use only. |
-| Medal Cove soundtrack (6 tracks) | `public/audio/medal-cove/` | Supplied with Medal Cove (likely Suno) | Same question |
-| Main theme | `public/audio/main-theme.mp3` | Unknown | Where it came from |
-| Completion chime | `public/audio/completion.wav` | Unknown | Where it came from |
-| All the art: KONO, the island, rooms, decorations, Medal Cove scenery, icons | `public/garden/`, `public/games/cove/`, `public/landing/`, `public/icons/` | An AI image tool, from KONO's own style sheets (`docs/kono-art-prompts.md`) | Which tool and plan. Most (ChatGPT/OpenAI, Google) give you the rights to what you make. Midjourney needs a paid plan for commercial use. |
+| Arcade songs: Sweet swap, Gem blitz, KONO blast, KONO Flow 1–5 (also KONO Beat's songs) | `public/audio/games/` | Suno, paid plan | Songs made on a paid Suno plan belong to their maker for any use, commercial included |
+| Medal Cove soundtrack (6 tracks) | `public/audio/medal-cove/` | Suno, paid plan | Same |
+| Main theme and the "done" chime | `public/audio/main-theme.mp3`, `public/audio/completion.wav` | Suno, paid plan | Same |
+| All the art: KONO, the island, rooms, decorations, Medal Cove scenery, icons | `public/garden/`, `public/games/cove/`, `public/landing/`, `public/icons/` | ChatGPT (OpenAI's image tool), from KONO's own style sheets (`docs/kono-art-prompts.md`) | OpenAI's terms give the person who makes it the rights to the output |
 
-Once these answers are in, tick the launch checklist's licensing item and move its Trello card to Verified.
+New music or art should come from the same paid Suno plan and ChatGPT, or be added here with its source.

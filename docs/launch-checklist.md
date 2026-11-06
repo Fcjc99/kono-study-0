@@ -28,7 +28,7 @@ Release decisions:
 - [x] Sign-in method confirmed: email (link or code), Google and Apple. Google and Apple are built and hidden until set up; see [sign-in-providers.md](sign-in-providers.md). Apple needs the Apple Developer Program ($99 a year).
 - [x] Launch audience and public/private access approved: a public website. Anyone can sign up, and shared links show a KONO preview card.
 - [ ] Real-device and production identity/database checks recorded.
-- [x] Support contact and privacy/retention wording approved: the owner is the support contact, and Settings › Privacy & storage stays as written. Asset licensing: still to confirm (the art, music and fonts KONO ships).
+- [x] Support contact and privacy/retention wording approved: the owner is the support contact, and Settings › Privacy & storage stays as written. Asset licensing confirmed: music from a paid Suno plan, art from ChatGPT, Google Fonts (OFL) and permissive code libraries; see [asset-licenses.md](asset-licenses.md).
 - [x] Figma/Trello connections: Figma wanted (connect it at claude.ai › Customize › Connectors and use it from a new session). Trello: the KONO launch board (https://trello.com/b/xT9hk2Q9/kono-launch) tracks these items as cards.
 
 Each external tracker card should include reproduction steps, expected result, owner, test evidence and date. Suggested lists: Launch blockers, Ready to build, In progress, Ready for QA, Verified. Do not mark a card Verified based only on implementation.
