@@ -923,6 +923,7 @@ test('sign-up needs the age and Terms agreement, and the Terms open without tick
  await page.getByLabel('Email address').fill('newperson@example.com')
  const box=page.getByRole('checkbox',{name:/13 or older/})
  assert.equal(await box.isChecked(),false)
+ assert.equal(await page.getByRole('group',{name:'Or sign in with'}).count(),0,'Google and Apple stay hidden until they are set up (docs/sign-in-providers.md)')
  await page.getByRole('button',{name:'Email me a link to start'}).click()
  assert.equal(await page.evaluate(()=>document.querySelector('.terms-check input')?.validity.valid??null),false,'the form was allowed to send without the agreement')
  await page.getByRole('button',{name:'Read them'}).click()

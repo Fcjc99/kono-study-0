@@ -25,10 +25,10 @@ Ready to verify (checked November 2026, each with the tests that show it):
 
 Release decisions:
 
-- [ ] Sign-in method confirmed.
-- [ ] Launch audience and public/private access approved.
+- [x] Sign-in method confirmed: email (link or code), Google and Apple. Google and Apple are built and hidden until set up; see [sign-in-providers.md](sign-in-providers.md). Apple needs the Apple Developer Program ($99 a year).
+- [x] Launch audience and public/private access approved: a public website. Anyone can sign up, and shared links show a KONO preview card.
 - [ ] Real-device and production identity/database checks recorded.
-- [ ] Support contact, privacy/retention wording and asset licensing approved.
-- [ ] Figma/Trello connections explicitly approved if wanted.
+- [x] Support contact and privacy/retention wording approved: the owner is the support contact, and Settings › Privacy & storage stays as written. Asset licensing: still to confirm (the art, music and fonts KONO ships).
+- [ ] Figma/Trello connections: both wanted. Connect them at claude.ai › Customize › Connectors. They're used from a new session once connected.
 
 Each external tracker card should include reproduction steps, expected result, owner, test evidence and date. Suggested lists: Launch blockers, Ready to build, In progress, Ready for QA, Verified. Do not mark a card Verified based only on implementation.

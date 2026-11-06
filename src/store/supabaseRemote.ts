@@ -56,6 +56,11 @@ export class SupabaseRemote{
   const {data}=this.client.auth.onAuthStateChange((event,session)=>callback(event,this.user(session)))
   return()=>data.subscription.unsubscribe()
  }
+ /** Google or Apple: off to their sign-in page, then back here signed in (Supabase finishes it on return). */
+ async signInWithProvider(provider:'google'|'apple'){
+  const {error}=await this.client.auth.signInWithOAuth({provider,options:{redirectTo:window.location.origin+'/'}})
+  if(error)throw error
+ }
  async signInWithEmail(email:string){
   const {error}=await this.client.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.origin+'/'}})
   if(error)throw error

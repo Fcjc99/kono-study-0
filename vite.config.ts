@@ -126,6 +126,9 @@ export default defineConfig(({isSsrBuild,command})=>({
     // trim+|| (not ??) so an env var present but blank/whitespace-only still falls back, instead of
     // silently disabling cloud sign-in the way an unset var would not.
     __KONO_SUPABASE_URL__:JSON.stringify(process.env.VITE_SUPABASE_URL?.trim()||'https://ooavktekwoguhttauvte.supabase.co'),
+    // Sign-in with Google or Apple shows only once switched on in Supabase (Authentication › Providers) and
+    // listed here, e.g. VITE_KONO_SIGN_IN_PROVIDERS=google,apple in Vercel; email sign-in is always there.
+    __KONO_SIGN_IN_PROVIDERS__:JSON.stringify((process.env.VITE_KONO_SIGN_IN_PROVIDERS??'').split(',').map(s=>s.trim().toLowerCase()).filter(s=>s==='google'||s==='apple')),
     __KONO_SUPABASE_ANON_KEY__:JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY?.trim()||'sb_publishable_5GOB_LMND1W2NSNmXwQLBA_RTFVemNR'),
   },
   publicDir:command==='serve'?(process.env.KONO_ASSET_SOURCE??'public'):false,
