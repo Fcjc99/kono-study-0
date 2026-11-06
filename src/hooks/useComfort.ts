@@ -16,11 +16,19 @@ export function useReducedMotion(settings:SettingsData){
  const system=useSyncExternalStore(subscribeMotion,readMotion,()=>false)
  return settings.motionPreference==='full'?false:settings.motionPreference==='reduced'?true:settings.motionPreference==='system'?system:settings.reducedMotion||system
 }
+/** Sent with true when a game opens full screen and false when it closes (see useMusicController). */
+export const GAME_SCREEN_EVENT='kono-game-screen'
 export function useMusicController(enabled:boolean){
  const [audio]=useState(()=>{const a=new Audio('/audio/main-theme.mp3');a.loop=true;a.preload='none';a.volume=.28;return a})
  const [playing,setPlaying]=useState(false),[error,setError]=useState('')
  useEffect(()=>{const onPlay=()=>setPlaying(true),onPause=()=>setPlaying(false);audio.addEventListener('play',onPlay);audio.addEventListener('pause',onPause);return()=>{audio.pause();audio.removeEventListener('play',onPlay);audio.removeEventListener('pause',onPause)}},[audio])
  useEffect(()=>{if(!enabled)audio.pause()},[enabled,audio])
+ // One music stream: a game open full screen (GameScreen) has its own music, so KONO's pauses for it and picks
+ // up again when the game closes, if it was playing.
+ useEffect(()=>{let resume=false
+  const on=(e:Event)=>{const open=(e as CustomEvent<boolean>).detail
+   if(open){resume=!audio.paused;audio.pause()}else if(resume){resume=false;if(enabled)void audio.play().catch(()=>undefined)}}
+  window.addEventListener(GAME_SCREEN_EVENT,on);return()=>window.removeEventListener(GAME_SCREEN_EVENT,on)},[audio,enabled])
  const toggle=()=>{if(!enabled)return;if(!audio.paused)audio.pause();else{setError('');void audio.play().catch(()=>setError('Music could not play. Try again.'))}}
  return {enabled,playing:enabled&&playing,error,toggle}
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore, type SetStateAction } from 'react'
 import { createFreshData, normalizeData, randomId, type AppData } from './model'
 import { commitCache, decodeData, deleteCache, downloadData, exportData, readCache, readLegacy, readRawCache, type CacheEntry, type RecoveryFile } from './localRepository'
+import { isNativeApp } from '../native'
 import { captureDeletions } from './workspace'
 import { mergeData, type MergeConflict } from './merge'
 import type {AdminAccount,ClassmateProfile,ClientError,Feedback,SupabaseRemote,SupportActivity} from './supabaseRemote'
@@ -384,6 +385,12 @@ export class PlannerRepository {
   await deleteCache(this.scope);if(!this.valid(generation))return
   this.generation++;this.syncQueued=false;this.blocked=true;this.notify({data:createFreshData(),user:null,status:'Signed out'});window.location.assign(destination)
  })
+ /** The sign-in services switched on for this site besides email (none in the phone app: its sign-in stays in the app). */
+ get otherSignIns():('google'|'apple')[]{return this.cloud&&!isNativeApp()&&typeof __KONO_SIGN_IN_PROVIDERS__!=='undefined'?__KONO_SIGN_IN_PROVIDERS__:[]}
+ signInWithProvider=async(provider:'google'|'apple')=>{
+  if(!this.cloud||!this.otherSignIns.includes(provider))throw new Error('That sign-in isn’t available here. Use your email instead.')
+  await this.cloud.signInWithProvider(provider)
+ }
  signInWithEmail=async(email:string)=>{
   if(!this.cloud)throw new Error('Email sign-in is available on the public KONO site.')
   const address=email.trim().toLowerCase()

@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState,type FormEvent,type CSSProperties} from 'react'
 import {uid,localDate,dayNames,matchOutcome,peopleOf,type AppData,type CalendarEvent,type Task,type Subtask,type MatchResult} from '../store/model'
 import {records,equal,type Collection,type Entry} from '../store/workspace'
+import {exportData} from '../store/localRepository'
 import {sameWeekdayBefore,type Repeatable} from '../store/eventMemory'
 import RepeatSuggestions from './RepeatSuggestions'
 import {addDays} from '../store/studyScheduler'
@@ -83,6 +84,9 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
  // Closing with nothing changed keeps no draft, so opening the item again (say after dragging it on
  // the week) starts from how it is now.
  const keep=()=>{if(busy)return;if(equal(entry,edit.original??edit.entry)){clearDrafts();close(true,true,true);return}if(persist(entry))close(false)}
+ // When this browser can't keep the draft (storage full or blocked) or it couldn't be saved: a full backup of
+ // the plan with this draft in it, so nothing typed is lost even if the tab closes (Import backup restores it).
+ const exportDraft=()=>{const d=structuredClone(data),list=records(d,edit.key),i=list.findIndex(r=>r.id===entry.id);if(i>=0)list[i]=entry;else list.push(entry);exportData(d)}
  const clearDrafts=()=>{try{localStorage.removeItem(draftScope);if(isNewAssignment)localStorage.removeItem(extraDatesKey)}catch{/* Saved record is authoritative. */}}
  useEffect(()=>{const warn=(e:BeforeUnloadEvent)=>{if(draftError){e.preventDefault();e.returnValue=''}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn)},[draftError])
  const submit=async(e:FormEvent)=>{
@@ -147,7 +151,7 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
   {(edit.key==='tasks'||edit.key==='exams')&&<><label>Link (optional)<input type="url" inputMode="url" placeholder="https://… (Google Doc, Classroom, textbook)" value={String(entry.link??'')} onChange={e=>field('link',e.target.value.trim()||undefined)}/></label>
    <div className="wb-field"><span className="wb-field-label">Photos</span><AssignmentPhotos ids={entry.photos as string[]|undefined} onChange={ids=>field('photos',ids.length?ids:undefined)} cloud={photoCloud}/></div></>}
   {share&&shareKind&&<div className="share-classmate-toggle"><button type="button" aria-expanded={sharing} onClick={()=>setSharing(v=>!v)}>{sharing?'Hide sharing':'Share with a classmate'}</button>{sharing&&<ShareWithClassmate repository={share} data={data} kind={shareKind} entry={{title:String(entry.title??''),due:String(entry.due??''),subjectId:String(entry.subjectId??''),notes:String(entry.notes??''),estimatedMinutes:typeof entry.estimatedMinutes==='number'?entry.estimatedMinutes:undefined}}/>}</div>}
-  {error&&<p role="alert">{error}</p>}{draftError&&<p role="alert">{draftError}</p>}<div className="wb-toolbar editor-actions"><button className="primary" type="submit">{busy?'Saving…':'Save'}</button><button type="button" onClick={keep} title="Anything you typed is kept as a draft">Cancel</button>{edit.original&&onDelete&&<button type="button" className="editor-delete" onClick={()=>{clearDrafts();close(true,true,true);onDelete()}}>🗑 Delete</button>}{edit.original&&onDeleteSeries&&seriesSize>1&&<button type="button" className="editor-delete" onClick={()=>{clearDrafts();close(true,true,true);onDeleteSeries()}}>🗑 Delete all {seriesSize}</button>}{!equal(entry,edit.original??edit.entry)&&<button type="button" className="link-button" onClick={()=>{if(window.confirm('Discard this unfinished edit? Your saved item stays unchanged.')){try{clearDrafts();close(true,true)}catch{setError('Could not discard the draft. Try again.')}}}}>Discard changes</button>}</div>
+  {error&&<p role="alert">{error}</p>}{draftError&&<p role="alert">{draftError}</p>}{(draftError||error)&&<p className="editor-draft-backup"><button type="button" onClick={exportDraft}>⬇ Download a backup with this draft</button> Import it later from Settings › Import & export if this tab closes.</p>}<div className="wb-toolbar editor-actions"><button className="primary" type="submit">{busy?'Saving…':'Save'}</button><button type="button" onClick={keep} title="Anything you typed is kept as a draft">Cancel</button>{edit.original&&onDelete&&<button type="button" className="editor-delete" onClick={()=>{clearDrafts();close(true,true,true);onDelete()}}>🗑 Delete</button>}{edit.original&&onDeleteSeries&&seriesSize>1&&<button type="button" className="editor-delete" onClick={()=>{clearDrafts();close(true,true,true);onDeleteSeries()}}>🗑 Delete all {seriesSize}</button>}{!equal(entry,edit.original??edit.entry)&&<button type="button" className="link-button" onClick={()=>{if(window.confirm('Discard this unfinished edit? Your saved item stays unchanged.')){try{clearDrafts();close(true,true)}catch{setError('Could not discard the draft. Try again.')}}}}>Discard changes</button>}</div>
  </fieldset></form></Modal>
 }
 // Reads the day's own class/activity schedule (see findOpenSlots) so a suggestion is never during a

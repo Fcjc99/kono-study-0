@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState,type ReactNode} from 'react'
 import {gameSound} from '../konoSounds'
 import {musicOn,setMusicOn} from '../arcadeAudio'
+import {GAME_SCREEN_EVENT} from '../hooks/useComfort'
 
 /** A game, full screen: its own dialog over everything (a native <dialog>, so it stacks above the dialog it
  * was opened from and Escape works). It slides in when it opens and out when it closes, and every game goes
@@ -10,7 +11,8 @@ import {musicOn,setMusicOn} from '../arcadeAudio'
  * - Play: the game, with ↻ Restart and ■ End (finish now and see how you did) beside Leave.
  * - Results: the score, a new best, coins, with Play again and Done (a chime for a round won, a soft tune
  *   for one lost, then the coins coming in).
- * With Sounds on, 🎵 turns the games' music on and off (kept on this device). */
+ * With Sounds on, 🎵 turns the games' music on and off (kept on this device). KONO's own music pauses while a
+ * game is open, so only one song plays at a time. */
 /** `behind`: keep the finished game in view behind the results (KONO Stack's tower). */
 /** `detail`: more for the results, under the score (KONO Beat's breakdown of the song). */
 export type GameResult={emoji:string;title:string;line:string;score?:string;best?:boolean;coins?:string|null;won?:boolean;behind?:boolean;detail?:ReactNode}
@@ -25,7 +27,7 @@ export default function GameScreen({title,tone,sound=false,intro,started=true,on
  result?:GameResult|null;onAgain?:()=>void;children:ReactNode
 }){
  const ref=useRef<HTMLDialogElement>(null),[closing,setClosing]=useState(false),[music,setMusic]=useState(musicOn)
- useEffect(()=>{const d=ref.current;d?.showModal();return()=>d?.close()},[])
+ useEffect(()=>{const d=ref.current;d?.showModal();window.dispatchEvent(new CustomEvent(GAME_SCREEN_EVENT,{detail:true}));return()=>{d?.close();window.dispatchEvent(new CustomEvent(GAME_SCREEN_EVENT,{detail:false}))}},[])
  // The results' sounds: a chime or a soft tune, then the coins.
  useEffect(()=>{
   if(!result)return
