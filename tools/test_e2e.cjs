@@ -4348,13 +4348,16 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>3000,null,{timeout:30000})
  await beat.getByRole('button',{name:'■ End'}).click()
  await br.getByRole('heading',{name:'Warm-up done'}).waitFor();await br.getByText(/Warm-ups don’t count/).waitFor()
- // Classic: a tap on the wrong column as the first tile arrives stops the song there.
+ // Classic: once the timing has settled, a tap on the wrong column stops the song there.
  await beat.getByRole('button',{name:'Play again'}).click()
  await beat.getByLabel('Tap notes').waitFor();await beat.getByLabel('Classic').check()
  await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor()
- await page.evaluate(async ([t,key])=>{const cv=document.querySelector('.beat-canvas');while(!cv?.songNow||cv.songNow()<t)await new Promise(r=>setTimeout(r,5))
-  window.dispatchEvent(new KeyboardEvent('keydown',{key}));window.dispatchEvent(new KeyboardEvent('keyup',{key}))},[easy[0][0],'dfjk'[(easy[0][1]+2)%4]])
- await br.getByText(/Classic: stopped at tile 0 of \d+/).waitFor({timeout:15000})
+ // Six tiles on time first (auto-sync settles: this device's timing is right), then the wrong column.
+ const first7=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.easy.tap.slice(0,7)
+ await page.evaluate(async notes=>{const cv=document.querySelector('.beat-canvas');while(!cv?.songNow)await new Promise(r=>setTimeout(r,5))
+  for(const [i,[t,lane]] of notes.entries()){const key='dfjk'[i<6?lane:(lane+2)%4];while(cv.songNow()<t-250)await new Promise(r=>setTimeout(r,5));while(cv.songNow()<t){/* exactly on time */}
+   window.dispatchEvent(new KeyboardEvent('keydown',{key}));window.dispatchEvent(new KeyboardEvent('keyup',{key}))}},first7)
+ await br.getByText(/Classic: stopped at tile 6 of \d+/).waitFor({timeout:15000})
  await beat.getByRole('button',{name:'Play again'}).click();await beat.getByLabel('Classic').uncheck()
  await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor();await beat.getByRole('button',{name:'■ End'}).click();await br.waitFor()
  if(process.env.KONO_SHOTS){
