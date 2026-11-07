@@ -4288,6 +4288,12 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  // The breakdown: the grade, a bar for each kind of hit, and the song as a strip of tiles.
  await br.getByRole('list',{name:'Hits'}).waitFor();await br.getByLabel(/^Grade /).waitFor();await br.getByRole('img',{name:/^The song, tile by tile/}).waitFor()
  if(process.env.KONO_SHOTS)await beat.screenshot({path:process.env.KONO_SHOTS+'/beat-results.png'})
+ // Warm-up: the first 30 seconds, nothing kept; ■ End shows how it went, marked as a warm-up.
+ await beat.getByRole('button',{name:'Play again'}).click()
+ await beat.getByRole('button',{name:/^Warm-up/}).click();await field.waitFor()
+ await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>3000,null,{timeout:30000})
+ await beat.getByRole('button',{name:'■ End'}).click()
+ await br.getByRole('heading',{name:'Warm-up done'}).waitFor();await br.getByText(/Warm-ups don’t count/).waitFor()
  // Classic: a tap on the wrong column as the first tile arrives stops the song there.
  await beat.getByRole('button',{name:'Play again'}).click()
  await beat.getByLabel('Tap notes').waitFor();await beat.getByLabel('Classic').check()
