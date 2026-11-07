@@ -1111,24 +1111,26 @@ test('Welcome tour: a new plan gets three steps (the island, KONO, adding work),
  assert.equal(await page.getByRole('region',{name:'Welcome to KONO'}).count(),0,'the tour doesn’t come back')
 })
 
-test('The garden blooms with finished work (4, 10, 18…); that Done message offers “See your garden bloom”, which brings the island into view, and only the garden announces itself (the rest are decorations)',async({context,page})=>{
+test('Finishing something earns coins: its Done message says +10 with a Shop button that opens KONO Town’s shops; only the garden still announces growing (the rest are decorations you buy)',async({context,page})=>{
  const cloud=fakeCloud(),data=()=>cloud.users.alice.plan.data,pid=data().activeProfileId
- // Three things finished before (two older, and one already done in the plan): the next reaches the first blooms.
+ // Two finished before (and one already done in the plan): the next one also reaches the garden's first blooms.
  const p=data().sanctuaryProgress[pid];p.creditedTaskIds=['old-1','old-2'];p.totalCredits=2;p.featureStages={...(p.featureStages??{}),garden:0}
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  const notices=[];await page.exposeFunction('noteEvolution',t=>notices.push(t))
  await page.evaluate(()=>new MutationObserver(()=>{const n=document.querySelector('.sanctuary-evolution-toast');if(n)window.noteEvolution(n.textContent)}).observe(document.body,{subtree:true,childList:true}))
+ const coinsLabel=async()=>Number((await page.getByRole('button',{name:/^KONO Town: /}).first().getAttribute('aria-label')).replace(/[^\d]/g,''))
+ const before=await coinsLabel()
  await addFromMenu(page,'tasks','Read chapter 4')
  await page.getByRole('button',{name:/^Complete Read chapter 4/}).first().click()
- const bloom=page.locator('.undo-toast').getByRole('button',{name:/See your garden bloom/})
- await bloom.waitFor()
- await waitFor(()=>(data().sanctuaryProgress[pid].featureStages?.garden??0)>=1,'the garden reached its first blooms')
- await page.evaluate(()=>scrollTo(0,document.body.scrollHeight))
- await bloom.click()
- await page.waitForFunction(()=>{const r=document.querySelector('.wb-island')?.getBoundingClientRect();return r&&r.bottom>0&&r.top<innerHeight},null,{timeout:5000})
+ const shop=page.locator('.undo-toast').getByRole('button',{name:/^\+10 coins.*Spend them in KONO Town$/})
+ await shop.waitFor();assert.match(await shop.textContent(),/\+10 · Shop/)
+ await page.waitForFunction(b=>Number(document.querySelector('[aria-label^="KONO Town: "]')?.getAttribute('aria-label').replace(/[^\d]/g,''))===b+10,before)
  await page.waitForTimeout(2500)
- assert.ok(notices.length>0&&notices.every(t=>/garden/i.test(t)),'only the garden announces a change: '+JSON.stringify(notices))
+ assert.ok(notices.every(t=>/garden/i.test(t)),'only the garden announces a change: '+JSON.stringify(notices))
+ await shop.click()
+ await page.getByRole('dialog',{name:'KONO Town'}).waitFor()
+ assert.equal(await page.locator('.undo-toast').count(),0,'the message closes')
 })
 
 test('Getting started: a new plan shows a Set up KONO chip that opens three steps; each opens the right place, ticks off when done or skipped, and Hide keeps it hidden',async({page})=>{
