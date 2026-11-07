@@ -1,5 +1,5 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {LEVELS,CLEAR_AT,CLEAR_NAME,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,readBeatBest,readClassic,readKeys,readOffset,readSpeed,readTicks,saveBeatBest,saveClassic,saveKeys,saveOffset,saveSpeed,saveTicks,wrongColumn,scoreOf,judge,type Chart,type Clear,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
+import {LEVELS,CLEAR_AT,CLEAR_NAME,accuracy,approachFor,clearOf,count,freshTally,grade,createAutoSync,hitIn,missedBy,nearestIn,playOf,readBeatBest,readClassic,readKeys,readOffset,readSpeed,readTicks,saveBeatBest,saveClassic,saveKeys,saveOffset,saveSpeed,saveTicks,wrongColumn,scoreOf,judge,type Chart,type Clear,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
 import {stopMusic} from '../arcadeAudio'
 import {click,heardNow,keyNote} from '../game/audioClock'
 import BeatSync from './BeatSync'
@@ -44,6 +44,8 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
  const [keys,setKeys]=useState(readKeys),[classic,setClassic]=useState(readClassic)
  // Classic: when the song stopped on a wrong or missed tile (the board holds still on it a moment).
  const stoppedAt=useRef(0)
+ // The Timing in use while a song plays (auto-sync can correct it mid-song; kept for next time when it ends).
+ const liveOffset=useRef(offset),sync=useRef(createAutoSync()),synced=useRef<{d:number;t:number}|null>(null)
  // Warm-up: the first WARMUP_MS of the song, nothing kept (no fail, no best, no coins).
  const warm=useRef(false)
  // What a screen reader hears while the canvas plays: the start, every 25 in a combo, and a run of misses.
@@ -67,6 +69,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
   stopSong()
   const t=tally.current,total=warm.current?Math.max(1,judged()):play.current.total,score=scoreOf(t,total),clear=clearOf(t,level,judged(),total)
   const newBest=!warm.current&&clear!=='fail'&&saveBeatBest(info.id,level,score,clear)
+  if(liveOffset.current!==offset){saveOffset(liveOffset.current);setOffsetState(liveOffset.current)}
   onEndRef.current({song:info.id,title:info.title,level,score,acc:accuracy(t,total),grade:clear==='fail'&&!warm.current?'F':grade(score),best:t.best,tally:t,clear:warm.current&&clear==='fail'?'clear':clear,failed:clear==='fail'&&!warm.current,newBest,classic,warmup:warm.current,tiles:play.current.notes.filter(n=>n.hit&&n.hit!=='miss').length,of:warm.current?play.current.notes.filter(n=>n.hit).length:play.current.notes.length,timeline:play.current.notes.filter(n=>n.kind!=='sky').map(n=>({t:n.t,j:n.hit??null})),ms:info.ms})
  }
  const finishRef=useRef(finish);useEffect(()=>{finishRef.current=finish})
@@ -90,8 +93,12 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
  const press=(lane:number)=>{
   if(!playing||done.current||stoppedAt.current)return
   pressedAt.current[lane]=performance.now()
-  const ms=songMs()-offset,i=hitIn(play.current.notes,lane,ms,level);if(i>=0)mark(i,ms)
-  else if(classic&&!warm.current&&wrongColumn(play.current.notes,lane,ms,level))stopHere(lane)
+  let ms=songMs()-liveOffset.current
+  // Auto-sync: how far this tap is from the nearest tile in its column says how late this device's sound is.
+  if(!sync.current.settled){const d=nearestIn(play.current.notes,lane,ms);const fix=d===null?0:sync.current.tap(d,ms)
+   if(fix){liveOffset.current=Math.max(-300,Math.min(300,liveOffset.current+fix));ms=songMs()-liveOffset.current;synced.current={d:liveOffset.current,t:performance.now()};setSpoken('Timing adjusted to '+(liveOffset.current>0?'+':'')+liveOffset.current+' milliseconds for this device.')}}
+  const i=hitIn(play.current.notes,lane,ms,level);if(i>=0)mark(i,ms)
+  else if(classic&&!warm.current&&sync.current.settled&&wrongColumn(play.current.notes,lane,ms,level))stopHere(lane)
  }
  const pressRef=useRef({press});useEffect(()=>{pressRef.current={press}})
  // Keys: D F J K (or the arrows), one for each column.
@@ -121,7 +128,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    let buf=decoded.get(info.id)
    if(!buf){const data=await (await fetch('/audio/games/'+info.id+'.mp3')).arrayBuffer();buf=await ctx.decodeAudioData(data);decoded.clear();decoded.set(info.id,buf)}
    play.current=playOf(info.charts[level],info.bpm);tally.current=freshTally(level);done.current=false;fx.current=[];word.current=null;nextTick.current=0;tickedTo.current=0
-   lanesHeld.current=[0,0,0,0];missAt.current=[0,0,0,0];pointers.current.clear();stoppedAt.current=0
+   lanesHeld.current=[0,0,0,0];missAt.current=[0,0,0,0];pointers.current.clear();stoppedAt.current=0;liveOffset.current=offset;sync.current=createAutoSync();synced.current=null
    const src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination)
    await ctx.resume().catch(()=>undefined)
    const t0=ctx.currentTime+0.8;src.start(t0);src.onended=()=>finishRef.current()
@@ -137,7 +144,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
   const cv=canvas.current;if(!cv)return
   const ctx=cv.getContext('2d');if(!ctx)return
   // The live song time, for the tests to press keys exactly on a note (frames can be slow on a test machine).
-  Object.assign(cv,{songNow:()=>songMs()-offset})
+  Object.assign(cv,{songNow:()=>songMs()-liveOffset.current,songRaw:()=>songMs()})
   const ap=approachFor(speed)
   // When each tile was hit or missed (for its fade), by note.
   const doneAt=new Map<number,number>()
@@ -147,7 +154,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    const dpr=Math.min(2,window.devicePixelRatio||1),W=cv.clientWidth,H=cv.clientHeight
    if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
    ctx.setTransform(dpr,0,0,dpr,0,0)
-   const b=boardOf(W,H),now=songMs()-offset,pl=play.current,t=performance.now()
+   const b=boardOf(W,H),offset=liveOffset.current,now=songMs()-offset,pl=play.current,t=performance.now()
    cv.dataset.ms=String(Math.round(now)) // where the song is (the tests follow it)
    // Note ticks: a soft click on every note, a little ahead, on the song's own clock (so they sound exactly
    // with the music, whatever the device's delay).
@@ -157,11 +164,12 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    // Misses: tiles that went by; then each long tile's moments as they come (kept while it's held down).
    if(stoppedAt.current&&!done.current){if(t-stoppedAt.current>900){finishRef.current();return}}
    else if(!done.current){
-    for(const i of missedBy(pl.notes,now,level)){pl.notes[i].hit='miss';tally.current=count(tally.current,'miss',level,pl.total,{});word.current={j:'miss',t};missAt.current[pl.notes[i].lane]=t;if(classic&&!warm.current){stopHere(pl.notes[i].lane);break}}
+    sync.current.tick(now)
+    for(const i of missedBy(pl.notes,now,level)){pl.notes[i].hit='miss';tally.current=count(tally.current,'miss',level,pl.total,{free:!sync.current.settled});word.current={j:'miss',t};missAt.current[pl.notes[i].lane]=t;if(classic&&!warm.current&&sync.current.settled){stopHere(pl.notes[i].lane);break}}
     while(nextTick.current<pl.ticks.length&&pl.ticks[nextTick.current].t<=now){
      const k=pl.ticks[nextTick.current++]
      const ok=k.kind==='hold'&&lanesHeld.current[pl.notes[k.of].lane]>0&&pl.notes[k.of].hit!=='miss'
-     tally.current=count(tally.current,ok?'perfect':'miss',level,pl.total,{tick:true});if(!ok)word.current={j:'miss',t}
+     tally.current=count(tally.current,ok?'perfect':'miss',level,pl.total,{tick:true,free:!sync.current.settled});if(!ok)word.current={j:'miss',t}
     }
     if(warm.current&&tally.current.failed)tally.current={...tally.current,failed:false,gauge:Math.max(tally.current.gauge,1)}
     if(warm.current&&now>WARMUP_MS){finishRef.current();return}
@@ -236,6 +244,8 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    if(wd&&t-wd.t<500){const k=(t-wd.t)/500;ctx.globalAlpha=1-k;ctx.font='800 '+Math.round(18+(1-Math.min(1,k*4))*4)+'px system-ui,sans-serif';ctx.fillStyle=wd.j==='perfect'?'#e09a00':wd.j==='great'?'#2aa7d8':wd.j==='good'?'#4caf50':'#ff4d6a';ctx.fillText(spaced(WORD[wd.j].toUpperCase()),W/2,b.top+104)
     if(wd.off!==undefined&&wd.j!=='miss'&&wd.j!=='perfect'){ctx.font='700 10px system-ui,sans-serif';ctx.fillStyle=wd.off<0?'#3d7fd0':'#d0663d';ctx.fillText(spaced(wd.off<0?'EARLY':'LATE'),W/2,b.top+120)}
     ctx.globalAlpha=1}
+   // Auto-sync just corrected the timing: say so for a moment.
+   {const sy=synced.current;if(sy&&t-sy.t<1800){ctx.globalAlpha=1-Math.max(0,(t-sy.t-1200)/600);ctx.textAlign='center';ctx.font='700 11px system-ui,sans-serif';ctx.fillStyle='#2a8f6a';ctx.fillText(spaced('TIMING SYNCED '+(sy.d>0?'+':'')+sy.d+' MS'),W/2,b.top+138);ctx.globalAlpha=1}}
    // Top: the song and level on the left; the score, with the gauge under it, on the right; the song's
    // progress along the very top.
    ctx.fillStyle='rgba(20,16,44,0.82)';ctx.fillRect(0,0,W,b.top-10)
