@@ -83,6 +83,7 @@ const TodoEditor=lazy(()=>import('./components/TodoEditor'))
 const TourPlaceholder=()=><section className="wb-panel welcome-tour is-loading" aria-hidden="true"/>
 const Onboarding=lazy(()=>import('./components/Welcome').then(m=>({default:m.Onboarding}))),RecoveryScreen=lazy(()=>import('./components/Welcome').then(m=>({default:m.RecoveryScreen})))
 import './components/StudyPlanner.css'
+import './day-agenda.css'
 import './components/kquiz.css'
 // The search panel groups plan items under these headings.
 const SEARCH_GROUP:Partial<Record<Collection,string>>={tasks:'Assignments',exams:'Exams',calendarEvents:'Events',notes:'Notes',subjects:'Subjects',kids:'Kids'}
@@ -1340,9 +1341,14 @@ function RecordCard({cozy,collection,entry,subject,subjectColor,kid,alsoKids=[],
  // ordinary border, never someone else's chosen style.
  const borderStyle=showKidBorder&&kid?kid.borderStyle??'solid':'solid'
  const tracked=tracksDone(collection,entry)
- if(collection==='calendarEvents')return <article className={'wb-family-event kid-border-'+borderStyle+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={{'--kid-color':showKidBorder?kid?.color??'#b47e75':undefined} as CSSProperties}>
+ // On Home's day lists: an event going on right now says so, and one already over today steps back.
+ const nowHM=new Date().toTimeString().slice(0,5),isToday=inDay&&entry.date===localDate()
+ const start=String(entry.time??''),end=String(entry.endTime??'')
+ const happening=isToday&&!!start&&start<=nowHM&&(end?nowHM<end:nowHM<String(Number(start.slice(0,2))+1).padStart(2,'0')+start.slice(2))
+ const over=isToday&&!happening&&!!start&&(end||start)<nowHM
+ if(collection==='calendarEvents')return <article className={'wb-family-event kid-border-'+borderStyle+(done?' is-complete':'')+(needsReview?' needs-review-record':'')+(happening?' is-now':'')+(over?' is-over':'')} style={{'--kid-color':showKidBorder?kid?.color??'#b47e75':undefined} as CSSProperties}>
   <div className="wb-family-event-main">
-   <div className="wb-family-event-time">{entry.time?<><span className="wb-family-event-start">{classTime(String(entry.time))}</span>{entry.endTime&&<span className="wb-family-event-end">–{classTime(String(entry.endTime))}</span>}</>:'—'}</div>
+   <div className="wb-family-event-time">{happening&&<span className="wb-family-event-now">Now</span>}{entry.time?<><span className="wb-family-event-start">{classTime(String(entry.time))}</span>{entry.endTime&&<span className="wb-family-event-end">–{classTime(String(entry.endTime))}</span>}</>:<span className="wb-family-event-start">All day</span>}</div>
    <div className="wb-family-event-info">
     <small>{showKidHeader?<>{whoChip??'Family'}{subject?' · '+subject:''}</>:subject??(entry.subjectId?'Removed subject':'General')}</small>
     <h3>{titleText}{inSeries&&<span className="wb-repeat-mark" title={'Repeats · '+seriesCount+' dates'} aria-label="Repeats"> ↻</span>}</h3>

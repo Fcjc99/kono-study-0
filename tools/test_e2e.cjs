@@ -463,6 +463,24 @@ test('opening never hangs: storage that never answers (an iPhone Safari bug) lea
  }finally{await two.context.close()}
 })
 
+test('Home’s Today and Tomorrow: each event is one agenda row (time column, person, title); what’s on now says Now, what’s over today steps back',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.setFixedTime(new Date('2026-11-07T13:30:00'))
+ const ev=(id,date,time,endTime,title)=>({id,profileId:pid,date,time,endTime,title,kind:'personal',notes:'',done:false,kidId:'kid-emma'})
+ d.calendarEvents.push(ev('a','2026-11-07','09:00','10:00','Swim practice'),ev('b','2026-11-07','13:00','16:00','Lessons'),ev('c','2026-11-07','18:30','19:30','Dinner out'),ev('d','2026-11-08','09:00','09:30','Landon'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const rows=page.locator('.tomorrow-extra-list .wb-family-event')
+ await rows.filter({hasText:'Lessons'}).waitFor()
+ assert.match(await rows.filter({hasText:'Lessons'}).getAttribute('class'),/\bis-now\b/);await rows.filter({hasText:'Lessons'}).getByText('Now',{exact:true}).waitFor()
+ assert.match(await rows.filter({hasText:'Swim practice'}).getAttribute('class'),/\bis-over\b/)
+ assert.doesNotMatch(await rows.filter({hasText:'Dinner out'}).getAttribute('class'),/is-now|is-over/)
+ assert.doesNotMatch(await rows.filter({hasText:'Landon'}).getAttribute('class'),/is-now|is-over/,'tomorrow is never now or over')
+ // One row: the time column and the title side by side, not a stacked card.
+ const t=await rows.filter({hasText:'Lessons'}).locator('.wb-family-event-time').boundingBox(),h=await rows.filter({hasText:'Lessons'}).locator('h3').boundingBox()
+ assert.ok(t.x+t.width<=h.x+1&&Math.abs((t.y+t.height/2)-(h.y+h.height/2))<40,'time beside the title')
+})
+
 test('phone-sized screens have no sideways scrolling on the main pages',async({context,page})=>{
  await context.close()
  const phone=await freshPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true})
