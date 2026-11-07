@@ -1111,25 +1111,24 @@ test('Welcome tour: a new plan gets three steps (the island, KONO, adding work),
  assert.equal(await page.getByRole('region',{name:'Welcome to KONO'}).count(),0,'the tour doesn’t come back')
 })
 
-test('Finishing the first thing grows the island; its Done message offers “See your island grow”, which brings the island into view',async()=>{
- const phone=await freshPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true})
- try{
-  const page=phone.page
-  await createPlan(page)
-  const tour=page.getByRole('region',{name:'Welcome to KONO'})
-  // The welcome tour's last step adds the first assignment.
-  await tour.getByRole('button',{name:'Okay'}).click();await tour.getByRole('button',{name:'Okay'}).click()
-  await tour.getByRole('button',{name:'＋ Add my first assignment'}).click()
-  await page.getByRole('dialog',{name:'Add to your plan'}).getByRole('group',{name:'Add type'}).getByRole('button',{name:'Homework'}).click()
-  const editor=page.locator('dialog[open]');await editor.getByLabel('Title').fill('Read chapter 4');await editor.getByRole('button',{name:'Save',exact:true}).click()
-  await editor.waitFor({state:'detached'})
-  await page.getByRole('button',{name:/^Complete Read chapter 4/}).first().click()
-  const grow=page.locator('.undo-toast').getByRole('button',{name:/See your island grow/})
-  await grow.waitFor()
-  await grow.click()
-  await page.waitForFunction(()=>{const r=document.querySelector('.wb-island')?.getBoundingClientRect();return r&&r.bottom>0&&r.top<innerHeight},null,{timeout:5000})
-  assert.equal(await page.locator('.undo-toast').count(),0,'the message closes')
- }finally{await phone.context.close()}
+test('The garden blooms with finished work (4, 10, 18…); that Done message offers “See your garden bloom”, which brings the island into view, and only the garden announces itself (the rest are decorations)',async({context,page})=>{
+ const cloud=fakeCloud(),data=()=>cloud.users.alice.plan.data,pid=data().activeProfileId
+ // Three things finished before (two older, and one already done in the plan): the next reaches the first blooms.
+ const p=data().sanctuaryProgress[pid];p.creditedTaskIds=['old-1','old-2'];p.totalCredits=2;p.featureStages={...(p.featureStages??{}),garden:0}
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const notices=[];await page.exposeFunction('noteEvolution',t=>notices.push(t))
+ await page.evaluate(()=>new MutationObserver(()=>{const n=document.querySelector('.sanctuary-evolution-toast');if(n)window.noteEvolution(n.textContent)}).observe(document.body,{subtree:true,childList:true}))
+ await addFromMenu(page,'tasks','Read chapter 4')
+ await page.getByRole('button',{name:/^Complete Read chapter 4/}).first().click()
+ const bloom=page.locator('.undo-toast').getByRole('button',{name:/See your garden bloom/})
+ await bloom.waitFor()
+ await waitFor(()=>(data().sanctuaryProgress[pid].featureStages?.garden??0)>=1,'the garden reached its first blooms')
+ await page.evaluate(()=>scrollTo(0,document.body.scrollHeight))
+ await bloom.click()
+ await page.waitForFunction(()=>{const r=document.querySelector('.wb-island')?.getBoundingClientRect();return r&&r.bottom>0&&r.top<innerHeight},null,{timeout:5000})
+ await page.waitForTimeout(2500)
+ assert.ok(notices.length>0&&notices.every(t=>/garden/i.test(t)),'only the garden announces a change: '+JSON.stringify(notices))
 })
 
 test('Getting started: a new plan shows a Set up KONO chip that opens three steps; each opens the right place, ticks off when done or skipped, and Hide keeps it hidden',async({page})=>{
