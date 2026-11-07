@@ -13,8 +13,22 @@ import {LADDER} from '../store/bloom'
 // KONO Beat brings its charts (every song, three levels): loaded when it's opened.
 const RhythmGame=lazy(()=>import('./RhythmGame'))
 import BeatSummary from './BeatSummary'
-// KONO Medal Cove is 3D (three.js): loaded only when it's opened.
-const MedalCove=lazy(()=>import('./MedalCoveGame'))
+// KONO Medal Cove is 3D (three.js): loaded when it's opened, or quietly ahead of time while the arcade is
+// open (prefetchCove), so tapping it doesn't wait on the download.
+const loadCove=()=>import('./MedalCoveGame')
+const MedalCove=lazy(loadCove)
+let coveFetched=false
+/** The arcade is open: a few seconds later, when the device is idle, fetch Medal Cove's 3D machine in the
+ * background, unless the person has asked to save data or is on a slow connection. */
+function prefetchCove(){
+ if(coveFetched)return ()=>undefined
+ const net=(navigator as Navigator&{connection?:{saveData?:boolean;effectiveType?:string}}).connection
+ if(net?.saveData||/(^|-)2g$/.test(net?.effectiveType??''))return ()=>undefined
+ const go=()=>{if(coveFetched)return;coveFetched=true;void loadCove().catch(()=>{coveFetched=false})}
+ const idle=(window as Window&{requestIdleCallback?:(f:()=>void,o?:{timeout:number})=>number}).requestIdleCallback
+ const t=window.setTimeout(()=>idle?idle(go,{timeout:4000}):go(),3000)
+ return ()=>window.clearTimeout(t)
+}
 import {flapMedal} from '../store/flappy'
 import {readBlastFace} from '../store/blastFace'
 import BlastFacePicker from './BlastFacePicker'
@@ -68,6 +82,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
  // The Sweet swap level picked on the map (the next one to beat, unless you pick one you've played).
  const [candyPick,setCandyPick]=useState<number|null>(null)
  const [ended,setEnded]=useState<GameResult|null>(null),[round,setRound]=useState(0),[started,setStarted]=useState(false)
+ useEffect(()=>arcade?prefetchCove():undefined,[arcade])
  const handle=useRef<GameHandle>(null)
  const [now,setNow]=useState(startedAt)
  const [result,setResult]=useState<string|null>(null)

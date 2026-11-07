@@ -4418,6 +4418,8 @@ test('KONO Medal Cove: a medal pusher: DROP feeds medals from your hand onto the
  await cove.locator('.cove-stage[aria-label^="KONO Medal Cove: 100 medals"]').waitFor({timeout:30000})
  // The three bonus wheels, one for each ship's pocket.
  await cove.getByRole('figure',{name:/🏮 wheel/}).waitFor();await cove.getByRole('figure',{name:/⭐ wheel/}).waitFor();await cove.getByRole('figure',{name:/🗼 wheel/}).waitFor()
+ // Drawing quality: the cloud's software graphics start at the lightest level (phones step down by themselves when slow).
+ assert.ok(['hd','lighter','lite'].includes(await cove.locator('[data-quality]').first().getAttribute('data-quality')),'the machine reports its drawing quality')
  // DROP feeds medals from your hand (once the machine is filled and ready).
  const drop=cove.getByRole('button',{name:/^DROP/});await page.waitForFunction(()=>{const b=[...document.querySelectorAll('.cove-drop')][0];return b&&!b.disabled},null,{timeout:30000})
  // Pressed where it is on screen (the game holds its layout steady, so there's nothing to scroll).

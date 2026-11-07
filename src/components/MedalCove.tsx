@@ -1,6 +1,7 @@
 import type {MedalMusic} from '../medalMusic'
 import {KonoCinema} from './KonoCinema'
 import {boundedAccumulator,mayStep,retainedRemainder,PHYSICS_STEP_MS} from '../store/frameBudget'
+import {createQualityWatch,qualityAt} from '../store/renderQuality'
 import {flipperPose} from '../store/flipper'
 import BonusConsole from './BonusConsole'
 import TideDeliveryPanel from './TideDeliveryPanel'
@@ -206,6 +207,14 @@ export default function MedalCove({ref,best,sound,music,onEnd,onFail,toolsTarget
   composer.addPass(new RenderPass(scene,camera))
   const bloom=new BloomEffect({intensity:small?0.28:0.35,luminanceThreshold:0.92,luminanceSmoothing:0.2,mipmapBlur:true,resolutionScale:soft?0.5:small?0.75:1})
   composer.addPass(new EffectPass(camera,bloom,new SMAAEffect()))
+  // A phone that can't keep up steps down to lighter drawing (store/renderQuality); the game itself is unchanged.
+  const maxRatio=soft?1:Math.min(small?1.5:2,window.devicePixelRatio||1),quality=createQualityWatch(soft?2:0)
+  const baseBloom=bloom.resolution?.scale??1
+  const applyQuality=(level:0|1|2)=>{const q=qualityAt(level,maxRatio)
+   renderer.setPixelRatio(Math.min(maxRatio,q.pixelRatio));if(bloom.resolution)bloom.resolution.scale=Math.min(baseBloom,q.bloomScale)
+   const size=Math.min(sun.shadow.mapSize.x,q.shadow);if(size!==sun.shadow.mapSize.x){sun.shadow.mapSize.setScalar(size);sun.shadow.map?.dispose();sun.shadow.map=null as unknown as THREE.WebGLRenderTarget}
+   resize();el.setAttribute?.('data-quality',['hd','lighter','lite'][level])}
+  el.setAttribute?.('data-quality',soft?'lite':'hd')
   // ---- The cabinet you see ----
   const deckMat=toon('#f6dcb4',{map:woodTexture()})
   const deck=new THREE.Mesh(new THREE.BoxGeometry(CABINET.width,0.4,CABINET.depth),deckMat);deck.position.set(0,-0.2,FRONT-CABINET.depth/2);deck.receiveShadow=true;scene.add(deck)
@@ -591,7 +600,7 @@ export default function MedalCove({ref,best,sound,music,onEnd,onFail,toolsTarget
   // They are effect graphics, not invisible replacement collision geometry.
   const clearHalo=new THREE.InstancedMesh(new THREE.TorusGeometry(.39,.025,6,20),new THREE.MeshBasicMaterial({color:'#56dfdc',transparent:true,opacity:.85,depthWrite:false}),MAX)
   clearHalo.name='board-clear-magnetic-halos';clearHalo.frustumCulled=false;clearHalo.count=0;scene.add(clearHalo)
-  let raf=0,last=performance.now(),acc=0,lastHud=0
+  let raf=0,last=performance.now(),acc=0,lastHud=0,drawnAt=performance.now()
   const loop=(now:number)=>{
    // Pausing preserves selected outcomes and all delivery bodies/queues. No hidden
    // bonus resolution or catch-up burst when returning from a tab or options.
@@ -788,6 +797,7 @@ export default function MedalCove({ref,best,sound,music,onEnd,onFail,toolsTarget
     if(jt>=100){jpAt=-1;setJpWin(null)}}
    drawFrame.current?.(c)
    composer.render()
+   {const changed=quality.frame(now-drawnAt);drawnAt=now;if(changed!==null)applyQuality(changed)}
    if(now-lastHud>120||c.spinning){lastHud=now
     const reels=c.spinning?[0,1,2].map(i=>f-c.spinning!.at<40+i*25?REEL_FACES[Math.floor((f+i*3)/3)%6]:c.spinning!.reels[i]):c.lastReels??hudReels.current
     if(c.spinning)hudReels.current=reels
