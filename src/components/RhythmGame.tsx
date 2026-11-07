@@ -42,6 +42,8 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
  const [keys,setKeys]=useState(readKeys),[classic,setClassic]=useState(readClassic)
  // Classic: when the song stopped on a wrong or missed tile (the board holds still on it a moment).
  const stoppedAt=useRef(0)
+ // What a screen reader hears while the canvas plays: the start, every 25 in a combo, and a run of misses.
+ const [spoken,setSpoken]=useState(''),spokenAt=useRef({combo:0,misses:0})
  const tickedTo=useRef(0)
  const canvas=useRef<HTMLCanvasElement>(null),audio=useRef<{ctx:AudioContext;src:AudioBufferSourceNode;t0:number}|null>(null),[loading,setLoading]=useState(false)
  const play=useRef<Play>({notes:[],ribbons:[],ticks:[],total:0}),tally=useRef<Tally>(freshTally('easy')),done=useRef(false),nextTick=useRef(0)
@@ -118,7 +120,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    const src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination)
    await ctx.resume().catch(()=>undefined)
    const t0=ctx.currentTime+0.8;src.start(t0);src.onended=()=>finishRef.current()
-   audio.current={ctx,src,t0};startedAt.current=performance.now()
+   audio.current={ctx,src,t0};startedAt.current=performance.now();spokenAt.current={combo:0,misses:0};setSpoken(info.title+' started. Tap D, F, J or K as each tile reaches the line.')
    setPlaying(true)
   }catch{void ctx.close().catch(()=>undefined)}
   finally{setLoading(false)}
@@ -217,6 +219,9 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
     ctx.globalAlpha=1-k;ctx.strokeStyle=WORD_COLOR[e.j]==='#ffe27a'?'#ffb000':WORD_COLOR[e.j];ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(x,b.hitY,b.colW*0.35+k*b.colW*0.25,14+k*16,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1}
    // The combo, big at the top of the board, and the word for the last hit under it.
    const s=tally.current,spaced=(txt:string)=>txt.split('').join(' ')
+   {const sp=spokenAt.current
+    if(s.combo>=sp.combo+25){sp.combo=s.combo-(s.combo%25);setSpoken('Combo '+sp.combo)}else if(s.combo<sp.combo)sp.combo=0
+    if(s.miss>=sp.misses+5){sp.misses=s.miss;setSpoken(s.miss+' missed so far')}}
    cv.dataset.score=String(scoreOf(s,pl.total))
    ctx.textAlign='center'
    if(s.combo>=2){ctx.font='800 '+Math.round(44+Math.min(16,s.combo/12))+'px system-ui,sans-serif';ctx.fillStyle='rgba(255,77,120,0.92)';ctx.fillText(String(s.combo),W/2,b.top+60);ctx.font='700 10px system-ui,sans-serif';ctx.fillStyle='rgba(255,77,120,0.7)';ctx.fillText(spaced('COMBO'),W/2,b.top+76)}
@@ -294,5 +299,5 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    </ul></details>
   </section>
  </div>
- return <div className="beat-stage"><canvas ref={canvas} className="beat-canvas" role="img" aria-label={'KONO Beat: '+info.title} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}/></div>
+ return <div className="beat-stage"><p className="beat-sr" aria-live="polite">{spoken}</p><canvas ref={canvas} className="beat-canvas" role="img" aria-label={'KONO Beat: '+info.title} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}/></div>
 }

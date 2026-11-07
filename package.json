@@ -59,6 +59,7 @@
     "@types/three": "^0.186.0",
     "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^6.0.3",
+    "axe-core": "^4.14.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^10.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",

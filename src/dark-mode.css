@@ -32,3 +32,9 @@
 /* Zen Ink's accent is a dark indigo made for paper; on a dark page it needs to be lighter. */
 :root[data-dark][data-experience='sumi'][data-theme]{--wb-accent:#9fb4cf;--wb-accent-ink:#16131a}
 :root[data-dark] .workbench .week-grid-head .is-today strong{color:var(--wb-accent-ink,#16131a)!important}
+/* Found with axe (WCAG AA) in dark mode: the current page's name in the sidebar was dark-on-dark, and the
+   rose accent used as text, the Planner's today label and an event's time read too faintly. */
+:root[data-dark] .sidebar .nav-button.active:not(#x),:root[data-dark] .sidebar .nav-button.active:not(#x) :is(span,strong){color:#fff4f8!important}
+:root[data-dark] :is(.workbench .eyebrow,.workbench .subject-section-tabs button[aria-current]):not(#x):not(#y){color:#f4b3cf!important}
+:root[data-dark] .workbench .week-grid-head button.is-today small:not(#x){color:#3a2230!important}
+:root[data-dark] .workbench .week-grid .week-item small:not(#x){color:#ece6f4!important}
