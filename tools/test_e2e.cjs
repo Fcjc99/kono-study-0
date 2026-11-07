@@ -1111,6 +1111,27 @@ test('Welcome tour: a new plan gets three steps (the island, KONO, adding work),
  assert.equal(await page.getByRole('region',{name:'Welcome to KONO'}).count(),0,'the tour doesn’t come back')
 })
 
+test('Finishing the first thing grows the island; its Done message offers “See your island grow”, which brings the island into view',async()=>{
+ const phone=await freshPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true})
+ try{
+  const page=phone.page
+  await createPlan(page)
+  const tour=page.getByRole('region',{name:'Welcome to KONO'})
+  // The welcome tour's last step adds the first assignment.
+  await tour.getByRole('button',{name:'Okay'}).click();await tour.getByRole('button',{name:'Okay'}).click()
+  await tour.getByRole('button',{name:'＋ Add my first assignment'}).click()
+  await page.getByRole('dialog',{name:'Add to your plan'}).getByRole('group',{name:'Add type'}).getByRole('button',{name:'Homework'}).click()
+  const editor=page.locator('dialog[open]');await editor.getByLabel('Title').fill('Read chapter 4');await editor.getByRole('button',{name:'Save',exact:true}).click()
+  await editor.waitFor({state:'detached'})
+  await page.getByRole('button',{name:/^Complete Read chapter 4/}).first().click()
+  const grow=page.locator('.undo-toast').getByRole('button',{name:/See your island grow/})
+  await grow.waitFor()
+  await grow.click()
+  await page.waitForFunction(()=>{const r=document.querySelector('.wb-island')?.getBoundingClientRect();return r&&r.bottom>0&&r.top<innerHeight},null,{timeout:5000})
+  assert.equal(await page.locator('.undo-toast').count(),0,'the message closes')
+ }finally{await phone.context.close()}
+})
+
 test('Getting started: a new plan shows a Set up KONO chip that opens three steps; each opens the right place, ticks off when done or skipped, and Hide keeps it hidden',async({page})=>{
  await createPlan(page)
  const card=page.getByRole('region',{name:'Getting started'})
