@@ -444,6 +444,25 @@ test('accessibility: the main pages pass an axe scan (WCAG 2.1 AA: contrast, lab
  }
 })
 
+test('opening never hangs: storage that never answers (an iPhone Safari bug) leads to Try again within seconds, and a stalled download offers Reload',async()=>{
+ // IndexedDB open that never answers.
+ const one=await freshPage()
+ try{
+  await one.context.addInitScript(()=>{indexedDB.open=function(){return {}}})
+  await one.page.goto(BASE)
+  await one.page.getByText('We couldn\'t open your saved plan',{exact:false}).waitFor({timeout:15000})
+  await one.page.getByRole('button',{name:'Try again'}).waitFor()
+ }finally{await one.context.close()}
+ // The welcome screen's code never arrives.
+ const two=await freshPage()
+ try{
+  await two.context.route(/\/assets\/Welcome-[^/]+\.js$/,()=>{/* never answered */})
+  await two.page.goto(BASE)
+  await two.page.getByText('Opening KONO…').waitFor({timeout:15000})
+  await two.page.getByRole('alert').filter({hasText:'Taking longer than usual'}).getByRole('button',{name:'Reload'}).waitFor({timeout:16000})
+ }finally{await two.context.close()}
+})
+
 test('phone-sized screens have no sideways scrolling on the main pages',async({context,page})=>{
  await context.close()
  const phone=await freshPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true})

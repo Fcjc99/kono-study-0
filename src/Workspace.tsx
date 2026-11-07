@@ -215,6 +215,14 @@ const familyHomeLast=()=>{try{return localStorage.getItem('kono-family-home')===
 if(startPage==='Planner'){void import('./components/PlannerCalendar').catch(()=>undefined);void import('./components/WeekGrid').catch(()=>undefined)}
 else if(startPage==='Sanctuary'&&signedIn()&&!familyHomeLast()){void import('./components/GardenCard').catch(()=>undefined);void loadIslandPoster()}
 
+/** On an opening screen for longer than a phone should ever need (a stalled download, a browser that stopped
+ * answering), offer a way out instead of a screen that never changes. */
+function StartupWait(){
+ const [late,setLate]=useState(false)
+ useEffect(()=>{const t=window.setTimeout(()=>setLate(true),12_000);return()=>window.clearTimeout(t)},[])
+ if(!late)return null
+ return <p className="startup-late" role="alert">Taking longer than usual. <button type="button" onClick={()=>window.location.reload()}>Reload</button></p>
+}
 export default function WorkspaceApp(){
  const store=usePlannerRepository()
  useEffect(()=>{const {experience='cozy',theme}=store.data.settings,root=document.documentElement;root.dataset.experience=experience;root.dataset.theme=experience==='cozy'?cozyPalette(theme):fixedPaletteExperiences.includes(experience)?experience:theme
@@ -223,11 +231,11 @@ export default function WorkspaceApp(){
  // Dark mode (dark-mode.css): always, never, or following the phone's own setting.
  const phoneDark=usePrefersDark(),darkMode=store.data.settings.darkMode??'phone',dark=darkMode==='dark'||(darkMode==='phone'&&phoneDark)
  useEffect(()=>{const root=document.documentElement;if(dark)root.dataset.dark='true';else delete root.dataset.dark},[dark])
- if(!store.ready)return <main className="startup-card"><h1>KONO</h1><p role="status">Opening your study plan…</p><section className="kono-skel" aria-hidden="true"><i/><i/><i/><i/></section></main>
+ if(!store.ready)return <main className="startup-card"><h1>KONO</h1><p role="status">Opening your study plan…</p><section className="kono-skel" aria-hidden="true"><i/><i/><i/><i/></section><StartupWait/></main>
  // AccountPanel (rendered inside Onboarding) shows its own SaveStatus in context -- a second
  // one floating above the welcome card duplicated the exact same "Build X · This device only"
  // line as a stray line of text before the reader has even reached the card it belongs to.
- if(!store.data.onboardingComplete)return <Suspense fallback={<main className="startup-card"><h1>KONO</h1><p role="status">Opening KONO…</p></main>}>{store.unreadable?<RecoveryScreen store={store}/>:<Onboarding store={store}/>}</Suspense>
+ if(!store.data.onboardingComplete)return <Suspense fallback={<main className="startup-card"><h1>KONO</h1><p role="status">Opening KONO…</p><StartupWait/></main>}>{store.unreadable?<RecoveryScreen store={store}/>:<Onboarding store={store}/>}</Suspense>
  return <Workspace key={(store.user?.id??'device')+':'+store.data.activeProfileId} store={store}/>
 }
 function Workspace({store}:{store:Store}){

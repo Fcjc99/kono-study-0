@@ -24,8 +24,16 @@ export function readLegacy():{data:AppData;recovery:RecoveryFile[];found:boolean
  return {data:createFreshData(),recovery,found:false}
 }
 let dbPromise:Promise<IDBDatabase>|undefined
+/** iPhone Safari sometimes never answers the first IndexedDB open after a launch (a WebKit bug), which kept
+ * KONO on its opening screen forever. Asking for the database list first wakes it (the known workaround),
+ * and past OPEN_WAIT_MS KONO stops waiting and says so (the recovery screen offers Try again) instead. */
+export const OPEN_WAIT_MS=8000
 function openDB():Promise<IDBDatabase>{
  if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
+  const timer=setTimeout(()=>{dbPromise=undefined;reject(new Error('This browser’s storage didn’t answer. Try again; if it keeps happening, restart the browser.'))},OPEN_WAIT_MS)
+  const done=<T,>(f:(v:T)=>void)=>(v:T)=>{clearTimeout(timer);f(v)}
+  resolve=done(resolve);reject=done(reject)
+  try{void (indexedDB as IDBFactory&{databases?:()=>Promise<unknown>}).databases?.().catch(()=>undefined)}catch{/* older browsers */}
   const request=indexedDB.open('kono-recovery-and-sync',1)
   request.onupgradeneeded=()=>request.result.createObjectStore('plans')
   request.onsuccess=()=>{request.result.onversionchange=()=>{request.result.close();dbPromise=undefined};resolve(request.result)}
