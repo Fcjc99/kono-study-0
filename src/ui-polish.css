@@ -515,7 +515,7 @@ button .kono-icon,a .kono-icon{margin-right:2px}
 /* Home › Dinners & groceries (MealPlan): seven dinner tiles, then the grocery list. */
 .meal-days{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .meal-days li{display:grid;gap:4px;min-width:0}
-.meal-days small{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;opacity:.65;text-align:center}
+.meal-days small{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;opacity:.75;text-align:center}
 .meal-days li.is-today small{opacity:1;color:var(--wb-accent,#e0607a)}
 .meal-days button:not(#x){min-height:64px;width:100%;min-width:0!important;max-width:100%;padding:6px!important;border-radius:14px!important;font-size:.82rem;font-weight:700;line-height:1.2;overflow-wrap:break-word;hyphens:auto;border:1.5px dashed var(--wb-line,#e2d8cc)!important;background:transparent!important;box-shadow:none!important}
 .meal-days li.has-meal button:not(#x){border-style:solid!important;background:color-mix(in srgb,#ffb35c 16%,var(--wb-surface,#fff))!important}
@@ -598,7 +598,7 @@ button .kono-icon,a .kono-icon{margin-right:2px}
 .people-progress i{flex:none;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--kid-color) 75%,#fff);color:#fff;font:800 .8rem/1 system-ui,sans-serif;font-style:normal}
 .people-progress span{flex:1;min-width:0;display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 6px}
 .people-progress b{font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.people-progress small{font-size:.75rem;opacity:.65}
+.people-progress small{font-size:.75rem;opacity:.75}
 .people-progress em{grid-column:1/-1;height:5px;border-radius:5px;background:#ece6ea;overflow:hidden}
 .people-progress u{display:block;height:100%;border-radius:5px;background:var(--kid-color);text-decoration:none;transition:width .4s ease}
 .star-asks{list-style:none;margin:0;padding:10px;display:grid;gap:6px;border-radius:16px;background:#fff7d6;border:1px solid #f1d98a}
@@ -616,3 +616,9 @@ button .kono-icon,a .kono-icon{margin-right:2px}
 /* A chore's day and repeat sit under its name, not squeezed beside it */
 .star-chore-text{display:grid;min-width:0;line-height:1.2;font-size:inherit!important;opacity:1!important}
 .star-chore-text small{font-size:.75rem;font-weight:700;opacity:.7}
+
+/* Readable small text (WCAG AA 4.5:1, checked with axe): the Planner's hour labels sit in a faded column, so
+   their ink is darker to make up for it; the notes board's link reads in a deeper rose on the cork. */
+.week-grid .week-grid-hours span{color:#352d39}
+:root[data-dark] .week-grid .week-grid-hours span{color:#d8d0dc}
+:root:not([data-dark]) .home-notes .wb-section-head .link-button{color:#5c1f3b}

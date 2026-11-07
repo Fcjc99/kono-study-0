@@ -71,3 +71,7 @@
 .beat-pick .beat-sync-close:not(#x){min-height:34px;padding:0 16px;border-radius:99px;border:1px solid rgba(42,40,88,.18)!important;background:transparent!important;color:var(--ink)!important;font:inherit;cursor:pointer;box-shadow:none!important}
 .beat-pick .beat-ticks input:not(#x){width:18px;height:18px;margin:0;flex:none;accent-color:#6b5cf0}
 .beat-settings{align-items:center}
+
+/* Spoken updates for screen readers while a song plays (the canvas itself has none). */
+.beat-sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.beat-warmup{margin-top:8px;min-height:44px;width:100%;border-radius:14px;font-weight:700;background:transparent;border:1px dashed currentColor;opacity:.85}

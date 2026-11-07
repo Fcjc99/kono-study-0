@@ -428,6 +428,22 @@ test('launch check: in every plan, finishing a task, reopening it and finishing 
  }
 })
 
+test('accessibility: the main pages pass an axe scan (WCAG 2.1 AA: contrast, labels, roles) in light and dark mode',async({context,page})=>{
+ const axeSrc=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8')
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ for(const scheme of ['light','dark']){
+  await page.emulateMedia({colorScheme:scheme})
+  await page.goto(BASE);await heading(page,'Sanctuary')
+  for(const name of ['Sanctuary','Planner','Notes','Settings']){
+   await go(page,name);await page.waitForTimeout(800)
+   await page.addScriptTag({content:axeSrc})
+   const found=await page.evaluate(async()=>(await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']}})).violations.map(v=>v.id+' ×'+v.nodes.length+': '+v.nodes.slice(0,2).map(n=>n.target.join(' ')).join(' | ')))
+   assert.deepEqual(found,[],scheme+' '+name)
+  }
+ }
+})
+
 test('phone-sized screens have no sideways scrolling on the main pages',async({context,page})=>{
  await context.close()
  const phone=await freshPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true})
@@ -4253,6 +4269,8 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  await beat.getByRole('button',{name:'Notes slower'}).click()
  await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click()
  const field=beat.getByRole('img',{name:'KONO Beat: Skipping Motif'});await field.waitFor()
+ // A screen reader hears the song start (the canvas itself says nothing).
+ assert.match(await beat.locator('[aria-live="polite"].beat-sr').textContent(),/Skipping Motif started/)
  // The first notes (from the chart) hit right on time with their lane's key.
  const easy=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.easy.tap.slice(0,3)
  for(const [t,lane] of easy){
@@ -4270,6 +4288,12 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  // The breakdown: the grade, a bar for each kind of hit, and the song as a strip of tiles.
  await br.getByRole('list',{name:'Hits'}).waitFor();await br.getByLabel(/^Grade /).waitFor();await br.getByRole('img',{name:/^The song, tile by tile/}).waitFor()
  if(process.env.KONO_SHOTS)await beat.screenshot({path:process.env.KONO_SHOTS+'/beat-results.png'})
+ // Warm-up: the first 30 seconds, nothing kept; ■ End shows how it went, marked as a warm-up.
+ await beat.getByRole('button',{name:'Play again'}).click()
+ await beat.getByRole('button',{name:/^Warm-up/}).click();await field.waitFor()
+ await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>3000,null,{timeout:30000})
+ await beat.getByRole('button',{name:'■ End'}).click()
+ await br.getByRole('heading',{name:'Warm-up done'}).waitFor();await br.getByText(/Warm-ups don’t count/).waitFor()
  // Classic: a tap on the wrong column as the first tile arrives stops the song there.
  await beat.getByRole('button',{name:'Play again'}).click()
  await beat.getByLabel('Tap notes').waitFor();await beat.getByLabel('Classic').check()
@@ -4418,6 +4442,8 @@ test('KONO Medal Cove: a medal pusher: DROP feeds medals from your hand onto the
  await cove.locator('.cove-stage[aria-label^="KONO Medal Cove: 100 medals"]').waitFor({timeout:30000})
  // The three bonus wheels, one for each ship's pocket.
  await cove.getByRole('figure',{name:/🏮 wheel/}).waitFor();await cove.getByRole('figure',{name:/⭐ wheel/}).waitFor();await cove.getByRole('figure',{name:/🗼 wheel/}).waitFor()
+ // Drawing quality: the cloud's software graphics start at the lightest level (phones step down by themselves when slow).
+ assert.ok(['hd','lighter','lite'].includes(await cove.locator('[data-quality]').first().getAttribute('data-quality')),'the machine reports its drawing quality')
  // DROP feeds medals from your hand (once the machine is filled and ready).
  const drop=cove.getByRole('button',{name:/^DROP/});await page.waitForFunction(()=>{const b=[...document.querySelectorAll('.cove-drop')][0];return b&&!b.disabled},null,{timeout:30000})
  // Pressed where it is on screen (the game holds its layout steady, so there's nothing to scroll).

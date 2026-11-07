@@ -13,8 +13,22 @@ import {LADDER} from '../store/bloom'
 // KONO Beat brings its charts (every song, three levels): loaded when it's opened.
 const RhythmGame=lazy(()=>import('./RhythmGame'))
 import BeatSummary from './BeatSummary'
-// KONO Medal Cove is 3D (three.js): loaded only when it's opened.
-const MedalCove=lazy(()=>import('./MedalCoveGame'))
+// KONO Medal Cove is 3D (three.js): loaded when it's opened, or quietly ahead of time while the arcade is
+// open (prefetchCove), so tapping it doesn't wait on the download.
+const loadCove=()=>import('./MedalCoveGame')
+const MedalCove=lazy(loadCove)
+let coveFetched=false
+/** The arcade is open: a few seconds later, when the device is idle, fetch Medal Cove's 3D machine in the
+ * background, unless the person has asked to save data or is on a slow connection. */
+function prefetchCove(){
+ if(coveFetched)return ()=>undefined
+ const net=(navigator as Navigator&{connection?:{saveData?:boolean;effectiveType?:string}}).connection
+ if(net?.saveData||/(^|-)2g$/.test(net?.effectiveType??''))return ()=>undefined
+ const go=()=>{if(coveFetched)return;coveFetched=true;void loadCove().catch(()=>{coveFetched=false})}
+ const idle=(window as Window&{requestIdleCallback?:(f:()=>void,o?:{timeout:number})=>number}).requestIdleCallback
+ const t=window.setTimeout(()=>idle?idle(go,{timeout:4000}):go(),3000)
+ return ()=>window.clearTimeout(t)
+}
 import {flapMedal} from '../store/flappy'
 import {readBlastFace} from '../store/blastFace'
 import BlastFacePicker from './BlastFacePicker'
@@ -68,6 +82,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
  // The Sweet swap level picked on the map (the next one to beat, unless you pick one you've played).
  const [candyPick,setCandyPick]=useState<number|null>(null)
  const [ended,setEnded]=useState<GameResult|null>(null),[round,setRound]=useState(0),[started,setStarted]=useState(false)
+ useEffect(()=>arcade?prefetchCove():undefined,[arcade])
  const handle=useRef<GameHandle>(null)
  const [now,setNow]=useState(startedAt)
  const [result,setResult]=useState<string|null>(null)
@@ -108,6 +123,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
   :game==='beat'?<Suspense fallback={<p role="status">Loading the songs…</p>}><RhythmGame key={round} ref={handle} onEnd={r=>{
    // Coins follow how well it went, more for harder levels; the best kept is the score.
    const mult=r.level==='jeff'?1.8:r.level==='medium'?1.4:1,lvl=r.level==='jeff'?'Jeff tier':r.level==='medium'?'Medium':'Easy',t=r.tally
+   if(r.warmup){finish('beat',0,r.title+' warm-up: '+t.perfect+' perfect, '+t.great+' great, '+t.good+' good, '+t.miss+' missed'+(t.early+t.late?' ('+t.early+' early, '+t.late+' late)':'')+'. Warm-ups don’t count; play the whole song when you’re ready.',{title:'Warm-up done',coinScore:0,scoreText:r.score.toLocaleString(),won:true,detail:<BeatSummary r={r}/>});return}
    finish('beat',r.failed?0:r.score,r.title+' ('+lvl+'): '+t.perfect+' perfect, '+t.great+' great, '+t.good+' good, '+t.miss+' missed'+(t.early+t.late?' ('+t.early+' early, '+t.late+' late)':'')+'. Best combo '+t.best+'.'+(r.failed?(r.classic?' Classic: stopped at tile '+r.tiles+' of '+r.of+'.':' Clear the gauge to finish the song!'):' 🥁'),{title:r.clear==='fail'?(r.classic?'Classic: '+r.tiles+' tiles':'Song failed'):r.clear==='all'?'All perfect! 🌟':r.clear==='full'?'Full combo! ✨':'Song clear!',coinScore:Math.round(r.acc/100*(r.failed?10:30)*mult),scoreText:r.score.toLocaleString(),won:!r.failed,detail:<BeatSummary r={r}/>})
   }}/></Suspense>
   :game==='paper'?<PaperKono key={round} ref={handle} mode={paperMode} sound={sound} onEnd={r=>r.team?finish('paper',0,'Blue '+r.team.blue+'% · Red '+r.team.red+'%'+(r.kills?'. You cut '+r.kills+' trail'+(r.kills===1?'':'s'):'')+'.',{title:r.team.won?'Blue wins! 🏆':r.team.blue===r.team.red?'A tie!':'Red wins this time',coinScore:(r.team.won?25:10)+r.kills*5,scoreText:'Team battle',won:r.team.won}):finish('paper',r.share,'You claimed '+r.share+'% of the map'+(r.kills?' and cut '+r.kills+' trail'+(r.kills===1?'':'s'):'')+'. Rank #'+r.rank+'.',{title:r.rank===1?'Top of the map!':'Nice run!',coinScore:Math.round(r.share+r.kills*5),scoreText:r.share+'%',won:r.share>1})}/>

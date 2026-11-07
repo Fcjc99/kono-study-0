@@ -236,11 +236,14 @@ function Workspace({store}:{store:Store}){
  // dialog: an edit, a kid's look, a setting, an upload that finishes. Background saves (KONO's daily
  // wish, a calendar refresh) stay quiet unless someone was using KONO in the last minute and a half.
  const lastInput=useRef(0),[savedToast,setSavedToast]=useState(0)
+ // While an action that shows its own "Done… · Undo" runs, and for a few seconds after (KONO saving the
+ // stickers or snack it earned), saves don't also flash "✓ Saved": on a phone they stacked up.
+ const ownConfirmation=useRef(false),quietUntil=useRef(0)
  useEffect(()=>{const mark=()=>{lastInput.current=Date.now()};window.addEventListener('pointerdown',mark,true);window.addEventListener('keydown',mark,true);return()=>{window.removeEventListener('pointerdown',mark,true);window.removeEventListener('keydown',mark,true)}},[])
  const save=useCallback(async(action:SetStateAction<AppData>,options?:{undoable?:boolean})=>{
   const before=repository.changeCount,recent=Date.now()-lastInput.current<90_000
   const ok=await repository.update(action,options)
-  if(ok&&recent&&repository.changeCount!==before)setSavedToast(n=>n+1)
+  if(ok&&recent&&repository.changeCount!==before&&!ownConfirmation.current&&Date.now()>quietUntil.current)setSavedToast(n=>n+1)
   return ok
  },[repository])
  const experience=data.settings.experience??'cozy'
@@ -761,7 +764,7 @@ function Workspace({store}:{store:Store}){
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();setSearch(v=>!v)}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[])
  // undo: a one-tap action (done, swipe, quick add, overdue) confirms in a bar at the bottom with Undo.
  // snackFor: a just-finished assignment, whose snack the toast offers to feed KONO right away.
- const run=async(action:()=>Promise<boolean>,success:string,undo=false,snackFor?:string)=>{try{const ok=await action();if(ok&&undo){setMessage('');const done=snackFor?data.tasks.find(t=>t.id===snackFor):undefined,snack=done?{taskId:done.id,treat:treatFor({...done,done:true})}:undefined;setUndoToast(t=>({text:success,at:(t?.at??0)+1,...(snack?{snack}:{})}))}else setMessage(ok?success:'Not saved yet. Check the save status; your working copy is preserved.')}catch(e){setMessage(e instanceof Error?e.message:'Could not finish. Your work is preserved.')}}
+ const run=async(action:()=>Promise<boolean>,success:string,undo=false,snackFor?:string)=>{try{ownConfirmation.current=undo;const ok=await action().finally(()=>{ownConfirmation.current=false;if(undo)quietUntil.current=Date.now()+4000});if(ok&&undo){setMessage('');const done=snackFor?data.tasks.find(t=>t.id===snackFor):undefined,snack=done?{taskId:done.id,treat:treatFor({...done,done:true})}:undefined;setUndoToast(t=>({text:success,at:(t?.at??0)+1,...(snack?{snack}:{})}))}else setMessage(ok?success:'Not saved yet. Check the save status; your working copy is preserved.')}catch(e){setMessage(e instanceof Error?e.message:'Could not finish. Your work is preserved.')}}
  const [todoEditing,setTodoEditing]=useState('')
  const [undoToast,setUndoToast]=useState<{text:string;at:number;snack?:{taskId:string;treat:Treat}}|null>(null)
  useEffect(()=>{if(!undoToast)return;const t=window.setTimeout(()=>setUndoToast(null),undoToast.snack?10000:7000);return()=>window.clearTimeout(t)},[undoToast])

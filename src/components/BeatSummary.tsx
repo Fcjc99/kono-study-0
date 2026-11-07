@@ -19,7 +19,7 @@ export default function BeatSummary({r}:{r:BeatResult}){
     <div><dt>Best combo</dt><dd>{t.best}</dd></div>
     <div><dt>Tiles</dt><dd>{r.tiles} / {r.of}</dd></div>
    </dl>
-   {CLEAR[r.clear]&&<span className="beat-summary-clear">{CLEAR[r.clear]}{r.classic?' · Classic':''}</span>}
+   {(r.warmup||CLEAR[r.clear])&&<span className="beat-summary-clear">{r.warmup?'Warm-up':CLEAR[r.clear]}{r.classic&&!r.warmup?' · Classic':''}</span>}
   </div>
   <ul className="beat-summary-bars" aria-label="Hits">{ROWS.map(x=><li key={x.j} className={'is-'+x.j}><span>{x.name}</span><i style={{width:(t[x.j]/most*100)+'%'}}/><b>{t[x.j]}</b></li>)}</ul>
   {lean&&<p className="beat-summary-lean">{lean}: {t.early} early, {t.late} late. The Sync check can fix it.</p>}
