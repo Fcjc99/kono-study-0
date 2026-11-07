@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Makes KONO Beat's charts from the arcade's songs: a tile for each note of the song's lead melody, on the
-song's own beat grid. First the grid: the song's tempo and beats are tracked (fine-tuned around the listed
+"""Makes KONO Beat's charts from the arcade's songs: tiles on the song's beat, where it really hits (see
+chart_beat), each keeping the lead melody's pitch there for the tap notes. (chart_melody, tiles on every
+melody note, is kept for reference: players found its rhythm hard to follow.) First the grid: the song's tempo and beats are tracked (fine-tuned around the listed
 tempo) and lined up with where the lead really plays. Then the melody (tools/melody.py) and the levels from it
 (see chart_melody): Jeff tier every melody note, Medium the strongest at least 0.2 s apart, Easy the strongest
 of those at least 0.42 s apart. A note that rings on is a long tile. Columns follow the tune: higher notes to
@@ -143,6 +144,62 @@ def chart_melody(notes, beats, dur, swing=0.5):
         charts[level] = {'tap': tap, 'hold': hold, 'sky': [], 'ribbon': []}
     return charts
 
+def chart_beat(onset, times, cent, beats, dur, swing, notes):
+    """All three levels on the song's beat (what a listener taps along to), not its melody: a tile wherever
+    the song really hits on its grid. Easy: the beats that land on a clear hit. Medium: those, plus the
+    off-beat 8ths that hit hard. Jeff tier: those, plus the strong 16ths. A tile where the lead holds a
+    note for long is a long tile. Columns go by the sound: low hits (kick) toward the left, bright ones
+    (snare, hats) toward the right, never the same column twice in a row so the hands keep moving. Each
+    tile keeps the melody's pitch at that moment, for the tap notes."""
+    lo, hi = 2.0, dur - 4.0
+    at = (0, swing / 2, swing, swing + (1 - swing) / 2)
+    steps, pos = [], []
+    for i in range(len(beats) - 1):
+        for k in range(4): steps.append(beats[i] + (beats[i + 1] - beats[i]) * at[k]); pos.append(k)
+    steps, pos = np.array(steps), np.array(pos)
+    keep = (steps >= lo) & (steps <= hi); steps, pos = steps[keep], pos[keep]
+    ref = np.percentile(onset, 97) + 1e-9
+    def hit(t):
+        w = (times > t - 0.035) & (times < t + 0.035)
+        return float(onset[w].max() / ref) if w.any() else 0.0
+    strength = np.array([hit(t) for t in steps])
+    bright = np.interp(steps, times, cent)
+    rules = {'easy': ((0,), 0.30, 0.40), 'medium': ((0, 2), 0.30, 0.20), 'jeff': ((0, 1, 2, 3), 0.30, 0.10)}
+    # A beat counts on its own; an off-beat or 16th only when it hits harder (otherwise it's just the
+    # beat's echo or a hi-hat tick nobody taps to).
+    need = {0: 0.30, 2: 0.65, 1: 0.85, 3: 0.85}
+    starts = np.array([n[0] for n in notes]) if notes else np.zeros(0)
+    def pitch_at(t, last):
+        if len(starts):
+            j = int(np.argmin(abs(starts - t)))
+            if abs(starts[j] - t) < 0.08: return int(notes[j][2])
+            for s0, e0, m0, _ in notes:
+                if s0 <= t < e0: return int(m0)
+        return last
+    charts = {}
+    for level, (ks, _, gap) in rules.items():
+        chosen = []
+        for t, k, st in zip(steps, pos, strength):
+            if k in ks and st >= need[k] and (not chosen or t - chosen[-1] >= gap - 1e-3): chosen.append(t)
+        chosen = np.array(chosen)
+        b = np.interp(chosen, steps, bright)
+        # Brightness ranked against the nearby tiles (about two bars), so a quiet intro still spreads out.
+        lanes, last_pitch, tap, hold = [], 64, [], []
+        for i, t in enumerate(chosen):
+            w = b[max(0, i - 8):i + 9]; lo_b, hi_b = np.percentile(w, 15), np.percentile(w, 85)
+            lane = int(np.clip(round((b[i] - lo_b) / max(1e-9, hi_b - lo_b) * 3), 0, 3))
+            if lanes and lane == lanes[-1]: lane = lane + 1 if (i % 2 == 0 and lane < 3) or lane == 0 else lane - 1
+            lanes.append(lane)
+            last_pitch = int(np.clip(pitch_at(t, last_pitch), 52, 88))
+            ms = int(round(t * 1000)); nxt = chosen[i + 1] if i + 1 < len(chosen) else t + 3
+            # A long tile where the lead starts a note here and holds it past the next beat.
+            long_note = next((n for n in notes if abs(n[0] - t) < 0.08 and n[1] - n[0] >= (0.8 if level == 'easy' else 0.6)), None) if notes else None
+            ends = steps[(steps > t + 0.3) & (steps <= min(long_note[1], nxt - 0.12) + 0.03)] if long_note else []
+            if long_note and len(ends): hold.append([ms, lane, int(round(ends[-1] * 1000)), last_pitch])
+            else: tap.append([ms, lane, last_pitch])
+        charts[level] = {'tap': tap, 'hold': hold, 'sky': [], 'ribbon': []}
+    return charts
+
 def loud_hits(x):
     """Times of clear jumps in loudness (the top 3%), for the last check."""
     e = np.sqrt(np.convolve(x.astype(np.float64) ** 2, np.ones(256) / 256, 'same'))[::HOP]
@@ -153,7 +210,7 @@ def loud_hits(x):
 songs = []
 for file, title, near in SONGS:
     x = load(f'public/audio/games/{file}.mp3'); dur = len(x) / SR
-    flux, times, cent, rms = analyse(x)
+    onset, times, cent, rms = analyse(x); flux = onset
     beats, bpm = track_beats(flux, times, near)
     swing = swing_of(beats, loud_hits(x))
     notes = melody.notes_of(x)
@@ -166,7 +223,7 @@ for file, title, near in SONGS:
         off = off[abs(off) < 0.035]; shift = float(np.median(off)) if len(off) else 0
         if abs(shift) < 0.002: break
         beats = beats + shift
-    charts = chart_melody(notes, beats, dur, swing)
+    charts = chart_beat(onset, times, cent, beats, dur, swing, notes)
     first = float(beats[0] % (60 / bpm))
     print(f'{file:7s} {dur:.0f}s bpm {bpm:.2f} swing {swing:.2f} melody notes {len(notes)}', {k: (len(v["tap"]), len(v["hold"])) for k, v in charts.items()})
     songs.append({'id': file, 'title': title, 'bpm': round(float(bpm), 3), 'first': round(first, 3), 'swing': round(swing, 3), 'ms': int(dur * 1000), 'charts': charts})

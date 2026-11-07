@@ -33,8 +33,8 @@ export type BeatResult={song:string;title:string;level:Level;score:number;acc:nu
  * from above), with the line near the bottom. Tiles come down from the top and reach the line on their note. */
 type Board={W:number;H:number;x0:number;colW:number;top:number;hitY:number}
 function boardOf(W:number,H:number):Board{const w=Math.min(W-16,Math.max(280,H*0.62),560),top=78;return {W,H,x0:(W-w)/2,colW:w/4,top,hitY:H-Math.max(70,H*0.15)}}
-/** KONO Beat: the arcade's songs as a piano-tiles game. Black tiles come down four columns, one for every note
- * the song's lead melody plays (tools/make_rhythm_charts.py), higher notes to the right; tap a tile's column
+/** KONO Beat: the arcade's songs as a piano-tiles game. Black tiles come down four columns, one on each beat
+ * where the song really hits (tools/make_rhythm_charts.py), low hits left and bright ones right; tap a tile's column
  * (or D F J K, or the arrows) as it reaches the line, and hold a long tile down to its end. Pick a song and
  * Easy, Medium or Jeff tier (store/rhythm has the rules). The song is the clock: it plays through Web Audio, and the notes follow the sound card's clock
  * (less the time sound takes to reach the speakers). Note speed and a timing nudge (for headphones that lag) are kept on this device. */
@@ -311,7 +311,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    <button type="button" className="beat-play" onClick={()=>void start()} disabled={loading}>{loading?'Loading…':<>▶ Play <span>{info.title}</span></>}</button>
    <button type="button" className="beat-warmup" onClick={()=>void start(true)} disabled={loading} title="The first 30 seconds; nothing counts">Warm-up · 30 s</button>
    <details className="beat-how"><summary>How to play</summary><ul>
-    <li><span className="is-floor"/>Every tile is a note of the song’s melody, so tapping along plays the tune with it: higher notes come down on the right, lower on the left. Tap a tile’s column (<kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd>) as it reaches the line; hold a long tile down to its end.</li>
+    <li><span className="is-floor"/>Every tile is a beat of the song: tap along with the rhythm you hear. Tap a tile’s column (<kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd>) as it reaches the line; hold a long tile down to its end.</li>
     <li>{level==='jeff'?'Jeff tier: the gauge starts full and drains with misses. Run out and the song’s over.':'Fill the gauge past '+CLEAR_AT+'% by the end to clear the song.'} If the tiles feel early or late (Bluetooth headphones often do), run the Sync check once; Note ticks play a click on every tile so you can hear it. Tap notes plays each tile’s note as you hit it.</li>
     <li><b>Classic:</b> no gauge, no second chances. Tap the wrong column or let a tile go by and the song stops there.</li>
    </ul></details>
