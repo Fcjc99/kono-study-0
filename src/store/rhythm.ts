@@ -56,11 +56,12 @@ export const CLEAR_AT=70
 /** Counts one judgement (`off` is how early (−) or late (+) a hit was; ticks have none). The gauge: on Easy and
  * Medium a perfect run fills it well past 70%, a miss takes a little; on Jeff tier hits top it up, a miss takes
  * a lot (less once it's low), and it running out ends the song. A missed tick of a hold or ribbon costs half. */
-export function count(t:Tally,j:Judge,level:Level,total:number,{off,tick=false}:{off?:number;tick?:boolean}={}):Tally{
+export function count(t:Tally,j:Judge,level:Level,total:number,{off,tick=false,free=false}:{off?:number;tick?:boolean;free?:boolean}={}):Tally{
  const combo=j==='miss'?0:t.combo+1,n={...t,[j]:t[j]+1,combo,best:Math.max(t.best,combo),weight:t.weight+WEIGHT[j]}
  if(off!==undefined&&j!=='miss'){if(Math.abs(off)<=WINDOWS[level][0]/2)n.exact++;else if(j!=='perfect'){if(off<0)n.early++;else n.late++}}
  const gain=(level==='easy'?2:level==='medium'?1.4:1)*100/Math.max(1,total)*WEIGHT[j]
- const loss=(level==='easy'?0.6:level==='medium'?1.6:t.gauge<30?4:7)*(tick?0.5:1)
+ // `free`: a miss while auto-sync is still finding this device's timing costs nothing.
+ const loss=free?0:(level==='easy'?0.6:level==='medium'?1.6:t.gauge<30?4:7)*(tick?0.5:1)
  n.gauge=Math.max(0,Math.min(100,t.gauge+(j==='miss'?-loss:gain)))
  n.failed=t.failed||(level==='jeff'&&n.gauge<=0)
  return n
@@ -132,3 +133,36 @@ export const saveKeys=(on:boolean)=>{try{localStorage.setItem(KEYS_KEY,on?'1':'0
 export const CLASSIC_KEY='kono-beat-classic'
 export const readClassic=()=>{try{return localStorage.getItem(CLASSIC_KEY)==='1'}catch{return false}}
 export const saveClassic=(on:boolean)=>{try{localStorage.setItem(CLASSIC_KEY,on?'1':'0')}catch{/* this device only */}}
+
+/** Auto-sync: a phone (and more so Bluetooth headphones) plays sound later than it says, so taps that match
+ * the music land late against the tiles, or miss. While a song plays, each tap's distance from the nearest
+ * tile in its column (within SYNC_REACH ms) is collected; once a few agree, the median is the correction
+ * (applied to the Timing, kept on this device). It settles when taps sit within SYNC_CLOSE ms, after a few
+ * corrections, or SYNC_SETTLE_MS into the song; until then misses cost nothing. */
+export const SYNC_REACH=400,SYNC_CLOSE=25,SYNC_SETTLE_MS=20000
+export function createAutoSync(){
+ let samples:number[]=[],fixes=0,settled=false
+ const median=(v:number[])=>{const a=[...v].sort((x,y)=>x-y),m=a.length>>1;return a.length%2?a[m]:(a[m-1]+a[m])/2}
+ return {
+  get settled(){return settled},
+  /** A tap `d` ms after its nearest tile (negative: before); returns the correction to add to Timing, or 0. */
+  tap(d:number,songMs:number):number{
+   if(settled)return 0
+   if(songMs>SYNC_SETTLE_MS){settled=true;return 0}
+   if(!Number.isFinite(d)||Math.abs(d)>SYNC_REACH)return 0
+   samples.push(d);if(samples.length<6)return 0
+   const m=median(samples.slice(-8))
+   if(Math.abs(m)<=SYNC_CLOSE){settled=true;return 0}
+   samples=[];fixes++;if(fixes>=3)settled=true
+   return Math.round(m)
+  },
+  /** The song got past the settling time without taps (a quiet start): stop waiting. */
+  tick(songMs:number){if(songMs>SYNC_SETTLE_MS)settled=true},
+ }
+}
+/** The tile in `lane` nearest `ms` (hit or not), and how far `ms` is from it; null when none is within reach. */
+export function nearestIn(notes:Note[],lane:number,ms:number):number|null{
+ let best:number|null=null
+ for(const n of notes){if(n.t-ms>SYNC_REACH)break;if(n.kind==='sky'||n.lane!==lane)continue;const d=ms-n.t;if(Math.abs(d)<=SYNC_REACH&&(best===null||Math.abs(d)<Math.abs(best)))best=d}
+ return best
+}

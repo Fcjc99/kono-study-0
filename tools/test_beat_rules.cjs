@@ -41,4 +41,24 @@ test('Classic: a tap on the wrong column while a tile waits elsewhere; an empty 
 test('Classic and Tap notes settings: Tap notes on unless turned off, Classic off unless turned on',()=>{
  assert.equal(R.readKeys(),true);assert.equal(R.readClassic(),false)
 })
+test('auto-sync: taps that land 180 ms late (a phone’s sound delay) give a +180 correction after a few taps',()=>{
+ const a=R.createAutoSync();let fix=0
+ for(let i=0;i<6;i++)fix=a.tap(180+(i%2?6:-6),2000+i*300)||fix
+ assert.ok(Math.abs(fix-180)<=6,'correction '+fix);assert.equal(a.settled,false,'it checks again after correcting')
+ for(let i=0;i<6;i++)assert.equal(a.tap(i%2?8:-8,5000+i*300),0)
+ assert.equal(a.settled,true,'settles once taps sit on the tiles')
+})
+test('auto-sync: taps already on time settle it straight away; stray taps far from any tile are ignored; it stops waiting after 20 s',()=>{
+ const a=R.createAutoSync();for(let i=0;i<6;i++)assert.equal(a.tap(i%2?10:-10,1000+i*200),0);assert.equal(a.settled,true)
+ const b=R.createAutoSync();assert.equal(b.tap(900,1000),0);assert.equal(b.tap(NaN,1000),0);assert.equal(b.settled,false)
+ b.tick(R.SYNC_SETTLE_MS+1);assert.equal(b.settled,true)
+})
+test('auto-sync: the nearest tile in the column, hit or not, within reach',()=>{
+ const notes=R.playOf({tap:[[1000,1,60],[1300,1,62],[1200,2,64]],hold:[],sky:[],ribbon:[]},120).notes
+ notes[0].hit='perfect'
+ assert.equal(R.nearestIn(notes,1,1100),100);assert.equal(R.nearestIn(notes,1,1290),-10);assert.equal(R.nearestIn(notes,3,1200),null)
+})
+test('a miss while auto-sync settles costs no gauge (Jeff tier included); after, it does',()=>{
+ const t=R.freshTally('jeff');assert.equal(R.count(t,'miss','jeff',100,{free:true}).gauge,100);assert.ok(R.count(t,'miss','jeff',100,{}).gauge<100)
+})
 console.log(passed+' KONO Beat rule tests passed')

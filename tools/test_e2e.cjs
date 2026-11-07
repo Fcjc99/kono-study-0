@@ -1111,6 +1111,28 @@ test('Welcome tour: a new plan gets three steps (the island, KONO, adding work),
  assert.equal(await page.getByRole('region',{name:'Welcome to KONO'}).count(),0,'the tour doesn’t come back')
 })
 
+test('Finishing something earns coins: its Done message says +10 with a Shop button that opens KONO Town’s shops; only the garden still announces growing (the rest are decorations you buy)',async({context,page})=>{
+ const cloud=fakeCloud(),data=()=>cloud.users.alice.plan.data,pid=data().activeProfileId
+ // Two finished before (and one already done in the plan): the next one also reaches the garden's first blooms.
+ const p=data().sanctuaryProgress[pid];p.creditedTaskIds=['old-1','old-2'];p.totalCredits=2;p.featureStages={...(p.featureStages??{}),garden:0}
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const notices=[];await page.exposeFunction('noteEvolution',t=>notices.push(t))
+ await page.evaluate(()=>new MutationObserver(()=>{const n=document.querySelector('.sanctuary-evolution-toast');if(n)window.noteEvolution(n.textContent)}).observe(document.body,{subtree:true,childList:true}))
+ const coinsLabel=async()=>Number((await page.getByRole('button',{name:/^KONO Town: /}).first().getAttribute('aria-label')).replace(/[^\d]/g,''))
+ const before=await coinsLabel()
+ await addFromMenu(page,'tasks','Read chapter 4')
+ await page.getByRole('button',{name:/^Complete Read chapter 4/}).first().click()
+ const shop=page.locator('.undo-toast').getByRole('button',{name:/^\+10 coins.*Spend them in KONO Town$/})
+ await shop.waitFor();assert.match(await shop.textContent(),/\+10 · Shop/)
+ await page.waitForFunction(b=>Number(document.querySelector('[aria-label^="KONO Town: "]')?.getAttribute('aria-label').replace(/[^\d]/g,''))===b+10,before)
+ await page.waitForTimeout(2500)
+ assert.ok(notices.every(t=>/garden/i.test(t)),'only the garden announces a change: '+JSON.stringify(notices))
+ await shop.click()
+ await page.getByRole('dialog',{name:'KONO Town'}).waitFor()
+ assert.equal(await page.locator('.undo-toast').count(),0,'the message closes')
+})
+
 test('Getting started: a new plan shows a Set up KONO chip that opens three steps; each opens the right place, ticks off when done or skipped, and Hide keeps it hidden',async({page})=>{
  await createPlan(page)
  const card=page.getByRole('region',{name:'Getting started'})
@@ -4195,6 +4217,38 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  if(process.env.KONO_SHOTS)await candy.screenshot({path:process.env.KONO_SHOTS+'/candy.png'})
 })
 
+test('KONO Beat auto-sync: a phone whose sound comes 180 ms late (every tap 180 ms after its tile) doesn’t lose on Jeff tier; KONO corrects the timing, the later taps hit, and the Timing is kept',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
+ await town.getByRole('button',{name:/KONO Beat/}).click()
+ const beat=await startGame(page,'🥁 KONO Beat')
+ await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Jeff tier/}).click()
+ await beat.getByRole('button',{name:/^Skipping Motif/}).click()
+ await beat.getByText(/^0 ms$/).waitFor()
+ await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click()
+ await beat.getByRole('img',{name:'KONO Beat: Skipping Motif'}).waitFor()
+ const chart=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.jeff
+ const notes=[...chart.tap,...chart.hold].map(([t,lane])=>[t,lane]).sort((a,b)=>a[0]-b[0]).filter(([t])=>t<14000)
+ // Every tap 180 ms after its tile, as heard on a phone with that much sound delay; on the song's own clock
+ // (minus the live Timing, which is what auto-sync changes).
+ await page.evaluate(async notes=>{const cv=document.querySelector('.beat-canvas')
+  for(const [t,lane] of notes){const key='dfjk'[lane];while(cv.songRaw()<t+180-250)await new Promise(r=>setTimeout(r,5))
+   while(cv.songRaw()<t+180){/* tight wait */}
+   window.dispatchEvent(new KeyboardEvent('keydown',{key}));window.dispatchEvent(new KeyboardEvent('keyup',{key}))}},notes)
+ await beat.getByRole('button',{name:'■ End'}).click()
+ const br=beat.getByRole('region',{name:'Results'})
+ const line=await br.locator('.game-result-line').textContent()
+ const [,perfect,great,good,missed]=/(\d+) perfect, (\d+) great, (\d+) good, (\d+) missed/.exec(line).map(Number)
+ assert.ok(perfect+great>=notes.length*0.6,'most taps hit once synced: '+line)
+ await beat.getByRole('button',{name:'Play again'}).click()
+ const timing=Number((await beat.locator('.beat-offset output').nth(1).textContent()).replace(/[^\d-]/g,''))
+ assert.ok(timing>=150&&timing<=210,'the Timing was corrected to about +180 ms and kept: '+timing)
+})
+
 test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with results), KONO.io (the map, a live leaderboard, steering, ■ End gives your share; team battle: Blue against Red on a clock) and Meowdoku’s Undo, Hint and Auto ✕',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
@@ -4294,13 +4348,16 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>3000,null,{timeout:30000})
  await beat.getByRole('button',{name:'■ End'}).click()
  await br.getByRole('heading',{name:'Warm-up done'}).waitFor();await br.getByText(/Warm-ups don’t count/).waitFor()
- // Classic: a tap on the wrong column as the first tile arrives stops the song there.
+ // Classic: once the timing has settled, a tap on the wrong column stops the song there.
  await beat.getByRole('button',{name:'Play again'}).click()
  await beat.getByLabel('Tap notes').waitFor();await beat.getByLabel('Classic').check()
  await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor()
- await page.evaluate(async ([t,key])=>{const cv=document.querySelector('.beat-canvas');while(!cv?.songNow||cv.songNow()<t)await new Promise(r=>setTimeout(r,5))
-  window.dispatchEvent(new KeyboardEvent('keydown',{key}));window.dispatchEvent(new KeyboardEvent('keyup',{key}))},[easy[0][0],'dfjk'[(easy[0][1]+2)%4]])
- await br.getByText(/Classic: stopped at tile 0 of \d+/).waitFor({timeout:15000})
+ // Six tiles on time first (auto-sync settles: this device's timing is right), then the wrong column.
+ const first7=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.easy.tap.slice(0,7)
+ await page.evaluate(async notes=>{const cv=document.querySelector('.beat-canvas');while(!cv?.songNow)await new Promise(r=>setTimeout(r,5))
+  for(const [i,[t,lane]] of notes.entries()){const key='dfjk'[i<6?lane:(lane+2)%4];while(cv.songNow()<t-250)await new Promise(r=>setTimeout(r,5));while(cv.songNow()<t){/* exactly on time */}
+   window.dispatchEvent(new KeyboardEvent('keydown',{key}));window.dispatchEvent(new KeyboardEvent('keyup',{key}))}},first7)
+ await br.getByText(/Classic: stopped at tile 6 of \d+/).waitFor({timeout:15000})
  await beat.getByRole('button',{name:'Play again'}).click();await beat.getByLabel('Classic').uncheck()
  await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor();await beat.getByRole('button',{name:'■ End'}).click();await br.waitFor()
  if(process.env.KONO_SHOTS){

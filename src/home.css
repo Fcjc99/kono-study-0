@@ -142,6 +142,8 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 
 /* The "Done" toast offers the snack the work just earned (Workspace › run). */
 .undo-toast .undo-toast-snack{opacity:.85;font-weight:600}
+.undo-toast .undo-toast-shop{background:#ffe08a!important;color:#4a3207!important;border-color:transparent!important;font-weight:800;white-space:nowrap;text-transform:none!important}
+.undo-toast .undo-toast-shop span{flex:none;overflow:visible}
 .undo-toast .undo-toast-feed{background:#ffe7b8!important;color:#4a2a17!important;border-color:transparent!important;font-weight:800;white-space:nowrap}
 
 /* Today view (the installed app on a phone, or its Today shortcut): a slim header in place of the island. */
@@ -322,3 +324,6 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .workbench .island-mode-tabs .wb-scene-arcade:not(#x):not(#y):hover{filter:brightness(1.08)}
 @keyframes world-shine{0%,70%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
 @media(prefers-reduced-motion:reduce){.workbench .island-mode-tabs .wb-scene-world::after{animation:none}}
+/* On a phone, a Done message with two actions (Feed KONO and the coins' Shop) puts its words on their
+   own line above the buttons, instead of squeezing them to a word a line. */
+@media (max-width:600px){.undo-toast:has(.undo-toast-shop){flex-wrap:wrap;row-gap:8px}.undo-toast:has(.undo-toast-shop)>span:first-child{flex:1 0 100%;white-space:normal}.undo-toast:has(.undo-toast-shop) button{flex:1 1 auto}}

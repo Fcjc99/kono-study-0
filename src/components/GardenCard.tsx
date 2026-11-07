@@ -272,6 +272,9 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
         })
       }
       const handleEvolutionMilestone = (payload: EvolutionMilestonePayload) => {
+        // Only the garden (grass and flowers) still grows on the island by itself; the tree, cottage, pond and
+        // lanterns became decorations you place, so their stage notices would announce a change nobody sees.
+        if (payload.feature !== 'garden') return
         setEvolutionNotice(payload)
         if (evolutionNoticeTimerRef.current) window.clearTimeout(evolutionNoticeTimerRef.current)
         evolutionNoticeTimerRef.current = window.setTimeout(() => setEvolutionNotice(null), payload.queueRemaining > 0 ? 1_050 : 2_150)
