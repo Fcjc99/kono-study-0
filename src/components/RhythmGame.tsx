@@ -173,9 +173,9 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
     }
     if(warm.current&&tally.current.failed)tally.current={...tally.current,failed:false,gauge:Math.max(tally.current.gauge,1)}
     if(warm.current&&now>WARMUP_MS){finishRef.current();return}
-    if(tally.current.failed&&!stoppedAt.current){finishRef.current();return}
-    const last=pl.notes.length?pl.notes[pl.notes.length-1].end??pl.notes[pl.notes.length-1].t:0
-    if(now>last+2500)finishRef.current()
+    // The song always plays to its end: an empty gauge (Jeff tier) only means it isn't cleared, decided when
+    // the music finishes (the song's own end ends the round; this is only a backstop if that never comes).
+    if(now>info.ms+1500)finishRef.current()
    }
    const px=(b.hitY-b.top)/ap,yOf=(ms:number)=>b.hitY-(ms-now)*px // where a moment is on the board
    const beat=60000/info.bpm,pulse=Math.max(0,1-(((now%beat)+beat)%beat)/beat)
@@ -305,14 +305,14 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
     <button type="button" className="beat-sync-open" onClick={()=>setSyncing(true)}>Sync check</button>
     <label className="beat-ticks"><input type="checkbox" checked={ticks} onChange={e=>{setTicks(e.target.checked);saveTicks(e.target.checked)}}/> Note ticks</label>
     <label className="beat-ticks"><input type="checkbox" checked={keys} onChange={e=>{setKeys(e.target.checked);saveKeys(e.target.checked)}}/> Tap notes</label>
-    <label className="beat-ticks"><input type="checkbox" checked={classic} onChange={e=>{setClassic(e.target.checked);saveClassic(e.target.checked)}}/> Classic</label>
+    <label className="beat-ticks"><input type="checkbox" checked={classic} onChange={e=>{setClassic(e.target.checked);saveClassic(e.target.checked)}}/> Classic (one miss ends the song)</label>
    </div>
    {syncing&&<BeatSync onDone={ms=>{setOffsetState(ms);saveOffset(ms)}} onClose={()=>setSyncing(false)}/>}
    <button type="button" className="beat-play" onClick={()=>void start()} disabled={loading}>{loading?'Loading…':<>▶ Play <span>{info.title}</span></>}</button>
    <button type="button" className="beat-warmup" onClick={()=>void start(true)} disabled={loading} title="The first 30 seconds; nothing counts">Warm-up · 30 s</button>
    <details className="beat-how"><summary>How to play</summary><ul>
     <li><span className="is-floor"/>Every tile is a beat of the song: tap along with the rhythm you hear. Tap a tile’s column (<kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd>) as it reaches the line; hold a long tile down to its end.</li>
-    <li>{level==='jeff'?'Jeff tier: the gauge starts full and drains with misses. Run out and the song’s over.':'Fill the gauge past '+CLEAR_AT+'% by the end to clear the song.'} If the tiles feel early or late (Bluetooth headphones often do), run the Sync check once; Note ticks play a click on every tile so you can hear it. Tap notes plays each tile’s note as you hit it.</li>
+    <li>{level==='jeff'?'Jeff tier: the gauge starts full and drains with misses; keep it above empty to clear the song. The song always plays to the end.':'Fill the gauge past '+CLEAR_AT+'% by the end to clear the song.'} If the tiles feel early or late (Bluetooth headphones often do), run the Sync check once; Note ticks play a click on every tile so you can hear it. Tap notes plays each tile’s note as you hit it.</li>
     <li><b>Classic:</b> no gauge, no second chances. Tap the wrong column or let a tile go by and the song stops there.</li>
    </ul></details>
   </section>

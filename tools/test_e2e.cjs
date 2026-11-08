@@ -4286,6 +4286,27 @@ test('KONO Beat auto-sync: a phone whose sound comes 180 ms late (every tap 180 
  assert.ok(timing>=150&&timing<=210,'the Timing was corrected to about +180 ms and kept: '+timing)
 })
 
+test('KONO Beat plays the whole song: on Jeff tier, missing everything empties the gauge but the song keeps going (it only isn’t cleared)',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
+ await town.getByRole('button',{name:/KONO Beat/}).click()
+ const beat=await startGame(page,'🥁 KONO Beat')
+ await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Jeff tier/}).click()
+ await beat.getByRole('button',{name:/^Skipping Motif/}).click()
+ await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click()
+ await beat.getByRole('img',{name:'KONO Beat: Skipping Motif'}).waitFor()
+ // No taps at all for 30 s of song (auto-sync settles at 20 s, then every miss drains the gauge).
+ await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>30000,null,{timeout:60000})
+ assert.equal(await beat.getByRole('region',{name:'Results'}).count(),0,'still playing')
+ assert.ok(await page.evaluate(()=>{const ms=Number(document.querySelector('.beat-canvas').dataset.ms);return new Promise(r=>setTimeout(()=>r(Number(document.querySelector('.beat-canvas').dataset.ms)>ms),500))}),'the song clock keeps running')
+ await beat.getByRole('button',{name:'■ End'}).click()
+ await beat.getByRole('region',{name:'Results'}).getByRole('heading',{name:'Song failed'}).waitFor()
+})
+
 test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with results), KONO.io (the map, a live leaderboard, steering, ■ End gives your share; team battle: Blue against Red on a clock) and Meowdoku’s Undo, Hint and Auto ✕',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
