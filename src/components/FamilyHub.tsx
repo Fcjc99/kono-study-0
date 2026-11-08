@@ -1,5 +1,6 @@
 import {lazy,Suspense,useCallback,useEffect,useRef,useState,type CSSProperties,type ReactNode} from 'react'
 import {localDate,uid,type AppData,type Kid} from '../store/model'
+import {smoothly} from '../store/viewTransition'
 import {toneVars} from '../store/tones'
 import type {PlannerRepository} from '../store/repository'
 import {kidItemsForDate,type KidItem as DayItem} from '../store/kids'
@@ -49,7 +50,7 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
  const [started,setStarted]=useState(startTapped)
  const [locked,setLocked]=useState(()=>readLocal(LOCK_KEY)==='1')
  const [hidden,setHidden]=useState<Set<string>>(new Set())
- const [days,setDays]=useState(()=>Number(readLocal(DAYS_KEY))||4),[offset,setOffset]=useState(0)
+ const [days,setDays]=useState(()=>{const n=readLocal(DAYS_KEY);return n==='0'?0:Number(n)||4}),[offset,setOffset]=useState(0)
  const [quiet,setQuietState]=useState<Quiet>(readQuiet)
  const [panels,setPanels]=useState(readPanels)
  const [idle,setIdle]=useState(false),[wokeUntil,setWokeUntil]=useState(0)
@@ -89,14 +90,14 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
  const openItem=(i:DayItem)=>{touched();if(locked||i.kind==='class')return;onOpen(i)}
 
  const dayName=(date:string)=>date===today?'Today':date===addDays(today,1)?'Tomorrow':new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'long'})
- const column=(date:string,dense=false)=>{const items=itemsFor(date),timed=items.filter(i=>i.time&&!i.until),allDay=items.filter(i=>!i.time||i.until),w=forecastFor(date)
-  return <section key={date} className={'hub-day'+(date===today?' is-today':'')} aria-label={dayName(date)}>
-   <header><b>{dense&&date!==today?new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'short'}):dayName(date)}</b><small>{new Date(date+'T12:00:00').toLocaleDateString(undefined,dense?{day:'numeric'}:{month:'short',day:'numeric'})}</small>{w&&<span className="hub-day-weather" aria-label={'High '+Math.round(w.highF)}>{weatherEmoji[w.weather]} {Math.round(w.highF)}°</span>}</header>
+ const column=(date:string,dense=false,who?:Person)=>{const items=itemsFor(date).filter(i=>!who||personFor(i.kidId).id===who.id),timed=items.filter(i=>i.time&&!i.until),allDay=items.filter(i=>!i.time||i.until),w=forecastFor(date)
+  return <section key={date+(who?.id??'')} className={'hub-day'+(date===today?' is-today':'')+(who?' is-person':'')} aria-label={who?who.name+', '+dayName(date):dayName(date)} style={who?{'--p':who.color,...toneVars(who.color)} as CSSProperties:undefined}>
+   {who?<header><Avatar className="hub-face" who={who}/><b>{who.name}</b></header>:<header><b>{dense&&date!==today?new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'short'}):dayName(date)}</b><small>{new Date(date+'T12:00:00').toLocaleDateString(undefined,dense?{day:'numeric'}:{month:'short',day:'numeric'})}</small>{w&&<span className="hub-day-weather" aria-label={'High '+Math.round(w.highF)}>{weatherEmoji[w.weather]} {Math.round(w.highF)}°</span>}</header>}
    {daysOffOn(data,pid,date).map(d=><p key={d.id} className="hub-banner is-off">{dayOffIcon(d.reason)} {dayOffLabel(data,d)}</p>)}
-   {specialOn(data,pid,date).map(x=><p key={x.day.id} className="hub-banner" style={{'--p':personFor(x.day.kidId).color} as CSSProperties}>{x.icon} {x.label}</p>)}
+   {specialOn(data,pid,date).filter(x=>!who||personFor(x.day.kidId).id===who.id).map(x=><p key={x.day.id} className="hub-banner" style={{'--p':personFor(x.day.kidId).color} as CSSProperties}>{x.icon} {x.label}</p>)}
    {allDay.map(i=>card(i,date,true))}
    {timed.map(i=>card(i,date,false))}
-   {todosOn(data,pid,date).filter(t=>shown(t.forKidId)).length>0&&<ul className="hub-day-todos" aria-label={dayName(date)+'’s to-dos'}>{todosOn(data,pid,date).filter(t=>shown(t.forKidId)).map(t=>{const p=t.forKidId?personFor(t.forKidId):undefined;return <li key={t.id} style={{'--p':(p??me).color} as CSSProperties}><span aria-hidden="true">✔</span> {t.title}{p&&<small>{p.name}</small>}</li>})}</ul>}
+   {!who&&todosOn(data,pid,date).filter(t=>shown(t.forKidId)).length>0&&<ul className="hub-day-todos" aria-label={dayName(date)+'’s to-dos'}>{todosOn(data,pid,date).filter(t=>shown(t.forKidId)).map(t=>{const p=t.forKidId?personFor(t.forKidId):undefined;return <li key={t.id} style={{'--p':(p??me).color} as CSSProperties}><span aria-hidden="true">✔</span> {t.title}{p&&<small>{p.name}</small>}</li>})}</ul>}
    {!items.length&&!daysOffOn(data,pid,date).length&&!todosOn(data,pid,date).length&&<p className="hub-empty">Nothing planned</p>}
   </section>}
  const card=(i:DayItem,date:string,allDay:boolean)=>{const p=personFor(i.kidId),past=date<today||(date===today&&!!(i.endTime??i.time)&&(i.endTime??i.time)!<clock&&i.kind!=='task')
@@ -150,9 +151,10 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
     <aside className="hub-panels">{panels.order.filter(p=>!panels.hidden.has(p)).map(p=><div key={p}>{panel[p]}</div>)}</aside>
    </div>}
    {tab==='calendar'&&<div className="hub-calendar">
-    <div className="hub-cal-bar"><button type="button" aria-label="Earlier" onClick={()=>setOffset(o=>o-days)}>‹</button><button type="button" onClick={()=>setOffset(0)} disabled={!offset}>Today</button><button type="button" aria-label="Later" onClick={()=>setOffset(o=>o+days)}>›</button>
-     <div role="group" aria-label="Days shown">{[1,3,5,7].map(n=><button type="button" key={n} aria-pressed={days===n} onClick={()=>{setDays(n);writeLocal(DAYS_KEY,String(n))}}>{n===1?'Day':n===7?'Week':n+' days'}</button>)}</div></div>
-    <div className="hub-days" style={{'--n':days} as CSSProperties}>{Array.from({length:days},(_,i)=>column(addDays(today,offset+i),days>=5))}</div>
+    <div className="hub-cal-bar"><button type="button" aria-label="Earlier" onClick={()=>setOffset(o=>o-(days||1))}>‹</button><button type="button" onClick={()=>setOffset(0)} disabled={!offset}>Today</button><button type="button" aria-label="Later" onClick={()=>setOffset(o=>o+(days||1))}>›</button>
+     <div role="group" aria-label="Days shown">{[1,3,5,7,0].map(n=><button type="button" key={n} aria-pressed={days===n} onClick={()=>smoothly(()=>{setDays(n);writeLocal(DAYS_KEY,String(n))})}>{n===0?'People':n===1?'Day':n===7?'Week':n+' days'}</button>)}</div></div>
+    {days===0?<><h3 className="hub-people-day">{dayName(addDays(today,offset))} · {new Date(addDays(today,offset)+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})}</h3><div className="hub-days is-people" style={{'--n':people.filter(p=>shown(p.id==='me'?undefined:p.id)).length} as CSSProperties}>{people.filter(p=>shown(p.id==='me'?undefined:p.id)).map(p=>column(addDays(today,offset),false,p))}</div></>
+    :<div className="hub-days" style={{'--n':days} as CSSProperties}>{Array.from({length:days},(_,i)=>column(addDays(today,offset+i),days>=5))}</div>}
    </div>}
    {tab==='chores'&&<Suspense fallback={null}><KidsPlanner data={data} date={choresDate} today={today} selectDate={setChoresDate} items={kidItems(choresDate)} kids={kids.filter(k=>shown(k.id))} familyName={me.name} me={me} locked={locked} save={save}/></Suspense>}
    {tab==='meals'&&<Suspense fallback={null}><MealPlan data={data} profileId={pid} today={today} save={save}/></Suspense>}

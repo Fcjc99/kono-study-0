@@ -70,3 +70,6 @@
 /* A narrow cell (a tablet, a small window) keeps the titles but drops the times and faces first. */
 .month-cell{container-type:inline-size}
 @container (max-width:118px){.month-grid:not(.is-phone) .month-pill :is(time,.month-pill-face){display:none!important}}
+/* View switches cross-fade (src/store/viewTransition.ts), Material's medium timing. */
+::view-transition-old(root),::view-transition-new(root){animation-duration:.25s;animation-timing-function:cubic-bezier(.2,0,0,1)}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}

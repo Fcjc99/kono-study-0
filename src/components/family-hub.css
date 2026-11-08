@@ -217,3 +217,11 @@
 :root[data-dark] .family-hub .hub-cal-bar button:not(#x):not(#y){background:var(--card)!important;color:var(--ink)!important;border-color:var(--line)!important}
 :root[data-dark] .family-hub .hub-cal-bar button[aria-pressed=true]:not(#x):not(#y){background:#7c4dcc!important;color:#fff!important}
 :root[data-dark] .family-hub .hub-cal-bar button:disabled:not(#x):not(#y){opacity:.45}
+/* People: one day, a column for each person (who's busy when, side by side), headed by their face. */
+.hub-people-day{margin:0 4px;font-size:1.25rem;font-weight:800}
+.hub-day.is-person>header{align-items:center;gap:10px;padding:4px 4px 8px;border-bottom:3px solid var(--t-bar,var(--p))}
+.hub-day.is-person>header .hub-face{width:40px;height:40px;flex:none;border-radius:50%}
+:root[data-dark] .hub-day.is-person>header{border-bottom-color:var(--t-bar-d,var(--p))}
+.hub-day.is-person>header b{color:var(--ink)!important}
+.hub-day.is-person .hub-card-who{display:none!important}
+.hub-day.is-person .hub-card:not(#x):not(#y){padding-right:12px!important}

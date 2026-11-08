@@ -46,3 +46,6 @@ export function toneVars(color:string|undefined):Record<string,string>{
 }
 /** WCAG contrast between two hex colors (for the tests). */
 export function contrast(x:string,y:string){const Y=(h:string)=>{const [r,g,b]=hexToRgb(h)!.map(lin);return 0.2126*r+0.7152*g+0.0722*b};const [p,q]=[Y(x),Y(y)].sort((m,n)=>n-m);return (p+0.05)/(q+0.05)}
+/** Two colors that would be hard to tell apart on the calendar (close in OKLab, where distance is how
+ * different they look). */
+export function tooClose(x:string,y:string):boolean{const a=hexToRgb(x),b=hexToRgb(y);if(!a||!b)return false;const p=toOklab(a),q=toOklab(b);return Math.hypot(p.L-q.L,p.a-q.a,p.b-q.b)<0.04}

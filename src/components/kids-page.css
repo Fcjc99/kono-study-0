@@ -34,3 +34,4 @@
 :root[data-dark] .star-chart .star-kid:not(#x):not(#y){background:linear-gradient(180deg,color-mix(in srgb,var(--kid-color) 24%,#231d28) 0,#231d28 96px)}
 :root[data-dark] .star-chart .star-kid-chores button:not(#x):not(#y){background:#1d1822!important}
 :root[data-dark] .star-chart .star-shelf:not(#x):not(#y){background:linear-gradient(135deg,#3a3020,#231d28)}
+.kid-look-near{margin:8px 0 0;padding:8px 12px;border-radius:12px;background:#fff4d6;color:#5c4300;font-size:.88rem;font-weight:600}:root[data-dark] .kid-look-near{background:#3a2f12;color:#ffe7a3}
