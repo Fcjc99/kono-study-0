@@ -1,0 +1,33 @@
+/* The Planner's week grid, elevated: events as small cards (a soft wash of their color, a bar down the left,
+   a gentle shadow) on a quiet grid instead of flat blocks on spreadsheet lines. The title comes first in whole
+   words and the time under it; a short event fits on one line; a tile squeezed narrow by overlaps keeps just
+   its title. */
+:root[data-experience] .workbench .week-grid .week-item-timed:not(#x):not(#y){
+ container-type:inline-size;
+ padding:5px 8px 5px 10px!important;border:0!important;border-radius:10px!important;
+ background:linear-gradient(180deg,color-mix(in srgb,var(--item-color) 22%,#fff),color-mix(in srgb,var(--item-color) 12%,#fff))!important;
+ box-shadow:inset 3px 0 0 var(--item-color),0 1px 2px color-mix(in srgb,var(--item-color) 30%,transparent),0 6px 12px -9px color-mix(in srgb,var(--item-color) 80%,transparent)!important;
+ color:#2c2230!important;overflow:hidden
+}
+:root[data-experience] .workbench .week-grid .week-item-timed:not(#x):not(#y) .week-item-title{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-weight:750;font-size:.8rem;line-height:1.25;overflow-wrap:break-word;word-break:normal;hyphens:auto;padding-right:20px}
+:root[data-experience] .workbench .week-grid .week-item-timed:not(#x):not(#y)>small{display:block;font-size:.68rem;font-weight:650;color:color-mix(in srgb,var(--item-color) 40%,#4a3d4c)!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;margin-top:1px}
+:root[data-experience] .workbench .week-grid .week-item-timed:not(#x):not(#y) .week-item-who{position:absolute;top:4px;right:4px;width:15px;height:15px;display:grid;place-items:center;border-radius:50%;background:var(--item-color);color:#fff;font:800 .55rem/1 system-ui,sans-serif;font-style:normal;box-shadow:0 0 0 1.5px #fff}
+/* Short (under 40 min): one line, the title alone (its place on the grid is its time; the label still says it). */
+:root[data-experience] .workbench .week-grid .week-item-timed.is-short:not(#x):not(#y){display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:flex-start!important;gap:6px;padding-top:0!important;padding-bottom:0!important}
+:root[data-experience] .workbench .week-grid .week-item-timed.is-short:not(#x):not(#y) .week-item-title{-webkit-line-clamp:1;flex:0 1 auto;min-width:0;line-height:1.3;font-size:.74rem}
+:root[data-experience] .workbench .week-grid .week-item-timed.is-short:not(#x):not(#y)>small{font-size:.62rem}
+:root[data-experience] .workbench .week-grid .week-item-timed.is-short:not(#x):not(#y)>small{display:none!important}
+:root[data-experience] .workbench .week-grid .week-item-timed.is-tiny:not(#x):not(#y)>small{display:none}
+/* Squeezed side by side: the title only, smaller. */
+@container (max-width:72px){
+ .week-item-timed .week-item-title{font-size:.68rem!important;padding-right:0!important;-webkit-line-clamp:2!important}
+ .week-item-timed>small,.week-item-timed .week-item-who{display:none!important}
+}
+/* A quieter grid: faint hour lines, no heavy cell borders. */
+:root[data-experience] .workbench .week-grid:not(#x) :is(.week-grid-day,.week-grid-allday-cell){border-color:color-mix(in srgb,var(--wb-ink,#3a2b33) 6%,transparent)!important}
+:root[data-experience] .workbench .week-grid:not(#x) .week-grid-slot{border-top:1px solid color-mix(in srgb,var(--wb-ink,#3a2b33) 5%,transparent)!important;background:transparent!important}
+:root[data-experience] .workbench .week-grid:not(#x) .week-grid-head button.is-today{border:0!important;background:color-mix(in srgb,var(--wb-accent,#b4475f) 10%,transparent)!important;border-radius:12px!important}
+:root[data-dark] .workbench .week-grid .week-item-timed:not(#x):not(#y){background:linear-gradient(180deg,color-mix(in srgb,var(--item-color) 34%,#2a2430),color-mix(in srgb,var(--item-color) 22%,#26212c))!important;color:#f3ecf6!important}
+:root[data-dark] .workbench .week-grid .week-item-timed:not(#x):not(#y)>small{color:color-mix(in srgb,var(--item-color) 30%,#eee)!important}
+:root[data-dark] .workbench .week-grid .week-item-timed:not(#x):not(#y) .week-item-who{box-shadow:0 0 0 1.5px #26212c}
+:root[data-dark] .workbench .week-grid:not(#x) .week-grid-head button.is-today:not(#y) :is(small,strong){color:#f7d6e4!important}
