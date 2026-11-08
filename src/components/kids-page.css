@@ -1,36 +1,36 @@
 /* The Kids page in Home's look: each kid a raised card washed in their color, their day as soft tiles with
  * agenda rows, and the star chart in matching cards. (Ids in :not() win over the older layered rules.) */
-:root .workbench .kid-cards li.kid-card:not(#x):not(#y){position:relative;gap:12px;padding:0 0 14px;border:0;border-radius:22px;overflow:hidden;background:linear-gradient(180deg,color-mix(in srgb,var(--kid-color) 22%,var(--wb-surface,#fff)) 0,color-mix(in srgb,var(--kid-color) 8%,var(--wb-surface,#fff)) 84px,var(--wb-surface,#fff) 140px);box-shadow:0 0 0 1px color-mix(in srgb,var(--kid-color) 22%,transparent),0 14px 30px -20px color-mix(in srgb,var(--kid-color) 70%,#2a1b22);container-type:inline-size}
-:root .workbench .kid-cards .kid-card-head:not(#x){padding:14px 14px 0;gap:10px}
-:root .workbench .kid-cards .kids-glance-face:not(#x){width:52px;height:52px;font-size:1.6rem;box-shadow:0 0 0 3px var(--wb-surface,#fff),0 6px 14px -6px color-mix(in srgb,var(--kid-color) 80%,#000)}
-:root .workbench .kid-cards .kid-card-name:not(#x){font-size:1.2rem;gap:4px 8px}
-:root .workbench .kid-cards .kid-card-name strong{font-weight:800;letter-spacing:-.01em}
-:root .workbench .kid-cards .kids-glance-day:not(#x){padding:2px 9px;border-radius:999px;background:color-mix(in srgb,var(--wb-surface,#fff) 70%,transparent);font-size:.75rem;font-weight:700}
-:root .workbench .kid-cards .kid-card-tools button:not(#x):not(#y){min-height:34px!important;padding:0 12px!important;border-radius:999px!important;border:0!important;background:color-mix(in srgb,var(--wb-surface,#fff) 78%,transparent)!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--kid-color) 30%,transparent)!important;font-weight:700;font-size:.82rem!important}
-:root .workbench .kid-cards .kid-card-days:not(#x){padding:0 12px;display:grid;gap:8px}
-:root .workbench .kid-cards .kid-card-days>div:not(#x){display:grid;grid-template-columns:1fr;gap:6px;padding:10px 12px;border:0;border-radius:16px;background:color-mix(in srgb,var(--kid-color) 7%,var(--wb-surface,#fff));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--kid-color) 14%,transparent)}
-:root .workbench .kid-cards .kid-card-days dt:not(#x){display:flex;align-items:center;gap:6px;padding:0;font-size:.7rem;letter-spacing:.08em;color:color-mix(in srgb,var(--kid-color) 55%,var(--wb-ink,#3a2b33))}
-:root .workbench .kid-cards .kid-card-days dt::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--kid-color)}
-:root .workbench .kid-cards .kid-card-days dd:not(#x){gap:5px;font-size:.92rem}
-:root .workbench .kid-cards .kid-card-days dd>span:not(.wb-muted):not(.is-more){display:block;padding:6px 10px;border-radius:10px;background:var(--wb-surface,#fff);box-shadow:inset 3px 0 0 var(--kid-color),0 1px 2px color-mix(in srgb,var(--wb-ink,#3a2b33) 8%,transparent)}
-:root .workbench .kid-cards .kid-card-days dd>.wb-muted{font-weight:600;font-size:.86rem}
-@container (min-width:620px){:root .workbench .kid-cards .kid-card-days:not(#x){grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}}
+.kid-cards li.kid-card:not(#x):not(#y){display:grid;align-content:start;position:relative;gap:12px;padding:0 0 14px;border:0;border-radius:22px;overflow:hidden;background:linear-gradient(180deg,color-mix(in srgb,var(--kid-color) 22%,var(--wb-surface,#fff)) 0,color-mix(in srgb,var(--kid-color) 8%,var(--wb-surface,#fff)) 84px,var(--wb-surface,#fff) 140px);box-shadow:0 0 0 1px color-mix(in srgb,var(--kid-color) 22%,transparent),0 14px 30px -20px color-mix(in srgb,var(--kid-color) 70%,#2a1b22);container-type:inline-size}
+.kid-cards .kid-card-head:not(#x){padding:14px 14px 0;gap:10px}
+.kid-cards .kids-glance-face:not(#x){width:52px;height:52px;font-size:1.6rem;box-shadow:0 0 0 3px var(--wb-surface,#fff),0 6px 14px -6px color-mix(in srgb,var(--kid-color) 80%,#000)}
+.kid-cards .kid-card-name:not(#x){font-size:1.2rem;gap:4px 8px}
+.kid-cards .kid-card-name strong{font-weight:800;letter-spacing:-.01em}
+.kid-cards .kids-glance-day:not(#x){padding:2px 9px;border-radius:999px;background:color-mix(in srgb,var(--wb-surface,#fff) 70%,transparent);font-size:.75rem;font-weight:700}
+.kid-cards .kid-card-tools button:not(#x):not(#y){min-height:34px!important;padding:0 12px!important;border-radius:999px!important;border:0!important;background:color-mix(in srgb,var(--wb-surface,#fff) 78%,transparent)!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--kid-color) 30%,transparent)!important;font-weight:700;font-size:.82rem!important}
+.kid-cards .kid-card-days:not(#x){margin:0;padding:0 12px;display:grid;gap:8px}
+.kid-cards .kid-card-days>div:not(#x){display:grid;grid-template-columns:1fr;gap:6px;padding:10px 12px;border:0;border-radius:16px;background:color-mix(in srgb,var(--kid-color) 7%,var(--wb-surface,#fff));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--kid-color) 14%,transparent)}
+.kid-cards .kid-card-days dt:not(#x){font-weight:800;text-transform:uppercase;display:flex;align-items:center;gap:6px;padding:0;font-size:.7rem;letter-spacing:.08em;color:color-mix(in srgb,var(--kid-color) 55%,var(--wb-ink,#3a2b33))}
+.kid-cards .kid-card-days dt::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--kid-color)}
+.kid-cards .kid-card-days dd:not(#x){margin:0;display:grid;font-weight:600;min-width:0;gap:5px;font-size:.92rem}
+.kid-cards .kid-card-days dd>span:not(.wb-muted):not(.is-more){display:block;padding:6px 10px;border-radius:10px;background:var(--wb-surface,#fff);box-shadow:inset 3px 0 0 var(--kid-color),0 1px 2px color-mix(in srgb,var(--wb-ink,#3a2b33) 8%,transparent)}
+.kid-cards .kid-card-days dd>.wb-muted{font-weight:600;font-size:.86rem}
+@container (min-width:620px){.kid-cards .kid-card-days:not(#x){grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}}
 
 /* Star chart: the same raised, colored cards. */
-:root .workbench .star-chart .star-kid:not(#x):not(#y){border:0;border-radius:22px;padding:0 14px 14px;overflow:hidden;background:linear-gradient(180deg,color-mix(in srgb,var(--kid-color) 20%,var(--wb-surface,#fff)) 0,var(--wb-surface,#fff) 96px);box-shadow:0 0 0 1px color-mix(in srgb,var(--kid-color) 22%,transparent),0 14px 30px -20px color-mix(in srgb,var(--kid-color) 70%,#2a1b22)}
-:root .workbench .star-chart .star-kid>header:not(#x){margin:0 -14px 4px;padding:14px 14px 6px}
-:root .workbench .star-chart .star-kid>header strong{font-size:1.1rem;font-weight:800}
-:root .workbench .star-chart .star-kid-chores button:not(#x):not(#y){border-radius:14px!important;border:0!important;background:var(--wb-surface,#fff)!important;box-shadow:inset 3px 0 0 var(--kid-color),0 0 0 1px color-mix(in srgb,var(--kid-color) 18%,transparent)!important}
-:root .workbench .star-chart .star-chore-add:not(#x){display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
-:root .workbench .star-chart .star-chore-add input:not(#x){grid-column:1/-1}
-:root .workbench .star-chart .star-shelf:not(#x):not(#y){border:0;border-radius:22px;background:linear-gradient(135deg,color-mix(in srgb,#ffd34d 16%,var(--wb-surface,#fff)),var(--wb-surface,#fff));box-shadow:0 0 0 1px color-mix(in srgb,#e2a400 24%,transparent),0 14px 30px -22px #8a5a00}
+.star-chart .star-kid:not(#x):not(#y){border:0;border-radius:22px;padding:0 14px 14px;overflow:hidden;background:linear-gradient(180deg,color-mix(in srgb,var(--kid-color) 20%,var(--wb-surface,#fff)) 0,var(--wb-surface,#fff) 96px);box-shadow:0 0 0 1px color-mix(in srgb,var(--kid-color) 22%,transparent),0 14px 30px -20px color-mix(in srgb,var(--kid-color) 70%,#2a1b22)}
+.star-chart .star-kid>header:not(#x){margin:0 -14px 4px;padding:14px 14px 6px}
+.star-chart .star-kid>header strong{font-size:1.1rem;font-weight:800}
+.star-chart .star-kid-chores button:not(#x):not(#y){border-radius:14px!important;border:0!important;background:var(--wb-surface,#fff)!important;box-shadow:inset 3px 0 0 var(--kid-color),0 0 0 1px color-mix(in srgb,var(--kid-color) 18%,transparent)!important}
+.star-chart .star-chore-add:not(#x){display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+.star-chart .star-chore-add input:not(#x){grid-column:1/-1}
+.star-chart .star-shelf:not(#x):not(#y){border:0;border-radius:22px;background:linear-gradient(135deg,color-mix(in srgb,#ffd34d 16%,var(--wb-surface,#fff)),var(--wb-surface,#fff));box-shadow:0 0 0 1px color-mix(in srgb,#e2a400 24%,transparent),0 14px 30px -22px #8a5a00}
 
-:root[data-dark] .workbench .kid-cards li.kid-card:not(#x):not(#y){background:linear-gradient(180deg,color-mix(in srgb,var(--kid-color) 26%,#231d28) 0,color-mix(in srgb,var(--kid-color) 10%,#231d28) 84px,#231d28 140px)}
-:root[data-dark] .workbench .kid-cards .kid-card-days>div:not(#x){background:color-mix(in srgb,var(--kid-color) 9%,#2a2330)}
-:root[data-dark] .workbench .kid-cards .kid-card-days dd>span:not(.wb-muted):not(.is-more){background:#1d1822}
-:root[data-dark] .workbench .kid-cards .kid-card-days dt:not(#x){color:color-mix(in srgb,var(--kid-color) 45%,#f3ecf6)}
-:root[data-dark] .workbench .kid-cards :is(.kids-glance-day,.kid-card-tools button):not(#x):not(#y){background:#2a2330!important}
-:root[data-dark] .workbench .kid-cards .kids-glance-face:not(#x){box-shadow:0 0 0 3px #231d28}
-:root[data-dark] .workbench .star-chart .star-kid:not(#x):not(#y){background:linear-gradient(180deg,color-mix(in srgb,var(--kid-color) 24%,#231d28) 0,#231d28 96px)}
-:root[data-dark] .workbench .star-chart .star-kid-chores button:not(#x):not(#y){background:#1d1822!important}
-:root[data-dark] .workbench .star-chart .star-shelf:not(#x):not(#y){background:linear-gradient(135deg,#3a3020,#231d28)}
+:root[data-dark] .kid-cards li.kid-card:not(#x):not(#y){background:linear-gradient(180deg,color-mix(in srgb,var(--kid-color) 26%,#231d28) 0,color-mix(in srgb,var(--kid-color) 10%,#231d28) 84px,#231d28 140px)}
+:root[data-dark] .kid-cards .kid-card-days>div:not(#x){background:color-mix(in srgb,var(--kid-color) 9%,#2a2330)}
+:root[data-dark] .kid-cards .kid-card-days dd>span:not(.wb-muted):not(.is-more){background:#1d1822}
+:root[data-dark] .kid-cards .kid-card-days dt:not(#x){color:color-mix(in srgb,var(--kid-color) 45%,#f3ecf6)}
+:root[data-dark] .kid-cards :is(.kids-glance-day,.kid-card-tools button):not(#x):not(#y){background:#2a2330!important}
+:root[data-dark] .kid-cards .kids-glance-face:not(#x){box-shadow:0 0 0 3px #231d28}
+:root[data-dark] .star-chart .star-kid:not(#x):not(#y){background:linear-gradient(180deg,color-mix(in srgb,var(--kid-color) 24%,#231d28) 0,#231d28 96px)}
+:root[data-dark] .star-chart .star-kid-chores button:not(#x):not(#y){background:#1d1822!important}
+:root[data-dark] .star-chart .star-shelf:not(#x):not(#y){background:linear-gradient(135deg,#3a3020,#231d28)}
