@@ -1702,6 +1702,13 @@ const islandLoaded=page=>page.waitForFunction(()=>{const island=document.querySe
 /** KONO's corner: tap KONO's face in the KONO bar; it opens over the page. */
 /** The top bar's ⋯ menu (Undo, Redo, voice, Trash) and the Planner's ⋯ menu (Plan my week, …). */
 /** Every game opens on its start card (components/GameScreen): press Start (or Continue, Start level N). */
+// Before a drag measures where things are: no animation still moving the screen (a clear's burst, a cheer, the
+// game sliding in), then a painted frame, so the boxes it measures are where the pointer will land.
+const settle=async page=>{await page.waitForFunction(()=>document.getAnimations().every(a=>a.playState!=='running'||!Number.isFinite(a.effect?.getComputedTiming().endTime)),null,{timeout:5000});await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))))}
+// A mouse drag in steps, a frame apart (as a finger moves), so a busy machine doesn't run them together.
+const dragBy=async(page,from,to,steps=6)=>{await page.mouse.move(from.x,from.y);await page.mouse.down();await settle(page)
+ for(let k=1;k<=steps;k++){await page.mouse.move(from.x+(to.x-from.x)*k/steps,from.y+(to.y-from.y)*k/steps);await page.evaluate(()=>new Promise(r=>requestAnimationFrame(r)))}
+ await page.mouse.up()}
 const startGame=async(page,title,label=/^(Start|Continue)/)=>{const d=page.getByRole('dialog',{name:title});await d.getByRole('region',{name:'Start'}).getByRole('button',{name:label}).click();return d}
 const headerMenu=async(page,name)=>{const menu=page.locator('details.header-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
 const plannerMenu=async(page,name)=>{const menu=page.locator('details.planner-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
@@ -4650,10 +4657,9 @@ test('Round 57: KONO blast clears a full row (the squares empty and the score ju
  // The same by dragging: eight squares dragged into row 3 clear it too.
  const before=await page.evaluate(()=>Number(document.querySelector('.blast-score')?.textContent))
  for(let c=1;c<=8;c++){
+  await settle(page)
   const from=await page.getByRole('group',{name:'Pieces'}).getByRole('button').first().boundingBox(),to=await board.getByRole('gridcell',{name:new RegExp('^Row 3, column '+c+'(,|$)')}).boundingBox()
-  await page.mouse.move(from.x+from.width/2,from.y+from.height/2);await page.mouse.down()
-  for(let k=1;k<=6;k++)await page.mouse.move(from.x+from.width/2+(to.x+to.width/2-from.x-from.width/2)*k/6,from.y+from.height/2+(to.y+to.height/2+56-from.y-from.height/2)*k/6)
-  await page.mouse.up()
+  await dragBy(page,{x:from.x+from.width/2,y:from.y+from.height/2},{x:to.x+to.width/2,y:to.y+to.height/2+56})
   if(c<8)await board.getByRole('gridcell',{name:'Row 3, column '+c+', filled'}).waitFor({timeout:3000})
  }
  await page.waitForFunction(n=>Number(document.querySelector('.blast-score')?.textContent)>=n+18,before,{timeout:5000})
@@ -4747,11 +4753,9 @@ test('Round 56: each land has its own game: Shell chase on the beach, Acorn tumb
  await blast.getByRole('gridcell',{name:'Row 1, column 1'}).click()
  await page.waitForFunction(()=>Number(document.querySelector('.blast-score')?.textContent)>0,null,{timeout:5000})
  const first=await score()
+ await settle(page)
  const piece=await pieces.getByRole("button").first().boundingBox(),area=await blast.boundingBox()
- await page.mouse.move(piece.x+piece.width/2,piece.y+piece.height/2);await page.mouse.down()
- for(let k=1;k<=8;k++)await page.mouse.move(piece.x+piece.width/2+(area.x+area.width*0.6-piece.x-piece.width/2)*k/8,piece.y+piece.height/2+(area.y+area.height*0.6+56-piece.y-piece.height/2)*k/8)
- if(process.env.KONO_SHOTS)await snow.getByRole('region',{name:'Arcade'}).screenshot({path:process.env.KONO_SHOTS+'/arcade-blast-drag.png'})
- await page.mouse.up()
+ await dragBy(page,{x:piece.x+piece.width/2,y:piece.y+piece.height/2},{x:area.x+area.width*0.6,y:area.y+area.height*0.6+56},8)
  await page.waitForFunction(n=>Number(document.querySelector('.blast-score')?.textContent)>n,first,{timeout:5000})
  if(process.env.KONO_SHOTS)await snow.getByRole('region',{name:'Arcade'}).screenshot({path:process.env.KONO_SHOTS+'/arcade-blast.png'})
 })
