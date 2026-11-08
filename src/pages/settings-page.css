@@ -1,0 +1,20 @@
+/* Settings in the new look: each section a raised card with a soft wash of the accent color, the dark mode
+ * choice as one segmented switch, and the island choices as tiles. */
+.workbench[data-page=settings] .wb-panel:not(#x):not(#y){border:0!important;border-radius:24px!important;background:linear-gradient(180deg,color-mix(in srgb,var(--wb-accent,#b4475f) 8%,var(--wb-surface,#fff)) 0,var(--wb-surface,#fff) 120px)!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--wb-accent,#b4475f) 14%,transparent),0 16px 32px -24px color-mix(in srgb,var(--wb-accent,#b4475f) 70%,#2a1b22)!important}
+.workbench[data-page=settings] .wb-panel>h2:not(#x){display:flex;align-items:center;gap:10px}
+.workbench[data-page=settings] .wb-panel>h2::before{content:"";width:6px;height:1.1em;border-radius:3px;background:var(--wb-accent,#b4475f)}
+.workbench[data-page=settings] .dark-mode-choice:not(#x){display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;border-radius:999px;background:color-mix(in srgb,var(--wb-ink,#3a2b33) 6%,var(--wb-surface,#fff))}
+.workbench[data-page=settings] .dark-mode-choice>button:not(#x):not(#y){min-height:42px!important;margin:0!important;padding:0 8px!important;border:0!important;border-radius:999px!important;background:transparent!important;box-shadow:none!important;font-weight:700;font-size:.88rem!important;line-height:1.15;white-space:normal}
+.workbench[data-page=settings] .dark-mode-choice>button[aria-pressed=true]:not(#x):not(#y){background:var(--wb-surface,#fff)!important;box-shadow:0 2px 8px -3px color-mix(in srgb,var(--wb-ink,#3a2b33) 45%,transparent)!important;color:var(--wb-accent,#b4475f)!important}
+.workbench[data-page=settings] .island-choice:not(#x){display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px}
+.workbench[data-page=settings] .island-choice>button:not(#x):not(#y){display:grid!important;grid-template-columns:44px 1fr;grid-template-rows:auto auto;column-gap:12px;align-items:center;text-align:left;margin:0!important;padding:12px 14px!important;border-radius:18px!important;border:0!important;background:var(--wb-surface,#fff)!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--wb-ink,#3a2b33) 12%,transparent)!important}
+.workbench[data-page=settings] .island-choice>button>span{grid-row:1/3;display:grid;place-items:center;width:44px;height:44px;border-radius:14px;font-size:1.4rem;background:color-mix(in srgb,var(--wb-accent,#b4475f) 10%,var(--wb-surface,#fff))}
+.workbench[data-page=settings] .island-choice>button>strong{font-size:1rem}
+.workbench[data-page=settings] .island-choice>button>small{font-weight:500;line-height:1.3}
+.workbench[data-page=settings] .island-choice>button[aria-pressed=true]:not(#x):not(#y){background:color-mix(in srgb,var(--wb-accent,#b4475f) 10%,var(--wb-surface,#fff))!important;box-shadow:0 0 0 2px var(--wb-accent,#b4475f)!important}
+:root[data-dark] .workbench[data-page=settings] .wb-panel:not(#x):not(#y){background:linear-gradient(180deg,color-mix(in srgb,var(--wb-accent,#b4475f) 12%,#231d28) 0,#231d28 120px)!important}
+:root[data-dark] .workbench[data-page=settings] :is(.island-choice>button,.dark-mode-choice>button[aria-pressed=true]):not(#x):not(#y){background:#2c2533!important}
+:root[data-dark] .workbench[data-page=settings] .dark-mode-choice:not(#x){background:#1b1720}
+:root[data-dark] .workbench[data-page=settings] .island-choice>button[aria-pressed=true]:not(#x):not(#y){background:color-mix(in srgb,var(--wb-accent,#b4475f) 24%,#2c2533)!important}
+@media (max-width:520px){.workbench[data-page=settings] .dark-mode-choice>button:not(#x):not(#y){font-size:.8rem!important;padding:4px 6px!important}}
+:root[data-dark] .workbench[data-page=settings] :is(.dark-mode-choice>button[aria-pressed=true],.island-choice>button[aria-pressed=true]>strong):not(#x):not(#y){color:#ffd9e6!important}
