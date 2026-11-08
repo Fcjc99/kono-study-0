@@ -462,6 +462,18 @@ test('opening: KONO’s animation shows until Home is ready, a different one eac
  }finally{await fresh.context.close()}
 })
 
+test('Home: the island tucks into a slim bar (remembered on this device) and one tap brings it back',async({context,page})=>{
+ const cloud=fakeCloud();await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('button',{name:'Minimize the island'}).click()
+ const bar=page.getByRole('region',{name:'Your island (tucked away)'});await bar.waitFor()
+ assert.equal(await page.locator('.wb-island').count(),0)
+ await page.reload();await heading(page,'Sanctuary');await bar.waitFor()
+ await bar.getByRole('button',{name:'Arcade'}).click();await page.getByRole('dialog').first().waitFor();await page.keyboard.press('Escape')
+ await bar.getByRole('button',{name:/Show island/}).click()
+ await page.locator('.wb-island').waitFor();assert.equal(await bar.count(),0)
+})
+
 test('opening never hangs: storage that never answers (an iPhone Safari bug) leads to Try again within seconds, and a stalled download offers Reload',async()=>{
  // IndexedDB open that never answers.
  const one=await freshPage()
