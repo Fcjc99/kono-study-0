@@ -1,4 +1,5 @@
 import type {ReactNode,SetStateAction} from 'react'
+import './settings-page.css'
 import type {AppData} from '../store/model'
 import type {usePlannerRepository} from '../store/repository'
 import {deleteProfile} from '../store/deleteProfile'

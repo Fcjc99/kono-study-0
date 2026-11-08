@@ -162,3 +162,46 @@
 .hub-lists{align-content:start}
 .hub-day-todos li:not(#x){display:grid;grid-template-columns:auto minmax(0,1fr);align-items:baseline;column-gap:6px}
 .hub-day-todos li small{grid-column:2;margin-left:0}
+
+/* Event tiles, elevated: a card with the person's color as a bar down the left and a soft wash, the title in
+   whole words (never split mid-word; long ones end in …), the time on one line, the person's initial as a
+   small badge. Narrow columns (Week) get tighter type instead of words broken letter by letter. */
+.hub-card:not(#x):not(#y){
+ container-type:inline-size;gap:3px;min-height:52px!important;padding:9px 28px 9px 14px!important;border-radius:14px!important;
+ background:linear-gradient(180deg,color-mix(in srgb,var(--p) 16%,#fff),color-mix(in srgb,var(--p) 9%,#fff))!important;
+ box-shadow:0 1px 2px color-mix(in srgb,var(--p) 25%,transparent),0 8px 16px -12px color-mix(in srgb,var(--p) 70%,transparent)!important;
+ transition:transform .12s ease,box-shadow .12s ease
+}
+.hub-card:not(#x):not(#y):active{transform:scale(.98)}
+.hub-card:not(#x):not(#y)::before{content:"";position:absolute;left:5px;top:8px;bottom:8px;width:4px;border-radius:4px;background:var(--p)}
+.hub-card.is-allday:not(#x):not(#y){min-height:38px!important;border-radius:12px!important;padding-top:7px!important;padding-bottom:7px!important}
+.hub-card-title{font-weight:750;font-size:1rem;line-height:1.22;color:#2c2230;overflow-wrap:break-word;word-break:normal;hyphens:auto;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.hub-card small{font-size:.8rem;color:color-mix(in srgb,var(--p) 45%,#3d3240);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.hub-card-who{top:7px!important;right:7px!important;width:18px!important;height:18px!important;font-size:.62rem!important;background:var(--p)!important;box-shadow:0 0 0 2px #fff}
+@container (max-width:150px){
+ .hub-card-title{font-size:.86rem;-webkit-line-clamp:4}
+ .hub-card small{font-size:.7rem;white-space:normal}
+}
+@container (max-width:110px){.hub-card-who{display:none!important}}
+.hub-card:not(#x):not(#y):has(.hub-card-who){padding-right:26px!important}
+:root[data-dark] .family-hub .hub-card:not(#x):not(#y){background:linear-gradient(180deg,color-mix(in srgb,var(--p) 30%,#2a2430),color-mix(in srgb,var(--p) 18%,#26212c))!important}
+:root[data-dark] .family-hub .hub-card-title{color:#f5eef8}
+:root[data-dark] .family-hub .hub-card small{color:color-mix(in srgb,var(--p) 35%,#eee)}
+:root[data-dark] .family-hub .hub-card-who{box-shadow:0 0 0 2px #26212c}
+/* Chores and Meals in the new look: person chips as compact pills, each kid's column a raised card washed
+ * in their color, dinners as day tiles with today lifted, and groceries in their own card. */
+.family-hub .kids-planner-jump:not(#x){display:flex!important;flex-wrap:wrap;align-items:center!important;align-self:flex-start;gap:8px!important;height:auto!important}
+.family-hub .kids-planner-jump>button:not(#x):not(#y){display:inline-flex!important;align-items:center;gap:8px;height:auto!important;min-height:44px!important;padding:0 18px!important;border-radius:999px!important;border:0!important;background:var(--card)!important;box-shadow:0 0 0 1.5px color-mix(in srgb,var(--kid-color,#a58aa8) 45%,transparent)!important;font-weight:700}
+.family-hub .kids-col:not(#x){border:0;border-radius:26px;background:linear-gradient(180deg,color-mix(in srgb,var(--kid-color) 16%,var(--card)) 0,var(--card) 150px);box-shadow:0 0 0 1px color-mix(in srgb,var(--kid-color) 22%,transparent),0 18px 34px -24px color-mix(in srgb,var(--kid-color) 80%,#2a1b22)}
+.family-hub .kids-col-head:not(#x){background:transparent;border-bottom:0;padding:16px 16px 4px}
+.family-hub .kids-col-face{box-shadow:0 0 0 3px var(--card),0 6px 14px -6px color-mix(in srgb,var(--kid-color) 80%,#000)}
+.family-hub .kids-chores:not(#x){border:0;background:var(--card);box-shadow:inset 4px 0 0 var(--kid-color),0 0 0 1px color-mix(in srgb,var(--kid-color) 18%,transparent)}
+.family-hub .meal-days:not(#x){gap:10px}
+.family-hub .meal-days small{font-size:.8rem}
+.family-hub .meal-days button:not(#x):not(#y){min-height:104px;border:0!important;border-radius:18px!important;background:linear-gradient(160deg,color-mix(in srgb,#f6b26b 14%,var(--card)),var(--card))!important;box-shadow:0 0 0 1px color-mix(in srgb,#e0a060 24%,transparent),0 10px 20px -16px #8a5a20!important;font-size:.95rem}
+.family-hub .meal-days .is-today button:not(#x):not(#y){background:linear-gradient(160deg,color-mix(in srgb,#ff8a65 26%,var(--card)),var(--card))!important;box-shadow:0 0 0 2px #e8795a,0 12px 24px -14px #a0452a!important}
+.family-hub .meal-empty{font-size:1.4rem;opacity:.45}
+.family-hub .recipe-box:not(#x),.family-hub .meal-plan .grocery-list:not(#x){border-radius:18px}
+:root[data-dark] .family-hub .meal-days button:not(#x):not(#y){background:linear-gradient(160deg,#3a2c22,#241f2b)!important}
+:root[data-dark] .family-hub .meal-days .is-today button:not(#x):not(#y){background:linear-gradient(160deg,#4a2c24,#241f2b)!important}
+:root[data-dark] .family-hub .kids-planner-top button:not(#x):not(#y){background:var(--card)!important;color:var(--ink)!important;border-color:var(--line)!important}

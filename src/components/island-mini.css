@@ -1,0 +1,10 @@
+/* Home's island tucked away: a slim bar with KONO, what KONO's up to, the Arcade and "Show island". */
+.workbench .wb-island-mini{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 10px 8px 8px;border-radius:20px;background:linear-gradient(120deg,color-mix(in srgb,#8fd3b6 30%,var(--wb-surface,#fffaf4)),color-mix(in srgb,#7ec4e8 26%,var(--wb-surface,#fffaf4)));box-shadow:0 1px 0 color-mix(in srgb,var(--wb-ink,#3a2b33) 8%,transparent),0 10px 24px -18px color-mix(in srgb,var(--wb-ink,#3a2b33) 60%,transparent);color:var(--wb-ink,#3a2b33)}
+.workbench .wb-island-mini>img{flex:none;width:48px;height:48px;object-fit:contain;border-radius:14px;background:color-mix(in srgb,#fff 60%,transparent)}
+.workbench .wb-island-mini>p{flex:1;min-width:0;margin:0;display:grid;gap:1px;line-height:1.25}
+.workbench .wb-island-mini>p :is(strong,small){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.workbench .wb-island-mini>p small{font-size:.8rem;opacity:.8}
+.workbench .wb-island-mini button:not(#x):not(#y){flex:none;display:inline-flex!important;align-items:center;gap:6px;min-height:40px!important;padding:0 14px!important;border-radius:999px!important;font-weight:700;font-size:.88rem!important;white-space:nowrap}
+.workbench .wb-island-mini .wb-island-mini-show:not(#x):not(#y){background:var(--wb-accent,#9b3a5a)!important;color:#fff!important;border-color:transparent!important}
+@media (max-width:520px){.workbench .wb-island-mini .wb-island-mini-arcade:not(#x):not(#y){width:40px;padding:0!important;justify-content:center}.workbench .wb-island-mini .wb-island-mini-arcade span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
+:root[data-dark] .workbench .wb-island-mini{background:linear-gradient(120deg,#22343a,#232c40);color:#eef2f6}

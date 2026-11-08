@@ -20,6 +20,7 @@ import {lazyPanel} from '../lazyPanel'
 import Modal from './Modal'
 import BreakIntoSteps from './BreakIntoSteps'
 import VoiceInputButton from './VoiceInputButton'
+import TimeField from './TimeField'
 const AssignmentPhotos=lazyPanel(()=>import('./AssignmentPhotos'))
 const ShareWithClassmate=lazyPanel(()=>import('./ShareWithClassmate'))
 
@@ -119,7 +120,7 @@ export default function EntryEditor({edit,data,save,share,photoCloud=null,draftS
    {whose.length===1&&kidPlans(data,data.activeProfileId).some(x=>x.kid.id===whose[0])&&<small>Saved in their plan, so it’s on their device too.</small>}
   </fieldset>}
   {('due' in entry||'date' in entry)&&<label>Date<input required type="date" value={String(entry.due??entry.date??'')} onInput={e=>{const next={...entry,['due' in entry?'due':'date']:e.currentTarget.value,...(edit.key==='tasks'?{plannedTime:undefined}:{})};persist(next);setEntry(next)}}/></label>}
-  {edit.key==='calendarEvents'&&<div className="wb-time-row"><label>Start time (optional)<input type="time" value={String(entry.time??'')} onChange={e=>field('time',e.target.value||undefined)}/></label><label>End time (optional)<input type="time" value={String(entry.endTime??'')} onChange={e=>field('endTime',e.target.value||undefined)}/></label></div>}
+  {edit.key==='calendarEvents'&&<div className="wb-time-row"><label>Start time (optional)<TimeField value={String(entry.time??'')} onChange={v=>field('time',v||undefined)}/></label><label>End time (optional)<TimeField value={String(entry.endTime??'')} after={entry.time?String(entry.time):undefined} onChange={v=>field('endTime',v||undefined)}/></label></div>}
   {edit.key==='calendarEvents'&&<div className="event-length-chips" role="group" aria-label="How long">{LENGTHS.map(([label,mins])=>{const start=String(entry.time??''),on=!!start&&String(entry.endTime??'')===addMinutes(start,mins)
    return <button key={mins} type="button" aria-pressed={on} onClick={()=>{const from=start||nextHalfHour();if(!start)field('time',from);field('endTime',addMinutes(from,mins))}}>{label}</button>})}</div>}
   {edit.key==='calendarEvents'&&!!entry.time&&<label className="event-remind">🔔 Remind me<select value={String((entry.remind as number|undefined)??15)} onChange={e=>field('remind',Number(e.target.value)===15?undefined:Number(e.target.value))}>{REMINDS.map(([label,m])=><option key={m} value={m}>{label}</option>)}</select></label>}

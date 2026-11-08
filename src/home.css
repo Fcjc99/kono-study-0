@@ -327,3 +327,4 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 /* On a phone, a Done message with two actions (Feed KONO and the coins' Shop) puts its words on their
    own line above the buttons, instead of squeezing them to a word a line. */
 @media (max-width:600px){.undo-toast:has(.undo-toast-shop){flex-wrap:wrap;row-gap:8px}.undo-toast:has(.undo-toast-shop)>span:first-child{flex:1 0 100%;white-space:normal}.undo-toast:has(.undo-toast-shop) button{flex:1 1 auto}}
+.workbench .wb-scene-toolbar .wb-scene-hide:not(#x){display:inline-flex!important;align-items:center;justify-content:center;width:38px!important;min-width:38px!important;min-height:36px!important;padding:0!important;border-radius:999px}

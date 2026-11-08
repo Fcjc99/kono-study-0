@@ -1,3 +1,4 @@
+import './week-tiles.css'
 import {useEffect,useRef,useState,type CSSProperties,type PointerEvent as ReactPointerEvent} from 'react'
 import {classTime} from '../store/classSchedule'
 

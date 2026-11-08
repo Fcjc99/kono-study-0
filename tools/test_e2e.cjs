@@ -444,6 +444,36 @@ test('accessibility: the main pages pass an axe scan (WCAG 2.1 AA: contrast, lab
  }
 })
 
+test('opening: KONO’s animation shows until Home is ready, a different one each time, and the sign-in screen isn’t hidden behind it',async({context,page})=>{
+ const cloud=fakeCloud();await signInAs(context,cloud,'alice')
+ const seen=[]
+ for(let i=0;i<3;i++){
+  await page.goto(BASE)
+  seen.push(await page.evaluate(()=>document.getElementById('kono-splash')?.dataset.anim??localStorage.getItem('kono-splash-n')))
+  await heading(page,'Sanctuary')
+  await page.locator('#kono-splash').waitFor({state:'detached',timeout:5000})
+ }
+ assert.equal(new Set(seen).size,3,seen.join(', '))
+ const fresh=await freshPage()
+ try{
+  await fresh.page.goto(BASE)
+  await fresh.page.locator('#kono-splash').waitFor({state:'detached',timeout:8000})
+  assert.equal(await fresh.page.locator('.startup-card').count()+await fresh.page.locator('.onboarding').count()>0,true)
+ }finally{await fresh.context.close()}
+})
+
+test('Home: the island tucks into a slim bar (remembered on this device) and one tap brings it back',async({context,page})=>{
+ const cloud=fakeCloud();await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('button',{name:'Minimize the island'}).click()
+ const bar=page.getByRole('region',{name:'Your island (tucked away)'});await bar.waitFor()
+ assert.equal(await page.locator('.wb-island').count(),0)
+ await page.reload();await heading(page,'Sanctuary');await bar.waitFor()
+ await bar.getByRole('button',{name:'Arcade'}).click();await page.getByRole('dialog').first().waitFor();await page.keyboard.press('Escape')
+ await bar.getByRole('button',{name:/Show island/}).click()
+ await page.locator('.wb-island').waitFor();assert.equal(await bar.count(),0)
+})
+
 test('opening never hangs: storage that never answers (an iPhone Safari bug) leads to Try again within seconds, and a stalled download offers Reload',async()=>{
  // IndexedDB open that never answers.
  const one=await freshPage()
@@ -1529,8 +1559,8 @@ test('Round 61: Planner › Week: hold (or right-click) something for a small me
  if(process.env.KONO_SHOTS)await week.screenshot({path:process.env.KONO_SHOTS+'/week-draw.png'})
  await page.mouse.up()
  const added=page.getByRole('dialog',{name:'New event'})
- assert.equal(await added.getByLabel('Start time (optional)').inputValue(),'13:00')
- assert.equal(await added.getByLabel('End time (optional)').inputValue(),'15:30')
+ assert.equal(await added.getByLabel('Start time (optional)').inputValue(),'1:00 PM')
+ assert.equal(await added.getByLabel('End time (optional)').inputValue(),'3:30 PM')
  assert.equal(await added.getByLabel('Date').inputValue(),'2026-09-30')
 })
 
@@ -1566,8 +1596,8 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  // Tap an empty hour: a new event starts then, for an hour.
  await week.getByRole('button',{name:'Add at 10:00 AM on Oct 2, 2026'}).click()
  const editor=page.getByRole('dialog',{name:'New event'})
- assert.equal(await editor.getByLabel('Start time (optional)').inputValue(),'10:00')
- assert.equal(await editor.getByLabel('End time (optional)').inputValue(),'11:00')
+ assert.equal(await editor.getByLabel('Start time (optional)').inputValue(),'10:00 AM')
+ assert.equal(await editor.getByLabel('End time (optional)').inputValue(),'11:00 AM')
  assert.equal(await editor.getByLabel('Date').inputValue(),'2026-10-02')
  await editor.getByLabel('Title').fill('Tutoring')
  await editor.getByRole('button',{name:'Save'}).click()
@@ -1672,6 +1702,13 @@ const islandLoaded=page=>page.waitForFunction(()=>{const island=document.querySe
 /** KONO's corner: tap KONO's face in the KONO bar; it opens over the page. */
 /** The top bar's ⋯ menu (Undo, Redo, voice, Trash) and the Planner's ⋯ menu (Plan my week, …). */
 /** Every game opens on its start card (components/GameScreen): press Start (or Continue, Start level N). */
+// Before a drag measures where things are: no animation still moving the screen (a clear's burst, a cheer, the
+// game sliding in), then a painted frame, so the boxes it measures are where the pointer will land.
+const settle=async page=>{await page.waitForFunction(()=>document.getAnimations().every(a=>a.playState!=='running'||!Number.isFinite(a.effect?.getComputedTiming().endTime)),null,{timeout:5000});await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))))}
+// A mouse drag in steps, a frame apart (as a finger moves), so a busy machine doesn't run them together.
+const dragBy=async(page,from,to,steps=6)=>{await page.mouse.move(from.x,from.y);await page.mouse.down();await settle(page)
+ for(let k=1;k<=steps;k++){await page.mouse.move(from.x+(to.x-from.x)*k/steps,from.y+(to.y-from.y)*k/steps);await page.evaluate(()=>new Promise(r=>requestAnimationFrame(r)))}
+ await page.mouse.up()}
 const startGame=async(page,title,label=/^(Start|Continue)/)=>{const d=page.getByRole('dialog',{name:title});await d.getByRole('region',{name:'Start'}).getByRole('button',{name:label}).click();return d}
 const headerMenu=async(page,name)=>{const menu=page.locator('details.header-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
 const plannerMenu=async(page,name)=>{const menu=page.locator('details.planner-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
@@ -3785,7 +3822,7 @@ test('Event editor: a quick length sets the end time, Remind me is saved, and th
  await page.getByRole('region',{name:'Week'}).getByRole('button',{name:/^Piano lesson · /}).click()
  const ed=page.getByRole('dialog',{name:'Edit event'})
  await ed.getByRole('group',{name:'How long'}).getByRole('button',{name:'1.5 hr'}).click()
- assert.equal(await ed.getByLabel('End time (optional)').inputValue(),'16:30')
+ assert.equal(await ed.getByLabel('End time (optional)').inputValue(),'4:30 PM')
  assert.equal(await ed.getByRole('group',{name:'How long'}).getByRole('button',{name:'1.5 hr'}).getAttribute('aria-pressed'),'true')
  await ed.getByLabel(/Remind me/).selectOption('60')
  await ed.getByRole('button',{name:'Save',exact:true}).click()
@@ -4286,6 +4323,27 @@ test('KONO Beat auto-sync: a phone whose sound comes 180 ms late (every tap 180 
  assert.ok(timing>=150&&timing<=210,'the Timing was corrected to about +180 ms and kept: '+timing)
 })
 
+test('KONO Beat plays the whole song: on Jeff tier, missing everything empties the gauge but the song keeps going (it only isn’t cleared)',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
+ await town.getByRole('button',{name:/KONO Beat/}).click()
+ const beat=await startGame(page,'🥁 KONO Beat')
+ await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Jeff tier/}).click()
+ await beat.getByRole('button',{name:/^Skipping Motif/}).click()
+ await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click()
+ await beat.getByRole('img',{name:'KONO Beat: Skipping Motif'}).waitFor()
+ // No taps at all for 30 s of song (auto-sync settles at 20 s, then every miss drains the gauge).
+ await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>30000,null,{timeout:60000})
+ assert.equal(await beat.getByRole('region',{name:'Results'}).count(),0,'still playing')
+ assert.ok(await page.evaluate(()=>{const ms=Number(document.querySelector('.beat-canvas').dataset.ms);return new Promise(r=>setTimeout(()=>r(Number(document.querySelector('.beat-canvas').dataset.ms)>ms),500))}),'the song clock keeps running')
+ await beat.getByRole('button',{name:'■ End'}).click()
+ await beat.getByRole('region',{name:'Results'}).getByRole('heading',{name:'Song failed'}).waitFor()
+})
+
 test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with results), KONO.io (the map, a live leaderboard, steering, ■ End gives your share; team battle: Blue against Red on a clock) and Meowdoku’s Undo, Hint and Auto ✕',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
@@ -4599,10 +4657,9 @@ test('Round 57: KONO blast clears a full row (the squares empty and the score ju
  // The same by dragging: eight squares dragged into row 3 clear it too.
  const before=await page.evaluate(()=>Number(document.querySelector('.blast-score')?.textContent))
  for(let c=1;c<=8;c++){
+  await settle(page)
   const from=await page.getByRole('group',{name:'Pieces'}).getByRole('button').first().boundingBox(),to=await board.getByRole('gridcell',{name:new RegExp('^Row 3, column '+c+'(,|$)')}).boundingBox()
-  await page.mouse.move(from.x+from.width/2,from.y+from.height/2);await page.mouse.down()
-  for(let k=1;k<=6;k++)await page.mouse.move(from.x+from.width/2+(to.x+to.width/2-from.x-from.width/2)*k/6,from.y+from.height/2+(to.y+to.height/2+56-from.y-from.height/2)*k/6)
-  await page.mouse.up()
+  await dragBy(page,{x:from.x+from.width/2,y:from.y+from.height/2},{x:to.x+to.width/2,y:to.y+to.height/2+56})
   if(c<8)await board.getByRole('gridcell',{name:'Row 3, column '+c+', filled'}).waitFor({timeout:3000})
  }
  await page.waitForFunction(n=>Number(document.querySelector('.blast-score')?.textContent)>=n+18,before,{timeout:5000})
@@ -4696,11 +4753,9 @@ test('Round 56: each land has its own game: Shell chase on the beach, Acorn tumb
  await blast.getByRole('gridcell',{name:'Row 1, column 1'}).click()
  await page.waitForFunction(()=>Number(document.querySelector('.blast-score')?.textContent)>0,null,{timeout:5000})
  const first=await score()
+ await settle(page)
  const piece=await pieces.getByRole("button").first().boundingBox(),area=await blast.boundingBox()
- await page.mouse.move(piece.x+piece.width/2,piece.y+piece.height/2);await page.mouse.down()
- for(let k=1;k<=8;k++)await page.mouse.move(piece.x+piece.width/2+(area.x+area.width*0.6-piece.x-piece.width/2)*k/8,piece.y+piece.height/2+(area.y+area.height*0.6+56-piece.y-piece.height/2)*k/8)
- if(process.env.KONO_SHOTS)await snow.getByRole('region',{name:'Arcade'}).screenshot({path:process.env.KONO_SHOTS+'/arcade-blast-drag.png'})
- await page.mouse.up()
+ await dragBy(page,{x:piece.x+piece.width/2,y:piece.y+piece.height/2},{x:area.x+area.width*0.6,y:area.y+area.height*0.6+56},8)
  await page.waitForFunction(n=>Number(document.querySelector('.blast-score')?.textContent)>n,first,{timeout:5000})
  if(process.env.KONO_SHOTS)await snow.getByRole('region',{name:'Arcade'}).screenshot({path:process.env.KONO_SHOTS+'/arcade-blast.png'})
 })

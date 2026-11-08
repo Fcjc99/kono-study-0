@@ -1,0 +1,14 @@
+/* TimeField: a text box you type a time into, with a short scrolling list of quarter hours under it. */
+.time-field{position:relative;display:block}
+.time-field-box{position:relative;display:block}
+.time-field-box>input{width:100%;padding-right:36px!important;font-variant-numeric:tabular-nums}
+.time-field.is-bad .time-field-box>input:not(#x):not(#y){border-color:#c2416b!important;box-shadow:0 0 0 3px color-mix(in srgb,#c2416b 18%,transparent)!important}
+.time-field .time-field-clear:not(#x):not(#y){position:absolute;right:6px;top:50%;translate:0 -50%;width:28px;height:28px;min-height:28px!important;padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;box-shadow:none!important;color:var(--wb-muted,#7a6670);font-size:1.1rem;line-height:1}
+.time-field-hint{position:absolute;left:2px;top:calc(100% + 2px);white-space:nowrap;font-size:.78rem;color:#a3304f}
+.time-field-list{position:absolute;z-index:40;left:0;right:0;top:calc(100% + 4px);max-height:min(260px,40vh);overflow:auto;margin:0;padding:4px;list-style:none;border-radius:14px;background:var(--wb-surface,#fffdfb);box-shadow:0 0 0 1px color-mix(in srgb,var(--wb-ink,#3a2b33) 10%,transparent),0 14px 30px -12px color-mix(in srgb,var(--wb-ink,#3a2b33) 45%,transparent);overscroll-behavior:contain}
+.time-field .time-field-list button:not(#x):not(#y){display:flex!important;justify-content:space-between;align-items:center;width:100%;min-height:38px!important;margin:0!important;outline:0;font-size:1rem!important;padding:0 12px!important;border:0!important;border-radius:10px!important;background:transparent!important;box-shadow:none!important;font-weight:650;font-variant-numeric:tabular-nums;color:var(--wb-ink,#3a2b33)!important;text-align:left}
+.time-field-list button small{font-size:.75rem;font-weight:600;color:var(--wb-muted,#7a6670)}
+.time-field .time-field-list button:hover:not(#x):not(#y),.time-field .time-field-list [aria-selected="true"] button:not(#x):not(#y){background:color-mix(in srgb,var(--wb-accent,#b4475f) 12%,transparent)!important}
+.time-field .time-field-list [aria-selected="true"] button:not(#x):not(#y){color:var(--wb-accent,#b4475f)!important}
+:root[data-dark] .time-field-list{background:#2a2430}
+:root[data-dark] .time-field .time-field-list button:not(#x):not(#y){color:#f3ecf6!important}

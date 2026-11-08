@@ -73,4 +73,15 @@ test('offline: the service worker precaches the sign-in code and the island, and
  assert.ok(!/caches\.match\((?![^)]*ignoreVary:true)[^)]*\)/.test(sw),'every cache lookup needs ignoreVary')
 })
 
-console.log(`${passed}/6 first-load groups passed.`)
+test('the opening animation is in the page, before #root, and the site\'s security policy allows its one inline script by hash',()=>{
+ const splash=html.indexOf('id="kono-splash"'),root=html.indexOf('<div id="root">')
+ assert.ok(splash>0&&splash<root,'the splash should come before #root')
+ const inline=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1])
+ assert.equal(inline.length,1)
+ const hash="'sha256-"+require('node:crypto').createHash('sha256').update(inline[0]).digest('base64')+"'"
+ const csp=JSON.parse(fs.readFileSync(path.join(ROOT,'vercel.json'),'utf8')).headers.flatMap(h=>h.headers).find(h=>h.key==='Content-Security-Policy').value
+ assert.ok(csp.includes(hash),'index.html\'s inline script changed: put '+hash+' in vercel.json\'s script-src (replacing the old hash)')
+ for(const m of inline[0].matchAll(/\['(\w+)',\d+,/g))assert.ok(fs.existsSync(path.join(ROOT,'public','garden','kono','anim',m[1]+'.webp')),m[1]+' sheet')
+})
+
+console.log(`${passed}/7 first-load groups passed.`)

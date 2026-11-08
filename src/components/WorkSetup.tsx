@@ -6,6 +6,7 @@ import {addDays} from '../store/studyScheduler'
 import type {PlannerRepository} from '../store/repository'
 import WeekdayPicker from './WeekdayPicker'
 import {WORK_SUFFIX} from '../store/workShifts'
+import TimeField from './TimeField'
 
 /** Planner › ＋ Add to my calendar › My work schedule: shifts that repeat each week (Tue and Thu 4–8, …).
  * They go on the calendar like any weekly activity, and Plan my week plans study time around them
@@ -36,7 +37,7 @@ export default function WorkSetup({data,save,draftKey}:{data:AppData;save:Planne
   <form onSubmit={e=>{e.preventDefault();void submit()}}><fieldset disabled={busy}>
    <label>Job<input placeholder="Cafe, Babysitting, Grocery store…" maxLength={200} value={input.title} onChange={e=>change({title:e.target.value})}/></label>
    <WeekdayPicker weekdays={input.weekdays} onChange={weekdays=>change({weekdays})} label="Shift days"/>
-   <div className="wb-form-grid"><label>Starts at<input required type="time" value={input.start} onInput={e=>change({start:e.currentTarget.value})}/></label><label>Ends at<input required type="time" value={input.end} onInput={e=>change({end:e.currentTarget.value})}/></label><label>From<input required type="date" value={input.first} onInput={e=>change({first:e.currentTarget.value})}/></label><label>Until<input required type="date" value={input.last} onInput={e=>change({last:e.currentTarget.value})}/></label></div>
+   <div className="wb-form-grid"><label>Starts at<TimeField required value={input.start} onChange={v=>change({start:v})}/></label><label>Ends at<TimeField required value={input.end} after={input.start||undefined} onChange={v=>change({end:v})}/></label><label>From<input required type="date" value={input.first} onInput={e=>change({first:e.currentTarget.value})}/></label><label>Until<input required type="date" value={input.last} onInput={e=>change({last:e.currentTarget.value})}/></label></div>
    <label>Where (optional)<input maxLength={200} value={input.location} onChange={e=>change({location:e.target.value})}/></label>
    {!!dates.length&&input.weekdays.length>0&&<p className="school-day-label">{dates.length} shifts · first {dates[0]} · last {dates.at(-1)}</p>}
    {!!conflicts.length&&<div role="alert"><p>{conflicts.length} shifts overlap something else. First ones:</p><ul>{conflicts.slice(0,3).map((x,i)=><li key={i}>{x}</li>)}</ul><label className="wb-check"><input type="checkbox" checked={allow} onChange={e=>setAllow(e.target.checked)}/>Add them anyway</label></div>}
