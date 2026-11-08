@@ -87,4 +87,11 @@ test('in a family plan a chore or errand with no time is a family to-do, with it
  assert.equal(t('order of operations worksheet due fri'),'tasks','schoolwork stays homework')
  assert.equal(parseQuickAdd('clean room',subjects,today).key,'tasks','a student plan has no family to-dos')
 })
-console.log(`${passed}/6 quick-add groups passed.`)
+const {parseTime,showTime}=load('src/store/timeText.ts')
+test('a typed time: "3:30 pm", "330p", "1530", a bare hour read the likely way, an end after its start',()=>{
+ for(const [t,want] of [['3:30 pm','15:30'],['330p','15:30'],['3p','15:00'],['1530','15:30'],['930','09:30'],['9','09:00'],['3','15:00'],['08:00','08:00'],['12:00','12:00'],['12am','00:00'],['noon','12:00'],['midnight','00:00'],['','']])assert.equal(parseTime(t),want,t)
+ assert.equal(parseTime('4','15:30'),'16:00');assert.equal(parseTime('banana'),null);assert.equal(parseTime('25:00'),null)
+ assert.equal(showTime('15:30'),'3:30 PM');assert.equal(showTime('00:15'),'12:15 AM');assert.equal(showTime(''),'')
+})
+
+console.log(`${passed}/7 quick-add groups passed.`)

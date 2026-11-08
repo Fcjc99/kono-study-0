@@ -4,6 +4,7 @@ import { readAssignmentPhoto, applyAssignmentPhoto, type CreatedItem } from '../
 import { AiHelperStatus } from './AiHelper'
 import { useAiHelper } from '../hooks/useAiHelper'
 import { aiReady, needsAiMessage } from '../store/aiProvider'
+import TimeField from './TimeField'
 
 const kindLabels = { tasks: 'Assignment', exams: 'Exam / project', calendarEvents: 'Event' } as const
 const MAX_PHOTOS = 8
@@ -124,8 +125,8 @@ export default function UpdatePlanScanner({ profileId, subjects, kids, save, clo
         <div className="update-plan-result-fields">
           <label>Title<input value={item.title} maxLength={200} onChange={e => editRow(item.id, { title: e.target.value })} /></label>
           <label>Date<input type="date" value={item.date} onChange={e => editRow(item.id, { date: e.target.value })} /></label>
-          {item.key === 'calendarEvents' && <label>Start time (optional)<input type="time" value={item.time ?? ''} onChange={e => editRow(item.id, { time: e.target.value || undefined })} /></label>}
-          {item.key === 'calendarEvents' && <label>End time (optional)<input type="time" value={item.endTime ?? ''} onChange={e => editRow(item.id, { endTime: e.target.value || undefined })} /></label>}
+          {item.key === 'calendarEvents' && <label>Start time (optional)<TimeField value={item.time ?? ''} onChange={v => editRow(item.id, { time: v || undefined })} /></label>}
+          {item.key === 'calendarEvents' && <label>End time (optional)<TimeField value={item.endTime ?? ''} after={item.time || undefined} onChange={v => editRow(item.id, { endTime: v || undefined })} /></label>}
           <label>Subject<select value={item.subjectId} onChange={e => editRow(item.id, { subjectId: e.target.value })}>
             <option value="">General / unassigned</option>
             {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}

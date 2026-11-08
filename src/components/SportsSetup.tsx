@@ -7,6 +7,7 @@ import {addDays} from '../store/studyScheduler'
 import type {PlannerRepository} from '../store/repository'
 import WeekdayPicker from './WeekdayPicker'
 import './sports-setup.css'
+import TimeField from './TimeField'
 
 /** suggestSchedule() keeps a trailing HOME/AWAY word in the title (see cleanTitle) rather than
  * discarding it — this pulls it back out to render as its own unmissable badge instead of a word
@@ -45,7 +46,7 @@ function SportsPractice({data,save,draftKey,sport,kidId}:{data:AppData;save:Plan
  return <form className="wb-panel school-setup" onSubmit={e=>{e.preventDefault();void submit()}}><fieldset disabled={busy}><h3>Recurring practices</h3><p>Name your team or sport, then set the days and times practice repeats. Add several entries if practice times change during the season.</p>
  <label>Team / practice name<input placeholder="Soccer practice" required maxLength={200} value={input.title} onChange={e=>change({title:e.target.value})}/></label>
  <WeekdayPicker weekdays={input.weekdays} onChange={weekdays=>change({weekdays})} label="Repeat on weekdays"/>
- <div className="wb-form-grid"><label>Starts at<input required type="time" value={input.start} onInput={e=>change({start:e.currentTarget.value})}/></label><label>Ends at<input required type="time" value={input.end} onInput={e=>change({end:e.currentTarget.value})}/></label><label>From date<input required type="date" value={input.first} onInput={e=>change({first:e.currentTarget.value})}/></label><label>Through date<input required type="date" value={input.last} onInput={e=>change({last:e.currentTarget.value})}/></label></div><label>Field / rink / location (optional)<input maxLength={200} value={input.location} onChange={e=>change({location:e.target.value})}/></label>
+ <div className="wb-form-grid"><label>Starts at<TimeField required value={input.start} onChange={v=>change({start:v})}/></label><label>Ends at<TimeField required value={input.end} after={input.start||undefined} onChange={v=>change({end:v})}/></label><label>From date<input required type="date" value={input.first} onInput={e=>change({first:e.currentTarget.value})}/></label><label>Through date<input required type="date" value={input.last} onInput={e=>change({last:e.currentTarget.value})}/></label></div><label>Field / rink / location (optional)<input maxLength={200} value={input.location} onChange={e=>change({location:e.target.value})}/></label>
  {!!dates.length&&<p className="school-day-label">{dates.length} practices · first {dates[0]} · last {dates.at(-1)}</p>}
  {!!conflicts.length&&<div role="alert"><p>{conflicts.length} overlapping sessions. First conflicts:</p><ul>{conflicts.slice(0,3).map((x,i)=><li key={i}>{x}</li>)}</ul><label className="wb-check"><input type="checkbox" checked={allow} onChange={e=>setAllow(e.target.checked)}/>I reviewed these overlaps; keep both entries.</label></div>}
  <button type="submit" className="primary" disabled={!!conflicts.length&&!allow}>{busy?'Saving…':'Add to my calendar'}</button>{message&&<p role="status">{message}</p>}</fieldset></form>

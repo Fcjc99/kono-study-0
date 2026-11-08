@@ -12,6 +12,7 @@ import {planForKid} from './store/familyPlans'
 import type {Collection,Entry} from './store/workspace'
 import {TEAM_THEMES,teamThemeIds} from './teamThemes'
 import {cozyPalette,cozyPalettes,experienceOptions,fixedPaletteExperiences,type Page,type SettingsTab} from './workspaceShared'
+import TimeField from './components/TimeField'
 
 /* The Kids page, the family settings and Look & feel (experience, palettes, team colors). These load
  * the first time one of them is shown, so they stay out of KONO's startup download. */
@@ -43,8 +44,8 @@ export function QuickFamilyAdd({kids,time:startAt,endAt,date,until:defaultUntil,
   <label>Type<select value={kind} onChange={e=>setKind(e.target.value as CalendarEventKind)}>{QUICK_KIND_OPTIONS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
   <label>What is it?<input required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Soccer practice, Dentist, Work shift…"/></label>
   {memory&&<p className="event-memory" role="status"><span>Like last time? {[memory.time?classTime(memory.time)+(memory.endTime?'–'+classTime(memory.endTime):''):'',memory.kidIds.map(id=>kids.find(k=>k.id===id)?.name).filter(Boolean).join(' & '),memory.location?'📍 '+memory.location:'',memory.driver?'🚗 '+memory.driver:''].filter(Boolean).join(' · ')}</span><button type="button" onClick={useMemory}>Use it</button></p>}
-  <div className="quick-family-times"><label>Start time (optional)<input type="time" value={time} onChange={e=>setTime(e.target.value)}/></label>
-  <label>End time (optional)<input type="time" value={endTime} onChange={e=>setEndTime(e.target.value)}/></label></div>
+  <div className="quick-family-times"><label>Start time (optional)<TimeField value={time} onChange={setTime}/></label>
+  <label>End time (optional)<TimeField value={endTime} after={time||undefined} onChange={setEndTime}/></label></div>
   <label>Who’s driving? (optional)<input list="quick-family-drivers" maxLength={60} value={driver} onChange={e=>setDriver(e.target.value)} placeholder="Mom, Dad, carpool…"/><datalist id="quick-family-drivers">{drivers.map(d=><option key={d} value={d}/>)}</datalist></label>
   <fieldset className="repeat-days"><legend>Repeats every (optional)</legend>{WEEKDAY_LETTERS.map((name,d)=><label key={name} className={repeatDays.includes(d)?'is-on':''}><input type="checkbox" checked={repeatDays.includes(d)} onChange={()=>toggleDay(d)}/>{name}</label>)}
    {repeatDays.length>0&&<label className="repeat-until">Until<input type="date" value={until} min={date} onChange={e=>setUntil(e.target.value)}/></label>}</fieldset>

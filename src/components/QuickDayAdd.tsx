@@ -1,6 +1,7 @@
 import {useState,type FormEvent} from 'react'
 import {parseQuickAdd} from '../store/quickAdd'
 import type {CalendarEventKind} from '../store/model'
+import TimeField from './TimeField'
 
 /** Sanctuary › Today's / Tomorrow's schedule › "＋ Add": one line for that day, right in the card. It
  * becomes an assignment or test due that day, or a lesson, appointment, practice, work shift or other event (at a
@@ -28,7 +29,7 @@ export default function QuickDayAdd({date,dayName,subjects,onAdd,onClose}:{date:
   <input value={text} onChange={e=>setText(e.target.value)} autoFocus placeholder={'Add for '+dayName+': bio worksheet, math test…'} aria-label={'What to add for '+dayName} autoComplete="off" enterKeyHint="done" maxLength={300}/>
   <div className="quick-day-add-row">
    <label className="quick-day-type">Type<select value={kind} onChange={e=>setPicked(e.target.value as Kind)}>{KINDS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
-   <label className="quick-day-time">Time<input type="time" value={at} onChange={e=>setTime(e.target.value)}/></label>
+   <label className="quick-day-time">Time<TimeField value={at} onChange={setTime}/></label>
    <button type="submit" className="primary" disabled={!guess}>Add</button>
    <button type="button" onClick={onClose}>Done</button>
   </div>
