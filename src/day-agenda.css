@@ -7,7 +7,7 @@
 :root[data-experience] .workbench .tomorrow-extra-list>strong{margin:2px 2px 0;font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--wb-muted,#7a6670)}
 
 :root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y){
- --bar:var(--kid-color,color-mix(in srgb,var(--wb-accent,#b4475f) 70%,#fff));
+ --bar:var(--t-bar,var(--kid-color,color-mix(in srgb,var(--wb-accent,#b4475f) 70%,#fff)));
  position:relative;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center;gap:0 6px!important;
  margin:0!important;padding:12px 8px 12px 18px!important;
  border:0!important;border-radius:16px!important;
@@ -107,3 +107,4 @@
 :root[data-experience] .workbench .today-card-body .assignment-progress:not(#x)>small{font-size:.8rem!important;font-weight:650;color:var(--wb-muted,#7a6670)}
 :root[data-experience] .workbench .today-card-body .assignment-progress:not(#x) .assignment-progress-extra>span{padding:2px 9px!important;font-size:.74rem!important}
 :root[data-dark] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w) li small{color:#cbbcc6!important}
+:root[data-dark] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y){--bar:var(--t-bar-d,var(--kid-color,#c98aa3))}

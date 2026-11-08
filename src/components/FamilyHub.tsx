@@ -1,5 +1,6 @@
 import {lazy,Suspense,useCallback,useEffect,useRef,useState,type CSSProperties,type ReactNode} from 'react'
 import {localDate,uid,type AppData,type Kid} from '../store/model'
+import {toneVars} from '../store/tones'
 import type {PlannerRepository} from '../store/repository'
 import {kidItemsForDate,type KidItem as DayItem} from '../store/kids'
 import {classTime} from '../store/classSchedule'
@@ -99,7 +100,7 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
    {!items.length&&!daysOffOn(data,pid,date).length&&!todosOn(data,pid,date).length&&<p className="hub-empty">Nothing planned</p>}
   </section>}
  const card=(i:DayItem,date:string,allDay:boolean)=>{const p=personFor(i.kidId),past=date<today||(date===today&&!!(i.endTime??i.time)&&(i.endTime??i.time)!<clock&&i.kind!=='task')
-  return <button type="button" key={i.kind+i.id+(i.kidId??'')} className={'hub-card'+(allDay?' is-allday':'')+(past||i.done?' is-past':'')+(i.off?' is-off':'')} style={{'--p':p.color} as CSSProperties} onClick={()=>openItem(i)} aria-label={i.title+(i.until?', until '+classTime(i.until):i.time?', '+span(i.time,i.endTime):'')+', '+p.name}>
+  return <button type="button" key={i.kind+i.id+(i.kidId??'')} className={'hub-card'+(allDay?' is-allday':'')+(past||i.done?' is-past':'')+(i.off?' is-off':'')} style={{'--p':p.color,...toneVars(p.color)} as CSSProperties} onClick={()=>openItem(i)} aria-label={i.title+(i.until?', until '+classTime(i.until):i.time?', '+span(i.time,i.endTime):'')+', '+p.name}>
    <span className="hub-card-title">{i.kind==='task'?'📌 ':i.kind==='exam'?'📝 ':''}{i.title}</span>
    {(!allDay||i.until)&&<small>{i.until?'until '+classTime(i.until):span(i.time,i.endTime)}</small>}
    <i className="hub-card-who" aria-hidden="true">{(p.name.trim()[0]??'').toUpperCase()}</i>
@@ -114,9 +115,9 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
  const groceriesLeft=(data.groceries??[]).filter(g=>g.profileId===pid&&!g.done)
  const dinner=dinnerOn(data,pid,today)
  const panel:Record<Panel,ReactNode>={
-  next:<section className="hub-panel hub-next" aria-label="Up next"><h3>Up next</h3>{next?<button type="button" className="hub-next-card" style={{'--p':personFor(next.kidId).color} as CSSProperties} onClick={()=>openItem(next)}><span aria-hidden="true">{pictureFor(next.title)}</span><b>{next.title}</b><small>{minsTo(next.time!)>0?'in '+(minsTo(next.time!)>=60?Math.floor(minsTo(next.time!)/60)+' h '+(minsTo(next.time!)%60?minsTo(next.time!)%60+' min':''):minsTo(next.time!)+' min'):'now'} · {span(next.time,next.endTime)} · {personFor(next.kidId).name}</small></button>:<p className="hub-empty">Nothing else today 🌙</p>}</section>,
+  next:<section className="hub-panel hub-next" aria-label="Up next"><h3>Up next</h3>{next?<button type="button" className="hub-next-card" style={{'--p':personFor(next.kidId).color,...toneVars(personFor(next.kidId).color)} as CSSProperties} onClick={()=>openItem(next)}><span aria-hidden="true">{pictureFor(next.title)}</span><b>{next.title}</b><small>{minsTo(next.time!)>0?'in '+(minsTo(next.time!)>=60?Math.floor(minsTo(next.time!)/60)+' h '+(minsTo(next.time!)%60?minsTo(next.time!)%60+' min':''):minsTo(next.time!)+' min'):'now'} · {span(next.time,next.endTime)} · {personFor(next.kidId).name}</small></button>:<p className="hub-empty">Nothing else today 🌙</p>}</section>,
   routines:<section className="hub-panel" aria-label="Routines and chores"><h3>Routines & chores</h3>{people.filter(p=>shown(p.id==='me'?undefined:p.id)).map(p=>{const pr=progressToday(data,pid,today,p.id==='me'?'':p.id);if(!pr.total)return null
-   return <button type="button" key={p.id} className="hub-progress" style={{'--p':p.color} as CSSProperties} onClick={()=>{touched();setTab('chores')}}><Avatar className="hub-face" who={p}/><span><b>{p.name}</b><small>{pr.done}/{pr.total}{pr.done===pr.total?' 🎉':''}</small><em><u style={{width:pr.done/pr.total*100+'%'}}/></em></span></button>})}
+   return <button type="button" key={p.id} className="hub-progress" style={{'--p':p.color,...toneVars(p.color)} as CSSProperties} onClick={()=>{touched();setTab('chores')}}><Avatar className="hub-face" who={p}/><span><b>{p.name}</b><small>{pr.done}/{pr.total}{pr.done===pr.total?' 🎉':''}</small><em><u style={{width:pr.done/pr.total*100+'%'}}/></em></span></button>})}
    {people.every(p=>!progressToday(data,pid,today,p.id==='me'?'':p.id).total)&&<p className="hub-empty">No routines or chores today. Add them in Chores.</p>}</section>,
   todos:<section className="hub-panel" aria-label="To-dos"><h3>To-dos</h3>{todosToday.length?<ul className="hub-todos">{todosToday.slice(0,6).map(t=><li key={t.id}><button type="button" aria-label={'Done: '+t.title} onClick={()=>{touched();todoOps.tick(t.id,today)}}><span aria-hidden="true">○</span>{t.title}{t.forKidId&&<i style={{'--p':personFor(t.forKidId).color} as CSSProperties}>{personFor(t.forKidId).name}</i>}</button></li>)}</ul>:<p className="hub-empty">All clear ✨</p>}</section>,
   dinner:<section className="hub-panel" aria-label="Dinner"><h3>Dinner tonight</h3><button type="button" className="hub-dinner" onClick={()=>{touched();setTab('meals')}}><span aria-hidden="true">🍽️</span><b>{dinner?.title??'Not planned yet'}</b><small>🛒 {groceriesLeft.length} on the grocery list</small></button></section>,
@@ -141,7 +142,7 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
   <div className="hub-main">
    <header className="hub-head">
     <div className="hub-title"><b>{familyName}</b><span className="hub-clock">{now.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}</span>{todayWeather&&<span className="hub-weather" aria-label={'Weather: high '+Math.round(todayWeather.highF)}>{nowWeatherEmoji(todayWeather.weather,now.getHours())} {Math.round(todayWeather.highF)}°</span>}<small>{now.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</small></div>
-    <div className="hub-people" role="group" aria-label="Show whose">{people.map(p=><button type="button" key={p.id} aria-pressed={!hidden.has(p.id)} aria-label={(hidden.has(p.id)?'Show ':'Hide ')+p.name} style={{'--p':p.color} as CSSProperties} onClick={()=>toggle(p.id)}><Avatar className="hub-face" who={p}/></button>)}</div>
+    <div className="hub-people" role="group" aria-label="Show whose">{people.map(p=><button type="button" key={p.id} aria-pressed={!hidden.has(p.id)} aria-label={(hidden.has(p.id)?'Show ':'Hide ')+p.name} style={{'--p':p.color,...toneVars(p.color)} as CSSProperties} onClick={()=>toggle(p.id)}><Avatar className="hub-face" who={p}/></button>)}</div>
     {!locked&&<button type="button" className="hub-add" onClick={()=>{touched();onAdd()}}>＋ Add</button>}
    </header>
    {tab==='home'&&<div className="hub-home">

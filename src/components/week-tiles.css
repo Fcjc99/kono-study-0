@@ -1,33 +1,58 @@
-/* The Planner's week grid, elevated: events as small cards (a soft wash of their color, a bar down the left,
-   a gentle shadow) on a quiet grid instead of flat blocks on spreadsheet lines. The title comes first in whole
-   words and the time under it; a short event fits on one line; a tile squeezed narrow by overlaps keeps just
-   its title. */
+/* The Planner's week grid. Each event is a flat tile in three shades of its person's color, worked out in
+   src/store/tones.ts so they always read: a pale fill, a bar down the left and dark text (light text on a deep
+   fill in dark mode). All-day items are solid pills, so the two kinds read apart without a legend. What's over
+   is dimmed; "now" is a coral line with the time; today's date sits in a filled circle. */
+:root[data-experience] .workbench .week-grid .week-item:not(#x):not(#y){
+ --bg:var(--t-bg,color-mix(in srgb,var(--item-color) 16%,#fff));--bar:var(--t-bar,var(--item-color));--fg:var(--t-fg,#2c2230)
+}
+:root[data-dark] .workbench .week-grid .week-item:not(#x):not(#y){--bg:var(--t-bg-d,color-mix(in srgb,var(--item-color) 28%,#221d27));--bar:var(--t-bar-d,var(--item-color));--fg:var(--t-fg-d,#f3ecf6)}
 :root[data-experience] .workbench .week-grid .week-item-timed:not(#x):not(#y){
  container-type:inline-size;
- padding:5px 8px 5px 10px!important;border:0!important;border-radius:10px!important;
- background:linear-gradient(180deg,color-mix(in srgb,var(--item-color) 22%,#fff),color-mix(in srgb,var(--item-color) 12%,#fff))!important;
- box-shadow:inset 3px 0 0 var(--item-color),0 1px 2px color-mix(in srgb,var(--item-color) 30%,transparent),0 6px 12px -9px color-mix(in srgb,var(--item-color) 80%,transparent)!important;
- color:#2c2230!important;overflow:hidden
+ padding:4px 7px 4px 10px!important;border:0!important;border-radius:6px!important;
+ background:var(--bg)!important;color:var(--fg)!important;
+ /* The bar, then a hairline in the page color so tiles side by side never run together. */
+ box-shadow:inset 4px 0 0 var(--bar),0 0 0 1px var(--wb-surface,#fff)!important;
+ overflow:hidden
 }
-:root[data-experience] .workbench .week-grid .week-item-timed:not(#x):not(#y) .week-item-title{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-weight:750;font-size:.8rem;line-height:1.25;overflow-wrap:break-word;word-break:break-word;hyphens:auto;padding-right:20px;max-width:100%;box-sizing:border-box}
-:root[data-experience] .workbench .week-grid .week-item-timed:not(#x):not(#y)>small{display:block;font-size:.68rem;font-weight:650;color:color-mix(in srgb,var(--item-color) 40%,#4a3d4c)!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;margin-top:1px}
-:root[data-experience] .workbench .week-grid .week-item-timed:not(#x):not(#y) .week-item-who{position:absolute;top:4px;right:4px;width:15px;height:15px;display:grid;place-items:center;border-radius:50%;background:var(--item-color);color:#fff;font:800 .55rem/1 system-ui,sans-serif;font-style:normal;box-shadow:0 0 0 1.5px #fff}
+:root[data-experience] .workbench .week-grid .week-item-timed:not(#x):not(#y) .week-item-title{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-weight:700;font-size:.8rem;line-height:1.25;overflow-wrap:break-word;word-break:break-word;hyphens:auto;padding-right:20px;max-width:100%;box-sizing:border-box}
+:root[data-experience] .workbench .week-grid .week-item-timed:not(#x):not(#y)>small{display:block;font-size:.7rem;font-weight:600;color:var(--fg)!important;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;margin-top:1px}
+/* Whose it is, in letters as well as color (color alone can't say who). */
+:root[data-experience] .workbench .week-grid .week-item:not(#x):not(#y) .week-item-who{position:absolute;top:4px;right:4px;width:16px;height:16px;display:grid;place-items:center;border-radius:50%;background:var(--bar);color:#fff;font:800 .56rem/1 system-ui,sans-serif;font-style:normal;box-shadow:0 0 0 1.5px var(--bg)}
+:root[data-dark] .workbench .week-grid .week-item:not(#x):not(#y) .week-item-who{color:var(--bg)}
 /* Short (under 40 min): one line, the title alone (its place on the grid is its time; the label still says it). */
 :root[data-experience] .workbench .week-grid .week-item-timed.is-short:not(#x):not(#y){display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:flex-start!important;gap:6px;padding-top:0!important;padding-bottom:0!important}
 :root[data-experience] .workbench .week-grid .week-item-timed.is-short:not(#x):not(#y) .week-item-title{-webkit-line-clamp:1;flex:0 1 auto;min-width:0;line-height:1.3;font-size:.74rem}
-:root[data-experience] .workbench .week-grid .week-item-timed.is-short:not(#x):not(#y)>small{font-size:.62rem}
 :root[data-experience] .workbench .week-grid .week-item-timed.is-short:not(#x):not(#y)>small{display:none!important}
-:root[data-experience] .workbench .week-grid .week-item-timed.is-tiny:not(#x):not(#y)>small{display:none}
-/* Squeezed side by side: the title only, smaller. */
+/* Squeezed side by side: the title only, smaller; the initials go first. */
 @container (max-width:72px){
- .week-item-timed .week-item-title{font-size:.68rem!important;padding-right:0!important;-webkit-line-clamp:2!important}
+ .week-item-timed .week-item-title{font-size:.7rem!important;padding-right:0!important;-webkit-line-clamp:2!important}
  .week-item-timed>small,.week-item-timed .week-item-who{display:none!important}
 }
+/* All day: a solid pill in the person's color. */
+:root[data-experience] .workbench .week-grid .week-grid-allday-cell .week-item:not(#x):not(#y){position:relative;padding:3px 22px 3px 8px!important;border:0!important;border-radius:999px!important;background:var(--bar)!important;color:#fff!important;font-weight:700;font-size:.74rem;box-shadow:none!important}
+:root[data-dark] .workbench .week-grid .week-grid-allday-cell .week-item:not(#x):not(#y){color:var(--bg)!important}
+:root[data-experience] .workbench .week-grid .week-grid-allday-cell .week-item:not(#x):not(#y) .week-item-who{top:50%;translate:0 -50%;background:var(--bg);color:var(--fg);box-shadow:none}
+/* Over: steps back. */
+:root[data-experience] .workbench .week-grid .week-item.is-past:not(#x):not(#y){opacity:.6}
+:root[data-experience] .workbench .week-grid .week-item.is-past:not(#x):not(#y):is(:hover,:focus-visible){opacity:1}
+/* Picked up: it lifts. */
+:root[data-experience] .workbench .week-grid .week-item:is(.is-dragging,.is-picked):not(#x):not(#y){opacity:1;box-shadow:inset 4px 0 0 var(--bar),0 8px 16px rgb(0 0 0/.14),0 0 2px rgb(0 0 0/.12)!important;z-index:5}
+/* Now: a coral line with a dot and the time in the hour column. */
+:root[data-experience] .workbench .week-grid .week-grid-now:not(#x){height:2px;background:#ef6f5e;z-index:4}
+:root[data-experience] .workbench .week-grid .week-grid-now:not(#x)::before{left:-5px;top:-4px;width:10px;height:10px;background:#ef6f5e;box-shadow:0 0 0 2px var(--wb-surface,#fff)}
+.week-grid .week-grid-now>span{position:absolute;right:calc(100% + 4px);top:50%;translate:0 -50%;padding:1px 5px;border-radius:999px;background:#c8432f;color:#fff;font:700 .6rem/1.3 system-ui,sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+.week-grid .week-grid-day:not(:first-of-type) .week-grid-now>span{display:none}
 /* A quieter grid: faint hour lines, no heavy cell borders. */
 :root[data-experience] .workbench .week-grid:not(#x) :is(.week-grid-day,.week-grid-allday-cell){border-color:color-mix(in srgb,var(--wb-ink,#3a2b33) 6%,transparent)!important}
 :root[data-experience] .workbench .week-grid:not(#x) .week-grid-slot{border-top:1px solid color-mix(in srgb,var(--wb-ink,#3a2b33) 5%,transparent)!important;background:transparent!important}
-:root[data-experience] .workbench .week-grid:not(#x) .week-grid-head button.is-today{border:0!important;background:color-mix(in srgb,var(--wb-accent,#b4475f) 10%,transparent)!important;border-radius:12px!important}
-:root[data-dark] .workbench .week-grid .week-item-timed:not(#x):not(#y){background:linear-gradient(180deg,color-mix(in srgb,var(--item-color) 34%,#2a2430),color-mix(in srgb,var(--item-color) 22%,#26212c))!important;color:#f3ecf6!important}
-:root[data-dark] .workbench .week-grid .week-item-timed:not(#x):not(#y)>small{color:color-mix(in srgb,var(--item-color) 30%,#eee)!important}
-:root[data-dark] .workbench .week-grid .week-item-timed:not(#x):not(#y) .week-item-who{box-shadow:0 0 0 1.5px #26212c}
-:root[data-dark] .workbench .week-grid:not(#x) .week-grid-head button.is-today:not(#y) :is(small,strong){color:#f7d6e4!important}
+.week-grid .week-grid-hours>span{font-variant-numeric:tabular-nums}
+/* Today: the date in a filled circle; the picked day keeps its soft highlight. */
+:root[data-experience] .workbench .week-grid:not(#x) .week-grid-head button.is-today{border:0!important;background:transparent!important}
+:root[data-experience] .workbench .week-grid:not(#x) .week-grid-head button.is-today strong{display:inline-grid;place-items:center;min-width:1.9em;height:1.9em;border-radius:999px;background:#c8432f;color:#fff!important}
+:root[data-experience] .workbench .week-grid:not(#x) .week-grid-head button.is-today small{color:#b23b29!important;font-weight:800}
+:root[data-dark] .workbench .week-grid:not(#x) .week-grid-head button.is-today small{color:#ffb4a6!important}
+@media (prefers-reduced-motion:reduce){.week-grid .week-item{transition:none!important}}
+/* Windows high contrast: outlines and system colors instead of tints. */
+@media (forced-colors:active){.week-grid .week-item{border:1px solid CanvasText!important;forced-color-adjust:none;background:Canvas!important;color:CanvasText!important;box-shadow:inset 4px 0 0 Highlight!important}}
+/* The picked day: a soft highlight, not a box. */
+:root[data-experience] .workbench .week-grid:not(#x) .week-grid-head button[aria-pressed=true]:not(#y){border:0!important;box-shadow:none!important;outline:0;background:color-mix(in srgb,var(--wb-accent,#b4475f) 9%,transparent)!important;border-radius:12px!important}

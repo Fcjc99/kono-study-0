@@ -44,7 +44,6 @@
 .hub-card-title{font-weight:800;font-size:1rem;line-height:1.2;overflow-wrap:anywhere}
 .hub-card small{font-size:.85rem;color:#4a3f4f;font-weight:600}
 .hub-card-who{position:absolute;top:8px;right:8px;width:20px;height:20px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--p) 80%,#fff);color:#fff;font:800 .7rem/1 system-ui,sans-serif;font-style:normal}
-.hub-card.is-past:not(#x):not(#y){opacity:.5}
 .hub-card.is-off .hub-card-title{text-decoration:line-through}
 .hub-empty{margin:4px 0;color:var(--soft);font-weight:600}
 
@@ -137,8 +136,6 @@
 @media(prefers-reduced-motion:reduce){.hub-ambient-drift{transition:none;transform:none}.hub-progress u{transition:none}}
 :root[data-dark] .family-hub{--ink:#f2edf4;--soft:#c3b8c8;--line:#3b3342;--bg:#1b1720;--card:#26212c}
 :root[data-dark] .family-hub :is(.hub-rail,.hub-head){background:#221d27}
-:root[data-dark] .family-hub .hub-card:not(#x):not(#y){background:color-mix(in srgb,var(--p) 35%,#26212c)!important}
-:root[data-dark] .family-hub .hub-card small{color:#ddd}
 .hub-day-todos{list-style:none;margin:2px 0 0;padding:0;display:grid;gap:4px}
 .hub-day-todos li{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:10px;border:1.5px dashed color-mix(in srgb,var(--p) 55%,transparent);font-weight:700;font-size:.9rem}
 .hub-day-todos small{margin-left:auto;font-size:.72rem;font-weight:800;opacity:.75}
@@ -163,31 +160,42 @@
 .hub-day-todos li:not(#x){display:grid;grid-template-columns:auto minmax(0,1fr);align-items:baseline;column-gap:6px}
 .hub-day-todos li small{grid-column:2;margin-left:0}
 
-/* Event tiles, elevated: a card with the person's color as a bar down the left and a soft wash, the title in
-   whole words (never split mid-word; long ones end in …), the time on one line, the person's initial as a
-   small badge. Narrow columns (Week) get tighter type instead of words broken letter by letter. */
+/* Event tiles: the same three shades of the person's color as the Planner (src/store/tones.ts): a pale fill,
+   a bar down the left, dark text (light on a deep fill in dark mode); the person's initial as a badge, so color
+   isn't the only way to tell whose. All-day is a solid pill. Titles in whole words; narrow columns (Week) get
+   tighter type; a roomy column (Day, 3 days) reads from across the kitchen. */
 .hub-card:not(#x):not(#y){
- container-type:inline-size;gap:3px;min-height:52px!important;padding:9px 28px 9px 14px!important;border-radius:14px!important;
- background:linear-gradient(180deg,color-mix(in srgb,var(--p) 16%,#fff),color-mix(in srgb,var(--p) 9%,#fff))!important;
- box-shadow:0 1px 2px color-mix(in srgb,var(--p) 25%,transparent),0 8px 16px -12px color-mix(in srgb,var(--p) 70%,transparent)!important;
- transition:transform .12s ease,box-shadow .12s ease
+ --bg:var(--t-bg,color-mix(in srgb,var(--p) 16%,#fff));--bar:var(--t-bar,var(--p));--fg:var(--t-fg,#2c2230);
+ container-type:inline-size;gap:3px;min-height:52px!important;padding:9px 28px 9px 15px!important;border-radius:12px!important;
+ background:var(--bg)!important;color:var(--fg);box-shadow:0 0 0 1px var(--card,#fff)!important;
+ transition:transform .15s cubic-bezier(.05,.7,.1,1),opacity .2s ease
 }
+:root[data-dark] .family-hub .hub-card:not(#x):not(#y){--bg:var(--t-bg-d,color-mix(in srgb,var(--p) 28%,#26212c));--bar:var(--t-bar-d,var(--p));--fg:var(--t-fg-d,#f5eef8)}
 .hub-card:not(#x):not(#y):active{transform:scale(.98)}
-.hub-card:not(#x):not(#y)::before{content:"";position:absolute;left:5px;top:8px;bottom:8px;width:4px;border-radius:4px;background:var(--p)}
-.hub-card.is-allday:not(#x):not(#y){min-height:38px!important;border-radius:12px!important;padding-top:7px!important;padding-bottom:7px!important}
-.hub-card-title{font-weight:750;font-size:1rem;line-height:1.22;color:#2c2230;overflow-wrap:break-word;word-break:normal;hyphens:auto;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.hub-card small{font-size:.8rem;color:color-mix(in srgb,var(--p) 45%,#3d3240);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
-.hub-card-who{top:7px!important;right:7px!important;width:18px!important;height:18px!important;font-size:.62rem!important;background:var(--p)!important;box-shadow:0 0 0 2px #fff}
+.hub-card:not(#x):not(#y)::before{content:"";position:absolute;left:5px;top:8px;bottom:8px;width:4px;border-radius:4px;background:var(--bar)}
+.hub-card.is-allday:not(#x):not(#y){min-height:38px!important;border-radius:999px!important;padding:7px 28px 7px 14px!important;background:var(--bar)!important;color:#fff}
+:root[data-dark] .family-hub .hub-card.is-allday:not(#x):not(#y){color:var(--bg)}
+.hub-card.is-allday:not(#x):not(#y)::before{display:none}
+.hub-card.is-allday .hub-card-title,.hub-card.is-allday small{color:inherit!important}
+.hub-card-title{font-weight:750;font-size:1rem;line-height:1.22;color:var(--fg);overflow-wrap:break-word;word-break:normal;hyphens:auto;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.hub-card small{font-size:.82rem;color:var(--fg)!important;opacity:.85;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.hub-card-who{top:7px!important;right:7px!important;width:18px!important;height:18px!important;font-size:.62rem!important;background:var(--bar)!important;color:#fff!important;box-shadow:0 0 0 2px var(--bg)}
+:root[data-dark] .family-hub .hub-card-who{color:var(--bg)!important}
+.hub-card.is-allday .hub-card-who{top:50%!important;translate:0 -50%;background:var(--bg)!important;color:var(--fg)!important;box-shadow:none}
+.hub-card.is-past:not(#x):not(#y){opacity:.6}
 @container (max-width:150px){
  .hub-card-title{font-size:.86rem;-webkit-line-clamp:4}
- .hub-card small{font-size:.7rem;white-space:normal}
+ .hub-card small{font-size:.72rem;white-space:normal}
 }
 @container (max-width:110px){.hub-card-who{display:none!important}}
+@container (min-width:200px){
+ .hub-card-title{font-size:1.18rem}
+ .hub-card small{font-size:.95rem}
+ .hub-card-who{width:24px!important;height:24px!important;font-size:.75rem!important}
+}
 .hub-card:not(#x):not(#y):has(.hub-card-who){padding-right:26px!important}
-:root[data-dark] .family-hub .hub-card:not(#x):not(#y){background:linear-gradient(180deg,color-mix(in srgb,var(--p) 30%,#2a2430),color-mix(in srgb,var(--p) 18%,#26212c))!important}
-:root[data-dark] .family-hub .hub-card-title{color:#f5eef8}
-:root[data-dark] .family-hub .hub-card small{color:color-mix(in srgb,var(--p) 35%,#eee)}
-:root[data-dark] .family-hub .hub-card-who{box-shadow:0 0 0 2px #26212c}
+@media (prefers-reduced-motion:reduce){.hub-card{transition:none!important}}
+@media (forced-colors:active){.hub-card{border:1px solid CanvasText!important;forced-color-adjust:none;background:Canvas!important;color:CanvasText!important}.hub-card::before{background:Highlight!important}}
 /* Chores and Meals in the new look: person chips as compact pills, each kid's column a raised card washed
  * in their color, dinners as day tiles with today lifted, and groceries in their own card. */
 .family-hub .kids-planner-jump:not(#x){display:flex!important;flex-wrap:wrap;align-items:center!important;align-self:flex-start;gap:8px!important;height:auto!important}
@@ -205,3 +213,7 @@
 :root[data-dark] .family-hub .meal-days button:not(#x):not(#y){background:linear-gradient(160deg,#3a2c22,#241f2b)!important}
 :root[data-dark] .family-hub .meal-days .is-today button:not(#x):not(#y){background:linear-gradient(160deg,#4a2c24,#241f2b)!important}
 :root[data-dark] .family-hub .kids-planner-top button:not(#x):not(#y){background:var(--card)!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-dark] .family-hub .hub-card.is-allday .hub-card-who{color:var(--fg)!important}
+:root[data-dark] .family-hub .hub-cal-bar button:not(#x):not(#y){background:var(--card)!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-dark] .family-hub .hub-cal-bar button[aria-pressed=true]:not(#x):not(#y){background:#7c4dcc!important;color:#fff!important}
+:root[data-dark] .family-hub .hub-cal-bar button:disabled:not(#x):not(#y){opacity:.45}

@@ -1,5 +1,6 @@
 import {Fragment,Suspense,lazy,useCallback,useEffect,useMemo,useRef,useState,type CSSProperties,type PointerEvent,type ReactNode,type SetStateAction,type TouchEvent} from 'react'
 import {flushSync} from 'react-dom'
+import {toneVars} from './store/tones'
 import {usePlannerRepository} from './store/repository'
 import {uid,localDate,eventCategory,peopleOf,type AppData,type FamilyTodo,type SettingsData,type Subtask,type CalendarEvent,type Kid} from './store/model'
 import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems} from './store/kids'
@@ -1360,7 +1361,7 @@ function RecordCard({cozy,collection,entry,subject,subjectColor,kid,alsoKids=[],
  const start=String(entry.time??''),end=String(entry.endTime??'')
  const happening=isToday&&!!start&&start<=nowHM&&(end?nowHM<end:nowHM<String(Number(start.slice(0,2))+1).padStart(2,'0')+start.slice(2))
  const over=isToday&&!happening&&!!start&&(end||start)<nowHM
- if(collection==='calendarEvents')return <article className={'wb-family-event kid-border-'+borderStyle+(done?' is-complete':'')+(needsReview?' needs-review-record':'')+(happening?' is-now':'')+(over?' is-over':'')} style={{'--kid-color':showKidBorder?kid?.color??'#b47e75':undefined} as CSSProperties}>
+ if(collection==='calendarEvents')return <article className={'wb-family-event kid-border-'+borderStyle+(done?' is-complete':'')+(needsReview?' needs-review-record':'')+(happening?' is-now':'')+(over?' is-over':'')} style={{'--kid-color':showKidBorder?kid?.color??'#b47e75':undefined,...(showKidBorder?toneVars(kid?.color??'#b47e75'):{})} as CSSProperties}>
   <div className="wb-family-event-main">
    <div className="wb-family-event-time">{happening&&<span className="wb-family-event-now">Now</span>}{entry.time?<><span className="wb-family-event-start">{classTime(String(entry.time))}</span>{entry.endTime&&<span className="wb-family-event-end">–{classTime(String(entry.endTime))}</span>}</>:<span className="wb-family-event-start">All day</span>}</div>
    <div className="wb-family-event-info">
