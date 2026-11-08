@@ -1,4 +1,5 @@
 import {useState,type CSSProperties} from 'react'
+import './kids-page.css'
 import {uid,type AppData,type Kid,type StarReward} from '../store/model'
 import {STARTER_REWARDS,approve,chartFor,decline,redeem,starsOf,waiting} from '../store/choreStars'
 import {checkPin,hasPin} from '../store/familyHub'

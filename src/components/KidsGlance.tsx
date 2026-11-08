@@ -1,5 +1,6 @@
 import {useState,type CSSProperties} from 'react'
 import Modal from './Modal'
+import './kids-page.css'
 import {kidGlance} from '../store/kidGlance'
 import {addCareEvent,SNACKS} from '../store/konoCare'
 import {uid,type AppData,type Kid} from '../store/model'
