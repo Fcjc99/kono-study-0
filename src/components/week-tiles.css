@@ -9,7 +9,7 @@
  box-shadow:inset 3px 0 0 var(--item-color),0 1px 2px color-mix(in srgb,var(--item-color) 30%,transparent),0 6px 12px -9px color-mix(in srgb,var(--item-color) 80%,transparent)!important;
  color:#2c2230!important;overflow:hidden
 }
-:root[data-experience] .workbench .week-grid .week-item-timed:not(#x):not(#y) .week-item-title{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-weight:750;font-size:.8rem;line-height:1.25;overflow-wrap:break-word;word-break:normal;hyphens:auto;padding-right:20px}
+:root[data-experience] .workbench .week-grid .week-item-timed:not(#x):not(#y) .week-item-title{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-weight:750;font-size:.8rem;line-height:1.25;overflow-wrap:break-word;word-break:break-word;hyphens:auto;padding-right:20px;max-width:100%;box-sizing:border-box}
 :root[data-experience] .workbench .week-grid .week-item-timed:not(#x):not(#y)>small{display:block;font-size:.68rem;font-weight:650;color:color-mix(in srgb,var(--item-color) 40%,#4a3d4c)!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;margin-top:1px}
 :root[data-experience] .workbench .week-grid .week-item-timed:not(#x):not(#y) .week-item-who{position:absolute;top:4px;right:4px;width:15px;height:15px;display:grid;place-items:center;border-radius:50%;background:var(--item-color);color:#fff;font:800 .55rem/1 system-ui,sans-serif;font-style:normal;box-shadow:0 0 0 1.5px #fff}
 /* Short (under 40 min): one line, the title alone (its place on the grid is its time; the label still says it). */
