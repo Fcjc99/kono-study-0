@@ -28,9 +28,48 @@
     .kono-skel i:nth-child(1){height:96px;border-radius:20px}.kono-skel i:nth-child(2){width:72%}.kono-skel i:nth-child(3){height:180px;border-radius:24px}.kono-skel i:nth-child(4){width:46%}
     @keyframes kono-shimmer{from{background-position:100% 0}to{background-position:0 0}}
     @media (prefers-color-scheme:dark){.kono-skel i{background-image:linear-gradient(90deg,#ffffff0d 25%,#ffffff22 50%,#ffffff0d 75%)}}
-    @media (prefers-reduced-motion:reduce){.kono-skel i{animation:none}}</style>
+    @media (prefers-reduced-motion:reduce){.kono-skel i{animation:none}}
+    /* The opening screen: KONO doing something different each time (a wave, a cheer, a snack…) until Home is
+       ready. It sits over everything and the app fades it out (window.konoSplashDone). */
+    #kono-splash{position:fixed;inset:0;z-index:2147483000;display:grid;place-content:center;justify-items:center;gap:10px;background:radial-gradient(120% 90% at 50% 40%,#fffaf2 0%,#f4ece0 60%,#eadfce 100%);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#5b3d34;transition:opacity .32s ease}
+    #kono-splash.is-dark{background:radial-gradient(120% 90% at 50% 40%,#2a2231 0%,#1b1720 60%,#16131a 100%);color:#efe6f2}
+    @media (prefers-color-scheme:dark){#kono-splash:not(.is-light){background:radial-gradient(120% 90% at 50% 40%,#2a2231 0%,#1b1720 60%,#16131a 100%);color:#efe6f2}}
+    #kono-splash.is-going{opacity:0}
+    #kono-splash .ks-stage{position:relative;width:168px;height:168px}
+    #kono-splash .ks-stage::after{content:"";position:absolute;left:34px;right:34px;bottom:8px;height:12px;border-radius:50%;background:#3a281f;opacity:.14;filter:blur(2px)}
+    #kono-splash .ks-sprite{position:absolute;inset:0;z-index:1;background:0 0/672px 168px no-repeat;animation:ks-play var(--ks-ms,640ms) steps(4) infinite;image-rendering:auto}
+    #kono-splash .ks-z{position:absolute;right:22px;top:18px;font-weight:800;font-size:22px;opacity:0;animation:ks-z 2.4s ease-in infinite}
+    #kono-splash .ks-name{margin:6px 0 0;font-weight:800;font-size:1.5rem;letter-spacing:.32em;padding-left:.32em}
+    #kono-splash .ks-line{margin:0;font-size:.95rem;opacity:.75}
+    #kono-splash .ks-dots{display:flex;gap:6px;margin-top:6px}#kono-splash .ks-dots i{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.25;animation:ks-dot 1.2s ease-in-out infinite}
+    #kono-splash .ks-dots i:nth-child(2){animation-delay:.2s}#kono-splash .ks-dots i:nth-child(3){animation-delay:.4s}
+    @keyframes ks-play{to{background-position:-672px 0}}
+    @keyframes ks-dot{40%{opacity:.85;transform:translateY(-3px)}}
+    @keyframes ks-z{0%{opacity:0;transform:translate(0,8px) scale(.7)}30%{opacity:.8}100%{opacity:0;transform:translate(14px,-26px) scale(1.15)}}
+    @media (prefers-reduced-motion:reduce){#kono-splash .ks-sprite,#kono-splash .ks-dots i,#kono-splash .ks-z{animation:none}}</style>
   </head>
   <body>
+    <!-- The opening screen (styles above). Each open plays the next of KONO's animations. -->
+    <div id="kono-splash" role="status" aria-live="polite"><div class="ks-stage" aria-hidden="true"><span class="ks-sprite"></span></div><p class="ks-name" aria-hidden="true">KONO</p><p class="ks-line"></p><span class="ks-dots" aria-hidden="true"><i></i><i></i><i></i></span></div>
+    <script>
+    (function(){
+     var el=document.getElementById('kono-splash'),start=Date.now(),gone=false
+     // name, ms a frame (4 frames a sheet), what it says
+     var all=[['wave',160,'KONO is waving hello'],['cheer',150,'KONO is cheering you on'],['pet',150,'KONO is happy to see you'],['eat',260,'KONO is having a snack'],['breathe',420,'KONO is taking a deep breath'],['sleep',900,'KONO is waking up']]
+     var n=0;try{n=(Number(localStorage.getItem('kono-splash-n'))+1)%all.length;if(!(n>=0))n=0;localStorage.setItem('kono-splash-n',String(n))}catch(e){}
+     var a=all[n],sprite=el.querySelector('.ks-sprite')
+     sprite.style.backgroundImage="url('/garden/kono/anim/"+a[0]+".webp')";sprite.style.setProperty('--ks-ms',a[1]*4+'ms')
+     if(a[0]==='sleep'){var z=document.createElement('span');z.className='ks-z';z.textContent='z';el.firstChild.appendChild(z)}
+     el.querySelector('.ks-line').textContent=a[2]
+     el.dataset.anim=a[0]
+     try{var d=localStorage.getItem('kono-splash-dark');if(d==='1')el.classList.add('is-dark');else if(d==='0')el.classList.add('is-light')}catch(e){}
+     // Long enough to see KONO move (not for automated browsers), then a soft fade.
+     var least=navigator.webdriver?0:1100
+     window.konoSplashDone=function(){if(gone)return;gone=true;setTimeout(function(){el.classList.add('is-going');setTimeout(function(){el.remove()},340)},Math.max(0,least-(Date.now()-start)))}
+     // Never in the way for long: a slow open shows the app's own "Taking longer than usual · Reload".
+     setTimeout(window.konoSplashDone,10000)
+    })()
+    </script>
     <!-- Shown the moment the page arrives, until KONO's code has downloaded and replaces it. -->
     <div id="root"><main style="max-width:880px;margin:8vh auto;padding:24px;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#24322a"><h1 style="margin:0 0 8px;letter-spacing:.08em">KONO</h1><p role="status" style="margin:0;opacity:.75">Opening your study plan…</p><section class="kono-skel" aria-hidden="true"><i></i><i></i><i></i><i></i></section></main></div>
     <script type="module" src="/src/main.tsx"></script>

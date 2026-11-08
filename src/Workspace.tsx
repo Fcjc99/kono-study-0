@@ -50,6 +50,7 @@ import {lazyPage,lazyPanel} from './lazyPanel'
 import {ScheduleSetup,SharedWithMe,WeekRecap} from './pages/sharedPanels'
 import type {PageContext} from './pages/pageContext'
 import {autoIslandPhase,islandPosterSrc,loadIslandPoster} from './game/sanctuary/islandPoster'
+import {splashDone,rememberSplashDark} from './store/splash'
 import Modal from './components/Modal'
 import {labels,type Edit} from './store/entryLabels'
 import type {LiveWeatherState} from './game/weather/liveWeather'
@@ -224,6 +225,8 @@ function StartupWait(){
  if(!late)return null
  return <p className="startup-late" role="alert">Taking longer than usual. <button type="button" onClick={()=>window.location.reload()}>Reload</button></p>
 }
+/** Rendered with the first real screen: the opening animation can go. */
+function SplashOff(){useEffect(()=>splashDone(),[]);return null}
 export default function WorkspaceApp(){
  const store=usePlannerRepository()
  useEffect(()=>{const {experience='cozy',theme}=store.data.settings,root=document.documentElement;root.dataset.experience=experience;root.dataset.theme=experience==='cozy'?cozyPalette(theme):fixedPaletteExperiences.includes(experience)?experience:theme
@@ -231,12 +234,12 @@ export default function WorkspaceApp(){
   const jersey=teamJersey(root.dataset.theme);if(jersey)root.dataset.team=jersey;else delete root.dataset.team},[store.data.settings])
  // Dark mode (dark-mode.css): always, never, or following the phone's own setting.
  const phoneDark=usePrefersDark(),darkMode=store.data.settings.darkMode??'phone',dark=darkMode==='dark'||(darkMode==='phone'&&phoneDark)
- useEffect(()=>{const root=document.documentElement;if(dark)root.dataset.dark='true';else delete root.dataset.dark},[dark])
+ useEffect(()=>{const root=document.documentElement;if(dark)root.dataset.dark='true';else delete root.dataset.dark;if(store.ready)rememberSplashDark(darkMode)},[dark,darkMode,store.ready])
  if(!store.ready)return <main className="startup-card"><h1>KONO</h1><p role="status">Opening your study plan…</p><section className="kono-skel" aria-hidden="true"><i/><i/><i/><i/></section><StartupWait/></main>
  // AccountPanel (rendered inside Onboarding) shows its own SaveStatus in context -- a second
  // one floating above the welcome card duplicated the exact same "Build X · This device only"
  // line as a stray line of text before the reader has even reached the card it belongs to.
- if(!store.data.onboardingComplete)return <Suspense fallback={<main className="startup-card"><h1>KONO</h1><p role="status">Opening KONO…</p><StartupWait/></main>}>{store.unreadable?<RecoveryScreen store={store}/>:<Onboarding store={store}/>}</Suspense>
+ if(!store.data.onboardingComplete)return <Suspense fallback={<main className="startup-card"><h1>KONO</h1><p role="status">Opening KONO…</p><StartupWait/></main>}><SplashOff/>{store.unreadable?<RecoveryScreen store={store}/>:<Onboarding store={store}/>}</Suspense>
  return <Workspace key={(store.user?.id??'device')+':'+store.data.activeProfileId} store={store}/>
 }
 function Workspace({store}:{store:Store}){
@@ -260,6 +263,13 @@ function Workspace({store}:{store:Store}){
  // Island & KONO (Look & feel, per plan): the whole island, just KONO in a card, or a plain planner.
  // Without the island its picture and game engine never load, so Home opens faster.
  const islandSetting=profile.island??'full'
+ // The opening animation stays until Home is really there: on the island's Home, its picture too (a few
+ // seconds at most), so the page doesn't fill in piece by piece behind it.
+ useEffect(()=>{let gone=false
+  const island=startPage==='Sanctuary'&&islandSetting==='full'&&!familyHomeLast()
+  const ready=island?Promise.race([Promise.all([loadIslandPoster(),import('./components/GardenCard')]).catch(()=>undefined),new Promise(r=>window.setTimeout(r,2500))]):Promise.resolve()
+  void ready.then(()=>{if(!gone)requestAnimationFrame(()=>requestAnimationFrame(splashDone))})
+  return()=>{gone=true;splashDone()}},[]) // eslint-disable-line react-hooks/exhaustive-deps -- once, on opening
  // Wall display (Planner › 📺, or ?wall in the address so a fridge tablet can open straight to it).
  const [wallOpen,setWallOpen]=useState(()=>urlFlag('wall')),[wallTapped,setWallTapped]=useState(false)
  // Opened with a tap (not from the address): that tap is what lets an iPad keep the screen on.

@@ -444,6 +444,24 @@ test('accessibility: the main pages pass an axe scan (WCAG 2.1 AA: contrast, lab
  }
 })
 
+test('opening: KONO’s animation shows until Home is ready, a different one each time, and the sign-in screen isn’t hidden behind it',async({context,page})=>{
+ const cloud=fakeCloud();await signInAs(context,cloud,'alice')
+ const seen=[]
+ for(let i=0;i<3;i++){
+  await page.goto(BASE)
+  seen.push(await page.evaluate(()=>document.getElementById('kono-splash')?.dataset.anim??localStorage.getItem('kono-splash-n')))
+  await heading(page,'Sanctuary')
+  await page.locator('#kono-splash').waitFor({state:'detached',timeout:5000})
+ }
+ assert.equal(new Set(seen).size,3,seen.join(', '))
+ const fresh=await freshPage()
+ try{
+  await fresh.page.goto(BASE)
+  await fresh.page.locator('#kono-splash').waitFor({state:'detached',timeout:8000})
+  assert.equal(await fresh.page.locator('.startup-card').count()+await fresh.page.locator('.onboarding').count()>0,true)
+ }finally{await fresh.context.close()}
+})
+
 test('opening never hangs: storage that never answers (an iPhone Safari bug) leads to Try again within seconds, and a stalled download offers Reload',async()=>{
  // IndexedDB open that never answers.
  const one=await freshPage()
