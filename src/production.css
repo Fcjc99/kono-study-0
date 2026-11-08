@@ -18,3 +18,4 @@ html[data-motion=reduced] *,html[data-motion=reduced] *::before,html[data-motion
 .other-sign-in .sign-in-google{background:#fff;color:#1f1f1f;border:1px solid #c9c9d6}
 .other-sign-in .sign-in-apple{background:#000;color:#fff;border:1px solid #000}
 .other-sign-in button:disabled{opacity:.55}
+.startup-late{margin-top:18px;font-size:.95rem}.startup-late button{margin-left:8px;min-height:44px;padding:0 18px;border-radius:999px;font-weight:700}

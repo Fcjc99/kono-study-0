@@ -83,6 +83,7 @@ const TodoEditor=lazy(()=>import('./components/TodoEditor'))
 const TourPlaceholder=()=><section className="wb-panel welcome-tour is-loading" aria-hidden="true"/>
 const Onboarding=lazy(()=>import('./components/Welcome').then(m=>({default:m.Onboarding}))),RecoveryScreen=lazy(()=>import('./components/Welcome').then(m=>({default:m.RecoveryScreen})))
 import './components/StudyPlanner.css'
+import './day-agenda.css'
 import './components/kquiz.css'
 // The search panel groups plan items under these headings.
 const SEARCH_GROUP:Partial<Record<Collection,string>>={tasks:'Assignments',exams:'Exams',calendarEvents:'Events',notes:'Notes',subjects:'Subjects',kids:'Kids'}
@@ -215,6 +216,14 @@ const familyHomeLast=()=>{try{return localStorage.getItem('kono-family-home')===
 if(startPage==='Planner'){void import('./components/PlannerCalendar').catch(()=>undefined);void import('./components/WeekGrid').catch(()=>undefined)}
 else if(startPage==='Sanctuary'&&signedIn()&&!familyHomeLast()){void import('./components/GardenCard').catch(()=>undefined);void loadIslandPoster()}
 
+/** On an opening screen for longer than a phone should ever need (a stalled download, a browser that stopped
+ * answering), offer a way out instead of a screen that never changes. */
+function StartupWait(){
+ const [late,setLate]=useState(false)
+ useEffect(()=>{const t=window.setTimeout(()=>setLate(true),12_000);return()=>window.clearTimeout(t)},[])
+ if(!late)return null
+ return <p className="startup-late" role="alert">Taking longer than usual. <button type="button" onClick={()=>window.location.reload()}>Reload</button></p>
+}
 export default function WorkspaceApp(){
  const store=usePlannerRepository()
  useEffect(()=>{const {experience='cozy',theme}=store.data.settings,root=document.documentElement;root.dataset.experience=experience;root.dataset.theme=experience==='cozy'?cozyPalette(theme):fixedPaletteExperiences.includes(experience)?experience:theme
@@ -223,11 +232,11 @@ export default function WorkspaceApp(){
  // Dark mode (dark-mode.css): always, never, or following the phone's own setting.
  const phoneDark=usePrefersDark(),darkMode=store.data.settings.darkMode??'phone',dark=darkMode==='dark'||(darkMode==='phone'&&phoneDark)
  useEffect(()=>{const root=document.documentElement;if(dark)root.dataset.dark='true';else delete root.dataset.dark},[dark])
- if(!store.ready)return <main className="startup-card"><h1>KONO</h1><p role="status">Opening your study plan…</p><section className="kono-skel" aria-hidden="true"><i/><i/><i/><i/></section></main>
+ if(!store.ready)return <main className="startup-card"><h1>KONO</h1><p role="status">Opening your study plan…</p><section className="kono-skel" aria-hidden="true"><i/><i/><i/><i/></section><StartupWait/></main>
  // AccountPanel (rendered inside Onboarding) shows its own SaveStatus in context -- a second
  // one floating above the welcome card duplicated the exact same "Build X · This device only"
  // line as a stray line of text before the reader has even reached the card it belongs to.
- if(!store.data.onboardingComplete)return <Suspense fallback={<main className="startup-card"><h1>KONO</h1><p role="status">Opening KONO…</p></main>}>{store.unreadable?<RecoveryScreen store={store}/>:<Onboarding store={store}/>}</Suspense>
+ if(!store.data.onboardingComplete)return <Suspense fallback={<main className="startup-card"><h1>KONO</h1><p role="status">Opening KONO…</p><StartupWait/></main>}>{store.unreadable?<RecoveryScreen store={store}/>:<Onboarding store={store}/>}</Suspense>
  return <Workspace key={(store.user?.id??'device')+':'+store.data.activeProfileId} store={store}/>
 }
 function Workspace({store}:{store:Store}){
@@ -1317,7 +1326,7 @@ function RecordCard({cozy,collection,entry,subject,subjectColor,kid,alsoKids=[],
  const link=typeof entry.link==='string'?entry.link:'',photoCount=Array.isArray(entry.photos)?entry.photos.length:0
  const attachChips=(link||photoCount>0)&&<span className="attach-chips">{link&&<a className="subtask-chip attach-link" href={link} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}>🔗 Open link</a>}{photoCount>0&&<button type="button" className="subtask-chip attach-photos" onClick={edit} aria-label={photoCount===1?'1 photo, open it':photoCount+' photos, open them'}>📷 {photoCount}</button>}</span>
  // Studying an assignment is its own action, separate from editing it: it opens the focus console with it.
- const startFocusButton=startFocus&&<button type="button" className="start-focus-button" aria-label={'Focus on '+titleOf(entry)} onClick={startFocus}>▶ Focus on this</button>
+ const startFocusButton=startFocus&&<button type="button" className={'start-focus-button'+(inDay?' is-icon':'')} aria-label={'Focus on '+titleOf(entry)} title="Focus on this" onClick={startFocus}>{inDay?<span aria-hidden="true">▶</span>:'▶ Focus on this'}</button>
  if(cozy&&collection==='tasks')return <article className={'cozy-task-row '+(done?'is-complete':'')+(needsReview?' needs-review-record':'')+(personEdge?' has-person':'')} style={{'--subject-accent':subjectColor??'#b47e75',...personEdge} as CSSProperties}><button className="cozy-complete" aria-label={(done?'Reopen ':'Complete ')+titleOf(entry)} aria-pressed={done} onClick={toggle}>{done?'✓':'○'}</button><div className="cozy-task-copy">{reviewBadge}<h3>{titleText}</h3><p>{whoChip}{subject??'Unassigned'}{sameDay?null:<> · {dateLabel(String(entry.due))} <span className={'countdown-chip '+(daysUntil(String(entry.due))<0?'is-overdue':'')}>{dueLabel}</span></>}{plannedChip}{attachChips}{subtaskProgress&&<span className="subtask-chip">{subtaskProgress}</span>}{inSeries&&<span className="subtask-chip">1 of {seriesCount} dates</span>}</p>{Boolean(entry.notes)&&<SafeNoteBody text={String(entry.notes)}/>}</div><div className="cozy-task-actions">{reviewButton}{startFocusButton}{!inDay&&<button onClick={edit}><ActionIcon name="edit"/>Edit</button>}<details className="card-more"><summary aria-label={'More actions for '+titleOf(entry)} title="More actions">⋯</summary><div onClick={e=>{(e.currentTarget.parentElement as HTMLDetailsElement).open=false}}>{inDay&&<button onClick={edit}><ActionIcon name="edit"/>Edit</button>}<button onClick={duplicate}><ActionIcon name="copy"/>Duplicate</button><button onClick={remove}><ActionIcon name="trash"/>Move to Trash</button>{inSeries&&<button onClick={removeSeries}><ActionIcon name="trash"/>Delete whole series ({seriesCount})</button>}</div></details></div></article>
  if(cozy&&paper&&compact)return <button type="button" className={'cozy-pin-mini'+(priority?' priority-record':'')+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={{'--note-paper':String(entry.color??'#ffd2dd'),'--note-ink':String(entry.textColor??'#2f2942')} as CSSProperties} onClick={edit}><span className="push-pin pin-mini" aria-hidden="true"/>{priority&&<b aria-hidden="true">★</b>}<strong>{titleOf(entry)}</strong>{dueLabel&&<span className={'countdown-chip '+(daysUntil(due)<0?'is-overdue':'')}>{dueLabel}</span>}</button>
  if(cozy&&paper)return <div className={'cozy-note-record '+(priority?'priority-record':'')+(needsReview?' needs-review-record':'')} >{priority&&<span className="priority-flag">★ IMPORTANT · {dueLabel}</span>}{reviewBadge}{attachChips}<Suspense fallback={<div className="kono-sticky is-loading" aria-hidden="true"/>}><StickyNoteView kind={note?'note':'exam'} color={String(entry.color??'#ffd2dd')} textColor={String(entry.textColor??'#2f2942')} font={String(entry.font??'rounded')} pinned={Boolean(entry.pinned)} completed={done} subject={subject??'General'} title={titleOf(entry)} body={String(entry.body??entry.notes??'')} highlight={String(entry.highlight??'transparent')} dateLabel={due?dateLabel(due)+(dueLabel?' · '+dueLabel:''):undefined} onEdit={edit} onDelete={remove} onTogglePin={note?pin:undefined} onToggleComplete={toggle} onQuickEdit={quickEdit?c=>quickEdit({title:c.title,[note?'body':'notes']:c.body}):undefined}/></Suspense><div className="wb-toolbar note-tools">{reviewButton}<details className="note-more"><summary aria-label={'More for '+titleOf(entry)}>⋯</summary><div className="note-more-menu" onClick={e=>{if((e.target as HTMLElement).closest('button'))(e.currentTarget.parentElement as HTMLDetailsElement).open=false}}><button className="cozy-duplicate" onClick={duplicate}>Duplicate</button>{note&&<button onClick={remind}>Add reminder</button>}{scheduleReview&&<button onClick={scheduleReview}>Schedule review</button>}</div></details></div></div>
@@ -1332,9 +1341,14 @@ function RecordCard({cozy,collection,entry,subject,subjectColor,kid,alsoKids=[],
  // ordinary border, never someone else's chosen style.
  const borderStyle=showKidBorder&&kid?kid.borderStyle??'solid':'solid'
  const tracked=tracksDone(collection,entry)
- if(collection==='calendarEvents')return <article className={'wb-family-event kid-border-'+borderStyle+(done?' is-complete':'')+(needsReview?' needs-review-record':'')} style={{'--kid-color':showKidBorder?kid?.color??'#b47e75':undefined} as CSSProperties}>
+ // On Home's day lists: an event going on right now says so, and one already over today steps back.
+ const nowHM=new Date().toTimeString().slice(0,5),isToday=inDay&&entry.date===localDate()
+ const start=String(entry.time??''),end=String(entry.endTime??'')
+ const happening=isToday&&!!start&&start<=nowHM&&(end?nowHM<end:nowHM<String(Number(start.slice(0,2))+1).padStart(2,'0')+start.slice(2))
+ const over=isToday&&!happening&&!!start&&(end||start)<nowHM
+ if(collection==='calendarEvents')return <article className={'wb-family-event kid-border-'+borderStyle+(done?' is-complete':'')+(needsReview?' needs-review-record':'')+(happening?' is-now':'')+(over?' is-over':'')} style={{'--kid-color':showKidBorder?kid?.color??'#b47e75':undefined} as CSSProperties}>
   <div className="wb-family-event-main">
-   <div className="wb-family-event-time">{entry.time?<><span className="wb-family-event-start">{classTime(String(entry.time))}</span>{entry.endTime&&<span className="wb-family-event-end">–{classTime(String(entry.endTime))}</span>}</>:'—'}</div>
+   <div className="wb-family-event-time">{happening&&<span className="wb-family-event-now">Now</span>}{entry.time?<><span className="wb-family-event-start">{classTime(String(entry.time))}</span>{entry.endTime&&<span className="wb-family-event-end">–{classTime(String(entry.endTime))}</span>}</>:<span className="wb-family-event-start">All day</span>}</div>
    <div className="wb-family-event-info">
     <small>{showKidHeader?<>{whoChip??'Family'}{subject?' · '+subject:''}</>:subject??(entry.subjectId?'Removed subject':'General')}</small>
     <h3>{titleText}{inSeries&&<span className="wb-repeat-mark" title={'Repeats · '+seriesCount+' dates'} aria-label="Repeats"> ↻</span>}</h3>

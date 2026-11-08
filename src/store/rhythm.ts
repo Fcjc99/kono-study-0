@@ -1,5 +1,5 @@
 /** KONO Beat (components/RhythmGame): the arcade's songs as a piano-tiles game. Black tiles come down four
- * columns, one for each note the song's lead melody plays (higher notes to the right); tap a tile's column as
+ * columns, one on each beat where the song really hits (low hits left, bright ones right); tap a tile's column as
  * it reaches the line, and hold a long tile to its end. How close a tap is decides Perfect, Great or Good, with
  * Early or Late; a long tile counts Perfect for every moment it's held. (The rules still know sky notes and
  * ribbons from the old 3D track; the charts don't use them.) The score is out of 1,000,000 (plus one for each
@@ -9,9 +9,9 @@
  * the first missed tile, or a tap on the wrong column, ends the song, like the original piano-tiles games. */
 export type Level='easy'|'medium'|'jeff'
 export const LEVELS:{id:Level;name:string;blurb:string}[]=[
- {id:'easy',name:'Easy',blurb:'The melody’s main notes, about one and a half a second; roomy timing and a gentle gauge.'},
- {id:'medium',name:'Medium',blurb:'Most of the melody, about three a second, with long tiles.'},
- {id:'jeff',name:'Jeff tier',blurb:'Every note the lead plays, and the gauge drains.'},
+ {id:'easy',name:'Easy',blurb:'A tile on every beat; roomy timing and a gentle gauge.'},
+ {id:'medium',name:'Medium',blurb:'The beat plus the off-beats that hit hard.'},
+ {id:'jeff',name:'Jeff tier',blurb:'Every strong hit, down to the 16ths, and the gauge drains.'},
 ]
 export type Judge='perfect'|'great'|'good'|'miss'
 /** How far off (ms) still counts, by level: Perfect, Great, Good. Half the Perfect window is dead on. */

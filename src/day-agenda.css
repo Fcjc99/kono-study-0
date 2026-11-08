@@ -1,0 +1,109 @@
+/* Home's Today / Tomorrow lists: each event as one calm agenda row instead of a big bordered card. The time
+   sits in its own column (start large, end small) so a day reads top to bottom at a glance; the person's
+   color is a slim bar down the left edge with a faint wash, not a heavy frame. A kid's chosen border style
+   (Kids › Appearance) still shows, on that bar. "Now" marks what's going on; what's over today steps back.
+   Scoped to the day lists (.tomorrow-extra-list) so the Planner's cards are unchanged. */
+:root[data-experience] .workbench .tomorrow-extra-list{display:grid;gap:8px}
+:root[data-experience] .workbench .tomorrow-extra-list>strong{margin:2px 2px 0;font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--wb-muted,#7a6670)}
+
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y){
+ --bar:var(--kid-color,color-mix(in srgb,var(--wb-accent,#b4475f) 70%,#fff));
+ position:relative;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center;gap:0 6px!important;
+ margin:0!important;padding:12px 8px 12px 18px!important;
+ border:0!important;border-radius:16px!important;
+ background:linear-gradient(90deg,color-mix(in srgb,var(--bar) 10%,transparent),transparent 55%),var(--wb-surface,#fffdfb)!important;
+ box-shadow:0 0 0 1px color-mix(in srgb,var(--wb-ink,#3a2b33) 7%,transparent),0 8px 18px -14px color-mix(in srgb,var(--wb-ink,#3a2b33) 60%,transparent)!important;
+ transition:transform .15s ease,box-shadow .15s ease;overflow:hidden
+}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y)::before{
+ content:"";position:absolute;left:7px;top:10px;bottom:10px;width:4px;border-radius:4px;background:var(--bar)
+}
+/* The kid's border style, on the bar. */
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event.kid-border-bold:not(#x):not(#y)::before{width:6px}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event.kid-border-soft:not(#x):not(#y)::before{opacity:.5}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:is(.kid-border-dashed,.kid-border-dotted,.kid-border-double):not(#x):not(#y)::before{background:none;border-radius:0;width:0;border-left:4px dashed var(--bar)}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event.kid-border-dotted:not(#x):not(#y)::before{border-left-style:dotted}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event.kid-border-double:not(#x):not(#y)::before{border-left:6px double var(--bar)}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event.kid-border-glow:not(#x):not(#y)::before{box-shadow:0 0 10px 1px color-mix(in srgb,var(--bar) 70%,transparent)}
+
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y)>.wb-family-event-main{display:grid!important;grid-template-columns:5.3rem minmax(0,1fr) auto;align-items:center;gap:0 12px;flex-wrap:nowrap!important;min-width:0}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .wb-family-event-time{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:1px!important;line-height:1.15;color:color-mix(in srgb,var(--bar) 55%,var(--wb-ink,#3a2b33))!important}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .wb-family-event-start{font-size:1rem;font-weight:800;letter-spacing:-.01em;white-space:nowrap}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .wb-family-event-end{font-size:.74rem;font-weight:600;color:var(--wb-muted,#7a6670);white-space:nowrap}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .wb-family-event-info{display:flex;flex-direction:column;gap:3px;min-width:0}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .wb-family-event-info>h3{margin:0!important;font-size:1.02rem!important;font-weight:750;line-height:1.25;color:var(--wb-ink,#3a2b33);overflow-wrap:anywhere}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .wb-family-event-info>h3 .card-title-button{all:unset;cursor:pointer}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .wb-family-event-info>h3 .card-title-button:focus-visible{outline:2px solid var(--bar);outline-offset:3px;border-radius:4px}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .wb-family-event-info>small:first-child{font-size:.7rem!important;letter-spacing:.06em}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .person-chip{padding:1px 8px 1px 2px;font-size:.7rem;min-height:0}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .event-place,
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .event-driver{font-size:.78rem!important}
+
+/* ⋯: a quiet round button, not a big white pill. */
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y)>.wb-toolbar{margin:0!important;gap:6px!important;align-self:center}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .card-more>summary{width:36px;height:36px;min-height:36px!important;padding:0!important;display:grid;place-items:center;border-radius:50%;border:0!important;background:transparent!important;box-shadow:none!important;color:var(--wb-muted,#7a6670);font-size:1.1rem}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .card-more>summary:hover{background:color-mix(in srgb,var(--bar) 14%,transparent)!important}
+
+/* Now: a little label over the time, and the row lifts. Over (earlier today): steps back. */
+.wb-family-event-now{display:inline-block;padding:1px 7px;border-radius:999px;background:var(--bar,#b4475f);color:#fff;font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event.is-now:not(#x):not(#y){background:linear-gradient(90deg,color-mix(in srgb,var(--bar) 18%,transparent),color-mix(in srgb,var(--bar) 4%,transparent)),var(--wb-surface,#fffdfb)!important;box-shadow:0 0 0 1.5px color-mix(in srgb,var(--bar) 55%,transparent),0 10px 22px -14px color-mix(in srgb,var(--bar) 80%,transparent)!important}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event.is-over:not(#x):not(#y){opacity:.6}
+:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event.is-over:not(#x):not(#y) .wb-family-event-start{font-weight:700}
+
+@media (hover:hover){:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y):hover{transform:translateY(-1px)}}
+@media (prefers-reduced-motion:reduce){:root[data-experience] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y){transition:none}}
+/* Dark mode: a lifted surface instead of the light card. */
+:root[data-dark] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y){background:linear-gradient(90deg,color-mix(in srgb,var(--bar) 16%,transparent),transparent 60%),#2a2430!important;box-shadow:0 0 0 1px #ffffff14!important}
+:root[data-dark] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .wb-family-event-info>h3{color:#f3ecf6}
+:root[data-dark] .workbench .tomorrow-extra-list .wb-family-event:not(#x):not(#y) .wb-family-event-time{color:color-mix(in srgb,var(--bar) 45%,#fff)!important}
+
+/* Homework in the day lists: the same agenda row as an event. The round check takes the time column's
+   place, the subject (or person) color is the bar, and Focus is a small ▶ beside ⋯. */
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y){
+ --bar:var(--person-color,var(--subject-accent,#b47e75));
+ position:relative;display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;align-items:center!important;gap:0 12px!important;
+ margin:0!important;padding:10px 8px 10px 18px!important;min-height:0!important;
+ border:0!important;border-radius:16px!important;
+ background:linear-gradient(90deg,color-mix(in srgb,var(--bar) 9%,transparent),transparent 55%),var(--wb-surface,#fffdfb)!important;
+ box-shadow:0 0 0 1px color-mix(in srgb,var(--wb-ink,#3a2b33) 7%,transparent),0 8px 18px -14px color-mix(in srgb,var(--wb-ink,#3a2b33) 60%,transparent)!important
+}
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y)::before{content:"";position:absolute;left:7px;top:10px;bottom:10px;width:4px;border-radius:4px;background:var(--bar)}
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y) .cozy-complete{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important;margin:0!important;padding:0!important;border-radius:50%!important;border:2px solid color-mix(in srgb,var(--bar) 70%,#fff)!important;background:var(--wb-surface,#fff)!important;box-shadow:none!important;color:transparent!important;font-size:0!important;display:grid;place-items:center}
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y) .cozy-complete:hover{background:color-mix(in srgb,var(--bar) 14%,#fff)!important}
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row.is-complete:not(#x):not(#y) .cozy-complete{background:var(--bar)!important;border-color:var(--bar)!important}
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row.is-complete:not(#x):not(#y) .cozy-complete::after{content:"✓";color:#fff;font-size:1rem;font-weight:800}
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y) .cozy-task-copy{min-width:0;padding:0!important;border:0!important}
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y) .cozy-task-copy::before{display:none!important}
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y) .cozy-task-copy>h3{margin:0!important;font-size:1.02rem!important;font-weight:750;line-height:1.25;color:var(--wb-ink,#3a2b33);overflow-wrap:anywhere}
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y) .cozy-task-copy>h3 .card-title-button{all:unset;cursor:pointer}
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y) .cozy-task-copy>p{margin:2px 0 0!important;font-size:.8rem!important;color:var(--wb-muted,#7a6670)}
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row.is-complete:not(#x):not(#y) .cozy-task-copy>h3{text-decoration:line-through;opacity:.6}
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y) .cozy-task-actions{display:flex!important;flex-direction:row!important;align-items:center;gap:2px!important;margin:0!important;grid-column:auto!important;width:auto!important}
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y) .start-focus-button.is-icon{width:36px!important;height:36px!important;min-height:36px!important;min-width:36px!important;padding:0!important;border-radius:50%!important;border:0!important;background:color-mix(in srgb,var(--bar) 14%,transparent)!important;color:color-mix(in srgb,var(--bar) 60%,var(--wb-ink,#3a2b33))!important;box-shadow:none!important;font-size:.8rem!important;display:grid;place-items:center}
+:root[data-experience] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y) .card-more>summary{width:36px;height:36px;min-height:36px!important;padding:0!important;display:grid;place-items:center;border-radius:50%;border:0!important;background:transparent!important;box-shadow:none!important;color:var(--wb-muted,#7a6670);font-size:1.1rem}
+:root[data-dark] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y){background:linear-gradient(90deg,color-mix(in srgb,var(--bar) 16%,transparent),transparent 60%),#2a2430!important;box-shadow:0 0 0 1px #ffffff14!important}
+:root[data-dark] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y) .cozy-task-copy>h3{color:#f3ecf6}
+:root[data-dark] .workbench .tomorrow-extra-list .cozy-task-row:not(#x):not(#y) .cozy-complete{background:transparent!important}
+
+/* Catch up (overdue work): a compact amber card instead of a heavy panel; each late assignment one row. */
+:root[data-experience] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w){--late:#d0702c;margin:0 0 10px!important;padding:12px 14px!important;border:0!important;border-radius:16px!important;background:linear-gradient(90deg,color-mix(in srgb,var(--late) 14%,transparent),color-mix(in srgb,var(--late) 4%,transparent)),var(--wb-surface,#fffdfb)!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--late) 30%,transparent)!important}
+:root[data-experience] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w)>.wb-section-head{display:flex!important;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px!important;padding:0!important;border:0!important}
+:root[data-experience] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w)>.wb-section-head small{display:block;font-size:.68rem!important;font-weight:800;letter-spacing:.1em;color:color-mix(in srgb,var(--late) 75%,#3a2b33)!important}
+:root[data-experience] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w)>.wb-section-head h2{margin:1px 0 0!important;font-size:.95rem!important;font-weight:750}
+:root[data-experience] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w) ul{display:grid;gap:6px;margin:0!important;padding:0!important;list-style:none}
+:root[data-experience] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w) li{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin:0!important;padding:8px 8px 8px 12px!important;border:0!important;border-radius:12px!important;background:var(--wb-surface,#fffdfb)!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--late) 18%,transparent)!important}
+:root[data-experience] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w) li strong{display:block;font-size:.95rem;line-height:1.25}
+:root[data-experience] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w) li small{display:block;font-size:.76rem;opacity:1!important;color:#6a5560!important}
+:root[data-experience] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w) li .wb-toolbar{display:flex!important;gap:6px!important;margin:0!important;flex-wrap:nowrap!important}
+:root[data-experience] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w) li .wb-toolbar button{min-height:36px!important;padding:0 12px!important;font-size:.82rem!important;border-radius:999px!important;width:auto!important}
+@media (max-width:420px){:root[data-experience] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w) li{grid-template-columns:1fr}}
+:root[data-dark] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w){background:linear-gradient(90deg,color-mix(in srgb,var(--late) 20%,transparent),transparent),#2a2430!important}
+:root[data-dark] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w) li{background:#211c26!important}
+:root[data-dark] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w)>.wb-section-head small{color:#f2b37f!important}
+
+/* Today's progress: a slim line with a small ring, not a big empty circle. */
+:root[data-experience] .workbench .today-card-body .assignment-progress:not(#x){display:flex!important;align-items:center;gap:8px!important;margin:4px 2px 10px!important;padding:0!important;min-height:0!important}
+:root[data-experience] .workbench .today-card-body .assignment-progress:not(#x) .assignment-ring{width:22px!important;height:22px!important;flex:none}
+:root[data-experience] .workbench .today-card-body .assignment-progress:not(#x)>small{font-size:.8rem!important;font-weight:650;color:var(--wb-muted,#7a6670)}
+:root[data-experience] .workbench .today-card-body .assignment-progress:not(#x) .assignment-progress-extra>span{padding:2px 9px!important;font-size:.74rem!important}
+:root[data-dark] .workbench .today-card-body .overdue-card:not(#x):not(#y):not(#z):not(#w) li small{color:#cbbcc6!important}
