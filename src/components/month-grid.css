@@ -58,3 +58,18 @@
 .month-pill-icon{font-size:.85rem;line-height:1}
 .workbench .month-grid.is-phone .month-pill.is-done{opacity:.4}
 .month-stickers{display:block;font-size:.95rem;line-height:1;margin-top:2px;letter-spacing:-2px}
+/* Each person's things in the three shades of their color (src/store/tones.ts): a pale fill, the bar, dark text. */
+.workbench .month-grid .month-pill:not(.is-class):not(.is-holiday):not(.is-special):not(.is-day-off):not(#x){background:var(--t-bg,color-mix(in srgb,var(--pill) 22%,var(--wb-surface,#fff)))!important;color:var(--t-fg,inherit)!important;border-left-color:var(--t-bar,var(--pill))!important}
+:root[data-dark] .workbench .month-grid .month-pill:not(.is-class):not(.is-holiday):not(.is-special):not(.is-day-off):not(#x){background:var(--t-bg-d,color-mix(in srgb,var(--pill) 30%,#2a2228))!important;color:var(--t-fg-d,#f3e9ee)!important;border-left-color:var(--t-bar-d,var(--pill))!important}
+.workbench .month-grid.is-phone .month-pill:not(.is-class):not(.is-holiday):not(.is-special):not(.is-day-off):not(#x){background:var(--t-bar,var(--pill))!important}
+:root[data-dark] .workbench .month-grid.is-phone .month-pill:not(.is-class):not(.is-holiday):not(.is-special):not(.is-day-off):not(#x){background:var(--t-bar-d,var(--pill))!important}
+.month-pill time{font-variant-numeric:tabular-nums}
+/* Days that are over step back. */
+.month-cell.is-past .month-pills{opacity:.6}
+.month-cell.is-past:is(:hover,:focus-within) .month-pills{opacity:1}
+/* A narrow cell (a tablet, a small window) keeps the titles but drops the times and faces first. */
+.month-cell{container-type:inline-size}
+@container (max-width:118px){.month-grid:not(.is-phone) .month-pill :is(time,.month-pill-face){display:none!important}}
+/* View switches cross-fade (src/store/viewTransition.ts), Material's medium timing. */
+::view-transition-old(root),::view-transition-new(root){animation-duration:.25s;animation-timing-function:cubic-bezier(.2,0,0,1)}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}

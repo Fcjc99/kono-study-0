@@ -1,10 +1,28 @@
-/* Home's island tucked away: a slim bar with KONO, what KONO's up to, the Arcade and "Show island". */
-.workbench .wb-island-mini{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 10px 8px 8px;border-radius:20px;background:linear-gradient(120deg,color-mix(in srgb,#8fd3b6 30%,var(--wb-surface,#fffaf4)),color-mix(in srgb,#7ec4e8 26%,var(--wb-surface,#fffaf4)));box-shadow:0 1px 0 color-mix(in srgb,var(--wb-ink,#3a2b33) 8%,transparent),0 10px 24px -18px color-mix(in srgb,var(--wb-ink,#3a2b33) 60%,transparent);color:var(--wb-ink,#3a2b33)}
-.workbench .wb-island-mini>img{flex:none;width:48px;height:48px;object-fit:contain;border-radius:14px;background:color-mix(in srgb,#fff 60%,transparent)}
-.workbench .wb-island-mini>p{flex:1;min-width:0;margin:0;display:grid;gap:1px;line-height:1.25}
-.workbench .wb-island-mini>p :is(strong,small){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.workbench .wb-island-mini>p small{font-size:.8rem;opacity:.8}
-.workbench .wb-island-mini button:not(#x):not(#y){flex:none;display:inline-flex!important;align-items:center;gap:6px;min-height:40px!important;padding:0 14px!important;border-radius:999px!important;font-weight:700;font-size:.88rem!important;white-space:nowrap}
-.workbench .wb-island-mini .wb-island-mini-show:not(#x):not(#y){background:var(--wb-accent,#9b3a5a)!important;color:#fff!important;border-color:transparent!important}
-@media (max-width:520px){.workbench .wb-island-mini .wb-island-mini-arcade:not(#x):not(#y){width:40px;padding:0!important;justify-content:center}.workbench .wb-island-mini .wb-island-mini-arcade span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
-:root[data-dark] .workbench .wb-island-mini{background:linear-gradient(120deg,#22343a,#232c40);color:#eef2f6}
+/* Home's island tucked away: a strip of meadow where KONO walks about, with the Arcade and "Show island" at
+   the side. Sky by day, a starry blue at night. */
+.workbench .wb-island-mini{position:relative;display:flex;align-items:stretch;gap:8px;min-height:132px;padding:0;border-radius:22px;overflow:hidden;
+ background:linear-gradient(180deg,#bfe6ff 0%,#dff3ff 55%,#cdeccb 56%,#a9dc9b 100%);
+ box-shadow:0 1px 0 color-mix(in srgb,var(--wb-ink,#3a2b33) 8%,transparent),0 12px 26px -18px color-mix(in srgb,var(--wb-ink,#3a2b33) 60%,transparent);color:var(--wb-ink,#3a2b33)}
+.workbench .wb-island-mini.is-night{background:linear-gradient(180deg,#1d2650 0%,#2c3a6e 55%,#2a4a3a 56%,#1f3a2c 100%);color:#eef2f6}
+.workbench .wb-island-mini.is-night::before{content:"";position:absolute;inset:0 0 50% 0;background:radial-gradient(1.5px 1.5px at 12% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 38% 18%,#fff,transparent),radial-gradient(1px 1px at 62% 40%,#fff,transparent),radial-gradient(1.5px 1.5px at 84% 22%,#fff,transparent);opacity:.8;pointer-events:none}
+.wb-island-mini-stage{position:relative;flex:1;min-width:0}
+/* A few tufts on the grass line. */
+.wb-island-mini-ground{position:absolute;left:0;right:0;bottom:22px;height:8px;background:radial-gradient(6px 5px at 8% 100%,#7cc46a 60%,transparent 62%) 0 0/120px 8px repeat-x;opacity:.7}
+.workbench .wb-island-mini .wb-island-mini-kono:not(#x):not(#y){position:absolute;left:0;bottom:12px;display:block!important;width:64px;height:64px;min-height:0!important;padding:0!important;border:0!important;border-radius:16px!important;background:transparent!important;box-shadow:none!important;cursor:pointer;will-change:transform}
+.wb-island-mini-kono::after{content:"";position:absolute;left:14px;right:14px;bottom:2px;height:7px;border-radius:50%;background:#2c4a28;opacity:.18;z-index:-1}
+.wb-island-mini-kono img{display:block;width:64px;height:64px;object-fit:contain;image-rendering:auto;pointer-events:none}
+.wb-island-mini-anim{position:absolute;inset:0;background:0 0/256px 64px no-repeat;animation:wim-play var(--ms,640ms) steps(4) infinite}
+.wb-island-mini-anim.is-still{animation:none}
+@keyframes wim-play{to{background-position:-256px 0}}
+.wb-island-mini-kono:focus-visible{outline:3px solid var(--wb-accent,#b4475f)!important;outline-offset:2px}
+.wb-island-mini-z{position:absolute;right:4px;top:0;font-weight:800;font-size:16px;color:#fff;opacity:0;animation:wim-z 2.4s ease-in infinite}
+@keyframes wim-z{0%{opacity:0;transform:translate(0,6px) scale(.7)}30%{opacity:.9}100%{opacity:0;transform:translate(10px,-20px) scale(1.15)}}
+/* What to do with KONO: a speech bubble above it. */
+.wb-island-mini-bubble{position:absolute;top:8px;z-index:3;display:flex;gap:6px;padding:6px;border-radius:16px;background:var(--wb-surface,#fff);box-shadow:0 8px 20px -8px rgb(0 0 0/.35);animation:wim-pop .2s cubic-bezier(.05,.7,.1,1)}
+.workbench .wb-island-mini .wb-island-mini-bubble button:not(#x):not(#y){min-height:40px!important;padding:0 12px!important;border-radius:12px!important;font-weight:700;font-size:.86rem!important;background:color-mix(in srgb,var(--wb-accent,#b4475f) 8%,var(--wb-surface,#fff))!important;color:var(--wb-ink,#3a2b33)!important;border:0!important;box-shadow:none!important}
+@keyframes wim-pop{from{opacity:0;transform:translateY(6px) scale(.95)}}
+.wb-island-mini-tools{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:6px;padding:10px 10px 10px 0}
+.workbench .wb-island-mini .wb-island-mini-tools button:not(#x):not(#y){display:inline-flex!important;align-items:center;justify-content:center;gap:6px;min-height:40px!important;padding:0 14px!important;border-radius:999px!important;font-weight:700;font-size:.88rem!important;white-space:nowrap;background:rgb(255 255 255/.85)!important;color:#3a2b33!important;border:0!important;box-shadow:0 2px 6px -2px rgb(0 0 0/.25)!important}
+.workbench .wb-island-mini .wb-island-mini-tools .wb-island-mini-show:not(#x):not(#y){background:var(--wb-accent,#9b3a5a)!important;color:#fff!important}
+@media (max-width:520px){.workbench .wb-island-mini .wb-island-mini-arcade span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.workbench .wb-island-mini .wb-island-mini-tools .wb-island-mini-arcade:not(#x):not(#y){padding:0 10px!important}}
+@media (prefers-reduced-motion:reduce){.wb-island-mini-anim,.wb-island-mini-z,.wb-island-mini-bubble{animation:none!important}}

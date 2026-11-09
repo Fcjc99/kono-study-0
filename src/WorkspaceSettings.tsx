@@ -1,5 +1,6 @@
 import type {Remembered,Repeatable} from './store/eventMemory'
 import RepeatSuggestions from './components/RepeatSuggestions'
+import {tooClose} from './store/tones'
 import {classTime} from './store/classSchedule'
 import {useState,type CSSProperties,type FormEvent,type ReactNode} from 'react'
 import Modal from './components/Modal'
@@ -114,13 +115,15 @@ function KidAppearancePanel({data,patch,close}:{data:AppData;patch:(key:Collecti
    <p className="wb-muted">How each kid's events look in the Planner and on the Sanctuary. Changes save as you go.</p>
    {!kid&&<p className="wb-muted">Add a kid first (close this and use "＋ Add a kid"), then come back here to pick how they look.</p>}
    {kids.length>1&&<div className="kid-look-tabs" role="tablist" aria-label="Kids">{kids.map(k=><button type="button" role="tab" key={k.id} id={'kid-look-tab-'+k.id} aria-controls="kid-look-editor" aria-selected={k.id===kid?.id} className="kid-look-tab" style={{'--kid-color':k.color} as CSSProperties} onClick={()=>setSelectedId(k.id)}><KidAvatar kid={k}/>{k.name}</button>)}</div>}
-   {kid&&<KidAppearanceEditor key={kid.id} kid={kid} patch={patch} tabbed={kids.length>1}/>}
+   {kid&&<KidAppearanceEditor key={kid.id} kid={kid} patch={patch} tabbed={kids.length>1} others={kids.filter(k=>k.id!==kid.id)}/>}
   </div>
  </Modal>
 }
 const KidAvatar=({kid}:{kid:Kid})=><Avatar className="kid-look-avatar" who={{name:kid.name,emoji:kid.emoji,photo:kid.photo}} style={{'--kid-color':kid.color} as CSSProperties}/>
 const BORDER_STYLE_OPTIONS:[KidBorderStyle,string][]=[['solid','Classic'],['bold','Bold'],['stripe','Stripe'],['soft','Soft'],['dashed','Dashed'],['dotted','Dotted'],['double','Double'],['glow','Glow']]
-function KidAppearanceEditor({kid,patch,tabbed}:{kid:Kid;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>;tabbed:boolean}){
+function KidAppearanceEditor({kid,patch,tabbed,others=[]}:{kid:Kid;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>;tabbed:boolean;others?:Kid[]}){
+ // Two kids in nearly the same color are hard to tell apart on the calendar: say so.
+ const lookalike=others.find(o=>tooClose(o.color,kid.color))
  const [customEmoji,setCustomEmoji]=useState('')
  const borderStyle=kid.borderStyle??'solid'
  const change=(changes:Partial<Kid>)=>void patch('kids',kid as unknown as Entry,changes as Partial<Entry>)
@@ -144,6 +147,7 @@ function KidAppearanceEditor({kid,patch,tabbed}:{kid:Kid;patch:(key:Collection,e
    {KID_COLORS.map(c=><button type="button" role="radio" key={c} className="kid-look-color" aria-checked={kid.color===c} aria-label={c} style={{'--swatch':c} as CSSProperties} onClick={()=>change({color:c})}/>)}
    <label className={'kid-look-color kid-look-color-custom'+(customColor?' is-picked':'')} style={customColor?{'--swatch':kid.color} as CSSProperties:undefined} title="Pick any color"><input type="color" aria-label={'Custom color for '+kid.name} value={kid.color} onChange={e=>change({color:e.target.value})}/></label>
   </div>
+  {lookalike&&<p className="kid-look-near" role="status">Close to {lookalike.name}’s color. Pick one further apart so their things are easy to tell apart.</p>}
   <h3 className="kid-look-label">Border</h3>
   <div className="kid-look-borders" role="radiogroup" aria-label={kid.name+"'s border style"}>
    {BORDER_STYLE_OPTIONS.map(([value,label])=><button type="button" role="radio" key={value} className="kid-look-border" aria-checked={borderStyle===value} onClick={()=>change({borderStyle:value})}><span className={'kid-look-border-sample kid-border-'+value} aria-hidden="true"/>{label}</button>)}

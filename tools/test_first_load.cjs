@@ -84,4 +84,12 @@ test('the opening animation is in the page, before #root, and the site\'s securi
  for(const m of inline[0].matchAll(/\['(\w+)',\d+,/g))assert.ok(fs.existsSync(path.join(ROOT,'public','garden','kono','anim',m[1]+'.webp')),m[1]+' sheet')
 })
 
-console.log(`${passed}/7 first-load groups passed.`)
+test('one game\'s stylesheet never restyles every game\'s screen (a bare .game-screen-body outside break-games.css stretched all the start cards)',()=>{
+ const dir=path.join(ROOT,'src','components')
+ for(const f of fs.readdirSync(dir).filter(f=>f.endsWith('.css')&&f!=='break-games.css')){
+  const css=fs.readFileSync(path.join(dir,f),'utf8').replace(/\/\*[\s\S]*?\*\//g,'')
+  for(const m of css.matchAll(/\.game-screen-body(?![-\w])(?!:has\()(?!>)/g))assert.fail(f+' styles .game-screen-body for every game; scope it with :has(>.your-game)')
+ }
+})
+
+console.log(`${passed}/8 first-load groups passed.`)

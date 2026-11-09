@@ -470,8 +470,45 @@ test('Home: the island tucks into a slim bar (remembered on this device) and one
  assert.equal(await page.locator('.wb-island').count(),0)
  await page.reload();await heading(page,'Sanctuary');await bar.waitFor()
  await bar.getByRole('button',{name:'Arcade'}).click();await page.getByRole('dialog').first().waitFor();await page.keyboard.press('Escape')
+ // KONO walks the strip; tapping it offers Talk, Ask and Pat. Talk opens KONO's corner.
+ await bar.getByRole('button',{name:/^KONO(\. Tap to talk| is asleep)/}).click({force:true})
+ const withKono=bar.getByRole('group',{name:'With KONO'})
+ await withKono.getByRole('button',{name:/Talk/}).click()
+ await page.getByRole('dialog').first().waitFor();await page.keyboard.press('Escape')
+ await bar.getByRole('button',{name:/^KONO(\. Tap to talk| is asleep)/}).click({force:true})
+ await withKono.getByRole('button',{name:/Ask/}).click()
+ await page.getByText(/What do you want to know\?/).first().waitFor()
  await bar.getByRole('button',{name:/Show island/}).click()
  await page.locator('.wb-island').waitFor();assert.equal(await bar.count(),0)
+})
+
+test('wall calendar People view: one day, a column for each person with only their things; two kids in nearly the same color get a heads-up',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ d.settings.parentMode=true
+ await page.clock.setFixedTime(new Date('2026-11-08T09:00:00'))
+ const ev=(id,time,title,kidId)=>({id,profileId:pid,date:'2026-11-08',time,title,kind:'activity',notes:'',done:false,kidId})
+ d.calendarEvents.push(ev('pe1','15:00','Swim lesson','kid-emma'),ev('pe2','16:00','Soccer','kid-leo'))
+ const leo=d.kids.find(k=>k.id==='kid-leo'),emma=d.kids.find(k=>k.id==='kid-emma');emma.color='#8a2be2';leo.color='#9030e0'
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE+'?wall');await page.getByRole('button',{name:/Tap to start wall mode/}).click()
+ const hub=page.getByRole('dialog',{name:'Family hub'});await hub.waitFor()
+ await hub.getByRole('button',{name:'Calendar',exact:true}).click()
+ await hub.getByRole('group',{name:'Days shown'}).getByRole('button',{name:'People'}).click()
+ const emmaCol=hub.getByRole('region',{name:/^Emma, Today/}),leoCol=hub.getByRole('region',{name:/^Leo, Today/})
+ await emmaCol.getByRole('button',{name:/^Swim lesson/}).waitFor()
+ assert.equal(await emmaCol.getByRole('button',{name:/^Soccer/}).count(),0)
+ await leoCol.getByRole('button',{name:/^Soccer/}).waitFor()
+ // Remembered on this device.
+ await page.reload();await page.getByRole('button',{name:/Tap to start wall mode/}).click()
+ await hub.getByRole('button',{name:'Calendar',exact:true}).click()
+ assert.equal(await hub.getByRole('group',{name:'Days shown'}).getByRole('button',{name:'People'}).getAttribute('aria-pressed'),'true')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Kids')
+ await page.getByRole('button',{name:'🎨 Appearance'}).click()
+ const panel=page.getByRole('dialog',{name:'Kids\' appearance'})
+ await panel.getByRole('status').filter({hasText:'Close to Leo’s color'}).waitFor()
+ await panel.getByRole('radiogroup',{name:'Emma\'s color'}).getByRole('radio',{name:'#7ca982'}).click()
+ await panel.getByRole('status').filter({hasText:'Close to'}).waitFor({state:'detached'})
 })
 
 test('opening never hangs: storage that never answers (an iPhone Safari bug) leads to Try again within seconds, and a stalled download offers Reload',async()=>{
