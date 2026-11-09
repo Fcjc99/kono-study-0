@@ -58,3 +58,11 @@
 .workbench .wb-island-mini .wb-island-mini-tools .wb-island-mini-show:not(#x):not(#y){background:var(--wb-accent,#9b3a5a)!important;color:#fff!important}
 @media (max-width:520px){.workbench .wb-island-mini .wb-island-mini-arcade span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.workbench .wb-island-mini .wb-island-mini-tools .wb-island-mini-arcade:not(#x):not(#y){padding:0 10px!important}}
 @media (prefers-reduced-motion:reduce){.wb-island-mini-anim,.wb-island-mini-z,.wb-island-mini-bubble{animation:none!important}}
+/* A painted KONO's poses, with a little life. */
+.wb-island-mini-pose{position:absolute;inset:0;width:64px;height:64px;object-fit:contain;pointer-events:none;animation:wim-bob .9s ease-in-out infinite}
+.wb-island-mini-pose.is-cheer{animation:wim-hop .5s ease-in-out infinite}
+.wb-island-mini-pose:is(.is-sleep,.is-breathe,.is-blink){animation:wim-breathe 2.4s ease-in-out infinite}
+@keyframes wim-bob{50%{transform:translateY(-3px) rotate(-2deg)}}
+@keyframes wim-hop{50%{transform:translateY(-9px)}}
+@keyframes wim-breathe{50%{transform:scale(1.03,.97)}}
+@media (prefers-reduced-motion:reduce){.wb-island-mini-pose{animation:none!important}}

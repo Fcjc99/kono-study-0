@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState} from 'react'
 import KonoIcon from './KonoIcon'
+import {paintPose,type PaintId} from '../store/konoLooks'
 import './island-mini.css'
 
 /** Home's island tucked away: a strip of meadow where KONO walks back and forth by itself, stops now and then
@@ -11,10 +12,12 @@ const FRAME_MS:Record<Act|'sleep',number>={wave:160,cheer:150,eat:260,breathe:42
 const ACTS:Act[]=['wave','cheer','eat','breathe','blink','breathe']
 const SPEED=34 // px a second: an amble
 const SIZE=64
-const walkSrc=(dir:'left'|'right',f:number)=>'/garden/kono/walk-'+dir+'-0'+(f+1)+'.webp'
+const walkSrc=(dir:'left'|'right',f:number,paint:PaintId|null=null)=>paintPose('/garden/kono/walk-'+dir+'-0'+(f+1)+'.webp',paint)
+// A painted KONO has its own walk and poses but not the little animations: it shows the pose with a bounce.
+const POSE:Record<Act|'sleep',string>={wave:'happy',cheer:'excited',eat:'happy',breathe:'idle',blink:'idle',sleep:'sleep'}
 const animSrc=(a:string)=>'/garden/kono/anim/'+a+'.webp'
 
-export default function IslandMini({asleep=false,onArcade,onShow,onTalk,onAsk,onPat}:{asleep?:boolean;onArcade:()=>void;onShow:()=>void;onTalk:()=>void;onAsk:()=>void;onPat:()=>void}){
+export default function IslandMini({paint=null,asleep=false,onArcade,onShow,onTalk,onAsk,onPat}:{asleep?:boolean;onArcade:()=>void;onShow:()=>void;onTalk:()=>void;onAsk:()=>void;onPat:()=>void;paint?:PaintId|null}){
  const stage=useRef<HTMLDivElement>(null),kono=useRef<HTMLButtonElement>(null),walkImg=useRef<HTMLImageElement>(null)
  const [act,setAct]=useState<Act|null>(null),[menu,setMenu]=useState(false),[dir,setDir]=useState<'left'|'right'>('right'),[bubbleX,setBubbleX]=useState(0)
  const st=useRef({x:40,dir:'right' as 'left'|'right',until:0,frame:0,frameAt:0,acting:false,stopped:false})
@@ -36,7 +39,7 @@ export default function IslandMini({asleep=false,onArcade,onShow,onTalk,onAsk,on
     const max=Math.max(0,el.clientWidth-SIZE)
     s.x+=(s.dir==='right'?1:-1)*SPEED*dt
     if(s.x>=max){s.x=max;s.dir='left';setDir('left')}else if(s.x<=0){s.x=0;s.dir='right';setDir('right')}
-    if(t-s.frameAt>220){s.frame=1-s.frame;s.frameAt=t;if(walkImg.current)walkImg.current.src=walkSrc(s.dir,s.frame)}
+    if(t-s.frameAt>220){s.frame=1-s.frame;s.frameAt=t;if(walkImg.current)walkImg.current.src=walkSrc(s.dir,s.frame,paint)}
     place()
     if(!s.until)s.until=t+3000+Math.random()*3000
     else if(t>s.until){s.until=0;startAct()}
@@ -51,9 +54,9 @@ export default function IslandMini({asleep=false,onArcade,onShow,onTalk,onAsk,on
   s.x=Math.max(0,(el.clientWidth-SIZE)*(0.25+Math.random()*0.5));s.dir=Math.random()<0.5?'left':'right';setDir(s.dir);place()
   raf=requestAnimationFrame(tick)
   return()=>{gone=true;cancelAnimationFrame(raf);window.clearTimeout(timer);io?.disconnect();document.removeEventListener('visibilitychange',hidden)}
- },[asleep,reduced])
+ },[asleep,reduced,paint])
  // Sheets load once, so a stop never shows a blank frame.
- useEffect(()=>{for(const a of [...ACTS,'sleep'])new Image().src=animSrc(a);for(const d of ['left','right'] as const)for(const f of [0,1])new Image().src=walkSrc(d,f)},[])
+ useEffect(()=>{for(const a of [...ACTS,'sleep'])new Image().src=animSrc(a);for(const d of ['left','right'] as const)for(const f of [0,1])new Image().src=walkSrc(d,f,paint)},[paint])
  // Tapped: KONO stops and waves while the choices are open.
  const tap=()=>{const s=st.current;if(menu){close();return}s.stopped=true;setBubbleX(Math.min(Math.max(0,s.x-40),(stage.current?.clientWidth??300)-230));setMenu(true);if(!asleep)setAct('wave')}
  const close=()=>{st.current.stopped=false;st.current.acting=false;setMenu(false);setAct(null)}
@@ -74,8 +77,9 @@ export default function IslandMini({asleep=false,onArcade,onShow,onTalk,onAsk,on
     <span className="wim-ground"/>
    </div>
    <button type="button" ref={kono} className={'wb-island-mini-kono'+(menu?' is-talking':'')} aria-label={asleep?'KONO is asleep. Tap to say hi':'KONO. Tap to talk, ask or pat'} aria-expanded={menu} onClick={tap}>
-    {showing?<span className={'wb-island-mini-anim'+(showing==='breathe'&&reduced?' is-still':'')} style={{backgroundImage:`url(${animSrc(showing)})`,['--ms' as string]:FRAME_MS[showing]*4+'ms'}} aria-hidden="true"/>
-     :<img ref={walkImg} src={walkSrc(dir,0)} alt="" draggable={false}/>}
+    {showing&&paint?<img className={'wb-island-mini-pose is-'+showing} src={paintPose('/garden/kono/'+POSE[showing]+'.webp',paint)} alt="" draggable={false}/>
+     :showing?<span className={'wb-island-mini-anim'+(showing==='breathe'&&reduced?' is-still':'')} style={{backgroundImage:`url(${animSrc(showing)})`,['--ms' as string]:FRAME_MS[showing]*4+'ms'}} aria-hidden="true"/>
+     :<img ref={walkImg} src={walkSrc(dir,0,paint)} alt="" draggable={false}/>}
     {asleep&&<span className="wb-island-mini-z" aria-hidden="true">z</span>}
    </button>
    <div className="wim-front" aria-hidden="true"><img className="is-a" src="/garden/strip/flower-grass.webp" alt=""/><img className="is-b" src="/garden/strip/grass-tall.webp" alt=""/><img className="is-c" src="/garden/strip/flower-grass-b.webp" alt=""/></div>
