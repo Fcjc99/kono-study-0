@@ -494,10 +494,20 @@ test('wall calendar People view: one day, a column for each person with only the
  const hub=page.getByRole('dialog',{name:'Family hub'});await hub.waitFor()
  await hub.getByRole('button',{name:'Calendar',exact:true}).click()
  await hub.getByRole('group',{name:'Days shown'}).getByRole('button',{name:'People'}).click()
- const emmaCol=hub.getByRole('region',{name:/^Emma, Today/}),leoCol=hub.getByRole('region',{name:/^Leo, Today/})
+ // Times (the default): each person's column of hours.
+ const emmaCol=hub.getByRole('group',{name:/^Emma, Today, by the hour/}),leoCol=hub.getByRole('group',{name:/^Leo, Today, by the hour/})
  await emmaCol.getByRole('button',{name:/^Swim lesson/}).waitFor()
  assert.equal(await emmaCol.getByRole('button',{name:/^Soccer/}).count(),0)
  await leoCol.getByRole('button',{name:/^Soccer/}).waitFor()
+ // The hour grid passes an axe scan in light and dark (contrast, labels).
+ const axeSrc=fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8')
+ for(const scheme of ['light','dark']){
+  await page.emulateMedia({colorScheme:scheme});await page.waitForTimeout(300)
+  await page.addScriptTag({content:axeSrc})
+  const found=await page.evaluate(async()=>(await axe.run(document.querySelector('.hub-calendar'),{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']}})).violations.map(v=>v.id+' ×'+v.nodes.length+': '+v.nodes.slice(0,2).map(n=>n.target.join(' ')).join(' | ')))
+  assert.deepEqual(found,[],scheme+' wall hour grid')
+ }
+ await page.emulateMedia({colorScheme:'light'})
  // Remembered on this device.
  await page.reload();await page.getByRole('button',{name:/Tap to start wall mode/}).click()
  await hub.getByRole('button',{name:'Calendar',exact:true}).click()

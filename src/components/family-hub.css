@@ -182,7 +182,8 @@
 .hub-card-who{top:7px!important;right:7px!important;width:18px!important;height:18px!important;font-size:.62rem!important;background:var(--bar)!important;color:#fff!important;box-shadow:0 0 0 2px var(--bg)}
 :root[data-dark] .family-hub .hub-card-who{color:var(--bg)!important}
 .hub-card.is-allday .hub-card-who{top:50%!important;translate:0 -50%;background:var(--bg)!important;color:var(--fg)!important;box-shadow:none}
-.hub-card.is-past:not(#x):not(#y){opacity:.6}
+.hub-card.is-past:not(#x):not(#y){--bg:color-mix(in srgb,var(--t-bg,#eee) 45%,var(--card,#fff));--bar:color-mix(in srgb,var(--t-bar,#999) 40%,#b9b2b7);--fg:color-mix(in srgb,var(--t-fg,#2c2230) 72%,var(--card,#fff))}
+:root[data-dark] .family-hub .hub-card.is-past:not(#x):not(#y){--bg:color-mix(in srgb,var(--t-bg-d,#333) 45%,#26212c);--bar:color-mix(in srgb,var(--t-bar-d,#999) 40%,#5d5662);--fg:color-mix(in srgb,var(--t-fg-d,#eee) 75%,#26212c)}
 @container (max-width:150px){
  .hub-card-title{font-size:.86rem;-webkit-line-clamp:4}
  .hub-card small{font-size:.72rem;white-space:normal}
@@ -225,3 +226,42 @@
 .hub-day.is-person>header b{color:var(--ink)!important}
 .hub-day.is-person .hub-card-who{display:none!important}
 .hub-day.is-person .hub-card:not(#x):not(#y){padding-right:12px!important}
+/* Times: an hour grid, as Skylight's schedule view. The hour column and each day's header stay put; the
+   hours scroll. Tiles fill their time; a short one is one line. */
+.hub-layout{display:flex;gap:6px}
+.hub-tgrid{flex:1;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);background:var(--card);border-radius:22px;box-shadow:0 0 0 1px var(--line);overflow:hidden}
+.hub-tgrid-row{display:grid;grid-template-columns:72px repeat(var(--n,4),minmax(0,1fr))}
+.hub-tgrid-head{align-items:start;border-bottom:1px solid var(--line);max-height:42vh;overflow:auto}
+.hub-tgrid-head>.hub-day{padding:10px 8px 8px;border-left:1px solid var(--line);background:transparent!important;box-shadow:none!important;border-radius:0!important;min-height:0!important}
+.hub-tgrid-head>.hub-day.is-today{background:color-mix(in srgb,#ef6f5e 7%,var(--card))!important}
+.hub-tgrid-top{display:grid;gap:6px}
+.hub-tgrid-top:empty{display:none}
+.hub-tgrid-body{position:relative;overflow:auto;overscroll-behavior:contain;align-items:start}
+.hub-tgrid-gutter{position:relative}
+.hub-tgrid-hours span{position:absolute;right:10px;translate:0 -50%;font-size:.95rem;font-weight:700;color:var(--soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hub-tgrid-hours span:first-child{translate:0 4px}
+.hub-tgrid-col{position:relative;border-left:1px solid var(--line)}
+.hub-tgrid-col.is-today{background:color-mix(in srgb,#ef6f5e 4%,transparent)}
+.hub-tgrid-line{position:absolute;left:0;right:0;height:1px;background:var(--line);opacity:.8}
+.hub-tslot{position:absolute;z-index:1;display:flex}
+.hub-tslot>.hub-card:not(#x):not(#y){flex:1;min-height:0!important;height:100%;overflow:hidden;padding-top:7px!important;padding-bottom:6px!important;align-content:start}
+.hub-tslot.is-short>.hub-card:not(#x):not(#y){display:flex!important;align-items:center;gap:8px;padding-top:0!important;padding-bottom:0!important}
+.hub-tslot.is-short>.hub-card:not(#x):not(#y)::before{top:5px;bottom:5px}
+.hub-tslot.is-short .hub-card-title{-webkit-line-clamp:1;flex:0 1 auto;min-width:0}
+.hub-tslot.is-short .hub-card small{flex:none}
+.hub-tgrid-now{position:absolute;left:-1px;right:0;z-index:3;height:3px;background:#ef6f5e;pointer-events:none}
+.hub-tgrid-now::before{content:"";position:absolute;left:-6px;top:-5px;width:13px;height:13px;border-radius:50%;background:#ef6f5e;box-shadow:0 0 0 2px var(--card)}
+.hub-tgrid-now>span{position:absolute;left:10px;top:-11px;padding:1px 8px;border-radius:999px;background:#c8432f;color:#fff;font:800 .78rem/1.5 system-ui,sans-serif;font-variant-numeric:tabular-nums}
+@media (forced-colors:active){.hub-tgrid-now{background:Highlight}}
+.hub-tgrid-head,.hub-tgrid-body{scrollbar-gutter:stable}
+.hub-tgrid-head>.hub-day>header{border-bottom:0!important;margin-bottom:4px!important;padding-bottom:0!important}
+/* A short one keeps its title first; the time and initial go when it's narrow. */
+.hub-tslot.is-short .hub-card-title{flex:1 1 auto;min-width:2.5em}
+.hub-tslot.is-short .hub-card-who{position:static!important;flex:none;translate:none}
+.hub-tslot.is-short>.hub-card:not(#x):not(#y){padding-right:8px!important}
+@container (max-width:220px){.hub-tslot.is-short .hub-card small{display:none}}
+@container (max-width:120px){.hub-tslot .hub-card-who{display:none!important}.hub-tslot .hub-card-title{font-size:.8rem}.hub-tslot .hub-card small{font-size:.7rem!important;white-space:normal}.hub-tslot>.hub-card:not(#x):not(#y){padding-right:6px!important}}
+@container (max-width:70px){.hub-tslot .hub-card small{display:none}.hub-tslot .hub-card-title{font-size:.72rem;word-break:keep-all;overflow-wrap:normal;hyphens:none}}
+.hub-tgrid-head{align-items:stretch}
+.hub-tgrid-col:not(:nth-child(2)) .hub-tgrid-now>span{display:none}
+.hub-card.is-past small{opacity:1!important}
