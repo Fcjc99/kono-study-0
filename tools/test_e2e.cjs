@@ -510,6 +510,12 @@ test('wall calendar People view: one day, a column for each person with only the
   assert.deepEqual(found,[],scheme+' wall hour grid')
  }
  await page.emulateMedia({colorScheme:'light'})
+ // The hours fit the screen: on an iPad-sized screen the whole day shows without scrolling.
+ await page.setViewportSize({width:1080,height:810})
+ await hub.getByRole('group',{name:'Days shown'}).getByRole('button',{name:'Week'}).click()
+ await page.waitForFunction(()=>{const b=document.querySelector('.hub-tgrid-body');return b&&b.scrollHeight<=b.clientHeight+1})
+ await hub.getByRole('group',{name:'Days shown'}).getByRole('button',{name:'People'}).click()
+ await page.setViewportSize({width:1280,height:900})
  // Remembered on this device.
  await page.reload();await page.getByRole('button',{name:/Tap to start wall mode/}).click()
  await hub.getByRole('button',{name:'Calendar',exact:true}).click()

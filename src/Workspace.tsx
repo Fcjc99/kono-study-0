@@ -1,5 +1,6 @@
 import {Fragment,Suspense,lazy,useCallback,useEffect,useMemo,useRef,useState,type CSSProperties,type PointerEvent,type ReactNode,type SetStateAction,type TouchEvent} from 'react'
 import {flushSync} from 'react-dom'
+import {enterFullscreen} from './store/fullscreen'
 import {toneVars} from './store/tones'
 import {usePlannerRepository} from './store/repository'
 import {uid,localDate,eventCategory,peopleOf,type AppData,type FamilyTodo,type SettingsData,type Subtask,type CalendarEvent,type Kid,eventOnDate} from './store/model'
@@ -278,7 +279,7 @@ function Workspace({store}:{store:Store}){
  // Wall display (Planner › 📺, or ?wall in the address so a fridge tablet can open straight to it).
  const [wallOpen,setWallOpen]=useState(()=>urlFlag('wall')),[wallTapped,setWallTapped]=useState(false)
  // Opened with a tap (not from the address): that tap is what lets an iPad keep the screen on.
- const openWall:typeof setWallOpen=v=>{setWallTapped(true);setWallOpen(v)}
+ const openWall:typeof setWallOpen=v=>{setWallTapped(true);setWallOpen(v);if(v)enterFullscreen()}
  const [page,setPage]=useState<Page>(pageFromURL),[more,setMore]=useState(false),[search,setSearch]=useState(false),[adding,setAdding]=useState(()=>!!readIncoming()||urlFlag('new')),[incoming]=useState(readIncoming),[pasting,setPasting]=useState(false),[pasted,setPasted]=useState(''),[scanningPlan,setScanningPlan]=useState(false),[editor,setEditor]=useState<Edit|null>(null),[message,setMessage]=useState('')
  const dismissMessage=useCallback(()=>setMessage(''),[setMessage])
  // Today view: just KONO and today's list, the island one tap away. The installed app opens to it on a

@@ -1,5 +1,6 @@
 import {lazy,Suspense,useCallback,useEffect,useRef,useState,type CSSProperties,type ReactNode} from 'react'
 import {localDate,uid,type AppData,type Kid} from '../store/model'
+import {canFullscreen,enterFullscreen,exitFullscreen,isFullscreen} from '../store/fullscreen'
 import {smoothly} from '../store/viewTransition'
 import {toneVars} from '../store/tones'
 import type {PlannerRepository} from '../store/repository'
@@ -30,7 +31,7 @@ const nowWeatherEmoji=(w:DailyWeatherForecast['weather'],hour:number)=>(hour>=19
 const TABS:[Tab,string,string][]=[['home','🏠','Home'],['calendar','🗓️','Calendar'],['chores','✅','Chores'],['meals','🍽️','Meals'],['lists','📝','Lists']]
 const nowMs=()=>Date.now()
 const IDLE_MS=5*60_000,WAKE_MS=5*60_000
-const LOCK_KEY='kono-hub-locked',DAYS_KEY='kono-hub-days',LAYOUT_KEY='kono-hub-layout',HOUR=64
+const LOCK_KEY='kono-hub-locked',DAYS_KEY='kono-hub-days',LAYOUT_KEY='kono-hub-layout'
 const clockOf=(d:Date)=>String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')
 const readLocal=(k:string)=>{try{return localStorage.getItem(k)}catch{return null}}
 const writeLocal=(k:string,v:string)=>{try{localStorage.setItem(k,v)}catch{/* per device */}}
@@ -55,7 +56,17 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
  const [layout,setLayout]=useState<'times'|'list'>(()=>readLocal(LAYOUT_KEY)==='list'?'list':'times'),gridBody=useRef<HTMLDivElement>(null)
  const [days,setDays]=useState(()=>{const n=readLocal(DAYS_KEY);return n==='0'?0:Number(n)||4}),[offset,setOffset]=useState(0)
  // Times opens at an hour before now, so what's on and what's next are in view.
- useEffect(()=>{const b=gridBody.current;if(!b)return;b.scrollTop=Math.max(0,(new Date().getHours()-1-(Number(b.dataset.first)||7))*HOUR)},[tab,layout,days,offset])
+ // The hours fill the screen they're on (a wall tablet, an iPad, a laptop): each hour is the height left
+ // over divided by the hours shown, never under 32 px (then it scrolls, opening an hour before now).
+ const [hourPx,setHourPx]=useState(64)
+ useEffect(()=>{const b=gridBody.current;if(!b||typeof ResizeObserver!=='function')return
+  const fit=()=>{const n=Number(b.dataset.hours)||14,h=Math.max(32,Math.floor((b.clientHeight-2)/n));setHourPx(p=>p===h?p:h)}
+  const ro=new ResizeObserver(fit);ro.observe(b);fit();return()=>ro.disconnect()},[tab,layout,days,offset])
+ useEffect(()=>{const b=gridBody.current;if(!b)return;b.scrollTop=Math.max(0,(new Date().getHours()-1-(Number(b.dataset.first)||7))*hourPx)},[tab,layout,days,offset,hourPx])
+ // Full screen (no browser bars) where the browser allows it.
+ const [full,setFull]=useState(false)
+ useEffect(()=>{const on=()=>setFull(isFullscreen());document.addEventListener('fullscreenchange',on);document.addEventListener('webkitfullscreenchange',on);return()=>{document.removeEventListener('fullscreenchange',on);document.removeEventListener('webkitfullscreenchange',on)}},[])
+ const canFull=canFullscreen(),toggleFull=()=>{if(full)exitFullscreen();else enterFullscreen()}
  const [quiet,setQuietState]=useState<Quiet>(readQuiet)
  const [panels,setPanels]=useState(readPanels)
  const [idle,setIdle]=useState(false),[wokeUntil,setWokeUntil]=useState(0)
@@ -77,10 +88,10 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
  useEffect(()=>{const back=()=>{if(document.visibilityState==='visible'){refresh();if(started&&!quietNow)askWake()}};document.addEventListener('visibilitychange',back);return()=>document.removeEventListener('visibilitychange',back)},[refresh,started,quietNow,askWake])
  useEffect(()=>()=>{void lock.current?.release().catch(()=>undefined)},[])
  const touched=()=>{lastTouch.current=nowMs();if(idle){setIdle(false);refresh()}if(!lock.current&&started&&!quietNow)askWake()}
- const start=()=>{setStarted(true);askWake();const el=document.documentElement;if(!document.fullscreenElement&&el.requestFullscreen)void el.requestFullscreen().catch(()=>undefined)}
+ const start=()=>{setStarted(true);askWake();enterFullscreen()}
  const withPin=(why:string,then:()=>void)=>{if(!hasPin())then();else setPinFor({why,then})}
  const setLock=(on:boolean)=>{setLocked(on);writeLocal(LOCK_KEY,on?'1':'0')}
- const exit=()=>withPin('leave wall mode',()=>{if(document.fullscreenElement)void document.exitFullscreen().catch(()=>undefined);close()})
+ const exit=()=>withPin('leave wall mode',()=>{if(isFullscreen())exitFullscreen();close()})
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.key==='Escape'&&!pinFor&&!setup&&!document.querySelector('dialog[open]'))exit()};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)})
 
  const kids:Kid[]=data.kids.filter(k=>k.profileId===pid)
@@ -118,14 +129,14 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
    const done=()=>{const of=Math.max(1,...group.map(g=>g.lane+1));for(const g of group)g.of=of;group=[]}
    for(const x of sorted){if(x.from>=end)done();const used=new Set(group.filter(g=>g.to>x.from).map(g=>g.lane));let lane=0;while(used.has(lane))lane++;const p={...x,lane,of:1};out.push(p);group.push(p);end=Math.max(end,x.to)}
    done();return out}
-  return <div className="hub-tgrid" style={{'--n':cols.length,'--hour':HOUR+'px'} as CSSProperties}>
+  return <div className="hub-tgrid" style={{'--n':cols.length,'--hour':hourPx+'px'} as CSSProperties}>
    <div className="hub-tgrid-row hub-tgrid-head"><span className="hub-tgrid-gutter"/>{cols.map(c=><section key={c.key} className={'hub-day'+(c.date===today?' is-today':'')+(c.who?' is-person':'')} aria-label={c.who?c.who.name+', '+dayName(c.date):dayName(c.date)} style={c.who?{'--p':c.who.color,...toneVars(c.who.color)} as CSSProperties:undefined}>{headOf(c.date,dense,c.who)}<div className="hub-tgrid-top">{topOf(c.date,c.who)}</div></section>)}</div>
-   <div className="hub-tgrid-row hub-tgrid-body" ref={gridBody} data-first={first}>
-    <div className="hub-tgrid-gutter hub-tgrid-hours" style={{height:hours.length*HOUR}}>{hours.map(h=><span key={h} style={{top:(h-first)*HOUR}}>{(h%12||12)+(h<12?' AM':' PM')}</span>)}</div>
-    {cols.map(c=><div key={c.key} className={'hub-tgrid-col'+(c.date===today?' is-today':'')} style={{height:hours.length*HOUR}} aria-label={(c.who?c.who.name+', ':'')+dayName(c.date)+', by the hour'} role="group">
-     {hours.map(h=><i key={h} className="hub-tgrid-line" style={{top:(h-first)*HOUR}} aria-hidden="true"/>)}
-     {c.date===today&&nowMin>=first*60&&nowMin<last*60&&<div className="hub-tgrid-now" style={{top:(nowMin-first*60)/60*HOUR}} aria-hidden="true"><span>{classTime(clock)}</span></div>}
-     {lanes(timedOf(c.date,c.who)).map(({i,from,to,lane,of})=><div key={i.kind+i.id+(i.kidId??'')} className={'hub-tslot'+(to-from<45?' is-short':'')} style={{top:(from-first*60)/60*HOUR+1,height:Math.max(26,(to-from)/60*HOUR-3),left:`calc(${lane/of*100}% + 3px)`,width:`calc(${100/of}% - 6px)`}}>{card(i,c.date,false)}</div>)}
+   <div className="hub-tgrid-row hub-tgrid-body" ref={gridBody} data-first={first} data-hours={hours.length}>
+    <div className="hub-tgrid-gutter hub-tgrid-hours" style={{height:hours.length*hourPx}}>{hours.map(h=><span key={h} style={{top:(h-first)*hourPx}}>{(h%12||12)+(h<12?' AM':' PM')}</span>)}</div>
+    {cols.map(c=><div key={c.key} className={'hub-tgrid-col'+(c.date===today?' is-today':'')} style={{height:hours.length*hourPx}} aria-label={(c.who?c.who.name+', ':'')+dayName(c.date)+', by the hour'} role="group">
+     {hours.map(h=><i key={h} className="hub-tgrid-line" style={{top:(h-first)*hourPx}} aria-hidden="true"/>)}
+     {c.date===today&&nowMin>=first*60&&nowMin<last*60&&<div className="hub-tgrid-now" style={{top:(nowMin-first*60)/60*hourPx}} aria-hidden="true"><span>{classTime(clock)}</span></div>}
+     {lanes(timedOf(c.date,c.who)).map(({i,from,to,lane,of})=><div key={i.kind+i.id+(i.kidId??'')} className={'hub-tslot'+(to-from<45||(to-from)/60*hourPx<52?' is-short':'')} style={{top:(from-first*60)/60*hourPx+1,height:Math.max(26,(to-from)/60*hourPx-3),left:`calc(${lane/of*100}% + 3px)`,width:`calc(${100/of}% - 6px)`}}>{card(i,c.date,false)}</div>)}
     </div>)}
    </div>
   </div>}
@@ -179,6 +190,7 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
    {TABS.map(([id,icon,label])=><button type="button" key={id} aria-current={tab===id?'page':undefined} onClick={()=>setTab(id)}><span aria-hidden="true">{icon}</span>{label}</button>)}
    <span className="hub-rail-gap"/>
    <button type="button" onClick={()=>locked?withPin('unlock',()=>setLock(false)):setLock(true)} aria-pressed={locked}><span aria-hidden="true">{locked?'🔒':'🔓'}</span>{locked?'Locked':'Lock'}</button>
+   {canFull&&<button type="button" onClick={toggleFull} aria-pressed={full}><span aria-hidden="true">{full?'🗗':'⛶'}</span>{full?'Exit full':'Full screen'}</button>}
    <button type="button" onClick={()=>withPin('open setup',()=>setSetup(true))}><span aria-hidden="true">⚙️</span>Setup</button>
    <button type="button" onClick={exit}><span aria-hidden="true">✕</span>Exit</button>
   </nav>
