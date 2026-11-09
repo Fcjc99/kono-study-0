@@ -556,6 +556,23 @@ test('a trip or camp week: Last day makes one event show every day through it, a
  await page.waitForFunction(()=>[...document.querySelectorAll('.family-hub .hub-card')].filter(b=>b.textContent.includes('Science camp')).length===3)
 })
 
+test('the island rests while something covers it (the wall, KONO Town) and picks up again after, so an older iPad isn\'t drawing it out of sight',async({context,page})=>{
+ const cloud=fakeCloud();await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const island=page.locator('.sanctuary-viewport[data-running]')
+ await island.scrollIntoViewIfNeeded()
+ await page.waitForFunction(()=>document.querySelector('.sanctuary-viewport')?.dataset.running==='true',null,{timeout:15000})
+ await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
+ await page.getByRole('dialog',{name:'KONO Town'}).waitFor()
+ await page.waitForFunction(()=>document.querySelector('.sanctuary-viewport')?.dataset.running==='false')
+ await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'KONO Town'}).waitFor({state:'detached'})
+ await page.waitForFunction(()=>document.querySelector('.sanctuary-viewport')?.dataset.running==='true')
+ // The wall opened straight from its address: Home loads underneath it, and its island stays asleep.
+ await page.goto(BASE+'?wall');await page.getByRole('button',{name:/Tap to start wall mode/}).click()
+ await page.getByRole('dialog',{name:'Family hub'}).waitFor();await page.waitForTimeout(1500)
+ await page.waitForFunction(()=>{const v=document.querySelector('.sanctuary-viewport');return !v||v.dataset.running==='false'})
+})
+
 test('opening never hangs: storage that never answers (an iPhone Safari bug) leads to Try again within seconds, and a stalled download offers Reload',async()=>{
  // IndexedDB open that never answers.
  const one=await freshPage()

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { WORLD_HEIGHT, WORLD_WIDTH } from '../game/sanctuary/config'
+import { isLiteDevice, markLiteDevice } from '../store/deviceTier'
 import { SANCTUARY_EVENTS } from '../game/sanctuary/runtime'
 import { DEFAULT_WEATHER_TUNING, type WeatherTuning } from '../game/engine/weatherTuning'
 import type { DayPhase, PhaseMode, SanctuaryQuality, SanctuaryWeather } from '../game/sanctuary/types'
@@ -49,7 +50,7 @@ interface PhaserGameHandle {
   scale: { resize: (width: number, height: number) => void }
   isRunning: boolean
   scene: {stop: (key:string)=>unknown}
-  loop: { running:boolean; sleep: () => void; wake: () => void; actualFps: number }
+  loop: { running:boolean; sleep: () => void; wake: () => void; actualFps: number; setFPSLimit?: (limit:number) => void }
   destroy: (removeCanvas?: boolean) => void
 }
 
@@ -137,6 +138,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
   const gameRef = useRef<PhaserGameHandle | null>(null)
   const visibleRef = useRef(true)
   const pausedRef = useRef(!!paused)
+  const scrollingRef = useRef(false)
   const syncPauseStateRef = useRef<(() => void) | null>(null)
   const debugEnabledRef = useRef(debugFromUrl())
   const lastCanvasSizeRef = useRef({ width: 0, height: 0 })
@@ -187,6 +189,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
     let disposed = false
     let resizeObserver: ResizeObserver | null = null
     let visibilityObserver: IntersectionObserver | null = null
+    let onScroll: (() => void) | null = null, scrollTimer = 0, slowCheck = 0
     let fpsTimer = 0
     let resizeFrame = 0
     let game: PhaserGameHandle | null = null
@@ -198,6 +201,10 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
       // The picture first, then the engine: on a slow connection the engine (several hundred KB) would
       // otherwise share the line with the picture and hold it back. Never waits more than 2.5s.
       await Promise.race([loadIslandPoster(posterSrcRef.current),new Promise(resolve=>window.setTimeout(resolve,2500))])
+      // The engine boots once the page is idle (its picture is already showing), so Home is ready to use
+      // first; an older iPad no longer stalls on the island's textures while Home is coming up.
+      await new Promise<void>(resolve=>{const w=window as Window&{requestIdleCallback?:(cb:()=>void,o?:{timeout:number})=>number};if(w.requestIdleCallback)w.requestIdleCallback(()=>resolve(),{timeout:isLiteDevice()?4000:1500});else window.setTimeout(resolve,isLiteDevice()?1500:400)})
+      if (disposed) return
       if (disposed) return
       const [{ default: PhaserRuntime }, { default: Stage0Scene }] = await Promise.all([
         import('phaser'),
@@ -214,7 +221,7 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
         backgroundColor: '#cfe4ee',
         scene: [Stage0Scene],
         scale: { mode: PhaserRuntime.Scale.RESIZE, autoCenter: PhaserRuntime.Scale.CENTER_BOTH },
-        fps: { target: 60, min: 30, forceSetTimeOut: false, smoothStep: true },
+        fps: { target: 60, min: 30, forceSetTimeOut: false, smoothStep: true, limit: isLiteDevice() ? 30 : 0 },
         render: {
           // 22.7.14: full Sanctuary maps are high-resolution baked compositions.
           // Do not force nearest-neighbor sampling during responsive map scaling.
@@ -324,7 +331,8 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
 
       syncPauseState = () => {
         if (!game) return
-        const shouldPause = document.hidden || !visibleRef.current || pausedRef.current
+        const shouldPause = document.hidden || !visibleRef.current || pausedRef.current || scrollingRef.current
+        if (containerRef.current) containerRef.current.dataset.running = String(!shouldPause)
         if (shouldPause) {
           game.loop.sleep()
         } else {
@@ -346,6 +354,12 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
       }, { rootMargin: '120px', threshold: 0.01 })
       visibilityObserver.observe(containerRef.current)}
       document.addEventListener('visibilitychange', syncPauseState)
+      // While the page scrolls, the island holds still (scrolling stays smooth on an older iPad), and
+      // picks up again a moment after the scroll stops.
+      onScroll=()=>{if(!scrollingRef.current){scrollingRef.current=true;syncPauseState?.()}window.clearTimeout(scrollTimer);scrollTimer=window.setTimeout(()=>{scrollingRef.current=false;syncPauseState?.()},180)}
+      window.addEventListener('scroll',onScroll,{passive:true,capture:true})
+      // Slow here (under 40 fps after a few seconds on screen): 30 fps from now on, and remembered.
+      slowCheck=window.setTimeout(()=>{if(game&&!isLiteDevice()&&visibleRef.current&&!document.hidden&&!pausedRef.current&&(game.loop.actualFps||60)<40){game.loop.setFPSLimit?.(30);markLiteDevice()}},7000)
 
       fpsTimer = window.setInterval(() => {
         if (game && debugEnabledRef.current && visibleRef.current && !document.hidden) {
@@ -369,6 +383,8 @@ export default function GardenCard({ phase, weather, reducedMotion, progress, de
       resizeObserver?.disconnect()
       removeResizeFallback()
       visibilityObserver?.disconnect()
+      if (onScroll) window.removeEventListener('scroll', onScroll, { capture: true })
+      window.clearTimeout(scrollTimer); window.clearTimeout(slowCheck)
       if (syncPauseState) document.removeEventListener('visibilitychange', syncPauseState)
       if (fpsTimer) window.clearInterval(fpsTimer)
       if (evolutionNoticeTimerRef.current) window.clearTimeout(evolutionNoticeTimerRef.current)
