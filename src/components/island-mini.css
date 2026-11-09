@@ -1,14 +1,46 @@
-/* Home's island tucked away: a strip of meadow where KONO walks about, with the Arcade and "Show island" at
-   the side. Sky by day, a starry blue at night. */
-.workbench .wb-island-mini{position:relative;display:flex;align-items:stretch;gap:8px;min-height:132px;padding:0;border-radius:22px;overflow:hidden;
- background:linear-gradient(180deg,#bfe6ff 0%,#dff3ff 55%,#cdeccb 56%,#a9dc9b 100%);
- box-shadow:0 1px 0 color-mix(in srgb,var(--wb-ink,#3a2b33) 8%,transparent),0 12px 26px -18px color-mix(in srgb,var(--wb-ink,#3a2b33) 60%,transparent);color:var(--wb-ink,#3a2b33)}
-.workbench .wb-island-mini.is-night{background:linear-gradient(180deg,#1d2650 0%,#2c3a6e 55%,#2a4a3a 56%,#1f3a2c 100%);color:#eef2f6}
-.workbench .wb-island-mini.is-night::before{content:"";position:absolute;inset:0 0 50% 0;background:radial-gradient(1.5px 1.5px at 12% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 38% 18%,#fff,transparent),radial-gradient(1px 1px at 62% 40%,#fff,transparent),radial-gradient(1.5px 1.5px at 84% 22%,#fff,transparent);opacity:.8;pointer-events:none}
-.wb-island-mini-stage{position:relative;flex:1;min-width:0}
-/* A few tufts on the grass line. */
-.wb-island-mini-ground{position:absolute;left:0;right:0;bottom:22px;height:8px;background:radial-gradient(6px 5px at 8% 100%,#7cc46a 60%,transparent 62%) 0 0/120px 8px repeat-x;opacity:.7}
-.workbench .wb-island-mini .wb-island-mini-kono:not(#x):not(#y){position:absolute;left:0;bottom:12px;display:block!important;width:64px;height:64px;min-height:0!important;padding:0!important;border:0!important;border-radius:16px!important;background:transparent!important;box-shadow:none!important;cursor:pointer;will-change:transform}
+/* Home's island tucked away: a little side-on Sanctuary. Layers back to front: the sky (by time of day), drifting
+   clouds, two rows of hills, the Sanctuary's own cottage, trees, bench, lantern and signpost on a grassy ledge,
+   KONO, then a few tufts of grass in front. Arcade and Show island float top right. */
+.workbench .wb-island-mini{position:relative;display:block;min-height:150px;padding:0;border-radius:22px;overflow:hidden;color:var(--wb-ink,#3a2b33);
+ background:linear-gradient(180deg,#8fd0ff 0%,#c4e8ff 62%,#e8f7ff 100%);
+ box-shadow:0 1px 0 color-mix(in srgb,var(--wb-ink,#3a2b33) 8%,transparent),0 12px 26px -18px color-mix(in srgb,var(--wb-ink,#3a2b33) 60%,transparent)}
+.workbench .wb-island-mini.is-morning{background:linear-gradient(180deg,#ffd6c2 0%,#ffe9d6 50%,#eaf6ff 100%)}
+.workbench .wb-island-mini.is-evening{background:linear-gradient(180deg,#6b6fb8 0%,#e48aa0 55%,#ffc58f 100%)}
+.workbench .wb-island-mini.is-night{background:linear-gradient(180deg,#141b3d 0%,#25306a 60%,#3a3f7a 100%);color:#eef2f6}
+.workbench .wb-island-mini.is-night::before{content:"";position:absolute;inset:0 0 40% 0;z-index:0;background:radial-gradient(1.5px 1.5px at 12% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 38% 18%,#fff,transparent),radial-gradient(1px 1px at 62% 40%,#fff,transparent),radial-gradient(1.5px 1.5px at 84% 22%,#fff,transparent),radial-gradient(1px 1px at 26% 52%,#fff,transparent),radial-gradient(1px 1px at 72% 12%,#fff,transparent);opacity:.85;pointer-events:none}
+.wb-island-mini-stage{position:absolute;inset:0;container-type:inline-size}
+.wim-scene{position:absolute;inset:0;pointer-events:none}
+.wim-cloud{position:absolute;opacity:.95;animation:wim-drift 90s linear infinite}
+.wim-cloud.is-a{top:14px;width:110px;left:-120px}
+.wim-cloud.is-b{top:34px;width:90px;left:-100px;animation-duration:130s;animation-delay:-60s;opacity:.8}
+.is-night .wim-cloud{opacity:.25}
+@keyframes wim-drift{to{transform:translateX(calc(100cqw + 240px))}}
+.wim-hills{position:absolute;left:0;right:0;bottom:24px;width:100%;height:64px}
+.wim-hills .is-far{fill:#9fd6a8}.wim-hills .is-near{fill:#7cc58a}
+.is-evening .wim-hills .is-far{fill:#b48fb6}.is-evening .wim-hills .is-near{fill:#8f7fa8}
+.is-night .wim-hills .is-far{fill:#26345e}.is-night .wim-hills .is-near{fill:#1f2d4c}
+.wim-prop{position:absolute;bottom:22px;image-rendering:auto}
+.wim-prop.is-cottage{left:2%;height:92px}
+.wim-prop.is-tree-round{left:24%;height:84px;bottom:20px}
+.wim-prop.is-bench{left:36%;height:38px}
+.wim-prop.is-lantern{left:47%;height:66px}
+.wim-prop.is-tree-cherry{left:58%;height:92px;bottom:20px}
+.wim-prop.is-sign{left:76%;height:48px}
+.is-evening .wim-prop{filter:sepia(.2) saturate(1.1) brightness(.9) hue-rotate(-8deg)}
+.is-night .wim-prop.is-lantern{filter:drop-shadow(0 0 10px rgb(255 200 110/.7))}
+@container (max-width:460px){.wim-prop:is(.is-bench,.is-sign){display:none}.wim-prop.is-tree-round{left:30%}.wim-prop.is-lantern{left:52%}.wim-prop.is-tree-cherry{left:68%}}
+/* The ledge: grass on top, earth below, like a platform. */
+.wim-ground{position:absolute;left:0;right:0;bottom:0;height:28px;background:linear-gradient(180deg,#6cbf4f 0 5px,#4f9a3c 5px 8px,#b98654 8px,#9a6a3f 100%)}
+.wim-ground::before{content:"";position:absolute;left:0;right:0;top:-14px;height:22px;background:url(/garden/strip/grass-edge.webp) 0 0/80px 22px repeat-x}
+.wim-ground::after{content:"";position:absolute;left:0;right:0;bottom:5px;height:6px;background:radial-gradient(3px 2px at 20px 3px,#7a5230 70%,transparent 72%) 0 0/46px 6px repeat-x;opacity:.6}
+.is-night .wim-ground{background:linear-gradient(180deg,#2f5a3a 0 5px,#244a30 5px 8px,#4a3a30 8px,#3a2c24 100%)}
+.is-night .wim-ground::before{filter:brightness(.5) saturate(.7)}
+.wim-front{position:absolute;inset:auto 0 0 0;height:40px;z-index:3;pointer-events:none}
+.wim-front img{position:absolute;bottom:14px;height:24px}
+.wim-front .is-a{left:16%}.wim-front .is-b{left:44%;height:28px}.wim-front .is-c{left:88%}
+.is-night .wim-front img{filter:brightness(.5) saturate(.7)}
+@media (prefers-reduced-motion:reduce){.wim-cloud{animation:none}.wim-cloud.is-a{left:12%}.wim-cloud.is-b{left:55%}}
+.workbench .wb-island-mini .wb-island-mini-kono:not(#x):not(#y){position:absolute;left:0;bottom:20px;z-index:2;display:block!important;width:64px;height:64px;min-height:0!important;padding:0!important;border:0!important;border-radius:16px!important;background:transparent!important;box-shadow:none!important;cursor:pointer;will-change:transform}
 .wb-island-mini-kono::after{content:"";position:absolute;left:14px;right:14px;bottom:2px;height:7px;border-radius:50%;background:#2c4a28;opacity:.18;z-index:-1}
 .wb-island-mini-kono img{display:block;width:64px;height:64px;object-fit:contain;image-rendering:auto;pointer-events:none}
 .wb-island-mini-anim{position:absolute;inset:0;background:0 0/256px 64px no-repeat;animation:wim-play var(--ms,640ms) steps(4) infinite}
@@ -18,10 +50,10 @@
 .wb-island-mini-z{position:absolute;right:4px;top:0;font-weight:800;font-size:16px;color:#fff;opacity:0;animation:wim-z 2.4s ease-in infinite}
 @keyframes wim-z{0%{opacity:0;transform:translate(0,6px) scale(.7)}30%{opacity:.9}100%{opacity:0;transform:translate(10px,-20px) scale(1.15)}}
 /* What to do with KONO: a speech bubble above it. */
-.wb-island-mini-bubble{position:absolute;top:8px;z-index:3;display:flex;gap:6px;padding:6px;border-radius:16px;background:var(--wb-surface,#fff);box-shadow:0 8px 20px -8px rgb(0 0 0/.35);animation:wim-pop .2s cubic-bezier(.05,.7,.1,1)}
+.wb-island-mini-bubble{position:absolute;top:8px;z-index:5;display:flex;gap:6px;padding:6px;border-radius:16px;background:var(--wb-surface,#fff);box-shadow:0 8px 20px -8px rgb(0 0 0/.35);animation:wim-pop .2s cubic-bezier(.05,.7,.1,1)}
 .workbench .wb-island-mini .wb-island-mini-bubble button:not(#x):not(#y){min-height:40px!important;padding:0 12px!important;border-radius:12px!important;font-weight:700;font-size:.86rem!important;background:color-mix(in srgb,var(--wb-accent,#b4475f) 8%,var(--wb-surface,#fff))!important;color:var(--wb-ink,#3a2b33)!important;border:0!important;box-shadow:none!important}
 @keyframes wim-pop{from{opacity:0;transform:translateY(6px) scale(.95)}}
-.wb-island-mini-tools{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:6px;padding:10px 10px 10px 0}
+.wb-island-mini-tools{position:absolute;top:10px;right:10px;z-index:4;display:flex;align-items:center;gap:6px}
 .workbench .wb-island-mini .wb-island-mini-tools button:not(#x):not(#y){display:inline-flex!important;align-items:center;justify-content:center;gap:6px;min-height:40px!important;padding:0 14px!important;border-radius:999px!important;font-weight:700;font-size:.88rem!important;white-space:nowrap;background:rgb(255 255 255/.85)!important;color:#3a2b33!important;border:0!important;box-shadow:0 2px 6px -2px rgb(0 0 0/.25)!important}
 .workbench .wb-island-mini .wb-island-mini-tools .wb-island-mini-show:not(#x):not(#y){background:var(--wb-accent,#9b3a5a)!important;color:#fff!important}
 @media (max-width:520px){.workbench .wb-island-mini .wb-island-mini-arcade span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.workbench .wb-island-mini .wb-island-mini-tools .wb-island-mini-arcade:not(#x):not(#y){padding:0 10px!important}}
