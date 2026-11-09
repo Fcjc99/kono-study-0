@@ -523,6 +523,33 @@ test('wall calendar People view: one day, a column for each person with only the
  await panel.getByRole('status').filter({hasText:'Close to'}).waitFor({state:'detached'})
 })
 
+test('a trip or camp week: Last day makes one event show every day through it, all day, on the Planner, the month and the wall',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.setFixedTime(new Date('2026-11-09T09:00:00'))
+ d.calendarEvents.push({id:'camp',profileId:pid,date:'2026-11-10',time:'09:00',title:'Science camp',kind:'activity',notes:''})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Planner')
+ const week=page.getByRole('region',{name:'Week'})
+ await week.getByRole('button',{name:/^Science camp · /}).first().click()
+ const ed=page.getByRole('dialog',{name:'Edit event'})
+ await ed.getByLabel(/Last day/).fill('2026-11-12')
+ await ed.getByText(/Shows every day through/).waitFor()
+ await ed.getByRole('button',{name:'Save'}).click();await ed.waitFor({state:'detached'})
+ // Three days, in the all-day row (no time).
+ await page.waitForFunction(()=>[...document.querySelectorAll('.week-grid-allday-cell .week-item')].filter(b=>b.textContent.includes('Science camp')).length===3)
+ assert.equal(await page.locator('.week-grid-day .week-item').filter({hasText:'Science camp'}).count(),0)
+ await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.find(e=>e.id==='camp')?.endDate==='2026-11-12','the last day never reached the account')
+ await page.getByRole('button',{name:'Month',exact:true}).first().click()
+ await page.waitForFunction(()=>[...document.querySelectorAll('.month-grid .month-pill')].filter(b=>b.getAttribute('aria-label')?.includes('Science camp')).length===3)
+ // The wall shows it on each day too.
+ await page.goto(BASE+'?wall');await page.getByRole('button',{name:/Tap to start wall mode/}).click()
+ const hub=page.getByRole('dialog',{name:'Family hub'});await hub.waitFor()
+ await hub.getByRole('button',{name:'Calendar',exact:true}).click()
+ await hub.getByRole('group',{name:'Days shown'}).getByRole('button',{name:'5 days'}).click()
+ await page.waitForFunction(()=>[...document.querySelectorAll('.family-hub .hub-card')].filter(b=>b.textContent.includes('Science camp')).length===3)
+})
+
 test('opening never hangs: storage that never answers (an iPhone Safari bug) leads to Try again within seconds, and a stalled download offers Reload',async()=>{
  // IndexedDB open that never answers.
  const one=await freshPage()

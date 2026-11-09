@@ -2,7 +2,7 @@ import {Fragment,Suspense,lazy,useCallback,useEffect,useMemo,useRef,useState,typ
 import {flushSync} from 'react-dom'
 import {toneVars} from './store/tones'
 import {usePlannerRepository} from './store/repository'
-import {uid,localDate,eventCategory,peopleOf,type AppData,type FamilyTodo,type SettingsData,type Subtask,type CalendarEvent,type Kid} from './store/model'
+import {uid,localDate,eventCategory,peopleOf,type AppData,type FamilyTodo,type SettingsData,type Subtask,type CalendarEvent,type Kid,eventOnDate} from './store/model'
 import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems} from './store/kids'
 import {collections,records,titleOf,equal,removeEntry,completeTask,type Collection,type Entry} from './store/workspace'
 import {calendarTasks,addDays} from './store/studyScheduler'
@@ -1109,7 +1109,7 @@ function Workspace({store}:{store:Store}){
   ...viewTasks.filter(t=>!t.done&&t.due===today).map(t=>({key:'tasks' as Collection,entry:t as unknown as Entry,date:t.due})),
   ...view.exams.filter(e=>e.profileId===profile.id&&!e.done&&e.due===today).map(e=>({key:'exams' as Collection,entry:e as unknown as Entry,date:e.due})),
   ...notes.filter(n=>!n.completed&&entryDate(n as unknown as Entry)===today).map(n=>({key:'notes' as Collection,entry:n as unknown as Entry,date:entryDate(n as unknown as Entry)})),
-  ...view.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date===today).map(e=>({key:'calendarEvents' as Collection,entry:e as unknown as Entry,date:e.date})),
+  ...view.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&eventOnDate(e,today)).map(e=>({key:'calendarEvents' as Collection,entry:e as unknown as Entry,date:e.date})),
  ].filter(e=>personShown(e.entry)&&(!e.entry.subjectId||!todayClasses.some(c=>c.block.subjectId===e.entry.subjectId)))
   // In time order (untimed last).
   .sort((a,b)=>String((a.entry.time??a.entry.plannedTime)||'99:99').localeCompare(String((b.entry.time??b.entry.plannedTime)||'99:99')))
@@ -1118,7 +1118,7 @@ function Workspace({store}:{store:Store}){
   ...viewTasks.filter(t=>!t.done&&t.due===tomorrow).map(t=>({key:'tasks' as Collection,entry:t as unknown as Entry,date:t.due})),
   ...view.exams.filter(e=>e.profileId===profile.id&&!e.done&&e.due===tomorrow).map(e=>({key:'exams' as Collection,entry:e as unknown as Entry,date:e.due})),
   ...notes.filter(n=>!n.completed&&entryDate(n as unknown as Entry)===tomorrow).map(n=>({key:'notes' as Collection,entry:n as unknown as Entry,date:entryDate(n as unknown as Entry)})),
-  ...view.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date===tomorrow).map(e=>({key:'calendarEvents' as Collection,entry:e as unknown as Entry,date:e.date})),
+  ...view.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&eventOnDate(e,tomorrow)).map(e=>({key:'calendarEvents' as Collection,entry:e as unknown as Entry,date:e.date})),
  ].filter(e=>personShown(e.entry)&&(!e.entry.subjectId||!tomorrowClasses.some(c=>c.block.subjectId===e.entry.subjectId)))
   .sort((a,b)=>String((a.entry.time??a.entry.plannedTime)||'99:99').localeCompare(String((b.entry.time??b.entry.plannedTime)||'99:99')))
  // Your day (Home): late work and past-due reminders lead Today; the tabs count what's on each day.

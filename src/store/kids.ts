@@ -1,4 +1,5 @@
 import type {AppData,Kid} from './model'
+import {eventOnDate} from './model'
 import {classKid,classOccurrences,isInClassNow} from './classSchedule'
 import {eventOff} from './daysOff'
 import {carriedOver} from './overnight'
@@ -32,7 +33,7 @@ export function kidItemsForDate(data:Pick<AppData,'tasks'|'exams'|'calendarEvent
  const items:KidItem[]=[]
  for(const t of data.tasks)if(t.profileId===profileId&&t.due===date&&visible(t.kidId))items.push({...tag(t.kidId),kind:'task',id:t.id,title:t.title,date,done:t.done})
  for(const e of data.exams)if(e.profileId===profileId&&e.due===date&&visible(e.kidId))items.push({...tag(e.kidId),kind:'exam',id:e.id,title:e.title,date,done:e.done})
- for(const ev of data.calendarEvents)if(ev.profileId===profileId&&ev.date===date&&visible(ev.kidId))items.push({...tag(ev.kidId),kind:'event',id:ev.id,title:ev.title,date,done:Boolean(ev.done),time:ev.time,...(ev.endTime?{endTime:ev.endTime}:{}),...(data.daysOff?.length&&eventOff(offRead,profileId,ev)?{off:true}:{})})
+ for(const ev of data.calendarEvents)if(ev.profileId===profileId&&eventOnDate(ev,date)&&visible(ev.kidId))items.push({...tag(ev.kidId),kind:'event',id:ev.id,title:ev.title,date,done:Boolean(ev.done),time:ev.endDate?undefined:ev.time,...(ev.endTime&&!ev.endDate?{endTime:ev.endTime}:{}),...(data.daysOff?.length&&eventOff(offRead,profileId,ev)?{off:true}:{})})
  for(const ev of carriedOver(data.calendarEvents.filter(e=>e.profileId===profileId&&visible(e.kidId)),date))items.push({...tag(ev.kidId),kind:'event',id:ev.id,title:ev.title,date,done:Boolean(ev.done),until:ev.endTime})
  for(const c of classOccurrences({activeProfileId:profileId,studySeasons:data.studySeasons},date)){if(!visible(classKid(c)))continue;items.push({...tag(classKid(c)),kind:'class',id:c.id,title:c.block.label,date,done:false,time:c.displayStart??c.block.start,...(c.block.skippedDates?.includes(date)?{off:true}:{})})}
  return items
@@ -77,5 +78,5 @@ export type KidFamilyEventItem={id:string;title:string;date:string;done:boolean;
  * IS their schedule, not a loose task that might happen to overlap a class. */
 export function kidFamilyEventItems(data:Pick<AppData,'calendarEvents'|'kids'>,profileId:string,today:string):KidFamilyEventItem[] {
  const label=(kidId:string|undefined,title:string)=>{const kid=kidId?data.kids.find(k=>k.id===kidId):undefined;return kid?kid.name+': '+title:title}
- return data.calendarEvents.filter(e=>e.profileId===profileId&&e.date===today&&!e.done).map(e=>({id:e.id,title:label(e.kidId,e.title),date:e.date,done:Boolean(e.done),time:e.time,endTime:e.endTime}))
+ return data.calendarEvents.filter(e=>e.profileId===profileId&&eventOnDate(e,today)&&!e.done).map(e=>({id:e.id,title:label(e.kidId,e.title),date:e.date,done:Boolean(e.done),time:e.time,endTime:e.endTime}))
 }

@@ -1,5 +1,6 @@
 import type {AppData} from './model'
 import {classKid,classOccurrences,classTime} from './classSchedule'
+import {eventOnDate} from './model'
 import {schoolDay} from './schoolCalendar'
 import {addDays} from './studyScheduler'
 
@@ -38,7 +39,7 @@ export function dayAnswer(data:AppData,date:string,today:string):KonoAnswer{
  const closed=data.studySeasons.filter(s=>s.profileId===pid&&s.active&&s.school).map(s=>schoolDay(s,date)).find(d=>d?.closed&&d.exception)
  const classes=classOccurrences(data,date).filter(c=>c.block.kind!=='break'&&!c.block.skippedDates?.includes(date)&&!c.timePending)
   .map(c=>({start:c.displayStart??c.block.start,label:c.block.label,where:c.block.location,kidId:classKid(c)})).sort((a,b)=>a.start.localeCompare(b.start))
- const events=data.calendarEvents.filter(e=>e.profileId===pid&&e.date===date&&!e.done).sort((a,b)=>(a.time??'99').localeCompare(b.time??'99'))
+ const events=data.calendarEvents.filter(e=>e.profileId===pid&&eventOnDate(e,date)&&!e.done).sort((a,b)=>(a.time??'99').localeCompare(b.time??'99'))
  const due=data.tasks.filter(t=>t.profileId===pid&&t.due===date&&!t.done),tests=data.exams.filter(e=>e.profileId===pid&&e.due===date&&!e.done)
  const lines:string[]=[],speech:string[]=[]
  const title=label+' · '+longDate(date)

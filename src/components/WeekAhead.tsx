@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react'
 import type {AppData,Exam,Task} from '../store/model'
+import {eventOnDate} from '../store/model'
 import type {WeekRecap} from '../store/weekRecap'
 import {addDays} from '../store/studyScheduler'
 import {classTime} from '../store/classSchedule'
@@ -24,7 +25,7 @@ export default function WeekAhead({data,monday,recap,tasks,exams,mondayWork,onPl
  const days=Array.from({length:7},(_,i)=>{
   const date=addDays(start,i)
   return {date,due:tasks.filter(t=>!t.done&&t.due===date).length,tests:exams.filter(e=>!e.done&&e.due===date),shifts:shiftsOn(data,date),
-   events:family||strip?data.calendarEvents.filter(e=>e.profileId===pid&&e.date===date&&!e.planFor).length:0,todos:family||strip?todosOn(data,pid,date):[]}
+   events:family||strip?data.calendarEvents.filter(e=>e.profileId===pid&&eventOnDate(e,date)&&!e.planFor).length:0,todos:family||strip?todosOn(data,pid,date):[]}
  })
  if(strip)return <section className="wb-panel week-strip" aria-label="This week at a glance">
   <ol>{days.map(d=>{const n=d.events+d.todos.length+d.due+d.tests.length+d.shifts.length
