@@ -454,6 +454,8 @@ test('opening: KONO’s animation shows until Home is ready, a different one eac
   await page.locator('#kono-splash').waitFor({state:'detached',timeout:5000})
  }
  assert.equal(new Set(seen).size,3,seen.join(', '))
+ // When it goes, Home is all there: no panel still says Loading.
+ assert.equal(await page.locator('#root .lazy-panel-loading').count(),0)
  const fresh=await freshPage()
  try{
   await fresh.page.goto(BASE)

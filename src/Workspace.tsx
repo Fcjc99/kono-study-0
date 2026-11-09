@@ -270,7 +270,10 @@ function Workspace({store}:{store:Store}){
  useEffect(()=>{let gone=false
   const island=startPage==='Sanctuary'&&islandSetting==='full'&&!familyHomeLast()&&(()=>{try{return localStorage.getItem('kono-island-min:'+profile.id)!=='1'}catch{return true}})()
   const ready=island?Promise.race([Promise.all([loadIslandPoster(),import('./components/GardenCard')]).catch(()=>undefined),new Promise(r=>window.setTimeout(r,2500))]):Promise.resolve()
-  void ready.then(()=>{if(!gone)requestAnimationFrame(()=>requestAnimationFrame(splashDone))})
+  // …and until nothing on the page still says Loading (a panel's code arriving, the island's poster), so it
+  // doesn't fade onto boxes that then fill in and push the page around. Never more than 4 s more.
+  const settled=()=>new Promise<void>(done=>{const t0=performance.now();const check=()=>{if(gone)return;if(!document.querySelector('#root .lazy-panel-loading, #root [aria-busy="true"]')||performance.now()-t0>4000){done();return}window.setTimeout(check,80)};check()})
+  void ready.then(settled).then(()=>{if(!gone)requestAnimationFrame(()=>requestAnimationFrame(splashDone))})
   return()=>{gone=true;splashDone()}},[]) // eslint-disable-line react-hooks/exhaustive-deps -- once, on opening
  // Wall display (Planner › 📺, or ?wall in the address so a fridge tablet can open straight to it).
  const [wallOpen,setWallOpen]=useState(()=>urlFlag('wall')),[wallTapped,setWallTapped]=useState(false)

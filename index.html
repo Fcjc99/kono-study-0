@@ -38,6 +38,7 @@
     #kono-splash .ks-stage{position:relative;width:168px;height:168px}
     #kono-splash .ks-stage::after{content:"";position:absolute;left:34px;right:34px;bottom:8px;height:12px;border-radius:50%;background:#3a281f;opacity:.14;filter:blur(2px)}
     #kono-splash .ks-sprite{position:absolute;inset:0;z-index:1;background:0 0/672px 168px no-repeat;animation:ks-play var(--ks-ms,640ms) steps(4) infinite;image-rendering:auto}
+    #kono-splash .ks-sprite{opacity:0;transform:translateY(6px);transition:opacity .3s ease,transform .3s ease}#kono-splash .ks-sprite.is-in{opacity:1;transform:none}
     #kono-splash .ks-z{position:absolute;right:22px;top:18px;font-weight:800;font-size:22px;opacity:0;animation:ks-z 2.4s ease-in infinite}
     #kono-splash .ks-name{margin:6px 0 0;font-weight:800;font-size:1.5rem;letter-spacing:.32em;padding-left:.32em}
     #kono-splash .ks-line{margin:0;font-size:.95rem;opacity:.75}
@@ -58,7 +59,10 @@
      var all=[['wave',160,'KONO is waving hello'],['cheer',150,'KONO is cheering you on'],['pet',150,'KONO is happy to see you'],['eat',260,'KONO is having a snack'],['breathe',420,'KONO is taking a deep breath'],['sleep',900,'KONO is waking up']]
      var n=0;try{n=(Number(localStorage.getItem('kono-splash-n'))+1)%all.length;if(!(n>=0))n=0;localStorage.setItem('kono-splash-n',String(n))}catch(e){}
      var a=all[n],sprite=el.querySelector('.ks-sprite')
-     sprite.style.backgroundImage="url('/garden/kono/anim/"+a[0]+".webp')";sprite.style.setProperty('--ks-ms',a[1]*4+'ms')
+     var src='/garden/kono/anim/'+a[0]+'.webp',pic=new Image()
+     // KONO fades in once its picture has arrived, instead of popping into an empty space.
+     pic.onload=pic.onerror=function(){sprite.classList.add('is-in')};pic.src=src
+     sprite.style.backgroundImage="url('"+src+"')";sprite.style.setProperty('--ks-ms',a[1]*4+'ms')
      if(a[0]==='sleep'){var z=document.createElement('span');z.className='ks-z';z.textContent='z';el.firstChild.appendChild(z)}
      el.querySelector('.ks-line').textContent=a[2]
      el.dataset.anim=a[0]

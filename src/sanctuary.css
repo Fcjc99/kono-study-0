@@ -187,3 +187,5 @@ html[data-motion='reduced'] .sanctuary-interaction-toast{animation:none}
 }
 
 /* Production 22.7.40 — Sanctuary viewport + interaction visibility stability */
+/* The live island fades in over its poster once it has drawn, instead of flashing an empty (or black) canvas. */
+.sanctuary-viewport canvas{transition:opacity .35s ease}.sanctuary-viewport:not(.is-ready) canvas{opacity:0}
