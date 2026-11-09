@@ -199,7 +199,8 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
  // What's over steps back (dimmed), as Google Calendar does by default.
  const nowMin=today.getHours()*60+today.getMinutes()
  const over=(i:WeekItem)=>i.day<todayIso||(i.day===todayIso&&!!i.start&&span(i).to<=nowMin)
- const itemClass=(i:WeekItem,extra='')=>'week-item'+extra+(over(i)?' is-past':'')+(i.important?' is-important':'')+(i.drag&&onDrop?' is-movable':'')+(live?.item.id===i.id?' is-dragging':'')
+ const nowOn=(i:WeekItem)=>i.day===todayIso&&!!i.start&&minutes(i.start)<=nowMin&&span(i).to>nowMin
+ const itemClass=(i:WeekItem,extra='')=>'week-item'+extra+(over(i)?' is-past':'')+(nowOn(i)?' is-now':'')+(i.important?' is-important':'')+(i.drag&&onDrop?' is-movable':'')+(live?.item.id===i.id?' is-dragging':'')
  return <div className={'week-grid'+(live?' is-dragging':'')} role="region" aria-label="Week" style={{'--days':days.length} as CSSProperties}>
   <div className="week-grid-row week-grid-head"><span className="week-grid-gutter" aria-hidden="true"/>{days.map(day=><button type="button" key={day} aria-pressed={day===selected} aria-label={dayLabel(day)} className={day===todayIso?'is-today':''} onClick={()=>onSelect(day)}><small>{weekday(day)}</small><strong>{Number(day.slice(-2))}</strong></button>)}</div>
   {moving&&<div className="week-grid-moving" role="status"><span>Tap a new time for “{moving.title}”</span><button type="button" onClick={()=>setMoving(null)}>Cancel</button></div>}

@@ -57,3 +57,5 @@
 /* The picked day: a soft highlight, not a box. */
 :root[data-experience] .workbench .week-grid:not(#x) .week-grid-head button[aria-pressed=true]:not(#y){border:0!important;box-shadow:none!important;outline:0;background:color-mix(in srgb,var(--wb-accent,#b4475f) 9%,transparent)!important;border-radius:12px!important}
 :root[data-experience] .workbench .week-grid .week-item.is-past:not(#x):not(#y)>small{opacity:1}
+/* On now: a coral ring. */
+:root[data-experience] .workbench .week-grid .week-item.is-now:not(#x):not(#y){box-shadow:inset 4px 0 0 var(--bar),0 0 0 2px #ef6f5e!important;z-index:4}
