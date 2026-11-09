@@ -18,6 +18,9 @@ export default function IslandMini({asleep=false,onArcade,onShow,onTalk,onAsk,on
  const stage=useRef<HTMLDivElement>(null),kono=useRef<HTMLButtonElement>(null),walkImg=useRef<HTMLImageElement>(null)
  const [act,setAct]=useState<Act|null>(null),[menu,setMenu]=useState(false),[dir,setDir]=useState<'left'|'right'>('right'),[bubbleX,setBubbleX]=useState(0)
  const st=useRef({x:40,dir:'right' as 'left'|'right',until:0,frame:0,frameAt:0,acting:false,stopped:false})
+ // The time of day sets the sky (and the night versions of the trees, lantern and cottage).
+ const [phase]=useState(()=>{const h=new Date().getHours();return h>=5&&h<11?'morning':h>=11&&h<17?'afternoon':h>=17&&h<20?'evening':'night'})
+ const night=asleep||phase==='night',art=(n:string)=>'/garden/strip/'+n+'-'+(night?'night':'afternoon')+'.webp'
  const reduced=typeof matchMedia==='function'&&(matchMedia('(prefers-reduced-motion: reduce)').matches||document.documentElement.dataset.motion==='reduced')
  // The walk: one requestAnimationFrame loop that moves KONO (no re-render a frame), only while on screen.
  useEffect(()=>{
@@ -57,14 +60,25 @@ export default function IslandMini({asleep=false,onArcade,onShow,onTalk,onAsk,on
  useEffect(()=>{if(!menu)return;const t=window.setTimeout(close,8000);const out=(e:PointerEvent)=>{if(!stage.current?.contains(e.target as Node))close()};document.addEventListener('pointerdown',out);return()=>{window.clearTimeout(t);document.removeEventListener('pointerdown',out)}},[menu])
  const choose=(go:()=>void)=>()=>{close();go()}
  const showing:Act|'sleep'|null=asleep?'sleep':act??(reduced?'breathe':null)
- return <section className={'wb-island-mini is-walk'+(asleep?' is-night':'')} aria-label="Your island (tucked away)">
+ return <section className={'wb-island-mini is-walk is-'+(night?'night':phase)+(night?' is-night':'')} aria-label="Your island (tucked away)">
   <div className="wb-island-mini-stage" ref={stage}>
-   <span className="wb-island-mini-ground" aria-hidden="true"/>
+   <div className="wim-scene" aria-hidden="true">
+    <img className="wim-cloud is-a" src="/garden/strip/cloud-a.webp" alt=""/><img className="wim-cloud is-b" src="/garden/strip/cloud-b.webp" alt=""/>
+    <svg className="wim-hills" viewBox="0 0 400 60" preserveAspectRatio="none"><path className="is-far" d="M0 60V34Q40 14 80 30T170 24T260 32T340 18T400 28V60Z"/><path className="is-near" d="M0 60V44Q50 30 110 42T220 38T320 46T400 40V60Z"/></svg>
+    <img className="wim-prop is-cottage" src={art('cottage')} alt=""/>
+    <img className="wim-prop is-tree-round" src={art('tree-round')} alt=""/>
+    <img className="wim-prop is-bench" src={art('bench')} alt=""/>
+    <img className="wim-prop is-lantern" src={art('lantern')} alt=""/>
+    <img className="wim-prop is-tree-cherry" src={art('tree-cherry')} alt=""/>
+    <img className="wim-prop is-sign" src={art('sign')} alt=""/>
+    <span className="wim-ground"/>
+   </div>
    <button type="button" ref={kono} className={'wb-island-mini-kono'+(menu?' is-talking':'')} aria-label={asleep?'KONO is asleep. Tap to say hi':'KONO. Tap to talk, ask or pat'} aria-expanded={menu} onClick={tap}>
     {showing?<span className={'wb-island-mini-anim'+(showing==='breathe'&&reduced?' is-still':'')} style={{backgroundImage:`url(${animSrc(showing)})`,['--ms' as string]:FRAME_MS[showing]*4+'ms'}} aria-hidden="true"/>
      :<img ref={walkImg} src={walkSrc(dir,0)} alt="" draggable={false}/>}
     {asleep&&<span className="wb-island-mini-z" aria-hidden="true">z</span>}
    </button>
+   <div className="wim-front" aria-hidden="true"><img className="is-a" src="/garden/strip/flower-grass.webp" alt=""/><img className="is-b" src="/garden/strip/grass-tall.webp" alt=""/><img className="is-c" src="/garden/strip/flower-grass-b.webp" alt=""/></div>
    {menu&&<div className="wb-island-mini-bubble" role="group" aria-label="With KONO" style={{left:bubbleX}}>
     <button type="button" onClick={choose(onTalk)}>💬 Talk</button>
     <button type="button" onClick={choose(onAsk)}>❓ Ask</button>

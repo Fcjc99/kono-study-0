@@ -65,8 +65,7 @@
 :root[data-dark] .workbench .month-grid.is-phone .month-pill:not(.is-class):not(.is-holiday):not(.is-special):not(.is-day-off):not(#x){background:var(--t-bar-d,var(--pill))!important}
 .month-pill time{font-variant-numeric:tabular-nums}
 /* Days that are over step back. */
-.month-cell.is-past .month-pills{opacity:.6}
-.month-cell.is-past:is(:hover,:focus-within) .month-pills{opacity:1}
+.month-cell.is-past .month-pills{filter:saturate(.35)}
 /* A narrow cell (a tablet, a small window) keeps the titles but drops the times and faces first. */
 .month-cell{container-type:inline-size}
 @container (max-width:118px){.month-grid:not(.is-phone) .month-pill :is(time,.month-pill-face){display:none!important}}

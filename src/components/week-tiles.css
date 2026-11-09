@@ -33,8 +33,8 @@
 :root[data-dark] .workbench .week-grid .week-grid-allday-cell .week-item:not(#x):not(#y){color:var(--bg)!important}
 :root[data-experience] .workbench .week-grid .week-grid-allday-cell .week-item:not(#x):not(#y) .week-item-who{top:50%;translate:0 -50%;background:var(--bg);color:var(--fg);box-shadow:none}
 /* Over: steps back. */
-:root[data-experience] .workbench .week-grid .week-item.is-past:not(#x):not(#y){opacity:.6}
-:root[data-experience] .workbench .week-grid .week-item.is-past:not(#x):not(#y):is(:hover,:focus-visible){opacity:1}
+:root[data-experience] .workbench .week-grid .week-item.is-past:not(#x):not(#y){--bg:color-mix(in srgb,var(--t-bg,#eee) 45%,var(--wb-surface,#fff));--bar:color-mix(in srgb,var(--t-bar,#999) 40%,#b9b2b7);--fg:color-mix(in srgb,var(--t-fg,#2c2230) 72%,var(--wb-surface,#fff))}
+:root[data-dark] .workbench .week-grid .week-item.is-past:not(#x):not(#y){--bg:color-mix(in srgb,var(--t-bg-d,#333) 45%,#221d27);--bar:color-mix(in srgb,var(--t-bar-d,#999) 40%,#5d5662);--fg:color-mix(in srgb,var(--t-fg-d,#eee) 75%,#221d27)}
 /* Picked up: it lifts. */
 :root[data-experience] .workbench .week-grid .week-item:is(.is-dragging,.is-picked):not(#x):not(#y){opacity:1;box-shadow:inset 4px 0 0 var(--bar),0 8px 16px rgb(0 0 0/.14),0 0 2px rgb(0 0 0/.12)!important;z-index:5}
 /* Now: a coral line with a dot and the time in the hour column. */
@@ -56,3 +56,6 @@
 @media (forced-colors:active){.week-grid .week-item{border:1px solid CanvasText!important;forced-color-adjust:none;background:Canvas!important;color:CanvasText!important;box-shadow:inset 4px 0 0 Highlight!important}}
 /* The picked day: a soft highlight, not a box. */
 :root[data-experience] .workbench .week-grid:not(#x) .week-grid-head button[aria-pressed=true]:not(#y){border:0!important;box-shadow:none!important;outline:0;background:color-mix(in srgb,var(--wb-accent,#b4475f) 9%,transparent)!important;border-radius:12px!important}
+:root[data-experience] .workbench .week-grid .week-item.is-past:not(#x):not(#y)>small{opacity:1}
+/* On now: a coral ring. */
+:root[data-experience] .workbench .week-grid .week-item.is-now:not(#x):not(#y){box-shadow:inset 4px 0 0 var(--bar),0 0 0 2px #ef6f5e!important;z-index:4}
