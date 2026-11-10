@@ -261,7 +261,7 @@
 .hub-tslot.is-short>.hub-card:not(#x):not(#y){padding-right:8px!important}
 @container (max-width:220px){.hub-tslot.is-short .hub-card small{display:none}}
 @container (max-width:120px){.hub-tslot .hub-card-who{display:none!important}.hub-tslot .hub-card-title{font-size:.8rem}.hub-tslot .hub-card small{font-size:.7rem!important;white-space:normal}.hub-tslot>.hub-card:not(#x):not(#y){padding-right:6px!important}}
-@container (max-width:70px){.hub-tslot .hub-card small{display:none}.hub-tslot .hub-card-title{font-size:.72rem;word-break:keep-all;overflow-wrap:normal;hyphens:none}}
+@container (max-width:38px){.hub-tslot .hub-card small{display:none}.hub-tslot .hub-card-title{font-size:.72rem;word-break:keep-all;overflow-wrap:normal;hyphens:none}}
 .hub-tgrid-head{align-items:stretch}
 .hub-tgrid-col:not(:nth-child(2)) .hub-tgrid-now>span{display:none}
 .hub-card.is-past small{opacity:1!important}
@@ -283,3 +283,7 @@
 .hub-tgrid-now>span{left:auto!important;right:calc(100% + 4px);top:-10px!important}
 .hub-tgrid-body{overflow-x:visible}
 .hub-tgrid-now>span{white-space:nowrap}
+/* The family's name stays on one line (long names end in …) so the header doesn't grow. */
+.family-hub .hub-title b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(42vw,520px)}
+.hub-tgrid-hours span{font-size:clamp(.75rem,calc(var(--hour,64px) * .26),.95rem)}
+@container (max-width:70px){.hub-tslot .hub-card small{font-size:.66rem!important;letter-spacing:-.01em}.hub-tslot>.hub-card:not(#x):not(#y){padding-left:12px!important;padding-right:4px!important}}

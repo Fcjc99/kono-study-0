@@ -1,0 +1,24 @@
+/* Notes in the new look. List: each note a card row in its own color (the pale fill, a bar, its title).
+   Board: the little controls under each note (⋯ and the ‹ › to move it) as one tidy frosted pill instead of
+   loose bubbles on the cork, and smaller Edit / Pin / Finish. */
+.workbench .notes-list:not(#x){display:grid;gap:8px;padding:4px;border:0!important;background:transparent!important}
+.workbench .notes-list>li:not(#x){border:0!important}
+.workbench .notes-list .notes-row:not(#x):not(#y){display:flex!important;align-items:center;gap:12px;width:100%;min-height:60px!important;padding:10px 14px 10px 16px!important;border:0!important;border-radius:14px!important;background:var(--t-bg,#fdf6e3)!important;color:var(--t-fg,#2c2230)!important;box-shadow:inset 5px 0 0 var(--t-bar,#c9a24a),0 1px 2px rgb(60 30 40/.08)!important;text-align:left;transition:transform .15s ease,box-shadow .15s ease}
+.workbench .notes-list .notes-row:not(#x):not(#y):hover{transform:translateY(-1px);box-shadow:inset 5px 0 0 var(--t-bar,#c9a24a),0 8px 18px -12px rgb(60 30 40/.5)!important}
+.workbench .notes-list .notes-row-color{display:none}
+.workbench .notes-list .notes-row-copy b{font-size:1rem;font-weight:800}
+.workbench .notes-list .notes-row-copy small{color:inherit!important;opacity:.85}
+.workbench .notes-list .notes-row-meta time{font-variant-numeric:tabular-nums;color:inherit;opacity:.85}
+.workbench .notes-list .notes-row-pin:not(#x){background:var(--t-bar,#a3304f)!important;color:#fff!important}
+:root[data-dark] .workbench .notes-list .notes-row:not(#x):not(#y){background:var(--t-bg-d,#2a2430)!important;color:var(--t-fg-d,#f3ecf6)!important;box-shadow:inset 5px 0 0 var(--t-bar-d,#c9a24a)!important}
+:root[data-dark] .workbench .notes-list .notes-row-pin:not(#x){background:var(--t-bar-d,#c98aa3)!important;color:var(--t-bg-d,#2a2430)!important}
+/* Board controls. */
+.workbench .wb-note-wrap>.wb-move:not(#x){display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:rgb(255 255 255/.72);backdrop-filter:blur(4px);box-shadow:0 2px 8px -3px rgb(60 30 20/.35)}
+.workbench .wb-note-wrap>.wb-move button:not(#x):not(#y){min-width:30px!important;min-height:30px!important;width:30px;height:30px;padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;box-shadow:none!important}
+.workbench .cozy-note-record .note-more>summary:not(#x){width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:rgb(255 255 255/.72);backdrop-filter:blur(4px);border:0!important;box-shadow:0 2px 8px -3px rgb(60 30 20/.35)}
+.workbench .kono-sticky .kono-sticky-actions button:not(#x):not(#y),.workbench .kono-sticky footer button:not(#x):not(#y){min-height:32px!important;padding:0 10px!important;font-size:.8rem!important;border-radius:999px!important}
+:root[data-dark] .workbench .wb-note-wrap>.wb-move:not(#x),:root[data-dark] .workbench .cozy-note-record .note-more>summary:not(#x){background:rgb(40 32 44/.8)}
+.workbench .notes-list .notes-row-copy:not(#x){flex:1;min-width:0}
+.workbench .notes-list .notes-row-meta:not(#x){margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+/* ⋯ and the arrows on one line under the note. */
+.workbench .wb-note-wrap>.wb-move:not(#x):not(#y){position:relative;z-index:2;width:max-content;margin:0 0 -40px!important;transform:translate(44px,-46px)}

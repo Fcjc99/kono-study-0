@@ -1,4 +1,5 @@
 import type {AppData,Kid} from './model'
+import {eventOnDate} from './model'
 import {classTime} from './classSchedule'
 import {holidayOn} from './schoolCalendar'
 import {specialOn,upcomingSpecial,daysAwayLabel} from './specialDays'
@@ -23,7 +24,7 @@ export function familyPageHtml(data:AppData,profileId:string,today:string,days=1
  const mine=(x:{profileId:string})=>x.profileId===profileId||planKid.has(x.profileId)
  const who=(x:{profileId:string;kidId?:string;kidIds?:string[]})=>{const ids=x.kidIds?.length?x.kidIds:x.kidId?[x.kidId]:planKid.has(x.profileId)?[planKid.get(x.profileId)!]:[];return ids.map(id=>kids.find(k=>k.id===id)).filter((k):k is Kid=>!!k)}
  const rowsOn=(date:string):Row[]=>[
-  ...data.calendarEvents.filter(e=>mine(e)&&e.date===date&&!e.planFor&&!SCHOOLWORK.has(e.kind)).map((e):Row=>({time:e.time,endTime:e.endTime,title:e.title,kids:who(e),location:e.location,icon:''})),
+  ...data.calendarEvents.filter(e=>mine(e)&&eventOnDate(e,date)&&!e.planFor&&!SCHOOLWORK.has(e.kind)).map((e):Row=>({time:e.time,endTime:e.endTime,title:e.title,kids:who(e),location:e.location,icon:''})),
   ...data.exams.filter(e=>mine(e)&&e.due===date&&!e.done).map((e):Row=>({title:e.title,kids:who(e),icon:'📝 '})),
  ].sort((a,b)=>(a.time??'99').localeCompare(b.time??'99')||a.title.localeCompare(b.title))
  const scope={activeProfileId:profileId,studySeasons:data.studySeasons}

@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import ErrorBoundary from './components/ErrorBoundary'
 import { captureInstallPrompt } from './store/installPrompt'
+import { applyLite } from './store/deviceTier'
 
 /** The decorating studio (?page=build) is a separate tool, so its code only downloads there. */
 // eslint-disable-next-line react-refresh/only-export-components -- the entry file has no exports to refresh
@@ -13,6 +14,7 @@ const SanctuaryBuildStudio = lazy(() => import('./components/SanctuaryBuildStudi
 const SanctuaryQA = lazy(() => import('./SanctuaryQA'))
 const params = new URLSearchParams(window.location.search)
 captureInstallPrompt()
+applyLite()
 
 /** KONO's Google Fonts (DM Sans, Newsreader, Caveat; the Zen pair only once Zen Ink is picked). Added from
  * here rather than a CSS @import so they never hold up the first paint: the page shows in the system font

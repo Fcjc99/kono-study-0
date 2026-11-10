@@ -454,6 +454,8 @@ test('opening: KONO’s animation shows until Home is ready, a different one eac
   await page.locator('#kono-splash').waitFor({state:'detached',timeout:5000})
  }
  assert.equal(new Set(seen).size,3,seen.join(', '))
+ // When it goes, Home is all there: no panel still says Loading.
+ assert.equal(await page.locator('#root .lazy-panel-loading').count(),0)
  const fresh=await freshPage()
  try{
   await fresh.page.goto(BASE)
@@ -508,6 +510,14 @@ test('wall calendar People view: one day, a column for each person with only the
   assert.deepEqual(found,[],scheme+' wall hour grid')
  }
  await page.emulateMedia({colorScheme:'light'})
+ // The hours fit the screen: on an iPad-sized screen the whole day shows without scrolling.
+ // (Wall mode is full screen now; a browser window can't be resized while it is.)
+ await page.evaluate(()=>document.fullscreenElement?document.exitFullscreen():null);await page.waitForFunction(()=>!document.fullscreenElement)
+ await page.setViewportSize({width:1080,height:810})
+ await hub.getByRole('group',{name:'Days shown'}).getByRole('button',{name:'Week'}).click()
+ await page.waitForFunction(()=>{const b=document.querySelector('.hub-tgrid-body');return b&&b.scrollHeight<=b.clientHeight+1})
+ await hub.getByRole('group',{name:'Days shown'}).getByRole('button',{name:'People'}).click()
+ await page.setViewportSize({width:1280,height:900})
  // Remembered on this device.
  await page.reload();await page.getByRole('button',{name:/Tap to start wall mode/}).click()
  await hub.getByRole('button',{name:'Calendar',exact:true}).click()
@@ -519,6 +529,50 @@ test('wall calendar People view: one day, a column for each person with only the
  await panel.getByRole('status').filter({hasText:'Close to Leo’s color'}).waitFor()
  await panel.getByRole('radiogroup',{name:'Emma\'s color'}).getByRole('radio',{name:'#7ca982'}).click()
  await panel.getByRole('status').filter({hasText:'Close to'}).waitFor({state:'detached'})
+})
+
+test('a trip or camp week: Last day makes one event show every day through it, all day, on the Planner, the month and the wall',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
+ await page.clock.setFixedTime(new Date('2026-11-09T09:00:00'))
+ d.calendarEvents.push({id:'camp',profileId:pid,date:'2026-11-10',time:'09:00',title:'Science camp',kind:'activity',notes:''})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await go(page,'Planner')
+ const week=page.getByRole('region',{name:'Week'})
+ await week.getByRole('button',{name:/^Science camp · /}).first().click()
+ const ed=page.getByRole('dialog',{name:'Edit event'})
+ await ed.getByLabel(/Last day/).fill('2026-11-12')
+ await ed.getByText(/Shows every day through/).waitFor()
+ await ed.getByRole('button',{name:'Save'}).click();await ed.waitFor({state:'detached'})
+ // Three days, in the all-day row (no time).
+ await page.waitForFunction(()=>[...document.querySelectorAll('.week-grid-allday-cell .week-item')].filter(b=>b.textContent.includes('Science camp')).length===3)
+ assert.equal(await page.locator('.week-grid-day .week-item').filter({hasText:'Science camp'}).count(),0)
+ await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.find(e=>e.id==='camp')?.endDate==='2026-11-12','the last day never reached the account')
+ await page.getByRole('button',{name:'Month',exact:true}).first().click()
+ await page.waitForFunction(()=>[...document.querySelectorAll('.month-grid .month-pill')].filter(b=>b.getAttribute('aria-label')?.includes('Science camp')).length===3)
+ // The wall shows it on each day too.
+ await page.goto(BASE+'?wall');await page.getByRole('button',{name:/Tap to start wall mode/}).click()
+ const hub=page.getByRole('dialog',{name:'Family hub'});await hub.waitFor()
+ await hub.getByRole('button',{name:'Calendar',exact:true}).click()
+ await hub.getByRole('group',{name:'Days shown'}).getByRole('button',{name:'5 days'}).click()
+ await page.waitForFunction(()=>[...document.querySelectorAll('.family-hub .hub-card')].filter(b=>b.textContent.includes('Science camp')).length===3)
+})
+
+test('the island rests while something covers it (the wall, KONO Town) and picks up again after, so an older iPad isn\'t drawing it out of sight',async({context,page})=>{
+ const cloud=fakeCloud();await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ const island=page.locator('.sanctuary-viewport[data-running]')
+ await island.scrollIntoViewIfNeeded()
+ await page.waitForFunction(()=>document.querySelector('.sanctuary-viewport')?.dataset.running==='true',null,{timeout:15000})
+ await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
+ await page.getByRole('dialog',{name:'KONO Town'}).waitFor()
+ await page.waitForFunction(()=>document.querySelector('.sanctuary-viewport')?.dataset.running==='false')
+ await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'KONO Town'}).waitFor({state:'detached'})
+ await page.waitForFunction(()=>document.querySelector('.sanctuary-viewport')?.dataset.running==='true')
+ // The wall opened straight from its address: Home loads underneath it, and its island stays asleep.
+ await page.goto(BASE+'?wall');await page.getByRole('button',{name:/Tap to start wall mode/}).click()
+ await page.getByRole('dialog',{name:'Family hub'}).waitFor();await page.waitForTimeout(1500)
+ await page.waitForFunction(()=>{const v=document.querySelector('.sanctuary-viewport');return !v||v.dataset.running==='false'})
 })
 
 test('opening never hangs: storage that never answers (an iPhone Safari bug) leads to Try again within seconds, and a stalled download offers Reload',async()=>{

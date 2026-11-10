@@ -187,3 +187,7 @@ html[data-motion='reduced'] .sanctuary-interaction-toast{animation:none}
 }
 
 /* Production 22.7.40 — Sanctuary viewport + interaction visibility stability */
+/* The live island fades in over its poster once it has drawn, instead of flashing an empty (or black) canvas. */
+.sanctuary-viewport canvas{transition:opacity .35s ease}.sanctuary-viewport:not(.is-ready) canvas{opacity:0}
+/* Lite devices (src/store/deviceTier.ts): no frosted-glass blur, which older iPads repaint slowly. */
+:root[data-lite] *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}

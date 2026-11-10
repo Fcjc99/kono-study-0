@@ -1,4 +1,5 @@
 import type {AppData} from './model'
+import {eventOnDate} from './model'
 import {classOccurrences,classTime} from './classSchedule'
 import {schoolDay} from './schoolCalendar'
 import {specialOn} from './specialDays'
@@ -14,7 +15,7 @@ export function dayGlance(data:AppData,date:string):string{
   .map(c=>({start:c.displayStart??c.block.start,label:c.block.label})).sort((a,b)=>a.start.localeCompare(b.start))
  const tests=data.exams.filter(e=>e.profileId===pid&&e.due===date&&!e.done)
  const due=data.tasks.filter(t=>t.profileId===pid&&t.due===date&&!t.done)
- const events=data.calendarEvents.filter(e=>e.profileId===pid&&e.date===date&&!e.done).sort((a,b)=>(a.time??'99').localeCompare(b.time??'99'))
+ const events=data.calendarEvents.filter(e=>e.profileId===pid&&eventOnDate(e,date)&&!e.done).sort((a,b)=>(a.time??'99').localeCompare(b.time??'99'))
  const closed=data.studySeasons.filter(s=>s.profileId===pid&&s.active&&s.school).map(s=>schoolDay(s,date)).find(d=>d?.closed&&d.exception)
  const parts:string[]=[]
  if(closed?.exception)parts.push('no school ('+closed.exception.label+')')
