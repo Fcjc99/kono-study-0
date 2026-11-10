@@ -4707,6 +4707,24 @@ test('KONO Medal Cove: a medal pusher: DROP feeds medals from your hand onto the
  await cove.getByText(/You finished with \d+ medals?/).waitFor()
 })
 
+test('KONO Teeter Tower: blocks lowered onto the island stack into a tower, the height counts up, and End gives how high it stood',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
+ await town.getByRole('button',{name:/KONO Teeter Tower/}).click()
+ const game=await startGame(page,'🗼 KONO Teeter Tower')
+ const frame=game.locator('.teeter-frame');await frame.waitFor({timeout:30000})
+ assert.equal(await game.locator('.teeter-hearts .is-on').count(),3,'three hearts to start')
+ // Hold ▼ to drop each block fast; once they rest, the tower has a height.
+ for(let i=0;i<3;i++){await page.keyboard.down('ArrowDown');await page.waitForTimeout(1500);await page.keyboard.up('ArrowDown');await page.waitForTimeout(800)}
+ await page.waitForFunction(()=>Number(document.querySelector('.teeter-frame')?.dataset.height??0)>0,null,{timeout:15000})
+ await game.getByRole('button',{name:'■ End'}).click()
+ await game.getByText(/KONO’s tower stood \d+ rows? high/).waitFor()
+})
+
 test('New arcade games: KONO Stack (a floor set down as it lines up builds the tower, End gives the results) and KONO Bloom (tap to drop seeds into the jar, End gives what you grew)',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
