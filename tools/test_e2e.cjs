@@ -4707,7 +4707,7 @@ test('KONO Medal Cove: a medal pusher: DROP feeds medals from your hand onto the
  await cove.getByText(/You finished with \d+ medals?/).waitFor()
 })
 
-test('KONO Teeter Tower: blocks lowered onto the island stack into a tower, the height counts up, and End gives how high it stood',async({context,page})=>{
+test('KONO Teeter Tower: drag a block and let go and it drops where you put it; blocks stack into a tower, the height counts up, and End gives how high it stood',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
@@ -4718,6 +4718,12 @@ test('KONO Teeter Tower: blocks lowered onto the island stack into a tower, the 
  const game=await startGame(page,'🗼 KONO Teeter Tower')
  const frame=game.locator('.teeter-frame');await frame.waitFor({timeout:30000})
  assert.equal(await game.locator('.teeter-hearts .is-on').count(),3,'three hearts to start')
+ // Drag and drop: pick up the block where KONO holds it (top middle), carry it left, let go: it lands there.
+ await page.waitForTimeout(500)
+ const fb=await frame.boundingBox(),px=x=>fb.x+x/420*fb.width,py=y=>fb.y+y/640*fb.height
+ await page.mouse.move(px(210),py(300));await page.mouse.down();await page.mouse.move(px(140),py(330),{steps:8});await page.waitForTimeout(300);await page.mouse.up()
+ await page.waitForFunction(()=>document.querySelector('.teeter-frame')?.dataset.blocks==='1',null,{timeout:10000})
+ assert.ok(Math.abs(Number(await frame.getAttribute('data-last-x'))-140)<20,'the block dropped where it was let go')
  // Hold ▼ to drop each block fast; once they rest, the tower has a height.
  for(let i=0;i<3;i++){await page.keyboard.down('ArrowDown');await page.waitForTimeout(1500);await page.keyboard.up('ArrowDown');await page.waitForTimeout(800)}
  await page.waitForFunction(()=>Number(document.querySelector('.teeter-frame')?.dataset.height??0)>0,null,{timeout:15000})
