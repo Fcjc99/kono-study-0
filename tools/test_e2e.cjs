@@ -4729,6 +4729,22 @@ test('KONO Teeter Tower: drag a block and let go and it drops where you put it; 
  await page.waitForFunction(()=>Number(document.querySelector('.teeter-frame')?.dataset.height??0)>0,null,{timeout:15000})
  await game.getByRole('button',{name:'■ End'}).click()
  await game.getByText(/KONO’s tower stood \d+ rows? high/).waitFor()
+ // The results show a picture of the tower.
+ const shot=game.getByRole('img',{name:/^Your tower, \d+ rows? high$/});await shot.waitFor()
+ assert.ok((await shot.boundingBox()).width>100,'the tower picture is a good size')
+ // Puzzles: reach the flag with the blocks given; the count goes down as you drop.
+ await game.getByRole('button',{name:'Done'}).click()
+ await town.getByRole('button',{name:/KONO Teeter Tower/}).click()
+ const modes=game.getByRole('radiogroup',{name:'How to play'})
+ await modes.getByRole('radio',{name:/Today’s tower/}).waitFor()
+ await modes.getByRole('radio',{name:/Puzzles/}).click()
+ assert.equal(await modes.getByRole('radio',{name:/Puzzles/}).getAttribute('aria-checked'),'true')
+ await startGame(page,'🗼 KONO Teeter Tower',/^Start level 1$/)
+ await game.getByText('🚩 Row 5 · 10 blocks left').waitFor()
+ await page.keyboard.down('ArrowDown');await page.waitForTimeout(1500);await page.keyboard.up('ArrowDown')
+ await game.getByText('🚩 Row 5 · 9 blocks left').waitFor()
+ await game.getByRole('button',{name:'■ End'}).click()
+ await game.getByText(/The flag was at row 5/).waitFor()
 })
 
 test('New arcade games: KONO Stack (a floor set down as it lines up builds the tower, End gives the results) and KONO Bloom (tap to drop seeds into the jar, End gives what you grew)',async({context,page})=>{

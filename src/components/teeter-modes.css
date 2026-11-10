@@ -1,0 +1,8 @@
+/* KONO Teeter Tower's three ways to play, on the start card. */
+.teeter-modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin:4px 0 2px}
+.game-screen .teeter-modes button:not(#x):not(#y){display:grid;justify-items:center;gap:2px;min-height:84px!important;padding:8px 6px!important;border-radius:16px!important;border:2px solid rgb(255 255 255/.25)!important;background:rgb(255 255 255/.1)!important;color:inherit!important;box-shadow:none!important;font-weight:600;text-align:center}
+.game-screen .teeter-modes button:not(#x):not(#y)>span{font-size:1.4rem}
+.game-screen .teeter-modes button:not(#x):not(#y) b{font-size:.86rem}
+.game-screen .teeter-modes button:not(#x):not(#y) small{font-size:.68rem;opacity:.8;line-height:1.2}
+.game-screen .teeter-modes button.is-on:not(#x):not(#y){border-color:#ffd36b!important;background:rgb(255 211 107/.18)!important}
+.game-screen .teeter-modes button:not(#x):not(#y):focus-visible{outline:3px solid #ffd36b;outline-offset:2px}

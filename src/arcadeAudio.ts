@@ -274,7 +274,7 @@ export function musicLift(n:number){
 
 // ---- Sound effects ----
 export type Fx='coinDrop'|'coinPin'|'coinTray'|'swap'|'nope'|'land'|'match'|'make'|'laser'|'boom'|'zap'|'mega'|'squish'|'time'|'mult'|'blaze'|'tick'|'timeup'|'fanfare'|'star'|'charge'
- |'meow'|'purr'|'paw'|'hiss'|'heart'|'flap'|'ding'|'thud'|'claim'|'cut'
+ |'meow'|'purr'|'paw'|'hiss'|'heart'|'flap'|'ding'|'thud'|'claim'|'cut'|'note'|'phew'
 // Global and per-kind caps prevent crowded payouts spawning an audio node storm.
 let lastCoinSound=-Infinity
 const coinSoundAt:Record<string,number>={}
@@ -316,6 +316,10 @@ export function fx(kind:Fx,enabled:boolean,level=0){
   // A special winding up before it goes off: a quick rising shimmer.
   case 'charge':tone(c,o,{type:'triangle',freq:420,to:1500,at:t,dur:0.2,vol:0.07});hiss(c,o,{at:t,dur:0.2,vol:0.06,type:'bandpass',freq:1500,to:6000,q:1.5});break
   case 'tick':tone(c,o,{type:'square',freq:1400,at:t,dur:0.03,vol:0.06});break
+  // A block set down: a soft bell that climbs the scale as the tower grows.
+  case 'note':tone(c,o,{type:'triangle',freq:hz(67+PENTA[Math.abs(level)%PENTA.length]),at:t,dur:0.22,vol:0.09,wet:true});break
+  // A wobble that settled: a little sigh of relief.
+  case 'phew':tone(c,o,{type:'triangle',freq:740,to:470,at:t,dur:0.4,vol:0.1});hiss(c,o,{at:t,dur:0.3,vol:0.04,type:'lowpass',freq:1600,to:400});break
   case 'timeup':tone(c,o,{type:'square',freq:220,at:t,dur:0.5,vol:0.1});tone(c,o,{type:'square',freq:165,at:t+0.25,dur:0.6,vol:0.1});break
   case 'fanfare':[[0,0],[4,0.12],[7,0.24],[12,0.36],[7,0.5],[12,0.62]].forEach(([k,d])=>{tone(c,o,{type:'square',freq:hz(72+k),at:t+d,dur:0.22,vol:0.07});tone(c,o,{freq:hz(60+k),at:t+d,dur:0.3,vol:0.1})});break
   case 'star':tone(c,o,{freq:hz(96),at:t,dur:0.6,vol:0.12,wet:true});tone(c,o,{freq:hz(103),at:t+0.05,dur:0.6,vol:0.08,wet:true});break
