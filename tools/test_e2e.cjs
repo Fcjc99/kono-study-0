@@ -511,6 +511,8 @@ test('wall calendar People view: one day, a column for each person with only the
  }
  await page.emulateMedia({colorScheme:'light'})
  // The hours fit the screen: on an iPad-sized screen the whole day shows without scrolling.
+ // (Wall mode is full screen now; a browser window can't be resized while it is.)
+ await page.evaluate(()=>document.fullscreenElement?document.exitFullscreen():null);await page.waitForFunction(()=>!document.fullscreenElement)
  await page.setViewportSize({width:1080,height:810})
  await hub.getByRole('group',{name:'Days shown'}).getByRole('button',{name:'Week'}).click()
  await page.waitForFunction(()=>{const b=document.querySelector('.hub-tgrid-body');return b&&b.scrollHeight<=b.clientHeight+1})
