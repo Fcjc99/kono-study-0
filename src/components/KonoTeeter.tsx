@@ -1,7 +1,7 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import Matter from 'matter-js'
 import {gameSound} from '../konoSounds'
-import {fx} from '../arcadeAudio'
+import {fx,startMusic,stopMusic} from '../arcadeAudio'
 import {isLiteDevice} from '../store/deviceTier'
 import type {GameHandle} from './GameScreen'
 import {SHAPES,COLORS,SPECIALS,towerHeight,specialFor,seeded,puzzleLevel,isPerfect,lockLine,LOCK_EVERY,skinColor,skinTile,type SkinId,type ShapeId,type Special,type TeeterMode} from '../store/teeter'
@@ -35,6 +35,8 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
  const state=useRef({best:0,blocks:0,hearts:HEARTS,perfects:0,won:false,snapshot:null as string|null})
  const input=useRef({left:false,right:false,down:false,dragX:null as number|null,nudge:0,repeatAt:0})
  useEffect(()=>{onEndRef.current=onEnd;soundRef.current=sound},[onEnd,sound])
+ // Its song: "Calm Sanctuary Variation" from Medal Cove's playlist (the music button turns it off).
+ useEffect(()=>{startMusic('teeter',sound);return ()=>stopMusic()},[sound])
  const snap=()=>{try{state.current.snapshot=canvas.current?.toDataURL('image/jpeg',0.82)??null}catch{state.current.snapshot=null}}
  const result=():TeeterResult=>({height:state.current.best,blocks:state.current.blocks,perfects:state.current.perfects,won:state.current.won,snapshot:state.current.snapshot})
  useImperativeHandle(ref,()=>({end:()=>{if(ended.current)return;ended.current=true;snap();onEndRef.current(result())}}),[])

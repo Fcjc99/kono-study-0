@@ -4,7 +4,7 @@
  * follows Settings › Sounds (the caller passes it); the music also has its own on/off switch (🎵 in a
  * game's header), kept on this device. Browsers only allow sound after a tap, and every game starts
  * from one. */
-export type Theme='candy'|'gems'|'meow'|'flap'|'paper'|'blast'|'flow'
+export type Theme='candy'|'gems'|'meow'|'flap'|'paper'|'blast'|'flow'|'teeter'
 let room:GainNode|null=null,muffle:BiquadFilterNode|null=null,duck:GainNode|null=null
 let ctx:AudioContext|null=null,master:GainNode|null=null,musicBus:GainNode|null=null,fxBus:GainNode|null=null,echo:GainNode|null=null,noise:AudioBuffer|null=null
 function audio(){
@@ -91,7 +91,7 @@ type Track={inst:string;oct?:number;vel?:number;len?:number;bars:string[];melody
 type Song={bpm:number;chords:number[][];tracks:Track[]}
 const C=(...n:string[])=>n.map(note)
 function note(s:string){const m=/^([A-G])(#|b)?(\d)$/.exec(s);if(!m)return 60;const base={C:0,D:2,E:4,F:5,G:7,A:9,B:11}[m[1] as 'C'];return 12*(Number(m[3])+1)+base+(m[2]==='#'?1:m[2]==='b'?-1:0)}
-const SONGS:Record<Theme,Song>={
+const SONGS:Record<Exclude<Theme,'teeter'>,Song>&Partial<Record<Theme,Song>>={
  // Sweet swap: bouncy and sweet, C – Am – F – G.
  candy:{bpm:118,chords:[C('C3','E3','G3'),C('A2','C3','E3'),C('F2','A2','C3'),C('G2','B2','D3')],tracks:[
   {inst:'bass',bars:['0...0.2.0...4.2.']},
@@ -157,7 +157,9 @@ let track:HTMLAudioElement|null=null
  * KONO blast ("Satisfying Resolutions"), and KONO Flow's five (flow-1 … flow-5: "Floating Pads",
  * "Shimmering Motif", "Late Night Pulse", "Soaring Euphoria", "Transcendent Arpeggios"). Add a game here when its file goes in public/audio/games (and in
  * tools/public-allowlist.json). */
-const RECORDED=new Set<Theme>(['candy','gems','blast','flow'])
+const RECORDED=new Set<Theme>(['candy','gems','blast','flow','teeter'])
+// A game whose song lives somewhere else (KONO Teeter Tower plays "Calm Sanctuary Variation" from Medal Cove's playlist).
+const TRACK_SRC:Partial<Record<Theme,string>>={teeter:'/audio/medal-cove/calm-sanctuary.mp3'}
 const missing=new Set<Theme>([...(['candy','gems','meow','flap','paper','blast','flow'] as Theme[])].filter(t=>!RECORDED.has(t)))
 /** The track before this one, still finishing its fade-out while the next copy plays over it (a loop). */
 let tail:HTMLAudioElement|null=null
@@ -205,14 +207,14 @@ export function startMusic(theme:Theme,enabled:boolean,part=0){
  stopTimer();stopTrack(same?900:0)
  if(!enabled||!musicOn())return
  if(!missing.has(theme)){
-  playTrack('/audio/games/'+theme+(part?'-'+part:'')+'.mp3',()=>{stopTrack();missing.add(theme);if(wanted===theme)startMusic(theme,enabled)})
+  playTrack(TRACK_SRC[theme]??'/audio/games/'+theme+(part?'-'+part:'')+'.mp3',()=>{stopTrack();missing.add(theme);if(wanted===theme)startMusic(theme,enabled)})
   return
  }
  synth(theme)
 }
 function synth(theme:Theme){
  const c=audio();if(!c||!musicBus)return
- const song=SONGS[theme],step=60/song.bpm/4,bars=song.chords.length
+ const song=SONGS[theme]??SONGS.meow,step=60/song.bpm/4,bars=song.chords.length
  let n=0,next=c.currentTime+0.08
  musicBus.gain.cancelScheduledValues(c.currentTime);musicBus.gain.setValueAtTime(0.0001,c.currentTime);musicBus.gain.linearRampToValueAtTime(0.2,c.currentTime+0.6)
  const me={theme,timer:0,stop:false}
