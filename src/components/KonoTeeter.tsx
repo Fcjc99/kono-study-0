@@ -4,7 +4,7 @@ import {gameSound} from '../konoSounds'
 import {fx} from '../arcadeAudio'
 import {isLiteDevice} from '../store/deviceTier'
 import type {GameHandle} from './GameScreen'
-import {SHAPES,COLORS,SPECIALS,towerHeight,specialFor,seeded,puzzleLevel,isPerfect,lockLine,LOCK_EVERY,type ShapeId,type Special,type TeeterMode} from '../store/teeter'
+import {SHAPES,COLORS,SPECIALS,towerHeight,specialFor,seeded,puzzleLevel,isPerfect,lockLine,LOCK_EVERY,skinColor,skinTile,type SkinId,type ShapeId,type Special,type TeeterMode} from '../store/teeter'
 import './teeter.css'
 
 const W=420,H=640 // canvas size at 1× (drawn at 2× for sharpness)
@@ -13,7 +13,7 @@ const ISLAND_TOP=560,ISLAND_W=10*T // the island's grassy top, where the tower s
 const HEARTS=3
 const WIND_FROM=15,BIRD_FROM=20 // rows: the weather starts up here
 
-type Piece={body:Matter.Body;shape:ShapeId;color:string;face:number;rest:number;kind:Special|null;locked:boolean;judged:boolean;drop:{x:number;angle:number};at:number;stuck:boolean;popped:boolean}
+type Piece={body:Matter.Body;shape:ShapeId;color:string;face:number;rest:number;kind:Special|null;locked:boolean;judged:boolean;drop:{x:number;angle:number};at:number;stuck:boolean;popped:boolean;skin:SkinId;n:number}
 export type TeeterResult={height:number;blocks:number;perfects:number;won:boolean;snapshot:string|null}
 
 /** KONO Teeter Tower: KONO floats on a cloud and lowers pastel blocks onto a little floating island. Pick a
@@ -26,12 +26,12 @@ export type TeeterResult={height:number;blocks:number;perfects:number;won:boolea
  * - KONO gasps when the tower sways, covers its eyes in a tumble and dances at milestones.
  * Modes: the classic climb, today's tower (the same blocks for everyone today) and puzzle levels (reach the
  * flag with the blocks you're given). Lite devices draw a simpler scene; reduced motion drops shake and confetti. */
-export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},onEnd}:{ref:Ref<GameHandle>;best:number|null;sound:boolean;mode?:TeeterMode;onEnd:(r:TeeterResult)=>void}){
+export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='pastel',onEnd}:{ref:Ref<GameHandle>;best:number|null;sound:boolean;mode?:TeeterMode;skin?:SkinId;onEnd:(r:TeeterResult)=>void}){
  const canvas=useRef<HTMLCanvasElement>(null),frame=useRef<HTMLDivElement>(null)
  const puzzle=mode.kind==='puzzle'?puzzleLevel(mode.level):null
  const [height,setHeight]=useState(0),[hearts,setHearts]=useState(HEARTS),[call,setCall]=useState<{text:string;at:number}|null>(null),[over,setOver]=useState(false)
  const [next,setNext]=useState<{shape:ShapeId;kind:Special|null}>({shape:'O',kind:null}),[started,setStarted]=useState(false),[left,setLeft]=useState(puzzle?.blocks??0),[say,setSay]=useState('')
- const ended=useRef(false),onEndRef=useRef(onEnd),soundRef=useRef(sound),bestRef=useRef(best),modeRef=useRef(mode)
+ const ended=useRef(false),onEndRef=useRef(onEnd),soundRef=useRef(sound),bestRef=useRef(best),modeRef=useRef(mode),skinRef=useRef(skin)
  const state=useRef({best:0,blocks:0,hearts:HEARTS,perfects:0,won:false,snapshot:null as string|null})
  const input=useRef({left:false,right:false,down:false,dragX:null as number|null,nudge:0})
  useEffect(()=>{onEndRef.current=onEnd;soundRef.current=sound},[onEnd,sound])
@@ -41,6 +41,7 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},onEnd}:
 
  useEffect(()=>{
   const {Engine,Bodies,Body,Composite,Query,Constraint,Events}=Matter
+  const look=skinRef.current
   const md=modeRef.current,goal=md.kind==='puzzle'?puzzleLevel(md.level):null
   // The end: a moment to see it, then the tower's picture and the results.
   const finish=(wait=1300)=>{if(ended.current)return;ended.current=true;window.setTimeout(()=>{try{state.current.snapshot=canvas.current?.toDataURL('image/jpeg',0.82)??null}catch{state.current.snapshot=null}onEndRef.current({height:state.current.best,blocks:state.current.blocks,perfects:state.current.perfects,won:state.current.won,snapshot:state.current.snapshot})},wait)}
@@ -76,7 +77,7 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},onEnd}:
    // Made as a real body first, then held still while it's lowered: setStatic keeps its mass for when it lands.
    const body=Body.create({parts,friction:1,frictionStatic:2,frictionAir:0.03,restitution:0,density:0.0016,slop:0.02,...stuff})
    Body.setStatic(body,true)
-   return {body,shape,kind,color:kind?SPECIALS[kind].color:COLORS[shape],face:Math.floor(Math.random()*cells.length),rest:0,locked:false,judged:false,drop:{x,angle:0},at:0,stuck:false,popped:false}
+   return {body,shape,kind,color:kind?SPECIALS[kind].color:skinColor(look,shape),face:Math.floor(Math.random()*cells.length),rest:0,locked:false,judged:false,drop:{x,angle:0},at:0,stuck:false,popped:false,skin:look,n:dealt}
   }
   const loose=()=>placed.filter(p=>!p.locked)
   const topY=()=>placed.reduce((m,p)=>Math.min(m,p.body.bounds.min.y),ISLAND_TOP)
@@ -470,13 +471,18 @@ function block(g:CanvasRenderingContext2D,p:Piece,t:number,mood:Mood,lite:boolea
  // A drop shadow under the whole piece first, so tiles never shade each other.
  if(!lite){g.fillStyle='rgba(40,30,70,.18)'
   for(const part of parts){g.save();g.translate(part.position.x+1.5,part.position.y+2.5);g.rotate(b.angle);g.beginPath();g.roundRect(-h,-h,h*2,h*2,6);g.fill();g.restore()}}
+ const skin=p.kind||stone?'pastel':p.skin
  parts.forEach((part,i)=>{
   g.save();g.translate(part.position.x,part.position.y);g.rotate(b.angle)
   // Candy-like: lighter at the top, deeper at the bottom, an outline in the piece's own darker shade.
-  if(lite)g.fillStyle=c.base
-  else{const fill=g.createLinearGradient(0,-h,0,h);fill.addColorStop(0,c.hi);fill.addColorStop(.45,c.base);fill.addColorStop(1,c.lo);g.fillStyle=fill}
-  g.beginPath();g.roundRect(-h,-h,h*2,h*2,stone?4:6);g.fill()
-  g.strokeStyle=c.edge;g.lineWidth=1.4;g.stroke()
+  const tc=skin==='rainbow'?tone(skinTile(skin,p.color,i,p.n)):c
+  if(lite)g.fillStyle=tc.base
+  else{const fill=g.createLinearGradient(0,-h,0,h);fill.addColorStop(0,tc.hi);fill.addColorStop(.45,tc.base);fill.addColorStop(1,tc.lo);g.fillStyle=fill}
+  if(skin==='jelly')g.globalAlpha=.8
+  g.beginPath();g.roundRect(-h,-h,h*2,h*2,stone?4:skin==='jelly'?9:skin==='cookie'?8:6);g.fill()
+  g.globalAlpha=1
+  g.strokeStyle=tc.edge;g.lineWidth=1.4;g.stroke()
+  skinDecor(g,skin,h,i+p.n)
   if(stone){
    // Turned to stone: cracks and moss.
    g.strokeStyle='rgba(70,60,50,.35)';g.lineWidth=1;g.beginPath();g.moveTo(-h+4,-2);g.lineTo(-2,1);g.lineTo(3,-3);g.moveTo(2,5);g.lineTo(h-4,7);g.stroke()
@@ -498,6 +504,13 @@ function block(g:CanvasRenderingContext2D,p:Piece,t:number,mood:Mood,lite:boolea
   g.fillStyle='#ff7b98';g.beginPath();g.ellipse(x,y-30,9,11,0,0,7);g.fill()
   g.fillStyle='rgba(255,255,255,.6)';g.beginPath();g.ellipse(x-3,y-34,2.5,3.5,0,0,7);g.fill()
  }
+}
+// Each skin's little touch on a tile: jelly's big shine, cookie sprinkles, a garden sprout, starry sparkles.
+function skinDecor(g:CanvasRenderingContext2D,skin:SkinId,h:number,k:number){
+ if(skin==='jelly'){g.fillStyle='rgba(255,255,255,.5)';g.beginPath();g.ellipse(-h+7,-h+7,4,2.5,-0.6,0,7);g.fill()}
+ else if(skin==='cookie'){const cs=['#ff8fb1','#7cc3ef','#ffe27a','#7fd1ae'];for(let j=0;j<3;j++){g.fillStyle=cs[(k+j)%4];g.save();g.translate([-7,6,-2][j],[6,4,-7][j]);g.rotate(j+k);g.fillRect(-2,-.7,4,1.4);g.restore()}}
+ else if(skin==='garden'&&k%3===0){g.fillStyle='#4f9a3c';g.beginPath();g.ellipse(5,-h-1,3,1.6,-0.5,0,7);g.ellipse(9,-h-2,3,1.6,0.5,0,7);g.fill()}
+ else if(skin==='starry'){g.fillStyle='rgba(255,255,230,.9)';for(const [x,y] of [[-7,-6],[7,6],[6,-8]])g.fillRect(x+(k%3)-1,y,1.4,1.4)}
 }
 function face(g:CanvasRenderingContext2D,mood:Mood,t:number){
  const ink='#3a2630',blink=mood==='sleep'||mood!=='worried'&&Math.floor(t/90)%7===0

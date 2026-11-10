@@ -6,7 +6,7 @@
  * What's saved is a short log of feedings and pats (AppData.konoCare), one entry each with its own
  * ID, so two devices adding to it at the same time merge cleanly. Everything else is worked out from
  * that log, finished assignments and the clock. */
-export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'|'find'|'exam'|'nudge'|'visit'|'bond'|'play'|'taste'|'gift'|'coin'|'buy'|'bank'|'paint'
+export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'|'find'|'exam'|'nudge'|'visit'|'bond'|'play'|'taste'|'gift'|'coin'|'buy'|'bank'|'paint'|'score'
 /** `item` is the outfit put on for a 'wear' entry ("" = taking it off; store/konoWardrobe), what KONO
  * found for a 'find' entry (store/konoFinds), how a test went for an 'exam' entry, or what was done with
  * the day's nudge for a 'nudge' entry (store/konoNotes). A 'gift' is a snack a parent sent from the family
@@ -14,9 +14,10 @@ export type CareKind='feed'|'pet'|'sleep'|'wake'|'wish'|'wear'|'find'|'exam'|'nu
  * Coins (store/konoCoins): a 'coin' entry is coins won (`n`, `item` what for: the prize wheel, a game, a
  * surprise, a quest), a 'buy' entry something bought (`item` "food:cookie", "outfit:bow" or "find:star",
  * `n` its price), and a 'bank' entry a month's coins and snacks folded into one (see foldCoins). A 'paint'
- * entry is KONO's color picked (`item`, "" for classic; store/konoLooks). */
+ * entry is KONO's color picked (`item`, "" for classic; store/konoLooks). A 'score' entry is a game's best of
+ * the day for the family board (`item` "teeter:2026-11-10", `n` the height; store/teeter), one per day, kept a month. */
 export type CareEvent={id:string;kind:CareKind;at:string;taskId?:string;item?:string;from?:string;note?:string;n?:number}
-const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear','find','exam','nudge','visit','bond','play','taste','gift','coin','buy','bank','paint']
+const KINDS:CareKind[]=['feed','pet','sleep','wake','wish','wear','find','exam','nudge','visit','bond','play','taste','gift','coin','buy','bank','paint','score']
 /** KONO's house (store/konoLooks): the furniture placed in the room. `x` and `y` (0–1) are where the
  * piece stands in the room (the middle of its bottom edge), `size` how much bigger or smaller than usual. */
 export type HouseItem={id:string;item:string;x:number;y:number;size?:number;flip?:boolean}
@@ -152,6 +153,8 @@ export function addCareEvent(state:KonoCareState|undefined,profileId:string,even
  const log=all.filter(e=>kept(e)||e===lastWear||e===lastPaint||time(e.at)>=since)
  if((event.kind==='wish'||event.kind==='exam'||event.kind==='nudge'||event.kind==='visit'||event.kind==='bond'||event.kind==='taste'||event.kind==='coin'||event.kind==='find')&&log.some(e=>e.id===event.id))return {profileId,log,...extras(state)}
  if(event.kind==='play'&&now.getTime()<nextPlayAt(log))return {profileId,log,...extras(state)}
+ // A day's best score: replaced only by a better one.
+ if(event.kind==='score'){const was=log.find(e=>e.id===event.id);if(was&&(was.n??0)>=(event.n??0))return {profileId,log,...extras(state)};if(was)log.splice(log.indexOf(was),1)}
  if(event.kind==='pet'){const lastPet=Math.max(-Infinity,...log.filter(e=>e.kind==='pet').map(e=>time(e.at)));if(now.getTime()-lastPet<PET_EVERY_MS)return {profileId,log,...extras(state)}}
  if(event.kind==='sleep'&&bedtime(log,now).tucked)return {profileId,log,...extras(state)}
  if(event.kind==='wake'&&!bedtime(log,now).canWake)return {profileId,log,...extras(state)}
@@ -197,6 +200,7 @@ export function readCareState(raw:unknown,profileId:string):KonoCareState{
   if(event.kind==='gift'){if(typeof x.from==='string'&&x.from.length<=60)event.from=x.from;if(typeof x.note==='string'&&x.note.length<=140)event.note=x.note}
   if(['coin','buy'].includes(event.kind)&&typeof x.item==='string'&&x.item.length<=40)event.item=x.item
   if(['coin','buy','bank'].includes(event.kind)){if(typeof x.n!=='number'||!Number.isInteger(x.n)||Math.abs(x.n)>1_000_000)return [];event.n=x.n}
+  if(event.kind==='score'){if(typeof x.item!=='string'||!/^teeter:\d{4}-\d{2}-\d{2}$/.test(x.item)||typeof x.n!=='number'||!Number.isInteger(x.n)||x.n<0||x.n>999)return [];event.item=x.item;event.n=x.n}
   return [event]
  }).slice(-LOG_MAX)
  const num=(v:unknown,lo:number,hi:number,fallback:number)=>typeof v==='number'&&Number.isFinite(v)?Math.min(hi,Math.max(lo,v)):fallback

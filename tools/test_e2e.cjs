@@ -4745,6 +4745,24 @@ test('KONO Teeter Tower: drag a block and let go and it drops where you put it; 
  await game.getByText('🚩 Row 5 · 9 blocks left').waitFor()
  await game.getByRole('button',{name:'■ End'}).click()
  await game.getByText(/The flag was at row 5/).waitFor()
+ // Today's tower: the family board starts empty; after a round you're on it (saved in the family plan).
+ await game.getByRole('button',{name:'Done'}).click()
+ await town.getByRole('button',{name:/KONO Teeter Tower/}).click()
+ await modes.getByRole('radio',{name:/Today’s tower/}).click()
+ await game.getByRole('region',{name:'Today’s family board'}).getByText('No one has played today’s tower yet. Be the first!').waitFor()
+ // Skins: pastel is in use; the others are for sale with coins.
+ const skins=game.getByRole('group',{name:'Block skins'})
+ assert.equal(await skins.getByRole('button',{name:'Pastel blocks, in use'}).getAttribute('aria-pressed'),'true')
+ await skins.getByRole('button',{name:/^Buy Jelly blocks for 60 coins/}).waitFor()
+ await startGame(page,'🗼 KONO Teeter Tower',/^Play today’s tower$/)
+ await page.keyboard.down('ArrowDown');await page.waitForTimeout(1500);await page.keyboard.up('ArrowDown');await page.waitForTimeout(400)
+ await game.getByRole('button',{name:'■ End'}).click()
+ await game.getByText(/Today’s tower stood \d+ rows? high/).waitFor()
+ await game.getByRole('region',{name:'Today’s family board'}).getByText(/\(you\)/).waitFor()
+ await game.getByRole('button',{name:'Done'}).click()
+ await town.getByRole('button',{name:/KONO Teeter Tower/}).click()
+ await modes.getByRole('radio',{name:/Today’s tower/}).click()
+ await game.getByRole('region',{name:'Today’s family board'}).getByText(/\(you\)/).waitFor()
 })
 
 test('New arcade games: KONO Stack (a floor set down as it lines up builds the tower, End gives the results) and KONO Bloom (tap to drop seeds into the jar, End gives what you grew)',async({context,page})=>{

@@ -20,6 +20,7 @@ const MedalCove=lazy(loadCove)
 // KONO Teeter Tower brings its physics engine (matter-js) only when it's opened.
 const KonoTeeter=lazy(()=>import('./KonoTeeter'))
 const TeeterModes=lazy(()=>import('./TeeterModes'))
+const TeeterBoard=lazy(()=>import('./TeeterModes').then(m=>({default:m.TeeterBoard})))
 let coveFetched=false
 /** The arcade is open: a few seconds later, when the device is idle, fetch Medal Cove's 3D machine in the
  * background, unless the person has asked to save data or is on a slow connection. */
@@ -38,7 +39,7 @@ import BlastFacePicker from './BlastFacePicker'
 import GameCover from './GameCovers'
 import {deal,readBlastSave,writeBlastSave,type BlastSave,type Piece} from '../store/blockBlast'
 import {meowLevel,newMeowPuzzle,type Puzzle} from '../store/meowdoku'
-import {dailyBest,dailySeed,puzzleLevel,saveDailyBest,saveTeeterLevel,teeterLevel,type TeeterMode} from '../store/teeter'
+import {chosenSkin,dailyBest,dailySeed,puzzleLevel,saveDailyBest,saveSkin,saveTeeterLevel,skinItem,teeterLevel,type SkinId,type TeeterHub,type TeeterMode} from '../store/teeter'
 import type {TeeterPick} from './TeeterModes'
 import {BOOSTERS,candyLevelNow,candyStarsKept,freshBoard,jellyFor,maker,saveCandyLevel,saveCandyStars,type Board,type Maker} from '../store/match3'
 import type {ShopItem} from '../store/konoCoins'
@@ -79,12 +80,16 @@ const clock=(ms:number)=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.flo
 /** `startedAt` is when the break games were opened (the break runs BREAK_MINUTES from then). */
 /** Games play full screen (GameScreen); Leave goes back to the list. KONO blast pays coins as lines clear
  * (`onBlastCoins`) and is saved as it goes, so Leave keeps it for next time. */
-export default function BreakGames({startedAt,onClose,arcade=false,sound=false,onScore,onBlastCoins,coins}:{startedAt:number;onClose?:()=>void;arcade?:boolean;sound?:boolean;onScore?:(game:Game,score:number)=>string|null;onBlastCoins?:(lines:number,streak:number)=>number|null;coins?:{balance:number;onBuy:(item:ShopItem)=>void}}){
+export default function BreakGames({startedAt,onClose,arcade=false,sound=false,onScore,onBlastCoins,coins,teeter}:{startedAt:number;onClose?:()=>void;arcade?:boolean;sound?:boolean;onScore?:(game:Game,score:number)=>string|null;onBlastCoins?:(lines:number,streak:number)=>number|null;coins?:{balance:number;onBuy:(item:ShopItem)=>void};teeter?:TeeterHub}){
  const [game,setGame]=useState<Game|null>(null),[pieces,setPieces]=useState<Piece[]>([]),[blastSave,setBlastSave]=useState<BlastSave|null>(null)
  const [meow,setMeow]=useState<{level:number;puzzle:Puzzle}|null>(null),[match,setMatch]=useState<{maker:Maker;board:Board;level:number;jelly?:Set<number>}|null>(null)
  const [paperMode,setPaperMode]=useState<'solo'|'team'>('solo')
  // KONO Teeter Tower: the classic climb, today's tower or the next puzzle level.
  const [teeterPick,setTeeterPick]=useState<TeeterPick>('classic')
+ // Block skins: owned ones (from the family plan) and the one picked on this device.
+ const [teeterSkin,setTeeterSkin]=useState<SkinId>(()=>chosenSkin(teeter?.skins??new Set<SkinId>(['pastel'])))
+ const pickSkin=(id:SkinId)=>{saveSkin(id);setTeeterSkin(id)}
+ const buySkin=(id:SkinId)=>{const item=skinItem(id);if(!coins||coins.balance<item.price)return;coins.onBuy(item);pickSkin(id)}
  const teeterMode:TeeterMode=teeterPick==='daily'?{kind:'daily',seed:dailySeed()}:teeterPick==='puzzle'?{kind:'puzzle',level:teeterLevel()}:{kind:'classic'}
  // KONO blast's face blocks (a photo kept on this device), set on its start card.
  const [blastFace,setBlastFace]=useState(()=>readBlastFace())
@@ -121,13 +126,16 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
  :game==='meow'&&meow?<Meowdoku key={round} ref={handle} level={meow.level} puzzle={meow.puzzle} sound={sound} onEnd={(level,seconds,solved,extra)=>solved?finish('meow',level,'Solved in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+(extra?.best?' — a new best for '+meow.puzzle.n+' × '+meow.puzzle.n+'!':'.')+(extra?.hints?' ('+extra.hints+' hint'+(extra.hints===1?'':'s')+')':'')+' Next up: level '+(level+1)+'.',{title:'Purr-fect!',coinScore:meow.puzzle.n,scoreText:'Level '+level}):finish('meow',0,(extra?.lives===0?'Three wrong cats. ':'')+'This one stays at level '+level+'. Play again for a new puzzle.',{title:extra?.lives===0?'Out of hearts 💔':'Puzzle skipped',coinScore:0,scoreText:'Level '+level,won:false})}/>
   :game==='flap'?<FlappyKono key={round} ref={handle} best={readBest('flap')} sound={sound} onEnd={n=>{const medal=flapMedal(n);finish('flap',n,(medal?medal.emoji+' '+medal.name+' medal! ':'')+'KONO flew through '+n+' pipe'+(n===1?'':'s')+'.',{title:medal?medal.name+' medal!':n>0?'Nice flying!':'Bonk!',scoreText:n+' pipe'+(n===1?'':'s'),won:n>0})}}/>
   :game==='stack'?<KonoStack key={round} ref={handle} best={readBest('stack')} sound={sound} onEnd={(n,perfects)=>finish('stack',n,'KONO’s tower is '+n+' floor'+(n===1?'':'s')+' tall'+(perfects?', with '+perfects+' Perfect'+(perfects===1?'':'s'):'')+'. 🏢',{title:n>=50?'Sky-high!':n>=20?'What a tower!':n>0?'Nice building!':'Missed the base',coinScore:n,scoreText:n+' floor'+(n===1?'':'s'),won:n>0,behind:true})}/>
-  :game==='teeter'?<Suspense fallback={<p role="status">Building the island…</p>}><KonoTeeter key={round} ref={handle} best={readBest('teeter')} sound={sound} mode={teeterMode} onEnd={r=>{
+  :game==='teeter'?<Suspense fallback={<p role="status">Building the island…</p>}><KonoTeeter key={round} ref={handle} best={readBest('teeter')} sound={sound} mode={teeterMode} skin={teeterSkin} onEnd={r=>{
    const shot=r.snapshot&&r.blocks>0?<img className="teeter-shot" src={r.snapshot} alt={'Your tower, '+r.height+' row'+(r.height===1?'':'s')+' high'}/>:undefined
    const perf=r.perfects?' '+r.perfects+' Perfect'+(r.perfects===1?'':'s')+'!':'',rows=(n:number)=>n+' row'+(n===1?'':'s')
    if(teeterMode.kind==='puzzle'){const lv=teeterMode.level,g=puzzleLevel(lv);if(r.won)saveTeeterLevel(lv+1)
     finish('teeter',r.height,r.won?'You reached the flag at row '+g.goal+' with '+r.blocks+' block'+(r.blocks===1?'':'s')+'.'+perf+' Level '+(lv+1)+' is next. 🚩':'The flag was at row '+g.goal+' and your tower reached '+rows(r.height)+'. Try the level again!',{title:r.won?'Level '+lv+' complete!':'So close!',coinScore:r.won?g.goal+lv:Math.floor(r.height/2),scoreText:'Level '+lv,won:r.won,detail:shot});return}
    if(teeterMode.kind==='daily'){const better=saveDailyBest(r.height,teeterMode.seed)
-    finish('teeter',r.height,'Today’s tower stood '+rows(r.height)+' high'+(better?', your best today!':' (your best today: '+dailyBest(teeterMode.seed)+').')+perf+' 📅',{title:better&&r.height>0?'Today’s best!':r.height>=10?'What a tower!':'Timber!',coinScore:r.height+Math.floor(r.perfects/2),scoreText:rows(r.height),won:r.height>0,detail:shot});return}
+    // On the family board: your best today (it replaces your earlier one only if it's higher).
+    let board=teeter?.board
+    if(teeter&&r.blocks>0){teeter.onDaily(teeterMode.seed,r.height);const mine=board?.find(b=>b.me);board=[...(board??[]).filter(b=>!b.me),{...(mine??{name:'You'}),me:true,height:Math.max(mine?.height??0,r.height)}].sort((a,b)=>b.height-a.height)}
+    finish('teeter',r.height,'Today’s tower stood '+rows(r.height)+' high'+(better?', your best today!':' (your best today: '+dailyBest(teeterMode.seed)+').')+perf+' 📅',{title:better&&r.height>0?'Today’s best!':r.height>=10?'What a tower!':'Timber!',coinScore:r.height+Math.floor(r.perfects/2),scoreText:rows(r.height),won:r.height>0,detail:<>{shot}{board&&<Suspense fallback={null}><TeeterBoard rows={board}/></Suspense>}</>});return}
    finish('teeter',r.height,'KONO’s tower stood '+rows(r.height)+' high, from '+r.blocks+' block'+(r.blocks===1?'':'s')+'.'+perf+' 🗼',{title:r.height>=30?'Starry heights!':r.height>=20?'Sky high!':r.height>=10?'What a tower!':'Timber!',coinScore:r.height+Math.floor(r.perfects/2),won:r.height>0,detail:shot})
   }}/></Suspense>
   :game==='cove'?<Suspense fallback={<p role="status">Setting up the cove…</p>}><MedalCove key={round} onFail={failed('cove')} ref={handle} best={readBest('cove')} sound={sound} onEnd={(n,jps,practice)=>practice?finish('cove',0,'A practice round (with sample medals): '+n+' medals in hand. Practice rounds don’t earn coins or set a best. 🪙',{title:'Practice round',coinScore:0,scoreText:n+' practice medals',won:true}):finish('cove',n,(jps?'🎉 '+jps+' jackpot'+(jps===1?'':'s')+'! ':'')+'You finished with '+n+' medal'+(n===1?'':'s')+'. 🪙',{title:jps?'JACKPOT!':n>=100?'Big haul!':n>0?'Nice pushing!':'All pushed out',scoreText:n+' medals',won:n>0})}/></Suspense>
@@ -156,7 +164,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
   {over?<p className="break-over" role="status">That was a nice reset! KONO’s ready for the next session when you are. 📚</p>
   :<>{result&&<p className="break-result" role="status">{result}</p>}<div className="break-game-list">{GAMES.map(g=>{const best=readBest(g.id);return <button type="button" key={g.id} onClick={()=>open(g.id)}><GameCover game={g.id}/><strong>{g.name}</strong><small>{g.id==='blast'&&kept?'Carry on your game ('+kept.score+' points so far)':g.id==='meow'&&meowLevel()>1?'Level '+meowLevel()+' is next':g.id==='candy'&&candyLevelNow()>1?'Level '+candyLevelNow()+' is next':g.how}</small>{best!==null&&<small className="break-best">{g.best(best)}</small>}</button>})}</div></>}
   {game&&!over&&info&&<GameScreen title={info.emoji+' '+info.name} tone="blast" sound={sound} result={ended}
-   intro={{emoji:info.emoji,name:info.name,how:info.how,best:readBest(game)!==null?info.best(readBest(game)!):null,...(game==='blast'?{...(kept?{start:'Continue ('+kept.score+' points)',alt:{label:'New game',onClick:()=>begin('blast',true)}}:{}),extra:<BlastFacePicker onChange={setBlastFace}/>}:game==='meow'?{start:'Start level '+meowLevel()}:game==='candy'?{start:'Start level '+(candyPick??candyLevelNow()),extra:<CandyMap pick={candyPick??candyLevelNow()} onPick={setCandyPick}/>}:game==='teeter'?{start:teeterPick==='daily'?'Play today’s tower':teeterPick==='puzzle'?'Start level '+teeterLevel():'Start',extra:<Suspense fallback={null}><TeeterModes pick={teeterPick} onPick={setTeeterPick}/></Suspense>}:game==='paper'?{start:'Solo',alt:{label:'Team battle',onClick:()=>{setPaperMode('team');begin('paper')}}}:{})}}
+   intro={{emoji:info.emoji,name:info.name,how:info.how,best:readBest(game)!==null?info.best(readBest(game)!):null,...(game==='blast'?{...(kept?{start:'Continue ('+kept.score+' points)',alt:{label:'New game',onClick:()=>begin('blast',true)}}:{}),extra:<BlastFacePicker onChange={setBlastFace}/>}:game==='meow'?{start:'Start level '+meowLevel()}:game==='candy'?{start:'Start level '+(candyPick??candyLevelNow()),extra:<CandyMap pick={candyPick??candyLevelNow()} onPick={setCandyPick}/>}:game==='teeter'?{start:teeterPick==='daily'?'Play today’s tower':teeterPick==='puzzle'?'Start level '+teeterLevel():'Start',extra:<Suspense fallback={null}><TeeterModes pick={teeterPick} onPick={setTeeterPick} board={teeter?.board} skins={{owned:teeter?.skins??new Set<SkinId>(['pastel']),chosen:teeterSkin,onChoose:pickSkin,balance:coins?.balance,onBuy:teeter&&coins?buySkin:undefined}}/></Suspense>}:game==='paper'?{start:'Solo',alt:{label:'Team battle',onClick:()=>{setPaperMode('team');begin('paper')}}}:{})}}
    started={started} onStart={()=>{if(game==='paper')setPaperMode('solo');begin(game)}} onRestart={()=>begin(game,true)} onEnd={()=>handle.current?.end()}
    onAgain={()=>begin(game,true)} onLeave={()=>{setGame(null);setEnded(null);setStarted(false)}}>
    {!arcade&&<p className="game-screen-timer" role="timer">{'Break: '+clock(left)}</p>}

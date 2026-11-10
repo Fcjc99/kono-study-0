@@ -1,4 +1,5 @@
 import './kono-world.css'
+import type {TeeterHub} from '../store/teeter'
 import {useEffect,useRef,useState,type MouseEvent,type ReactNode} from 'react'
 import Modal from './Modal'
 import KonoFace from './KonoFace'
@@ -39,7 +40,8 @@ const reducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-red
  * look around a day for a treasure, a market with furniture found nowhere else, the land's own game at its
  * booth (components/LandGames) and the arcade's games.
  * Lands open as KONO's bond grows. It opens back in the land you were last in. Loaded only when opened. */
-export default function KonoWorld({onBlastCoins,close,today,hearts,paint,outfit,log,found,balance,owned,onBuy,onLook,roundsLeft,onGame,sound,onOpenHouse}:{
+export default function KonoWorld({onBlastCoins,close,today,hearts,paint,outfit,log,found,balance,owned,onBuy,onLook,roundsLeft,onGame,sound,onOpenHouse,teeter}:{
+ teeter?:TeeterHub
  close:()=>void
  today:string
  /** KONO's bond hearts (store/konoBond): each land opens at a number of them. */
@@ -201,7 +203,7 @@ export default function KonoWorld({onBlastCoins,close,today,hearts,paint,outfit,
    </div>)}
    {land&&panel==='play'&&sheet('Games',<div className="world-play" role="region" aria-label="Play">
     <p>{roundsLeft?<><strong>{roundsLeft}</strong> coin rounds left today.</>:'Today’s coin rounds are used up. Play just for fun!'}</p>
-    <BreakGames startedAt={0} arcade sound={sound} onBlastCoins={onBlastCoins} coins={{balance,onBuy}} onScore={(game,score)=>{const n=onGame(game,score);if(n)playSfx('coin',sound);return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
+    <BreakGames startedAt={0} arcade sound={sound} onBlastCoins={onBlastCoins} coins={{balance,onBuy}} teeter={teeter} onScore={(game,score)=>{const n=onGame(game,score);if(n)playSfx('coin',sound);return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
    </div>)}
    </div>
    {!land&&<div className="wb-toolbar world-tools">

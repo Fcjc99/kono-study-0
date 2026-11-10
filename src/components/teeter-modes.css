@@ -6,3 +6,26 @@
 .game-screen .teeter-modes button:not(#x):not(#y) small{font-size:.68rem;opacity:.8;line-height:1.2}
 .game-screen .teeter-modes button.is-on:not(#x):not(#y){border-color:#ffd36b!important;background:rgb(255 211 107/.18)!important}
 .game-screen .teeter-modes button:not(#x):not(#y):focus-visible{outline:3px solid #ffd36b;outline-offset:2px}
+.teeter-start{display:grid;gap:10px;width:100%}
+/* Block skins: a little swatch of each look. */
+.teeter-skins{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.game-screen .teeter-skins button:not(#x):not(#y){display:grid;justify-items:center;gap:3px;min-height:56px!important;padding:6px 2px!important;border-radius:12px!important;border:2px solid transparent!important;background:rgb(255 255 255/.1)!important;color:inherit!important;box-shadow:none!important;font-size:.66rem!important}
+.game-screen .teeter-skins button.is-on:not(#x):not(#y){border-color:#ffd36b!important;background:rgb(255 211 107/.18)!important}
+.game-screen .teeter-skins button:disabled:not(#x):not(#y){opacity:.55}
+.game-screen .teeter-skins button:not(#x):not(#y):focus-visible{outline:3px solid #ffd36b;outline-offset:2px}
+.teeter-swatch{width:26px;height:26px;border-radius:7px;box-shadow:inset 0 3px 0 rgb(255 255 255/.45),inset 0 -3px 0 rgb(0 0 0/.12)}
+.is-pastel .teeter-swatch{background:linear-gradient(135deg,#7cc3ef 0 33%,#ffd36b 33% 66%,#f59ac4 66%)}
+.is-jelly .teeter-swatch{background:radial-gradient(circle at 30% 30%,#fff9 0 18%,transparent 20%),#f59ac4cc;border-radius:10px}
+.is-cookie .teeter-swatch{background:radial-gradient(circle at 30% 60%,#ff8fb1 0 2px,transparent 3px),radial-gradient(circle at 70% 40%,#7cc3ef 0 2px,transparent 3px),#d79c5e;border-radius:9px}
+.is-garden .teeter-swatch{background:linear-gradient(#4f9a3c 0 5px,#9ad48a 5px)}
+.is-starry .teeter-swatch{background:radial-gradient(circle at 30% 30%,#fff 0 1px,transparent 2px),radial-gradient(circle at 70% 65%,#fff 0 1px,transparent 2px),#5a6bc4}
+.is-rainbow .teeter-swatch{background:linear-gradient(135deg,#ff9aa8,#ffc27a,#ffe27a,#8fe0a6,#8fc8f5,#c3a3f0)}
+/* Today's family board. */
+.teeter-board{padding:10px 12px;border-radius:16px;background:rgb(255 255 255/.1);text-align:left}
+.teeter-board h3{margin:0 0 6px;font-size:.86rem}
+.teeter-board ol{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.teeter-board li{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;padding:4px 8px;border-radius:10px;font-size:.84rem}
+.teeter-board li.is-me{background:rgb(255 211 107/.2)}
+.teeter-board em{font-style:normal;font-weight:800;font-variant-numeric:tabular-nums}
+.teeter-board p{margin:0;font-size:.8rem;opacity:.85}
+@media (max-width:380px){.teeter-skins{grid-template-columns:repeat(3,1fr)}}

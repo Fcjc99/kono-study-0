@@ -1,4 +1,5 @@
 import KonoIcon,{type KonoIconName} from './KonoIcon'
+import type {TeeterHub} from '../store/teeter'
 import './kono-town.css'
 import {useState,type ReactNode} from 'react'
 import Modal from './Modal'
@@ -33,7 +34,8 @@ function flyToPurse(el?:Element){
  const dx=b.left+b.width/2-(a.left+a.width/2),dy=b.top+b.height/2-(a.top+a.height/2)
  c.animate([{transform:'translate(0,0) scale(1)'},{transform:`translate(${dx*.45}px,${dy*.45-70}px) scale(1.15) rotate(-12deg)`,offset:.45},{transform:`translate(${dx}px,${dy}px) scale(.2) rotate(20deg)`,opacity:.2}],{duration:700,easing:'cubic-bezier(.45,0,.55,1)'}).onfinish=()=>c.remove()
 }
-export default function KonoTown({onBlastCoins,close,sound=true,balance,startTab='shops',quest,onGiveQuest,today,outfitsOwned,found,paints,furniture,rooms,onBuy,spin,onSpin,roundsLeft,onGame,album:albumInput}:{
+export default function KonoTown({onBlastCoins,close,sound=true,balance,startTab='shops',quest,onGiveQuest,today,outfitsOwned,found,paints,furniture,rooms,onBuy,spin,onSpin,roundsLeft,onGame,album:albumInput,teeter}:{
+ teeter?:TeeterHub
  close:()=>void
  /** Settings › Sounds: KONO Town's little sounds. */
  sound?:boolean
@@ -109,7 +111,7 @@ export default function KonoTown({onBlastCoins,close,sound=true,balance,startTab
    {tab==='wheel'&&<PrizeWheel spin={spin} onSpin={onSpin} sound={sound}/>}
    {tab==='arcade'&&<section className="town-arcade" aria-label="Arcade">
     <p className="town-rounds">{roundsLeft?<><strong>{roundsLeft} of {COIN_ROUNDS}</strong> coin rounds left today. After that, play just for fun.</>:<>Today’s coin rounds are used up. Play just for fun, or come back tomorrow!</>}</p>
-    <BreakGames startedAt={0} arcade sound={sound} onBlastCoins={onBlastCoins} coins={{balance,onBuy}} onScore={(game,score)=>{const n=onGame(game,score);if(n){playSfx('coin',sound);coinBurst(document.querySelector('.town-purse'))}return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
+    <BreakGames startedAt={0} arcade sound={sound} onBlastCoins={onBlastCoins} coins={{balance,onBuy}} teeter={teeter} onScore={(game,score)=>{const n=onGame(game,score);if(n){playSfx('coin',sound);coinBurst(document.querySelector('.town-purse'))}return n?'+'+coinText(n)+'! '+COIN_ICON:null}}/>
    </section>}
    {tab==='album'&&<section className="town-album" aria-label="Album">
     <p className="town-album-count"><span><strong>{count.owned} of {count.total}</strong> collected</span><span className="town-album-bar" aria-hidden="true"><i style={{width:(count.total?count.owned/count.total*100:0)+'%'}}/></span></p>
