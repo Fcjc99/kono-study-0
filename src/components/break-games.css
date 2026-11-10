@@ -858,3 +858,11 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 /* "+n" as medals land in the tray, by your medal count. */
 /* The jackpot, lamps, lottery reels and tower count: a slim bar between the wheels and the cabinet, so
    nothing covers the top of the cabinet (the giant tower, the BIG BONUS lamps, KONO). */
+/* ---- KONO Teeter Tower cover: a leaning stack of pastel blocks on a little island, KONO on top ---- */
+.game-cover.is-teeter{background:linear-gradient(180deg,#8fd0ff,#ffd6b0)}
+.gc-teeter{position:absolute;inset:0}
+.gc-teeter-island{position:absolute;left:28%;right:28%;bottom:10%;height:9%;border-radius:8px 8px 40% 40%;background:linear-gradient(180deg,#6cbf4f 0 35%,#b98654 35%)}
+.gc-teeter i{position:absolute;left:var(--x);bottom:calc(19% + var(--r) * 12%);width:22%;height:12%;border-radius:4px;background:var(--c);box-shadow:inset 0 2px 0 rgb(255 255 255/.4),inset 0 -2px 0 rgb(0 0 0/.12);rotate:var(--a);animation:gc-teeter 3s ease-in-out infinite alternate;transform-origin:50% 100%}
+.gc-teeter img{position:absolute;left:44%;bottom:78%;width:20%;animation:gc-teeter 3s ease-in-out infinite alternate}
+@keyframes gc-teeter{to{translate:3px 0;rotate:calc(var(--a,0deg) + 3deg)}}
+@media(prefers-reduced-motion:reduce){.gc-teeter i,.gc-teeter img{animation:none}}
