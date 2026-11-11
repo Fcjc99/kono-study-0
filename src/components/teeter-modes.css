@@ -29,3 +29,10 @@
 .teeter-board em{font-style:normal;font-weight:800;font-variant-numeric:tabular-nums}
 .teeter-board p{margin:0;font-size:.8rem;opacity:.85}
 @media (max-width:380px){.teeter-skins{grid-template-columns:repeat(3,1fr)}}
+/* How blocks come: falling or held. */
+.teeter-control{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.game-screen .teeter-control button:not(#x):not(#y){display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;text-align:left;min-height:52px!important;padding:6px 10px!important;border-radius:14px!important;border:2px solid rgb(255 255 255/.2)!important;background:rgb(255 255 255/.08)!important;color:inherit!important;box-shadow:none!important}
+.game-screen .teeter-control button:not(#x):not(#y)>span{grid-row:span 2;font-size:1.2rem}
+.game-screen .teeter-control button:not(#x):not(#y) b{font-size:.84rem}
+.game-screen .teeter-control button:not(#x):not(#y) small{font-size:.66rem;opacity:.8}
+.game-screen .teeter-control button.is-on:not(#x):not(#y){border-color:#ffd36b!important;background:rgb(255 211 107/.18)!important}

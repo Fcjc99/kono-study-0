@@ -1,11 +1,11 @@
-import {dailyBest,dailySeed,teeterLevel,SKINS,type BoardRow,type SkinId} from '../store/teeter'
+import {dailyBest,dailySeed,teeterLevel,SKINS,type BoardRow,type SkinId,type TeeterControl} from '../store/teeter'
 import './teeter-modes.css'
 
 export type TeeterPick='classic'|'daily'|'puzzle'
 type Skins={owned:Set<SkinId>;chosen:SkinId;onChoose:(id:SkinId)=>void;balance?:number;onBuy?:(id:SkinId)=>void}
 /** KONO Teeter Tower's start card: the classic climb, today's tower (the same blocks for everyone today, with
  * the family's board) or the next puzzle level, and the block skins (bought with coins). */
-export default function TeeterModes({pick,onPick,skins,board}:{pick:TeeterPick;onPick:(p:TeeterPick)=>void;skins?:Skins;board?:BoardRow[]}){
+export default function TeeterModes({pick,onPick,skins,board,control,onControl}:{pick:TeeterPick;onPick:(p:TeeterPick)=>void;skins?:Skins;board?:BoardRow[];control?:TeeterControl;onControl?:(c:TeeterControl)=>void}){
  const today=dailyBest(dailySeed()),level=teeterLevel()
  const modes:[TeeterPick,string,string,string][]=[
   ['classic','🗼','Classic','As high as you can'],
@@ -18,6 +18,9 @@ export default function TeeterModes({pick,onPick,skins,board}:{pick:TeeterPick;o
     <span aria-hidden="true">{emoji}</span><b>{name}</b><small>{sub}</small>
    </button>)}
   </div>
+  {control&&onControl&&<div className="teeter-control" role="radiogroup" aria-label="How blocks come">
+   {([['fall','⬇️','Falling','Steer them as they fall'],['hold','🤲','Hold & drop','KONO holds, you let go']] as const).map(([id,emoji,name,sub])=><button key={id} type="button" role="radio" aria-checked={control===id} className={control===id?'is-on':undefined} onClick={()=>onControl(id)}><span aria-hidden="true">{emoji}</span><b>{name}</b><small>{sub}</small></button>)}
+  </div>}
   {pick==='daily'&&board&&<TeeterBoard rows={board}/>}
   {skins&&<div className="teeter-skins" role="group" aria-label="Block skins">
    {SKINS.map(s=>{const own=skins.owned.has(s.id),on=skins.chosen===s.id,short=!own&&(skins.balance===undefined||skins.balance<s.price)

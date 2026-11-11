@@ -4769,6 +4769,12 @@ test('KONO Teeter Tower: drag a block and let go and it drops where you put it; 
  await town.getByRole('button',{name:/KONO Teeter Tower/}).click()
  await modes.getByRole('radio',{name:/Today’s tower/}).click()
  await game.getByRole('region',{name:'Today’s family board'}).getByText('No one has played today’s tower yet. Be the first!').waitFor()
+ // How blocks come: Falling (steer them as they fall) by default; Hold & drop is remembered once picked.
+ const ctl=game.getByRole('radiogroup',{name:'How blocks come'})
+ assert.equal(await ctl.getByRole('radio',{name:/Falling/}).getAttribute('aria-checked'),'true')
+ await ctl.getByRole('radio',{name:/Hold & drop/}).click()
+ assert.equal(await page.evaluate(()=>localStorage.getItem('kono-teeter-control')),'hold')
+ await ctl.getByRole('radio',{name:/Falling/}).click()
  // Skins: pastel is in use; the others are for sale with coins.
  const skins=game.getByRole('group',{name:'Block skins'})
  assert.equal(await skins.getByRole('button',{name:'Pastel blocks, in use'}).getAttribute('aria-pressed'),'true')
