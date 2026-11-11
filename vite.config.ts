@@ -75,7 +75,23 @@ self.addEventListener('fetch',event=>{
  const url=new URL(request.url)
  if(url.origin!==self.location.origin||url.pathname.startsWith('/api/'))return
  if(request.mode==='navigate'){
-  event.respondWith(fetch(request).catch(()=>caches.match('/',{cacheName:PRECACHE_NAME,ignoreVary:true})))
+  // Opening KONO: the newest page from the network, but never stuck behind a slow or patchy connection.
+  // If the network hasn't answered in 3.5 s, the saved copy opens instead (the network answer still
+  // arrives for next time); offline, the saved copy at once.
+  event.respondWith((async()=>{
+   const net=fetch(request),saved=caches.match('/',{cacheName:PRECACHE_NAME,ignoreVary:true})
+   try{
+    const first=await Promise.race([net,new Promise(resolve=>setTimeout(resolve,3500,null))])
+    if(first)return first
+    const copy=await saved
+    if(copy){event.waitUntil(net.catch(()=>{}));return copy}
+    return await net
+   }catch(error){
+    const copy=await saved
+    if(copy)return copy
+    throw error
+   }
+  })())
   return
  }
  event.respondWith((async()=>{

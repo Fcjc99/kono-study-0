@@ -3998,6 +3998,25 @@ test('Two devices: each adds something while one is offline and nothing is lost 
  }finally{await a.context.close();await b.context.close()}
 })
 
+test('slow signal: the Home Screen app opens from its saved copy when the network takes too long, instead of sitting on the launch screen',async()=>{
+ const cloud=fakeCloud()
+ const {context,page}=await freshPage({serviceWorkers:'allow'})
+ try{
+  await signInAs(context,cloud,'alice')
+  await page.goto(BASE);await heading(page,'Sanctuary')
+  await page.waitForFunction(()=>!!navigator.serviceWorker?.controller,null,{timeout:20000}).catch(async()=>{await page.reload();await page.waitForFunction(()=>!!navigator.serviceWorker.controller,null,{timeout:20000})})
+  await page.waitForFunction(()=>caches.keys().then(keys=>keys.some(k=>k.startsWith('kono-precache-'))),null,{timeout:20000})
+  // A patchy connection: the page itself takes 25 seconds to come back.
+  let held=0
+  await context.route(url=>new URL(url).pathname==='/',async route=>{held++;await new Promise(r=>setTimeout(r,25000));await route.continue().catch(()=>{})})
+  const opened=Date.now()
+  await page.goto(BASE,{waitUntil:'commit',timeout:40000})
+  await heading(page,'Sanctuary')
+  assert.ok(held>0,'the slow network was in the way')
+  assert.ok(Date.now()-opened<9000,'opening on a slow network took '+(Date.now()-opened)+'ms')
+ }finally{await context.close()}
+})
+
 test('offline: the Home Screen app opens with no signal, shows the plan, keeps a new assignment on the device, and uploads it when the signal is back',async()=>{
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,now=new Date()
  const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')
