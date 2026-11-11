@@ -71,6 +71,8 @@ test('offline: the service worker precaches the sign-in code and the island, and
  for(const name of ['supabaseRemote-','Stage0Scene-','phaser'])assert.ok(list.some(f=>f.includes(name)),name+' is not precached')
  for(const file of [...startupJs,...sheets])assert.ok(list.includes('/'+file),file+' is not precached')
  assert.ok(!/caches\.match\((?![^)]*ignoreVary:true)[^)]*\)/.test(sw),'every cache lookup needs ignoreVary')
+ // Opening the app never waits on a slow network for ever: after 3.5 s the saved page opens.
+ assert.match(sw,/request\.mode==='navigate'[\s\S]*Promise\.race\(\[net,new Promise\(resolve=>setTimeout\(resolve,3500,null\)\)\]\)/,'a slow network falls back to the saved page')
 })
 
 test('the opening animation is in the page, before #root, and the site\'s security policy allows its one inline script by hash',()=>{
