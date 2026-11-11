@@ -121,3 +121,10 @@ export function eventFor(rand:()=>number,blocks:number,lastAt:number):TowerEvent
  const all=Object.keys(EVENTS) as TowerEvent[]
  return all[Math.floor(rand()*all.length)]
 }
+
+/** How the blocks come: 'fall' (Tricky Towers style: they fall from the top while you steer and turn them) or
+ * 'hold' (Cat Stack style: KONO holds each one until you let go). Remembered on this device. */
+export type TeeterControl='fall'|'hold'
+const CONTROL_KEY='kono-teeter-control'
+export const teeterControl=():TeeterControl=>{try{return localStorage.getItem(CONTROL_KEY)==='hold'?'hold':'fall'}catch{return 'fall'}}
+export const saveTeeterControl=(c:TeeterControl)=>{try{localStorage.setItem(CONTROL_KEY,c)}catch{/* storage unavailable */}}

@@ -4737,12 +4737,12 @@ test('KONO Teeter Tower: drag a block and let go and it drops where you put it; 
  const game=await startGame(page,'🗼 KONO Teeter Tower')
  const frame=game.locator('.teeter-frame');await frame.waitFor({timeout:30000})
  assert.equal(await game.locator('.teeter-hearts .is-on').count(),3,'three hearts to start')
- // Drag and drop: pick up the block where KONO holds it (top middle), carry it left, let go: it lands there.
+ // Drag and drop: slide a finger to carry the block a little left (still over the narrow island), let go: it drops there.
  await page.waitForTimeout(500)
  const fb=await frame.boundingBox(),px=x=>fb.x+x/420*fb.width,py=y=>fb.y+y/640*fb.height
- await page.mouse.move(px(210),py(300));await page.mouse.down();await page.mouse.move(px(140),py(330),{steps:8});await page.waitForTimeout(300);await page.mouse.up()
+ await page.mouse.move(px(210),py(300));await page.mouse.down();await page.mouse.move(px(185),py(330),{steps:8});await page.waitForTimeout(300);await page.mouse.up()
  await page.waitForFunction(()=>document.querySelector('.teeter-frame')?.dataset.blocks==='1',null,{timeout:10000})
- assert.ok(Math.abs(Number(await frame.getAttribute('data-last-x'))-140)<20,'the block dropped where it was let go')
+ assert.ok(Math.abs(Number(await frame.getAttribute('data-last-x'))-185)<12,'the block dropped where it was let go')
  // Hold ▼ to drop each block fast; once they rest, the tower has a height.
  for(let i=0;i<3;i++){await page.keyboard.down('ArrowDown');await page.waitForTimeout(1500);await page.keyboard.up('ArrowDown');await page.waitForTimeout(800)}
  await page.waitForFunction(()=>Number(document.querySelector('.teeter-frame')?.dataset.height??0)>0,null,{timeout:15000})
@@ -4769,6 +4769,12 @@ test('KONO Teeter Tower: drag a block and let go and it drops where you put it; 
  await town.getByRole('button',{name:/KONO Teeter Tower/}).click()
  await modes.getByRole('radio',{name:/Today’s tower/}).click()
  await game.getByRole('region',{name:'Today’s family board'}).getByText('No one has played today’s tower yet. Be the first!').waitFor()
+ // How blocks come: Falling (steer them as they fall) by default; Hold & drop is remembered once picked.
+ const ctl=game.getByRole('radiogroup',{name:'How blocks come'})
+ assert.equal(await ctl.getByRole('radio',{name:/Falling/}).getAttribute('aria-checked'),'true')
+ await ctl.getByRole('radio',{name:/Hold & drop/}).click()
+ assert.equal(await page.evaluate(()=>localStorage.getItem('kono-teeter-control')),'hold')
+ await ctl.getByRole('radio',{name:/Falling/}).click()
  // Skins: pastel is in use; the others are for sale with coins.
  const skins=game.getByRole('group',{name:'Block skins'})
  assert.equal(await skins.getByRole('button',{name:'Pastel blocks, in use'}).getAttribute('aria-pressed'),'true')

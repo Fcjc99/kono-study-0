@@ -4,12 +4,12 @@ import {gameSound} from '../konoSounds'
 import {fx,startMusic,stopMusic} from '../arcadeAudio'
 import {isLiteDevice} from '../store/deviceTier'
 import type {GameHandle} from './GameScreen'
-import {SHAPES,COLORS,SPECIALS,towerHeight,specialFor,seeded,puzzleLevel,isPerfect,lockLine,LOCK_EVERY,skinColor,skinTile,EVENTS,EVENT_BLOCKS,eventFor,type TowerEvent,type SkinId,type ShapeId,type Special,type TeeterMode} from '../store/teeter'
+import {SHAPES,COLORS,SPECIALS,towerHeight,specialFor,seeded,puzzleLevel,isPerfect,lockLine,LOCK_EVERY,skinColor,skinTile,EVENTS,EVENT_BLOCKS,eventFor,type TowerEvent,type TeeterControl,type SkinId,type ShapeId,type Special,type TeeterMode} from '../store/teeter'
 import './teeter.css'
 
 const W=420,H=640 // canvas size at 1× (drawn at 2× for sharpness)
 const T=26 // one block, in pixels
-const ISLAND_TOP=560,ISLAND_W=10*T // the island's grassy top, where the tower stands
+const ISLAND_TOP=560,ISLAND_W=5*T // the island's grassy top, where the tower stands: five blocks wide, so towers grow tall and thin
 const HEARTS=3
 const WIND_FROM=15,BIRD_FROM=20 // rows: the weather starts up here
 
@@ -26,14 +26,14 @@ export type TeeterResult={height:number;blocks:number;perfects:number;won:boolea
  * - KONO gasps when the tower sways, covers its eyes in a tumble and dances at milestones.
  * Modes: the classic climb, today's tower (the same blocks for everyone today) and puzzle levels (reach the
  * flag with the blocks you're given). Lite devices draw a simpler scene; reduced motion drops shake and confetti. */
-export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='pastel',onEnd}:{ref:Ref<GameHandle>;best:number|null;sound:boolean;mode?:TeeterMode;skin?:SkinId;onEnd:(r:TeeterResult)=>void}){
+export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='pastel',control='fall',onEnd}:{ref:Ref<GameHandle>;best:number|null;sound:boolean;mode?:TeeterMode;skin?:SkinId;control?:TeeterControl;onEnd:(r:TeeterResult)=>void}){
  const canvas=useRef<HTMLCanvasElement>(null),frame=useRef<HTMLDivElement>(null)
  const puzzle=mode.kind==='puzzle'?puzzleLevel(mode.level):null
  const [height,setHeight]=useState(0),[hearts,setHearts]=useState(HEARTS),[call,setCall]=useState<{text:string;at:number}|null>(null),[over,setOver]=useState(false)
  const [next,setNext]=useState<{shape:ShapeId;kind:Special|null}>({shape:'O',kind:null}),[started,setStarted]=useState(false),[left,setLeft]=useState(puzzle?.blocks??0),[say,setSay]=useState(''),[event,setEvent]=useState<{kind:TowerEvent;left:number}|null>(null)
- const ended=useRef(false),onEndRef=useRef(onEnd),soundRef=useRef(sound),bestRef=useRef(best),modeRef=useRef(mode),skinRef=useRef(skin)
+ const ended=useRef(false),onEndRef=useRef(onEnd),soundRef=useRef(sound),bestRef=useRef(best),modeRef=useRef(mode),skinRef=useRef(skin),controlRef=useRef(control)
  const state=useRef({best:0,blocks:0,hearts:HEARTS,perfects:0,won:false,snapshot:null as string|null})
- const input=useRef({left:false,right:false,nudge:0,queued:false})
+ const input=useRef({left:false,right:false,nudge:0,queued:false,down:false,repeatAt:0})
  useEffect(()=>{onEndRef.current=onEnd;soundRef.current=sound},[onEnd,sound])
  // Its song: "Calm Sanctuary Variation" from Medal Cove's playlist (the music button turns it off).
  useEffect(()=>{startMusic('teeter',sound);return ()=>stopMusic()},[sound])
@@ -42,8 +42,8 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
  useImperativeHandle(ref,()=>({end:()=>{if(ended.current)return;ended.current=true;snap();onEndRef.current(result())}}),[])
 
  useEffect(()=>{
-  const {Engine,Bodies,Body,Composite,Constraint,Events,Sleeping}=Matter
-  const look=skinRef.current
+  const {Engine,Bodies,Body,Composite,Constraint,Events,Sleeping,Query}=Matter
+  const look=skinRef.current,falling=controlRef.current==='fall'
   const md=modeRef.current,goal=md.kind==='puzzle'?puzzleLevel(md.level):null
   // The end: a moment to see it, then the tower's picture and the results.
   const finish=(wait=1300)=>{if(ended.current)return;ended.current=true;window.setTimeout(()=>{try{state.current.snapshot=canvas.current?.toDataURL('image/jpeg',0.82)??null}catch{state.current.snapshot=null}onEndRef.current({height:state.current.best,blocks:state.current.blocks,perfects:state.current.perfects,won:state.current.won,snapshot:state.current.snapshot})},wait)}
@@ -78,9 +78,10 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    const cells=SHAPES[shape],cx=cells.reduce((a,c)=>a+c[0],0)/cells.length,cy=cells.reduce((a,c)=>a+c[1],0)/cells.length
    const parts=cells.map(([cxl,cyl])=>Bodies.rectangle(x+(cxl-cx)*S,y+(cyl-cy)*S,S,S,{chamfer:{radius:4*size}}))
    const stuff=kind==='stone'?{density:0.0048,restitution:0.02}:kind==='ice'?{friction:0.02,frictionStatic:0.04}:kind==='balloon'?{density:0.0009,frictionAir:0.06}:kind==='jelly'?{restitution:0.55,friction:0.35,frictionStatic:0.5,density:0.0011}:slick?{friction:0.05,frictionStatic:0.08}:{}
-   // Soft, rounded and a touch bouncy: blocks land with a bump, slide on a slope and lean, like real toys.
+   // Grippy (stacking feels sure) with only a little bounce: a tower falls from bad balance, a heavy side or an
+   // overhang, not from every landing. Slippery and jelly blocks are the exceptions.
    // Made as a real body first, then held still while KONO carries it: setStatic keeps its mass for the drop.
-   const body=Body.create({parts,friction:0.6,frictionStatic:0.85,frictionAir:0.012,restitution:0.12,density:0.0016,slop:0.03,...stuff})
+   const body=Body.create({parts,friction:0.85,frictionStatic:1.3,frictionAir:0.012,restitution:0.05,density:0.0016,slop:0.03,...stuff})
    Body.setStatic(body,true);body.sleepThreshold=600
    return {body,shape,kind,color:kind?SPECIALS[kind].color:skinColor(look,shape),face:Math.floor(Math.random()*cells.length),rest:0,locked:false,judged:false,drop:{x,angle:0},at:0,stuck:false,popped:false,skin:look,n:dealt,landed:false,squash:0,size,slick}
   }
@@ -91,10 +92,10 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
   const towerTop=()=>placed.reduce((m,p)=>p.landed&&p.body.position.y<ISLAND_TOP+40?Math.min(m,p.body.bounds.min.y):m,ISLAND_TOP)
   // KONO carries the next block above the tower: move it anywhere, turn it, then let go and it drops for
   // real. If you wait too long (eight seconds), KONO lets go by itself.
-  let holdMs=8000,holdX=W/2,heldAt=0,swing=0,lastX=W/2
+  let holdMs=8000,holdX=W/2,heldAt=0,swing=0,lastX=W/2,fallX=W/2
   // Tower events: now and then the next three blocks are big, slippery, or KONO's in a hurry.
   let ev:{kind:TowerEvent;left:number}|null=null,lastEventAt=-99
-  const hangY=(b:Matter.Body)=>Math.min(ISLAND_TOP-6*T,towerTop()-3.5*T)-(b.bounds.max.y-b.position.y)
+  const hangY=(b:Matter.Body)=>Math.min(ISLAND_TOP-6*T,towerTop()-2.6*T)-(b.bounds.max.y-b.position.y)
   const spawn=()=>{
    if(budget<=0)return
    const {shape,kind}=upcoming;upcoming=deal();setNext(upcoming)
@@ -104,7 +105,10 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    holdMs=now?.kind==='hurry'?3000:8000
    active=make(shape,kind,holdX,ISLAND_TOP-8*T,now?.kind==='big'?1.5:1,now?.kind==='slippery')
    if(now){now.left--;if(now.left<=0)ev=null}
-   Body.setPosition(active.body,{x:holdX,y:hangY(active.body)-T})
+   // Falling (Tricky Towers style): it starts high above the tower, in the middle, and comes down steadily.
+   // Held (Cat Stack style): KONO carries it just above the tower.
+   if(falling){fallX=W/2;Body.setPosition(active.body,{x:fallX,y:Math.min(ISLAND_TOP-10*T,towerTop()-8*T)})}
+   else Body.setPosition(active.body,{x:holdX,y:hangY(active.body)-T})
    Composite.add(engine.world,active.body);heldAt=performance.now()
    if(kind&&!(now&&now.left===EVENT_BLOCKS-1))announce(SPECIALS[kind].emoji+' '+SPECIALS[kind].name+'!')
   }
@@ -112,12 +116,12 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    if(!active)return
    const p=active;active=null
    // Let go: it falls with gravity (and keeps a little of the sideways swing).
-   Body.setStatic(p.body,false);Body.setVelocity(p.body,{x:Math.max(-1.5,Math.min(1.5,swing*0.25)),y:p.kind==='balloon'?0.2:0})
+   Body.setStatic(p.body,false);Body.setVelocity(p.body,falling?{x:0,y:0.5}:{x:Math.max(-1.5,Math.min(1.5,swing*0.25)),y:p.kind==='balloon'?0.2:0})
    p.drop={x:p.body.position.x,angle:p.body.angle};p.at=performance.now()
    placed.push(p);state.current.blocks++;setStarted(true)
    if(goal){budget--;setLeft(budget)}
-   fx('swap',soundRef.current)
-   settleUntil=performance.now()+900
+   if(!falling)fx('swap',soundRef.current)
+   settleUntil=performance.now()+(falling?250:900);input.current.down=false
    if(frame.current){frame.current.dataset.blocks=String(state.current.blocks);frame.current.dataset.lastX=String(Math.round(p.body.position.x))}
   }
   // Honey: sticks fast to the first block (or the island) it touches.
@@ -141,42 +145,63 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    }
   })
   // Turn a quarter (the picture swings round to catch up).
-  const rotate=()=>{if(!active)return;Body.rotate(active.body,Math.PI/2);spin-=Math.PI/2;fx('tick',soundRef.current)}
+  const others=()=>[ground,...placed.map(p=>p.body)]
+  const fits=(b:Matter.Body,x:number)=>{const was={...b.position};Body.setPosition(b,{x,y:was.y});const ok=b.bounds.min.x>=2&&b.bounds.max.x<=W-2&&!Query.collides(b,others()).length;Body.setPosition(b,was);return ok}
+  // Falling: ◀ ▶ move half a block at a time (it slides there smoothly), never into the tower.
+  const stepX=(dir:number)=>{if(!active)return;const x=fallX+dir*T/2;if(fits(active.body,x))fallX=x}
+  // Turn a quarter (the picture swings round to catch up). Falling, against the tower or an edge it shifts
+  // over half a block or a block to fit.
+  const rotate=()=>{
+   if(!active)return
+   const b=active.body;Body.rotate(b,Math.PI/2)
+   if(falling){const kick=[0,-T/2,T/2,-T,T].find(k=>fits(b,fallX+k));if(kick===undefined){Body.rotate(b,-Math.PI/2);return}fallX+=kick}
+   spin-=Math.PI/2;fx('tick',soundRef.current)
+  }
   const drop=()=>{if(active)release()}
   const key=(e:KeyboardEvent,down:boolean)=>{
    if((e.target as HTMLElement)?.closest?.('input,textarea'))return
    const k=e.code,i=input.current
-   if(k==='ArrowLeft'||k==='KeyA'){if(down&&!e.repeat)i.nudge=-1;i.left=down;e.preventDefault()}
-   else if(k==='ArrowRight'||k==='KeyD'){if(down&&!e.repeat)i.nudge=1;i.right=down;e.preventDefault()}
-   // ▼ before a block is in KONO's paws waits for it (while the key is still down).
-   else if(k==='ArrowDown'||k==='KeyS'||k==='Space'){if(down&&!e.repeat){if(active)drop();else i.queued=true}if(!down)i.queued=false;e.preventDefault()}
+   if(k==='ArrowLeft'||k==='KeyA'){if(down&&!e.repeat){i.nudge=-1;i.repeatAt=performance.now()+170}i.left=down;e.preventDefault()}
+   else if(k==='ArrowRight'||k==='KeyD'){if(down&&!e.repeat){i.nudge=1;i.repeatAt=performance.now()+170}i.right=down;e.preventDefault()}
+   // Falling: ▼ held speeds this block down (the next one waits for a fresh press). Held: ▼ lets go, and a
+   // press before the block is in KONO's paws waits for it.
+   else if(k==='ArrowDown'||k==='KeyS'||k==='Space'){if(falling){if(!e.repeat)i.down=down}else{if(down&&!e.repeat){if(active)drop();else i.queued=true}if(!down)i.queued=false}e.preventDefault()}
    else if((k==='ArrowUp'||k==='KeyW'||k==='KeyX')&&down&&!e.repeat){rotate();e.preventDefault()}
   }
   const kd=(e:KeyboardEvent)=>key(e,true),ku=(e:KeyboardEvent)=>key(e,false)
   window.addEventListener('keydown',kd);window.addEventListener('keyup',ku)
-  const pad=frame.current as (HTMLDivElement&{__rotate?:()=>void;__drop?:()=>void})|null
-  if(pad){pad.__rotate=rotate;pad.__drop=drop}
+  const back=()=>{if(!document.hidden)clearSprites()}
+  document.addEventListener('visibilitychange',back)
+  const pad=frame.current as (HTMLDivElement&{__rotate?:()=>void;__down?:(on:boolean)=>void})|null
+  if(pad){pad.__rotate=rotate;pad.__down=on=>{if(falling)input.current.down=on;else if(on)drop()}}
   // A finger: drag anywhere to carry the block (it follows your finger, wherever you touched), lift to drop
   // it; a quick tap turns it.
   const el=frame.current!
-  let ptr:{id:number;sx:number;hx:number;t:number;moved:boolean}|null=null
+  let ptr:{id:number;sx:number;sy:number;hx:number;t:number;moved:boolean}|null=null
   const toX=(e:PointerEvent)=>{const r=el.getBoundingClientRect();return (e.clientX-r.left)/r.width*W}
+  const toY=(e:PointerEvent)=>{const r=el.getBoundingClientRect();return (e.clientY-r.top)/r.height*H}
   const pd=(e:PointerEvent)=>{
    if(e.button>0||ended.current)return
    e.preventDefault();try{el.setPointerCapture(e.pointerId)}catch{/* not capturable */}
-   ptr={id:e.pointerId,sx:toX(e),hx:holdX,t:performance.now(),moved:false}
+   ptr={id:e.pointerId,sx:toX(e),sy:toY(e),hx:falling?fallX:holdX,t:performance.now(),moved:false}
   }
   const pm=(e:PointerEvent)=>{
    if(!ptr||e.pointerId!==ptr.id)return
-   const x=toX(e);if(Math.abs(x-ptr.sx)>8)ptr.moved=true
-   if(ptr.moved)holdX=Math.max(24,Math.min(W-24,ptr.hx+(x-ptr.sx)))
+   const x=toX(e),y=toY(e);if(Math.abs(x-ptr.sx)>8||Math.abs(y-ptr.sy)>8)ptr.moved=true
+   if(!ptr.moved)return
+   if(!falling){holdX=Math.max(24,Math.min(W-24,ptr.hx+(x-ptr.sx)));return}
+   // Falling: slide sideways to steer (half a block at a time, never into the tower); pull down to hurry it.
+   const want=ptr.hx+Math.round((x-ptr.sx)/(T/2))*(T/2);let guard=24
+   while(Math.abs(want-fallX)>1&&guard--){const was=fallX;stepX(Math.sign(want-fallX));if(fallX===was)break}
+   input.current.down=y-ptr.sy>40
   }
   const pu=(e:PointerEvent)=>{
    if(!ptr||e.pointerId!==ptr.id)return
    const d=ptr;ptr=null
+   if(falling)input.current.down=false
    if(!d.moved&&performance.now()-d.t<300)rotate()
    // (A lift right as a new block appears is from the last drag, not a drop of this one.)
-   else if(d.moved&&d.t>heldAt)drop()
+   else if(!falling&&d.moved&&d.t>heldAt)drop()
   }
   const pc=()=>{ptr=null}
   el.addEventListener('pointerdown',pd);el.addEventListener('pointermove',pm);el.addEventListener('pointerup',pu);el.addEventListener('pointercancel',pc)
@@ -190,7 +215,18 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    const i=input.current,m=dt/16.67
    spin=Math.abs(spin)<0.01?0:spin*(1-Math.min(1,0.35*m))
    let timer:number|null=null
-   if(active&&!ended.current){
+   if(active&&!ended.current&&falling){
+    // Falling steadily (faster as the tower grows, and in a hurry); ▼ or a pull down hurries it.
+    if(i.nudge){stepX(i.nudge);i.nudge=0}
+    else if((i.left||i.right)&&now>=i.repeatAt){stepX(i.right?1:-1);i.repeatAt=now+75}
+    const b=active.body,dx=fallX-b.position.x
+    if(dx)Body.setPosition(b,{x:Math.abs(dx)<0.6?fallX:b.position.x+dx*Math.min(1,0.5*m),y:b.position.y})
+    const speed=(i.down?8:(ev?.kind==='hurry'||holdMs===3000?2.2:1.05)+Math.min(0.8,state.current.best*0.02))*m
+    // Down in small steps; touching the island or the tower, it's in physics' hands (gently, no slam).
+    let landed=false
+    for(let go=speed;go>0&&!landed;go-=3){const was={...b.position};Body.setPosition(b,{x:was.x,y:was.y+Math.min(3,go)});if(Query.collides(b,others()).length){Body.setPosition(b,was);landed=true}}
+    if(landed||b.bounds.min.y>ISLAND_TOP+60){Body.setPosition(b,{x:b.position.x,y:b.position.y});release()}
+   }else if(active&&!ended.current){
     // In KONO's paws: ◀ ▶ (or the arrow keys) carry it smoothly; it glides after your finger and swings a little.
     if(i.nudge){holdX+=i.nudge*T/2;i.nudge=0}
     if(i.left||i.right)holdX+=(i.right?1:-1)*4*m
@@ -202,7 +238,7 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
     // KONO lets go by itself after a while (the ring round KONO shows the last three seconds).
     const left=holdMs-(now-heldAt);if(left<3000)timer=Math.max(0,left/Math.min(3000,holdMs))
     if(left<=0)release()
-   }else{swing*=0.9;if(!ended.current&&now>settleUntil){spawn();if(active&&i.queued){i.queued=false;release()}}}
+   }else{swing*=0.9;if(!ended.current&&now>settleUntil){spawn();if(!falling&&active&&i.queued){i.queued=false;release()}}}
    for(const p of placed)if(p.squash>0)p.squash=Math.max(0,p.squash-0.08*m)
    // A balloon holds its block up as it comes down, then pops once it's resting.
    for(const p of placed)if(p.kind==='balloon'&&!p.popped){
@@ -231,7 +267,10 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
     }
    }
    // Fixed small steps (120 a second): smooth on 60 Hz and 120 Hz screens alike.
-   acc+=dt;while(acc>=1000/120){Engine.update(engine,1000/120);acc-=1000/120}
+   // A dropped block falls no faster than a steady pace until it first lands: a fast hit makes two blocks
+   // overlap for a moment, and the physics then shoves them apart hard enough to fling the tower. Small steps
+   // (240 a second) keep contacts clean too.
+   acc+=dt;while(acc>=1000/240){for(const p of placed)if(!p.landed&&p.body.velocity.y>4.2)Body.setVelocity(p.body,{x:p.body.velocity.x,y:4.2});Engine.update(engine,1000/240);acc-=1000/240}
    // Fell off: the block is gone. One tumble costs one heart, however many blocks go over with it.
    for(let k=placed.length-1;k>=0;k--){const p=placed[k];if(p.body.position.y>ISLAND_TOP+260){Composite.remove(engine.world,p.body);placed.splice(k,1);for(const q of placed)wake(q.body)
     if(bird.on===p){bird.state='out';bird.at=now}
@@ -279,14 +318,15 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    // Older devices draw at 30 frames a second (the physics keeps its own steady pace).
    if(!lite||now-lastPaint>=32){lastPaint=now
     const kono=cheer>0?'dance':now<graceUntil?'eyes':sway>0.45?'gasp':'happy'
-    paint(canvas.current,{spin,swing,timer,hold:{x:active?active.body.position.x:holdX,y:active?active.body.bounds.min.y:Math.min(ISLAND_TOP-6*T,towerTop()-3.5*T)-T*2},placed,active,cam:cam.y,t,shake,imgs,height:state.current.best,fxs,best:md.kind==='classic'?bestRef.current??0:0,goal:goal?.goal??0,lite,calm,sway,kono,gust,bird:bird.state==='off'?null:{x:bird.x,y:bird.y,sitting:bird.state==='sit'}})}
+    paint(canvas.current,{spin,swing,timer,hold:falling&&active?{x:active.body.position.x+(active.body.position.x>W/2?-78:78),y:active.body.position.y+30}:{x:active?active.body.position.x:holdX,y:active?active.body.bounds.min.y:Math.min(ISLAND_TOP-6*T,towerTop()-2.6*T)-T*2},placed,active,cam:cam.y,t,shake,imgs,height:state.current.best,fxs,best:md.kind==='classic'?bestRef.current??0:0,goal:goal?.goal??0,lite,calm,sway,kono,gust,bird:bird.state==='off'?null:{x:bird.x,y:bird.y,sitting:bird.state==='sit'}})}
    raf=requestAnimationFrame(loop)
   }
   raf=requestAnimationFrame(loop)
-  return ()=>{cancelAnimationFrame(raf);window.removeEventListener('keydown',kd);window.removeEventListener('keyup',ku);el.removeEventListener('pointerdown',pd);el.removeEventListener('pointermove',pm);el.removeEventListener('pointerup',pu);el.removeEventListener('pointercancel',pc);Events.off(engine,'collisionStart');Engine.clear(engine)}
+  return ()=>{cancelAnimationFrame(raf);window.removeEventListener('keydown',kd);window.removeEventListener('keyup',ku);document.removeEventListener('visibilitychange',back);el.removeEventListener('pointerdown',pd);el.removeEventListener('pointermove',pm);el.removeEventListener('pointerup',pu);el.removeEventListener('pointercancel',pc);Events.off(engine,'collisionStart');Engine.clear(engine)}
  },[])
  useEffect(()=>{if(!call)return;const id=window.setTimeout(()=>setCall(null),1000);return()=>window.clearTimeout(id)},[call])
- const hold=(k:'left'|'right',on:boolean)=>{const i=input.current;if(on&&!i[k])i.nudge=k==='left'?-1:1;i[k]=on}
+ const hold=(k:'left'|'right',on:boolean)=>{const i=input.current;if(on&&!i[k]){i.nudge=k==='left'?-1:1;i.repeatAt=performance.now()+170}i[k]=on}
+ const downPad=(on:boolean)=>(frame.current as (HTMLDivElement&{__down?:(on:boolean)=>void})|null)?.__down?.(on)
  const turn=()=>(frame.current as (HTMLDivElement&{__rotate?:()=>void})|null)?.__rotate?.()
  const label=mode.kind==='daily'?'Today’s tower':mode.kind==='puzzle'?'Level '+mode.level:best!==null?'Best '+best:'KONO Teeter Tower'
  return <div className="break-game kono-teeter">
@@ -296,16 +336,16 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    <strong key={height} className="teeter-score" aria-hidden="true">{height}</strong>
    <span className="teeter-next" aria-label={'Next block: '+(next.kind?SPECIALS[next.kind].name:next.shape)}><small>Next</small><NextShape shape={next.shape} kind={next.kind}/></span>
    {call&&<span key={call.at} className="teeter-call" aria-hidden="true">{call.text}</span>}
-   {!started&&!over&&<p className="teeter-hint"><b>{puzzle?'Reach the flag at row '+puzzle.goal+'!':'Build it tall!'}</b><span>Slide your finger to carry the block · lift to drop it · tap to turn</span></p>}
+   {!started&&!over&&<p className="teeter-hint"><b>{puzzle?'Reach the flag at row '+puzzle.goal+'!':'Build it tall!'}</b><span>{control==='fall'?'Slide your finger to steer · tap to turn · pull down to hurry':'Slide your finger to carry the block · lift to drop it · tap to turn'}</span></p>}
   </div>
   <p className="teeter-say" aria-live="polite">{say}</p>
   <div className="teeter-pad" role="group" aria-label="Controls">
    <button type="button" aria-label="Left" onPointerDown={()=>hold('left',true)} onPointerUp={()=>hold('left',false)} onPointerLeave={()=>hold('left',false)}>◀</button>
    <button type="button" aria-label="Turn" onClick={turn}>⟳</button>
-   <button type="button" aria-label="Drop" onClick={()=>(frame.current as (HTMLDivElement&{__drop?:()=>void})|null)?.__drop?.()}>▼</button>
+   <button type="button" aria-label={control==='fall'?'Faster':'Drop'} onPointerDown={()=>downPad(true)} onPointerUp={()=>downPad(false)} onPointerLeave={()=>downPad(false)}>▼</button>
    <button type="button" aria-label="Right" onPointerDown={()=>hold('right',true)} onPointerUp={()=>hold('right',false)} onPointerLeave={()=>hold('right',false)}>▶</button>
   </div>
-  <p className="blast-help">KONO holds each block above the tower. Slide your finger anywhere to carry it and lift to drop it (or ◀ ▶ to carry, ▼ to drop; the arrow keys and Space work too). Tap (or ⟳, ↑) to turn it. It drops for real, so it can bounce, slide and tip; KONO lets go by itself after eight seconds. Every ten rows the bottom turns to stone. Specials: 🍯 sticks, 🪨 heavy, 🎈 lands softly, 🧊 slippery, 🍮 bouncy jelly. Now and then the next three blocks are big 🔍, slippery 💦, or KONO’s in a hurry ⏱️. Blocks that fall off the island cost a heart.</p>
+  <p className="blast-help">{control==='fall'?'Blocks fall from the top: slide your finger (or ◀ ▶, the arrow keys) to steer half a block at a time, tap (or ⟳, ↑) to turn, pull down (or hold ▼, ↓, Space) to hurry. Once a block touches the tower it’s real physics, so it can lean, slide and tip. ':'KONO holds each block above the tower. Slide your finger anywhere to carry it and lift to drop it (or ◀ ▶ to carry, ▼ to drop; the arrow keys and Space work too). Tap (or ⟳, ↑) to turn it. It drops for real, so it can bounce, slide and tip; KONO lets go by itself after eight seconds. '}Every ten rows the bottom turns to stone. Specials: 🍯 sticks, 🪨 heavy, 🎈 lands softly, 🧊 slippery, 🍮 bouncy jelly. Now and then the next three blocks are big 🔍, slippery 💦, or KONO’s in a hurry ⏱️. Blocks that fall off the island cost a heart.</p>
  </div>
 }
 
@@ -371,21 +411,25 @@ function paint(c:HTMLCanvasElement|null,s:Scene){
  const ix=W/2-ISLAND_W/2-14,iw=ISLAND_W+28
  if(s.lite)g.fillStyle='#9a6c42'
  else{const earth=g.createLinearGradient(0,ISLAND_TOP,0,ISLAND_TOP+110);earth.addColorStop(0,'#c49460');earth.addColorStop(.5,'#94673e');earth.addColorStop(1,'#5e3e24');g.fillStyle=earth}
- g.beginPath();g.moveTo(ix,ISLAND_TOP+6);g.lineTo(ix+iw,ISLAND_TOP+6);g.quadraticCurveTo(ix+iw-6,ISLAND_TOP+40,ix+iw-34,ISLAND_TOP+64);g.quadraticCurveTo(W/2+20,ISLAND_TOP+132,W/2-4,ISLAND_TOP+128);g.quadraticCurveTo(ix+50,ISLAND_TOP+110,ix+30,ISLAND_TOP+62);g.quadraticCurveTo(ix+6,ISLAND_TOP+40,ix,ISLAND_TOP+6);g.fill()
+ g.beginPath();g.moveTo(ix,ISLAND_TOP+6);g.lineTo(ix+iw,ISLAND_TOP+6);g.quadraticCurveTo(ix+iw-4,ISLAND_TOP+40,ix+iw*0.8,ISLAND_TOP+62);g.quadraticCurveTo(W/2+12,ISLAND_TOP+128,W/2-2,ISLAND_TOP+124);g.quadraticCurveTo(ix+iw*0.3,ISLAND_TOP+108,ix+iw*0.2,ISLAND_TOP+60);g.quadraticCurveTo(ix+4,ISLAND_TOP+40,ix,ISLAND_TOP+6);g.fill()
  if(!s.lite){
   g.strokeStyle='rgba(255,230,190,.25)';g.lineWidth=3;for(const d of [26,48]){g.beginPath();g.moveTo(ix+14+d/3,ISLAND_TOP+d);g.quadraticCurveTo(W/2,ISLAND_TOP+d+10,ix+iw-14-d/3,ISLAND_TOP+d);g.stroke()}
-  g.fillStyle='rgba(80,50,30,.5)';for(const [x,y,r] of [[ix+60,ISLAND_TOP+30,4],[ix+150,ISLAND_TOP+44,5],[ix+220,ISLAND_TOP+26,3],[W/2+10,ISLAND_TOP+84,4]]){g.beginPath();g.ellipse(x,y,r*1.4,r,0,0,7);g.fill()}
-  g.strokeStyle='#5a3a22';g.lineWidth=2;for(let r=0;r<5;r++){const x=ix+50+r*38;g.beginPath();g.moveTo(x,ISLAND_TOP+70+(r===2?40:0));g.quadraticCurveTo(x+6+Math.sin(s.t*0.03+r)*2,ISLAND_TOP+92+r%2*8+(r===2?40:0),x-2,ISLAND_TOP+108+r*3+(r===2?30:0));g.stroke()}
-  g.strokeStyle='#4f9a3c';g.lineWidth=2.5;for(const [x,len] of [[ix+8,40],[ix+iw-10,52],[ix+96,26]] as const){const sw=s.gust*5;g.beginPath();g.moveTo(x,ISLAND_TOP+8);g.quadraticCurveTo(x+Math.sin(s.t*0.04+x)*4+sw,ISLAND_TOP+8+len/2,x+2+sw,ISLAND_TOP+8+len);g.stroke();g.fillStyle='#7fcf5e';g.beginPath();g.ellipse(x+2+sw,ISLAND_TOP+8+len,3,4,0,0,7);g.fill()}
+  g.fillStyle='rgba(80,50,30,.5)';for(const [x,y,r] of [[ix+iw*0.25,ISLAND_TOP+30,4],[ix+iw*0.6,ISLAND_TOP+44,5],[ix+iw*0.82,ISLAND_TOP+24,3],[W/2+6,ISLAND_TOP+84,4]]){g.beginPath();g.ellipse(x,y,r*1.4,r,0,0,7);g.fill()}
+  g.strokeStyle='#5a3a22';g.lineWidth=2;for(let r=0;r<4;r++){const x=ix+iw*(0.24+r*0.17);g.beginPath();g.moveTo(x,ISLAND_TOP+70+(r===2?40:0));g.quadraticCurveTo(x+6+Math.sin(s.t*0.03+r)*2,ISLAND_TOP+92+r%2*8+(r===2?40:0),x-2,ISLAND_TOP+108+r*3+(r===2?30:0));g.stroke()}
+  g.strokeStyle='#4f9a3c';g.lineWidth=2.5;for(const [x,len] of [[ix+8,40],[ix+iw-10,52],[ix+iw*0.55,26]] as const){const sw=s.gust*5;g.beginPath();g.moveTo(x,ISLAND_TOP+8);g.quadraticCurveTo(x+Math.sin(s.t*0.04+x)*4+sw,ISLAND_TOP+8+len/2,x+2+sw,ISLAND_TOP+8+len);g.stroke();g.fillStyle='#7fcf5e';g.beginPath();g.ellipse(x+2+sw,ISLAND_TOP+8+len,3,4,0,0,7);g.fill()}
  }
- if(ok(s.imgs.treeL))g.drawImage(s.imgs.treeL,ix-38,ISLAND_TOP-74,70,80)
- if(ok(s.imgs.treeR))g.drawImage(s.imgs.treeR,ix+iw-34,ISLAND_TOP-82,76,88)
+ // Two little islets float beside the island, a tree on each (scenery only: a block that falls passes by).
+ for(const [x,y,w,img,tw,th] of [[ix-74,ISLAND_TOP+34,64,s.imgs.treeL,58,66],[ix+iw+78,ISLAND_TOP+14,60,s.imgs.treeR,60,70]] as const){
+  g.fillStyle=s.lite?'#9a6c42':'#a8794a';g.beginPath();g.moveTo(x-w/2,y+4);g.lineTo(x+w/2,y+4);g.quadraticCurveTo(x+w/4,y+w*0.55,x,y+w*0.6);g.quadraticCurveTo(x-w/4,y+w*0.5,x-w/2,y+4);g.fill()
+  g.fillStyle='#6cbf4f';g.beginPath();g.roundRect(x-w/2,y-2,w,9,5);g.fill()
+  if(ok(img))g.drawImage(img,x-tw/2,y-th+4,tw,th)
+ }
  if(s.lite)g.fillStyle='#6cbf4f'
  else{const grass=g.createLinearGradient(0,ISLAND_TOP-2,0,ISLAND_TOP+12);grass.addColorStop(0,'#86d65e');grass.addColorStop(1,'#4f9a3c');g.fillStyle=grass}
  g.beginPath();g.roundRect(ix,ISLAND_TOP-2,iw,14,7);g.fill()
  if(ok(s.imgs.grass))for(let x=ix;x<ix+iw-10;x+=40)g.drawImage(s.imgs.grass,x,ISLAND_TOP-14,40,16)
  // Little flowers along the edge.
- if(!s.lite)for(let f=0;f<7;f++){const x=ix+16+f*((iw-32)/6),c=['#ffb3c7','#fff3a0','#c9b6ff','#ffffff'][f%4];g.fillStyle=c;for(let p=0;p<5;p++){const a=p/5*6.28;g.beginPath();g.arc(x+Math.cos(a)*2.2,ISLAND_TOP+4+Math.sin(a)*2.2,1.6,0,7);g.fill()}g.fillStyle='#ffcf4a';g.beginPath();g.arc(x,ISLAND_TOP+4,1.3,0,7);g.fill()}
+ if(!s.lite)for(let f=0;f<4;f++){const x=ix+14+f*((iw-28)/3),c=['#ffb3c7','#fff3a0','#c9b6ff','#ffffff'][f%4];g.fillStyle=c;for(let p=0;p<5;p++){const a=p/5*6.28;g.beginPath();g.arc(x+Math.cos(a)*2.2,ISLAND_TOP+4+Math.sin(a)*2.2,1.6,0,7);g.fill()}g.fillStyle='#ffcf4a';g.beginPath();g.arc(x,ISLAND_TOP+4,1.3,0,7);g.fill()}
  // A soft shadow under the tower where it meets the grass.
  const foot=s.placed.filter(p=>p.body.bounds.max.y>ISLAND_TOP-6)
  if(foot.length){const a=Math.min(...foot.map(p=>p.body.bounds.min.x)),b=Math.max(...foot.map(p=>p.body.bounds.max.x));g.fillStyle='rgba(30,60,30,.22)';g.beginPath();g.ellipse((a+b)/2,ISLAND_TOP+2,(b-a)/2+6,4,0,0,7);g.fill()}
@@ -398,7 +442,11 @@ function paint(c:HTMLCanvasElement|null,s:Scene){
  const tilt=s.calm?0:Math.max(-0.25,Math.min(0.25,-s.swing*0.04))
  if(s.active){
   const b=s.active.body
-  g.strokeStyle='rgba(255,255,255,.5)';g.setLineDash([4,7]);g.lineWidth=2;g.beginPath();g.moveTo(b.position.x,b.bounds.max.y+6);g.lineTo(b.position.x,Math.min(ISLAND_TOP,b.bounds.max.y+90));g.stroke();g.setLineDash([])
+  // A see-through guide column as wide as the block, straight down to the island, to line the drop up.
+  const gy=b.bounds.max.y+4,gw=b.bounds.max.x-b.bounds.min.x,gh=Math.max(0,ISLAND_TOP-gy)
+  const col=g.createLinearGradient(0,gy,0,gy+gh);col.addColorStop(0,'rgba(255,255,255,.28)');col.addColorStop(1,'rgba(255,255,255,.04)')
+  g.fillStyle=col;g.fillRect(b.bounds.min.x,gy,gw,gh)
+  g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=1;g.beginPath();g.moveTo(b.bounds.min.x+.5,gy);g.lineTo(b.bounds.min.x+.5,gy+gh);g.moveTo(b.bounds.max.x-.5,gy);g.lineTo(b.bounds.max.x-.5,gy+gh);g.stroke()
   // A turn is instant; the picture swings round to catch up.
   g.save();g.translate(s.hold.x,s.hold.y-34);g.rotate(tilt);g.translate(-s.hold.x,-(s.hold.y-34))
   if(s.spin){g.translate(b.position.x,b.position.y);g.rotate(s.spin);g.translate(-b.position.x,-b.position.y)}
@@ -458,12 +506,17 @@ const tiles=(p:Piece)=>p.body.parts.length>1?p.body.parts.slice(1):p.body.parts
 type Mood='happy'|'worried'|'look'|'sleep'
 // Each look of a tile (color, skin, stone, special, lite) is drawn once into a little picture and reused:
 // far cheaper than shading every tile again every frame.
+// On phones the browser can wipe a canvas's picture (low graphics memory, or the app sent to the background),
+// which left blocks as pale ghosts: so the pictures live in ordinary memory (willReadFrequently), one the
+// browser reports lost is thrown away, and they're all drawn afresh when KONO comes back to the screen.
 const SPR=T+6,sprites=new Map<string,HTMLCanvasElement>()
+const clearSprites=()=>sprites.clear()
 function tileSprite(color:string,skin:SkinId,stone:boolean,kind:Special|null,k:number,lite:boolean){
  const key=color+skin+stone+kind+k+lite
  let c=sprites.get(key);if(c)return c
  c=document.createElement('canvas');c.width=c.height=SPR*2
- const g=c.getContext('2d')!,h=T/2-0.5,tc=tone(color)
+ c.addEventListener('contextlost',()=>sprites.delete(key))
+ const g=c.getContext('2d',{willReadFrequently:true})!,h=T/2-0.5,tc=tone(color)
  g.setTransform(2,0,0,2,SPR,SPR)
  // Candy-like: lighter at the top, deeper at the bottom, an outline in the piece's own darker shade.
  if(lite)g.fillStyle=tc.base
