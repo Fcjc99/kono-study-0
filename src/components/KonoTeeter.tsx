@@ -78,9 +78,10 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    const cells=SHAPES[shape],cx=cells.reduce((a,c)=>a+c[0],0)/cells.length,cy=cells.reduce((a,c)=>a+c[1],0)/cells.length
    const parts=cells.map(([cxl,cyl])=>Bodies.rectangle(x+(cxl-cx)*S,y+(cyl-cy)*S,S,S,{chamfer:{radius:4*size}}))
    const stuff=kind==='stone'?{density:0.0048,restitution:0.02}:kind==='ice'?{friction:0.02,frictionStatic:0.04}:kind==='balloon'?{density:0.0009,frictionAir:0.06}:kind==='jelly'?{restitution:0.55,friction:0.35,frictionStatic:0.5,density:0.0011}:slick?{friction:0.05,frictionStatic:0.08}:{}
-   // Soft, rounded and a touch bouncy: blocks land with a bump, slide on a slope and lean, like real toys.
+   // Grippy (stacking feels sure) with only a little bounce: a tower falls from bad balance, a heavy side or an
+   // overhang, not from every landing. Slippery and jelly blocks are the exceptions.
    // Made as a real body first, then held still while KONO carries it: setStatic keeps its mass for the drop.
-   const body=Body.create({parts,friction:0.6,frictionStatic:0.85,frictionAir:0.012,restitution:0.12,density:0.0016,slop:0.03,...stuff})
+   const body=Body.create({parts,friction:0.85,frictionStatic:1.3,frictionAir:0.012,restitution:0.05,density:0.0016,slop:0.03,...stuff})
    Body.setStatic(body,true);body.sleepThreshold=600
    return {body,shape,kind,color:kind?SPECIALS[kind].color:skinColor(look,shape),face:Math.floor(Math.random()*cells.length),rest:0,locked:false,judged:false,drop:{x,angle:0},at:0,stuck:false,popped:false,skin:look,n:dealt,landed:false,squash:0,size,slick}
   }
@@ -94,7 +95,7 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
   let holdMs=8000,holdX=W/2,heldAt=0,swing=0,lastX=W/2
   // Tower events: now and then the next three blocks are big, slippery, or KONO's in a hurry.
   let ev:{kind:TowerEvent;left:number}|null=null,lastEventAt=-99
-  const hangY=(b:Matter.Body)=>Math.min(ISLAND_TOP-6*T,towerTop()-3.5*T)-(b.bounds.max.y-b.position.y)
+  const hangY=(b:Matter.Body)=>Math.min(ISLAND_TOP-6*T,towerTop()-2.6*T)-(b.bounds.max.y-b.position.y)
   const spawn=()=>{
    if(budget<=0)return
    const {shape,kind}=upcoming;upcoming=deal();setNext(upcoming)
@@ -233,7 +234,10 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
     }
    }
    // Fixed small steps (120 a second): smooth on 60 Hz and 120 Hz screens alike.
-   acc+=dt;while(acc>=1000/120){Engine.update(engine,1000/120);acc-=1000/120}
+   // A dropped block falls no faster than a steady pace until it first lands: a fast hit makes two blocks
+   // overlap for a moment, and the physics then shoves them apart hard enough to fling the tower. Small steps
+   // (240 a second) keep contacts clean too.
+   acc+=dt;while(acc>=1000/240){for(const p of placed)if(!p.landed&&p.body.velocity.y>4.2)Body.setVelocity(p.body,{x:p.body.velocity.x,y:4.2});Engine.update(engine,1000/240);acc-=1000/240}
    // Fell off: the block is gone. One tumble costs one heart, however many blocks go over with it.
    for(let k=placed.length-1;k>=0;k--){const p=placed[k];if(p.body.position.y>ISLAND_TOP+260){Composite.remove(engine.world,p.body);placed.splice(k,1);for(const q of placed)wake(q.body)
     if(bird.on===p){bird.state='out';bird.at=now}
@@ -281,7 +285,7 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    // Older devices draw at 30 frames a second (the physics keeps its own steady pace).
    if(!lite||now-lastPaint>=32){lastPaint=now
     const kono=cheer>0?'dance':now<graceUntil?'eyes':sway>0.45?'gasp':'happy'
-    paint(canvas.current,{spin,swing,timer,hold:{x:active?active.body.position.x:holdX,y:active?active.body.bounds.min.y:Math.min(ISLAND_TOP-6*T,towerTop()-3.5*T)-T*2},placed,active,cam:cam.y,t,shake,imgs,height:state.current.best,fxs,best:md.kind==='classic'?bestRef.current??0:0,goal:goal?.goal??0,lite,calm,sway,kono,gust,bird:bird.state==='off'?null:{x:bird.x,y:bird.y,sitting:bird.state==='sit'}})}
+    paint(canvas.current,{spin,swing,timer,hold:{x:active?active.body.position.x:holdX,y:active?active.body.bounds.min.y:Math.min(ISLAND_TOP-6*T,towerTop()-2.6*T)-T*2},placed,active,cam:cam.y,t,shake,imgs,height:state.current.best,fxs,best:md.kind==='classic'?bestRef.current??0:0,goal:goal?.goal??0,lite,calm,sway,kono,gust,bird:bird.state==='off'?null:{x:bird.x,y:bird.y,sitting:bird.state==='sit'}})}
    raf=requestAnimationFrame(loop)
   }
   raf=requestAnimationFrame(loop)
@@ -400,7 +404,11 @@ function paint(c:HTMLCanvasElement|null,s:Scene){
  const tilt=s.calm?0:Math.max(-0.25,Math.min(0.25,-s.swing*0.04))
  if(s.active){
   const b=s.active.body
-  g.strokeStyle='rgba(255,255,255,.5)';g.setLineDash([4,7]);g.lineWidth=2;g.beginPath();g.moveTo(b.position.x,b.bounds.max.y+6);g.lineTo(b.position.x,Math.min(ISLAND_TOP,b.bounds.max.y+90));g.stroke();g.setLineDash([])
+  // A see-through guide column as wide as the block, straight down to the island, to line the drop up.
+  const gy=b.bounds.max.y+4,gw=b.bounds.max.x-b.bounds.min.x,gh=Math.max(0,ISLAND_TOP-gy)
+  const col=g.createLinearGradient(0,gy,0,gy+gh);col.addColorStop(0,'rgba(255,255,255,.28)');col.addColorStop(1,'rgba(255,255,255,.04)')
+  g.fillStyle=col;g.fillRect(b.bounds.min.x,gy,gw,gh)
+  g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=1;g.beginPath();g.moveTo(b.bounds.min.x+.5,gy);g.lineTo(b.bounds.min.x+.5,gy+gh);g.moveTo(b.bounds.max.x-.5,gy);g.lineTo(b.bounds.max.x-.5,gy+gh);g.stroke()
   // A turn is instant; the picture swings round to catch up.
   g.save();g.translate(s.hold.x,s.hold.y-34);g.rotate(tilt);g.translate(-s.hold.x,-(s.hold.y-34))
   if(s.spin){g.translate(b.position.x,b.position.y);g.rotate(s.spin);g.translate(-b.position.x,-b.position.y)}
