@@ -9,7 +9,7 @@ import './teeter.css'
 
 const W=420,H=640 // canvas size at 1× (drawn at 2× for sharpness)
 const T=26 // one block, in pixels
-const ISLAND_TOP=560,ISLAND_W=10*T // the island's grassy top, where the tower stands
+const ISLAND_TOP=560,ISLAND_W=5*T // the island's grassy top, where the tower stands: five blocks wide, so towers grow tall and thin
 const HEARTS=3
 const WIND_FROM=15,BIRD_FROM=20 // rows: the weather starts up here
 
@@ -377,21 +377,25 @@ function paint(c:HTMLCanvasElement|null,s:Scene){
  const ix=W/2-ISLAND_W/2-14,iw=ISLAND_W+28
  if(s.lite)g.fillStyle='#9a6c42'
  else{const earth=g.createLinearGradient(0,ISLAND_TOP,0,ISLAND_TOP+110);earth.addColorStop(0,'#c49460');earth.addColorStop(.5,'#94673e');earth.addColorStop(1,'#5e3e24');g.fillStyle=earth}
- g.beginPath();g.moveTo(ix,ISLAND_TOP+6);g.lineTo(ix+iw,ISLAND_TOP+6);g.quadraticCurveTo(ix+iw-6,ISLAND_TOP+40,ix+iw-34,ISLAND_TOP+64);g.quadraticCurveTo(W/2+20,ISLAND_TOP+132,W/2-4,ISLAND_TOP+128);g.quadraticCurveTo(ix+50,ISLAND_TOP+110,ix+30,ISLAND_TOP+62);g.quadraticCurveTo(ix+6,ISLAND_TOP+40,ix,ISLAND_TOP+6);g.fill()
+ g.beginPath();g.moveTo(ix,ISLAND_TOP+6);g.lineTo(ix+iw,ISLAND_TOP+6);g.quadraticCurveTo(ix+iw-4,ISLAND_TOP+40,ix+iw*0.8,ISLAND_TOP+62);g.quadraticCurveTo(W/2+12,ISLAND_TOP+128,W/2-2,ISLAND_TOP+124);g.quadraticCurveTo(ix+iw*0.3,ISLAND_TOP+108,ix+iw*0.2,ISLAND_TOP+60);g.quadraticCurveTo(ix+4,ISLAND_TOP+40,ix,ISLAND_TOP+6);g.fill()
  if(!s.lite){
   g.strokeStyle='rgba(255,230,190,.25)';g.lineWidth=3;for(const d of [26,48]){g.beginPath();g.moveTo(ix+14+d/3,ISLAND_TOP+d);g.quadraticCurveTo(W/2,ISLAND_TOP+d+10,ix+iw-14-d/3,ISLAND_TOP+d);g.stroke()}
-  g.fillStyle='rgba(80,50,30,.5)';for(const [x,y,r] of [[ix+60,ISLAND_TOP+30,4],[ix+150,ISLAND_TOP+44,5],[ix+220,ISLAND_TOP+26,3],[W/2+10,ISLAND_TOP+84,4]]){g.beginPath();g.ellipse(x,y,r*1.4,r,0,0,7);g.fill()}
-  g.strokeStyle='#5a3a22';g.lineWidth=2;for(let r=0;r<5;r++){const x=ix+50+r*38;g.beginPath();g.moveTo(x,ISLAND_TOP+70+(r===2?40:0));g.quadraticCurveTo(x+6+Math.sin(s.t*0.03+r)*2,ISLAND_TOP+92+r%2*8+(r===2?40:0),x-2,ISLAND_TOP+108+r*3+(r===2?30:0));g.stroke()}
-  g.strokeStyle='#4f9a3c';g.lineWidth=2.5;for(const [x,len] of [[ix+8,40],[ix+iw-10,52],[ix+96,26]] as const){const sw=s.gust*5;g.beginPath();g.moveTo(x,ISLAND_TOP+8);g.quadraticCurveTo(x+Math.sin(s.t*0.04+x)*4+sw,ISLAND_TOP+8+len/2,x+2+sw,ISLAND_TOP+8+len);g.stroke();g.fillStyle='#7fcf5e';g.beginPath();g.ellipse(x+2+sw,ISLAND_TOP+8+len,3,4,0,0,7);g.fill()}
+  g.fillStyle='rgba(80,50,30,.5)';for(const [x,y,r] of [[ix+iw*0.25,ISLAND_TOP+30,4],[ix+iw*0.6,ISLAND_TOP+44,5],[ix+iw*0.82,ISLAND_TOP+24,3],[W/2+6,ISLAND_TOP+84,4]]){g.beginPath();g.ellipse(x,y,r*1.4,r,0,0,7);g.fill()}
+  g.strokeStyle='#5a3a22';g.lineWidth=2;for(let r=0;r<4;r++){const x=ix+iw*(0.24+r*0.17);g.beginPath();g.moveTo(x,ISLAND_TOP+70+(r===2?40:0));g.quadraticCurveTo(x+6+Math.sin(s.t*0.03+r)*2,ISLAND_TOP+92+r%2*8+(r===2?40:0),x-2,ISLAND_TOP+108+r*3+(r===2?30:0));g.stroke()}
+  g.strokeStyle='#4f9a3c';g.lineWidth=2.5;for(const [x,len] of [[ix+8,40],[ix+iw-10,52],[ix+iw*0.55,26]] as const){const sw=s.gust*5;g.beginPath();g.moveTo(x,ISLAND_TOP+8);g.quadraticCurveTo(x+Math.sin(s.t*0.04+x)*4+sw,ISLAND_TOP+8+len/2,x+2+sw,ISLAND_TOP+8+len);g.stroke();g.fillStyle='#7fcf5e';g.beginPath();g.ellipse(x+2+sw,ISLAND_TOP+8+len,3,4,0,0,7);g.fill()}
  }
- if(ok(s.imgs.treeL))g.drawImage(s.imgs.treeL,ix-38,ISLAND_TOP-74,70,80)
- if(ok(s.imgs.treeR))g.drawImage(s.imgs.treeR,ix+iw-34,ISLAND_TOP-82,76,88)
+ // Two little islets float beside the island, a tree on each (scenery only: a block that falls passes by).
+ for(const [x,y,w,img,tw,th] of [[ix-74,ISLAND_TOP+34,64,s.imgs.treeL,58,66],[ix+iw+78,ISLAND_TOP+14,60,s.imgs.treeR,60,70]] as const){
+  g.fillStyle=s.lite?'#9a6c42':'#a8794a';g.beginPath();g.moveTo(x-w/2,y+4);g.lineTo(x+w/2,y+4);g.quadraticCurveTo(x+w/4,y+w*0.55,x,y+w*0.6);g.quadraticCurveTo(x-w/4,y+w*0.5,x-w/2,y+4);g.fill()
+  g.fillStyle='#6cbf4f';g.beginPath();g.roundRect(x-w/2,y-2,w,9,5);g.fill()
+  if(ok(img))g.drawImage(img,x-tw/2,y-th+4,tw,th)
+ }
  if(s.lite)g.fillStyle='#6cbf4f'
  else{const grass=g.createLinearGradient(0,ISLAND_TOP-2,0,ISLAND_TOP+12);grass.addColorStop(0,'#86d65e');grass.addColorStop(1,'#4f9a3c');g.fillStyle=grass}
  g.beginPath();g.roundRect(ix,ISLAND_TOP-2,iw,14,7);g.fill()
  if(ok(s.imgs.grass))for(let x=ix;x<ix+iw-10;x+=40)g.drawImage(s.imgs.grass,x,ISLAND_TOP-14,40,16)
  // Little flowers along the edge.
- if(!s.lite)for(let f=0;f<7;f++){const x=ix+16+f*((iw-32)/6),c=['#ffb3c7','#fff3a0','#c9b6ff','#ffffff'][f%4];g.fillStyle=c;for(let p=0;p<5;p++){const a=p/5*6.28;g.beginPath();g.arc(x+Math.cos(a)*2.2,ISLAND_TOP+4+Math.sin(a)*2.2,1.6,0,7);g.fill()}g.fillStyle='#ffcf4a';g.beginPath();g.arc(x,ISLAND_TOP+4,1.3,0,7);g.fill()}
+ if(!s.lite)for(let f=0;f<4;f++){const x=ix+14+f*((iw-28)/3),c=['#ffb3c7','#fff3a0','#c9b6ff','#ffffff'][f%4];g.fillStyle=c;for(let p=0;p<5;p++){const a=p/5*6.28;g.beginPath();g.arc(x+Math.cos(a)*2.2,ISLAND_TOP+4+Math.sin(a)*2.2,1.6,0,7);g.fill()}g.fillStyle='#ffcf4a';g.beginPath();g.arc(x,ISLAND_TOP+4,1.3,0,7);g.fill()}
  // A soft shadow under the tower where it meets the grass.
  const foot=s.placed.filter(p=>p.body.bounds.max.y>ISLAND_TOP-6)
  if(foot.length){const a=Math.min(...foot.map(p=>p.body.bounds.min.x)),b=Math.max(...foot.map(p=>p.body.bounds.max.x));g.fillStyle='rgba(30,60,30,.22)';g.beginPath();g.ellipse((a+b)/2,ISLAND_TOP+2,(b-a)/2+6,4,0,0,7);g.fill()}
