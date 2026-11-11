@@ -51,7 +51,7 @@ export function puzzleLevel(n:number):{goal:number;blocks:number}{
 }
 /** A drop counts as Perfect when the block settles where and how it was let go: it didn't slide or tip. */
 export function isPerfect(drop:{x:number;angle:number},rest:{x:number;angle:number}):boolean{
- return Math.abs(rest.x-drop.x)<3&&Math.abs(rest.angle-drop.angle)<0.03
+ return Math.abs(rest.x-drop.x)<4.5&&Math.abs(rest.angle-drop.angle)<0.05
 }
 /** Every ten rows the lower part turns to stone (it can't topple any more); the top three rows stay loose. */
 export const LOCK_EVERY=10,LOOSE_ROWS=3
