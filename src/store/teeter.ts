@@ -21,13 +21,14 @@ export function towerHeight(blocks:{top:number;speed:number}[],islandTop:number,
 }
 
 /** Special blocks that sometimes come up: honey sticks to the first thing it touches, stone is heavy, a
- * balloon drifts down gently and lands softly, ice is slippery. */
-export type Special='honey'|'stone'|'balloon'|'ice'
+ * balloon drifts down gently and lands softly, ice is slippery, jelly bounces and wobbles. */
+export type Special='honey'|'stone'|'balloon'|'ice'|'jelly'
 export const SPECIALS:Record<Special,{emoji:string;name:string;color:string}>={
  honey:{emoji:'🍯',name:'Honey block',color:'#ffc24a'},
  stone:{emoji:'🪨',name:'Stone block',color:'#a9a3b6'},
  balloon:{emoji:'🎈',name:'Balloon block',color:'#ff9fb4'},
  ice:{emoji:'🧊',name:'Ice block',color:'#bfe9ff'},
+ jelly:{emoji:'🍮',name:'Jelly block',color:'#ff9ecf'},
 }
 /** Which block comes next: plain for the first few, then now and then a special one. */
 export function specialFor(rand:()=>number,count:number):Special|null{
@@ -103,3 +104,20 @@ export function familyBoard(profiles:{id:string;name:string;avatar?:string}[],ca
 }
 /** What the arcade needs from the family plan for Teeter Tower: skins owned, today's board, and a way to post a score. */
 export type TeeterHub={skins:Set<SkinId>;board:BoardRow[];onDaily:(seed:string,height:number)=>void}
+
+/** Tower events: now and then the next three blocks change. Big blocks are half as big again, slippery
+ * blocks slide, and in a hurry KONO lets go after three seconds instead of eight. */
+export type TowerEvent='big'|'slippery'|'hurry'
+export const EVENTS:Record<TowerEvent,{emoji:string;name:string;line:string}>={
+ big:{emoji:'🔍',name:'Big blocks',line:'The next blocks are big!'},
+ slippery:{emoji:'💦',name:'Slippery blocks',line:'The next blocks are slippery!'},
+ hurry:{emoji:'⏱️',name:'Hurry',line:'KONO’s in a hurry!'},
+}
+export const EVENT_BLOCKS=3
+/** Whether a tower event starts with this block: not before the sixth block, at least eight blocks after the
+ * last one, and then about one block in three. */
+export function eventFor(rand:()=>number,blocks:number,lastAt:number):TowerEvent|null{
+ if(blocks<6||blocks-lastAt<8||rand()>=0.35)return null
+ const all=Object.keys(EVENTS) as TowerEvent[]
+ return all[Math.floor(rand()*all.length)]
+}

@@ -6,7 +6,7 @@
 @keyframes teeter-pop{from{scale:1.25}}
 .teeter-next{position:absolute;top:10px;right:10px;display:grid;justify-items:center;gap:3px;padding:6px 8px;border-radius:14px;background:rgb(255 255 255/.8);pointer-events:none}
 .teeter-next small{font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#5a4a60}
-.teeter-call{position:absolute;top:38%;left:50%;translate:-50% -50%;padding:6px 16px;border-radius:999px;background:rgb(255 255 255/.92);color:#c8432f;font-weight:900;font-size:1.3rem;box-shadow:0 8px 18px rgb(0 0 0/.18);pointer-events:none;animation:teeter-call 1s ease-out both}
+.teeter-call{position:absolute;top:38%;left:50%;translate:-50% -50%;padding:6px 16px;white-space:nowrap;border-radius:999px;background:rgb(255 255 255/.92);color:#c8432f;font-weight:900;font-size:1.3rem;box-shadow:0 8px 18px rgb(0 0 0/.18);pointer-events:none;animation:teeter-call 1s ease-out both}
 @keyframes teeter-call{0%{opacity:0;scale:.6}15%{opacity:1;scale:1.08}25%{scale:1}80%{opacity:1}100%{opacity:0;translate:-50% -90%}}
 .teeter-hint{position:absolute;top:13%;left:50%;translate:-50% 0;display:grid;justify-items:center;gap:2px;width:max-content;max-width:78%;margin:0;padding:8px 14px;border-radius:16px;background:rgb(255 255 255/.88);color:#4a3a52;text-align:center;pointer-events:none;box-shadow:0 6px 16px rgb(30 50 90/.15);animation:teeter-call-in .4s ease-out both}
 @keyframes teeter-call-in{from{opacity:0;translate:-50% 8px}}
@@ -43,3 +43,5 @@
  .game-screen .kono-teeter>.teeter-pad>button:not(#x):not(#y){width:76px;min-height:76px!important}
  .kono-teeter>.blast-help{grid-area:help;max-width:640px}
 }
+.teeter-event{padding:2px 10px;border-radius:999px;background:#fff3c4;color:#6b4300;font-weight:800;font-size:.82rem;white-space:nowrap;animation:teeter-pop .3s ease-out}
+.teeter-event b{font-variant-numeric:tabular-nums}

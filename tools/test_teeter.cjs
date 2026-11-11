@@ -10,7 +10,7 @@ function load(relative){
  vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module,exports:module.exports,require:requireLocal,Math,Date,JSON,Set,Map,Number,String,Object,Array,console,localStorage:{getItem:()=>null,setItem(){}}})
  return module.exports
 }
-const {SHAPES,COLORS,towerHeight,SPECIALS,specialFor,seeded,dailySeed,puzzleLevel,isPerfect,lockLine,SKINS,skinsOwned,skinItem,dailyScoreEvent,familyBoard}=load('src/store/teeter.ts')
+const {SHAPES,COLORS,towerHeight,SPECIALS,specialFor,seeded,dailySeed,puzzleLevel,isPerfect,lockLine,SKINS,skinsOwned,skinItem,dailyScoreEvent,familyBoard,EVENTS,EVENT_BLOCKS,eventFor}=load('src/store/teeter.ts')
 const {addCareEvent,readCareState}=load('src/store/konoCare.ts')
 let passed=0
 const test=(name,fn)=>{fn();passed++;console.log('PASS '+name)}
@@ -80,4 +80,13 @@ test('a score survives a save and reload; a malformed one is dropped',()=>{
  const bad=readCareState({log:[{id:'x',kind:'score',at:now.toISOString(),item:'teeter:soon',n:3},{id:'y',kind:'score',at:now.toISOString(),item:'teeter:2026-11-10',n:-1}]},'a')
  assert.equal(bad.log.length,0)
 })
+test('tower events: none before the sixth block or within eight blocks of the last; then about one block in three, lasting three blocks',()=>{
+ const r=seeded('ev')
+ for(let b=0;b<6;b++)assert.equal(eventFor(r,b,-99),null)
+ for(let b=10;b<18;b++)assert.equal(eventFor(r,b,10),null)
+ let n=0;const kinds=new Set();for(let i=0;i<3000;i++){const e=eventFor(r,30,0);if(e){n++;kinds.add(e)}}
+ assert.ok(n>900&&n<1200,'about 35%, got '+n);assert.deepEqual([...kinds].sort(),['big','hurry','slippery'])
+ assert.equal(EVENT_BLOCKS,3);for(const v of Object.values(EVENTS))assert.ok(v.emoji&&v.name&&v.line)
+})
+test('the jelly block is one of the specials',()=>{assert.equal(SPECIALS.jelly.emoji,'🍮');assert.match(SPECIALS.jelly.color,/^#[0-9a-f]{6}$/)})
 console.log(passed+' teeter tests passed')
