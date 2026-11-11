@@ -154,6 +154,8 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
   }
   const kd=(e:KeyboardEvent)=>key(e,true),ku=(e:KeyboardEvent)=>key(e,false)
   window.addEventListener('keydown',kd);window.addEventListener('keyup',ku)
+  const back=()=>{if(!document.hidden)clearSprites()}
+  document.addEventListener('visibilitychange',back)
   const pad=frame.current as (HTMLDivElement&{__rotate?:()=>void;__drop?:()=>void})|null
   if(pad){pad.__rotate=rotate;pad.__drop=drop}
   // A finger: drag anywhere to carry the block (it follows your finger, wherever you touched), lift to drop
@@ -283,7 +285,7 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    raf=requestAnimationFrame(loop)
   }
   raf=requestAnimationFrame(loop)
-  return ()=>{cancelAnimationFrame(raf);window.removeEventListener('keydown',kd);window.removeEventListener('keyup',ku);el.removeEventListener('pointerdown',pd);el.removeEventListener('pointermove',pm);el.removeEventListener('pointerup',pu);el.removeEventListener('pointercancel',pc);Events.off(engine,'collisionStart');Engine.clear(engine)}
+  return ()=>{cancelAnimationFrame(raf);window.removeEventListener('keydown',kd);window.removeEventListener('keyup',ku);document.removeEventListener('visibilitychange',back);el.removeEventListener('pointerdown',pd);el.removeEventListener('pointermove',pm);el.removeEventListener('pointerup',pu);el.removeEventListener('pointercancel',pc);Events.off(engine,'collisionStart');Engine.clear(engine)}
  },[])
  useEffect(()=>{if(!call)return;const id=window.setTimeout(()=>setCall(null),1000);return()=>window.clearTimeout(id)},[call])
  const hold=(k:'left'|'right',on:boolean)=>{const i=input.current;if(on&&!i[k])i.nudge=k==='left'?-1:1;i[k]=on}
@@ -458,12 +460,17 @@ const tiles=(p:Piece)=>p.body.parts.length>1?p.body.parts.slice(1):p.body.parts
 type Mood='happy'|'worried'|'look'|'sleep'
 // Each look of a tile (color, skin, stone, special, lite) is drawn once into a little picture and reused:
 // far cheaper than shading every tile again every frame.
+// On phones the browser can wipe a canvas's picture (low graphics memory, or the app sent to the background),
+// which left blocks as pale ghosts: so the pictures live in ordinary memory (willReadFrequently), one the
+// browser reports lost is thrown away, and they're all drawn afresh when KONO comes back to the screen.
 const SPR=T+6,sprites=new Map<string,HTMLCanvasElement>()
+const clearSprites=()=>sprites.clear()
 function tileSprite(color:string,skin:SkinId,stone:boolean,kind:Special|null,k:number,lite:boolean){
  const key=color+skin+stone+kind+k+lite
  let c=sprites.get(key);if(c)return c
  c=document.createElement('canvas');c.width=c.height=SPR*2
- const g=c.getContext('2d')!,h=T/2-0.5,tc=tone(color)
+ c.addEventListener('contextlost',()=>sprites.delete(key))
+ const g=c.getContext('2d',{willReadFrequently:true})!,h=T/2-0.5,tc=tone(color)
  g.setTransform(2,0,0,2,SPR,SPR)
  // Candy-like: lighter at the top, deeper at the bottom, an outline in the piece's own darker shade.
  if(lite)g.fillStyle=tc.base
