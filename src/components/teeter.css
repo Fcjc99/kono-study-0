@@ -1,5 +1,5 @@
 /* KONO Teeter Tower: the sky frame, the score and next piece over it, hearts, and big touch buttons. */
-.kono-teeter{display:grid;gap:10px;justify-items:center;width:min(460px,100%);margin:0 auto}
+.kono-teeter{display:grid;gap:10px;justify-items:center;width:min(560px,100%);margin:0 auto}
 .teeter-frame{position:relative;width:min(100%,calc((100dvh - 330px) * 420 / 640));aspect-ratio:420/640;border-radius:24px;overflow:hidden;border:5px solid rgb(255 255 255/.85);box-shadow:0 14px 32px rgb(20 40 70/.35);touch-action:none;user-select:none;-webkit-user-select:none}
 .teeter-frame canvas{display:block;width:100%;height:100%}
 .teeter-score{position:absolute;top:10px;left:50%;translate:-50% 0;font-size:2.1rem;font-weight:900;color:#fff;text-shadow:0 3px 0 rgb(40 60 100/.45);pointer-events:none;animation:teeter-pop .3s ease-out;font-variant-numeric:tabular-nums}
@@ -29,3 +29,17 @@
 .teeter-say{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 /* The tower's picture on the results card. */
 .game-screen .teeter-shot:not(#x):not(#y){display:block;width:min(170px,44vw)!important;max-width:none!important;height:auto!important;max-height:none!important;aspect-ratio:420/640;object-fit:cover;margin:6px auto 2px;border-radius:16px;border:4px solid #fff;box-shadow:0 10px 24px rgb(20 40 70/.3);rotate:-2deg}
+/* Tablets and wide screens on their side: the board as tall as the screen allows, ◀ ▶ beside it under the
+   left thumb and ⟳ ▼ under the right; the long help below. */
+@media (orientation:landscape) and (min-width:700px){
+ .kono-teeter{width:100%;grid-template-columns:1fr auto auto auto auto auto 1fr;grid-template-areas:". top top top top top ." ". l1 l2 board r1 r2 ." ". help help help help help .";align-items:end;column-gap:12px}
+ .kono-teeter>.blast-top{grid-area:top}
+ .kono-teeter>.teeter-frame{grid-area:board;width:calc((100dvh - 200px) * 420 / 640);margin:0 12px}
+ .kono-teeter>.teeter-pad{display:contents}
+ .kono-teeter>.teeter-pad>button:nth-child(1){grid-area:l1}
+ .kono-teeter>.teeter-pad>button:nth-child(4){grid-area:l2}
+ .kono-teeter>.teeter-pad>button:nth-child(2){grid-area:r1}
+ .kono-teeter>.teeter-pad>button:nth-child(3){grid-area:r2}
+ .game-screen .kono-teeter>.teeter-pad>button:not(#x):not(#y){width:76px;min-height:76px!important}
+ .kono-teeter>.blast-help{grid-area:help;max-width:640px}
+}
