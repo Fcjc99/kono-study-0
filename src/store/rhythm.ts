@@ -115,7 +115,20 @@ export function saveBeatBest(song:string,level:Level,score:number,clear:Clear):b
  return better
 }
 /** Your timing nudge for this device (ms; + if the notes feel early): Bluetooth headphones need more. */
-export const OFFSET_KEY='kono-beat-offset'
+// Timing lives under a new key: the old one ('kono-beat-offset') could have drifted far off, since auto-sync
+// used to change it during play and keep the change. That old value is left alone, just no longer read.
+export const OFFSET_KEY='kono-beat-timing',OLD_OFFSET_KEY='kono-beat-offset'
+/** True on a device that had a Timing saved the old way and hasn't set one since (so it says it was reset). */
+export const timingWasReset=()=>{try{return localStorage.getItem(OLD_OFFSET_KEY)!==null&&localStorage.getItem(OFFSET_KEY)===null}catch{return false}}
+/** After a song: how early (−) or late (+) the taps landed, in the middle, as a Timing change to suggest; null
+ * when there are too few hits to tell (12) or they're already close (within 20 ms). Never applied by itself:
+ * the results offer it and the player chooses. (Rhythm games learned this the hard way: a game that keeps
+ * shifting its own timing from your taps follows your mistakes and drifts.) */
+export function timingDrift(offs:number[]):number|null{
+ const v=offs.filter(Number.isFinite).sort((a,b)=>a-b);if(v.length<12)return null
+ const m=v.length%2?v[v.length>>1]:(v[v.length/2-1]+v[v.length/2])/2
+ return Math.abs(m)<20?null:Math.max(-300,Math.min(300,Math.round(m/5)*5))
+}
 export const readOffset=()=>{try{return Math.max(-300,Math.min(300,Number(localStorage.getItem(OFFSET_KEY))||0))}catch{return 0}}
 export const saveOffset=(ms:number)=>{try{localStorage.setItem(OFFSET_KEY,String(Math.max(-300,Math.min(300,Math.round(ms)))))}catch{/* this device only */}}
 export const SPEED_KEY='kono-beat-speed'
@@ -134,35 +147,3 @@ export const CLASSIC_KEY='kono-beat-classic'
 export const readClassic=()=>{try{return localStorage.getItem(CLASSIC_KEY)==='1'}catch{return false}}
 export const saveClassic=(on:boolean)=>{try{localStorage.setItem(CLASSIC_KEY,on?'1':'0')}catch{/* this device only */}}
 
-/** Auto-sync: a phone (and more so Bluetooth headphones) plays sound later than it says, so taps that match
- * the music land late against the tiles, or miss. While a song plays, each tap's distance from the nearest
- * tile in its column (within SYNC_REACH ms) is collected; once a few agree, the median is the correction
- * (applied to the Timing, kept on this device). It settles when taps sit within SYNC_CLOSE ms, after a few
- * corrections, or SYNC_SETTLE_MS into the song; until then misses cost nothing. */
-export const SYNC_REACH=400,SYNC_CLOSE=25,SYNC_SETTLE_MS=20000
-export function createAutoSync(){
- let samples:number[]=[],fixes=0,settled=false
- const median=(v:number[])=>{const a=[...v].sort((x,y)=>x-y),m=a.length>>1;return a.length%2?a[m]:(a[m-1]+a[m])/2}
- return {
-  get settled(){return settled},
-  /** A tap `d` ms after its nearest tile (negative: before); returns the correction to add to Timing, or 0. */
-  tap(d:number,songMs:number):number{
-   if(settled)return 0
-   if(songMs>SYNC_SETTLE_MS){settled=true;return 0}
-   if(!Number.isFinite(d)||Math.abs(d)>SYNC_REACH)return 0
-   samples.push(d);if(samples.length<6)return 0
-   const m=median(samples.slice(-8))
-   if(Math.abs(m)<=SYNC_CLOSE){settled=true;return 0}
-   samples=[];fixes++;if(fixes>=3)settled=true
-   return Math.round(m)
-  },
-  /** The song got past the settling time without taps (a quiet start): stop waiting. */
-  tick(songMs:number){if(songMs>SYNC_SETTLE_MS)settled=true},
- }
-}
-/** The tile in `lane` nearest `ms` (hit or not), and how far `ms` is from it; null when none is within reach. */
-export function nearestIn(notes:Note[],lane:number,ms:number):number|null{
- let best:number|null=null
- for(const n of notes){if(n.t-ms>SYNC_REACH)break;if(n.kind==='sky'||n.lane!==lane)continue;const d=ms-n.t;if(Math.abs(d)<=SYNC_REACH&&(best===null||Math.abs(d)<Math.abs(best)))best=d}
- return best
-}

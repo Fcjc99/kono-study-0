@@ -1,5 +1,5 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {LEVELS,CLEAR_AT,CLEAR_NAME,accuracy,approachFor,clearOf,count,freshTally,grade,createAutoSync,hitIn,missedBy,nearestIn,playOf,readBeatBest,readClassic,readKeys,readOffset,readSpeed,readTicks,saveBeatBest,saveClassic,saveKeys,saveOffset,saveSpeed,saveTicks,wrongColumn,scoreOf,judge,type Chart,type Clear,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
+import {LEVELS,CLEAR_AT,CLEAR_NAME,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,timingDrift,timingWasReset,readBeatBest,readClassic,readKeys,readOffset,readSpeed,readTicks,saveBeatBest,saveClassic,saveKeys,saveOffset,saveSpeed,saveTicks,wrongColumn,scoreOf,judge,type Chart,type Clear,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
 import {stopMusic} from '../arcadeAudio'
 import {click,heardNow,keyNote} from '../game/audioClock'
 import BeatSync from './BeatSync'
@@ -25,7 +25,7 @@ const decoded=new Map<string,AudioBuffer>()
 /** How long a warm-up plays. */
 const WARMUP_MS=30000
 const CLEAR_MARK:Record<Clear,string>={fail:'',clear:'✓',full:'FC',all:'AP'}
-export type BeatResult={song:string;title:string;level:Level;score:number;acc:number;grade:string;best:number;tally:Tally;clear:Clear;failed:boolean;newBest:boolean;classic?:boolean;warmup?:boolean;tiles:number;of:number
+export type BeatResult={drift:number|null;song:string;title:string;level:Level;score:number;acc:number;grade:string;best:number;tally:Tally;clear:Clear;failed:boolean;newBest:boolean;classic?:boolean;warmup?:boolean;tiles:number;of:number
  /** Each tile, in order: when (ms into the song) and how it went (unplayed if the song stopped first). */
  timeline:{t:number;j:Judge|null}[];ms:number}
 
@@ -40,12 +40,12 @@ function boardOf(W:number,H:number):Board{const w=Math.min(W-16,Math.max(280,H*0
  * (less the time sound takes to reach the speakers). Note speed and a timing nudge (for headphones that lag) are kept on this device. */
 export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:BeatResult)=>void}){
  const [song,setSong]=useState(SONGS[0].id),[level,setLevel]=useState<Level>('easy'),[playing,setPlaying]=useState(false)
- const [offset,setOffsetState]=useState(readOffset),[speed,setSpeedState]=useState(readSpeed),[ticks,setTicks]=useState(readTicks),[syncing,setSyncing]=useState(false)
+ const [offset,setOffsetState]=useState(readOffset),[speed,setSpeedState]=useState(readSpeed),[ticks,setTicks]=useState(readTicks),[syncing,setSyncing]=useState(false),[reset]=useState(timingWasReset)
  const [keys,setKeys]=useState(readKeys),[classic,setClassic]=useState(readClassic)
  // Classic: when the song stopped on a wrong or missed tile (the board holds still on it a moment).
  const stoppedAt=useRef(0)
- // The Timing in use while a song plays (auto-sync can correct it mid-song; kept for next time when it ends).
- const liveOffset=useRef(offset),sync=useRef(createAutoSync()),synced=useRef<{d:number;t:number}|null>(null)
+ // The Timing in use while a song plays (only you change it: the arrows, the Sync check or a results suggestion).
+ const liveOffset=useRef(offset)
  // Warm-up: the first WARMUP_MS of the song, nothing kept (no fail, no best, no coins).
  const warm=useRef(false)
  // What a screen reader hears while the canvas plays: the start, every 25 in a combo, and a run of misses.
@@ -69,8 +69,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
   stopSong()
   const t=tally.current,total=warm.current?Math.max(1,judged()):play.current.total,score=scoreOf(t,total),clear=clearOf(t,level,judged(),total)
   const newBest=!warm.current&&clear!=='fail'&&saveBeatBest(info.id,level,score,clear)
-  if(liveOffset.current!==offset){saveOffset(liveOffset.current);setOffsetState(liveOffset.current)}
-  onEndRef.current({song:info.id,title:info.title,level,score,acc:accuracy(t,total),grade:clear==='fail'&&!warm.current?'F':grade(score),best:t.best,tally:t,clear:warm.current&&clear==='fail'?'clear':clear,failed:clear==='fail'&&!warm.current,newBest,classic,warmup:warm.current,tiles:play.current.notes.filter(n=>n.hit&&n.hit!=='miss').length,of:warm.current?play.current.notes.filter(n=>n.hit).length:play.current.notes.length,timeline:play.current.notes.filter(n=>n.kind!=='sky').map(n=>({t:n.t,j:n.hit??null})),ms:info.ms})
+  onEndRef.current({drift:warm.current?null:timingDrift(play.current.notes.flatMap(n=>n.hit&&n.hit!=='miss'&&n.off!==undefined?[n.off]:[])),song:info.id,title:info.title,level,score,acc:accuracy(t,total),grade:clear==='fail'&&!warm.current?'F':grade(score),best:t.best,tally:t,clear:warm.current&&clear==='fail'?'clear':clear,failed:clear==='fail'&&!warm.current,newBest,classic,warmup:warm.current,tiles:play.current.notes.filter(n=>n.hit&&n.hit!=='miss').length,of:warm.current?play.current.notes.filter(n=>n.hit).length:play.current.notes.length,timeline:play.current.notes.filter(n=>n.kind!=='sky').map(n=>({t:n.t,j:n.hit??null})),ms:info.ms})
  }
  const finishRef=useRef(finish);useEffect(()=>{finishRef.current=finish})
  useImperativeHandle(ref,()=>({end:()=>finishRef.current()}),[])
@@ -93,12 +92,11 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
  const press=(lane:number)=>{
   if(!playing||done.current||stoppedAt.current)return
   pressedAt.current[lane]=performance.now()
-  let ms=songMs()-liveOffset.current
-  // Auto-sync: how far this tap is from the nearest tile in its column says how late this device's sound is.
-  if(!sync.current.settled){const d=nearestIn(play.current.notes,lane,ms);const fix=d===null?0:sync.current.tap(d,ms)
-   if(fix){liveOffset.current=Math.max(-300,Math.min(300,liveOffset.current+fix));ms=songMs()-liveOffset.current;synced.current={d:liveOffset.current,t:performance.now()};setSpoken('Timing adjusted to '+(liveOffset.current>0?'+':'')+liveOffset.current+' milliseconds for this device.')}}
+  const ms=songMs()-liveOffset.current
+  // Timing never changes by itself during a song (auto-sync used to, and it drifted with the player's own
+  // early or late taps); the results suggest a change instead, from how the hits landed.
   const i=hitIn(play.current.notes,lane,ms,level);if(i>=0)mark(i,ms)
-  else if(classic&&!warm.current&&sync.current.settled&&wrongColumn(play.current.notes,lane,ms,level))stopHere(lane)
+  else if(classic&&!warm.current&&wrongColumn(play.current.notes,lane,ms,level))stopHere(lane)
  }
  const pressRef=useRef({press});useEffect(()=>{pressRef.current={press}})
  // Keys: D F J K (or the arrows), one for each column.
@@ -128,7 +126,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    let buf=decoded.get(info.id)
    if(!buf){const data=await (await fetch('/audio/games/'+info.id+'.mp3')).arrayBuffer();buf=await ctx.decodeAudioData(data);decoded.clear();decoded.set(info.id,buf)}
    play.current=playOf(info.charts[level],info.bpm);tally.current=freshTally(level);done.current=false;fx.current=[];word.current=null;nextTick.current=0;tickedTo.current=0
-   lanesHeld.current=[0,0,0,0];missAt.current=[0,0,0,0];pointers.current.clear();stoppedAt.current=0;liveOffset.current=offset;sync.current=createAutoSync();synced.current=null
+   lanesHeld.current=[0,0,0,0];missAt.current=[0,0,0,0];pointers.current.clear();stoppedAt.current=0;liveOffset.current=offset
    const src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination)
    await ctx.resume().catch(()=>undefined)
    const t0=ctx.currentTime+0.8;src.start(t0);src.onended=()=>finishRef.current()
@@ -164,12 +162,11 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    // Misses: tiles that went by; then each long tile's moments as they come (kept while it's held down).
    if(stoppedAt.current&&!done.current){if(t-stoppedAt.current>900){finishRef.current();return}}
    else if(!done.current){
-    sync.current.tick(now)
-    for(const i of missedBy(pl.notes,now,level)){pl.notes[i].hit='miss';tally.current=count(tally.current,'miss',level,pl.total,{free:!sync.current.settled});word.current={j:'miss',t};missAt.current[pl.notes[i].lane]=t;if(classic&&!warm.current&&sync.current.settled){stopHere(pl.notes[i].lane);break}}
+    for(const i of missedBy(pl.notes,now,level)){pl.notes[i].hit='miss';tally.current=count(tally.current,'miss',level,pl.total);word.current={j:'miss',t};missAt.current[pl.notes[i].lane]=t;if(classic&&!warm.current){stopHere(pl.notes[i].lane);break}}
     while(nextTick.current<pl.ticks.length&&pl.ticks[nextTick.current].t<=now){
      const k=pl.ticks[nextTick.current++]
      const ok=k.kind==='hold'&&lanesHeld.current[pl.notes[k.of].lane]>0&&pl.notes[k.of].hit!=='miss'
-     tally.current=count(tally.current,ok?'perfect':'miss',level,pl.total,{tick:true,free:!sync.current.settled});if(!ok)word.current={j:'miss',t}
+     tally.current=count(tally.current,ok?'perfect':'miss',level,pl.total,{tick:true});if(!ok)word.current={j:'miss',t}
     }
     if(warm.current&&tally.current.failed)tally.current={...tally.current,failed:false,gauge:Math.max(tally.current.gauge,1)}
     if(warm.current&&now>WARMUP_MS){finishRef.current();return}
@@ -244,8 +241,6 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    if(wd&&t-wd.t<500){const k=(t-wd.t)/500;ctx.globalAlpha=1-k;ctx.font='800 '+Math.round(18+(1-Math.min(1,k*4))*4)+'px system-ui,sans-serif';ctx.fillStyle=wd.j==='perfect'?'#e09a00':wd.j==='great'?'#2aa7d8':wd.j==='good'?'#4caf50':'#ff4d6a';ctx.fillText(spaced(WORD[wd.j].toUpperCase()),W/2,b.top+104)
     if(wd.off!==undefined&&wd.j!=='miss'&&wd.j!=='perfect'){ctx.font='700 10px system-ui,sans-serif';ctx.fillStyle=wd.off<0?'#3d7fd0':'#d0663d';ctx.fillText(spaced(wd.off<0?'EARLY':'LATE'),W/2,b.top+120)}
     ctx.globalAlpha=1}
-   // Auto-sync just corrected the timing: say so for a moment.
-   {const sy=synced.current;if(sy&&t-sy.t<1800){ctx.globalAlpha=1-Math.max(0,(t-sy.t-1200)/600);ctx.textAlign='center';ctx.font='700 11px system-ui,sans-serif';ctx.fillStyle='#2a8f6a';ctx.fillText(spaced('TIMING SYNCED '+(sy.d>0?'+':'')+sy.d+' MS'),W/2,b.top+138);ctx.globalAlpha=1}}
    // Top: the song and level on the left; the score, with the gauge under it, on the right; the song's
    // progress along the very top.
    ctx.fillStyle='rgba(20,16,44,0.82)';ctx.fillRect(0,0,W,b.top-10)
@@ -307,12 +302,13 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
     <label className="beat-ticks"><input type="checkbox" checked={keys} onChange={e=>{setKeys(e.target.checked);saveKeys(e.target.checked)}}/> Tap notes</label>
     <label className="beat-ticks"><input type="checkbox" checked={classic} onChange={e=>{setClassic(e.target.checked);saveClassic(e.target.checked)}}/> Classic (one miss ends the song)</label>
    </div>
+   {reset&&<p className="beat-reset" role="status">Timing is back to 0 ms: it used to shift by itself and could drift far off. Use Sync check to set it for your speakers or headphones.</p>}
    {syncing&&<BeatSync onDone={ms=>{setOffsetState(ms);saveOffset(ms)}} onClose={()=>setSyncing(false)}/>}
    <button type="button" className="beat-play" onClick={()=>void start()} disabled={loading}>{loading?'Loading…':<>▶ Play <span>{info.title}</span></>}</button>
    <button type="button" className="beat-warmup" onClick={()=>void start(true)} disabled={loading} title="The first 30 seconds; nothing counts">Warm-up · 30 s</button>
    <details className="beat-how"><summary>How to play</summary><ul>
-    <li><span className="is-floor"/>Every tile is a beat of the song: tap along with the rhythm you hear. Tap a tile’s column (<kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd>) as it reaches the line; hold a long tile down to its end.</li>
-    <li>{level==='jeff'?'Jeff tier: the gauge starts full and drains with misses; keep it above empty to clear the song. The song always plays to the end.':'Fill the gauge past '+CLEAR_AT+'% by the end to clear the song.'} If the tiles feel early or late (Bluetooth headphones often do), run the Sync check once; Note ticks play a click on every tile so you can hear it. Tap notes plays each tile’s note as you hit it.</li>
+    <li><span className="is-floor"/>Every tile is a note of the song’s tune, on its beat: tap along with the melody you hear. Tap a tile’s column (<kbd>D</kbd> <kbd>F</kbd> <kbd>J</kbd> <kbd>K</kbd>) as it reaches the line; hold a long tile down to its end.</li>
+    <li>{level==='jeff'?'Jeff tier: the gauge starts full and drains with misses; keep it above empty to clear the song. The song always plays to the end.':'Fill the gauge past '+CLEAR_AT+'% by the end to clear the song.'} If the tiles feel early or late (Bluetooth headphones often do), run the Sync check once (and after a song, the results offer a Timing fix if your hits landed early or late); Note ticks play a click on every tile so you can hear it. Tap notes plays each tile’s note as you hit it.</li>
     <li><b>Classic:</b> no gauge, no second chances. Tap the wrong column or let a tile go by and the song stops there.</li>
    </ul></details>
   </section>

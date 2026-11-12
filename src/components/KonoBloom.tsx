@@ -129,6 +129,14 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
  const aimAt=(e:React.PointerEvent<HTMLCanvasElement>)=>{const r=e.currentTarget.getBoundingClientRect();aim.current=(e.clientX-r.left)/r.width*JAR.w}
  return <div className="break-game kono-bloom">
   <div className={'bloom-frame'+(hud.danger?' is-danger':'')}>
+   {/* Power-ups along the top of the jar, away from where you tap to drop (they were easy to hit by accident at the bottom). */}
+   <div className="bloom-powers" role="group" aria-label="Power-ups">
+    {POWERS.map(p=>{const n=hud.powers[p.id],off=n<1||(p.id==='swap'&&hud.next===hud.after)
+     return <button key={p.id} type="button" className={'bloom-power'+(picking===p.id?' is-on':'')} disabled={off} aria-pressed={p.id==='pop'||p.id==='grow'?picking===p.id:undefined}
+      aria-label={p.name+', '+n+' left. '+p.help} title={p.help} onClick={()=>use(p.id)}>
+      <span aria-hidden="true">{p.emoji}</span><small aria-hidden="true">{p.name}</small><b aria-hidden="true">{n}</b></button>})}
+    <span className="bloom-meter" role="meter" aria-label="Next power-up" aria-valuemin={0} aria-valuemax={CHARGE} aria-valuenow={hud.charge} style={{'--k':hud.charge/CHARGE} as React.CSSProperties}><i/></span>
+   </div>
    <div className="bloom-bar">
     <p className="bloom-next" aria-label={'Next: '+LADDER[hud.after].name}><span aria-hidden="true">Next</span><FruitIcon tier={hud.after} size={32}/></p>
     <strong className="bloom-score" aria-live="polite">{hud.score.toLocaleString()}</strong>
@@ -140,13 +148,6 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
     onPointerMove={aimAt} onPointerDown={e=>{e.currentTarget.setPointerCapture?.(e.pointerId);aimAt(e)}}
     onPointerUp={e=>{aimAt(e);const r=e.currentTarget.getBoundingClientRect();if(!pickAt(aim.current,(e.clientY-r.top)/r.height*JAR.h))release()}}/>
    {picking&&<p className="bloom-pick" role="status">{picking==='pop'?'💥 Tap a fruit to pop it':'✨ Tap a fruit to grow it'}<button type="button" onClick={()=>setPicking(null)}>Cancel</button></p>}
-   <div className="bloom-powers" role="group" aria-label="Power-ups">
-    {POWERS.map(p=>{const n=hud.powers[p.id],off=n<1||(p.id==='swap'&&hud.next===hud.after)
-     return <button key={p.id} type="button" className={'bloom-power'+(picking===p.id?' is-on':'')} disabled={off} aria-pressed={p.id==='pop'||p.id==='grow'?picking===p.id:undefined}
-      aria-label={p.name+', '+n+' left. '+p.help} title={p.help} onClick={()=>use(p.id)}>
-      <span aria-hidden="true">{p.emoji}</span><small aria-hidden="true">{p.name}</small><b aria-hidden="true">{n}</b></button>})}
-    <span className="bloom-meter" role="meter" aria-label="Next power-up" aria-valuemin={0} aria-valuemax={CHARGE} aria-valuenow={hud.charge} style={{'--k':hud.charge/CHARGE} as React.CSSProperties}><i/></span>
-   </div>
   </div>
   <ol className="bloom-ladder" aria-label="The fruit ladder: two the same grow into the next">{LADDER.map((t,i)=><li key={t.name} className={(i<=hud.best?'is-grown':'')+(i===hud.best&&hud.best>0?' is-best':'')} style={{'--c':t.color} as React.CSSProperties}><FruitIcon tier={i}/><small>{t.name}</small></li>)}</ol>
  </div>
