@@ -60,7 +60,7 @@ export function lockLine(height:number,islandTop:number,block:number):number|nul
  if(height<LOCK_EVERY)return null
  return islandTop-(Math.floor(height/LOCK_EVERY)*LOCK_EVERY-LOOSE_ROWS)*block
 }
-export type TeeterMode={kind:'classic'}|{kind:'daily';seed:string}|{kind:'puzzle';level:number}
+export type TeeterMode={kind:'classic'}|{kind:'daily';seed:string}|{kind:'puzzle';level:number}|{kind:'race'}
 const LEVEL_KEY='kono-teeter-level',DAILY_KEY='kono-teeter-daily'
 export const teeterLevel=()=>{try{return Math.max(1,Number(localStorage.getItem(LEVEL_KEY))||1)}catch{return 1}}
 export const saveTeeterLevel=(n:number)=>{try{if(n>teeterLevel())localStorage.setItem(LEVEL_KEY,String(n))}catch{/* storage unavailable */}}
@@ -128,3 +128,28 @@ export type TeeterControl='fall'|'hold'
 const CONTROL_KEY='kono-teeter-control'
 export const teeterControl=():TeeterControl=>{try{return localStorage.getItem(CONTROL_KEY)==='hold'?'hold':'fall'}catch{return 'fall'}}
 export const saveTeeterControl=(c:TeeterControl)=>{try{localStorage.setItem(CONTROL_KEY,c)}catch{/* storage unavailable */}}
+
+/** Race: you and Rival KONO each build a tower; first to the finish line wins. Rival KONO climbs about a row
+ * every 3 seconds (a little faster or slower now and then) and sometimes loses a block or two, so it gets
+ * there in about a minute: a real race for a player at a block every 3 or 4 seconds. */
+export const RACE_GOAL=15
+export function rivalStep(height:number,ms:number,rand:()=>number):number{
+ let h=height+ms/3000*(0.7+rand()*0.6)
+ if(rand()<ms/25000)h-=1+rand()   // a wobble: it loses a block or two
+ return Math.max(0,Math.min(RACE_GOAL,h))
+}
+/** Helper spells, earned every six rows (one held at a time): vines tie the tower's resting blocks in place,
+ * small makes the next three blocks small, undo takes back the last block (if it's still loose). */
+export type Spell='vines'|'small'|'undo'
+export const SPELLS:Record<Spell,{emoji:string;name:string;line:string}>={
+ vines:{emoji:'🌿',name:'Vines',line:'Vines hold the tower’s blocks in place.'},
+ small:{emoji:'🪶',name:'Small blocks',line:'The next three blocks are small.'},
+ undo:{emoji:'↩️',name:'Undo',line:'The last block is taken back.'},
+}
+export const SPELL_EVERY=6
+/** The spell earned on reaching `height` rows (from `before`), if any: one each time a multiple of six is passed. */
+export function spellFor(before:number,height:number,rand:()=>number):Spell|null{
+ if(Math.floor(height/SPELL_EVERY)<=Math.floor(before/SPELL_EVERY)||height<SPELL_EVERY)return null
+ const all=Object.keys(SPELLS) as Spell[]
+ return all[Math.floor(rand()*all.length)]
+}

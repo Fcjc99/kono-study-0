@@ -10,7 +10,7 @@ function load(relative){
  vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module,exports:module.exports,require:requireLocal,Math,Date,JSON,Set,Map,Number,String,Object,Array,console,localStorage:{getItem:()=>null,setItem(){}}})
  return module.exports
 }
-const {SHAPES,COLORS,towerHeight,SPECIALS,specialFor,seeded,dailySeed,puzzleLevel,isPerfect,lockLine,SKINS,skinsOwned,skinItem,dailyScoreEvent,familyBoard,EVENTS,EVENT_BLOCKS,eventFor}=load('src/store/teeter.ts')
+const {SHAPES,COLORS,towerHeight,SPECIALS,specialFor,seeded,dailySeed,puzzleLevel,isPerfect,lockLine,SKINS,skinsOwned,skinItem,dailyScoreEvent,familyBoard,EVENTS,EVENT_BLOCKS,eventFor,RACE_GOAL,rivalStep,SPELLS,spellFor}=load('src/store/teeter.ts')
 const {addCareEvent,readCareState}=load('src/store/konoCare.ts')
 let passed=0
 const test=(name,fn)=>{fn();passed++;console.log('PASS '+name)}
@@ -89,4 +89,14 @@ test('tower events: none before the sixth block or within eight blocks of the la
  assert.equal(EVENT_BLOCKS,3);for(const v of Object.values(EVENTS))assert.ok(v.emoji&&v.name&&v.line)
 })
 test('the jelly block is one of the specials',()=>{assert.equal(SPECIALS.jelly.emoji,'🍮');assert.match(SPECIALS.jelly.color,/^#[0-9a-f]{6}$/)})
+test('race: Rival KONO climbs about a row every 3 s, now and then loses a block or two, and stops at the finish',()=>{
+ const runs=[1,2,3,4,5,6].map(k=>{const r=seeded('race'+k);let h=0,ms=0;while(h<RACE_GOAL&&ms<300000){h=rivalStep(h,100,r);ms+=100}return ms/1000})
+ for(const s of runs)assert.ok(s>40&&s<100,'reaches row 15 in about a minute, got '+s+'s')
+ assert.equal(rivalStep(RACE_GOAL,1000,()=>0.5),RACE_GOAL);assert.equal(rivalStep(0,0,()=>0.99),0)
+})
+test('helper spells: one each time the tower passes six, twelve, eighteen rows',()=>{
+ const r=seeded('sp')
+ assert.equal(spellFor(0,5,r),null);assert.ok(SPELLS[spellFor(5,6,r)]);assert.equal(spellFor(6,8,r),null);assert.ok(SPELLS[spellFor(11,13,r)])
+ for(const v of Object.values(SPELLS))assert.ok(v.emoji&&v.name&&v.line)
+})
 console.log(passed+' teeter tests passed')

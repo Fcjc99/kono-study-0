@@ -28,16 +28,16 @@ await test('KONO Stack: floors slide along x then z; an exact drop is Perfect an
  const top=t.floors.at(-1),a=t.moving.axis;t={...t,moving:{...t.moving,[a]:top[a]+(a==='x'?top.w:top.d)+1}};r=st.drop(t);assert.equal(r.result,'miss');assert.equal(r.tower.over,true);assert.equal(st.score(r.tower),5)
  let s=st.newTower();for(let i=0;i<800;i++){s=st.slide(s,3);assert.ok(Math.abs(s.moving.x)<=st.STACK.reach+1e-9,'it turns back at the far side')}
 })
-await test('KONO Bloom: a drop falls and settles on the soil, two the same grow into the next one (and score), two Great Trees make a rainbow, a jar filled past the line ends it',()=>{
+await test('KONO Bloom: a drop falls and settles on the soil, two the same grow into the next one (and score), two Rainbow Fruits make a rainbow, a jar filled past the line ends it',()=>{
  let seed=3;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647}
  let g=bl.newGarden(rnd);assert.ok(g.next>=0&&g.next<=2,'it starts with something small')
  g={...g,next:0};g=bl.drop(g,50,rnd);for(let i=0;i<400;i++)g=bl.step(g)
  const b=g.balls[0];assert.ok(Math.abs(b.y-(bl.JAR.h-bl.RADIUS[0]))<0.6,'it lands on the soil');assert.ok(Math.abs(b.vy)<0.2,'and stays')
  g={...g,next:0};g=bl.drop(g,50,rnd);for(let i=0;i<400;i++)g=bl.step(g)
- assert.equal(g.balls.length,1);assert.equal(g.balls[0].tier,1,'two beans grow into a sprout');assert.equal(g.score,bl.points(1));assert.equal(g.best,1)
+ assert.equal(g.balls.length,1);assert.equal(g.balls[0].tier,1,'two blueberries grow into a cherry');assert.equal(g.score,bl.points(1));assert.equal(g.best,1)
  let t=bl.newGarden(rnd);const R=bl.RADIUS[10]
  t={...t,balls:[{id:1,tier:10,x:R,y:bl.JAR.h-R,vx:0,vy:0,age:200},{id:2,tier:10,x:R*2-1,y:bl.JAR.h-R,vx:0,vy:0,age:200}],nextId:3}
- t=bl.step(t);assert.equal(t.balls.length,0,'two Great Trees leave room');assert.equal(t.rainbows,1);assert.equal(t.score,100)
+ t=bl.step(t);assert.equal(t.balls.length,0,'two Rainbow Fruits leave room');assert.equal(t.rainbows,1);assert.equal(t.score,100)
  assert.equal(bl.clampX(-5,3),bl.RADIUS[3]);assert.equal(bl.clampX(500,3),bl.JAR.w-bl.RADIUS[3])
  // Something settled sticking up past the line for about 2 seconds ends it; one just dropped doesn't count.
  const high=(age,danger)=>({...bl.newGarden(rnd),balls:[{id:1,tier:5,x:50,y:20,vx:0,vy:0,age}],nextId:2,danger})

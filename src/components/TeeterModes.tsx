@@ -1,7 +1,7 @@
 import {dailyBest,dailySeed,teeterLevel,SKINS,type BoardRow,type SkinId,type TeeterControl} from '../store/teeter'
 import './teeter-modes.css'
 
-export type TeeterPick='classic'|'daily'|'puzzle'
+export type TeeterPick='classic'|'daily'|'puzzle'|'race'
 type Skins={owned:Set<SkinId>;chosen:SkinId;onChoose:(id:SkinId)=>void;balance?:number;onBuy?:(id:SkinId)=>void}
 /** KONO Teeter Tower's start card: the classic climb, today's tower (the same blocks for everyone today, with
  * the family's board) or the next puzzle level, and the block skins (bought with coins). */
@@ -11,6 +11,7 @@ export default function TeeterModes({pick,onPick,skins,board,control,onControl}:
   ['classic','🗼','Classic','As high as you can'],
   ['daily','📅','Today’s tower',today!==null?'Your best today: '+today:'Same blocks for everyone'],
   ['puzzle','🚩','Puzzles','Level '+level+' is next'],
+  ['race','🏁','Race KONO','First to row 15'],
  ]
  return <div className="teeter-start">
   <div className="teeter-modes" role="radiogroup" aria-label="How to play">
