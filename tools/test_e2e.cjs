@@ -4790,7 +4790,7 @@ test('KONO Teeter Tower: drag a block and let go and it drops where you put it; 
  await game.getByRole('region',{name:'Today’s family board'}).getByText(/\(you\)/).waitFor()
 })
 
-test('New arcade games: KONO Stack (a floor set down as it lines up builds the tower, End gives the results) and KONO Bloom (tap to drop seeds into the jar, End gives what you grew)',async({context,page})=>{
+test('New arcade games: KONO Stack (a floor set down as it lines up builds the tower, End gives the results) and KONO Bloom (tap to drop fruit into the jar, End gives what you grew)',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
@@ -4810,9 +4810,9 @@ test('New arcade games: KONO Stack (a floor set down as it lines up builds the t
  await stack.getByRole('button',{name:'Done'}).click()
  await town.getByRole('button',{name:/KONO Bloom/}).click()
  const bloom=await startGame(page,'🌸 KONO Bloom')
- const jar=bloom.getByRole('img',{name:/KONO Bloom garden jar/});await jar.waitFor()
+ const jar=bloom.getByRole('img',{name:/KONO Bloom fruit jar/});await jar.waitFor()
  for(let i=0;i<4;i++){await jar.click({position:{x:40+i*30,y:60}});await page.waitForTimeout(500)}
- await bloom.getByRole('list',{name:'The garden ladder'}).waitFor()
+ await bloom.getByRole('list',{name:'The fruit ladder'}).waitFor()
  await bloom.getByRole('button',{name:'■ End'}).click()
  await bloom.getByText(/You grew up to/).waitFor()
 })

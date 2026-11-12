@@ -1,6 +1,6 @@
-/** KONO Bloom (components/KonoBloom): drop seeds into KONO's garden jar. They fall, roll and settle; two of
- * the same that touch grow into the next thing on the garden ladder (a bean into a sprout, a sprout into a
- * clover, … a pumpkin into the Great Tree), and two Great Trees make a rainbow and leave room. Growing
+/** KONO Bloom (components/KonoBloom): drop fruit into KONO's jar. It falls, rolls and settles; two of the
+ * same that touch grow into the next fruit on the ladder (a blueberry into a cherry, a cherry into a
+ * strawberry, … a melon into the Rainbow Fruit), and two Rainbow Fruits make a rainbow and leave room. Growing
  * scores; let the jar fill past the dashed line for a moment and the round's over. The jar is 100 wide and
  * 140 tall (y grows downward); time is in frames at 60 a second. Pure apart from the random drops, so it
  * can be tested. */
@@ -8,19 +8,20 @@ export type Ball = { id: number; tier: number; x: number; y: number; vx: number;
 export type Pop = { x: number; y: number; tier: number; at: number }
 export type Garden = { balls: Ball[]; next: number; score: number; nextId: number; frame: number; danger: number; over: boolean; pops: Pop[]; rainbows: number; best: number }
 
+/** The fruit ladder, smallest first. `kind` is how the fruit is drawn (components/KonoBloom). */
 export const LADDER = [
-  { emoji: '🫘', name: 'Bean', color: '#c98a5a' },
-  { emoji: '🌱', name: 'Sprout', color: '#9fd86b' },
-  { emoji: '🍀', name: 'Clover', color: '#5cc26f' },
-  { emoji: '🌼', name: 'Daisy', color: '#ffe066' },
-  { emoji: '🌷', name: 'Tulip', color: '#ff8fb1' },
-  { emoji: '🌸', name: 'Blossom', color: '#ffc2dc' },
-  { emoji: '🌻', name: 'Sunflower', color: '#ffc93c' },
-  { emoji: '🪷', name: 'Lotus', color: '#f7a8d8' },
-  { emoji: '🍄', name: 'Mushroom', color: '#ff6b5e' },
-  { emoji: '🎃', name: 'Pumpkin', color: '#ff9a3c' },
-  { emoji: '🌳', name: 'Great Tree', color: '#4caf6a' },
-]
+  { emoji: '🫐', name: 'Blueberry', color: '#6f7fe0', kind: 'blueberry' },
+  { emoji: '🍒', name: 'Cherry', color: '#f2546b', kind: 'cherry' },
+  { emoji: '🍓', name: 'Strawberry', color: '#ff6f86', kind: 'strawberry' },
+  { emoji: '🥝', name: 'Kiwi', color: '#9fd86b', kind: 'kiwi' },
+  { emoji: '🟣', name: 'Plum', color: '#b277d9', kind: 'plum' },
+  { emoji: '🍋', name: 'Lemon', color: '#ffe066', kind: 'lemon' },
+  { emoji: '🍑', name: 'Peach', color: '#ffb08a', kind: 'peach' },
+  { emoji: '🥭', name: 'Mango', color: '#ffb347', kind: 'mango' },
+  { emoji: '🥥', name: 'Coconut', color: '#b07a52', kind: 'coconut' },
+  { emoji: '🍈', name: 'Melon', color: '#b8e08a', kind: 'melon' },
+  { emoji: '🌈', name: 'Rainbow Fruit', color: '#ff9ad5', kind: 'rainbow' },
+] as const
 export const RADIUS = [4.2, 5.6, 7.2, 8.8, 10.6, 12.6, 14.8, 17.2, 19.8, 22.6, 25.6]
 export const JAR = { w: 100, h: 140, line: 26, dropY: 12 }
 const G = 0.055, DAMP = 0.995, BOUNCE = 0.12, FRICTION = 0.985
@@ -56,7 +57,7 @@ export function step(g: Garden, n = 1): Garden {
     b.x += b.vx * n; b.y += b.vy * n; b.age += n
   }
   const gone = new Set<number>(), born: Ball[] = []
-  for (let pass = 0; pass < 4; pass++) {
+  for (let pass = 0; pass < 8; pass++) {
     for (const b of balls) {
       const r = RADIUS[b.tier]
       if (b.x < r) { b.x = r; b.vx = Math.abs(b.vx) * BOUNCE }
@@ -86,6 +87,8 @@ export function step(g: Garden, n = 1): Garden {
         a.x -= nx * over * wa; a.y -= ny * over * wa; b.x += nx * over * wb; b.y += ny * over * wb
         const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny
         if (rel < 0) { const k = -(1 + BOUNCE) * rel; a.vx -= nx * k * wa; a.vy -= ny * k * wa; b.vx += nx * k * wb; b.vy += ny * k * wb }
+        // Resting on each other: a little rolling friction, so a pile settles instead of shivering.
+        if (Math.abs(ny) > 0.5) { const f = Math.pow(0.97, n); a.vx *= f; b.vx *= f }
       }
     }
   }
