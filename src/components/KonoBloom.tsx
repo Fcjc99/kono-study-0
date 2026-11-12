@@ -1,5 +1,5 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {JAR,LADDER,RADIUS,clampX,drop,newGarden,step,type Garden} from '../store/bloom'
+import {CHARGE,JAR,LADDER,POWERS,RADIUS,clampX,drop,fruitAt,growFruit,newGarden,popFruit,shake as shakeJar,step,swapNext,type Garden,type Power} from '../store/bloom'
 import {gameSound} from '../konoSounds'
 import {fx,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
@@ -14,7 +14,14 @@ const STEP=1000/120 // physics runs in fixed small steps (smooth on 60 Hz and 12
 export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;best:number|null;sound:boolean;onEnd:(score:number,biggest:number)=>void}){
  const [start]=useState<Garden>(()=>newGarden())
  const canvas=useRef<HTMLCanvasElement>(null),garden=useRef<Garden>(start),aim=useRef(50),cool=useRef(0)
- const [hud,setHud]=useState({score:0,next:start.next,best:0,danger:false})
+ const hudOf=(g:Garden)=>({score:g.score,next:g.next,after:g.after,best:g.best,danger:g.danger>30,powers:g.powers,charge:g.charge})
+ const [hud,setHud]=useState(()=>hudOf(start))
+ // A power-up that needs a fruit (Pop, Grow) waits for you to tap one; the others work at once.
+ const [picking,setPicking]=useState<Power|null>(null)
+ const pickingRef=useRef<Power|null>(null)
+ useEffect(()=>{pickingRef.current=picking},[picking])
+ // The game loop's own effects (juice, a shake of the screen), for power-ups used between its frames.
+ const burst=useRef<(x:number,y:number,tier:number,big:boolean)=>void>(()=>{})
  const ended=useRef(false),onEndRef=useRef(onEnd),soundRef=useRef(sound),kono=useRef<{happy:HTMLImageElement;cheer:HTMLImageElement;gasp:HTMLImageElement}|null>(null),look=useRef(new Map<number,Look>())
  const shown=useRef(50) // where KONO is (it glides after your finger)
  useEffect(()=>{onEndRef.current=onEnd;soundRef.current=sound},[onEnd,sound])
@@ -26,6 +33,29 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   // It drops from where KONO is holding it (what you see), not where your finger has run ahead to.
   garden.current=drop(garden.current,shown.current);cool.current=performance.now()+380;fx('tick',soundRef.current)
  }
+ const use=(p:Power)=>{
+  const g=garden.current
+  if(ended.current||g.over||g.powers[p]<1)return
+  if(p==='pop'||p==='grow'){if(g.balls.length)setPicking(k=>k===p?null:p);return}
+  setPicking(null)
+  const n=p==='shake'?shakeJar(g):swapNext(g)
+  if(n===g){fx('nope',soundRef.current);return}
+  garden.current=n;setHud(hudOf(n))
+  if(p==='shake'){burst.current(50,JAR.h-20,-1,true);fx('boom',soundRef.current)}else fx('swap',soundRef.current)
+ }
+ /** Pop or Grow the fruit at a point in the jar (or, from the keyboard, the top one under KONO). */
+ const pickAt=(x:number,y:number|null)=>{
+  const p=pickingRef.current,g=garden.current;if(!p)return false
+  const b=y===null?g.balls.filter(b=>Math.abs(b.x-x)<=RADIUS[b.tier]).sort((a,b)=>a.y-RADIUS[a.tier]-(b.y-RADIUS[b.tier]))[0]:fruitAt(g,x,y)
+  if(!b){fx('nope',soundRef.current);return true}
+  const n=p==='pop'?popFruit(g,b.id):growFruit(g,b.id)
+  garden.current=n;setHud(hudOf(n));setPicking(null)
+  burst.current(b.x,b.y,p==='pop'?b.tier:Math.min(b.tier+1,LADDER.length-1),p==='grow')
+  fx(p==='pop'?'squish':'star',soundRef.current)
+  return true
+ }
+ const pickRef=useRef(pickAt)
+ useEffect(()=>{pickRef.current=pickAt})
  const releaseRef=useRef(release)
  useEffect(()=>{releaseRef.current=release})
  useEffect(()=>{
@@ -35,7 +65,8 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   const key=(e:KeyboardEvent,down:boolean)=>{
    if(e.code==='ArrowLeft'||e.code==='KeyA'){held.left=down;if(down)aim.current=Math.max(0,aim.current-3);e.preventDefault()}
    else if(e.code==='ArrowRight'||e.code==='KeyD'){held.right=down;if(down)aim.current=Math.min(JAR.w,aim.current+3);e.preventDefault()}
-   else if(down&&(e.code==='Space'||e.code==='ArrowDown')){e.preventDefault();releaseRef.current()}
+   else if(down&&(e.code==='Space'||e.code==='ArrowDown')){e.preventDefault();if(!pickRef.current(shown.current,null))releaseRef.current()}
+   else if(down&&e.code==='Escape'&&pickingRef.current){e.preventDefault();setPicking(null)}
   }
   const kd=(e:KeyboardEvent)=>key(e,true),ku=(e:KeyboardEvent)=>key(e,false)
   window.addEventListener('keydown',kd);window.addEventListener('keyup',ku)
@@ -43,6 +74,11 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   document.addEventListener('visibilitychange',back)
   const fxs:Bit[]=[],floats:Float[]=[]
   let raf=0,last=performance.now(),acc=0,combo=0,comboAt=-1e9,shake=0,cheer=0,t=0
+  burst.current=(bx,by,tier,big)=>{
+   const col=tier<0?'#ffd0de':LADDER[tier].color
+   for(let k=0;k<(big?24:14);k++){const a=Math.random()*Math.PI*2,v=1.2+Math.random()*2.6;fxs.push({x:bx*S,y:by*S,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1.6,life:1,color:k%3?col:'#ffffff',size:3+Math.random()*5})}
+   if(big){shake=1;cheer=1}
+  }
   const loop=(now:number)=>{
    const dt=Math.min(50,now-last);last=now;t+=dt/16.67
    const m=dt/16.67
@@ -68,7 +104,7 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
      }
     }
     garden.current=g
-    if(g.score!==before.score||g.next!==before.next||(g.danger>30)!==(before.danger>30))setHud({score:g.score,next:g.next,best:g.best,danger:g.danger>30})
+    if(g.score!==before.score||g.next!==before.next||(g.danger>30)!==(before.danger>30)||g.earned!==before.earned)setHud(hudOf(g))
     if(g.over&&!ended.current){ended.current=true;gameSound('lose',soundRef.current);window.setTimeout(()=>onEndRef.current(g.score,g.best),1000)}
    }
    // How each fruit moves on top of the physics: a new one pops in small, bounces past full size and
@@ -84,7 +120,7 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
    for(let k=floats.length-1;k>=0;k--)if(now-floats[k].at>1100)floats.splice(k,1)
    shake=Math.max(0,shake-0.06*m);cheer=Math.max(0,cheer-0.015*m)
    const cooling=performance.now()<cool.current,grow=cooling?1-(cool.current-performance.now())/380:1
-   draw(canvas.current,garden.current,shown.current,grow,kono.current,looks,fxs,floats,now,t,shake,cheer)
+   draw(canvas.current,garden.current,shown.current,grow,kono.current,looks,fxs,floats,now,t,shake,cheer,pickingRef.current)
    raf=requestAnimationFrame(loop)
   }
   raf=requestAnimationFrame(loop)
@@ -94,13 +130,23 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
  return <div className="break-game kono-bloom">
   <div className={'bloom-frame'+(hud.danger?' is-danger':'')}>
    <div className="bloom-bar">
-    <p className="bloom-next" aria-label={'Next: '+LADDER[hud.next].name}><span aria-hidden="true">Next</span><FruitIcon tier={hud.next} size={32}/></p>
+    <p className="bloom-next" aria-label={'Next: '+LADDER[hud.after].name}><span aria-hidden="true">Next</span><FruitIcon tier={hud.after} size={32}/></p>
     <strong className="bloom-score" aria-live="polite">{hud.score.toLocaleString()}</strong>
     <p className="bloom-best">{best!==null?'Best '+best.toLocaleString():''}</p>
    </div>
    {hud.danger&&<span className="bloom-warn" role="status">Too full! Get under the line</span>}
    <canvas ref={canvas} width={JAR.w*S} height={JAR.h*S} role="img" aria-label={'KONO Bloom fruit jar, '+hud.score+' points. Move to aim and let go to drop (or the arrow keys and Space); two the same fruit grow into the next one'}
-    onPointerMove={aimAt} onPointerDown={e=>{e.currentTarget.setPointerCapture?.(e.pointerId);aimAt(e)}} onPointerUp={e=>{aimAt(e);release()}}/>
+    className={picking?'is-picking':undefined}
+    onPointerMove={aimAt} onPointerDown={e=>{e.currentTarget.setPointerCapture?.(e.pointerId);aimAt(e)}}
+    onPointerUp={e=>{aimAt(e);const r=e.currentTarget.getBoundingClientRect();if(!pickAt(aim.current,(e.clientY-r.top)/r.height*JAR.h))release()}}/>
+   {picking&&<p className="bloom-pick" role="status">{picking==='pop'?'💥 Tap a fruit to pop it':'✨ Tap a fruit to grow it'}<button type="button" onClick={()=>setPicking(null)}>Cancel</button></p>}
+   <div className="bloom-powers" role="group" aria-label="Power-ups">
+    {POWERS.map(p=>{const n=hud.powers[p.id],off=n<1||(p.id==='swap'&&hud.next===hud.after)
+     return <button key={p.id} type="button" className={'bloom-power'+(picking===p.id?' is-on':'')} disabled={off} aria-pressed={p.id==='pop'||p.id==='grow'?picking===p.id:undefined}
+      aria-label={p.name+', '+n+' left. '+p.help} title={p.help} onClick={()=>use(p.id)}>
+      <span aria-hidden="true">{p.emoji}</span><small aria-hidden="true">{p.name}</small><b aria-hidden="true">{n}</b></button>})}
+    <span className="bloom-meter" role="meter" aria-label="Next power-up" aria-valuemin={0} aria-valuemax={CHARGE} aria-valuenow={hud.charge} style={{'--k':hud.charge/CHARGE} as React.CSSProperties}><i/></span>
+   </div>
   </div>
   <ol className="bloom-ladder" aria-label="The fruit ladder: two the same grow into the next">{LADDER.map((t,i)=><li key={t.name} className={(i<=hud.best?'is-grown':'')+(i===hud.best&&hud.best>0?' is-best':'')} style={{'--c':t.color} as React.CSSProperties}><FruitIcon tier={i}/><small>{t.name}</small></li>)}</ol>
  </div>
@@ -127,7 +173,7 @@ function landing(g:Garden,x:number,tier:number){
  for(const b of g.balls){const R=RADIUS[b.tier]+r,dx=Math.abs(b.x-x);if(dx<R){const top=b.y-Math.sqrt(R*R-dx*dx);if(top<y)y=top}}
  return Math.max(JAR.dropY,y)
 }
-function draw(c:HTMLCanvasElement|null,g:Garden,aim:number,grow:number,kono:{happy:HTMLImageElement;cheer:HTMLImageElement;gasp:HTMLImageElement}|null,looks:Map<number,Look>,fxs:Bit[],floats:Float[],now:number,t:number,shake:number,cheer:number){
+function draw(c:HTMLCanvasElement|null,g:Garden,aim:number,grow:number,kono:{happy:HTMLImageElement;cheer:HTMLImageElement;gasp:HTMLImageElement}|null,looks:Map<number,Look>,fxs:Bit[],floats:Float[],now:number,t:number,shake:number,cheer:number,picking:Power|null){
  const x=c?.getContext('2d');if(!c||!x)return
  const W=c.width,H=c.height,danger=g.danger>30
  x.save();if(shake)x.translate(Math.sin(t*2.3)*4*shake,Math.cos(t*2.9)*2*shake)
@@ -160,6 +206,9 @@ function draw(c:HTMLCanvasElement|null,g:Garden,aim:number,grow:number,kono:{hap
   drawFruit(x,b.x*S,b.y*S,b.tier,pop*(1+sq+br),pop*(1-sq-br),mood)
   // Big fruit twinkle.
   if(b.tier>=6){const r=RADIUS[b.tier]*S,tw=(Math.sin(t*0.12+b.id)+1)/2;x.fillStyle='rgba(255,255,255,'+(0.4+tw*0.6)+')';const px=b.x*S+r*0.72,py=b.y*S-r*0.78,q=r*0.12*(0.6+tw*0.5);x.beginPath();for(let k=0;k<8;k++){const a=k/8*Math.PI*2,d=k%2?q*0.35:q;x.lineTo(px+Math.cos(a)*d,py+Math.sin(a)*d)}x.closePath();x.fill()}}
+ // Picking a fruit for Pop or Grow: each one glows with a dashed ring.
+ if(picking){x.save();x.setLineDash([10,8]);x.lineDashOffset=-t*0.8;x.lineWidth=4;x.strokeStyle=picking==='pop'?'rgba(232,84,110,.9)':'rgba(255,200,40,.95)'
+  for(const b of g.balls){x.beginPath();x.arc(b.x*S,b.y*S,RADIUS[b.tier]*S+6+Math.sin(t*0.15)*2,0,Math.PI*2);x.stroke()}x.restore()}
  // KONO over the jar holding the next fruit (it pops into KONO's paws after each drop).
  if(!g.over&&kono){
   const pic=cheer>0.2&&ok(kono.cheer)?kono.cheer:danger&&ok(kono.gasp)?kono.gasp:kono.happy

@@ -6,7 +6,19 @@
  * can be tested. */
 export type Ball = { id: number; tier: number; x: number; y: number; vx: number; vy: number; age: number }
 export type Pop = { x: number; y: number; tier: number; at: number }
-export type Garden = { balls: Ball[]; next: number; score: number; nextId: number; frame: number; danger: number; over: boolean; pops: Pop[]; rainbows: number; best: number }
+/** The power-ups: Shake the jar (everything jumps and settles again, maybe into new pairs), Pop a fruit
+ * (it's gone), Grow a fruit (one step up the ladder, with its points) and Swap the fruit KONO holds for the
+ * one after it. You start with one of each; growing fruit fills a meter that earns another (in turn). */
+export type Power = 'shake' | 'pop' | 'grow' | 'swap'
+export const POWERS: { id: Power; emoji: string; name: string; help: string }[] = [
+  { id: 'shake', emoji: '🫨', name: 'Shake', help: 'Shake the jar: everything jumps and settles again' },
+  { id: 'pop', emoji: '💥', name: 'Pop', help: 'Tap a fruit to pop it out of the jar' },
+  { id: 'grow', emoji: '✨', name: 'Grow', help: 'Tap a fruit to grow it into the next one' },
+  { id: 'swap', emoji: '🔄', name: 'Swap', help: 'Swap the fruit KONO holds for the next one' },
+]
+/** Points of growing that earn the next power-up. */
+export const CHARGE = 60
+export type Garden = { balls: Ball[]; next: number; after: number; score: number; nextId: number; frame: number; danger: number; over: boolean; pops: Pop[]; rainbows: number; best: number; powers: Record<Power, number>; charge: number; earned: number }
 
 /** The fruit ladder, smallest first. `kind` is how the fruit is drawn (components/KonoBloom). */
 export const LADDER = [
@@ -29,7 +41,7 @@ const G = 0.055, DAMP = 0.995, BOUNCE = 0.12, FRICTION = 0.985
 export const points = (tier: number) => (tier + 1) * (tier + 2) / 2
 
 export function newGarden(random: () => number = Math.random): Garden {
-  return { balls: [], next: dropTier(random, 0), score: 0, nextId: 1, frame: 0, danger: 0, over: false, pops: [], rainbows: 0, best: 0 }
+  return { balls: [], next: dropTier(random, 0), after: dropTier(random, 0), powers: { shake: 1, pop: 1, grow: 1, swap: 1 }, charge: 0, earned: 0, score: 0, nextId: 1, frame: 0, danger: 0, over: false, pops: [], rainbows: 0, best: 0 }
 }
 /** What drops next: one of the five smallest, the smallest most often (and bigger ones once you've grown some). */
 export function dropTier(random: () => number, best: number): number {
@@ -43,7 +55,7 @@ export function drop(g: Garden, x: number, random: () => number = Math.random): 
   if (g.over) return g
   const tier = g.next
   const ball: Ball = { id: g.nextId, tier, x: clampX(x, tier), y: JAR.dropY, vx: 0, vy: 0.4, age: 0 }
-  return { ...g, balls: [...g.balls, ball], next: dropTier(random, g.best), nextId: g.nextId + 1 }
+  return { ...g, balls: [...g.balls, ball], next: g.after, after: dropTier(random, g.best), nextId: g.nextId + 1 }
 }
 
 /** One frame: gravity, the jar's walls and floor, things pushing each other apart, and growing. */
@@ -96,5 +108,48 @@ export function step(g: Garden, n = 1): Garden {
   // Over the line: something that has settled (not one just dropped) sticking up past it, for about 2 seconds.
   const high = kept.some(b => b.age > 90 && b.y - RADIUS[b.tier] < JAR.line && Math.abs(b.vy) < 0.6)
   const danger = high ? g.danger + n : Math.max(0, g.danger - n * 2)
-  return { ...g, balls: kept, score, nextId, rainbows, best, pops, frame: g.frame + n, danger, over: danger > 120 }
+  return { ...g, ...charged(g, score - g.score), balls: kept, score, nextId, rainbows, best, pops, frame: g.frame + n, danger, over: danger > 120 }
+}
+
+/** Growing fills the meter; each time it's full, the next power-up in turn (shake, pop, grow, swap). */
+function charged(g: Garden, gained: number): Pick<Garden, 'charge' | 'earned' | 'powers'> {
+  let charge = g.charge + gained, earned = g.earned
+  const powers = { ...g.powers }
+  while (charge >= CHARGE) { charge -= CHARGE; powers[POWERS[earned % POWERS.length].id]++; earned++ }
+  return { charge, earned, powers }
+}
+const spend = (g: Garden, p: Power) => ({ ...g.powers, [p]: g.powers[p] - 1 })
+
+/** Shake: every fruit jumps (up and a little sideways) and the danger count starts again while they settle. */
+export function shake(g: Garden, random: () => number = Math.random): Garden {
+  if (g.over || g.powers.shake < 1 || !g.balls.length) return g
+  const balls = g.balls.map(b => ({ ...b, vx: b.vx + (random() - 0.5) * 2.4, vy: b.vy - 1.4 - random() * 1.2, age: Math.min(b.age, 40) }))
+  return { ...g, balls, danger: 0, powers: spend(g, 'shake') }
+}
+/** The fruit at a point in the jar (the top one if they overlap), or undefined. */
+export function fruitAt(g: Garden, x: number, y: number): Ball | undefined {
+  let hit: Ball | undefined
+  for (const b of g.balls) if (Math.hypot(b.x - x, b.y - y) <= RADIUS[b.tier] + 2 && (!hit || b.y < hit.y)) hit = b
+  return hit
+}
+/** Pop: that fruit is gone (no points). */
+export function popFruit(g: Garden, id: number): Garden {
+  const b = g.balls.find(b => b.id === id)
+  if (g.over || g.powers.pop < 1 || !b) return g
+  return { ...g, balls: g.balls.filter(o => o !== b), pops: [...g.pops, { x: b.x, y: b.y, tier: b.tier, at: g.frame }], powers: spend(g, 'pop') }
+}
+/** Grow: that fruit grows one step, with the points for it (a Rainbow Fruit makes a rainbow and leaves room). */
+export function growFruit(g: Garden, id: number): Garden {
+  const b = g.balls.find(b => b.id === id)
+  if (g.over || g.powers.grow < 1 || !b) return g
+  const powers = spend(g, 'grow')
+  if (b.tier === LADDER.length - 1) return { ...g, powers, balls: g.balls.filter(o => o !== b), score: g.score + 100, rainbows: g.rainbows + 1, pops: [...g.pops, { x: b.x, y: b.y, tier: b.tier + 1, at: g.frame }] }
+  const tier = b.tier + 1
+  const grown = { ...b, tier, x: clampX(b.x, tier), y: Math.min(b.y, JAR.h - RADIUS[tier]), age: Math.min(b.age, 40) }
+  return { ...g, powers, balls: g.balls.map(o => o === b ? grown : o), score: g.score + points(tier), best: Math.max(g.best, tier), pops: [...g.pops, { x: b.x, y: b.y, tier, at: g.frame }] }
+}
+/** Swap: KONO's fruit and the next one change places. */
+export function swapNext(g: Garden): Garden {
+  if (g.over || g.powers.swap < 1 || g.next === g.after) return g
+  return { ...g, next: g.after, after: g.next, powers: spend(g, 'swap') }
 }

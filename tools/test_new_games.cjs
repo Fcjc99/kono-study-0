@@ -46,9 +46,27 @@ await test('KONO Bloom: a drop falls and settles on the soil, two the same grow 
  assert.equal(bl.step(high(5,120)).danger<120,true,'a fresh drop passing the line doesn’t count')
  for(let i=0;i<200;i++)assert.ok(bl.dropTier(rnd,0)<=2,'small drops to start');assert.ok([...Array(300)].some(()=>bl.dropTier(rnd,9)===4),'bigger once you have grown big ones')
 })
+await test('KONO Bloom power-ups: one of each to start; Shake makes everything jump and resets the danger, Pop removes a fruit, Grow moves one up the ladder (with points), Swap trades KONO\u2019s fruit for the next, and growing earns more',()=>{
+ let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647}
+ let g=bl.newGarden(rnd);assert.deepEqual({...g.powers},{shake:1,pop:1,grow:1,swap:1})
+ const R=bl.RADIUS[2];g={...g,balls:[{id:1,tier:2,x:30,y:bl.JAR.h-R,vx:0,vy:0,age:200},{id:2,tier:0,x:70,y:bl.JAR.h-4.2,vx:0,vy:0,age:200}],nextId:3,danger:50}
+ const s=bl.shake(g,rnd);assert.ok(s.balls.every(b=>b.vy<-1),'everything jumps');assert.equal(s.danger,0);assert.equal(s.powers.shake,0)
+ assert.equal(bl.shake(s,rnd),s,'none left: nothing happens')
+ assert.equal(bl.fruitAt(g,30,bl.JAR.h-R).id,1);assert.equal(bl.fruitAt(g,50,20),undefined)
+ const p=bl.popFruit(g,2);assert.deepEqual(p.balls.map(b=>b.id),[1]);assert.equal(p.powers.pop,0);assert.equal(p.score,0,'no points for a pop')
+ const gr=bl.growFruit(g,1);assert.equal(gr.balls.find(b=>b.id===1).tier,3,'a strawberry grows into a kiwi');assert.equal(gr.score,bl.points(3));assert.equal(gr.best,3);assert.equal(gr.powers.grow,0)
+ const top={...g,balls:[{id:9,tier:10,x:50,y:100,vx:0,vy:0,age:200}]},rb=bl.growFruit(top,9);assert.equal(rb.balls.length,0,'a grown Rainbow Fruit makes a rainbow');assert.equal(rb.rainbows,1);assert.equal(rb.score,100)
+ const w={...g,next:0,after:3},sw=bl.swapNext(w);assert.equal(sw.next,3);assert.equal(sw.after,0);assert.equal(sw.powers.swap,0)
+ // KONO holds the next one; dropping it brings the one after into KONO's paws.
+ const d=bl.drop(w,50,rnd);assert.equal(d.balls.at(-1).tier,0);assert.equal(d.next,3)
+ // Growing fills the meter: each CHARGE points earns the next power-up in turn.
+ const two=(t)=>({...bl.newGarden(rnd),charge:bl.CHARGE-1,balls:[{id:1,tier:t,x:40,y:120,vx:0,vy:0,age:200},{id:2,tier:t,x:40+bl.RADIUS[t]*2-1,y:120,vx:0,vy:0,age:200}],nextId:3})
+ const e=bl.step(two(1));assert.equal(e.earned,1);assert.equal(e.powers.shake,2,'the first earned is a Shake');assert.ok(e.charge<bl.CHARGE)
+ const e2=bl.step({...two(1),earned:1});assert.equal(e2.powers.pop,2,'then a Pop')
+})
 await test('Coins: a stack and a garden earn coins like the other games',()=>{
  assert.equal(coins.gameCoins('stack',0),0);assert.equal(coins.gameCoins('stack',20),20);assert.equal(coins.gameCoins('stack',300),50,'capped')
  assert.equal(coins.gameCoins('bloom',600),20);assert.equal(coins.gameCoins('bloom',10),5,'at least 5 for any score')
 })
-console.log(passed+'/3 KONO Stack and KONO Bloom groups passed.')
+console.log(passed+'/4 KONO Stack and KONO Bloom groups passed.')
 })().catch(error=>{console.error('FAIL',error);process.exit(1)})

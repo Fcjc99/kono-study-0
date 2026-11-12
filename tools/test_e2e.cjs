@@ -4794,7 +4794,7 @@ test('KONO Teeter Tower: drag a block and let go and it drops where you put it; 
  await game.getByRole('region',{name:'Today’s family board'}).getByText(/\(you\)/).waitFor()
 })
 
-test('New arcade games: KONO Stack (a floor set down as it lines up builds the tower, End gives the results) and KONO Bloom (tap to drop fruit into the jar, End gives what you grew)',async({context,page})=>{
+test('New arcade games: KONO Stack (a floor set down as it lines up builds the tower, End gives the results) and KONO Bloom (tap to drop fruit into the jar, power-ups Shake and Pop, End gives what you grew)',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
@@ -4817,6 +4817,14 @@ test('New arcade games: KONO Stack (a floor set down as it lines up builds the t
  const jar=bloom.getByRole('img',{name:/KONO Bloom fruit jar/});await jar.waitFor()
  for(let i=0;i<4;i++){await jar.click({position:{x:40+i*30,y:60}});await page.waitForTimeout(500)}
  await bloom.getByRole('list',{name:'The fruit ladder'}).waitFor()
+ // Power-ups: Shake works at once; Pop waits for a fruit to be tapped (Cancel backs out of it).
+ const powers=bloom.getByRole('group',{name:'Power-ups'})
+ await powers.getByRole('button',{name:/^Shake, 1 left/}).click()
+ await powers.getByRole('button',{name:/^Shake, 0 left/}).waitFor()
+ await powers.getByRole('button',{name:/^Pop, 1 left/}).click()
+ await bloom.getByRole('status').filter({hasText:'Tap a fruit to pop it'}).waitFor()
+ await bloom.getByRole('button',{name:'Cancel'}).click()
+ await powers.getByRole('button',{name:/^Pop, 1 left/,pressed:false}).waitFor()
  await bloom.getByRole('button',{name:'■ End'}).click()
  await bloom.getByText(/You grew up to/).waitFor()
 })
