@@ -4726,7 +4726,7 @@ test('KONO Medal Cove: a medal pusher: DROP feeds medals from your hand onto the
  await cove.getByText(/You finished with \d+ medals?/).waitFor()
 })
 
-test('KONO Teeter Tower: drag a block and let go and it drops where you put it; blocks stack into a tower, the height counts up, and End gives how high it stood',async({context,page})=>{
+test('KONO Teeter Tower: drag a block and let go and it drops where you put it; blocks stack into a tower, the height counts up, and End gives how high it stood (and Cat drop: tap to drop the swinging cats)',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
@@ -4792,9 +4792,23 @@ test('KONO Teeter Tower: drag a block and let go and it drops where you put it; 
  await town.getByRole('button',{name:/KONO Teeter Tower/}).click()
  await modes.getByRole('radio',{name:/Today’s tower/}).click()
  await game.getByRole('region',{name:'Today’s family board'}).getByText(/\(you\)/).waitFor()
+ // Cat drop: KONO swings the cat from side to side by itself; a tap lets it go and the cats stack in feet.
+ await modes.getByRole('radio',{name:/Cat drop/}).click()
+ assert.equal(await game.getByRole('radiogroup',{name:'How blocks come'}).count(),0,'no control choice: it’s always tap to drop')
+ await startGame(page,'🗼 KONO Teeter Tower',/^Start Cat drop$/)
+ const catFrame=game.getByRole('img',{name:/^KONO Cat drop, the cat tower is \d+ feet high$/});await catFrame.waitFor()
+ await game.getByLabel(/^Next cat: /).waitFor()
+ const aim=async()=>Number(await game.locator('.teeter-frame').getAttribute('data-aim'))
+ const a1=await aim();await page.waitForTimeout(400);assert.notEqual(await aim(),a1,'the cat swings by itself')
+ for(let i=0;i<3;i++){const t0=Date.now();while(Date.now()-t0<6000&&Math.abs(await aim()-210)>8)await page.waitForTimeout(16)
+  await game.getByRole('button',{name:'Drop the cat'}).click();await page.waitForTimeout(1600)}
+ await game.getByRole('img',{name:/^KONO Cat drop, the cat tower is [1-9]\d* feet high$/}).waitFor()
+ await game.getByRole('button',{name:'■ End'}).click()
+ await game.getByText(/Your cat tower stood \d+ (foot|feet) high, from 3 cats/).waitFor()
+ await game.getByRole('img',{name:/^Your cat tower, \d+ (foot|feet) high$/}).waitFor()
 })
 
-test('New arcade games: KONO Stack (a floor set down as it lines up builds the tower, End gives the results) and KONO Bloom (tap to drop fruit into the jar, End gives what you grew)',async({context,page})=>{
+test('New arcade games: KONO Stack (a floor set down as it lines up builds the tower, End gives the results) and KONO Bloom (tap to drop fruit into the jar, power-ups Shake and Pop, End gives what you grew)',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
@@ -4817,6 +4831,14 @@ test('New arcade games: KONO Stack (a floor set down as it lines up builds the t
  const jar=bloom.getByRole('img',{name:/KONO Bloom fruit jar/});await jar.waitFor()
  for(let i=0;i<4;i++){await jar.click({position:{x:40+i*30,y:60}});await page.waitForTimeout(500)}
  await bloom.getByRole('list',{name:'The fruit ladder'}).waitFor()
+ // Power-ups: Shake works at once; Pop waits for a fruit to be tapped (Cancel backs out of it).
+ const powers=bloom.getByRole('group',{name:'Power-ups'})
+ await powers.getByRole('button',{name:/^Shake, 1 left/}).click()
+ await powers.getByRole('button',{name:/^Shake, 0 left/}).waitFor()
+ await powers.getByRole('button',{name:/^Pop, 1 left/}).click()
+ await bloom.getByRole('status').filter({hasText:'Tap a fruit to pop it'}).waitFor()
+ await bloom.getByRole('button',{name:'Cancel'}).click()
+ await powers.getByRole('button',{name:/^Pop, 1 left/,pressed:false}).waitFor()
  await bloom.getByRole('button',{name:'■ End'}).click()
  await bloom.getByText(/You grew up to/).waitFor()
 })

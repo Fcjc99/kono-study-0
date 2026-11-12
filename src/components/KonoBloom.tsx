@@ -1,8 +1,9 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {JAR,LADDER,RADIUS,clampX,drop,newGarden,step,type Garden} from '../store/bloom'
+import {CHARGE,JAR,LADDER,POWERS,RADIUS,clampX,drop,fruitAt,growFruit,newGarden,popFruit,shake as shakeJar,step,swapNext,type Garden,type Power} from '../store/bloom'
 import {gameSound} from '../konoSounds'
 import {fx,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
+import './bloom.css'
 
 const S=4 // canvas pixels per jar unit
 const STEP=1000/120 // physics runs in fixed small steps (smooth on 60 Hz and 120 Hz screens alike)
@@ -13,7 +14,14 @@ const STEP=1000/120 // physics runs in fixed small steps (smooth on 60 Hz and 12
 export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;best:number|null;sound:boolean;onEnd:(score:number,biggest:number)=>void}){
  const [start]=useState<Garden>(()=>newGarden())
  const canvas=useRef<HTMLCanvasElement>(null),garden=useRef<Garden>(start),aim=useRef(50),cool=useRef(0)
- const [hud,setHud]=useState({score:0,next:start.next,best:0,danger:false})
+ const hudOf=(g:Garden)=>({score:g.score,next:g.next,after:g.after,best:g.best,danger:g.danger>30,powers:g.powers,charge:g.charge})
+ const [hud,setHud]=useState(()=>hudOf(start))
+ // A power-up that needs a fruit (Pop, Grow) waits for you to tap one; the others work at once.
+ const [picking,setPicking]=useState<Power|null>(null)
+ const pickingRef=useRef<Power|null>(null)
+ useEffect(()=>{pickingRef.current=picking},[picking])
+ // The game loop's own effects (juice, a shake of the screen), for power-ups used between its frames.
+ const burst=useRef<(x:number,y:number,tier:number,big:boolean)=>void>(()=>{})
  const ended=useRef(false),onEndRef=useRef(onEnd),soundRef=useRef(sound),kono=useRef<{happy:HTMLImageElement;cheer:HTMLImageElement;gasp:HTMLImageElement}|null>(null),look=useRef(new Map<number,Look>())
  const shown=useRef(50) // where KONO is (it glides after your finger)
  useEffect(()=>{onEndRef.current=onEnd;soundRef.current=sound},[onEnd,sound])
@@ -25,6 +33,29 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   // It drops from where KONO is holding it (what you see), not where your finger has run ahead to.
   garden.current=drop(garden.current,shown.current);cool.current=performance.now()+380;fx('tick',soundRef.current)
  }
+ const use=(p:Power)=>{
+  const g=garden.current
+  if(ended.current||g.over||g.powers[p]<1)return
+  if(p==='pop'||p==='grow'){if(g.balls.length)setPicking(k=>k===p?null:p);return}
+  setPicking(null)
+  const n=p==='shake'?shakeJar(g):swapNext(g)
+  if(n===g){fx('nope',soundRef.current);return}
+  garden.current=n;setHud(hudOf(n))
+  if(p==='shake'){burst.current(50,JAR.h-20,-1,true);fx('boom',soundRef.current)}else fx('swap',soundRef.current)
+ }
+ /** Pop or Grow the fruit at a point in the jar (or, from the keyboard, the top one under KONO). */
+ const pickAt=(x:number,y:number|null)=>{
+  const p=pickingRef.current,g=garden.current;if(!p)return false
+  const b=y===null?g.balls.filter(b=>Math.abs(b.x-x)<=RADIUS[b.tier]).sort((a,b)=>a.y-RADIUS[a.tier]-(b.y-RADIUS[b.tier]))[0]:fruitAt(g,x,y)
+  if(!b){fx('nope',soundRef.current);return true}
+  const n=p==='pop'?popFruit(g,b.id):growFruit(g,b.id)
+  garden.current=n;setHud(hudOf(n));setPicking(null)
+  burst.current(b.x,b.y,p==='pop'?b.tier:Math.min(b.tier+1,LADDER.length-1),p==='grow')
+  fx(p==='pop'?'squish':'star',soundRef.current)
+  return true
+ }
+ const pickRef=useRef(pickAt)
+ useEffect(()=>{pickRef.current=pickAt})
  const releaseRef=useRef(release)
  useEffect(()=>{releaseRef.current=release})
  useEffect(()=>{
@@ -34,7 +65,8 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   const key=(e:KeyboardEvent,down:boolean)=>{
    if(e.code==='ArrowLeft'||e.code==='KeyA'){held.left=down;if(down)aim.current=Math.max(0,aim.current-3);e.preventDefault()}
    else if(e.code==='ArrowRight'||e.code==='KeyD'){held.right=down;if(down)aim.current=Math.min(JAR.w,aim.current+3);e.preventDefault()}
-   else if(down&&(e.code==='Space'||e.code==='ArrowDown')){e.preventDefault();releaseRef.current()}
+   else if(down&&(e.code==='Space'||e.code==='ArrowDown')){e.preventDefault();if(!pickRef.current(shown.current,null))releaseRef.current()}
+   else if(down&&e.code==='Escape'&&pickingRef.current){e.preventDefault();setPicking(null)}
   }
   const kd=(e:KeyboardEvent)=>key(e,true),ku=(e:KeyboardEvent)=>key(e,false)
   window.addEventListener('keydown',kd);window.addEventListener('keyup',ku)
@@ -42,6 +74,11 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   document.addEventListener('visibilitychange',back)
   const fxs:Bit[]=[],floats:Float[]=[]
   let raf=0,last=performance.now(),acc=0,combo=0,comboAt=-1e9,shake=0,cheer=0,t=0
+  burst.current=(bx,by,tier,big)=>{
+   const col=tier<0?'#ffd0de':LADDER[tier].color
+   for(let k=0;k<(big?24:14);k++){const a=Math.random()*Math.PI*2,v=1.2+Math.random()*2.6;fxs.push({x:bx*S,y:by*S,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1.6,life:1,color:k%3?col:'#ffffff',size:3+Math.random()*5})}
+   if(big){shake=1;cheer=1}
+  }
   const loop=(now:number)=>{
    const dt=Math.min(50,now-last);last=now;t+=dt/16.67
    const m=dt/16.67
@@ -59,6 +96,7 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
       const tier=Math.min(p.tier,LADDER.length-1),col=LADDER[tier].color
       combo=now-comboAt<1300?combo+1:1;comboAt=now
       for(let k=0;k<14;k++){const a=Math.random()*Math.PI*2,v=1.2+Math.random()*2.6;fxs.push({x:p.x*S,y:p.y*S,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1.6,life:1,color:k%3?col:'#ffffff',size:3+Math.random()*5})}
+      if(combo>1)for(const f of floats)f.sub=''
       floats.push({x:p.x*S,y:p.y*S,text:p.tier>=LADDER.length?'🌈 +100':'+'+((p.tier+1)*(p.tier+2)/2),sub:combo>1?'Combo ×'+combo:'',at:now})
       if(p.tier>=6){shake=Math.min(1,0.4+p.tier*0.06);cheer=1}
       fx(p.tier>=8?'mega':'match',soundRef.current,Math.min(10,tier+combo-1))
@@ -66,7 +104,7 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
      }
     }
     garden.current=g
-    if(g.score!==before.score||g.next!==before.next||(g.danger>30)!==(before.danger>30))setHud({score:g.score,next:g.next,best:g.best,danger:g.danger>30})
+    if(g.score!==before.score||g.next!==before.next||(g.danger>30)!==(before.danger>30)||g.earned!==before.earned)setHud(hudOf(g))
     if(g.over&&!ended.current){ended.current=true;gameSound('lose',soundRef.current);window.setTimeout(()=>onEndRef.current(g.score,g.best),1000)}
    }
    // How each fruit moves on top of the physics: a new one pops in small, bounces past full size and
@@ -82,7 +120,7 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
    for(let k=floats.length-1;k>=0;k--)if(now-floats[k].at>1100)floats.splice(k,1)
    shake=Math.max(0,shake-0.06*m);cheer=Math.max(0,cheer-0.015*m)
    const cooling=performance.now()<cool.current,grow=cooling?1-(cool.current-performance.now())/380:1
-   draw(canvas.current,garden.current,shown.current,grow,kono.current,looks,fxs,floats,now,t,shake,cheer)
+   draw(canvas.current,garden.current,shown.current,grow,kono.current,looks,fxs,floats,now,t,shake,cheer,pickingRef.current)
    raf=requestAnimationFrame(loop)
   }
   raf=requestAnimationFrame(loop)
@@ -90,24 +128,33 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
  },[])
  const aimAt=(e:React.PointerEvent<HTMLCanvasElement>)=>{const r=e.currentTarget.getBoundingClientRect();aim.current=(e.clientX-r.left)/r.width*JAR.w}
  return <div className="break-game kono-bloom">
-  <div className="blast-top"><span className="blast-best">{best!==null?'Best '+best.toLocaleString():'KONO Bloom'}</span></div>
   <div className={'bloom-frame'+(hud.danger?' is-danger':'')}>
+   <div className="bloom-bar">
+    <p className="bloom-next" aria-label={'Next: '+LADDER[hud.after].name}><span aria-hidden="true">Next</span><FruitIcon tier={hud.after} size={32}/></p>
+    <strong className="bloom-score" aria-live="polite">{hud.score.toLocaleString()}</strong>
+    <p className="bloom-best">{best!==null?'Best '+best.toLocaleString():''}</p>
+   </div>
    {hud.danger&&<span className="bloom-warn" role="status">Too full! Get under the line</span>}
-   <strong className="bloom-score" aria-live="polite">{hud.score.toLocaleString()}</strong>
-   <canvas ref={canvas} width={JAR.w*S} height={JAR.h*S} role="img" aria-label={'KONO Bloom fruit jar, '+hud.score+' points'}
-    onPointerMove={aimAt} onPointerDown={e=>{e.currentTarget.setPointerCapture?.(e.pointerId);aimAt(e)}} onPointerUp={e=>{aimAt(e);release()}}/>
+   <canvas ref={canvas} width={JAR.w*S} height={JAR.h*S} role="img" aria-label={'KONO Bloom fruit jar, '+hud.score+' points. Move to aim and let go to drop (or the arrow keys and Space); two the same fruit grow into the next one'}
+    className={picking?'is-picking':undefined}
+    onPointerMove={aimAt} onPointerDown={e=>{e.currentTarget.setPointerCapture?.(e.pointerId);aimAt(e)}}
+    onPointerUp={e=>{aimAt(e);const r=e.currentTarget.getBoundingClientRect();if(!pickAt(aim.current,(e.clientY-r.top)/r.height*JAR.h))release()}}/>
+   {picking&&<p className="bloom-pick" role="status">{picking==='pop'?'💥 Tap a fruit to pop it':'✨ Tap a fruit to grow it'}<button type="button" onClick={()=>setPicking(null)}>Cancel</button></p>}
+   <div className="bloom-powers" role="group" aria-label="Power-ups">
+    {POWERS.map(p=>{const n=hud.powers[p.id],off=n<1||(p.id==='swap'&&hud.next===hud.after)
+     return <button key={p.id} type="button" className={'bloom-power'+(picking===p.id?' is-on':'')} disabled={off} aria-pressed={p.id==='pop'||p.id==='grow'?picking===p.id:undefined}
+      aria-label={p.name+', '+n+' left. '+p.help} title={p.help} onClick={()=>use(p.id)}>
+      <span aria-hidden="true">{p.emoji}</span><small aria-hidden="true">{p.name}</small><b aria-hidden="true">{n}</b></button>})}
+    <span className="bloom-meter" role="meter" aria-label="Next power-up" aria-valuemin={0} aria-valuemax={CHARGE} aria-valuenow={hud.charge} style={{'--k':hud.charge/CHARGE} as React.CSSProperties}><i/></span>
+   </div>
   </div>
-  <aside className="bloom-side">
-   <p className="bloom-next" aria-label={'Next: '+LADDER[hud.next].name}><small>Next</small><span className="bloom-next-ball" style={{background:'none'}} aria-hidden="true"><FruitIcon tier={hud.next}/></span><b>{LADDER[hud.next].name}</b></p>
-   <ol className="bloom-ladder" aria-label="The fruit ladder: two the same grow into the next">{LADDER.map((t,i)=><li key={t.name} className={(i<=hud.best?'is-grown':'')+(i===hud.best&&hud.best>0?' is-best':'')} style={{'--c':t.color} as React.CSSProperties}><span aria-hidden="true"><FruitIcon tier={i} size={26}/></span><small>{t.name}</small></li>)}</ol>
-  </aside>
-  <p className="blast-help">Move to aim and let go to drop (or ← → and Space). Two the same fruit grow into the next one, all the way up to the Rainbow Fruit. Keep the jar under the dashed line!</p>
+  <ol className="bloom-ladder" aria-label="The fruit ladder: two the same grow into the next">{LADDER.map((t,i)=><li key={t.name} className={(i<=hud.best?'is-grown':'')+(i===hud.best&&hud.best>0?' is-best':'')} style={{'--c':t.color} as React.CSSProperties}><FruitIcon tier={i}/><small>{t.name}</small></li>)}</ol>
  </div>
 }
 
 /** A fruit as a little picture (the next one, and the ladder), drawn the same way as in the jar. */
 function FruitIcon({tier,size}:{tier:number;size?:number}){
- return <img src={iconUrl(tier)} alt="" width={size} height={size} style={{width:size??'100%',height:size??'100%',objectFit:'contain'}} draggable={false}/>
+ return <img src={iconUrl(tier)} alt="" width={size} height={size} draggable={false}/>
 }
 const icons=new Map<number,string>()
 function iconUrl(tier:number){
@@ -126,7 +173,7 @@ function landing(g:Garden,x:number,tier:number){
  for(const b of g.balls){const R=RADIUS[b.tier]+r,dx=Math.abs(b.x-x);if(dx<R){const top=b.y-Math.sqrt(R*R-dx*dx);if(top<y)y=top}}
  return Math.max(JAR.dropY,y)
 }
-function draw(c:HTMLCanvasElement|null,g:Garden,aim:number,grow:number,kono:{happy:HTMLImageElement;cheer:HTMLImageElement;gasp:HTMLImageElement}|null,looks:Map<number,Look>,fxs:Bit[],floats:Float[],now:number,t:number,shake:number,cheer:number){
+function draw(c:HTMLCanvasElement|null,g:Garden,aim:number,grow:number,kono:{happy:HTMLImageElement;cheer:HTMLImageElement;gasp:HTMLImageElement}|null,looks:Map<number,Look>,fxs:Bit[],floats:Float[],now:number,t:number,shake:number,cheer:number,picking:Power|null){
  const x=c?.getContext('2d');if(!c||!x)return
  const W=c.width,H=c.height,danger=g.danger>30
  x.save();if(shake)x.translate(Math.sin(t*2.3)*4*shake,Math.cos(t*2.9)*2*shake)
@@ -153,10 +200,15 @@ function draw(c:HTMLCanvasElement|null,g:Garden,aim:number,grow:number,kono:{hap
  // The fruit.
  for(const b of g.balls){const l=looks.get(b.id),age=l&&l.born>=0?l.born:99
   const pop=age<60?1-0.45*Math.exp(-age/9)*Math.cos(age/3.4):1,sq=l?.squash??0
-  const mood:Mood=age<45?'beam':danger&&b.y*S<JAR.line*S+RADIUS[b.tier]*S*3?'worried':l&&((t+l.blink)%240<6)?'blink':'happy'
+  const mood:Mood=b.vy>1.3?'whee':age<45?'beam':danger&&b.y*S<JAR.line*S+RADIUS[b.tier]*S*3?'worried':l&&((t+l.blink)%240<6)?'blink':'happy'
   // A gentle breathing bob, each fruit in its own time.
   const br=Math.sin(t*0.07+b.id*1.7)*0.022
-  drawFruit(x,b.x*S,b.y*S,b.tier,pop*(1+sq+br),pop*(1-sq-br),mood)}
+  drawFruit(x,b.x*S,b.y*S,b.tier,pop*(1+sq+br),pop*(1-sq-br),mood)
+  // Big fruit twinkle.
+  if(b.tier>=6){const r=RADIUS[b.tier]*S,tw=(Math.sin(t*0.12+b.id)+1)/2;x.fillStyle='rgba(255,255,255,'+(0.4+tw*0.6)+')';const px=b.x*S+r*0.72,py=b.y*S-r*0.78,q=r*0.12*(0.6+tw*0.5);x.beginPath();for(let k=0;k<8;k++){const a=k/8*Math.PI*2,d=k%2?q*0.35:q;x.lineTo(px+Math.cos(a)*d,py+Math.sin(a)*d)}x.closePath();x.fill()}}
+ // Picking a fruit for Pop or Grow: each one glows with a dashed ring.
+ if(picking){x.save();x.setLineDash([10,8]);x.lineDashOffset=-t*0.8;x.lineWidth=4;x.strokeStyle=picking==='pop'?'rgba(232,84,110,.9)':'rgba(255,200,40,.95)'
+  for(const b of g.balls){x.beginPath();x.arc(b.x*S,b.y*S,RADIUS[b.tier]*S+6+Math.sin(t*0.15)*2,0,Math.PI*2);x.stroke()}x.restore()}
  // KONO over the jar holding the next fruit (it pops into KONO's paws after each drop).
  if(!g.over&&kono){
   const pic=cheer>0.2&&ok(kono.cheer)?kono.cheer:danger&&ok(kono.gasp)?kono.gasp:kono.happy
@@ -182,12 +234,14 @@ function draw(c:HTMLCanvasElement|null,g:Garden,aim:number,grow:number,kono:{hap
  x.restore()
 }
 const ok=(i?:HTMLImageElement)=>!!i&&i.complete&&i.naturalWidth>0
-type Mood='happy'|'beam'|'blink'|'worried'|'look'
+type Mood='happy'|'beam'|'blink'|'worried'|'look'|'whee'
 function drawFruit(x:CanvasRenderingContext2D,cx:number,cy:number,tier:number,sx:number,sy:number,mood:Mood){
  const r=RADIUS[tier]*S,spr=sprite(tier),pad=spr.width/2
  x.save()
  // Scaled about its bottom, so a squash sits on what it landed on.
- if(sx!==1||sy!==1){x.translate(cx,cy+r);x.scale(sx,sy);x.translate(-cx,-(cy+r))}
+ // A soft mochi squish (a touch wider and lower), and any squash, about its bottom.
+ sx*=1.035;sy*=0.965
+ x.translate(cx,cy+r);x.scale(sx,sy);x.translate(-cx,-(cy+r))
  x.drawImage(spr,cx-pad/SPR_SCALE,cy-pad/SPR_SCALE,spr.width/SPR_SCALE,spr.height/SPR_SCALE)
  face(x,cx,cy,r,mood,tier)
  x.restore()
@@ -250,29 +304,41 @@ function fruit(x:CanvasRenderingContext2D,cx:number,cy:number,r:number,tier:numb
  x.fillStyle='rgba(255,255,255,.75)';x.beginPath();x.ellipse(cx-r*0.42,cy-r*0.42,r*0.24,r*0.14,-0.75,0,7);x.fill()
  x.beginPath();x.arc(cx-r*0.12,cy-r*0.64,r*0.06,0,7);x.fill()
 }
-/** A kawaii face: big round eyes with two sparkles, rosy cheeks and a mouth with its own personality per
- * fruit (a smile, a cat mouth, an open grin, a tongue out). It blinks, beams after growing, looks worried near
- * the top when the jar's too full, and looks down at the jar while KONO holds it. */
+/** A kawaii face: big sparkly eyes (a large shine, a small one and a twinkle), blushing cheeks with little
+ * shine lines, and a small mouth with its own personality per fruit (ω, a smile, a grin, a tongue out). It
+ * blinks, beams after growing, squeals (> <) while it falls, looks worried near the top when the jar's too
+ * full, and looks down at the jar while KONO holds it. */
 function face(x:CanvasRenderingContext2D,cx:number,cy:number,r:number,mood:Mood,tier:number){
  if(r<10)return
- const ey=cy+r*(tier===8?0.1:0.08),ex=r*0.32,er=Math.max(1.9,r*0.11),ink='#3a2630'
- x.fillStyle='rgba(255,105,140,.42)';x.beginPath();x.ellipse(cx-r*0.55,ey+r*0.24,r*0.17,r*0.11,0,0,7);x.ellipse(cx+r*0.55,ey+r*0.24,r*0.17,r*0.11,0,0,7);x.fill()
- x.strokeStyle=ink;x.fillStyle=ink;x.lineWidth=Math.max(1.6,r*0.06);x.lineCap='round';x.lineJoin='round'
- if(mood==='beam'||mood==='blink'){
-  for(const s of [-1,1]){x.beginPath();if(mood==='beam')x.arc(cx+s*ex,ey+er*0.7,er*1.15,Math.PI*1.12,Math.PI*1.88);else{x.moveTo(cx+s*ex-er,ey+er*0.2);x.quadraticCurveTo(cx+s*ex,ey+er*0.9,cx+s*ex+er,ey+er*0.2)}x.stroke()}
+ const ey=cy+r*(tier===8?0.18:0.14),ex=r*0.36,er=Math.max(2.2,r*0.135),ink='#2b1d2a'
+ // Blush, with three little shine lines.
+ x.fillStyle='rgba(255,105,140,.5)';for(const sg of [-1,1]){x.beginPath();x.ellipse(cx+sg*r*0.6,ey+r*0.28,r*0.19,r*0.12,0,0,7);x.fill()}
+ x.strokeStyle='rgba(255,255,255,.85)';x.lineWidth=Math.max(1,r*0.025);x.lineCap='round'
+ for(const sg of [-1,1])for(let k=0;k<3;k++){const bx=cx+sg*r*0.6+(k-1)*r*0.07;x.beginPath();x.moveTo(bx-r*0.02,ey+r*0.31);x.lineTo(bx+r*0.02,ey+r*0.24);x.stroke()}
+ x.strokeStyle=ink;x.fillStyle=ink;x.lineWidth=Math.max(1.8,r*0.065);x.lineCap='round';x.lineJoin='round'
+ if(mood==='whee'){
+  // > <
+  for(const sg of [-1,1]){x.beginPath();x.moveTo(cx+sg*ex-sg*er*0.9,ey-er*0.8);x.lineTo(cx+sg*ex+sg*er*0.5,ey);x.lineTo(cx+sg*ex-sg*er*0.9,ey+er*0.8);x.stroke()}
+ }else if(mood==='beam'||mood==='blink'){
+  for(const sg of [-1,1]){x.beginPath();if(mood==='beam')x.arc(cx+sg*ex,ey+er*0.75,er*1.15,Math.PI*1.12,Math.PI*1.88);else{x.moveTo(cx+sg*ex-er,ey+er*0.2);x.quadraticCurveTo(cx+sg*ex,ey+er*0.95,cx+sg*ex+er,ey+er*0.2)}x.stroke()}
  }else{
   const dy=mood==='look'?er*0.45:0
-  for(const s of [-1,1]){x.beginPath();x.ellipse(cx+s*ex,ey+dy,er,er*1.25,0,0,7);x.fill()}
-  x.fillStyle='#fff';for(const s of [-1,1]){x.beginPath();x.arc(cx+s*ex-er*0.32,ey+dy-er*0.45,er*0.42,0,7);x.fill();x.beginPath();x.arc(cx+s*ex+er*0.35,ey+dy+er*0.4,er*0.18,0,7);x.fill()}
+  for(const sg of [-1,1]){x.fillStyle=ink;x.beginPath();x.ellipse(cx+sg*ex,ey+dy,er,er*1.22,0,0,7);x.fill()
+   // a hint of colour low in each eye, then the shines
+   x.fillStyle='rgba(120,90,200,.45)';x.beginPath();x.ellipse(cx+sg*ex,ey+dy+er*0.55,er*0.62,er*0.42,0,0,7);x.fill()
+   x.fillStyle='#fff';x.beginPath();x.arc(cx+sg*ex-er*0.3,ey+dy-er*0.42,er*0.46,0,7);x.fill()
+   x.beginPath();x.arc(cx+sg*ex+er*0.38,ey+dy+er*0.35,er*0.2,0,7);x.fill()
+   x.beginPath();x.arc(cx+sg*ex+er*0.1,ey+dy-er*0.75,er*0.1,0,7);x.fill()}
   if(mood==='worried'){x.strokeStyle=ink;x.beginPath();x.moveTo(cx-ex-er*1.2,ey-er*2.1);x.lineTo(cx-ex+er*0.9,ey-er*1.6);x.moveTo(cx+ex+er*1.2,ey-er*2.1);x.lineTo(cx+ex-er*0.9,ey-er*1.6);x.stroke()}
  }
  const my=ey+r*0.24
- x.strokeStyle=ink;x.fillStyle=ink
- if(mood==='worried'){x.beginPath();x.ellipse(cx,my+r*0.04,r*0.07,r*0.09,0,0,7);x.fill();return}
- const style=mood==='beam'?'grin':['smile','cat','grin','smile','tongue','cat','smile','grin','cat','tongue','grin'][tier]
+ x.strokeStyle=ink;x.fillStyle=ink;x.lineWidth=Math.max(1.6,r*0.055)
+ if(mood==='worried'){x.beginPath();x.ellipse(cx,my+r*0.04,r*0.06,r*0.08,0,0,7);x.fill();return}
+ if(mood==='whee'){x.beginPath();x.ellipse(cx,my+r*0.03,r*0.09,r*0.11,0,0,7);x.fillStyle='#b8344f';x.fill();x.fillStyle='#ff8fa3';x.beginPath();x.ellipse(cx,my+r*0.08,r*0.05,r*0.04,0,0,7);x.fill();return}
+ const style=mood==='beam'?'grin':['cat','smile','cat','grin','tongue','cat','smile','grin','cat','tongue','grin'][tier]
  x.beginPath()
- if(style==='grin'){x.moveTo(cx-r*0.15,my-r*0.02);x.quadraticCurveTo(cx,my+r*0.26,cx+r*0.15,my-r*0.02);x.closePath();x.fillStyle='#b8344f';x.fill();x.fillStyle='#ff8fa3';x.beginPath();x.ellipse(cx,my+r*0.09,r*0.07,r*0.04,0,0,7);x.fill()}
- else if(style==='cat'){x.moveTo(cx-r*0.14,my);x.quadraticCurveTo(cx-r*0.07,my+r*0.1,cx,my);x.quadraticCurveTo(cx+r*0.07,my+r*0.1,cx+r*0.14,my);x.stroke()}
- else if(style==='tongue'){x.arc(cx,my-r*0.02,r*0.12,0.15,Math.PI-0.15);x.stroke();x.fillStyle='#ff7f98';x.beginPath();x.ellipse(cx+r*0.03,my+r*0.1,r*0.06,r*0.07,0,0,7);x.fill()}
- else{x.arc(cx,my-r*0.04,r*0.12,0.25,Math.PI-0.25);x.stroke()}
+ if(style==='grin'){x.moveTo(cx-r*0.13,my-r*0.02);x.quadraticCurveTo(cx,my+r*0.22,cx+r*0.13,my-r*0.02);x.closePath();x.fillStyle='#b8344f';x.fill();x.fillStyle='#ff8fa3';x.beginPath();x.ellipse(cx,my+r*0.08,r*0.06,r*0.035,0,0,7);x.fill()}
+ else if(style==='cat'){x.moveTo(cx-r*0.12,my);x.quadraticCurveTo(cx-r*0.06,my+r*0.09,cx,my);x.quadraticCurveTo(cx+r*0.06,my+r*0.09,cx+r*0.12,my);x.stroke()}
+ else if(style==='tongue'){x.arc(cx,my-r*0.02,r*0.1,0.15,Math.PI-0.15);x.stroke();x.fillStyle='#ff7f98';x.beginPath();x.ellipse(cx+r*0.03,my+r*0.08,r*0.05,r*0.06,0,0,7);x.fill()}
+ else{x.arc(cx,my-r*0.04,r*0.1,0.25,Math.PI-0.25);x.stroke()}
 }

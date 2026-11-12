@@ -1,7 +1,7 @@
 import {dailyBest,dailySeed,teeterLevel,SKINS,type BoardRow,type SkinId,type TeeterControl} from '../store/teeter'
 import './teeter-modes.css'
 
-export type TeeterPick='classic'|'daily'|'puzzle'|'race'
+export type TeeterPick='classic'|'daily'|'puzzle'|'race'|'cats'
 type Skins={owned:Set<SkinId>;chosen:SkinId;onChoose:(id:SkinId)=>void;balance?:number;onBuy?:(id:SkinId)=>void}
 /** KONO Teeter Tower's start card: the classic climb, today's tower (the same blocks for everyone today, with
  * the family's board) or the next puzzle level, and the block skins (bought with coins). */
@@ -12,6 +12,7 @@ export default function TeeterModes({pick,onPick,skins,board,control,onControl}:
   ['daily','📅','Today’s tower',today!==null?'Your best today: '+today:'Same blocks for everyone'],
   ['puzzle','🚩','Puzzles','Level '+level+' is next'],
   ['race','🏁','Race KONO','First to row 15'],
+  ['cats','🐱','Cat drop','Tap to drop swinging cats'],
  ]
  return <div className="teeter-start">
   <div className="teeter-modes" role="radiogroup" aria-label="How to play">
@@ -19,11 +20,11 @@ export default function TeeterModes({pick,onPick,skins,board,control,onControl}:
     <span aria-hidden="true">{emoji}</span><b>{name}</b><small>{sub}</small>
    </button>)}
   </div>
-  {control&&onControl&&<div className="teeter-control" role="radiogroup" aria-label="How blocks come">
+  {control&&onControl&&pick!=='cats'&&<div className="teeter-control" role="radiogroup" aria-label="How blocks come">
    {([['fall','⬇️','Falling','Steer them as they fall'],['hold','🤲','Hold & drop','KONO holds, you let go']] as const).map(([id,emoji,name,sub])=><button key={id} type="button" role="radio" aria-checked={control===id} className={control===id?'is-on':undefined} onClick={()=>onControl(id)}><span aria-hidden="true">{emoji}</span><b>{name}</b><small>{sub}</small></button>)}
   </div>}
   {pick==='daily'&&board&&<TeeterBoard rows={board}/>}
-  {skins&&<div className="teeter-skins" role="group" aria-label="Block skins">
+  {skins&&pick!=='cats'&&<div className="teeter-skins" role="group" aria-label="Block skins">
    {SKINS.map(s=>{const own=skins.owned.has(s.id),on=skins.chosen===s.id,short=!own&&(skins.balance===undefined||skins.balance<s.price)
     return <button key={s.id} type="button" aria-pressed={own?on:undefined} disabled={!own&&(!skins.onBuy||short)} className={'is-'+s.id+(on?' is-on':'')+(own?'':' is-for-sale')}
      aria-label={own?s.name+' blocks'+(on?', in use':''):'Buy '+s.name+' blocks for '+s.price+' coins'+(short?' (not enough coins yet)':'')}

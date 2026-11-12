@@ -158,9 +158,12 @@ let track:HTMLAudioElement|null=null
  * "Shimmering Motif", "Late Night Pulse", "Soaring Euphoria", "Transcendent Arpeggios"). Add a game here when its file goes in public/audio/games (and in
  * tools/public-allowlist.json). */
 const RECORDED=new Set<Theme>(['candy','gems','blast','flow','teeter','bloom'])
-// A game whose song lives somewhere else, in Medal Cove's playlist: KONO Teeter Tower plays "Calm Sanctuary
-// Variation", KONO Bloom "Both tracks · alternating".
-const TRACK_SRC:Partial<Record<Theme,string>>={teeter:'/audio/medal-cove/calm-sanctuary.mp3',bloom:'/audio/medal-cove/sanctuary-mix.mp3'}
+// Games that play the KONO playlist (Medal Cove's songs) instead of one track: each song crossfades into
+// the next, starting from a different one each time so a long game isn't the same tune over and over.
+// Full-length songs only (Medal Cove's short cues are for its events): "Both tracks · alternating", "Coin
+// Sound", the KONO main theme, "Floating Pads" and "Shimmering Motif", about 11 minutes before one repeats.
+const KONO_PLAYLIST=['/audio/medal-cove/sanctuary-mix.mp3','/audio/medal-cove/coin-sound.mp3','/audio/main-theme.mp3','/audio/games/flow-1.mp3','/audio/games/flow-2.mp3']
+const TRACK_SRC:Partial<Record<Theme,string[]>>={teeter:KONO_PLAYLIST,bloom:KONO_PLAYLIST}
 const missing=new Set<Theme>([...(['candy','gems','meow','flap','paper','blast','flow'] as Theme[])].filter(t=>!RECORDED.has(t)))
 /** The track before this one, still finishing its fade-out while the next copy plays over it (a loop). */
 let tail:HTMLAudioElement|null=null
@@ -179,17 +182,18 @@ const trackVolume=()=>slow?0.3:0.55
 let lift=0
 const trackRate=()=>slow?0.8:1+lift*0.015
 const applyRate=(a:HTMLAudioElement)=>{a.preservesPitch=slow||!lift;a.playbackRate=trackRate()}
-/** Plays a recorded track. Each file fades in at its start and out at its end, so instead of a plain loop
- * (a dip of a few seconds each time round) the next copy starts over the last 3 seconds. */
-function playTrack(src:string,onFail:()=>void){
- const a=new Audio(src);a.volume=0;applyRate(a);track=a
+/** Plays a recorded track (or a playlist: the next one in `list` after `i`). Each file fades in at its
+ * start and out at its end, so instead of a plain loop (a dip of a few seconds each time round) the next
+ * song, or the next copy of a single one, starts over the last 3 seconds. */
+function playTrack(list:string[],i:number,onFail:()=>void){
+ const a=new Audio(list[i%list.length]);a.volume=0;applyRate(a);track=a
  // KONO Flow's songs play through Web Audio (see audio()) so its notes can keep time with them.
  if(wanted==='flow'){const c=audio();if(c&&muffle)try{c.createMediaElementSource(a).connect(muffle)}catch{/* plays straight out */}}
  let handed=false
  a.addEventListener('error',()=>{if(track===a)onFail()},{once:true})
  a.addEventListener('timeupdate',()=>{
   if(handed||track!==a||!a.duration||a.duration-a.currentTime>3)return
-  handed=true;tail?.pause();tail=a;playTrack(src,onFail)
+  handed=true;tail?.pause();tail=a;playTrack(list,(i+1)%list.length,onFail)
  })
  a.addEventListener('ended',()=>{if(tail===a)tail=null;if(track===a){a.currentTime=0;void a.play().catch(()=>{})}})
  void a.play().then(()=>{const t0=performance.now();const up=()=>{if(track!==a)return;const k=Math.min(1,(performance.now()-t0)/600);a.volume=trackVolume()*k;if(k<1)requestAnimationFrame(up)};requestAnimationFrame(up)}).catch(()=>{if(track===a&&!document.hidden)onFail()})
@@ -208,7 +212,8 @@ export function startMusic(theme:Theme,enabled:boolean,part=0){
  stopTimer();stopTrack(same?900:0)
  if(!enabled||!musicOn())return
  if(!missing.has(theme)){
-  playTrack(TRACK_SRC[theme]??'/audio/games/'+theme+(part?'-'+part:'')+'.mp3',()=>{stopTrack();missing.add(theme);if(wanted===theme)startMusic(theme,enabled)})
+  const list=TRACK_SRC[theme]
+  playTrack(list??['/audio/games/'+theme+(part?'-'+part:'')+'.mp3'],list?Math.floor(Math.random()*list.length):0,()=>{stopTrack();missing.add(theme);if(wanted===theme)startMusic(theme,enabled)})
   return
  }
  synth(theme)

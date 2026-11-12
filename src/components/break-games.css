@@ -768,13 +768,6 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 @media(prefers-reduced-motion:reduce){.gc-cake-drop,.gc-bloom-drop{animation:none}}
 
 /* ---- KONO Bloom: a garden jar ---- */
-.kono-bloom{display:grid;gap:10px;justify-items:center;width:min(460px,100%);margin:0 auto}
-.bloom-frame{position:relative;width:min(100%,calc((100dvh - 290px) * 100 / 140));aspect-ratio:100/140;border-radius:22px 22px 30px 30px;overflow:hidden;border:5px solid rgb(255 255 255/.85);box-shadow:0 12px 30px rgb(20 40 20/.35),inset 0 0 0 2px rgb(120 170 140/.4);touch-action:none;transition:box-shadow .3s}
-.bloom-frame.is-danger{box-shadow:0 0 0 4px rgb(230 60 70/.6),0 12px 30px rgb(20 40 20/.35)}
-.bloom-frame canvas{display:block;width:100%;height:100%;cursor:pointer}
-.bloom-score{position:absolute;top:10px;right:14px;font-size:1.6rem;font-weight:900;color:#3b5a3a;text-shadow:0 2px 0 #fff;pointer-events:none}
-.bloom-ladder{list-style:none;margin:0;padding:6px 10px;display:flex;gap:4px;flex-wrap:wrap;justify-content:center;border-radius:999px;background:rgb(255 255 255/.85)}
-.game-screen:has(.kono-bloom){background:radial-gradient(ellipse at 50% 0,#c9f2c0,#7cc48a 55%,#3f7a5a)}
 .game-cover.is-bloom{background:linear-gradient(180deg,#eaf7ff,#cdeccf)}
 .gc-bloom{position:absolute;inset:0}
 .gc-bloom i{position:absolute;font-style:normal;line-height:1}
@@ -816,40 +809,6 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 @media(prefers-reduced-motion:reduce){.stack-pips.is-growing i{animation:none}}
 .game-result.is-over-game .game-result-emoji{display:none}
 .game-result.is-over-game .game-result-score{font-size:2rem;margin:0}
-/* KONO Bloom: the jar big, with Next and the garden ladder readable beside it (under it on a phone). */
-.kono-bloom{grid-template-columns:auto}
-.bloom-side{display:grid;gap:8px;justify-items:center}
-.bloom-next{display:flex;align-items:center;gap:10px;margin:0;padding:6px 14px 6px 10px;border-radius:999px;background:#fff;color:#2f4a2e;box-shadow:0 3px 10px rgb(20 40 20/.2)}
-.bloom-next small{font-weight:900;text-transform:uppercase;letter-spacing:.06em;font-size:.72rem;color:#5a7a58}
-.bloom-next b{font-size:1rem}
-.bloom-next-ball{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;font-size:1.6rem;background:radial-gradient(circle at 35% 30%,#fff,var(--c) 45%,color-mix(in srgb,var(--c),#000 25%));box-shadow:inset 0 0 0 2px rgb(60 40 70/.2)}
-.bloom-ladder li{display:grid;justify-items:center;gap:1px;min-width:34px;padding:2px 3px;border-radius:12px;font-size:1.3rem;line-height:1.1;background:rgb(255 255 255/.5)}
-.bloom-ladder li small{font-size:.58rem;font-weight:800;color:#3b5a3a;line-height:1}
-.bloom-ladder li:not(.is-grown){opacity:.78}
-.bloom-ladder li.is-grown{background:color-mix(in srgb,var(--c),#fff 55%)}
-.bloom-ladder li.is-best{outline:3px solid #2f7a4a;outline-offset:-1px}
-.bloom-warn{position:absolute;z-index:2;left:50%;top:22%;translate:-50% 0;padding:4px 12px;border-radius:999px;background:#d63044;color:#fff;font-weight:900;font-size:.85rem;white-space:nowrap;pointer-events:none;animation:bloom-warn .5s ease-in-out infinite alternate}
-@keyframes bloom-warn{to{scale:1.06}}
-@media(prefers-reduced-motion:reduce){.bloom-warn{animation:none}}
-@media(min-width:900px){
- .kono-bloom{width:auto;grid-template-columns:auto 220px;grid-template-areas:'top top' 'jar side' 'help help';align-items:start;column-gap:22px}
- .kono-bloom>.blast-top{grid-area:top}
- .kono-bloom>.bloom-frame{grid-area:jar;width:min(580px,calc((100dvh - 200px) * 100 / 140))}
- .kono-bloom>.bloom-side{grid-area:side;align-self:center;justify-items:stretch}
- .kono-bloom>.blast-help{grid-area:help}
- .bloom-next{flex-direction:column;border-radius:22px;padding:12px}
- .bloom-next-ball{width:72px;height:72px;font-size:2.6rem}
- .bloom-ladder{flex-direction:column;flex-wrap:nowrap;border-radius:18px;padding:8px}
- .bloom-ladder li{grid-template-columns:32px 1fr;justify-items:start;align-items:center;gap:8px;padding:3px 8px}
- .bloom-ladder li small{font-size:.8rem}
-}
-@media(max-width:600px){
- .bloom-side{grid-template-columns:auto 1fr;align-items:center;width:100%;gap:6px}
- .bloom-next{padding:4px 10px 4px 6px;gap:6px}.bloom-next b{display:none}.bloom-next-ball{width:36px;height:36px;font-size:1.3rem}
- .bloom-ladder{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding:4px 6px;min-width:0;max-width:100%}
- .bloom-ladder li{min-width:28px;font-size:1.1rem}.bloom-ladder li small{display:none}
- .kono-bloom>.blast-help{display:none}
-}
 /* Medal Cove: the three bonus wheels, zoomed in over the cabinet. They turn with the wheels in the machine;
    a spinning one lifts and its bulbs chase, and its prize shows under it. */
 /* Medal Cove's jackpot: the number on the board bumps when it grows; Jackpot Chance gets its banner; a win

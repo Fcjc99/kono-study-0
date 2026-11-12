@@ -1,0 +1,59 @@
+/* KONO Bloom, full screen: the jar as big as the screen allows under the toolbar, with its score, best and
+   next fruit in a bar along its top, and the fruit ladder below it (beside it on wide screens). The game
+   screen behind is a soft pastel orchard. Loaded with the game only. */
+.game-screen:has(.kono-bloom){background:radial-gradient(circle at 18% 22%,rgb(255 255 255/.55) 0 3px,transparent 4px) 0 0/46px 46px,radial-gradient(circle at 70% 70%,rgb(255 255 255/.4) 0 2px,transparent 3px) 0 0/38px 38px,linear-gradient(180deg,#ffe4ec 0%,#ffd9e6 40%,#d8f2df 100%)}
+.game-screen:has(.kono-bloom)>header{color:#5a2f45;text-shadow:0 1px 0 rgb(255 255 255/.6)}
+.game-screen-body:has(>.kono-bloom){display:flex;flex-direction:column;align-items:stretch;overflow:hidden;padding:2px 10px calc(env(safe-area-inset-bottom) + 10px)}
+.game-screen-body>.kono-bloom{max-width:none}
+.kono-bloom{flex:1;min-height:0;width:100%;container-type:size;display:grid;grid-template-rows:auto auto;align-content:center;justify-items:center;align-items:center;gap:10px}
+/* The jar: as wide as fits both ways (bar 46px, ladder about 64px below). */
+.bloom-frame{position:relative;display:grid;grid-template-rows:46px auto auto;width:min(100cqw - 4px,calc((100cqh - 64px - 46px - 58px) / 1.4));border-radius:28px;overflow:hidden;border:5px solid #fff;background:#fff;box-shadow:0 14px 34px rgb(150 60 100/.25),0 0 0 2px rgb(255 160 190/.35);touch-action:none;transition:box-shadow .3s}
+.bloom-frame.is-danger{box-shadow:0 0 0 4px rgb(232 84 110/.7),0 14px 34px rgb(150 60 100/.25)}
+.bloom-frame canvas{display:block;width:100%;aspect-ratio:100/140;cursor:pointer}
+/* The bar: next fruit on the left, the score in the middle, the best on the right. */
+.bloom-bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;padding:0 10px;background:linear-gradient(180deg,#fff7fb,#ffeef4);border-bottom:2px dashed #ffd0de;color:#5a2f45}
+.bloom-next{display:flex;align-items:center;gap:6px;margin:0;justify-self:start;font-weight:900;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#b0607e}
+.bloom-next img{width:32px;height:32px;filter:drop-shadow(0 2px 2px rgb(150 60 100/.2))}
+.bloom-score{font-size:1.55rem;font-weight:900;color:#e8546e;text-shadow:0 2px 0 #fff;font-variant-numeric:tabular-nums}
+.bloom-best{justify-self:end;margin:0;font-size:.74rem;font-weight:800;color:#b0607e;white-space:nowrap}
+.bloom-warn{position:absolute;z-index:2;left:50%;top:calc(46px + 20%);translate:-50% 0;padding:4px 12px;border-radius:999px;background:#e8546e;color:#fff;font-weight:900;font-size:.85rem;white-space:nowrap;box-shadow:0 4px 12px rgb(232 84 110/.4);animation:bloom-warn .6s ease-in-out infinite alternate}
+@keyframes bloom-warn{to{scale:1.06}}
+/* The fruit ladder: one neat row of all eleven; the ones you've grown light up. */
+.bloom-ladder{list-style:none;margin:0;padding:6px 8px;display:grid;grid-template-columns:repeat(11,1fr);gap:3px;width:min(100cqw,520px);border-radius:999px;background:rgb(255 255 255/.75);box-shadow:0 4px 14px rgb(150 60 100/.15)}
+.bloom-ladder li{display:grid;justify-items:center;padding:2px 0;border-radius:12px;opacity:.55;transition:opacity .2s,background .2s}
+.bloom-ladder li img{width:100%;max-width:36px;height:auto;aspect-ratio:1}
+.bloom-ladder li small{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.bloom-ladder li.is-grown{opacity:1;background:color-mix(in srgb,var(--c),#fff 70%)}
+.bloom-ladder li.is-best{box-shadow:0 0 0 2.5px #e8546e}
+/* Wide screens (tablets on their side, computers): the ladder stands beside the jar, with names. */
+@media (min-width:820px) and (min-aspect-ratio:1/1){
+ .kono-bloom{grid-template-rows:auto;grid-template-columns:1fr auto 1fr;column-gap:24px}
+ .bloom-frame{grid-column:2;width:min(100cqw - 460px,calc((100cqh - 46px - 58px) / 1.4))}
+ .bloom-ladder{grid-column:3;justify-self:start;grid-template-columns:auto;width:auto;border-radius:22px;padding:10px;gap:2px}
+ .bloom-ladder li{grid-template-columns:34px auto;justify-items:start;align-items:center;gap:8px;padding:2px 12px 2px 4px}
+ .bloom-ladder li small{position:static;width:auto;height:auto;overflow:visible;clip:auto;font-size:.82rem;font-weight:800;color:#5a2f45}
+}
+/* Tall tablets (upright): more room, so names under the icons. */
+@media (min-width:600px) and (max-aspect-ratio:1/1){
+ .bloom-ladder{width:min(100cqw,640px)}
+ .bloom-ladder li small{position:static;width:auto;height:auto;overflow:visible;clip:auto;font-size:.6rem;font-weight:800;color:#5a2f45}
+}
+@media (prefers-reduced-motion:reduce){.bloom-warn,.bloom-power.is-on:not(#x):not(#y){animation:none}}
+/* Power-ups along the bottom of the jar, with the meter that earns the next one. (:not(#x):not(#y) and
+   !important: the app's themed button style would otherwise paint over them.) */
+.bloom-powers{display:flex;align-items:center;gap:7px;padding:9px 10px 7px;background:linear-gradient(180deg,#fff2f7,#ffe6ef);border-top:2px dashed #ffd0de}
+.bloom-power:not(#x):not(#y){position:relative;flex:1;min-width:0;height:44px;min-height:0;margin:0;padding:0 4px;display:flex;align-items:center;justify-content:center;gap:4px;border:0!important;border-radius:16px!important;background:#fff!important;color:#5a2f45!important;font:inherit;font-weight:900;box-shadow:0 3px 0 #f4bfd0!important;cursor:pointer;transition:transform .12s,box-shadow .12s,background .12s}
+.bloom-power>span{font-size:1.3rem;line-height:1}
+.bloom-power>small{font-size:.74rem;overflow:hidden;text-overflow:ellipsis}
+.bloom-power>b{position:absolute;top:-6px;right:-2px;min-width:19px;height:19px;padding:0 4px;border-radius:999px;background:#e8546e;color:#fff;font-size:.7rem;line-height:19px}
+.bloom-power:not(#x):not(#y):active{transform:translateY(2px);box-shadow:0 1px 0 #f4bfd0!important}
+.bloom-power.is-on:not(#x):not(#y){background:#ffe066!important;box-shadow:0 0 0 3px #e8546e,0 3px 0 #f4bfd0!important;animation:bloom-on .7s ease-in-out infinite alternate}
+@keyframes bloom-on{to{translate:0 -2px}}
+.bloom-power:not(#x):not(#y):disabled{opacity:.4;cursor:default;box-shadow:none!important}
+.bloom-power:disabled>b{background:#b9a3ad}
+.bloom-meter{flex:0 0 10px;align-self:stretch;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 2px #ffd0de;overflow:hidden;display:flex;align-items:flex-end}
+.bloom-meter>i{display:block;width:100%;height:calc(var(--k) * 100%);background:linear-gradient(0deg,#ff8fb1,#ffd36e);transition:height .3s}
+.bloom-pick{position:absolute;z-index:2;left:50%;top:calc(46px + 24%);translate:-50% 0;display:flex;align-items:center;gap:8px;margin:0;padding:5px 6px 5px 14px;border-radius:999px;background:#5a2f45;color:#fff;font-weight:900;font-size:.85rem;white-space:nowrap;box-shadow:0 4px 12px rgb(90 47 69/.35)}
+.bloom-pick button:not(#x):not(#y){min-height:0;margin:0;border:0!important;border-radius:999px!important;padding:4px 10px;background:#fff!important;color:#5a2f45!important;box-shadow:none!important;font:inherit;font-size:.78rem;cursor:pointer}
+.bloom-frame canvas.is-picking{cursor:crosshair}
+@media (max-width:380px){.bloom-power>small{display:none}}
