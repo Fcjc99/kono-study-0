@@ -4769,6 +4769,10 @@ test('KONO Teeter Tower: drag a block and let go and it drops where you put it; 
  await town.getByRole('button',{name:/KONO Teeter Tower/}).click()
  await modes.getByRole('radio',{name:/Today’s tower/}).click()
  await game.getByRole('region',{name:'Today’s family board'}).getByText('No one has played today’s tower yet. Be the first!').waitFor()
+ // Race Rival KONO: a mode of its own, started from the start card.
+ await modes.getByRole('radio',{name:/Race KONO/}).click()
+ await game.getByRole('button',{name:'Start the race'}).waitFor()
+ await modes.getByRole('radio',{name:/Today’s tower/}).click()
  // How blocks come: Falling (steer them as they fall) by default; Hold & drop is remembered once picked.
  const ctl=game.getByRole('radiogroup',{name:'How blocks come'})
  assert.equal(await ctl.getByRole('radio',{name:/Falling/}).getAttribute('aria-checked'),'true')
