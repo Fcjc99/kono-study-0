@@ -16,3 +16,5 @@
 .beat-summary-strip{width:100%;height:26px;display:block}
 .beat-summary-strip .is-track{fill:rgba(255,255,255,.18)}
 .beat-summary-strip .is-perfect{fill:#ffcf3d}.beat-summary-strip .is-great{fill:#5fd0f5}.beat-summary-strip .is-good{fill:#8fe07a}.beat-summary-strip .is-miss{fill:#ff6b81}.beat-summary-strip .is-none{fill:rgba(255,255,255,.35)}
+/* The Timing suggestion after a song: a button that shifts the Timing by how early or late the hits landed. */
+.beat-summary-drift button:not(#x):not(#y){display:inline-block;margin:6px 0 0!important;min-height:34px!important;padding:4px 14px!important;border-radius:999px!important;border:0!important;background:#ffd34d!important;color:#3a2a00!important;font-weight:800;box-shadow:none!important}

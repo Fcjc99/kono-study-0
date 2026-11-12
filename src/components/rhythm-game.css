@@ -75,3 +75,5 @@
 /* Spoken updates for screen readers while a song plays (the canvas itself has none). */
 .beat-sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 .beat-warmup{margin-top:8px;min-height:44px;width:100%;border-radius:14px;font-weight:700;background:transparent;border:1px dashed currentColor;opacity:.85}
+/* Said once on a device whose old Timing was dropped (see store/rhythm OFFSET_KEY). */
+.beat-reset{margin:6px 0 0;padding:8px 12px;border-radius:12px;background:#fff7d6;color:#5a4300;font-size:.82rem;line-height:1.35}

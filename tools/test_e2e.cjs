@@ -4411,36 +4411,42 @@ test('Round 59: the arcade’s new games: Meowdoku (solve the cat puzzle, get a 
  if(process.env.KONO_SHOTS)await candy.screenshot({path:process.env.KONO_SHOTS+'/candy.png'})
 })
 
-test('KONO Beat auto-sync: a phone whose sound comes 180 ms late (every tap 180 ms after its tile) doesn’t lose on Jeff tier; KONO corrects the timing, the later taps hit, and the Timing is kept',async({context,page})=>{
+test('KONO Beat Timing: it never shifts by itself mid-song; after a song where every hit lands 60 ms late, the results offer +60 ms and it’s kept once chosen; an old drifted Timing is set aside',async({context,page})=>{
  const cloud=fakeCloud()
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
+ // A Timing saved the old way (auto-sync could push it far off) isn't used any more.
+ await page.evaluate(()=>localStorage.setItem('kono-beat-offset','250'))
  await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
  const town=page.getByRole('dialog',{name:'KONO Town'})
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
  await town.getByRole('button',{name:/KONO Beat/}).click()
  const beat=await startGame(page,'🥁 KONO Beat')
- await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Jeff tier/}).click()
+ await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Easy/}).click()
  await beat.getByRole('button',{name:/^Skipping Motif/}).click()
  await beat.getByText(/^0 ms$/).waitFor()
+ await beat.getByRole('status').filter({hasText:/Timing is back to 0 ms/}).waitFor()
  await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click()
  await beat.getByRole('img',{name:'KONO Beat: Skipping Motif'}).waitFor()
- const chart=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.jeff
- const notes=[...chart.tap,...chart.hold].map(([t,lane])=>[t,lane]).sort((a,b)=>a[0]-b[0]).filter(([t])=>t<14000)
- // Every tap 180 ms after its tile, as heard on a phone with that much sound delay; on the song's own clock
- // (minus the live Timing, which is what auto-sync changes).
+ const chart=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.easy
+ const notes=[...chart.tap,...chart.hold].map(([t,lane])=>[t,lane]).sort((a,b)=>a[0]-b[0]).filter(([t])=>t<16000)
+ // Every tap 60 ms after its tile, on the song's own clock.
  await page.evaluate(async notes=>{const cv=document.querySelector('.beat-canvas')
-  for(const [t,lane] of notes){const key='dfjk'[lane];while(cv.songRaw()<t+180-250)await new Promise(r=>setTimeout(r,5))
-   while(cv.songRaw()<t+180){/* tight wait */}
+  for(const [t,lane] of notes){const key='dfjk'[lane];while(cv.songRaw()<t+60-250)await new Promise(r=>setTimeout(r,5))
+   while(cv.songRaw()<t+60){/* tight wait */}
    window.dispatchEvent(new KeyboardEvent('keydown',{key}));window.dispatchEvent(new KeyboardEvent('keyup',{key}))}},notes)
  await beat.getByRole('button',{name:'■ End'}).click()
  const br=beat.getByRole('region',{name:'Results'})
+ await br.getByText(/Your hits landed about (55|60|65) ms late/).waitFor()
  const line=await br.locator('.game-result-line').textContent()
- const [,perfect,great,good,missed]=/(\d+) perfect, (\d+) great, (\d+) good, (\d+) missed/.exec(line).map(Number)
- assert.ok(perfect+great>=notes.length*0.6,'most taps hit once synced: '+line)
+ const [,perfect,great]=/(\d+) perfect, (\d+) great/.exec(line).map(Number)
+ assert.ok(perfect+great>=notes.length*0.8,'60 ms late still hits on Easy: '+line)
+ await br.getByRole('button',{name:/^Shift Timing \+(55|60|65) ms$/}).click()
+ await br.getByText(/Timing is now \+(55|60|65) ms/).waitFor()
  await beat.getByRole('button',{name:'Play again'}).click()
  const timing=Number((await beat.locator('.beat-offset output').nth(1).textContent()).replace(/[^\d-]/g,''))
- assert.ok(timing>=150&&timing<=210,'the Timing was corrected to about +180 ms and kept: '+timing)
+ assert.ok(timing>=55&&timing<=65,'the chosen Timing is kept: '+timing)
+ assert.equal(await page.evaluate(()=>localStorage.getItem('kono-beat-offset')),'250','the old value is left alone')
 })
 
 test('KONO Beat plays the whole song: on Jeff tier, missing everything empties the gauge but the song keeps going (it only isn’t cleared)',async({context,page})=>{
