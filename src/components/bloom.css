@@ -7,7 +7,7 @@
 .game-screen-body>.kono-bloom{max-width:none}
 .kono-bloom{flex:1;min-height:0;width:100%;container-type:size;display:grid;grid-template-rows:auto auto;align-content:center;justify-items:center;align-items:center;gap:10px}
 /* The jar: as wide as fits both ways (bar 46px, ladder about 64px below). */
-.bloom-frame{position:relative;display:grid;grid-template-rows:46px auto auto;width:min(100cqw - 4px,calc((100cqh - 64px - 46px - 58px) / 1.4));border-radius:28px;overflow:hidden;border:5px solid #fff;background:#fff;box-shadow:0 14px 34px rgb(150 60 100/.25),0 0 0 2px rgb(255 160 190/.35);touch-action:none;transition:box-shadow .3s}
+.bloom-frame{position:relative;display:grid;grid-template-rows:auto 46px auto;width:min(100cqw - 4px,calc((100cqh - 64px - 46px - 58px) / 1.4));border-radius:28px;overflow:hidden;border:5px solid #fff;background:#fff;box-shadow:0 14px 34px rgb(150 60 100/.25),0 0 0 2px rgb(255 160 190/.35);touch-action:none;transition:box-shadow .3s}
 .bloom-frame.is-danger{box-shadow:0 0 0 4px rgb(232 84 110/.7),0 14px 34px rgb(150 60 100/.25)}
 .bloom-frame canvas{display:block;width:100%;aspect-ratio:100/140;cursor:pointer}
 /* The bar: next fruit on the left, the score in the middle, the best on the right. */
@@ -16,7 +16,7 @@
 .bloom-next img{width:32px;height:32px;filter:drop-shadow(0 2px 2px rgb(150 60 100/.2))}
 .bloom-score{font-size:1.55rem;font-weight:900;color:#e8546e;text-shadow:0 2px 0 #fff;font-variant-numeric:tabular-nums}
 .bloom-best{justify-self:end;margin:0;font-size:.74rem;font-weight:800;color:#b0607e;white-space:nowrap}
-.bloom-warn{position:absolute;z-index:2;left:50%;top:calc(46px + 20%);translate:-50% 0;padding:4px 12px;border-radius:999px;background:#e8546e;color:#fff;font-weight:900;font-size:.85rem;white-space:nowrap;box-shadow:0 4px 12px rgb(232 84 110/.4);animation:bloom-warn .6s ease-in-out infinite alternate}
+.bloom-warn{position:absolute;z-index:2;left:50%;top:calc(46px + 58px + 18%);translate:-50% 0;padding:4px 12px;border-radius:999px;background:#e8546e;color:#fff;font-weight:900;font-size:.85rem;white-space:nowrap;box-shadow:0 4px 12px rgb(232 84 110/.4);animation:bloom-warn .6s ease-in-out infinite alternate}
 @keyframes bloom-warn{to{scale:1.06}}
 /* The fruit ladder: one neat row of all eleven; the ones you've grown light up. */
 .bloom-ladder{list-style:none;margin:0;padding:6px 8px;display:grid;grid-template-columns:repeat(11,1fr);gap:3px;width:min(100cqw,520px);border-radius:999px;background:rgb(255 255 255/.75);box-shadow:0 4px 14px rgb(150 60 100/.15)}
@@ -39,9 +39,9 @@
  .bloom-ladder li small{position:static;width:auto;height:auto;overflow:visible;clip:auto;font-size:.6rem;font-weight:800;color:#5a2f45}
 }
 @media (prefers-reduced-motion:reduce){.bloom-warn,.bloom-power.is-on:not(#x):not(#y){animation:none}}
-/* Power-ups along the bottom of the jar, with the meter that earns the next one. (:not(#x):not(#y) and
+/* Power-ups along the top of the jar, with the meter that earns the next one. (:not(#x):not(#y) and
    !important: the app's themed button style would otherwise paint over them.) */
-.bloom-powers{display:flex;align-items:center;gap:7px;padding:9px 10px 7px;background:linear-gradient(180deg,#fff2f7,#ffe6ef);border-top:2px dashed #ffd0de}
+.bloom-powers{display:flex;align-items:center;gap:7px;padding:9px 10px 7px;background:linear-gradient(180deg,#fff2f7,#ffe6ef);border-bottom:2px dashed #ffd0de}
 .bloom-power:not(#x):not(#y){position:relative;flex:1;min-width:0;height:44px;min-height:0;margin:0;padding:0 4px;display:flex;align-items:center;justify-content:center;gap:4px;border:0!important;border-radius:16px!important;background:#fff!important;color:#5a2f45!important;font:inherit;font-weight:900;box-shadow:0 3px 0 #f4bfd0!important;cursor:pointer;transition:transform .12s,box-shadow .12s,background .12s}
 .bloom-power>span{font-size:1.3rem;line-height:1}
 .bloom-power>small{font-size:.74rem;overflow:hidden;text-overflow:ellipsis}
@@ -53,7 +53,7 @@
 .bloom-power:disabled>b{background:#b9a3ad}
 .bloom-meter{flex:0 0 10px;align-self:stretch;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 2px #ffd0de;overflow:hidden;display:flex;align-items:flex-end}
 .bloom-meter>i{display:block;width:100%;height:calc(var(--k) * 100%);background:linear-gradient(0deg,#ff8fb1,#ffd36e);transition:height .3s}
-.bloom-pick{position:absolute;z-index:2;left:50%;top:calc(46px + 24%);translate:-50% 0;display:flex;align-items:center;gap:8px;margin:0;padding:5px 6px 5px 14px;border-radius:999px;background:#5a2f45;color:#fff;font-weight:900;font-size:.85rem;white-space:nowrap;box-shadow:0 4px 12px rgb(90 47 69/.35)}
+.bloom-pick{position:absolute;z-index:2;left:50%;top:calc(46px + 58px + 22%);translate:-50% 0;display:flex;align-items:center;gap:8px;margin:0;padding:5px 6px 5px 14px;border-radius:999px;background:#5a2f45;color:#fff;font-weight:900;font-size:.85rem;white-space:nowrap;box-shadow:0 4px 12px rgb(90 47 69/.35)}
 .bloom-pick button:not(#x):not(#y){min-height:0;margin:0;border:0!important;border-radius:999px!important;padding:4px 10px;background:#fff!important;color:#5a2f45!important;box-shadow:none!important;font:inherit;font-size:.78rem;cursor:pointer}
 .bloom-frame canvas.is-picking{cursor:crosshair}
 @media (max-width:380px){.bloom-power>small{display:none}}
