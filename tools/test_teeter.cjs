@@ -10,7 +10,7 @@ function load(relative){
  vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module,exports:module.exports,require:requireLocal,Math,Date,JSON,Set,Map,Number,String,Object,Array,console,localStorage:{getItem:()=>null,setItem(){}}})
  return module.exports
 }
-const {SHAPES,COLORS,towerHeight,SPECIALS,specialFor,seeded,dailySeed,puzzleLevel,isPerfect,lockLine,SKINS,skinsOwned,skinItem,dailyScoreEvent,familyBoard,EVENTS,EVENT_BLOCKS,eventFor,RACE_GOAL,rivalStep,SPELLS,spellFor}=load('src/store/teeter.ts')
+const {SHAPES,COLORS,towerHeight,SPECIALS,specialFor,seeded,dailySeed,puzzleLevel,isPerfect,lockLine,SKINS,skinsOwned,skinItem,dailyScoreEvent,familyBoard,EVENTS,EVENT_BLOCKS,eventFor,RACE_GOAL,rivalStep,SPELLS,spellFor,CATS,COATS,catSwing,catBag}=load('src/store/teeter.ts')
 const {addCareEvent,readCareState}=load('src/store/konoCare.ts')
 let passed=0
 const test=(name,fn)=>{fn();passed++;console.log('PASS '+name)}
@@ -98,5 +98,12 @@ test('helper spells: one each time the tower passes six, twelve, eighteen rows',
  const r=seeded('sp')
  assert.equal(spellFor(0,5,r),null);assert.ok(SPELLS[spellFor(5,6,r)]);assert.equal(spellFor(6,8,r),null);assert.ok(SPELLS[spellFor(11,13,r)])
  for(const v of Object.values(SPELLS))assert.ok(v.emoji&&v.name&&v.line)
+})
+test('Cat drop: every cat shape once before any repeats, each in a coat; KONO swings faster as the tower grows (up to a cap)',()=>{
+ const next=catBag(seeded('cats')),kinds=Object.keys(CATS)
+ const first=kinds.map(()=>next());assert.deepEqual(first.map(c=>c.kind).sort(),[...kinds].sort(),'all five, once each')
+ for(let i=0;i<40;i++){const c=next();assert.ok(CATS[c.kind]);assert.ok(COATS[c.coat],'a real coat')}
+ for(const c of Object.values(CATS)){assert.ok(c.w>0&&c.h>0&&c.round>0&&c.round<0.5);assert.ok(c.w<=3.5,'fits on the five-block island')}
+ assert.ok(catSwing(10)>catSwing(0));assert.equal(catSwing(500),catSwing(1000),'capped')
 })
 console.log(passed+' teeter tests passed')

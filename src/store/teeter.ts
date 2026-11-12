@@ -60,7 +60,33 @@ export function lockLine(height:number,islandTop:number,block:number):number|nul
  if(height<LOCK_EVERY)return null
  return islandTop-(Math.floor(height/LOCK_EVERY)*LOCK_EVERY-LOOSE_ROWS)*block
 }
-export type TeeterMode={kind:'classic'}|{kind:'daily';seed:string}|{kind:'puzzle';level:number}|{kind:'race'}
+export type TeeterMode={kind:'classic'}|{kind:'daily';seed:string}|{kind:'puzzle';level:number}|{kind:'race'}|{kind:'cats'}
+/** Cat drop: KONO swings a cat to and fro above the tower; tap to let go. Five cat shapes (in blocks: width,
+ * height, and how round the corners are for the physics) and the coats they come in. */
+export type CatKind='loaf'|'curl'|'long'|'sit'|'chonk'
+export const CATS:Record<CatKind,{name:string;w:number;h:number;round:number}>={
+ loaf:{name:'Loaf cat',w:2.2,h:1.25,round:0.22},
+ curl:{name:'Curled-up cat',w:1.7,h:1.3,round:0.4},
+ long:{name:'Long cat',w:3.3,h:0.95,round:0.22},
+ sit:{name:'Sitting cat',w:1.35,h:1.9,round:0.2},
+ chonk:{name:'Chonky cat',w:2.1,h:1.65,round:0.25},
+}
+export const COATS:{name:string;base:string;mark:string|null;patch:string|null}[]=[
+ {name:'Ginger',base:'#ffb877',mark:'#ec8f45',patch:null},
+ {name:'Grey tabby',base:'#c3c8d8',mark:'#929bb3',patch:null},
+ {name:'Calico',base:'#fff7ec',mark:null,patch:'#ffad66'},
+ {name:'Midnight',base:'#544d66',mark:null,patch:null},
+ {name:'Snow',base:'#ffffff',mark:null,patch:'#d9dbe8'},
+ {name:'Cream',base:'#ffe4bd',mark:'#f2c487',patch:null},
+ {name:'Sakura',base:'#ffcadb',mark:'#ff9fbf',patch:null},
+]
+/** How fast KONO swings the cat (pixels a frame): quicker as the tower grows. */
+export const catSwing=(height:number)=>Math.min(3.6,1.5+height*0.07)
+/** The next cat: every shape once (shuffled) before any repeats, in a random coat. */
+export function catBag(rand:()=>number){
+ const bag:CatKind[]=[]
+ return ()=>{if(!bag.length){const all=Object.keys(CATS) as CatKind[];for(let i=all.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[all[i],all[j]]=[all[j],all[i]]}bag.push(...all)}return {kind:bag.pop()!,coat:Math.floor(rand()*COATS.length)}}
+}
 const LEVEL_KEY='kono-teeter-level',DAILY_KEY='kono-teeter-daily'
 export const teeterLevel=()=>{try{return Math.max(1,Number(localStorage.getItem(LEVEL_KEY))||1)}catch{return 1}}
 export const saveTeeterLevel=(n:number)=>{try{if(n>teeterLevel())localStorage.setItem(LEVEL_KEY,String(n))}catch{/* storage unavailable */}}

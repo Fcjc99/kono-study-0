@@ -4,7 +4,7 @@ import {gameSound} from '../konoSounds'
 import {fx,startMusic,stopMusic} from '../arcadeAudio'
 import {isLiteDevice} from '../store/deviceTier'
 import type {GameHandle} from './GameScreen'
-import {SHAPES,COLORS,SPECIALS,towerHeight,specialFor,seeded,puzzleLevel,isPerfect,lockLine,LOCK_EVERY,skinColor,skinTile,EVENTS,EVENT_BLOCKS,eventFor,RACE_GOAL,rivalStep,SPELLS,spellFor,type Spell,type TowerEvent,type TeeterControl,type SkinId,type ShapeId,type Special,type TeeterMode} from '../store/teeter'
+import {SHAPES,COLORS,SPECIALS,towerHeight,specialFor,seeded,puzzleLevel,isPerfect,lockLine,LOCK_EVERY,skinColor,skinTile,EVENTS,EVENT_BLOCKS,eventFor,RACE_GOAL,rivalStep,SPELLS,spellFor,CATS,COATS,catSwing,catBag,type CatKind,type Spell,type TowerEvent,type TeeterControl,type SkinId,type ShapeId,type Special,type TeeterMode} from '../store/teeter'
 import './teeter.css'
 
 const W=420,H=640 // canvas size at 1× (drawn at 2× for sharpness)
@@ -13,7 +13,8 @@ const ISLAND_TOP=560,ISLAND_W=5*T // the island's grassy top, where the tower st
 const HEARTS=3
 const WIND_FROM=15,BIRD_FROM=20 // rows: the weather starts up here
 
-type Piece={body:Matter.Body;shape:ShapeId;color:string;face:number;rest:number;kind:Special|null;locked:boolean;judged:boolean;drop:{x:number;angle:number};at:number;stuck:boolean;popped:boolean;skin:SkinId;n:number;landed:boolean;squash:number;size:number;slick:boolean;vine:boolean}
+type Piece={body:Matter.Body;shape:ShapeId;color:string;face:number;rest:number;kind:Special|null;locked:boolean;judged:boolean;drop:{x:number;angle:number};at:number;stuck:boolean;popped:boolean;skin:SkinId;n:number;landed:boolean;squash:number;size:number;slick:boolean;vine:boolean;cat:Cat|null}
+type Cat={kind:CatKind;coat:number}
 export type TeeterResult={height:number;blocks:number;perfects:number;won:boolean;snapshot:string|null}
 
 /** KONO Teeter Tower: KONO floats on a cloud and lowers pastel blocks onto a little floating island. Pick a
@@ -30,7 +31,7 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
  const canvas=useRef<HTMLCanvasElement>(null),frame=useRef<HTMLDivElement>(null)
  const puzzle=mode.kind==='puzzle'?puzzleLevel(mode.level):null
  const [height,setHeight]=useState(0),[hearts,setHearts]=useState(HEARTS),[call,setCall]=useState<{text:string;at:number}|null>(null),[over,setOver]=useState(false)
- const [next,setNext]=useState<{shape:ShapeId;kind:Special|null}>({shape:'O',kind:null}),[started,setStarted]=useState(false),[left,setLeft]=useState(puzzle?.blocks??0),[say,setSay]=useState(''),[event,setEvent]=useState<{kind:TowerEvent;left:number}|null>(null),[spell,setSpell]=useState<Spell|null>(null),[rival,setRival]=useState(0)
+ const [next,setNext]=useState<{shape:ShapeId;kind:Special|null;cat:Cat|null}>({shape:'O',kind:null,cat:null}),[started,setStarted]=useState(false),[left,setLeft]=useState(puzzle?.blocks??0),[say,setSay]=useState(''),[event,setEvent]=useState<{kind:TowerEvent;left:number}|null>(null),[spell,setSpell]=useState<Spell|null>(null),[rival,setRival]=useState(0)
  const ended=useRef(false),onEndRef=useRef(onEnd),soundRef=useRef(sound),bestRef=useRef(best),modeRef=useRef(mode),skinRef=useRef(skin),controlRef=useRef(control)
  const state=useRef({best:0,blocks:0,hearts:HEARTS,perfects:0,won:false,snapshot:null as string|null})
  const input=useRef({left:false,right:false,nudge:0,queued:false,down:false,repeatAt:0})
@@ -43,8 +44,9 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
 
  useEffect(()=>{
   const {Engine,Bodies,Body,Composite,Constraint,Events,Sleeping,Query}=Matter
-  const look=skinRef.current,falling=controlRef.current==='fall'
-  const md=modeRef.current,goal=md.kind==='puzzle'?puzzleLevel(md.level):null
+  const md0=modeRef.current,cats=md0.kind==='cats'
+  const look=skinRef.current,falling=controlRef.current==='fall'&&!cats
+  const md=md0,goal=md.kind==='puzzle'?puzzleLevel(md.level):null
   // The end: a moment to see it, then the tower's picture and the results.
   const finish=(wait=1300)=>{if(ended.current)return;ended.current=true;window.setTimeout(()=>{try{state.current.snapshot=canvas.current?.toDataURL('image/jpeg',0.82)??null}catch{state.current.snapshot=null}onEndRef.current({height:state.current.best,blocks:state.current.blocks,perfects:state.current.perfects,won:state.current.won,snapshot:state.current.snapshot})},wait)}
   const rand=md.kind==='daily'?seeded('teeter '+md.seed):Math.random
@@ -63,7 +65,9 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
   const bag:ShapeId[]=[]
   const draw=():ShapeId=>{if(!bag.length){const all=Object.keys(SHAPES) as ShapeId[];for(let i=all.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[all[i],all[j]]=[all[j],all[i]]}bag.push(...all)}return bag.pop()!}
   let dealt=0
-  const deal=()=>({shape:draw(),kind:specialFor(rand,dealt++)})
+  // Cat drop: cats instead of blocks (no specials), every shape once before any repeats.
+  const nextCat=catBag(rand)
+  const deal=():{shape:ShapeId;kind:Special|null;cat:Cat|null}=>cats?(dealt++,{shape:'O',kind:null,cat:nextCat()}):{shape:draw(),kind:specialFor(rand,dealt++),cat:null}
   let upcoming=deal()
   let active:Piece|null=null,spin=0,settleUntil=0,cheer=0,milestone=0,lockedTo=0,shake=0,graceUntil=0,streak=0,sway=0,shaky=false,lastHeartAt=-1e9,lastPaint=0,shakyFor=0
   let budget=goal?.blocks??Infinity,outAt=0
@@ -76,8 +80,15 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
   const puff=(x:number,y:number,n:number,color='#ffffff')=>{if(calm)n=Math.min(n,3);for(let k=0;k<n;k++)fxs.push({x:x+(Math.random()-.5)*T*2,y,vx:(Math.random()-.5)*1.6,vy:-Math.random()*1.2-.2,life:1,color,size:2+Math.random()*3,kind:'dust'})}
   const sparkle=(x:number,y:number)=>{for(let k=0;k<(calm?3:10);k++){const a=Math.random()*6.28,v=1+Math.random()*1.5;fxs.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-0.5,life:1,color:k%2?'#fff6b0':'#ffffff',size:2+Math.random()*2,kind:'spark'})}}
   const confetti=(y:number)=>{if(calm)return;const cs=Object.values(COLORS);for(let k=0;k<36;k++)fxs.push({x:Math.random()*W,y:y-40-Math.random()*60,vx:(Math.random()-.5)*2,vy:Math.random()*-2,life:1.6,color:cs[k%cs.length],size:4+Math.random()*3,kind:'confetti',spin:Math.random()*6})}
-  const make=(shape:ShapeId,kind:Special|null,x:number,y:number,size=1,slick=false):Piece=>{
+  const make=(shape:ShapeId,kind:Special|null,x:number,y:number,size=1,slick=false,cat:Cat|null=null):Piece=>{
    const S=T*size
+   if(cat){
+    // A cat: one soft rounded body (a little rounder than a block, so they snuggle and wobble), grippy fur.
+    const c=CATS[cat.kind],w=c.w*S,h=c.h*S
+    const body=Bodies.rectangle(x,y,w,h,{chamfer:{radius:Math.min(w,h)*c.round},friction:1,frictionStatic:2,frictionAir:0.012,restitution:0,density:0.0016,slop:0.02})
+    Body.setInertia(body,body.inertia*3);Body.setStatic(body,true);body.sleepThreshold=180
+    return {body,shape,kind:null,color:COATS[cat.coat].base,face:0,rest:0,locked:false,judged:false,drop:{x,angle:0},at:0,stuck:false,popped:false,skin:look,n:dealt,landed:false,squash:0,size,slick,vine:false,cat}
+   }
    const cells=SHAPES[shape],cx=cells.reduce((a,c)=>a+c[0],0)/cells.length,cy=cells.reduce((a,c)=>a+c[1],0)/cells.length
    // Square for the physics (rounded corners left a notch under a block's foot, so even a standing L rocked
    // and fell over); they're still drawn rounded.
@@ -91,7 +102,7 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    // three times as hard to spin as a real block, so it tips slowly rather than snapping over.
    if(kind!=='jelly')Body.setInertia(body,body.inertia*3)
    Body.setStatic(body,true);body.sleepThreshold=180
-   return {body,shape,kind,color:kind?SPECIALS[kind].color:skinColor(look,shape),face:Math.floor(Math.random()*cells.length),rest:0,locked:false,judged:false,drop:{x,angle:0},at:0,stuck:false,popped:false,skin:look,n:dealt,landed:false,squash:0,size,slick,vine:false}
+   return {body,shape,kind,color:kind?SPECIALS[kind].color:skinColor(look,shape),face:Math.floor(Math.random()*cells.length),rest:0,locked:false,judged:false,drop:{x,angle:0},at:0,stuck:false,popped:false,skin:look,n:dealt,landed:false,squash:0,size,slick,vine:false,cat:null}
   }
   const loose=()=>placed.filter(p=>!p.locked)
   const topY=()=>placed.reduce((m,p)=>Math.min(m,p.body.bounds.min.y),ISLAND_TOP)
@@ -100,19 +111,19 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
   const towerTop=()=>placed.reduce((m,p)=>p.landed&&p.body.position.y<ISLAND_TOP+40?Math.min(m,p.body.bounds.min.y):m,ISLAND_TOP)
   // KONO carries the next block above the tower: move it anywhere, turn it, then let go and it drops for
   // real. If you wait too long (eight seconds), KONO lets go by itself.
-  let holdMs=8000,holdX=W/2,heldAt=0,swing=0,lastX=W/2,fallX=W/2
+  let holdMs=8000,holdX=W/2,heldAt=0,swing=0,lastX=W/2,fallX=W/2,catDir=1
   // Tower events: now and then the next three blocks are big, slippery, or KONO's in a hurry.
   let ev:{kind:TowerEvent;left:number}|null=null,lastEventAt=-99
   const hangY=(b:Matter.Body)=>Math.min(ISLAND_TOP-6*T,towerTop()-2.6*T)-(b.bounds.max.y-b.position.y)
   const spawn=()=>{
    if(budget<=0)return
-   const {shape,kind}=upcoming;upcoming=deal();setNext(upcoming)
-   if(!ev){const e=eventFor(rand,state.current.blocks,lastEventAt);if(e){ev={kind:e,left:EVENT_BLOCKS};lastEventAt=state.current.blocks;announce(EVENTS[e].emoji+' '+EVENTS[e].name+'!',EVENTS[e].line);fx('charge',soundRef.current)}}
+   const {shape,kind,cat}=upcoming;upcoming=deal();setNext(upcoming)
+   if(!ev&&!cats){const e=eventFor(rand,state.current.blocks,lastEventAt);if(e){ev={kind:e,left:EVENT_BLOCKS};lastEventAt=state.current.blocks;announce(EVENTS[e].emoji+' '+EVENTS[e].name+'!',EVENTS[e].line);fx('charge',soundRef.current)}}
    const now=ev
    setEvent(now?{kind:now.kind,left:now.left}:null)
-   holdMs=now?.kind==='hurry'?3000:8000
+   holdMs=cats?Infinity:now?.kind==='hurry'?3000:8000
    const small=smallLeft>0&&now?.kind!=='big';if(small)smallLeft--
-   active=make(shape,kind,holdX,ISLAND_TOP-8*T,now?.kind==='big'?1.5:small?0.7:1,now?.kind==='slippery')
+   active=make(shape,kind,holdX,ISLAND_TOP-8*T,now?.kind==='big'?1.5:small?0.7:1,now?.kind==='slippery',cat)
    if(now){now.left--;if(now.left<=0)ev=null}
    // Falling (Tricky Towers style): it starts high above the tower, in the middle, and comes down steadily.
    // Held (Cat Stack style): KONO carries it just above the tower.
@@ -171,7 +182,7 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
   // Turn a quarter (the picture swings round to catch up). Falling, against the tower or an edge it shifts
   // over half a block or a block to fit.
   const rotate=()=>{
-   if(!active)return
+   if(!active||cats)return
    const b=active.body;Body.rotate(b,Math.PI/2)
    if(falling){const kick=[0,-T/2,T/2,-T,T].find(k=>fits(b,fallX+k));if(kick===undefined){Body.rotate(b,-Math.PI/2);return}fallX+=kick}
    spin-=Math.PI/2;fx('tick',soundRef.current)
@@ -192,7 +203,7 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
   const back=()=>{if(!document.hidden)clearSprites()}
   document.addEventListener('visibilitychange',back)
   const pad=frame.current as (HTMLDivElement&{__rotate?:()=>void;__down?:(on:boolean)=>void})|null
-  if(pad){(pad as unknown as {__cast:()=>void}).__cast=cast;pad.__rotate=rotate;pad.__down=on=>{if(falling)input.current.down=on;else if(on)drop()}}
+  if(pad){(pad as unknown as {__cast:()=>void}).__cast=cast;pad.__rotate=rotate;pad.__down=on=>{if(falling)input.current.down=on;else if(on){if(active)drop();else if(cats)input.current.queued=true}}}
   // A finger: drag anywhere to carry the block (it follows your finger, wherever you touched), lift to drop
   // it; a quick tap turns it.
   const el=frame.current!
@@ -205,7 +216,7 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    ptr={id:e.pointerId,sx:toX(e),sy:toY(e),hx:falling?fallX:holdX,t:performance.now(),moved:false}
   }
   const pm=(e:PointerEvent)=>{
-   if(!ptr||e.pointerId!==ptr.id)return
+   if(!ptr||e.pointerId!==ptr.id||cats)return
    const x=toX(e),y=toY(e);if(Math.abs(x-ptr.sx)>8||Math.abs(y-ptr.sy)>8)ptr.moved=true
    if(!ptr.moved)return
    if(!falling){holdX=Math.max(24,Math.min(W-24,ptr.hx+(x-ptr.sx)));return}
@@ -218,6 +229,8 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    if(!ptr||e.pointerId!==ptr.id)return
    const d=ptr;ptr=null
    if(falling)input.current.down=false
+   // Cat drop: any tap lets the cat go (one tapped before the next cat's in KONO's paws waits for it).
+   if(cats){if(active)drop();else input.current.queued=true;return}
    if(!d.moved&&performance.now()-d.t<300)rotate()
    // (A lift right as a new block appears is from the last drag, not a drop of this one.)
    else if(!falling&&d.moved&&d.t>heldAt)drop()
@@ -247,11 +260,14 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
     if(landed||b.bounds.min.y>ISLAND_TOP+60){Body.setPosition(b,{x:b.position.x,y:b.position.y});release()}
    }else if(active&&!ended.current){
     // In KONO's paws: ◀ ▶ (or the arrow keys) carry it smoothly; it glides after your finger and swings a little.
-    if(i.nudge){holdX+=i.nudge*T/2;i.nudge=0}
-    if(i.left||i.right)holdX+=(i.right?1:-1)*4*m
     const b=active.body,half=(b.bounds.max.x-b.bounds.min.x)/2
+    // Cat drop: KONO swings the cat from side to side by itself (faster as the tower grows); time your tap.
+    if(cats){i.nudge=0;holdX+=catDir*catSwing(state.current.best)*m;if(holdX>W-half-8){holdX=W-half-8;catDir=-1}else if(holdX<half+8){holdX=half+8;catDir=1}
+     if(frame.current)frame.current.dataset.aim=String(Math.round(holdX))}
+    else{if(i.nudge){holdX+=i.nudge*T/2;i.nudge=0}
+     if(i.left||i.right)holdX+=(i.right?1:-1)*4*m}
     holdX=Math.max(half+4,Math.min(W-half-4,holdX))
-    const nx=b.position.x+(holdX-b.position.x)*Math.min(1,0.3*m),ny=b.position.y+(hangY(b)-b.position.y)*Math.min(1,0.12*m)
+    const nx=cats?holdX:b.position.x+(holdX-b.position.x)*Math.min(1,0.3*m),ny=b.position.y+(hangY(b)-b.position.y)*Math.min(1,0.12*m)
     Body.setPosition(b,{x:nx,y:ny})
     swing+=((nx-lastX)/Math.max(m,0.01)-swing)*0.3;lastX=nx
     // KONO lets go by itself after a while (the ring round KONO shows the last three seconds).
@@ -357,24 +373,27 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
  const hold=(k:'left'|'right',on:boolean)=>{const i=input.current;if(on&&!i[k]){i.nudge=k==='left'?-1:1;i.repeatAt=performance.now()+170}i[k]=on}
  const downPad=(on:boolean)=>(frame.current as (HTMLDivElement&{__down?:(on:boolean)=>void})|null)?.__down?.(on)
  const turn=()=>(frame.current as (HTMLDivElement&{__rotate?:()=>void})|null)?.__rotate?.()
- const label=mode.kind==='race'?'Race Rival KONO':mode.kind==='daily'?'Today’s tower':mode.kind==='puzzle'?'Level '+mode.level:best!==null?'Best '+best:'KONO Teeter Tower'
+ const cats=mode.kind==='cats'
+ const label=cats?'🐱 Cat drop'+(best!==null?' · Best '+best+' ft':''):mode.kind==='race'?'Race Rival KONO':mode.kind==='daily'?'Today’s tower':mode.kind==='puzzle'?'Level '+mode.level:best!==null?'Best '+best:'KONO Teeter Tower'
  return <div className="break-game kono-teeter">
   <div className="blast-top"><span className="blast-best">{label}</span>{event&&<span className="teeter-event" role="status">{EVENTS[event.kind].emoji} {EVENTS[event.kind].name} <b>×{event.left}</b></span>}{mode.kind==='race'&&<span className="teeter-goal">🏁 Row {RACE_GOAL} · Rival <b>{rival}</b></span>}{spell&&<button type="button" className="teeter-spell" onClick={()=>(frame.current as unknown as {__cast?:()=>void}|null)?.__cast?.()} aria-label={'Cast '+SPELLS[spell].name+': '+SPELLS[spell].line}>{SPELLS[spell].emoji} {SPELLS[spell].name}</button>}{puzzle&&<span className="teeter-goal">🚩 Row {puzzle.goal} · <b>{left}</b> block{left===1?'':'s'} left</span>}<span className="teeter-hearts" aria-label={hearts+' hearts left'}>{Array.from({length:HEARTS},(_,i)=><i key={i} className={i<hearts?'is-on':undefined}>♥</i>)}</span></div>
-  <div ref={frame} className={'teeter-frame'+(over?' is-over':'')} role="img" aria-label={'KONO Teeter Tower, '+height+' rows high'} data-height="0" data-blocks="0">
+  <div ref={frame} className={'teeter-frame'+(over?' is-over':'')} role="img" aria-label={cats?'KONO Cat drop, the cat tower is '+height+' feet high':'KONO Teeter Tower, '+height+' rows high'} data-height="0" data-blocks="0">
    <canvas ref={canvas} width={W*2} height={H*2} aria-hidden="true"/>
-   <strong key={height} className="teeter-score" aria-hidden="true">{height}</strong>
-   <span className="teeter-next" aria-label={'Next block: '+(next.kind?SPECIALS[next.kind].name:next.shape)}><small>Next</small><NextShape shape={next.shape} kind={next.kind}/></span>
+   <strong key={height} className="teeter-score" aria-hidden="true">{height}{cats&&<small> ft</small>}</strong>
+   {next.cat?<span className="teeter-next" aria-label={'Next cat: '+COATS[next.cat.coat].name+' '+CATS[next.cat.kind].name.toLowerCase()}><small>Next</small><img className="teeter-next-cat" src={catIcon(next.cat)} alt="" draggable={false}/></span>
+   :<span className="teeter-next" aria-label={'Next block: '+(next.kind?SPECIALS[next.kind].name:next.shape)}><small>Next</small><NextShape shape={next.shape} kind={next.kind}/></span>}
    {call&&<span key={call.at} className="teeter-call" aria-hidden="true">{call.text}</span>}
-   {!started&&!over&&<p className="teeter-hint"><b>{puzzle?'Reach the flag at row '+puzzle.goal+'!':mode.kind==='race'?'Race Rival KONO to row '+RACE_GOAL+'!':'Build it tall!'}</b><span>{control==='fall'?'Slide your finger to steer · tap to turn · pull down to hurry':'Slide your finger to carry the block · lift to drop it · tap to turn'}</span></p>}
+   {!started&&!over&&<p className="teeter-hint"><b>{cats?'Stack the cats!':puzzle?'Reach the flag at row '+puzzle.goal+'!':mode.kind==='race'?'Race Rival KONO to row '+RACE_GOAL+'!':'Build it tall!'}</b><span>{cats?'KONO swings each cat · tap anywhere to drop it':control==='fall'?'Slide your finger to steer · tap to turn · pull down to hurry':'Slide your finger to carry the block · lift to drop it · tap to turn'}</span></p>}
   </div>
   <p className="teeter-say" aria-live="polite">{say}</p>
+  {cats?<div className="teeter-pad is-cats" role="group" aria-label="Controls"><button type="button" aria-label="Drop the cat" onPointerDown={()=>downPad(true)}>🐾 Drop</button></div>:
   <div className="teeter-pad" role="group" aria-label="Controls">
    <button type="button" aria-label="Left" onPointerDown={()=>hold('left',true)} onPointerUp={()=>hold('left',false)} onPointerLeave={()=>hold('left',false)}>◀</button>
    <button type="button" aria-label="Turn" onClick={turn}>⟳</button>
    <button type="button" aria-label={control==='fall'?'Faster':'Drop'} onPointerDown={()=>downPad(true)} onPointerUp={()=>downPad(false)} onPointerLeave={()=>downPad(false)}>▼</button>
    <button type="button" aria-label="Right" onPointerDown={()=>hold('right',true)} onPointerUp={()=>hold('right',false)} onPointerLeave={()=>hold('right',false)}>▶</button>
-  </div>
-  <p className="blast-help">{control==='fall'?'Blocks fall from the top: slide your finger (or ◀ ▶, the arrow keys) to steer half a block at a time, tap (or ⟳, ↑) to turn, pull down (or hold ▼, ↓, Space) to hurry. Once a block touches the tower it’s real physics, so it can lean, slide and tip. ':'KONO holds each block above the tower. Slide your finger anywhere to carry it and lift to drop it (or ◀ ▶ to carry, ▼ to drop; the arrow keys and Space work too). Tap (or ⟳, ↑) to turn it. It drops for real, so it can bounce, slide and tip; KONO lets go by itself after eight seconds. '}Every ten rows the bottom turns to stone. Specials: 🍯 sticks, 🪨 heavy, 🎈 lands softly, 🧊 slippery, 🍮 bouncy jelly. Now and then the next three blocks are big 🔍, slippery 💦, or KONO’s in a hurry ⏱️. Blocks that fall off the island cost a heart.</p>
+  </div>}
+  <p className="blast-help">{cats?'KONO swings each cat from side to side above the tower, faster as it grows. Tap anywhere (or 🐾 Drop, ↓, Space) to let go. Cats are soft and wobbly, so stack them with care: every ten feet the cats at the bottom fall asleep and stay put. Lose three cats off the island and it’s over. ':control==='fall'?'Blocks fall from the top: slide your finger (or ◀ ▶, the arrow keys) to steer half a block at a time, tap (or ⟳, ↑) to turn, pull down (or hold ▼, ↓, Space) to hurry. Once a block touches the tower it’s real physics, so it can lean, slide and tip. ':'KONO holds each block above the tower. Slide your finger anywhere to carry it and lift to drop it (or ◀ ▶ to carry, ▼ to drop; the arrow keys and Space work too). Tap (or ⟳, ↑) to turn it. It drops for real, so it can bounce, slide and tip; KONO lets go by itself after eight seconds. '}{!cats&&'Every ten rows the bottom turns to stone. Specials: 🍯 sticks, 🪨 heavy, 🎈 lands softly, 🧊 slippery, 🍮 bouncy jelly. Now and then the next three blocks are big 🔍, slippery 💦, or KONO’s in a hurry ⏱️. Blocks that fall off the island cost a heart.'}</p>
  </div>
 }
 
@@ -584,6 +603,7 @@ function tileSprite(color:string,skin:SkinId,stone:boolean,kind:Special|null,k:n
  sprites.set(key,c);return c
 }
 function block(g:CanvasRenderingContext2D,p:Piece,t:number,mood:Mood,lite:boolean){
+ if(p.cat){kitty(g,p,p.cat,t,p.locked?'sleep':mood,lite);return}
  const b=p.body,parts=tiles(p),stone=p.locked&&!p.vine,h=T/2-0.5
  const skin:SkinId=p.kind||stone?'pastel':p.skin,base=stone?'#b4ad9f':p.color
  // A drop shadow under the whole piece first, so tiles never shade each other.
@@ -634,4 +654,87 @@ function face(g:CanvasRenderingContext2D,mood:Mood,t:number){
   g.beginPath();g.moveTo(-7,-5);g.lineTo(-3,-6);g.moveTo(7,-5);g.lineTo(3,-6);g.stroke()
   g.fillStyle=ink;g.beginPath();g.ellipse(0,4,1.8,2.3,0,0,7);g.fill()
  }else{g.beginPath();g.arc(0,mood==='look'?3:2,2.6,0.2,Math.PI-0.2);g.stroke()}
+}
+/** A cat (Cat drop), drawn about its body: a soft rounded body in its coat, ears, a tail, tabby stripes or
+ * calico patches, little paws, and a face that beams, blinks, frets when the tower wobbles and sleeps once
+ * the cats below have settled for good. Each shape keeps its head where a cat that shape would. */
+const CAT_LOOK:Record<CatKind,{r:number;head:(w:number,h:number)=>[number,number,number]}>={
+ loaf:{r:.45,head:(w,h)=>[-w/2+h*.55,-h*.02,h*.4]},
+ curl:{r:.5,head:(w,h)=>[-w*.16,-h*.06,h*.34]},
+ long:{r:.45,head:(w,h)=>[-w/2+h*.52,0,h*.38]},
+ sit:{r:.42,head:(w,h)=>[0,-h/2+w*.44,w*.34]},
+ chonk:{r:.45,head:(_w,h)=>[0,-h*.12,h*.32]},
+}
+function kitty(g:CanvasRenderingContext2D,p:Piece,cat:Cat,t:number,mood:Mood,lite:boolean){
+ const b=p.body,c=CATS[cat.kind],coat=COATS[cat.coat],L=CAT_LOOK[cat.kind]
+ const w=c.w*T*p.size,h=c.h*T*p.size,[hx,hy,fr]=L.head(w,h),rad=Math.min(w,h)*L.r,tn=tone(coat.base),dark=coat.name==='Midnight'
+ const ink=dark?'#2a2433':'#3a2630'
+ g.save();g.translate(b.position.x,b.position.y);g.rotate(b.angle)
+ // Squash on landing (about its feet), and a slow breath.
+ const sq=(p.squash>0?Math.sin(p.squash*Math.PI)*0.16*p.squash:0)+(lite?0:Math.sin(t*0.06+p.n)*0.012)
+ if(sq){g.translate(0,h/2);g.scale(1+sq,1-sq);g.translate(0,-h/2)}
+ if(!lite){g.fillStyle='rgba(40,30,70,.18)';g.beginPath();g.roundRect(-w/2+1.5,-h/2+2.5,w,h,rad);g.fill()}
+ // The tail, behind the body (a sitting cat's wraps round its feet; a curled-up cat's wraps round its front).
+ const tail=(path:()=>void,width:number)=>{g.lineCap='round';g.strokeStyle=tn.edge;g.lineWidth=width+3;g.beginPath();path();g.stroke();g.strokeStyle=coat.mark??coat.base;g.lineWidth=width;g.beginPath();path();g.stroke()}
+ const tw=Math.max(4,h*.2),wag=lite?0:Math.sin(t*0.08+p.n)*h*.08
+ if(cat.kind==='loaf'||cat.kind==='chonk')tail(()=>{g.moveTo(w/2-tw,h*.15);g.quadraticCurveTo(w/2+h*.45,h*.05,w/2+h*.3+wag,-h*.4)},tw)
+ else if(cat.kind==='long')tail(()=>{g.moveTo(w/2-tw,0);g.bezierCurveTo(w/2+h*.4,-h*.1,w/2+h*.2,-h*.6,w/2+h*.55+wag,-h*.7)},tw)
+ // Ears.
+ const ear=(x:number,dir:number)=>{const base=-h/2+rad*.25,top=-h/2-fr*.62
+  g.fillStyle=coat.base;g.strokeStyle=tn.edge;g.lineWidth=1.4;g.lineJoin='round'
+  g.beginPath();g.moveTo(x-fr*.36,base+2);g.quadraticCurveTo(x+dir*fr*.05,top-2,x+dir*fr*.1,top);g.quadraticCurveTo(x+fr*.3,base-2,x+fr*.42,base+2);g.closePath();g.fill();g.stroke()
+  g.fillStyle='#ffb3c7';g.beginPath();g.moveTo(x-fr*.18,base+1);g.quadraticCurveTo(x+dir*fr*.06,top+fr*.18,x+dir*fr*.08,top+fr*.2);g.lineTo(x+fr*.24,base+1);g.closePath();g.fill()}
+ ear(hx-fr*.62,-1);ear(hx+fr*.56,1)
+ // The body, with a soft top light and a deeper bottom.
+ const body=g.createLinearGradient(0,-h/2,0,h/2);body.addColorStop(0,lite?coat.base:tn.hi);body.addColorStop(.45,coat.base);body.addColorStop(1,lite?coat.base:tn.lo)
+ g.fillStyle=body;g.beginPath();g.roundRect(-w/2,-h/2,w,h,rad);g.fill()
+ g.save();g.clip()
+ // Calico (and snow) patches; tabby stripes along the back, away from the face.
+ if(coat.patch){g.fillStyle=coat.patch;g.beginPath();g.ellipse(w*.22,-h*.28,w*.24,h*.3,.3,0,7);g.fill()
+  if(coat.name==='Calico'){g.fillStyle='#5a4a52';g.beginPath();g.ellipse(-w*.05,h*.32,w*.13,h*.18,-.4,0,7);g.ellipse(hx+fr*.5,-h/2+2,fr*.38,fr*.3,0,0,7);g.fill()}}
+ if(coat.mark){g.strokeStyle=coat.mark;g.lineCap='round';g.lineWidth=Math.max(2.2,h*.09)
+  const from=cat.kind==='sit'||cat.kind==='chonk'?-w*.3:hx+fr*1.15,to=w/2-6,n=cat.kind==='long'?5:3
+  for(let k=0;k<n;k++){const x=from+(to-from)*(k+.5)/n;g.beginPath();g.moveTo(x-2,-h/2-1);g.quadraticCurveTo(x+3,-h/2+h*.16,x-1,-h/2+h*.3);g.stroke()}
+  g.beginPath();g.moveTo(hx-fr*.18,hy-fr*.95);g.lineTo(hx-fr*.12,hy-fr*.62);g.moveTo(hx+fr*.18,hy-fr*.95);g.lineTo(hx+fr*.12,hy-fr*.62);g.moveTo(hx,hy-fr*1.02);g.lineTo(hx,hy-fr*.66);g.stroke()}
+ // A pale muzzle.
+ g.fillStyle=dark?'rgba(255,255,255,.12)':'rgba(255,255,255,.55)';g.beginPath();g.ellipse(hx,hy+fr*.32,fr*.55,fr*.36,0,0,7);g.fill()
+ g.restore()
+ g.strokeStyle=tn.edge;g.lineWidth=1.5;g.beginPath();g.roundRect(-w/2,-h/2,w,h,rad);g.stroke()
+ // Paws peeking out along the bottom (a loaf tucks them in).
+ if(cat.kind!=='loaf'&&cat.kind!=='curl'){const px=cat.kind==='long'?[hx-fr*.2,hx+fr*.7,w/2-h*.9,w/2-h*.45]:[hx-fr*.45,hx+fr*.45],pr=Math.max(3,Math.min(w,h)*.11)
+  for(const x of px){g.fillStyle=coat.base;g.strokeStyle=tn.edge;g.lineWidth=1.2;g.beginPath();g.ellipse(x,h/2-pr*.55,pr*1.1,pr*.75,0,0,7);g.fill();g.stroke()
+   g.strokeStyle=tn.edge;g.lineWidth=.9;g.beginPath();g.moveTo(x-pr*.3,h/2-pr*.9);g.lineTo(x-pr*.3,h/2-pr*.45);g.moveTo(x+pr*.3,h/2-pr*.9);g.lineTo(x+pr*.3,h/2-pr*.45);g.stroke()}}
+ if(cat.kind==='sit')tail(()=>{g.moveTo(w/2-3,h*.3);g.quadraticCurveTo(w/2+tw*.6,h/2,w*.05+wag*.4,h/2-tw*.4)},tw*.9)
+ if(cat.kind==='curl')tail(()=>{g.moveTo(w/2-tw*.6,h*.05);g.quadraticCurveTo(w/2-tw*.2,h/2-tw*.5,w*.05,h/2-tw*.6);g.quadraticCurveTo(-w*.25,h/2-tw*.6,-w*.32+wag*.3,h*.18)},tw)
+ // The face.
+ const blink=mood==='sleep'||mood!=='worried'&&Math.floor((t+p.n*37)/90)%7===0,ex=fr*.42,er=Math.max(1.8,fr*.2),ey=hy+(mood==='look'?fr*.06:-fr*.02)
+ g.fillStyle='rgba(255,120,150,.5)';g.beginPath();g.ellipse(hx-fr*.66,hy+fr*.3,fr*.17,fr*.11,0,0,7);g.ellipse(hx+fr*.66,hy+fr*.3,fr*.17,fr*.11,0,0,7);g.fill()
+ g.strokeStyle=dark?'#fff3d6':ink;g.lineWidth=Math.max(1.1,fr*.08);g.lineCap='round'
+ if(blink){g.beginPath();g.arc(hx-ex,ey-er*.3,er*.9,0.15*Math.PI,0.85*Math.PI);g.moveTo(hx+ex+er*.9*Math.cos(0.15*Math.PI),ey-er*.3+er*.9*Math.sin(0.15*Math.PI));g.arc(hx+ex,ey-er*.3,er*.9,0.15*Math.PI,0.85*Math.PI);g.stroke()}
+ else{
+  const big=mood==='worried'?1.25:1
+  if(dark){g.fillStyle='#ffe27a';g.beginPath();g.arc(hx-ex,ey,er*1.25*big,0,7);g.arc(hx+ex,ey,er*1.25*big,0,7);g.fill()}
+  g.fillStyle=ink;g.beginPath();g.ellipse(hx-ex,ey,er*big,er*1.15*big,0,0,7);g.ellipse(hx+ex,ey,er*big,er*1.15*big,0,0,7);g.fill()
+  g.fillStyle='#fff';g.beginPath();g.arc(hx-ex+er*.35,ey-er*.4,er*.42,0,7);g.arc(hx+ex+er*.35,ey-er*.4,er*.42,0,7);g.arc(hx-ex-er*.35,ey+er*.4,er*.2,0,7);g.arc(hx+ex-er*.35,ey+er*.4,er*.2,0,7);g.fill()}
+ // Nose, mouth ("w", or a worried "o") and whiskers.
+ const ny=hy+fr*.2
+ g.fillStyle='#ff8fab';g.beginPath();g.moveTo(hx-fr*.1,ny-fr*.04);g.lineTo(hx+fr*.1,ny-fr*.04);g.lineTo(hx,ny+fr*.08);g.closePath();g.fill()
+ g.strokeStyle=dark?'#fff3d6':ink;g.lineWidth=Math.max(1,fr*.07)
+ if(mood==='worried'){g.fillStyle=ink;g.beginPath();g.ellipse(hx,ny+fr*.3,fr*.1,fr*.13,0,0,7);g.fill()}
+ else{g.beginPath();g.moveTo(hx,ny+fr*.08);g.quadraticCurveTo(hx-fr*.02,ny+fr*.26,hx-fr*.17,ny+fr*.2);g.moveTo(hx,ny+fr*.08);g.quadraticCurveTo(hx+fr*.02,ny+fr*.26,hx+fr*.17,ny+fr*.2);g.stroke()}
+ if(!lite){g.strokeStyle=dark?'rgba(255,243,214,.7)':'rgba(58,38,48,.45)';g.lineWidth=.9
+  for(const s of [-1,1])for(const k of [-1,1]){g.beginPath();g.moveTo(hx+s*fr*.45,ny+fr*.12);g.lineTo(hx+s*fr*1.05,ny+fr*.04+k*fr*.14);g.stroke()}}
+ // Fast asleep: a little "z".
+ if(mood==='sleep'&&!lite){g.fillStyle='rgba(255,255,255,.85)';g.font='800 '+Math.max(7,fr*.5)+'px system-ui';g.fillText('z',hx+fr*.8,-h/2+fr*.1-Math.sin(t*0.05+p.n)*1.5)}
+ g.restore()
+}
+/** A cat as a little picture, for "Next". */
+const catIcons=new Map<string,string>()
+function catIcon(cat:Cat){
+ const key=cat.kind+cat.coat;let u=catIcons.get(key);if(u)return u
+ const c=document.createElement('canvas'),k=CATS[cat.kind],w=k.w*T,h=k.h*T,sc=2;c.width=(w+T*1.4)*sc;c.height=(h+T*1.2)*sc
+ const g=c.getContext('2d');if(!g)return ''
+ g.scale(sc,sc)
+ kitty(g,{body:{position:{x:c.width/sc/2-T*.15,y:c.height/sc/2+T*.25},angle:0},size:1,squash:0,n:1} as unknown as Piece,cat,0,'happy',false)
+ u=c.toDataURL();catIcons.set(key,u);return u
 }

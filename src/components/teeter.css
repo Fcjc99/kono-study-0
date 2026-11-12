@@ -42,6 +42,8 @@
  .kono-teeter>.teeter-pad>button:nth-child(3){grid-area:r2}
  .game-screen .kono-teeter>.teeter-pad>button:not(#x):not(#y){width:76px;min-height:76px!important}
  .kono-teeter>.blast-help{grid-area:help;max-width:640px}
+ .kono-teeter>.teeter-pad.is-cats>button:nth-child(1){grid-area:r1}
+ .game-screen .kono-teeter>.teeter-pad.is-cats>button:not(#x):not(#y){width:120px}
 }
 .teeter-event{padding:2px 10px;border-radius:999px;background:#fff3c4;color:#6b4300;font-weight:800;font-size:.82rem;white-space:nowrap;animation:teeter-pop .3s ease-out}
 .teeter-event b{font-variant-numeric:tabular-nums}
@@ -51,3 +53,8 @@
 /* Teeter Tower is taller than most screens: start it at the top (centred, its top went under the toolbar,
    hiding the hearts, the event and race counters and the spell button). */
 .game-screen-body:has(>.kono-teeter){align-content:start}
+/* Cat drop: one big paw button to let go; the next cat as a little picture; feet after the height. */
+.teeter-pad.is-cats{grid-template-columns:1fr;width:min(100%,260px)}
+.game-screen .teeter-pad.is-cats button:not(#x):not(#y){font-size:1.2rem!important;background:linear-gradient(180deg,#fff,#ffe9f1)!important;color:#7a3552!important}
+.teeter-next-cat{display:block;width:auto;height:30px;max-width:64px;object-fit:contain}
+.teeter-score small{font-size:.5em;font-weight:900;margin-left:2px}
