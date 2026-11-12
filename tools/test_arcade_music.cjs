@@ -50,4 +50,18 @@ const tick=()=>new Promise(r=>setTimeout(r,30))
  A.stopMusic();await new Promise(r=>setTimeout(r,600))
  assert.equal(playing().length,0,'stopMusic stops every copy')
  console.log('PASS arcade music: KONO Flow’s songs start, loop without a gap, slow in Flow, change stage, rest in the background and stop')
+ // KONO Bloom and Teeter Tower play the KONO playlist: every song is a full one, and each crossfades into
+ // the next instead of the same one looping.
+ const src=fs.readFileSync(path.join(root,'src/arcadeAudio.ts'),'utf8')
+ const list=JSON.parse(src.match(/const KONO_PLAYLIST=(\[[^\]]*\])/)[1].replace(/'/g,'"'))
+ assert.ok(list.length>=4,'the playlist has several songs')
+ for(const f of list){assert.ok(fs.existsSync(path.join(root,'public',f)),f+' is in public');assert.ok(fs.statSync(path.join(root,'public',f)).size>1e6,f+' is a full song, not a short cue')}
+ for(const game of ['bloom','teeter']){
+  A.startMusic(game,true);const seen=[made.at(-1).src]
+  for(let k=1;k<list.length;k++){const a=made.at(-1);a.currentTime=118;a.fire('timeupdate');seen.push(made.at(-1).src)}
+  assert.deepEqual([...seen].sort(),[...list].sort(),game+' plays every song in the playlist once before any repeats')
+  const a=made.at(-1);a.currentTime=118;a.fire('timeupdate');assert.equal(made.at(-1).src,seen[0],game+' goes round to the first again')
+  A.stopMusic();await new Promise(r=>setTimeout(r,500))
+ }
+ console.log('PASS arcade music: KONO Bloom and Teeter Tower move through the KONO playlist, song after song')
 })().catch(e=>{console.error(e);process.exit(1)})

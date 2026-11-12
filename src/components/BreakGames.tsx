@@ -8,7 +8,6 @@ import FlowGame from './FlowGame'
 import FlappyKono from './FlappyKono'
 import PaperKono from './PaperKono'
 import KonoStack from './KonoStack'
-import KonoBloom from './KonoBloom'
 import {LADDER} from '../store/bloom'
 // KONO Beat brings its charts (every song, three levels): loaded when it's opened.
 const RhythmGame=lazy(()=>import('./RhythmGame'))
@@ -19,6 +18,7 @@ const loadCove=()=>import('./MedalCoveGame')
 const MedalCove=lazy(loadCove)
 // KONO Teeter Tower brings its physics engine (matter-js) only when it's opened.
 const KonoTeeter=lazy(()=>import('./KonoTeeter'))
+const KonoBloom=lazy(()=>import('./KonoBloom'))
 const TeeterModes=lazy(()=>import('./TeeterModes'))
 const TeeterBoard=lazy(()=>import('./TeeterModes').then(m=>({default:m.TeeterBoard})))
 let coveFetched=false
@@ -143,7 +143,7 @@ export default function BreakGames({startedAt,onClose,arcade=false,sound=false,o
    finish('teeter',r.height,'KONO’s tower stood '+rows(r.height)+' high, from '+r.blocks+' block'+(r.blocks===1?'':'s')+'.'+perf+' 🗼',{title:r.height>=30?'Starry heights!':r.height>=20?'Sky high!':r.height>=10?'What a tower!':'Timber!',coinScore:r.height+Math.floor(r.perfects/2),won:r.height>0,detail:shot})
   }}/></Suspense>
   :game==='cove'?<Suspense fallback={<p role="status">Setting up the cove…</p>}><MedalCove key={round} onFail={failed('cove')} ref={handle} best={readBest('cove')} sound={sound} onEnd={(n,jps,practice)=>practice?finish('cove',0,'A practice round (with sample medals): '+n+' medals in hand. Practice rounds don’t earn coins or set a best. 🪙',{title:'Practice round',coinScore:0,scoreText:n+' practice medals',won:true}):finish('cove',n,(jps?'🎉 '+jps+' jackpot'+(jps===1?'':'s')+'! ':'')+'You finished with '+n+' medal'+(n===1?'':'s')+'. 🪙',{title:jps?'JACKPOT!':n>=100?'Big haul!':n>0?'Nice pushing!':'All pushed out',scoreText:n+' medals',won:n>0})}/></Suspense>
-  :game==='bloom'?<KonoBloom key={round} ref={handle} best={readBest('bloom')} sound={sound} onEnd={(n,biggest)=>finish('bloom',n,'You grew up to '+LADDER[biggest].emoji+' '+LADDER[biggest].name+'. 🍓',{title:biggest>=10?'A Rainbow Fruit!':biggest>=7?'What a fruit bowl!':'Juicy!',scoreText:n.toLocaleString()+' points',won:n>0})}/>
+  :game==='bloom'?<Suspense fallback={<p role="status">Filling the jar…</p>}><KonoBloom key={round} ref={handle} best={readBest('bloom')} sound={sound} onEnd={(n,biggest)=>finish('bloom',n,'You grew up to '+LADDER[biggest].emoji+' '+LADDER[biggest].name+'. 🍓',{title:biggest>=10?'A Rainbow Fruit!':biggest>=7?'What a fruit bowl!':'Juicy!',scoreText:n.toLocaleString()+' points',won:n>0})}/></Suspense>
   :game==='flow'?<FlowGame key={round} ref={handle} sound={sound} onEnd={r=>{
    // Sprint is about time (its best is kept in the game); the others about points.
    const t=Math.floor(r.time/60000)+':'+(r.time/1000%60).toFixed(2).padStart(5,'0')
