@@ -830,3 +830,15 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 .game-screen-body>.break-game:is(.blast,.meow){max-width:min(100%,640px)}
 .break-game.blast .blast-frame,.break-game.blast :is(.break-game-status,.land-game-status){max-width:min(94vw,calc(100dvh - 400px),600px)}
 .break-game.meow :is(.meow-board,.meow-help,.break-game-status){max-width:min(94vw,calc(100dvh - 330px),600px)}
+/* Gem blitz and Sweet swap on a tablet on its side (or a computer): the board as tall as the screen allows on
+   the left, with the score, the goal, the boosters and the help in a column beside it. */
+@media (orientation:landscape) and (min-width:900px) and (min-height:600px){
+ .game-screen-body>.break-game.match3{max-width:min(100%,1180px)}
+ .break-game.match3{display:grid;grid-template-columns:auto 300px;grid-template-areas:"board top" "board goal" "board boost" "board help" "board .";grid-template-rows:auto auto auto auto 1fr;column-gap:32px;row-gap:14px;justify-content:center;align-items:start}
+ .break-game.match3>.blast-frame{grid-area:board;width:calc(100dvh - 140px);max-width:calc(100dvh - 140px)!important}
+ .break-game.match3>.blast-top{grid-area:top;align-self:end;margin-top:24px}
+ .break-game.match3>.match3-goal{grid-area:goal}
+ .break-game.match3>.m3-boosters{grid-area:boost}
+ .break-game.match3>.blast-help{grid-area:help;text-align:left}
+ .break-game.match3>:is(.blast-top,.match3-goal,.m3-boosters,.blast-help){width:300px;max-width:300px!important}
+}
