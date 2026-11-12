@@ -58,3 +58,5 @@
 .game-screen .teeter-pad.is-cats button:not(#x):not(#y){font-size:1.2rem!important;background:linear-gradient(180deg,#fff,#ffe9f1)!important;color:#7a3552!important}
 .teeter-next-cat{display:block;width:auto;height:30px;max-width:64px;object-fit:contain}
 .teeter-score small{font-size:.5em;font-weight:900;margin-left:2px}
+/* The mode's name over the sky: white, so it reads on the pale day sky as well as at night. */
+.kono-teeter .blast-best{color:#fff;text-shadow:0 2px 0 rgb(30 50 100/.5),0 0 8px rgb(30 50 100/.35)}

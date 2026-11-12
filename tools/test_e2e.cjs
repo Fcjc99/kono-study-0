@@ -4800,8 +4800,11 @@ test('KONO Teeter Tower: drag a block and let go and it drops where you put it; 
  await game.getByLabel(/^Next cat: /).waitFor()
  const aim=async()=>Number(await game.locator('.teeter-frame').getAttribute('data-aim'))
  const a1=await aim();await page.waitForTimeout(400);assert.notEqual(await aim(),a1,'the cat swings by itself')
+ // Waited on for a while before the tap, the cat still falls all the way down (it used to hang in the air).
+ await page.waitForTimeout(8000)
  for(let i=0;i<3;i++){const t0=Date.now();while(Date.now()-t0<6000&&Math.abs(await aim()-210)>8)await page.waitForTimeout(16)
-  await game.getByRole('button',{name:'Drop the cat'}).click();await page.waitForTimeout(1600)}
+  await game.getByRole('button',{name:'Drop the cat'}).click();await page.waitForTimeout(1600)
+  if(i===0)assert.ok(Number(await game.locator('.teeter-frame').getAttribute('data-height'))<=2,'the first cat lands on the island')}
  await game.getByRole('img',{name:/^KONO Cat drop, the cat tower is [1-9]\d* feet high$/}).waitFor()
  await game.getByRole('button',{name:'■ End'}).click()
  await game.getByText(/Your cat tower stood \d+ (foot|feet) high, from 3 cats/).waitFor()

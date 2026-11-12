@@ -136,7 +136,9 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    if(!active)return
    const p=active;active=null
    // Let go: it falls with gravity (and keeps a little of the sideways swing).
-   Body.setStatic(p.body,false);Body.setVelocity(p.body,falling?{x:0,y:0.5}:{x:Math.max(-1.5,Math.min(1.5,swing*0.25)),y:p.kind==='balloon'?0.2:0})
+   // Wake it first: held still in KONO's paws for a few seconds, the physics puts it to sleep, and a sleeping
+   // body let go would hang in the air (a cat waited on, then dropped, floated there).
+   Body.setStatic(p.body,false);wake(p.body);Body.setVelocity(p.body,falling?{x:0,y:0.5}:{x:Math.max(-1.5,Math.min(1.5,swing*0.25)),y:p.kind==='balloon'?0.2:0})
    p.drop={x:p.body.position.x,angle:p.body.angle};p.at=performance.now()
    placed.push(p);state.current.blocks++;setStarted(true)
    if(goal){budget--;setLeft(budget)}
