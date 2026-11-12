@@ -1,6 +1,6 @@
 /** KONO Bloom (components/KonoBloom): drop fruit into KONO's jar. It falls, rolls and settles; two of the
  * same that touch grow into the next fruit on the ladder (a blueberry into a cherry, a cherry into a
- * strawberry, … a melon into the Rainbow Fruit), and two Rainbow Fruits make a rainbow and leave room. Growing
+ * strawberry, … a watermelon into the Rainbow Fruit), and two Rainbow Fruits make a rainbow and leave room. Growing
  * scores; let the jar fill past the dashed line for a moment and the round's over. The jar is 100 wide and
  * 140 tall (y grows downward); time is in frames at 60 a second. Pure apart from the random drops, so it
  * can be tested. */
@@ -19,7 +19,7 @@ export const LADDER = [
   { emoji: '🍑', name: 'Peach', color: '#ffb08a', kind: 'peach' },
   { emoji: '🥭', name: 'Mango', color: '#ffb347', kind: 'mango' },
   { emoji: '🥥', name: 'Coconut', color: '#b07a52', kind: 'coconut' },
-  { emoji: '🍈', name: 'Melon', color: '#b8e08a', kind: 'melon' },
+  { emoji: '🍉', name: 'Watermelon', color: '#8fd36f', kind: 'melon' },
   { emoji: '🌈', name: 'Rainbow Fruit', color: '#ff9ad5', kind: 'rainbow' },
 ] as const
 export const RADIUS = [4.2, 5.6, 7.2, 8.8, 10.6, 12.6, 14.8, 17.2, 19.8, 22.6, 25.6]
