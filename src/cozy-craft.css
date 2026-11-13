@@ -44,3 +44,8 @@
 /* The phone tab bar is solid and always on top: the coral palette's old desktop-nav rule turns off its
  * blur (backdrop-filter:none!important), and a 94% bar without the blur let cards show through it. */
 :root[data-experience='cozy'] .mobile-nav.is-tabbar{z-index:60!important;background:var(--wb-surface,#fffdf8)!important}
+/* Upright tablets (721-1100px) show this tab bar too, but the phone tab bar's colors stop at 720px: the
+   tabs fell back to the wooden desk header's cream text on this light bar (near-invisible) and to a 7-column
+   grid for 5 tabs. Readable muted labels and five even columns at every width. */
+:root[data-experience='cozy'] .mobile-nav.is-tabbar{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+:root[data-experience='cozy'] .mobile-nav.is-tabbar button:not(.active){color:var(--wb-muted,#7a6670)!important}
