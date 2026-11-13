@@ -69,3 +69,9 @@
 :root[data-experience='cozy'][data-team='light'] .mobile-desk-header .mobile-week-weather-day{background:color-mix(in srgb,var(--team-stripe) 6%,transparent)}
 :root[data-experience='cozy'][data-team='light'] .mobile-nav button{color:var(--team-stripe)!important;background:color-mix(in srgb,var(--team-stripe) 4%,transparent)!important;border-color:color-mix(in srgb,var(--team-stripe) 20%,transparent)!important}
 :root[data-experience='cozy'][data-team='light'] .mobile-nav button.active{background:var(--team-stripe)!important;border-color:var(--team-stripe)!important;color:#fff!important;box-shadow:0 3px 0 var(--team-trim)!important}
+/* The phone tab bar (refresh.css › .is-tabbar) marks the current tab with its color, not a filled pill: the
+   older team rules above still filled it with the team color, so its label (also the team color) vanished
+   (navy on navy). On the tab bar, no pill, and the current tab in the team color on the light bar. */
+:root[data-experience='cozy'][data-team] .mobile-nav.is-tabbar button:not(.mobile-nav-add):not(#x){background:none!important;border-color:transparent!important;box-shadow:none!important}
+:root[data-experience='cozy'][data-team] .mobile-nav.is-tabbar button.active:not(#x){color:var(--team-stripe)!important}
+:root[data-experience='cozy'][data-team] .mobile-nav.is-tabbar button:not(.active):not(#x){color:var(--wb-muted,#5d4f56)!important}
