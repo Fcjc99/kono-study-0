@@ -43,6 +43,6 @@
 /* Dark team and palette colors (navy, maroon, forest…) as text vanish on dark cards: in dark mode, text that
    took the accent color takes a light tint of it instead (found by DARK=1 npm run test:visual). */
 :root[data-dark] .start-focus-button:not(#x):not(#y):not(.is-icon){color:color-mix(in srgb,var(--wb-accent) 35%,#fff)!important;border-color:color-mix(in srgb,var(--wb-accent) 45%,#fff 10%)!important}
-:root[data-dark] .brand p:not(#x){color:var(--wb-muted)!important}
+:root[data-dark] :is(.brand,.mobile-brand-lockup) p:not(#x){color:var(--wb-muted)!important}
 /* On a light accent (Midnight's periwinkle), the selected tab's text is the palette's own dark ink. */
-:root[data-dark] nav[aria-label="Settings sections"] button[aria-current=page]:not(#x){color:var(--wb-accent-ink,#182238)!important}
+:root[data-dark][data-experience=simplified] .workbench :is(nav[aria-label="Settings sections"],.subject-section-tabs) button[aria-current]:not(#x):not(#y):not(#z){color:var(--wb-accent-ink,#182238)!important}
