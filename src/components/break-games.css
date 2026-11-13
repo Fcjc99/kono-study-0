@@ -850,3 +850,6 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 .game-start.has-art h2{margin:2px 0 0;font-size:1.6rem}
 .game-start .game-result-actions{width:100%;flex-direction:column;align-items:stretch;margin-top:16px}
 .game-start .game-result-actions button:not(#x){min-height:52px!important;font-size:1.08rem!important;border-radius:999px!important}
+/* Results: Play again and Done as big rounded buttons, like Start. */
+.game-result:not(.game-start) .game-result-actions button:not(#x){min-height:48px!important;padding:0 24px!important;font-size:1rem!important;border-radius:999px!important}
+.game-result.is-over-game .game-result-actions button:not(#x){min-height:42px!important}
