@@ -853,3 +853,11 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 /* Results: Play again and Done as big rounded buttons, like Start. */
 .game-result:not(.game-start) .game-result-actions button:not(#x){min-height:48px!important;padding:0 24px!important;font-size:1rem!important;border-radius:999px!important}
 .game-result.is-over-game .game-result-actions button:not(#x){min-height:42px!important}
+/* Upright tablets: the games that stopped at phone size (Gem blitz and Sweet swap's board, KONO Stack's
+   tower, KONO Hop's sky) grow to use the screen. */
+@media (min-width:700px) and (orientation:portrait){
+ .game-screen-body>.break-game.match3{max-width:min(100%,780px)}
+ .break-game.match3 :is(.blast-frame,.match3-goal,.blast-top,.blast-help,.m3-boosters){max-width:min(720px,92vw,calc(100dvh - 430px))!important}
+ .game-screen-body>.kono-stack,.kono-stack{width:min(680px,100%);max-width:none}
+ .flappy-frame{height:min(78dvh,900px)}
+}
