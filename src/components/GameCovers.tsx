@@ -15,7 +15,7 @@ export default function GameCover({game}:{game:string}){
   :game==='beat'?<span className="gc-beat">{[0,1,2,3].map(l=><span key={l} className={'gc-lane is-'+l}><i/><i/></span>)}<b className="gc-line"/></span>
   :game==='stack'?<span className="gc-stack-cakes">{[0,1,2,3,4].map(i=><i key={i} style={{'--i':i} as React.CSSProperties}/>)}<b className="gc-cake-drop"/></span>
   :game==='teeter'?<span className="gc-teeter"><b className="gc-teeter-island"/>{[['#ffd36b',38,0,0],['#7cc3ef',30,1,-4],['#f59ac4',44,2,6],['#7fd1ae',36,3,-8],['#b9a0ea',46,4,4]].map(([c,x,r,a],i)=><i key={i} style={{'--c':c,'--x':x+'%','--r':r,'--a':a+'deg'} as React.CSSProperties}/>)}<img src="/garden/kono/happy.webp" alt="" loading="lazy"/></span>
-  :game==='cove'?<span className="gc-cove"><b className="gc-cove-pusher"/>{Array.from({length:14},(_,i)=><i key={i} style={{'--i':i} as React.CSSProperties}/>)}<em>JP</em></span>
+  :game==='cove'?<span className="gc-cove"><b className="gc-cove-pusher"/>{Array.from({length:14},(_,i)=><i key={i} style={{'--x':8+(i*37)%76+'%','--y':48+(i*13)%40+'%'} as React.CSSProperties}/>)}<em>JACKPOT</em></span>
   :game==='bloom'?<span className="gc-bloom">{['🍉','🥥','🍑','🍋','🍓','🍒'].map((e,i)=><i key={i} className={'is-'+i}>{e}</i>)}<b className="gc-bloom-drop">🫐</b></span>
   :game==='flap'?<span className="gc-flap"><i className="gc-pipe is-top"/><i className="gc-pipe is-bottom"/><img src="/garden/kono/happy.webp" alt="" loading="lazy"/></span>
   :game==='paper'?<span className="gc-paper"><i className="is-blue"/><i className="is-red"/><b className="gc-trail"/></span>

@@ -781,7 +781,7 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 .gc-cove{position:absolute;inset:0}
 .gc-cove em{position:absolute;top:4%;left:50%;translate:-50% 0;font-style:normal;font-weight:900;font-size:.85rem;color:#ffe9a8}
 .gc-cove-pusher{position:absolute;left:8%;right:8%;top:28%;height:14%;background:#2f6fb3;border-radius:2px;animation:gc-push 2s ease-in-out infinite}
-.gc-cove i{position:absolute;width:12%;height:9%;border-radius:50%;background:radial-gradient(ellipse at 35% 35%,#fff1a6,#f2c230 55%,#c99012);left:calc(8% + (var(--i) * 37 % 76) * 1%);top:calc(48% + (var(--i) * 13 % 40) * 1%)}
+.gc-cove i{position:absolute;width:12%;height:9%;border-radius:50%;background:radial-gradient(ellipse at 35% 35%,#fff1a6,#f2c230 55%,#c99012);left:var(--x);top:var(--y)}
 @keyframes gc-push{50%{translate:0 40%}}
 @media(prefers-reduced-motion:reduce){.gc-cove-pusher,.cove-event,.cove-reels.is-spinning span{animation:none}}
 /* Big wins: a gold banner that shines, and a flash over the whole cabinet */
@@ -842,3 +842,11 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
  .break-game.match3>.blast-help{grid-area:help;text-align:left}
  .break-game.match3>:is(.blast-top,.match3-goal,.m3-boosters,.blast-help){width:300px;max-width:300px!important}
 }
+/* A game's start card: its moving cover across the top (the same scene as on the arcade shelf), then the name,
+   a line on how to play and one big Start. */
+.game-result.game-start.has-art{padding-top:0;overflow:hidden;max-width:400px;width:100%}
+.game-start-art{display:block;width:calc(100% + 40px);margin:0 -20px 12px}
+.game-start-art .game-cover{border-radius:0;margin:0;aspect-ratio:16/8}
+.game-start.has-art h2{margin:2px 0 0;font-size:1.6rem}
+.game-start .game-result-actions{width:100%;flex-direction:column;align-items:stretch;margin-top:16px}
+.game-start .game-result-actions button:not(#x){min-height:52px!important;font-size:1.08rem!important;border-radius:999px!important}

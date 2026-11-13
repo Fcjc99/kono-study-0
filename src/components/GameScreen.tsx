@@ -17,7 +17,7 @@ import {GAME_SCREEN_EVENT} from '../hooks/useComfort'
 /** `detail`: more for the results, under the score (KONO Beat's breakdown of the song). */
 export type GameResult={emoji:string;title:string;line:string;score?:string;best?:boolean;coins?:string|null;won?:boolean;behind?:boolean;detail?:ReactNode}
 /** `extra`: more for the start card, under the how-to (Sweet swap's level map). */
-export type GameIntro={emoji:string;name:string;how:string;best?:string|null;start?:string;alt?:{label:string;onClick:()=>void};extra?:React.ReactNode}
+export type GameIntro={emoji:string;art?:React.ReactNode;name:string;how:string;best?:string|null;start?:string;alt?:{label:string;onClick:()=>void};extra?:React.ReactNode}
 /** What a game lets its screen do: End finishes the round now with the score so far. */
 export type GameHandle={end:()=>void}
 export default function GameScreen({title,tone,sound=false,intro,started=true,onStart,onRestart,onEnd,onLeave,result,onAgain,children}:{
@@ -58,8 +58,8 @@ export default function GameScreen({title,tone,sound=false,intro,started=true,on
    {sound&&<button type="button" className="game-screen-tool" aria-pressed={music} aria-label="Music" onClick={()=>{setMusicOn(!music,sound);setMusic(!music)}}>{music?'🎵':'🔇'}</button>}
    <button type="button" className="game-screen-leave" onClick={leave}>✕ Leave</button>
   </span></header>
-  <div className="game-screen-body">{phase==='start'&&intro?<section className="game-result game-start" aria-label="Start">
-   <span className="game-result-emoji" aria-hidden="true">{intro.emoji}</span>
+  <div className="game-screen-body">{phase==='start'&&intro?<section className={'game-result game-start'+(intro.art?' has-art':'')} aria-label="Start">
+   {intro.art?<span className="game-start-art" aria-hidden="true">{intro.art}</span>:<span className="game-result-emoji" aria-hidden="true">{intro.emoji}</span>}
    <h2>{intro.name}</h2>
    <p className="game-result-line">{intro.how}</p>
    {intro.best&&<p className="game-result-best">👑 {intro.best}</p>}
