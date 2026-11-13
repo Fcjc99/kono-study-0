@@ -72,3 +72,15 @@
 /* View switches cross-fade (src/store/viewTransition.ts), Material's medium timing. */
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.25s;animation-timing-function:cubic-bezier(.2,0,0,1)}
 @media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+/* Phones: the Planner's six views in one row (they wrapped into two), and a slimmer reminders note, so the
+   calendar itself starts higher on the screen. */
+@media (max-width:600px){
+ .workbench .calendar-views:not(#x){display:flex!important;flex-wrap:nowrap!important;width:100%;overflow-x:auto;scrollbar-width:none;justify-content:space-between}
+ .workbench .calendar-views:not(#x)::-webkit-scrollbar{display:none}
+ .workbench .calendar-views:not(#x){gap:0;padding:3px}
+ :root .workbench .calendar-views:not(#x) button:not(#x):not(#y):not(#z){flex:1 0 auto;min-width:0!important;padding:0 6px!important;font-size:.76rem!important;white-space:nowrap}
+ #workspace-main .reminder-nudge:not(#x){flex-wrap:nowrap;align-items:flex-start;padding:8px 10px!important;font-size:.86rem;line-height:1.35}
+ #workspace-main .reminder-nudge:not(#x) .reminder-nudge-bell{font-size:1.2rem}
+ #workspace-main .reminder-nudge:not(#x) p{margin:0 0 6px}
+}
+@media (max-width:380px){:root .workbench .calendar-views:not(#x) button:not(#x):not(#y):not(#z){padding:0 4px!important;font-size:.72rem!important}}
