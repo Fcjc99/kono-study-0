@@ -43,3 +43,18 @@
  .workbench .wb-header{padding-top:10px!important;padding-bottom:10px!important;min-height:0!important}
  .workbench .wb-header>div:first-child:not(:has(.save-status:not(.is-quiet))):not(:has(.wb-header-weather)){position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important;margin:0!important;padding:0!important}
 }
+/* Phones, every page but Home: search and ⋯ sit on the title's row, at its right, instead of a row of their
+   own (it pushed every page's content down by 50px). Home keeps its row: the Set up chip needs the width. */
+@media (max-width:700px){
+ .workbench:not([data-page=sanctuary]) .wb-header{flex-wrap:nowrap!important;align-items:flex-start!important}
+ .workbench:not([data-page=sanctuary]) .wb-header>div:first-child{flex:1 1 0;min-width:0}
+ .workbench:not([data-page=sanctuary]) .wb-header>.wb-toolbar{width:auto!important;flex:0 0 auto;overflow:visible}
+}
+/* The phone's More sheet: each page as a tile with its icon, two across (it was a list of bare words). */
+.more-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}
+.wb-dialog .more-grid button:not(#x){display:flex;align-items:center;gap:10px;min-height:54px!important;margin:0!important;padding:0 12px!important;border-radius:14px!important;font-weight:700;text-align:left}
+.more-grid-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 14%,transparent);color:var(--wb-accent,#c76b8f)}
+.more-grid-icon svg{width:18px;height:18px}
+.wb-dialog .more-grid button.is-here:not(#x){border-color:var(--wb-accent,#c76b8f)!important}
+.more-grid-icon .kono-action-icon{width:18px;height:18px;margin:0}
+.settings-page-tools{margin-top:18px}
