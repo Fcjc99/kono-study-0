@@ -86,7 +86,7 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
     // A cat: one soft rounded body (a little rounder than a block, so they snuggle and wobble), grippy fur.
     const c=CATS[cat.kind],w=c.w*S,h=c.h*S
     const body=Bodies.rectangle(x,y,w,h,{chamfer:{radius:Math.min(w,h)*c.round},friction:1,frictionStatic:2,frictionAir:0.012,restitution:0,density:0.0016,slop:0.02})
-    Body.setInertia(body,body.inertia*3);Body.setStatic(body,true);body.sleepThreshold=180
+    Body.setInertia(body,body.inertia*8);Body.setStatic(body,true);body.sleepThreshold=180
     return {body,shape,kind:null,color:COATS[cat.coat].base,face:0,rest:0,locked:false,judged:false,drop:{x,angle:0},at:0,stuck:false,popped:false,skin:look,n:dealt,landed:false,squash:0,size,slick,vine:false,cat}
    }
    const cells=SHAPES[shape],cx=cells.reduce((a,c)=>a+c[0],0)/cells.length,cy=cells.reduce((a,c)=>a+c[1],0)/cells.length
@@ -99,8 +99,9 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    // Made as a real body first, then held still while KONO carries it: setStatic keeps its mass for the drop.
    const body=Body.create({parts,friction:1,frictionStatic:2,frictionAir:0.012,restitution:0,density:0.0016,slop:0.02,...stuff})
    // Settles (sleeps) after about three quarters of a second still, so a standing tower doesn't creep; and it's
-   // three times as hard to spin as a real block, so it tips slowly rather than snapping over.
-   if(kind!=='jelly')Body.setInertia(body,body.inertia*3)
+   // eight times as hard to spin as a real block, so it tips slowly rather than snapping over (and settles
+   // into a lean on an uneven top instead of rocking off it, like Tricky Towers' heavy bricks).
+   if(kind!=='jelly')Body.setInertia(body,body.inertia*8)
    Body.setStatic(body,true);body.sleepThreshold=180
    return {body,shape,kind,color:kind?SPECIALS[kind].color:skinColor(look,shape),face:Math.floor(Math.random()*cells.length),rest:0,locked:false,judged:false,drop:{x,angle:0},at:0,stuck:false,popped:false,skin:look,n:dealt,landed:false,squash:0,size,slick,vine:false,cat:null}
   }
@@ -310,8 +311,10 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
    acc+=dt;while(acc>=1000/240){for(const p of placed){if(!p.landed&&p.body.velocity.y>4.2)Body.setVelocity(p.body,{x:p.body.velocity.x,y:4.2})
     // Like Tricky Towers' bricks, a landed block grips: it resists tipping (a block that lands on a bump leans
     // slowly rather than snapping off) and sliding (ice, slippery and jelly blocks still slide). Measured on
-    // 10 test towers: blocks lost fell from 7.2 to 3.1 in 12, and towers grew from 7.9 to 15 rows.
-    else if(p.landed&&!p.locked&&!p.body.isSleeping&&p.kind!=='jelly'){Body.setAngularVelocity(p.body,p.body.angularVelocity*0.93);if(!p.slick&&p.kind!=='ice')Body.setVelocity(p.body,{x:p.body.velocity.x*0.95,y:p.body.velocity.y})}};Engine.update(engine,1000/240);acc-=1000/240}
+    // 10 test towers of 16 pieces each, placed the way a careful player would: blocks lost fell from 3.4 to
+    // 0.1, blocks sliding after they land from 7.2 to 3.7, and towers grew from 15 to 22 rows; a block hung
+    // well over an edge still tips and falls.
+    else if(p.landed&&!p.locked&&!p.body.isSleeping&&p.kind!=='jelly'){Body.setAngularVelocity(p.body,p.body.angularVelocity*0.87);if(!p.slick&&p.kind!=='ice')Body.setVelocity(p.body,{x:p.body.velocity.x*0.9,y:p.body.velocity.y})}};Engine.update(engine,1000/240);acc-=1000/240}
    // Fell off: the block is gone. One tumble costs one heart, however many blocks go over with it.
    for(let k=placed.length-1;k>=0;k--){const p=placed[k];if(p.body.position.y>ISLAND_TOP+260){Composite.remove(engine.world,p.body);placed.splice(k,1);for(const q of placed)wake(q.body)
     if(bird.on===p){bird.state='out';bird.at=now}
