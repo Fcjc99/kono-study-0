@@ -90,7 +90,7 @@ export function KidsPage({data,create,edit,remove,patch,openSettings,onOpenKidPl
  const [appearanceOpen,setAppearanceOpen]=useState(false)
  const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
  return <section className="wb-panel family-calendar">
-  <div className="wb-section-head"><div><small>ONE SHARED CALENDAR</small><h2>Kids</h2></div><div className="wb-toolbar">{onSetup&&<button type="button" onClick={onSetup}>✨ Quick setup</button>}<button type="button" onClick={()=>setAppearanceOpen(true)}>🎨 Appearance</button><button onClick={()=>create('kids')}>＋ Add a kid</button></div></div>
+  <div className="wb-section-head"><div><small>ONE SHARED CALENDAR</small><h2>Your kids</h2></div><div className="wb-toolbar">{onSetup&&<button type="button" onClick={onSetup}>✨ Quick setup</button>}<button type="button" onClick={()=>setAppearanceOpen(true)}>🎨 Appearance</button><button onClick={()=>create('kids')}>＋ Add a kid</button></div></div>
   <p className="wb-muted">{kids.length&&cards?'Each kid’s day, tomorrow and the rest of the week. Tag anything with a kid from its editor and it shows here and in their color on the Planner.':'Add each kid once, then tag any assignment, exam, class or event with them from its own editor and filter your Planner calendar by kid — the same way you already filter by subject. Pick their emoji and color under Appearance.'}</p>
   {kids.length>0&&cards}
   {kids.length>0&&!cards&&<ul className="kid-roster" aria-label="Kids">

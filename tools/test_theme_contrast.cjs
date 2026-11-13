@@ -157,6 +157,9 @@ async function setExperienceAndTheme(page, experience, theme) {
  if (theme && TEAM.includes(theme)) {
   const tile = page.locator('.team-color-grid button', { has: page.locator(`.team-swatch.theme-${theme}`) })
   if (!(await tile.count())) throw new Error(`Team colors tile for ${theme} not found`)
+  // Team colors sit in a closed section unless a team palette is already in use: open it first.
+  await page.evaluate(() => { const d = document.querySelector('details.team-colors-panel'); if (d) d.open = true })
+  await tile.scrollIntoViewIfNeeded()
   await tile.click()
   await page.waitForTimeout(400)
  } else if (theme) {

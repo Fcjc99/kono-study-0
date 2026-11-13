@@ -42,7 +42,7 @@
 .gc-cove{position:absolute;inset:0}
 .gc-cove em{position:absolute;top:4%;left:50%;translate:-50% 0;font-style:normal;font-weight:900;font-size:.85rem;color:#ffe9a8}
 .gc-cove-pusher{position:absolute;left:8%;right:8%;top:28%;height:14%;background:#2f6fb3;border-radius:2px;animation:gc-push 2s ease-in-out infinite}
-.gc-cove i{position:absolute;width:12%;height:9%;border-radius:50%;background:radial-gradient(ellipse at 35% 35%,#fff1a6,#f2c230 55%,#c99012);left:calc(8% + (var(--i) * 37 % 76) * 1%);top:calc(48% + (var(--i) * 13 % 40) * 1%)}
+.gc-cove i{position:absolute;width:12%;height:9%;border-radius:50%;background:radial-gradient(ellipse at 35% 35%,#fff1a6,#f2c230 55%,#c99012);left:var(--x);top:var(--y)}
 @media(prefers-reduced-motion:reduce){.gc-cove-pusher,.cove-reels.is-spinning span{animation:none}}
 .cove-loading{position:absolute;inset:0;margin:0;display:grid;place-items:center;color:#fff;font-weight:900;background:rgb(10 30 60/.5)}
 @keyframes cove-shine{to{background-position:-250% 0}}

@@ -50,3 +50,5 @@
 .town-item-art.is-room img{width:56px;height:42px;object-fit:cover;border-radius:6px}
 .town-classic{margin:8px 0 0}
 .town-classic button{margin:0!important}
+/* On a tablet or computer, KONO Town opens wide: more of each shop in view (the item grids fill the room). */
+@media (min-width:900px){.wb-dialog:has(>.kono-town),.wb-dialog:has(.kono-town){width:min(960px,calc(100% - 48px))}}
