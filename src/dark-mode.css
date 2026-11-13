@@ -38,3 +38,5 @@
 :root[data-dark] :is(.workbench .eyebrow,.workbench .subject-section-tabs button[aria-current]):not(#x):not(#y){color:#f4b3cf!important}
 :root[data-dark] .workbench .week-grid-head button.is-today small:not(#x){color:#3a2230!important}
 :root[data-dark] .workbench .week-grid .week-item small:not(#x){color:#ece6f4!important}
+/* Card subtitles (K-Quiz's lecture card) used the light theme's muted grey, too faint on dark cards. */
+:root[data-dark] .card-head p{color:var(--wb-muted)}
