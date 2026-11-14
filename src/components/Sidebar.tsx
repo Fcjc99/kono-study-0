@@ -17,7 +17,21 @@ const iconPaths:Record<ViewName,ReactNode>={
  Exams:<><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12 2.2 2.2 4.8-5"/></>,
  Settings:<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.1A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.16.38.37.72.6 1 .3.35.7.55 1.1.6h.1v4h-.1c-.4.05-.8.25-1.1.6-.23.28-.44.62-.6 1z"/></>
 }
+/** The Cozy look's tab icons: filled, two-tone shapes (the lighter part at 55%), so they read as little
+ * pictures on their colored tiles rather than thin outlines. Other looks keep the line icons above. */
+const duoPaths:Partial<Record<ViewName,ReactNode>>={
+ Sanctuary:<><path opacity=".72" d="M5.5 12h13v7a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 19z"/><path d="M11.2 3.5a1.2 1.2 0 0 1 1.6 0l8 7.1a1 1 0 0 1-.66 1.75H3.86a1 1 0 0 1-.66-1.75z"/><rect x="10.2" y="14.4" width="3.6" height="6.1" rx="1.1"/></>,
+ Planner:<><rect opacity=".72" x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 8a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3v2h-17z"/><rect x="7" y="2.8" width="2.1" height="4.4" rx="1.05"/><rect x="14.9" y="2.8" width="2.1" height="4.4" rx="1.05"/><circle cx="8.2" cy="13.7" r="1.25"/><circle cx="12" cy="13.7" r="1.25"/><circle cx="15.8" cy="13.7" r="1.25"/><circle cx="8.2" cy="17.3" r="1.25"/><circle cx="12" cy="17.3" r="1.25"/></>,
+ Kids:<><g opacity=".72"><circle cx="16.6" cy="9" r="2.7"/><path d="M15 20.5h5.2a1 1 0 0 0 1-1 4.9 4.9 0 0 0-7.1-4.4 7.2 7.2 0 0 1 .9 5.4z"/></g><circle cx="8.4" cy="7.9" r="3.2"/><path d="M2.8 19.3a5.6 5.6 0 0 1 11.2 0v.2a1 1 0 0 1-1 1H3.8a1 1 0 0 1-1-1z"/></>,
+ Subjects:<><path d="M3 6.4a1 1 0 0 1 .68-.95c2.5-.83 5-.63 7.52.6v13.4c-2.3-1.2-4.6-1.5-6.9-.9A1 1 0 0 1 3 17.6z"/><path opacity=".72" d="M21 6.4a1 1 0 0 0-.68-.95c-2.5-.83-5-.63-7.52.6v13.4c2.3-1.2 4.6-1.5 6.9-.9a1 1 0 0 0 1.3-.95z"/></>,
+ Notes:<><path opacity=".72" d="M6.5 3h8L19.5 8v11a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14.5 3 19.5 8h-3.4a1.6 1.6 0 0 1-1.6-1.6z"/><rect x="7.5" y="10.6" width="9" height="1.8" rx=".9"/><rect x="7.5" y="14" width="9" height="1.8" rx=".9"/><rect x="7.5" y="17.4" width="5.4" height="1.8" rx=".9"/></>,
+ 'K-Quiz':<><path d="M12 2.6a6.3 6.3 0 0 0-3.7 11.4c.53.4.9.96 1 1.6l.06.4h5.28l.06-.4c.1-.64.47-1.2 1-1.6A6.3 6.3 0 0 0 12 2.6z"/><g opacity=".72"><rect x="9.3" y="17.3" width="5.4" height="1.9" rx=".95"/><rect x="10.2" y="20" width="3.6" height="1.6" rx=".8"/></g></>,
+ Exams:<><rect opacity=".72" x="4.5" y="4.2" width="15" height="17" rx="2.6"/><rect x="8.4" y="2.4" width="7.2" height="3.8" rx="1.5"/><path d="m8.5 13.4 2.5 2.5 4.6-5" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"/></>,
+ Settings:<path fillRule="evenodd" d="M10.3 2.8h3.4l.5 2.3 1.6.67 2-1.3 2.4 2.4-1.3 2 .67 1.6 2.3.5v3.4l-2.3.5-.67 1.6 1.3 2-2.4 2.4-2-1.3-1.6.67-.5 2.3h-3.4l-.5-2.3-1.6-.67-2 1.3-2.4-2.4 1.3-2-.67-1.6-2.3-.5v-3.4l2.3-.5.67-1.6-1.3-2 2.4-2.4 2 1.3 1.6-.67zM12 8.9a3.1 3.1 0 1 0 0 6.2 3.1 3.1 0 0 0 0-6.2z"/>,
+}
 export function NavIcon({name,experience}:{name:ViewName;experience?:string}){
+ const duo=experience?undefined:duoPaths[name]
+ if(duo)return <svg className="nav-glyph is-duo" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">{duo}</svg>
  return <svg className="nav-glyph" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={experience==='sumi'?1.2:experience==='modern'?1.5:1.8} strokeLinecap="round" strokeLinejoin="round">{iconPaths[name]}</svg>
 }
 

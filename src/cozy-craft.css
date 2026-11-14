@@ -54,17 +54,36 @@
    (!important throughout: the palettes' older tab rules are, too.) */
 [data-tab=Sanctuary]{--tab:#c2577f}[data-tab=Planner]{--tab:#7a5cc0}[data-tab=Kids]{--tab:#3f8f6b}[data-tab=Subjects]{--tab:#a8742a}
 [data-tab=Notes]{--tab:#3f7fb0}[data-tab=K-Quiz]{--tab:#b5633f}[data-tab=Exams]{--tab:#b0487a}[data-tab=Settings]{--tab:#8a5a78}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button[data-tab]:not(#x):not(#y){gap:12px;font-weight:700;transition:transform .15s,background .15s}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button[data-tab]:not(#x):not(#y) .nav-icon{width:36px!important;height:36px!important;border:0!important;border-radius:12px!important;color:#fff!important;background:linear-gradient(145deg,color-mix(in srgb,var(--tab) 62%,#fff),var(--tab))!important;box-shadow:inset 0 1px 0 rgb(255 255 255/.5),0 3px 7px color-mix(in srgb,var(--tab) 32%,transparent)!important;transition:transform .15s}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button[data-tab]:not(#x):not(#y) .nav-icon svg{width:23px!important;height:23px!important;color:#fff!important;filter:drop-shadow(0 1px 1px rgb(0 0 0/.18))!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button[data-tab]:not(#x):not(#y):hover .nav-icon{transform:scale(1.08) rotate(-4deg)}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y) .nav-icon{transform:scale(1.08)}
 :root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y){margin-right:-17px!important;border-radius:14px 0 0 14px!important;border-color:transparent!important;color:color-mix(in srgb,var(--tab) 78%,#000)!important;background:linear-gradient(90deg,color-mix(in srgb,var(--tab) 24%,var(--wb-surface,#fff)),var(--wb-bg,#fff7f0))!important;box-shadow:inset 5px 0 0 var(--tab),0 3px 10px color-mix(in srgb,var(--tab) 16%,transparent)!important}
-:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y) .nav-icon{background:var(--tab)!important;color:#fff!important;border-color:transparent!important}
 :root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y) :is(svg,i),:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y)::after{color:inherit!important}
-:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y) .nav-icon svg{color:#fff!important;filter:none}
 :root[data-dark][data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y){color:color-mix(in srgb,var(--tab) 40%,#fff)!important;background:linear-gradient(90deg,color-mix(in srgb,var(--tab) 38%,#221d27),var(--wb-bg,#16131a))!important}
 @media (max-width:720px){
+ :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button[data-tab]:not(#x):not(#y):not(.active)>span svg{color:var(--tab)!important;filter:none!important}
+ :root[data-dark][data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button[data-tab]:not(#x):not(#y):not(.active)>span svg{color:color-mix(in srgb,var(--tab) 55%,#fff)!important}
  :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y){color:color-mix(in srgb,var(--tab) 80%,#000)!important;gap:4px!important}
  :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y)>span{width:40px!important;height:27px!important;background:var(--tab)!important;border-radius:999px!important;box-shadow:0 3px 8px color-mix(in srgb,var(--tab) 35%,transparent)}
- :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y)>span svg{color:#fff!important;stroke:#fff!important;filter:none!important;width:19px;height:19px}
+ :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y)>span svg{color:#fff!important;filter:none!important;width:20px;height:20px}
  :root[data-dark][data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y){color:color-mix(in srgb,var(--tab) 45%,#fff)!important}
  /* The ＋ sits a little higher so its "Add" label shows whole under it (the button used to cover half of it). */
  :root[data-experience='cozy'] .mobile-nav.is-tabbar .mobile-nav-add:not(#x)>span{margin-top:-26px}
  :root[data-experience='cozy'] .mobile-nav.is-tabbar .mobile-nav-add:not(#x)>small{position:relative;z-index:1;margin-top:3px}
 }
+.nav-glyph.is-duo{stroke:none!important;stroke-width:0}
+/* The sidebar as the notebook's cover: a deep wash of the palette's accent with white labels and bright icon
+   tiles; the page you're on is a paper tab cut out of it, joined to the page. The music and plan cards stay
+   paper cards on top. */
+:root[data-experience='cozy']:not([data-team]) .sidebar:not(#x):not(#y):not(#z){background:radial-gradient(130% 34% at 0% 0%,color-mix(in srgb,var(--wb-accent,#973862) 45%,#ffb3d0),transparent 72%),radial-gradient(90% 30% at 100% 100%,rgb(120 90 220/.45),transparent 75%),linear-gradient(175deg,color-mix(in srgb,var(--wb-accent,#973862) 90%,#000),#2c1a44 88%)!important;border-right:0!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar:not(#x):not(#y):not(#z) .brand :is(h1,p),:root[data-experience='cozy']:not([data-team]) .sidebar:not(#x):not(#y):not(#z) .nav-button:not(.active){color:#fff!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar:not(#x):not(#y):not(#z) .brand{border-color:rgb(255 255 255/.22)!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar:not(#x):not(#y):not(#z) .sidebar-section-label{color:rgb(255 255 255/.62)!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar:not(#x):not(#y):not(#z) .nav-button:not(.active){background:transparent!important;border-color:transparent!important;box-shadow:none!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar:not(#x):not(#y):not(#z) .nav-button:not(.active):hover{background:rgb(255 255 255/.13)!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar:not(#x):not(#y):not(#z) .nav-button[data-tab] .nav-icon{box-shadow:inset 0 1px 0 rgb(255 255 255/.55),0 0 0 2px rgb(255 255 255/.22),0 5px 12px rgb(0 0 0/.28)!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y):not(#z){width:calc(100% + 17px)!important;max-width:none!important;background:var(--wb-bg,#fff7f0)!important;color:color-mix(in srgb,var(--tab) 80%,#000)!important;box-shadow:inset 5px 0 0 var(--tab),0 6px 16px rgb(0 0 0/.25)!important}
+:root[data-dark][data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y):not(#z){background:var(--wb-bg,#16131a)!important;color:color-mix(in srgb,var(--tab) 40%,#fff)!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar:not(#x):not(#y):not(#z) :is(.sidebar-music-slot>*,.profile-dock){background:var(--wb-surface,#fffafd)!important;box-shadow:0 8px 20px rgb(0 0 0/.25)!important}
