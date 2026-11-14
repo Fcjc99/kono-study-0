@@ -20,8 +20,8 @@ export type GameResult={emoji:string;title:string;line:string;score?:string;best
 export type GameIntro={emoji:string;art?:React.ReactNode;name:string;how:string;best?:string|null;start?:string;alt?:{label:string;onClick:()=>void};extra?:React.ReactNode}
 /** What a game lets its screen do: End finishes the round now with the score so far. */
 export type GameHandle={end:()=>void}
-export default function GameScreen({title,tone,sound=false,intro,started=true,onStart,onRestart,onEnd,onLeave,result,onAgain,children}:{
- title:string;tone?:string;sound?:boolean
+export default function GameScreen({title,tone,game,sound=false,intro,started=true,onStart,onRestart,onEnd,onLeave,result,onAgain,children}:{
+ title:string;tone?:string;game?:string;sound?:boolean
  intro?:GameIntro;started?:boolean;onStart?:()=>void
  onRestart?:()=>void;onEnd?:()=>void;onLeave:()=>void
  result?:GameResult|null;onAgain?:()=>void;children:ReactNode
@@ -42,7 +42,8 @@ export default function GameScreen({title,tone,sound=false,intro,started=true,on
  const phase=!started&&intro?'start':result?'results':'play'
  // A game that keeps itself in view behind its results (`behind`) stays mounted under them.
  const results=result?<section className={'game-result'+(result.behind?' is-over-game':'')} aria-live="polite" aria-label="Results">
-   <span className="game-result-emoji" aria-hidden="true">{result.emoji}</span>
+   {/* KONO reacts to the round (cheering for a win or a new best), with the game's emoji as its badge. */}
+   <span className="game-result-kono" aria-hidden="true"><img src={result.best||result.won?'/garden/kono/excited.webp':'/garden/kono/happy.webp'} alt="" draggable={false}/><i>{result.emoji}</i></span>
    <h2>{result.title}</h2>
    {result.score&&<p className="game-result-score">{result.score}</p>}
    {result.best&&<p className="game-result-best">👑 New best!</p>}
@@ -51,7 +52,7 @@ export default function GameScreen({title,tone,sound=false,intro,started=true,on
    {result.coins&&<p className="game-result-coins">{result.coins}</p>}
    <div className="game-result-actions">{onAgain&&<button type="button" className="primary" onClick={()=>{gameSound('start',sound);onAgain()}}>Play again</button>}<button type="button" onClick={leave}>Done</button></div>
   </section>:null
- return <dialog ref={ref} className={'game-screen'+(tone?' is-'+tone:'')+(closing?' is-closing':'')+' is-'+phase} aria-label={title} onCancel={e=>{e.preventDefault();leave()}}>
+ return <dialog ref={ref} className={'game-screen'+(tone?' is-'+tone:'')+(closing?' is-closing':'')+' is-'+phase} data-game={game} aria-label={title} onCancel={e=>{e.preventDefault();leave()}}>
   <header><strong>{title}</strong><span className="game-screen-tools">
    {phase==='play'&&onRestart&&<button type="button" className="game-screen-tool" onClick={()=>{gameSound('start',sound);onRestart()}}>↻ Restart</button>}
    {phase==='play'&&onEnd&&<button type="button" className="game-screen-tool" onClick={onEnd}>■ End</button>}
