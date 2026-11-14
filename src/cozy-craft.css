@@ -87,3 +87,8 @@
 :root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y):not(#z){width:calc(100% + 17px)!important;max-width:none!important;background:var(--wb-bg,#fff7f0)!important;color:color-mix(in srgb,var(--tab) 80%,#000)!important;box-shadow:inset 5px 0 0 var(--tab),0 6px 16px rgb(0 0 0/.25)!important}
 :root[data-dark][data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y):not(#z){background:var(--wb-bg,#16131a)!important;color:color-mix(in srgb,var(--tab) 40%,#fff)!important}
 :root[data-experience='cozy']:not([data-team]) .sidebar:not(#x):not(#y):not(#z) :is(.sidebar-music-slot>*,.profile-dock){background:var(--wb-surface,#fffafd)!important;box-shadow:0 8px 20px rgb(0 0 0/.25)!important}
+/* Each page's title wears its tab's icon tile, so the page and its tab read as one thing. */
+.page-title-icon{flex:none;display:grid;place-items:center;width:40px;height:40px;margin-right:10px;border-radius:13px;color:#fff;background:linear-gradient(145deg,color-mix(in srgb,var(--tab,#c2577f) 62%,#fff),var(--tab,#c2577f));box-shadow:inset 0 1px 0 rgb(255 255 255/.5),0 4px 10px color-mix(in srgb,var(--tab,#c2577f) 35%,transparent)}
+.page-title-icon svg{width:24px;height:24px}
+.wb-title-row:has(>.page-title-icon){display:flex;align-items:center}
+@media (max-width:700px){.page-title-icon{width:32px;height:32px;border-radius:10px;margin-right:8px}.page-title-icon svg{width:19px;height:19px}}
