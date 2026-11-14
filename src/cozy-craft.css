@@ -49,3 +49,22 @@
    grid for 5 tabs. Readable muted labels and five even columns at every width. */
 :root[data-experience='cozy'] .mobile-nav.is-tabbar{grid-template-columns:repeat(5,minmax(0,1fr))!important}
 :root[data-experience='cozy'] .mobile-nav.is-tabbar button:not(.active){color:var(--wb-muted,#7a6670)!important}
+/* Notebook tabs that look like it: each page has its own color (its icon's), and the page you're on is an
+   index tab that runs out to the page's edge in that color. The phone's tab bar uses the same colors.
+   (!important throughout: the palettes' older tab rules are, too.) */
+[data-tab=Sanctuary]{--tab:#c2577f}[data-tab=Planner]{--tab:#7a5cc0}[data-tab=Kids]{--tab:#3f8f6b}[data-tab=Subjects]{--tab:#a8742a}
+[data-tab=Notes]{--tab:#3f7fb0}[data-tab=K-Quiz]{--tab:#b5633f}[data-tab=Exams]{--tab:#b0487a}[data-tab=Settings]{--tab:#8a5a78}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y){margin-right:-17px!important;border-radius:14px 0 0 14px!important;border-color:transparent!important;color:color-mix(in srgb,var(--tab) 78%,#000)!important;background:linear-gradient(90deg,color-mix(in srgb,var(--tab) 24%,var(--wb-surface,#fff)),var(--wb-bg,#fff7f0))!important;box-shadow:inset 5px 0 0 var(--tab),0 3px 10px color-mix(in srgb,var(--tab) 16%,transparent)!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y) .nav-icon{background:var(--tab)!important;color:#fff!important;border-color:transparent!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y) :is(svg,i),:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y)::after{color:inherit!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y) .nav-icon svg{color:#fff!important;filter:none}
+:root[data-dark][data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y){color:color-mix(in srgb,var(--tab) 40%,#fff)!important;background:linear-gradient(90deg,color-mix(in srgb,var(--tab) 38%,#221d27),var(--wb-bg,#16131a))!important}
+@media (max-width:720px){
+ :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y){color:color-mix(in srgb,var(--tab) 80%,#000)!important;gap:4px!important}
+ :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y)>span{width:40px!important;height:27px!important;background:var(--tab)!important;border-radius:999px!important;box-shadow:0 3px 8px color-mix(in srgb,var(--tab) 35%,transparent)}
+ :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y)>span svg{color:#fff!important;stroke:#fff!important;filter:none!important;width:19px;height:19px}
+ :root[data-dark][data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y){color:color-mix(in srgb,var(--tab) 45%,#fff)!important}
+ /* The ＋ sits a little higher so its "Add" label shows whole under it (the button used to cover half of it). */
+ :root[data-experience='cozy'] .mobile-nav.is-tabbar .mobile-nav-add:not(#x)>span{margin-top:-26px}
+ :root[data-experience='cozy'] .mobile-nav.is-tabbar .mobile-nav-add:not(#x)>small{position:relative;z-index:1;margin-top:3px}
+}
