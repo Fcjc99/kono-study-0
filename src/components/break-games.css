@@ -861,3 +861,25 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
  .game-screen-body>.kono-stack,.kono-stack{width:min(680px,100%);max-width:none}
  .flappy-frame{height:min(78dvh,900px)}
 }
+/* Each game's start and results screens wear its own colors (they all shared KONO blast's blue): deep enough
+   that the white card text stays readable, with a soft glow of the game's accent up top. While playing, each
+   game paints its own scene as before. */
+.game-screen:is(.is-start,.is-results)[data-game]{background:radial-gradient(90% 50% at 50% -5%,var(--g3,rgb(255 255 255/.25)),transparent 70%),radial-gradient(60% 40% at 100% 100%,var(--g4,transparent),transparent 70%),linear-gradient(165deg,var(--g1,#2a4fc0),var(--g2,#172f7a))}
+.game-screen[data-game=blast]{--g1:#2a4fc0;--g2:#172f7a;--g3:rgb(120 170 255/.45);--g4:rgb(255 210 90/.2)}
+.game-screen[data-game=meow]{--g1:#8a3f73;--g2:#5b3a8f;--g3:rgb(255 190 160/.45)}
+.game-screen[data-game=gems]{--g1:#1c1147;--g2:#0d3f52;--g3:rgb(170 90 255/.4);--g4:rgb(0 190 255/.25)}
+.game-screen[data-game=candy]{--g1:#2a66c8;--g2:#b43f88;--g3:rgb(150 215 255/.5);--g4:rgb(255 150 210/.35)}
+.game-screen[data-game=flow]{--g1:#070817;--g2:#1c1250;--g3:rgb(90 140 255/.35);--g4:rgb(200 110 255/.25)}
+.game-screen[data-game=beat]{--g1:#3b2180;--g2:#a3367f;--g3:rgb(140 190 255/.4);--g4:rgb(255 170 120/.3)}
+.game-screen[data-game=stack]{--g1:#1a4f96;--g2:#2c6aa8;--g3:rgb(255 240 200/.45)}
+.game-screen[data-game=teeter]{--g1:#285aa3;--g2:#b3573d;--g3:rgb(190 230 255/.45);--g4:rgb(255 200 130/.35)}
+.game-screen[data-game=cove]{--g1:#0f5868;--g2:#9c5a2a;--g3:rgb(255 215 120/.45);--g4:rgb(255 150 120/.3)}
+.game-screen[data-game=bloom]{--g1:#963b66;--g2:#3c7558;--g3:rgb(255 200 220/.5);--g4:rgb(190 240 200/.3)}
+.game-screen[data-game=flap]{--g1:#0f665e;--g2:#17705f;--g3:rgb(190 245 255/.45);--g4:rgb(255 225 120/.3)}
+.game-screen[data-game=paper]{--g1:#2049a8;--g2:#22708f;--g3:rgb(150 200 255/.45);--g4:rgb(255 120 120/.25)}
+/* Results: KONO in a soft spotlight, hopping, with the game's emoji pinned to it. */
+.game-result-kono{position:relative;display:grid;place-items:center;width:124px;height:124px;margin:2px 0 4px;border-radius:50%;background:radial-gradient(circle,rgb(255 255 255/.38),rgb(255 255 255/.08) 68%,transparent 70%)}
+.game-screen .game-result .game-result-kono img:not(#x){width:112px!important;height:112px!important;max-width:none!important;object-fit:contain;image-rendering:pixelated;animation:game-result-bob 1.6s ease-in-out infinite}
+.game-result-kono i{position:absolute;right:-4px;bottom:2px;display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#fff;font-style:normal;font-size:1.35rem;box-shadow:0 3px 8px rgb(0 0 0/.25)}
+.game-result.is-over-game .game-result-kono{display:none}
+@media(prefers-reduced-motion:reduce){.game-result-kono img{animation:none}}
