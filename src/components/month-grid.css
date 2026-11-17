@@ -92,3 +92,11 @@
 :root #workspace-main .calendar-hero-date .calendar-leaf i:not(#x):not(#y){align-self:center;font:900 1.6rem/1 system-ui,-apple-system,sans-serif!important;color:var(--wb-ink,#3a2b33)}
 .calendar-hero-date>small{align-self:end}.calendar-hero-date>h2{align-self:start}
 :root[data-experience=cozy] .workbench .calendar-views:not(#x) button[aria-pressed=true]:not(#x):not(#y):not(#z){background:linear-gradient(145deg,#9a7fe0,#7a5cc0)!important;color:#fff!important;box-shadow:0 3px 8px rgb(122 92 192/.4)!important}
+/* Phones: the "show" chips scroll along one line, with the people row under them (the people were cut off). */
+@media (max-width:700px){
+ .workbench .planner-filters:not(#x){display:flex;flex-direction:column;align-items:stretch;gap:6px;margin-bottom:8px}
+ .workbench .planner-filters:not(#x)>*{min-width:0;overflow-x:auto;scrollbar-width:none}
+ .workbench .planner-source-chips:not(#x),.workbench .people-filter:not(#x){flex-wrap:nowrap}
+ .workbench .planner-source-chips:not(#x)>*,.workbench .people-filter:not(#x)>*{flex:none}
+ .workbench .editor-more>summary:not(#x){padding:12px 0;font-weight:700;cursor:pointer}
+}
