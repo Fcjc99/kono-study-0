@@ -33,7 +33,7 @@ export type BeatResult={drift:number|null;song:string;title:string;level:Level;s
  * from above), with the line near the bottom. Tiles come down from the top and reach the line on their note. */
 type Board={W:number;H:number;x0:number;colW:number;top:number;hitY:number}
 function boardOf(W:number,H:number):Board{const w=Math.min(W-16,Math.max(280,H*0.62),560),top=78;return {W,H,x0:(W-w)/2,colW:w/4,top,hitY:H-Math.max(70,H*0.15)}}
-/** KONO Beat: the arcade's songs as a piano-tiles game. Black tiles come down four columns, one on each beat
+/** KONO Beat: the arcade's songs as a tiles game on a road seen in 3D. Dark tiles come toward you down four columns, one on each beat
  * where the song really hits (tools/make_rhythm_charts.py), low hits left and bright ones right; tap a tile's column
  * (or D F J K, or the arrows) as it reaches the line, and hold a long tile down to its end. Pick a song and
  * Easy, Medium or Jeff tier (store/rhythm has the rules). The song is the clock: it plays through Web Audio, and the notes follow the sound card's clock
@@ -174,57 +174,72 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
     // the music finishes (the song's own end ends the round; this is only a backstop if that never comes).
     if(now>info.ms+1500)finishRef.current()
    }
-   const px=(b.hitY-b.top)/ap,yOf=(ms:number)=>b.hitY-(ms-now)*px // where a moment is on the board
+   // The board is a road seen from just above the line: far moments sit small near the horizon and grow as
+   // they come. sOf is how big a moment looks (1 at the line); yOf and xOf place it (xOf in columns, 0 to 4).
+   const K=3.2,vy=b.top-(b.hitY-b.top)*0.3,cx=b.x0+b.colW*2,far=now+ap,near=now-0.06*ap,bw=b.colW*4
+   const sOf=(ms:number)=>1/(1+K*Math.max(-0.06,(ms-now)/ap)),yOf=(ms:number)=>vy+(b.hitY-vy)*sOf(ms),xOf=(col:number,ms:number)=>cx+(col-2)*b.colW*sOf(ms)
+   const quad=(c0:number,c1:number,tA:number,tB:number)=>{ctx.beginPath();ctx.moveTo(xOf(c0,tA),yOf(tA));ctx.lineTo(xOf(c1,tA),yOf(tA));ctx.lineTo(xOf(c1,tB),yOf(tB));ctx.lineTo(xOf(c0,tB),yOf(tB));ctx.closePath()}
    const beat=60000/info.bpm,pulse=Math.max(0,1-(((now%beat)+beat)%beat)/beat)
-   // Around the board: KONO's night sky, softly lit on the beat.
+   // Around the road: KONO's night sky with a soft glow at the horizon, lit on the beat.
    const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#1d1a3f');g.addColorStop(1,'#3d2f6e');ctx.fillStyle=g;ctx.fillRect(0,0,W,H)
-   // The board: white columns with thin lines between, a column lighting up while it's pressed (or red on a miss).
-   const bw=b.colW*4;ctx.fillStyle='#fbfaff';ctx.fillRect(b.x0,0,bw,H)
-   for(let l=0;l<4;l++){const x=b.x0+l*b.colW
+   const hz=ctx.createRadialGradient(cx,yOf(far),0,cx,yOf(far),bw*0.75);hz.addColorStop(0,`rgba(255,150,200,${0.3+pulse*0.2})`);hz.addColorStop(1,'rgba(255,150,200,0)');ctx.fillStyle=hz;ctx.fillRect(0,0,W,b.hitY)
+   // The road: pale at the line, fading into the sky far away; a column lights up while it's pressed (red on a miss).
+   const rg=ctx.createLinearGradient(0,yOf(far),0,b.hitY);rg.addColorStop(0,'rgba(251,250,255,0.18)');rg.addColorStop(0.35,'rgba(251,250,255,0.8)');rg.addColorStop(1,'#fbfaff');ctx.fillStyle=rg;quad(0,4,now,far);ctx.fill()
+   for(let l=0;l<4;l++){
     const pressed=lanesHeld.current[l]>0||t-pressedAt.current[l]<120,missed=t-missAt.current[l]<(stoppedAt.current?900:260)
-    if(pressed||missed){const lg=ctx.createLinearGradient(0,b.hitY,0,0);lg.addColorStop(0,missed?'rgba(255,77,106,0.45)':LANE_COLORS[l]+'55');lg.addColorStop(1,missed?'rgba(255,77,106,0)':LANE_COLORS[l]+'00');ctx.fillStyle=lg;ctx.fillRect(x,0,b.colW,b.hitY)}}
-   ctx.fillStyle='rgba(40,30,80,0.12)';for(let l=1;l<4;l++)ctx.fillRect(b.x0+l*b.colW-0.5,0,1,H)
+    if(pressed||missed){const lg=ctx.createLinearGradient(0,b.hitY,0,yOf(far));lg.addColorStop(0,missed?'rgba(255,77,106,0.5)':LANE_COLORS[l]+'66');lg.addColorStop(1,missed?'rgba(255,77,106,0)':LANE_COLORS[l]+'00');ctx.fillStyle=lg;quad(l,l+1,now,far);ctx.fill()}}
+   ctx.strokeStyle='rgba(40,30,80,0.14)';ctx.lineWidth=1;for(let l=1;l<4;l++){ctx.beginPath();ctx.moveTo(xOf(l,now),b.hitY);ctx.lineTo(xOf(l,far),yOf(far));ctx.stroke()}
    // Faint lines across on each beat, so the tiles' rhythm is easy to read.
-   for(let bt=Math.ceil((now-beat)/beat)*beat;yOf(bt)>-10;bt+=beat){const y=yOf(bt);if(y>b.hitY)continue;ctx.fillStyle=Math.round(bt/beat)%4===0?'rgba(40,30,80,0.09)':'rgba(40,30,80,0.04)';ctx.fillRect(b.x0,y,bw,1)}
-   // Tiles, the latest first. A tap tile is a tall black key; a long tile runs up to where its note ends, with a
-   // line up its middle, filling with color while it's held. Hit tiles turn grey and fade; missed ones go red.
-   const tapH=Math.min(b.colW*1.5,(b.hitY-b.top)*0.3)
+   for(let bt=Math.ceil(now/beat)*beat;bt<far;bt+=beat){const y=yOf(bt);ctx.fillStyle=Math.round(bt/beat)%4===0?'rgba(40,30,80,0.12)':'rgba(40,30,80,0.05)';ctx.fillRect(xOf(0,bt),y,xOf(4,bt)-xOf(0,bt),1)}
+   // The road's glowing edges.
+   for(const c of [0,4]){ctx.strokeStyle=`rgba(255,90,140,${0.25+pulse*0.2})`;ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(xOf(c,now),b.hitY);ctx.lineTo(xOf(c,far),yOf(far));ctx.stroke();ctx.strokeStyle='#ff8fb4';ctx.lineWidth=2;ctx.stroke()}
+   // The pads under the line, one for each column: where you tap. A pad glows in its color while it's pressed.
+   {const y0=b.hitY+10,ph=Math.max(30,Math.min(H-y0-8,b.colW*1.2))
+    ctx.textAlign='center'
+    for(let l=0;l<4;l++){const x=b.x0+l*b.colW+3,w=b.colW-6,pressed=lanesHeld.current[l]>0||t-pressedAt.current[l]<120
+     const pg=ctx.createLinearGradient(0,y0,0,y0+ph);pg.addColorStop(0,pressed?LANE_COLORS[l]:'rgba(255,255,255,0.2)');pg.addColorStop(1,pressed?LANE_COLORS[l]+'66':'rgba(255,255,255,0.06)');ctx.fillStyle=pg;ctx.beginPath();ctx.roundRect(x,y0,w,ph,12);ctx.fill()
+     ctx.strokeStyle=pressed?'#fff':LANE_COLORS[l];ctx.lineWidth=pressed?3:2;ctx.stroke()
+     ctx.fillStyle=pressed?'#fff':LANE_COLORS[l];ctx.beginPath();ctx.roundRect(x+w*0.18,y0+ph*0.42,w*0.64,Math.max(5,ph*0.12),4);ctx.fill()
+     if(ph>54){ctx.font='700 11px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillText('DFJK'[l],x+w/2,y0+ph-10)}}}
+   // Tiles, the farthest first. A tap tile is a dark slab with its column's color on its front edge; a long
+   // tile runs back to where its note ends, with a line down its middle, lit while it's held. Hit tiles turn
+   // grey and fade; missed ones go red.
+   const tapMs=ap*0.085,slab=(c0:number,c1:number,tA:number,color:string)=>{const th=Math.max(3,8*sOf(tA));ctx.fillStyle=color;ctx.fillRect(xOf(c0,tA),yOf(tA),xOf(c1,tA)-xOf(c0,tA),th)}
+   ctx.save();ctx.beginPath();ctx.rect(0,0,W,b.hitY+5);ctx.clip() // tiles end at the line, not over the pads
    for(let i=pl.notes.length-1;i>=0;i--){
-    const n=pl.notes[i];if(n.kind==='sky')continue
-    const yb=yOf(n.t);if(yb<-10)continue
-    const x=b.x0+n.lane*b.colW+1.5,w=b.colW-3
-    // Each tile is as tall as a key, but never runs into the next tile in its column.
-    let h=tapH;for(let k=i+1;k<pl.notes.length;k++){const m=pl.notes[k];if(m.t-n.t>ap)break;if(m.lane===n.lane&&m.kind!=='sky'){h=Math.min(h,(m.t-n.t)*px-4);break}}
-    h=Math.max(14,h)
-    const ye=n.kind==='hold'&&n.end?yOf(n.end):yb-h,top=Math.min(ye,yb-h)
+    const n=pl.notes[i];if(n.kind==='sky'||n.t>far)continue
+    const c0=n.lane+0.05,c1=n.lane+0.95
+    // Each tile is as long as a key, but never runs into the next tile in its column.
+    let h=tapMs;for(let k=i+1;k<pl.notes.length;k++){const m=pl.notes[k];if(m.t-n.t>ap)break;if(m.lane===n.lane&&m.kind!=='sky'){h=Math.min(h,(m.t-n.t)-ap*0.012);break}}
+    h=Math.max(ap*0.03,h)
+    const end=n.kind==='hold'&&n.end?n.end:n.t+h,tB=Math.min(end,far)
     if(n.hit&&!doneAt.has(i))doneAt.set(i,t)
-    if(n.hit==='miss'){const k=Math.min(1,(t-(doneAt.get(i)??t))/500);if(k>=1&&(n.kind!=='hold'||yOf(n.end??n.t)>H))continue
-     ctx.globalAlpha=1-k*0.6;ctx.fillStyle='#ff4d6a';ctx.beginPath();ctx.roundRect(x,top,w,yb-top,6);ctx.fill();ctx.globalAlpha=1;continue}
-    if(n.hit&&n.kind!=='hold'){const k=(t-(doneAt.get(i)??t))/260;if(k>=1)continue
-     ctx.globalAlpha=1-k;ctx.fillStyle='#d9d5ea';ctx.beginPath();ctx.roundRect(x,top,w,yb-top,6);ctx.fill();ctx.globalAlpha=1;continue}
-    if(top>H)continue
+    if(n.hit==='miss'){const k=Math.min(1,(t-(doneAt.get(i)??t))/500),tA=Math.max(n.t,near);if(k>=1||tB<=tA)continue
+     ctx.globalAlpha=1-k*0.6;ctx.fillStyle='#ff4d6a';quad(c0,c1,tA,tB);ctx.fill();ctx.globalAlpha=1;continue}
+    if(n.hit&&n.kind!=='hold'){const k=(t-(doneAt.get(i)??t))/260,tA=Math.max(n.t,near);if(k>=1||tB<=tA)continue
+     ctx.globalAlpha=1-k;ctx.fillStyle='#d9d5ea';quad(c0,c1,tA,tB);ctx.fill();ctx.globalAlpha=1;continue}
     const kept=n.kind==='hold'&&n.hit&&lanesHeld.current[n.lane]>0
+    // Far tiles come out of the haze rather than popping in.
+    ctx.globalAlpha=Math.max(0,Math.min(1,(far-n.t)/(ap*0.12)))
     if(n.kind==='hold'&&n.end){
-     if(n.hit&&yOf(n.end)>b.hitY+4)continue
-     const yTop=yOf(n.end),yBot=n.hit?Math.min(yb,b.hitY):yb
-     const tg=ctx.createLinearGradient(0,yTop,0,yBot);tg.addColorStop(0,'#3a3360');tg.addColorStop(1,'#1c1a2e');ctx.fillStyle=tg;ctx.beginPath();ctx.roundRect(x,yTop,w,yBot-yTop,7);ctx.fill()
-     // Held: the part already played fills with the column's color up from the line.
-     if(n.hit){ctx.fillStyle=kept?LANE_COLORS[n.lane]:'rgba(255,255,255,0.25)';ctx.fillRect(x+3,b.hitY-2,w-6,2)}
-     ctx.strokeStyle=kept?LANE_COLORS[n.lane]:'rgba(255,255,255,0.55)';ctx.lineWidth=kept?4:2;ctx.beginPath();ctx.moveTo(x+w/2,yTop+10);ctx.lineTo(x+w/2,yBot-14);ctx.stroke()
-     ctx.fillStyle=kept?LANE_COLORS[n.lane]:'#fff';ctx.beginPath();ctx.arc(x+w/2,yBot-12,5,0,Math.PI*2);ctx.fill()
-     continue
+     const tA=n.hit?Math.max(n.t,now):Math.max(n.t,near);if(tB<=tA){ctx.globalAlpha=1;continue}
+     const tg=ctx.createLinearGradient(0,yOf(tB),0,yOf(tA));tg.addColorStop(0,'#3a3360');tg.addColorStop(1,'#1c1a2e');ctx.fillStyle=tg;quad(c0,c1,tA,tB);ctx.fill()
+     if(kept){ctx.fillStyle=LANE_COLORS[n.lane]+'77';quad(c0,c1,tA,tB);ctx.fill()}
+     ctx.strokeStyle=kept?'#fff':'rgba(255,255,255,0.55)';ctx.lineWidth=kept?4:2;ctx.beginPath();ctx.moveTo(xOf(n.lane+0.5,tA),yOf(tA)-6);ctx.lineTo(xOf(n.lane+0.5,tB),yOf(tB)+4);ctx.stroke()
+     slab(c0,c1,tA,LANE_COLORS[n.lane])
+     ctx.globalAlpha=1;continue
     }
-    const tg=ctx.createLinearGradient(0,top,0,yb);tg.addColorStop(0,'#2e2a4a');tg.addColorStop(1,'#13121f');ctx.fillStyle=tg;ctx.beginPath();ctx.roundRect(x,top,w,yb-top,6);ctx.fill()
-    // A thin shine on its top edge and a colored foot, so the column reads at a glance.
-    ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fillRect(x+4,top+3,w-8,2)
-    ctx.fillStyle=LANE_COLORS[n.lane];ctx.globalAlpha=0.85;ctx.fillRect(x+4,yb-5,w-8,3);ctx.globalAlpha=1
+    const tA=Math.max(n.t,near);if(tB<=tA){ctx.globalAlpha=1;continue}
+    const tg=ctx.createLinearGradient(0,yOf(tB),0,yOf(tA));tg.addColorStop(0,'#3a3560');tg.addColorStop(1,'#13121f');ctx.fillStyle=tg;quad(c0,c1,tA,tB);ctx.fill()
+    // A thin shine along its far edge, and its column's color on the front, so the column reads at a glance.
+    ctx.fillStyle='rgba(255,255,255,0.22)';quad(c0+0.07,c1-0.07,tB-h*0.12,tB-h*0.05);ctx.fill()
+    slab(c0,c1,tA,LANE_COLORS[n.lane])
+    ctx.globalAlpha=1
    }
-   // The line: a soft band across the board that pulses on the beat, with the keys under it.
+   ctx.restore()
+   // The line: a soft band across the road that pulses on the beat.
    const lg=ctx.createLinearGradient(0,b.hitY-14,0,b.hitY+14);lg.addColorStop(0,'rgba(255,90,140,0)');lg.addColorStop(0.5,`rgba(255,90,140,${0.55+pulse*0.35})`);lg.addColorStop(1,'rgba(255,90,140,0)');ctx.fillStyle=lg;ctx.fillRect(b.x0,b.hitY-14,bw,28)
-   ctx.fillStyle='#ff5a8c';ctx.fillRect(b.x0,b.hitY-1,bw,2)
-   ctx.fillStyle='rgba(255,255,255,0.92)';ctx.fillRect(b.x0,b.hitY+14,bw,H-b.hitY-14)
-   ctx.textAlign='center';ctx.font='600 12px system-ui,sans-serif';ctx.fillStyle='rgba(40,30,80,0.35)'
-   for(let l=0;l<4;l++)ctx.fillText('DFJK'[l],b.x0+(l+0.5)*b.colW,b.hitY+38)
+   ctx.fillStyle='#ff5a8c';ctx.fillRect(b.x0,b.hitY-1.5,bw,3)
    // Hits: a ring on the line where the tile was.
    fx.current=fx.current.filter(e=>t-e.t<380)
    for(const e of fx.current){const k=(t-e.t)/380,x=b.x0+(e.x*4-0.5)*b.colW+b.colW/2

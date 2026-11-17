@@ -21,7 +21,7 @@
 #workspace-main .wb-header .wb-title-row>h1::after,#workspace-main .cozy-heading-flower{display:none!important}
 
 /* ── The Sanctuary: the island and studying lead. On a wide screen the focus console sits beside the island
- * (and stays in view); on a phone it comes first, so the next step is right under the title. */
+ * (and stays in view); on a phone the island leads and the console follows it, without its small print. */
 .workbench .sanctuary-hero{display:grid;gap:16px;min-width:0}
 .workbench .sanctuary-stage{display:grid;gap:0;min-width:0}
 @media (min-width:1100px){
@@ -30,7 +30,7 @@
 }
 @media (max-width:760px){
  .workbench .sanctuary-hero.has-focus{display:flex;flex-direction:column}
- .workbench .sanctuary-hero.has-focus>.sanctuary-focus{order:-1}
+ .workbench .focus-console-note{display:none}
 }
 
 /* Panels on Home: one flat card each, no gradients, double borders or glows. */
@@ -116,13 +116,9 @@
 
 /* KONO's bar under the island, in the narrower column beside the console: still two short rows (its line,
  * then the meters, one care action and the coins / Next / Ask tools). */
-#workspace-main .sanctuary-stage .kono-bar .kono-care{gap:4px!important}
 #workspace-main .sanctuary-stage .kono-bar .kono-care-meter{flex:0 0 40px!important}
 #workspace-main .sanctuary-stage .kono-bar :is(.kono-care button,.kono-bar-tools button){min-height:30px!important;padding:2px 9px!important;font-size:.78rem!important}
-#workspace-main .sanctuary-stage .kono-bar .kono-bar-tools{gap:4px!important}
 #workspace-main .sanctuary-stage .kono-bar{padding:6px 10px!important;gap:2px!important}
-#workspace-main .sanctuary-stage .kono-bar .kono-mood-row{row-gap:4px!important}
-#workspace-main .sanctuary-stage .kono-bar .kono-mood-row>p{flex-basis:150px!important}
 #workspace-main .sanctuary-stage .kono-bar .kono-bar-notes{margin:0!important;gap:2px!important}
 /* The island and KONO's bar read as one card: no gap, square inner corners, a dashed line between. */
 #workspace-main .sanctuary-stage>.wb-island:not(.is-expanded):has(+.kono-bar){border-bottom-left-radius:0!important;border-bottom-right-radius:0!important;border-bottom:0!important}
@@ -277,3 +273,23 @@ html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='
 :root[data-dark] .chores-day{background:color-mix(in srgb,#ffd977 8%,#221d27);border-color:#6a5a2a}
 :root[data-dark] .chores-day-stars{color:#ffd46b}
 :root[data-dark] .workbench .chores-day-tick:not(#x):not(#y){background:#2b2533!important}
+/* ── The island window: the picture fills the card edge to edge and its buttons float on it as glass chips.
+ * KONO's strip under it: a speech bubble, three meters side by side, then one row of buttons. */
+#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded):not(#x){padding:0!important;overflow:hidden!important;border-radius:26px 26px 0 0!important}
+#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar:not(#x){position:absolute!important;z-index:6;inset:10px 10px auto;margin:0!important;padding:0!important;background:none!important;border:0!important;pointer-events:none}
+#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar :is(button,label):not(#x):not(#y):not(#z){pointer-events:auto;min-height:34px!important;padding-inline:10px!important;font-size:.8rem!important;border:0!important;border-radius:999px!important;background:rgb(255 255 255/.88)!important;color:#4a2a45!important;box-shadow:0 2px 8px rgb(40 20 60/.25)!important;backdrop-filter:blur(8px)}
+#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar select:not(#x):not(#y){border:0!important;background-color:transparent!important;box-shadow:none!important;color:inherit!important;min-height:30px!important;max-width:118px!important;padding-left:0!important;font-size:16px!important}
+#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar svg{color:#973862!important}
+#workspace-main .wb-scene-toolbar .wb-btn-label{display:none}
+#workspace-main .wb-scene-toolbar .island-mode-tabs:not(#x){flex-wrap:nowrap!important}
+#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) :is(.wb-sanctuary-stage,.wb-sanctuary-zoom-wrap):not(#x){border:0!important;border-radius:0!important;margin:0!important;padding:0!important;box-shadow:none!important}
+#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded)+.kono-bar:not(#x){padding:12px 14px 10px!important;gap:8px!important;border-top:0!important;border-radius:0 0 26px 26px!important}
+#workspace-main .sanctuary-stage .kono-bar .kono-mood-row:not(#x){display:flex!important;flex-wrap:wrap;gap:8px!important;align-items:center}
+#workspace-main .sanctuary-stage .kono-bar .kono-mood-row>p:not(#x){flex:1 1 calc(100% - 70px)!important;padding:8px 12px;border-radius:14px 14px 14px 4px;background:color-mix(in srgb,var(--wb-accent) 9%,var(--wb-surface));font-weight:600;font-size:.92rem}
+#workspace-main .sanctuary-stage .kono-bar :is(.kono-care,.kono-bar-tools):not(#x){display:contents!important}
+#workspace-main .sanctuary-stage .kono-bar .kono-care-meter:not(#x){flex:1 1 28%!important;min-width:27%;display:flex!important;align-items:center;gap:6px;padding:7px 9px;border-radius:12px;background:color-mix(in srgb,var(--wb-line) 40%,transparent)}
+#workspace-main .sanctuary-stage .kono-bar .kono-care-bar:not(#x){flex:1;width:auto;min-width:20px;height:7px}
+#workspace-main .sanctuary-stage .kono-bar :is(.kono-care,.kono-bar-tools)>button:not(#x):not(#y){flex:1 1 20%;white-space:nowrap;min-height:42px!important;justify-content:center;border-radius:14px!important;font-weight:700}
+#workspace-main .sanctuary-stage .kono-bar .kono-bar-notes:not(#x){display:grid!important;gap:6px!important;opacity:1;font-size:.82rem}
+#workspace-main .sanctuary-stage .kono-bar .kono-note:not(#x){display:flex;padding:8px 12px;border-radius:12px;border-left:4px solid var(--wb-accent)}
+#workspace-main .sanctuary-stage .kono-bar .kono-wish{text-align:center;opacity:.8}
