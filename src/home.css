@@ -34,19 +34,11 @@ html[data-motion=reduced] .kono-care-gain,html[data-motion=reduced] .kono-care-m
 /* The island's toolbar is one row: Your island / Decorate on the left, time, zoom and expand on the
  * right (the streak and the week moved into KONO's corner). On a phone, pinch zooms the island, so the
  * zoom buttons step aside. */
-.workbench[data-page=sanctuary] .wb-scene-toolbar{display:flex!important;flex-wrap:nowrap!important;align-items:center!important;gap:8px!important}
 .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-left,.workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-controls{display:flex!important;align-items:center;gap:6px;min-width:0}
 .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-controls{margin-left:auto}
 @media(max-width:600px){
-
- .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-expand .wb-btn-label{display:none}
  /* Phones: smaller tabs so the row fits; if it still doesn't, the time and expand controls drop below
     instead of sliding over the tabs. */
- .workbench[data-page=sanctuary] .wb-scene-toolbar{flex-wrap:wrap!important;row-gap:6px!important}
- .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-left,.workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-controls{flex:0 0 auto;min-width:auto}
- .workbench[data-page=sanctuary] .wb-scene-toolbar .island-mode-tabs{gap:4px!important}
- .workbench[data-page=sanctuary] .wb-scene-toolbar .island-mode-tabs button{min-height:36px!important;padding:0 10px!important;font-size:.82rem!important}
- .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-time select{max-width:140px!important;padding:0 24px 0 10px!important}
  .workbench[data-page=sanctuary] .wb-scene-toolbar .wb-scene-expand{width:36px!important;min-width:36px!important;min-height:36px!important;padding:0!important}
 }
 
@@ -77,34 +69,10 @@ html[data-motion=reduced] .kono-care-gain,html[data-motion=reduced] .kono-care-m
 
 /* KONO's corner (tap KONO's face in the KONO bar). */
 .kono-mood-face{cursor:pointer}
-.kono-corner{display:grid;gap:14px;padding:4px 2px 8px;min-width:min(440px,86vw)}
-.kono-corner-hero{display:grid;justify-items:center;gap:6px;text-align:center}
-.kono-corner-face{position:relative;width:132px;height:132px;border-radius:50%!important;padding:0!important;display:grid!important;place-items:center;background:radial-gradient(circle at 50% 40%,#fff7ee,#f6e3d6)!important;border:1px solid var(--wb-line,#eee1d6)!important}
-.kono-corner-face .kono-react{font-size:1.6rem}
-.kono-corner-line{margin:0;max-width:34ch;font-weight:600}
-.kono-corner-meters{display:grid;gap:8px}
-.kono-corner-meter{position:relative;display:grid;grid-template-columns:7.5em 1fr 3em;align-items:center;gap:10px;font-size:.92rem}
-.kono-corner-meter .kono-care-bar{height:10px}
-.kono-corner-meter-value{text-align:right;font-variant-numeric:tabular-nums;color:var(--wb-muted,#8a7469)}
-.kono-corner-meter.is-rested .kono-care-bar i{background:#8c9de0}
-.kono-corner-meter.is-happy .kono-care-bar i{background:#e57c93}
-.kono-corner-meter.is-up .kono-care-bar{animation:kono-bar-up .6s ease-out}
-.kono-corner-meter.is-low .kono-corner-meter-label>span{display:inline-block;animation:kono-low 2.4s ease-in-out infinite}
-.kono-corner-action{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
-.kono-corner-action .kono-feed{min-height:44px;padding:0 18px!important;font-size:1rem}
-.kono-corner-stats{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin:0;color:var(--wb-muted,#8a7469);font-size:.9rem}
-.kono-corner-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.kono-corner-tile{display:grid!important;justify-items:center;gap:2px;padding:10px 6px!important;border-radius:16px!important;min-height:0!important;text-align:center;white-space:normal}
-.kono-corner-tile-icon{font-size:1.5rem}
-.kono-corner-tile small{font-size:.72rem;color:var(--wb-muted,#8a7469);font-weight:500}
-.kono-corner-notes{text-align:center;font-size:.85rem;color:var(--wb-muted,#8a7469)}
 @media(max-width:600px){.kono-corner-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.kono-corner{min-width:0}}
 html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[data-motion=reduced] .kono-corner-meter.is-up .kono-care-bar{animation:none}
-.kono-corner-line::before{content:attr(data-line)}
 /* (The corner sits inside the KONO bar in the page, so it undoes the bar's 40px face.) */
 .kono-bar .kono-mood-face.kono-corner-face{flex:none;width:132px;height:132px}
-.kono-corner-facebox{position:relative;display:block;width:112px;height:112px}
-.kono-corner-facebox>img:first-child{display:block;width:112px;height:112px;object-fit:contain}
 
 /* KONO's corner › snacks and play. */
 .kono-snack-tray{display:grid;gap:8px;padding:12px;border-radius:18px;background:color-mix(in srgb,var(--wb-ink,#3b2a25) 4%,transparent)}
@@ -121,9 +89,6 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .kono-snack-book span{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:color-mix(in srgb,var(--wb-ink,#3b2a25) 6%,transparent);color:var(--wb-muted,#8a7469);font-size:.85rem;font-weight:800}
 .kono-snack-book span.is-tried{background:var(--wb-surface,#fffdf9);font-size:1.05rem}
 .kono-snack-book small{flex-basis:100%;font-size:.75rem;color:var(--wb-muted,#8a7469)}
-.kono-corner-face.is-drop-target{box-shadow:0 0 0 4px #ffd58a,0 0 24px #ffd58aaa!important;transform:scale(1.04)}
-.kono-corner-play{display:grid;justify-items:center}
-.kono-corner-play .break-games{width:100%}
 .kono-play{min-height:44px;padding:0 18px!important;font-weight:700}
 
 /* Weekends: Your week ahead (components/WeekAhead). Seven day tiles in a row, scrolling on narrow phones. */

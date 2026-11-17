@@ -3,6 +3,7 @@ import KonoFace from './KonoFace'
 import KonoSprite from './KonoSprite'
 import Modal from './Modal'
 import {lazyPanel} from '../lazyPanel'
+import './kono-corner.css'
 import type {PantryItem,Treat} from '../store/konoCare'
 
 const BreakGames=lazyPanel(()=>import('./BreakGames'))

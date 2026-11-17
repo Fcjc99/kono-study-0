@@ -22,15 +22,7 @@
  .workbench .wb-header>.wb-toolbar>.needs-review-nav-badge{padding:0 10px!important;font-size:.8rem}
 
  /* Sanctuary toolbar: [view | decorate] [zoom] / [time] [streak, week] [expand]. */
- .workbench .wb-scene-toolbar{grid-template-columns:auto minmax(0,1fr) auto!important;grid-template-areas:"tabs zoom zoom" "time stats expand"!important;gap:8px 6px!important;align-items:center}
- .workbench .wb-scene-toolbar .island-mode-tabs{grid-area:tabs}
- .workbench .wb-scene-toolbar .island-mode-tabs{gap:4px}
- .workbench .wb-scene-toolbar .island-mode-tabs button{min-height:38px!important;padding:0 11px!important;font-size:.85rem!important;white-space:nowrap}
 
- .workbench .wb-scene-toolbar .wb-scene-expand{grid-area:expand;justify-self:end;width:40px!important;min-width:40px!important;min-height:38px!important;padding:0!important;display:inline-flex!important;align-items:center;justify-content:center;font-size:1.05rem}
- .workbench .wb-scene-toolbar .wb-scene-time{grid-area:time;justify-self:start}
- .workbench .wb-scene-toolbar .wb-scene-time{gap:4px!important;min-width:0}
- .workbench .wb-scene-toolbar .wb-scene-time select{min-height:36px!important;max-width:118px;font-size:16px!important;padding:0 22px 0 6px!important}
 }
 
 /* Phones and tablets: the highlighted tab already names the page and the plan card (top right) names
