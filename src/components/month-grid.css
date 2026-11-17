@@ -98,7 +98,6 @@
  .workbench .planner-filters:not(#x)>*{min-width:0;overflow-x:auto;scrollbar-width:none}
  .workbench .planner-source-chips:not(#x),.workbench .people-filter:not(#x){flex-wrap:nowrap}
  .workbench .planner-source-chips:not(#x)>*,.workbench .people-filter:not(#x)>*{flex:none}
- .workbench .editor-more>summary:not(#x){padding:12px 0;font-weight:700;cursor:pointer}
 }
 /* Planner › Schedule: each item is one compact row (time, then who and what, then ⋯), not a tall card
    with empty space under it. */
