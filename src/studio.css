@@ -21,7 +21,7 @@
 #workspace-main .wb-header .wb-title-row>h1::after,#workspace-main .cozy-heading-flower{display:none!important}
 
 /* ── The Sanctuary: the island and studying lead. On a wide screen the focus console sits beside the island
- * (and stays in view); on a phone it comes first, so the next step is right under the title. */
+ * (and stays in view); on a phone the island leads and the console follows it, without its small print. */
 .workbench .sanctuary-hero{display:grid;gap:16px;min-width:0}
 .workbench .sanctuary-stage{display:grid;gap:0;min-width:0}
 @media (min-width:1100px){
@@ -30,7 +30,7 @@
 }
 @media (max-width:760px){
  .workbench .sanctuary-hero.has-focus{display:flex;flex-direction:column}
- .workbench .sanctuary-hero.has-focus>.sanctuary-focus{order:-1}
+ .workbench .focus-console-note{display:none}
 }
 
 /* Panels on Home: one flat card each, no gradients, double borders or glows. */
