@@ -18,7 +18,7 @@ export default function BeatSummary({r}:{r:BeatResult}){
  const shift=()=>{if(r.drift===null)return;const v=Math.max(-300,Math.min(300,readOffset()+r.drift));saveOffset(v);setShifted(v)}
  return <div className="beat-summary" style={{'--grade':r.failed?'#ff6b81':r.grade.startsWith('S')?'#ffd34d':r.grade==='A'?'#7ee0ff':'#b9ff9e'} as React.CSSProperties}>
   <div className="beat-summary-head">
-   {!r.ended&&<span className="beat-summary-grade" aria-label={'Grade '+r.grade}>{r.grade}</span>}
+   <span className="beat-summary-grade" aria-label={'Grade '+r.grade}>{r.grade}</span>
    <dl>
     <div><dt>Accuracy</dt><dd>{r.acc.toFixed(1)}%</dd></div>
     <div><dt>Best combo</dt><dd>{t.best}</dd></div>

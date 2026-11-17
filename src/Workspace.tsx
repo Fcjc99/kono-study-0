@@ -1230,7 +1230,7 @@ function Workspace({store}:{store:Store}){
     {id==='family'&&familyHome&&<section className="wb-panel today-card family-schedule" aria-label="Family schedule">
      <div className="wb-section-head"><div><small>{dateLabel(today)}</small><h2>Family schedule</h2></div></div>
      {peopleFilter}
-      <p className="today-summary" aria-label="Today at a glance">{daySummary(data,today,nowClock).filter(b=>!b.kid).map(b=>familyLean&&b.tone==='late'?<button type="button" key={b.text} className="is-late today-summary-late" aria-expanded={lateOpen} onClick={()=>setLateOpen(v=>!v)}><span aria-hidden="true">{b.icon}</span> {b.text}</button>:<span key={b.text} className={b.tone?'is-'+b.tone:undefined}><span aria-hidden="true">{b.icon}</span> {b.text}</span>)}</p>
+      <p className="today-summary" aria-label="Today at a glance">{daySummary(data,today,nowClock).map(b=>familyLean&&b.tone==='late'?<button type="button" key={b.text} className="is-late today-summary-late" aria-expanded={lateOpen} onClick={()=>setLateOpen(v=>!v)}><span aria-hidden="true">{b.icon}</span> {b.text}</button>:<span key={b.text} className={b.tone?'is-'+b.tone:undefined}><span aria-hidden="true">{b.icon}</span> {b.text}</span>)}</p>
       {familyHome&&<KidsNext data={data} profileId={profile.id} today={today} nowClock={nowClock}/>}
     </section>}
     {/* The schedule: today, then tomorrow, each in your own order. Late work and past-due reminders lead
