@@ -3839,7 +3839,7 @@ test('Wall mode at night: ?wall asks for a tap to start (keeping the screen on),
  await context.close()
 })
 
-test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone a swipe goes to the next days and the whole week scrolls sideways',async({context,page})=>{
+test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone a swipe goes to the next days and the whole week fits the screen',async({context,page})=>{
  const cloud=fakeCloud()
  await page.setViewportSize({width:390,height:844})
  await signInAs(context,cloud,'alice')
@@ -3860,8 +3860,14 @@ test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone a sw
  await page.waitForFunction(b=>document.querySelector('.week-grid-head button')?.getAttribute('aria-label')===b,before)
  await days.getByRole('button',{name:'Week',exact:true}).click()
  assert.equal(await week.locator('.week-grid-head button').count(),7)
- const scroller=page.locator('.week-grid-scroll.is-wide')
- assert.ok(await scroller.evaluate(e=>e.scrollWidth>e.clientWidth+50),'the week is wider than the phone and scrolls sideways')
+ const scroller=page.locator('.week-grid-scroll.is-fit')
+ assert.ok(await scroller.evaluate(e=>e.scrollWidth<=e.clientWidth+1),'all seven days fit the phone, with no sideways scrolling')
+ // A swipe on the whole week goes to the next week.
+ const weekOf=()=>week.locator('.week-grid-head button').first().getAttribute('aria-label'),thisWeek=await weekOf()
+ await swipe(-120)
+ await page.waitForFunction(b=>document.querySelector('.week-grid-head button')?.getAttribute('aria-label')!==b,thisWeek)
+ await swipe(120)
+ await page.waitForFunction(b=>document.querySelector('.week-grid-head button')?.getAttribute('aria-label')===b,thisWeek)
  await page.reload();await heading(page,'Planner')
  assert.equal(await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Week',exact:true}).getAttribute('aria-pressed'),'true','remembered on this device')
 })
