@@ -174,10 +174,11 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
     // the music finishes (the song's own end ends the round; this is only a backstop if that never comes).
     if(now>info.ms+1500)finishRef.current()
    }
-   // The board is a road seen from just above the line: far moments sit small near the horizon and grow as
-   // they come. sOf is how big a moment looks (1 at the line); yOf and xOf place it (xOf in columns, 0 to 4).
-   const K=3.2,vy=b.top-(b.hitY-b.top)*0.3,cx=b.x0+b.colW*2,far=now+ap,near=now-0.06*ap,bw=b.colW*4
-   const sOf=(ms:number)=>1/(1+K*Math.max(-0.06,(ms-now)/ap)),yOf=(ms:number)=>vy+(b.hitY-vy)*sOf(ms),xOf=(col:number,ms:number)=>cx+(col-2)*b.colW*sOf(ms)
+   // The board is a road that narrows gently away from you. Tiles keep one steady speed down the screen (so
+   // timing reads the same as ever); only their width shrinks with distance. sOf is the width at a moment
+   // (1 at the line); yOf and xOf place it (xOf in columns, 0 to 4).
+   const px=(b.hitY-b.top)/ap,cx=b.x0+b.colW*2,far=now+ap,near=now-0.08*ap,bw=b.colW*4,NARROW=0.34
+   const sOf=(ms:number)=>1-NARROW*Math.min(1,Math.max(-0.1,(ms-now)/ap)),yOf=(ms:number)=>b.hitY-(ms-now)*px,xOf=(col:number,ms:number)=>cx+(col-2)*b.colW*sOf(ms)
    const quad=(c0:number,c1:number,tA:number,tB:number)=>{ctx.beginPath();ctx.moveTo(xOf(c0,tA),yOf(tA));ctx.lineTo(xOf(c1,tA),yOf(tA));ctx.lineTo(xOf(c1,tB),yOf(tB));ctx.lineTo(xOf(c0,tB),yOf(tB));ctx.closePath()}
    const beat=60000/info.bpm,pulse=Math.max(0,1-(((now%beat)+beat)%beat)/beat)
    // Around the road: KONO's night sky with a soft glow at the horizon, lit on the beat.
@@ -204,14 +205,14 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    // Tiles, the farthest first. A tap tile is a dark slab with its column's color on its front edge; a long
    // tile runs back to where its note ends, with a line down its middle, lit while it's held. Hit tiles turn
    // grey and fade; missed ones go red.
-   const tapMs=ap*0.085,slab=(c0:number,c1:number,tA:number,color:string)=>{const th=Math.max(3,8*sOf(tA));ctx.fillStyle=color;ctx.fillRect(xOf(c0,tA),yOf(tA),xOf(c1,tA)-xOf(c0,tA),th)}
+   const tapMs=Math.min(b.colW*1.25,(b.hitY-b.top)*0.2)/px,slab=(c0:number,c1:number,tA:number,color:string)=>{const th=Math.max(4,9*sOf(tA));ctx.fillStyle=color;ctx.fillRect(xOf(c0,tA),yOf(tA),xOf(c1,tA)-xOf(c0,tA),th)}
    ctx.save();ctx.beginPath();ctx.rect(0,0,W,b.hitY+5);ctx.clip() // tiles end at the line, not over the pads
    for(let i=pl.notes.length-1;i>=0;i--){
     const n=pl.notes[i];if(n.kind==='sky'||n.t>far)continue
     const c0=n.lane+0.05,c1=n.lane+0.95
     // Each tile is as long as a key, but never runs into the next tile in its column.
     let h=tapMs;for(let k=i+1;k<pl.notes.length;k++){const m=pl.notes[k];if(m.t-n.t>ap)break;if(m.lane===n.lane&&m.kind!=='sky'){h=Math.min(h,(m.t-n.t)-ap*0.012);break}}
-    h=Math.max(ap*0.03,h)
+    h=Math.max(14/px,h)
     const end=n.kind==='hold'&&n.end?n.end:n.t+h,tB=Math.min(end,far)
     if(n.hit&&!doneAt.has(i))doneAt.set(i,t)
     if(n.hit==='miss'){const k=Math.min(1,(t-(doneAt.get(i)??t))/500),tA=Math.max(n.t,near);if(k>=1||tB<=tA)continue
