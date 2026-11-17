@@ -94,9 +94,9 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 /* Weekends: Your week ahead (components/WeekAhead). Seven day tiles in a row, scrolling on narrow phones. */
 .week-ahead .week-ahead-recap{margin:2px 0 4px;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 8%,var(--wb-surface,#fffdf9));font-size:.92rem}
 .week-ahead .week-ahead-sum{margin:6px 0 8px;font-size:.92rem}
-.week-ahead-days{list-style:none;margin:0 0 10px;padding:2px 0 4px;display:grid;grid-template-columns:repeat(7,minmax(74px,1fr));gap:6px;overflow-x:auto;scrollbar-width:thin}
+.week-ahead-days{list-style:none;margin:0 0 10px;padding:2px 0 4px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .week-ahead-days li{display:flex}
-.week-ahead-days button{flex:1;display:flex!important;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:6px;min-height:96px;padding:8px 6px!important;border-radius:14px!important;text-align:center;font-weight:600}
+.week-ahead-days button{flex:1;min-width:0!important;display:flex!important;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;min-height:96px;padding:8px 6px!important;border-radius:14px!important;text-align:center;font-weight:600}
 .week-ahead-days .wa-day{display:flex;flex-direction:column;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;opacity:.8}
 .week-ahead-days .wa-day b{font-size:1.15rem;letter-spacing:0;opacity:1}
 .week-ahead-days .wa-marks{display:flex;flex-direction:column;gap:3px;font-size:.72rem;line-height:1.2}

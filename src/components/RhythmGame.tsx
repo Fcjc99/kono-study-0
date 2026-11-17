@@ -238,12 +238,19 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
     ctx.globalAlpha=1
    }
    ctx.restore()
-   // The line: a soft band across the road that pulses on the beat.
-   const lg=ctx.createLinearGradient(0,b.hitY-14,0,b.hitY+14);lg.addColorStop(0,'rgba(255,90,140,0)');lg.addColorStop(0.5,`rgba(255,90,140,${0.55+pulse*0.35})`);lg.addColorStop(1,'rgba(255,90,140,0)');ctx.fillStyle=lg;ctx.fillRect(b.x0,b.hitY-14,bw,28)
-   ctx.fillStyle='#ff5a8c';ctx.fillRect(b.x0,b.hitY-1.5,bw,3)
-   // Hits: a ring on the line where the tile was.
+   // The line: a bright glowing bar across the road (and a little past it), pulsing on the beat, so where to
+   // tap is never in doubt.
+   {const glow=0.55+pulse*0.4,ext=b.colW*0.18
+    const lg=ctx.createLinearGradient(0,b.hitY-22,0,b.hitY+22);lg.addColorStop(0,'rgba(255,120,170,0)');lg.addColorStop(0.5,`rgba(255,120,170,${glow})`);lg.addColorStop(1,'rgba(255,120,170,0)');ctx.fillStyle=lg;ctx.fillRect(b.x0-ext,b.hitY-22,bw+ext*2,44)
+    ctx.save();ctx.shadowColor='#ff8fc0';ctx.shadowBlur=14;ctx.fillStyle='#fff';ctx.fillRect(b.x0-ext,b.hitY-2.5,bw+ext*2,5);ctx.restore()
+    for(const x of [b.x0-ext,b.x0+bw+ext]){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,b.hitY,4.5,0,Math.PI*2);ctx.fill()}}
+   // Hits: the pad flashes in the hit's color, a column of light shoots up the lane, and a ring spreads on the line.
    fx.current=fx.current.filter(e=>t-e.t<380)
-   for(const e of fx.current){const k=(t-e.t)/380,x=b.x0+(e.x*4-0.5)*b.colW+b.colW/2
+   for(const e of fx.current){const k=(t-e.t)/380,x=b.x0+(e.x*4-0.5)*b.colW+b.colW/2,col=WORD_COLOR[e.j]==='#ffe27a'?'#ffd34d':WORD_COLOR[e.j]
+    if(!e.sky&&e.j!=='miss'){const lane=Math.max(0,Math.min(3,Math.round(e.x*4-0.5))),px0=b.x0+lane*b.colW+3,y0=b.hitY+10,ph=Math.max(30,Math.min(H-y0-8,b.colW*1.2))
+     ctx.globalAlpha=(1-k)*0.85;ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(px0,y0,b.colW-6,ph,12);ctx.fill()
+     const beam=ctx.createLinearGradient(0,b.hitY,0,b.hitY-(b.hitY-b.top)*0.45);beam.addColorStop(0,col);beam.addColorStop(1,'rgba(255,255,255,0)')
+     ctx.globalAlpha=(1-k)*0.55;ctx.fillStyle=beam;ctx.fillRect(px0+4,b.hitY-(b.hitY-b.top)*0.45,b.colW-14,(b.hitY-b.top)*0.45)}
     ctx.globalAlpha=1-k;ctx.strokeStyle=WORD_COLOR[e.j]==='#ffe27a'?'#ffb000':WORD_COLOR[e.j];ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(x,b.hitY,b.colW*0.35+k*b.colW*0.25,14+k*16,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1}
    // The combo, big at the top of the board, and the word for the last hit under it.
    const s=tally.current,spaced=(txt:string)=>txt.split('').join(' ')
@@ -254,8 +261,13 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    ctx.textAlign='center'
    if(s.combo>=2){ctx.font='800 '+Math.round(44+Math.min(16,s.combo/12))+'px system-ui,sans-serif';ctx.fillStyle='rgba(255,77,120,0.92)';ctx.fillText(String(s.combo),W/2,b.top+60);ctx.font='700 10px system-ui,sans-serif';ctx.fillStyle='rgba(255,77,120,0.7)';ctx.fillText(spaced('COMBO'),W/2,b.top+76)}
    const wd=word.current
-   if(wd&&t-wd.t<500){const k=(t-wd.t)/500;ctx.globalAlpha=1-k;ctx.font='800 '+Math.round(18+(1-Math.min(1,k*4))*4)+'px system-ui,sans-serif';ctx.fillStyle=wd.j==='perfect'?'#e09a00':wd.j==='great'?'#2aa7d8':wd.j==='good'?'#4caf50':'#ff4d6a';ctx.fillText(spaced(WORD[wd.j].toUpperCase()),W/2,b.top+104)
-    if(wd.off!==undefined&&wd.j!=='miss'&&wd.j!=='perfect'){ctx.font='700 10px system-ui,sans-serif';ctx.fillStyle=wd.off<0?'#3d7fd0':'#d0663d';ctx.fillText(spaced(wd.off<0?'EARLY':'LATE'),W/2,b.top+120)}
+   // The word for the last hit, big and glowing just above the line (where your eyes are), popping in.
+   if(wd&&t-wd.t<550){const k=(t-wd.t)/550,pop=1+Math.max(0,0.35-k*2.2),size=Math.round(Math.min(46,bw/7)*pop),y=b.hitY-(b.hitY-b.top)*0.26
+    const col=wd.j==='perfect'?['#fff6a8','#ffb300']:wd.j==='great'?['#c9f1ff','#2aa7d8']:wd.j==='good'?['#d6ffcf','#43b047']:['#ffd0d8','#ff3d63']
+    ctx.globalAlpha=k<0.7?1:(1-k)/0.3;ctx.font='900 italic '+size+'px system-ui,sans-serif'
+    const wg=ctx.createLinearGradient(0,y-size,0,y);wg.addColorStop(0,col[0]);wg.addColorStop(1,col[1])
+    ctx.save();ctx.shadowColor=col[1];ctx.shadowBlur=18;ctx.lineWidth=5;ctx.strokeStyle='rgba(30,16,60,0.85)';ctx.strokeText(WORD[wd.j].toUpperCase(),W/2,y);ctx.fillStyle=wg;ctx.fillText(WORD[wd.j].toUpperCase(),W/2,y);ctx.restore()
+    if(wd.off!==undefined&&wd.j!=='miss'&&wd.j!=='perfect'){ctx.font='800 12px system-ui,sans-serif';ctx.fillStyle=wd.off<0?'#8fc2ff':'#ffb08f';ctx.fillText(spaced(wd.off<0?'EARLY':'LATE'),W/2,y+18)}
     ctx.globalAlpha=1}
    // Top: the song and level on the left; the score, with the gauge under it, on the right; the song's
    // progress along the very top.
