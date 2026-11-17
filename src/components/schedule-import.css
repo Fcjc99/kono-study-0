@@ -11,3 +11,21 @@
 .schedule-import button{min-height:44px;margin:6px 8px 6px 0;white-space:normal}
 .schedule-import p{overflow-wrap:anywhere}
 @media(max-width:600px){.schedule-import .import-fields{grid-template-columns:minmax(0,1fr)}.schedule-import .import-row{padding:12px}.schedule-import .import-weekdays{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+.schedule-import .import-status{padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--wb-accent,#973862) 9%,transparent);font-weight:600}
+.schedule-import .import-more{margin-top:14px;border-top:1px solid var(--line,#d9c6ba);padding-top:6px}
+.schedule-import .import-more>summary{min-height:44px;display:flex;align-items:center;font-weight:700;cursor:pointer}
+@media(max-width:600px){.schedule-import .import-weekdays{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px 8px}}
+/* Each found item is one line (tick, name, when); Edit opens its fields. */
+.schedule-import .import-row{margin:10px 0}
+.schedule-import .import-row.is-in{border-color:color-mix(in srgb,var(--wb-accent,#973862) 45%,transparent);background:color-mix(in srgb,var(--wb-accent,#973862) 5%,var(--surface,#fffaf4))}
+.schedule-import .import-row-head{display:flex;align-items:center;gap:10px}
+.schedule-import .import-row-head .import-select{flex:1;min-width:0;margin:0}
+.schedule-import .import-row-head span{display:grid;gap:2px;min-width:0}
+.schedule-import .import-row-head small{opacity:.8}
+.schedule-import .import-row-head button{margin:0;flex:none}
+.schedule-import .import-weekdays{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:4px!important}
+.schedule-import .import-weekdays label{position:relative;display:grid;place-items:center;min-height:44px;margin:0;border:1.5px solid var(--line,#d9c6ba);border-radius:12px;font-weight:700;font-size:.85rem;gap:0}
+.schedule-import .import-weekdays input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
+.schedule-import .import-weekdays label:has(input:checked){background:var(--wb-accent,#973862);border-color:transparent;color:#fff}
+.schedule-import .import-weekdays label:has(input:focus-visible){outline:3px solid var(--wb-accent,#973862);outline-offset:2px}
+.schedule-import .import-times{grid-template-columns:1fr 1fr!important}
