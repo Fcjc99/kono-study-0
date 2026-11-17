@@ -27,7 +27,8 @@ export function dayGlance(data:AppData,date:string):string{
  return parts.length?join(parts)+'.':'nothing on the plan.'
 }
 
-export type SummaryBit={icon:string;text:string;tone?:'late'|'test'|'calm'}
+/** `kid`: the next event is one of the kids' (the family card's kid list already shows it). */
+export type SummaryBit={icon:string;text:string;tone?:'late'|'test'|'calm';kid?:boolean}
 const addDay=(date:string,n:number)=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 /** Today at a glance, for the top of Home's day card: "3 due today · 1 late · Bio test Friday · Soccer at 5:00 PM".
  * What's still due today, anything late, the next test this week, and the next thing on the clock. */
@@ -40,6 +41,6 @@ export function daySummary(data:AppData,date:string,now:string):SummaryBit[]{
  if(late)bits.push({icon:'⚠',text:late+' late',tone:'late'})
  bits.unshift(...daysOffOn(data,pid,date).map(d=>({icon:dayOffIcon(d.reason),text:dayOffLabel(data,d)})),...specialOn(data,pid,date).map(x=>({icon:x.icon,text:x.label+(x.day.kind==='countdown'?' is today!':' today!')})))
  if(tests.length){const t=tests[0],when=t.due===date?'today':t.due===addDay(date,1)?'tomorrow':new Date(t.due+'T12:00:00').toLocaleDateString(undefined,{weekday:'long'});bits.push({icon:'📝',text:(/\b(test|quiz|exam|final|midterm)\b/i.test(t.title)?t.title:t.title+' test')+' '+when+(tests.length>1?' (+'+(tests.length-1)+')':''),tone:'test'})}
- if(next)bits.push({icon:'🕒',text:next.title+' at '+classTime(next.time!)})
+ if(next)bits.push({icon:'🕒',text:next.title+' at '+classTime(next.time!),...(next.kidId||next.kidIds?.length?{kid:true}:{})})
  return bits
 }
