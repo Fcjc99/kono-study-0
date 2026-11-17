@@ -4,7 +4,10 @@ type Part={tag:'root'|'b'|'i'|'mark';children:ReactNode[];color?:string}
 /** Interpret only our tiny formatting language; all other input stays escaped React text. */
 export default function SafeNoteBody({text}:{text:string}) {
  const stack:Part[]=[{tag:'root',children:[]}]
- const tokens=text.split(/(<\/?(?:b|i|mark)(?: style="background:#[0-9a-fA-F]{6}")?>|<br\s*\/?>)/g)
+ // Notes typed or pasted with markdown-style **bold** and *italic* read as bold and italic too (the
+ // markers become our own tags first, so they go through the same safe path).
+ const marked=text.replace(/\*\*([^*\n]+?)\*\*/g,'<b>$1</b>').replace(/(^|[^*\w])\*([^*\s](?:[^*\n]*?[^*\s])?)\*(?![\w*])/g,'$1<i>$2</i>')
+ const tokens=marked.split(/(<\/?(?:b|i|mark)(?: style="background:#[0-9a-fA-F]{6}")?>|<br\s*\/?>)/g)
  let key=0
  for(const token of tokens){
   const current=stack[stack.length-1]

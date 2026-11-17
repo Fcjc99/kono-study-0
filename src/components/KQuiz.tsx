@@ -212,7 +212,7 @@ export default function KQuiz({ profileId, lectures, sets, sources, decks, subje
   const visibleSources = folder === '' ? sources : sources.filter(s => s.subjectId === folderSubjectId)
 
   return <section className="card study-planner kquiz">
-    <div className="card-head"><div><span className="eyebrow">K-Quiz</span><h3>Lectures &amp; study sets</h3><p>Record a lecture, paste notes, or scan a photo — they collect in a running list below. Check off whichever ones you want, any time, and generate one summary, study guide, flashcard deck, and practice test from all of them together.</p></div></div>
+    <div className="card-head"><div><span className="eyebrow">K-Quiz</span><h3>Lectures &amp; study sets</h3><p>Record a lecture, paste notes or scan a photo. Tick the ones to study, and KONO makes a study guide, flashcards and a practice test from them.</p></div></div>
     {message && <p ref={messageRef} className="study-message" role="status">{message}</p>}
 
     {subjects.length > 0 && <div className="kquiz-folders" role="tablist" aria-label="Folders">
