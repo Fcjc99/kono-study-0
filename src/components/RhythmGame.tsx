@@ -25,7 +25,7 @@ const decoded=new Map<string,AudioBuffer>()
 /** How long a warm-up plays. */
 const WARMUP_MS=30000
 const CLEAR_MARK:Record<Clear,string>={fail:'',clear:'✓',full:'FC',all:'AP'}
-export type BeatResult={drift:number|null;song:string;title:string;level:Level;score:number;acc:number;grade:string;best:number;tally:Tally;clear:Clear;failed:boolean;newBest:boolean;classic?:boolean;warmup?:boolean;tiles:number;of:number
+export type BeatResult={drift:number|null;song:string;title:string;level:Level;score:number;acc:number;grade:string;best:number;tally:Tally;clear:Clear;failed:boolean;newBest:boolean;classic?:boolean;/** Ended with ■ End before the song was over. */ended?:boolean;warmup?:boolean;tiles:number;of:number
  /** Each tile, in order: when (ms into the song) and how it went (unplayed if the song stopped first). */
  timeline:{t:number;j:Judge|null}[];ms:number}
 
@@ -66,10 +66,11 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
  const judged=()=>play.current.notes.filter(n=>n.hit).length+nextTick.current
  const finish=()=>{
   if(done.current)return;done.current=true
+  const early=!warm.current&&!stoppedAt.current&&songMs()-liveOffset.current<info.ms-2000
   stopSong()
   const t=tally.current,total=warm.current?Math.max(1,judged()):play.current.total,score=scoreOf(t,total),clear=clearOf(t,level,judged(),total)
   const newBest=!warm.current&&clear!=='fail'&&saveBeatBest(info.id,level,score,clear)
-  onEndRef.current({drift:warm.current?null:timingDrift(play.current.notes.flatMap(n=>n.hit&&n.hit!=='miss'&&n.off!==undefined?[n.off]:[])),song:info.id,title:info.title,level,score,acc:accuracy(t,total),grade:clear==='fail'&&!warm.current?'F':grade(score),best:t.best,tally:t,clear:warm.current&&clear==='fail'?'clear':clear,failed:clear==='fail'&&!warm.current,newBest,classic,warmup:warm.current,tiles:play.current.notes.filter(n=>n.hit&&n.hit!=='miss').length,of:warm.current?play.current.notes.filter(n=>n.hit).length:play.current.notes.length,timeline:play.current.notes.filter(n=>n.kind!=='sky').map(n=>({t:n.t,j:n.hit??null})),ms:info.ms})
+  onEndRef.current({drift:warm.current?null:timingDrift(play.current.notes.flatMap(n=>n.hit&&n.hit!=='miss'&&n.off!==undefined?[n.off]:[])),song:info.id,title:info.title,level,score,acc:accuracy(t,total),grade:early?'–':clear==='fail'&&!warm.current?'F':grade(score),ended:early,best:t.best,tally:t,clear:warm.current&&clear==='fail'?'clear':clear,failed:clear==='fail'&&!warm.current,newBest,classic,warmup:warm.current,tiles:play.current.notes.filter(n=>n.hit&&n.hit!=='miss').length,of:warm.current?play.current.notes.filter(n=>n.hit).length:play.current.notes.length,timeline:play.current.notes.filter(n=>n.kind!=='sky').map(n=>({t:n.t,j:n.hit??null})),ms:info.ms})
  }
  const finishRef=useRef(finish);useEffect(()=>{finishRef.current=finish})
  useImperativeHandle(ref,()=>({end:()=>finishRef.current()}),[])

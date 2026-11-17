@@ -4473,8 +4473,9 @@ test('KONO Beat plays the whole song: on Jeff tier, missing everything empties t
  await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>30000,null,{timeout:60000})
  assert.equal(await beat.getByRole('region',{name:'Results'}).count(),0,'still playing')
  assert.ok(await page.evaluate(()=>{const ms=Number(document.querySelector('.beat-canvas').dataset.ms);return new Promise(r=>setTimeout(()=>r(Number(document.querySelector('.beat-canvas').dataset.ms)>ms),500))}),'the song clock keeps running')
+ // Ending before the song is over says so (not "failed"), with no grade.
  await beat.getByRole('button',{name:'■ End'}).click()
- await beat.getByRole('region',{name:'Results'}).getByRole('heading',{name:'Song failed'}).waitFor()
+ await beat.getByRole('region',{name:'Results'}).getByRole('heading',{name:'Ended early'}).waitFor()
 })
 
 test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with results), KONO.io (the map, a live leaderboard, steering, ■ End gives your share; team battle: Blue against Red on a clock) and Meowdoku’s Undo, Hint and Auto ✕',async({context,page})=>{
