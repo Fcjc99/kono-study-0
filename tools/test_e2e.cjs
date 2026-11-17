@@ -191,7 +191,7 @@ test('Planner › ＋ Add to my calendar: one place to start, each choice opens 
  await page.getByRole('button',{name:'＋ Add to my calendar'}).click()
  const hub=page.getByRole('region',{name:'Add to my calendar'}),choices=hub.getByRole('group',{name:'What do you have?'})
  assert.equal(await choices.getByRole('button').count(),8)
- const opens={'My school schedule':'School calendar & rotation','My college classes':'College semester','A calendar link':'Or paste a calendar link','Photos or screenshots':null,'A PDF of dates':'Import PDF','A weekly activity':null,'My work schedule':'Add my shifts','A sports season':null}
+ const opens={'My school schedule':'School calendar & rotation','My college classes':'College semester','A calendar link':'Or paste a calendar link','Photos or screenshots':null,'A PDF of dates':'Choose a PDF','A weekly activity':null,'My work schedule':'Add my shifts','A sports season':null}
  for(const [choice,expect] of Object.entries(opens)){
   await choices.getByRole('button',{name:new RegExp('^'+choice)}).click()
   await hub.getByRole('heading',{name:new RegExp(choice+'$')}).waitFor()
@@ -2353,11 +2353,10 @@ test('College semester: choose the term, upload the schedule, review, save; a la
 
  // The PDF importer (Planner › Add to my calendar) offers the semester for weekly classes; re-adding them skips duplicates.
  await addToCalendar(page,'A PDF of dates')
- await page.getByRole('button',{name:'Import PDF'}).click()
+ // One upload: choosing the PDF reads it and finds the items; complete ones start ticked.
  await page.getByLabel('Choose PDF (up to 20 MB)').setInputFiles(classTablePdf())
- await page.getByRole('button',{name:'Read selected pages'}).click()
- await page.getByText('Text is ready').waitFor()
- await page.getByRole('button',{name:'Find schedule items'}).click()
+ await page.getByText(/3 items found/).waitFor()
+ assert.equal(await page.getByLabel('Add this item').evaluateAll(b=>b.filter(x=>x.checked).length),3)
  const into=page.getByLabel('Put weekly classes in')
  await into.waitFor()
  assert.match(await into.locator('option:checked').innerText(),/Boston College/)

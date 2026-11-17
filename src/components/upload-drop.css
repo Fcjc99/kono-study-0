@@ -1,0 +1,7 @@
+/* The one big thing to tap: choose the file. The real file input covers it, unseen. */
+.upload-drop{position:relative;display:grid;justify-items:center;gap:6px;margin:8px 0;padding:26px 16px;border:2px dashed color-mix(in srgb,var(--wb-accent,#973862) 45%,transparent);border-radius:20px;background:color-mix(in srgb,var(--wb-accent,#973862) 6%,transparent);font-weight:800;font-size:1.1rem;text-align:center;cursor:pointer;overflow-wrap:anywhere}
+.upload-drop small{font-weight:500;font-size:.85rem;opacity:.8}
+.upload-drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.upload-drop:focus-within{outline:3px solid var(--wb-accent,#973862);outline-offset:2px}
+.update-plan-scanner .upload-drop input{width:100%}
+.upload-notes>summary{min-height:44px;display:flex;align-items:center;font-weight:700;cursor:pointer}

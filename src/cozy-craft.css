@@ -55,28 +55,25 @@
 [data-tab=Sanctuary]{--tab:#c2577f}[data-tab=Planner]{--tab:#7a5cc0}[data-tab=Kids]{--tab:#3f8f6b}[data-tab=Subjects]{--tab:#a8742a}
 [data-tab=Notes]{--tab:#3f7fb0}[data-tab=K-Quiz]{--tab:#b5633f}[data-tab=Exams]{--tab:#b0487a}[data-tab=Settings]{--tab:#8a5a78}
 :root[data-experience='cozy']:not([data-team]) .sidebar .nav-button[data-tab]:not(#x):not(#y){gap:12px;font-weight:700;transition:transform .15s,background .15s}
-:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button[data-tab]:not(#x):not(#y) .nav-icon{width:40px!important;height:40px!important;border:0!important;border-radius:13px!important;background:radial-gradient(120% 90% at 30% 15%,#fff 40%,color-mix(in srgb,var(--tab) 22%,#fff))!important;box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--tab) 26%,transparent),0 3px 7px color-mix(in srgb,var(--tab) 32%,transparent)!important;transition:transform .15s}
-:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button[data-tab]:not(#x):not(#y) .nav-icon svg{width:31px!important;height:31px!important;filter:none!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button[data-tab]:not(#x):not(#y) .nav-icon{width:44px!important;height:44px!important;border:0!important;border-radius:13px!important;background:radial-gradient(120% 90% at 30% 15%,#fffdf6 40%,color-mix(in srgb,var(--tab) 22%,#fff4e2))!important;box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--tab) 26%,transparent),0 3px 7px color-mix(in srgb,var(--tab) 32%,transparent)!important;transition:transform .15s}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button[data-tab]:not(#x):not(#y) .nav-icon :is(svg,img){width:38px!important;height:38px!important;filter:none!important;object-fit:contain}
 :root[data-experience='cozy']:not([data-team]) .sidebar .nav-button[data-tab]:not(#x):not(#y):hover .nav-icon{transform:scale(1.08) rotate(-4deg)}
 :root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y) .nav-icon{transform:scale(1.08)}
 :root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y){margin-right:-17px!important;border-radius:14px 0 0 14px!important;border-color:transparent!important;color:color-mix(in srgb,var(--tab) 78%,#000)!important;background:linear-gradient(90deg,color-mix(in srgb,var(--tab) 24%,var(--wb-surface,#fff)),var(--wb-bg,#fff7f0))!important;box-shadow:inset 5px 0 0 var(--tab),0 3px 10px color-mix(in srgb,var(--tab) 16%,transparent)!important}
 :root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y) :is(svg,i),:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y)::after{color:inherit!important}
 :root[data-dark][data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y){color:color-mix(in srgb,var(--tab) 40%,#fff)!important;background:linear-gradient(90deg,color-mix(in srgb,var(--tab) 38%,#221d27),var(--wb-bg,#16131a))!important}
 @media (max-width:720px){
- :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button[data-tab]:not(#x):not(#y):not(.active)>span svg{color:var(--tab)!important;filter:none!important}
- :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button[data-tab]:not(#x):not(#y)>span svg.is-art{width:28px!important;height:28px!important}
- :root[data-dark][data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button[data-tab]:not(#x):not(#y):not(.active)>span svg{color:color-mix(in srgb,var(--tab) 55%,#fff)!important}
+ :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button[data-tab]:not(#x):not(#y)>span :is(svg,img).is-art{width:30px!important;height:30px!important}
+ :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button[data-tab]:not(#x):not(#y)>span:has(.is-art){width:50px!important;height:30px!important;margin-bottom:5px!important;display:grid!important;place-items:center!important}
  :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y){color:color-mix(in srgb,var(--tab) 80%,#000)!important;gap:4px!important}
  :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y)>span{width:50px!important;height:30px!important;margin-bottom:2px!important;background:color-mix(in srgb,var(--tab) 20%,#fff)!important;border-radius:999px!important;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--tab) 45%,transparent),0 3px 8px color-mix(in srgb,var(--tab) 30%,transparent)}
- :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y)>span svg{filter:none!important;width:28px!important;height:28px!important}
+ :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y)>span :is(svg,img){filter:none!important}
  :root[data-dark][data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y){color:color-mix(in srgb,var(--tab) 45%,#fff)!important}
  :root[data-dark][data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y)>span{background:color-mix(in srgb,var(--tab) 38%,#221d27)!important}
  /* The ＋ sits a little higher so its "Add" label shows whole under it (the button used to cover half of it). */
  :root[data-experience='cozy'] .mobile-nav.is-tabbar .mobile-nav-add:not(#x)>span{margin-top:-26px}
  :root[data-experience='cozy'] .mobile-nav.is-tabbar .mobile-nav-add:not(#x)>small{position:relative;z-index:1;margin-top:3px}
 }
-/* The full-color pictures keep their own paints: no stroke or recolor from the line-icon rules. */
-.nav-glyph.is-art{stroke:none!important;stroke-width:0;color:inherit!important;fill:none}
 /* The sidebar as the notebook's cover: a deep wash of the palette's accent with white labels and bright icon
    tiles; the page you're on is a paper tab cut out of it, joined to the page. The music and plan cards stay
    paper cards on top. */
@@ -92,15 +89,14 @@
 :root[data-experience='cozy']:not([data-team]) .sidebar:not(#x):not(#y):not(#z) :is(.sidebar-music-slot>*,.profile-dock){background:var(--wb-surface,#fffafd)!important;box-shadow:0 8px 20px rgb(0 0 0/.25)!important}
 /* Each page's title wears its tab's icon tile, so the page and its tab read as one thing. */
 .page-title-icon{flex:none;display:grid;place-items:center;width:46px;height:46px;margin-right:10px;border-radius:14px;background:radial-gradient(120% 90% at 30% 15%,#fff 40%,color-mix(in srgb,var(--tab,#c2577f) 24%,#fff));box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--tab,#c2577f) 30%,transparent),0 4px 10px color-mix(in srgb,var(--tab,#c2577f) 28%,transparent)}
-.page-title-icon svg{width:34px;height:34px}
+.page-title-icon :is(svg,img){width:40px;height:40px}
 .wb-title-row:has(>.page-title-icon){display:flex;align-items:center}
-@media (max-width:700px){.page-title-icon{width:38px;height:38px;border-radius:12px;margin-right:8px}.page-title-icon svg{width:28px;height:28px}}
+@media (max-width:700px){.page-title-icon{width:38px;height:38px;border-radius:12px;margin-right:8px}.page-title-icon :is(svg,img){width:33px;height:33px}}
 /* Upright tablets (721-1100px): the tab bar at the top in the same language: the page you're on is tinted in
    its own color with a filled icon chip (in dark mode it was pink text on a pink block). */
 @media (min-width:721px) and (max-width:1100px){
  :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y):not(#z){background:color-mix(in srgb,var(--tab) 16%,var(--wb-surface,#fff))!important;border-color:transparent!important;border-radius:14px!important;box-shadow:inset 0 -3px 0 var(--tab)!important;color:color-mix(in srgb,var(--tab) 80%,#000)!important}
  :root[data-dark][data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y):not(#z){background:color-mix(in srgb,var(--tab) 30%,#221d27)!important;color:color-mix(in srgb,var(--tab) 40%,#fff)!important}
  :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y):not(#z)>span{background:color-mix(in srgb,var(--tab) 20%,#fff)!important;border-color:transparent!important;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--tab) 45%,transparent)!important}
- :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y):not(#z)>span svg{color:#fff!important;filter:none!important}
  :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y):not(#z) :is(small,.nav-indicator){color:inherit!important}
 }
