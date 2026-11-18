@@ -311,6 +311,8 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
  const nudge=(d:number)=>{const v=Math.max(-300,Math.min(300,offset+d));setOffsetState(v);saveOffset(v)}
  const setSpeed=(v:number)=>{const s=Math.max(1,Math.min(10,Math.round(v*2)/2));setSpeedState(s);saveSpeed(s)}
 
+ // Phones fold the settings away under ⚙ Settings, so ▶ Play sits right under the song; wider screens show them.
+ const [wideScreen]=useState(()=>{try{return !window.matchMedia('(max-width:759px)').matches}catch{return true}})
  const best=readBeatBest(info.id,level),lv=LEVELS.find(l=>l.id===level)!
  if(!playing)return <div className="beat-pick">
   <section className="beat-list" aria-label="Songs"><h3>Songs</h3><ul className="beat-songs">{SONGS.map(s=>{const b=readBeatBest(s.id,level);return <li key={s.id}><button type="button" aria-pressed={song===s.id} onClick={()=>setSong(s.id)}><Jacket id={s.id}/><span className="beat-song-text"><b>{s.title}</b><small>{FROM[s.id]}</small></span>{b&&<i aria-label={'Best '+b.score.toLocaleString()+', '+b.grade+(b.clear!=='fail'?', '+CLEAR_NAME[b.clear]:'')}>{b.grade}{CLEAR_MARK[b.clear]&&<em>{CLEAR_MARK[b.clear]}</em>}</i>}</button></li>})}</ul></section>
@@ -323,6 +325,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    </div>
    <div className="beat-levels" role="group" aria-label="Difficulty">{LEVELS.map(l=><button type="button" key={l.id} aria-pressed={level===l.id} className={'is-'+l.id} style={{'--lv':LEVEL_COLORS[l.id]} as React.CSSProperties} onClick={()=>setLevel(l.id)}><span>{l.name}</span><b>{ratingOf(info,l.id)}</b></button>)}</div>
    <p className="beat-blurb">{(()=>{const c=info.charts[level];return c.tap.length+c.hold.length+c.sky.length})()} notes · {lv.blurb}</p>
+   <details className="beat-settings-wrap" open={wideScreen||!!reset}><summary>⚙ Settings <span>Speed {speed.toFixed(1)} · Timing {offset>0?'+':''}{offset} ms</span></summary>
    <div className="beat-settings">
     <label className="beat-offset">Speed <button type="button" aria-label="Notes slower" onClick={()=>setSpeed(speed-0.5)}>−</button><output>{speed.toFixed(1)}</output><button type="button" aria-label="Notes faster" onClick={()=>setSpeed(speed+0.5)}>＋</button></label>
     <label className="beat-offset">Timing <button type="button" aria-label="Notes earlier" onClick={()=>nudge(-5)}>−</button><output>{offset>0?'+':''}{offset} ms</output><button type="button" aria-label="Notes later" onClick={()=>nudge(5)}>＋</button></label>
@@ -330,7 +333,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
     <label className="beat-ticks"><input type="checkbox" checked={ticks} onChange={e=>{setTicks(e.target.checked);saveTicks(e.target.checked)}}/> Note ticks</label>
     <label className="beat-ticks"><input type="checkbox" checked={keys} onChange={e=>{setKeys(e.target.checked);saveKeys(e.target.checked)}}/> Tap notes</label>
     <label className="beat-ticks"><input type="checkbox" checked={classic} onChange={e=>{setClassic(e.target.checked);saveClassic(e.target.checked)}}/> Classic (one miss ends the song)</label>
-   </div>
+   </div></details>
    {reset&&<p className="beat-reset" role="status">Timing is back to 0 ms: it used to shift by itself and could drift far off. Use Sync check to set it for your speakers or headphones.</p>}
    {syncing&&<BeatSync onDone={ms=>{setOffsetState(ms);saveOffset(ms)}} onClose={()=>setSyncing(false)}/>}
    <button type="button" className="beat-play" onClick={()=>void start()} disabled={loading}>{loading?'Loading…':<>▶ Play <span>{info.title}</span></>}</button>

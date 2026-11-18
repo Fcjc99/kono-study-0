@@ -79,3 +79,11 @@
 .beat-reset{margin:6px 0 0;padding:8px 12px;border-radius:12px;background:#fff7d6;color:#5a4300;font-size:.82rem;line-height:1.35}
 /* Phones: ▶ Play stays at the bottom of the screen while you scroll the songs and settings. */
 @media(max-width:759px){.beat-pick .beat-play:not(#x){position:sticky;bottom:calc(env(safe-area-inset-bottom) + 10px);z-index:3;box-shadow:0 10px 26px rgba(40,30,110,.35)!important}}
+.beat-settings-wrap{grid-column:1/-1}
+.beat-settings-wrap>summary{display:flex;align-items:center;gap:10px;min-height:44px;font-weight:800;letter-spacing:.04em;cursor:pointer;color:var(--ink)}
+.beat-settings-wrap>summary span{font-weight:500;font-size:.85rem;color:var(--soft);letter-spacing:0}
+.beat-settings-wrap[open]>summary{margin-bottom:6px}
+.beat-settings-wrap>summary{list-style:none}
+.beat-settings-wrap>summary::-webkit-details-marker{display:none}
+.beat-settings-wrap>summary::after{content:'▸';margin-left:auto;transition:transform .2s;opacity:.6}
+.beat-settings-wrap[open]>summary::after{transform:rotate(90deg)}
