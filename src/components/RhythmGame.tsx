@@ -181,6 +181,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    const px=(b.hitY-b.top)/ap,cx=b.x0+b.colW*2,far=now+ap,near=now-0.08*ap,bw=b.colW*4,NARROW=0.34
    const sOf=(ms:number)=>1-NARROW*Math.min(1,Math.max(-0.1,(ms-now)/ap)),yOf=(ms:number)=>b.hitY-(ms-now)*px,xOf=(col:number,ms:number)=>cx+(col-2)*b.colW*sOf(ms)
    const quad=(c0:number,c1:number,tA:number,tB:number)=>{ctx.beginPath();ctx.moveTo(xOf(c0,tA),yOf(tA));ctx.lineTo(xOf(c1,tA),yOf(tA));ctx.lineTo(xOf(c1,tB),yOf(tB));ctx.lineTo(xOf(c0,tB),yOf(tB));ctx.closePath()}
+   const slotMs=Math.min(b.colW*1.25,(b.hitY-b.top)*0.2)/px // a tap tile's length, and its target slot's
    const beat=60000/info.bpm,pulse=Math.max(0,1-(((now%beat)+beat)%beat)/beat)
    // Around the road: KONO's night sky with a soft glow at the horizon, lit on the beat.
    const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#1d1a3f');g.addColorStop(1,'#3d2f6e');ctx.fillStyle=g;ctx.fillRect(0,0,W,H)
@@ -195,6 +196,11 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    for(let bt=Math.ceil(now/beat)*beat;bt<far;bt+=beat){const y=yOf(bt);ctx.fillStyle=Math.round(bt/beat)%4===0?'rgba(40,30,80,0.12)':'rgba(40,30,80,0.05)';ctx.fillRect(xOf(0,bt),y,xOf(4,bt)-xOf(0,bt),1)}
    // The road's glowing edges.
    for(const c of [0,4]){ctx.strokeStyle=`rgba(255,90,140,${0.25+pulse*0.2})`;ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(xOf(c,now),b.hitY);ctx.lineTo(xOf(c,far),yOf(far));ctx.stroke();ctx.strokeStyle='#ff8fb4';ctx.lineWidth=2;ctx.stroke()}
+   // The target slots: a tile-shaped socket at the end of each column, exactly the size of a tap tile. A tile
+   // fits right into its slot at the perfect moment, so you aim the whole tile, not a thin line.
+   for(let l=0;l<4;l++){const c0=l+0.05,c1=l+0.95,pressed=lanesHeld.current[l]>0||t-pressedAt.current[l]<120
+    ctx.fillStyle='rgba(40,30,80,0.16)';quad(c0,c1,now,now+slotMs);ctx.fill()
+    ctx.fillStyle=LANE_COLORS[l]+(pressed?'88':Math.round(0x22+pulse*0x22).toString(16).padStart(2,'0'));quad(c0,c1,now,now+slotMs);ctx.fill()}
    // The pads under the line, one for each column: where you tap. A pad glows in its color while it's pressed.
    {const y0=b.hitY+10,ph=Math.max(30,Math.min(H-y0-8,b.colW*1.2))
     ctx.textAlign='center'
@@ -206,7 +212,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    // Tiles, the farthest first. A tap tile is a dark slab with its column's color on its front edge; a long
    // tile runs back to where its note ends, with a line down its middle, lit while it's held. Hit tiles turn
    // grey and fade; missed ones go red.
-   const tapMs=Math.min(b.colW*1.25,(b.hitY-b.top)*0.2)/px,slab=(c0:number,c1:number,tA:number,color:string)=>{const th=Math.max(4,9*sOf(tA));ctx.fillStyle=color;ctx.fillRect(xOf(c0,tA),yOf(tA),xOf(c1,tA)-xOf(c0,tA),th)}
+   const tapMs=slotMs,slab=(c0:number,c1:number,tA:number,color:string)=>{const th=Math.max(4,9*sOf(tA));ctx.fillStyle=color;ctx.fillRect(xOf(c0,tA),yOf(tA),xOf(c1,tA)-xOf(c0,tA),th)}
    ctx.save();ctx.beginPath();ctx.rect(0,0,W,b.hitY+5);ctx.clip() // tiles end at the line, not over the pads
    for(let i=pl.notes.length-1;i>=0;i--){
     const n=pl.notes[i];if(n.kind==='sky'||n.t>far)continue
@@ -239,12 +245,14 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
     ctx.globalAlpha=1
    }
    ctx.restore()
-   // The line: a bright glowing bar across the road (and a little past it), pulsing on the beat, so where to
-   // tap is never in doubt.
-   {const glow=0.55+pulse*0.4,ext=b.colW*0.18
-    const lg=ctx.createLinearGradient(0,b.hitY-22,0,b.hitY+22);lg.addColorStop(0,'rgba(255,120,170,0)');lg.addColorStop(0.5,`rgba(255,120,170,${glow})`);lg.addColorStop(1,'rgba(255,120,170,0)');ctx.fillStyle=lg;ctx.fillRect(b.x0-ext,b.hitY-22,bw+ext*2,44)
-    ctx.save();ctx.shadowColor='#ff8fc0';ctx.shadowBlur=14;ctx.fillStyle='#fff';ctx.fillRect(b.x0-ext,b.hitY-2.5,bw+ext*2,5);ctx.restore()
-    for(const x of [b.x0-ext,b.x0+bw+ext]){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,b.hitY,4.5,0,Math.PI*2);ctx.fill()}}
+   // The slots' frames, over the tiles: each one glows brighter as a tile slides into it, and is brightest
+   // when the tile sits exactly inside (the perfect moment); a soft glow runs along their front edge.
+   {const lg=ctx.createLinearGradient(0,b.hitY-16,0,b.hitY+16);lg.addColorStop(0,'rgba(255,120,170,0)');lg.addColorStop(0.5,`rgba(255,120,170,${0.35+pulse*0.25})`);lg.addColorStop(1,'rgba(255,120,170,0)');ctx.fillStyle=lg;ctx.fillRect(b.x0,b.hitY-16,bw,32)
+    for(let l=0;l<4;l++){let fit=0
+     for(const n of pl.notes){if(n.t>now+slotMs)break;if(n.lane!==l||n.kind==='sky'||n.hit)continue;fit=Math.max(fit,1-Math.abs(n.t-now)/slotMs)}
+     const pressed=lanesHeld.current[l]>0||t-pressedAt.current[l]<120
+     ctx.save();ctx.lineJoin='round';ctx.shadowColor=LANE_COLORS[l];ctx.shadowBlur=6+fit*18
+     ctx.strokeStyle=pressed||fit>0.8?'#fff':LANE_COLORS[l];ctx.lineWidth=2.5+fit*2;quad(l+0.05,l+0.95,now,now+slotMs);ctx.stroke();ctx.restore()}}
    // Hits: the pad flashes in the hit's color, a column of light shoots up the lane, and a ring spreads on the line.
    fx.current=fx.current.filter(e=>t-e.t<380)
    for(const e of fx.current){const k=(t-e.t)/380,x=b.x0+(e.x*4-0.5)*b.colW+b.colW/2,col=WORD_COLOR[e.j]==='#ffe27a'?'#ffd34d':WORD_COLOR[e.j]

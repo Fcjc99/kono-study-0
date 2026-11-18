@@ -1,6 +1,6 @@
 /* KONO Teeter Tower's three ways to play, on the start card. */
-.teeter-modes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;margin:4px 0 2px}
-@media (max-width:440px){.teeter-modes{grid-template-columns:repeat(2,1fr)}}
+.teeter-modes{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;width:100%;margin:4px 0 2px}
+
 .game-screen .teeter-modes button:not(#x):not(#y){display:grid;justify-items:center;gap:2px;min-height:84px!important;padding:8px 6px!important;border-radius:16px!important;border:2px solid rgb(255 255 255/.25)!important;background:rgb(255 255 255/.1)!important;color:inherit!important;box-shadow:none!important;font-weight:600;text-align:center}
 .game-screen .teeter-modes button:not(#x):not(#y)>span{font-size:1.4rem}
 .game-screen .teeter-modes button:not(#x):not(#y) b{font-size:.86rem}
@@ -37,3 +37,9 @@
 .game-screen .teeter-control button:not(#x):not(#y) b{font-size:.84rem}
 .game-screen .teeter-control button:not(#x):not(#y) small{font-size:.66rem;opacity:.8}
 .game-screen .teeter-control button.is-on:not(#x):not(#y){border-color:#ffd36b!important;background:rgb(255 211 107/.18)!important}
+/* All five ways to play in one row, so the card stays short: just the icon and name on each tile. */
+.teeter-modes{gap:6px}
+.game-screen .teeter-modes button:not(#x):not(#y){min-width:0;min-height:68px!important;padding:6px 2px!important;border-radius:14px!important}
+.game-screen .teeter-modes button:not(#x):not(#y)>span{font-size:1.25rem}
+.game-screen .teeter-modes button:not(#x):not(#y) b{font-size:.74rem;line-height:1.15}
+.game-screen .teeter-modes button:not(#x):not(#y) small{display:none}
