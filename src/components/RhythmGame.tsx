@@ -325,7 +325,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    </div>
    <div className="beat-levels" role="group" aria-label="Difficulty">{LEVELS.map(l=><button type="button" key={l.id} aria-pressed={level===l.id} className={'is-'+l.id} style={{'--lv':LEVEL_COLORS[l.id]} as React.CSSProperties} onClick={()=>setLevel(l.id)}><span>{l.name}</span><b>{ratingOf(info,l.id)}</b></button>)}</div>
    <p className="beat-blurb">{(()=>{const c=info.charts[level];return c.tap.length+c.hold.length+c.sky.length})()} notes · {lv.blurb}</p>
-   <details className="beat-settings-wrap" open={wideScreen||!!reset}><summary>⚙ Settings <span>Speed {speed.toFixed(1)} · Timing {offset>0?'+':''}{offset} ms</span></summary>
+   <details className="beat-settings-wrap" open={wideScreen||!!reset}><summary>⚙ Settings <span>Speed, timing, ticks</span></summary>
    <div className="beat-settings">
     <label className="beat-offset">Speed <button type="button" aria-label="Notes slower" onClick={()=>setSpeed(speed-0.5)}>−</button><output>{speed.toFixed(1)}</output><button type="button" aria-label="Notes faster" onClick={()=>setSpeed(speed+0.5)}>＋</button></label>
     <label className="beat-offset">Timing <button type="button" aria-label="Notes earlier" onClick={()=>nudge(-5)}>−</button><output>{offset>0?'+':''}{offset} ms</output><button type="button" aria-label="Notes later" onClick={()=>nudge(5)}>＋</button></label>
