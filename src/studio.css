@@ -279,9 +279,7 @@ html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='
 #workspace-main .sanctuary-stage>.wb-island:not(.is-expanded):not(#x){padding:0!important;overflow:hidden!important;border-radius:26px 26px 0 0!important}
 #workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar:not(#x){position:relative!important;z-index:6;display:flex!important;flex-wrap:nowrap!important;align-items:center;gap:6px!important;margin:0!important;padding:8px 10px!important;background:color-mix(in srgb,var(--wb-accent) 7%,var(--wb-surface))!important;border:0!important;border-bottom:1px solid var(--wb-line)!important;overflow-x:auto;scrollbar-width:none}
 #workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar :is(button,label):not(#x):not(#y):not(#z){flex:none;min-height:34px!important;padding-inline:10px!important;font-size:.8rem!important;border:1px solid var(--wb-line)!important;border-radius:999px!important;background:var(--wb-surface)!important;color:var(--wb-ink,currentColor)!important;opacity:1!important;box-shadow:none!important}
-#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar select:not(#x):not(#y){border:0!important;background-color:transparent!important;box-shadow:none!important;color:inherit!important;min-height:30px!important;max-width:118px!important;padding-left:0!important;font-size:16px!important}
 #workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar svg{color:#973862!important}
-#workspace-main .wb-scene-toolbar .wb-btn-label{display:none}
 #workspace-main .wb-scene-toolbar .island-mode-tabs:not(#x){flex-wrap:nowrap!important}
 #workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) :is(.wb-sanctuary-stage,.wb-sanctuary-zoom-wrap):not(#x){border:0!important;border-radius:0!important;margin:0!important;padding:0!important;box-shadow:none!important}
 #workspace-main .sanctuary-stage>.wb-island:not(.is-expanded)+.kono-bar:not(#x){padding:12px 14px 10px!important;gap:8px!important;border-top:0!important;border-radius:0 0 26px 26px!important}
@@ -303,8 +301,12 @@ html:is([data-theme='coral'],[data-theme='sakura']) .workbench[data-experience='
 #workspace-main .sanctuary-stage .kono-bar .kono-bar-notes:not(#x){display:flex!important;flex-wrap:wrap;justify-content:center;gap:6px!important}
 #workspace-main .sanctuary-stage .kono-bar :is(.kono-wish,.kono-care-hint):not(#x){display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:999px;background:color-mix(in srgb,var(--wb-accent) 10%,var(--wb-surface));font-size:.78rem;font-weight:600;opacity:1;text-align:left}
 #workspace-main .sanctuary-stage .kono-bar .kono-wish.is-granted:not(#x){background:color-mix(in srgb,#ffd34d 30%,var(--wb-surface))}
-#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar:not(#x) :is(.wb-scene-left,.wb-scene-controls,.island-mode-tabs){display:flex!important;flex:none!important;flex-wrap:nowrap!important;gap:6px!important;margin:0!important}
-#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar:not(#x) .wb-scene-controls{margin-left:auto!important}
 #workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar:not(#x) svg{color:var(--wb-accent)!important}
 :root[data-dark] #workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar:not(#x) :is(button,label){color:#f3e9f1!important}
-@media (max-width:600px){#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar:not(#x){flex-wrap:wrap!important;row-gap:6px!important;overflow:visible}}
+/* The island's bar: just Decorate, Arcade and World map, centred with even spacing. (Time, photo, tuck away
+   and full screen live in the page's ⋯ menu.) */
+#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar:not(#x):not(#y){justify-content:center!important;flex-wrap:nowrap!important;padding:10px!important}
+#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar:not(#x):not(#y) :is(.wb-scene-left,.island-mode-tabs){flex:1 1 auto!important;justify-content:center!important;gap:8px!important}
+#workspace-main .sanctuary-stage>.wb-island:not(.is-expanded) .wb-scene-toolbar:not(#x):not(#y) .island-mode-tabs>button{flex:1 1 0!important;justify-content:center;min-height:40px!important;padding-inline:8px!important}
+.header-island-controls{display:flex!important;flex-wrap:wrap;align-items:center;gap:6px;padding:4px 0 8px;margin-bottom:6px;border-bottom:1px solid var(--wb-line)}
+.header-island-controls .wb-btn-label{position:static!important;width:auto!important;height:auto!important;margin:0!important;overflow:visible!important;clip:auto!important;display:inline!important}
