@@ -1,7 +1,7 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {LEVELS,CLEAR_AT,CLEAR_NAME,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,timingDrift,timingWasReset,readBeatBest,readClassic,readKeys,readOffset,readSpeed,readTicks,saveBeatBest,saveClassic,saveKeys,saveOffset,saveSpeed,saveTicks,wrongColumn,scoreOf,judge,type Chart,type Clear,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
 import {stopMusic} from '../arcadeAudio'
-import {click,heardNow,keyNote} from '../game/audioClock'
+import {click,heardNow,inputLag,keyNote} from '../game/audioClock'
 import BeatSync from './BeatSync'
 import charts from '../game/data/rhythmCharts.json'
 import type {GameHandle} from './GameScreen'
@@ -90,10 +90,11 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
   const a=audio.current;if(a)void a.ctx.suspend().catch(()=>undefined)
   navigator.vibrate?.(40)
  }
- const press=(lane:number)=>{
+ const press=(lane:number,lag=0)=>{
   if(!playing||done.current||stoppedAt.current)return
   pressedAt.current[lane]=performance.now()
-  const ms=songMs()-liveOffset.current
+  // When the finger landed (lag: how long the event waited for the page), not when this runs.
+  const ms=songMs()-lag-liveOffset.current
   // Timing never changes by itself during a song (auto-sync used to, and it drifted with the player's own
   // early or late taps); the results suggest a change instead, from how the hits landed.
   const i=hitIn(play.current.notes,lane,ms,level);if(i>=0)mark(i,ms)
@@ -104,7 +105,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
  useEffect(()=>{
   if(!playing)return
   const down=(e:KeyboardEvent)=>{const k=e.key.toLowerCase(),lane=KEYS[k]
-   if(lane!==undefined){e.preventDefault();if(!e.repeat){lanesHeld.current[lane]++;pressRef.current.press(lane)}}
+   if(lane!==undefined){e.preventDefault();if(!e.repeat){lanesHeld.current[lane]++;pressRef.current.press(lane,inputLag(e))}}
 }
   const up=(e:KeyboardEvent)=>{const k=e.key.toLowerCase(),lane=KEYS[k];if(lane!==undefined)lanesHeld.current[lane]=Math.max(0,lanesHeld.current[lane]-1)}
   window.addEventListener('keydown',down);window.addEventListener('keyup',up)
@@ -307,7 +308,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
  const down=(e:React.PointerEvent<HTMLCanvasElement>)=>{
   e.preventDefault();e.currentTarget.setPointerCapture?.(e.pointerId)
   const lane=laneAt(e.currentTarget,e.clientX);pointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY,lane})
-  if(lane>=0){lanesHeld.current[lane]++;press(lane)}
+  if(lane>=0){lanesHeld.current[lane]++;press(lane,inputLag(e))}
  }
  const move=(e:React.PointerEvent<HTMLCanvasElement>)=>{
   const p=pointers.current.get(e.pointerId);if(!p)return

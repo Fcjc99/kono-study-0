@@ -25,6 +25,11 @@ export function heardNow(ctx:AudioContext):number{
  return est
 }
 
+/** How long ago (ms) an input event happened: the browser stamps a tap or key the moment it comes in, but the
+ * page may only get to it a frame or more later (while it's drawing). Rhythm timing goes by the stamp, not by
+ * when the handler runs; kept to 0-100 ms in case a browser's stamp is on another clock. */
+export const inputLag=(e:{timeStamp:number})=>{const lag=performance.now()-e.timeStamp;return Number.isFinite(lag)?Math.max(0,Math.min(100,lag)):0}
+
 /** A short soft click at `when` (context time), for the Sync check's beat and the note ticks. */
 export function click(ctx:AudioContext,when:number,{freq=1600,gain=0.22,accent=false}:{freq?:number;gain?:number;accent?:boolean}={}){
  const o=ctx.createOscillator(),g=ctx.createGain()
