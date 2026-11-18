@@ -1,3 +1,4 @@
+import './subjects-page.css'
 import type {CSSProperties} from 'react'
 import {completeTask,type Entry} from '../store/workspace'
 import {addDays} from '../store/studyScheduler'

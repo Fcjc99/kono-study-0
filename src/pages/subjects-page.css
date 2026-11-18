@@ -1,0 +1,4 @@
+/* Subjects page styles, loaded with the page (not in the startup stylesheet). */
+/* The class chips sit in line with the cards under them: an older coral rule pulled the strip 12px left and
+   a later one put its width back, so it stuck out on the left and stopped short on the right. */
+@media (max-width:760px){:root .workbench .restored-subjects .subject-tabs:not(#x){margin-left:0!important;margin-right:0!important}}

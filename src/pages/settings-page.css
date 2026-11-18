@@ -18,3 +18,6 @@
 :root[data-dark] .workbench[data-page=settings] .island-choice>button[aria-pressed=true]:not(#x):not(#y){background:color-mix(in srgb,var(--wb-accent,#b4475f) 24%,#2c2533)!important}
 @media (max-width:520px){.workbench[data-page=settings] .dark-mode-choice>button:not(#x):not(#y){font-size:.8rem!important;padding:4px 6px!important}}
 :root[data-dark] .workbench[data-page=settings] :is(.dark-mode-choice>button[aria-pressed=true],.island-choice>button[aria-pressed=true]>strong):not(#x):not(#y){color:#ffd9e6!important}
+/* Dark mode: folded settings groups (Team colors) had a light-pink heading strip with light text on it. */
+:root[data-dark][data-experience='cozy'] .settings-group>summary{background:linear-gradient(100deg,color-mix(in srgb,var(--wb-accent,#b4475f) 22%,#231d28),#2a2230)}
+:root[data-dark][data-experience='cozy'] .settings-group>summary small{color:color-mix(in srgb,var(--wb-ink,#f3e9ee) 70%,transparent)}
