@@ -25,7 +25,7 @@ const decoded=new Map<string,AudioBuffer>()
 /** How long a warm-up plays. */
 const WARMUP_MS=30000
 const CLEAR_MARK:Record<Clear,string>={fail:'',clear:'✓',full:'FC',all:'AP'}
-export type BeatResult={drift:number|null;song:string;title:string;level:Level;score:number;acc:number;grade:string;best:number;tally:Tally;clear:Clear;failed:boolean;newBest:boolean;classic?:boolean;warmup?:boolean;tiles:number;of:number
+export type BeatResult={drift:number|null;song:string;title:string;level:Level;score:number;acc:number;grade:string;best:number;tally:Tally;clear:Clear;failed:boolean;newBest:boolean;classic?:boolean;/** Ended with ■ End before the song was over. */ended?:boolean;warmup?:boolean;tiles:number;of:number
  /** Each tile, in order: when (ms into the song) and how it went (unplayed if the song stopped first). */
  timeline:{t:number;j:Judge|null}[];ms:number}
 
@@ -66,10 +66,11 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
  const judged=()=>play.current.notes.filter(n=>n.hit).length+nextTick.current
  const finish=()=>{
   if(done.current)return;done.current=true
+  const early=!warm.current&&!stoppedAt.current&&songMs()-liveOffset.current<info.ms-2000
   stopSong()
   const t=tally.current,total=warm.current?Math.max(1,judged()):play.current.total,score=scoreOf(t,total),clear=clearOf(t,level,judged(),total)
   const newBest=!warm.current&&clear!=='fail'&&saveBeatBest(info.id,level,score,clear)
-  onEndRef.current({drift:warm.current?null:timingDrift(play.current.notes.flatMap(n=>n.hit&&n.hit!=='miss'&&n.off!==undefined?[n.off]:[])),song:info.id,title:info.title,level,score,acc:accuracy(t,total),grade:clear==='fail'&&!warm.current?'F':grade(score),best:t.best,tally:t,clear:warm.current&&clear==='fail'?'clear':clear,failed:clear==='fail'&&!warm.current,newBest,classic,warmup:warm.current,tiles:play.current.notes.filter(n=>n.hit&&n.hit!=='miss').length,of:warm.current?play.current.notes.filter(n=>n.hit).length:play.current.notes.length,timeline:play.current.notes.filter(n=>n.kind!=='sky').map(n=>({t:n.t,j:n.hit??null})),ms:info.ms})
+  onEndRef.current({drift:warm.current?null:timingDrift(play.current.notes.flatMap(n=>n.hit&&n.hit!=='miss'&&n.off!==undefined?[n.off]:[])),song:info.id,title:info.title,level,score,acc:accuracy(t,total),grade:early?grade(score):clear==='fail'&&!warm.current?'F':grade(score),ended:early,best:t.best,tally:t,clear:warm.current&&clear==='fail'?'clear':clear,failed:clear==='fail'&&!warm.current,newBest,classic,warmup:warm.current,tiles:play.current.notes.filter(n=>n.hit&&n.hit!=='miss').length,of:warm.current?play.current.notes.filter(n=>n.hit).length:play.current.notes.length,timeline:play.current.notes.filter(n=>n.kind!=='sky').map(n=>({t:n.t,j:n.hit??null})),ms:info.ms})
  }
  const finishRef=useRef(finish);useEffect(()=>{finishRef.current=finish})
  useImperativeHandle(ref,()=>({end:()=>finishRef.current()}),[])
@@ -174,10 +175,11 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
     // the music finishes (the song's own end ends the round; this is only a backstop if that never comes).
     if(now>info.ms+1500)finishRef.current()
    }
-   // The board is a road seen from just above the line: far moments sit small near the horizon and grow as
-   // they come. sOf is how big a moment looks (1 at the line); yOf and xOf place it (xOf in columns, 0 to 4).
-   const K=3.2,vy=b.top-(b.hitY-b.top)*0.3,cx=b.x0+b.colW*2,far=now+ap,near=now-0.06*ap,bw=b.colW*4
-   const sOf=(ms:number)=>1/(1+K*Math.max(-0.06,(ms-now)/ap)),yOf=(ms:number)=>vy+(b.hitY-vy)*sOf(ms),xOf=(col:number,ms:number)=>cx+(col-2)*b.colW*sOf(ms)
+   // The board is a road that narrows gently away from you. Tiles keep one steady speed down the screen (so
+   // timing reads the same as ever); only their width shrinks with distance. sOf is the width at a moment
+   // (1 at the line); yOf and xOf place it (xOf in columns, 0 to 4).
+   const px=(b.hitY-b.top)/ap,cx=b.x0+b.colW*2,far=now+ap,near=now-0.08*ap,bw=b.colW*4,NARROW=0.34
+   const sOf=(ms:number)=>1-NARROW*Math.min(1,Math.max(-0.1,(ms-now)/ap)),yOf=(ms:number)=>b.hitY-(ms-now)*px,xOf=(col:number,ms:number)=>cx+(col-2)*b.colW*sOf(ms)
    const quad=(c0:number,c1:number,tA:number,tB:number)=>{ctx.beginPath();ctx.moveTo(xOf(c0,tA),yOf(tA));ctx.lineTo(xOf(c1,tA),yOf(tA));ctx.lineTo(xOf(c1,tB),yOf(tB));ctx.lineTo(xOf(c0,tB),yOf(tB));ctx.closePath()}
    const beat=60000/info.bpm,pulse=Math.max(0,1-(((now%beat)+beat)%beat)/beat)
    // Around the road: KONO's night sky with a soft glow at the horizon, lit on the beat.
@@ -204,14 +206,14 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    // Tiles, the farthest first. A tap tile is a dark slab with its column's color on its front edge; a long
    // tile runs back to where its note ends, with a line down its middle, lit while it's held. Hit tiles turn
    // grey and fade; missed ones go red.
-   const tapMs=ap*0.085,slab=(c0:number,c1:number,tA:number,color:string)=>{const th=Math.max(3,8*sOf(tA));ctx.fillStyle=color;ctx.fillRect(xOf(c0,tA),yOf(tA),xOf(c1,tA)-xOf(c0,tA),th)}
+   const tapMs=Math.min(b.colW*1.25,(b.hitY-b.top)*0.2)/px,slab=(c0:number,c1:number,tA:number,color:string)=>{const th=Math.max(4,9*sOf(tA));ctx.fillStyle=color;ctx.fillRect(xOf(c0,tA),yOf(tA),xOf(c1,tA)-xOf(c0,tA),th)}
    ctx.save();ctx.beginPath();ctx.rect(0,0,W,b.hitY+5);ctx.clip() // tiles end at the line, not over the pads
    for(let i=pl.notes.length-1;i>=0;i--){
     const n=pl.notes[i];if(n.kind==='sky'||n.t>far)continue
     const c0=n.lane+0.05,c1=n.lane+0.95
     // Each tile is as long as a key, but never runs into the next tile in its column.
     let h=tapMs;for(let k=i+1;k<pl.notes.length;k++){const m=pl.notes[k];if(m.t-n.t>ap)break;if(m.lane===n.lane&&m.kind!=='sky'){h=Math.min(h,(m.t-n.t)-ap*0.012);break}}
-    h=Math.max(ap*0.03,h)
+    h=Math.max(14/px,h)
     const end=n.kind==='hold'&&n.end?n.end:n.t+h,tB=Math.min(end,far)
     if(n.hit&&!doneAt.has(i))doneAt.set(i,t)
     if(n.hit==='miss'){const k=Math.min(1,(t-(doneAt.get(i)??t))/500),tA=Math.max(n.t,near);if(k>=1||tB<=tA)continue
@@ -237,12 +239,19 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
     ctx.globalAlpha=1
    }
    ctx.restore()
-   // The line: a soft band across the road that pulses on the beat.
-   const lg=ctx.createLinearGradient(0,b.hitY-14,0,b.hitY+14);lg.addColorStop(0,'rgba(255,90,140,0)');lg.addColorStop(0.5,`rgba(255,90,140,${0.55+pulse*0.35})`);lg.addColorStop(1,'rgba(255,90,140,0)');ctx.fillStyle=lg;ctx.fillRect(b.x0,b.hitY-14,bw,28)
-   ctx.fillStyle='#ff5a8c';ctx.fillRect(b.x0,b.hitY-1.5,bw,3)
-   // Hits: a ring on the line where the tile was.
+   // The line: a bright glowing bar across the road (and a little past it), pulsing on the beat, so where to
+   // tap is never in doubt.
+   {const glow=0.55+pulse*0.4,ext=b.colW*0.18
+    const lg=ctx.createLinearGradient(0,b.hitY-22,0,b.hitY+22);lg.addColorStop(0,'rgba(255,120,170,0)');lg.addColorStop(0.5,`rgba(255,120,170,${glow})`);lg.addColorStop(1,'rgba(255,120,170,0)');ctx.fillStyle=lg;ctx.fillRect(b.x0-ext,b.hitY-22,bw+ext*2,44)
+    ctx.save();ctx.shadowColor='#ff8fc0';ctx.shadowBlur=14;ctx.fillStyle='#fff';ctx.fillRect(b.x0-ext,b.hitY-2.5,bw+ext*2,5);ctx.restore()
+    for(const x of [b.x0-ext,b.x0+bw+ext]){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,b.hitY,4.5,0,Math.PI*2);ctx.fill()}}
+   // Hits: the pad flashes in the hit's color, a column of light shoots up the lane, and a ring spreads on the line.
    fx.current=fx.current.filter(e=>t-e.t<380)
-   for(const e of fx.current){const k=(t-e.t)/380,x=b.x0+(e.x*4-0.5)*b.colW+b.colW/2
+   for(const e of fx.current){const k=(t-e.t)/380,x=b.x0+(e.x*4-0.5)*b.colW+b.colW/2,col=WORD_COLOR[e.j]==='#ffe27a'?'#ffd34d':WORD_COLOR[e.j]
+    if(!e.sky&&e.j!=='miss'){const lane=Math.max(0,Math.min(3,Math.round(e.x*4-0.5))),px0=b.x0+lane*b.colW+3,y0=b.hitY+10,ph=Math.max(30,Math.min(H-y0-8,b.colW*1.2))
+     ctx.globalAlpha=(1-k)*0.85;ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(px0,y0,b.colW-6,ph,12);ctx.fill()
+     const beam=ctx.createLinearGradient(0,b.hitY,0,b.hitY-(b.hitY-b.top)*0.45);beam.addColorStop(0,col);beam.addColorStop(1,'rgba(255,255,255,0)')
+     ctx.globalAlpha=(1-k)*0.55;ctx.fillStyle=beam;ctx.fillRect(px0+4,b.hitY-(b.hitY-b.top)*0.45,b.colW-14,(b.hitY-b.top)*0.45)}
     ctx.globalAlpha=1-k;ctx.strokeStyle=WORD_COLOR[e.j]==='#ffe27a'?'#ffb000':WORD_COLOR[e.j];ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(x,b.hitY,b.colW*0.35+k*b.colW*0.25,14+k*16,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1}
    // The combo, big at the top of the board, and the word for the last hit under it.
    const s=tally.current,spaced=(txt:string)=>txt.split('').join(' ')
@@ -253,8 +262,13 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
    ctx.textAlign='center'
    if(s.combo>=2){ctx.font='800 '+Math.round(44+Math.min(16,s.combo/12))+'px system-ui,sans-serif';ctx.fillStyle='rgba(255,77,120,0.92)';ctx.fillText(String(s.combo),W/2,b.top+60);ctx.font='700 10px system-ui,sans-serif';ctx.fillStyle='rgba(255,77,120,0.7)';ctx.fillText(spaced('COMBO'),W/2,b.top+76)}
    const wd=word.current
-   if(wd&&t-wd.t<500){const k=(t-wd.t)/500;ctx.globalAlpha=1-k;ctx.font='800 '+Math.round(18+(1-Math.min(1,k*4))*4)+'px system-ui,sans-serif';ctx.fillStyle=wd.j==='perfect'?'#e09a00':wd.j==='great'?'#2aa7d8':wd.j==='good'?'#4caf50':'#ff4d6a';ctx.fillText(spaced(WORD[wd.j].toUpperCase()),W/2,b.top+104)
-    if(wd.off!==undefined&&wd.j!=='miss'&&wd.j!=='perfect'){ctx.font='700 10px system-ui,sans-serif';ctx.fillStyle=wd.off<0?'#3d7fd0':'#d0663d';ctx.fillText(spaced(wd.off<0?'EARLY':'LATE'),W/2,b.top+120)}
+   // The word for the last hit, big and glowing just above the line (where your eyes are), popping in.
+   if(wd&&t-wd.t<550){const k=(t-wd.t)/550,pop=1+Math.max(0,0.35-k*2.2),size=Math.round(Math.min(46,bw/7)*pop),y=b.hitY-(b.hitY-b.top)*0.26
+    const col=wd.j==='perfect'?['#fff6a8','#ffb300']:wd.j==='great'?['#c9f1ff','#2aa7d8']:wd.j==='good'?['#d6ffcf','#43b047']:['#ffd0d8','#ff3d63']
+    ctx.globalAlpha=k<0.7?1:(1-k)/0.3;ctx.font='900 italic '+size+'px system-ui,sans-serif'
+    const wg=ctx.createLinearGradient(0,y-size,0,y);wg.addColorStop(0,col[0]);wg.addColorStop(1,col[1])
+    ctx.save();ctx.shadowColor=col[1];ctx.shadowBlur=18;ctx.lineWidth=5;ctx.strokeStyle='rgba(30,16,60,0.85)';ctx.strokeText(WORD[wd.j].toUpperCase(),W/2,y);ctx.fillStyle=wg;ctx.fillText(WORD[wd.j].toUpperCase(),W/2,y);ctx.restore()
+    if(wd.off!==undefined&&wd.j!=='miss'&&wd.j!=='perfect'){ctx.font='800 12px system-ui,sans-serif';ctx.fillStyle=wd.off<0?'#8fc2ff':'#ffb08f';ctx.fillText(spaced(wd.off<0?'EARLY':'LATE'),W/2,y+18)}
     ctx.globalAlpha=1}
    // Top: the song and level on the left; the score, with the gauge under it, on the right; the song's
    // progress along the very top.

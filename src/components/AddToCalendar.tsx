@@ -8,8 +8,8 @@ export type AddChoice={id:AddChoiceId;icon:string;title:string;note:string;rende
  * holds which importer. */
 export default function AddToCalendar({choices,choice,setChoice,close}:{choices:AddChoice[];choice:AddChoiceId|null;setChoice:(id:AddChoiceId|null)=>void;close:()=>void}){
  const open=choices.find(c=>c.id===choice)
- return <section className="wb-panel add-to-calendar" aria-label="Add to my calendar">
-  <div className="wb-section-head"><div><small>PLANNER</small><h2>{open?open.icon+' '+open.title:'Add to my calendar'}</h2></div>
+ return <section className="wb-panel add-to-calendar" aria-label="Add a schedule">
+  <div className="wb-section-head"><div><small>PLANNER</small><h2>{open?open.icon+' '+open.title:'Add a schedule'}</h2></div>
    <div className="wb-toolbar">{open&&<button type="button" onClick={()=>setChoice(null)}>← Other options</button>}<button type="button" onClick={close}>Done</button></div></div>
   {open?<div className="add-to-calendar-tool">{open.render()}</div>:<>
    <p>What do you have? Pick one and KONO walks you through it. Everything you add shows up in your Planner.</p>

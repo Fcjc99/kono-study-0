@@ -7,4 +7,9 @@ for(const input of ['<img src=x onerror=alert(1)>','<script>alert(1)</script>','
 assert.equal(render('<b>Bold</b> and <i>italic</i>'),'<b>Bold</b> and <i>italic</i>');
 assert(render('<mark style="background:#fff39d">Safe</mark>').includes('background:#fff39d'));
 assert(render('<b>'.repeat(1000)+'Text'+'</b>'.repeat(1000)).includes('Text'));
-console.log('PASS note/exam formatting renders as escaped text or allowed React elements; executable markup is never inserted.');
+// Markdown-style bold and italic read as bold and italic; a lone star (2 * 3, a list bullet) stays a star.
+assert.equal(render('**Prophase** then *metaphase*'),'<b>Prophase</b> then <i>metaphase</i>');
+assert.equal(render('2 * 3 = 6'),'2 * 3 = 6');
+assert.equal(render('* buy milk'),'* buy milk');
+assert(!/<script/i.test(render('**<script>x</script>**')));
+console.log('PASS note/exam formatting renders as escaped text or allowed React elements; executable markup is never inserted; **bold** and *italic* work.');

@@ -59,12 +59,12 @@ async function settingsTab(page,name){
  await tab.click()
  await page.waitForFunction(n=>[...document.querySelectorAll('nav[aria-label="Settings sections"] button')].some(el=>el.textContent===n&&el.getAttribute('aria-current')==='page'),name)
 }
-/** Planner › ＋ Add to my calendar, then one of its choices. */
+/** Planner › ＋ Add a schedule, then one of its choices. */
 async function addToCalendar(page,choice){
  await go(page,'Planner')
- await page.getByRole('button',{name:'＋ Add to my calendar'}).click()
+ await page.getByRole('button',{name:'＋ Add a schedule'}).click()
  await page.getByRole('group',{name:'What do you have?'}).getByRole('button',{name:new RegExp('^'+choice.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'))}).click()
- await page.getByRole('region',{name:'Add to my calendar'}).getByRole('heading',{name:new RegExp(choice.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$')}).waitFor()
+ await page.getByRole('region',{name:'Add a schedule'}).getByRole('heading',{name:new RegExp(choice.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$')}).waitFor()
 }
 async function addFromMenu(page,type,title,extra){
  await page.getByRole('button',{name:'＋ Add',exact:true}).click()
@@ -185,11 +185,11 @@ test('a study note can be moved to Trash and restored',async({page})=>{
  await page.getByText('Mitochondria facts (e2e)').first().waitFor()
 })
 
-test('Planner › ＋ Add to my calendar: one place to start, each choice opens its tool, and Settings points there',async({page})=>{
+test('Planner › ＋ Add a schedule: one place to start, each choice opens its tool, and Settings points there',async({page})=>{
  await createPlan(page)
  await go(page,'Planner')
- await page.getByRole('button',{name:'＋ Add to my calendar'}).click()
- const hub=page.getByRole('region',{name:'Add to my calendar'}),choices=hub.getByRole('group',{name:'What do you have?'})
+ await page.getByRole('button',{name:'＋ Add a schedule'}).click()
+ const hub=page.getByRole('region',{name:'Add a schedule'}),choices=hub.getByRole('group',{name:'What do you have?'})
  assert.equal(await choices.getByRole('button').count(),8)
  const opens={'My school schedule':'School calendar & rotation','My college classes':'College semester','A calendar link':'Or paste a calendar link','Photos or screenshots':null,'A PDF of dates':'Choose a PDF','A weekly activity':null,'My work schedule':'Add my shifts','A sports season':null}
  for(const [choice,expect] of Object.entries(opens)){
@@ -206,7 +206,7 @@ test('Planner › ＋ Add to my calendar: one place to start, each choice opens 
  // Import & export points to the hub instead of repeating the importers.
  await go(page,'Settings');await settingsTab(page,'Import & export')
  assert.equal(await page.getByText('Import from Google Calendar, Apple Calendar, Canvas or Classroom').count(),0)
- await page.locator('.add-moved').getByRole('button',{name:'＋ Add to my calendar'}).click()
+ await page.locator('.add-moved').getByRole('button',{name:'＋ Add a schedule'}).click()
  await heading(page,'Planner');await hub.waitFor()
 })
 
@@ -627,7 +627,7 @@ test('phone-sized screens have no sideways scrolling on the main pages',async({c
  }finally{await phone.context.close()}
 })
 
-test('iPhone SE: no sideways scrolling, no zoom-on-tap inputs, a one-line save box, and three days in Week',async({context,page})=>{
+test('iPhone SE: no sideways scrolling, no zoom-on-tap inputs, a one-line save box, and the whole week in Week',async({context,page})=>{
  await context.close()
  const phone=await freshPage({viewport:{width:375,height:667},isMobile:true,hasTouch:true})
  try{
@@ -650,13 +650,13 @@ test('iPhone SE: no sideways scrolling, no zoom-on-tap inputs, a one-line save b
    assert.ok(found.over<=1,`${name} scrolls sideways by ${found.over}px on an iPhone SE`)
    assert.deepEqual(found.small,[],`${name} has inputs under 16px, so iOS zooms in when they're tapped`)
   }
-  // Week shows three days from the selected one, and the arrows move by three.
+  // Week shows the whole week, fitting the phone, and the arrows move by a week.
   await go(p,'Planner')
-  assert.equal(await p.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'3 days'}).getAttribute('aria-pressed'),'true')
+  assert.equal(await p.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Week',exact:true}).getAttribute('aria-pressed'),'true')
   const week=p.getByRole('region',{name:'Week'})
-  assert.equal(await week.locator('.week-grid-head button').count(),3)
+  assert.equal(await week.locator('.week-grid-head button').count(),7)
   const first=await week.locator('.week-grid-head button').first().getAttribute('aria-label')
-  await p.getByRole('button',{name:'Next days'}).click()
+  await p.getByRole('button',{name:'Next week'}).click()
   assert.notEqual(await week.locator('.week-grid-head button').first().getAttribute('aria-label'),first)
   assert.deepEqual(phone.errors,[])
  }finally{await phone.context.close()}
@@ -1310,9 +1310,9 @@ test('Getting started: a new plan shows a Set up KONO chip that opens three step
  const allSteps=async()=>{if(!await card.isVisible())await page.getByRole('button',{name:/^Set up KONO · \d\/3$/}).click();await card.getByRole('heading',{name:'Set up KONO in a few minutes'}).waitFor()}
  await allSteps()
  await card.getByText('0 of 3 done').waitFor()
- // Add my school opens Add to my calendar at the school setup.
+ // Add my school opens Add a schedule at the school setup.
  await card.getByRole('button',{name:'Add my school',exact:true}).click()
- await page.getByRole('region',{name:'Add to my calendar'}).getByRole('heading',{name:/My school schedule/}).waitFor()
+ await page.getByRole('region',{name:'Add a schedule'}).getByRole('heading',{name:/My school schedule/}).waitFor()
  await go(page,'Sanctuary')
  await allSteps()
  await card.getByRole('button',{name:'Skip: Add your school or classes'}).click()
@@ -2008,8 +2008,8 @@ test('School setup guide: find the school, answer the grade, save, and land on t
  await page.getByRole('heading',{name:'Check your classes'}).waitFor()
  await page.getByRole('button',{name:'Save to my calendar'}).click()
  // Saved: the guide closes and the Planner is showing.
- await page.getByRole('region',{name:'Add to my calendar'}).waitFor({state:'detached'})
- await page.getByRole('button',{name:'＋ Add to my calendar'}).waitFor()
+ await page.getByRole('region',{name:'Add a schedule'}).waitFor({state:'detached'})
+ await page.getByRole('button',{name:'＋ Add a schedule'}).waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.studySeasons?.some(x=>x.school?.name==='Duxbury Public Schools'&&x.school.grade==='3'),'the school reaches the account')
  // My schedules opens the full editor, with the grade in step 1 and no college fields.
  await plannerMenu(page,'My schedules')
@@ -2203,7 +2203,7 @@ test('Duxbury Middle School: the school’s 14-day Rotation of Periods (1a–7b,
  if(process.env.KONO_SHOTS){await mine.screenshot({path:process.env.KONO_SHOTS+'/dms-periods.png'})}
  await mine.getByRole('button',{name:'Build all 14 days'}).click()
  await page.getByRole('button',{name:'Save to my calendar'}).click()
- await page.getByRole('region',{name:'Add to my calendar'}).waitFor({state:'detached'})
+ await page.getByRole('region',{name:'Add a schedule'}).waitFor({state:'detached'})
  await waitFor(()=>{const s=cloud.users.alice.plan.data.studySeasons?.find(x=>x.school?.name==='Duxbury Middle School');return s&&Object.values(s.week).flat().length===14*7},'all 14 days (5 blocks, lunch and ASP) reach the account')
  const saved=cloud.users.alice.plan.data.studySeasons.find(x=>x.school?.name==='Duxbury Middle School')
  assert.equal(saved.week['Day 1'].map(b=>b.start+' '+b.label).join(' | '),'08:20 602-01 · Literacy/Writing | 09:23 690-01 · Physical Education/Health 6 | 10:26 630-02 · Science 6 | 11:29 610-03 · Geography and Ancient Civilizations I | 12:00 Lunch 2 | 13:02 ASP6-01 · Academic Support Period Gr. 6 | 13:46 621-01 · MATH 6')
@@ -2273,7 +2273,7 @@ test('Rotating school: Duxbury High’s 7 classes rotate through 5 blocks; KONO�
  assert.equal(await built.getByRole('row',{name:/^Day 2/}).getByRole('cell').last().innerText(),'English 10','ASP goes with the Period 5 class')
  assert.match(await built.locator('thead').innerText(),/Period 1\s+8:20 AM/)
  await page.getByRole('button',{name:'Save to my calendar'}).click()
- await page.getByRole('region',{name:'Add to my calendar'}).waitFor({state:'detached'})
+ await page.getByRole('region',{name:'Add a schedule'}).waitFor({state:'detached'})
  await waitFor(()=>{const s=cloud.users.alice.plan.data.studySeasons?.find(x=>x.school?.name==='Duxbury High School');return s&&Object.values(s.week).flat().length===49},'all 7 days (5 blocks, lunch, ASP) reach the account')
  // Second semester, from My schedules: US History II becomes Economics on every day it meets, lunch included.
  await plannerMenu(page,'My schedules')
@@ -2979,7 +2979,7 @@ test('My work schedule: weekly shifts go on the calendar from the Planner’s �
  await setup.getByRole('status').filter({hasText:'Your shifts are on the calendar'}).waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.studySeasons.some(s=>s.profileId===pid&&s.name==='Cafe · work'&&s.week.Tuesday?.[0]?.start==='16:00'&&s.week.Thursday?.[0]?.end==='20:00'&&s.week.Tuesday[0].kind==='routine'),'the shifts never reached the account')
  await setup.getByRole('list',{name:'Your work shifts'}).getByText('Cafe').waitFor()
- await page.getByRole('region',{name:'Add to my calendar'}).getByRole('button',{name:'Done'}).click()
+ await page.getByRole('region',{name:'Add a schedule'}).getByRole('button',{name:'Done'}).click()
  // Tuesday's calendar shows the shift.
  await page.locator('.wb-week-grid, .week-grid, [class*=week]').filter({hasText:'Cafe'}).first().waitFor()
  // Remove it again.
@@ -3839,14 +3839,16 @@ test('Wall mode at night: ?wall asks for a tap to start (keeping the screen on),
  await context.close()
 })
 
-test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone a swipe goes to the next days and the whole week scrolls sideways',async({context,page})=>{
+test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone a swipe goes to the next days and the whole week fits the screen',async({context,page})=>{
  const cloud=fakeCloud()
  await page.setViewportSize({width:390,height:844})
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  await go(page,'Planner')
  const days=page.getByRole('group',{name:'Calendar view'}),week=page.getByRole('region',{name:'Week'})
- assert.equal(await days.getByRole('button',{name:'3 days'}).getAttribute('aria-pressed'),'true','phones start at 3')
+ assert.equal(await days.getByRole('button',{name:'Week',exact:true}).getAttribute('aria-pressed'),'true','phones start on the whole week')
+ assert.equal(await week.locator('.week-grid-head button').count(),7)
+ await days.getByRole('button',{name:'3 days'}).click()
  assert.equal(await week.locator('.week-grid-head button').count(),3)
  await days.getByRole('button',{name:'Day',exact:true}).click()
  assert.equal(await week.locator('.week-grid-head button').count(),1)
@@ -3860,8 +3862,14 @@ test('Planner days: 1 day, 3 days or the whole week, remembered; on a phone a sw
  await page.waitForFunction(b=>document.querySelector('.week-grid-head button')?.getAttribute('aria-label')===b,before)
  await days.getByRole('button',{name:'Week',exact:true}).click()
  assert.equal(await week.locator('.week-grid-head button').count(),7)
- const scroller=page.locator('.week-grid-scroll.is-wide')
- assert.ok(await scroller.evaluate(e=>e.scrollWidth>e.clientWidth+50),'the week is wider than the phone and scrolls sideways')
+ const scroller=page.locator('.week-grid-scroll.is-fit')
+ assert.ok(await scroller.evaluate(e=>e.scrollWidth<=e.clientWidth+1),'all seven days fit the phone, with no sideways scrolling')
+ // A swipe on the whole week goes to the next week.
+ const weekOf=()=>week.locator('.week-grid-head button').first().getAttribute('aria-label'),thisWeek=await weekOf()
+ await swipe(-120)
+ await page.waitForFunction(b=>document.querySelector('.week-grid-head button')?.getAttribute('aria-label')!==b,thisWeek)
+ await swipe(120)
+ await page.waitForFunction(b=>document.querySelector('.week-grid-head button')?.getAttribute('aria-label')===b,thisWeek)
  await page.reload();await heading(page,'Planner')
  assert.equal(await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Week',exact:true}).getAttribute('aria-pressed'),'true','remembered on this device')
 })
@@ -4465,8 +4473,9 @@ test('KONO Beat plays the whole song: on Jeff tier, missing everything empties t
  await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>30000,null,{timeout:60000})
  assert.equal(await beat.getByRole('region',{name:'Results'}).count(),0,'still playing')
  assert.ok(await page.evaluate(()=>{const ms=Number(document.querySelector('.beat-canvas').dataset.ms);return new Promise(r=>setTimeout(()=>r(Number(document.querySelector('.beat-canvas').dataset.ms)>ms),500))}),'the song clock keeps running')
+ // Ending before the song is over says so (not "failed"), with no grade.
  await beat.getByRole('button',{name:'■ End'}).click()
- await beat.getByRole('region',{name:'Results'}).getByRole('heading',{name:'Song failed'}).waitFor()
+ await beat.getByRole('region',{name:'Results'}).getByRole('heading',{name:'Ended early'}).waitFor()
 })
 
 test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with results), KONO.io (the map, a live leaderboard, steering, ■ End gives your share; team battle: Blue against Red on a clock) and Meowdoku’s Undo, Hint and Auto ✕',async({context,page})=>{

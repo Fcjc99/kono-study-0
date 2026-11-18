@@ -77,3 +77,5 @@
 .beat-warmup{margin-top:8px;min-height:44px;width:100%;border-radius:14px;font-weight:700;background:transparent;border:1px dashed currentColor;opacity:.85}
 /* Said once on a device whose old Timing was dropped (see store/rhythm OFFSET_KEY). */
 .beat-reset{margin:6px 0 0;padding:8px 12px;border-radius:12px;background:#fff7d6;color:#5a4300;font-size:.82rem;line-height:1.35}
+/* Phones: ▶ Play stays at the bottom of the screen while you scroll the songs and settings. */
+@media(max-width:759px){.beat-pick .beat-play:not(#x){position:sticky;bottom:calc(env(safe-area-inset-bottom) + 10px);z-index:3;box-shadow:0 10px 26px rgba(40,30,110,.35)!important}}

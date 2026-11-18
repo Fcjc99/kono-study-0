@@ -1,0 +1,9 @@
+/* The add/edit form (EntryEditor). Loaded with it. */
+/* Phones: the event types sit on one row you can swipe, instead of three rows of chips. */
+@media (max-width:700px){
+ .wb-dialog .event-kind-chips:not(#x){flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-4px;padding:2px 4px 4px;scroll-snap-type:x proximity}
+ .wb-dialog .event-kind-chips:not(#x)::-webkit-scrollbar{display:none}
+ .wb-dialog .event-kind-chips:not(#x) button{flex:none;scroll-snap-align:start}
+}
+.editor-more>summary{padding:12px 0;font-weight:700;cursor:pointer}
+.editor-more[open]>summary{margin-bottom:4px}

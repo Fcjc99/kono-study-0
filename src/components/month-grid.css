@@ -92,3 +92,21 @@
 :root #workspace-main .calendar-hero-date .calendar-leaf i:not(#x):not(#y){align-self:center;font:900 1.6rem/1 system-ui,-apple-system,sans-serif!important;color:var(--wb-ink,#3a2b33)}
 .calendar-hero-date>small{align-self:end}.calendar-hero-date>h2{align-self:start}
 :root[data-experience=cozy] .workbench .calendar-views:not(#x) button[aria-pressed=true]:not(#x):not(#y):not(#z){background:linear-gradient(145deg,#9a7fe0,#7a5cc0)!important;color:#fff!important;box-shadow:0 3px 8px rgb(122 92 192/.4)!important}
+/* Phones: the "show" chips scroll along one line, with the people row under them (the people were cut off). */
+@media (max-width:700px){
+ .workbench .planner-filters:not(#x){display:flex;flex-direction:column;align-items:stretch;gap:6px;margin-bottom:8px}
+ .workbench .planner-filters:not(#x)>*{min-width:0;overflow-x:auto;scrollbar-width:none}
+ .workbench .planner-source-chips:not(#x),.workbench .people-filter:not(#x){flex-wrap:nowrap}
+ .workbench .planner-source-chips:not(#x)>*,.workbench .people-filter:not(#x)>*{flex:none}
+}
+/* Planner › Schedule: each item is one compact row (time, then who and what, then ⋯), not a tall card
+   with empty space under it. */
+.workbench .wb-agenda-upcoming .wb-family-event:not(#x){display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:8px;min-height:0!important;padding:10px 12px!important}
+.workbench .wb-agenda-upcoming .wb-family-event:not(#x) .wb-family-event-main{flex:1;min-width:0;display:flex!important;flex-wrap:nowrap!important;align-items:center;gap:12px}
+.workbench .wb-agenda-upcoming .wb-family-event:not(#x) .wb-family-event-time{flex:none!important;display:grid!important;gap:1px!important;min-width:64px;font-weight:800;font-size:.86rem;line-height:1.2}
+.workbench .wb-agenda-upcoming .wb-family-event:not(#x) .wb-family-event-end{font-weight:500;font-size:.78rem;opacity:.75}
+.workbench .wb-agenda-upcoming .wb-family-event:not(#x) .wb-family-event-info{flex:1 1 auto!important;order:0!important;min-width:0}
+.workbench .wb-agenda-upcoming .wb-family-event:not(#x) h3{margin:2px 0 0!important;font-size:1rem!important}
+.workbench .wb-agenda-upcoming .wb-family-event:not(#x)>.wb-toolbar{flex:none;margin:0!important;padding:0!important;border:0!important}
+.workbench .wb-agenda-day-wrap .wb-agenda-add:not(#x):not(#y){min-height:34px!important;padding:0 12px!important;font-size:.85rem!important;align-self:center}
+.workbench .wb-agenda-day>summary h3:not(#x){display:flex;flex-wrap:wrap;align-items:baseline;gap:0 4px}
