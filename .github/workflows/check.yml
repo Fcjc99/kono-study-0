@@ -26,4 +26,7 @@ jobs:
           name: e2e-screenshots
           path: test-results/e2e
           if-no-files-found: ignore
-      - run: npm audit --audit-level=moderate
+      # What ships in the app must be clean. Build-only tools (vite, eslint) are still audited and
+      # reported as a warning, but don't block: an advisory there can come out before any fix exists.
+      - run: npm audit --omit=dev --audit-level=moderate
+      - run: npm audit --audit-level=moderate || echo "::warning::npm audit found issues in build-only tools (see above); the app's own packages are clean"
