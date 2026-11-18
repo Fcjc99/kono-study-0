@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react'
-import {click,heardNow} from '../game/audioClock'
+import {click,heardNow,inputLag} from '../game/audioClock'
 
 const BEAT=0.6,COUNT=16,WARMUP=4
 /** KONO Beat's Sync check, as rhythm games do it: a steady click, and you tap along (anywhere on the pad, or
@@ -25,20 +25,20 @@ export default function BeatSync({onDone,onClose}:{onDone:(ms:number)=>void;onCl
   if(pad.current)Object.assign(pad.current,{syncInfo:{clicks:clicks.current,now:()=>heardNow(ctx)}})
   window.setTimeout(()=>finishRef.current(),(t0-ctx.currentTime+COUNT*BEAT+0.4)*1000)
  }
- const tap=()=>{
+ const tap=(lag=0)=>{
   const ctx=ctxRef.current;if(phase!=='tapping'||!ctx)return
-  const now=heardNow(ctx),near=clicks.current.reduce((b,c)=>Math.abs(c-now)<Math.abs(b-now)?c:b,clicks.current[0])
+  const now=heardNow(ctx)-lag/1000,near=clicks.current.reduce((b,c)=>Math.abs(c-now)<Math.abs(b-now)?c:b,clicks.current[0])
   const i=clicks.current.indexOf(near)
   if(i>=WARMUP&&Math.abs(now-near)<BEAT*0.4)offs.current.push(now-near)
   setTaps(n=>n+1)
  }
- useEffect(()=>{if(phase!=='tapping')return;const k=(e:KeyboardEvent)=>{if(!e.repeat){e.preventDefault();tap()}};window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k)})
+ useEffect(()=>{if(phase!=='tapping')return;const k=(e:KeyboardEvent)=>{if(!e.repeat){e.preventDefault();tap(inputLag(e))}};window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k)})
  return <section className="beat-sync" aria-label="Sync check">
   <h3>Sync check</h3>
   {phase==='ready'&&<p>Use the speakers or headphones you play with. You’ll hear a steady click: tap along with it ({COUNT} clicks). KONO sets Timing to match this device.</p>}
   {phase==='tapping'&&<p role="status">Tap on every click… {taps}</p>}
   {phase==='done'&&<p role="status">{result===null?'Not enough taps landed on the clicks. Try again?':result===0?'Right on time: Timing stays at 0 ms.':`You hear the music ${Math.abs(result)} ms ${result>0?'late':'early'} on this device: Timing is now ${result>0?'+':''}${result} ms.`}</p>}
-  <button ref={pad} type="button" className="beat-sync-pad" aria-label={phase==='tapping'?'Tap on the click':'Start the sync check'} onPointerDown={e=>{if(phase==='tapping'){e.preventDefault();tap()}}} onClick={()=>{if(phase!=='tapping')void start()}}>{phase==='tapping'?'Tap':phase==='done'?'Again':'Start'}</button>
+  <button ref={pad} type="button" className="beat-sync-pad" aria-label={phase==='tapping'?'Tap on the click':'Start the sync check'} onPointerDown={e=>{if(phase==='tapping'){e.preventDefault();tap(inputLag(e))}}} onClick={()=>{if(phase!=='tapping')void start()}}>{phase==='tapping'?'Tap':phase==='done'?'Again':'Start'}</button>
   <button type="button" className="beat-sync-close" onClick={onClose}>Done</button>
  </section>
 }
