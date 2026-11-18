@@ -467,7 +467,7 @@ test('opening: KONO’s animation shows until Home is ready, a different one eac
 test('Home: the island tucks into a slim bar (remembered on this device) and one tap brings it back',async({context,page})=>{
  const cloud=fakeCloud();await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
- await page.getByRole('button',{name:'Minimize the island'}).click()
+ await islandMenu(page);await page.getByRole('button',{name:'Minimize the island'}).click()
  const bar=page.getByRole('region',{name:'Your island (tucked away)'});await bar.waitFor()
  assert.equal(await page.locator('.wb-island').count(),0)
  await page.reload();await heading(page,'Sanctuary');await bar.waitFor()
@@ -1174,16 +1174,19 @@ test('Sanctuary: the island draws, zooms, expands and changes time; Decorate add
  const stage=await page.locator('.wb-sanctuary-zoom-wrap').boundingBox()
  await page.mouse.move(stage.x+stage.width/2,stage.y+Math.min(stage.height/2,120))
  await page.keyboard.down('Control');await page.mouse.wheel(0,-120);await page.keyboard.up('Control')
- await page.getByRole('button',{name:'Reset zoom'}).click()
+ await islandMenu(page);await page.getByRole('button',{name:'Reset zoom'}).click()
+ await page.locator('.wb-header details:has(>summary[aria-label="More"])').evaluate(e=>{e.open=false})
  await page.getByRole('button',{name:'Reset zoom'}).waitFor({state:'detached'})
+ await page.locator('.wb-sanctuary-zoom-wrap').scrollIntoViewIfNeeded();{const b=await page.locator('.wb-sanctuary-zoom-wrap').boundingBox();await page.mouse.move(b.x+b.width/2,b.y+Math.min(b.height/2,120))}
  await page.keyboard.down('Control');for(let k=0;k<4;k++)await page.mouse.wheel(0,80);await page.keyboard.up('Control')
  const world=page.getByRole('dialog',{name:'World map'})
  await world.waitFor()
  await world.getByRole('button',{name:'Close dialog'}).click()
- await page.locator('.wb-scene-expand').click()
+ await islandMenu(page);await page.locator('.wb-scene-expand').click()
  await page.locator('.wb-island.is-expanded').waitFor()
  await page.locator('.wb-scene-expand').click()
  await page.locator('.wb-island.is-expanded').waitFor({state:'detached'})
+ await islandMenu(page)
  const phase=await page.getByLabel('Sanctuary time').inputValue()
  // A time whose map isn't loaded yet: near dawn or dusk the island has already loaded the next phase's map
  // to blend into, so switching to it wouldn't fetch anything (which made this test depend on the clock).
@@ -1801,6 +1804,8 @@ function weekPlanCloud(){
 // shift as it settles, so keep it in view while waiting for it to finish.
 const islandLoaded=page=>page.waitForFunction(()=>{const island=document.querySelector('.wb-island'),r=island?.getBoundingClientRect();if(island&&(r.bottom<0||r.top>innerHeight))island.scrollIntoView({block:'center'});return island&&!document.querySelector('.sanctuary-load-status')},null,{timeout:30000,polling:250})
 /** KONO's corner: tap KONO's face in the KONO bar; it opens over the page. */
+/** The Sanctuary's island controls (time, photo, tuck away, full screen) live in the top bar's ⋯ menu. */
+const islandMenu=async page=>{const m=page.locator('.wb-header details:has(>summary[aria-label="More"])');if(!(await m.evaluate(e=>e.open)))await m.locator('summary').click()}
 /** The top bar's ⋯ menu (Undo, Redo, voice, Trash) and the Planner's ⋯ menu (Plan my week, …). */
 /** Every game opens on its start card (components/GameScreen): press Start (or Continue, Start level N). */
 // Before a drag measures where things are: no animation still moving the screen (a clear's burst, a cheer, the
@@ -2645,7 +2650,7 @@ test('Halloween island: all of October the island is the Halloween island, with 
  assert.ok(!maps.some(([p])=>/^\/garden\/terrace-23\.0\/(morning|afternoon|evening|night)\.webp$/.test(p)),'not the regular one: '+JSON.stringify(maps))
  if(process.env.KONO_SHOTS){await page.waitForTimeout(3000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/halloween-island-afternoon.png'})}
  maps.length=0
- await page.getByLabel('Sanctuary time').selectOption('night')
+ await islandMenu(page);await page.getByLabel('Sanctuary time').selectOption('night')
  await waitFor(()=>maps.some(([p,st])=>p==='/garden/terrace-23.0/halloween-v2/night.webp'&&st===200),'the Halloween night island never loaded: '+JSON.stringify(maps))
  if(process.env.KONO_SHOTS){await page.waitForTimeout(6000);await page.locator('.sanctuary-viewport').screenshot({path:process.env.KONO_SHOTS+'/halloween-island-night.png'})}
  maps.length=0
