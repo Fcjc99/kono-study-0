@@ -128,6 +128,8 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 
 /* Add sheet: one tap on a tile opens the right editor (dated to the Planner's day when one is picked). */
 .add-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+/* Five kinds: three on top and two wider ones under them, with no empty gap. */
+.add-tiles:has(>:nth-child(5):last-child){grid-template-columns:repeat(6,1fr)}.add-tiles:has(>:nth-child(5):last-child)>*{grid-column:span 2}.add-tiles:has(>:nth-child(5):last-child)>:nth-child(n+4){grid-column:span 3}
 .workbench .add-tiles .add-tile,.wb-dialog .add-tiles .add-tile{display:grid!important;justify-items:center;align-content:center;gap:6px;min-height:84px!important;padding:10px 6px!important;border-radius:16px!important;font-weight:650!important;font-size:.92rem;text-align:center;line-height:1.2}
 .add-tile>span{font-size:1.6rem;line-height:1}
 .add-tiles-date{margin:0;font-size:.85rem}

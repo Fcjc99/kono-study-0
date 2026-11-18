@@ -1,3 +1,4 @@
+import './kquiz.css'
 import { useEffect, useRef, useState, type FormEvent, type SetStateAction } from 'react'
 import { useDraftState } from '../hooks/useDraftState'
 import { useLectureRecorder } from '../hooks/useLectureRecorder'

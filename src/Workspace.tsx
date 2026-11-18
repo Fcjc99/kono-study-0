@@ -89,7 +89,6 @@ const TourPlaceholder=()=><section className="wb-panel welcome-tour is-loading" 
 const Onboarding=lazy(()=>import('./components/Welcome').then(m=>({default:m.Onboarding}))),RecoveryScreen=lazy(()=>import('./components/Welcome').then(m=>({default:m.RecoveryScreen})))
 import './components/StudyPlanner.css'
 import './day-agenda.css'
-import './components/kquiz.css'
 // The search panel groups plan items under these headings.
 const SEARCH_GROUP:Partial<Record<Collection,string>>={tasks:'Assignments',exams:'Exams',calendarEvents:'Events',notes:'Notes',subjects:'Subjects',kids:'Kids'}
 const FamilyHub=lazyPanel(()=>import('./components/FamilyHub'))
