@@ -131,6 +131,7 @@ button{cursor:pointer}
 @media(max-width:900px){.theme-choice-grid,.theme-assurance{grid-template-columns:1fr}}
 .command-palette{width:min(680px,calc(100vw - 32px));background:var(--wb-surface,var(--surface));border:1px solid var(--wb-line,var(--line));border-radius:22px;box-shadow:0 32px 90px rgba(25,25,35,.28);overflow:hidden}
 .command-input{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--wb-line,var(--line))}
+.command-input-icon{flex:none;color:var(--wb-muted,var(--muted))}
 .command-input input{border:0;outline:0;background:transparent;color:var(--wb-ink,var(--ink));font:inherit;font-size:17px;flex:1}
 .command-input kbd{font:11px/1 system-ui;background:color-mix(in srgb,var(--wb-ink,var(--ink)) 8%,var(--wb-surface,var(--surface)));padding:7px 9px;border-radius:8px;color:var(--wb-muted,var(--muted))}
 .command-results{padding:8px;max-height:420px;overflow:auto}
