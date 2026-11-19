@@ -12,11 +12,13 @@ const test=(name,fn)=>{fn();passed++;console.log('PASS '+name)}
 const R=load('src/store/rhythm.ts')
 const charts=JSON.parse(fs.readFileSync(path.join(root,'src/game/data/rhythmCharts.json'),'utf8')).songs
 
-test('every chart note carries its melody pitch (MIDI E3-E6), taps and long tiles alike',()=>{
+const SUNG=['beijing-delai','casa-fantasma','peanut-butter-delai']
+test('every chart note carries its pitch (MIDI E3-E6), taps and long tiles alike; only a sung song has notes with none (0: a rapped word or a beat between lines, which plays a tick)',()=>{
  for(const s of charts)for(const [lv,c] of Object.entries(s.charts)){
-  const p=R.playOf(c,s.bpm)
+  const p=R.playOf(c,s.bpm),sung=SUNG.includes(s.id)
   assert.ok(p.notes.length>20,s.id+' '+lv)
-  for(const n of p.notes)assert.ok(Number.isInteger(n.midi)&&n.midi>=52&&n.midi<=88,s.id+' '+lv+' '+JSON.stringify(n))
+  for(const n of p.notes)assert.ok(Number.isInteger(n.midi)&&(n.midi>=52&&n.midi<=88||sung&&n.midi===0),s.id+' '+lv+' '+JSON.stringify(n))
+  if(sung)assert.ok(p.notes.some(n=>n.midi>0)&&p.notes.some(n=>n.midi===0),s.id+' '+lv+': sung notes and ticks both')
   assert.ok(p.notes.every((n,i)=>!i||p.notes[i-1].t<=n.t),'in time order')
  }
 })

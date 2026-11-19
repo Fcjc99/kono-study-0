@@ -24,7 +24,8 @@ export const judge=(offMs:number,level:Level):Judge=>{const a=Math.abs(offMs),[p
 export const approachFor=(speed:number)=>Math.round(9000/(speed+1))
 
 // The chart as stored: tap [ms,lane,midi]; hold [ms,lane,endMs,midi]; sky [ms,x 0-100]; ribbon piece
-// [ms,endMs,x0,x1,hand]. midi is the melody's pitch there.
+// [ms,endMs,x0,x1,hand]. midi is the melody's pitch there (0: no note, in a sung song where the voice holds
+// none or nobody sings; a hit there plays a tick).
 export type Chart={tap:number[][];hold:number[][];sky:number[][];ribbon:number[][]}
 /** A note to hit: floor (lane 0-3, `end` for a hold) or sky (x across the track, 0-1); `midi` is the melody's
  * pitch there (the note a tap plays). */

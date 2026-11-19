@@ -8,8 +8,8 @@ of those at least 0.42 s apart. A note that rings on is a long tile. Columns fol
 the right, lower to the left, a repeated note in the same column.
 A song with singing goes by its sung syllables instead (tools/vocals.py: the voice separated from the mix with
 Demucs, then each syllable's onset and sung pitch), charted the same way (chart_lead), with the beat filling
-where nobody sings. Its tap notes play the sung pitch, or a soft tick when the pitches found don't sit in the
-song's key. Needs ffmpeg and numpy (and torch + demucs for the sung songs). Writes src/game/data/rhythmCharts.json.
+where nobody sings. A hit plays the note being sung there, or a soft tick (pitch 0) where the voice holds no
+clear note or nobody sings. Needs ffmpeg and numpy (and torch + demucs for the sung songs). Writes src/game/data/rhythmCharts.json.
   python3 tools/make_rhythm_charts.py"""
 import json, subprocess, sys, os, numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
@@ -205,7 +205,7 @@ def chart_beat(onset, times, cent, beats, dur, swing, notes):
         charts[level] = {'tap': tap, 'hold': hold, 'sky': [], 'ribbon': []}
     return charts
 
-def chart_lead(beats, dur, swing, notes, beat_charts):
+def chart_lead(beats, dur, swing, notes, beat_charts, rest=2):
     """All three levels on the lead: a tile wherever the lead melody plays a note, held to the song's grid so
     it stays in tempo. Players found tiles on the drum beat felt off from the tune they were following, and
     tiles on every melody note (chart_melody) too hard; this sits between. Easy: lead notes on a beat or the
@@ -244,11 +244,11 @@ def chart_lead(beats, dur, swing, notes, beat_charts):
     for level, (pool, gap, bonus) in rules.items():
         ns = pick(pool, gap, bonus)
         lead_t = np.array([n[0] for n in ns]) if ns else np.zeros(0)
-        # Fill the lead's rests from the beat chart: a beat tile with no lead tile within two beats either side.
+        # Fill the lead's rests from the beat chart: a beat tile with no lead tile within `rest` beats either side.
         fill = []
         for row in beat_charts[level]['tap'] + beat_charts[level]['hold']:
             t = row[0] / 1000
-            if not len(lead_t) or np.min(abs(lead_t - t)) > 2 * ibi - 0.02: fill.append((t, t, row[-1], 0.0, -2))
+            if not len(lead_t) or np.min(abs(lead_t - t)) > rest * ibi - 0.02: fill.append((t, t, row[-1], 0.0, -2))
         ns = sorted(ns + fill)
         # Keep the level's spacing after the fill, too.
         kept = []
@@ -293,28 +293,44 @@ def main():
             if abs(shift) < 0.002: break
             beats = beats + shift
         on_beat = chart_beat(onset, times, cent, beats, dur, swing, notes)
-        tick = False
         if sung:
             # The sung syllables, from the voice on its own (tools/vocals.py: needs torch and demucs).
             import vocals
-            sung_notes = vocals.syllables(vocals.stem(path, load))
+            voice = vocals.stem(path, load)
+            sung_notes = vocals.syllables(voice)
             # A syllable's onset as measured (the rise into its vowel) sits a little after the grid step it's sung
             # on (about 20 ms in these songs): take that out, so it snaps to its step.
             grid = np.sort(np.concatenate([beats[:-1] + (beats[1:] - beats[:-1]) * k / 4 for k in range(4)]))
             st = np.array([n[0] for n in sung_notes]); j = np.clip(np.searchsorted(grid, st), 1, len(grid) - 1)
             off = st - np.where(abs(grid[j] - st) < abs(grid[j - 1] - st), grid[j], grid[j - 1])
             lag = float(np.median(off[abs(off) < 0.05]))
-            sung_notes = [(a - lag, b - lag, m, w) for a, b, m, w in sung_notes]
-            charts = chart_lead(beats, dur, swing, sung_notes, on_beat)
-            # The tap notes play the sung pitch when the pitches found sit in the song's key; else a soft tick.
-            share, _ = vocals.in_key([n[2] for n in sung_notes], [n[1] - n[0] for n in sung_notes])
-            tick = share < 0.85
-            print(f'{file:7s} sung syllables {len(sung_notes)} (voice {lag * 1000:+.0f} ms off the grid), in key {share:.0%}')
+            st = st - lag
+            # Only syllables you clearly hear land (the song or the voice hits right there, on the grid step they
+            # snap to); one sung softly between the hits makes a tile that feels off the beat.
+            mix_r, voice_r = vocals.rise(x), vocals.rise(voice)
+            jj = np.clip(np.searchsorted(grid, st), 1, len(grid) - 1)
+            snap = np.where(abs(grid[jj] - st) < abs(grid[jj - 1] - st), grid[jj], grid[jj - 1])
+            at = np.where(abs(snap - st) <= 0.035, snap, st)
+            keep = [vocals.heard(a, mix_r, voice_r) or vocals.heard(a + lag, mix_r, voice_r) for a in at]
+            sung_notes = [n for n, k in zip(sung_notes, keep) if k]; st = st[np.array(keep)]
+            # Where nobody sings for more than two beats the beat fills in, but only on hits the song clearly makes.
+            fills = {lv: {kind: [r for r in c[kind] if vocals.heard(r[0] / 1000, mix_r, mix_r * 0)] if kind in ('tap', 'hold') else c[kind]
+                          for kind in c} for lv, c in on_beat.items()}
+            charts = chart_lead(beats, dur, swing, [(a - lag, b - lag, m, w) for a, b, m, w, _ in sung_notes], fills, rest=1)
+            # What a hit plays: the note the voice is singing on that tile, or (0) the soft tick where it holds no
+            # clear note (a rapped word) or nobody sings (a tile from the beat).
+            for c in charts.values():
+                for row in c['tap'] + c['hold']:
+                    k = int(np.argmin(abs(st - row[0] / 1000)))
+                    row[-1] = sung_notes[k][4] if abs(st[k] - row[0] / 1000) <= 0.036 else 0
+            pitched = [r[-1] for c in charts.values() for r in c['tap'] + c['hold'] if r[-1]]
+            share, _ = vocals.in_key(pitched)
+            print(f'{file:7s} sung syllables {len(keep)}, {len(sung_notes)} clearly heard (voice {lag * 1000:+.0f} ms off the grid), {sum(n[4] > 0 for n in sung_notes)} with a clear sung note; notes in key {share:.0%}')
         else:
             charts = chart_lead(beats, dur, swing, notes, on_beat)
         first = float(beats[0] % (60 / bpm))
         print(f'{file:7s} {dur:.0f}s bpm {bpm:.2f} swing {swing:.2f} melody notes {len(notes)}', {k: (len(v["tap"]), len(v["hold"])) for k, v in charts.items()})
-        songs.append({'id': file, 'title': title, 'bpm': round(float(bpm), 3), 'first': round(first, 3), 'swing': round(swing, 3), 'ms': int(dur * 1000), **({'hit': 'tick'} if tick else {}), 'charts': charts})
+        songs.append({'id': file, 'title': title, 'bpm': round(float(bpm), 3), 'first': round(first, 3), 'swing': round(swing, 3), 'ms': int(dur * 1000), 'charts': charts})
     with open('src/game/data/rhythmCharts.json', 'w') as f:
         json.dump({'songs': songs}, f, separators=(',', ':'))
 

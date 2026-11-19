@@ -7,7 +7,7 @@ import charts from '../game/data/rhythmCharts.json'
 import type {GameHandle} from './GameScreen'
 import './rhythm-game.css'
 
-/** `hit: 'tick'`: a song whose chart pitches can't be trusted (the chart tool sets it when a sung song's pitches don't sit in its key): a hit plays a soft drum tick, not a note that could clash with the voice. */
+/** `hit: 'tick'`: every hit plays a soft drum tick, not a note. A tile with no note (midi 0: in a sung song, a rapped word or a beat between lines) plays the tick too, so a hit never plays a note the singer isn't singing. */
 type Song={id:string;title:string;bpm:number;ms:number;hit?:'tick';charts:Record<Level,Chart>}
 const SONGS=(charts as unknown as {songs:Song[]}).songs
 const FROM:Record<string,string>={candy:'🍬 Sweet swap',gems:'💎 Gem blitz',blast:'🧱 KONO blast','flow-1':'🌌 Flow · Drift','flow-2':'🌌 Flow · Tide','flow-3':'🌌 Flow · Pulse','flow-4':'🌌 Flow · Aurora','flow-5':'🌌 Flow · Zenith','beijing-delai':'🎤 With lyrics','casa-fantasma':'🎤 With lyrics','peanut-butter-delai':'🎤 With lyrics'}
@@ -80,7 +80,7 @@ export default function RhythmGame({ref,onEnd}:{ref:Ref<GameHandle>;onEnd:(r:Bea
   tally.current=count(tally.current,j,level,play.current.total,{off});fx.current.push({x:n.x,sky:n.kind==='sky',t:performance.now(),j});word.current={j,t:performance.now(),off}
   if(j==='perfect')navigator.vibrate?.(6)
   // The tile's own note, so tapping along plays the tune.
-  const a=audio.current;if(keys&&a){if(info.hit==='tick')click(a.ctx,a.ctx.currentTime,{freq:n.lane<2?700:1100,gain:0.2});else if(n.midi)keyNote(a.ctx,a.ctx.currentTime,n.midi,{long:n.kind==='hold'})}
+  const a=audio.current;if(keys&&a){if(info.hit==='tick'||!n.midi)click(a.ctx,a.ctx.currentTime,{freq:n.lane<2?700:1100,gain:0.2});else keyNote(a.ctx,a.ctx.currentTime,n.midi,{long:n.kind==='hold'})}
  }
  // Classic: a wrong or missed tile ends it. The song stops there, the board holds the red tile a moment, then
  // the results.
