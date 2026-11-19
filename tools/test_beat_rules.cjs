@@ -2,9 +2,11 @@
 // and Classic's wrong-column check.
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),ts=require('typescript')
 const root=path.resolve(__dirname,'..')
+// This device's storage for the store (empty at the start; the settings test fills it, then empties it).
+const mem=new Map(),storage={getItem:k=>mem.has(k)?mem.get(k):null,setItem:(k,v)=>mem.set(k,String(v)),removeItem:k=>mem.delete(k)}
 function load(relative){
  const file=path.resolve(root,relative),module={exports:{}}
- vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module,exports:module.exports,require,Math,JSON,localStorage:{getItem:()=>null,setItem(){}}})
+ vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module,exports:module.exports,require,Math,JSON,localStorage:storage})
  return module.exports
 }
 let passed=0
@@ -21,6 +23,16 @@ test('every chart note carries its pitch (MIDI E3-E6), taps and long tiles alike
   if(sung)assert.ok(p.notes.some(n=>n.midi>0)&&p.notes.some(n=>n.midi===0),s.id+' '+lv+': sung notes and ticks both')
   assert.ok(p.notes.every((n,i)=>!i||p.notes[i-1].t<=n.t),'in time order')
  }
+})
+test('a sung song\'s lyrics: lines in time order, each word timed within its line, in order (karaoke)',()=>{
+ const sung=charts.filter(s=>s.lyrics)
+ assert.ok(sung.length>=1,'some song has lyrics')
+ for(const s of sung){let last=-1
+  for(const [start,end,text,words] of s.lyrics){
+   assert.ok(start>=last&&end>start&&end<=s.ms,s.id+' '+text);last=start
+   assert.equal(words.length,text.split(' ').length,s.id+' '+text)
+   assert.ok(words.every((w,i)=>w>=start-1&&w<=end&&(!i||w>=words[i-1])),s.id+' '+text+' '+words)}}
+ assert.ok(charts.filter(s=>!SUNG.includes(s.id)).every(s=>!s.lyrics),'only the sung songs have lyrics')
 })
 test('a long tile keeps its pitch and end',()=>{
  const p=R.playOf({tap:[[1000,0,60]],hold:[[2000,2,3000,67]],sky:[],ribbon:[]},120)
@@ -42,6 +54,16 @@ test('Classic: a tap on the wrong column while a tile waits elsewhere; an empty 
 })
 test('Classic and Tap notes settings: Tap notes on unless turned off, Classic off unless turned on',()=>{
  assert.equal(R.readKeys(),true);assert.equal(R.readClassic(),false)
+})
+test('this device remembers: the last song and level, what a hit plays (from the older Tap notes setting until chosen), and whether the first timing check is done (or a Timing already set)',()=>{
+ const store=mem;store.clear()
+ assert.equal(R.readLast(),null);R.saveLast('beijing-delai','medium');assert.deepEqual(R.readLast(),{song:'beijing-delai',level:'medium'})
+ store.set(R.LAST_KEY,'{"song":"x","level":"hard"}');assert.equal(R.readLast(),null,'an unknown level is ignored')
+ assert.equal(R.readHits(),'notes');store.set(R.KEYS_KEY,'0');assert.equal(R.readHits(),'off','Tap notes off means no sound')
+ R.saveHits('ticks');assert.equal(R.readHits(),'ticks');assert.equal(store.get(R.KEYS_KEY),'1')
+ assert.equal(R.readSynced(),false);store.set(R.OFFSET_KEY,'40');assert.equal(R.readSynced(),true,'a Timing set counts as done')
+ store.delete(R.OFFSET_KEY);R.saveSynced();assert.equal(R.readSynced(),true)
+ store.clear()
 })
 test('a miss while auto-sync settles costs no gauge (Jeff tier included); after, it does',()=>{
  const t=R.freshTally('jeff');assert.equal(R.count(t,'miss','jeff',100,{free:true}).gauge,100);assert.ok(R.count(t,'miss','jeff',100,{}).gauge<100)

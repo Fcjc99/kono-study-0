@@ -1,20 +1,36 @@
-/* KONO Beat's results breakdown (BeatSummary), inside the shared results card. */
-.beat-summary{width:min(100%,420px);margin:6px auto 2px;display:grid;gap:10px;text-align:left;color:inherit}
-.beat-summary-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.beat-summary-grade{font-size:3.4rem;font-weight:900;line-height:1;color:var(--grade);text-shadow:0 3px 0 rgba(0,0,0,.25),0 0 18px color-mix(in srgb,var(--grade) 45%,transparent)}
-.beat-summary-head dl{display:flex;gap:14px;margin:0;flex:1;min-width:0}
-.beat-summary-head dl div{display:grid;gap:2px}
-.beat-summary-head dt{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.75}
-.beat-summary-head dd{margin:0;font-size:1.05rem;font-weight:800;font-variant-numeric:tabular-nums}
-.beat-summary-clear{padding:3px 10px;border-radius:999px;background:var(--grade);color:#241a3c;font-size:.75rem;font-weight:900;letter-spacing:.04em}
-.beat-summary-bars{list-style:none;margin:0;padding:0;display:grid;gap:5px}
-.beat-summary-bars li{display:grid;grid-template-columns:4.6em 1fr 2.6em;align-items:center;gap:8px;font-size:.82rem;font-weight:700}
+/* KONO Beat's results breakdown (BeatSummary), inside the shared results card, on KONO Beat's night. */
+.game-screen:has(.beat-summary):not(#x){background:radial-gradient(90% 55% at 50% 0,#5b0d4a 0,#2b1240 45%,#120b24 100%);color:#fff}
+.game-screen:has(.beat-summary) .game-result{max-width:440px}
+.beat-summary{width:min(100%,420px);margin:6px auto 2px;display:grid;gap:12px;text-align:left;color:inherit}
+.beat-summary-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.beat-summary-grade{font-size:4.4rem;font-weight:900;line-height:.9;background:linear-gradient(180deg,#fff 15%,var(--grade));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 18px color-mix(in srgb,var(--grade) 55%,transparent))}
+.beat-summary-ring{width:98px;height:98px;flex:none;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#b99bff 0 var(--acc),rgba(255,255,255,.14) 0)}
+.beat-summary-ring>span{width:80px;height:80px;border-radius:50%;display:grid;place-items:center;align-content:center;background:#24123c;text-align:center}
+.beat-summary-ring b{font-size:1.05rem;font-weight:900;font-variant-numeric:tabular-nums}
+.beat-summary-ring small{font-size:.52rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.65}
+.beat-summary-clear{padding:4px 11px;border-radius:999px;background:var(--grade);color:#241a3c;font-size:.75rem;font-weight:900;letter-spacing:.04em}
+.beat-summary-bars{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.beat-summary-bars li{display:grid;grid-template-columns:4.6em 1fr 2.6em;align-items:center;gap:8px;font-size:.84rem;font-weight:700}
 .beat-summary-bars i{display:block;height:8px;min-width:2px;border-radius:4px;background:currentColor}
 .beat-summary-bars b{text-align:right;font-variant-numeric:tabular-nums}
-.beat-summary-bars .is-perfect i{color:#ffcf3d}.beat-summary-bars .is-great i{color:#5fd0f5}.beat-summary-bars .is-good i{color:#8fe07a}.beat-summary-bars .is-miss i{color:#ff6b81}
-.beat-summary-lean{margin:0;font-size:.8rem;opacity:.85}
+.beat-summary-bars .is-perfect{color:#d6c2ff}.beat-summary-bars .is-perfect i{color:#b99bff}.beat-summary-bars .is-great i{color:#5fd0f5}.beat-summary-bars .is-good i{color:#7ff0c0}.beat-summary-bars .is-miss i{color:#ff6b81}
+.beat-summary-stats{display:flex;gap:10px;margin:0}
+.beat-summary-stats div{flex:1;display:grid;gap:2px;padding:9px 12px;border-radius:14px;background:rgba(255,255,255,.07)}
+.beat-summary-stats dt{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
+.beat-summary-stats dd{margin:0;font-size:1.15rem;font-weight:850;font-variant-numeric:tabular-nums}
+.beat-summary-timing{padding:12px 12px 8px;border-radius:16px;background:rgba(255,255,255,.07)}
+.beat-summary-timing h4{margin:0 0 8px;font-size:.9rem;font-weight:800}
+.beat-summary-hist{position:relative;display:flex;align-items:flex-end;gap:2px;height:52px}
+.beat-summary-hist i{flex:1;border-radius:3px 3px 0 0;background:rgba(185,155,255,.45)}
+.beat-summary-hist i.is-mid{background:#b99bff}
+.beat-summary-hist u{position:absolute;left:50%;top:-4px;bottom:-2px;width:2px;background:#fff;opacity:.5}
+.beat-summary-axis{display:flex;justify-content:space-between;margin-top:4px;font-size:.7rem;font-weight:600;opacity:.65}
+.beat-summary-lean{margin:0;font-size:.84rem;line-height:1.45;opacity:.9}
 .beat-summary-strip{width:100%;height:26px;display:block}
 .beat-summary-strip .is-track{fill:rgba(255,255,255,.18)}
-.beat-summary-strip .is-perfect{fill:#ffcf3d}.beat-summary-strip .is-great{fill:#5fd0f5}.beat-summary-strip .is-good{fill:#8fe07a}.beat-summary-strip .is-miss{fill:#ff6b81}.beat-summary-strip .is-none{fill:rgba(255,255,255,.35)}
+.beat-summary-strip .is-perfect{fill:#b99bff}.beat-summary-strip .is-great{fill:#5fd0f5}.beat-summary-strip .is-good{fill:#7ff0c0}.beat-summary-strip .is-miss{fill:#ff6b81}.beat-summary-strip .is-none{fill:rgba(255,255,255,.3)}
 /* The Timing suggestion after a song: a button that shifts the Timing by how early or late the hits landed. */
-.beat-summary-drift button:not(#x):not(#y){display:inline-block;margin:6px 0 0!important;min-height:34px!important;padding:4px 14px!important;border-radius:999px!important;border:0!important;background:#ffd34d!important;color:#3a2a00!important;font-weight:800;box-shadow:none!important}
+.beat-summary-drift button:not(#x):not(#y){display:inline-block;margin:6px 0 0!important;min-height:36px!important;padding:4px 16px!important;border-radius:12px!important;border:0!important;background:#b99bff!important;color:#1d1533!important;font-weight:850!important;cursor:pointer}
+/* What next: the next level up (or an easier one). */
+.beat-summary-next:not(#x):not(#y){display:flex!important;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:52px!important;margin:0!important;padding:8px 16px!important;border-radius:16px!important;border:0!important;color:#fff!important;font-weight:850!important;cursor:pointer;background:linear-gradient(90deg,#7b5cff,#ff5fa2)!important}
+.beat-summary-next span{font-weight:600;opacity:.85;font-size:.85rem}

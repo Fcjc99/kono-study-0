@@ -1,89 +1,149 @@
-/* KONO Beat (RhythmGame): a light, glassy song select (songs with their covers on one side, the chosen song
- * on the other), then the track in a canvas. */
-.game-screen-body:has(.beat-stage){align-content:stretch;padding:0}
-.game-screen-body>.beat-stage{max-width:none}
-.game-screen-body>.beat-pick{max-width:980px}
-.beat-stage{display:flex;min-height:0;height:100%}
-.beat-canvas{flex:1;width:100%;height:calc(100dvh - 72px);min-height:360px;display:block;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:14px}
-.beat-pick{--ink:#2a2858;--soft:rgba(42,40,88,.62);display:grid;gap:14px;padding:14px;margin:4px 0 16px;border-radius:22px;color:var(--ink);
- background:radial-gradient(120% 80% at 80% 0,rgba(255,255,255,.95),rgba(255,255,255,0) 60%),linear-gradient(160deg,#f7f4ff,#e4eaff 55%,#fde8f2);
- box-shadow:0 18px 50px rgba(20,18,70,.28),inset 0 0 0 1px rgba(255,255,255,.8);position:relative;overflow:hidden}
-.beat-pick::before{content:'';position:absolute;inset:-40% -20% auto auto;width:70%;aspect-ratio:1;border-radius:50%;border:1px solid rgba(120,110,220,.18);box-shadow:0 0 0 40px rgba(120,110,220,.04),0 0 0 90px rgba(120,110,220,.03);pointer-events:none}
-@media(min-width:760px){.beat-pick{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);align-items:start;padding:18px}}
-.beat-pick h3{margin:0 0 8px;font-size:.72rem;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--soft)}
-/* The songs. */
-.beat-songs{list-style:none;margin:0;padding:0 4px 0 0;display:grid;gap:6px;max-height:min(58vh,520px);overflow:auto}
-@media(max-width:759px){.beat-songs{max-height:30vh}}
-.beat-pick .beat-songs button:not(#x){position:relative;display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:6px 40px 6px 6px;border-radius:14px;border:1px solid rgba(255,255,255,.9)!important;background:rgba(255,255,255,.55)!important;color:var(--ink)!important;font:inherit;cursor:pointer;min-height:52px;box-shadow:0 2px 8px rgba(40,30,110,.06)!important;transition:transform .15s,background .15s}
-.beat-pick .beat-songs button[aria-pressed=true]:not(#x){background:linear-gradient(90deg,rgba(255,255,255,.95),rgba(236,230,255,.95))!important;box-shadow:0 6px 18px rgba(80,60,200,.18),inset 3px 0 0 #7a6cf0!important;transform:translateX(4px)}
-.beat-song-text{display:grid;min-width:0}
-.beat-song-text b{font-weight:500;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.beat-song-text small{font-size:.74rem;color:var(--soft)}
-.beat-songs i{position:absolute;right:10px;top:50%;translate:0 -50%;font-style:normal;font-weight:300;font-size:1.05rem;color:#6b5cf0;display:grid;justify-items:center;line-height:1}
-.beat-songs i em{font-size:.58rem;font-weight:800;font-style:normal;letter-spacing:.06em;margin-top:2px;color:#c65ad0}
-/* Covers: the song's emoji on its two colors, with a ring of light. */
-.beat-jacket{position:relative;flex:none;display:grid;place-items:center;width:40px;aspect-ratio:1;border-radius:10px;overflow:hidden;background:linear-gradient(135deg,var(--j1),var(--j2));box-shadow:inset 0 0 0 1px rgba(255,255,255,.6)}
-.beat-jacket::before{content:'';position:absolute;inset:18%;border-radius:50%;border:1px solid rgba(255,255,255,.55);box-shadow:0 0 18px rgba(255,255,255,.35)}
-.beat-jacket::after{content:'';position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.45),rgba(255,255,255,0) 45%)}
-.beat-jacket>span{position:relative;font-size:1.25rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
-.beat-jacket.is-big{width:min(132px,32vw);border-radius:18px;box-shadow:0 12px 30px rgba(40,30,110,.3),inset 0 0 0 2px rgba(255,255,255,.7)}
-.beat-jacket.is-big>span{font-size:3.4rem}
-/* The chosen song. */
-.beat-detail{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px 14px;align-items:center;padding:14px;border-radius:18px;background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.95);box-shadow:0 8px 26px rgba(40,30,110,.12)}
-.beat-detail>:not(.beat-jacket):not(.beat-info){grid-column:1/-1}
-.beat-info h3{margin:0;font-size:1.45rem;font-weight:300;letter-spacing:.03em;text-transform:none;color:var(--ink)}
-.beat-info p{margin:4px 0 0;font-size:.8rem;color:var(--soft)}
-.beat-best b{font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
-.beat-best span{margin-left:6px;padding:1px 7px;border-radius:99px;background:var(--lv);color:#fff;font-size:.7rem;font-weight:700}
-.beat-levels{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.beat-pick .beat-levels button:not(#x){display:flex;align-items:center;justify-content:space-between;gap:6px;padding:8px 10px;border-radius:12px;border:1px solid color-mix(in srgb,var(--lv) 45%,white)!important;background:rgba(255,255,255,.7)!important;color:var(--lv)!important;font:inherit;cursor:pointer;min-height:44px;box-shadow:none!important}
-.beat-levels button span{font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-.beat-levels button b{font-size:1.35rem;font-weight:300}
-.beat-pick .beat-levels button[aria-pressed=true]:not(#x){background:var(--lv)!important;color:#fff!important;box-shadow:0 6px 16px color-mix(in srgb,var(--lv) 45%,transparent)!important}
-.beat-blurb{margin:0;font-size:.8rem;color:var(--soft)}
-.beat-settings{display:flex;flex-wrap:wrap;gap:8px 16px}
-.beat-pick .beat-offset:not(#x){display:flex;flex-direction:row;align-items:center;gap:6px;font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--soft);white-space:nowrap;margin:0}
-.beat-pick .beat-offset button:not(#x){display:grid;place-items:center;padding:0;margin:0;min-width:0;width:34px;height:34px;border-radius:50%;border:1px solid rgba(42,40,88,.18)!important;background:rgba(255,255,255,.8)!important;color:var(--ink)!important;font:inherit;font-size:1rem;cursor:pointer;box-shadow:none!important}
-.beat-offset output{min-width:52px;text-align:center;font-variant-numeric:tabular-nums;font-size:.9rem;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink)}
-.beat-pick .beat-play:not(#x){display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:99px;border:0!important;font:inherit;font-size:1rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:#fff!important;cursor:pointer;
- background:linear-gradient(90deg,#6b5cf0,var(--lv),#ff8ac8)!important;box-shadow:0 10px 26px rgba(107,92,240,.4)!important}
-.beat-play span{font-weight:300;letter-spacing:.04em;text-transform:none;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50%}
-.beat-play:active{transform:scale(.98)}
-.beat-how{font-size:.8rem;color:var(--soft)}
-.beat-how summary{cursor:pointer;font-size:.72rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase}
-.beat-how ul{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:6px}
-.beat-how li{padding-left:26px;position:relative;line-height:1.6}
-.beat-how li>span{position:absolute;left:0;top:.55em;width:18px;height:8px;border-radius:4px}
-.beat-how .is-floor{background:linear-gradient(90deg,#ff7ab6,#7ad7ff,#9dff8a,#ffd36b)}
-.beat-how .is-sky:not(#x){left:3px;top:.45em;width:11px;height:11px;rotate:45deg;border-radius:2px;background:#dff4ff;box-shadow:0 0 6px #8fd3ff}
-.beat-how .is-ribbon{height:6px;background:linear-gradient(90deg,#5fd3ff,#ff7ad1)}
-.beat-how kbd{display:inline-block;padding:0 6px;border-radius:5px;border:1px solid rgba(42,40,88,.25);background:#fff;font:700 .74rem system-ui,sans-serif}
-@media(prefers-reduced-motion:reduce){.beat-pick .beat-songs button:not(#x){transition:none}}
-/* The Sync check and the note ticks toggle. */
-.beat-pick .beat-sync-open:not(#x){min-height:34px;padding:0 14px;border-radius:99px;border:1px solid rgba(42,40,88,.18)!important;background:rgba(255,255,255,.8)!important;color:var(--ink)!important;font:inherit;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;box-shadow:none!important}
-.beat-pick .beat-ticks:not(#x){display:flex;flex-direction:row;align-items:center;gap:6px;margin:0;white-space:nowrap;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);cursor:pointer}
-.beat-sync{display:grid;gap:8px;justify-items:center;text-align:center;padding:12px;border-radius:16px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.95)}
-.beat-sync h3{margin:0}
-.beat-sync p{margin:0;font-size:.85rem;color:var(--ink)}
-.beat-pick .beat-sync-pad:not(#x){width:min(180px,50vw);aspect-ratio:1;border-radius:50%;border:0!important;font:inherit;font-size:1.3rem;font-weight:300;letter-spacing:.2em;text-transform:uppercase;color:#fff!important;cursor:pointer;touch-action:manipulation;
- background:radial-gradient(circle at 35% 30%,#a99cff,#6b5cf0 70%)!important;box-shadow:0 10px 30px rgba(107,92,240,.45)!important}
-.beat-pick .beat-sync-pad:active{transform:scale(.96)}
-.beat-pick .beat-sync-close:not(#x){min-height:34px;padding:0 16px;border-radius:99px;border:1px solid rgba(42,40,88,.18)!important;background:transparent!important;color:var(--ink)!important;font:inherit;cursor:pointer;box-shadow:none!important}
-.beat-pick .beat-ticks input:not(#x){width:18px;height:18px;margin:0;flex:none;accent-color:#6b5cf0}
-.beat-settings{align-items:center}
+/* KONO Beat (RhythmGame): a light song select (the chosen song big at the top, its three levels and ▶ Play,
+ * then every song), then the track full screen in a canvas, with a ❚❚ button, the pause and settings sheets
+ * and the timing check over it. Buttons here start from a clean slate (the app's own dialog button look
+ * doesn't apply). */
+.beat-ui{--ink:#1d1533;--sub:#6d6488;--line:#e7e1f5;--card:#fff;--accent:#7b5cff;--hot:#ff5fa2}
+.beat-ui button:not(#x){all:unset!important;box-sizing:border-box!important;cursor:pointer!important;font:inherit!important;-webkit-tap-highlight-color:transparent!important}
+.beat-ui button:not(#x):focus-visible{outline:3px solid var(--accent)!important;outline-offset:2px!important}
+.beat-ui button:not(#x):disabled{opacity:.55!important;cursor:default!important}
 
+/* The song select's screen: light, with the header's text dark on it. */
+.game-screen:has(.beat-pick){background:radial-gradient(90% 50% at 85% 0,#fde8f2 0,rgba(253,232,242,0) 60%),linear-gradient(180deg,#f6f2ff,#efe9ff);color:#1d1533}
+.game-screen:has(.beat-pick)>header .game-screen-leave:not(#x),.game-screen:has(.beat-pick)>header .game-screen-tool:not(#x){background:#fff!important;color:#1d1533!important;border-color:#e7e1f5!important}
+.game-screen-body:has(>.beat-pick){align-content:start}
+.game-screen-body>.beat-pick{max-width:1040px}
+.beat-pick{display:grid;gap:16px;padding:2px 2px 18px;color:var(--ink)}
+@media(min-width:860px){.beat-pick{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:start;gap:22px;padding-top:8px}}
+.beat-main{display:grid;gap:12px;align-content:start}
+
+/* The chosen song: its cover's colors, its emoji big, a line of its lyrics for a sung song. */
+.beat-hero{position:relative;overflow:hidden;border-radius:26px;padding:16px 18px 18px;color:#fff;min-height:186px;
+ background:radial-gradient(120% 90% at 88% 8%,color-mix(in srgb,var(--j2) 92%,white) 0,var(--j2) 22%,var(--j1) 62%,color-mix(in srgb,var(--j1) 55%,black) 100%);
+ box-shadow:0 18px 36px -18px color-mix(in srgb,var(--j1) 80%,black)}
+.beat-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.28),rgba(0,0,0,0) 65%);pointer-events:none}
+.beat-hero>*{position:relative;z-index:1}
+.beat-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:99px;background:rgba(255,255,255,.22);font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;backdrop-filter:blur(4px)}
+.beat-hero-art{position:absolute;right:6px;top:58px;font-size:clamp(78px,22vw,118px);line-height:1;transform:rotate(8deg);filter:drop-shadow(0 10px 18px rgba(0,0,0,.35));z-index:0}
+.beat-hero h3{margin:14px 0 0;font-size:clamp(1.6rem,6.4vw,2.1rem);font-weight:850;letter-spacing:-.02em;line-height:1.1;max-width:72%;text-shadow:0 2px 10px rgba(0,0,0,.2)}
+.beat-meta{margin:4px 0 0;font-size:.85rem;font-weight:600;opacity:.9}
+.beat-hero-lyric{margin:12px 0 0;max-width:68%;font-size:.9rem;font-weight:650;line-height:1.35}
+.beat-hero-lyric span{opacity:.6}
+.beat-ui .beat-gear:not(#x){position:absolute!important;top:12px!important;right:12px!important;z-index:2!important;width:40px!important;height:40px!important;border-radius:13px!important;display:grid!important;place-items:center!important;background:rgba(255,255,255,.24)!important;color:#fff!important;font-size:1.15rem!important;backdrop-filter:blur(6px)!important}
+
+/* The levels: three cards, each with its rating and your best there. */
+.beat-levels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.beat-ui .beat-levels button:not(#x){display:grid!important;gap:1px!important;padding:9px 11px 9px!important;border-radius:16px!important;background:var(--card)!important;border:2px solid var(--line)!important;color:var(--ink)!important;transition:transform .12s!important}
+.beat-levels button span{font-size:.7rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase;color:var(--lv);white-space:nowrap}
+.beat-levels button b{font-size:1.65rem;font-weight:850;line-height:1.05;font-variant-numeric:tabular-nums}
+.beat-levels button small{font-size:.72rem;font-weight:600;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.beat-ui .beat-levels button[aria-pressed=true]:not(#x){border-color:var(--lv)!important;background:color-mix(in srgb,var(--lv) 9%,white)!important;box-shadow:0 8px 18px -10px var(--lv)!important}
+.beat-blurb{margin:0;font-size:.82rem;color:var(--sub);line-height:1.4}
+.beat-blurb b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* ▶ Play, and the warm-up under it. */
+.beat-ui .beat-play:not(#x){display:flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;min-height:58px!important;border-radius:18px!important;color:#fff!important;font-size:1.1rem!important;font-weight:850!important;
+ background:linear-gradient(90deg,#7b5cff,#ff5fa2)!important;box-shadow:0 14px 26px -12px rgba(123,92,255,.85)!important}
+.beat-play span{font-size:.88rem;font-weight:600;opacity:.88;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
+.beat-ui .beat-play:not(#x):active{transform:scale(.98)!important}
+.beat-ui .beat-warmup:not(#x){justify-self:center!important;padding:6px 12px!important;border-radius:10px!important;color:var(--accent)!important;font-size:.88rem!important;font-weight:750!important}
+.beat-warmup small{color:var(--sub);font-weight:600;margin-left:4px}
+@media(max-width:859px){.beat-ui .beat-play:not(#x){position:sticky!important;bottom:calc(env(safe-area-inset-bottom) + 10px)!important;z-index:3!important}}
+.beat-reset{margin:0;padding:9px 12px;border-radius:12px;background:#fff7d6;color:#5a4300;font-size:.82rem;line-height:1.35}
+
+/* Every song: a filter, then a row each with its cover and your best grade on this level. */
+.beat-list{display:grid;gap:8px;align-content:start}
+.beat-list-head{display:flex;align-items:baseline;justify-content:space-between;padding:0 4px}
+.beat-list h3{margin:0;font-size:1.02rem;font-weight:850;color:var(--ink);letter-spacing:0;text-transform:none}
+.beat-list-head span{font-size:.82rem;font-weight:600;color:var(--sub)}
+.beat-chips{display:flex;gap:6px;flex-wrap:wrap}
+.beat-ui .beat-chips button:not(#x){padding:6px 12px!important;border-radius:99px!important;background:var(--card)!important;border:1px solid var(--line)!important;color:var(--sub)!important;font-size:.82rem!important;font-weight:700!important}
+.beat-ui .beat-chips button[aria-pressed=true]:not(#x){background:var(--ink)!important;border-color:var(--ink)!important;color:#fff!important}
+.beat-songs{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+@media(min-width:860px){.beat-songs{max-height:min(66vh,620px);overflow:auto;padding-right:4px}}
+.beat-ui .beat-songs button:not(#x){position:relative!important;display:flex!important;align-items:center!important;gap:12px!important;width:100%!important;padding:8px 54px 8px 9px!important;border-radius:16px!important;background:var(--card)!important;border:1px solid var(--line)!important;color:var(--ink)!important;transition:transform .15s,box-shadow .15s!important}
+.beat-ui .beat-songs button[aria-pressed=true]:not(#x){border-color:var(--accent)!important;box-shadow:0 8px 20px -12px rgba(123,92,255,.7),inset 3px 0 0 var(--accent)!important}
+.beat-song-text{display:grid;min-width:0}
+.beat-song-text b{font-weight:750;font-size:.98rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.beat-song-text small{font-size:.76rem;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.beat-songs i{position:absolute;right:10px;top:50%;translate:0 -50%;min-width:36px;height:36px;border-radius:11px;display:grid;place-items:center;align-content:center;font-style:normal;font-weight:850;font-size:.98rem;color:var(--accent);background:#f2edfd;line-height:1}
+.beat-songs i em{font-size:.55rem;font-weight:850;font-style:normal;letter-spacing:.04em;color:#c65ad0}
+.beat-songs i.is-none{background:none;color:#cfc6e6}
+.beat-empty{padding:14px;text-align:center;color:var(--sub);font-size:.9rem}
+.beat-jacket{position:relative;flex:none;display:grid;place-items:center;width:46px;aspect-ratio:1;border-radius:13px;overflow:hidden;background:linear-gradient(135deg,var(--j1),var(--j2))}
+.beat-jacket::after{content:'';position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.4),rgba(255,255,255,0) 45%)}
+.beat-jacket>span{position:relative;font-size:1.45rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
+
+/* Sheets (settings, pause) and the timing check, over the game. */
+.beat-overlay{position:fixed;inset:0;z-index:20;display:grid;align-items:end;justify-items:center;background:rgba(18,10,36,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:beat-fade .18s ease}
+.beat-overlay.is-dim{background:rgba(10,6,22,.6)}
+@media(min-width:700px){.beat-overlay{align-items:center}}
+@keyframes beat-fade{from{opacity:0}}
+.beat-sheet{width:min(520px,100%);max-height:92dvh;overflow:auto;background:#fff;color:var(--ink);border-radius:28px 28px 0 0;padding:16px 18px calc(env(safe-area-inset-bottom) + 20px);box-shadow:0 -10px 40px rgba(18,10,36,.3);animation:beat-up .22s ease}
+@media(min-width:700px){.beat-sheet{border-radius:28px;padding-bottom:20px}}
+@keyframes beat-up{from{transform:translateY(24px);opacity:.6}}
+.beat-sheet-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.beat-sheet-head h3{margin:0;font-size:1.3rem;font-weight:850;color:var(--ink);letter-spacing:0;text-transform:none}
+.beat-sheet-head small{flex-basis:100%;color:var(--sub);font-size:.85rem}
+.beat-ui .beat-done:not(#x){padding:6px 14px!important;border-radius:11px!important;background:#f4f0fc!important;font-weight:800!important;color:var(--ink)!important}
+.beat-row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 6px}
+.beat-ui .beat-row3 button:not(#x){min-height:48px!important;border-radius:15px!important;background:#f4f0fc!important;display:grid!important;place-items:center!important;font-weight:800!important;color:var(--ink)!important}
+.beat-settings{display:grid;border-top:1px solid var(--line);margin-top:8px}
+.beat-set{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.beat-set>span:first-child{display:grid;gap:2px;min-width:0}
+.beat-set b{font-size:.98rem;font-weight:750}
+.beat-set small{font-size:.78rem;color:var(--sub);line-height:1.35}
+.beat-step{display:flex;align-items:center;gap:6px;flex:none}
+.beat-ui .beat-step button:not(#x){width:36px!important;height:36px!important;border-radius:12px!important;background:#f4f0fc!important;display:grid!important;place-items:center!important;font-size:1.2rem!important;font-weight:700!important;color:var(--ink)!important}
+.beat-step output{min-width:46px;text-align:center;font-weight:850;font-variant-numeric:tabular-nums}
+.beat-timing output{min-width:66px}
+.beat-seg{display:flex;flex:none;background:#f4f0fc;border-radius:12px;padding:3px}
+.beat-ui .beat-seg button:not(#x){padding:7px 11px!important;border-radius:9px!important;font-size:.84rem!important;font-weight:750!important;color:var(--sub)!important}
+.beat-ui .beat-seg button[aria-checked=true]:not(#x){background:#fff!important;color:var(--ink)!important;box-shadow:0 2px 6px rgba(40,20,90,.14)!important}
+.beat-check{cursor:pointer}
+.beat-check input{flex:none;width:22px;height:22px;margin:0;accent-color:var(--accent)}
+.beat-ui .beat-link:not(#x){color:var(--accent)!important;font-weight:750!important;text-decoration:underline!important;text-underline-offset:2px!important}
+.beat-how{margin-top:12px;font-size:.84rem;color:var(--sub)}
+.beat-how summary{cursor:pointer;font-weight:800;color:var(--ink)}
+.beat-how ul{margin:8px 0 0;padding-left:18px;display:grid;gap:6px;line-height:1.5}
+.beat-how kbd{display:inline-block;padding:0 6px;border-radius:5px;border:1px solid var(--line);background:#faf8ff;font:700 .74rem system-ui,sans-serif}
+
+/* Playing: the whole screen is the game (the app's buttons step aside; ❚❚ has them), inside the safe area. */
+.game-screen:has(.beat-stage){background:#0b0716}
+.game-screen:has(.beat-stage)>header{display:none}
+.game-screen-body:has(>.beat-stage){padding:0;align-content:stretch;overflow:hidden}
+.game-screen-body>.beat-stage{max-width:none}
+.beat-stage{position:relative;display:flex;height:100%;min-height:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.beat-canvas{flex:1;width:100%;height:100%;min-height:320px;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+.beat-ui .beat-pause:not(#x){position:absolute!important;top:calc(env(safe-area-inset-top) + 6px)!important;left:calc(env(safe-area-inset-left) + 12px)!important;z-index:5!important;width:42px!important;height:42px!important;border-radius:14px!important;display:grid!important;place-items:center!important;color:#fff!important;font-size:.8rem!important;letter-spacing:-1px!important;background:rgba(255,255,255,.1)!important;border:1px solid rgba(255,255,255,.16)!important;backdrop-filter:blur(6px)!important}
+
+.beat-countin{margin:auto;align-self:center;font-size:7rem;font-weight:900;color:#fff;text-shadow:0 0 40px rgba(255,95,162,.8);animation:beat-pop .7s ease}
+@keyframes beat-pop{from{transform:scale(1.5);opacity:0}}
+.beat-overlay.is-dim:has(.beat-countin){align-items:center;background:rgba(10,6,22,.35)}
+.beat-sheet .beat-play:not(#x){width:100%!important;margin-top:4px!important}
 /* Spoken updates for screen readers while a song plays (the canvas itself has none). */
 .beat-sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
-.beat-warmup{margin-top:8px;min-height:44px;width:100%;border-radius:14px;font-weight:700;background:transparent;border:1px dashed currentColor;opacity:.85}
-/* Said once on a device whose old Timing was dropped (see store/rhythm OFFSET_KEY). */
-.beat-reset{margin:6px 0 0;padding:8px 12px;border-radius:12px;background:#fff7d6;color:#5a4300;font-size:.82rem;line-height:1.35}
-/* Phones: ▶ Play stays at the bottom of the screen while you scroll the songs and settings. */
-@media(max-width:759px){.beat-pick .beat-play:not(#x){position:sticky;bottom:calc(env(safe-area-inset-bottom) + 10px);z-index:3;box-shadow:0 10px 26px rgba(40,30,110,.35)!important}}
-.beat-settings-wrap{grid-column:1/-1}
-.beat-settings-wrap>summary{display:flex;align-items:center;gap:10px;min-height:44px;font-weight:800;letter-spacing:.04em;cursor:pointer;color:var(--ink)}
-.beat-settings-wrap>summary span{font-weight:500;font-size:.85rem;color:var(--soft);letter-spacing:0}
-.beat-settings-wrap[open]>summary{margin-bottom:6px}
-.beat-settings-wrap>summary{list-style:none}
-.beat-settings-wrap>summary::-webkit-details-marker{display:none}
-.beat-settings-wrap>summary::after{content:'▸';margin-left:auto;transition:transform .2s;opacity:.6}
-.beat-settings-wrap[open]>summary::after{transform:rotate(90deg)}
+
+/* The timing check: night, a big circle that pulses on each click, a dot per click, your delay so far. */
+.beat-overlay:has(.beat-sync){align-items:stretch;justify-items:stretch;background:radial-gradient(80% 55% at 50% 42%,#4b2d8f 0,#1a1033 60%,#0d0820 100%)}
+.beat-sync{display:grid;align-content:center;justify-items:center;gap:12px;text-align:center;color:#fff;padding:calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 24px);max-width:520px;margin:0 auto;width:100%}
+.beat-sync-kicker{margin:0;font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.6}
+.beat-sync h3{margin:0;font-size:1.8rem;font-weight:850;letter-spacing:-.01em;color:#fff;text-transform:none}
+.beat-sync p{margin:0;font-size:.95rem;line-height:1.45;opacity:.8;max-width:380px}
+.beat-ui .beat-sync-pad:not(#x){--pulse:0!important;margin:26px 0 10px!important;width:min(210px,52vw)!important;aspect-ratio:1!important;border-radius:50%!important;display:grid!important;place-items:center!important;color:#fff!important;font-size:1.3rem!important;font-weight:900!important;letter-spacing:.2em!important;text-transform:uppercase!important;touch-action:manipulation!important;
+ background:radial-gradient(circle at 35% 30%,#ff9cc8,#ff5fa2 45%,#b0247a)!important;box-shadow:0 0 calc(30px + var(--pulse)*50px) rgba(255,95,162,calc(.45 + var(--pulse)*.4)),0 0 0 calc(var(--pulse)*22px) rgba(255,95,162,.18)!important;transform:scale(calc(1 + var(--pulse)*.05))!important}
+.beat-sync-dots{display:flex;gap:7px;justify-content:center;list-style:none;margin:6px 0 0;padding:0;flex-wrap:wrap}
+.beat-sync-dots li{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.16)}
+.beat-sync-dots li.is-warm{background:rgba(255,255,255,.08)}
+.beat-sync-dots li.is-on{background:#ffc53d;box-shadow:0 0 10px #ffc53d}
+.beat-sync-readout{display:flex;justify-content:space-between;align-items:center;gap:20px;width:min(320px,100%);margin-top:10px;padding:12px 16px;border-radius:18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
+.beat-sync-readout span{font-size:.8rem;opacity:.65}
+.beat-sync-readout b{font-size:1.5rem;font-weight:850;font-variant-numeric:tabular-nums}
+.beat-ui .beat-sync-close:not(#x){margin-top:14px!important;padding:10px 22px!important;border-radius:14px!important;background:rgba(255,255,255,.12)!important;color:#fff!important;font-weight:800!important}
+@media(prefers-reduced-motion:reduce){.beat-overlay,.beat-sheet,.beat-countin{animation:none}.beat-ui .beat-songs button:not(#x),.beat-ui .beat-levels button:not(#x){transition:none!important}}
+.beat-ui label.beat-set:not(#x){display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;margin:0!important;font-weight:inherit!important}
+/* Headings here set their own size (the app's dialog headings would shrink them). */
+.beat-ui .beat-hero h3:not(#x){margin:14px 0 0!important;font-size:clamp(1.6rem,6.4vw,2.1rem)!important;font-weight:850!important;line-height:1.1!important;color:#fff!important}
+.beat-ui .beat-sync h3:not(#x){font-size:1.8rem!important;font-weight:850!important;color:#fff!important;margin:0!important}
+.beat-ui .beat-sheet-head h3:not(#x),.beat-ui .beat-list h3:not(#x){font-size:1.25rem!important;font-weight:850!important;color:var(--ink)!important;margin:0!important;letter-spacing:0!important;text-transform:none!important}
+.beat-ui .beat-list h3:not(#x){font-size:1.05rem!important}
+.game-screen:has(.beat-pick)>header .game-screen-leave:not(#x):not(#y),.game-screen:has(.beat-pick)>header .game-screen-tool:not(#x):not(#y){background:#fff!important;color:#1d1533!important;border:1px solid #e7e1f5!important;box-shadow:0 2px 8px rgba(40,20,90,.08)!important}

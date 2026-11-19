@@ -339,12 +339,6 @@ html[data-theme] .brand:has(.kono-weather-chip):after,html[data-theme] .sidebar:
 .wb-draggable:active{cursor:grabbing}
 .workbench .wb-calendar button.drop-target{outline:3px dashed var(--wb-accent);outline-offset:-3px;background:color-mix(in srgb,var(--wb-accent) 12%,transparent)}
 .wb-agenda-day.drop-target,.planner-day-board.drop-target{outline:3px dashed var(--wb-accent);outline-offset:-3px;border-radius:12px}
-.focus-lock-overlay{display:grid;place-items:center;justify-items:center;gap:14px;min-height:70vh;padding:32px;text-align:center;background:var(--wb-bg);color:var(--wb-ink)}
-.focus-lock-overlay .eyebrow{letter-spacing:.12em;text-transform:uppercase;color:var(--wb-muted);font-size:.8125rem}
-.focus-lock-overlay h2{margin:0;font-size:1.6rem}
-.focus-lock-timer{font-size:4rem;font-variant-numeric:tabular-nums;font-weight:700}
-.focus-lock-overlay .focus-progress-track{width:min(320px,80vw);height:10px;margin:0}
-.focus-lock-overlay button{min-height:48px;padding:10px 22px}
 .login-digest{align-items:flex-start;justify-content:space-between}
 .login-digest ul{margin:6px 0 0;padding-left:18px}
 .login-digest small{color:var(--wb-muted)}
@@ -358,8 +352,6 @@ html[data-theme] .brand:has(.kono-weather-chip):after,html[data-theme] .sidebar:
 .crunch-digest>div{display:flex;flex-direction:column;gap:2px;margin-right:auto}
 .crunch-digest ul{margin:6px 0 0;padding-left:18px}
 .crunch-digest small{color:var(--wb-muted)}
-.focus-session:fullscreen,.focus-session:-webkit-full-screen{width:100vw;height:100vh;max-width:none;border:0;border-radius:0;box-shadow:none;background:var(--wb-bg);display:flex;flex-direction:column}
-.focus-session:fullscreen .focus-lock-overlay,.focus-session:-webkit-full-screen .focus-lock-overlay{min-height:100vh;flex:1}
 .wb-dialog{position:fixed;inset:0;margin:auto;width:min(640px,calc(100% - 24px));max-height:calc(100dvh - 32px);overflow:auto;padding:24px;border:1px solid var(--wb-line);border-radius:20px;background:var(--wb-surface);color:var(--wb-ink);box-shadow:0 20px 80px #0005;font:1rem/1.5 system-ui}
 .wb-dialog::backdrop{background:#17213299;backdrop-filter:blur(3px)}
 .wb-dialog>header{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:20px}

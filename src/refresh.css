@@ -87,8 +87,7 @@
  :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-side>*{order:4}
  :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-side>.getting-started{order:1}
  :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-side>.today-card{order:2}
- :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-main>:is(.wb-island,.kono-bar,.quick-today){order:3}
- :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-main>.sanctuary-focus{order:5}
+ :root:is([data-experience=cozy],[data-experience=modern]) .workbench .home-main>:is(.wb-island,.kono-bar){order:3}
 }
 
 /* Motion: a checkbox pops when you tick it (only right after the click, not on load), a ring that
@@ -215,7 +214,6 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .workbench .home-grid.no-island .home-main>.kono-bar{order:0;border-radius:var(--rf-radius,18px)!important;border-top-style:solid!important}
 .workbench .home-grid.no-island .home-side>.getting-started{order:1}
 .workbench .home-grid.no-island .home-side>.today-card{order:2}
-.workbench .home-grid.no-island .home-main>.sanctuary-focus{order:6}
 /* A parent's Home leads with the kids: Kids today, then today's family calendar, then the family to-do. */
 .workbench .home-grid.is-parent .home-side>.kids-glance{order:-3!important}
 .workbench .home-grid.is-parent .home-side>.today-card{order:-2!important}
@@ -545,7 +543,7 @@ html[data-motion=reduced] .lazy-panel-loading::after{animation:none}
 .workbench .home-grid.is-parent .home-side>.week-ahead{order:2!important}
 .workbench .home-grid.is-parent .home-side>.family-todos{order:3!important}
 .workbench .home-grid.is-parent .home-side>.coming-up{order:4!important}
-.workbench .home-grid.is-parent .home-main>:is(.welcome-tour,.wb-island,.kono-bar,.quick-today){order:6!important}
+.workbench .home-grid.is-parent .home-main>:is(.welcome-tour,.wb-island,.kono-bar){order:6!important}
 .family-todo-day{margin-left:6px;padding:1px 8px;border-radius:999px;font-size:.75rem;font-weight:700;background:color-mix(in srgb,var(--wb-accent,#c76b8f) 12%,var(--wb-surface,#fff));color:var(--wb-muted,#7a6670)}
 .family-todo-add{flex-wrap:wrap}
 .family-todo-add input[type=date]{flex:0 1 auto;min-width:0}

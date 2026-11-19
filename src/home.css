@@ -110,12 +110,6 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .undo-toast .undo-toast-shop{background:#ffe08a!important;color:#4a3207!important;border-color:transparent!important;font-weight:800;white-space:nowrap;text-transform:none!important}
 .undo-toast .undo-toast-shop span{flex:none;overflow:visible}
 .undo-toast .undo-toast-feed{background:#ffe7b8!important;color:#4a2a17!important;border-color:transparent!important;font-weight:800;white-space:nowrap}
-
-/* Today view (the installed app on a phone, or its Today shortcut): a slim header in place of the island. */
-.quick-today{display:flex!important;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:12px 16px!important}
-.quick-today small{text-transform:uppercase;letter-spacing:.05em;font-size:.72rem;opacity:.75}
-.quick-today h2{margin:0;font-size:1.35rem}
-.quick-today .quick-today-pref{flex-basis:100%;font-size:.82rem;opacity:.85;margin:0}
 .undo-toast .undo-toast-feed span{flex:none;overflow:visible}
 .undo-toast .undo-toast-feed{text-transform:none!important}
 .undo-toast.has-snack>span{white-space:normal;overflow:visible}

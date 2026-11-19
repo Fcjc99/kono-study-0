@@ -17,14 +17,21 @@ SR, HOP = 22050, 64
 FPS = SR / HOP
 
 
+CACHE = os.environ.get('KONO_STEMS', os.path.expanduser('~/.cache/kono-stems'))
+
+
+def stem_path(path):
+    """Where the voice of the song at `path` is kept (separated the first time it's asked for)."""
+    name = os.path.splitext(os.path.basename(path))[0]
+    out = os.path.join(CACHE, 'htdemucs', name, 'vocals.wav')
+    if not os.path.exists(out):
+        subprocess.run([sys.executable, '-m', 'demucs', '--two-stems=vocals', '-n', 'htdemucs', '-o', CACHE, path], check=True)
+    return out
+
+
 def stem(path, load):
     """The voice of the song at `path`, mono at SR (separated once, then cached)."""
-    cache = os.environ.get('KONO_STEMS', os.path.expanduser('~/.cache/kono-stems'))
-    name = os.path.splitext(os.path.basename(path))[0]
-    out = os.path.join(cache, 'htdemucs', name, 'vocals.wav')
-    if not os.path.exists(out):
-        subprocess.run([sys.executable, '-m', 'demucs', '--two-stems=vocals', '-n', 'htdemucs', '-o', cache, path], check=True)
-    return load(out)
+    return load(stem_path(path))
 
 
 def _envelope(v):

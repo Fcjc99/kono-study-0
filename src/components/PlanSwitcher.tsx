@@ -31,7 +31,7 @@ export default function PlanSwitcher({data,save,close,lockedTo,setLock,onSwitch,
   const have=planForKid(data,kidId)
   if(have){onSwitch(have.id);close();return}
   setBusy(true);let id=''
-  const url=new URL(location.href);url.searchParams.set('page','sanctuary');history.replaceState(null,'',url)
+  const url=new URL(location.href);url.searchParams.set('page','today');history.replaceState(null,'',url)
   const ok=await save(d=>{const r=addKidPlan(d,kid);id=r.id;return {...r.data,activeProfileId:r.id}})
   setBusy(false);if(ok&&id)close()
  }

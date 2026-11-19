@@ -7,8 +7,14 @@ import {teamThemeIds} from './teamThemes'
 export const SETTINGS_TABS=['Look & feel','Notifications','Family','Schedules','Import & export','Plans & account'] as const
 /** 'KONO support' only appears for support accounts; the server enforces the access itself. */
 export type SettingsTab=typeof SETTINGS_TABS[number]|'KONO support'
-export const pages=['Sanctuary','Planner','Kids','Subjects','Notes','K-Quiz','Exams','Settings','Trash'] as const
+/** The pages, in the order the navigation lists them: Today (the home: what's next) and the Planner, the
+ * family, the school pages, then KONO's own page (its island, Town and games: the Sanctuary) and Settings. */
+export const pages=['Today','Planner','Kids','Subjects','Notes','K-Quiz','Exams','Sanctuary','Settings','Trash'] as const
 export type Page=typeof pages[number]
+/** What the navigation calls a page, where it isn't its name: KONO's page (the Sanctuary) and the family's. */
+export const PAGE_LABEL:Partial<Record<Page,string>>={Sanctuary:'KONO',Kids:'Family'}
+/** A page's heading, where it isn't its name. */
+export const PAGE_TITLE:Partial<Record<Page,string>>={Kids:'Family'}
 // Team colors are offered in both Cozy and Simplified, under their own heading.
 export const cozyPalettes=['coral','sakura','lavender','mint','honey','zen','floral','ocean']
 export const cozyPalette=(theme:string)=>cozyPalettes.includes(theme)||teamThemeIds.includes(theme)?theme:'coral'
