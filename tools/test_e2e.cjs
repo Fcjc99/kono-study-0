@@ -1816,6 +1816,12 @@ const dragBy=async(page,from,to,steps=6)=>{await page.mouse.move(from.x,from.y);
  for(let k=1;k<=steps;k++){await page.mouse.move(from.x+(to.x-from.x)*k/steps,from.y+(to.y-from.y)*k/steps);await page.evaluate(()=>new Promise(r=>requestAnimationFrame(r)))}
  await page.mouse.up()}
 const startGame=async(page,title,label=/^(Start|Continue)/)=>{const d=page.getByRole('dialog',{name:title});await d.getByRole('region',{name:'Start'}).getByRole('button',{name:label}).click();return d}
+// KONO Beat has no start card (it opens on its song select), ■ End is on its pause sheet (❚❚), and the
+// settings are on a ⚙ sheet.
+const openBeat=async page=>{const d=page.getByRole('dialog',{name:'🥁 KONO Beat'});await d.getByRole('region',{name:'Song',exact:true}).waitFor();return d}
+const endBeat=async beat=>{await beat.getByRole('button',{name:'Pause'}).click();await beat.getByRole('dialog',{name:'Paused'}).getByRole('button',{name:'■ End'}).click()}
+const beatSettings=async beat=>{await beat.getByRole('button',{name:'Settings'}).click();return beat.getByRole('dialog',{name:'Settings'})}
+const skipBeatSync=async beat=>beat.getByRole('dialog',{name:'Timing check'}).getByRole('button',{name:'Skip for now'}).click()
 const headerMenu=async(page,name)=>{const menu=page.locator('details.header-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
 const plannerMenu=async(page,name)=>{const menu=page.locator('details.planner-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
 const cornerOf=page=>page.getByRole('dialog',{name:'KONO’s corner'})
@@ -4433,12 +4439,14 @@ test('KONO Beat Timing: it never shifts by itself mid-song; after a song where e
  const town=page.getByRole('dialog',{name:'KONO Town'})
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
  await town.getByRole('button',{name:/KONO Beat/}).click()
- const beat=await startGame(page,'🥁 KONO Beat')
+ const beat=await openBeat(page)
  await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Easy/}).click()
  await beat.getByRole('button',{name:/^Skipping Motif/}).click()
- await beat.getByText(/^0 ms$/).waitFor()
+ {const set=await beatSettings(beat);await set.getByText(/^0 ms$/).waitFor();await set.getByRole('button',{name:'Done'}).click()}
  await beat.getByRole('status').filter({hasText:/Timing is back to 0 ms/}).waitFor()
  await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click()
+ // A device's first song starts with the timing check; skipped here.
+ await skipBeatSync(beat)
  await beat.getByRole('img',{name:'KONO Beat: Skipping Motif'}).waitFor()
  const chart=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.easy
  const notes=[...chart.tap,...chart.hold].map(([t,lane])=>[t,lane]).sort((a,b)=>a[0]-b[0]).filter(([t])=>t<16000)
@@ -4447,7 +4455,7 @@ test('KONO Beat Timing: it never shifts by itself mid-song; after a song where e
   for(const [t,lane] of notes){const key='dfjk'[lane];while(cv.songRaw()<t+60-250)await new Promise(r=>setTimeout(r,5))
    while(cv.songRaw()<t+60){/* tight wait */}
    window.dispatchEvent(new KeyboardEvent('keydown',{key}));window.dispatchEvent(new KeyboardEvent('keyup',{key}))}},notes)
- await beat.getByRole('button',{name:'■ End'}).click()
+ await endBeat(beat)
  const br=beat.getByRole('region',{name:'Results'})
  await br.getByText(/Your hits landed about (55|60|65) ms late/).waitFor()
  const line=await br.locator('.game-result-line').textContent()
@@ -4456,7 +4464,7 @@ test('KONO Beat Timing: it never shifts by itself mid-song; after a song where e
  await br.getByRole('button',{name:/^Shift Timing \+(55|60|65) ms$/}).click()
  await br.getByText(/Timing is now \+(55|60|65) ms/).waitFor()
  await beat.getByRole('button',{name:'Play again'}).click()
- const timing=Number((await beat.locator('.beat-offset output').nth(1).textContent()).replace(/[^\d-]/g,''))
+ const timing=Number((await (await beatSettings(beat)).locator('.beat-timing output').textContent()).replace(/[^\d-]/g,''))
  assert.ok(timing>=55&&timing<=65,'the chosen Timing is kept: '+timing)
  assert.equal(await page.evaluate(()=>localStorage.getItem('kono-beat-offset')),'250','the old value is left alone')
 })
@@ -4469,18 +4477,70 @@ test('KONO Beat plays the whole song: on Jeff tier, missing everything empties t
  const town=page.getByRole('dialog',{name:'KONO Town'})
  await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
  await town.getByRole('button',{name:/KONO Beat/}).click()
- const beat=await startGame(page,'🥁 KONO Beat')
+ const beat=await openBeat(page)
  await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Jeff tier/}).click()
  await beat.getByRole('button',{name:/^Skipping Motif/}).click()
- await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click()
+ await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await skipBeatSync(beat)
  await beat.getByRole('img',{name:'KONO Beat: Skipping Motif'}).waitFor()
  // No taps at all for 30 s of song (auto-sync settles at 20 s, then every miss drains the gauge).
  await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>30000,null,{timeout:60000})
  assert.equal(await beat.getByRole('region',{name:'Results'}).count(),0,'still playing')
  assert.ok(await page.evaluate(()=>{const ms=Number(document.querySelector('.beat-canvas').dataset.ms);return new Promise(r=>setTimeout(()=>r(Number(document.querySelector('.beat-canvas').dataset.ms)>ms),500))}),'the song clock keeps running')
  // Ending before the song is over says so (not "failed"), with no grade.
- await beat.getByRole('button',{name:'■ End'}).click()
+ await endBeat(beat)
  await beat.getByRole('region',{name:'Results'}).getByRole('heading',{name:'Ended early'}).waitFor()
+})
+
+test('KONO Beat, full screen: it opens on its song select (no start card), a first song starts with the timing check, the game fills a phone with its pads on screen, Escape pauses (KONO Town stays open) and Resume counts back in, Restart and Leave work from the pause sheet, the last song is remembered, and a sung song shows its lyrics as they are sung',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.setViewportSize({width:390,height:844})
+ await page.goto(BASE);await heading(page,'Sanctuary')
+ await page.getByRole('region',{name:'KONO today'}).getByRole('button',{name:/^KONO Town: /}).click()
+ const town=page.getByRole('dialog',{name:'KONO Town'})
+ await town.getByRole('navigation',{name:'KONO Town'}).getByRole('button',{name:'Arcade'}).click()
+ await town.getByRole('button',{name:/KONO Beat/}).click()
+ const beat=await openBeat(page)
+ assert.equal(await beat.getByRole('region',{name:'Start'}).count(),0,'no start card')
+ // A sung song: its card quotes a line of its lyrics; what a hit plays is a setting kept on this device.
+ await beat.getByRole('button',{name:/^Beijing Delai/}).click()
+ await beat.getByRole('region',{name:'Song',exact:true}).getByText(/Delai hit Beijing with a racket/).waitFor()
+ {const set=await beatSettings(beat);await set.getByRole('radio',{name:'Ticks'}).click();assert.equal(await page.evaluate(()=>localStorage.getItem('kono-beat-hits')),'ticks');await set.getByRole('radio',{name:'Notes'}).click();await set.getByRole('button',{name:'Done'}).click()}
+ await beat.getByRole('button',{name:/^▶ Play Beijing Delai/}).click()
+ // The first song on this device: the timing check first (skipped here), then the song.
+ await skipBeatSync(beat)
+ const cv=beat.locator('.beat-canvas');await cv.waitFor()
+ // Full screen: the app's buttons step aside, and the whole board (pads included) fits the phone.
+ assert.equal(await beat.getByRole('button',{name:'✕ Leave'}).isVisible(),false,'the app bar is hidden while playing')
+ const box=await cv.boundingBox();assert.ok(box.y>=0&&box.y+box.height<=844+1&&box.height>=780,'the canvas fills the screen: '+JSON.stringify(box))
+ // The lyrics: "Beijing!" is sung about 4.4 s in.
+ await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>4700,null,{timeout:30000})
+ assert.equal(await cv.getAttribute('data-lyric'),'Beijing!')
+ // Escape pauses (and only that: KONO Town stays open); the song's clock holds still.
+ await page.keyboard.press('Escape')
+ const paused=beat.getByRole('dialog',{name:'Paused'});await paused.waitFor()
+ assert.ok(await town.isVisible(),'KONO Town is still open')
+ const at=Number(await cv.getAttribute('data-ms'));await page.waitForTimeout(700)
+ assert.ok(Math.abs(Number(await cv.getAttribute('data-ms'))-at)<50,'the song holds still while paused')
+ // Resume counts 3, 2, 1, then the song carries on from where it was.
+ await paused.getByRole('button',{name:'▶ Resume'}).click()
+ await beat.getByRole('status').filter({hasText:/^3$/}).waitFor()
+ await page.waitForFunction(at=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>at+300,at,{timeout:10000})
+ assert.equal(await paused.count(),0)
+ // Restart plays it again from the top.
+ await beat.getByRole('button',{name:'Pause'}).click();await paused.getByRole('button',{name:'↻ Restart'}).click()
+ await page.waitForFunction(()=>{const ms=Number(document.querySelector('.beat-canvas')?.dataset.ms);return ms<2500},null,{timeout:10000})
+ // Leave closes the game, not the town.
+ await beat.getByRole('button',{name:'Pause'}).click();await paused.getByRole('button',{name:'✕ Leave'}).click()
+ await beat.waitFor({state:'detached'});assert.ok(await town.isVisible())
+ // Back in: the song select opens on the song last played.
+ await town.getByRole('button',{name:/KONO Beat/}).click()
+ const again=await openBeat(page)
+ assert.equal(await again.getByRole('button',{name:/^Beijing Delai/}).getAttribute('aria-pressed'),'true')
+ await again.getByRole('button',{name:/^▶ Play Beijing Delai/}).click()
+ assert.equal(await again.getByRole('dialog',{name:'Timing check'}).count(),0,'the timing check is only before the first song')
+ await again.locator('.beat-canvas').waitFor();await endBeat(again)
+ await again.getByRole('region',{name:'Results'}).getByRole('heading',{name:'Ended early'}).waitFor()
 })
 
 test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with results), KONO.io (the map, a live leaderboard, steering, ■ End gives your share; team battle: Blue against Red on a clock) and Meowdoku’s Undo, Hint and Auto ✕',async({context,page})=>{
@@ -4534,27 +4594,28 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  await flow.getByRole('button',{name:'Done'}).click();await flow.waitFor({state:'detached'})
  // KONO Beat: pick a song and a level; the song is the clock; a key on time hits the note; ■ End scores it.
  await town.getByRole('button',{name:/KONO Beat/}).click()
- const beat=await startGame(page,'🥁 KONO Beat')
+ const beat=await openBeat(page)
  await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Jeff tier/}).waitFor()
  await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Easy/}).click()
  await beat.getByRole('button',{name:/^Skipping Motif/}).click()
- await beat.getByRole('button',{name:'Notes later'}).click();await beat.getByText('+5 ms').waitFor()
- await beat.getByRole('button',{name:'Notes earlier'}).click()
- // Sync check: tapping 40 ms after each click (past the warm-up) sets Timing to +40 ms; then back to 0.
- await beat.getByRole('button',{name:'Sync check'}).click()
- await beat.getByRole('button',{name:'Start the sync check'}).click()
+ const set=await beatSettings(beat)
+ await set.getByRole('button',{name:'Notes later'}).click();await set.getByText('+5 ms').waitFor()
+ await set.getByRole('button',{name:'Notes earlier'}).click()
+ // The timing check: tapping 40 ms after each click (past the warm-up) sets Timing to +40 ms; then back to 0.
+ await set.getByRole('button',{name:'Timing check'}).click()
+ await beat.getByRole('button',{name:'Start the timing check'}).click()
  await page.evaluate(async()=>{const pad=document.querySelector('.beat-sync-pad');while(!pad.syncInfo)await new Promise(r=>setTimeout(r,5))
   const {clicks,now}=pad.syncInfo
   // Sleep until just before each click, then wait in a tight loop, so a busy test machine can't make it late.
   for(const c of clicks){while(now()<c-0.25)await new Promise(r=>setTimeout(r,5));while(now()<c+0.04){/* exactly on time */}
    window.dispatchEvent(new KeyboardEvent('keydown',{key:' '}))}})
  await beat.getByText(/Timing is now \+(35|40|45) ms/).waitFor({timeout:15000})
- await beat.getByRole('button',{name:'Done'}).first().click()
- for(let i=0;i<20&&!(await beat.getByText(/^0 ms$/).count());i++){const t=await beat.locator('.beat-offset output').nth(1).textContent();await beat.getByRole('button',{name:Number(t.replace(/[^\d-]/g,''))>0?'Notes earlier':'Notes later'}).click()}
- await beat.getByText(/^0 ms$/).waitFor()
- await beat.getByLabel('Note ticks').check();await beat.getByLabel('Note ticks').uncheck()
- await beat.getByRole('button',{name:'Notes faster'}).click();await beat.getByText('5.5').waitFor()
- await beat.getByRole('button',{name:'Notes slower'}).click()
+ await beat.getByRole('dialog',{name:'Timing check'}).getByRole('button',{name:'Done'}).click()
+ for(let i=0;i<20&&!(await set.getByText(/^0 ms$/).count());i++){const t=await set.locator('.beat-timing output').textContent();await set.getByRole('button',{name:Number(t.replace(/[^\d-]/g,''))>0?'Notes earlier':'Notes later'}).click()}
+ await set.getByText(/^0 ms$/).waitFor()
+ await set.getByLabel('Guide clicks').check();await set.getByLabel('Guide clicks').uncheck()
+ await set.getByRole('button',{name:'Notes faster'}).click();await set.getByText('5.5').waitFor()
+ await set.getByRole('button',{name:'Notes slower'}).click();await set.getByRole('button',{name:'Done'}).click()
  await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click()
  const field=beat.getByRole('img',{name:'KONO Beat: Skipping Motif'});await field.waitFor()
  // A screen reader hears the song start (the canvas itself says nothing).
@@ -4568,7 +4629,7 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
    window.dispatchEvent(new KeyboardEvent('keydown',{key}));window.dispatchEvent(new KeyboardEvent('keyup',{key}))},[t,'dfjk'[lane]])
  }
  if(process.env.KONO_SHOTS)await beat.screenshot({path:process.env.KONO_SHOTS+'/beat.png'})
- await beat.getByRole('button',{name:'■ End'}).click()
+ await endBeat(beat)
  const br=beat.getByRole('region',{name:'Results'})
  await br.getByLabel(/^Grade (S\+|S|A|B|C|D|F)$/).waitFor();assert.match(await br.locator('.game-result-score').textContent(),/^[\d,]+$/)
  const line=await br.textContent();const hits=/(\d+) perfect, (\d+) great, (\d+) good/.exec(line)
@@ -4580,11 +4641,11 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  await beat.getByRole('button',{name:'Play again'}).click()
  await beat.getByRole('button',{name:/^Warm-up/}).click();await field.waitFor()
  await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>3000,null,{timeout:30000})
- await beat.getByRole('button',{name:'■ End'}).click()
+ await endBeat(beat)
  await br.getByRole('heading',{name:'Warm-up done'}).waitFor();await br.getByText(/Warm-ups don’t count/).waitFor()
  // Classic: once the timing has settled, a tap on the wrong column stops the song there.
  await beat.getByRole('button',{name:'Play again'}).click()
- await beat.getByLabel('Tap notes').waitFor();await beat.getByLabel('Classic').check()
+ {const s2=await beatSettings(beat);await s2.getByRole('radiogroup',{name:'Hit sounds'}).waitFor();await s2.getByLabel('Classic').check();await s2.getByRole('button',{name:'Done'}).click()}
  await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor()
  // Six tiles on time first (auto-sync settles: this device's timing is right), then the wrong column.
  const first7=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.easy.tap.slice(0,7)
@@ -4592,8 +4653,8 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
   for(const [i,[t,lane]] of notes.entries()){const key='dfjk'[i<6?lane:(lane+2)%4];while(cv.songNow()<t-250)await new Promise(r=>setTimeout(r,5));while(cv.songNow()<t){/* exactly on time */}
    window.dispatchEvent(new KeyboardEvent('keydown',{key}));window.dispatchEvent(new KeyboardEvent('keyup',{key}))}},first7)
  await br.getByText(/Classic: stopped at tile 6 of \d+/).waitFor({timeout:15000})
- await beat.getByRole('button',{name:'Play again'}).click();await beat.getByLabel('Classic').uncheck()
- await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor();await beat.getByRole('button',{name:'■ End'}).click();await br.waitFor()
+ await beat.getByRole('button',{name:'Play again'}).click();{const s2=await beatSettings(beat);await s2.getByLabel('Classic').uncheck();await s2.getByRole('button',{name:'Done'}).click()}
+ await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor();await endBeat(beat);await br.waitFor()
  if(process.env.KONO_SHOTS){
   // Pictures of Medium a few bars in, wide and on a phone.
   for(const [w,h,name] of [[1280,800,'beat-wide'],[390,844,'beat-phone']]){
@@ -4604,7 +4665,7 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
    await beat.getByRole('button',{name:/^▶ Play/}).click()
    await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>=9000,null,{timeout:60000})
    await beat.screenshot({path:process.env.KONO_SHOTS+'/'+name+'.png'})
-   await beat.getByRole('button',{name:'■ End'}).click()
+   await endBeat(beat)
   }
   await page.setViewportSize({width:1280,height:800})
  }

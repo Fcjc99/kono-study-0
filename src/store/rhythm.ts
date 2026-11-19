@@ -148,3 +148,19 @@ export const CLASSIC_KEY='kono-beat-classic'
 export const readClassic=()=>{try{return localStorage.getItem(CLASSIC_KEY)==='1'}catch{return false}}
 export const saveClassic=(on:boolean)=>{try{localStorage.setItem(CLASSIC_KEY,on?'1':'0')}catch{/* this device only */}}
 
+/** The song and level last played, on this device: the song select opens on them (and Play again or a
+ * "try the next level" from the results lands there). */
+export const LAST_KEY='kono-beat-last'
+export const readLast=():{song:string;level:Level}|null=>{try{const v=JSON.parse(localStorage.getItem(LAST_KEY)??'null');return v&&typeof v.song==='string'&&LEVELS.some(l=>l.id===v.level)?v:null}catch{return null}}
+export const saveLast=(song:string,level:Level)=>{try{localStorage.setItem(LAST_KEY,JSON.stringify({song,level}))}catch{/* this device only */}}
+/** What a hit plays, on this device: the tile's note (a soft tick where it has none), always a tick, or nothing.
+ * Falls back to the older on/off Tap notes setting. */
+export type HitSound='notes'|'ticks'|'off'
+export const HITS_KEY='kono-beat-hits'
+export const readHits=():HitSound=>{try{const v=localStorage.getItem(HITS_KEY);return v==='notes'||v==='ticks'||v==='off'?v:readKeys()?'notes':'off'}catch{return 'notes'}}
+export const saveHits=(v:HitSound)=>{try{localStorage.setItem(HITS_KEY,v);localStorage.setItem(KEYS_KEY,v==='off'?'0':'1')}catch{/* this device only */}}
+/** Whether this device has had its first timing check (run, or skipped) before a first song. A device that
+ * already set a Timing counts as done. */
+export const SYNCED_KEY='kono-beat-synced'
+export const readSynced=()=>{try{return localStorage.getItem(SYNCED_KEY)==='1'||localStorage.getItem(OFFSET_KEY)!==null}catch{return true}}
+export const saveSynced=()=>{try{localStorage.setItem(SYNCED_KEY,'1')}catch{/* this device only */}}

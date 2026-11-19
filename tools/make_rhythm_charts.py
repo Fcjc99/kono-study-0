@@ -274,6 +274,27 @@ def loud_hits(x):
     top = np.quantile(rise, 0.97)
     return np.array([t[i] for i in range(2, len(rise) - 2) if rise[i] > top and rise[i] == rise[i - 2:i + 3].max()])
 
+def sung_lyric_lines(file, path, onsets):
+    """A sung song's lyrics, timed (tools/sung_lyrics.py), or [] if it has none or they don't check out. The
+    alignment is kept beside the voice stems (it takes a minute or two), redone when the lyrics change."""
+    import hashlib, vocals, sung_lyrics
+    src = f'tools/lyrics/{file}.txt'
+    if not os.path.exists(src): return []
+    lines = sung_lyrics.read(src)
+    key = hashlib.sha1(open(src, 'rb').read()).hexdigest()[:12]
+    cached = os.path.join(vocals.CACHE, 'lyrics', f'{file}-{key}.json')
+    if os.path.exists(cached): words = {tuple(map(int, k.split(','))): v for k, v in json.load(open(cached)).items()}
+    else:
+        words = sung_lyrics.force_align(vocals.stem_path(path), lines)
+        os.makedirs(os.path.dirname(cached), exist_ok=True)
+        json.dump({f'{a},{b}': v for (a, b), v in words.items()}, open(cached, 'w'))
+    lyr = sung_lyrics.timed(lines, words, onsets)
+    chk = sung_lyrics.check(lines, lyr, onsets)
+    kept = sung_lyrics.keep(lyr, chk)
+    print(f'{file:7s} lyrics: {len(kept)} of {len(lines)} lines shown; {chk["repeat_lines"]} repeated lines {chk["repeat_gap"]} s apart (all repeat gaps {chk["repeat_gaps"]}); word starts on a sung onset {chk["on_onset"]:.0%} (random {chk["random_on_onset"]:.0%})')
+    return kept
+
+
 def main():
     songs = []
     for file, title, near, sung in SONGS:
@@ -305,6 +326,7 @@ def main():
             off = st - np.where(abs(grid[j] - st) < abs(grid[j - 1] - st), grid[j], grid[j - 1])
             lag = float(np.median(off[abs(off) < 0.05]))
             st = st - lag
+            onsets = list(st)
             # Only syllables you clearly hear land (the song or the voice hits right there, on the grid step they
             # snap to); one sung softly between the hits makes a tile that feels off the beat.
             mix_r, voice_r = vocals.rise(x), vocals.rise(voice)
@@ -317,6 +339,9 @@ def main():
             fills = {lv: {kind: [r for r in c[kind] if vocals.heard(r[0] / 1000, mix_r, mix_r * 0)] if kind in ('tap', 'hold') else c[kind]
                           for kind in c} for lv, c in on_beat.items()}
             charts = chart_lead(beats, dur, swing, [(a - lag, b - lag, m, w) for a, b, m, w, _ in sung_notes], fills, rest=1)
+            # The lyrics, lined up with the singing for the karaoke line (tools/sung_lyrics.py), kept only as far
+            # as they check out. `onsets`: every sung syllable, on the song's grid like the tiles.
+            lyrics = sung_lyric_lines(file, path, onsets)
             # What a hit plays: the note the voice is singing on that tile, or (0) the soft tick where it holds no
             # clear note (a rapped word) or nobody sings (a tile from the beat).
             for c in charts.values():
@@ -330,7 +355,7 @@ def main():
             charts = chart_lead(beats, dur, swing, notes, on_beat)
         first = float(beats[0] % (60 / bpm))
         print(f'{file:7s} {dur:.0f}s bpm {bpm:.2f} swing {swing:.2f} melody notes {len(notes)}', {k: (len(v["tap"]), len(v["hold"])) for k, v in charts.items()})
-        songs.append({'id': file, 'title': title, 'bpm': round(float(bpm), 3), 'first': round(first, 3), 'swing': round(swing, 3), 'ms': int(dur * 1000), 'charts': charts})
+        songs.append({'id': file, 'title': title, 'bpm': round(float(bpm), 3), 'first': round(first, 3), 'swing': round(swing, 3), 'ms': int(dur * 1000), **({'lyrics': lyrics} if sung and lyrics else {}), 'charts': charts})
     with open('src/game/data/rhythmCharts.json', 'w') as f:
         json.dump({'songs': songs}, f, separators=(',', ':'))
 

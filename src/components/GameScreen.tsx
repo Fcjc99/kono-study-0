@@ -11,6 +11,8 @@ import {GAME_SCREEN_EVENT} from '../hooks/useComfort'
  * - Play: the game, with ↻ Restart and ■ End (finish now and see how you did) beside Leave.
  * - Results: the score, a new best, coins, with Play again and Done (a chime for a round won, a soft tune
  *   for one lost, then the coins coming in).
+ * Escape leaves (or pauses a game that can, see GameHandle), and only this screen: the event doesn't go on to
+ * the dialog it was opened from (KONO Town used to close with it).
  * With Sounds on, 🎵 turns the games' music on and off (kept on this device). KONO's own music pauses while a
  * game is open, so only one song plays at a time. */
 /** `behind`: keep the finished game in view behind the results (KONO Stack's tower). */
@@ -18,10 +20,11 @@ import {GAME_SCREEN_EVENT} from '../hooks/useComfort'
 export type GameResult={emoji:string;title:string;line:string;score?:string;best?:boolean;coins?:string|null;won?:boolean;behind?:boolean;detail?:ReactNode}
 /** `extra`: more for the start card, under the how-to (Sweet swap's level map). */
 export type GameIntro={emoji:string;art?:React.ReactNode;name:string;how:string;best?:string|null;start?:string;alt?:{label:string;onClick:()=>void};extra?:React.ReactNode}
-/** What a game lets its screen do: End finishes the round now with the score so far. */
-export type GameHandle={end:()=>void}
-export default function GameScreen({title,tone,game,sound=false,intro,started=true,onStart,onRestart,onEnd,onLeave,result,onAgain,children}:{
- title:string;tone?:string;game?:string;sound?:boolean
+/** What a game lets its screen do: End finishes the round now with the score so far. `pause`, if a game has it,
+ * takes Escape while it plays (KONO Beat pauses its song) and says whether it did; otherwise Escape leaves. */
+export type GameHandle={end:()=>void;pause?:()=>boolean}
+export default function GameScreen({title,tone,game,sound=false,intro,started=true,onStart,onRestart,onEnd,onLeave,result,onAgain,onEscape,children}:{
+ title:string;tone?:string;game?:string;sound?:boolean;onEscape?:()=>boolean
  intro?:GameIntro;started?:boolean;onStart?:()=>void
  onRestart?:()=>void;onEnd?:()=>void;onLeave:()=>void
  result?:GameResult|null;onAgain?:()=>void;children:ReactNode
@@ -52,7 +55,7 @@ export default function GameScreen({title,tone,game,sound=false,intro,started=tr
    {result.coins&&<p className="game-result-coins">{result.coins}</p>}
    <div className="game-result-actions">{onAgain&&<button type="button" className="primary" onClick={()=>{gameSound('start',sound);onAgain()}}>Play again</button>}<button type="button" onClick={leave}>Done</button></div>
   </section>:null
- return <dialog ref={ref} className={'game-screen'+(tone?' is-'+tone:'')+(closing?' is-closing':'')+' is-'+phase} data-game={game} aria-label={title} onCancel={e=>{e.preventDefault();leave()}}>
+ return <dialog ref={ref} className={'game-screen'+(tone?' is-'+tone:'')+(closing?' is-closing':'')+' is-'+phase} data-game={game} aria-label={title} onCancel={e=>{e.preventDefault();e.stopPropagation();if(phase==='play'&&onEscape?.())return;leave()}}>
   <header><strong>{title}</strong><span className="game-screen-tools">
    {phase==='play'&&onRestart&&<button type="button" className="game-screen-tool" onClick={()=>{gameSound('start',sound);onRestart()}}>↻ Restart</button>}
    {phase==='play'&&onEnd&&<button type="button" className="game-screen-tool" onClick={onEnd}>■ End</button>}
