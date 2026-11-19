@@ -13,6 +13,7 @@ isn't (src/arcadeAudio.ts; a new file also goes in its RECORDED list and in tool
 | `blast.mp3` | KONO blast — “Satisfying Resolutions” (Suno) |
 | (Medal Cove’s `calm-sanctuary.mp3`) | KONO Teeter Tower — “Calm Sanctuary Variation”, from Medal Cove’s playlist (`TRACK_SRC`) |
 | `flow-1.mp3` … `flow-5.mp3` | KONO Flow, a new one every three levels — “Floating Pads”, “Shimmering Motif”, “Late Night Pulse”, “Soaring Euphoria”, “Transcendent Arpeggios” (Suno) |
+| `beijing-delai.mp3`, `casa-fantasma.mp3`, `peanut-butter-delai.mp3` | KONO Beat only — “Beijing Delai”, “Casa Fantasma”, “Peanut Butter Delai” (Suno, with lyrics). Their tiles follow the singing (`tools/vocals.py`). |
 
 KONO Flow's notes play on the beat of its song, so each `flow-N.mp3` has its tempo and first beat in
 `FLOW_GRID` (src/arcadeAudio.ts). A new or replaced Flow track needs measuring:
