@@ -13,7 +13,7 @@
 .fm-body h2{margin:0;font-size:clamp(1.4rem,5.6vw,1.9rem);font-weight:800;color:#fff;max-width:28ch}
 .fm-sub{margin:-6px 0 0;font-size:.92rem;opacity:.72;max-width:40ch}
 .fm-pick{display:flex;gap:8px;align-items:center;font-size:.82rem;opacity:.85}
-.fm-pick select{max-width:240px;padding:6px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font:inherit}
+.focus-mode .fm-pick select:not(#x){max-width:240px!important;min-height:36px!important;margin:0!important;padding:6px 10px!important;border-radius:10px!important;border:1px solid rgba(255,255,255,.25)!important;background:rgba(255,255,255,.08)!important;box-shadow:none!important;color:#fff!important;font:inherit!important;font-size:16px!important}
 .fm-pick option{color:#24142c}
 .fm-ring{--p:0;width:min(250px,66vw);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;margin:6px 0;background:conic-gradient(#f0a1bf calc(var(--p)*360deg),rgba(255,255,255,.1) 0)}
 .fm-ring>div{width:90%;aspect-ratio:1;border-radius:50%;background:#22132a;display:grid;place-items:center;align-content:center}
@@ -24,7 +24,7 @@
 .focus-mode .fm-presets button:not(#x){padding:7px 13px!important;border-radius:99px!important;background:rgba(255,255,255,.08)!important;font-size:.86rem!important;font-weight:700!important}
 .focus-mode .fm-presets button[aria-pressed=true]:not(#x){background:#fff!important;color:#2b1430!important}
 .fm-exact{display:flex;align-items:center;gap:4px;opacity:.8}
-.fm-exact input{width:58px;padding:5px 6px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font:inherit;text-align:center}
+.focus-mode .fm-exact input:not(#x){box-sizing:border-box!important;width:64px!important;min-width:0!important;min-height:40px!important;margin:0!important;padding:4px 6px!important;border-radius:10px!important;border:1px solid rgba(255,255,255,.2)!important;background:rgba(255,255,255,.06)!important;box-shadow:none!important;color:#fff!important;font:inherit!important;font-size:16px!important;text-align:center!important}
 .fm-kono{display:flex;align-items:flex-end;gap:8px}
 .fm-kono img{width:64px;height:64px;object-fit:contain;image-rendering:pixelated}
 .fm-kono p{margin:0 0 30px;padding:7px 11px;border-radius:14px 14px 14px 4px;background:rgba(255,255,255,.12);font-size:.84rem;text-align:left}

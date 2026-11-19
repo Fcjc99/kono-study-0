@@ -3744,6 +3744,7 @@ test('Family extras: a family to-do list, a snack with a note for a kid’s KONO
  // On Emma's plan, KONO says who sent the snack and the note.
  await page.getByRole('button',{name:'Whose plan?'}).first().click()
  await page.getByRole('dialog',{name:'Whose plan?'}).getByRole('button',{name:/Emma’s plan/}).click()
+ await heading(page,'Today');await kono(page)
  await page.getByText('Alice sent KONO',{exact:false}).first().waitFor()
  assert.match(await page.getByText('Alice sent KONO',{exact:false}).first().innerText(),/So proud of you!/)
 })
@@ -3920,6 +3921,7 @@ test('Planner days: Agenda first on a phone, then a day or the whole week, remem
  const days=page.getByRole('group',{name:'Calendar view'}),week=page.getByRole('region',{name:'Week'})
  assert.equal(await days.getByRole('button',{name:'Agenda',exact:true}).getAttribute('aria-pressed'),'true','phones start on Agenda')
  await days.getByRole('button',{name:'Week',exact:true}).click()
+ await week.locator('.week-grid-head button').nth(6).waitFor()
  assert.equal(await week.locator('.week-grid-head button').count(),7)
  await days.getByRole('button',{name:'Day',exact:true}).click()
  assert.equal(await week.locator('.week-grid-head button').count(),1)
@@ -3932,6 +3934,7 @@ test('Planner days: Agenda first on a phone, then a day or the whole week, remem
  await swipe(120)
  await page.waitForFunction(b=>document.querySelector('.week-grid-head button')?.getAttribute('aria-label')===b,before)
  await days.getByRole('button',{name:'Week',exact:true}).click()
+ await week.locator('.week-grid-head button').nth(6).waitFor()
  assert.equal(await week.locator('.week-grid-head button').count(),7)
  const scroller=page.locator('.week-grid-scroll.is-fit')
  assert.ok(await scroller.evaluate(e=>e.scrollWidth<=e.clientWidth+1),'all seven days fit the phone, with no sideways scrolling')
