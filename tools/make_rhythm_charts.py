@@ -6,18 +6,22 @@ tempo) and lined up with where the lead really plays. Then the melody (tools/mel
 (see chart_melody): Jeff tier every melody note, Medium the strongest at least 0.2 s apart, Easy the strongest
 of those at least 0.42 s apart. A note that rings on is a long tile. Columns follow the tune: higher notes to
 the right, lower to the left, a repeated note in the same column.
+A sung song's tiles follow its singing instead (tools/vocals.py takes the voice out of the mix and finds each
+syllable), so they land on the words.
 Needs ffmpeg and numpy. Writes src/game/data/rhythmCharts.json.
   python3 tools/make_rhythm_charts.py"""
 import json, subprocess, sys, os, numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
-import melody
+import melody, vocals
 SR, N, HOP = 22050, 1024, 64
 FPS = SR / HOP
-# file, title, tempo to search around
+# file, title, tempo to search around, and whether it's sung (its tiles then follow the singing: tools/vocals.py)
 SONGS = [
-    ('candy', 'Skipping Motif', 120.0), ('gems', 'Crystal Discoveries', 100.0), ('blast', 'Satisfying Resolutions', 107.9),
-    ('flow-1', 'Floating Pads', 90.75), ('flow-2', 'Shimmering Motif', 100.05), ('flow-3', 'Late Night Pulse', 113.3),
-    ('flow-4', 'Soaring Euphoria', 129.9), ('flow-5', 'Transcendent Arpeggios', 136.6),
+    ('candy', 'Skipping Motif', 120.0, False), ('gems', 'Crystal Discoveries', 100.0, False), ('blast', 'Satisfying Resolutions', 107.9, False),
+    ('flow-1', 'Floating Pads', 90.75, False), ('flow-2', 'Shimmering Motif', 100.05, False), ('flow-3', 'Late Night Pulse', 113.3, False),
+    ('flow-4', 'Soaring Euphoria', 129.9, False), ('flow-5', 'Transcendent Arpeggios', 136.6, False),
+    ('beijing-delai', 'Beijing Delai', 130.2, True), ('casa-fantasma', 'Casa Fantasma', 124.06, True),
+    ('peanut-butter-delai', 'Peanut Butter Delai', 140.24, True),
 ]
 
 def load(path):
@@ -270,12 +274,18 @@ def loud_hits(x):
     return np.array([t[i] for i in range(2, len(rise) - 2) if rise[i] > top and rise[i] == rise[i - 2:i + 3].max()])
 
 songs = []
-for file, title, near in SONGS:
-    x = load(f'public/audio/games/{file}.mp3'); dur = len(x) / SR
+for file, title, near, sung in SONGS:
+    path = f'public/audio/games/{file}.mp3'
+    x = load(path); dur = len(x) / SR
     onset, times, cent, rms = analyse(x); flux = onset
     beats, bpm = track_beats(flux, times, near)
     swing = swing_of(beats, loud_hits(x))
-    notes = melody.notes_of(x)
+    # A sung song: the melody is the voice, taken out of the mix, with a note for each syllable it sings.
+    if sung:
+        v = vocals.vocals_of(path)
+        notes = vocals.split_by_syllables(melody.notes_of(v), vocals.syllables_of(v))
+    else:
+        notes = melody.notes_of(x)
     # Line the grid up with where the lead really plays (its attacks are exact): shift the beats by how far,
     # in the middle, the melody's notes sit from their nearest grid step.
     for _ in range(3):

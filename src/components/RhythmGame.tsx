@@ -9,11 +9,11 @@ import './rhythm-game.css'
 
 type Song={id:string;title:string;bpm:number;ms:number;charts:Record<Level,Chart>}
 const SONGS=(charts as unknown as {songs:Song[]}).songs
-const FROM:Record<string,string>={candy:'🍬 Sweet swap',gems:'💎 Gem blitz',blast:'🧱 KONO blast','flow-1':'🌌 Flow · Drift','flow-2':'🌌 Flow · Tide','flow-3':'🌌 Flow · Pulse','flow-4':'🌌 Flow · Aurora','flow-5':'🌌 Flow · Zenith'}
+const FROM:Record<string,string>={candy:'🍬 Sweet swap',gems:'💎 Gem blitz',blast:'🧱 KONO blast','flow-1':'🌌 Flow · Drift','flow-2':'🌌 Flow · Tide','flow-3':'🌌 Flow · Pulse','flow-4':'🌌 Flow · Aurora','flow-5':'🌌 Flow · Zenith','beijing-delai':'🎤 With lyrics','casa-fantasma':'🎤 With lyrics','peanut-butter-delai':'🎤 With lyrics'}
 const LANE_COLORS=['#ff7ab6','#7ad7ff','#9dff8a','#ffd36b']
 const LEVEL_COLORS:Record<Level,string>={easy:'#3fb59a',medium:'#e0953c',jeff:'#c65ad0'}
 // Each song's cover: an emoji on two colors.
-const JACKETS:Record<string,[string,string,string]>={candy:['🍬','#ff9ac8','#ffd58a'],gems:['💎','#7fd8ff','#a98bff'],blast:['🧱','#ffb36b','#ff6b8a'],'flow-1':['🌌','#3a3f9e','#8fa2ff'],'flow-2':['🌊','#2f7fb8','#9ff0ff'],'flow-3':['🌙','#2a2350','#c27bff'],'flow-4':['🌠','#4b2d8f','#ff9ae0'],'flow-5':['✨','#1d5a6e','#ffe28a']}
+const JACKETS:Record<string,[string,string,string]>={candy:['🍬','#ff9ac8','#ffd58a'],gems:['💎','#7fd8ff','#a98bff'],blast:['🧱','#ffb36b','#ff6b8a'],'flow-1':['🌌','#3a3f9e','#8fa2ff'],'flow-2':['🌊','#2f7fb8','#9ff0ff'],'flow-3':['🌙','#2a2350','#c27bff'],'flow-4':['🌠','#4b2d8f','#ff9ae0'],'flow-5':['✨','#1d5a6e','#ffe28a'],'beijing-delai':['🏮','#d8323c','#ffcf5a'],'casa-fantasma':['👻','#2b1d45','#7fe0c8'],'peanut-butter-delai':['🥜','#c98a4b','#ffe3a8']}
 function Jacket({id,big=false}:{id:string;big?:boolean}){const [e,a,b]=JACKETS[id]??['🎵','#888','#ccc'];return <span className={'beat-jacket'+(big?' is-big':'')} style={{'--j1':a,'--j2':b} as React.CSSProperties} aria-hidden="true"><span>{e}</span></span>}
 /** How hard a chart is, 1-12: how many things to do a second (holds, sky notes and ribbons count a bit more). */
 function ratingOf(s:Song,level:Level){const c=s.charts[level],busy=(c.tap.length+c.hold.length*1.3+c.sky.length*1.4+c.ribbon.length*0.5)/(s.ms/1000);return Math.max(1,Math.min(12,Math.round(1+busy*2.4)))}
