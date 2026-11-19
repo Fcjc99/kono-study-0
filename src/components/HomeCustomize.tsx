@@ -6,7 +6,7 @@ import {DEFAULT_ORDER,type HomeLayout,type HomeWidget} from '../store/homeLayout
  * Changes apply at once; "Back to the default" undoes them all. Loaded only when opened. */
 const WIDGETS:Record<HomeWidget,{name:string;blurb:string}>={
  week:{name:'This week at a glance',blurb:'A slim strip of the next seven days'},
- sanctuary:{name:'Sanctuary',blurb:'KONO’s island and KONO today'},
+ sanctuary:{name:'KONO',blurb:'KONO’s island (now its own tab)'},
  family:{name:'Family schedule',blurb:'What’s next for each person today'},
  schedule:{name:'Schedule',blurb:'Today and tomorrow, each in your order'},
  weekAhead:{name:'The next 7 days',blurb:'Day by day: events, to-dos and tests'},
@@ -14,7 +14,7 @@ const WIDGETS:Record<HomeWidget,{name:string;blurb:string}>={
  todos:{name:'To-dos',blurb:'The family to-do list'},
  meals:{name:'Dinners & groceries',blurb:'This week’s dinners and the grocery list'},
  comingUp:{name:'Coming up',blurb:'Birthdays and countdowns'},
- focus:{name:'Focus session',blurb:'A study timer with KONO'},
+ focus:{name:'Focus',blurb:'Starts a full-screen study timer, KONO beside you'},
 }
 export default function HomeCustomize({layout,available,onChange,close}:{layout:HomeLayout;available:HomeWidget[];onChange:(l:HomeLayout)=>void;close:()=>void}){
  const shown=layout.order.filter(id=>available.includes(id))

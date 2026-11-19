@@ -30,7 +30,7 @@ export function PlanSettings({data,setData,onDeleteProfile}:{data:AppData;setDat
 /** Start over: delete every plan, kid, assignment and setting and begin again (typed confirmation). */
 function StartOver({setData}:{setData:SetAppData}){
  const [typed,setTyped]=useState(''),[busy,setBusy]=useState(false),ready=typed.trim().toUpperCase()==='START OVER'
- const go=async(e:FormEvent)=>{e.preventDefault();if(!ready||busy)return;setBusy(true);const url=new URL(location.href);url.searchParams.set('page','sanctuary');history.replaceState(null,'',url);await setData(()=>startOver());setBusy(false)}
+ const go=async(e:FormEvent)=>{e.preventDefault();if(!ready||busy)return;setBusy(true);const url=new URL(location.href);url.searchParams.set('page','today');history.replaceState(null,'',url);await setData(()=>startOver());setBusy(false)}
  return <details className="wb-panel settings-group"><summary>Start over (delete everything)</summary><form className="card danger-zone start-over" onSubmit={go}>
   <h3>Start over</h3>
   <p>Deletes <strong>every plan</strong>, kid, class schedule, assignment, note, exam and island, and sets KONO back to how it was the first day. You stay signed in. Last night’s automatic backup (Settings › Import &amp; export) is kept, so download it first if you might want something back.</p>

@@ -47,7 +47,7 @@
 /* Upright tablets (721-1100px) show this tab bar too, but the phone tab bar's colors stop at 720px: the
    tabs fell back to the wooden desk header's cream text on this light bar (near-invisible) and to a 7-column
    grid for 5 tabs. Readable muted labels and five even columns at every width. */
-:root[data-experience='cozy'] .mobile-nav.is-tabbar{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+:root[data-experience='cozy'] .mobile-nav.is-tabbar{grid-template-columns:repeat(var(--tabs,5),minmax(0,1fr))!important}
 :root[data-experience='cozy'] .mobile-nav.is-tabbar button:not(.active){color:var(--wb-muted,#7a6670)!important}
 /* Notebook tabs that look like it: each page has its own color (its icon's), and the page you're on is an
    index tab that runs out to the page's edge in that color. The phone's tab bar uses the same colors.

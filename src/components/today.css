@@ -1,0 +1,50 @@
+/* Today's top (TodayTop): KONO in a line, then Up next (the one thing to do, or what's late, as OverdueCard).
+ * KONO's page play tiles (KonoPlay) and the Focus card. In each look's own colors (the --wb tokens). */
+.today-top{display:grid;gap:12px;grid-column:1/-1;min-width:0}
+.today-kono{display:flex;align-items:center;gap:10px;padding:8px 10px 8px 8px;border-radius:18px;background:var(--wb-surface);border:1px solid var(--wb-line)}
+.today-kono p{flex:1;margin:0;font-size:.92rem;line-height:1.35;color:var(--wb-ink)}
+.workbench .today-kono button:not(#x){min-height:0!important;margin:0!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
+.workbench .today-kono .today-kono-face:not(#x){flex:none!important;width:46px!important;height:46px!important;border-radius:14px!important;background:color-mix(in srgb,var(--wb-accent) 10%,transparent)!important}
+.today-kono-face img{width:44px;height:44px;object-fit:contain;image-rendering:pixelated}
+.workbench .today-kono .today-coins:not(#x){flex:none!important;padding:5px 10px!important;border-radius:99px!important;background:#fff6d8!important;color:#6d4c00!important;font-weight:800!important;font-size:.85rem!important}
+/* Up next: the accent's own gradient, the title big, Focus and Done. */
+.up-next{position:relative;overflow:hidden;padding:16px 18px;border-radius:24px;color:#fff;background:linear-gradient(140deg,var(--wb-accent),color-mix(in srgb,var(--wb-accent) 72%,#ff8db0));box-shadow:0 18px 30px -18px color-mix(in srgb,var(--wb-accent) 85%,black)}
+.up-next.is-late{background:linear-gradient(140deg,color-mix(in srgb,var(--wb-accent) 88%,#d9622b),color-mix(in srgb,var(--wb-accent) 55%,#f29a6b))}
+.up-next.is-clear{background:var(--wb-surface);color:var(--wb-ink);border:1px solid var(--wb-line);box-shadow:none}
+.up-next .up-next-tag{margin:0!important;color:inherit!important;font-family:inherit!important;display:inline-flex;gap:5px;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.2);font-size:.74rem;font-weight:800;letter-spacing:.03em;text-transform:none}
+.up-next.is-clear .up-next-tag{background:color-mix(in srgb,var(--wb-accent) 12%,transparent);color:var(--wb-accent)}
+.up-next h3{margin:10px 0 2px!important;font-weight:800;font-size:clamp(1.3rem,4.6vw,1.6rem)!important;line-height:1.15;color:inherit!important}
+.up-next p{margin:0;font-size:.88rem;opacity:.9}
+.up-next-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.workbench .up-next button:not(#x){min-height:44px!important;margin:0!important;border-radius:14px!important;font-weight:800!important;box-shadow:none!important}
+.workbench .up-next .up-next-focus:not(#x){flex:1 1 180px!important;max-width:320px!important;background:#fff!important;color:var(--wb-accent)!important;border:0!important}
+.workbench .up-next .up-next-done:not(#x){padding:0 16px!important;background:rgba(255,255,255,.2)!important;color:#fff!important;border:0!important}
+.up-next-links{display:flex;gap:4px 14px;margin-top:8px;flex-wrap:wrap}
+.workbench .up-next .up-next-links button:not(#x){min-height:30px!important;padding:0!important;background:none!important;border:0!important;color:#fff!important;font-size:.82rem!important;font-weight:700!important;opacity:.88!important;text-decoration:underline!important;text-underline-offset:3px!important}
+.up-next-more{list-style:none;margin:12px 0 0;padding:8px 0 0;border-top:1px solid rgba(255,255,255,.25);display:grid;gap:6px}
+.up-next-more li{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.up-next-more li>div:first-child{display:grid;min-width:0}.up-next-more small{opacity:.85;font-size:.76rem}
+.workbench .up-next .up-next-more button:not(#x){min-height:32px!important;padding:0 10px!important;font-size:.78rem!important;background:rgba(255,255,255,.18)!important;color:#fff!important;border:0!important}
+.up-next-note{margin-top:6px!important;font-size:.78rem!important}
+/* KONO's page: what to play. */
+.kono-play{grid-column:1/-1}
+.kono-play h2{margin:4px 2px 10px}
+.kono-play-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.workbench .kono-play-tile:not(#x){position:relative!important;display:grid!important;align-content:start!important;gap:2px!important;min-height:100px!important;margin:0!important;padding:14px!important;border-radius:20px!important;border:0!important;text-align:left!important;color:#fff!important;overflow:hidden!important;box-shadow:0 12px 22px -16px rgba(40,20,50,.6)!important}
+.kono-play-tile b{font-size:1.05rem}.kono-play-tile small{font-size:.78rem;opacity:.92;max-width:75%}
+.kono-play-tile span{position:absolute;right:10px;bottom:6px;font-size:2.3rem}
+.workbench .kono-play-tile.is-town:not(#x){background:linear-gradient(135deg,#e07a52,#c64a6e)!important}
+.workbench .kono-play-tile.is-arcade:not(#x){background:linear-gradient(135deg,#7b5cff,#ff5fa2)!important}
+.workbench .kono-play-tile.is-decorate:not(#x){background:linear-gradient(135deg,#3f9e86,#7fd1a8)!important}
+.workbench .kono-play-tile.is-world:not(#x){background:linear-gradient(135deg,#3a5fb8,#8fb4ff)!important}
+/* The Focus card (a Home widget): starts a full-screen session. */
+.focus-launch{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.focus-launch h2{margin:0}.focus-launch p{margin:2px 0 0}
+/* The Planner's Filters (sources, to-dos, whose things): a pill on a phone that opens them; on a wide screen
+ * they're simply shown, as before. */
+.planner-filters>summary{list-style:none;justify-self:start;padding:6px 14px;border-radius:99px;border:1px solid var(--wb-line);background:var(--wb-surface);color:var(--wb-ink);font-weight:800;font-size:.85rem;cursor:pointer}
+.planner-filters>summary::-webkit-details-marker{display:none}
+@media(min-width:601px){.planner-filters>summary{display:none}}
+/* The family page's shared things (to-do, dinners), under the kids. */
+.family-shared{display:grid;gap:14px;margin-top:18px}
+.family-shared>h2{margin:0 2px}
