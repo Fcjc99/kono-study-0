@@ -7,7 +7,7 @@ import charts from '../game/data/rhythmCharts.json'
 import type {GameHandle} from './GameScreen'
 import './rhythm-game.css'
 
-/** `hit: 'tick'`: a song with singing, charted on its beat: a hit plays a soft drum tick, not a note that could clash with the voice. */
+/** `hit: 'tick'`: a song whose chart pitches can't be trusted (the chart tool sets it when a sung song's pitches don't sit in its key): a hit plays a soft drum tick, not a note that could clash with the voice. */
 type Song={id:string;title:string;bpm:number;ms:number;hit?:'tick';charts:Record<Level,Chart>}
 const SONGS=(charts as unknown as {songs:Song[]}).songs
 const FROM:Record<string,string>={candy:'🍬 Sweet swap',gems:'💎 Gem blitz',blast:'🧱 KONO blast','flow-1':'🌌 Flow · Drift','flow-2':'🌌 Flow · Tide','flow-3':'🌌 Flow · Pulse','flow-4':'🌌 Flow · Aurora','flow-5':'🌌 Flow · Zenith','beijing-delai':'🎤 With lyrics','casa-fantasma':'🎤 With lyrics','peanut-butter-delai':'🎤 With lyrics'}
