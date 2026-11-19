@@ -1,99 +1,89 @@
-"""The singing in a song, pulled out of the stereo mix for KONO Beat's sung charts (tools/make_rhythm_charts.py),
-so their tiles land on the words. numpy only (no separation model).
+"""The sung syllables of a song, for KONO Beat's charts of its sung songs (tools/make_rhythm_charts.py).
 
-How:
-1. Centre: a song's voice sits in the middle of the stereo picture, the same in both speakers; most of the
-   band (pads, guitars, reverb) is spread out. Each moment and pitch keeps only as much as the left and right
-   channels agree there (in level and in phase).
-2. Harmonic: drums are short and spread over every pitch; a sung note is a steady line at its own pitch. Each
-   bin is kept by how much more it holds its level over a moment than it is shared across pitches (median
-   filtering, after FitzGerald 2010), which takes the kick and snare out of the middle too.
-3. The voice's range: below 140 Hz (the bass) and above 7 kHz (cymbals, breath) are dropped.
-What comes back is a mono signal with mostly the voice in it, for tools/melody.py to follow."""
-import subprocess
-import numpy as np
+1. The voice on its own: Demucs (htdemucs, two stems) separates it from the mix. This is an offline chart
+   tool only, so torch and demucs are needed just here, and only when a sung song is charted:
+     pip install torch torchaudio demucs
+   The stem is cached (KONO_STEMS, default ~/.cache/kono-stems) so a rerun doesn't separate again.
+2. Each syllable: a peak of the voice's loudness that stands clear of the dips around it (a syllable nucleus,
+   so consonants, breaths and reverb tails don't count), starting at the steepest rise into it.
+3. Each syllable's pitch: the sung note there (tools/melody.py on the voice stem), and how long it's held.
+Gives (start, end, MIDI pitch, strength) like melody.notes_of, so chart_lead can chart them."""
+import os, subprocess, sys, numpy as np
+sys.path.insert(0, os.path.dirname(__file__))
+import melody
 
-SR, N, HOP = 22050, 2048, 512
-
-
-def load_stereo(path):
-    raw = subprocess.run(['ffmpeg', '-v', 'quiet', '-i', path, '-ac', '2', '-ar', str(SR), '-f', 'f32le', '-'], capture_output=True).stdout
-    x = np.frombuffer(raw, dtype=np.float32).reshape(-1, 2)
-    return x[:, 0].copy(), x[:, 1].copy()
+SR, HOP = 22050, 64
+FPS = SR / HOP
 
 
-def _stft(x):
-    pad = np.pad(x, (N // 2, N // 2 + HOP))
-    frames = np.lib.stride_tricks.sliding_window_view(pad, N)[::HOP] * np.hanning(N).astype(np.float32)
-    return np.fft.rfft(frames, axis=1).astype(np.complex64)
+def stem(path, load):
+    """The voice of the song at `path`, mono at SR (separated once, then cached)."""
+    cache = os.environ.get('KONO_STEMS', os.path.expanduser('~/.cache/kono-stems'))
+    name = os.path.splitext(os.path.basename(path))[0]
+    out = os.path.join(cache, 'htdemucs', name, 'vocals.wav')
+    if not os.path.exists(out):
+        subprocess.run([sys.executable, '-m', 'demucs', '--two-stems=vocals', '-n', 'htdemucs', '-o', cache, path], check=True)
+    return load(out)
 
 
-def _istft(S, length):
-    win = np.hanning(N).astype(np.float32)
-    frames = np.fft.irfft(S, n=N, axis=1).astype(np.float32) * win
-    out = np.zeros(len(frames) * HOP + N, np.float32); norm = np.zeros_like(out)
-    for i, f in enumerate(frames):
-        out[i * HOP:i * HOP + N] += f; norm[i * HOP:i * HOP + N] += win * win
-    out = out / np.maximum(norm, 1e-3)
-    return out[N // 2:N // 2 + length]
+def _envelope(v):
+    """The voice's loudness (dB) in the band where vowels sit (250-3500 Hz), smoothed over 40 ms, per HOP frame."""
+    N = 1024
+    frames = np.lib.stride_tricks.sliding_window_view(v, N)[::HOP] * np.hanning(N)
+    mag = np.abs(np.fft.rfft(frames, axis=1)); f = np.fft.rfftfreq(N, 1 / SR)
+    e = 10 * np.log10((mag[:, (f > 250) & (f < 3500)] ** 2).sum(axis=1) + 1e-9)
+    w = np.hanning(int(0.04 * FPS)); e = np.convolve(e, w / w.sum(), 'same')
+    return e, (np.arange(len(e)) * HOP + N / 2) / SR
 
 
-def _median(a, k, axis):
-    """A running median of width k along one axis, in slices so it fits in memory."""
-    pad = [(0, 0), (0, 0)]; pad[axis] = (k // 2, k // 2)
-    p = np.pad(a, pad, mode='edge'); out = np.empty_like(a)
-    if axis == 0:
-        for c in range(0, a.shape[1], 64):
-            out[:, c:c + 64] = np.median(np.lib.stride_tricks.sliding_window_view(p[:, c:c + 64], k, axis=0), axis=-1)
-    else:
-        for r in range(0, a.shape[0], 512):
-            out[r:r + 512] = np.median(np.lib.stride_tricks.sliding_window_view(p[r:r + 512], k, axis=1), axis=-1)
+def _nuclei(e, prom=5.0, reach=0.6):
+    """Syllable nuclei (after de Jong & Wempe 2009): peaks of the voice's loudness that stand at least `prom` dB
+    above the dips on both sides (looking up to `reach` s each way). Each with its left dip and prominence."""
+    n, r = len(e), int(reach * FPS); out = []
+    for i in range(1, n - 1):
+        if not (e[i] >= e[i - 1] and e[i] > e[i + 1]): continue
+        L = i
+        while L > 0 and e[L - 1] <= e[i] and i - L < r: L -= 1
+        R = i
+        while R < n - 1 and e[R + 1] <= e[i] and R - i < r: R += 1
+        dip_l = L + int(np.argmin(e[L:i + 1]))
+        p = e[i] - max(e[dip_l], e[i:R + 1].min())
+        if p >= prom: out.append((i, dip_l, p))
     return out
 
 
-def vocals_of(path):
-    left, right = load_stereo(path)
-    L, R = _stft(left), _stft(right)
-    power = (np.abs(L) ** 2 + np.abs(R) ** 2) / 2 + 1e-12
-    # 1 where both speakers carry the same thing in phase (the centre), towards 0 where they differ.
-    centre = np.clip(np.real(L * np.conj(R)) / power, 0, 1) ** 3
-    V = (L + R) / 2 * centre
-    mag = np.abs(V).astype(np.float32)
-    held = _median(mag, 17, axis=0)      # steady over ~0.4 s: a sung line
-    spread = _median(mag, 17, axis=1)    # shared across ~180 Hz of pitches: a drum hit
-    V = V * (held ** 2 / (held ** 2 + spread ** 2 + 1e-12))
-    f = np.fft.rfftfreq(N, 1 / SR)
-    V[:, (f < 140) | (f > 7000)] = 0
-    return _istft(V, len(left))
-
-
-def syllables_of(v):
-    """Where the singer starts each syllable: sharp rises in the voice's own sound (300 Hz-4 kHz), each one
-    clearly above what's around it (the last second or so), at least 0.09 s apart."""
-    hop = 128
-    frames = np.lib.stride_tricks.sliding_window_view(np.pad(v, N // 2), N)[::hop] * np.hanning(N).astype(np.float32)
-    f = np.fft.rfftfreq(N, 1 / SR); band = (f >= 300) & (f <= 4000)
-    mag = np.log1p(40 * np.abs(np.fft.rfft(frames, axis=1))[:, band])
-    flux = np.r_[0, np.maximum(0, np.diff(mag, axis=0)).sum(axis=1)]
-    level = np.convolve(flux, np.ones(9) / 9, 'same')
-    w = int(SR / hop)  # about a second
-    base = np.convolve(level, np.ones(w) / w, 'same')
-    spread = np.sqrt(np.maximum(0, np.convolve(level ** 2, np.ones(w) / w, 'same') - base ** 2))
-    t = np.arange(len(level)) * hop / SR
-    floor = np.percentile(level, 60); out = []
-    for i in range(2, len(level) - 2):
-        if level[i] == level[i - 2:i + 3].max() and level[i] > base[i] + 1.0 * spread[i] and level[i] > floor:
-            if not out or t[i] - out[-1] >= 0.09: out.append(t[i])
-    return np.array(out)
-
-
-def split_by_syllables(notes, onsets):
-    """A held note the singer puts new words on (same pitch, new syllables) becomes one note per syllable, so
-    every word gets its tile."""
+def syllables(v):
+    """(start, end, MIDI pitch, strength) for each sung syllable in the voice stem `v`. A syllable is a nucleus
+    of the voice's loudness (see _nuclei) where it's really singing (within 25 dB of its loud parts); it starts
+    at the steepest rise into it, lasts while the voice stays within 10 dB of its peak, and its pitch is the
+    sung note there (melody.notes_of on the voice alone)."""
+    e, times = _envelope(v)
+    loud = np.percentile(e, 95)
+    nuc = [(i, d, p) for i, d, p in _nuclei(e) if e[i] > loud - 25]
+    notes = melody.notes_of(v)
     out = []
-    for start, end, pitch, strength in notes:
-        cuts = [s for s in onsets if start + 0.1 <= s <= end - 0.08]
-        edges = [start] + cuts + [end]
-        for a, b in zip(edges[:-1], edges[1:]):
-            out.append((float(a), float(b), pitch, strength if a == start else strength * 0.8))
+    for a, (i, dip, prom) in enumerate(nuc):
+        rise = np.diff(e[dip:i + 1])
+        k0 = dip + int(np.argmax(rise)) + 1 if len(rise) else i
+        t = float(times[k0])
+        nxt_dip = nuc[a + 1][1] if a + 1 < len(nuc) else len(e) - 1
+        k = i
+        while k < nxt_dip and e[k] > e[i] - 10: k += 1
+        end = float(times[k])
+        tp = float(times[i]); pitch = None
+        for s0, e0, m0, _ in notes:
+            if s0 - 0.03 <= tp < e0: pitch = m0; break
+        if pitch is None and notes:
+            j = int(np.argmin([abs(n0[0] - tp) for n0 in notes]))
+            if abs(notes[j][0] - tp) < 0.15: pitch = notes[j][2]
+        if pitch is None: pitch = out[-1][2] if out else 64
+        out.append((t, end, int(pitch), float(min(prom, 20) / 10 * 10 ** ((e[i] - loud) / 40))))
     return out
+
+
+def in_key(pitches, weights=None):
+    """The share of `pitches` in the best-fitting major scale (any of the 12; minor shares its relative major's notes)."""
+    pc = np.array(pitches) % 12; w = np.ones(len(pc)) if weights is None else np.asarray(weights)
+    major = np.array([0, 2, 4, 5, 7, 9, 11])
+    best = max(range(12), key=lambda k: w[np.isin(pc, (major + k) % 12)].sum())
+    return float(w[np.isin(pc, (major + best) % 12)].sum() / w.sum()), best

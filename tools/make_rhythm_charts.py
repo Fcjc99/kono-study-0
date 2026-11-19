@@ -6,16 +6,17 @@ tempo) and lined up with where the lead really plays. Then the melody (tools/mel
 (see chart_melody): Jeff tier every melody note, Medium the strongest at least 0.2 s apart, Easy the strongest
 of those at least 0.42 s apart. A note that rings on is a long tile. Columns follow the tune: higher notes to
 the right, lower to the left, a repeated note in the same column.
-A sung song's tiles follow its singing instead (tools/vocals.py takes the voice out of the mix and finds each
-syllable), so they land on the words.
-Needs ffmpeg and numpy. Writes src/game/data/rhythmCharts.json.
+A song with singing goes by its sung syllables instead (tools/vocals.py: the voice separated from the mix with
+Demucs, then each syllable's onset and sung pitch), charted the same way (chart_lead), with the beat filling
+where nobody sings. Its tap notes play the sung pitch, or a soft tick when the pitches found don't sit in the
+song's key. Needs ffmpeg and numpy (and torch + demucs for the sung songs). Writes src/game/data/rhythmCharts.json.
   python3 tools/make_rhythm_charts.py"""
 import json, subprocess, sys, os, numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
-import melody, vocals
+import melody
 SR, N, HOP = 22050, 1024, 64
 FPS = SR / HOP
-# file, title, tempo to search around, and whether it's sung (its tiles then follow the singing: tools/vocals.py)
+# file, title, tempo to search around, and whether it's sung (then its tiles go on the sung syllables: see above)
 SONGS = [
     ('candy', 'Skipping Motif', 120.0, False), ('gems', 'Crystal Discoveries', 100.0, False), ('blast', 'Satisfying Resolutions', 107.9, False),
     ('flow-1', 'Floating Pads', 90.75, False), ('flow-2', 'Shimmering Motif', 100.05, False), ('flow-3', 'Late Night Pulse', 113.3, False),
@@ -273,31 +274,50 @@ def loud_hits(x):
     top = np.quantile(rise, 0.97)
     return np.array([t[i] for i in range(2, len(rise) - 2) if rise[i] > top and rise[i] == rise[i - 2:i + 3].max()])
 
-songs = []
-for file, title, near, sung in SONGS:
-    path = f'public/audio/games/{file}.mp3'
-    x = load(path); dur = len(x) / SR
-    onset, times, cent, rms = analyse(x); flux = onset
-    beats, bpm = track_beats(flux, times, near)
-    swing = swing_of(beats, loud_hits(x))
-    # A sung song: the melody is the voice, taken out of the mix, with a note for each syllable it sings.
-    if sung:
-        v = vocals.vocals_of(path)
-        notes = vocals.split_by_syllables(melody.notes_of(v), vocals.syllables_of(v))
-    else:
+def main():
+    songs = []
+    for file, title, near, sung in SONGS:
+        path = f'public/audio/games/{file}.mp3'
+        x = load(path); dur = len(x) / SR
+        onset, times, cent, rms = analyse(x); flux = onset
+        beats, bpm = track_beats(flux, times, near)
+        swing = swing_of(beats, loud_hits(x))
         notes = melody.notes_of(x)
-    # Line the grid up with where the lead really plays (its attacks are exact): shift the beats by how far,
-    # in the middle, the melody's notes sit from their nearest grid step.
-    for _ in range(3):
-        grid = np.sort(np.concatenate([beats[:-1] + (beats[1:] - beats[:-1]) * k / 4 for k in range(4)]))
-        st = np.array([n[0] for n in notes]); j = np.clip(np.searchsorted(grid, st), 1, len(grid) - 1)
-        near_step = np.where(abs(grid[j] - st) < abs(grid[j - 1] - st), grid[j], grid[j - 1]); off = st - near_step
-        off = off[abs(off) < 0.035]; shift = float(np.median(off)) if len(off) else 0
-        if abs(shift) < 0.002: break
-        beats = beats + shift
-    charts = chart_lead(beats, dur, swing, notes, chart_beat(onset, times, cent, beats, dur, swing, notes))
-    first = float(beats[0] % (60 / bpm))
-    print(f'{file:7s} {dur:.0f}s bpm {bpm:.2f} swing {swing:.2f} melody notes {len(notes)}', {k: (len(v["tap"]), len(v["hold"])) for k, v in charts.items()})
-    songs.append({'id': file, 'title': title, 'bpm': round(float(bpm), 3), 'first': round(first, 3), 'swing': round(swing, 3), 'ms': int(dur * 1000), 'charts': charts})
-with open('src/game/data/rhythmCharts.json', 'w') as f:
-    json.dump({'songs': songs}, f, separators=(',', ':'))
+        # Line the grid up with where the lead really plays (its attacks are exact): shift the beats by how far,
+        # in the middle, the melody's notes sit from their nearest grid step.
+        for _ in range(3):
+            grid = np.sort(np.concatenate([beats[:-1] + (beats[1:] - beats[:-1]) * k / 4 for k in range(4)]))
+            st = np.array([n[0] for n in notes]); j = np.clip(np.searchsorted(grid, st), 1, len(grid) - 1)
+            near_step = np.where(abs(grid[j] - st) < abs(grid[j - 1] - st), grid[j], grid[j - 1]); off = st - near_step
+            off = off[abs(off) < 0.035]; shift = float(np.median(off)) if len(off) else 0
+            if abs(shift) < 0.002: break
+            beats = beats + shift
+        on_beat = chart_beat(onset, times, cent, beats, dur, swing, notes)
+        tick = False
+        if sung:
+            # The sung syllables, from the voice on its own (tools/vocals.py: needs torch and demucs).
+            import vocals
+            sung_notes = vocals.syllables(vocals.stem(path, load))
+            # A syllable's onset as measured (the rise into its vowel) sits a little after the grid step it's sung
+            # on (about 20 ms in these songs): take that out, so it snaps to its step.
+            grid = np.sort(np.concatenate([beats[:-1] + (beats[1:] - beats[:-1]) * k / 4 for k in range(4)]))
+            st = np.array([n[0] for n in sung_notes]); j = np.clip(np.searchsorted(grid, st), 1, len(grid) - 1)
+            off = st - np.where(abs(grid[j] - st) < abs(grid[j - 1] - st), grid[j], grid[j - 1])
+            lag = float(np.median(off[abs(off) < 0.05]))
+            sung_notes = [(a - lag, b - lag, m, w) for a, b, m, w in sung_notes]
+            charts = chart_lead(beats, dur, swing, sung_notes, on_beat)
+            # The tap notes play the sung pitch when the pitches found sit in the song's key; else a soft tick.
+            share, _ = vocals.in_key([n[2] for n in sung_notes], [n[1] - n[0] for n in sung_notes])
+            tick = share < 0.85
+            print(f'{file:7s} sung syllables {len(sung_notes)} (voice {lag * 1000:+.0f} ms off the grid), in key {share:.0%}')
+        else:
+            charts = chart_lead(beats, dur, swing, notes, on_beat)
+        first = float(beats[0] % (60 / bpm))
+        print(f'{file:7s} {dur:.0f}s bpm {bpm:.2f} swing {swing:.2f} melody notes {len(notes)}', {k: (len(v["tap"]), len(v["hold"])) for k, v in charts.items()})
+        songs.append({'id': file, 'title': title, 'bpm': round(float(bpm), 3), 'first': round(first, 3), 'swing': round(swing, 3), 'ms': int(dur * 1000), **({'hit': 'tick'} if tick else {}), 'charts': charts})
+    with open('src/game/data/rhythmCharts.json', 'w') as f:
+        json.dump({'songs': songs}, f, separators=(',', ':'))
+
+
+if __name__ == '__main__':
+    main()
