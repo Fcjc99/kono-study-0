@@ -4379,7 +4379,7 @@ test('Family to-dos everywhere: typed in one line in ＋ Add, every 2 weeks from
  await go(page,'Kids')
  const emma=page.getByRole('region',{name:'Your kids'}).getByRole('listitem').filter({hasText:'Emma'})
  await emma.getByText('Later this week').waitFor()
- assert.match(await emma.innerText(),/Tomorrow\s+🗓️ Piano 5:00 PM/i)
+ assert.match(await emma.innerText(),/Tomorrow\s+Piano 5:00 PM/i)
  assert.match(await emma.innerText(),/Sat · Soccer game 9:00 AM/)
  await emma.getByRole('button',{name:'Edit Emma'}).waitFor()
  // A family Home, opened again on this device: the island shows its picture and loads the rest once near.
