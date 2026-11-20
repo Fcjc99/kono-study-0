@@ -79,3 +79,6 @@
 .today-then-icon{display:grid;place-items:center;color:var(--wb-accent)}
 .kono-play-tile span .kicon{color:#fff;opacity:.9}
 .home-customize button .kicon,.wb-section-head h2 .kicon,.recipe-box summary .kicon,h3 .kicon{vertical-align:-4px;color:var(--wb-accent)}
+/* Your day on Today: tighter, the day names small, the empty lines quiet. */
+.home-grid.is-today .today-card .today-card-day{font-size:.95rem!important;margin:8px 0 4px!important}
+.home-grid.is-today .today-card .today-card-body{padding-top:4px!important;padding-bottom:4px!important}

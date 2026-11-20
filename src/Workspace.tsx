@@ -1244,7 +1244,7 @@ function Workspace({store}:{store:Store}){
         today; ＋ Add and the ⋯ menu (what to show, classes, the Planner) sit in its header. */}
     {id==='schedule'&&<section className="wb-panel today-card" aria-label="Your day">
      <div className="wb-section-head today-card-head">
-      <h2>Schedule</h2>
+      <h2>Your day</h2>
       <div className="wb-toolbar">
        <button type="button" className="quick-day-open" aria-label="Add for today" aria-expanded={quickDayOpen==='today'} onClick={()=>setQuickDayOpen(o=>o==='today'?null:'today')}>＋ Add</button>
        <details className="today-card-more"><summary aria-label="More for your day">⋯</summary><div className="today-card-menu"><span className="today-card-menu-title">Show</span>{scheduleViewPicker}<button type="button" onClick={()=>{setSettingsTab('Schedules');navigate('Settings')}}>Edit classes</button><button type="button" onClick={()=>{setSelectedDate(today);navigate('Planner')}}>Open in Planner</button></div></details>
