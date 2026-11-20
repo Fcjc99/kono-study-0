@@ -69,6 +69,7 @@ export default function KonoStack({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
    <canvas ref={canvas} width={W*2} height={H*2} aria-hidden="true"/>
    <strong key={s} className="stack-score" aria-live="polite">{s}</strong>
    {call&&<span key={call.at} className="stack-call" aria-hidden="true">{call.text}</span>}
+   {call&&<span key={'r'+call.at} className="stack-ring" aria-hidden="true"/>}
    {!over&&<span className={'stack-pips'+(streak>=3?' is-growing':'')} aria-label={streak>=3?'Perfect streak '+streak+': each Perfect makes the floor wider':'Perfects in a row: '+streak+' of 3 to make the floors wider'}>
     {[0,1,2].map(i=><i key={i} className={i<Math.min(3,streak)?'is-on':undefined}/>)}<small>{streak>=3?'Wider!':'3 = wider'}</small></span>}
    {s===0&&!over&&<p className="stack-hint"><b>Tap to build</b><span>Line each floor up with the one below</span></p>}

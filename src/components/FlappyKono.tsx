@@ -48,6 +48,7 @@ export default function FlappyKono({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;b
   <div className="blast-top"><span className="blast-best">{best!==null?'Best '+best:'KONO Hop'}</span><span className="blast-coins">{medal?medal.emoji+' '+medal.name:''}</span></div>
   <div className="flappy-frame" onPointerDown={e=>{e.preventDefault();press()}}>
    <canvas ref={canvas} width={FLAP.w*2} height={FLAP.h*2} role="img" aria-label={'KONO Hop, score '+score}/>
+   {score>0&&<span key={'p'+score} className="flappy-pass" aria-hidden="true"/>}
    <strong key={score} className="flappy-score" aria-live="polite">{score}</strong>
    {stage==='ready'&&<p className="flappy-ready"><b>Get ready!</b><span>Tap to flap</span></p>}
    {flash>0&&<span key={flash} className="flappy-flash" aria-hidden="true"/>}

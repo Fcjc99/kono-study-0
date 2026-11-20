@@ -988,3 +988,20 @@ dialog.game-screen .game-result{position:relative;box-shadow:0 30px 60px -24px r
  .meow .meow-board:not(#x){max-width:min(580px,calc(100vh - 290px))!important}
  .meow .break-game-status,.meow .meow-help{max-width:min(580px,calc(100vh - 290px))}
 }
+/* A Perfect floor: a ring of light spreads from the top of the tower. */
+.stack-ring{position:absolute;z-index:2;left:50%;top:48%;width:60px;height:30px;margin:-15px 0 0 -30px;border-radius:50%;border:4px solid #fff6b0;box-shadow:0 0 18px #ffcf5a,inset 0 0 12px #ffcf5a;pointer-events:none;animation:stack-ring .7s ease-out forwards}
+@keyframes stack-ring{0%{transform:scale(.5);opacity:1}100%{transform:scale(4.5);opacity:0}}
+/* KONO Hop: through a gap, a gold flare behind the score. */
+.flappy-pass{position:absolute;z-index:1;left:50%;top:7%;width:90px;height:90px;margin-left:-45px;border-radius:50%;background:radial-gradient(circle,rgb(255 236 150/.9),rgb(255 200 80/.35) 45%,transparent 70%);pointer-events:none;animation:hop-pass .55s ease-out forwards}
+@keyframes hop-pass{0%{transform:scale(.4);opacity:1}100%{transform:scale(1.8);opacity:0}}
+.flappy .flappy-score{z-index:2}
+@media(prefers-reduced-motion:reduce){.stack-ring,.flappy-pass{display:none}}
+/* KONO blast: a cleared line flashes as a beam of light. */
+.blast-beams{position:absolute;inset:0;pointer-events:none;z-index:3}
+.blast-beams i{position:absolute;border-radius:8px;background:linear-gradient(var(--dir,90deg),transparent,rgb(255 255 255/.95),transparent);box-shadow:0 0 24px rgb(255 255 255/.9),0 0 50px rgb(160 200 255/.8);mix-blend-mode:screen;animation:blast-beam .55s ease-out forwards}
+.blast-beams i.is-row{left:-4%;right:-4%;--dir:90deg}
+.blast-beams i.is-col{top:-4%;bottom:-4%;--dir:180deg}
+@keyframes blast-beam{0%{opacity:0;transform:scale(1,.2)}25%{opacity:1;transform:scale(1,1.15)}100%{opacity:0;transform:scale(1,1.6)}}
+.blast-beams i.is-col{animation-name:blast-beam-col}
+@keyframes blast-beam-col{0%{opacity:0;transform:scale(.2,1)}25%{opacity:1;transform:scale(1.15,1)}100%{opacity:0;transform:scale(1.6,1)}}
+@media(prefers-reduced-motion:reduce){.blast-beams{display:none}}
