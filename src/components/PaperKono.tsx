@@ -133,7 +133,7 @@ function draw(c:HTMLCanvasElement|null,a:Arena,prev:Map<number,{x:number;y:numbe
  const colors=new Map(a.players.map(p=>[p.id,p.color])),lands=a.mode==='team'?new Map(TEAMS.map(t=>[t.id,t.color])):colors
  // Off the map is darker; the floor is pale with a soft dot pattern.
  g.fillStyle='#d5dbea';g.fillRect(0,0,c.width,c.height)
- g.fillStyle='#f4f6fb';g.fillRect(ox,oy,N*cell,N*cell)
+ {const fl=g.createRadialGradient(c.width/2,c.height/2,0,c.width/2,c.height/2,Math.max(c.width,c.height)*0.8);fl.addColorStop(0,'#fbfcff');fl.addColorStop(1,'#e7ecf8');g.fillStyle=fl;g.fillRect(ox,oy,N*cell,N*cell)}
  const x0=Math.max(0,Math.floor(-ox/cell)-1),y0=Math.max(0,Math.floor(-oy/cell)-1),x1=Math.min(N,Math.ceil((c.width-ox)/cell)+1),y1=Math.min(N,Math.ceil((c.height-oy)/cell)+1)
  g.fillStyle='rgba(80,100,160,.09)'
  for(let y=y0-(y0%4);y<y1;y+=4)for(let x=x0-(x0%4);x<x1;x+=4){g.beginPath();g.arc(ox+(x+2)*cell,oy+(y+2)*cell,cell*0.16,0,7);g.fill()}
@@ -173,14 +173,16 @@ function draw(c:HTMLCanvasElement|null,a:Arena,prev:Map<number,{x:number;y:numbe
  g.lineWidth=1.2;g.lineJoin='round'
  for(const {col,path} of shapes){g.save();g.translate(0,side);g.fillStyle=g.strokeStyle=shade(col,-0.3);g.fill(path);g.stroke(path);g.restore()}
  for(const {col,path} of shapes){g.fillStyle=g.strokeStyle=col;g.fill(path);g.stroke(path)}
+ // Light from the top: a soft sheen across each land, brightest along its upper edge.
+ for(const {path} of shapes){g.save();g.clip(path);const sh=g.createLinearGradient(0,0,0,c.height);sh.addColorStop(0,'rgba(255,255,255,.28)');sh.addColorStop(0.5,'rgba(255,255,255,.08)');sh.addColorStop(1,'rgba(0,0,40,.08)');g.fillStyle=sh;g.fillRect(0,0,c.width,c.height);g.restore()}
  // Trails: smooth lines from where each left its land to where it is now.
  g.lineCap='round';g.lineJoin='round'
  for(const p of a.players){
   if(!p.alive||!p.path.length)continue
   const h=pos(p.id,p.x,p.y)
-  g.strokeStyle=shade(p.color,0.35);g.globalAlpha=0.85;g.lineWidth=cell*0.62
+  g.strokeStyle=shade(p.color,0.35);g.globalAlpha=0.85;g.lineWidth=cell*0.62;g.shadowColor=p.color;g.shadowBlur=cell*0.7
   g.beginPath();g.moveTo(ox+p.path[0][0]*cell,oy+p.path[0][1]*cell);for(const [x,y] of p.path)g.lineTo(ox+x*cell,oy+y*cell);g.lineTo(ox+h.x*cell,oy+h.y*cell);g.stroke()
-  g.globalAlpha=1
+  g.globalAlpha=1;g.shadowBlur=0
  }
  // Players: a block a little bigger than a square, turned the way it's heading, with a face.
  for(const p of a.players){
@@ -206,6 +208,8 @@ function draw(c:HTMLCanvasElement|null,a:Arena,prev:Map<number,{x:number;y:numbe
   if(b.text){g.font='900 '+Math.round(cell*1.1)+'px system-ui';g.textAlign='center';g.textBaseline='middle';g.lineWidth=5;g.strokeStyle='#fff';g.strokeText(b.text,bx,by-rr*0.6);g.fillStyle='#ffb02e';g.fillText(b.text,bx,by-rr*0.6)}
   g.globalAlpha=1
  }
+ // A soft vignette pulls the eye to the middle.
+ {const vg=g.createRadialGradient(c.width/2,c.height/2,Math.min(c.width,c.height)*0.35,c.width/2,c.height/2,Math.max(c.width,c.height)*0.75);vg.addColorStop(0,'rgba(20,30,70,0)');vg.addColorStop(1,'rgba(20,30,70,.22)');g.fillStyle=vg;g.fillRect(0,0,c.width,c.height)}
  // The joystick, where the finger is.
  if(stick){
   const k=c.width/rect.width,sx=(stick.x-rect.left)*k,sy=(stick.y-rect.top)*k,fx=(stick.fx-rect.left)*k,fy=(stick.fy-rect.top)*k

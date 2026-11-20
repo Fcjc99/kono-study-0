@@ -238,7 +238,9 @@ function draw(c:HTMLCanvasElement|null,s:Game,dt:number,v:Vis){
   // The well (shaken a little by hard drops and big clears).
   const sk=v.shake*dpr;v.shake=Math.max(0,v.shake-dt/40)
   x.save();x.translate((Math.random()-0.5)*sk,(Math.random()-0.5)*sk)
-  x.fillStyle='rgba(4,6,20,.55)';x.fillRect(ox,oy,COLS*cs,ROWS*cs)
+  {const wg=x.createLinearGradient(0,oy,0,oy+ROWS*cs);wg.addColorStop(0,'rgba(4,6,22,.72)');wg.addColorStop(1,'hsla('+v.hue+' 60% 12% / .82)');x.fillStyle=wg;x.fillRect(ox,oy,COLS*cs,ROWS*cs)
+   // A soft floor of light at the bottom of the well.
+   const fl=x.createLinearGradient(0,oy+ROWS*cs-cs*3,0,oy+ROWS*cs);fl.addColorStop(0,'transparent');fl.addColorStop(1,'hsla('+v.hue+' 90% 60% / .22)');x.fillStyle=fl;x.fillRect(ox,oy+ROWS*cs-cs*3,COLS*cs,cs*3)}
   x.strokeStyle='hsla('+v.hue+' 90% 75% / .7)';x.lineWidth=2*dpr;x.shadowColor='hsl('+v.hue+' 90% 65%)';x.shadowBlur=14*dpr
   x.strokeRect(ox-dpr,oy-dpr,COLS*cs+2*dpr,ROWS*cs+2*dpr);x.shadowBlur=0
   x.strokeStyle='rgba(255,255,255,.04)';x.lineWidth=1
@@ -248,7 +250,7 @@ function draw(c:HTMLCanvasElement|null,s:Game,dt:number,v:Vis){
   for(let cy=HIDDEN;cy<H;cy++)for(let cx=0;cx<COLS;cx++){const kv=s.board[cy*COLS+cx];if(kv)cell(cx,cy,kv,s.over?0.35:kv===FLOW_CELL?0.75+0.25*Math.sin(v.clock/120+cy):1)}
   if(s.piece){
    const gh=ghostOf(s),kv=KINDS.indexOf(s.piece.kind)+1
-   if(gh){x.strokeStyle=COLORS[kv];x.globalAlpha=0.55;x.lineWidth=2*dpr;for(const [gx,gy] of cellsOf(gh))if(gy>=HIDDEN)x.strokeRect(ox+gx*cs+3*dpr,oy+(gy-HIDDEN)*cs+3*dpr,cs-6*dpr,cs-6*dpr);x.globalAlpha=1}
+   if(gh){x.strokeStyle=COLORS[kv];x.fillStyle=COLORS[kv];x.lineWidth=2*dpr;x.shadowColor=COLORS[kv];x.shadowBlur=10*dpr;for(const [gx,gy] of cellsOf(gh))if(gy>=HIDDEN){const gx0=ox+gx*cs+3*dpr,gy0=oy+(gy-HIDDEN)*cs+3*dpr;x.globalAlpha=0.16;x.fillRect(gx0,gy0,cs-6*dpr,cs-6*dpr);x.globalAlpha=0.7;x.strokeRect(gx0,gy0,cs-6*dpr,cs-6*dpr)}x.shadowBlur=0;x.globalAlpha=1}
    for(const [px,py] of cellsOf(s.piece))cell(px,py,kv)
   }
   // Hard-drop streaks, cleared-row flashes, sparks.
