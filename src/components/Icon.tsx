@@ -45,6 +45,9 @@ const P:Record<string,ReactNode>={
  dinner:<><path d="M5 3.5v7a2.5 2.5 0 0 0 5 0v-7M7.5 3.5v17M17 3.5c-2 1.2-3 3.6-3 7h3v10"/></>,
  recipe:<><F><path d="M5 4.5h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/></F><path d="M5 17.5v-13h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17.5a3 3 0 0 1 3-3h11M9 8.5h6"/></>,
  cart:<><F><path d="M6 7h14l-1.8 7.5H7.5z"/></F><path d="M3 4h2.5L8 16h10M6 7h14l-1.8 7.5H7.5"/><circle cx="9" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/></>,
+ clock:<><F><circle cx="12" cy="12" r="8.5"/></F><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></>,
+ alert:<><F><path d="M12 3.8 21 19.5H3z"/></F><path d="M12 3.8 21 19.5H3zM12 10v4.2M12 17h.01"/></>,
+ pin:<><F><path d="M9 3.5h6l-1 6 3 3H7l3-3z"/></F><path d="M9 3.5h6l-1 6 3 3H7l3-3zM12 12.5v8"/></>,
  wall:<><F><rect x="3" y="4.5" width="18" height="12.5" rx="2.5"/></F><rect x="3" y="4.5" width="18" height="12.5" rx="2.5"/><path d="M9 20.5h6M12 17v3.5"/></>,
 }
 export type IconName=keyof typeof P

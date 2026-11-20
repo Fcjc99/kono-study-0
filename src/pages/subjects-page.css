@@ -28,3 +28,4 @@
 .restored-subjects .subject-banner,.restored-subjects .subject-workspace-title .subject-label{display:none!important}
 .workbench .restored-subjects .subject-workspace:not(#x){border-top:6px solid var(--subject)!important}
 .workbench .restored-subjects .subject-workspace-title h2:not(#x){font-size:clamp(1.5rem,5vw,2rem)!important;margin:0 0 2px!important}
+.subject-facts .kicon,.restored-subjects .wb-toolbar .kicon{vertical-align:-2px}
