@@ -1006,3 +1006,20 @@ dialog.game-screen .game-result{position:relative;box-shadow:0 30px 60px -24px r
 @keyframes blast-beam-col{0%{opacity:0;transform:scale(.2,1)}25%{opacity:1;transform:scale(1.15,1)}100%{opacity:0;transform:scale(1.6,1)}}
 @media(prefers-reduced-motion:reduce){.blast-beams{display:none}}
 .count-run{position:relative;-webkit-text-fill-color:transparent}.count-run::after{content:attr(data-n);position:absolute;left:0;right:0;top:0;text-align:center;-webkit-text-fill-color:currentColor;white-space:nowrap}
+/* Each game's own particles on the stage (instead of plain sparkles). */
+.game-screen[data-game=bloom] .game-stage>b{width:11px;height:8px;border-radius:70% 0 70% 0;background:#ffc3da;box-shadow:0 0 6px rgb(255 200 220/.8);animation-name:stage-petal;animation-duration:11s!important}
+.game-screen[data-game=bloom] .game-stage>b:nth-child(3n){background:#fff1f6}
+@keyframes stage-petal{0%{opacity:0;transform:translate(0,-60px) rotate(0)}15%{opacity:.95}100%{opacity:0;transform:translate(70px,420px) rotate(540deg)}}
+.game-screen[data-game=meow] .game-stage>b{width:16px;height:16px;border-radius:0;background:none;box-shadow:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Cg fill='%23fff'%3E%3Cellipse cx='13' cy='16' rx='4' ry='3.2'/%3E%3Ccircle cx='8' cy='11' r='1.6'/%3E%3Ccircle cx='11.5' cy='8.5' r='1.6'/%3E%3Ccircle cx='15' cy='8.5' r='1.6'/%3E%3Ccircle cx='18' cy='11' r='1.6'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
+.game-screen[data-game=gems] .game-stage>b,.game-screen[data-game=flow] .game-stage>b{width:7px;height:7px;border-radius:1px;transform:rotate(45deg);background:#e9d8ff;box-shadow:0 0 10px 3px rgb(190 140 255/.8)}
+.game-screen[data-game=candy] .game-stage>b{width:9px;height:9px;box-shadow:none}
+.game-screen[data-game=candy] .game-stage>b:nth-child(4n){background:#ff8fcf}.game-screen[data-game=candy] .game-stage>b:nth-child(4n+1){background:#8fd8ff}.game-screen[data-game=candy] .game-stage>b:nth-child(4n+2){background:#ffe27a}.game-screen[data-game=candy] .game-stage>b:nth-child(4n+3){background:#a8f0b0}
+.game-screen[data-game=cove] .game-stage>b{width:8px;height:8px;background:radial-gradient(circle at 35% 35%,#fff6c0,#f5c33b 60%,#b98512);box-shadow:0 0 8px rgb(255 210 90/.8)}
+/* Impact: KONO Hop's crash shakes the frame; a wrong cat breaks a heart; a missed floor wobbles the tower. */
+.flappy-frame.is-down{animation:hit-shake .4s cubic-bezier(.36,.07,.19,.97)}
+@keyframes hit-shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-7px) rotate(-1deg)}40%,60%{transform:translateX(7px) rotate(1deg)}}
+.meow-hearts i.is-lost{animation:heart-break .6s ease-out}
+@keyframes heart-break{0%{transform:scale(1.5);filter:brightness(1.6)}40%{transform:scale(.8) rotate(-12deg)}100%{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.flappy-frame.is-down,.meow-hearts i.is-lost{animation:none}}
+.stack-frame.is-over{animation:hit-shake .45s cubic-bezier(.36,.07,.19,.97)}
+@media(prefers-reduced-motion:reduce){.stack-frame.is-over{animation:none}}
