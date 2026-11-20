@@ -16,7 +16,7 @@ export type Page=typeof pages[number]
 /** What the navigation calls a page, where it isn't its name: KONO's page (the Sanctuary) and the family's. */
 export const PAGE_LABEL:Partial<Record<Page,string>>={Sanctuary:'KONO',Kids:'Family',Subjects:'Classes'}
 /** A page's heading, where it isn't its name. */
-export const PAGE_TITLE:Partial<Record<Page,string>>={Kids:'Family',Subjects:'Classes',Exams:'Tests'}
+export const PAGE_TITLE:Partial<Record<Page,string>>={Kids:'Family',Subjects:'Classes',Exams:'Tests',Sanctuary:'KONO'}
 // Team colors are offered in both Cozy and Simplified, under their own heading.
 export const cozyPalettes=['coral','sakura','lavender','mint','honey','zen','floral','ocean']
 export const cozyPalette=(theme:string)=>cozyPalettes.includes(theme)||teamThemeIds.includes(theme)?theme:'coral'

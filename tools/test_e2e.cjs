@@ -47,9 +47,9 @@ const mainHeading=page=>page.locator('#workspace-main h1').first()
 // opening the app waits for either. The family page (still the Kids page underneath) is headed Family.
 // Page names the tests use, and what the app calls them now: KONO's island page is still the Sanctuary, the
 // family page (Kids underneath) is Family, Subjects is Classes, and Exams is Study's Tests.
-const TITLE={Kids:'Family',Subjects:'Classes',Exams:'Tests'}
+const TITLE={Kids:'Family',Subjects:'Classes',Exams:'Tests',Sanctuary:'KONO'}
 const STUDY={Notes:'Notes','K-Quiz':'K-Quiz',Exams:'Tests'}
-async function heading(page,name){await page.waitForFunction(n=>{const t=document.querySelector('#workspace-main h1')?.textContent??'';return n==='Sanctuary'?t.startsWith('Sanctuary')||t.startsWith('Today'):t.startsWith(n)},name==='Sanctuary'?name:TITLE[name]??name)}
+async function heading(page,name){await page.waitForFunction(n=>{const t=document.querySelector('#workspace-main h1')?.textContent??'';return n==='Sanctuary'?t.startsWith('KONO')||t.startsWith('Today'):t.startsWith(n)},name==='Sanctuary'?name:TITLE[name]??name)}
 async function go(page,name){
  // Notes, K-Quiz and Exams (Tests) are under the Study tab: open Study, then its tab.
  if(STUDY[name]){
@@ -72,10 +72,10 @@ async function go(page,name){
 // KONO's bar and the island are on the KONO tab (its page is headed Sanctuary): go there first if the test is on
 // another page (and no dialog is open over it).
 // Overdue work is shown on Today (and the Planner), not on KONO's page.
-async function off(page){const h=await page.locator('#workspace-main h1').first().textContent({timeout:5000}).catch(()=>'');if((h??'').startsWith('Sanctuary')&&!(await page.locator('dialog[open]').count())){await go(page,'Today');page._konoBack=true}return page}
+async function off(page){const h=await page.locator('#workspace-main h1').first().textContent({timeout:5000}).catch(()=>'');if((h??'').startsWith('KONO')&&!(await page.locator('dialog[open]').count())){await go(page,'Today');page._konoBack=true}return page}
 // …and back to KONO's page afterwards, if off() left it.
 async function back(page){if(page._konoBack){page._konoBack=false;await go(page,'Sanctuary')}}
-async function kono(page){const h=await page.locator('#workspace-main h1').first().textContent({timeout:5000}).catch(()=>'');if(!(h??'').startsWith('Sanctuary')&&!(await page.locator('dialog[open]').count()))await go(page,'Sanctuary');return page}
+async function kono(page){const h=await page.locator('#workspace-main h1').first().textContent({timeout:5000}).catch(()=>'');if(!(h??'').startsWith('KONO')&&!(await page.locator('dialog[open]').count()))await go(page,'Sanctuary');return page}
 async function settingsTab(page,name){
  // Settings opens on a list of sections; a section has ‹ All settings to go back to it.
  const back=page.getByRole('button',{name:'All settings'})
@@ -1076,7 +1076,7 @@ test('Recipe box and pasted emails: a recipe’s ingredients go to groceries in 
  await card.getByText('🛒 Taco night ingredients are on the list.').waitFor()
  await waitFor(()=>JSON.stringify((cloud.users.alice.plan.data.groceries??[]).map(g=>g.title))==='["Tortillas","Ground beef","Cheese"]','the ingredients reach the grocery list')
  await page.getByRole('button',{name:'＋ Add'}).first().click()
- await page.getByRole('button',{name:'📨 Paste an email or flyer'}).click()
+ await page.getByRole('button',{name:'Paste an email or flyer'}).click()
  await page.getByLabel('Email or flyer text').fill('Hi families!\nPicture day is Thursday Nov 12 at 9am.\nPlease send a snack.\nBook fair Friday Nov 13 3pm')
  await page.getByRole('button',{name:'Find events'}).click()
  const add=page.getByRole('dialog',{name:'Add to your plan'})
