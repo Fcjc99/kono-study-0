@@ -69,6 +69,7 @@ export default function KonoStack({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
    <canvas ref={canvas} width={W*2} height={H*2} aria-hidden="true"/>
    <strong key={s} className="stack-score" aria-live="polite">{s}</strong>
    {call&&<span key={call.at} className="stack-call" aria-hidden="true">{call.text}</span>}
+   {call&&<span key={'r'+call.at} className="stack-ring" aria-hidden="true"/>}
    {!over&&<span className={'stack-pips'+(streak>=3?' is-growing':'')} aria-label={streak>=3?'Perfect streak '+streak+': each Perfect makes the floor wider':'Perfects in a row: '+streak+' of 3 to make the floors wider'}>
     {[0,1,2].map(i=><i key={i} className={i<Math.min(3,streak)?'is-on':undefined}/>)}<small>{streak>=3?'Wider!':'3 = wider'}</small></span>}
    {s===0&&!over&&<p className="stack-hint"><b>Tap to build</b><span>Line each floor up with the one below</span></p>}
@@ -93,8 +94,15 @@ function draw(c:HTMLCanvasElement|null,t:Tower,cam0:number,falling:Falling[],hop
  const mix=(a:number[],b:number[])=>'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*k)).join(',')+')'
  grad.addColorStop(0,mix(KEYS[i0][0],KEYS[i0+1][0]));grad.addColorStop(1,mix(KEYS[i0][1],KEYS[i0+1][1]))
  g.fillStyle=grad;g.fillRect(0,0,c.width,c.height)
- if(night>0){g.fillStyle='rgba(255,255,255,'+night+')';for(let i=0;i<40;i++){const sy=(i*89)%(c.height*0.6);g.fillRect((i*211)%c.width,sy,2+(i%2)*2,2+(i%2)*2)}}
- else{g.fillStyle='rgba(255,255,255,.75)';for(let i=0;i<3;i++){const cx=((clock*0.15+i*330)%(c.width+300))-150,cy=120+i*170;cloud(g,cx,cy)}}
+ if(night>0){g.fillStyle='rgba(255,255,255,'+night+')';for(let i=0;i<40;i++){const sy=(i*89)%(c.height*0.6),tw=0.55+0.45*Math.sin(clock*0.004+i);g.globalAlpha=tw;g.fillRect((i*211)%c.width,sy,2+(i%2)*2,2+(i%2)*2)}g.globalAlpha=1}
+ // The sun (a moon at night) with its glow, high on the right.
+ {const sx=c.width*0.78,sy=c.height*0.16,r=night>0.5?34:46,glow=g.createRadialGradient(sx,sy,r*0.4,sx,sy,r*4.2)
+  glow.addColorStop(0,night>0.5?'rgba(230,235,255,.55)':'rgba(255,240,200,.85)');glow.addColorStop(1,'rgba(255,255,255,0)')
+  g.fillStyle=glow;g.fillRect(sx-r*4.2,sy-r*4.2,r*8.4,r*8.4);g.fillStyle=night>0.5?'#eef0ff':'#fff6d8';g.beginPath();g.arc(sx,sy,r,0,Math.PI*2);g.fill()}
+ // Two rows of soft hills far away, sinking out of view as the tower climbs.
+ {const sink=Math.min(c.height,cam0*2*0.55);for(const [n,y,amp,col] of [[0,0.8,40,night>0.3?'rgba(60,50,120,.55)':'rgba(140,200,170,.55)'],[1,0.88,30,night>0.3?'rgba(40,34,90,.75)':'rgba(96,170,120,.75)']] as const){
+  g.fillStyle=col;g.beginPath();g.moveTo(0,c.height);for(let x=0;x<=c.width;x+=20)g.lineTo(x,c.height*y+sink+Math.sin(x*0.006+n*2)*amp+Math.sin(x*0.017+n)*amp*0.35);g.lineTo(c.width,c.height);g.closePath();g.fill()}}
+ if(night<=0){for(let i=0;i<3;i++){const cx=((clock*0.15+i*330)%(c.width+300))-150,cy=120+i*170;g.save();g.shadowColor='rgba(255,255,255,.9)';g.shadowBlur=24;g.fillStyle='rgba(255,255,255,.88)';cloud(g,cx,cy);g.restore()}}
  // When the tower's done the view eases back to show all of it, base and all, above the results.
  const e=outro*outro*(3-2*outro),fitZoom=Math.min(1,560/(t.floors.length*FH*2+160)),zoom=1+(fitZoom-1)*e,cam=cam0*(1-e)
  g.translate(W,H*1.5+(H*1.08-H*1.5)*e);g.scale(zoom,zoom);g.translate(-W,-H*1.5)
@@ -102,8 +110,12 @@ function draw(c:HTMLCanvasElement|null,t:Tower,cam0:number,falling:Falling[],hop
  g.translate(0,Math.sin(land*Math.PI)*land*7)
  // The ground: a grassy plot under the first floor.
  const base=t.floors[0],pad=8
+ // The plot floats: a rocky underside tapering to a point, then the grassy top with a soft shadow of the tower.
+ {const x0=base.x-base.w/2-pad,x1=base.x+base.w/2+pad,z0=base.z-base.d/2-pad,z1=base.z+base.d/2+pad,tip=iso(base.x,base.z,-46,cam)
+  face(g,[iso(x1,z0,-6,cam),iso(x1,z1,-6,cam),tip],'#8a6446','rgba(40,30,50,.25)');face(g,[iso(x0,z1,-6,cam),iso(x1,z1,-6,cam),tip],'#6f4f37','rgba(40,30,50,.25)')}
  face(g,[[base.x-base.w/2-pad,base.z-base.d/2-pad],[base.x+base.w/2+pad,base.z-base.d/2-pad],[base.x+base.w/2+pad,base.z+base.d/2+pad],[base.x-base.w/2-pad,base.z+base.d/2+pad]].map(([x,z])=>iso(x,z,0,cam)),'#8fd36a','#5fa64a')
- sides(g,{x:base.x,z:base.z,w:base.w+pad*2,d:base.d+pad*2,tint:0},-6,6,cam,'#b98a5e','#9a6f48',false,0)
+ sides(g,{x:base.x,z:base.z,w:base.w+pad*2,d:base.d+pad*2,tint:0},-6,6,cam,'#7ccb5a','#5fae46',false,0)
+ {const [shx,shy]=iso(base.x+3,base.z+3,6.2,cam),sh=g.createRadialGradient(shx,shy,4,shx,shy,base.w*2.4);sh.addColorStop(0,'rgba(20,40,20,.35)');sh.addColorStop(1,'rgba(20,40,20,0)');g.fillStyle=sh;g.beginPath();g.ellipse(shx,shy,base.w*2.4,base.w*1.2,0,0,Math.PI*2);g.fill()}
  // The floors, bottom to top, and the one sliding.
  t.floors.forEach((f,i)=>block(g,f,i*FH,cam,night,i===0))
  if(!t.over)block(g,t.moving,t.floors.length*FH,cam,night,false)
@@ -135,5 +147,9 @@ function block(g:CanvasRenderingContext2D,f:Floor,y:number,cam:number,night:numb
  const h=f.tint,wall=(l:number)=>'hsl('+h+' 55% '+(l-night*18)+'%)'
  sides(g,f,y,y+FH,cam,wall(70),wall(60),!ground,night)
  const x0=f.x-f.w/2,x1=f.x+f.w/2,z0=f.z-f.d/2,z1=f.z+f.d/2
+ // Light from above: each wall a touch darker toward its foot, and a dark seam where it meets the floor below.
+ {const top=iso(x1,z1,y+FH,cam)[1],foot=iso(x1,z1,y,cam)[1],shade=g.createLinearGradient(0,top,0,foot);shade.addColorStop(0,'rgba(255,255,255,.12)');shade.addColorStop(1,'rgba(30,10,40,.18)')
+  for(const pts of [[iso(x1,z0,y+FH,cam),iso(x1,z1,y+FH,cam),iso(x1,z1,y,cam),iso(x1,z0,y,cam)],[iso(x0,z1,y+FH,cam),iso(x1,z1,y+FH,cam),iso(x1,z1,y,cam),iso(x0,z1,y,cam)]]){g.beginPath();pts.forEach(([px,py],i)=>i?g.lineTo(px,py):g.moveTo(px,py));g.closePath();g.fillStyle=shade;g.fill()}
+  g.strokeStyle='rgba(30,10,40,.35)';g.lineWidth=2;g.beginPath();const a=iso(x1,z0,y,cam),b=iso(x1,z1,y,cam),c2=iso(x0,z1,y,cam);g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.lineTo(c2[0],c2[1]);g.stroke()}
  face(g,[iso(x0,z0,y+FH,cam),iso(x1,z0,y+FH,cam),iso(x1,z1,y+FH,cam),iso(x0,z1,y+FH,cam)],'hsl('+h+' 60% '+(86-night*20)+'%)','rgba(40,30,50,.3)')
 }

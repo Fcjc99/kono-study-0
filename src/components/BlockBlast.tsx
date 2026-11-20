@@ -115,13 +115,16 @@ export default function BlockBlast({ref,start,saved,best,sound,onCoins,onEnd,fac
    {onCoins&&<span className="blast-coins" aria-label={'Coins this game: '+earned}>🪙 +{earned}</span>}
    <strong key={score} className="blast-score" aria-label={'Score '+score}>{score}</strong>
   </div>
-  <div className="blast-frame">
+  <div className={'blast-frame'+(streak>0?' is-combo':'')} style={{['--combo' as string]:Math.min(streak,5)}}>
    <div ref={boardRef} className="blast-board" role="grid" tabIndex={0} aria-label="KONO blast board" onKeyDown={onKey} onPointerLeave={()=>{if(dragging===null)setAim(null)}}>
     {grid.map((color,j)=>{const r=Math.floor(j/SIZE),c=j%SIZE,lit=landing.has(j)||clearing.has(j)
      return <div key={j} role="gridcell" className={'blast-cell'+(color!==null?' is-block is-c'+color:'')+(lit&&piece?' is-lit is-c'+piece.color:'')+(landing.has(j)?' is-landing':'')+(cursor?.r===r&&cursor.c===c?' is-cursor':'')} data-r={r} data-c={c}
       aria-label={'Row '+(r+1)+', column '+(c+1)+(color!==null?', filled':'')}
       onPointerEnter={()=>{if(picked!==null&&dragging===null)setAim(fits(grid,tray[picked]!.shape,r,c)?{r,c}:null)}}
       onClick={()=>{if(picked!==null&&!putDown(picked,r,c))gameSound('nope',sound)}}/>})}
+    {/* Each cleared line: a beam of light along it. */}
+    {burst&&(()=>{const rows=new Map<number,number>(),cols=new Map<number,number>();for(const b of burst.cells){const r=Math.floor(b.j/SIZE),c=b.j%SIZE;rows.set(r,(rows.get(r)??0)+1);cols.set(c,(cols.get(c)??0)+1)}
+     return <div key={'beam'+burst.key} className="blast-beams" aria-hidden="true">{[...rows].filter(([,n])=>n===SIZE).map(([r])=><i key={'r'+r} className="is-row" style={{top:r*100/SIZE+'%',height:100/SIZE+'%'}}/>)}{[...cols].filter(([,n])=>n===SIZE).map(([c])=><i key={'c'+c} className="is-col" style={{left:c*100/SIZE+'%',width:100/SIZE+'%'}}/>)}</div>})()}
     {burst&&<div key={burst.key} className="blast-burst" aria-hidden="true">{burst.cells.map(b=><span key={b.j} className={'is-c'+b.color} style={{left:(b.j%SIZE)*100/SIZE+'%',top:Math.floor(b.j/SIZE)*100/SIZE+'%',animationDelay:b.delay+'ms',['--dx' as string]:b.dx+'px',['--dy' as string]:b.dy+'px'}}/>)}</div>}
     {gain&&<span key={gain.key} className="blast-gain" style={{left:gain.c*100/SIZE+'%',top:gain.r*100/SIZE+'%'}} aria-hidden="true">+{gain.n}</span>}
     {cheer&&<p key={cheer.key} className="blast-cheer" role="status">{cheer.combo>0&&<small>Combo ×{cheer.combo+1}</small>}<span>{cheer.text}</span>{cheer.coins>0&&<em>+{cheer.coins} 🪙</em>}</p>}

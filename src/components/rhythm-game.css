@@ -147,3 +147,4 @@
 .beat-ui .beat-sheet-head h3:not(#x),.beat-ui .beat-list h3:not(#x){font-size:1.25rem!important;font-weight:850!important;color:var(--ink)!important;margin:0!important;letter-spacing:0!important;text-transform:none!important}
 .beat-ui .beat-list h3:not(#x){font-size:1.05rem!important}
 .game-screen:has(.beat-pick)>header .game-screen-leave:not(#x):not(#y),.game-screen:has(.beat-pick)>header .game-screen-tool:not(#x):not(#y){background:#fff!important;color:#1d1533!important;border:1px solid #e7e1f5!important;box-shadow:0 2px 8px rgba(40,20,90,.08)!important}
+.game-screen[data-game=beat]>header strong:not(#x){color:#fff!important;text-shadow:0 1px 3px rgb(0 0 0/.4)!important}
