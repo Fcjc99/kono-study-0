@@ -53,3 +53,20 @@ button.kquiz-material-row:hover{border-color:var(--wb-accent)}
 .kquiz-play-button:active{transform:translateY(4px);box-shadow:0 1px 0 #5a33a8}
 .kquiz-play-button>span:first-child{font-size:1.8rem}
 .kquiz-play-button strong{display:block;font-size:1.15rem}.kquiz-play-button small{opacity:.9}
+/* K-Quiz: your study sets first; ＋ Make a study set opens the guided panel (where from, add it, make it). */
+.kquiz-head{display:flex!important;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.kquiz-head h3{margin:0}
+.kquiz-make{display:grid;gap:12px;margin:12px 0 16px;padding:16px;border-radius:22px;background:linear-gradient(140deg,color-mix(in srgb,#7b5cff 12%,var(--wb-surface)),color-mix(in srgb,#c56ac0 10%,var(--wb-surface)));border:1px solid color-mix(in srgb,#7b5cff 22%,transparent)}
+.kquiz-make-steps{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0}
+.kquiz-make-steps li{padding:4px 10px;border-radius:99px;font-size:.78rem;font-weight:800;background:rgba(255,255,255,.6);color:var(--wb-muted)}
+.kquiz-make-steps li.is-on{background:#6a4fe0;color:#fff}
+.kquiz-make .kquiz-entry{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.workbench .kquiz-make .kquiz-entry button:not(#x){display:grid!important;justify-items:center!important;align-content:start!important;gap:4px!important;margin:0!important;min-height:96px!important;padding:12px 6px!important;border-radius:16px!important;background:var(--wb-surface)!important;border:1px solid var(--wb-line)!important;box-shadow:none!important;text-align:center!important;color:var(--wb-ink)!important}
+.workbench .kquiz-make .kquiz-entry button[aria-pressed=true]:not(#x){border:2px solid #6a4fe0!important;background:color-mix(in srgb,#6a4fe0 8%,var(--wb-surface))!important}
+.kquiz-make .kquiz-entry .kicon{color:#6a4fe0}
+.kquiz-make .kquiz-entry b{font-size:.9rem}.kquiz-make .kquiz-entry span{font-size:.74rem;color:var(--wb-muted);line-height:1.25}
+@media(max-width:430px){.kquiz-make .kquiz-entry span{display:none}}
+.kquiz-sources-title{margin:18px 0 6px}.kquiz-sources-title small{font-weight:600;color:var(--wb-muted);font-size:.8rem}
+.workbench .kquiz-make .kquiz-entry:not(#x){display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+.workbench .kquiz-make .kquiz-entry button:not(#x){width:auto!important;min-height:84px!important}
+.workbench .kquiz-head>button:not(#x){width:auto!important;min-height:40px!important;padding:0 16px!important;border-radius:99px!important}

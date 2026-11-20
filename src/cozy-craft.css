@@ -63,8 +63,6 @@
 :root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y) :is(svg,i),:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y)::after{color:inherit!important}
 :root[data-dark][data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y){color:color-mix(in srgb,var(--tab) 40%,#fff)!important;background:linear-gradient(90deg,color-mix(in srgb,var(--tab) 38%,#221d27),var(--wb-bg,#16131a))!important}
 @media (max-width:900px){
- :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button[data-tab]:not(#x):not(#y)>span :is(svg,img).is-art{width:30px!important;height:30px!important}
- :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button[data-tab]:not(#x):not(#y)>span:has(.is-art){width:50px!important;height:30px!important;margin-bottom:5px!important;display:grid!important;place-items:center!important}
  :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y){color:color-mix(in srgb,var(--tab) 80%,#000)!important;gap:4px!important}
  :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y)>span{width:50px!important;height:30px!important;margin-bottom:2px!important;background:color-mix(in srgb,var(--tab) 20%,#fff)!important;border-radius:999px!important;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--tab) 45%,transparent),0 3px 8px color-mix(in srgb,var(--tab) 30%,transparent)}
  :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y)>span :is(svg,img){filter:none!important}
@@ -100,3 +98,14 @@
  :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y):not(#z)>span{background:color-mix(in srgb,var(--tab) 20%,#fff)!important;border-color:transparent!important;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--tab) 45%,transparent)!important}
  :root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y):not(#z) :is(small,.nav-indicator){color:inherit!important}
 }
+/* The drawn icon set (components/Icon): each tab's icon in its own color, on a soft tile of that color. */
+[data-tab=Today]{--tab:#c98a2a}[data-tab=Study]{--tab:#4f78b8}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button[data-tab]:not(#x):not(#y):not(#z) .nav-icon{width:40px!important;height:40px!important;border-radius:12px!important;background:color-mix(in srgb,var(--tab) 14%,#fff)!important;box-shadow:none!important;color:color-mix(in srgb,var(--tab) 85%,#000)!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button[data-tab]:not(#x):not(#y):not(#z) .nav-icon svg.kicon{width:24px!important;height:24px!important;color:inherit!important;stroke:currentColor!important}
+:root[data-experience='cozy']:not([data-team]) .sidebar .nav-button.active[data-tab]:not(#x):not(#y):not(#z) .nav-icon{background:var(--tab)!important;color:#fff!important}
+:root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button[data-tab]:not(#x):not(#y)>span svg.kicon{width:25px!important;height:25px!important;color:color-mix(in srgb,var(--tab) 70%,#5b4a55)!important;filter:none!important}
+:root[data-experience='cozy']:not([data-team]) .mobile-nav.is-tabbar button.active[data-tab]:not(#x):not(#y)>span svg.kicon{color:color-mix(in srgb,var(--tab) 88%,#000)!important}
+.page-title-icon:not(#x){background:color-mix(in srgb,var(--tab,#c2577f) 14%,#fff)!important;box-shadow:none!important;color:color-mix(in srgb,var(--tab,#c2577f) 85%,#000)}
+.page-title-icon svg.kicon:not(#x){width:26px!important;height:26px!important}
+.more-grid-icon svg.kicon{width:26px;height:26px}
+:root[data-dark] .page-title-icon:not(#x),:root[data-dark][data-experience='cozy'] .sidebar .nav-button[data-tab]:not(#x):not(#y):not(#z) .nav-icon{background:color-mix(in srgb,var(--tab,#c2577f) 26%,#221d27)!important;color:color-mix(in srgb,var(--tab,#c2577f) 45%,#fff)!important}

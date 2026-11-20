@@ -2,6 +2,7 @@ import type {Exam,Task} from '../store/model'
 import type {KonoMood} from '../store/konoMood'
 import {addDays} from '../store/studyScheduler'
 import './today.css'
+import Icon from './Icon'
 
 const niceDate=(date:string)=>new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})
 const dueLabel=(due:string,today:string)=>due===today?'due today':due===addDays(today,1)?'due tomorrow':'due '+niceDate(due)
@@ -50,7 +51,7 @@ export function TodayThen({items,today,subjectName,onFocus,onStudy,onDone}:{
     <div><b>{i.task.title||'Untitled'}</b><small>{dueLabel(i.task.due,today)}{i.task.subjectId&&subjectName(i.task.subjectId)?' · '+subjectName(i.task.subjectId):''}{i.task.plannedTime?' · '+i.task.plannedTime:''}</small></div>
     <button type="button" className="today-then-go" aria-label={'Focus on: '+i.task.title} onClick={()=>onFocus(i.task!.id,i.task!.estimatedMinutes)}>▶</button>
    </li>:<li key={i.exam!.id}>
-    <span className="today-then-icon" aria-hidden="true">📝</span>
+    <span className="today-then-icon"><Icon name="tests" size={22}/></span>
     <div><b>{i.exam!.title||'Test'}</b><small>{dueLabel(i.exam!.due,today)}{i.exam!.subjectId&&subjectName(i.exam!.subjectId)?' · '+subjectName(i.exam!.subjectId):''}</small></div>
     <button type="button" className="today-then-study" onClick={()=>onStudy('Study for '+(i.exam!.title||'your test'))}>Study 25m</button>
    </li>)}</ul>

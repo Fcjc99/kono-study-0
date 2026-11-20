@@ -1,3 +1,4 @@
+import './study-tabs.css'
 import type {Page} from '../workspaceShared'
 
 /** The tabs on top of Study and its full pages: the overview, Tests (Exams), Notes and K-Quiz. */

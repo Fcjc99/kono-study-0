@@ -47,9 +47,9 @@ const mainHeading=page=>page.locator('#workspace-main h1').first()
 // opening the app waits for either. The family page (still the Kids page underneath) is headed Family.
 // Page names the tests use, and what the app calls them now: KONO's island page is still the Sanctuary, the
 // family page (Kids underneath) is Family, Subjects is Classes, and Exams is Study's Tests.
-const TITLE={Kids:'Family',Subjects:'Classes',Exams:'Tests'}
+const TITLE={Kids:'Family',Subjects:'Classes',Exams:'Tests',Sanctuary:'KONO'}
 const STUDY={Notes:'Notes','K-Quiz':'K-Quiz',Exams:'Tests'}
-async function heading(page,name){await page.waitForFunction(n=>{const t=document.querySelector('#workspace-main h1')?.textContent??'';return n==='Sanctuary'?t.startsWith('Sanctuary')||t.startsWith('Today'):t.startsWith(n)},name==='Sanctuary'?name:TITLE[name]??name)}
+async function heading(page,name){await page.waitForFunction(n=>{const t=document.querySelector('#workspace-main h1')?.textContent??'';return n==='Sanctuary'?t.startsWith('KONO')||t.startsWith('Today'):t.startsWith(n)},name==='Sanctuary'?name:TITLE[name]??name)}
 async function go(page,name){
  // Notes, K-Quiz and Exams (Tests) are under the Study tab: open Study, then its tab.
  if(STUDY[name]){
@@ -72,19 +72,21 @@ async function go(page,name){
 // KONO's bar and the island are on the KONO tab (its page is headed Sanctuary): go there first if the test is on
 // another page (and no dialog is open over it).
 // Overdue work is shown on Today (and the Planner), not on KONO's page.
-async function off(page){const h=await page.locator('#workspace-main h1').first().textContent({timeout:5000}).catch(()=>'');if((h??'').startsWith('Sanctuary')&&!(await page.locator('dialog[open]').count())){await go(page,'Today');page._konoBack=true}return page}
+async function off(page){const h=await page.locator('#workspace-main h1').first().textContent({timeout:5000}).catch(()=>'');if((h??'').startsWith('KONO')&&!(await page.locator('dialog[open]').count())){await go(page,'Today');page._konoBack=true}return page}
 // …and back to KONO's page afterwards, if off() left it.
 async function back(page){if(page._konoBack){page._konoBack=false;await go(page,'Sanctuary')}}
-async function kono(page){const h=await page.locator('#workspace-main h1').first().textContent({timeout:5000}).catch(()=>'');if(!(h??'').startsWith('Sanctuary')&&!(await page.locator('dialog[open]').count()))await go(page,'Sanctuary');return page}
+async function kono(page){const h=await page.locator('#workspace-main h1').first().textContent({timeout:5000}).catch(()=>'');if(!(h??'').startsWith('KONO')&&!(await page.locator('dialog[open]').count()))await go(page,'Sanctuary');return page}
 async function settingsTab(page,name){
- const tab=page.getByRole('navigation',{name:'Settings sections'}).getByRole('button',{name,exact:true})
- await tab.click()
- await page.waitForFunction(n=>[...document.querySelectorAll('nav[aria-label="Settings sections"] button')].some(el=>el.textContent===n&&el.getAttribute('aria-current')==='page'),name)
+ // Settings opens on a list of sections; a section has ‹ All settings to go back to it.
+ const back=page.getByRole('button',{name:'All settings'})
+ if(await back.count())await back.click()
+ await page.getByRole('navigation',{name:'Settings sections'}).getByRole('button',{name,exact:true}).click()
+ await page.waitForFunction(n=>document.querySelector('.settings-section-title')?.textContent===n,name)
 }
 /** Planner › ＋ Add a schedule, then one of its choices. */
 async function addToCalendar(page,choice){
  await go(page,'Planner')
- await page.getByRole('button',{name:'＋ Add a schedule'}).click()
+ await plannerMenu(page,'＋ Add a schedule')
  await page.getByRole('group',{name:'What do you have?'}).getByRole('button',{name:new RegExp('^'+choice.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'))}).click()
  await page.getByRole('region',{name:'Add a schedule'}).getByRole('heading',{name:new RegExp(choice.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$')}).waitFor()
 }
@@ -210,7 +212,7 @@ test('a study note can be moved to Trash and restored',async({page})=>{
 test('Planner › ＋ Add a schedule: one place to start, each choice opens its tool, and Settings points there',async({page})=>{
  await createPlan(page)
  await go(page,'Planner')
- await page.getByRole('button',{name:'＋ Add a schedule'}).click()
+ await plannerMenu(page,'＋ Add a schedule')
  const hub=page.getByRole('region',{name:'Add a schedule'}),choices=hub.getByRole('group',{name:'What do you have?'})
  assert.equal(await choices.getByRole('button').count(),8)
  const opens={'My school schedule':'School calendar & rotation','My college classes':'College semester','A calendar link':'Or paste a calendar link','Photos or screenshots':null,'A PDF of dates':'Choose a PDF','A weekly activity':null,'My work schedule':'Add my shifts','A sports season':null}
@@ -546,7 +548,7 @@ test('wall calendar People view: one day, a column for each person with only the
  assert.equal(await hub.getByRole('group',{name:'Days shown'}).getByRole('button',{name:'People'}).getAttribute('aria-pressed'),'true')
  await page.goto(BASE);await heading(page,'Sanctuary')
  await go(page,'Kids')
- await page.getByRole('button',{name:'🎨 Appearance'}).click()
+ await familyMenu(page,'Appearance')
  const panel=page.getByRole('dialog',{name:'Kids\' appearance'})
  await panel.getByRole('status').filter({hasText:'Close to Leo’s color'}).waitFor()
  await panel.getByRole('radiogroup',{name:'Emma\'s color'}).getByRole('radio',{name:'#7ca982'}).click()
@@ -1019,7 +1021,7 @@ test('Wall & tablet mode: a grown-up PIN locks it (kids can still tick, not add)
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await mainHeading(page).waitFor()
  await go(page,'Planner')
- await page.getByRole('button',{name:/Wall & tablet mode/}).click()
+ await plannerMenu(page,'Wall & tablet mode')
  const hub=page.getByRole('dialog',{name:'Family hub'})
  // Setup: a PIN and Home's panels.
  await hub.getByRole('button',{name:'Setup',exact:true}).click()
@@ -1074,7 +1076,7 @@ test('Recipe box and pasted emails: a recipe’s ingredients go to groceries in 
  await card.getByText('🛒 Taco night ingredients are on the list.').waitFor()
  await waitFor(()=>JSON.stringify((cloud.users.alice.plan.data.groceries??[]).map(g=>g.title))==='["Tortillas","Ground beef","Cheese"]','the ingredients reach the grocery list')
  await page.getByRole('button',{name:'＋ Add'}).first().click()
- await page.getByRole('button',{name:'📨 Paste an email or flyer'}).click()
+ await page.getByRole('button',{name:'Paste an email or flyer'}).click()
  await page.getByLabel('Email or flyer text').fill('Hi families!\nPicture day is Thursday Nov 12 at 9am.\nPlease send a snack.\nBook fair Friday Nov 13 3pm')
  await page.getByRole('button',{name:'Find events'}).click()
  const add=page.getByRole('dialog',{name:'Add to your plan'})
@@ -1710,7 +1712,7 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  await week.getByRole('button',{name:/^Quiz review session · 3:00 PM–4:00 PM/}).waitFor()
  await week.getByRole('button',{name:/^Soccer practice · 5:00 PM–6:30 PM/}).waitFor()
  // Source chips: hiding Canvas hides only what came from Canvas, and stays hidden after a reload.
- const chips=page.getByRole('group',{name:'Show on calendar'})
+ await openFilters(page);const chips=page.getByRole('group',{name:'Show on calendar'})
  assert.deepEqual(await chips.getByRole('button').allInnerTexts(),['Canvas','Google','Sports','Added here'])
  const canvas=chips.getByRole('button',{name:'Canvas'})
  await canvas.click()
@@ -1720,7 +1722,8 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  await page.reload();await page.locator('#workspace-main h1').waitFor();await go(page,'Planner')
  await week.getByRole('button',{name:/^Soccer practice/}).waitFor()
  assert.equal(await week.getByRole('button',{name:/^Quiz review session/}).count(),0,'still hidden after a reload')
- await chips.getByRole('button',{name:'Canvas'}).click()
+ assert.match(await page.locator('details.planner-filters>summary').innerText(),/some hidden/,'the Filters pill says something is hidden')
+ await openFilters(page);await chips.getByRole('button',{name:'Canvas'}).click()
  await week.getByRole('button',{name:/^Quiz review session/}).waitFor()
  // Tap an empty hour: a new event starts then, for an hour.
  await week.getByRole('button',{name:'Add at 10:00 AM on Oct 2, 2026'}).click()
@@ -1789,7 +1792,7 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  await week.getByRole('button',{name:/^Math tutoring · 1:30 PM–4:00 PM · Oct 9, 2026/}).waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.filter(e=>e.recurringId).map(e=>e.date+' '+e.title).sort().join()==='2026-10-02 Tutoring,2026-10-09 Math tutoring,2026-10-16 Math tutoring,2026-10-23 Math tutoring','only this and the later ones changed')
  await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Month'}).click()
- assert.equal(await page.getByRole('region',{name:'Week'}).count(),0)
+ await page.getByRole('region',{name:'Week'}).waitFor({state:'detached'})
 })
 
 /** Planner › Week: drag `source` with the mouse so its top lands `dy` px below the top of `target`
@@ -1848,14 +1851,20 @@ const endBeat=async beat=>{await beat.getByRole('button',{name:'Pause'}).click()
 const beatSettings=async beat=>{await beat.getByRole('button',{name:'Settings'}).click();return beat.getByRole('dialog',{name:'Settings'})}
 const skipBeatSync=async beat=>beat.getByRole('dialog',{name:'Timing check'}).getByRole('button',{name:'Skip for now'}).click()
 const headerMenu=async(page,name)=>{const menu=page.locator('details.header-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
-const plannerMenu=async(page,name)=>{const menu=page.locator('details.planner-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
+// The Planner's Filters (what to show, whose) fold into a pill: open it.
+async function openFilters(page){const d=page.locator('details.planner-filters');await d.waitFor();if(!await d.evaluate(x=>x.open))await d.locator(':scope > summary').click()}
+// Family › ⋯ (Quick setup, Appearance, Add a kid…).
+async function familyMenu(page,name){const menu=page.locator('details.family-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
+// Family: show one kid (or Everyone).
+async function familyKid(page,name){const g=page.getByRole('group',{name:'Whose family page'});if(await g.count())await g.getByRole('button',{name,exact:true}).click()}
+async function plannerMenu(page,name){const menu=page.locator('details.planner-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
 const cornerOf=page=>page.getByRole('dialog',{name:'KONO’s corner'})
 const openCorner=async page=>{const d=cornerOf(page);if(!await d.isVisible())await (await kono(page)).getByRole('region',{name:'KONO today'}).getByRole('button',{name:'Open KONO’s corner'}).click();await d.waitFor();return d}
 const closeCorner=async page=>{const d=cornerOf(page);if(await d.isVisible()){await d.getByRole('button',{name:'Close dialog'}).click();await d.waitFor({state:'detached'})}}
 const waitFor=async(check,message)=>{for(let i=0;i<60;i++){if(check())return;await new Promise(r=>setTimeout(r,250))}assert.fail(message)}
 async function openWeekPlanner(page){
  await go(page,'Planner')
- await plannerMenu(page,'✨ Plan my week')
+ await plannerMenu(page,'Plan my week')
  return page.locator('.week-planner')
 }
 
@@ -1918,7 +1927,7 @@ test('Weekly recap: the Sunday card on the Sanctuary page hides until next week,
  await page.reload();await heading(page,'Sanctuary')
  assert.equal(await page.locator('.week-recap-sunday').count(),0,'stays hidden after a reload')
  await go(page,'Planner')
- await plannerMenu(page,'📊 Your week so far')
+ await plannerMenu(page,'Your week so far')
  const card=page.locator('.week-recap-panel .week-recap')
  await card.waitFor()
  const [download]=await Promise.all([page.waitForEvent('download'),card.getByRole('button',{name:'Share my week'}).click()])
@@ -2045,7 +2054,7 @@ test('School setup guide: find the school, answer the grade, save, and land on t
  await page.getByRole('button',{name:'Save to my calendar'}).click()
  // Saved: the guide closes and the Planner is showing.
  await page.getByRole('region',{name:'Add a schedule'}).waitFor({state:'detached'})
- await page.getByRole('button',{name:'＋ Add a schedule'}).waitFor()
+ await page.locator('details.planner-more').waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.studySeasons?.some(x=>x.school?.name==='Duxbury Public Schools'&&x.school.grade==='3'),'the school reaches the account')
  // My schedules opens the full editor, with the grade in step 1 and no college fields.
  await plannerMenu(page,'My schedules')
@@ -2493,12 +2502,12 @@ test('Dark mode: follows a phone set to dark by default; Light and Dark in Look 
   await createPlan(page)
   assert.equal(await isDark(),true,'a phone in dark mode gets KONO in dark')
   assert.equal(await page.evaluate(()=>getComputedStyle(document.querySelector('.workbench')).backgroundColor),'rgb(22, 19, 26)')
-  await go(page,'Settings')
+  await go(page,'Settings');await settingsTab(page,'Look & feel')
   const choice=page.getByRole('group',{name:'Dark mode'})
   await choice.getByRole('button',{name:'☀️ Light'}).click()
   await page.waitForFunction(()=>!document.documentElement.dataset.dark)
   await flushSave(page,'"darkMode":"light"')
-  await page.reload();await heading(page,'Settings')
+  await page.reload();await heading(page,'Settings');await settingsTab(page,'Look & feel')
   assert.equal(await isDark(),false,'Light stays light on a dark phone')
   await page.getByRole('group',{name:'Dark mode'}).getByRole('button',{name:'📱 Match my phone'}).click()
   await page.waitForFunction(()=>document.documentElement.dataset.dark==='true')
@@ -2508,7 +2517,7 @@ test('Dark mode: follows a phone set to dark by default; Light and Dark in Look 
  try{
   await createPlan(light.page)
   assert.equal(await light.page.evaluate(()=>document.documentElement.dataset.dark),undefined,'a light device stays light')
-  await go(light.page,'Settings')
+  await go(light.page,'Settings');await settingsTab(light.page,'Look & feel')
   await light.page.getByRole('group',{name:'Dark mode'}).getByRole('button',{name:'🌙 Dark'}).click()
   await light.page.waitForFunction(()=>document.documentElement.dataset.dark==='true')
  }finally{await light.context.close()}
@@ -2875,7 +2884,7 @@ test('Kids\' appearance: one kid at a time, a saved animated border becomes its 
  await page.goto(BASE)
  await heading(page,'Sanctuary')
  await go(page,'Kids')
- await page.getByRole('button',{name:'🎨 Appearance'}).click()
+ await familyMenu(page,'Appearance')
  const panel=page.getByRole('dialog',{name:'Kids\' appearance'})
  const tabs=panel.getByRole('tablist',{name:'Kids'})
  assert.equal(await tabs.getByRole('tab').count(),2)
@@ -3005,7 +3014,7 @@ test('My work schedule: weekly shifts go on the calendar from the Planner’s �
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Sanctuary')
  await go(page,'Planner')
- await plannerMenu(page,'💼 My work schedule')
+ await plannerMenu(page,'My work schedule')
  const setup=page.getByRole('region',{name:'My work schedule'})
  await setup.getByLabel('Job').fill('Cafe')
  const days=setup.getByRole('group',{name:'Shift days'})
@@ -3019,7 +3028,7 @@ test('My work schedule: weekly shifts go on the calendar from the Planner’s �
  // Tuesday's calendar shows the shift.
  await page.locator('.wb-week-grid, .week-grid, [class*=week]').filter({hasText:'Cafe'}).first().waitFor()
  // Remove it again.
- await plannerMenu(page,'💼 My work schedule')
+ await plannerMenu(page,'My work schedule')
  await page.getByRole('region',{name:'My work schedule'}).getByRole('button',{name:'Remove Cafe'}).click()
  await waitFor(()=>!cloud.users.alice.plan.data.studySeasons.some(s=>s.name==='Cafe · work'),'the shifts were never removed')
 })
@@ -3267,6 +3276,61 @@ test('Study: one tab for tests, flashcards, study sets and notes; Practice opens
  const more=page.getByRole('dialog',{name:'More'})
  await more.getByRole('button',{name:'Study',exact:true}).waitFor()
  for(const name of ['Notes','K-Quiz','Exams'])assert.equal(await more.getByRole('button',{name,exact:true}).count(),0,name+' is inside Study')
+})
+test('Round 3 Planner: the calendar comes first, ⋯ in its top row has Add a schedule and wall mode, Filters is one pill, and Plan your week follows the calendar',async({context,page})=>{
+ const cloud=fakeCloud()
+ await page.setViewportSize({width:1280,height:900})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Today');await go(page,'Planner')
+ const top=await page.locator('.cozy-calendar-shell').boundingBox()
+ assert.ok(top.y<260,'the calendar starts near the top: '+top.y)
+ assert.equal(await page.getByRole('button',{name:'Plan my week'}).count(),1,'Plan my week is one button, after the calendar')
+ assert.equal(await page.locator('details.planner-filters').getAttribute('open'),null,'Filters starts as a pill')
+ await plannerMenu(page,'＋ Add a schedule')
+ await page.getByRole('region',{name:'Add a schedule'}).waitFor()
+})
+test('Round 3 Family: one kid at a time (or Everyone), setup in ⋯, the shared to-do and dinners as tabs',async({context,page})=>{
+ const cloud=fakeCloud()
+ await page.setViewportSize({width:390,height:844})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Today');await go(page,'Kids')
+ const kids=page.getByRole('group',{name:'Whose family page'})
+ await kids.getByRole('button',{name:'Emma',exact:false}).first().waitFor()
+ const visible=async name=>page.locator('.kid-card').filter({hasText:name}).first().isVisible()
+ assert.ok(await visible('Emma'));assert.ok(!(await visible('Leo')),'one kid at a time')
+ await kids.getByRole('button',{name:/Leo/}).click()
+ assert.ok(await visible('Leo'));assert.ok(!(await visible('Emma')))
+ await kids.getByRole('button',{name:'Everyone'}).click()
+ assert.ok(await visible('Emma')&&await visible('Leo'))
+ const shared=page.getByRole('region',{name:'Shared',exact:true})
+ await shared.getByRole('button',{name:'Dinners & groceries'}).click()
+ await shared.getByRole('region',{name:'Dinners & groceries'}).waitFor()
+ await familyMenu(page,'Appearance')
+ await page.getByRole('dialog',{name:'Kids\' appearance'}).waitFor()
+})
+test('Round 3 Settings: a list of sections that say what’s set; each opens alone with ‹ All settings back',async({context,page})=>{
+ const cloud=fakeCloud()
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Today');await go(page,'Settings')
+ const list=page.getByRole('navigation',{name:'Settings sections'})
+ for(const name of ['Look & feel','Notifications','Family','Schedules','Import & export','Plans & account'])await list.getByRole('button',{name,exact:true}).waitFor()
+ assert.match(await list.getByRole('button',{name:'Family',exact:true}).innerText(),/2 kids/)
+ await list.getByRole('button',{name:'Notifications',exact:true}).click()
+ await page.getByRole('button',{name:'All settings'}).click()
+ await list.waitFor()
+})
+test('Round 3 K-Quiz and search: ＋ Make a study set opens where-from tiles; search says Test and a friendly date',async({context,page})=>{
+ const cloud=fakeCloud()
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Today');await go(page,'K-Quiz')
+ await page.getByRole('heading',{name:'Study sets'}).waitFor()
+ const src=page.getByRole('group',{name:'Add a source'})
+ if(!await src.count())await page.getByRole('button',{name:'＋ Make a study set'}).click()
+ for(const name of ['Record a lecture','Paste text','Scan a photo'])await src.getByRole('button',{name:new RegExp(name)}).waitFor()
+ await page.getByRole('button',{name:/Search/}).first().click()
+ await page.getByRole('combobox',{name:/^Search/}).fill('cell bio')
+ await page.locator('.command-results').getByText(/Test · Fri, Oct 2/).first().waitFor()
 })
 test('Finishing something: the Done toast shows the snack it earned, and Feed KONO feeds that snack right away',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
@@ -3701,7 +3765,7 @@ test('Family plan: Emma’s own plan shows in the parent’s Home and Planner as
  assert.equal(await day.locator('.today-card-reminders').count(),0,'no overdue events')
  // Planner: the same names; an event for Emma goes into her plan.
  await go(page,'Planner')
- await page.getByRole('group',{name:'Whose things to show'}).waitFor()
+ await openFilters(page);await page.getByRole('group',{name:'Whose things to show'}).waitFor()
  await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Day',exact:true}).click()
  await page.getByRole('button',{name:/^Add at 4:00 PM on/}).click()
  const add=page.getByRole('dialog',{name:/^Add for/})
@@ -3806,7 +3870,7 @@ test('Family extras: a family to-do list, a snack with a note for a kid’s KONO
  await add.getByRole('button',{name:'Add'}).click()
  await waitFor(()=>{const list=cloud.users.alice.plan.data.calendarEvents.filter(e=>e.title==='Soccer practice');return list.length===6&&list.every(e=>e.driver==='Dad'&&e.kidId==='kid-leo'&&e.recurringId===list[0].recurringId)},'the practices weren’t saved as a Tue/Thu series with Dad driving')
  // Pickups: the week, with who's driving.
- await plannerMenu(page,'🚗 Pickups & drop-offs')
+ await plannerMenu(page,'Pickups & drop-offs')
  const pickups=page.getByRole('dialog',{name:'Pickups & drop-offs'})
  assert.match(await pickups.getByRole('region',{name:'Today'}).innerText(),/Soccer practice[\s\S]*Leo[\s\S]*🚗 Dad/)
  await pickups.getByRole('button',{name:'Close dialog'}).click()
@@ -3844,7 +3908,7 @@ test('Family wall calendar: Today sums up the day; Month shows each person’s t
  // Tapping a pill opens it.
  await pill.click();await page.getByRole('dialog',{name:'Edit event'}).getByRole('button',{name:'Cancel'}).click()
  // Wall & tablet mode: today and the next days in columns, with whose each thing is.
- await page.getByRole('button',{name:/Wall & tablet mode/}).click()
+ await plannerMenu(page,'Wall & tablet mode')
  const wall=page.getByRole('dialog',{name:'Family hub'}),today=wall.getByRole('region',{name:'Today'})
  await today.getByRole('button',{name:/^Soccer practice, 4.*PM, Emma$/}).waitFor()
  await wall.getByRole('region',{name:'Tomorrow'}).waitFor()
@@ -3884,7 +3948,7 @@ test('Family calendar extras: a birthday comes back every year and a countdown c
  await page.setViewportSize({width:1280,height:900});await page.goto(BASE);await heading(page,'Sanctuary')
  // Birthdays & countdowns, from the Planner's ⋯ menu.
  await go(page,'Planner')
- await plannerMenu(page,'🎂 Birthdays & countdowns')
+ await plannerMenu(page,'Birthdays & countdowns')
  const panel=page.getByRole('dialog',{name:'Birthdays & countdowns'})
  await panel.getByLabel('Whose (optional)').selectOption({label:'🦄 Emma'})
  assert.equal(await panel.getByLabel('Name').inputValue(),'Emma','picking a kid fills in their name')
@@ -4199,7 +4263,7 @@ test('offline: the Home Screen app opens with no signal, shows the plan, keeps a
   await page.waitForFunction(()=>/offline|kept on this device|sync pending|unavailable/i.test(document.querySelector('.save-status [role=status]')?.textContent??''))
   // Screens that load on demand open with no signal too (Settings › Family and Kids, never opened before).
   await go(page,'Settings');await settingsTab(page,'Family');await page.getByRole('region',{name:'Share with grandparents'}).waitFor()
-  await go(page,'Kids');await page.getByRole('heading',{name:'Kids'}).first().waitFor()
+  await go(page,'Kids');await heading(page,'Kids')
   assert.equal(await page.locator('.lazy-panel-error').count(),0,'a screen couldn’t load offline')
   assert.ok(!JSON.stringify(cloud.users.alice.plan.data).includes('Written with no signal (e2e)'))
   // Signal back: it reaches the account without doing anything.
@@ -4315,7 +4379,7 @@ test('Family to-dos everywhere: typed in one line in ＋ Add, every 2 weeks from
  await go(page,'Kids')
  const emma=page.getByRole('region',{name:'Your kids'}).getByRole('listitem').filter({hasText:'Emma'})
  await emma.getByText('Later this week').waitFor()
- assert.match(await emma.innerText(),/Tomorrow\s+🗓️ Piano 5:00 PM/i)
+ assert.match(await emma.innerText(),/Tomorrow\s+Piano 5:00 PM/i)
  assert.match(await emma.innerText(),/Sat · Soccer game 9:00 AM/)
  await emma.getByRole('button',{name:'Edit Emma'}).waitFor()
  // A family Home, opened again on this device: the island shows its picture and loads the rest once near.
@@ -4364,13 +4428,13 @@ test('Family to-dos, part 2: a to-do’s words, day and repeat can be changed; t
  await dragOnto(page,pill,page.getByRole('button',{name:/^Oct 18, 2026 · /}))
  await waitFor(()=>cloud.users.alice.plan.data.familyTodos.find(x=>x.id==='f1').due==='2026-10-18','the drag never moved the to-do')
  await page.getByRole('button',{name:'To-do: Clean house · Oct 18, 2026'}).waitFor()
- const chip=page.getByRole('group',{name:'Show on calendar'}).getByRole('button',{name:'✔ To-dos'})
+ await openFilters(page);const chip=page.getByRole('group',{name:'Show on calendar'}).getByRole('button',{name:'✔ To-dos'})
  await chip.click()
  await page.getByRole('button',{name:'To-do: Clean house · Oct 18, 2026'}).waitFor({state:'detached'})
  await chip.click()
  await page.getByRole('button',{name:'To-do: Clean house · Oct 18, 2026'}).waitFor()
  // The wall: tomorrow's to-do under tomorrow, with whose it is.
- await page.getByRole('button',{name:/Wall & tablet mode/}).click()
+ await plannerMenu(page,'Wall & tablet mode')
  const wall=page.getByRole('dialog',{name:'Family hub'})
  assert.match(await wall.getByRole('list',{name:'Tomorrow’s to-dos'}).innerText(),/Sign permission slip\s*Leo/)
  assert.match(await wall.getByRole('region',{name:'To-dos'}).innerText(),/Groceries/,'Home’s to-dos also list the any-day ones')
@@ -4862,7 +4926,7 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  await grid.getByRole('gridcell',{name:new RegExp('^Row '+wrong.r+', column '+wrong.c+', marked$')}).waitFor()
 })
 
-test('Round 58: your own Today: the schedule (today and tomorrow together), no island; the next 7 days and notes start hidden; Customize Home shows and reorders them, and it stays after a reload',async({context,page})=>{
+test('Round 58: your own Today: the schedule (today and tomorrow together), no island; notes start hidden (a family keeps the next 7 days); Customize Home shows and reorders them, and it stays after a reload',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
  d.notes.push({id:'n-pin',profileId:pid,subjectId:'',title:'Bring cleats',body:'Soccer Saturday',created:'2026-10-10T12:00:00.000Z',pinned:true})
@@ -4875,10 +4939,11 @@ test('Round 58: your own Today: the schedule (today and tomorrow together), no i
  await day.getByRole('region',{name:'Today'}).waitFor();await day.getByRole('region',{name:'Tomorrow'}).waitFor()
  assert.equal(await page.getByRole('tab',{name:/^Tomorrow/}).count(),0,'no Today / Tomorrow tabs any more')
  assert.equal(await page.locator('.wb-island').count(),0,'the island is on KONO’s tab, not Today')
- for(const name of ['Your week ahead','Notes & reminders'])assert.equal(await page.getByRole('region',{name}).count(),0,name+' starts hidden on a weekday')
+ assert.equal(await page.getByRole('region',{name:'Notes & reminders'}).count(),0,'notes start hidden (they’re on Study)')
+ await page.getByRole('region',{name:'Your week ahead'}).waitFor() // a family’s Today keeps the next 7 days
  if(process.env.KONO_SHOTS){await page.screenshot({path:process.env.KONO_SHOTS+'/home-desktop.png',fullPage:true});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(500);await page.screenshot({path:process.env.KONO_SHOTS+'/home-phone.png',fullPage:true});await page.setViewportSize({width:1280,height:800})}
  // Customize: turn on the next 7 days and the notes, and move Notes & reminders to the top (⠿ with the arrow keys). The island isn't offered: it has its own tab.
- await page.getByRole('button',{name:'✏️ Customize Home'}).click()
+ await page.getByRole('button',{name:'Customize Home'}).click()
  const dialog=page.getByRole('dialog',{name:'Customize Home'})
  assert.equal(await dialog.getByRole('checkbox',{name:/KONO|Sanctuary/}).count(),0)
  await dialog.getByRole('checkbox',{name:/The next 7 days/}).check()
@@ -4897,7 +4962,7 @@ test('Round 58: your own Today: the schedule (today and tomorrow together), no i
  side=await order('today-side')
  assert.equal(side[0],'Notes & reminders','the order stays after a reload: '+side.join(' | '))
  // Back to the default.
- await page.getByRole('button',{name:'✏️ Customize Home'}).click()
+ await page.getByRole('button',{name:'Customize Home'}).click()
  await page.getByRole('dialog',{name:'Customize Home'}).getByRole('button',{name:'Back to the default'}).click()
  await page.getByRole('dialog',{name:'Customize Home'}).getByRole('button',{name:'Done'}).click()
  await notes.waitFor({state:'detached'})

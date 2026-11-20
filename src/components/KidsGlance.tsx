@@ -1,3 +1,4 @@
+import Icon from './Icon'
 import {useState,type CSSProperties} from 'react'
 import Modal from './Modal'
 import './kids-page.css'
@@ -24,7 +25,10 @@ export default function KidsGlance({data,profileId,today,from,save,onOpen,onMake
  if(!rows.length)return null
  // Out sick or a snow day today: said on the kid's card instead of their school day.
  const off=daysOffOn(data,profileId,today),outFor=(kidId:string)=>off.find(d=>!d.kidIds.length||d.kidIds.includes(kidId))
- const list=(items:string[],more=0)=>items.length?<>{items.map((t,i)=><span key={i}>{t}</span>)}{more>0&&<span className="is-more">+{more} more</span>}</>:null
+ // A line's leading emoji becomes the drawn icon (components/Icon); the words stay as they are.
+ const glyph:[string,string][]=[['🏫','school'],['🕒','clock'],['⚠','alert'],['✓','check'],['📝','tests'],['📌','pin'],['🗓️','planner']]
+ const line=(t:string)=>{const g=glyph.find(([e])=>t.startsWith(e));return g?<><Icon name={g[1]} size={15}/>{t.slice(g[0].length).trimStart()}</>:t}
+ const list=(items:string[],more=0)=>items.length?<>{items.map((t,i)=><span key={i}>{line(t)}</span>)}{more>0&&<span className="is-more">+{more} more</span>}</>:null
  return <section className="kids-glance kid-cards" aria-label="Your kids">{onDayOff&&<div className="kid-cards-tools">{onDayOff&&<button type="button" className="link-button" onClick={onDayOff}>{off.length?'Change who’s out':'🤒 Out sick or snow day?'}</button>}</div>}<ul>{rows.map(r=>{
   const o=outFor(r.kid.id),face=<span className={'kids-glance-face'+(ring(r)!==null?' has-ring':'')} aria-hidden="true" style={ring(r)!==null?{'--done':ring(r)} as CSSProperties:undefined}>{r.kid.photo?<img className="avatar-img" src={r.kid.photo} alt="" draggable={false}/>:r.kid.emoji||r.kid.name.charAt(0).toUpperCase()}</span>
   const name=<><strong>{r.kid.name}</strong>{o?<small className="kids-glance-day is-out">{dayOffIcon(o.reason)} {o.reason==='sick'?'Out sick':o.reason==='snow'?'Snow day':'Day off'}</small>:r.school&&<small className="kids-glance-day">{r.school}</small>}</>
@@ -37,7 +41,7 @@ export default function KidsGlance({data,profileId,today,from,save,onOpen,onMake
   ]
   const tomorrowLines=[...(r.dueTonight.length?['📌 '+r.dueTonight.length+' due: '+r.dueTonight.slice(0,2).join(', ')+(r.dueTonight.length>2?'…':'')]:[]),...r.tomorrow.map(e=>'🗓️ '+e.title+(e.time?' '+classTime(e.time):'')),...r.tests.filter(t=>t.due===addDays(today,1)).map(t=>'📝 '+t.title)]
   const laterLines=r.later.map(x=>weekday(x.date)+' · '+(x.test?'📝 ':'')+x.title+(x.time?' '+classTime(x.time):''))
-  return <li key={r.kid.id} className="kid-card" style={{'--kid-color':r.kid.color} as CSSProperties}>
+  return <li key={r.kid.id} className="kid-card" data-kid={r.kid.id} style={{'--kid-color':r.kid.color} as CSSProperties}>
    <div className="kid-card-head">
     {r.planId?<button type="button" className="kid-card-open" onClick={()=>onOpen(r.kid,r.planId)} aria-label={'Open '+r.kid.name+'’s plan'}>{face}<span className="kid-card-name">{name}</span><span className="kid-card-go" aria-hidden="true">›</span></button>:<div className="kid-card-open">{face}<span className="kid-card-name">{name}</span></div>}
     <div className="kid-card-tools">
