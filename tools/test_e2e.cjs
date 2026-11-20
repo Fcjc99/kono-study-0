@@ -1722,7 +1722,8 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  await page.reload();await page.locator('#workspace-main h1').waitFor();await go(page,'Planner')
  await week.getByRole('button',{name:/^Soccer practice/}).waitFor()
  assert.equal(await week.getByRole('button',{name:/^Quiz review session/}).count(),0,'still hidden after a reload')
- await chips.getByRole('button',{name:'Canvas'}).click()
+ assert.match(await page.locator('details.planner-filters>summary').innerText(),/some hidden/,'the Filters pill says something is hidden')
+ await openFilters(page);await chips.getByRole('button',{name:'Canvas'}).click()
  await week.getByRole('button',{name:/^Quiz review session/}).waitFor()
  // Tap an empty hour: a new event starts then, for an hour.
  await week.getByRole('button',{name:'Add at 10:00 AM on Oct 2, 2026'}).click()
@@ -1791,7 +1792,7 @@ test('Planner › Week: the week by default, items at their hour, source chips h
  await week.getByRole('button',{name:/^Math tutoring · 1:30 PM–4:00 PM · Oct 9, 2026/}).waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.filter(e=>e.recurringId).map(e=>e.date+' '+e.title).sort().join()==='2026-10-02 Tutoring,2026-10-09 Math tutoring,2026-10-16 Math tutoring,2026-10-23 Math tutoring','only this and the later ones changed')
  await page.getByRole('group',{name:'Calendar view'}).getByRole('button',{name:'Month'}).click()
- assert.equal(await page.getByRole('region',{name:'Week'}).count(),0)
+ await page.getByRole('region',{name:'Week'}).waitFor({state:'detached'})
 })
 
 /** Planner › Week: drag `source` with the mouse so its top lands `dy` px below the top of `target`
@@ -2501,12 +2502,12 @@ test('Dark mode: follows a phone set to dark by default; Light and Dark in Look 
   await createPlan(page)
   assert.equal(await isDark(),true,'a phone in dark mode gets KONO in dark')
   assert.equal(await page.evaluate(()=>getComputedStyle(document.querySelector('.workbench')).backgroundColor),'rgb(22, 19, 26)')
-  await go(page,'Settings')
+  await go(page,'Settings');await settingsTab(page,'Look & feel')
   const choice=page.getByRole('group',{name:'Dark mode'})
   await choice.getByRole('button',{name:'☀️ Light'}).click()
   await page.waitForFunction(()=>!document.documentElement.dataset.dark)
   await flushSave(page,'"darkMode":"light"')
-  await page.reload();await heading(page,'Settings')
+  await page.reload();await heading(page,'Settings');await settingsTab(page,'Look & feel')
   assert.equal(await isDark(),false,'Light stays light on a dark phone')
   await page.getByRole('group',{name:'Dark mode'}).getByRole('button',{name:'📱 Match my phone'}).click()
   await page.waitForFunction(()=>document.documentElement.dataset.dark==='true')
@@ -2516,7 +2517,7 @@ test('Dark mode: follows a phone set to dark by default; Light and Dark in Look 
  try{
   await createPlan(light.page)
   assert.equal(await light.page.evaluate(()=>document.documentElement.dataset.dark),undefined,'a light device stays light')
-  await go(light.page,'Settings')
+  await go(light.page,'Settings');await settingsTab(light.page,'Look & feel')
   await light.page.getByRole('group',{name:'Dark mode'}).getByRole('button',{name:'🌙 Dark'}).click()
   await light.page.waitForFunction(()=>document.documentElement.dataset.dark==='true')
  }finally{await light.context.close()}
@@ -3323,14 +3324,13 @@ test('Round 3 K-Quiz and search: ＋ Make a study set opens where-from tiles; se
  await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await heading(page,'Today');await go(page,'K-Quiz')
+ await page.getByRole('heading',{name:'Study sets'}).waitFor()
  const src=page.getByRole('group',{name:'Add a source'})
  if(!await src.count())await page.getByRole('button',{name:'＋ Make a study set'}).click()
  for(const name of ['Record a lecture','Paste text','Scan a photo'])await src.getByRole('button',{name:new RegExp(name)}).waitFor()
- await page.keyboard.press('Control+k')
- const box=page.getByRole('combobox').or(page.getByRole('searchbox')).first()
- if(!await box.isVisible().catch(()=>false))await page.getByRole('button',{name:/Search/}).first().click()
- await page.keyboard.type('cell bio')
- await page.getByText(/Test · Fri, Oct 2/).first().waitFor()
+ await page.getByRole('button',{name:/Search/}).first().click()
+ await page.getByRole('combobox',{name:/^Search/}).fill('cell bio')
+ await page.locator('.command-results').getByText(/Test · Fri, Oct 2/).first().waitFor()
 })
 test('Finishing something: the Done toast shows the snack it earned, and Feed KONO feeds that snack right away',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
@@ -4263,7 +4263,7 @@ test('offline: the Home Screen app opens with no signal, shows the plan, keeps a
   await page.waitForFunction(()=>/offline|kept on this device|sync pending|unavailable/i.test(document.querySelector('.save-status [role=status]')?.textContent??''))
   // Screens that load on demand open with no signal too (Settings › Family and Kids, never opened before).
   await go(page,'Settings');await settingsTab(page,'Family');await page.getByRole('region',{name:'Share with grandparents'}).waitFor()
-  await go(page,'Kids');await page.getByRole('heading',{name:'Kids'}).first().waitFor()
+  await go(page,'Kids');await heading(page,'Kids')
   assert.equal(await page.locator('.lazy-panel-error').count(),0,'a screen couldn’t load offline')
   assert.ok(!JSON.stringify(cloud.users.alice.plan.data).includes('Written with no signal (e2e)'))
   // Signal back: it reaches the account without doing anything.
