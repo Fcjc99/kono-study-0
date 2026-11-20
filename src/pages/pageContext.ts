@@ -78,6 +78,9 @@ export type PageContext={
  todoOps?:TodoOps
  personShown:(x?:unknown)=>boolean
  card:(key:Collection,entry:Entry,compact?:boolean)=>ReactElement
+ focusOn:(taskId:string,minutes?:number)=>void
+ hiddenPages:string[]
+ celebrate:()=>void
  renderClass:(item:ClassOccurrence)=>ReactElement
  renderCompactClass:(item:ClassOccurrence)=>ReactElement
 }

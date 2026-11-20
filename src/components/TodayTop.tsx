@@ -32,6 +32,27 @@ export default function TodayTop({name,hour,mood,lateCount,coins,coinLabel,showK
    <h2 className="up-next-tag">Coming up · {e.subjectId&&subjectName(e.subjectId)?subjectName(e.subjectId)+' · ':''}{dueLabel(e.due,today)}</h2>
    <h3>Study for {e.title||'your test'}</h3>
    <div className="up-next-actions"><button type="button" className="up-next-focus" onClick={()=>onStudy('Study for '+(e.title||'your test'))}>▶ Study 25 min</button></div>
-  </section>:<section className="up-next is-clear" aria-label="Up next"><h2 className="up-next-tag">Up next</h2><h3>All caught up</h3><p>Nothing due this week. Add something with ＋, or enjoy the break.</p></section>)}
+  </section>:<section className="up-next is-clear" aria-label="Up next"><h2 className="up-next-tag">Up next</h2><h3>All caught up</h3><p>Nothing due this week. Add something with ＋, or enjoy the break.</p><div className="up-next-actions"><button type="button" className="up-next-focus" onClick={()=>onStudy('Study time')}>▶ Focus anyway</button></div></section>)}
  </div>
+}
+
+/** Today's "Then": the next few things after Up next (store/upNext thenList), each with a tick to finish it and
+ * ▶ to focus on it, or Study for a test. Beside Up next on a wide screen, under it on a phone. */
+export function TodayThen({items,today,subjectName,onFocus,onStudy,onDone}:{
+ items:{task?:Task;exam?:Exam}[];today:string;subjectName:(id:string)=>string
+ onFocus:(taskId:string,minutes?:number)=>void;onStudy:(label:string)=>void;onDone:(id:string)=>void
+}){
+ if(!items.length)return null
+ return <section className="wb-panel today-then" aria-label="Then">
+   <h2>Then</h2>
+   <ul>{items.map(i=>i.task?<li key={i.task.id}>
+    <button type="button" className="today-then-tick" aria-label={'Done: '+i.task.title} onClick={()=>onDone(i.task!.id)}/>
+    <div><b>{i.task.title||'Untitled'}</b><small>{dueLabel(i.task.due,today)}{i.task.subjectId&&subjectName(i.task.subjectId)?' · '+subjectName(i.task.subjectId):''}{i.task.plannedTime?' · '+i.task.plannedTime:''}</small></div>
+    <button type="button" className="today-then-go" aria-label={'Focus on: '+i.task.title} onClick={()=>onFocus(i.task!.id,i.task!.estimatedMinutes)}>▶</button>
+   </li>:<li key={i.exam!.id}>
+    <span className="today-then-icon" aria-hidden="true">📝</span>
+    <div><b>{i.exam!.title||'Test'}</b><small>{dueLabel(i.exam!.due,today)}{i.exam!.subjectId&&subjectName(i.exam!.subjectId)?' · '+subjectName(i.exam!.subjectId):''}</small></div>
+    <button type="button" className="today-then-study" onClick={()=>onStudy('Study for '+(i.exam!.title||'your test'))}>Study 25m</button>
+   </li>)}</ul>
+  </section>
 }

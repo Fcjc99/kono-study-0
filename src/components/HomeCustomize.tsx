@@ -1,6 +1,6 @@
 import Modal from './Modal'
 import ReorderList from './ReorderList'
-import {DEFAULT_ORDER,type HomeLayout,type HomeWidget} from '../store/homeLayout'
+import {readLayout,type HomeLayout,type HomeWidget} from '../store/homeLayout'
 
 /** ✏️ Customize Home: tick the widgets to show and drag them (⠿, or the arrow keys on it) into your own order.
  * Changes apply at once; "Back to the default" undoes them all. Loaded only when opened. */
@@ -28,7 +28,7 @@ export default function HomeCustomize({layout,available,onChange,close}:{layout:
     <input type="checkbox" checked={!layout.hidden.has(id)} onChange={e=>toggle(id,e.target.checked)}/>
     <span><strong>{WIDGETS[id].name}</strong><small>{WIDGETS[id].blurb}</small></span>
    </label>}))} onReorder={reorder}/>
-   <div className="wb-toolbar"><button type="button" onClick={()=>onChange({order:[...DEFAULT_ORDER],hidden:new Set()})}>Back to the default</button><button type="button" className="primary" onClick={close}>Done</button></div>
+   <div className="wb-toolbar"><button type="button" onClick={()=>onChange(readLayout(''))}>Back to the default</button><button type="button" className="primary" onClick={close}>Done</button></div>
   </div>
  </Modal>
 }
