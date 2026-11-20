@@ -4926,7 +4926,7 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  await grid.getByRole('gridcell',{name:new RegExp('^Row '+wrong.r+', column '+wrong.c+', marked$')}).waitFor()
 })
 
-test('Round 58: your own Today: the schedule (today and tomorrow together), no island; the next 7 days and notes start hidden; Customize Home shows and reorders them, and it stays after a reload',async({context,page})=>{
+test('Round 58: your own Today: the schedule (today and tomorrow together), no island; notes start hidden (a family keeps the next 7 days); Customize Home shows and reorders them, and it stays after a reload',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
  d.notes.push({id:'n-pin',profileId:pid,subjectId:'',title:'Bring cleats',body:'Soccer Saturday',created:'2026-10-10T12:00:00.000Z',pinned:true})
@@ -4939,7 +4939,8 @@ test('Round 58: your own Today: the schedule (today and tomorrow together), no i
  await day.getByRole('region',{name:'Today'}).waitFor();await day.getByRole('region',{name:'Tomorrow'}).waitFor()
  assert.equal(await page.getByRole('tab',{name:/^Tomorrow/}).count(),0,'no Today / Tomorrow tabs any more')
  assert.equal(await page.locator('.wb-island').count(),0,'the island is on KONO’s tab, not Today')
- for(const name of ['Your week ahead','Notes & reminders'])assert.equal(await page.getByRole('region',{name}).count(),0,name+' starts hidden on a weekday')
+ assert.equal(await page.getByRole('region',{name:'Notes & reminders'}).count(),0,'notes start hidden (they’re on Study)')
+ await page.getByRole('region',{name:'Your week ahead'}).waitFor() // a family’s Today keeps the next 7 days
  if(process.env.KONO_SHOTS){await page.screenshot({path:process.env.KONO_SHOTS+'/home-desktop.png',fullPage:true});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(500);await page.screenshot({path:process.env.KONO_SHOTS+'/home-phone.png',fullPage:true});await page.setViewportSize({width:1280,height:800})}
  // Customize: turn on the next 7 days and the notes, and move Notes & reminders to the top (⠿ with the arrow keys). The island isn't offered: it has its own tab.
  await page.getByRole('button',{name:'Customize Home'}).click()
