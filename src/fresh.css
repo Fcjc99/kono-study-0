@@ -1,7 +1,7 @@
 /* KONO Fresh (round 3): one clean surface system over the older cozy layers. Flat warm background, white cards
  * with a soft shadow instead of pink outlines, a light sidebar, a modern sans for titles, no decorations.
  * Loaded last. Light look only for the colors; dark mode keeps its own tokens. */
-:root[data-experience='cozy']:not([data-dark]):not([data-team]){--wb-bg:#f8f5f3;--wb-surface:#fff;--wb-line:rgba(74,44,60,.09);--wb-ink:#2c2129;--wb-muted:#7c6b75;--fresh-shadow:0 1px 2px rgba(60,30,45,.05),0 10px 30px -18px rgba(60,30,45,.28)}
+:root[data-experience='cozy']:not([data-dark]):not([data-team]){--wb-bg:#f8f5f3;--wb-surface:#fff;--wb-line:rgba(74,44,60,.09);--wb-ink:#2c2129;--wb-muted:#67565f;--fresh-shadow:0 1px 2px rgba(60,30,45,.05),0 10px 30px -18px rgba(60,30,45,.28)}
 :root[data-experience='cozy'] body:not(#x),:root[data-experience='cozy'] .workbench:not(#x){background:var(--wb-bg)!important;background-image:none!important}
 /* Cards: white, no outline color, soft lift. */
 :root[data-experience='cozy']:not([data-dark]) .workbench :is(.wb-panel,.card,.up-next.is-clear,.today-kono,.class-card.is-loose,.settings-me):not(.wb-board):not(.kquiz-make):not(#x):not(#y){background:#fff!important;border:1px solid var(--wb-line)!important;box-shadow:var(--fresh-shadow)!important;background-image:none!important}
@@ -32,3 +32,13 @@
 :root[data-experience='cozy']:not([data-dark]):not([data-team]) .cozy-navigation .sidebar .brand p:not(#a):not(#b):not(#c){color:var(--wb-muted)!important}
 /* Dividers inside cards: hairlines, not pink rules. */
 :root[data-experience='cozy']:not([data-dark]) .workbench :is(.wb-panel,.card) :not(button):not(input):not(select):not(textarea):not(summary):not([aria-pressed]):not(.kid-card):not(.star-kid):not(#x){border-top-color:var(--wb-line)!important;border-bottom-color:var(--wb-line)!important}
+/* The sidebar's plan card: avatar, whose plan, and a small Whose plan? button. */
+:root[data-experience='cozy'] .cozy-navigation .sidebar .profile-dock:not(#a):not(#b){display:grid!important;grid-template-columns:36px minmax(0,1fr)!important;align-items:center!important;gap:4px 10px!important;padding:10px 12px!important;border-radius:16px!important;background:var(--wb-bg)!important;border:1px solid var(--wb-line)!important;box-shadow:none!important;min-height:0!important}
+:root[data-experience='cozy'] .cozy-navigation .sidebar .profile-dock::before,:root[data-experience='cozy'] .cozy-navigation .sidebar .profile-dock::after{display:none!important}
+:root[data-experience='cozy'] .cozy-navigation .sidebar .profile-dock .profile-avatar:not(#a){width:36px!important;height:36px!important;font-size:.95rem!important}
+:root[data-experience='cozy'] .cozy-navigation .sidebar .profile-dock-copy:not(#a){display:grid!important;min-width:0!important;line-height:1.25!important}
+:root[data-experience='cozy'] .cozy-navigation .sidebar .profile-dock-copy>*:not(#a){font-size:.78rem!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--wb-ink)!important}
+:root[data-experience='cozy'] .cozy-navigation .sidebar .profile-dock-copy span:not(#a){font-weight:800!important;font-size:.85rem!important}
+:root[data-experience='cozy'] .cozy-navigation .sidebar .profile-dock-copy small:not(#a){color:var(--wb-muted)!important}
+:root[data-experience='cozy'] .cozy-navigation .sidebar .profile-dock .plan-switch-button:not(#a):not(#b):not(#c){grid-column:1/-1!important;width:100%!important;min-height:32px!important;margin:4px 0 0!important;padding:0 10px!important;font-size:.82rem!important;font-weight:800!important;border-radius:10px!important;background:#fff!important;border:1px solid var(--wb-line)!important;color:var(--wb-ink)!important;box-shadow:none!important}
+:root[data-dark][data-experience='cozy'] .cozy-navigation .sidebar .profile-dock .plan-switch-button:not(#a):not(#b):not(#c){background:var(--wb-surface)!important}
