@@ -1023,3 +1023,7 @@ dialog.game-screen .game-result{position:relative;box-shadow:0 30px 60px -24px r
 @media(prefers-reduced-motion:reduce){.flappy-frame.is-down,.meow-hearts i.is-lost{animation:none}}
 .stack-frame.is-over{animation:hit-shake .45s cubic-bezier(.36,.07,.19,.97)}
 @media(prefers-reduced-motion:reduce){.stack-frame.is-over{animation:none}}
+/* KONO blast: a combo streak heats the frame, more with each clear in a row. */
+.blast .blast-frame.is-combo:not(#x){box-shadow:0 0 0 2px rgb(255 210 120/calc(.25 + var(--combo)*.12)),0 0 calc(30px + var(--combo)*14px) rgb(255 170 80/calc(.3 + var(--combo)*.1)),0 24px 48px -16px rgb(0 0 30/.7),inset 0 1px 0 rgb(255 255 255/.25)!important;animation:combo-breathe 1.4s ease-in-out infinite}
+@keyframes combo-breathe{50%{filter:brightness(1.08)}}
+@media(prefers-reduced-motion:reduce){.blast .blast-frame.is-combo{animation:none!important}}

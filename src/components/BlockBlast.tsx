@@ -115,7 +115,7 @@ export default function BlockBlast({ref,start,saved,best,sound,onCoins,onEnd,fac
    {onCoins&&<span className="blast-coins" aria-label={'Coins this game: '+earned}>🪙 +{earned}</span>}
    <strong key={score} className="blast-score" aria-label={'Score '+score}>{score}</strong>
   </div>
-  <div className="blast-frame">
+  <div className={'blast-frame'+(streak>0?' is-combo':'')} style={{['--combo' as string]:Math.min(streak,5)}}>
    <div ref={boardRef} className="blast-board" role="grid" tabIndex={0} aria-label="KONO blast board" onKeyDown={onKey} onPointerLeave={()=>{if(dragging===null)setAim(null)}}>
     {grid.map((color,j)=>{const r=Math.floor(j/SIZE),c=j%SIZE,lit=landing.has(j)||clearing.has(j)
      return <div key={j} role="gridcell" className={'blast-cell'+(color!==null?' is-block is-c'+color:'')+(lit&&piece?' is-lit is-c'+piece.color:'')+(landing.has(j)?' is-landing':'')+(cursor?.r===r&&cursor.c===c?' is-cursor':'')} data-r={r} data-c={c}
