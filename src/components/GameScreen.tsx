@@ -24,6 +24,8 @@ export type GameIntro={emoji:string;art?:React.ReactNode;name:string;how:string;
  * takes Escape while it plays (KONO Beat pauses its song) and says whether it did; otherwise Escape leaves. */
 export type GameHandle={end:()=>void;pause?:()=>boolean}
 // Where the stage's sparkles sit (left %, top %, delay s, duration s): fixed, so a game looks the same each time.
+// A new best's confetti (left %, color, delay s, spin).
+const CONFETTI:[number,string,number,number][]=[[6,'#ff5f87',0,320],[14,'#ffd84d',.12,-280],[22,'#5ef2ff',.05,400],[31,'#62f08a',.2,-360],[40,'#c37bff',.08,300],[49,'#ffa14a',.16,-420],[58,'#ff5f87',.02,380],[67,'#5b8cff',.22,-300],[76,'#ffd84d',.1,340],[85,'#62f08a',.18,-380],[93,'#c37bff',.06,420],[18,'#fff',.26,-260],[63,'#fff',.3,280]]
 const SPARKS:[number,number,number,number][]=[[8,18,0,7],[22,72,1.2,9],[35,30,2.5,8],[48,86,0.6,10],[61,12,3.1,7.5],[74,58,1.8,9.5],[86,26,0.3,8.5],[93,80,2.2,7],[14,46,3.6,10],[55,44,4.2,8],[70,92,1,9],[30,8,4.8,7.5]]
 export default function GameScreen({title,tone,game,sound=false,intro,started=true,onStart,onRestart,onEnd,onLeave,result,onAgain,onEscape,children}:{
  title:string;tone?:string;game?:string;sound?:boolean;onEscape?:()=>boolean
@@ -52,6 +54,7 @@ export default function GameScreen({title,tone,game,sound=false,intro,started=tr
    <h2>{result.title}</h2>
    {result.score&&<p className="game-result-score">{result.score}</p>}
    {result.best&&<p className="game-result-best">👑 New best!</p>}
+   {(result.best||result.won)&&<span className="game-confetti" aria-hidden="true">{CONFETTI.map((c,i)=><i key={i} style={{left:c[0]+'%',background:c[1],animationDelay:c[2]+'s',['--spin' as string]:c[3]+'deg'}}/>)}</span>}
    {result.detail}
    <p className="game-result-line">{result.line}</p>
    {result.coins&&<p className="game-result-coins">{result.coins}</p>}
