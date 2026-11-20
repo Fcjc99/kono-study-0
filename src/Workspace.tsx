@@ -1124,6 +1124,8 @@ function Workspace({store}:{store:Store}){
  // The widgets that fit this plan (Customize Home only offers these).
  // On a weekend (and always for a family) the default Today brings back the next 7 days, for planning the week.
  const [sharedTab,setSharedTab]=useLocalSetting('kono-family-shared','todos')
+ // Today at a glance: the common marks as drawn icons, anything else (a birthday's emoji) as it is.
+ const bitIcon=(e:string)=>{const m=({'📌':'pin','⚠':'alert','📝':'tests','🕒':'clock'} as Record<string,string>)[e];return m?<Icon name={m} size={15}/>:<span aria-hidden="true">{e}</span>}
  const todayList=homeLayout.order.filter(id=>id!=='sanctuary'&&(!homeLayout.hidden.has(id)||(id==='weekAhead'&&(weekend||familyHome)&&isDefault(homeLayout))))
   // The week strip and This week show the same days: when This week is on by default, the strip steps aside.
   .filter((id,_,all)=>id!=='week'||!all.includes('weekAhead')||!isDefault(homeLayout)),todaySideIds:HomeWidget[]=['week','family','comingUp','notes','todos','meals']
@@ -1237,7 +1239,7 @@ function Workspace({store}:{store:Store}){
     {id==='family'&&familyHome&&<section className="wb-panel today-card family-schedule" aria-label="Family schedule">
      <div className="wb-section-head"><div><small>{dateLabel(today)}</small><h2>Family schedule</h2></div></div>
      {peopleFilter}
-      <p className="today-summary" aria-label="Today at a glance">{daySummary(data,today,nowClock).map(b=>familyLean&&b.tone==='late'?<button type="button" key={b.text} className="is-late today-summary-late" aria-expanded={lateOpen} onClick={()=>setLateOpen(v=>!v)}><span aria-hidden="true">{b.icon}</span> {b.text}</button>:<span key={b.text} className={b.tone?'is-'+b.tone:undefined}><span aria-hidden="true">{b.icon}</span> {b.text}</span>)}</p>
+      <p className="today-summary" aria-label="Today at a glance">{daySummary(data,today,nowClock).map(b=>familyLean&&b.tone==='late'?<button type="button" key={b.text} className="is-late today-summary-late" aria-expanded={lateOpen} onClick={()=>setLateOpen(v=>!v)}>{bitIcon(b.icon)} {b.text}</button>:<span key={b.text} className={b.tone?'is-'+b.tone:undefined}>{bitIcon(b.icon)} {b.text}</span>)}</p>
       {familyHome&&<KidsNext data={data} profileId={profile.id} today={today} nowClock={nowClock}/>}
     </section>}
     {/* The schedule: today, then tomorrow, each in your own order. Late work and past-due reminders lead
@@ -1251,7 +1253,7 @@ function Workspace({store}:{store:Store}){
       </div>
      </div>
      {!familyHome&&<>{peopleFilter}
-      <p className="today-summary" aria-label="Today at a glance">{daySummary(data,today,nowClock).map(b=>familyLean&&b.tone==='late'?<button type="button" key={b.text} className="is-late today-summary-late" aria-expanded={lateOpen} onClick={()=>setLateOpen(v=>!v)}><span aria-hidden="true">{b.icon}</span> {b.text}</button>:<span key={b.text} className={b.tone?'is-'+b.tone:undefined}><span aria-hidden="true">{b.icon}</span> {b.text}</span>)}</p>
+      <p className="today-summary" aria-label="Today at a glance">{daySummary(data,today,nowClock).map(b=>familyLean&&b.tone==='late'?<button type="button" key={b.text} className="is-late today-summary-late" aria-expanded={lateOpen} onClick={()=>setLateOpen(v=>!v)}>{bitIcon(b.icon)} {b.text}</button>:<span key={b.text} className={b.tone?'is-'+b.tone:undefined}>{bitIcon(b.icon)} {b.text}</span>)}</p>
      </>}
      <div className="today-card-body" role="region" aria-label="Today">
       <h3 className="today-card-day">Today{todayCount>0&&<span className="today-card-count">{todayCount}</span>}</h3>

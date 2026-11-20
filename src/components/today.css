@@ -82,3 +82,4 @@
 /* Your day on Today: tighter, the day names small, the empty lines quiet. */
 .home-grid.is-today .today-card .today-card-day{font-size:.95rem!important;margin:8px 0 4px!important}
 .home-grid.is-today .today-card .today-card-body{padding-top:4px!important;padding-bottom:4px!important}
+.today-summary .kicon{vertical-align:-3px}
