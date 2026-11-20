@@ -52,7 +52,7 @@ export default function GameScreen({title,tone,game,sound=false,intro,started=tr
    {/* KONO reacts to the round (cheering for a win or a new best), with the game's emoji as its badge. */}
    <span className="game-result-kono" aria-hidden="true"><img src={result.best||result.won?'/garden/kono/excited.webp':'/garden/kono/happy.webp'} alt="" draggable={false}/><i>{result.emoji}</i></span>
    <h2>{result.title}</h2>
-   {result.score&&<p className="game-result-score">{result.score}</p>}
+   {result.score&&<p className="game-result-score"><CountUp text={result.score}/></p>}
    {result.best&&<p className="game-result-best">👑 New best!</p>}
    {(result.best||result.won)&&<span className="game-confetti" aria-hidden="true">{CONFETTI.map((c,i)=><i key={i} style={{left:c[0]+'%',background:c[1],animationDelay:c[2]+'s',['--spin' as string]:c[3]+'deg'}}/>)}</span>}
    {result.detail}
@@ -78,4 +78,20 @@ export default function GameScreen({title,tone,game,sound=false,intro,started=tr
    <div className="game-result-actions"><button type="button" className="primary" onClick={start}>{intro.start??'Start'}</button>{intro.alt&&<button type="button" onClick={()=>{gameSound('start',sound);intro.alt!.onClick()}}>{intro.alt.label}</button>}</div>
   </section>:phase==='results'&&result&&!result.behind?results:<>{children}{phase==='results'&&result&&<div className="game-result-over">{results}</div>}</>}</div>
  </dialog>
+}
+
+/** The results' score, counted up from zero: the first number in the text runs up over most of a second
+ * (the rest of the text stays as it is). Reduced motion shows it at once. */
+function CountUp({text}:{text:string}){
+ const m=/[\d,]+(\.\d+)?/.exec(text),target=m?Number(m[0].replace(/,/g,'')):NaN
+ const [n,setN]=useState(()=>Number.isFinite(target)&&!matchMedia('(prefers-reduced-motion: reduce)').matches?0:target)
+ useEffect(()=>{
+  if(!Number.isFinite(target)||matchMedia('(prefers-reduced-motion: reduce)').matches)return
+  const start=performance.now(),dur=Math.min(1100,400+Math.log10(target+1)*220);let raf=0
+  const tick=(now:number)=>{const k=Math.min(1,(now-start)/dur),e=1-Math.pow(1-k,3);setN(target*e);if(k<1)raf=requestAnimationFrame(tick)}
+  raf=requestAnimationFrame(tick);return ()=>cancelAnimationFrame(raf)
+ },[target])
+ if(!m||!Number.isFinite(target))return <>{text}</>
+ const decimals=m[1]?m[1].length-1:0,shown=decimals?n.toFixed(decimals):Math.round(n).toLocaleString()
+ return <><span aria-hidden="true">{text.slice(0,m.index)}{shown}{text.slice(m.index+m[0].length)}</span><span className="sr-only-count">{text}</span></>
 }
