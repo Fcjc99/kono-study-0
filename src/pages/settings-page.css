@@ -21,3 +21,20 @@
 /* Dark mode: folded settings groups (Team colors) had a light-pink heading strip with light text on it. */
 :root[data-dark][data-experience='cozy'] .settings-group>summary{background:linear-gradient(100deg,color-mix(in srgb,var(--wb-accent,#b4475f) 22%,#231d28),#2a2230)}
 :root[data-dark][data-experience='cozy'] .settings-group>summary small{color:color-mix(in srgb,var(--wb-ink,#f3e9ee) 70%,transparent)}
+/* Settings' list: you, then grouped rows that each open one section. */
+.settings-list-nav{display:grid;gap:12px}
+.workbench .settings-me:not(#x){display:flex!important;align-items:center!important;gap:12px!important;width:100%!important;margin:0 0 12px!important;padding:12px 16px!important;text-align:left!important;font:inherit!important;color:var(--wb-ink)!important;cursor:pointer}
+.settings-me>span:nth-child(2){flex:1;display:grid;min-width:0}.settings-me small{color:var(--wb-muted);overflow:hidden;text-overflow:ellipsis}
+.settings-me-face{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--wb-accent);color:#fff;font-weight:800;font-size:1.1rem}
+.workbench .settings-rows:not(#x){display:grid!important;padding:4px 14px!important;gap:0!important}
+.workbench .settings-rows button:not(#x){display:flex!important;align-items:center!important;gap:12px!important;width:100%!important;margin:0!important;min-height:54px!important;padding:6px 0!important;border:0!important;border-top:1px solid var(--wb-line)!important;border-radius:0!important;background:none!important;box-shadow:none!important;text-align:left!important;font:inherit!important;color:var(--wb-ink)!important}
+.workbench .settings-rows button:first-child:not(#x){border-top:0!important}
+.settings-rows b{flex:none;font-weight:700}
+.settings-rows small{flex:1;min-width:0;text-align:right;color:var(--wb-muted);font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.settings-rows .kicon:last-child{flex:none;color:var(--wb-muted)}
+.settings-row-icon{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--wb-accent) 12%,var(--wb-surface));color:var(--wb-accent)}
+.settings-section-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+.settings-section-title{margin:0!important}
+.workbench .settings-back:not(#x){display:inline-flex!important;align-items:center!important;gap:4px!important;margin:0!important;min-height:36px!important;padding:0 12px 0 6px!important;border-radius:99px!important}
+.settings-back .kicon{transform:rotate(180deg)}
+.settings-section-title{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}

@@ -6,7 +6,7 @@ import {teamThemeIds} from './teamThemes'
 // Settings tabs, grouped by what a person is trying to do rather than by where each feature was built.
 export const SETTINGS_TABS=['Look & feel','Notifications','Family','Schedules','Import & export','Plans & account'] as const
 /** 'KONO support' only appears for support accounts; the server enforces the access itself. */
-export type SettingsTab=typeof SETTINGS_TABS[number]|'KONO support'
+export type SettingsTab=typeof SETTINGS_TABS[number]|'KONO support'|'Overview'
 /** The pages, in the order the navigation lists them: Today (the home: what's next) and the Planner, the
  * family, the school pages, then KONO's own page (its island, Town and games: the Sanctuary) and Settings. */
 export const pages=['Today','Planner','Kids','Subjects','Study','Notes','K-Quiz','Exams','Sanctuary','Settings','Trash'] as const

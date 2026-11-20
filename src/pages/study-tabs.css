@@ -1,0 +1,5 @@
+/* Study's tabs (StudyTabs) on top of Study, Tests, Notes and K-Quiz. */
+.study-tabs{display:flex;gap:4px;padding:4px;margin:0 0 14px;border-radius:99px;background:color-mix(in srgb,var(--wb-accent) 8%,var(--wb-surface));border:1px solid var(--wb-line);width:max-content;max-width:100%;overflow-x:auto}
+.workbench .study-tabs button:not(#x){margin:0!important;min-height:36px!important;padding:0 14px!important;border-radius:99px!important;border:0!important;background:none!important;box-shadow:none!important;color:var(--wb-ink)!important;font-weight:700!important;white-space:nowrap!important}
+.workbench .study-tabs button[aria-current=page]:not(#x){background:var(--wb-accent)!important;color:#fff!important}
+@media(max-width:430px){.study-tabs{width:100%}.workbench .study-tabs button:not(#x){flex:1!important;padding:0 6px!important;font-size:.88rem!important}}

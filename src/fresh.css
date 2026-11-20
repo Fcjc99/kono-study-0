@@ -1,0 +1,34 @@
+/* KONO Fresh (round 3): one clean surface system over the older cozy layers. Flat warm background, white cards
+ * with a soft shadow instead of pink outlines, a light sidebar, a modern sans for titles, no decorations.
+ * Loaded last. Light look only for the colors; dark mode keeps its own tokens. */
+:root[data-experience='cozy']:not([data-dark]):not([data-team]){--wb-bg:#f8f5f3;--wb-surface:#fff;--wb-line:rgba(74,44,60,.09);--wb-ink:#2c2129;--wb-muted:#7c6b75;--fresh-shadow:0 1px 2px rgba(60,30,45,.05),0 10px 30px -18px rgba(60,30,45,.28)}
+:root[data-experience='cozy'] body:not(#x),:root[data-experience='cozy'] .workbench:not(#x){background:var(--wb-bg)!important;background-image:none!important}
+/* Cards: white, no outline color, soft lift. */
+:root[data-experience='cozy']:not([data-dark]) .workbench :is(.wb-panel,.card,.up-next.is-clear,.today-kono,.class-card.is-loose,.settings-me):not(.wb-board):not(.kquiz-make):not(#x):not(#y){background:#fff!important;border:1px solid var(--wb-line)!important;box-shadow:var(--fresh-shadow)!important;background-image:none!important}
+:root[data-experience='cozy'] .workbench :is(.wb-panel,.card):not(#x){border-radius:22px!important}
+:root[data-experience='cozy'] .workbench :is(.wb-panel,.card)::before,:root[data-experience='cozy'] .workbench :is(.wb-panel,.card)::after{display:none!important}
+/* Titles: a clean sans, tight, confident. */
+:root[data-experience='cozy'] #workspace-main .wb-header h1:not(#x):not(#y){font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif!important;font-weight:800!important;letter-spacing:-.025em!important;font-size:clamp(1.7rem,4.2vw,2.15rem)!important}
+:root[data-experience='cozy'] #workspace-main :is(.wb-panel,.card) :is(h2,h3):not(#x){font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;letter-spacing:-.01em}
+:root[data-experience='cozy'] .cozy-heading-flower,:root[data-experience='cozy'] .subject-banner,:root[data-experience='cozy'] .wb-board-tray{display:none!important}
+:root[data-experience='cozy'] #workspace-main .wb-header:not(#x){border-bottom:0!important;box-shadow:none!important}
+:root[data-experience='cozy'] #workspace-main .wb-header>div>small:not(#x){text-transform:none!important;letter-spacing:0!important;font-weight:600}
+/* The sidebar: light, quiet, the current tab in its own color. */
+:root[data-experience='cozy']:not([data-dark]):not([data-team]) .cozy-navigation .sidebar:not(#a):not(#b):not(#c):not(#d):not(#e){background:#fff!important;background-image:none!important;border-right:1px solid var(--wb-line)!important;color:var(--wb-ink)!important;box-shadow:none!important}
+:root[data-experience='cozy']:not([data-dark]):not([data-team]) .cozy-navigation .sidebar :is(.brand-title-row h1,.brand p,.sidebar-section-label):not(#a){color:var(--wb-ink)!important;text-shadow:none!important}
+:root[data-experience='cozy']:not([data-dark]):not([data-team]) .cozy-navigation .sidebar .sidebar-section-label:not(#a){color:var(--wb-muted)!important}
+:root[data-experience='cozy']:not([data-dark]):not([data-team]) .cozy-navigation .sidebar .nav-button[data-tab]:not(#a):not(#b):not(#c):not(#d){color:var(--wb-ink)!important;background:none!important;border-color:transparent!important;box-shadow:none!important;width:100%!important;margin-right:0!important;border-radius:14px!important}
+:root[data-experience='cozy']:not([data-dark]):not([data-team]) .cozy-navigation .sidebar .nav-button[data-tab]:not(#a):not(#b):not(#c):not(#d):hover{background:color-mix(in srgb,var(--tab) 7%,#fff)!important}
+:root[data-experience='cozy']:not([data-dark]):not([data-team]) .cozy-navigation .sidebar .nav-button.active[data-tab]:not(#a):not(#b):not(#c):not(#d){background:color-mix(in srgb,var(--tab) 11%,#fff)!important;color:color-mix(in srgb,var(--tab) 85%,#000)!important}
+:root[data-experience='cozy'] .cozy-navigation .sidebar .nav-button[data-tab]:not(#a):not(#b):not(#c):not(#d)::after{display:none!important}
+:root[data-experience='cozy']:not([data-dark]):not([data-team]) .cozy-navigation .sidebar :is(.sidebar-music-slot>*,.profile-switcher,.sidebar-profile):not(#a){background:var(--wb-bg)!important;border-color:var(--wb-line)!important;box-shadow:none!important}
+/* The phone tab bar: white, a hairline, no glow. */
+:root[data-experience='cozy']:not([data-dark]) .mobile-nav.is-tabbar:not(#a){background:rgba(255,255,255,.94)!important;border-top:1px solid var(--wb-line)!important;box-shadow:none!important;backdrop-filter:blur(14px)}
+/* Buttons: plain ones (no class of their own) quiet white with a hairline; the main one in the accent. */
+:root[data-experience='cozy']:not([data-dark]) .workbench :is(.wb-panel,.card) :is(button:not([class]),button.secondary):not([aria-pressed=true]):not([role=tab]):not(#x){background:#fff!important;border:1px solid var(--wb-line)!important;box-shadow:none!important}
+/* Header chips (Search, ⋯, Set up): the same quiet white. */
+:root[data-experience='cozy']:not([data-dark]) #workspace-main .wb-header :is(button,summary):not(.primary):not(#x){background:#fff!important;border:1px solid var(--wb-line)!important;box-shadow:none!important}
+:root[data-experience='cozy']:not([data-dark]):not([data-team]) .cozy-navigation .sidebar .brand :is(h1,p,small,span):not(.brand-mark *):not(.brand-mark):not(#a):not(#b):not(#c){color:var(--wb-ink)!important;-webkit-text-fill-color:currentColor!important;text-shadow:none!important;background:none!important}
+:root[data-experience='cozy']:not([data-dark]):not([data-team]) .cozy-navigation .sidebar .brand p:not(#a):not(#b):not(#c){color:var(--wb-muted)!important}
+/* Dividers inside cards: hairlines, not pink rules. */
+:root[data-experience='cozy']:not([data-dark]) .workbench :is(.wb-panel,.card) :not(button):not(input):not(select):not(textarea):not(summary):not([aria-pressed]):not(.kid-card):not(.star-kid):not(#x){border-top-color:var(--wb-line)!important;border-bottom-color:var(--wb-line)!important}

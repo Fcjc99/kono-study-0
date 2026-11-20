@@ -110,3 +110,30 @@
 .workbench .wb-agenda-upcoming .wb-family-event:not(#x)>.wb-toolbar{flex:none;margin:0!important;padding:0!important;border:0!important}
 .workbench .wb-agenda-day-wrap .wb-agenda-add:not(#x):not(#y){min-height:34px!important;padding:0 12px!important;font-size:.85rem!important;align-self:center}
 .workbench .wb-agenda-day>summary h3:not(#x){display:flex;flex-wrap:wrap;align-items:baseline;gap:0 4px}
+/* The Planner's top row, compact: the date in one line, then Back to today, the views and ⋯. */
+.workbench .cozy-calendar-shell .calendar-hero:not(#x){align-items:center!important;margin-bottom:8px!important}
+.workbench .cozy-calendar-shell .calendar-leaf:not(#x){width:40px!important;height:42px!important;border-radius:11px!important}
+.workbench .cozy-calendar-shell .calendar-leaf i:not(#x){font-size:1.05rem!important}
+#workspace-main .cozy-calendar-shell .calendar-hero-date h2:not(#x){font-size:1.2rem!important;line-height:1.15!important}
+#workspace-main .cozy-calendar-shell .calendar-hero-date small:not(#x){font-size:.72rem!important}
+.calendar-hero-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.calendar-hero-tools>.planner-more{position:relative}
+.workbench .calendar-hero-tools>.planner-more>summary:not(#x){list-style:none;display:grid;place-items:center;width:38px;height:38px;border-radius:12px;border:1px solid var(--wb-line);background:var(--wb-surface);cursor:pointer;font-weight:800}
+.calendar-hero-tools>.planner-more .today-card-menu{right:0;left:auto}
+/* Filters: one pill everywhere; tapping it opens what to show and whose. */
+.planner-filters>summary{list-style:none;justify-self:start;display:inline-block;margin:0 0 8px;padding:6px 14px;border-radius:99px;border:1px solid var(--wb-line);background:var(--wb-surface);color:var(--wb-ink);font-weight:800;font-size:.85rem;cursor:pointer}
+.workbench .planner-filters:not([open]):not(#x){padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
+/* After the calendar: Plan your week. */
+.planner-plan-card{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.planner-plan-card>div{flex:1;min-width:180px;display:grid}.planner-plan-card small{color:var(--wb-muted)}
+.planner-plan-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:color-mix(in srgb,#7a5cc0 14%,#fff);color:#5b43a0}
+.cozy-calendar-shell .calendar-hero>.planner-more{order:3;position:relative}
+.cozy-calendar-shell .calendar-hero-date{flex:1;min-width:0}
+@media(max-width:600px){.cozy-calendar-shell .calendar-hero>.planner-more{order:0}.cozy-calendar-shell .calendar-hero-tools{order:1;width:100%}}
+.workbench .cozy-calendar-shell .calendar-hero>.planner-more>summary:not(#x){list-style:none;display:grid;place-items:center;width:38px;height:38px;border-radius:12px;border:1px solid var(--wb-line);background:var(--wb-surface);cursor:pointer;font-weight:800}
+.cozy-calendar-shell .calendar-hero>.planner-more>summary::-webkit-details-marker{display:none}
+.workbench .cozy-calendar-shell .planner-more .today-card-menu:not(#x){position:absolute;right:0;left:auto;top:44px;z-index:20;display:grid;gap:0;min-width:230px;padding:6px;border-radius:16px;background:var(--wb-surface);border:1px solid var(--wb-line);box-shadow:0 18px 36px -18px rgba(60,30,50,.45)}
+.workbench .cozy-calendar-shell .planner-more .today-card-menu button:not(#x){margin:0!important;min-height:40px!important;padding:0 12px!important;border:0!important;border-radius:10px!important;background:none!important;box-shadow:none!important;text-align:left!important;font-weight:700!important;color:var(--wb-ink)!important;justify-content:flex-start!important}
+.workbench .cozy-calendar-shell .planner-more .today-card-menu button:not(#x):hover{background:color-mix(in srgb,var(--wb-accent) 10%,transparent)!important}
+.planner-filters>summary{width:max-content}
+.workbench .cozy-calendar-shell .planner-more .today-card-menu button:not(#x){font-size:.95rem!important}

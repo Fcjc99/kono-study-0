@@ -1,4 +1,5 @@
 import type {Remembered,Repeatable} from './store/eventMemory'
+import './components/family-page.css'
 import RepeatSuggestions from './components/RepeatSuggestions'
 import {tooClose} from './store/tones'
 import {classTime} from './store/classSchedule'
@@ -89,15 +90,23 @@ export function FamilyReminderSettings({data,setting}:{data:AppData;setting:<K e
 export function KidsPage({data,create,edit,remove,patch,openSettings,onOpenKidPlan,onSetup,cards}:{cards?:ReactNode;onSetup?:()=>void;onOpenKidPlan?:(kid:Kid)=>void;openSettings:(tab:SettingsTab)=>void;data:AppData;create:(key:Collection)=>void;edit:(key:Collection,entry:Entry)=>void;remove:(key:Collection,entry:Entry)=>void;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>}){
  const [appearanceOpen,setAppearanceOpen]=useState(false)
  const kids=data.kids.filter(k=>k.profileId===data.activeProfileId)
+ const [pick,setPick]=useState(()=>{try{return localStorage.getItem('kono-family-kid:'+data.activeProfileId)??''}catch{return ''}})
+ const choose=(id:string)=>{setPick(id);try{localStorage.setItem('kono-family-kid:'+data.activeProfileId,id)}catch{/* per device only */}}
+ const shown=pick==='all'||kids.length<2?'all':kids.some(k=>k.id===pick)?pick:kids[0]?.id??'all'
  return <section className="wb-panel family-calendar">
-  <div className="wb-section-head"><div><small>ONE SHARED CALENDAR</small><h2>Your kids</h2></div><div className="wb-toolbar">{onSetup&&<button type="button" onClick={onSetup}>✨ Quick setup</button>}<button type="button" onClick={()=>setAppearanceOpen(true)}>🎨 Appearance</button><button onClick={()=>create('kids')}>＋ Add a kid</button></div></div>
-  <p className="wb-muted">{kids.length&&cards?'Each kid’s day, tomorrow and the rest of the week. Tag anything with a kid from its editor and it shows here and in their color on the Planner.':'Add each kid once, then tag any assignment, exam, class or event with them from its own editor and filter your Planner calendar by kid — the same way you already filter by subject. Pick their emoji and color under Appearance.'}</p>
+  {/* One kid at a time: the picker shows that kid's card and stars (the rest of the page follows it, see
+      family-kid in CSS); setup lives in ⋯. */}
+  <div className="family-head">
+   {kids.length>0&&<div className="family-kids" role="group" aria-label="Whose family page">{kids.length>1&&<button type="button" aria-pressed={pick==='all'} onClick={()=>choose('all')}>Everyone</button>}{kids.map(k=><button type="button" key={k.id} aria-pressed={shown===k.id} style={{'--kid-color':k.color} as CSSProperties} onClick={()=>choose(k.id)}><KidAvatar kid={k}/>{k.name}</button>)}<button type="button" className="family-kids-add" aria-label="Add a kid" onClick={()=>create('kids')}>＋</button></div>}
+   <details className="family-more today-card-more"><summary aria-label="More for your family">⋯</summary><div className="today-card-menu">{onSetup&&<button type="button" onClick={onSetup}>Quick setup</button>}<button type="button" onClick={()=>setAppearanceOpen(true)}>Appearance</button><button type="button" onClick={()=>create('kids')}>＋ Add a kid</button><button type="button" onClick={()=>openSettings('Family')}>Family settings</button><button type="button" onClick={()=>openSettings('Notifications')}>Reminders</button></div></details>
+  </div>
+  {!(kids.length&&cards)&&<p className="wb-muted">Add each kid once, then tag any assignment, exam, class or event with them from its own editor and filter your Planner calendar by kid — the same way you already filter by subject. Pick their emoji and color under Appearance.</p>}
+  {shown!=='all'&&<style>{`.workbench[data-page=kids] :is(.kid-card,.star-kid)[data-kid]:not([data-kid="${shown}"]){display:none!important}`}</style>}
   {kids.length>0&&cards}
   {kids.length>0&&!cards&&<ul className="kid-roster" aria-label="Kids">
    {kids.map(k=><li key={k.id} style={{'--kid-color':k.color} as CSSProperties}><KidAvatar kid={k}/><strong>{k.name}</strong>{onOpenKidPlan&&<button type="button" className="kid-plan-open" onClick={()=>onOpenKidPlan(k)}>{planForKid(data,k.id)?'Open '+k.name+'’s plan':'Make '+k.name+'’s plan'}</button>}<button type="button" onClick={()=>edit('kids',k as unknown as Entry)}>Edit</button><button type="button" className="kid-roster-remove" aria-label={'Move '+k.name+' to Trash'} title="Move to Trash" onClick={()=>remove('kids',k as unknown as Entry)}>🗑</button></li>)}
   </ul>}
   {!kids.length&&<p className="wb-muted">No kids added yet. Add one to start tagging their assignments, exams, classes and events on your calendar.</p>}
-  <p className="wb-muted">Reminders for your kids' events, and the family-wide look switches, live in Settings: <button type="button" className="link-button" onClick={()=>openSettings('Notifications')}>Notifications</button> · <button type="button" className="link-button" onClick={()=>openSettings('Family')}>Family</button></p>
   {appearanceOpen&&<KidAppearancePanel data={data} patch={patch} close={()=>setAppearanceOpen(false)}/>}
  </section>
 }

@@ -37,7 +37,7 @@ export default function KidsGlance({data,profileId,today,from,save,onOpen,onMake
   ]
   const tomorrowLines=[...(r.dueTonight.length?['📌 '+r.dueTonight.length+' due: '+r.dueTonight.slice(0,2).join(', ')+(r.dueTonight.length>2?'…':'')]:[]),...r.tomorrow.map(e=>'🗓️ '+e.title+(e.time?' '+classTime(e.time):'')),...r.tests.filter(t=>t.due===addDays(today,1)).map(t=>'📝 '+t.title)]
   const laterLines=r.later.map(x=>weekday(x.date)+' · '+(x.test?'📝 ':'')+x.title+(x.time?' '+classTime(x.time):''))
-  return <li key={r.kid.id} className="kid-card" style={{'--kid-color':r.kid.color} as CSSProperties}>
+  return <li key={r.kid.id} className="kid-card" data-kid={r.kid.id} style={{'--kid-color':r.kid.color} as CSSProperties}>
    <div className="kid-card-head">
     {r.planId?<button type="button" className="kid-card-open" onClick={()=>onOpen(r.kid,r.planId)} aria-label={'Open '+r.kid.name+'’s plan'}>{face}<span className="kid-card-name">{name}</span><span className="kid-card-go" aria-hidden="true">›</span></button>:<div className="kid-card-open">{face}<span className="kid-card-name">{name}</span></div>}
     <div className="kid-card-tools">

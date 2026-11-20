@@ -1,3 +1,4 @@
+import Icon from './Icon'
 import {useState} from 'react'
 import type {AppData} from '../store/model'
 import type {PlannerRepository} from '../store/repository'
@@ -22,7 +23,7 @@ export default function MealPlan({data,profileId,today,save}:{data:AppData;profi
  const day=(iso:string)=>iso===today?'Today':new Date(iso+'T12:00:00').toLocaleDateString(undefined,{weekday:'short'})
  const commit=(iso:string,title:string)=>{setEditing('');void save(d=>setDinner(d,profileId,iso,title,today))}
  return <section className="wb-panel meal-plan" aria-label="Dinners & groceries">
-  <div className="wb-section-head"><h2>🍽️ Dinners & groceries</h2></div>
+  <div className="wb-section-head"><h2><Icon name="dinner" size={22}/> Dinners & groceries</h2></div>
   <ol className="meal-days" aria-label="Dinners this week">{days.map(iso=>{const m=dinnerOn(data,profileId,iso)
    return <li key={iso} className={(iso===today?'is-today ':'')+(m?'has-meal':'')}>
     <small>{day(iso)}</small>
@@ -33,7 +34,7 @@ export default function MealPlan({data,profileId,today,save}:{data:AppData;profi
    </li>})}</ol>
   <datalist id="meal-ideas">{[...recipes.map(r=>r.title),...IDEAS.filter(i=>!recipes.some(r=>r.title.toLowerCase()===i.toLowerCase()))].map(i=><option key={i} value={i}/>)}</datalist>
   {shopped&&<p className="meal-shopped" role="status">🛒 {shopped} ingredients are on the list.</p>}
-  <details className="recipe-box"><summary>📖 Recipe box{recipes.length?' · '+recipes.length:''}</summary>
+  <details className="recipe-box"><summary><Icon name="recipe" size={20}/> Recipe box{recipes.length?' · '+recipes.length:''}</summary>
    {recipes.length>0&&<ul aria-label="Recipes">{recipes.map(r=><li key={r.id}><div><b>{r.url?<a href={r.url} target="_blank" rel="noopener noreferrer">{r.title}</a>:r.title}</b><small>{r.ingredients.join(', ')||'No ingredients yet'}</small></div><button type="button" disabled={!r.ingredients.length} onClick={()=>shop(r.title)}>🛒 To groceries</button><button type="button" className="link-button" aria-label={'Remove recipe '+r.title} onClick={()=>{if(confirm('Remove '+r.title+' from the recipe box?'))void save(d=>removeRecipe(d,r.id))}}>Remove</button></li>)}</ul>}
    <form className="recipe-add" onSubmit={e=>{e.preventDefault();const f=new FormData(e.currentTarget),title=String(f.get('title')??'');if(!title.trim())return;void save(d=>addRecipe(d,profileId,title,String(f.get('ingredients')??''),String(f.get('url')??'')));e.currentTarget.reset()}}>
     <input name="title" aria-label="Recipe name" placeholder="Taco night" maxLength={200}/>
@@ -43,7 +44,7 @@ export default function MealPlan({data,profileId,today,save}:{data:AppData;profi
    </form>
   </details>
   <div className="grocery-list">
-   <h3>🛒 Groceries{left.length?<small> · {left.length}</small>:null}</h3>
+   <h3><Icon name="cart" size={20}/> Groceries{left.length?<small> · {left.length}</small>:null}</h3>
    <form className="grocery-add" onSubmit={e=>{e.preventDefault();if(!grocery.trim())return;void save(d=>addGroceries(d,profileId,grocery));setGrocery('')}}>
     <input aria-label="Add groceries" placeholder="Milk, eggs, apples…" value={grocery} onChange={e=>setGrocery(e.target.value)} maxLength={600}/>
     <button type="submit" disabled={!grocery.trim()}>Add</button>
