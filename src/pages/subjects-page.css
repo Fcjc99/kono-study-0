@@ -2,3 +2,29 @@
 /* The class chips sit in line with the cards under them: an older coral rule pulled the strip 12px left and
    a later one put its width back, so it stuck out on the left and stopped short on the right. */
 @media (max-width:760px){:root .workbench .restored-subjects .subject-tabs:not(#x){margin-left:0!important;margin-right:0!important}}
+/* Classes: each class a colored card with what's next; then the chosen class's work as simple rows (a tick to
+ * finish, the title to edit, ▶ to focus). */
+.class-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin:0 0 14px}
+.workbench .class-cards .class-card:not(#x){position:relative!important;display:grid!important;align-content:start!important;gap:2px!important;min-height:104px!important;margin:0!important;padding:13px 14px!important;border-radius:20px!important;border:0!important;text-align:left!important;color:#fff!important;background:linear-gradient(140deg,var(--subject,#7a6672),color-mix(in srgb,var(--subject,#7a6672) 62%,#fff))!important;box-shadow:0 12px 22px -16px color-mix(in srgb,var(--subject,#7a6672) 80%,black)!important;font:inherit!important}
+.class-card strong{font-size:1.08rem;line-height:1.2}
+.class-card small{font-size:.78rem;opacity:.92}
+.class-card span{margin-top:auto;padding-top:14px;font-size:.78rem;font-weight:800}
+.workbench .class-cards .class-card.active:not(#x){outline:3px solid color-mix(in srgb,var(--subject,#7a6672) 55%,transparent)!important;outline-offset:3px!important}
+.workbench .class-cards .class-card.is-loose:not(#x){background:var(--wb-surface)!important;color:var(--wb-ink)!important;border:1px solid var(--wb-line)!important;box-shadow:none!important}
+.workbench .class-cards .class-card.is-add:not(#x){place-items:center!important;align-content:center!important;background:transparent!important;color:var(--wb-accent)!important;border:2px dashed var(--wb-line)!important;box-shadow:none!important;font-weight:800!important;text-align:center!important}
+.class-rows{list-style:none;margin:6px 0 10px;padding:0}
+.class-rows li{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--wb-line)}
+.class-rows li:first-child{border-top:0}
+.workbench .class-rows button:not(#x){margin:0!important;box-shadow:none!important;min-height:0!important}
+.workbench .class-rows .class-row-tick:not(#x){flex:none!important;width:28px!important;height:28px!important;padding:0!important;border-radius:50%!important;border:2px solid color-mix(in srgb,var(--subject,var(--wb-accent)) 55%,transparent)!important;background:transparent!important}
+.workbench .class-rows .class-row-tick:not(#x):hover{background:color-mix(in srgb,var(--subject,var(--wb-accent)) 15%,transparent)!important}
+.workbench .class-rows .class-row-main:not(#x){flex:1!important;min-width:0!important;display:grid!important;gap:1px!important;padding:2px 0!important;border:0!important;background:none!important;text-align:left!important;color:var(--wb-ink)!important;font:inherit!important}
+.class-row-main b{font-size:1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.class-row-main small{font-size:.8rem;color:var(--wb-muted)}.class-row-main em{font-style:normal;font-weight:800;color:#c0392b}
+.workbench .class-rows .class-row-go:not(#x){flex:none!important;width:40px!important;height:40px!important;padding:0!important;border:0!important;border-radius:12px!important;background:color-mix(in srgb,var(--subject,var(--wb-accent)) 12%,transparent)!important;color:var(--subject,var(--wb-accent))!important;font-size:1rem!important}
+/* The old chip strip is gone; the card grid replaces it. */
+.restored-subjects{display:block!important}
+/* The chosen class: its name once (no label pill or tape), smaller. */
+.restored-subjects .subject-banner,.restored-subjects .subject-workspace-title .subject-label{display:none!important}
+.workbench .restored-subjects .subject-workspace:not(#x){border-top:6px solid var(--subject)!important}
+.workbench .restored-subjects .subject-workspace-title h2:not(#x){font-size:clamp(1.5rem,5vw,2rem)!important;margin:0 0 2px!important}

@@ -4,9 +4,11 @@ import type { useMusicController } from '../hooks/useComfort'
 import MusicPlayer from './MusicPlayer'
 import BrandLogo from './BrandLogo'
 
-const navItems=['Today','Planner','Kids','Subjects','Notes','K-Quiz','Exams','Sanctuary','Settings'] as const
+const navItems=['Today','Planner','Kids','Subjects','Study','Notes','K-Quiz','Exams','Sanctuary','Settings'] as const
+/** Notes, K-Quiz and Exams are Study's pages: the navigation shows Study for them. */
+const studyPages=new Set<string>(['Notes','K-Quiz','Exams'])
 /** What a tab is called, where it isn't its page's name (the Sanctuary is KONO's page; Kids is the family's). */
-const navLabel=(item:string)=>item==='Sanctuary'?'KONO':item==='Kids'?'Family':item
+const navLabel=(item:string)=>item==='Sanctuary'?'KONO':item==='Kids'?'Family':item==='Subjects'?'Classes':item
 export type ViewName=typeof navItems[number]
 
 const iconPaths:Record<ViewName,ReactNode>={
@@ -15,6 +17,7 @@ const iconPaths:Record<ViewName,ReactNode>={
  Planner:<><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M7 3v4M17 3v4M3.5 9.5h17"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01"/></>,
  Kids:<><circle cx="8" cy="7" r="2.6"/><circle cx="16" cy="7" r="2.6"/><path d="M3.5 19.5c0-3 2-5 4.5-5s4.5 2 4.5 5M11.5 19.5c0-3 2-5 4.5-5s4.5 2 4.5 5"/></>,
  Subjects:<><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5A2.5 2.5 0 0 1 20 22z"/></>,
+ Study:<><path d="M4 6.5 12 3l8 3.5-8 3.5z"/><path d="M7 8v5c0 1.6 2.2 3 5 3s5-1.4 5-3V8M20 6.5V12"/></>,
  Notes:<><path d="M6 3.5h9l3 3V20.5H6z"/><path d="M15 3.5v3h3M9 11h6M9 15h6"/></>,
  'K-Quiz':<><rect x="4" y="4" width="16" height="12" rx="2"/><path d="M9 20h6M12 16v4"/><circle cx="12" cy="10" r="2.4"/></>,
  Exams:<><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12 2.2 2.2 4.8-5"/></>,
@@ -22,7 +25,7 @@ const iconPaths:Record<ViewName,ReactNode>={
 }
 /** The Cozy look's tab icons: little pictures cut from the Sanctuary's own painted art (KONO, the wall clock,
     the bookshelf...), so the tabs and the island feel like one place. public/icons/tabs, 112px, about 5 KB each. */
-const artIcons=new Set<ViewName>(['Today','Sanctuary','Planner','Kids','Subjects','Notes','K-Quiz','Exams','Settings'])
+const artIcons=new Set<ViewName>(['Today','Sanctuary','Planner','Kids','Subjects','Study','Notes','K-Quiz','Exams','Settings'])
 export function NavIcon({name,experience}:{name:ViewName;experience?:string}){
  if(!experience&&artIcons.has(name))return <img className="nav-glyph is-art" src={'/icons/tabs/'+name.toLowerCase()+'.webp'} alt="" width={112} height={112} decoding="async" draggable={false}/>
  return <svg className="nav-glyph" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={experience==='sumi'?1.2:experience==='modern'?1.5:1.8} strokeLinecap="round" strokeLinejoin="round">{iconPaths[name]}</svg>
@@ -57,13 +60,13 @@ function useSlidingIndicator(view:string){
 }
 
 type ProfileOption={id:string;label:string;avatar?:string;photo?:string;color?:string}
-export default function Sidebar({hidden=[],view,onView,profile='Sophia',schoolYear='Summer 2026',profiles=[],activeProfileId,onProfileChange,weekWeather=[],weatherLocation,music,parentMode=false,weatherChip,onOpenPlans,locked=false,onAdd,onMore,simple=false}:{hidden?:string[];simple?:boolean;onAdd?:()=>void;onMore?:()=>void;locked?:boolean;onOpenPlans?:()=>void;weatherChip?:ReactNode;view:ViewName;onView:(v:ViewName)=>void;profile?:string;schoolYear?:string;profiles?:ProfileOption[];activeProfileId?:string;onProfileChange?:(id:string)=>void;weekWeather?:DailyWeatherForecast[];weatherLocation?:string;music?:ReturnType<typeof useMusicController>;parentMode?:boolean}){
+export default function Sidebar({hidden=[],view:page,onView,profile='Sophia',schoolYear='Summer 2026',profiles=[],activeProfileId,onProfileChange,weekWeather=[],weatherLocation,music,parentMode=false,weatherChip,onOpenPlans,locked=false,onAdd,onMore,simple=false}:{hidden?:string[];simple?:boolean;onAdd?:()=>void;onMore?:()=>void;locked?:boolean;onOpenPlans?:()=>void;weatherChip?:ReactNode;view:ViewName;onView:(v:ViewName)=>void;profile?:string;schoolYear?:string;profiles?:ProfileOption[];activeProfileId?:string;onProfileChange?:(id:string)=>void;weekWeather?:DailyWeatherForecast[];weatherLocation?:string;music?:ReturnType<typeof useMusicController>;parentMode?:boolean}){
  // Parent mode is opt-in (see Settings > Family) so a student sharing the app never sees a nav
  // tab meant for a parent managing multiple kids.
  // A device locked to a kid's plan has no Settings tab (a parent unlocks it from Whose plan?).
  // Simple view keeps just Today, the Planner, Notes and KONO (and Settings when the device isn't locked).
- const me=profiles.find(p=>p.id===activeProfileId)
- const items=navItems.filter(item=>!hidden.includes(item)&&(item!=='Kids'||parentMode)&&!(locked&&item==='Settings')&&(!simple||['Today','Planner','Notes','Sanctuary','Settings'].includes(item)))
+ const me=profiles.find(p=>p.id===activeProfileId),view=(studyPages.has(page)?'Study':page) as ViewName
+ const items=navItems.filter(item=>!studyPages.has(item)&&!hidden.includes(item)&&(item!=='Kids'||parentMode)&&!(locked&&item==='Settings')&&(!simple||['Today','Planner','Study','Sanctuary','Settings'].includes(item))&&(item!=='Study'||[...studyPages].some(x=>!hidden.includes(x))))
  // Phones: a bottom tab bar with the everyday pages (Today, the Planner, the family for a parent, KONO), ＋ Add in
  // the middle, and More for the rest.
  const everyday=(['Today','Planner',...(parentMode&&items.includes('Kids')?['Kids']:[]),'Sanctuary'] as ViewName[]).filter(i=>items.includes(i))

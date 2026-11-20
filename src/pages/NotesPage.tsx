@@ -3,11 +3,14 @@ import type {Entry} from '../store/workspace'
 import {lazyPanel} from '../lazyPanel'
 import {toneVars} from '../store/tones'
 import './notes-page.css'
+import StudyTabs from './StudyTabs'
 import type {PageContext} from './pageContext'
 const Flashcards=lazyPanel(()=>import('../components/Flashcards'))
 
 export default function NotesPage({w}:{w:PageContext}){
- const {notes,run,save,profile,data,create,edit,subjects,subject,setSubject,boardView,setBoardView,card,draftScope}=w
+ const {notes,run,save,profile,data,create,edit,subjects,subject,setSubject,boardView,setBoardView,card,draftScope,navigate,hiddenPages}=w
+ // Study › Flashcards › Practice opens the Notes page with the flashcards open.
+ const openCards=(()=>{try{const on=sessionStorage.getItem('kono-open-flashcards')==='1';sessionStorage.removeItem('kono-open-flashcards');return on}catch{return false}})()
  const reorder=(from:string,to:string)=>{const sorted=[...notes].sort((a,b)=>(a.position??0)-(b.position??0)),moving=sorted.find(n=>n.id===from);if(!moving||from===to)return;const order=sorted.filter(n=>n.id!==from);order.splice(order.findIndex(n=>n.id===to),0,moving);void run(()=>save(d=>({...d,notes:d.notes.map(n=>n.profileId===profile.id?{...n,position:order.findIndex(x=>x.id===n.id)}:n)})),'Board order saved.')}
  const move=(id:string,by:number)=>{const sorted=[...notes].sort((a,b)=>(a.position??0)-(b.position??0)),index=sorted.findIndex(n=>n.id===id),target=index+by;if(!sorted[target])return;[sorted[index],sorted[target]]=[sorted[target],sorted[index]];void run(()=>save(d=>({...d,notes:d.notes.map(n=>n.profileId===profile.id?{...n,position:sorted.findIndex(x=>x.id===n.id)}:n)})),'Board order saved.')}
  const noteBoard=(pinnedOnly=false)=><section className={'wb-panel wb-board board-'+(data.settings.boardStyle??'paper')}>
@@ -20,5 +23,5 @@ export default function NotesPage({w}:{w:PageContext}){
   {!notes.some(n=>(!pinnedOnly||n.pinned)&&(!subject||n.subjectId===subject))&&<p className="wb-board-empty"><img className="kono-empty-art" src="/garden/kono/read.webp" alt="" aria-hidden="true"/>Your board is ready for your notes.<br/>Pin reminders, ideas and study notes here.<br/><button type="button" className="primary" onClick={()=>create('notes')}>＋ New note</button></p>}
  <div className="wb-board-tray" aria-hidden="true"><span>✿</span><span>✦</span><span>✿</span></div>
  </section>
- return <>{noteBoard()}<details className="wb-panel"><summary>Flashcards · spaced repetition, no AI</summary><p className="wb-muted notes-cards-note">Cards you write yourself, shown again just before you’d forget them. For practice questions made from your notes by AI, use K-Quiz.</p><Flashcards draftKey={draftScope+':cards'} profileId={profile.id} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} setData={save}/></details></>
+ return <><StudyTabs page="Notes" navigate={navigate} hidden={hiddenPages}/>{noteBoard()}<details className="wb-panel" open={openCards||undefined} id="flashcards"><summary>Flashcards · spaced repetition, no AI</summary><p className="wb-muted notes-cards-note">Cards you write yourself, shown again just before you’d forget them. For practice questions made from your notes by AI, use K-Quiz.</p><Flashcards draftKey={draftScope+':cards'} profileId={profile.id} decks={data.flashcardDecks.filter(d=>d.profileId===profile.id)} setData={save}/></details></>
 }

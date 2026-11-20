@@ -48,3 +48,39 @@
 /* The family page's shared things (to-do, dinners), under the kids. */
 .family-shared{display:grid;gap:14px;margin-top:18px}
 .family-shared>h2{margin:0 2px}
+/* Today's "Then" (TodayThen): the next few things, a tick to finish, ▶ to focus. */
+.today-then h2{margin:0 0 4px}
+.today-then ul{list-style:none;margin:0;padding:0}
+.today-then li{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--wb-line)}
+.today-then li:first-child{border-top:0}
+.today-then li>div{flex:1;min-width:0;display:grid}
+.today-then b{font-size:1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.today-then small{color:var(--wb-muted);font-size:.8rem}
+.today-then-icon{width:26px;text-align:center;font-size:1.1rem}
+.workbench .today-then button:not(#x){margin:0!important;box-shadow:none!important;min-height:0!important}
+.workbench .today-then .today-then-tick:not(#x){flex:none!important;width:26px!important;height:26px!important;padding:0!important;border-radius:50%!important;border:2px solid color-mix(in srgb,var(--wb-accent) 45%,transparent)!important;background:transparent!important}
+.workbench .today-then .today-then-tick:not(#x):hover{background:color-mix(in srgb,var(--wb-accent) 12%,transparent)!important}
+.workbench .today-then .today-then-go:not(#x){flex:none!important;width:38px!important;height:38px!important;padding:0!important;border-radius:12px!important;border:0!important;background:color-mix(in srgb,var(--wb-accent) 10%,transparent)!important;color:var(--wb-accent)!important}
+.workbench .today-then .today-then-study:not(#x){flex:none!important;padding:6px 11px!important;border-radius:99px!important;border:0!important;background:#fdeccc!important;color:#7a5200!important;font-size:.78rem!important;font-weight:800!important}
+/* The two columns: one on a phone (in order), side by side on a wide screen. */
+.today-col{display:contents}
+@media(min-width:1100px){
+ .workbench .home-grid.home-widgets.is-today:not(#x){display:grid!important;grid-template-columns:minmax(0,1.45fr) minmax(320px,1fr);align-items:start!important;max-width:1240px}
+ .home-grid.is-today>:not(.today-col){grid-column:1/-1}
+ .home-grid.is-today>.today-col{display:grid;gap:16px;align-content:start;min-width:0}
+ .home-grid.is-today>.today-col>*{margin:0!important}
+}
+/* On a phone, Then comes right under Up next. */
+@media(max-width:1099px){
+ .workbench .home-grid.is-today .today-top:not(#x){order:-2!important}
+ .workbench .home-grid.is-today .today-then:not(#x){order:-1!important}
+ .workbench .home-grid.is-today>:not(.today-col):not(.home-customize):not(#x){order:-3!important}
+}
+/* An empty day in Your day is one quiet line, not a picture. */
+.home-grid.is-today .today-card-empty{padding:6px 0!important;margin:0!important;font-size:.9rem;text-align:left!important}
+.home-grid.is-today .today-card-empty .kono-empty-art{display:none!important}
+/* Study's tabs (StudyTabs) on top of Study, Tests, Notes and K-Quiz. */
+.study-tabs{display:flex;gap:4px;padding:4px;margin:0 0 14px;border-radius:99px;background:color-mix(in srgb,var(--wb-accent) 8%,var(--wb-surface));border:1px solid var(--wb-line);width:max-content;max-width:100%;overflow-x:auto}
+.workbench .study-tabs button:not(#x){margin:0!important;min-height:36px!important;padding:0 14px!important;border-radius:99px!important;border:0!important;background:none!important;box-shadow:none!important;color:var(--wb-ink)!important;font-weight:700!important;white-space:nowrap!important}
+.workbench .study-tabs button[aria-current=page]:not(#x){background:var(--wb-accent)!important;color:#fff!important}
+@media(max-width:430px){.study-tabs{width:100%}.workbench .study-tabs button:not(#x){flex:1!important;padding:0 6px!important;font-size:.88rem!important}}

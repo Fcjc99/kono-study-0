@@ -45,20 +45,29 @@ async function createPlan(page){
 const mainHeading=page=>page.locator('#workspace-main h1').first()
 // Home is Today now (KONO's island is its own page, still headed Sanctuary): waiting for 'Sanctuary' right after
 // opening the app waits for either. The family page (still the Kids page underneath) is headed Family.
-async function heading(page,name){await page.waitForFunction(n=>{const t=document.querySelector('#workspace-main h1')?.textContent??'';return n==='Sanctuary'?t.startsWith('Sanctuary')||t.startsWith('Today'):t.startsWith(n==='Kids'?'Family':n)},name)}
+// Page names the tests use, and what the app calls them now: KONO's island page is still the Sanctuary, the
+// family page (Kids underneath) is Family, Subjects is Classes, and Exams is Study's Tests.
+const TITLE={Kids:'Family',Subjects:'Classes',Exams:'Tests'}
+const STUDY={Notes:'Notes','K-Quiz':'K-Quiz',Exams:'Tests'}
+async function heading(page,name){await page.waitForFunction(n=>{const t=document.querySelector('#workspace-main h1')?.textContent??'';return n==='Sanctuary'?t.startsWith('Sanctuary')||t.startsWith('Today'):t.startsWith(n)},name==='Sanctuary'?name:TITLE[name]??name)}
 async function go(page,name){
- // By visible text or by name: on phones the Sanctuary tab reads "Home" but is still named Sanctuary.
- // Phones show the everyday pages in the bottom bar; the rest are under More.
- // With the island turned off, the Sanctuary tab reads "Home" on every screen.
- // KONO's island is the KONO tab (its page is still headed Sanctuary); the Kids page is the Family tab.
- const label=name==='Sanctuary'?'KONO':name==='Kids'?'Family':name
- const text=name==='Sanctuary'?/KONO|Sanctuary/:name==='Kids'?/Family/:name
+ // Notes, K-Quiz and Exams (Tests) are under the Study tab: open Study, then its tab.
+ if(STUDY[name]){
+  const on=await page.locator('nav[aria-label="Study"]:visible').count()
+  if(!on)await go(page,'Study')
+  await page.getByRole('navigation',{name:'Study'}).getByRole('button',{name:STUDY[name],exact:true}).click()
+  await page.waitForFunction(n=>(document.querySelector('#workspace-main h1')?.textContent??'').startsWith(n),TITLE[name]??name)
+  return
+ }
+ // By its name (aria-label) on the tab bar or sidebar, else its text; phones keep the rest under More.
+ const label=name==='Sanctuary'?'KONO':name==='Kids'?'Family':name==='Subjects'?'Classes':name
+ const text=name==='Sanctuary'?/KONO|Sanctuary/:new RegExp('^\\W*'+label)
  const named=page.locator(`nav :is(button,a):visible[aria-label="${label}"]`).first()
  const more=page.locator('nav button:visible[aria-label="More"]')
  const tab=await named.count()||!await more.count()?(await named.count()?named:page.locator('nav button:visible, nav a:visible').filter({hasText:text}).first()):named
- if(!await tab.count()&&await page.locator('nav button:visible[aria-label="More"]').count()){await page.locator('nav button:visible[aria-label="More"]').click();await page.getByRole('dialog',{name:'More'}).getByRole('button',{name:label,exact:true}).click()}
+ if(!await tab.count()&&await more.count()){await more.click();await page.getByRole('dialog',{name:'More'}).getByRole('button',{name:label,exact:true}).click()}
  else await tab.click()
- await page.waitForFunction(n=>(document.querySelector('#workspace-main h1')?.textContent??'').startsWith(n),name==='Kids'?'Family':name)
+ await page.waitForFunction(n=>(document.querySelector('#workspace-main h1')?.textContent??'').startsWith(n),TITLE[name]??name)
 }
 // KONO's bar and the island are on the KONO tab (its page is headed Sanctuary): go there first if the test is on
 // another page (and no dialog is open over it).
@@ -3198,6 +3207,66 @@ test('Family: the tab is called Family, and the shared to-dos and dinners sit un
  const shared=page.getByRole('region',{name:'Shared',exact:true})
  await shared.waitFor()
  assert.ok(await shared.getByRole('heading',{level:2,name:'Shared'}).count())
+})
+test('Today, round 2: Then lists what comes after Up next (Study for a test), the default Today leaves the to-dos, dinners and notes to their own pages, and a computer shows two columns',async({context,page})=>{
+ const cloud=fakeCloud()
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ await signInAs(context,cloud,'alice')
+ await page.setViewportSize({width:1280,height:900})
+ await page.goto(BASE);await heading(page,'Today')
+ const then=page.getByRole('region',{name:'Then',exact:true})
+ await then.getByText('Cell biology test').waitFor()
+ await then.getByRole('button',{name:'Study 25m'}).waitFor()
+ for(const name of ['Notes & reminders','Family to-do'])assert.equal(await page.getByRole('region',{name}).count(),0,name+' is off Today by default')
+ assert.equal(await page.getByText(/^\d+ due by /).count(),0,'the due-soon banner is the Up next card on Today')
+ const [main,side]=await Promise.all(['.today-main','.today-side'].map(c=>page.locator(c).evaluate(el=>{const r=[...el.children].find(x=>x.getBoundingClientRect().height)?.getBoundingClientRect();return r?{x:r.x,y:r.y}:null})))
+ assert.ok(main&&side&&side.x>main.x+200,'Up next and Then sit side by side: '+JSON.stringify({main,side}))
+ await then.getByRole('button',{name:'Study 25m'}).click()
+ await page.getByRole('dialog',{name:'Focus'}).getByRole('heading',{name:'Study for Cell biology test'}).waitFor()
+})
+test('Classes: every class is a card with what’s next; a class’s work is a row with a tick, the title (opens it) and ▶ Focus',async({context,page})=>{
+ const cloud=fakeCloud(),d=cloud.users.alice.plan.data
+ d.subjects.push({id:'s-math',profileId:d.activeProfileId,name:'Math',color:'#3f8f72',teacher:'Mrs. Kim',room:'9'})
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ await page.setViewportSize({width:390,height:844})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Today')
+ await go(page,'Subjects')
+ const cards=page.getByRole('navigation',{name:'Choose a subject'})
+ assert.match(await cards.getByRole('button',{name:/^Biology/}).innerText(),/1 late[\s\S]*Test Fri/)
+ assert.match(await cards.getByRole('button',{name:/^Math/}).innerText(),/All caught up/)
+ await page.getByRole('button',{name:'Focus on: Read chapter 3'}).click()
+ await page.getByRole('dialog',{name:'Focus'}).getByRole('heading',{name:'Read chapter 3'}).waitFor()
+ await page.getByRole('button',{name:'Close focus'}).click()
+ await page.getByRole('button',{name:'Edit: Read chapter 3'}).click()
+ await page.locator('dialog[open]').getByRole('button',{name:/Cancel|Close/}).first().click()
+ await page.getByRole('button',{name:'Done: Read chapter 3'}).click()
+ await waitFor(()=>d.tasks.find(t=>t.title==='Read chapter 3')?.done||cloud.users.alice.plan.data.tasks.find(t=>t.title==='Read chapter 3')?.done,'the tick finishes it')
+ await cards.getByRole('button',{name:/^Math/}).click()
+ await page.getByText('No unfinished assignments here.').waitFor()
+})
+test('Study: one tab for tests, flashcards, study sets and notes; Practice opens the flashcards and the tabs lead to Tests, Notes and K-Quiz',async({context,page})=>{
+ const cloud=fakeCloud()
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ await page.setViewportSize({width:390,height:844})
+ await signInAs(context,cloud,'alice')
+ await page.goto(BASE);await heading(page,'Today')
+ await go(page,'Study')
+ const tests=page.getByRole('region',{name:'Tests',exact:true})
+ await tests.getByText('Cell biology test').waitFor()
+ await page.getByRole('region',{name:'Notes',exact:true}).getByRole('button',{name:/Mitosis/}).waitFor()
+ await page.getByRole('region',{name:'Flashcards'}).getByRole('button',{name:/Practice|Open|Make cards/}).click()
+ await heading(page,'Notes')
+ assert.notEqual(await page.locator('details#flashcards').getAttribute('open'),null,'the flashcards are open')
+ const tabs=page.getByRole('navigation',{name:'Study'})
+ await tabs.getByRole('button',{name:'Tests'}).click();await heading(page,'Exams')
+ await tabs.getByRole('button',{name:'K-Quiz'}).click();await heading(page,'K-Quiz')
+ await tabs.getByRole('button',{name:'Overview'}).click();await heading(page,'Study')
+ // One Study tab, no separate Notes, K-Quiz or Exams tabs.
+ await page.locator('nav button:visible[aria-label="More"]').click()
+ const more=page.getByRole('dialog',{name:'More'})
+ await more.getByRole('button',{name:'Study',exact:true}).waitFor()
+ for(const name of ['Notes','K-Quiz','Exams'])assert.equal(await more.getByRole('button',{name,exact:true}).count(),0,name+' is inside Study')
 })
 test('Finishing something: the Done toast shows the snack it earned, and Feed KONO feeds that snack right away',async({context,page})=>{
  const cloud=fakeCloud(),pid=cloud.users.alice.plan.data.activeProfileId
