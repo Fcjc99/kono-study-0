@@ -5,10 +5,10 @@ vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOpti
 const h=mod.exports
 let passed=0
 const test=(name,fn)=>{fn();passed++;console.log('PASS '+name)}
-test('the default Today fits a phone: the week strip, the family schedule and the schedule show; the next 7 days, notes, to-dos, dinners and the Focus card start hidden',()=>{
+test('the default Today is short: the week strip, the family schedule, the schedule, to-dos, dinners and Focus show; the next 7 days and notes start hidden',()=>{
  const l=h.readLayout('')
  assert.equal(l.order.slice(0,6).join(),'week,sanctuary,family,schedule,weekAhead,notes')
- assert.deepEqual([...l.hidden].sort(),['focus','meals','notes','todos','weekAhead']);assert.ok(h.isDefault(l))
+ assert.deepEqual([...l.hidden].sort(),['notes','weekAhead']);assert.ok(h.isDefault(l))
  assert.equal(h.writeLayout(l),h.DEFAULT_LINE)
 })
 test('a saved order and hidden widgets come back as saved; unknown and repeated names are dropped',()=>{

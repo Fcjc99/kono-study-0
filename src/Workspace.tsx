@@ -1128,7 +1128,10 @@ function Workspace({store}:{store:Store}){
  const homeNotes=notes.filter(n=>!n.completed).sort((a,b)=>Number(Boolean(b.pinned))-Number(Boolean(a.pinned))||String(b.created??'').localeCompare(String(a.created??''))).slice(0,6)
  const homeReminders=data.calendarEvents.filter(e=>e.profileId===profile.id&&!e.done&&e.date>=today&&e.date<=addDays(today,7)&&/^reminder\b|\breminder$/i.test(e.title)).sort((a,b)=>(a.date+(a.time??'')).localeCompare(b.date+(b.time??''))).slice(0,6)
  // The widgets that fit this plan (Customize Home only offers these).
- const todayList=homeLayout.order.filter(id=>id!=='sanctuary'&&!homeLayout.hidden.has(id)),todaySideIds:HomeWidget[]=['week','family','comingUp','notes','todos','meals']
+ // On a weekend (and always for a family) the default Today brings back the next 7 days, for planning the week.
+ const todayList=homeLayout.order.filter(id=>id!=='sanctuary'&&(!homeLayout.hidden.has(id)||(id==='weekAhead'&&(weekend||familyHome)&&isDefault(homeLayout))))
+  // The week strip and This week show the same days: when This week is on by default, the strip steps aside.
+  .filter((id,_,all)=>id!=='week'||!all.includes('weekAhead')||!isDefault(homeLayout)),todaySideIds:HomeWidget[]=['week','family','comingUp','notes','todos','meals']
  const todayMain=todayList.filter(id=>!todaySideIds.includes(id)),todaySide=todayList.filter(id=>todaySideIds.includes(id))
  const homeAvailable:HomeWidget[]=homeLayout.order.filter(id=>id==='sanctuary'?false:id==='family'?familyHome:id==='todos'?kidTodos.length>0||(parentMode&&profileKids.length>0):id==='meals'?profileKids.length>0&&!profile.kidId:id==='focus'?!familyLean:true)
  const todayCount=overdue.length+pastReminders.length+todayClasses.length+todayLoose.length,tomorrowCount=tomorrowClasses.length+tomorrowLoose.length

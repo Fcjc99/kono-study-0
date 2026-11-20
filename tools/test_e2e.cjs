@@ -67,7 +67,7 @@ async function go(page,name){
  const tab=await named.count()||!await more.count()?(await named.count()?named:page.locator('nav button:visible, nav a:visible').filter({hasText:text}).first()):named
  if(!await tab.count()&&await more.count()){await more.click();await page.getByRole('dialog',{name:'More'}).getByRole('button',{name:label,exact:true}).click()}
  else await tab.click()
- await page.waitForFunction(n=>(document.querySelector('#workspace-main h1')?.textContent??'').startsWith(n),TITLE[name]??name)
+ await page.waitForFunction(n=>(document.querySelector('#workspace-main h1')?.textContent??'').startsWith(n),TITLE[name]??name).catch(async e=>{throw new Error('go '+name+': the page is headed '+JSON.stringify(await mainHeading(page).textContent().catch(()=>'?'))+' ('+e.message.split('\n')[0]+')')})
 }
 // KONO's bar and the island are on the KONO tab (its page is headed Sanctuary): go there first if the test is on
 // another page (and no dialog is open over it).
@@ -383,7 +383,7 @@ test('launch check: switching plans with a note half-edited keeps the note in it
  await page.getByRole('button',{name:'Whose plan?'}).first().click();await sheet.getByRole('button',{name:/My study plan/}).click();await sheet.waitFor({state:'detached'})
  await heading(page,'Sanctuary')
  // Halfway through changing a note's text right on the board, switch to Emma's plan.
- await page.getByRole('button',{name:'Edit text: '+first}).click()
+ await go(page,'Notes');await page.getByRole('button',{name:'Edit text: '+first}).click()
  await page.getByLabel('Note title').fill('Half-edited note')
  await page.getByRole('button',{name:'Whose plan?'}).first().click();await sheet.getByRole('button',{name:/Emma’s plan/}).click();await sheet.waitFor({state:'detached'})
  await page.waitForTimeout(1500)
@@ -934,13 +934,13 @@ test('Notes: tap a note’s title to change its text right on the board, and pap
  const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,first=plan.notes[0].title
  await signInAs(context,cloud,'alice')
  await page.goto(BASE);await mainHeading(page).waitFor()
- await page.getByRole('button',{name:'Edit text: '+first}).click()
+ await go(page,'Notes');await page.getByRole('button',{name:'Edit text: '+first}).click()
  await page.getByLabel('Note title').fill('Return iPhone at UPS')
  await page.getByLabel('Note text').fill('Before Friday')
  await page.getByRole('button',{name:'Done',exact:true}).click()
  await page.getByRole('button',{name:'Edit text: Return iPhone at UPS'}).waitFor()
  await waitFor(()=>cloud.users.alice.plan.data.notes.some(n=>n.title==='Return iPhone at UPS'&&n.body==='Before Friday'),'the change reaches the account')
- await page.getByRole('button',{name:'＋ Note'}).click()
+ await page.getByRole('button',{name:'＋ New note'}).first().click()
  const blue=page.getByRole('button',{name:'Paper Blue'})
  assert.equal(await blue.evaluate(b=>getComputedStyle(b).backgroundColor),'rgb(217, 239, 255)')
  await blue.click();assert.equal(await blue.getAttribute('aria-pressed'),'true')
@@ -3208,7 +3208,7 @@ test('Family: the tab is called Family, and the shared to-dos and dinners sit un
  await shared.waitFor()
  assert.ok(await shared.getByRole('heading',{level:2,name:'Shared'}).count())
 })
-test('Today, round 2: Then lists what comes after Up next (Study for a test), the default Today leaves the to-dos, dinners and notes to their own pages, and a computer shows two columns',async({context,page})=>{
+test('Today, round 2: Then lists what comes after Up next (Study for a test), the default Today leaves the notes to Study, and a computer shows two columns',async({context,page})=>{
  const cloud=fakeCloud()
  await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
  await signInAs(context,cloud,'alice')
@@ -3217,7 +3217,7 @@ test('Today, round 2: Then lists what comes after Up next (Study for a test), th
  const then=page.getByRole('region',{name:'Then',exact:true})
  await then.getByText('Cell biology test').waitFor()
  await then.getByRole('button',{name:'Study 25m'}).waitFor()
- for(const name of ['Notes & reminders','Family to-do'])assert.equal(await page.getByRole('region',{name}).count(),0,name+' is off Today by default')
+ assert.equal(await page.getByRole('region',{name:'Notes & reminders'}).count(),0,'the notes are off Today by default (they’re on Study)')
  assert.equal(await page.getByText(/^\d+ due by /).count(),0,'the due-soon banner is the Up next card on Today')
  const [main,side]=await Promise.all(['.today-main','.today-side'].map(c=>page.locator(c).evaluate(el=>{const r=[...el.children].find(x=>x.getBoundingClientRect().height)?.getBoundingClientRect();return r?{x:r.x,y:r.y}:null})))
  assert.ok(main&&side&&side.x>main.x+200,'Up next and Then sit side by side: '+JSON.stringify({main,side}))
@@ -4862,44 +4862,45 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  await grid.getByRole('gridcell',{name:new RegExp('^Row '+wrong.r+', column '+wrong.c+', marked$')}).waitFor()
 })
 
-test('Round 58: your own Today (the week strip is off by default; This week has the same days), the family schedule, then the schedule (today and tomorrow together), the next 7 days and pinned notes; Customize Home hides and reorders, and it stays after a reload',async({context,page})=>{
+test('Round 58: your own Today: the schedule (today and tomorrow together), no island; the next 7 days and notes start hidden; Customize Home shows and reorders them, and it stays after a reload',async({context,page})=>{
  const cloud=fakeCloud(),d=cloud.users.alice.plan.data,pid=d.activeProfileId
  await page.clock.setFixedTime(new Date('2026-10-15T15:00:00'))
  d.notes.push({id:'n-pin',profileId:pid,subjectId:'',title:'Bring cleats',body:'Soccer Saturday',created:'2026-10-10T12:00:00.000Z',pinned:true})
  d.calendarEvents.push({id:'e-rem',profileId:pid,subjectId:'',title:'Reminder: dentist form',date:'2026-10-17',kind:'personal',done:false})
  await signInAs(context,cloud,'alice')
- await page.goto(BASE);await heading(page,'Sanctuary')
- const order=()=>page.evaluate(()=>[...document.querySelectorAll('.home-widgets>section,.home-widgets>details,.home-widgets>.sanctuary-hero>.sanctuary-stage>section')].map(el=>el.getAttribute('aria-label')||el.className.split(' ').find(c=>c.startsWith('wb-island')||c.startsWith('kono-bar'))||el.tagName))
- await page.getByRole('region',{name:'Your week ahead'}).waitFor()
- await page.getByRole('region',{name:'Notes & reminders'}).getByText('Bring cleats').waitFor()
- await page.getByRole('region',{name:'Notes & reminders'}).getByText('Reminder: dentist form').waitFor()
+ await page.goto(BASE);await heading(page,'Today')
+ // What's in each column, top to bottom (one column on a phone).
+ const order=col=>page.evaluate(c=>[...document.querySelectorAll('.home-widgets>.'+c+'>:is(section,details)')].map(el=>el.getAttribute('aria-label')||el.className.split(' ')[0]),col)
  const day=page.getByRole('region',{name:'Your day'})
  await day.getByRole('region',{name:'Today'}).waitFor();await day.getByRole('region',{name:'Tomorrow'}).waitFor()
  assert.equal(await page.getByRole('tab',{name:/^Tomorrow/}).count(),0,'no Today / Tomorrow tabs any more')
- const first=await order()
- assert.ok(!first.includes('This week at a glance'),'the week strip is off by default (This week shows the same days): '+first.join(' | '))
- assert.ok(!first.includes('wb-island'),'the island is on KONO’s tab, not Today');assert.ok(first.indexOf('Your day')>=0&&first.indexOf('Your day')<first.indexOf('Notes & reminders'),first.join(' | '))
- if(process.env.KONO_SHOTS){await page.screenshot({path:process.env.KONO_SHOTS+'/home-desktop.png',fullPage:true});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(500);await page.screenshot({path:process.env.KONO_SHOTS+'/home-phone.png',fullPage:true});await page.setViewportSize({width:1280,height:900})}
- // Customize: hide the next 7 days and move Notes & reminders to the top (⠿ with the arrow keys). The island isn't offered: it has its own tab.
+ assert.equal(await page.locator('.wb-island').count(),0,'the island is on KONO’s tab, not Today')
+ for(const name of ['Your week ahead','Notes & reminders'])assert.equal(await page.getByRole('region',{name}).count(),0,name+' starts hidden on a weekday')
+ if(process.env.KONO_SHOTS){await page.screenshot({path:process.env.KONO_SHOTS+'/home-desktop.png',fullPage:true});await page.setViewportSize({width:390,height:844});await page.waitForTimeout(500);await page.screenshot({path:process.env.KONO_SHOTS+'/home-phone.png',fullPage:true});await page.setViewportSize({width:1280,height:800})}
+ // Customize: turn on the next 7 days and the notes, and move Notes & reminders to the top (⠿ with the arrow keys). The island isn't offered: it has its own tab.
  await page.getByRole('button',{name:'✏️ Customize Home'}).click()
  const dialog=page.getByRole('dialog',{name:'Customize Home'})
  assert.equal(await dialog.getByRole('checkbox',{name:/KONO|Sanctuary/}).count(),0)
- await dialog.getByRole('checkbox',{name:/The next 7 days/}).uncheck()
+ await dialog.getByRole('checkbox',{name:/The next 7 days/}).check()
+ await dialog.getByRole('checkbox',{name:/Notes & reminders/}).check()
  const handle=dialog.getByRole('button',{name:/^Reorder Notes & reminders/})
  for(let k=0;k<6;k++){await handle.focus();await page.keyboard.press('ArrowUp')}
  if(process.env.KONO_SHOTS)await dialog.screenshot({path:process.env.KONO_SHOTS+'/home-customize.png'})
  await dialog.getByRole('button',{name:'Done'}).click()
- let now=await order()
- assert.equal(now[0],'Notes & reminders',now.join(' | '))
- await page.reload();await heading(page,'Sanctuary')
- await page.getByRole('region',{name:'Notes & reminders'}).waitFor()
- now=await order()
- assert.equal(now[0],'Notes & reminders','the order stays after a reload');assert.ok(!now.includes('Your week ahead'),'the next 7 days stay hidden: '+now.join(' | '))
+ const notes=page.getByRole('region',{name:'Notes & reminders'})
+ await notes.getByText('Bring cleats').waitFor();await notes.getByText('Reminder: dentist form').waitFor()
+ await page.getByRole('region',{name:'Your week ahead'}).waitFor()
+ let side=await order('today-side')
+ assert.equal(side[0],'Notes & reminders',side.join(' | '))
+ await page.reload();await heading(page,'Today')
+ await notes.waitFor()
+ side=await order('today-side')
+ assert.equal(side[0],'Notes & reminders','the order stays after a reload: '+side.join(' | '))
  // Back to the default.
  await page.getByRole('button',{name:'✏️ Customize Home'}).click()
  await page.getByRole('dialog',{name:'Customize Home'}).getByRole('button',{name:'Back to the default'}).click()
  await page.getByRole('dialog',{name:'Customize Home'}).getByRole('button',{name:'Done'}).click()
- await page.waitForFunction(()=>!document.querySelector('dialog[open]'));now=await order();assert.notEqual(now[0],'Notes & reminders')
+ await notes.waitFor({state:'detached'})
 })
 
 test('Chores on Home: today’s chores sit in the schedule as their own checklist (whose, stars), ticking one there earns its stars, and tomorrow’s show under Tomorrow',async({context,page})=>{
