@@ -93,5 +93,8 @@ function CountUp({text}:{text:string}){
  },[target])
  if(!m||!Number.isFinite(target))return <>{text}</>
  const decimals=m[1]?m[1].length-1:0,shown=decimals?n.toFixed(decimals):Math.round(n).toLocaleString()
- return <><span aria-hidden="true">{text.slice(0,m.index)}{shown}{text.slice(m.index+m[0].length)}</span><span className="sr-only-count">{text}</span></>
+ // The real words stay in the page (for screen readers and search); while it counts, they're see-through and
+ // the running number is drawn over them.
+ const running=n!==target
+ return <span className={running?'count-run':undefined} data-n={running?text.slice(0,m.index)+shown+text.slice(m.index+m[0].length):undefined}>{text}</span>
 }

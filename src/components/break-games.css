@@ -1005,4 +1005,4 @@ dialog.game-screen .game-result{position:relative;box-shadow:0 30px 60px -24px r
 .blast-beams i.is-col{animation-name:blast-beam-col}
 @keyframes blast-beam-col{0%{opacity:0;transform:scale(.2,1)}25%{opacity:1;transform:scale(1.15,1)}100%{opacity:0;transform:scale(1.6,1)}}
 @media(prefers-reduced-motion:reduce){.blast-beams{display:none}}
-.sr-only-count{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.count-run{position:relative;-webkit-text-fill-color:transparent}.count-run::after{content:attr(data-n);position:absolute;left:0;right:0;top:0;text-align:center;-webkit-text-fill-color:currentColor;white-space:nowrap}
