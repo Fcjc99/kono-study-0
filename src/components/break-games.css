@@ -951,3 +951,9 @@ dialog.game-screen>header{background:linear-gradient(180deg,rgb(10 6 24/.38),rgb
 .meow .meow-tool:not(#x){background:rgb(255 255 255/.85)!important;box-shadow:0 6px 14px -8px rgb(90 30 80/.5)!important;border:0!important}
 @media(prefers-reduced-motion:reduce){.meow .meow-cat{animation:none!important}}
 .meow .meow-board:not(#x){grid-auto-rows:minmax(0,1fr)}.meow .meow-cell:not(#x){min-height:0;min-width:0;overflow:hidden}.meow .meow-cat{display:grid;place-items:center;width:100%;height:100%}.meow .meow-cat svg,.meow .meow-cat img{width:78%;height:78%}
+/* ===== Arcade, next level: KONO Hop ===== */
+.flappy .flappy-frame:not(#x){border-radius:24px;image-rendering:auto;box-shadow:0 0 0 1px rgb(255 255 255/.35),0 0 36px rgb(120 190 255/.45),0 24px 50px -16px rgb(0 0 40/.6)}
+.flappy .flappy-ready:not(#x) b{font-family:inherit!important;font-weight:900!important;letter-spacing:-.01em;color:#fff!important;-webkit-text-stroke:0!important;text-shadow:0 3px 0 rgb(60 120 180/.5),0 0 22px rgb(255 255 255/.8)!important;font-size:2rem!important}
+.flappy .flappy-ready:not(#x) span{font-family:inherit!important;font-weight:800!important;padding:6px 14px!important;border-radius:99px!important;background:rgb(255 255 255/.85)!important;color:#2f6f9e!important;border:0!important;box-shadow:0 6px 16px -8px rgb(0 40 80/.5)!important;animation:hop-pulse 1.1s ease-in-out infinite}
+@keyframes hop-pulse{50%{transform:scale(1.07)}}
+.flappy .flappy-score:not(#x){font-family:inherit!important;font-weight:900!important;-webkit-text-stroke:0!important;color:#fff;text-shadow:0 3px 0 rgb(40 90 140/.55),0 0 20px rgb(255 255 255/.75)!important}

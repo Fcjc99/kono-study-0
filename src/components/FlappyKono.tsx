@@ -58,68 +58,56 @@ export default function FlappyKono({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;b
 
 function draw(c:HTMLCanvasElement|null,f:Flight,phase:'ready'|'fly'|'down',t:number,kono:HTMLImageElement|null){
  const g=c?.getContext('2d');if(!c||!g)return
- g.setTransform(2,0,0,2,0,0);g.imageSmoothingEnabled=false
+ g.setTransform(2,0,0,2,0,0);g.imageSmoothingEnabled=true
  const W=FLAP.w,G=FLAP.ground,scroll=phase==='down'?f.frames*FLAP.speed:(phase==='ready'?t:f.frames)*FLAP.speed
  const wrap=(x:number,span:number)=>((x%span)+span)%span
- // A sunny day: a flat sky-blue, a row of puffy clouds, a pale city skyline and green bushes, each
- // sliding slower than the ground.
- g.fillStyle='#4ec0ca';g.fillRect(0,0,W,G)
- const cloudY=G-118
- g.fillStyle='#e9fcd9'
- for(let k=-1;k<9;k++){const x=wrap(k*44-scroll*0.12,W+44)-22;for(const [dx,dy,r] of [[0,10,18],[18,2,22],[38,8,17]]){g.beginPath();g.arc(Math.round(x+dx),cloudY+dy,r,0,7);g.fill()}}
- g.fillRect(0,cloudY+12,W,G-cloudY)
- // The city: blocky towers with rows of windows.
- const towers=[[0,46,26],[24,30,22],[44,56,30],[72,38,20],[90,64,26],[114,34,24],[136,50,22],[156,28,18],[172,60,28],[198,42,24],[220,54,20],[238,36,26],[262,48,26]]
- const cityBase=G-26
- for(let rep=-1;rep<2;rep++){
-  const off=Math.round(wrap(-scroll*0.25,288)+rep*288)
-  for(const [x,h,w] of towers){
-   const tx=off+x,ty=cityBase-h
-   g.fillStyle='#a5e2c3';g.fillRect(tx,ty,w,h)
-   g.fillStyle='#d0f1df';g.fillRect(tx,ty,w,3)
-   g.fillStyle='#7fcbb0';for(let wy=ty+7;wy<cityBase-4;wy+=8)for(let wx=tx+4;wx<tx+w-4;wx+=7)g.fillRect(wx,wy,3,4)
-  }
- }
- // Bushes along the bottom of the sky.
- g.fillStyle='#5ee270'
- for(let k=-1;k<12;k++){const x=Math.round(wrap(k*30-scroll*0.5,W+30)-15);g.beginPath();g.arc(x,cityBase+6,17,0,7);g.arc(x+16,cityBase+2,14,0,7);g.fill()}
- g.fillRect(0,cityBase+6,W,G-cityBase-6)
- g.fillStyle='#4ac95c';g.fillRect(0,G-6,W,6)
- // Pipes: bright green with a light stripe, a dark outline, and a wider cap at the open end.
- const OUT='#543847',BODY='#73bf2e',LIGHT='#9ce659',SHADE='#558022'
- const pipe=(x:number,y0:number,y1:number)=>{
+ // KONO's dawn: a sky that warms toward the horizon, the sun's glow, far mountains, glowing clouds and green
+ // hills, each sliding slower the farther away it is.
+ const sky=g.createLinearGradient(0,0,0,G);sky.addColorStop(0,'#5fb4ff');sky.addColorStop(0.55,'#a9d8ff');sky.addColorStop(1,'#ffd9e6')
+ g.fillStyle=sky;g.fillRect(0,0,W,G)
+ const sun=g.createRadialGradient(W*0.78,G*0.22,6,W*0.78,G*0.22,120);sun.addColorStop(0,'rgba(255,248,214,1)');sun.addColorStop(0.18,'rgba(255,236,170,.85)');sun.addColorStop(1,'rgba(255,220,180,0)')
+ g.fillStyle=sun;g.fillRect(0,0,W,G)
+ const ridge=(speed:number,base:number,amp:number,len:number,col:string)=>{const off=scroll*speed;g.fillStyle=col;g.beginPath();g.moveTo(0,G);for(let x=0;x<=W;x+=6){const u=(x+off)/len;g.lineTo(x,base-Math.abs(Math.sin(u*Math.PI))*amp-Math.sin(u*2.3)*amp*0.25)}g.lineTo(W,G);g.closePath();g.fill()}
+ ridge(0.06,G-70,70,140,'rgba(150,140,220,.55)')
+ ridge(0.12,G-48,52,110,'rgba(110,150,210,.6)')
+ g.save();g.shadowColor='rgba(255,255,255,.95)';g.shadowBlur=14;g.fillStyle='rgba(255,255,255,.92)'
+ for(let k=-1;k<7;k++){const x=wrap(k*70-scroll*0.18,W+70)-35,y=40+((k*37)%3)*26;for(const [dx,dy,r] of [[0,6,11],[12,0,15],[27,5,11],[14,8,12]]){g.beginPath();g.arc(x+dx,y+dy,r,0,7);g.fill()}}
+ g.restore()
+ ridge(0.4,G-14,26,80,'#7fd38a')
+ g.fillStyle='#5fbd72';for(let k=-1;k<14;k++){const x=wrap(k*26-scroll*0.4,W+26)-13,y=G-18-Math.abs(Math.sin((x+scroll*0.4)/80*Math.PI))*20;g.beginPath();g.arc(x,y,6,0,7);g.arc(x+5,y-4,5,0,7);g.fill()}
+ // The gaps are between jade bamboo stalks: shaded round, a ring at every node, leaves at the open end.
+ const stalk=(x:number,y0:number,y1:number)=>{
   if(y1<=y0)return
-  g.fillStyle=OUT;g.fillRect(x+2,y0,FLAP.pipeW-4,y1-y0)
-  g.fillStyle=BODY;g.fillRect(x+4,y0,FLAP.pipeW-8,y1-y0)
-  g.fillStyle=LIGHT;g.fillRect(x+8,y0,6,y1-y0);g.fillRect(x+16,y0,2,y1-y0)
-  g.fillStyle=SHADE;g.fillRect(x+FLAP.pipeW-14,y0,8,y1-y0)
+  const w=FLAP.pipeW,body=g.createLinearGradient(x,0,x+w,0);body.addColorStop(0,'#2f8f5b');body.addColorStop(0.3,'#8fe0a6');body.addColorStop(0.55,'#5cc283');body.addColorStop(1,'#237049')
+  g.fillStyle=body;g.fillRect(x+3,y0,w-6,y1-y0)
+  g.fillStyle='rgba(20,70,40,.45)';const first=y0+((34-((y0%34)+34)%34)%34)
+  for(let y=first;y<y1;y+=34){g.fillRect(x+3,y,w-6,3);g.fillStyle='rgba(220,255,225,.35)';g.fillRect(x+3,y+3,w-6,1.5);g.fillStyle='rgba(20,70,40,.45)'}
  }
- const cap=(x:number,y:number)=>{
-  g.fillStyle=OUT;g.fillRect(x-3,y,FLAP.pipeW+6,24)
-  g.fillStyle=BODY;g.fillRect(x-1,y+2,FLAP.pipeW+2,20)
-  g.fillStyle=LIGHT;g.fillRect(x+3,y+2,6,20);g.fillRect(x+11,y+2,2,20)
-  g.fillStyle=SHADE;g.fillRect(x+FLAP.pipeW-11,y+2,9,20)
-  g.fillStyle='rgba(0,0,0,.12)';g.fillRect(x-1,y+18,FLAP.pipeW+2,4)
+ const end=(x:number,y:number,up:boolean)=>{
+  const w=FLAP.pipeW,rim=g.createLinearGradient(x,0,x+w,0);rim.addColorStop(0,'#2a8253');rim.addColorStop(0.35,'#a6ecb8');rim.addColorStop(1,'#1f6642')
+  g.fillStyle=rim;g.beginPath();g.roundRect(x-2,y,w+4,24,8);g.fill()
+  g.fillStyle='rgba(255,255,255,.35)';g.fillRect(x+6,y+4,4,16)
+  g.fillStyle='#46b06a';const ly=up?y+2:y+22
+  for(const [dx,ang] of [[-2,-0.9],[w+2,0.9]] as const){g.save();g.translate(x+dx,ly);g.rotate(up?ang:-ang);g.beginPath();g.ellipse(0,0,11,4,0,0,7);g.fill();g.restore()}
  }
  for(const p of f.pipes){const x=Math.round(p.x),top=Math.round(p.gapY-FLAP.gap/2),bottom=Math.round(p.gapY+FLAP.gap/2)
-  pipe(x,0,top-24);cap(x,top-24)
-  pipe(x,bottom+24,G);cap(x,bottom)
+  stalk(x,0,top-24);end(x,top-24,false)
+  stalk(x,bottom+24,G);end(x,bottom,true)
  }
- // Ground: the striped grass edge (sliding at full speed) over sandy earth.
- g.fillStyle=OUT;g.fillRect(0,G,W,2)
- g.fillStyle='#9be659';g.fillRect(0,G+2,W,12)
- g.fillStyle='#73bf2e';const sx=-Math.round(scroll%12)
- for(let x=sx-12;x<W+12;x+=12){g.beginPath();g.moveTo(x,G+14);g.lineTo(x+6,G+2);g.lineTo(x+12,G+2);g.lineTo(x+6,G+14);g.fill()}
- g.fillStyle='#5b8c2a';g.fillRect(0,G+14,W,2)
- g.fillStyle='#d7a84c';g.fillRect(0,G+16,W,3)
- g.fillStyle='#ded895';g.fillRect(0,G+19,W,FLAP.h-G-19)
- // KONO: bobbing while you get ready; tilted by its speed in flight, with a little wing that flaps.
- g.imageSmoothingEnabled=true
+ // Ground: a grassy edge with blades, then warm earth.
+ const earth=g.createLinearGradient(0,G,0,FLAP.h);earth.addColorStop(0,'#6cc36a');earth.addColorStop(0.18,'#4f9e4e');earth.addColorStop(0.2,'#c99a62');earth.addColorStop(1,'#a8784a')
+ g.fillStyle=earth;g.fillRect(0,G,W,FLAP.h-G)
+ g.fillStyle='#8be07f';const sx=-(scroll%10)
+ for(let x=sx-10;x<W+10;x+=10){g.beginPath();g.moveTo(x,G+2);g.quadraticCurveTo(x+3,G-7,x+6,G+2);g.fill()}
+ g.fillStyle='rgba(255,255,255,.12)';for(let x=-(scroll%40)-40;x<W+40;x+=40)g.fillRect(x,G+22,18,3)
+ // KONO: bobbing while you get ready; tilted by its speed in flight, a little wing, and a trail of sparkles.
  const y=phase==='ready'?f.y+Math.sin(t*0.12)*5:f.y,tilt=phase==='ready'?0:Math.max(-0.45,Math.min(1.4,f.vy*0.11))
+ if(phase==='fly')for(let k=1;k<=5;k++){g.fillStyle='rgba(255,240,180,'+(0.5-k*0.08)+')';g.beginPath();g.arc(FLAP.x-k*9,y+Math.sin((t-k*3)*0.3)*2+k*1.2,4.5-k*0.6,0,7);g.fill()}
  g.save();g.translate(FLAP.x,y);g.rotate(tilt)
+ g.fillStyle='rgba(0,0,0,.12)';g.beginPath();g.ellipse(2,18,14,4,0,0,7);g.fill()
  if(kono?.complete&&kono.naturalWidth)g.drawImage(kono,-20,-20,40,40)
  else{g.fillStyle='#ffd84d';g.beginPath();g.arc(0,0,FLAP.r,0,7);g.fill()}
  const flapAngle=phase==='down'?0.6:Math.sin(t*0.5)*0.7
- g.fillStyle='#fff';g.strokeStyle=OUT;g.lineWidth=1.5;g.beginPath();g.ellipse(-11,4,8,5,-0.3+flapAngle,0,7);g.fill();g.stroke()
+ g.fillStyle='#fff';g.strokeStyle='rgba(120,90,110,.6)';g.lineWidth=1.2;g.beginPath();g.ellipse(-11,4,8,5,-0.3+flapAngle,0,7);g.fill();g.stroke()
  g.restore()
 }
