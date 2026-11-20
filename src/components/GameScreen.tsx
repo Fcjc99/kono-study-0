@@ -23,6 +23,8 @@ export type GameIntro={emoji:string;art?:React.ReactNode;name:string;how:string;
 /** What a game lets its screen do: End finishes the round now with the score so far. `pause`, if a game has it,
  * takes Escape while it plays (KONO Beat pauses its song) and says whether it did; otherwise Escape leaves. */
 export type GameHandle={end:()=>void;pause?:()=>boolean}
+// Where the stage's sparkles sit (left %, top %, delay s, duration s): fixed, so a game looks the same each time.
+const SPARKS:[number,number,number,number][]=[[8,18,0,7],[22,72,1.2,9],[35,30,2.5,8],[48,86,0.6,10],[61,12,3.1,7.5],[74,58,1.8,9.5],[86,26,0.3,8.5],[93,80,2.2,7],[14,46,3.6,10],[55,44,4.2,8],[70,92,1,9],[30,8,4.8,7.5]]
 export default function GameScreen({title,tone,game,sound=false,intro,started=true,onStart,onRestart,onEnd,onLeave,result,onAgain,onEscape,children}:{
  title:string;tone?:string;game?:string;sound?:boolean;onEscape?:()=>boolean
  intro?:GameIntro;started?:boolean;onStart?:()=>void
@@ -56,11 +58,13 @@ export default function GameScreen({title,tone,game,sound=false,intro,started=tr
    <div className="game-result-actions">{onAgain&&<button type="button" className="primary" onClick={()=>{gameSound('start',sound);onAgain()}}>Play again</button>}<button type="button" onClick={leave}>Done</button></div>
   </section>:null
  return <dialog ref={ref} className={'game-screen'+(tone?' is-'+tone:'')+(closing?' is-closing':'')+' is-'+phase} data-game={game} aria-label={title} onCancel={e=>{e.preventDefault();e.stopPropagation();if(phase==='play'&&onEscape?.())return;leave()}}>
+  {/* The stage: each game's own colors drifting slowly behind it, with a few sparkles (break-games.css). */}
+  <div className="game-stage" aria-hidden="true"><i/><i/><i/>{SPARKS.map((p,i)=><b key={i} style={{left:p[0]+'%',top:p[1]+'%',animationDelay:p[2]+'s',animationDuration:p[3]+'s'}}/>)}</div>
   <header><strong>{title}</strong><span className="game-screen-tools">
-   {phase==='play'&&onRestart&&<button type="button" className="game-screen-tool" onClick={()=>{gameSound('start',sound);onRestart()}}>↻ Restart</button>}
-   {phase==='play'&&onEnd&&<button type="button" className="game-screen-tool" onClick={onEnd}>■ End</button>}
+   {phase==='play'&&onRestart&&<button type="button" className="game-screen-tool" onClick={()=>{gameSound('start',sound);onRestart()}}>↻<span className="tool-label"> Restart</span></button>}
+   {phase==='play'&&onEnd&&<button type="button" className="game-screen-tool" onClick={onEnd}>■<span className="tool-label"> End</span></button>}
    {sound&&<button type="button" className="game-screen-tool" aria-pressed={music} aria-label="Music" onClick={()=>{setMusicOn(!music,sound);setMusic(!music)}}>{music?'🎵':'🔇'}</button>}
-   <button type="button" className="game-screen-leave" onClick={leave}>✕ Leave</button>
+   <button type="button" className="game-screen-leave" onClick={leave}>✕<span className="tool-label"> Leave</span></button>
   </span></header>
   <div className="game-screen-body">{phase==='start'&&intro?<section className={'game-result game-start'+(intro.art?' has-art':'')} aria-label="Start">
    {intro.art?<span className="game-start-art" aria-hidden="true">{intro.art}</span>:<span className="game-result-emoji" aria-hidden="true">{intro.emoji}</span>}

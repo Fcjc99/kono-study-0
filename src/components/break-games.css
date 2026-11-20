@@ -891,3 +891,63 @@ dialog.game-screen>header strong{text-shadow:0 1px 3px rgb(20 10 40/.35)}dialog.
 /* While a game is open, "✓ Saved" and other notes show at the top, so they never cover the results'
    Play again and Done buttons. */
 body:has(.game-screen) .save-toast:not(#x){top:max(14px,env(safe-area-inset-top));bottom:auto!important}
+/* The stage (every game): the game's colors as slow drifting light, and a few sparkles rising. Behind
+   everything; quieter while a round is played so the board stays easy to read. */
+.game-screen>.game-screen-body{position:relative;z-index:1}.game-screen>header{position:relative;z-index:3}
+.game-stage{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.game-stage>i{position:absolute;width:70vmax;height:70vmax;border-radius:50%;filter:blur(70px);opacity:.55;mix-blend-mode:screen;animation:stage-drift 22s ease-in-out infinite alternate}
+.game-stage>i:nth-child(1){left:-25vmax;top:-30vmax;background:var(--g3,rgb(255 255 255/.25))}
+.game-stage>i:nth-child(2){right:-30vmax;bottom:-35vmax;background:var(--g4,rgb(255 200 255/.2));animation-duration:28s;animation-direction:alternate-reverse}
+.game-stage>i:nth-child(3){left:20vmax;top:30vmax;width:45vmax;height:45vmax;background:var(--g3,rgb(255 255 255/.2));opacity:.3;animation-duration:34s}
+.game-stage>b{position:absolute;width:4px;height:4px;border-radius:50%;background:#fff;box-shadow:0 0 8px 2px rgb(255 255 255/.7);opacity:0;animation:stage-spark 8s ease-in-out infinite}
+.game-screen.is-play .game-stage{opacity:.6}
+@keyframes stage-drift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(6vmax,4vmax) scale(1.12)}100%{transform:translate(-4vmax,7vmax) scale(.95)}}
+@keyframes stage-spark{0%{opacity:0;transform:translateY(20px) scale(.4)}25%{opacity:.9}60%{opacity:.5}100%{opacity:0;transform:translateY(-90px) scale(1)}}
+/* The top bar: glass over the stage. */
+dialog.game-screen>header{background:linear-gradient(180deg,rgb(10 6 24/.38),rgb(10 6 24/.12));backdrop-filter:blur(10px) saturate(1.3);-webkit-backdrop-filter:blur(10px) saturate(1.3);border-bottom:1px solid rgb(255 255 255/.08)}
+@media(prefers-reduced-motion:reduce){.game-stage>i,.game-stage>b{animation:none}.game-stage>b{display:none}}
+/* ===== Arcade, next level: KONO blast ===== */
+.blast .blast-frame:not(#x){position:relative;max-width:360px;padding:9px;border-radius:22px;background:linear-gradient(160deg,rgb(40 70 170/.9),rgb(14 24 70/.95));box-shadow:0 0 0 1px rgb(150 190 255/.25),0 0 40px rgb(80 140 255/.35),0 24px 48px -16px rgb(0 0 30/.7),inset 0 1px 0 rgb(255 255 255/.25)}
+.blast .blast-frame::before{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(115deg,transparent 30%,rgb(255 255 255/.08) 45%,transparent 60%);pointer-events:none}
+.blast .blast-cell:not(.is-block):not(.is-lit){background:radial-gradient(circle at 50% 35%,#24397e,#16245a);box-shadow:inset 0 2px 4px rgb(0 0 0/.55),inset 0 -1px 0 rgb(255 255 255/.06)}
+.blast .blast-cell.is-block,.blast .blast-cell.is-lit,.blast .blast-mini span,.blast .blast-float span{position:relative;border-radius:7px!important;background:radial-gradient(120% 90% at 30% 20%,var(--l) 0%,var(--b) 45%,var(--d) 100%)!important;box-shadow:inset 0 -3px 0 rgb(0 0 0/.22),inset 0 2px 0 rgb(255 255 255/.55),0 3px 6px rgb(0 0 20/.45),0 0 10px color-mix(in srgb,var(--b) 45%,transparent)!important}
+.blast .blast-cell.is-block::after,.blast .blast-cell.is-lit::after,.blast .blast-float span::after{content:'';position:absolute;left:14%;right:14%;top:9%;height:32%;border-radius:6px 6px 40% 40%;background:linear-gradient(rgb(255 255 255/.75),rgb(255 255 255/0));pointer-events:none}
+.blast .blast-cell.is-block{animation:blast-pop .32s cubic-bezier(.3,1.6,.5,1)}
+.blast .blast-cell.is-block::before{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(110deg,transparent 35%,rgb(255 255 255/.45) 50%,transparent 65%);background-size:300% 100%;animation:blast-shine 6s ease-in-out infinite;animation-delay:calc(var(--r,0)*.1s);pointer-events:none;mix-blend-mode:overlay}
+@keyframes blast-pop{0%{transform:scale(.55);filter:brightness(1.8)}70%{transform:scale(1.08)}100%{transform:scale(1)}}
+@keyframes blast-shine{0%,70%{background-position:120% 0}100%{background-position:-120% 0}}
+.blast .blast-cell.is-lit:not(.is-landing){filter:brightness(1.35) saturate(1.2)!important;animation:blast-glow .7s ease-in-out infinite alternate}
+@keyframes blast-glow{to{box-shadow:inset 0 2px 0 rgb(255 255 255/.6),0 0 18px var(--b)}}
+.blast .blast-score:not(#x){font-size:3.2rem!important;color:#fff!important;text-shadow:0 3px 0 rgb(20 40 120/.55),0 0 24px rgb(140 190 255/.8)!important;animation:blast-score .35s cubic-bezier(.3,1.7,.5,1)}
+@keyframes blast-score{0%{transform:scale(1.35)}100%{transform:scale(1)}}
+.blast .blast-tray:not(#x){gap:10px;padding:14px 10px;margin-top:6px;border-radius:22px;background:linear-gradient(rgb(255 255 255/.1),rgb(255 255 255/.03));box-shadow:inset 0 1px 0 rgb(255 255 255/.15);backdrop-filter:blur(6px)}
+.blast .blast-piece:not(#x){transition:transform .18s cubic-bezier(.3,1.6,.5,1)}
+.blast .blast-piece:not(#x):hover{transform:translateY(-3px) scale(1.06)}
+.blast .blast-piece.is-picked:not(#x){transform:translateY(-6px) scale(1.12);filter:drop-shadow(0 0 12px rgb(255 230 120/.8))}
+.blast .blast-mini span{border-radius:5px!important}
+.blast .blast-burst span{box-shadow:0 0 16px var(--b),inset 0 2px 0 rgb(255 255 255/.6)!important}
+@media(prefers-reduced-motion:reduce){.blast .blast-cell.is-block,.blast .blast-cell.is-block::before,.blast .blast-cell.is-lit,.blast .blast-score{animation:none!important}}
+.blast .blast-cell:nth-child(3n+1).is-block::before{animation-delay:1.3s}.blast .blast-cell:nth-child(5n+2).is-block::before{animation-delay:2.6s}.blast .blast-cell:nth-child(7n).is-block::before{animation-delay:3.9s}
+/* Phones: the top bar on one line, its tools as round icons (their names stay for screen readers). */
+@media(max-width:520px){
+ dialog.game-screen>header{flex-wrap:nowrap!important;padding-top:calc(env(safe-area-inset-top) + 8px)!important;padding-bottom:8px!important}
+ dialog.game-screen>header strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ dialog.game-screen .tool-label{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}
+ dialog.game-screen.game-screen.game-screen>header button:is(.game-screen-tool,.game-screen-leave):not(#x):not(#y){width:38px!important;min-width:38px!important;height:38px!important;min-height:38px!important;padding:0!important;border-radius:50%!important;display:grid!important;place-items:center!important;font-size:1rem!important}
+ dialog.game-screen .game-screen-tools{flex-wrap:nowrap!important;gap:6px!important}
+}
+/* ===== Arcade, next level: Meowdoku ===== */
+.meow .meow-board:not(#x){padding:7px;border-radius:24px;background:linear-gradient(160deg,#8b4579,#5d2e66);box-shadow:0 0 0 5px #fff6fb,0 0 0 7px rgb(255 160 200/.5),0 18px 40px -10px rgb(90 30 80/.55),inset 0 2px 6px rgb(0 0 0/.35)}
+.meow .meow-cell:not(#x){opacity:1;background:var(--b);border-color:rgb(70 25 70/.25)}
+.meow .meow-cell::before{content:'';position:absolute;inset:3px;border-radius:10px;background:radial-gradient(110% 80% at 30% 20%,color-mix(in srgb,var(--l) 85%,#fff),var(--b) 60%,color-mix(in srgb,var(--d) 70%,var(--b)));box-shadow:inset 0 2px 0 rgb(255 255 255/.55),inset 0 -3px 4px rgb(0 0 0/.15);pointer-events:none}
+.meow .meow-cell::after{content:'';position:absolute;inset:3px;border-radius:10px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cg fill='white' fill-opacity='.16'%3E%3Cellipse cx='13' cy='16' rx='4' ry='3.2'/%3E%3Ccircle cx='8' cy='11' r='1.6'/%3E%3Ccircle cx='11.5' cy='8.5' r='1.6'/%3E%3Ccircle cx='15' cy='8.5' r='1.6'/%3E%3Ccircle cx='18' cy='11' r='1.6'/%3E%3C/g%3E%3C/svg%3E") center/26px;pointer-events:none}
+.meow .meow-cell.is-hot::after{background:rgb(239 75 92/.32)}
+.meow .meow-cell>*{position:relative;z-index:1}
+.meow .meow-cell.edge-r:not(#x){border-right:4px solid #4a1f52}.meow .meow-cell.edge-b:not(#x){border-bottom:4px solid #4a1f52}.meow .meow-cell.edge-l:not(#x){border-left:4px solid #4a1f52}.meow .meow-cell.edge-t:not(#x){border-top:4px solid #4a1f52}
+.meow .meow-cat{filter:drop-shadow(0 4px 3px rgb(60 20 50/.35))!important;animation:meow-plop .38s cubic-bezier(.3,1.7,.5,1) both}
+@keyframes meow-plop{0%{transform:translateY(-14px) scale(.6)}60%{transform:translateY(2px) scale(1.1,.92)}100%{transform:none}}
+.meow .meow-x{font-weight:900;color:rgb(70 25 70/.5)!important;text-shadow:0 1px 0 rgb(255 255 255/.5)}
+.meow .break-game-status strong{font-size:2rem;background:linear-gradient(#ff5fa2,#b23b8a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.meow .meow-tool:not(#x){background:rgb(255 255 255/.85)!important;box-shadow:0 6px 14px -8px rgb(90 30 80/.5)!important;border:0!important}
+@media(prefers-reduced-motion:reduce){.meow .meow-cat{animation:none!important}}
+.meow .meow-board:not(#x){grid-auto-rows:minmax(0,1fr)}.meow .meow-cell:not(#x){min-height:0;min-width:0;overflow:hidden}.meow .meow-cat{display:grid;place-items:center;width:100%;height:100%}.meow .meow-cat svg,.meow .meow-cat img{width:78%;height:78%}
