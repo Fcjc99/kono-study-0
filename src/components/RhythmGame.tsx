@@ -328,6 +328,8 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
    // Lyrics: the line being sung (the words already sung lit gold) and the next one.
    const li=lyr.length?lyr.findLastIndex(l=>l[0]<=now+250):-1,cur=li>=0&&now<lyr[li][1]+1800?lyr[li]:null,nxt=lyr[li+1]&&lyr[li+1][0]-now<7000?lyr[li+1]:null
    cv.dataset.lyric=cur?cur[2]:'' // the line being sung (the tests read it)
+   // Between lines: a soft ♪ while nobody sings, then a karaoke lead-in (● ● ●, one dot a beat) into the next line.
+   const leadIn=(l:LyricLine|null)=>{if(!l)return '♪';const beats=Math.ceil((l[0]-now)/(60000/info.bpm));return beats>=1&&beats<=3?Array(beats).fill('●').join(' '):'♪'}
    const lyricLine=(l:LyricLine,x:number,y:number,maxW:number,size:number,align:'center'|'left',lit:boolean)=>{
     const words=l[2].split(' ');let f=size;ctx.font='800 '+f+'px system-ui,sans-serif'
     while(f>12&&ctx.measureText(l[2]).width>maxW){f--;ctx.font='800 '+f+'px system-ui,sans-serif'}
@@ -361,7 +363,9 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
     ctx.textAlign='center';ctx.fillText(lv.name+' '+rating,(x0+x1)/2,36)
     ctx.textAlign='right';ctx.fillStyle='#fff';ctx.font='800 19px system-ui,sans-serif';ctx.fillText(acc.toFixed(1)+'%',W-14,26);ctx.font='700 9px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.55)';ctx.fillText(spaced('ACCURACY'),W-14,39)
     gauge(12,54,W-24)
-    if(cur||nxt){const y=96;if(cur)lyricLine(cur,W/2,y,W-32,20,'center',true);if(nxt&&nxt!==cur)lyricLine(nxt,W/2,y+24,W-40,14,'center',false)}
+    if(lyr.length){const y=96;if(cur)lyricLine(cur,W/2,y,W-32,20,'center',true)
+     else{ctx.textAlign='center';ctx.font='800 20px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.4)';ctx.fillText(leadIn(nxt),W/2,y)}
+     if(nxt&&nxt!==cur)lyricLine(nxt,W/2,y+24,W-40,14,'center',false)}
    }else{
     // A wide screen: the song (and its lyrics) on the left, how it's going on the right.
     const pw=b.panelW,lx=b.x0/2-pw/2,rx=W-b.x0/2-pw/2,py=24,ph=H-48
@@ -372,7 +376,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
     ctx.textAlign='left';ctx.fillStyle='#fff';let tf=21;ctx.font='800 '+tf+'px system-ui,sans-serif';while(tf>13&&ctx.measureText(info.title).width>pw-120){tf--;ctx.font='800 '+tf+'px system-ui,sans-serif'}ctx.fillText(info.title,lx+98,py+48)
     ctx.font='600 13px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillText(lv.name+' '+rating+' · '+Math.round(info.bpm)+' BPM',lx+98,py+70)
     let y=py+124
-    if(lyr.length){ctx.font='800 11px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.45)';ctx.fillText(spaced('LYRICS'),lx+20,y);y+=34
+    if(lyr.length){ctx.font='800 11px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.45)';ctx.fillText(spaced('LYRICS'),lx+20,y);if(!cur){ctx.textAlign='right';ctx.font='800 14px system-ui,sans-serif';ctx.fillText(leadIn(nxt),lx+pw-20,y);ctx.textAlign='left'}y+=34
      const from=Math.max(0,li-1)
      for(let k=from;k<lyr.length&&y<py+ph-80;k++){const l=lyr[k],on=k===li&&cur!==null,f=lyricLineWrapped(l,lx+20,y,pw-40,on?21:16,on);y+=f}}
     else{ctx.font='800 11px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.45)';ctx.fillText(spaced('SCORE'),lx+20,y);ctx.fillStyle='#fff';ctx.font='800 40px system-ui,sans-serif';ctx.fillText(score.toLocaleString(),lx+20,y+46)}
