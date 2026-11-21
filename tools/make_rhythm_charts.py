@@ -205,7 +205,7 @@ def chart_beat(onset, times, cent, beats, dur, swing, notes):
         charts[level] = {'tap': tap, 'hold': hold, 'sky': [], 'ribbon': []}
     return charts
 
-def chart_lead(beats, dur, swing, notes, beat_charts, rest=2):
+def chart_lead(beats, dur, swing, notes, beat_charts, rest=2, doubles=False):
     """All three levels on the lead: a tile wherever the lead melody plays a note, held to the song's grid so
     it stays in tempo. Players found tiles on the drum beat felt off from the tune they were following, and
     tiles on every melody note (chart_melody) too hard; this sits between. Easy: lead notes on a beat or the
@@ -264,6 +264,20 @@ def chart_lead(beats, dur, swing, notes, beat_charts, rest=2):
             p = int(np.clip(pitch, 52, 88))
             if k != -2 and end - t >= hold_min and len(ends): hold.append([ms, lanes[i], int(round(ends[-1] * 1000)), p])
             else: tap.append([ms, lanes[i], p])
+        if doubles and level == 'jeff':
+            # Jeff tier on a sung song: the stronger syllables on a beat land as doubles (a second tile two columns
+            # over, same time), at most one every 0.75 s and never across a held tile. The voice alone gives
+            # Jeff barely more than Medium; doubles make it harder without a tile the singer doesn't sing.
+            strong = sorted((n[3] for n in ns if n[4] in (0, 2)), reverse=True)
+            cut = strong[int(len(strong) * 0.45)] if strong else 1e9
+            last = -9.0; extra = []
+            for i, (t, end, pitch, strength, k) in enumerate(ns):
+                if k not in (0, 2) or strength < cut or t - last < 0.75: continue
+                ms = int(round(t * 1000)); other = (lanes[i] + 2) % 4
+                if any(h[1] == other and h[0] - 150 <= ms <= h[2] + 150 for h in hold): continue
+                if any(r[1] == other and abs(r[0] - ms) < 150 for r in tap + extra): continue
+                extra.append([ms, other, int(np.clip(pitch, 52, 88))]); last = t
+            tap = sorted(tap + extra)
         charts[level] = {'tap': tap, 'hold': hold, 'sky': [], 'ribbon': []}
     return charts
 
@@ -338,7 +352,7 @@ def main():
             # Where nobody sings for more than two beats the beat fills in, but only on hits the song clearly makes.
             fills = {lv: {kind: [r for r in c[kind] if vocals.heard(r[0] / 1000, mix_r, mix_r * 0)] if kind in ('tap', 'hold') else c[kind]
                           for kind in c} for lv, c in on_beat.items()}
-            charts = chart_lead(beats, dur, swing, [(a - lag, b - lag, m, w) for a, b, m, w, _ in sung_notes], fills, rest=1)
+            charts = chart_lead(beats, dur, swing, [(a - lag, b - lag, m, w) for a, b, m, w, _ in sung_notes], fills, rest=1, doubles=True)
             # The lyrics, lined up with the singing for the karaoke line (tools/sung_lyrics.py), kept only as far
             # as they check out. `onsets`: every sung syllable, on the song's grid like the tiles.
             lyrics = sung_lyric_lines(file, path, onsets)

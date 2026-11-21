@@ -11,9 +11,9 @@ Checked before it's kept, by things the fit didn't use:
   repeat; the alignment places every line on its own, so a steady gap means it found them. (Beijing Delai's
   chorus lines both repeat 64.56 s later; Casa Fantasma's drop, seven lines, 92.84-92.90 s.)
 - Onsets: word starts should land on sung syllable onsets (found separately) far more often than random times.
-A song whose repeats line up keeps every line. A song with nothing to check them by (Peanut Butter Delai's
-lyrics only cover its start) keeps its lines up to the first long jump (over 20 s with no words: past there the
-aligner was only placing leftover words somewhere), and only if its words sit on onsets well above chance.
+A song whose repeats line up keeps every line. A song with nothing to check them by (Peanut Butter Delai: its
+chorus repeats are too fast to transcribe, so they have no words) keeps only the lines the fit is sure of (a line
+it merely placed somewhere scores near 0), and only if its words sit on onsets well above chance.
 
 Needs torch + torchaudio (the model, ~1.2 GB, downloads once to the torch cache)."""
 import re, subprocess, unicodedata, numpy as np
@@ -46,8 +46,26 @@ def force_align(path, lines):
     import torch, torchaudio
     raw = subprocess.run(['ffmpeg', '-v', 'quiet', '-i', path, '-ac', '1', '-ar', '16000', '-f', 'f32le', '-'], capture_output=True).stdout
     x = torch.from_numpy(np.frombuffer(raw, np.float32).copy())
-    bundle = torchaudio.pipelines.MMS_FA
-    model = bundle.get_model(with_star=True).eval(); tokenizer = bundle.get_tokenizer(); aligner = bundle.get_aligner()
+    try:
+        bundle = torchaudio.pipelines.MMS_FA
+        model = bundle.get_model(with_star=True).eval(); tokenizer = bundle.get_tokenizer(); aligner = bundle.get_aligner(); english = False
+    except Exception:
+        # MMS_FA's weights can't always be fetched: torchaudio's English wav2vec2 (LibriSpeech, letters) hears the
+        # same letters. It has no wildcard token, so one is added: on each frame, as likely as the likeliest letter
+        # (less a margin), so it soaks up unwritten words without beating a letter that's really sung.
+        bundle = torchaudio.pipelines.WAV2VEC2_ASR_LARGE_LV60K_960H
+        model = bundle.get_model().eval(); labels = bundle.get_labels(); english = True
+        index = {c: i for i, c in enumerate(labels)}
+        tokenizer = lambda toks: [[len(labels)] if t == '*' else [index[c] for c in t.upper() if c in index] for t in toks]
+        def aligner(E, ids):
+            flat, owner = [], []
+            for k, part in enumerate(ids):
+                for i in part: flat.append(i); owner.append(k)
+            path, scores = torchaudio.functional.forced_align(E[None], torch.tensor([flat], dtype=torch.int32), blank=0)
+            spans = torchaudio.functional.merge_tokens(path[0], scores[0].exp())
+            out = [[] for _ in ids]
+            for sp, k in zip(spans, owner): out[k].append(sp)
+            return out
     # The model hears 30 s at a time; windows overlap by 5 s and each keeps the middle of its overlap.
     sr, win, hop = 16000, 30.0, 25.0
     chunks, s = [], 0
@@ -60,6 +78,7 @@ def force_align(path, lines):
         hi = min(e.shape[0], e.shape[0] if k == len(chunks) - 1 else int(round((hop + (win - hop) / 2) * fps)))
         n = min(hi, E.shape[0] - a); E[a + lo:a + n] = e[lo:n]
     E = torch.log_softmax(E, dim=-1)
+    if english: E = torch.cat([E, (E[:, 1:].max(dim=-1).values - 1.0)[:, None]], dim=-1)
     tokens, owner = ['*'], [None]
     for li, (_, text) in enumerate(lines):
         for wi, (_, letters) in enumerate(words_of(text)):
@@ -91,7 +110,9 @@ def timed(lines, words, onsets):
             starts.append(t); last = t
         if len(starts) != len(ws): continue
         end = max(words[(li, wi)][1] for wi in range(len(ws)) if (li, wi) in words)
-        out.append([int(round(starts[0] * 1000)), int(round(max(end, starts[-1] + 0.2) * 1000)), text, [int(round(t * 1000)) for t in starts]])
+        score = float(np.mean([words[(li, wi)][2] for wi in range(len(ws)) if (li, wi) in words]))
+        # The fifth item, how sure the fit is of the line, is for keep() and is dropped before the game sees it.
+        out.append([int(round(starts[0] * 1000)), int(round(max(end, starts[-1] + 0.2) * 1000)), text, [int(round(t * 1000)) for t in starts], score])
     return out
 
 
@@ -118,12 +139,12 @@ def check(lines, lyr, onsets, seed=0):
             'on_onset': float(np.mean([on(t) for t in starts])) if len(starts) else 0, 'random_on_onset': float(np.mean([on(t) for t in rnd])) if len(rnd) else 0}
 
 
-def keep(lyr, chk):
-    """The lines to show: all of them when repeated lines are found the same distance apart (two or more) and the
-    words sit on onsets well above chance; else (nothing to check by) the lines up to the
-    first jump of over 20 s, if the words sit on onsets well above chance; else none."""
-    if chk['repeat_lines'] >= 2 and chk['on_onset'] >= chk['random_on_onset'] + 0.1: return lyr
+def keep(lyr, chk, sure=0.1):
+    """The lines to show, as the game takes them (start, end, text, word starts). All of them when repeated lines are
+    found the same distance apart (two or more) and the words sit on onsets well above chance. Else (nothing to
+    check by) only the lines the fit is sure of (a line it only placed somewhere scores near 0: "Uh-oh" stretched
+    over 3.6 s scored 0.01, a line really sung 0.15-0.5), if the words sit on onsets well above chance; else none."""
+    plain = lambda ls: [l[:4] for l in ls]
     if chk['on_onset'] < chk['random_on_onset'] + 0.1: return []
-    for i in range(1, len(lyr)):
-        if lyr[i][0] - lyr[i - 1][1] > 20000: return lyr[:i]
-    return lyr
+    if chk['repeat_lines'] >= 2: return plain(lyr)
+    return plain([l for l in lyr if len(l) < 5 or l[4] >= sure])
