@@ -143,8 +143,14 @@ def keep(lyr, chk, sure=0.1):
     """The lines to show, as the game takes them (start, end, text, word starts). All of them when repeated lines are
     found the same distance apart (two or more) and the words sit on onsets well above chance. Else (nothing to
     check by) only the lines the fit is sure of (a line it only placed somewhere scores near 0: "Uh-oh" stretched
-    over 3.6 s scored 0.01, a line really sung 0.15-0.5), if the words sit on onsets well above chance; else none."""
+    over 3.6 s scored 0.01, a line really sung 0.15-0.5), plus an unsure line squeezed between two sure ones, if the
+    words sit on onsets well above chance; else none."""
     plain = lambda ls: [l[:4] for l in ls]
     if chk['on_onset'] < chk['random_on_onset'] + 0.1: return []
     if chk['repeat_lines'] >= 2: return plain(lyr)
-    return plain([l for l in lyr if len(l) < 5 or l[4] >= sure])
+    ok = [len(l) < 5 or l[4] >= sure for l in lyr]
+    # A line the fit is unsure of still shows when the lines either side of it are sure and leave it no more than
+    # 2.5 s: it can only be sung there ("Da truth don't hide," between two sure lines 2.1 s apart). One that could
+    # be anywhere in a long gap (an intro line in 13 s of mostly music) stays out.
+    pinned = [ok[i] or (0 < i < len(lyr) - 1 and ok[i - 1] and ok[i + 1] and lyr[i + 1][0] - lyr[i - 1][1] <= 2500) for i in range(len(lyr))]
+    return plain([l for l, k in zip(lyr, pinned) if k])
