@@ -155,6 +155,7 @@ import {weekDrop} from './store/weekDrop'
 import {shiftAt} from './store/workShifts'
 import {repeatCopy,weekdayDates} from './store/eventRepeat'
 import {addKidPlan,familyView,kidPlanView,moveToWhose} from './store/familyPlans'
+import {isPremiumTheme,premiumIsDark} from './premiumThemes'
 import {teamJersey} from './teamThemes'
 import type {AddChoice,AddChoiceId} from './components/AddToCalendar'
 // Panels that aren't needed on first paint load on demand.
@@ -233,12 +234,17 @@ function StartupWait(){
 function SplashOff(){useEffect(()=>splashDone(),[]);return null}
 export default function WorkspaceApp(){
  const store=usePlannerRepository()
- useEffect(()=>{const {experience='cozy',theme}=store.data.settings,root=document.documentElement;root.dataset.experience=experience;root.dataset.theme=experience==='cozy'?cozyPalette(theme):fixedPaletteExperiences.includes(experience)?experience:theme
+ useEffect(()=>{const {experience='cozy',theme}=store.data.settings,root=document.documentElement;root.dataset.experience=experience;root.dataset.theme=experience==='cozy'?(isPremiumTheme(theme)?'coral':cozyPalette(theme)):fixedPaletteExperiences.includes(experience)?experience:theme
   // Team colors (team-themes.css) key off data-team: "dark" or "light" jersey.
   const jersey=teamJersey(root.dataset.theme);if(jersey)root.dataset.team=jersey;else delete root.dataset.team},[store.data.settings])
  // Dark mode (dark-mode.css): always, never, or following the phone's own setting.
- const phoneDark=usePrefersDark(),darkMode=store.data.settings.darkMode??'phone',dark=darkMode==='dark'||(darkMode==='phone'&&phoneDark)
+ const phoneDark=usePrefersDark(),darkMode=store.data.settings.darkMode??'phone',dark=darkMode==='dark'||(darkMode==='phone'&&phoneDark)||((store.data.settings.experience??'cozy')==='cozy'&&premiumIsDark(store.data.settings.theme))
  useEffect(()=>{const root=document.documentElement;if(dark)root.dataset.dark='true';else delete root.dataset.dark;if(store.ready)rememberSplashDark(darkMode)},[dark,darkMode,store.ready])
+ // A premium theme (premium.css, data-premium) is a whole look drawn over Coral's layout (data-theme stays coral): a light one steps aside in dark mode (dark mode's
+ // own colors take over), a dark one is always on.
+ const premium=(store.data.settings.experience??'cozy')==='cozy'&&isPremiumTheme(store.data.settings.theme)&&(!dark||premiumIsDark(store.data.settings.theme))?store.data.settings.theme:''
+ // Its stylesheet loads the first time one is on (it isn't in the startup CSS).
+ useEffect(()=>{const root=document.documentElement;if(premium){void import('./premium.css');root.dataset.premium=premium}else delete root.dataset.premium},[premium])
  if(!store.ready)return <main className="startup-card"><h1>KONO</h1><p role="status">Opening your study plan…</p><section className="kono-skel" aria-hidden="true"><i/><i/><i/><i/></section><StartupWait/></main>
  // AccountPanel (rendered inside Onboarding) shows its own SaveStatus in context -- a second
  // one floating above the welcome card duplicated the exact same "Build X · This device only"

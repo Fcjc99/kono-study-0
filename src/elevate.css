@@ -46,3 +46,12 @@
 /* The class's own color: a stripe along the top of its panel and a dot by its name. */
 :root .workbench .restored-subjects .subject-workspace:not(#x):not(#y):not(#z){background-image:linear-gradient(var(--subject,#6e6572),var(--subject,#6e6572))!important;background-size:100% 5px!important;background-repeat:no-repeat!important;background-position:top!important;overflow:hidden}
 .workbench .restored-subjects .subject-workspace-title h2:not(#x)::before{content:"";display:inline-block;width:.5em;height:.5em;margin-right:.35em;border-radius:50%;background:var(--subject,#6e6572);vertical-align:.12em}
+
+/* Settings › Look & feel › Premium: the picker (the looks themselves load with premium.css when one is chosen). */
+.premium-heading small{display:block;font-size:.8rem;font-weight:500;color:var(--wb-muted);margin-top:2px}
+.premium-themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:8px}
+.workbench .premium-themes .premium-tile:not(#x):not(#y){display:grid!important;align-content:start;justify-items:start;gap:2px;padding:8px 8px 10px!important;border-radius:18px!important;text-align:left;background:var(--wb-surface)!important;border:1px solid var(--wb-line)!important;box-shadow:none!important;color:var(--wb-ink)!important;min-height:0}
+.premium-tile-preview{display:block;width:100%;aspect-ratio:16/9;border-radius:12px;margin-bottom:6px;box-shadow:0 0 0 1px rgba(0,0,0,.06) inset}
+.premium-tile strong{font-size:.95rem}
+.premium-tile small{font-size:.76rem;color:var(--wb-muted)}
+.workbench .premium-themes .premium-tile[aria-pressed=true]:not(#x):not(#y):not(#z){outline:2px solid var(--wb-accent);outline-offset:2px;background:var(--wb-surface)!important;color:var(--wb-ink)!important}
