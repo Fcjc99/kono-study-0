@@ -35,6 +35,17 @@ test('a sung song\'s lyrics: lines in time order, each word timed within its lin
    assert.ok(words.every((w,i)=>!i||w-words[i-1]<=2000),s.id+' '+text+': sung in one go '+words)}}
  assert.ok(charts.filter(s=>!SUNG.includes(s.id)).every(s=>!s.lyrics),'only the sung songs have lyrics')
 })
+test('a sung song\'s tiles are its words: while a line is sung every tile (each level) lands on a word as it lights, and Jeff tier has a tile for nearly every word',()=>{
+ for(const s of charts.filter(s=>s.lyrics)){
+  const words=s.lyrics.flatMap(l=>l[3]),inLine=t=>s.lyrics.some(l=>t>=l[0]-60&&t<=l[1]+60),near=(t,list)=>list.some(w=>Math.abs(w-t)<=70)
+  for(const [lv,c] of Object.entries(s.charts)){
+   const starts=[...c.tap,...c.hold].map(r=>r[0])
+   const off=starts.filter(t=>inLine(t)&&!near(t,words))
+   assert.equal(off.length,0,s.id+' '+lv+': tiles while a line is sung but on no word, at '+off.slice(0,5).join(', ')+' ms')
+   if(lv==='jeff'){const covered=words.filter(w=>near(w,starts)).length/words.length;assert.ok(covered>=0.97,s.id+' jeff covers '+(covered*100).toFixed(1)+'% of words')}
+  }
+ }
+})
 test('a long tile keeps its pitch and end',()=>{
  const p=R.playOf({tap:[[1000,0,60]],hold:[[2000,2,3000,67]],sky:[],ribbon:[]},120)
  assert.deepEqual(JSON.parse(JSON.stringify(p.notes.map(n=>[n.kind,n.midi,n.end??null]))),[['tap',60,null],['hold',67,3000]])

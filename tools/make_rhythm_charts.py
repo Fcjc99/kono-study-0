@@ -281,6 +281,57 @@ def chart_lead(beats, dur, swing, notes, beat_charts, rest=2, doubles=False):
         charts[level] = {'tap': tap, 'hold': hold, 'sky': [], 'ribbon': []}
     return charts
 
+def words_lead(charts, lyrics, st, sung_notes):
+    """A sung song's tiles where its words are: while a lyric line is sung, a level's tiles are that line's word starts
+    (the karaoke lights each word as it's sung, so a tile lands as its word lights), never a syllable between them.
+    Jeff tier takes every word; Medium words at least 0.2 s apart, Easy 0.42 s (a line's first word always). A word
+    held long (to the next word, or the line's end) is a long tile. Between lines the chart stays as it was (the
+    beat fills in). Columns follow the sung pitch around each word (lanes_of)."""
+    spans = [(l[0] - 60, l[1] + 60) for l in lyrics]
+    inside = lambda ms: any(a <= ms <= b for a, b in spans)
+    def pitch_at(ms):
+        k = int(np.argmin(abs(st - ms / 1000))) if len(st) else -1
+        return float(sung_notes[k][2]) if k >= 0 and abs(st[k] - ms / 1000) <= 0.12 else None
+    rules = {'easy': (420, 600), 'medium': (200, 450), 'jeff': (100, 450)}
+    for level, (gap, hold_min) in rules.items():
+        c = charts[level]
+        # (start, end or None, pitch or None, lane or None) for the tiles kept between lines ...
+        rows = [(r[0], None, None, r[1]) for r in c['tap'] if not inside(r[0])] + [(r[0], r[2], None, r[1]) for r in c['hold'] if not inside(r[0]) and not inside(r[2])]
+        words = []
+        for l in lyrics:
+            ws = l[3]
+            for i, t in enumerate(ws):
+                nxt = ws[i + 1] if i + 1 < len(ws) else l[1]
+                if words and t - words[-1][0] < gap and i > 0: continue
+                words.append((t, nxt, i == 0))
+        # ... and one per word (a line's first word wins over the word before it when they're too close).
+        kept = []
+        for t, nxt, first in words:
+            if kept and t - kept[-1][0] < gap:
+                if first: kept[-1] = (t, nxt, first)
+                continue
+            kept.append((t, nxt, first))
+        # A beat tile just outside a line, right next to one of its words, gives way to the word.
+        wt = np.array([k[0] for k in kept]) if kept else np.zeros(0)
+        rows = [r for r in rows if not len(wt) or np.min(abs(wt - r[0])) >= 250]
+        for t, nxt, _ in kept:
+            end = nxt - 120 if nxt - t >= hold_min + 120 else None
+            rows.append((t, end, pitch_at(t), None))
+        rows.sort(key=lambda r: r[0])
+        # Columns: by the sung pitch where there is one (carried over where there isn't); the beat's tiles keep theirs.
+        last = 64.0; pitches = []
+        for r in rows:
+            last = r[2] if r[2] is not None else last; pitches.append(last)
+        lanes = lanes_of(pitches); tap, hold = [], []
+        for (t, end, _, lane), ln in zip(rows, lanes):
+            lane = ln if lane is None else lane
+            if end is not None and end - t >= 300: hold.append([int(t), lane, int(end), 0])
+            else: tap.append([int(t), lane, 0])
+        # Never two tiles in one column closer than 90 ms, nor a tile inside a long tile of its column.
+        tap = [r for i, r in enumerate(tap) if not any(h[1] == r[1] and h[0] - 90 <= r[0] <= h[2] + 90 for h in hold)]
+        charts[level] = {**c, 'tap': sorted(tap), 'hold': sorted(hold)}
+    return charts
+
 def loud_hits(x):
     """Times of clear jumps in loudness (the top 3%), for the last check."""
     e = np.sqrt(np.convolve(x.astype(np.float64) ** 2, np.ones(256) / 256, 'same'))[::HOP]
@@ -356,6 +407,8 @@ def main():
             # The lyrics, lined up with the singing for the karaoke line (tools/sung_lyrics.py), kept only as far
             # as they check out. `onsets`: every sung syllable, on the song's grid like the tiles.
             lyrics = sung_lyric_lines(file, path, onsets)
+            # While a line is sung, the tiles are its words (see words_lead): a tile lands as its word lights.
+            if lyrics: charts = words_lead(charts, lyrics, st, sung_notes)
             # What a hit plays: the note the voice is singing on that tile, or (0) the soft tick where it holds no
             # clear note (a rapped word) or nobody sings (a tile from the beat).
             for c in charts.values():
