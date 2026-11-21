@@ -18,6 +18,9 @@ it merely placed somewhere scores near 0), and only if its words sit on onsets w
 Needs torch + torchaudio (the model, ~1.2 GB, downloads once to the torch cache)."""
 import re, subprocess, unicodedata, numpy as np
 
+# How far a word start moves onto the sung syllable it falls on (the syllable is where it lands, as heard).
+SNAP = 0.12
+
 
 def read(path):
     """The lyric lines of a song's file: [(section, text)]."""
@@ -126,7 +129,7 @@ def timed(lines, words, onsets):
             if len(onsets):
                 k = int(np.argmin(abs(onsets - t)))
                 # (not onto one the word before already took, or the two would light up as one)
-                if abs(onsets[k] - t) <= 0.08 and (last is None or onsets[k] > last + 0.03): t = float(onsets[k])
+                if abs(onsets[k] - t) <= SNAP and (last is None or onsets[k] > last + 0.03): t = float(onsets[k])
             if last is not None: t = max(t, last)
             starts.append(t); last = t
         if len(starts) != len(ws): continue

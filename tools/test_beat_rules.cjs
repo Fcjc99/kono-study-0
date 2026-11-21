@@ -35,14 +35,27 @@ test('a sung song\'s lyrics: lines in time order, each word timed within its lin
    assert.ok(words.every((w,i)=>!i||w-words[i-1]<=2000),s.id+' '+text+': sung in one go '+words)}}
  assert.ok(charts.filter(s=>!SUNG.includes(s.id)).every(s=>!s.lyrics),'only the sung songs have lyrics')
 })
-test('a sung song\'s tiles are its words: while a line is sung every tile (each level) lands on a word as it lights, and Jeff tier has a tile for nearly every word',()=>{
+test('a sung song\'s tiles follow its words: while a line is sung, Easy and Medium tiles land on words as they light; Jeff tier has a tile on nearly every word, and its extra tiles (sung syllables, the beat) sit clear of the words, never a near miss, and it never sits in one column more than 3 tiles running; no two tiles crowd one column',()=>{
  for(const s of charts.filter(s=>s.lyrics)){
-  const words=s.lyrics.flatMap(l=>l[3]),inLine=t=>s.lyrics.some(l=>t>=l[0]-60&&t<=l[1]+60),near=(t,list)=>list.some(w=>Math.abs(w-t)<=70)
+  const words=s.lyrics.flatMap(l=>l[3]),inLine=t=>s.lyrics.some(l=>t>=l[0]-60&&t<=l[1]+60),dist=t=>Math.min(...words.map(w=>Math.abs(w-t)))
   for(const [lv,c] of Object.entries(s.charts)){
    const starts=[...c.tap,...c.hold].map(r=>r[0])
-   const off=starts.filter(t=>inLine(t)&&!near(t,words))
-   assert.equal(off.length,0,s.id+' '+lv+': tiles while a line is sung but on no word, at '+off.slice(0,5).join(', ')+' ms')
-   if(lv==='jeff'){const covered=words.filter(w=>near(w,starts)).length/words.length;assert.ok(covered>=0.97,s.id+' jeff covers '+(covered*100).toFixed(1)+'% of words')}
+   if(lv==='jeff'){
+    const covered=words.filter(w=>starts.some(t=>Math.abs(t-w)<=70)).length/words.length
+    assert.ok(covered>=0.97,s.id+' jeff covers '+(covered*100).toFixed(1)+'% of words')
+    const near=starts.filter(t=>inLine(t)&&dist(t)>70&&dist(t)<140)
+    assert.equal(near.length,0,s.id+' jeff: tiles a near miss of a word, at '+near.slice(0,5).join(', ')+' ms')
+    const seq=[...c.tap,...c.hold].sort((a,b)=>a[0]-b[0]);let run=1,most=1
+    for(let i=1;i<seq.length;i++){run=seq[i][1]===seq[i-1][1]?run+1:1;most=Math.max(most,run)}
+    assert.ok(most<=3,s.id+' jeff: '+most+' tiles in a row in one column')
+   }else{
+    const off=starts.filter(t=>inLine(t)&&dist(t)>70)
+    assert.equal(off.length,0,s.id+' '+lv+': tiles while a line is sung but on no word, at '+off.slice(0,5).join(', ')+' ms')
+   }
+   for(let lane=0;lane<4;lane++){
+    const ev=[...c.tap.filter(r=>r[1]===lane).map(r=>[r[0],r[0]]),...c.hold.filter(r=>r[1]===lane).map(r=>[r[0],r[2]])].sort((a,b)=>a[0]-b[0])
+    for(let i=1;i<ev.length;i++)assert.ok(ev[i][0]>=ev[i-1][1]+90,s.id+' '+lv+' column '+lane+' crowded at '+ev[i][0]+' ms')
+   }
   }
  }
 })
