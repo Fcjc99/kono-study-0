@@ -1,4 +1,6 @@
-# Peanut Butter Delai: the lyrics in the original file's tags (they cover only the start of the song).
+# Peanut Butter Delai: the start is the lyrics in the original file's tags. The rest (verse 2, the bridge and the
+# end) is what a speech model heard clearly in the separated voice (tools/sung_lyrics.py), checked by ear against
+# the timing; the fast chorus repeats it couldn't make out are left without words rather than guessed.
 [Intro]
 Peanut Butter Delai!
 Tell me, tell me, tell me—
@@ -29,3 +31,31 @@ But your peanut breath still shows!
 [Chorus]
 DELAI LIES! DELAI LIES!
 Tell me where is DA TRUTH?!
+[Verse 2]
+Peanut Butter Delai,
+Everybody knows,
+Truth comes out eventually,
+Just like your peanut breath.
+"I said it wasn't me!"
+Sophia said, "OK then,
+Who was eating peanut butter
+Twenty minutes before today?"
+He said, "Maybe it was almond."
+She said, "Boy, please stop."
+Every time the lie keeps talking,
+His credibility drops.
+[Bridge]
+Forehand truthful, backhand clean,
+Best little tennis player that the court has ever seen,
+But when Sophia asked the question,
+Suddenly he don't recall.
+That's another Delai lie!
+[Chorus]
+Delai lies, da truth,
+You can run around the baseline,
+But da truth,
+Delai lies, da truth!
+[Outro]
+Peanut Butter Delai!
+I didn't eat peanut butter!
+Boy, that's a Delai lie!
