@@ -95,6 +95,25 @@ def force_align(path, lines):
     return out
 
 
+def unstrand(starts, ends, gap=2.0):
+    """A line is sung in one go, so a gap of over `gap` s between two of its words means the fit stranded some of
+    them on another part of the song (Casa Fantasma's "Mate in the" in the DALE chant 8 s before "cup, fire in my
+    chest"). The smaller side is packed back against the larger at the line's own pace (its median word step, kept
+    to 0.15-0.4 s); a tie keeps the later side, as a line's end is what the fit finds last."""
+    if len(starts) < 2: return starts, ends
+    d = [b - a for a, b in zip(starts, starts[1:])]
+    k = int(np.argmax(d))
+    if d[k] <= gap: return starts, ends
+    rest = [x for i, x in enumerate(d) if i != k]
+    step = float(np.clip(np.median(rest) if rest else 0.25, 0.15, 0.4))
+    s, e = list(starts), list(ends)
+    if k + 1 <= len(s) - (k + 1):  # the words before the gap are the fewer: they move up to just before the rest
+        for i in range(k, -1, -1): s[i] = s[i + 1] - step; e[i] = s[i] + step
+    else:  # the words after it are fewer: they follow on from the rest
+        for i in range(k + 1, len(s)): s[i] = s[i - 1] + step; e[i] = s[i] + step
+    return s, e
+
+
 def timed(lines, words, onsets):
     """The lines as the game shows them: [[start ms, end ms, text, [each word's start ms]]]. A word with no
     letters (a dash) starts with the one before it; each start moves onto a sung onset within 80 ms."""
@@ -106,10 +125,14 @@ def timed(lines, words, onsets):
             if t is None: continue
             if len(onsets):
                 k = int(np.argmin(abs(onsets - t)))
-                if abs(onsets[k] - t) <= 0.08: t = float(onsets[k])
+                # (not onto one the word before already took, or the two would light up as one)
+                if abs(onsets[k] - t) <= 0.08 and (last is None or onsets[k] > last + 0.03): t = float(onsets[k])
+            if last is not None: t = max(t, last)
             starts.append(t); last = t
         if len(starts) != len(ws): continue
-        end = max(words[(li, wi)][1] for wi in range(len(ws)) if (li, wi) in words)
+        ends = [words[(li, wi)][1] if (li, wi) in words else starts[wi] + 0.2 for wi in range(len(ws))]
+        starts, ends = unstrand(starts, ends)
+        end = max(ends)
         score = float(np.mean([words[(li, wi)][2] for wi in range(len(ws)) if (li, wi) in words]))
         # The fifth item, how sure the fit is of the line, is for keep() and is dropped before the game sees it.
         out.append([int(round(starts[0] * 1000)), int(round(max(end, starts[-1] + 0.2) * 1000)), text, [int(round(t * 1000)) for t in starts], score])

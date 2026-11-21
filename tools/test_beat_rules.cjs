@@ -24,14 +24,15 @@ test('every chart note carries its pitch (MIDI E3-E6), taps and long tiles alike
   assert.ok(p.notes.every((n,i)=>!i||p.notes[i-1].t<=n.t),'in time order')
  }
 })
-test('a sung song\'s lyrics: lines in time order, each word timed within its line, in order (karaoke)',()=>{
+test('a sung song\'s lyrics: lines in time order, each word timed within its line, in order (karaoke), a line sung in one go (no gap over 2 s between its words: that was the fit stranding words on another part of the song)',()=>{
  const sung=charts.filter(s=>s.lyrics)
  assert.ok(sung.length>=1,'some song has lyrics')
  for(const s of sung){let last=-1
   for(const [start,end,text,words] of s.lyrics){
    assert.ok(start>=last&&end>start&&end<=s.ms,s.id+' '+text);last=start
    assert.equal(words.length,text.split(' ').length,s.id+' '+text)
-   assert.ok(words.every((w,i)=>w>=start-1&&w<=end&&(!i||w>=words[i-1])),s.id+' '+text+' '+words)}}
+   assert.ok(words.every((w,i)=>w>=start-1&&w<=end&&(!i||w>=words[i-1])),s.id+' '+text+' '+words)
+   assert.ok(words.every((w,i)=>!i||w-words[i-1]<=2000),s.id+' '+text+': sung in one go '+words)}}
  assert.ok(charts.filter(s=>!SUNG.includes(s.id)).every(s=>!s.lyrics),'only the sung songs have lyrics')
 })
 test('a long tile keeps its pitch and end',()=>{
