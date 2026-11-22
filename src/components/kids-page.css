@@ -39,3 +39,16 @@
    beside it, they move to their own row. */
 .workbench .kid-card-head{flex-wrap:wrap}
 .workbench .kid-card-tools{margin-left:auto}
+
+/* Round 5: a kid's day items as plain rows with a dot (one item no longer reads as a box inside a box). */
+.kid-cards .kid-card-days dd>span:not(.wb-muted):not(.is-more):not(#x){position:relative;padding:2px 0 2px 14px!important;background:none!important;box-shadow:none!important;border-radius:0!important}
+.kid-cards .kid-card-days dd>span:not(.wb-muted):not(.is-more):not(#x)::before{content:"";position:absolute;left:2px;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--kid-color,var(--wb-accent))}
+/* The star chart is its own section of the card: a hairline above, its title and the grown-up switch on one row. */
+.workbench .star-chart:not(#x){margin-top:18px!important;padding-top:16px!important;border-top:1px solid var(--wb-line)!important}
+.workbench .star-chart-head:not(#x){display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 14px;margin-bottom:12px}
+.workbench .star-chart-head>h3:not(#x){font-size:1.1rem!important;margin:0!important}
+.workbench .star-chart-head>p:not(#x){grid-column:1;margin:0!important;font-size:.85rem}
+.workbench .star-chart-head>label.wb-check:not(#x){grid-column:2;grid-row:1/span 2;margin:0!important;padding:6px 12px!important;min-height:0!important;border:1px solid var(--wb-line);border-radius:99px;font-size:.82rem;font-weight:650;white-space:nowrap;background:var(--wb-surface)}
+@media(max-width:560px){.workbench .star-chart-head>label.wb-check:not(#x){grid-column:1;grid-row:auto;justify-self:start;margin-top:6px!important}}
+.kid-cards .kid-card-days dd>span:has(>.kicon):not(#x)::before{display:none}
+.kid-cards .kid-card-days dd>span:has(>.kicon):not(#x){padding-left:0!important}
