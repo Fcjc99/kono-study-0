@@ -87,6 +87,11 @@ test('Tiles board: a tap counts while the tile is on the line (late in it is a G
  const score=j=>R.scoreOf(R.count(R.freshTally('medium'),j,'medium',10,{off:j==='perfect'?30:j==='great'?60:200}),10)
  assert.ok(score('perfect')>score('great')&&score('great')>score('good')&&score('good')>score('miss'),[score('perfect'),score('great'),score('good'),score('miss')].join(' > '))
 })
+test('speed-ups: the tiles fall 12% faster from each star (a third, two thirds), eased in, never faster than that, and never slower again',()=>{
+ assert.equal(R.rampAt(0),1);assert.equal(R.rampAt(0.33),1)
+ assert.ok(Math.abs(R.rampAt(0.36)-1.12)<1e-9);assert.ok(Math.abs(R.rampAt(0.7)-1.24)<1e-9);assert.ok(Math.abs(R.rampAt(1)-1.24)<1e-9)
+ let last=1;for(let p=0;p<=1;p+=0.001){const v=R.rampAt(p);assert.ok(v>=last-1e-12,'never slower again at '+p);assert.ok(v-last<0.01,'eased in, no jump at '+p);last=v}
+})
 test('a long tile keeps its pitch and end',()=>{
  const p=R.playOf({tap:[[1000,0,60]],hold:[[2000,2,3000,67]],sky:[],ribbon:[]},120)
  assert.deepEqual(JSON.parse(JSON.stringify(p.notes.map(n=>[n.kind,n.midi,n.end??null]))),[['tap',60,null],['hold',67,3000]])

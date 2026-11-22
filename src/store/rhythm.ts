@@ -146,6 +146,16 @@ export const readOffset=()=>{try{return Math.max(-300,Math.min(300,Number(localS
 export const saveOffset=(ms:number)=>{try{localStorage.setItem(OFFSET_KEY,String(Math.max(-300,Math.min(300,Math.round(ms)))))}catch{/* this device only */}}
 /** The board, on this device: flat piano tiles (straight columns, tap the tile itself) or the 3D road with pads. */
 export type BoardStyle='tiles'|'road'
+/** Speed-ups (Tiles board, on this device; on unless turned off): the tiles fall faster at each star on the progress
+ * line (a third of the way, two thirds), easing in over a moment. Only how fast they scroll: the timing, the hit
+ * windows and the score are the same. */
+export const RAMP_KEY='kono-beat-ramp'
+export const readRamp=()=>{try{return localStorage.getItem(RAMP_KEY)!=='0'}catch{return true}}
+export const saveRamp=(on:boolean)=>{try{localStorage.setItem(RAMP_KEY,on?'1':'0')}catch{/* this device only */}}
+export const RAMP_STEP=0.12
+/** How much faster the tiles fall at `progress` (0-1 through the song): 1, then 1.12 from a third, 1.24 from two
+ * thirds, each eased in over 2% of the song. */
+export function rampAt(progress:number){const ease=(x:number)=>{const k=Math.max(0,Math.min(1,(progress-x)/0.02));return k*k*(3-2*k)};return 1+RAMP_STEP*(ease(1/3)+ease(2/3))}
 export const BOARD_KEY='kono-beat-board'
 export const readBoard=():BoardStyle=>{try{return localStorage.getItem(BOARD_KEY)==='road'?'road':'tiles'}catch{return 'tiles'}}
 export const saveBoard=(v:BoardStyle)=>{try{localStorage.setItem(BOARD_KEY,v)}catch{/* this device only */}}

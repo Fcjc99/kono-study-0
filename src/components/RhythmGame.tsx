@@ -1,5 +1,5 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {LEVELS,CLEAR_AT,CLEAR_NAME,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,timingDrift,timingWasReset,readBeatBest,readClassic,readBoard,saveBoard,type BoardStyle,readHits,readLast,readOffset,readSpeed,readSynced,readTicks,saveBeatBest,saveClassic,saveHits,saveLast,saveOffset,saveSpeed,saveSynced,saveTicks,wrongColumn,scoreOf,judgeNote,type Chart,type Clear,type HitSound,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
+import {LEVELS,CLEAR_AT,CLEAR_NAME,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,timingDrift,timingWasReset,readBeatBest,readClassic,readBoard,saveBoard,readRamp,saveRamp,rampAt,type BoardStyle,readHits,readLast,readOffset,readSpeed,readSynced,readTicks,saveBeatBest,saveClassic,saveHits,saveLast,saveOffset,saveSpeed,saveSynced,saveTicks,wrongColumn,scoreOf,judgeNote,type Chart,type Clear,type HitSound,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
 import {stopMusic} from '../arcadeAudio'
 import {haptic,readHaptics,saveHaptics} from '../game/haptics'
 import {click,heardNow,inputLag,keyNote} from '../game/audioClock'
@@ -68,6 +68,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
  const [offset,setOffsetState]=useState(readOffset),[speed,setSpeedState]=useState(readSpeed),[ticks,setTicks]=useState(readTicks),[reset]=useState(timingWasReset)
  const [hits,setHitsState]=useState<HitSound>(readHits),[classic,setClassic]=useState(readClassic)
  const [armed,setArmed]=useState(false),pending=useRef<{ctx:AudioContext;src:AudioBufferSourceNode}|null>(null),startBtn=useRef<HTMLButtonElement>(null),beginRef=useRef<()=>void>(()=>undefined)
+ const [ramp,setRampState]=useState(readRamp),liveRamp=useRef(ramp),rampStage=useRef({stage:0,t:0})
  const [haptics,setHapticsState]=useState(readHaptics),[boardStyle,setBoardState]=useState<BoardStyle>(readBoard),liveFlat=useRef(boardStyle==='tiles')
  // Overlays: the settings sheet (song select), the timing check (asked for, or a device's first song first),
  // and the pause sheet with its count back in.
@@ -186,7 +187,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
    let buf=decoded.get(info.id)
    if(!buf){const data=await (await fetch('/audio/games/'+info.id+'.mp3')).arrayBuffer();buf=await ctx.decodeAudioData(data);decoded.clear();decoded.set(info.id,buf)}
    play.current=playOf(info.charts[level],info.bpm,{tiles:liveFlat.current});tally.current=freshTally(level);done.current=false;fx.current=[];word.current=null;nextTick.current=0;tickedTo.current=0;doneAt.current=new Map()
-   lanesHeld.current=[0,0,0,0];missAt.current=[0,0,0,0];pointers.current.clear();stoppedAt.current=0;liveOffset.current=offset;liveSpeed.current=speed;liveHits.current=hits
+   lanesHeld.current=[0,0,0,0];missAt.current=[0,0,0,0];pointers.current.clear();stoppedAt.current=0;rampStage.current={stage:0,t:0};liveOffset.current=offset;liveSpeed.current=speed;liveHits.current=hits
    const src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination)
    await ctx.resume().catch(()=>undefined)
    startedAt.current=performance.now();spokenAt.current={combo:0,misses:0}
@@ -223,7 +224,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
    const dpr=Math.min(2,window.devicePixelRatio||1),W=cv.clientWidth,H=cv.clientHeight
    if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
    ctx.setTransform(dpr,0,0,dpr,0,0)
-   const flat=liveFlat.current,b=boardOf(W,H,lyr.length>0,flat),offset=liveOffset.current,now=songMs()-offset,pl=play.current,t=performance.now(),ap=approachFor(liveSpeed.current)
+   const flat=liveFlat.current,b=boardOf(W,H,lyr.length>0,flat),offset=liveOffset.current,now=songMs()-offset,pl=play.current,t=performance.now(),speedUp=flat&&liveRamp.current&&!warm.current?rampAt(Math.max(0,now)/info.ms):1,ap=approachFor(liveSpeed.current)/speedUp
    cv.dataset.ms=String(Math.round(now)) // where the song is (the tests follow it)
    {const sb=startBtn.current;if(sb){const r=cv.getBoundingClientRect(),host=sb.offsetParent?.getBoundingClientRect(),th=Math.min(220,(b.hitY-b.top)*0.3)
     if(host)for(const [k,v] of [['left',r.left-host.left+b.x0+b.colW+3],['top',r.top-host.top+b.hitY-th],['width',b.colW-6],['height',th]] as const)sb.style.setProperty(k,v+'px','important')}}
@@ -388,6 +389,10 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
     if(topWord&&s.combo>=2&&wd.j!=='miss'){const ww=ctx.measureText(spaced(WORD[wd.j].toUpperCase())).width;ctx.textAlign='left';ctx.font='900 18px system-ui,sans-serif';ctx.fillStyle='#fff';ctx.fillText('×'+s.combo,cx+ww/2+8,y-2);ctx.textAlign='center'}
     if(wd.off!==undefined&&wd.j!=='miss'&&!topWord){ctx.font='700 12px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillText(wd.j==='perfect'?(wd.off>=0?'+':'−')+Math.abs(Math.round(wd.off))+' ms':spaced(wd.off<0?'EARLY':'LATE'),cx,y+18)}
     ctx.globalAlpha=1}
+   // Speed-ups: at each star the tiles fall a little faster; SPEED UP says so (and a flourish you can feel).
+   {const stage=speedUp>1+0.5*0.12?(speedUp>1+1.5*0.12?2:1):0;if(stage>rampStage.current.stage){rampStage.current={stage,t};haptic('success')}
+    const k=(t-rampStage.current.t)/1400;if(rampStage.current.stage&&k<1){const y=b.top+(b.hitY-b.top)*0.46,size=Math.round(Math.min(34,bw/9)*(1+Math.max(0,0.3-k*2)))
+     ctx.save();ctx.globalAlpha=k<0.75?1:(1-k)/0.25;ctx.textAlign='center';ctx.font='900 '+size+'px system-ui,sans-serif';ctx.shadowColor='#4fc3ff';ctx.shadowBlur=20;ctx.fillStyle='#e8f7ff';ctx.fillText('S P E E D   U P',cx,y);ctx.font='800 12px system-ui,sans-serif';ctx.shadowBlur=0;ctx.fillStyle='rgba(255,255,255,0.75)';ctx.fillText('×'+(1+0.12*rampStage.current.stage).toFixed(2),cx,y+20);ctx.restore()}}
    // Lyrics: the line being sung (the words already sung lit gold) and the next one.
    const li=lyr.length?lyr.findLastIndex(l=>l[0]<=now+250):-1,cur=li>=0&&now<lyr[li][1]+1800?lyr[li]:null,nxt=lyr[li+1]&&lyr[li+1][0]-now<7000?lyr[li+1]:null
    cv.dataset.lyric=cur?cur[2]:'' // the line being sung (the tests read it)
@@ -510,6 +515,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
   <div className="beat-set"><span><b>Note speed</b><small>How fast the tiles come down</small></span><span className="beat-step"><button type="button" aria-label="Notes slower" onClick={()=>setSpeed(speed-0.5)}>−</button><output>{speed.toFixed(1)}</output><button type="button" aria-label="Notes faster" onClick={()=>setSpeed(speed+0.5)}>+</button></span></div>
   <div className="beat-set"><span><b>Timing</b><small>{during?'Shift it if the tiles feel early or late':<>For your speakers or headphones · <button type="button" className="beat-link" onClick={()=>setSyncing('ask')}>Timing check</button></>}</small></span><span className="beat-step beat-timing"><button type="button" aria-label="Notes earlier" onClick={()=>setOffset(offset-5)}>−</button><output>{offset>0?'+':''}{offset} ms</output><button type="button" aria-label="Notes later" onClick={()=>setOffset(offset+5)}>+</button></span></div>
   <div className="beat-set"><span><b>Hit sounds</b><small>{hits==='notes'?'Each tile plays its note (a tick where it has none)':hits==='ticks'?'A soft tick on every hit':'Just the song'}</small></span><span className="beat-seg" role="radiogroup" aria-label="Hit sounds">{(['notes','ticks','off'] as HitSound[]).map(v=><button type="button" key={v} role="radio" aria-checked={hits===v} onClick={()=>setHits(v)}>{v==='notes'?'Notes':v==='ticks'?'Ticks':'Off'}</button>)}</span></div>
+  {boardStyle==='tiles'&&<label className="beat-set beat-check"><span><b>Speed-ups</b><small>The tiles fall a little faster at each star (the timing stays the same)</small></span><input type="checkbox" checked={ramp} onChange={e=>{setRampState(e.target.checked);saveRamp(e.target.checked);liveRamp.current=e.target.checked}}/></label>}
   <label className="beat-set beat-check"><span><b>Haptics</b><small>A tap you can feel on each hit, firmer for a Perfect</small></span><input type="checkbox" checked={haptics} onChange={e=>{setHapticsState(e.target.checked);saveHaptics(e.target.checked);if(e.target.checked)haptic('perfect')}}/></label>
   <label className="beat-set beat-check"><span><b>Guide clicks</b><small>A click on every tile, to hear the timing</small></span><input type="checkbox" checked={ticks} onChange={e=>{setTicks(e.target.checked);saveTicks(e.target.checked)}}/></label>
   {!during&&<label className="beat-set beat-check"><span><b>Classic</b><small>One miss or wrong tap ends the song</small></span><input type="checkbox" checked={classic} onChange={e=>{setClassic(e.target.checked);saveClassic(e.target.checked)}}/></label>}
