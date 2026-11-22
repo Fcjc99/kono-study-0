@@ -1,6 +1,7 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {LEVELS,CLEAR_AT,CLEAR_NAME,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,timingDrift,timingWasReset,readBeatBest,readClassic,readBoard,saveBoard,type BoardStyle,readHits,readLast,readOffset,readSpeed,readSynced,readTicks,saveBeatBest,saveClassic,saveHits,saveLast,saveOffset,saveSpeed,saveSynced,saveTicks,wrongColumn,scoreOf,judgeNote,type Chart,type Clear,type HitSound,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
 import {stopMusic} from '../arcadeAudio'
+import {haptic,readHaptics,saveHaptics} from '../game/haptics'
 import {click,heardNow,inputLag,keyNote} from '../game/audioClock'
 import BeatSync from './BeatSync'
 import charts from '../game/data/rhythmCharts.json'
@@ -66,7 +67,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
  const [song,setSong]=useState(()=>last&&SONGS.some(s=>s.id===last.song)?last.song:SONGS[0].id),[level,setLevel]=useState<Level>(()=>last?.level??'easy'),[playing,setPlaying]=useState(false)
  const [offset,setOffsetState]=useState(readOffset),[speed,setSpeedState]=useState(readSpeed),[ticks,setTicks]=useState(readTicks),[reset]=useState(timingWasReset)
  const [hits,setHitsState]=useState<HitSound>(readHits),[classic,setClassic]=useState(readClassic)
- const [boardStyle,setBoardState]=useState<BoardStyle>(readBoard),liveFlat=useRef(boardStyle==='tiles')
+ const [haptics,setHapticsState]=useState(readHaptics),[boardStyle,setBoardState]=useState<BoardStyle>(readBoard),liveFlat=useRef(boardStyle==='tiles')
  // Overlays: the settings sheet (song select), the timing check (asked for, or a device's first song first),
  // and the pause sheet with its count back in.
  const [sheet,setSheet]=useState(false),[syncing,setSyncing]=useState<null|'ask'|'first'>(null),[paused,setPaused]=useState(false),[pausedAt,setPausedAt]=useState({ms:0,warm:false}),[countIn,setCountIn]=useState(0)
@@ -129,7 +130,8 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
  const mark=(i:number,ms:number)=>{
   const n=play.current.notes[i],off=ms-n.t,j=judgeNote(n,off,level);n.hit=j;n.off=off
   tally.current=count(tally.current,j,level,play.current.total,{off});fx.current.push({lane:n.lane,t:performance.now(),j});word.current={j,t:performance.now(),off}
-  if(j==='perfect')navigator.vibrate?.(6)
+  // A tap you can feel on every hit, firmer the closer it was (game/haptics).
+  haptic(j)
   // What a hit plays: the tile's own note (so tapping along plays the tune, or the sung note), a soft tick
   // where it has none, or nothing.
   const a=audio.current,h=liveHits.current
@@ -142,7 +144,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
   stoppedAt.current=performance.now();missAt.current[lane]=stoppedAt.current
   tally.current={...tally.current,failed:true};word.current={j:'miss',t:stoppedAt.current}
   const a=audio.current;if(a)void a.ctx.suspend().catch(()=>undefined)
-  navigator.vibrate?.(40)
+  haptic('heavy')
  }
  const press=(lane:number,lag=0)=>{
   if(!playing||done.current||stoppedAt.current||livePaused.current)return
@@ -221,7 +223,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
    // Misses: tiles that went by; then each long tile's moments as they come (kept while it's held down).
    if(stoppedAt.current&&!done.current){if(t-stoppedAt.current>900){finishRef.current();return}}
    else if(!done.current&&!frozen){
-    for(const i of missedBy(pl.notes,now,level)){pl.notes[i].hit='miss';tally.current=count(tally.current,'miss',level,pl.total);word.current={j:'miss',t};missAt.current[pl.notes[i].lane]=t;if(classic&&!warm.current){stopHere(pl.notes[i].lane);break}}
+    for(const i of missedBy(pl.notes,now,level)){pl.notes[i].hit='miss';haptic('miss');tally.current=count(tally.current,'miss',level,pl.total);word.current={j:'miss',t};missAt.current[pl.notes[i].lane]=t;if(classic&&!warm.current){stopHere(pl.notes[i].lane);break}}
     while(nextTick.current<pl.ticks.length&&pl.ticks[nextTick.current].t<=now){
      const k=pl.ticks[nextTick.current++]
      const ok=k.kind==='hold'&&lanesHeld.current[pl.notes[k.of].lane]>0&&pl.notes[k.of].hit!=='miss'
@@ -354,7 +356,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
     ctx.globalAlpha=1-k;ctx.strokeStyle=col;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(px0+(b.colW-8)/2,b.hitY,b.colW*0.32+k*b.colW*0.25,12+k*14,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1}
    const s=tally.current,spaced=(txt:string)=>txt.split('').join(' '),seen=s.perfect+s.great+s.good+s.miss,acc=seen?accuracy(s,seen):100
    {const sp=spokenAt.current
-    if(s.combo>=sp.combo+25){sp.combo=s.combo-(s.combo%25);setSpoken('Combo '+sp.combo)}else if(s.combo<sp.combo)sp.combo=0
+    if(s.combo>=sp.combo+25){sp.combo=s.combo-(s.combo%25);setSpoken('Combo '+sp.combo);if(sp.combo%50===0)haptic('success')}else if(s.combo<sp.combo)sp.combo=0
     if(s.miss>=sp.misses+5){sp.misses=s.miss;setSpoken(s.miss+' missed so far')}}
    const score=scoreOf(s,pl.total);cv.dataset.score=String(score)
    // The combo, big and faint behind the far end of the road (on a phone; a wide screen has it in the panel).
@@ -493,6 +495,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
   <div className="beat-set"><span><b>Note speed</b><small>How fast the tiles come down</small></span><span className="beat-step"><button type="button" aria-label="Notes slower" onClick={()=>setSpeed(speed-0.5)}>−</button><output>{speed.toFixed(1)}</output><button type="button" aria-label="Notes faster" onClick={()=>setSpeed(speed+0.5)}>+</button></span></div>
   <div className="beat-set"><span><b>Timing</b><small>{during?'Shift it if the tiles feel early or late':<>For your speakers or headphones · <button type="button" className="beat-link" onClick={()=>setSyncing('ask')}>Timing check</button></>}</small></span><span className="beat-step beat-timing"><button type="button" aria-label="Notes earlier" onClick={()=>setOffset(offset-5)}>−</button><output>{offset>0?'+':''}{offset} ms</output><button type="button" aria-label="Notes later" onClick={()=>setOffset(offset+5)}>+</button></span></div>
   <div className="beat-set"><span><b>Hit sounds</b><small>{hits==='notes'?'Each tile plays its note (a tick where it has none)':hits==='ticks'?'A soft tick on every hit':'Just the song'}</small></span><span className="beat-seg" role="radiogroup" aria-label="Hit sounds">{(['notes','ticks','off'] as HitSound[]).map(v=><button type="button" key={v} role="radio" aria-checked={hits===v} onClick={()=>setHits(v)}>{v==='notes'?'Notes':v==='ticks'?'Ticks':'Off'}</button>)}</span></div>
+  <label className="beat-set beat-check"><span><b>Haptics</b><small>A tap you can feel on each hit, firmer for a Perfect</small></span><input type="checkbox" checked={haptics} onChange={e=>{setHapticsState(e.target.checked);saveHaptics(e.target.checked);if(e.target.checked)haptic('perfect')}}/></label>
   <label className="beat-set beat-check"><span><b>Guide clicks</b><small>A click on every tile, to hear the timing</small></span><input type="checkbox" checked={ticks} onChange={e=>{setTicks(e.target.checked);saveTicks(e.target.checked)}}/></label>
   {!during&&<label className="beat-set beat-check"><span><b>Classic</b><small>One miss or wrong tap ends the song</small></span><input type="checkbox" checked={classic} onChange={e=>{setClassic(e.target.checked);saveClassic(e.target.checked)}}/></label>}
  </div>

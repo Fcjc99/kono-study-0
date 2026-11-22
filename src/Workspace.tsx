@@ -194,6 +194,7 @@ import Avatar from './components/Avatar'
 import KonoIcon from './components/KonoIcon'
 import KonoSprite from './components/KonoSprite'
 import type * as Screens from './WorkspaceSettings'
+import {vibrate} from './game/haptics'
 type PropsOf<K extends keyof typeof Screens>=Parameters<(typeof Screens)[K]>[0]
 /** The Kids page loads the first time it's shown. */
 const screen=<K extends 'KidsPage'>(name:K)=>lazyPanel<PropsOf<K>>(()=>import('./WorkspaceSettings').then(m=>({default:m[name] as unknown as (props:PropsOf<K>)=>ReactNode})))
@@ -1018,7 +1019,7 @@ function Workspace({store}:{store:Store}){
   if(key==='calendarEvents')moved(key,entry,{endTime:end},'Now ends at '+classTime(end)+'.')
   else if(key==='tasks'&&typeof entry.plannedTime==='string')moved(key,entry,{estimatedMinutes:Math.max(15,mins(end)-mins(entry.plannedTime))},'Now ends at '+classTime(end)+'.')
  }
- const toggle=(key:Collection,entry:Entry)=>{if(key==='tasks'){void run(async()=>{const saved=await save(d=>completeTask(d,entry.id));if(saved&&!entry.done){celebrateDone();if(data.settings.sound){navigator.vibrate?.(18);const audio=new Audio('/audio/completion.wav');audio.volume=.4;void audio.play().catch(()=>undefined)}if(entry.due===today&&!ownTasks.some(t=>t.id!==entry.id&&!t.done&&t.due===today)){
+ const toggle=(key:Collection,entry:Entry)=>{if(key==='tasks'){void run(async()=>{const saved=await save(d=>completeTask(d,entry.id));if(saved&&!entry.done){celebrateDone();if(data.settings.sound){vibrate(18);const audio=new Audio('/audio/completion.wav');audio.volume=.4;void audio.play().catch(()=>undefined)}if(entry.due===today&&!ownTasks.some(t=>t.id!==entry.id&&!t.done&&t.due===today)){
    // completeTask credits completionDates[today] on a profile's very first completion of the day
    // (any task, not just ones due today) -- so "today had no credit yet" is exactly "this
    // completion is about to extend the streak," computed here instead of watched reactively so it

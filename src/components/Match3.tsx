@@ -6,6 +6,7 @@ import {fx as play3,musicLift,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
 import {ArtDefs,PieceArt} from './Match3Art'
 import Sparks,{type SparksHandle} from './Sparks'
+import {vibrate} from '../game/haptics'
 
 /** Sweet swap and Gem blitz (the rules are in store/match3), drawn and animated after the games they follow.
  * The board plays in real time (store/match3live), drawn every frame: swaps slide, matched gems shrink away
@@ -42,7 +43,7 @@ type Pop={key:number;x:number;y:number;n:number;kind?:number;each?:boolean;size?
  * from the moves counter to the candy it turns striped. */
 type Flight={key:number;x0:number;y0:number;x1:number;y1:number;text:string;kind:'pts'|'star';ms:number}
 /** A tiny buzz on a phone that has one (a tick for a pick, a thump for a special). */
-function buzz(pattern:number|number[]){try{navigator.vibrate?.(pattern)}catch{/* not allowed */}}
+function buzz(pattern:number|number[]){try{vibrate(pattern)}catch{/* not allowed */}}
 const FLY_MS=650,STAR_MS=420,FINALE_GAP=260
 /** How the round is going: the opening drop, play, the finale (Sweet finish or Last hurrah, and the wait
  * before it), over. */
