@@ -1,5 +1,5 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {LEVELS,CLEAR_AT,CLEAR_NAME,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,timingDrift,timingWasReset,readBeatBest,readClassic,readHits,readLast,readOffset,readSpeed,readSynced,readTicks,saveBeatBest,saveClassic,saveHits,saveLast,saveOffset,saveSpeed,saveSynced,saveTicks,wrongColumn,scoreOf,judge,type Chart,type Clear,type HitSound,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
+import {LEVELS,CLEAR_AT,CLEAR_NAME,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,timingDrift,timingWasReset,readBeatBest,readClassic,readBoard,saveBoard,type BoardStyle,readHits,readLast,readOffset,readSpeed,readSynced,readTicks,saveBeatBest,saveClassic,saveHits,saveLast,saveOffset,saveSpeed,saveSynced,saveTicks,wrongColumn,scoreOf,judge,type Chart,type Clear,type HitSound,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
 import {stopMusic} from '../arcadeAudio'
 import {click,heardNow,inputLag,keyNote} from '../game/audioClock'
 import BeatSync from './BeatSync'
@@ -16,6 +16,8 @@ const SONGS=(charts as unknown as {songs:Song[]}).songs
 const SUNG=new Set(['beijing-delai','casa-fantasma','peanut-butter-delai'])
 const FROM:Record<string,string>={candy:'Sweet swap',gems:'Gem blitz',blast:'KONO blast','flow-1':'Flow · Drift','flow-2':'Flow · Tide','flow-3':'Flow · Pulse','flow-4':'Flow · Aurora','flow-5':'Flow · Zenith','beijing-delai':'🎤 Sung','casa-fantasma':'🎤 Sung','peanut-butter-delai':'🎤 Sung'}
 const LANE_COLORS=['#ff7ab6','#7ad7ff','#9dff8a','#ffd36b'],LANE_DEEP=['#ff3f8e','#2aa9f0','#33cc6c','#ffad14']
+// A color mixed toward the night (k: how much of the color is left), for the Tiles board's background.
+const shade=(hex:string,k:number)=>{const n=parseInt(hex.slice(1),16),c=[n>>16,(n>>8)&255,n&255],d=[10,6,24];return 'rgb('+c.map((v,i)=>Math.round(v*k+d[i]*(1-k))).join(',')+')'}
 const LEVEL_COLORS:Record<Level,string>={easy:'#2fbf8f',medium:'#f59f2a',jeff:'#b06bff'}
 // Each song's cover: an emoji on two colors.
 const JACKETS:Record<string,[string,string,string]>={candy:['🍬','#ff9ac8','#ffd58a'],gems:['💎','#7fd8ff','#a98bff'],blast:['🧱','#ffb36b','#ff6b8a'],'flow-1':['🌌','#3a3f9e','#8fa2ff'],'flow-2':['🌊','#2f7fb8','#9ff0ff'],'flow-3':['🌙','#2a2350','#c27bff'],'flow-4':['🌠','#4b2d8f','#ff9ae0'],'flow-5':['✨','#1d5a6e','#ffe28a'],'beijing-delai':['🏮','#d8323c','#ffcf5a'],'casa-fantasma':['👻','#2b1d45','#7fe0c8'],'peanut-butter-delai':['🥜','#c98a4b','#ffe3a8']}
@@ -42,9 +44,12 @@ export type BeatResult={drift:number|null;song:string;title:string;level:Level;s
  * either side (the lyrics or the song on the left, how it's going on the right); on a phone the head-up line
  * (and a sung song's lyrics) sit above it. The pads always fit on the screen. */
 type Board={W:number;H:number;x0:number;colW:number;top:number;hitY:number;padY:number;padH:number;wide:boolean;panelW:number}
-function boardOf(W:number,H:number,lyrics=false):Board{
- const bw=Math.min(W-16,Math.max(280,H*0.62),560),wide=W>=980&&H>=520&&(W-bw)/2>=280
- const padH=Math.round(Math.max(56,Math.min(104,H*0.13,bw/4*1.15))),padY=H-padH-10
+function boardOf(W:number,H:number,lyrics=false,flat=false):Board{
+ const bw0=Math.min(W-16,Math.max(280,H*0.62),560),wide=W>=980&&H>=520&&(W-bw0)/2>=280
+ // Tiles (flat): the columns run the whole height with no pads (you tap the tile itself); on a phone they fill
+ // the width, edge to edge. The line sits a fifth of the way up, so a tile you hit slides past it and fades.
+ if(flat){const bw=wide?bw0:W;return {W,H,x0:(W-bw)/2,colW:bw/4,top:0,hitY:Math.round(H*0.8),padY:H,padH:0,wide,panelW:wide?Math.min(340,(W-bw)/2-48):0}}
+ const bw=bw0,padH=Math.round(Math.max(56,Math.min(104,H*0.13,bw/4*1.15))),padY=H-padH-10
  return {W,H,x0:(W-bw)/2,colW:bw/4,top:wide?24:lyrics?146:84,hitY:padY-12,padY,padH,wide,panelW:wide?Math.min(340,(W-bw)/2-48):0}
 }
 
@@ -61,6 +66,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
  const [song,setSong]=useState(()=>last&&SONGS.some(s=>s.id===last.song)?last.song:SONGS[0].id),[level,setLevel]=useState<Level>(()=>last?.level??'easy'),[playing,setPlaying]=useState(false)
  const [offset,setOffsetState]=useState(readOffset),[speed,setSpeedState]=useState(readSpeed),[ticks,setTicks]=useState(readTicks),[reset]=useState(timingWasReset)
  const [hits,setHitsState]=useState<HitSound>(readHits),[classic,setClassic]=useState(readClassic)
+ const [boardStyle,setBoardState]=useState<BoardStyle>(readBoard),liveFlat=useRef(boardStyle==='tiles')
  // Overlays: the settings sheet (song select), the timing check (asked for, or a device's first song first),
  // and the pause sheet with its count back in.
  const [sheet,setSheet]=useState(false),[syncing,setSyncing]=useState<null|'ask'|'first'>(null),[paused,setPaused]=useState(false),[pausedAt,setPausedAt]=useState({ms:0,warm:false}),[countIn,setCountIn]=useState(0)
@@ -203,7 +209,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
    const dpr=Math.min(2,window.devicePixelRatio||1),W=cv.clientWidth,H=cv.clientHeight
    if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
    ctx.setTransform(dpr,0,0,dpr,0,0)
-   const b=boardOf(W,H,lyr.length>0),offset=liveOffset.current,now=songMs()-offset,pl=play.current,t=performance.now(),ap=approachFor(liveSpeed.current)
+   const flat=liveFlat.current,b=boardOf(W,H,lyr.length>0,flat),offset=liveOffset.current,now=songMs()-offset,pl=play.current,t=performance.now(),ap=approachFor(liveSpeed.current)
    cv.dataset.ms=String(Math.round(now)) // where the song is (the tests follow it)
    const frozen=livePaused.current
    // Guide clicks: a soft click on every note, a little ahead, on the song's own clock (so they sound exactly
@@ -229,11 +235,22 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
    // The board is a road that narrows gently away from you. Tiles keep one steady speed down the screen (so
    // timing reads the same as ever); only their width shrinks with distance. sOf is the width at a moment
    // (1 at the line); yOf and xOf place it (xOf in columns, 0 to 4).
-   const px=(b.hitY-b.top)/ap,cx=b.x0+b.colW*2,far=now+ap,near=now-0.08*ap,bw=b.colW*4,NARROW=0.34
+   const px=(b.hitY-b.top)/ap,cx=b.x0+b.colW*2,far=now+ap,near=flat?now-(H-b.hitY)/px:now-0.08*ap,bw=b.colW*4,NARROW=flat?0:0.34
    const sOf=(ms:number)=>1-NARROW*Math.min(1,Math.max(-0.1,(ms-now)/ap)),yOf=(ms:number)=>b.hitY-(ms-now)*px,xOf=(col:number,ms:number)=>cx+(col-2)*b.colW*sOf(ms)
    const quad=(c0:number,c1:number,tA:number,tB:number)=>{ctx.beginPath();ctx.moveTo(xOf(c0,tA),yOf(tA));ctx.lineTo(xOf(c1,tA),yOf(tA));ctx.lineTo(xOf(c1,tB),yOf(tB));ctx.lineTo(xOf(c0,tB),yOf(tB));ctx.closePath()}
    const slotMs=Math.min(b.colW*0.72,(b.hitY-b.top)*0.13)/px // a tap tile's length, and its target slot's
    const beat=60000/info.bpm,pulse=frozen?0:Math.max(0,1-(((now%beat)+beat)%beat)/beat)
+   if(flat){
+    // Tiles: the song's own colors, deep, with soft bubbles drifting up; thin lines between the columns; the line.
+    const bg=ctx.createLinearGradient(0,0,W*0.4,H);bg.addColorStop(0,shade(j1,0.82));bg.addColorStop(0.55,shade(j2,0.7));bg.addColorStop(1,shade(j1,0.5));ctx.fillStyle=bg;ctx.fillRect(0,0,W,H)
+    const glow=ctx.createRadialGradient(W*0.5,H*0.35,0,W*0.5,H*0.35,Math.max(W,H)*0.7);glow.addColorStop(0,`rgba(255,255,255,${0.10+pulse*0.06})`);glow.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=glow;ctx.fillRect(0,0,W,H)
+    for(let k=0;k<14;k++){const sp=0.018+(k%5)*0.006,bx=((k*0.6180339)%1)*W,by=H-(((t/1000)*sp*H+k*97)%(H+60)),br=4+(k%4)*5;ctx.globalAlpha=0.10+(k%3)*0.05;ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(bx,by,br,0,Math.PI*2);ctx.stroke()}
+    ctx.globalAlpha=1
+    if(b.wide){ctx.fillStyle='rgba(8,6,20,0.35)';ctx.fillRect(b.x0,0,bw,H)}
+    for(let l=0;l<=4;l++){ctx.fillStyle=l===0||l===4?'rgba(255,255,255,0.28)':'rgba(255,255,255,0.18)';ctx.fillRect(Math.round(b.x0+l*b.colW)-(l===4?1:0),0,1,H)}
+    for(let l=0;l<4;l++){const pressed=lanesHeld.current[l]>0||t-pressedAt.current[l]<120,missed=t-missAt.current[l]<(stoppedAt.current?900:260)
+     if(pressed||missed){const lg=ctx.createLinearGradient(0,H,0,0);lg.addColorStop(0,missed?'rgba(255,77,106,0.4)':LANE_COLORS[l]+'44');lg.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=lg;ctx.fillRect(b.x0+l*b.colW,0,b.colW,H)}}
+   }else{
    // Around the road: night, with a soft glow at the horizon, lit on the beat.
    const g=ctx.createRadialGradient(cx,H*0.3,0,cx,H*0.3,Math.max(W,H)*0.8);g.addColorStop(0,'#3b1a55');g.addColorStop(0.55,'#170f2c');g.addColorStop(1,'#0b0716');ctx.fillStyle=g;ctx.fillRect(0,0,W,H)
    const hz=ctx.createRadialGradient(cx,yOf(far),0,cx,yOf(far),bw*0.8);hz.addColorStop(0,`rgba(255,95,162,${0.22+pulse*0.18})`);hz.addColorStop(1,'rgba(255,95,162,0)');ctx.fillStyle=hz;ctx.fillRect(0,0,W,b.hitY)
@@ -251,11 +268,18 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
    // fits right into its slot at the perfect moment, so you aim the whole tile, not a thin line.
    for(let l=0;l<4;l++){const pressed=lanesHeld.current[l]>0||t-pressedAt.current[l]<120
     ctx.fillStyle=LANE_COLORS[l]+(pressed?'55':Math.round(0x12+pulse*0x14).toString(16).padStart(2,'0'));quad(l+0.05,l+0.95,now,now+slotMs);ctx.fill()}
+   }
    // Tiles, the farthest first: each glows in its column's color (a soft halo, then the tile); a long tile runs
    // back to where its note ends, with a bright line down its middle, lit while it's held. In a sung song a tile
    // that plays the sung note wears a ♪. Hit tiles flash white and fade; missed ones go red.
-   ctx.save();ctx.beginPath();ctx.rect(0,0,W,b.hitY+6);ctx.clip() // tiles end at the line, not over the pads
-   const tile=(l:number,tA:number,tB:number,alpha=1)=>{
+   ctx.save();ctx.beginPath();ctx.rect(0,0,W,flat?H:b.hitY+6);ctx.clip() // tiles end at the line, not over the pads (Tiles: they slide on past it)
+   // Tiles (flat): a deep ink key with rounded corners, its column's color glowing along the bottom edge.
+   const key=(l:number,tA:number,tB:number,alpha=1)=>{const x=b.x0+l*b.colW+3,w=b.colW-6,y0=yOf(tB),y1=yOf(tA),h=y1-y0;if(h<=2)return
+    ctx.globalAlpha=alpha;const kg=ctx.createLinearGradient(0,y0,0,y1);kg.addColorStop(0,'#1a1f4a');kg.addColorStop(1,'#0a0c22');ctx.fillStyle=kg;ctx.beginPath();ctx.roundRect(x,y0,w,h,Math.min(14,h/2));ctx.fill()
+    ctx.strokeStyle='rgba(0,0,0,0.55)';ctx.lineWidth=2;ctx.stroke()
+    const eg=ctx.createLinearGradient(0,y1-Math.min(26,h*0.4),0,y1);eg.addColorStop(0,LANE_COLORS[l]+'00');eg.addColorStop(1,LANE_COLORS[l]+'cc');ctx.fillStyle=eg;ctx.beginPath();ctx.roundRect(x+2,y1-Math.min(26,h*0.4),w-4,Math.min(26,h*0.4)-2,Math.min(12,h/2));ctx.fill()
+    ctx.fillStyle='rgba(255,255,255,0.10)';ctx.beginPath();ctx.roundRect(x+6,y0+5,w-12,Math.min(10,h*0.15),6);ctx.fill();ctx.globalAlpha=1}
+   const tile=(l:number,tA:number,tB:number,alpha=1)=>{if(flat){key(l,tA,tB,alpha);return}
     ctx.globalAlpha=alpha*0.28;ctx.fillStyle=LANE_COLORS[l];quad(l+0.0,l+1.0,tA-slotMs*0.06,tB+slotMs*0.06);ctx.fill()
     ctx.globalAlpha=alpha;const tg=ctx.createLinearGradient(0,yOf(tB),0,yOf(tA));tg.addColorStop(0,LANE_COLORS[l]);tg.addColorStop(1,LANE_DEEP[l]);ctx.fillStyle=tg;quad(l+0.07,l+0.93,tA,tB);ctx.fill()
     ctx.fillStyle='rgba(255,255,255,0.45)';quad(l+0.14,l+0.86,tB-(tB-tA)*0.16,tB-(tB-tA)*0.08);ctx.fill()}
@@ -263,16 +287,33 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
     const n=pl.notes[i];if(n.kind==='sky'||n.t>far)continue
     // Each tile is as long as a key, but never runs into the next tile in its column.
     let h=slotMs;for(let k=i+1;k<pl.notes.length;k++){const m=pl.notes[k];if(m.t-n.t>ap)break;if(m.lane===n.lane&&m.kind!=='sky'){h=Math.min(h,(m.t-n.t)-ap*0.012);break}}
+    // Tiles (flat): stacked like a piano roll, each as tall as the time to the next row of tiles (in any column),
+    // within a short and a tall key.
+    if(flat){let gap=ap;for(let k=i+1;k<pl.notes.length;k++){const m=pl.notes[k];if(m.kind==='sky')continue;if(m.t-n.t>5){gap=m.t-n.t;break}}
+     h=Math.max(36/px,Math.min(gap-6/px,(b.hitY*0.3)/px))}
     h=Math.max(14/px,h)
     const end=n.kind==='hold'&&n.end?n.end:n.t+h,tB=Math.min(end,far)
     if(n.hit&&!doneAt.current.has(i))doneAt.current.set(i,t)
     if(n.hit==='miss'){const k=Math.min(1,(t-(doneAt.current.get(i)??t))/500),tA=Math.max(n.t,near);if(k>=1||tB<=tA)continue
      ctx.globalAlpha=1-k*0.6;ctx.fillStyle='#ff4d6a';quad(n.lane+0.07,n.lane+0.93,tA,tB);ctx.fill();ctx.globalAlpha=1;continue}
+    if(n.hit&&n.kind!=='hold'&&flat){const k=(t-(doneAt.current.get(i)??t))/420,tA=Math.max(n.t,near);if(k>=1||tB<=tA)continue
+     const x=b.x0+n.lane*b.colW+3,w=b.colW-6,y0=yOf(tB),y1=yOf(tA);ctx.globalAlpha=(1-k)*0.85;const lg=ctx.createLinearGradient(0,y0,0,y1);lg.addColorStop(0,'#ffffff');lg.addColorStop(1,LANE_COLORS[n.lane]);ctx.fillStyle=lg;ctx.beginPath();ctx.roundRect(x,y0,w,y1-y0,14);ctx.fill();ctx.globalAlpha=1;continue}
     if(n.hit&&n.kind!=='hold'){const k=(t-(doneAt.current.get(i)??t))/240,tA=Math.max(n.t,near);if(k>=1||tB<=tA)continue
      ctx.globalAlpha=1-k;ctx.fillStyle='#ffffff';quad(n.lane+0.07,n.lane+0.93,tA,tB);ctx.fill();ctx.globalAlpha=1;continue}
     const kept=n.kind==='hold'&&n.hit&&lanesHeld.current[n.lane]>0
     // Far tiles come out of the haze rather than popping in.
     const fade=Math.max(0,Math.min(1,(far-n.t)/(ap*0.12)))
+    if(n.kind==='hold'&&n.end&&flat){
+     // A long key: dark, with a line up its middle from a dot at its head to a dot at its end; held, it fills with
+     // its color from the line up.
+     const tA=n.hit?Math.max(n.t,now):Math.max(n.t,near);if(tB<=tA)continue
+     const x=b.x0+n.lane*b.colW+3,w=b.colW-6,y0=yOf(tB),y1=yOf(tA),mx=x+w/2
+     key(n.lane,tA,tB,fade)
+     if(kept){ctx.globalAlpha=0.9;const fg=ctx.createLinearGradient(0,y1,0,y0);fg.addColorStop(0,'#ffd34d');fg.addColorStop(1,LANE_COLORS[n.lane]);ctx.fillStyle=fg;ctx.beginPath();ctx.roundRect(x,y0,w,y1-y0,14);ctx.fill()}
+     ctx.globalAlpha=fade;ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=kept?4:3;ctx.beginPath();ctx.moveTo(mx,y1-14);ctx.lineTo(mx,y0+14);ctx.stroke()
+     ctx.fillStyle='#fff';for(const yy of [y0+14,y1-14]){ctx.beginPath();ctx.arc(mx,yy,kept?7:6,0,Math.PI*2);ctx.fill()}
+     ctx.globalAlpha=1;continue
+    }
     if(n.kind==='hold'&&n.end){
      const tA=n.hit?Math.max(n.t,now):Math.max(n.t,near);if(tB<=tA)continue
      ctx.globalAlpha=fade*(kept?0.75:0.42);const hg=ctx.createLinearGradient(0,yOf(tB),0,yOf(tA));hg.addColorStop(0,LANE_COLORS[n.lane]+'33');hg.addColorStop(1,LANE_COLORS[n.lane]);ctx.fillStyle=hg;quad(n.lane+0.12,n.lane+0.88,tA,tB);ctx.fill()
@@ -288,7 +329,8 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
    ctx.restore()
    // The line: the four columns' colors, glowing on the beat; each slot's frame brightens as a tile slides into
    // it, and is brightest when the tile sits exactly inside (the perfect moment).
-   {const lg=ctx.createLinearGradient(b.x0,0,b.x0+bw,0);LANE_COLORS.forEach((c,i)=>lg.addColorStop(i/3,c))
+   if(flat){ctx.save();ctx.shadowColor='rgba(255,255,255,0.9)';ctx.shadowBlur=8+pulse*8;ctx.fillStyle='rgba(255,255,255,0.75)';ctx.fillRect(b.x0,b.hitY-1,bw,2);ctx.restore()}
+   else{const lg=ctx.createLinearGradient(b.x0,0,b.x0+bw,0);LANE_COLORS.forEach((c,i)=>lg.addColorStop(i/3,c))
     ctx.save();ctx.shadowColor='rgba(255,255,255,0.8)';ctx.shadowBlur=10+pulse*10;ctx.fillStyle=lg;ctx.fillRect(xOf(0,now),b.hitY-2,xOf(4,now)-xOf(0,now),4);ctx.restore()
     for(let l=0;l<4;l++){let fit=0
      for(const n of pl.notes){if(n.t>now+slotMs)break;if(n.lane!==l||n.kind==='sky'||n.hit)continue;fit=Math.max(fit,1-Math.abs(n.t-now)/slotMs)}
@@ -298,14 +340,14 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
    // The pads under the line, one for each column: where you tap. A pad glows in its color while it's pressed,
    // and flashes in a hit's color.
    ctx.textAlign='center'
-   for(let l=0;l<4;l++){const x=b.x0+l*b.colW+4,w=b.colW-8,y0=b.padY,ph=b.padH,pressed=lanesHeld.current[l]>0||t-pressedAt.current[l]<120
+   if(!flat)for(let l=0;l<4;l++){const x=b.x0+l*b.colW+4,w=b.colW-8,y0=b.padY,ph=b.padH,pressed=lanesHeld.current[l]>0||t-pressedAt.current[l]<120
     ctx.fillStyle=pressed?LANE_COLORS[l]+'5c':LANE_COLORS[l]+'14';ctx.beginPath();ctx.roundRect(x,y0,w,ph,18);ctx.fill()
     ctx.save();if(pressed){ctx.shadowColor=LANE_COLORS[l];ctx.shadowBlur=22}ctx.strokeStyle=pressed?LANE_COLORS[l]:LANE_COLORS[l]+'8c';ctx.lineWidth=2;ctx.stroke();ctx.restore()
     if(ph>50){ctx.font='700 12px system-ui,sans-serif';ctx.fillStyle=pressed?'#fff':'rgba(255,255,255,0.45)';ctx.fillText('DFJK'[l],x+w/2,y0+ph-12)}}
    // Hits: the pad flashes in the hit's color, a column of light shoots up the lane, and a ring spreads on the line.
    fx.current=fx.current.filter(e=>t-e.t<380)
    for(const e of fx.current){if(e.j==='miss')continue;const k=(t-e.t)/380,l=e.lane,col=e.j==='perfect'?'#ffd34d':LANE_COLORS[l],px0=b.x0+l*b.colW+4
-    ctx.globalAlpha=(1-k)*0.6;ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(px0,b.padY,b.colW-8,b.padH,18);ctx.fill()
+    if(!flat){ctx.globalAlpha=(1-k)*0.6;ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(px0,b.padY,b.colW-8,b.padH,18);ctx.fill()}
     const beam=ctx.createLinearGradient(0,b.hitY,0,b.hitY-(b.hitY-b.top)*0.45);beam.addColorStop(0,LANE_COLORS[l]);beam.addColorStop(1,'rgba(255,255,255,0)')
     ctx.globalAlpha=(1-k)*0.5;ctx.fillStyle=beam;ctx.fillRect(px0+6,b.hitY-(b.hitY-b.top)*0.45,b.colW-20,(b.hitY-b.top)*0.45)
     ctx.globalAlpha=1-k;ctx.strokeStyle=col;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(px0+(b.colW-8)/2,b.hitY,b.colW*0.32+k*b.colW*0.25,12+k*14,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1}
@@ -315,15 +357,18 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
     if(s.miss>=sp.misses+5){sp.misses=s.miss;setSpoken(s.miss+' missed so far')}}
    const score=scoreOf(s,pl.total);cv.dataset.score=String(score)
    // The combo, big and faint behind the far end of the road (on a phone; a wide screen has it in the panel).
-   if(!b.wide&&s.combo>=2){ctx.textAlign='center';ctx.globalAlpha=0.24;ctx.fillStyle='#fff';ctx.font='900 '+Math.round(Math.min(72,bw/5))+'px system-ui,sans-serif';ctx.fillText(String(s.combo),cx,b.top+(b.hitY-b.top)*0.3);ctx.font='800 12px system-ui,sans-serif';ctx.fillText(spaced('COMBO'),cx,b.top+(b.hitY-b.top)*0.3+18);ctx.globalAlpha=1}
+   if(!b.wide&&!flat&&s.combo>=2){ctx.textAlign='center';ctx.globalAlpha=0.24;ctx.fillStyle='#fff';ctx.font='900 '+Math.round(Math.min(72,bw/5))+'px system-ui,sans-serif';ctx.fillText(String(s.combo),cx,b.top+(b.hitY-b.top)*0.3);ctx.font='800 12px system-ui,sans-serif';ctx.fillText(spaced('COMBO'),cx,b.top+(b.hitY-b.top)*0.3+18);ctx.globalAlpha=1}
    // The word for the last hit, big and glowing just above the line (where your eyes are), popping in.
    const wd=word.current
-   if(wd&&t-wd.t<550){const k=(t-wd.t)/550,pop=1+Math.max(0,0.35-k*2.2),size=Math.round(Math.min(40,bw/8)*pop),y=b.hitY-(b.hitY-b.top)*0.24
+   // (Tiles on a phone: under the score at the top, with the combo beside it: PERFECT ×12.)
+   const topWord=flat&&!b.wide
+   if(wd&&t-wd.t<550){const k=(t-wd.t)/550,pop=1+Math.max(0,0.35-k*2.2),size=Math.round(Math.min(topWord?30:40,bw/8)*pop),y=topWord?(lyr.length?112:118):b.hitY-(b.hitY-b.top)*0.24
     const col=wd.j==='perfect'?['#fff6c4','#ffc53d']:wd.j==='great'?['#d6f4ff','#4fc3ff']:wd.j==='good'?['#dcffd8','#5fe08a']:['#ffd0d8','#ff4d6a']
     ctx.globalAlpha=k<0.7?1:(1-k)/0.3;ctx.textAlign='center';ctx.font='900 '+size+'px system-ui,sans-serif'
     const wg=ctx.createLinearGradient(0,y-size,0,y);wg.addColorStop(0,col[0]);wg.addColorStop(1,col[1])
     ctx.save();ctx.shadowColor=col[1];ctx.shadowBlur=18;ctx.fillStyle=wg;ctx.fillText(spaced(WORD[wd.j].toUpperCase()),cx,y);ctx.restore()
-    if(wd.off!==undefined&&wd.j!=='miss'){ctx.font='700 12px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillText(wd.j==='perfect'?(wd.off>=0?'+':'−')+Math.abs(Math.round(wd.off))+' ms':spaced(wd.off<0?'EARLY':'LATE'),cx,y+18)}
+    if(topWord&&s.combo>=2&&wd.j!=='miss'){const ww=ctx.measureText(spaced(WORD[wd.j].toUpperCase())).width;ctx.textAlign='left';ctx.font='900 18px system-ui,sans-serif';ctx.fillStyle='#fff';ctx.fillText('×'+s.combo,cx+ww/2+8,y-2);ctx.textAlign='center'}
+    if(wd.off!==undefined&&wd.j!=='miss'&&!topWord){ctx.font='700 12px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillText(wd.j==='perfect'?(wd.off>=0?'+':'−')+Math.abs(Math.round(wd.off))+' ms':spaced(wd.off<0?'EARLY':'LATE'),cx,y+18)}
     ctx.globalAlpha=1}
    // Lyrics: the line being sung (the words already sung lit gold) and the next one.
    const li=lyr.length?lyr.findLastIndex(l=>l[0]<=now+250):-1,cur=li>=0&&now<lyr[li][1]+1800?lyr[li]:null,nxt=lyr[li+1]&&lyr[li+1][0]-now<7000?lyr[li+1]:null
@@ -335,7 +380,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
     while(f>12&&ctx.measureText(l[2]).width>maxW){f--;ctx.font='800 '+f+'px system-ui,sans-serif'}
     let wx=align==='center'?x-ctx.measureText(l[2]).width/2:x;ctx.textAlign='left'
     words.forEach((w,i)=>{const on=lit&&l[3][i]!==undefined&&l[3][i]<=now+60
-     ctx.save();if(on){ctx.fillStyle='#ffc53d';ctx.shadowColor='rgba(255,197,61,0.7)';ctx.shadowBlur=14}else ctx.fillStyle=lit?'rgba(255,255,255,0.92)':'rgba(255,255,255,0.4)'
+     ctx.save();if(on){ctx.fillStyle='#ffc53d';ctx.shadowColor='rgba(255,197,61,0.7)';ctx.shadowBlur=14}else{ctx.fillStyle=lit?'rgba(255,255,255,0.92)':'rgba(255,255,255,0.55)';ctx.shadowColor='rgba(0,0,0,0.6)';ctx.shadowBlur=6}
      ctx.fillText(w,wx,y);ctx.restore();wx+=ctx.measureText(w+' ').width})
     return f}
    const gauge=(x:number,y:number,w:number)=>{
@@ -354,7 +399,21 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
     return wy-y+rowH+12}
    // Top (phone): the song's progress with its name and level, the accuracy, then the gauge. The ❚❚ button sits
    // at the left (it's a real button, over the canvas).
-   if(!b.wide){
+   if(!b.wide&&flat){
+    if(pauseBtn.current?.style.left){pauseBtn.current.style.removeProperty('left');pauseBtn.current.style.removeProperty('top')}
+    // Tiles (phone): the song's progress as a line of stars across the top (each lights as you pass it), the
+    // gauge under it, the score big in the middle; the lyrics under the hit word.
+    const x0=64,x1=W-16,pr=Math.min(1,Math.max(0,now)/info.ms)
+    ctx.fillStyle='rgba(255,255,255,0.28)';ctx.fillRect(x0,24,x1-x0,3)
+    const pg=ctx.createLinearGradient(x0,0,x1,0);pg.addColorStop(0,'#fff6c4');pg.addColorStop(1,'#ffc53d');ctx.fillStyle=pg;ctx.fillRect(x0,24,(x1-x0)*pr,3)
+    ctx.textAlign='center';ctx.font='900 17px system-ui,sans-serif'
+    for(const [f,mark] of [[1/3,'★'],[2/3,'★'],[1,'♛']] as const){const on=pr>=f-0.001;ctx.save();if(on){ctx.shadowColor='#ffc53d';ctx.shadowBlur=12}ctx.fillStyle=on?'#ffd34d':'rgba(255,255,255,0.55)';ctx.fillText(mark,x0+(x1-x0)*f-(f===1?8:0),31);ctx.restore()}
+    if(level==='jeff'||s.gauge<CLEAR_AT){ctx.globalAlpha=0.85;gauge(x0,38,x1-x0-20);ctx.globalAlpha=1}
+    ctx.save();ctx.shadowColor='rgba(0,0,0,0.35)';ctx.shadowBlur=10;ctx.fillStyle='#fff';ctx.font='900 '+(lyr.length?36:46)+'px system-ui,sans-serif';ctx.fillText(score.toLocaleString(),W/2,lyr.length?76:84);ctx.restore()
+    if(lyr.length){const y=150;if(cur)lyricLine(cur,W/2,y,W-32,19,'center',true)
+     else{ctx.textAlign='center';ctx.font='800 19px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,0.5)';ctx.fillText(leadIn(nxt),W/2,y)}
+     if(nxt&&nxt!==cur)lyricLine(nxt,W/2,y+23,W-40,14,'center',false)}
+   }else if(!b.wide){
     if(pauseBtn.current?.style.left){pauseBtn.current.style.removeProperty('left');pauseBtn.current.style.removeProperty('top')}
     const x0=64,x1=W-96
     ctx.fillStyle='rgba(255,255,255,0.12)';ctx.beginPath();ctx.roundRect(x0,16,x1-x0,5,3);ctx.fill()
@@ -409,7 +468,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
  },[playing])
 
  // Fingers: anywhere in a column taps it (and keeps a long tile held); sliding over moves the hold with you.
- const laneAt=(cv:HTMLCanvasElement,cx:number)=>{const r=cv.getBoundingClientRect(),b=boardOf(r.width,r.height),x=cx-r.left;return x<b.x0||x>=b.x0+b.colW*4?-1:Math.floor((x-b.x0)/b.colW)}
+ const laneAt=(cv:HTMLCanvasElement,cx:number)=>{const r=cv.getBoundingClientRect(),b=boardOf(r.width,r.height,false,liveFlat.current),x=cx-r.left;return x<b.x0||x>=b.x0+b.colW*4?-1:Math.floor((x-b.x0)/b.colW)}
  const down=(e:React.PointerEvent<HTMLCanvasElement>)=>{
   e.preventDefault();e.currentTarget.setPointerCapture?.(e.pointerId)
   const lane=laneAt(e.currentTarget,e.clientX);pointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY,lane})
@@ -425,9 +484,11 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
  const setOffset=(v:number)=>{v=Math.max(-300,Math.min(300,v));setOffsetState(v);saveOffset(v);liveOffset.current=v}
  const setSpeed=(v:number)=>{const s=Math.max(1,Math.min(10,Math.round(v*2)/2));setSpeedState(s);saveSpeed(s);liveSpeed.current=s}
  const setHits=(v:HitSound)=>{setHitsState(v);saveHits(v);liveHits.current=v}
+ const setBoard=(v:BoardStyle)=>{setBoardState(v);saveBoard(v);liveFlat.current=v==='tiles'}
 
  // The settings, in plain words (on the song select's ⚙ sheet, and on the pause sheet while a song plays).
  const settings=(during:boolean)=><div className="beat-settings">
+  <div className="beat-set"><span><b>Board</b><small>{boardStyle==='tiles'?'Piano tiles: straight columns, tap the tile itself':'A 3D road, with a pad under each column'}</small></span><span className="beat-seg" role="radiogroup" aria-label="Board">{(['tiles','road'] as BoardStyle[]).map(v=><button type="button" key={v} role="radio" aria-checked={boardStyle===v} onClick={()=>setBoard(v)}>{v==='tiles'?'Tiles':'3D road'}</button>)}</span></div>
   <div className="beat-set"><span><b>Note speed</b><small>How fast the tiles come down</small></span><span className="beat-step"><button type="button" aria-label="Notes slower" onClick={()=>setSpeed(speed-0.5)}>−</button><output>{speed.toFixed(1)}</output><button type="button" aria-label="Notes faster" onClick={()=>setSpeed(speed+0.5)}>+</button></span></div>
   <div className="beat-set"><span><b>Timing</b><small>{during?'Shift it if the tiles feel early or late':<>For your speakers or headphones · <button type="button" className="beat-link" onClick={()=>setSyncing('ask')}>Timing check</button></>}</small></span><span className="beat-step beat-timing"><button type="button" aria-label="Notes earlier" onClick={()=>setOffset(offset-5)}>−</button><output>{offset>0?'+':''}{offset} ms</output><button type="button" aria-label="Notes later" onClick={()=>setOffset(offset+5)}>+</button></span></div>
   <div className="beat-set"><span><b>Hit sounds</b><small>{hits==='notes'?'Each tile plays its note (a tick where it has none)':hits==='ticks'?'A soft tick on every hit':'Just the song'}</small></span><span className="beat-seg" role="radiogroup" aria-label="Hit sounds">{(['notes','ticks','off'] as HitSound[]).map(v=><button type="button" key={v} role="radio" aria-checked={hits===v} onClick={()=>setHits(v)}>{v==='notes'?'Notes':v==='ticks'?'Ticks':'Off'}</button>)}</span></div>

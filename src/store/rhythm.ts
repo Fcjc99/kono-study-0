@@ -132,6 +132,11 @@ export function timingDrift(offs:number[]):number|null{
 }
 export const readOffset=()=>{try{return Math.max(-300,Math.min(300,Number(localStorage.getItem(OFFSET_KEY))||0))}catch{return 0}}
 export const saveOffset=(ms:number)=>{try{localStorage.setItem(OFFSET_KEY,String(Math.max(-300,Math.min(300,Math.round(ms)))))}catch{/* this device only */}}
+/** The board, on this device: flat piano tiles (straight columns, tap the tile itself) or the 3D road with pads. */
+export type BoardStyle='tiles'|'road'
+export const BOARD_KEY='kono-beat-board'
+export const readBoard=():BoardStyle=>{try{return localStorage.getItem(BOARD_KEY)==='road'?'road':'tiles'}catch{return 'tiles'}}
+export const saveBoard=(v:BoardStyle)=>{try{localStorage.setItem(BOARD_KEY,v)}catch{/* this device only */}}
 export const SPEED_KEY='kono-beat-speed'
 export const readSpeed=()=>{try{const v=Number(localStorage.getItem(SPEED_KEY));return v>=1&&v<=10?v:5}catch{return 5}}
 export const saveSpeed=(v:number)=>{try{localStorage.setItem(SPEED_KEY,String(v))}catch{/* this device only */}}

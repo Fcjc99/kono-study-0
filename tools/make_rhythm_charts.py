@@ -400,6 +400,36 @@ def sung_lyric_lines(file, path, onsets):
     return kept
 
 
+def piano_lanes(chart):
+    """Columns the way a piano-tiles game deals them: the next tile (or pair) is never in a column the last one
+    used, so the tiles step across the board instead of stacking in one column, and a column with a long tile
+    still running is left alone until it ends. A tile keeps the column it was given (the tune's shape, lanes_of)
+    where it can; otherwise it takes the nearest free one, on the side the tune is moving (up: right)."""
+    rows = sorted([('t', r[0], r[0], r[1], r[-1], r) for r in chart['tap']] + [('h', r[0], r[2], r[1], r[-1], r) for r in chart['hold']], key=lambda e: e[1])
+    groups, prev_lanes, prev_pitch, holds, out_tap, out_hold = [], set(), None, [], [], []
+    i = 0
+    while i < len(rows):
+        j = i
+        while j < len(rows) and rows[j][1] - rows[i][1] <= 5: j += 1
+        group = rows[i:j]; i = j
+        t = group[0][1]
+        busy = {l for (end, l) in holds if end + 90 > t}
+        used = set()
+        for kind, start, end, lane, pitch, r in group:
+            banned = prev_lanes | busy | used
+            if lane in banned:
+                rise = 0 if pitch in (0, None) or prev_pitch in (0, None) else (1 if pitch > prev_pitch else -1 if pitch < prev_pitch else 0)
+                free = [l for l in range(4) if l not in banned]
+                if not free: continue
+                lane = min(free, key=lambda l: (abs(l - lane), 0 if (l - lane) * rise > 0 else 1))
+            used.add(lane)
+            if kind == 't': out_tap.append([r[0], lane, *r[2:]])
+            else: out_hold.append([r[0], lane, *r[2:]]); holds.append((end, lane))
+            if pitch: prev_pitch = pitch
+        if used: prev_lanes = used
+    return {**chart, 'tap': out_tap, 'hold': out_hold}
+
+
 def main():
     songs = []
     for file, title, near, sung in SONGS:
@@ -462,6 +492,8 @@ def main():
             charts = chart_lead(beats, dur, swing, notes, on_beat)
         first = float(beats[0] % (60 / bpm))
         print(f'{file:7s} {dur:.0f}s bpm {bpm:.2f} swing {swing:.2f} melody notes {len(notes)}', {k: (len(v["tap"]), len(v["hold"])) for k, v in charts.items()})
+        # Every level of every song: tiles step across the columns, never two in a row in one (piano_lanes).
+        charts = {lv: piano_lanes(c) for lv, c in charts.items()}
         songs.append({'id': file, 'title': title, 'bpm': round(float(bpm), 3), 'first': round(first, 3), 'swing': round(swing, 3), 'ms': int(dur * 1000), **({'lyrics': lyrics} if sung and lyrics else {}), 'charts': charts})
     with open('src/game/data/rhythmCharts.json', 'w') as f:
         json.dump({'songs': songs}, f, separators=(',', ':'))
