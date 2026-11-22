@@ -55,3 +55,11 @@
 .premium-tile strong{font-size:.95rem}
 .premium-tile small{font-size:.76rem;color:var(--wb-muted)}
 .workbench .premium-themes .premium-tile[aria-pressed=true]:not(#x):not(#y):not(#z){outline:2px solid var(--wb-accent);outline-offset:2px;background:var(--wb-surface)!important;color:var(--wb-ink)!important}
+
+/* Add a chore / a family to-do: one tidy row of normal-sized fields (the what first, then when, then Add). */
+.workbench .star-chart .star-chore-add:not(#x):not(#y),.workbench .family-todo-add:not(#x):not(#y){display:flex!important;flex-wrap:wrap;gap:8px!important;align-items:center}
+.workbench .star-chart .star-chore-add:not(#x):not(#y)>input,.workbench .family-todo-add:not(#x):not(#y)>input{flex:1 1 240px!important;grid-column:auto!important}
+.workbench .star-chart .star-chore-add:not(#x):not(#y)>select,.workbench .family-todo-add:not(#x):not(#y)>select{flex:0 1 auto!important;width:auto!important;min-width:0!important}
+.workbench :is(.star-chore-add,.family-todo-add):not(#x):not(#y)>:is(input,select,button){height:42px!important;min-height:42px!important;font-size:.95rem!important;padding-block:0!important;border-radius:12px!important}
+.workbench :is(.star-chore-add,.family-todo-add):not(#x):not(#y)>button{padding-inline:18px!important;flex:none}
+@media(max-width:560px){.workbench :is(.star-chore-add,.family-todo-add):not(#x):not(#y)>input{flex:1 1 100%!important}.workbench :is(.star-chore-add,.family-todo-add):not(#x):not(#y)>select{flex:1 1 0!important}}

@@ -70,3 +70,9 @@ button.kquiz-material-row:hover{border-color:var(--wb-accent)}
 .workbench .kquiz-make .kquiz-entry:not(#x){display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
 .workbench .kquiz-make .kquiz-entry button:not(#x){width:auto!important;min-height:84px!important}
 .workbench .kquiz-head>button:not(#x){width:auto!important;min-height:40px!important;padding:0 16px!important;border-radius:99px!important}
+
+/* Round 5: the set folders as small pills; Close is a quiet button, not the page's main action. */
+.workbench .kquiz-folders:not(#x){display:flex;flex-wrap:wrap;gap:6px!important}
+.workbench .kquiz-folders>button:not(#x):not(#y){min-height:34px!important;height:34px;padding:0 14px!important;border-radius:99px!important;font-size:.88rem!important;font-weight:700}
+.workbench .kquiz-folders>button:is([aria-pressed=true],[aria-selected=true]):not(#x):not(#y){background:var(--wb-accent)!important;color:var(--wb-accent-ink,#fff)!important;border-color:transparent!important}
+.workbench .kquiz-head>button.primary:not(#x):not(#y){background:var(--wb-surface)!important;color:var(--wb-ink)!important;border:1px solid var(--wb-line)!important;box-shadow:none!important;min-height:36px!important;font-size:.9rem!important}
