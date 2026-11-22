@@ -67,6 +67,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
  const [song,setSong]=useState(()=>last&&SONGS.some(s=>s.id===last.song)?last.song:SONGS[0].id),[level,setLevel]=useState<Level>(()=>last?.level??'easy'),[playing,setPlaying]=useState(false)
  const [offset,setOffsetState]=useState(readOffset),[speed,setSpeedState]=useState(readSpeed),[ticks,setTicks]=useState(readTicks),[reset]=useState(timingWasReset)
  const [hits,setHitsState]=useState<HitSound>(readHits),[classic,setClassic]=useState(readClassic)
+ const [armed,setArmed]=useState(false),pending=useRef<{ctx:AudioContext;src:AudioBufferSourceNode}|null>(null),startBtn=useRef<HTMLButtonElement>(null),beginRef=useRef<()=>void>(()=>undefined)
  const [haptics,setHapticsState]=useState(readHaptics),[boardStyle,setBoardState]=useState<BoardStyle>(readBoard),liveFlat=useRef(boardStyle==='tiles')
  // Overlays: the settings sheet (song select), the timing check (asked for, or a device's first song first),
  // and the pause sheet with its count back in.
@@ -93,7 +94,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
  // Where the song is (ms): what's reaching the speakers right now (game/audioClock), so a note reaches the
  // line as you hear its hit; the device's own extra delay is the Timing (set by the timing check).
  const songMs=()=>{const a=audio.current;if(!a)return 0;return (heardNow(a.ctx)-a.t0)*1000}
- const stopSong=()=>{const a=audio.current;audio.current=null;if(!a)return;try{a.src.onended=null;a.src.stop()}catch{/* not started */}void a.ctx.close().catch(()=>undefined)}
+ const stopSong=()=>{const p=pending.current;if(p){pending.current=null;setArmed(false);void p.ctx.close().catch(()=>undefined)}const a=audio.current;audio.current=null;if(!a)return;try{a.src.onended=null;a.src.stop()}catch{/* not started */}void a.ctx.close().catch(()=>undefined)}
  const judged=()=>play.current.notes.filter(n=>n.hit).length+nextTick.current
  const finish=()=>{
   if(done.current)return;done.current=true
@@ -161,6 +162,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
  useEffect(()=>{
   if(!playing)return
   const down=(e:KeyboardEvent)=>{const k=e.key.toLowerCase(),lane=KEYS[k]
+   if(pending.current&&(lane!==undefined||k===' '||k==='enter')){e.preventDefault();beginRef.current();return}
    if(lane!==undefined&&!livePaused.current){e.preventDefault();if(!e.repeat){lanesHeld.current[lane]++;pressRef.current.press(lane,inputLag(e))}}}
   const up=(e:KeyboardEvent)=>{const k=e.key.toLowerCase(),lane=KEYS[k];if(lane!==undefined)lanesHeld.current[lane]=Math.max(0,lanesHeld.current[lane]-1)}
   window.addEventListener('keydown',down);window.addEventListener('keyup',up)
@@ -187,12 +189,21 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
    lanesHeld.current=[0,0,0,0];missAt.current=[0,0,0,0];pointers.current.clear();stoppedAt.current=0;liveOffset.current=offset;liveSpeed.current=speed;liveHits.current=hits
    const src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination)
    await ctx.resume().catch(()=>undefined)
+   startedAt.current=performance.now();spokenAt.current={combo:0,misses:0}
+   // Tiles board: the board waits with its first tiles in view and a START tile on the line; tapping it (or a
+   // key) starts the music (begin). The 3D road starts by itself, as before.
+   if(liveFlat.current){pending.current={ctx,src};setArmed(true);setSpoken(info.title+': tap Start (or press Space) to begin. Then tap D, F, J or K as each tile reaches the line.');setPlaying(true);return}
    const t0=ctx.currentTime+0.8;src.start(t0);src.onended=()=>finishRef.current()
-   audio.current={ctx,src,t0};startedAt.current=performance.now();spokenAt.current={combo:0,misses:0};setSpoken(info.title+' started. Tap D, F, J or K as each tile reaches the line. Escape pauses.')
+   audio.current={ctx,src,t0};setSpoken(info.title+' started. Tap D, F, J or K as each tile reaches the line. Escape pauses.')
    setPlaying(true)
   }catch{void ctx.close().catch(()=>undefined)}
   finally{setLoading(false)}
  }
+ // The START tile: the music starts a beat's breath after the tap, so the first tiles come down to meet it.
+ const begin=()=>{const p=pending.current;if(!p)return;pending.current=null;setArmed(false)
+  void p.ctx.resume().catch(()=>undefined);const t0=p.ctx.currentTime+0.25;p.src.start(t0);p.src.onended=()=>finishRef.current()
+  audio.current={ctx:p.ctx,src:p.src,t0};startedAt.current=performance.now();haptic('perfect');setSpoken(info.title+' started.')}
+ useEffect(()=>{beginRef.current=begin})
  // ▶ Play: a device's very first song starts with the timing check (or Skip), then plays.
  const go=(warmup=false)=>{if(!readSynced()){setSyncing('first');pendingWarm.current=warmup;return}void start(warmup)}
  const pendingWarm=useRef(false)
@@ -214,6 +225,8 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
    ctx.setTransform(dpr,0,0,dpr,0,0)
    const flat=liveFlat.current,b=boardOf(W,H,lyr.length>0,flat),offset=liveOffset.current,now=songMs()-offset,pl=play.current,t=performance.now(),ap=approachFor(liveSpeed.current)
    cv.dataset.ms=String(Math.round(now)) // where the song is (the tests follow it)
+   {const sb=startBtn.current;if(sb){const r=cv.getBoundingClientRect(),host=sb.offsetParent?.getBoundingClientRect(),th=Math.min(220,(b.hitY-b.top)*0.3)
+    if(host)for(const [k,v] of [['left',r.left-host.left+b.x0+b.colW+3],['top',r.top-host.top+b.hitY-th],['width',b.colW-6],['height',th]] as const)sb.style.setProperty(k,v+'px','important')}}
    const frozen=livePaused.current
    // Guide clicks: a soft click on every note, a little ahead, on the song's own clock (so they sound exactly
    // with the music, whatever the device's delay).
@@ -228,6 +241,8 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
      const k=pl.ticks[nextTick.current++]
      const ok=k.kind==='hold'&&lanesHeld.current[pl.notes[k.of].lane]>0&&pl.notes[k.of].hit!=='miss'
      tally.current=count(tally.current,ok?'perfect':'miss',level,pl.total,{tick:true});if(!ok)word.current={j:'miss',t}
+     // A long tile held down: a light pulse with each of its beats, so you feel it the whole way.
+     else haptic('hold')
     }
     if(warm.current&&tally.current.failed)tally.current={...tally.current,failed:false,gauge:Math.max(tally.current.gauge,1)}
     if(warm.current&&now>WARMUP_MS){finishRef.current();return}
@@ -541,6 +556,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
  return <div className="beat-ui beat-stage"><p className="beat-sr" aria-live="polite">{spoken}</p>
   <canvas ref={canvas} className="beat-canvas" role="img" aria-label={'KONO Beat: '+info.title} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}/>
   <button ref={pauseBtn} type="button" className="beat-pause" aria-label="Pause" onClick={()=>pause()}><span aria-hidden="true">❚❚</span></button>
+  {armed&&<button ref={startBtn} type="button" className="beat-start-tile" aria-label="Tap to start" onPointerDown={e=>{e.preventDefault();begin()}} onClick={begin}><i aria-hidden="true">▶</i><b>START</b><small>tap to begin</small></button>}
   {paused&&<div className="beat-overlay is-dim">{countIn>0?<p className="beat-countin" role="status" aria-live="assertive">{countIn}</p>:<section className="beat-sheet" role="dialog" aria-label="Paused">
    <div className="beat-sheet-head"><h3>Paused</h3><small>{info.title} · {LEVELS.find(l=>l.id===level)!.name}{pausedAt.warm?' warm-up':''} · {clock(pausedAt.ms)} of {clock(info.ms)}</small></div>
    <button type="button" className="beat-play" onClick={resume} autoFocus>▶ Resume</button>
