@@ -59,6 +59,14 @@ test('a sung song\'s tiles follow its words: while a line is sung, Easy and Medi
   }
  }
 })
+test('every song, every level: the tiles step across the columns, never two in a row (or a pair after a pair) in one column, and never a tile in a column whose long tile is still running',()=>{
+ for(const s of charts)for(const [lv,c] of Object.entries(s.charts)){
+  const rows=[...c.tap.map(r=>[r[0],r[1],r[0]]),...c.hold.map(r=>[r[0],r[1],r[2]])].sort((a,b)=>a[0]-b[0]),groups=[]
+  for(const r of rows){const g=groups[groups.length-1];if(g&&r[0]-g.t<=5)g.lanes.push(r[1]);else groups.push({t:r[0],lanes:[r[1]]})}
+  for(let i=1;i<groups.length;i++)assert.ok(!groups[i].lanes.some(l=>groups[i-1].lanes.includes(l)),s.id+' '+lv+': column repeated at '+groups[i].t+' ms')
+  for(const h of c.hold)assert.ok(!rows.some(r=>r[1]===h[1]&&r[0]>h[0]&&r[0]<h[2]+90),s.id+' '+lv+': a tile inside the long tile at '+h[0]+' ms')
+ }
+})
 test('a long tile keeps its pitch and end',()=>{
  const p=R.playOf({tap:[[1000,0,60]],hold:[[2000,2,3000,67]],sky:[],ribbon:[]},120)
  assert.deepEqual(JSON.parse(JSON.stringify(p.notes.map(n=>[n.kind,n.midi,n.end??null]))),[['tap',60,null],['hold',67,3000]])
