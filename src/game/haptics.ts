@@ -5,10 +5,11 @@
  *   (iOS 17.4 and later): a hidden one is flipped for a short tick. That only works inside a tap (a touch or
  *   click handler), which is where most of these come from; elsewhere it quietly does nothing.
  * Kept on this device (localStorage), on by default. */
-export type Haptic='select'|'tap'|'perfect'|'great'|'good'|'miss'|'success'|'warn'|'heavy'
+export type Haptic='select'|'tap'|'perfect'|'great'|'good'|'miss'|'success'|'warn'|'heavy'|'hold'
 
 const PATTERNS:Record<Haptic,number|number[]>={
- select:5,tap:8,good:6,great:9,perfect:14,miss:[28,40,28],warn:40,heavy:22,success:[14,60,24],
+ // (Under about 15 ms many phones' motors don't spin up enough to feel: every hit is at least that.)
+ select:10,tap:14,good:16,great:20,perfect:26,hold:12,miss:[30,40,30],warn:40,heavy:45,success:[20,60,30],
 }
 export const HAPTICS_KEY='kono-haptics'
 export const readHaptics=()=>{try{return localStorage.getItem(HAPTICS_KEY)!=='0'}catch{return true}}

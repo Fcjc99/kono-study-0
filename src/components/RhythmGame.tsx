@@ -241,6 +241,8 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
      const k=pl.ticks[nextTick.current++]
      const ok=k.kind==='hold'&&lanesHeld.current[pl.notes[k.of].lane]>0&&pl.notes[k.of].hit!=='miss'
      tally.current=count(tally.current,ok?'perfect':'miss',level,pl.total,{tick:true});if(!ok)word.current={j:'miss',t}
+     // A long tile held down: a light pulse with each of its beats, so you feel it the whole way.
+     else haptic('hold')
     }
     if(warm.current&&tally.current.failed)tally.current={...tally.current,failed:false,gauge:Math.max(tally.current.gauge,1)}
     if(warm.current&&now>WARMUP_MS){finishRef.current();return}
