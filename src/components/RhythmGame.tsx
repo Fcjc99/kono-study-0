@@ -1,5 +1,5 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {LEVELS,CLEAR_AT,CLEAR_NAME,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,timingDrift,timingWasReset,readBeatBest,readClassic,readBoard,saveBoard,type BoardStyle,readHits,readLast,readOffset,readSpeed,readSynced,readTicks,saveBeatBest,saveClassic,saveHits,saveLast,saveOffset,saveSpeed,saveSynced,saveTicks,wrongColumn,scoreOf,judge,type Chart,type Clear,type HitSound,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
+import {LEVELS,CLEAR_AT,CLEAR_NAME,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,timingDrift,timingWasReset,readBeatBest,readClassic,readBoard,saveBoard,type BoardStyle,readHits,readLast,readOffset,readSpeed,readSynced,readTicks,saveBeatBest,saveClassic,saveHits,saveLast,saveOffset,saveSpeed,saveSynced,saveTicks,wrongColumn,scoreOf,judgeNote,type Chart,type Clear,type HitSound,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
 import {stopMusic} from '../arcadeAudio'
 import {click,heardNow,inputLag,keyNote} from '../game/audioClock'
 import BeatSync from './BeatSync'
@@ -101,7 +101,8 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
   const t=tally.current,total=warm.current?Math.max(1,judged()):play.current.total,score=scoreOf(t,total),clear=clearOf(t,level,judged(),total)
   const newBest=!warm.current&&clear!=='fail'&&saveBeatBest(info.id,level,score,clear)
   const offs=play.current.notes.flatMap(n=>n.hit&&n.hit!=='miss'&&n.off!==undefined?[n.off]:[])
-  onEndRef.current({drift:warm.current?null:timingDrift(offs),offs,song:info.id,title:info.title,level,score,acc:accuracy(t,total),grade:early?grade(score):clear==='fail'&&!warm.current?'F':grade(score),ended:early,best:t.best,tally:t,clear:warm.current&&clear==='fail'?'clear':clear,failed:clear==='fail'&&!warm.current,newBest,classic,warmup:warm.current,tiles:play.current.notes.filter(n=>n.hit&&n.hit!=='miss').length,of:warm.current?play.current.notes.filter(n=>n.hit).length:play.current.notes.length,timeline:play.current.notes.filter(n=>n.kind!=='sky').map(n=>({t:n.t,j:n.hit??null})),ms:info.ms})
+  // Accuracy is of what was played: a song ended early isn't marked down for the tiles that never came.
+  onEndRef.current({drift:warm.current?null:timingDrift(offs),offs,song:info.id,title:info.title,level,score,acc:accuracy(t,early?Math.max(1,judged()):total),grade:early?grade(score):clear==='fail'&&!warm.current?'F':grade(score),ended:early,best:t.best,tally:t,clear:warm.current&&clear==='fail'?'clear':clear,failed:clear==='fail'&&!warm.current,newBest,classic,warmup:warm.current,tiles:play.current.notes.filter(n=>n.hit&&n.hit!=='miss').length,of:warm.current?play.current.notes.filter(n=>n.hit).length:play.current.notes.length,timeline:play.current.notes.filter(n=>n.kind!=='sky').map(n=>({t:n.t,j:n.hit??null})),ms:info.ms})
  }
  const finishRef=useRef(finish);useEffect(()=>{finishRef.current=finish})
  // Pause: the song's clock stops with the sound (the AudioContext is suspended), so the tiles hold still too.
@@ -126,7 +127,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
  const pauseRef=useRef(pause);useEffect(()=>{pauseRef.current=pause})
  useImperativeHandle(ref,()=>({end:()=>finishRef.current(),pause:()=>pauseRef.current()}),[])
  const mark=(i:number,ms:number)=>{
-  const n=play.current.notes[i],off=ms-n.t,j=judge(off,level);n.hit=j;n.off=off
+  const n=play.current.notes[i],off=ms-n.t,j=judgeNote(n,off,level);n.hit=j;n.off=off
   tally.current=count(tally.current,j,level,play.current.total,{off});fx.current.push({lane:n.lane,t:performance.now(),j});word.current={j,t:performance.now(),off}
   if(j==='perfect')navigator.vibrate?.(6)
   // What a hit plays: the tile's own note (so tapping along plays the tune, or the sung note), a soft tick
@@ -180,7 +181,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
   try{
    let buf=decoded.get(info.id)
    if(!buf){const data=await (await fetch('/audio/games/'+info.id+'.mp3')).arrayBuffer();buf=await ctx.decodeAudioData(data);decoded.clear();decoded.set(info.id,buf)}
-   play.current=playOf(info.charts[level],info.bpm);tally.current=freshTally(level);done.current=false;fx.current=[];word.current=null;nextTick.current=0;tickedTo.current=0;doneAt.current=new Map()
+   play.current=playOf(info.charts[level],info.bpm,{tiles:liveFlat.current});tally.current=freshTally(level);done.current=false;fx.current=[];word.current=null;nextTick.current=0;tickedTo.current=0;doneAt.current=new Map()
    lanesHeld.current=[0,0,0,0];missAt.current=[0,0,0,0];pointers.current.clear();stoppedAt.current=0;liveOffset.current=offset;liveSpeed.current=speed;liveHits.current=hits
    const src=ctx.createBufferSource();src.buffer=buf;src.connect(ctx.destination)
    await ctx.resume().catch(()=>undefined)
@@ -289,8 +290,8 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
     let h=slotMs;for(let k=i+1;k<pl.notes.length;k++){const m=pl.notes[k];if(m.t-n.t>ap)break;if(m.lane===n.lane&&m.kind!=='sky'){h=Math.min(h,(m.t-n.t)-ap*0.012);break}}
     // Tiles (flat): stacked like a piano roll, each as tall as the time to the next row of tiles (in any column),
     // within a short and a tall key.
-    if(flat){let gap=ap;for(let k=i+1;k<pl.notes.length;k++){const m=pl.notes[k];if(m.kind==='sky')continue;if(m.t-n.t>5){gap=m.t-n.t;break}}
-     h=Math.max(36/px,Math.min(gap-6/px,(b.hitY*0.3)/px))}
+    // (n.len, from playOf: the tile is exactly as long as the time it can be hit after its moment.)
+    if(flat)h=Math.max(36/px,n.len??slotMs)
     h=Math.max(14/px,h)
     const end=n.kind==='hold'&&n.end?n.end:n.t+h,tB=Math.min(end,far)
     if(n.hit&&!doneAt.current.has(i))doneAt.current.set(i,t)

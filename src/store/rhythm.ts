@@ -16,9 +16,14 @@ export const LEVELS:{id:Level;name:string;blurb:string}[]=[
 export type Judge='perfect'|'great'|'good'|'miss'
 /** How far off (ms) still counts, by level: Perfect, Great, Good. Half the Perfect window is dead on. */
 export const WINDOWS:Record<Level,[number,number,number]>={easy:[60,110,160],medium:[45,90,135],jeff:[35,70,110]}
-const WEIGHT:Record<Judge,number>={perfect:1,great:0.7,good:0.4,miss:0}
+const WEIGHT:Record<Judge,number>={perfect:1,great:0.75,good:0.5,miss:0}
 export const MAX_SCORE=1_000_000
 export const judge=(offMs:number,level:Level):Judge=>{const a=Math.abs(offMs),[p,g,o]=WINDOWS[level];return a<=p?'perfect':a<=g?'great':a<=o?'good':'miss'}
+/** How late a note can still be hit: the Good window, or (Tiles board) as long as the tile is on the line. */
+export const lateOf=(n:Pick<Note,'len'>,level:Level)=>Math.max(WINDOWS[level][2],n.len??0)
+/** A hit on a note: Perfect and Great by how close it is, and on the Tiles board anything else while the tile is
+ * still on the line is Good (it was pressed within the tile: it counts, for fewer points). */
+export const judgeNote=(n:Pick<Note,'len'>,offMs:number,level:Level):Judge=>{const j=judge(offMs,level);return j==='miss'&&offMs>0&&offMs<=lateOf(n,level)?'good':j}
 
 /** Note speed (1-10, kept on this device): how long a note takes to come down the track. */
 export const approachFor=(speed:number)=>Math.round(9000/(speed+1))
@@ -29,7 +34,9 @@ export const approachFor=(speed:number)=>Math.round(9000/(speed+1))
 export type Chart={tap:number[][];hold:number[][];sky:number[][];ribbon:number[][]}
 /** A note to hit: floor (lane 0-3, `end` for a hold) or sky (x across the track, 0-1); `midi` is the melody's
  * pitch there (the note a tap plays). */
-export type Note={kind:'tap'|'hold'|'sky';t:number;lane:number;x:number;end?:number;midi?:number;hit?:Judge;off?:number}
+export type Note={kind:'tap'|'hold'|'sky';t:number;lane:number;x:number;end?:number;midi?:number;hit?:Judge;off?:number
+ /** Tiles board: how long (ms) the tile sits on the line, so a tap that late still hits it. */
+ len?:number}
 /** One piece of a ribbon: it runs from x0 to x1 between t0 and t1, for one hand (0 left, 1 right). */
 export type Ribbon={t0:number;t1:number;x0:number;x1:number;hand:0|1}
 /** A moment of a hold or ribbon that has to be kept: `of` is the hold's note or the ribbon piece. */
@@ -38,8 +45,12 @@ export type Play={notes:Note[];ribbons:Ribbon[];ticks:Tick[];total:number}
 export const laneX=(lane:number)=>0.125+lane*0.25
 /** Turns a stored chart into a play: notes in time order, ribbon pieces, and the ticks of holds and ribbons
  * (about every 8th note, so a long one is worth more than a tap). */
-export function playOf(c:Chart,bpm:number):Play{
+export function playOf(c:Chart,bpm:number,{tiles=false}:{tiles?:boolean}={}):Play{
  const notes:Note[]=[...c.tap.map(([t,lane,midi])=>({kind:'tap' as const,t,lane,x:laneX(lane),midi})),...c.hold.map(([t,lane,end,midi])=>({kind:'hold' as const,t,lane,x:laneX(lane),end,midi})),...c.sky.map(([t,x])=>({kind:'sky' as const,t,lane:-1,x:x/100}))].sort((a,b)=>a.t-b.t||a.x-b.x)
+ // Tiles board: each tile is as tall as the time to the next row of tiles (any column), up to 0.7 s, and it can
+ // be hit for as long as it's on the line. A long tile is started within its first quarter (up to 0.4 s).
+ if(tiles)notes.forEach((n,i)=>{if(n.kind==='sky')return;let gap=1000;for(let k=i+1;k<notes.length;k++){const d=notes[k].t-n.t;if(d>5&&notes[k].kind!=='sky'){gap=d;break}}
+  n.len=n.kind==='hold'&&n.end?Math.min(400,(n.end-n.t)/4,gap-40):Math.max(0,Math.min(700,gap-40))})
  const ribbons:Ribbon[]=c.ribbon.map(([t0,t1,x0,x1,hand])=>({t0,t1,x0:x0/100,x1:x1/100,hand:hand?1:0}))
  const step=Math.max(110,60000/bpm/2),ticks:Tick[]=[]
  notes.forEach((n,i)=>{if(n.end)for(let t=n.t+step;t<=n.end;t+=step)ticks.push({t,kind:'hold',of:i})})
@@ -78,17 +89,18 @@ export function clearOf(t:Tally,level:Level,played:number,total:number):Clear{
 }
 export const CLEAR_NAME:Record<Clear,string>={fail:'Song failed',clear:'Song clear!',full:'Full combo!',all:'All perfect!'}
 
-/** A tap in a floor lane at `ms`: the earliest tap or hold there still waiting and close enough. A tap with
+/** A tap in a floor lane at `ms`: the earliest tap or hold there still waiting and close enough (from the Good
+ * window before it until lateOf after it: on the Tiles board, while the tile is on the line). A tap with
  * nothing near is ignored (no penalty for tapping along). */
 export function hitIn(notes:Note[],lane:number,ms:number,level:Level):number{
  const far=WINDOWS[level][2]
- for(let i=0;i<notes.length;i++){const n=notes[i];if(n.t-ms>far)return -1;if(n.hit||n.kind==='sky'||n.lane!==lane)continue;if(Math.abs(n.t-ms)<=far)return i}
+ for(let i=0;i<notes.length;i++){const n=notes[i];if(n.t-ms>far)return -1;if(n.hit||n.kind==='sky'||n.lane!==lane)continue;if(n.t-ms<=far&&ms-n.t<=lateOf(n,level))return i}
  return -1
 }
 /** Classic: a tap in a column with no tile near it while another column has one (the wrong tile). */
 export function wrongColumn(notes:Note[],lane:number,ms:number,level:Level):boolean{
  const far=WINDOWS[level][2];let other=false
- for(const n of notes){if(n.t-ms>far)break;if(n.hit||n.kind==='sky'||Math.abs(n.t-ms)>far)continue;if(n.lane===lane)return false;other=true}
+ for(const n of notes){if(n.t-ms>far)break;if(n.hit||n.kind==='sky'||n.t-ms>far||ms-n.t>lateOf(n,level))continue;if(n.lane===lane)return false;other=true}
  return other
 }
 /** A tap up in the sky at `x` (0-1; null from the keyboard, which takes the next one anywhere). */
@@ -100,7 +112,7 @@ export function skyHit(notes:Note[],x:number|null,ms:number,level:Level):number{
 /** Notes that went by the line unhit (past the Good window) by `ms`. */
 export function missedBy(notes:Note[],ms:number,level:Level):number[]{
  const far=WINDOWS[level][2],out:number[]=[]
- for(let i=0;i<notes.length;i++){const n=notes[i];if(n.t>ms)break;if(!n.hit&&ms-n.t>far)out.push(i)}
+ for(let i=0;i<notes.length;i++){const n=notes[i];if(n.t>ms)break;if(!n.hit&&ms-n.t>Math.max(far,n.len??0))out.push(i)}
  return out
 }
 

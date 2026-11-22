@@ -67,6 +67,26 @@ test('every song, every level: the tiles step across the columns, never two in a
   for(const h of c.hold)assert.ok(!rows.some(r=>r[1]===h[1]&&r[0]>h[0]&&r[0]<h[2]+90),s.id+' '+lv+': a tile inside the long tile at '+h[0]+' ms')
  }
 })
+test('Tiles board: a tap counts while the tile is on the line (late in it is a Good), and the closer to dead on, the more it scores; the 3D road keeps its tight windows',()=>{
+ const chart={tap:[[1000,0,60],[1500,1,62],[2000,2,64]],hold:[],sky:[],ribbon:[]}
+ const tiles=R.playOf(chart,120,{tiles:true}).notes,road=R.playOf(chart,120).notes
+ assert.equal(tiles[0].len,460,'a tile is on the line until the next row comes (less a hair)')
+ assert.equal(road[0].len,undefined)
+ // 300 ms late: off the road's Good window, but still inside the tile.
+ assert.equal(R.hitIn(road,0,1300,'medium'),-1)
+ assert.equal(R.hitIn(tiles,0,1300,'medium'),0)
+ assert.equal(R.judgeNote(tiles[0],300,'medium'),'good')
+ assert.equal(R.judgeNote(tiles[0],20,'medium'),'perfect')
+ assert.equal(R.judgeNote(tiles[0],-60,'medium'),'great')
+ assert.equal(R.judgeNote(tiles[0],-200,'medium'),'miss','too early: the tile isn\u2019t at the line yet')
+ // Past the tile it's gone: missed, and a tap no longer finds it.
+ assert.equal(JSON.stringify(R.missedBy(tiles,1400,'medium')),'[]')
+ assert.equal(JSON.stringify(R.missedBy(tiles,1500,'medium')),'[0]')
+ assert.equal(R.hitIn(tiles,0,1480,'medium'),-1)
+ // Points: Perfect > Great > Good > a miss, for the same song.
+ const score=j=>R.scoreOf(R.count(R.freshTally('medium'),j,'medium',10,{off:j==='perfect'?30:j==='great'?60:200}),10)
+ assert.ok(score('perfect')>score('great')&&score('great')>score('good')&&score('good')>score('miss'),[score('perfect'),score('great'),score('good'),score('miss')].join(' > '))
+})
 test('a long tile keeps its pitch and end',()=>{
  const p=R.playOf({tap:[[1000,0,60]],hold:[[2000,2,3000,67]],sky:[],ribbon:[]},120)
  assert.deepEqual(JSON.parse(JSON.stringify(p.notes.map(n=>[n.kind,n.midi,n.end??null]))),[['tap',60,null],['hold',67,3000]])
