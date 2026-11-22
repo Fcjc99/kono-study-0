@@ -1,14 +1,13 @@
-# Casa Fantasma: the song's lyrics (from the original file's tags, in their order; "×N" written out).
+# Casa Fantasma: the song's lyrics (from the original file's tags, in their order; "×N" written out), less what
+# isn't sung: the intro's six DALEs are a shout ("woo-haaa") and the tags' copy of the final drop at the top isn't
+# sung there (with them in, the fit crammed 20 DALEs into 4 s and put "Argentinian" 3 s late); and the second
+# drop is sung just like the first (92.87 s later, line for line), without the tags' extra "CASA! CASA! / Whole
+# block seeing red." (with it in, four lines were crammed into the 2 s DALE chant).
 [Intro]
 Yeah—
 Buenos Aires after dark.
 White tee, gold chain, heat in the blood.
-DALE. DALE. DALE. DALE. DALE. DALE.
 Argentinian male god energy.
-DALE DALE DALE DALE!
-DALE DALE DALE DALE!
-[Final Drop]
-DALE! DALE! DALE! DALE!
 DALE DALE DALE DALE!
 DALE DALE DALE DALE!
 [Build]
@@ -99,8 +98,6 @@ DALE! DALE! DALE! DALE!
 CASA! CASA!
 I'm inside your head.
 DALE! DALE!
-CASA! CASA!
-Whole block seeing red.
 CASA! CASA!
 Whole block seeing red.
 Don't need a key,

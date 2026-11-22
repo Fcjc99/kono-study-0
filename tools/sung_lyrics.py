@@ -18,6 +18,9 @@ it merely placed somewhere scores near 0), and only if its words sit on onsets w
 Needs torch + torchaudio (the model, ~1.2 GB, downloads once to the torch cache)."""
 import re, subprocess, unicodedata, numpy as np
 
+# How far a word start moves onto the sung syllable it falls on (the syllable is where it lands, as heard).
+SNAP = 0.12
+
 
 def read(path):
     """The lyric lines of a song's file: [(section, text)]."""
@@ -95,6 +98,25 @@ def force_align(path, lines):
     return out
 
 
+def unstrand(starts, ends, gap=2.0):
+    """A line is sung in one go, so a gap of over `gap` s between two of its words means the fit stranded some of
+    them on another part of the song (Casa Fantasma's "Mate in the" in the DALE chant 8 s before "cup, fire in my
+    chest"). The smaller side is packed back against the larger at the line's own pace (its median word step, kept
+    to 0.15-0.4 s); a tie keeps the later side, as a line's end is what the fit finds last."""
+    if len(starts) < 2: return starts, ends
+    d = [b - a for a, b in zip(starts, starts[1:])]
+    k = int(np.argmax(d))
+    if d[k] <= gap: return starts, ends
+    rest = [x for i, x in enumerate(d) if i != k]
+    step = float(np.clip(np.median(rest) if rest else 0.25, 0.15, 0.4))
+    s, e = list(starts), list(ends)
+    if k + 1 <= len(s) - (k + 1):  # the words before the gap are the fewer: they move up to just before the rest
+        for i in range(k, -1, -1): s[i] = s[i + 1] - step; e[i] = s[i] + step
+    else:  # the words after it are fewer: they follow on from the rest
+        for i in range(k + 1, len(s)): s[i] = s[i - 1] + step; e[i] = s[i] + step
+    return s, e
+
+
 def timed(lines, words, onsets):
     """The lines as the game shows them: [[start ms, end ms, text, [each word's start ms]]]. A word with no
     letters (a dash) starts with the one before it; each start moves onto a sung onset within 80 ms."""
@@ -106,10 +128,14 @@ def timed(lines, words, onsets):
             if t is None: continue
             if len(onsets):
                 k = int(np.argmin(abs(onsets - t)))
-                if abs(onsets[k] - t) <= 0.08: t = float(onsets[k])
+                # (not onto one the word before already took, or the two would light up as one)
+                if abs(onsets[k] - t) <= SNAP and (last is None or onsets[k] > last + 0.03): t = float(onsets[k])
+            if last is not None: t = max(t, last)
             starts.append(t); last = t
         if len(starts) != len(ws): continue
-        end = max(words[(li, wi)][1] for wi in range(len(ws)) if (li, wi) in words)
+        ends = [words[(li, wi)][1] if (li, wi) in words else starts[wi] + 0.2 for wi in range(len(ws))]
+        starts, ends = unstrand(starts, ends)
+        end = max(ends)
         score = float(np.mean([words[(li, wi)][2] for wi in range(len(ws)) if (li, wi) in words]))
         # The fifth item, how sure the fit is of the line, is for keep() and is dropped before the game sees it.
         out.append([int(round(starts[0] * 1000)), int(round(max(end, starts[-1] + 0.2) * 1000)), text, [int(round(t * 1000)) for t in starts], score])
@@ -143,8 +169,14 @@ def keep(lyr, chk, sure=0.1):
     """The lines to show, as the game takes them (start, end, text, word starts). All of them when repeated lines are
     found the same distance apart (two or more) and the words sit on onsets well above chance. Else (nothing to
     check by) only the lines the fit is sure of (a line it only placed somewhere scores near 0: "Uh-oh" stretched
-    over 3.6 s scored 0.01, a line really sung 0.15-0.5), if the words sit on onsets well above chance; else none."""
+    over 3.6 s scored 0.01, a line really sung 0.15-0.5), plus an unsure line squeezed between two sure ones, if the
+    words sit on onsets well above chance; else none."""
     plain = lambda ls: [l[:4] for l in ls]
     if chk['on_onset'] < chk['random_on_onset'] + 0.1: return []
     if chk['repeat_lines'] >= 2: return plain(lyr)
-    return plain([l for l in lyr if len(l) < 5 or l[4] >= sure])
+    ok = [len(l) < 5 or l[4] >= sure for l in lyr]
+    # A line the fit is unsure of still shows when the lines either side of it are sure and leave it no more than
+    # 2.5 s: it can only be sung there ("Da truth don't hide," between two sure lines 2.1 s apart). One that could
+    # be anywhere in a long gap (an intro line in 13 s of mostly music) stays out.
+    pinned = [ok[i] or (0 < i < len(lyr) - 1 and ok[i - 1] and ok[i + 1] and lyr[i + 1][0] - lyr[i - 1][1] <= 2500) for i in range(len(lyr))]
+    return plain([l for l, k in zip(lyr, pinned) if k])
