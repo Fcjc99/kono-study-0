@@ -1,6 +1,7 @@
 import {records,type Collection,type Entry} from './store/workspace'
 import {localDate,type AppData} from './store/model'
 import {teamThemeIds} from './teamThemes'
+import {premiumThemeIds} from './premiumThemes'
 
 /* Shared by the workspace and its settings screens (WorkspaceSettings.tsx, which loads on demand). */
 // Settings tabs, grouped by what a person is trying to do rather than by where each feature was built.
@@ -19,7 +20,7 @@ export const PAGE_LABEL:Partial<Record<Page,string>>={Sanctuary:'KONO',Kids:'Fam
 export const PAGE_TITLE:Partial<Record<Page,string>>={Kids:'Family',Subjects:'Classes',Exams:'Tests',Sanctuary:'KONO'}
 // Team colors are offered in both Cozy and Simplified, under their own heading.
 export const cozyPalettes=['coral','sakura','lavender','mint','honey','zen','floral','ocean']
-export const cozyPalette=(theme:string)=>cozyPalettes.includes(theme)||teamThemeIds.includes(theme)?theme:'coral'
+export const cozyPalette=(theme:string)=>cozyPalettes.includes(theme)||teamThemeIds.includes(theme)||premiumThemeIds.includes(theme)?theme:'coral'
 // Modern and Zen Ink are each one opinionated, fully art-directed look rather than a color you
 // pick — they carry their own fixed palette instead of showing the swatch picker.
 export const fixedPaletteExperiences:string[]=['modern','sumi']

@@ -1,0 +1,57 @@
+/* Round 4: one task row everywhere, headers that line up, calmer Settings and Classes. Loaded last. */
+
+/* A task's note under its title: two quiet lines, the rest in the editor. */
+:root[data-experience] .workbench .cozy-task-row .cozy-task-notes{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin-top:3px;font-size:.82rem;line-height:1.35;color:var(--wb-muted,#7a6670)}
+
+/* Page headers: the actions sit on the title's row, not centered against the title and its summary together. */
+@media (min-width:721px){
+ #workspace-main .wb-header:not(#x):not(#y){align-items:flex-start!important}
+ #workspace-main .wb-header:not(#x):not(#y)>.wb-toolbar{margin-top:0!important;align-self:flex-start}
+}
+
+/* Settings: one centered column (the 220px side menu it was laid out for is gone). */
+@media (min-width:721px){
+ #workspace-main .settings-groups:not(:has(>nav.subject-section-tabs)):not(#x){grid-template-columns:minmax(0,760px)!important;justify-content:center}
+ #workspace-main .settings-groups:not(:has(>nav.subject-section-tabs)):not(#x)>*{grid-column:1!important}
+}
+/* A group of settings is one card of rows split by hairlines, not a box inside a box. */
+#workspace-main .settings-rows:not(#x){padding:4px!important;gap:0!important}
+#workspace-main .settings-rows:not(#x)>button{border:0!important;box-shadow:none!important;background:transparent!important;border-radius:12px!important}
+#workspace-main .settings-rows:not(#x)>button+button{box-shadow:0 -1px 0 color-mix(in srgb,var(--wb-ink,#3a2b33) 8%,transparent)!important;border-top-left-radius:0!important;border-top-right-radius:0!important}
+#workspace-main .settings-rows:not(#x)>button:hover{background:color-mix(in srgb,var(--wb-accent,#c9545f) 6%,transparent)!important}
+
+/* Classes: the chosen card gets one soft ring, and the class's own heading is a heading, not a poster. */
+.workbench .class-cards .class-card.is-loose.active:not(#x):not(#y){outline:2px solid color-mix(in srgb,var(--wb-accent,#c9545f) 45%,transparent)!important;outline-offset:2px!important;border-color:transparent!important}
+.workbench .subject-workspace-title:not(#x){padding-top:6px!important}
+.workbench .subject-workspace-title h2:not(#x){font-size:clamp(1.45rem,2.2vw,1.85rem)!important;letter-spacing:-.02em;margin:4px 0 2px!important}
+:root[data-experience] .workbench .subject-quick-add:not(#x){background:color-mix(in srgb,var(--wb-accent,#c9545f) 5%,var(--wb-surface,#fff))!important;border:1px solid color-mix(in srgb,var(--wb-accent,#c9545f) 14%,transparent)!important;padding:10px 12px!important}
+
+/* The sidebar's music player keeps its distance from the last tab. */
+.workbench .sidebar .kono-radio-mini:not(#x){margin-top:14px!important}
+
+/* Planner › Agenda: each day is one tidy line: the day over its date, what's on as small pills, a round ＋. */
+.workbench .wb-agenda-day>summary:not(#x):not(#y){display:flex!important;align-items:center!important;gap:10px!important}
+.workbench .wb-agenda-day>summary h3:not(#x):not(#y){display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:1px!important;font-size:1.02rem!important;line-height:1.2}
+.workbench .wb-agenda-day .wb-agenda-sep{display:none}
+.workbench .wb-agenda-day>summary .wb-agenda-day-date:not(#x){font-size:.76rem!important;font-weight:650;color:var(--wb-muted,#7a6670)!important;letter-spacing:0}
+.workbench .wb-agenda-day-meta:not(#x){display:flex!important;align-items:center;gap:6px!important;flex:none!important}
+.workbench .wb-agenda-day-meta>small:not(#x){padding:3px 9px;border-radius:99px;font-size:.74rem!important;font-weight:750;white-space:nowrap}
+.workbench .wb-agenda-day-meta>.wb-agenda-count{background:color-mix(in srgb,var(--wb-accent,#c9545f) 11%,transparent);color:color-mix(in srgb,var(--wb-accent,#c9545f) 75%,var(--wb-ink,#3a2b33))!important}
+.workbench .wb-agenda-day-meta>.wb-agenda-important{background:#fdecc8;color:#8a5a00!important}
+.workbench .wb-agenda-day-meta>.wb-agenda-free{color:var(--wb-muted,#7a6670)!important;opacity:.7;font-weight:600}
+.workbench .wb-agenda-day.is-empty>summary h3:not(#x):not(#y){color:var(--wb-muted,#7a6670)!important;font-weight:700!important}
+.workbench .wb-agenda-day-wrap.has-add>.wb-agenda-day>summary:not(#x){padding-right:48px!important}
+.workbench .wb-agenda-day-wrap>.wb-agenda-add:not(#x):not(#y){width:34px!important;min-width:34px!important;height:34px!important;padding:0!important;border-radius:50%!important;display:grid!important;place-items:center;font-size:1rem!important;top:12px!important}
+:root[data-dark] .workbench .wb-agenda-day-meta>.wb-agenda-important{background:#4a3a14;color:#f7d98b!important}
+/* The class's own color: a stripe along the top of its panel and a dot by its name. */
+:root .workbench .restored-subjects .subject-workspace:not(#x):not(#y):not(#z){background-image:linear-gradient(var(--subject,#6e6572),var(--subject,#6e6572))!important;background-size:100% 5px!important;background-repeat:no-repeat!important;background-position:top!important;overflow:hidden}
+.workbench .restored-subjects .subject-workspace-title h2:not(#x)::before{content:"";display:inline-block;width:.5em;height:.5em;margin-right:.35em;border-radius:50%;background:var(--subject,#6e6572);vertical-align:.12em}
+
+/* Settings › Look & feel › Premium: the picker (the looks themselves load with premium.css when one is chosen). */
+.premium-heading small{display:block;font-size:.8rem;font-weight:500;color:var(--wb-muted);margin-top:2px}
+.premium-themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:8px}
+.workbench .premium-themes .premium-tile:not(#x):not(#y){display:grid!important;align-content:start;justify-items:start;gap:2px;padding:8px 8px 10px!important;border-radius:18px!important;text-align:left;background:var(--wb-surface)!important;border:1px solid var(--wb-line)!important;box-shadow:none!important;color:var(--wb-ink)!important;min-height:0}
+.premium-tile-preview{display:block;width:100%;aspect-ratio:16/9;border-radius:12px;margin-bottom:6px;box-shadow:0 0 0 1px rgba(0,0,0,.06) inset}
+.premium-tile strong{font-size:.95rem}
+.premium-tile small{font-size:.76rem;color:var(--wb-muted)}
+.workbench .premium-themes .premium-tile[aria-pressed=true]:not(#x):not(#y):not(#z){outline:2px solid var(--wb-accent);outline-offset:2px;background:var(--wb-surface)!important;color:var(--wb-ink)!important}

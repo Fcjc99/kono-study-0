@@ -1,0 +1,105 @@
+/* Premium themes (premiumThemes.ts). Workspace sets data-premium only while the look applies (a light one steps
+ * aside in dark mode; Obsidian is always dark). Each theme is a set of tokens; the shared rules below paint the
+ * page, cards, sidebar, buttons and headings from them, outranking Fresh's own (fresh.css, elevate.css):
+ *  --pm-page     the page behind everything        --pm-card / --pm-card-line / --pm-shadow / --pm-blur  cards
+ *  --pm-side / --pm-side-ink / --pm-side-muted / --pm-side-raise / --pm-active / --pm-active-ink  the sidebar
+ *  --pm-btn / --pm-btn-ink / --pm-btn-shadow  the main button      --pm-chip  quiet buttons      --pm-bar  phone bars
+ *  --pm-head     heading font                      --pm-head-ink  heading color */
+
+/* ── Tokens ─────────────────────────────────────────────────────────────────────────────────────────────── */
+:root[data-experience][data-premium='obsidian']:not(#a):not(#b){
+ --wb-bg:#0d0c0a;--wb-surface:#171512;--wb-ink:#f3ede2;--wb-muted:#a99d89;--wb-accent:#d4af37;--wb-accent-ink:#17130a;--wb-line:rgba(212,175,55,.16);
+ --wb-nav:#0a0908;--wb-nav-ink:#f3ede2;--dark-raised:#211e19;--dark-sunk:#0f0e0c;--rf-tint:rgba(212,175,55,.12);--rf-line:rgba(212,175,55,.16);
+ --pm-page:radial-gradient(1200px 600px at 85% -10%,rgba(212,175,55,.10),transparent 60%),radial-gradient(900px 500px at -10% 110%,rgba(212,175,55,.06),transparent 60%),#0d0c0a;
+ --pm-card:linear-gradient(180deg,#1b1915,#151310);--pm-card-line:rgba(212,175,55,.18);--pm-shadow:0 1px 0 rgba(255,236,180,.05) inset,0 18px 40px -24px #000;
+ --pm-side:linear-gradient(180deg,#12110e,#0a0908);--pm-side-ink:#efe6d4;--pm-side-muted:#9a8f7c;--pm-side-raise:#1a1814;--pm-active:rgba(212,175,55,.14);--pm-active-ink:#e9c96a;
+ --pm-btn:linear-gradient(180deg,#e8c860,#c29a2c);--pm-btn-ink:#1a1408;--pm-btn-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 8px 20px -10px rgba(212,175,55,.7);
+ --pm-chip:#1d1a16;--pm-bar:rgba(13,12,10,.92);--pm-head:'Didot','Bodoni 72','Bodoni MT','Playfair Display',Georgia,serif;--pm-head-ink:#f6eedd
+}
+:root[data-experience][data-premium='aurora']:not(#a):not(#b){
+ --wb-bg:#f3f1fa;--wb-surface:rgba(255,255,255,.72);--wb-ink:#231d3a;--wb-muted:#625b7c;--wb-accent:#6a46f5;--wb-accent-ink:#fff;--wb-line:rgba(70,50,140,.12);
+ --pm-page:radial-gradient(900px 600px at 8% 0%,#d9ccff 0,transparent 60%),radial-gradient(800px 600px at 100% 10%,#bdeef2 0,transparent 55%),radial-gradient(900px 700px at 60% 110%,#ffd3ea 0,transparent 60%),#f3f1fa;
+ --pm-card:rgba(255,255,255,.62);--pm-card-line:rgba(255,255,255,.85);--pm-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 20px 44px -26px rgba(60,40,130,.45);--pm-blur:blur(18px) saturate(160%);
+ --pm-side:rgba(255,255,255,.55);--pm-side-ink:#231d3a;--pm-side-muted:#6a6385;--pm-side-raise:rgba(255,255,255,.7);--pm-active:linear-gradient(90deg,rgba(106,70,245,.16),rgba(47,181,197,.12));--pm-active-ink:#4b2fd0;
+ --pm-btn:linear-gradient(120deg,#6a46f5,#2fb5c5);--pm-btn-ink:#fff;--pm-btn-shadow:0 10px 24px -12px rgba(106,70,245,.8);
+ --pm-chip:rgba(255,255,255,.7);--pm-bar:rgba(255,255,255,.62);--pm-head:Inter,ui-sans-serif,system-ui,sans-serif;--pm-head-ink:#1d1640
+}
+:root[data-experience][data-premium='champagne']:not(#a):not(#b){
+ --wb-bg:#f7f2ea;--wb-surface:#fffdf9;--wb-ink:#2a2118;--wb-muted:#7a6a57;--wb-accent:#a77b2f;--wb-accent-ink:#fff;--wb-line:rgba(140,100,40,.14);
+ --pm-page:radial-gradient(1000px 520px at 100% -10%,#f1e3c7 0,transparent 60%),#f7f2ea;
+ --pm-card:#fffdf9;--pm-card-line:rgba(167,123,47,.16);--pm-shadow:0 1px 2px rgba(90,60,20,.05),0 14px 34px -22px rgba(90,60,20,.35);
+ --pm-side:#fbf7f0;--pm-side-ink:#2a2118;--pm-side-muted:#8a7a66;--pm-side-raise:#fffdf9;--pm-active:linear-gradient(90deg,rgba(201,164,92,.22),rgba(201,164,92,.08));--pm-active-ink:#7d5a1c;
+ --pm-btn:linear-gradient(180deg,#c9a45c,#a77b2f);--pm-btn-ink:#fff;--pm-btn-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 8px 18px -10px rgba(167,123,47,.8);
+ --pm-chip:#fffdf9;--pm-bar:rgba(251,247,240,.94);--pm-head:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;--pm-head-ink:#2a1d10
+}
+:root[data-experience][data-premium='verdant']:not(#a):not(#b){
+ --wb-bg:#f2f0e8;--wb-surface:#fffffb;--wb-ink:#1b2a23;--wb-muted:#5d6c63;--wb-accent:#1f6b4f;--wb-accent-ink:#fff;--wb-line:rgba(30,70,50,.13);
+ --pm-page:linear-gradient(180deg,#f4f2ea,#eeebe1);
+ --pm-card:#fffffb;--pm-card-line:rgba(31,107,79,.13);--pm-shadow:0 1px 2px rgba(20,50,35,.05),0 14px 32px -22px rgba(20,50,35,.4);
+ --pm-side:linear-gradient(180deg,#154536,#0f3328);--pm-side-ink:#eef3ea;--pm-side-muted:#a6bfb2;--pm-side-raise:rgba(255,255,255,.07);--pm-active:rgba(200,169,106,.2);--pm-active-ink:#f1d9a6;
+ --pm-btn:linear-gradient(180deg,#26805f,#1a5c44);--pm-btn-ink:#fff;--pm-btn-shadow:0 1px 0 rgba(255,255,255,.25) inset,0 8px 18px -10px rgba(26,92,68,.8);
+ --pm-chip:#fffffb;--pm-bar:rgba(255,255,251,.94);--pm-head:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;--pm-head-ink:#123a2c
+}
+
+/* ── The page ───────────────────────────────────────────────────────────────────────────────────────────── */
+:root[data-premium] body:not(#a):not(#b),:root[data-premium] .workbench:not(#a):not(#b){background:var(--pm-page)!important;background-attachment:fixed!important}
+
+/* ── Cards ──────────────────────────────────────────────────────────────────────────────────────────────── */
+:root[data-premium] .workbench :is(.wb-panel,.card,.up-next.is-clear,.today-kono,.class-card.is-loose,.settings-me,.cozy-task-row,.week-grid,.planner-day-board,.save-to-email-banner):not(.wb-board):not(.kquiz-make):not(#a):not(#b):not(#c){background:var(--pm-card)!important;border:1px solid var(--pm-card-line)!important;box-shadow:var(--pm-shadow)!important;-webkit-backdrop-filter:var(--pm-blur,none);backdrop-filter:var(--pm-blur,none)}
+:root[data-premium] dialog.wb-dialog:not(.focus-mode):not(#a):not(#b):not(#c){background:var(--wb-surface)!important;-webkit-backdrop-filter:var(--pm-blur,none);backdrop-filter:var(--pm-blur,none)}
+:root[data-premium='aurora'] dialog.wb-dialog:not(.focus-mode):not(#a):not(#b):not(#c){background:rgba(255,255,255,.86)!important}
+
+/* ── Headings ───────────────────────────────────────────────────────────────────────────────────────────── */
+:root[data-premium] #workspace-main .wb-header h1:not(#a):not(#b):not(#c){font-family:var(--pm-head)!important;color:var(--pm-head-ink)!important;letter-spacing:-.01em!important}
+:root[data-premium]:is([data-premium='champagne'],[data-premium='verdant'],[data-premium='obsidian']) #workspace-main .wb-header h1:not(#a):not(#b):not(#c){font-weight:600!important;font-size:clamp(1.9rem,4.4vw,2.4rem)!important}
+:root[data-premium] #workspace-main :is(.wb-panel,.card)>:is(h2,header h2,.wb-section-head h2):not(#a):not(#b){font-family:var(--pm-head)!important;color:var(--pm-head-ink)!important}
+:root[data-premium='aurora'] #workspace-main .wb-header h1:not(#a):not(#b):not(#c){background:linear-gradient(100deg,#4b2fd0,#1f8fa0);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+
+/* ── The main button and the quiet ones ─────────────────────────────────────────────────────────────────── */
+:root[data-premium] :is(.workbench,.wb-dialog) button.primary:not(:disabled):not(#a):not(#b):not(#c),:root[data-premium] .mobile-nav.is-tabbar .mobile-nav-add>span:not(#a):not(#b):not(#c){background:var(--pm-btn)!important;color:var(--pm-btn-ink)!important;border:0!important;box-shadow:var(--pm-btn-shadow)!important;text-shadow:none!important}
+:root[data-premium] .workbench :is(.wb-panel,.card) :is(button:not([class]),button.secondary):not([aria-pressed=true]):not([role=tab]):not(#a):not(#b),
+:root[data-premium] #workspace-main .wb-header :is(button,summary):not(.primary):not(#a):not(#b){background:var(--pm-chip)!important;border:1px solid var(--pm-card-line)!important;color:var(--wb-ink)!important}
+:root[data-premium] .workbench button[aria-pressed=true]:is(.subject-section-tabs button,.calendar-views button,.dark-mode-choice button,.wb-themes button,.premium-themes button):not(#a):not(#b){background:var(--pm-btn)!important;color:var(--pm-btn-ink)!important;border-color:transparent!important}
+
+/* ── The sidebar ────────────────────────────────────────────────────────────────────────────────────────── */
+:root[data-premium] .cozy-navigation .sidebar:not(#a):not(#b):not(#c):not(#d):not(#e):not(#f){background:var(--pm-side)!important;border-right:1px solid var(--pm-card-line)!important;color:var(--pm-side-ink)!important}
+@media(min-width:721px){:root[data-premium] .cozy-navigation .sidebar:not(#a):not(#b):not(#c):not(#d):not(#e):not(#f){-webkit-backdrop-filter:var(--pm-blur,none);backdrop-filter:var(--pm-blur,none)}}
+:root[data-premium] .cozy-navigation .sidebar .brand :is(h1,p,small,span):not(.brand-mark *):not(.brand-mark):not(#a):not(#b):not(#c):not(#d){color:var(--pm-side-ink)!important;-webkit-text-fill-color:currentColor!important}
+:root[data-premium] .cozy-navigation .sidebar .brand p:not(#a):not(#b):not(#c):not(#d){color:var(--pm-side-muted)!important}
+:root[data-premium] .cozy-navigation .sidebar .nav-button[data-tab]:not(#a):not(#b):not(#c):not(#d):not(#e){color:var(--pm-side-ink)!important;--tab:var(--wb-accent)}
+:root[data-premium] .cozy-navigation .sidebar .nav-button[data-tab]:not(#a):not(#b):not(#c):not(#d):not(#e):hover{background:var(--pm-side-raise)!important}
+:root[data-premium] .cozy-navigation .sidebar .nav-button.active[data-tab]:not(#a):not(#b):not(#c):not(#d):not(#e){background:var(--pm-active)!important;color:var(--pm-active-ink)!important;box-shadow:inset 3px 0 0 var(--wb-accent)!important}
+:root[data-premium] .cozy-navigation .sidebar :is(.sidebar-music-slot>*,.profile-switcher,.sidebar-profile,.profile-dock,.kono-radio-mini):not(#a):not(#b):not(#c){background:var(--pm-side-raise)!important;border-color:var(--pm-card-line)!important;color:var(--pm-side-ink)!important}
+:root[data-premium] .cozy-navigation .sidebar :is(.profile-dock-copy>*,.kono-radio-mini *):not(button):not(#a):not(#b):not(#c){color:var(--pm-side-ink)!important}
+:root[data-premium] .cozy-navigation .sidebar .profile-dock-copy small:not(#a):not(#b):not(#c){color:var(--pm-side-muted)!important}
+
+/* ── Phone bars ─────────────────────────────────────────────────────────────────────────────────────────── */
+@media(max-width:720px){
+ :root[data-premium] .mobile-desk-header:not(#a):not(#b):not(#c){background:var(--pm-bar)!important;border-bottom:1px solid var(--pm-card-line)!important}
+ /* (no blur here: the tab bar sits inside this header, and a filter would pin it to the header instead of the screen) */
+ :root[data-premium] .mobile-desk-header .brand-title-row h1:not(#a):not(#b):not(#c){color:var(--wb-ink)!important;-webkit-text-fill-color:currentColor!important}
+}
+:root[data-premium] .mobile-nav.is-tabbar:not(#a):not(#b){background:var(--pm-bar)!important;border-top:1px solid var(--pm-card-line)!important}
+:root[data-premium] .mobile-nav.is-tabbar button.active:not(#a):not(#b):not(#c){color:var(--wb-accent)!important}
+
+/* ── Details that carry the look ────────────────────────────────────────────────────────────────────────── */
+:root[data-premium] .up-next:not(.is-clear):not(#a):not(#b){background:var(--pm-btn)!important;color:var(--pm-btn-ink)!important;box-shadow:var(--pm-btn-shadow)!important}
+:root[data-premium='obsidian'] .up-next:not(.is-clear):not(#a):not(#b){background:linear-gradient(135deg,#2a2419,#14110c)!important;color:#f6eedd!important;border:1px solid rgba(212,175,55,.35)!important;box-shadow:0 20px 50px -28px rgba(212,175,55,.5)!important}
+:root[data-premium='obsidian'] .up-next:not(.is-clear) .up-next-tag:not(#a){color:#e9c96a!important}
+:root[data-premium] .page-title-icon:not(#a):not(#b){background:color-mix(in srgb,var(--wb-accent) 12%,transparent)!important;color:var(--wb-accent)!important}
+:root[data-premium] ::selection{background:color-mix(in srgb,var(--wb-accent) 30%,transparent)}
+:root[data-premium] :is(input,select,textarea):focus-visible{outline-color:var(--wb-accent)}
+
+:root[data-premium] :is(.sidebar .profile-avatar,.mobile-profile-avatar):not(#a):not(#b):not(#c){background:var(--pm-btn)!important;color:var(--pm-btn-ink)!important}
+:root[data-premium='obsidian'] .workbench .week-grid :is(.week-grid-row,.week-grid-day,.week-grid-allday-cell,.week-grid-body,.week-grid-hours):not(#a):not(#b){background:transparent!important}
+
+/* ── Coral's own marks, recolored: the logo tile, the sidebar's icon tiles, the Planner's date leaf, view switch
+      and today marker. ─────────────────────────────────────────────────────────────────────────────────────── */
+:root[data-premium] .cozy-navigation .sidebar .sidebar-section-label:not(#a):not(#b){display:none!important}
+:root[data-premium] :is(.sidebar,.mobile-desk-header) .brand-mark:not(#a):not(#b){background:var(--pm-btn)!important;border-color:transparent!important;color:var(--pm-btn-ink)!important;box-shadow:var(--pm-btn-shadow)!important}
+:root[data-premium] .cozy-navigation .sidebar .nav-button[data-tab]:not(.active) .nav-icon:not(#a):not(#b):not(#c){background:var(--pm-side-raise)!important;color:var(--pm-side-ink)!important;box-shadow:none!important;border-color:transparent!important}
+:root[data-premium] .cozy-navigation .sidebar .nav-button.active[data-tab] .nav-icon:not(#a):not(#b):not(#c){background:var(--pm-btn)!important;color:var(--pm-btn-ink)!important;box-shadow:none!important}
+:root[data-premium] #workspace-main .calendar-hero-date .calendar-leaf b:not(#a):not(#b):not(#c){background:var(--pm-btn)!important;color:var(--pm-btn-ink)!important}
+:root[data-premium] .workbench .calendar-views:not(#a) button[aria-pressed=true]:not(#a):not(#b):not(#c):not(#d){background:var(--pm-btn)!important;color:var(--pm-btn-ink)!important;box-shadow:var(--pm-btn-shadow)!important}
+:root[data-premium] .week-grid .week-grid-head button.is-today strong:not(#a):not(#b){background:var(--wb-accent)!important;color:var(--wb-accent-ink,#fff)!important}
+:root[data-premium] .week-grid .week-grid-head button.is-today:not(#a):not(#b):not(#c){background:color-mix(in srgb,var(--wb-accent) 10%,transparent)!important;color:var(--wb-accent)!important}
