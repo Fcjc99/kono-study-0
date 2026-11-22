@@ -1880,6 +1880,8 @@ const openBeat=async page=>{const d=page.getByRole('dialog',{name:'🥁 KONO Bea
 const endBeat=async beat=>{await beat.getByRole('button',{name:'Pause'}).click();await beat.getByRole('dialog',{name:'Paused'}).getByRole('button',{name:'■ End'}).click()}
 const beatSettings=async beat=>{await beat.getByRole('button',{name:'Settings'}).click();return beat.getByRole('dialog',{name:'Settings'})}
 const skipBeatSync=async beat=>beat.getByRole('dialog',{name:'Timing check'}).getByRole('button',{name:'Skip for now'}).click()
+// The Tiles board waits for its START tile: tap it to start the song.
+const tapStart=async beat=>beat.getByRole('button',{name:'Tap to start'}).click({timeout:20000})
 const headerMenu=async(page,name)=>{const menu=page.locator('details.header-more');if(!await menu.evaluate(d=>d.open))await menu.locator(':scope > summary').click();await menu.getByRole('button',{name,exact:true}).click()}
 // The Planner's Filters (what to show, whose) fold into a pill: open it.
 async function openFilters(page){const d=page.locator('details.planner-filters');await d.waitFor();if(!await d.evaluate(x=>x.open))await d.locator(':scope > summary').click()}
@@ -4674,7 +4676,7 @@ test('KONO Beat Timing: it never shifts by itself mid-song; after a song where e
  await beat.getByRole('status').filter({hasText:/Timing is back to 0 ms/}).waitFor()
  await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click()
  // A device's first song starts with the timing check; skipped here.
- await skipBeatSync(beat)
+ await skipBeatSync(beat);await tapStart(beat)
  await beat.getByRole('img',{name:'KONO Beat: Skipping Motif'}).waitFor()
  const chart=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.easy
  const notes=[...chart.tap,...chart.hold].map(([t,lane])=>[t,lane]).sort((a,b)=>a[0]-b[0]).filter(([t])=>t<16000)
@@ -4708,7 +4710,7 @@ test('KONO Beat plays the whole song: on Jeff tier, missing everything empties t
  const beat=await openBeat(page)
  await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Jeff tier/}).click()
  await beat.getByRole('button',{name:/^Skipping Motif/}).click()
- await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await skipBeatSync(beat)
+ await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await skipBeatSync(beat);await tapStart(beat)
  await beat.getByRole('img',{name:'KONO Beat: Skipping Motif'}).waitFor()
  // No taps at all for 30 s of song (auto-sync settles at 20 s, then every miss drains the gauge).
  await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>30000,null,{timeout:60000})
@@ -4735,8 +4737,8 @@ test('KONO Beat, full screen: it opens on its song select (no start card), a fir
  await beat.getByRole('region',{name:'Song',exact:true}).getByText(/Delai hit Beijing with a racket/).waitFor()
  {const set=await beatSettings(beat);await set.getByRole('radio',{name:'Ticks'}).click();assert.equal(await page.evaluate(()=>localStorage.getItem('kono-beat-hits')),'ticks');await set.getByRole('radio',{name:'Notes'}).click();await set.getByRole('button',{name:'Done'}).click()}
  await beat.getByRole('button',{name:/^▶ Play Beijing Delai/}).click()
- // The first song on this device: the timing check first (skipped here), then the song.
- await skipBeatSync(beat)
+ // The first song on this device: the timing check first (skipped here), then the song (its START tile tapped).
+ await skipBeatSync(beat);await tapStart(beat)
  const cv=beat.locator('.beat-canvas');await cv.waitFor()
  // Full screen: the app's buttons step aside, and the whole board (pads included) fits the phone.
  assert.equal(await beat.getByRole('button',{name:'✕ Leave'}).isVisible(),false,'the app bar is hidden while playing')
@@ -4756,7 +4758,7 @@ test('KONO Beat, full screen: it opens on its song select (no start card), a fir
  await page.waitForFunction(at=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>at+300,at,{timeout:10000})
  assert.equal(await paused.count(),0)
  // Restart plays it again from the top.
- await beat.getByRole('button',{name:'Pause'}).click();await paused.getByRole('button',{name:'↻ Restart'}).click()
+ await beat.getByRole('button',{name:'Pause'}).click();await paused.getByRole('button',{name:'↻ Restart'}).click();await tapStart(beat)
  await page.waitForFunction(()=>{const ms=Number(document.querySelector('.beat-canvas')?.dataset.ms);return ms<2500},null,{timeout:10000})
  // Leave closes the game, not the town.
  await beat.getByRole('button',{name:'Pause'}).click();await paused.getByRole('button',{name:'✕ Leave'}).click()
@@ -4767,7 +4769,7 @@ test('KONO Beat, full screen: it opens on its song select (no start card), a fir
  assert.equal(await again.getByRole('button',{name:/^Beijing Delai/}).getAttribute('aria-pressed'),'true')
  await again.getByRole('button',{name:/^▶ Play Beijing Delai/}).click()
  assert.equal(await again.getByRole('dialog',{name:'Timing check'}).count(),0,'the timing check is only before the first song')
- await again.locator('.beat-canvas').waitFor();await endBeat(again)
+ await again.locator('.beat-canvas').waitFor();await tapStart(again);await endBeat(again)
  await again.getByRole('region',{name:'Results'}).getByRole('heading',{name:'Ended early'}).waitFor()
 })
 
@@ -4845,7 +4847,7 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  await set.getByRole('button',{name:'Notes faster'}).click();await set.getByText('5.5').waitFor()
  await set.getByRole('button',{name:'Notes slower'}).click();await set.getByRole('button',{name:'Done'}).click()
  await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click()
- const field=beat.getByRole('img',{name:'KONO Beat: Skipping Motif'});await field.waitFor()
+ const field=beat.getByRole('img',{name:'KONO Beat: Skipping Motif'});await field.waitFor();await tapStart(beat)
  // A screen reader hears the song start (the canvas itself says nothing).
  assert.match(await beat.locator('[aria-live="polite"].beat-sr').textContent(),/Skipping Motif started/)
  // The first notes (from the chart) hit right on time with their lane's key.
@@ -4867,14 +4869,14 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
  if(process.env.KONO_SHOTS)await beat.screenshot({path:process.env.KONO_SHOTS+'/beat-results.png'})
  // Warm-up: the first 30 seconds, nothing kept; ■ End shows how it went, marked as a warm-up.
  await beat.getByRole('button',{name:'Play again'}).click()
- await beat.getByRole('button',{name:/^Warm-up/}).click();await field.waitFor()
+ await beat.getByRole('button',{name:/^Warm-up/}).click();await field.waitFor();await tapStart(beat)
  await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>3000,null,{timeout:30000})
  await endBeat(beat)
  await br.getByRole('heading',{name:'Warm-up done'}).waitFor();await br.getByText(/Warm-ups don’t count/).waitFor()
  // Classic: once the timing has settled, a tap on the wrong column stops the song there.
  await beat.getByRole('button',{name:'Play again'}).click()
  {const s2=await beatSettings(beat);await s2.getByRole('radiogroup',{name:'Hit sounds'}).waitFor();await s2.getByLabel('Classic').check();await s2.getByRole('button',{name:'Done'}).click()}
- await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor()
+ await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor();await tapStart(beat)
  // Six tiles on time first (auto-sync settles: this device's timing is right), then the wrong column.
  const first7=require('../src/game/data/rhythmCharts.json').songs.find(s=>s.id==='candy').charts.easy.tap.slice(0,7)
  await page.evaluate(async notes=>{const cv=document.querySelector('.beat-canvas');while(!cv?.songNow)await new Promise(r=>setTimeout(r,5))
@@ -4882,7 +4884,7 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
    window.dispatchEvent(new KeyboardEvent('keydown',{key}));window.dispatchEvent(new KeyboardEvent('keyup',{key}))}},first7)
  await br.getByText(/Classic: stopped at tile 6 of \d+/).waitFor({timeout:15000})
  await beat.getByRole('button',{name:'Play again'}).click();{const s2=await beatSettings(beat);await s2.getByLabel('Classic').uncheck();await s2.getByRole('button',{name:'Done'}).click()}
- await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor();await endBeat(beat);await br.waitFor()
+ await beat.getByRole('button',{name:/^▶ Play Skipping Motif/}).click();await field.waitFor();await tapStart(beat);await endBeat(beat);await br.waitFor()
  if(process.env.KONO_SHOTS){
   // Pictures of Medium a few bars in, wide and on a phone.
   for(const [w,h,name] of [[1280,800,'beat-wide'],[390,844,'beat-phone']]){
@@ -4890,7 +4892,7 @@ test('Round 60: more arcade: KONO Hop (get ready, flap, a crash ends it with res
    await beat.getByRole('button',{name:'Play again'}).click()
    await beat.getByRole('group',{name:'Difficulty'}).getByRole('button',{name:/^Medium/}).click()
    if(name==='beat-wide')await beat.screenshot({path:process.env.KONO_SHOTS+'/beat-pick.png'})
-   await beat.getByRole('button',{name:/^▶ Play/}).click()
+   await beat.getByRole('button',{name:/^▶ Play/}).click();await tapStart(beat)
    await page.waitForFunction(()=>Number(document.querySelector('.beat-canvas')?.dataset.ms)>=9000,null,{timeout:60000})
    await beat.screenshot({path:process.env.KONO_SHOTS+'/'+name+'.png'})
    await endBeat(beat)
