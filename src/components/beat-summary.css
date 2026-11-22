@@ -34,3 +34,12 @@
 /* What next: the next level up (or an easier one). */
 .beat-summary-next:not(#x):not(#y){display:flex!important;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:52px!important;margin:0!important;padding:8px 16px!important;border-radius:16px!important;border:0!important;color:#fff!important;font-weight:850!important;cursor:pointer;background:linear-gradient(90deg,#7b5cff,#ff5fa2)!important}
 .beat-summary-next span{font-weight:600;opacity:.85;font-size:.85rem}
+/* The stars, as on the board: big, gold when earned, popping in one after another. */
+.beat-summary-stars{display:flex;justify-content:center;gap:14px;margin:0 0 10px;font-size:2.4rem;line-height:1}
+.beat-summary-stars>span{color:rgb(255 255 255/.2);text-shadow:none;transform:scale(.9)}
+.beat-summary-stars>span.is-on{color:#ffd34d;text-shadow:0 0 18px rgb(255 197 61/.7),0 2px 0 #b07a00;animation:beat-star-pop .5s cubic-bezier(.3,1.6,.5,1) both;animation-delay:calc(var(--i)*.22s + .2s)}
+.beat-summary-stars>span:nth-child(2){font-size:1.15em;transform:translateY(-6px)}
+@keyframes beat-star-pop{0%{transform:scale(0) rotate(-30deg);opacity:0}100%{transform:scale(1);opacity:1}}
+.beat-summary-stars>span:nth-child(2).is-on{animation-name:beat-star-pop-mid}
+@keyframes beat-star-pop-mid{0%{transform:translateY(-6px) scale(0) rotate(-30deg);opacity:0}100%{transform:translateY(-6px) scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.beat-summary-stars>span.is-on{animation:none}}
