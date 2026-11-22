@@ -3,6 +3,7 @@ import {shuffle,type PlayQuestion} from '../store/kquizRound'
 import {COIN_ICON,quizCoins} from '../store/konoCoins'
 import KonoSprite from './KonoSprite'
 import './kquiz-play.css'
+import {vibrate} from '../game/haptics'
 
 const HEARTS=3
 const TILE=['coral','sky','mint','sun']
@@ -28,7 +29,7 @@ export default function KQuizPlay({title,questions,onCorrect,onClose}:{title:str
   if(ok){const s=streak+1;setStreak(s);setBest(b=>Math.max(b,s));setRight(r=>r+1)
    const paid=onCorrect(s);if(paid){setCoins(c=>c+paid);setGain({n:paid,at:Date.now()})}else setCapped(true)
    setReact({kind:s>=3?'cheer':'pet',at:Date.now()})}
-  else{setStreak(0);setHearts(h=>h-1);setMissed(m=>[...m,q!]);navigator.vibrate?.(60);setReact(null)}
+  else{setStreak(0);setHearts(h=>h-1);setMissed(m=>[...m,q!]);vibrate(60);setReact(null)}
  }
  const pick=(i:number)=>{if(!q?.choices||picked!==null)return;setPicked(i);score(i===q.correct)}
  const grade=(ok:boolean)=>{if(picked!==null)return;setPicked(ok?1:0);score(ok)}

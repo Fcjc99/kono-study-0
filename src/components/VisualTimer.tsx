@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState,type CSSProperties} from 'react'
 import KonoSprite from './KonoSprite'
 import './kids-planner.css'
+import {vibrate} from '../game/haptics'
 
 const clockNow=()=>Date.now()
 const PRESETS=[1,5,10,15,20,30,45,60]
@@ -11,7 +12,7 @@ const chime=()=>{try{const ctx=new AudioContext();[0,.25,.5].forEach((at,i)=>{co
 export default function VisualTimer({onClose}:{onClose:()=>void}){
  const [total,setTotal]=useState(0),[left,setLeft]=useState(0),[running,setRunning]=useState(false),[label,setLabel]=useState('')
  const end=useRef(0)
- useEffect(()=>{if(!running)return;const t=window.setInterval(()=>{const ms=end.current-clockNow();if(ms<=0){setLeft(0);setRunning(false);chime();navigator.vibrate?.([200,100,200])}else setLeft(ms)},250);return()=>window.clearInterval(t)},[running])
+ useEffect(()=>{if(!running)return;const t=window.setInterval(()=>{const ms=end.current-clockNow();if(ms<=0){setLeft(0);setRunning(false);chime();vibrate([200,100,200])}else setLeft(ms)},250);return()=>window.clearInterval(t)},[running])
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.key==='Escape')onClose()};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[onClose])
  const start=(min:number)=>{const ms=min*60000;setTotal(ms);setLeft(ms);end.current=clockNow()+ms;setRunning(true)}
  const pause=()=>{if(running){setRunning(false)}else if(left>0){end.current=clockNow()+left;setRunning(true)}}

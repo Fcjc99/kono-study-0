@@ -2,6 +2,7 @@ import './week-tiles.css'
 import {toneVars} from '../store/tones'
 import {useEffect,useRef,useState,type CSSProperties,type PointerEvent as ReactPointerEvent} from 'react'
 import {classTime} from '../store/classSchedule'
+import {vibrate} from '../game/haptics'
 
 /** One thing on the week: timed ones sit at their hour, the rest in the "All day" row. */
 /** `drag` ("tasks:ID", "exams:ID", "calendarEvents:ID") lets it be moved onto an hour or a day;
@@ -99,7 +100,7 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
   // A mouse drag (and a stretch) starts as soon as it moves; a finger has to press and hold. A hold that
   // lets go without moving opens the menu instead.
   if(mode==='move')d.timer=window.setTimeout(()=>{const c=dragRef.current;if(!c||c.pointer!==d.pointer||c.active)return
-   if(e.pointerType==='touch'){navigator.vibrate?.(15);update({...c,active:true,held:true,landing:landingAt(c,c.x,c.y)})}else update({...c,held:true})},e.pointerType==='touch'?LONG_PRESS_MS:MOUSE_HOLD_MS)
+   if(e.pointerType==='touch'){vibrate(15);update({...c,active:true,held:true,landing:landingAt(c,c.x,c.y)})}else update({...c,held:true})},e.pointerType==='touch'?LONG_PRESS_MS:MOUSE_HOLD_MS)
   update(d)
  }
  const move=(e:ReactPointerEvent<HTMLElement>)=>{
@@ -145,7 +146,7 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
   const anchor=Math.min(last*60-SNAP,Math.floor(minuteAt(day,e.clientY)/SNAP)*SNAP)
   const d:Draw={day,pointer:e.pointerId,x:e.clientX,y:e.clientY,anchor,from:anchor,to:Math.min(24*60,anchor+60),active:false}
   // On a touch screen, hold first (a swipe still scrolls the hours); a mouse draws as soon as it drags.
-  if(e.pointerType==='touch')d.timer=window.setTimeout(()=>{const c=drawRef.current;if(c&&c.pointer===d.pointer&&!c.active){navigator.vibrate?.(15);updateDraw({...c,active:true})}},LONG_PRESS_MS)
+  if(e.pointerType==='touch')d.timer=window.setTimeout(()=>{const c=drawRef.current;if(c&&c.pointer===d.pointer&&!c.active){vibrate(15);updateDraw({...c,active:true})}},LONG_PRESS_MS)
   updateDraw(d)
  }
  const drawMove=(e:ReactPointerEvent<HTMLElement>)=>{

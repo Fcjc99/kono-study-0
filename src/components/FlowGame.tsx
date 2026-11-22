@@ -2,6 +2,7 @@ import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
 import {COLS,FLOW_CELL,H,HIDDEN,KINDS,ROWS,SPRINT_LINES,ULTRA_MS,cellsOf,ghostOf,hardDrop,holdPiece,move,musicPart,newGame,rotate,shapeCells,softDrop,startFlow,tick,type FlowEvent,type Game,type Kind,type Mode} from '../store/flow'
 import {flowSound,musicSlow,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
+import {vibrate} from '../game/haptics'
 
 /** KONO Flow (the rules are in store/flow): falling blocks made of light, drawn on a canvas.
  * The well floats in a drifting field of light that takes on a new color every level; blocks are glowing
@@ -329,7 +330,7 @@ function scene(x:CanvasRenderingContext2D,motif:string,w:number,h:number,dpr:num
  }
 }
 /** A short vibration, on phones that can (an Android phone; iPhones' browsers don't let pages vibrate). */
-function buzz(pattern:number|number[]){try{navigator.vibrate?.(pattern)}catch{/* not allowed */}}
+function buzz(pattern:number|number[]){try{vibrate(pattern)}catch{/* not allowed */}}
 const clockText=(ms:number,tenths=false)=>{const s=Math.max(0,ms)/1000,m=Math.floor(s/60),r=s-m*60;return m+':'+(tenths?r.toFixed(1).padStart(4,'0'):String(Math.ceil(r)===60?59:Math.floor(r)).padStart(2,'0'))}
 /** Each mode's best on this device: the fastest finished Sprint, else the highest score. */
 const bestKey=(m:Mode)=>'kono-flow-best:'+m

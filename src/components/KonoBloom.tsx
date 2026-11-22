@@ -4,6 +4,7 @@ import {gameSound} from '../konoSounds'
 import {fx,startMusic,stopMusic} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
 import './bloom.css'
+import {vibrate} from '../game/haptics'
 
 const S=4 // canvas pixels per jar unit
 const STEP=1000/120 // physics runs in fixed small steps (smooth on 60 Hz and 120 Hz screens alike)
@@ -100,7 +101,7 @@ export default function KonoBloom({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
       floats.push({x:p.x*S,y:p.y*S,text:p.tier>=LADDER.length?'🌈 +100':'+'+((p.tier+1)*(p.tier+2)/2),sub:combo>1?'Combo ×'+combo:'',at:now})
       if(p.tier>=6){shake=Math.min(1,0.4+p.tier*0.06);cheer=1}
       fx(p.tier>=8?'mega':'match',soundRef.current,Math.min(10,tier+combo-1))
-      try{if(p.tier>=6)navigator.vibrate?.(14)}catch{/* no vibration */}
+      try{if(p.tier>=6)vibrate(14)}catch{/* no vibration */}
      }
     }
     garden.current=g

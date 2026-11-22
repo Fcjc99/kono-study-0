@@ -3,6 +3,7 @@ import {drop,newTower,score,slide,type Chip,type Floor,type Tower} from '../stor
 import {gameSound} from '../konoSounds'
 import {fx} from '../arcadeAudio'
 import type {GameHandle} from './GameScreen'
+import {vibrate} from '../game/haptics'
 
 const W=440,H=640 // canvas size (drawn at 2× for sharpness)
 const U=2.7 // pixels per floor unit across
@@ -31,7 +32,7 @@ export default function KonoStack({ref,best,sound,onEnd}:{ref:Ref<GameHandle>;be
   // A floor set down lands with weight: the tower dips and settles, and a puff of dust comes off its corners.
   if(result!=='miss'){land.current=1;const f=next.floors[next.floors.length-1],y=(next.floors.length-1)*FH
    for(const [x,z] of [[f.x-f.w/2,f.z+f.d/2],[f.x+f.w/2,f.z-f.d/2],[f.x+f.w/2,f.z+f.d/2]])for(let k=0;k<4;k++)dust.current.push({x,z,y,vx:(Math.random()-.5)*0.6,vy:0.2+Math.random()*0.4,life:1})
-   try{navigator.vibrate?.(result==='perfect'?[12,30,12]:15)}catch{/* no vibration */}}
+   try{vibrate(result==='perfect'?[12,30,12]:15)}catch{/* no vibration */}}
   if(result==='miss'){setOver(true);fx('thud',soundRef.current);gameSound('lose',soundRef.current);finish();return}
   if(result==='perfect'){fx('star',soundRef.current,Math.min(8,next.streak));hop.current=1;setCall({text:next.streak>=3?'Perfect ×'+next.streak+'!':'Perfect!',at:next.floors.length})}
   else fx('land',soundRef.current)

@@ -107,4 +107,16 @@ test('Timing suggestion after a song: the middle of the hits, to the nearest 5 m
  assert.equal(R.timingDrift([...Array(15).fill(10),...Array(5).fill(200)]),null,'the middle is close: a few wild taps don’t count')
  assert.equal(R.timingDrift(Array(20).fill(900)),300,'never past ±300')
 })
+test('haptics: each kind of hit has its own feel (a Perfect firmer than a Good), a miss a double buzz; the switch turns it all off; an iPhone (no vibrate) flips the hidden switch instead',()=>{
+ const file=path.resolve(root,'src/game/haptics.ts'),code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText
+ const make=nav=>{const module={exports:{}},store=new Map(),clicks=[],body={appendChild(){}},document={body,createElement:tag=>({tag,style:{},setAttribute(){},appendChild(){},click(){clicks.push(tag)}})}
+  let clock=0;vm.runInNewContext(code,{module,exports:module.exports,navigator:nav,document,performance:{now:()=>clock+=100},localStorage:{getItem:k=>store.has(k)?store.get(k):null,setItem:(k,v)=>store.set(k,String(v))}});return {H:module.exports,clicks}}
+ const buzz=[],{H}=make({vibrate:p=>{buzz.push(JSON.stringify(p));return true},userAgent:'Android',platform:'Linux',maxTouchPoints:5})
+ H.haptic('good');H.haptic('perfect');H.haptic('miss');H.vibrate([5,5])
+ assert.equal(buzz.join(' '),'6 14 [28,40,28] [5,5]')
+ H.saveHaptics(false);H.haptic('perfect');H.vibrate(9);assert.equal(buzz.length,4,'off: nothing')
+ H.saveHaptics(true);H.haptic('tap');assert.equal(buzz.length,5)
+ const ios=make({userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)',platform:'iPhone',maxTouchPoints:5})
+ ios.H.haptic('perfect');ios.H.haptic('great');assert.equal(ios.clicks.length,2,'an iPhone flips the switch for each')
+})
 console.log(passed+' KONO Beat rule tests passed')

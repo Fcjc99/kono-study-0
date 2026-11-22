@@ -37,6 +37,7 @@ import {TIDE,createTideMachine,tideLaneZ,tideLoadBlocked,type TideLane,type Tide
 import BonusDraw,{bonusPresentation,type BonusPresentation} from './BonusDraw'
 import {assertDeliveryConserved,deliveryLedger,pendingMedals,hasPendingWork,ballProgress,type DeliveryRoute} from '../store/delivery'
 import {TRAY,capturePiece,COIN_MOTION,BALL_MOTION,createDispenser,enqueueDispense,releaseDispense,reserveDisplay,RESERVE_DISPLAY} from '../store/dispense'
+import {vibrate} from '../game/haptics'
 
 /** KONO Medal Cove (rules in store/pusher), in 3D with real physics: a medal pusher cabinet on KONO's dock.
  * Every medal is a coin in a physics world (Rapier): they drop from the chute, land on each other, pile up
@@ -445,7 +446,7 @@ export default function MedalCove({ref,best,sound,music,onEnd,onFail,toolsTarget
   const proj=new THREE.Vector3()
   const pop=(text:string,x:number,y:number,z:number,kind='')=>{proj.set(x,y,z).project(camera);const id=++popId.current
    setPops(ps=>[...ps.slice(-6),{id,text,x:(proj.x+1)/2*100,y:(1-proj.y)/2*100,kind}]);window.setTimeout(()=>setPops(ps=>ps.filter(p=>p.id!==id)),kind==='big'?2200:1300)}
-  const buzz=(pattern:number|number[])=>{try{navigator.vibrate?.(pattern)}catch{/* no vibration here */}}
+  const buzz=(pattern:number|number[])=>{try{vibrate(pattern)}catch{/* no vibration here */}}
   // The BIG BONUS presentation never changes the fixed physical timestep.
   const slow=1 // all machinery and contacts share a fixed physical clock
   // Real side workshop: ordinary medals build on a supported split carriage,

@@ -6,6 +6,7 @@ import {isLiteDevice} from '../store/deviceTier'
 import type {GameHandle} from './GameScreen'
 import {SHAPES,COLORS,SPECIALS,towerHeight,specialFor,seeded,puzzleLevel,isPerfect,lockLine,LOCK_EVERY,skinColor,skinTile,EVENTS,EVENT_BLOCKS,eventFor,RACE_GOAL,rivalStep,SPELLS,spellFor,CATS,COATS,catSwing,catBag,type CatKind,type Spell,type TowerEvent,type TeeterControl,type SkinId,type ShapeId,type Special,type TeeterMode} from '../store/teeter'
 import './teeter.css'
+import {vibrate} from '../game/haptics'
 
 const W=420,H=640 // canvas size at 1× (drawn at 2× for sharpness)
 const T=26 // one block, in pixels
@@ -154,7 +155,7 @@ export default function KonoTeeter({ref,best,sound,mode={kind:'classic'},skin='p
     // A dropped block's first bump: a thump, a puff of dust and a squash; each one a note higher.
     // Like Tricky Towers' bricks, it lands and stops: most of its speed and spin is gone on the first touch.
     for(const body of [a,b]){const p=placed.find(q=>q.body===body);if(p&&!p.landed){p.landed=true;if(p.kind!=='jelly'&&p.kind!=='balloon'){Body.setVelocity(p.body,{x:p.body.velocity.x*0.15,y:Math.min(0.4,p.body.velocity.y*0.2)});Body.setAngularVelocity(p.body,p.body.angularVelocity*0.15)};p.squash=p.kind==='jelly'?1:Math.min(1,0.4+p.body.speed/6);puff(p.body.position.x,p.body.bounds.max.y,6)
-     fx('land',soundRef.current);fx('note',soundRef.current,state.current.blocks);try{navigator.vibrate?.(10)}catch{/* no vibration */}}}
+     fx('land',soundRef.current);fx('note',soundRef.current,state.current.blocks);try{vibrate(10)}catch{/* no vibration */}}}
     for(const [mine,other] of [[a,b],[b,a]] as const){
      const p=placed.find(q=>q.body===mine)
      if(!p||p.kind!=='honey'||p.stuck||other===active?.body)continue
