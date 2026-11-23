@@ -65,9 +65,9 @@
 .beat-song-text{display:grid;min-width:0}
 .beat-song-text b{font-weight:750;font-size:.98rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .beat-song-text small{font-size:.76rem;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.beat-songs i{position:absolute;right:10px;top:50%;translate:0 -50%;min-width:36px;height:36px;border-radius:11px;display:grid;place-items:center;align-content:center;font-style:normal;font-weight:850;font-size:.98rem;color:var(--accent);background:#f2edfd;line-height:1}
-.beat-songs i em{font-size:.55rem;font-weight:850;font-style:normal;letter-spacing:.04em;color:#c65ad0}
-.beat-songs i.is-none{background:none;color:#cfc6e6}
+.beat-songs .beat-song-best>i{position:static;min-width:36px;height:36px;border-radius:11px;display:grid;place-items:center;align-content:center;font-style:normal;font-weight:850;font-size:.98rem;color:var(--accent);background:#f2edfd;line-height:1}
+.beat-songs .beat-song-best>i em{font-size:.55rem;font-weight:850;font-style:normal;letter-spacing:.04em;color:#c65ad0}
+.beat-songs .beat-song-best>i.is-none{background:none;color:#cfc6e6}
 .beat-empty{padding:14px;text-align:center;color:var(--sub);font-size:.9rem}
 .beat-jacket{position:relative;flex:none;display:grid;place-items:center;width:46px;aspect-ratio:1;border-radius:13px;overflow:hidden;background:linear-gradient(135deg,var(--j1),var(--j2))}
 .beat-jacket::after{content:'';position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.4),rgba(255,255,255,0) 45%)}
@@ -162,7 +162,7 @@
 
 /* A song's best stars (song list and level cards): small, the earned ones gold. */
 .beat-mini-stars{display:inline-flex;gap:1px;font-size:.8rem;line-height:1;vertical-align:-1px}
-.beat-mini-stars>b{color:rgb(120 110 150/.35);font-weight:900}
-.beat-mini-stars>b.is-on{color:#f2b400;text-shadow:0 0 6px rgb(255 197 61/.45)}
-.beat-song-best{display:inline-flex;flex-direction:column;align-items:flex-end;gap:3px;margin-left:auto}
+.beat-mini-stars>i:not(#x){color:rgb(120 110 150/.35);font-weight:900;font-style:normal;font-size:inherit;line-height:1}
+.beat-mini-stars>i.is-on:not(#x){color:#f2b400;text-shadow:0 0 6px rgb(255 197 61/.45)}
+.beat-songs .beat-song-best{position:absolute;right:10px;top:50%;translate:0 -50%;display:flex;align-items:center;gap:8px}
 .beat-levels .beat-mini-stars:not(#x){font-size:.82rem}
