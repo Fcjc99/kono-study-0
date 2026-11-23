@@ -1,5 +1,5 @@
 import {useEffect,useImperativeHandle,useRef,useState,type Ref} from 'react'
-import {LEVELS,CLEAR_AT,CLEAR_NAME,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,timingDrift,timingWasReset,readBeatBest,readClassic,readBoard,saveBoard,readRamp,saveRamp,rampAt,type BoardStyle,readHits,readLast,readOffset,readSpeed,readSynced,readTicks,saveBeatBest,saveClassic,saveHits,saveLast,saveOffset,saveSpeed,saveSynced,saveTicks,wrongColumn,scoreOf,judgeNote,type Chart,type Clear,type HitSound,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
+import {LEVELS,CLEAR_AT,CLEAR_NAME,accuracy,approachFor,clearOf,count,freshTally,grade,hitIn,missedBy,playOf,timingDrift,timingWasReset,readBeatBest,readBeatStars,saveBeatStars,starsEarned,readClassic,readBoard,saveBoard,readRamp,saveRamp,rampAt,type BoardStyle,readHits,readLast,readOffset,readSpeed,readSynced,readTicks,saveBeatBest,saveClassic,saveHits,saveLast,saveOffset,saveSpeed,saveSynced,saveTicks,wrongColumn,scoreOf,judgeNote,type Chart,type Clear,type HitSound,type Judge,type Level,type Play,type Tally} from '../store/rhythm'
 import {stopMusic} from '../arcadeAudio'
 import {haptic,readHaptics,saveHaptics} from '../game/haptics'
 import {click,heardNow,inputLag,keyNote} from '../game/audioClock'
@@ -23,6 +23,8 @@ const LEVEL_COLORS:Record<Level,string>={easy:'#2fbf8f',medium:'#f59f2a',jeff:'#
 // Each song's cover: an emoji on two colors.
 const JACKETS:Record<string,[string,string,string]>={candy:['🍬','#ff9ac8','#ffd58a'],gems:['💎','#7fd8ff','#a98bff'],blast:['🧱','#ffb36b','#ff6b8a'],'flow-1':['🌌','#3a3f9e','#8fa2ff'],'flow-2':['🌊','#2f7fb8','#9ff0ff'],'flow-3':['🌙','#2a2350','#c27bff'],'flow-4':['🌠','#4b2d8f','#ff9ae0'],'flow-5':['✨','#1d5a6e','#ffe28a'],'beijing-delai':['🏮','#d8323c','#ffcf5a'],'casa-fantasma':['👻','#2b1d45','#7fe0c8'],'peanut-butter-delai':['🥜','#c98a4b','#ffe3a8']}
 const jacketOf=(id:string)=>JACKETS[id]??['🎵','#888','#ccc']
+/** A song's best stars on a level, small: ★ ★ ♛, the earned ones gold. */
+function MiniStars({n}:{n:number}){return <span className="beat-mini-stars" role="img" aria-label={n+' of 3 stars'}>{[0,1,2].map(i=><b key={i} className={i<n?'is-on':''}>{i===2?'♛':'★'}</b>)}</span>}
 function Jacket({id}:{id:string}){const [e,a,b]=jacketOf(id);return <span className="beat-jacket" style={{'--j1':a,'--j2':b} as React.CSSProperties} aria-hidden="true"><span>{e}</span></span>}
 /** How hard a chart is, 1-12: how many things to do a second (holds, sky notes and ribbons count a bit more). */
 function ratingOf(s:Song,level:Level){const c=s.charts[level],busy=(c.tap.length+c.hold.length*1.3+c.sky.length*1.4+c.ribbon.length*0.5)/(s.ms/1000);return Math.max(1,Math.min(12,Math.round(1+busy*2.4)))}
@@ -105,6 +107,8 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
   const newBest=!warm.current&&clear!=='fail'&&saveBeatBest(info.id,level,score,clear)
   const offs=play.current.notes.flatMap(n=>n.hit&&n.hit!=='miss'&&n.off!==undefined?[n.off]:[])
   // Accuracy is of what was played: a song ended early isn't marked down for the tiles that never came.
+  {const tl=play.current.notes.filter(n=>n.kind!=='sky').map(n=>({t:n.t,j:n.hit??null}))
+   saveBeatStars(info.id,level,starsEarned({timeline:tl,ms:info.ms,warmup:warm.current,failed:clear==='fail'&&!warm.current,ended:early,clear}).filter(Boolean).length)}
   onEndRef.current({drift:warm.current?null:timingDrift(offs),offs,song:info.id,title:info.title,level,score,acc:accuracy(t,early?Math.max(1,judged()):total),grade:early?grade(score):clear==='fail'&&!warm.current?'F':grade(score),ended:early,best:t.best,tally:t,clear:warm.current&&clear==='fail'?'clear':clear,failed:clear==='fail'&&!warm.current,newBest,classic,warmup:warm.current,tiles:play.current.notes.filter(n=>n.hit&&n.hit!=='miss').length,of:warm.current?play.current.notes.filter(n=>n.hit).length:play.current.notes.length,timeline:play.current.notes.filter(n=>n.kind!=='sky').map(n=>({t:n.t,j:n.hit??null})),ms:info.ms})
  }
  const finishRef=useRef(finish);useEffect(()=>{finishRef.current=finish})
@@ -537,7 +541,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
      {firstLine&&<p className="beat-hero-lyric">“{firstLine}{secondLine&&<span> / {secondLine}…</span>}”</p>}
      <button type="button" className="beat-gear" aria-label="Settings" onClick={()=>setSheet(true)}>⚙</button>
     </section>
-    <div className="beat-levels" role="group" aria-label="Difficulty">{LEVELS.map(l=>{const b=readBeatBest(info.id,l.id);return <button type="button" key={l.id} aria-pressed={level===l.id} style={{'--lv':LEVEL_COLORS[l.id]} as React.CSSProperties} onClick={()=>pickLevel(l.id)}><span>{l.name}</span><b>{ratingOf(info,l.id)}</b><small>{b?'Best '+b.grade+(CLEAR_MARK[b.clear]?' · '+CLEAR_MARK[b.clear]:''):'Not played'}</small></button>})}</div>
+    <div className="beat-levels" role="group" aria-label="Difficulty">{LEVELS.map(l=>{const b=readBeatBest(info.id,l.id);return <button type="button" key={l.id} aria-pressed={level===l.id} style={{'--lv':LEVEL_COLORS[l.id]} as React.CSSProperties} onClick={()=>pickLevel(l.id)}><span>{l.name}</span><b>{ratingOf(info,l.id)}</b><small>{b||readBeatStars(info.id,l.id)?<><MiniStars n={readBeatStars(info.id,l.id)}/>{b?' '+b.grade:''}</>:'Not played'}</small></button>})}</div>
     <p className="beat-blurb">{LEVELS.find(l=>l.id===level)!.blurb}{best&&<> · best <b>{best.score.toLocaleString()}</b>{best.clear!=='fail'&&<> · {CLEAR_NAME[best.clear].replace('!','')}</>}</>}</p>
     {reset&&<p className="beat-reset" role="status">Timing is back to 0 ms: it used to shift by itself and could drift far off. Run the timing check (⚙ Settings) to set it for your speakers or headphones.</p>}
     <button type="button" className="beat-play" onClick={()=>go()} disabled={loading}>{loading?'Loading…':<>▶ Play <span>{info.title}</span></>}</button>
@@ -546,7 +550,7 @@ export default function RhythmGame({ref,onEnd,onLeave}:{ref:Ref<GameHandle>;onEn
    <section className="beat-list" aria-label="Songs">
     <div className="beat-list-head"><h3>All songs</h3><span>{SONGS.length} · {SUNG.size} sung</span></div>
     <div className="beat-chips" role="group" aria-label="Show">{([['all','All'],['sung','🎤 Sung'],['todo','Not cleared']] as const).map(([k,n])=><button type="button" key={k} aria-pressed={filter===k} onClick={()=>setFilter(k)}>{n}</button>)}</div>
-    <ul className="beat-songs">{shown.map(s=>{const b=readBeatBest(s.id,level);return <li key={s.id}><button type="button" aria-pressed={song===s.id} onClick={()=>pickSong(s.id)}><Jacket id={s.id}/><span className="beat-song-text"><b>{s.title}</b><small>{FROM[s.id]} · {Math.round(s.bpm)} BPM · {clock(s.ms)}</small></span>{b?<i aria-label={'Best '+b.score.toLocaleString()+', '+b.grade+(b.clear!=='fail'?', '+CLEAR_NAME[b.clear]:'')}>{b.grade}{CLEAR_MARK[b.clear]&&<em>{CLEAR_MARK[b.clear]}</em>}</i>:<i className="is-none" aria-hidden="true">—</i>}</button></li>})}
+    <ul className="beat-songs">{shown.map(s=>{const b=readBeatBest(s.id,level);return <li key={s.id}><button type="button" aria-pressed={song===s.id} onClick={()=>pickSong(s.id)}><Jacket id={s.id}/><span className="beat-song-text"><b>{s.title}</b><small>{FROM[s.id]} · {Math.round(s.bpm)} BPM · {clock(s.ms)}</small></span><span className="beat-song-best"><MiniStars n={readBeatStars(s.id,level)}/>{b?<i aria-label={'Best '+b.score.toLocaleString()+', '+b.grade+(b.clear!=='fail'?', '+CLEAR_NAME[b.clear]:'')}>{b.grade}{CLEAR_MARK[b.clear]&&<em>{CLEAR_MARK[b.clear]}</em>}</i>:null}</span></button></li>})}
      {!shown.length&&<li className="beat-empty">Every song here is cleared on {LEVELS.find(l=>l.id===level)!.name}. 🎉</li>}</ul>
    </section>
    {sheet&&<div className="beat-overlay" onClick={e=>{if(e.target===e.currentTarget)setSheet(false)}}><section className="beat-sheet" role="dialog" aria-label="Settings"><div className="beat-sheet-head"><h3>Settings</h3><button type="button" className="beat-done" onClick={()=>setSheet(false)}>Done</button></div>{settings(false)}

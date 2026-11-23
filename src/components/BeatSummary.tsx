@@ -3,6 +3,7 @@ import type {BeatResult} from './RhythmGame'
 import {LEVELS,WINDOWS,readOffset,saveLast,saveOffset} from '../store/rhythm'
 import type {Judge,Level} from '../store/rhythm'
 import './beat-summary.css'
+import {starsEarned} from '../store/rhythm'
 
 const ROWS:{j:Judge;name:string}[]=[{j:'perfect',name:'Perfect'},{j:'great',name:'Great'},{j:'good',name:'Good'},{j:'miss',name:'Miss'}]
 const CLEAR:Record<BeatResult['clear'],string>={fail:'',clear:'Clear',full:'Full combo',all:'All perfect'}
@@ -26,7 +27,7 @@ export default function BeatSummary({r,onNext}:{r:BeatResult;onNext?:()=>void}){
  const nextName=next&&LEVELS.find(l=>l.id===next)!.name
  // Stars, as on the board's progress line: one for a third of the song, one for two thirds, the crown for clearing
  // it (played to the end). A warm-up earns none.
- const reached=r.timeline.reduce((m,x)=>x.j?Math.max(m,x.t):m,0)/Math.max(1,r.ms),earned=r.warmup?[false,false,false]:[reached>=1/3-0.02,reached>=2/3-0.02,!r.failed&&!r.ended&&r.clear!=='fail']
+ const earned=starsEarned(r)
  return <div className="beat-summary" style={{'--grade':r.failed?'#ff6b81':r.grade.startsWith('S')?'#ffb800':r.grade==='A'?'#7b5cff':'#2fbf8f','--acc':Math.max(0,Math.min(100,r.acc))+'%'} as React.CSSProperties}>
   <p className="beat-summary-stars" role="img" aria-label={earned.filter(Boolean).length+' of 3: '+(earned[2]?'cleared':earned[1]?'two thirds of the way':earned[0]?'a third of the way':'not a third of the way yet')}>{earned.map((on,i)=><span key={i} className={on?'is-on':''} style={{'--i':i} as React.CSSProperties}>{i===2?'♛':'★'}</span>)}</p>
   <div className="beat-summary-head">

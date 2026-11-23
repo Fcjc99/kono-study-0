@@ -159,3 +159,10 @@
 .beat-start-tile>small{font-size:.68rem;font-weight:700;opacity:.85}
 @keyframes beat-start-glow{50%{box-shadow:0 0 0 2px rgb(255 255 255/.95) inset,0 0 40px rgb(255 95 162/.95),0 12px 28px -10px rgb(0 0 0/.6)!important}}
 @media (prefers-reduced-motion:reduce){.beat-start-tile{animation:none}}
+
+/* A song's best stars (song list and level cards): small, the earned ones gold. */
+.beat-mini-stars{display:inline-flex;gap:1px;font-size:.8rem;line-height:1;vertical-align:-1px}
+.beat-mini-stars>b{color:rgb(120 110 150/.35);font-weight:900}
+.beat-mini-stars>b.is-on{color:#f2b400;text-shadow:0 0 6px rgb(255 197 61/.45)}
+.beat-song-best{display:inline-flex;flex-direction:column;align-items:flex-end;gap:3px;margin-left:auto}
+.beat-levels .beat-mini-stars:not(#x){font-size:.82rem}
