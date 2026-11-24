@@ -63,3 +63,10 @@
 .workbench :is(.star-chore-add,.family-todo-add):not(#x):not(#y)>:is(input,select,button){height:42px!important;min-height:42px!important;font-size:.95rem!important;padding-block:0!important;border-radius:12px!important}
 .workbench :is(.star-chore-add,.family-todo-add):not(#x):not(#y)>button{padding-inline:18px!important;flex:none}
 @media(max-width:560px){.workbench :is(.star-chore-add,.family-todo-add):not(#x):not(#y)>input{flex:1 1 100%!important}.workbench :is(.star-chore-add,.family-todo-add):not(#x):not(#y)>select{flex:1 1 0!important}}
+
+/* The KONO tab on a phone: Search and ⋯ on the title's row, like every other tab. */
+@media(max-width:720px){
+ .workbench[data-page=sanctuary] .wb-header:not(#x):not(#y){flex-wrap:nowrap!important;align-items:center!important}
+ .workbench[data-page=sanctuary] .wb-header:not(#x):not(#y)>div:first-child{flex:1 1 0;min-width:0}
+ .workbench[data-page=sanctuary] .wb-header:not(#x):not(#y)>.wb-toolbar{width:auto!important;flex:0 0 auto;margin:0!important}
+}
