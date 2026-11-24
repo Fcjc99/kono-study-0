@@ -116,6 +116,17 @@ export function missedBy(notes:Note[],ms:number,level:Level):number[]{
  return out
 }
 
+/** The stars a song earned, as on the board's progress line: one for a third of the way, one for two thirds (how far
+ * its tiles were played), the crown for clearing it. A warm-up earns none. */
+export function starsEarned(r:{timeline:{t:number;j:Judge|null}[];ms:number;warmup?:boolean;failed?:boolean;ended?:boolean;clear:Clear}):[boolean,boolean,boolean]{
+ if(r.warmup)return [false,false,false]
+ const reached=r.timeline.reduce((m,x)=>x.j?Math.max(m,x.t):m,0)/Math.max(1,r.ms)
+ return [reached>=1/3-0.02,reached>=2/3-0.02,!r.failed&&!r.ended&&r.clear!=='fail']
+}
+/** The most stars a song has earned on a level (0-3, this device), kept whether or not that run cleared it. */
+const starsKey=(song:string,level:Level)=>'kono-beat-stars:'+song+':'+level
+export function readBeatStars(song:string,level:Level):number{try{const v=Number(localStorage.getItem(starsKey(song,level)));return v>=0&&v<=3?Math.floor(v):0}catch{return 0}}
+export function saveBeatStars(song:string,level:Level,stars:number){if(stars>readBeatStars(song,level))try{localStorage.setItem(starsKey(song,level),String(stars))}catch{/* this device only */}}
 const bestKey=(song:string,level:Level)=>'kono-beat-best:'+song+':'+level
 export type Best={score:number;grade:string;clear:Clear}
 export function readBeatBest(song:string,level:Level):Best|null{try{const v=localStorage.getItem(bestKey(song,level));const b=v?JSON.parse(v):null;return b&&b.score>10_000?b:null}catch{return null}}

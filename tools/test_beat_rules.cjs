@@ -92,6 +92,19 @@ test('speed-ups: the tiles fall 12% faster from each star (a third, two thirds),
  assert.ok(Math.abs(R.rampAt(0.36)-1.12)<1e-9);assert.ok(Math.abs(R.rampAt(0.7)-1.24)<1e-9);assert.ok(Math.abs(R.rampAt(1)-1.24)<1e-9)
  let last=1;for(let p=0;p<=1;p+=0.001){const v=R.rampAt(p);assert.ok(v>=last-1e-12,'never slower again at '+p);assert.ok(v-last<0.01,'eased in, no jump at '+p);last=v}
 })
+test('stars: one for a third of the way, one for two thirds, the crown for clearing; the best on each level is kept (and never goes down), cleared or not',()=>{
+ const tl=(upTo,ms)=>[0.1,0.3,0.5,0.7,0.9].map(f=>({t:f*ms,j:f<=upTo?'perfect':null}))
+ const s=r=>JSON.stringify(R.starsEarned(r))
+ assert.equal(s({timeline:tl(0.3,1000),ms:1000,clear:'fail',ended:true}),'[false,false,false]')
+ assert.equal(s({timeline:tl(0.5,1000),ms:1000,clear:'fail',ended:true}),'[true,false,false]')
+ assert.equal(s({timeline:tl(0.9,1000),ms:1000,clear:'fail',failed:true}),'[true,true,false]')
+ assert.equal(s({timeline:tl(0.9,1000),ms:1000,clear:'clear'}),'[true,true,true]')
+ assert.equal(s({timeline:tl(0.9,1000),ms:1000,clear:'clear',warmup:true}),'[false,false,false]','a warm-up earns none')
+ assert.equal(R.readBeatStars('candy','easy'),0)
+ R.saveBeatStars('candy','easy',2);R.saveBeatStars('candy','easy',1)
+ assert.equal(R.readBeatStars('candy','easy'),2,'the best is kept');assert.equal(R.readBeatStars('candy','jeff'),0,'each level its own')
+ mem.clear()
+})
 test('a long tile keeps its pitch and end',()=>{
  const p=R.playOf({tap:[[1000,0,60]],hold:[[2000,2,3000,67]],sky:[],ribbon:[]},120)
  assert.deepEqual(JSON.parse(JSON.stringify(p.notes.map(n=>[n.kind,n.midi,n.end??null]))),[['tap',60,null],['hold',67,3000]])
