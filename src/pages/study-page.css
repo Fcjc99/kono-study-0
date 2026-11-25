@@ -23,3 +23,11 @@
 .study-note span{font-size:.84rem;opacity:.85;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
 .study-emoji,.study-set-icon{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:13px;background:color-mix(in srgb,#4f78b8 14%,#fff);color:#3e5f95}
 .study-set-icon{width:38px;height:38px;border-radius:11px}
+
+/* Round 6: Overview's cards side by side on a wide screen; their buttons a quieter size. */
+@media(min-width:1000px){
+ .workbench .study-page:has(>.study-tests,>.study-sets):not(#x){display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+ .workbench .study-page:has(>.study-tests,>.study-sets):not(#x)>*{margin:0!important}
+ .workbench .study-page:has(>.study-tests,>.study-sets):not(#x)>nav.study-tabs{grid-column:1/-1;justify-self:start}
+}
+.workbench .study-page>.wb-panel :is(.study-head>button,.study-pill,.study-test-actions button,button.primary):not(#x):not(#y){min-height:34px!important;height:34px;padding:0 14px!important;font-size:.88rem!important;border-radius:99px!important}
