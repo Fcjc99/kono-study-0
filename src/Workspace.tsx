@@ -1299,7 +1299,7 @@ function Workspace({store}:{store:Store}){
     {id==='comingUp'&&<>
     {comingUp.length>0&&<section className="wb-panel coming-up" aria-label="Coming up"><div className="wb-section-head"><h2>Coming up</h2><button type="button" className="link-button" onClick={()=>setSpecialOpen(true)}>Birthdays & countdowns</button></div><ul>{comingUp.slice(0,4).map(x=><li key={x.day.id} className={x.daysAway===0?'is-today':undefined}><span aria-hidden="true">{x.icon}</span><span>{x.label}</span><b>{daysAwayLabel(x.daysAway)}</b></li>)}</ul></section>}
     </>}
-    {id==='focus'&&!familyLean&&<section className="wb-panel focus-launch" aria-label="Focus"><div><h2>Focus</h2><p className="wb-muted">A timer with KONO beside you, full screen.</p></div><button type="button" className="primary" onClick={()=>startFocusSession('')}>▶ Start a focus session</button></section>}
+    {id==='focus'&&!familyLean&&<section className="wb-panel focus-launch" aria-label="Focus"><img className="focus-launch-kono" src="/garden/kono/read.webp" alt="" aria-hidden="true" width={64} height={64}/><div><h2>Focus</h2><p className="wb-muted">A timer with KONO beside you, full screen.</p></div><button type="button" className="primary" onClick={()=>startFocusSession('')}>▶ Start a focus session</button></section>}
     </Fragment>)}
     </div>)}
     {page==='Sanctuary'&&<KonoPlay onTown={()=>openTown('shops')} onArcade={()=>openTown('arcade')} onDecorate={()=>{setDecorateStart(undefined);openDecorate();window.scrollTo({top:0,behavior:reduced?'auto':'smooth'})}} onWorld={()=>setWorldOpen(true)} coins={coins}/>}

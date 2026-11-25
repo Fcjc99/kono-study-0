@@ -102,3 +102,17 @@
  :root[data-experience='cozy'] .cozy-navigation .sidebar .nav-button.active[data-tab]:not(#a):not(#b):not(#c):not(#d):not(#e){font-weight:800!important}
  :root[data-experience='cozy'] .cozy-navigation .sidebar .nav-button.active[data-tab]:not(#a):not(#b):not(#c):not(#d):not(#e)::before{content:""!important;display:block!important;position:absolute;left:0;top:10px;bottom:10px;width:4px;border-radius:4px;background:var(--tab)}
 }
+
+/* Overhaul · This week: today filled in the accent, a dot on days with something on. */
+.workbench .week-ahead-days>li:first-child>button:not(#x):not(#y){background:var(--wb-accent)!important;border-color:transparent!important;color:#fff!important;box-shadow:0 8px 18px -10px var(--wb-accent)!important}
+.workbench .week-ahead-days>li:first-child>button .wa-day:not(#x){color:#fff!important}
+.workbench .week-ahead-days>li>button:has(.wa-marks>*):not(#x)::after{content:"";position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--wb-accent)}
+.workbench .week-ahead-days>li>button:not(#x){position:relative}
+/* Focus: a calm night card with KONO reading, and a big round start. */
+:root .workbench .focus-launch:not(#x):not(#y):not(#z){display:flex!important;align-items:center;gap:14px;flex-wrap:wrap;color:#fff;border:0!important;background:radial-gradient(90% 120% at 0 0,#5b4a9e,transparent 60%),linear-gradient(135deg,#2c2452,#171433)!important;box-shadow:0 18px 40px -24px #1b1640!important}
+.workbench .focus-launch :is(h2,p):not(#x):not(#y){color:#fff!important}.workbench .focus-launch p:not(#x){opacity:.8}
+.focus-launch-kono{width:64px;height:64px;flex:none;border-radius:50%;background:rgb(255 255 255/.12);padding:4px}
+.workbench .focus-launch>div{flex:1 1 160px}
+.workbench .focus-launch>button.primary:not(#x):not(#y){background:#fff!important;color:#2c2452!important;border:0!important;box-shadow:none!important}
+/* Your day: Today and Tomorrow as small labels over their lists (the count a dot of the accent). */
+.workbench .today-card .today-card-day:not(#x):not(#y){font-size:.74rem!important;font-weight:800!important;letter-spacing:.12em;text-transform:uppercase;color:var(--wb-muted)!important;display:flex;align-items:center;gap:8px;margin:14px 0 6px!important}
