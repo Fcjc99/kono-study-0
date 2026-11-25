@@ -79,3 +79,6 @@
 .command-palette .command-input>button:not(#x):not(#y),.command-palette .command-input .voice-input-button:not(#x):not(#y){width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important;padding:0!important;border-radius:50%!important;flex:none}
 .command-palette .command-filters:not(#x){flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:8px}
 .command-palette .command-filters>button:not(#x){flex:none}
+
+/* A settings page's panel inside its card: one card, not a box inside a box. */
+:root[data-experience] .workbench .settings-groups>.wb-panel>.wb-panel:not(#x):not(#y):not(#z){border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important;margin:0!important}
