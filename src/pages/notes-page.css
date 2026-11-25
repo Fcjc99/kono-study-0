@@ -22,3 +22,15 @@
 .workbench .notes-list .notes-row-meta:not(#x){margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
 /* ⋯ and the arrows on one line under the note. */
 .workbench .wb-note-wrap>.wb-move:not(#x):not(#y){position:relative;z-index:2;width:max-content;margin:0 0 -40px!important;transform:translate(44px,-46px)}
+
+/* Round 6: a calm head (no pink band), a small New note, the subject filters as small pills, a compact view switch. */
+:root[data-experience] .workbench .wb-board:not(.board-plain)>.wb-board-heading:not(#x):not(#y){background:var(--wb-surface,#fff)!important;background-image:none!important;border-bottom:1px solid var(--wb-line)!important;padding:14px 16px!important;align-items:center}
+:root[data-experience] .workbench .wb-board-heading>h2:not(#x){font-size:1.1rem!important;color:var(--wb-ink)!important;margin:0!important}
+:root[data-experience] .workbench .wb-board-heading>button:not(#x):not(#y){min-height:36px!important;height:36px;padding:0 14px!important;border-radius:99px!important;font-size:.9rem!important;font-weight:750;background:var(--wb-accent)!important;color:var(--wb-accent-ink,#fff)!important;border:0!important;box-shadow:none!important}
+.workbench .notes-filters:not(#x){display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 16px!important}
+.workbench .notes-subject-chips:not(#x){display:flex;flex-wrap:wrap;gap:6px}
+.workbench .notes-subject-chips>button:not(#x):not(#y){min-height:32px!important;height:32px;padding:0 12px!important;border-radius:99px!important;font-size:.85rem!important;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.workbench .notes-subject-chips>button[aria-pressed=true]:not(#x):not(#y){background:var(--wb-accent)!important;color:var(--wb-accent-ink,#fff)!important;border-color:transparent!important}
+.workbench .notes-subject-chips>button small{opacity:.7;font-size:.75rem}
+.workbench .notes-filters>.notes-view:not(#x):not(#y){width:auto!important;margin-left:auto}
+.workbench .notes-filters>.notes-view button:not(#x):not(#y):not(#z){min-height:30px!important;padding:0 14px!important;font-size:.82rem!important;flex:none!important}

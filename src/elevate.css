@@ -63,3 +63,22 @@
 .workbench :is(.star-chore-add,.family-todo-add):not(#x):not(#y)>:is(input,select,button){height:42px!important;min-height:42px!important;font-size:.95rem!important;padding-block:0!important;border-radius:12px!important}
 .workbench :is(.star-chore-add,.family-todo-add):not(#x):not(#y)>button{padding-inline:18px!important;flex:none}
 @media(max-width:560px){.workbench :is(.star-chore-add,.family-todo-add):not(#x):not(#y)>input{flex:1 1 100%!important}.workbench :is(.star-chore-add,.family-todo-add):not(#x):not(#y)>select{flex:1 1 0!important}}
+
+/* The KONO tab on a phone: Search and ⋯ on the title's row, like every other tab. */
+@media(max-width:720px){
+ .workbench[data-page=sanctuary] .wb-header:not(#x):not(#y){flex-wrap:nowrap!important;align-items:center!important}
+ .workbench[data-page=sanctuary] .wb-header:not(#x):not(#y)>div:first-child{flex:1 1 0;min-width:0}
+ .workbench[data-page=sanctuary] .wb-header:not(#x):not(#y)>.wb-toolbar{width:auto!important;flex:0 0 auto;margin:0!important}
+}
+
+/* Search: the box gets the room (the mic and close are small round buttons), and the filters stay on one
+   scrolling row. */
+.command-palette .command-input:not(#x){gap:8px;padding:12px 14px}
+.command-palette .command-input input:not(#x):not(#y){min-width:0;flex:1 1 auto;border:0!important;box-shadow:none!important;outline:0!important;background:transparent!important;padding:6px 2px!important;font-size:1.05rem!important}
+.command-palette .command-input:focus-within:not(#x){box-shadow:inset 0 -2px 0 var(--wb-accent)}
+.command-palette .command-input>button:not(#x):not(#y),.command-palette .command-input .voice-input-button:not(#x):not(#y){width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important;padding:0!important;border-radius:50%!important;flex:none}
+.command-palette .command-filters:not(#x){flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:8px}
+.command-palette .command-filters>button:not(#x){flex:none}
+
+/* A settings page's panel inside its card: one card, not a box inside a box. */
+:root[data-experience] .workbench .settings-groups>.wb-panel>.wb-panel:not(#x):not(#y):not(#z){border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important;margin:0!important}
