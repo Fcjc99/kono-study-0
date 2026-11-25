@@ -113,7 +113,6 @@ import './compact-header.css'
 import {mergeSelfKid,selfKid} from './store/selfKid'
 import {eventLinesFrom} from './store/familyHub'
 import './ui-polish.css'
-import './team-themes.css'
 import './dark-mode.css'
 import './ui-sweep.css'
 import './motion-polish.css'
@@ -237,7 +236,7 @@ export default function WorkspaceApp(){
  const store=usePlannerRepository()
  useEffect(()=>{const {experience='cozy',theme}=store.data.settings,root=document.documentElement;root.dataset.experience=experience;root.dataset.theme=experience==='cozy'?(isPremiumTheme(theme)?'coral':cozyPalette(theme)):fixedPaletteExperiences.includes(experience)?experience:theme
   // Team colors (team-themes.css) key off data-team: "dark" or "light" jersey.
-  const jersey=teamJersey(root.dataset.theme);if(jersey)root.dataset.team=jersey;else delete root.dataset.team},[store.data.settings])
+  const jersey=teamJersey(root.dataset.theme);if(jersey){void import('./team-themes.css');root.dataset.team=jersey}else delete root.dataset.team /* (its stylesheet loads when a team's colors are on, not at startup) */},[store.data.settings])
  // Dark mode (dark-mode.css): always, never, or following the phone's own setting.
  const phoneDark=usePrefersDark(),darkMode=store.data.settings.darkMode??'phone',dark=darkMode==='dark'||(darkMode==='phone'&&phoneDark)||((store.data.settings.experience??'cozy')==='cozy'&&premiumIsDark(store.data.settings.theme))
  useEffect(()=>{const root=document.documentElement;if(dark)root.dataset.dark='true';else delete root.dataset.dark;if(store.ready)rememberSplashDark(darkMode)},[dark,darkMode,store.ready])
@@ -1185,6 +1184,7 @@ function Workspace({store}:{store:Store}){
      * KONO's page is just the island. */}
     {(page==='Sanctuary'?[['sanctuary' as HomeWidget]]:[todayMain,todaySide]).map((ids,col)=><div key={col} className={page==='Sanctuary'?'today-col is-plain':'today-col '+(col?'today-side':'today-main')}>
      {page==='Today'&&col===0&&<TodayTop name={profile.name} hour={Number(nowClock.slice(0,2))} mood={mood} lateCount={overdue.length} coins={coins} coinLabel={'KONO Town: '+coinText(Math.max(0,coins))} showKono={islandSetting!=='off'} onKono={()=>navigate('Sanctuary')} onTown={()=>openTown('shops')}
+     day={(()=>{const due=tasks.filter(t=>t.due===today),ex=ownExams.filter(e=>!e.done&&e.due>=today).sort((a,b)=>a.due.localeCompare(b.due))[0];return {due:due.length,done:due.filter(t=>t.done).length,test:ex?{title:ex.title||'Test',days:Math.round((Date.parse(ex.due+'T12:00:00')-Date.parse(today+'T12:00:00'))/864e5)}:null}})()}
      overdue={overdue.length&&(!familyLean||lateOpen)?<OverdueCard tasks={overdue} subjectName={id=>data.subjects.find(x=>x.id===id)?.name??''} onDone={id=>void run(async()=>{const saved=await save(d=>completeTask(d,id));if(saved)celebrateDone();return saved},'Assignment completed.',true,id)} onMove={moveToToday} onLater={()=>setOverdueHiddenOn(localDate())} onFocus={(id,m)=>startFocusSession(id,m)}/>:null}
      next={todayNext} subjectName={id=>data.subjects.find(x=>x.id===id)?.name??''} today={today} onFocus={(id,m)=>startFocusSession(id,m)} onStudy={label=>startFocusSession('',undefined,label)}
      onDone={id=>void run(async()=>{const saved=await save(d=>completeTask(d,id));if(saved)celebrateDone();return saved},'Assignment completed.',true,id)}/>}

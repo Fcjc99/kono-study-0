@@ -82,3 +82,23 @@
 
 /* A settings page's panel inside its card: one card, not a box inside a box. */
 :root[data-experience] .workbench .settings-groups>.wb-panel>.wb-panel:not(#x):not(#y):not(#z){border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important;margin:0!important}
+
+/* Overhaul · the phone's tab bar floats: a rounded, frosted bar a little above the edge, the current tab in a soft
+   pill of its color. */
+@media(max-width:720px){
+ :root[data-experience='cozy'] .mobile-nav.is-tabbar:not(#a):not(#b){left:10px!important;right:10px!important;bottom:calc(8px + env(safe-area-inset-bottom))!important;width:auto!important;border-radius:26px!important;border:1px solid var(--wb-line)!important;background:color-mix(in srgb,var(--wb-surface,#fff) 86%,transparent)!important;-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);box-shadow:0 14px 34px -14px rgb(40 20 50/.45),0 2px 6px rgb(40 20 50/.08)!important;padding-bottom:6px!important;padding-top:6px!important}
+ :root[data-dark][data-experience='cozy'] .mobile-nav.is-tabbar:not(#a):not(#b){background:color-mix(in srgb,#221d27 88%,transparent)!important;border-color:rgb(255 255 255/.1)!important}
+}
+/* Dinners: the week as one row of small days that scrolls, not a grid of empty boxes. */
+.workbench .meal-days:not(#x){display:flex!important;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.workbench .meal-days>li:not(#x){flex:0 0 72px}
+.workbench .meal-days>li>button:not(#x):not(#y){min-height:44px!important;height:44px;border-radius:12px!important;font-size:.8rem!important;padding:0 6px!important}
+
+/* Overhaul · the sidebar: plain line icons (no tiles), the current tab a soft pill of its color with a bar at
+   its edge, a tighter list. */
+@media(min-width:721px){
+ :root[data-experience='cozy'] .cozy-navigation .sidebar .nav-button[data-tab]:not(#a):not(#b):not(#c):not(#d):not(#e){min-height:44px!important;padding:6px 12px!important;gap:12px!important;font-weight:650!important;position:relative}
+ :root[data-experience='cozy'] .cozy-navigation .sidebar .nav-button[data-tab] .nav-icon:not(#a):not(#b):not(#c):not(#d){width:24px!important;height:24px!important;background:none!important;box-shadow:none!important;border:0!important;color:color-mix(in srgb,var(--tab) 70%,var(--wb-ink))!important}
+ :root[data-experience='cozy'] .cozy-navigation .sidebar .nav-button.active[data-tab]:not(#a):not(#b):not(#c):not(#d):not(#e){font-weight:800!important}
+ :root[data-experience='cozy'] .cozy-navigation .sidebar .nav-button.active[data-tab]:not(#a):not(#b):not(#c):not(#d):not(#e)::before{content:""!important;display:block!important;position:absolute;left:0;top:10px;bottom:10px;width:4px;border-radius:4px;background:var(--tab)}
+}
