@@ -5,6 +5,7 @@ import {toneVars} from '../store/tones'
 import type {PageContext} from './pageContext'
 import StudyTabs from './StudyTabs'
 import Icon from '../components/Icon'
+import KonoEmpty from '../components/KonoEmpty'
 import './study-page.css'
 
 const DAY=86_400_000
@@ -29,7 +30,7 @@ export default function StudyPage({w}:{w:PageContext}){
     <div className="study-count" aria-hidden="true"><b>{n}</b><span>{n===0?'today':n===1?'day':'days'}</span></div>
     <button type="button" className="study-test-main" aria-label={'Edit '+e.title} onClick={()=>edit('exams',e as unknown as Entry)}><b>{e.title}</b><small>{[subjectName(e.subjectId),new Date(e.due+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})].filter(Boolean).join(' · ')}</small></button>
     <button type="button" className="study-pill" onClick={()=>{setPlanRequest(x=>x+1);navigate('Planner')}}>Plan review</button>
-   </li>})}</ul>:<p className="wb-muted">No tests coming up. Add one and KONO counts down to it.</p>}
+   </li>})}</ul>:<KonoEmpty compact pose="sit" title="No tests coming up">Add one and KONO counts down to it.</KonoEmpty>}
    {tests.length>3&&<button type="button" className="study-more" onClick={()=>navigate('Exams')}>All {tests.length} tests ›</button>}
   </section>}
   <section className="wb-panel study-cards" aria-label="Flashcards">
