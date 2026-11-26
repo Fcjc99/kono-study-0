@@ -27,8 +27,8 @@ export default function ExamsPage({w}:{w:PageContext}){
    </div>
   </li>}
  return <><StudyTabs page="Exams" navigate={navigate} hidden={hiddenPages}/><section className="wb-panel exams-page" aria-label="Your exams">
-  <div className="wb-section-head"><h2>Upcoming exams</h2>{upcoming.length>0&&<button type="button" className="primary" onClick={()=>create('exams')}>＋ Add exam</button>}</div>
-  {upcoming.length?<ul className="exam-list">{upcoming.map(e=>row(e))}</ul>:<div className="exams-empty"><img className="kono-empty-art" src="/garden/kono/tea.webp" alt="" aria-hidden="true"/><p><strong>{mine.length?'Nothing coming up.':'No exams yet.'}</strong> Add a test with its date, and KONO counts down to it and can plan review sessions before it.</p><button type="button" className="primary" onClick={()=>create('exams')}>＋ Add exam</button></div>}
+  <div className="wb-section-head"><h2>Upcoming tests</h2>{upcoming.length>0&&<button type="button" className="primary" onClick={()=>create('exams')}>＋ Add a test</button>}</div>
+  {upcoming.length?<ul className="exam-list">{upcoming.map(e=>row(e))}</ul>:<div className="exams-empty"><img className="kono-empty-art" src="/garden/kono/tea.webp" alt="" aria-hidden="true"/><p><strong>{mine.length?'Nothing coming up.':'No tests yet.'}</strong> Add a test with its date, and KONO counts down to it and can plan review sessions before it.</p><button type="button" className="primary" onClick={()=>create('exams')}>＋ Add a test</button></div>}
   {past.length>0&&<details className="exam-past" open={!upcoming.length}><summary>Done and past ({past.length})</summary><ul className="exam-list">{past.map(e=>row(e,true))}</ul></details>}
  </section></>
 }

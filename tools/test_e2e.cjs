@@ -3201,7 +3201,7 @@ test('Today shortcut: the app’s Today shortcut opens Today (your day, without 
  await page.goto(BASE+'?new=1');await heading(page,'Today')
  await page.getByRole('dialog',{name:'Add to your plan'}).waitFor()
 })
-test('Today: the app opens on Today with KONO in one line and the overdue work as the hero card; Focus opens full screen on that assignment, and the KONO tab has the island and the Play tiles',async({context,page})=>{
+test('Today: the app opens on Today with KONO in one line and the overdue work as the hero card; Focus opens full screen on that assignment, and the KONO tab has the island (Decorate, Arcade, World map) and KONO Town under it',async({context,page})=>{
  const cloud=fakeCloud()
  await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
  await page.setViewportSize({width:390,height:844})
@@ -3223,7 +3223,11 @@ test('Today: the app opens on Today with KONO in one line and the overdue work a
  await page.getByRole('region',{name:'KONO',exact:true}).getByRole('button',{name:'Visit KONO’s island'}).click()
  await heading(page,'Sanctuary');await page.locator('.wb-island').waitFor()
  const play=page.getByRole('region',{name:'Play',exact:true})
- for(const tile of ['KONO Town','Arcade','Decorate','World map'])await play.getByRole('button',{name:new RegExp('^'+tile)}).waitFor()
+ // With the island on screen, its own buttons are Decorate, Arcade and World map, and Play under it is just KONO
+ // Town (no button twice).
+ for(const b of ['Decorate','Arcade','World map'])await page.getByRole('navigation',{name:'Sanctuary view'}).getByRole('button',{name:new RegExp(b)}).waitFor()
+ await play.getByRole('button',{name:/^KONO Town/}).waitFor()
+ assert.equal(await play.getByRole('button').count(),1,'only KONO Town under the island')
  await play.getByRole('button',{name:/^KONO Town/}).click()
  await page.getByRole('dialog',{name:/KONO Town/}).waitFor()
 })
