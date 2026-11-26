@@ -38,3 +38,16 @@
 .workbench .settings-back:not(#x){display:inline-flex!important;align-items:center!important;gap:4px!important;margin:0!important;min-height:36px!important;padding:0 12px 0 6px!important;border-radius:99px!important}
 .settings-back .kicon{transform:rotate(180deg)}
 .settings-section-title{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}
+/* New look: each section's icon on a tile of its own color (like a phone's settings). */
+.workbench .settings-rows button[aria-label] .settings-row-icon:not(#x){--ri:#8a5a78;width:36px;height:36px;border-radius:11px;background:linear-gradient(150deg,color-mix(in srgb,var(--ri) 70%,#fff),var(--ri))!important;color:#fff!important;box-shadow:0 4px 10px color-mix(in srgb,var(--ri) 30%,transparent)}
+.workbench .settings-rows button[aria-label='Look & feel'] .settings-row-icon:not(#x){--ri:#c2577f}
+.workbench .settings-rows button[aria-label='Sound'] .settings-row-icon:not(#x){--ri:#e07a3a}
+.workbench .settings-rows button[aria-label='Notifications'] .settings-row-icon:not(#x){--ri:#d94b4b}
+.workbench .settings-rows button[aria-label='Family'] .settings-row-icon:not(#x){--ri:#3f8f6b}
+.workbench .settings-rows button[aria-label='Schedules'] .settings-row-icon:not(#x){--ri:#4f78b8}
+.workbench .settings-rows button[aria-label='Import & export'] .settings-row-icon:not(#x){--ri:#7a5cc0}
+.workbench .settings-rows button[aria-label='Plans & account'] .settings-row-icon:not(#x){--ri:#6b7280}
+.workbench .settings-rows button[aria-label='KONO support'] .settings-row-icon:not(#x){--ri:#a8742a}
+.workbench .settings-rows:not(#x){border-radius:22px!important}
+.workbench .settings-rows button:not(#x):not(#y):hover{background:color-mix(in srgb,var(--wb-ink,#333) 4%,transparent)!important}
+.workbench .settings-me .settings-me-face:not(#x){width:52px;height:52px;font-size:1.3rem;background:linear-gradient(145deg,color-mix(in srgb,var(--wb-accent) 70%,#fff),var(--wb-accent));box-shadow:0 6px 16px color-mix(in srgb,var(--wb-accent) 30%,transparent)}

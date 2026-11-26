@@ -1009,7 +1009,7 @@ function Workspace({store}:{store:Store}){
  // Planner › Week: an item dropped on an hour (see store/weekDrop for what that means for each kind).
  const planAt=(key:Collection,entry:Entry,day:string,time:string)=>{
   const plan=weekDrop(key,entry,day,time,family?.home.get(entry.id)??profile.id)
-  if(plan.kind==='none'){setMessage(plan.why);return}
+  if(plan.kind==='none'){sound('nope');setMessage(plan.why);return}
   if(plan.kind==='move-due'&&!window.confirm(plan.question))return
   if(plan.kind==='session'){const event=plan.event;void run(()=>save(d=>({...d,calendarEvents:[...d.calendarEvents,event]})),'Added '+event.title+' at '+classTime(time)+'.');return}
   moved(key,entry,plan.changes as Partial<Entry>,'Moved “'+(titleOf(entry)||'it')+'” to '+dateLabel(day)+', '+classTime(time)+'.')

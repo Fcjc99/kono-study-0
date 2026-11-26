@@ -182,3 +182,4 @@
 :root[data-dark=true] .workbench .wb-agenda-day-wrap:not(#x):not(#y){background:color-mix(in srgb,#fff 4%,transparent)!important}
 .workbench .wb-agenda-day-wrap.is-today .agenda-leaf:not(#x):not(#y){background:linear-gradient(150deg,color-mix(in srgb,var(--tab,#7a5cc0) 72%,#fff),var(--tab,#7a5cc0))!important}
 @media(max-width:600px){.workbench .wb-agenda-day>summary .wb-agenda-day-date:not(#x):not(#y){display:none!important}.workbench .wb-agenda-day-meta>.wb-agenda-count:not(#x){display:none!important}}
+.workbench .wb-agenda-day-wrap.has-add>.wb-agenda-day>summary:not(#x):not(#y){padding-right:44px!important}
