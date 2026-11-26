@@ -5593,6 +5593,26 @@ test('Planner on a phone: hold an assignment, drag it with a finger onto a day i
  await context.close()
 })
 
+test('Family on the tab bar is a choice: turned off, Family moves under More (and still opens); turned back on, it returns to the bar',async({context,page})=>{
+ const cloud=fakeCloud();await signInAs(context,cloud,'alice')
+ await page.setViewportSize({width:390,height:844});await page.goto(BASE);await heading(page,'Today')
+ const bar=page.locator('nav.mobile-nav')
+ await bar.getByRole('button',{name:'Family',exact:true}).waitFor()
+ await go(page,'Settings');{const back=page.getByRole('button',{name:/All settings/});if(await back.count())await back.first().click()};await page.locator('.settings-rows').getByRole('button',{name:'Family',exact:true}).click()
+ const box=page.getByRole('checkbox',{name:/Family on the phone’s tab bar/});await box.uncheck()
+ await bar.getByRole('button',{name:'Family',exact:true}).waitFor({state:'detached'})
+ await bar.getByRole('button',{name:'More',exact:true}).click()
+ const more=page.getByRole('dialog',{name:'More'})
+ await more.getByRole('button',{name:'Family',exact:true}).click()
+ await heading(page,'Kids')
+ assert.equal(await bar.getByRole('button',{name:'More',exact:true}).getAttribute('aria-current')??'','','More is the bar’s tab for Family now',)
+ await go(page,'Settings');{const back=page.getByRole('button',{name:/All settings/});if(await back.count())await back.first().click()};await page.locator('.settings-rows').getByRole('button',{name:'Family',exact:true}).click()
+ await page.getByRole('checkbox',{name:/Family on the phone’s tab bar/}).check()
+ await bar.getByRole('button',{name:'Family',exact:true}).waitFor()
+ await bar.getByRole('button',{name:'More',exact:true}).click()
+ assert.equal(await page.getByRole('dialog',{name:'More'}).getByRole('button',{name:'Family',exact:true}).count(),0,'not in More while it’s on the bar')
+})
+
 async function main(){
  const server=await startServer()
  const onlyArg=process.argv[2]

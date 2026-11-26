@@ -16,6 +16,7 @@ import {TEAM_THEMES,teamThemeIds} from './teamThemes'
 import {PREMIUM_THEMES,premiumIsDark} from './premiumThemes'
 import {cozyPalette,cozyPalettes,experienceOptions,fixedPaletteExperiences,type Page,type SettingsTab} from './workspaceShared'
 import TimeField from './components/TimeField'
+import {useLocalSetting} from './hooks/useLocalSetting'
 import {haptic,readHaptics,saveHaptics} from './game/haptics'
 
 /* The Kids page, the family settings and Look & feel (experience, palettes, team colors). These load
@@ -65,16 +66,24 @@ export function QuickFamilyAdd({kids,time:startAt,endAt,date,until:defaultUntil,
 // store/workspace.ts), so create/edit/remove below reuse the app's existing undo/redo and Trash.
 // Settings › Family. A solo student only ever sees the Parent mode switch here; everything else
 // appears once it's on.
+/** Whether Family sits on a phone's bottom tab bar or under More (this device; some families use it all day,
+ * some only now and then). */
+const FAMILY_ON_BAR='kono-tabbar-family'
+function FamilyOnBar(){
+ const [on,setOn]=useLocalSetting(FAMILY_ON_BAR,'on')
+ return <label className="wb-check"><input type="checkbox" checked={on!=='off'} onChange={e=>setOn(e.target.checked?'on':'off')}/>Family on the phone’s tab bar (off: it’s under More)</label>
+}
 export function FamilySettings({data,setting,patch,navigate}:{data:AppData;setting:<K extends keyof SettingsData>(key:K,value:SettingsData[K])=>Promise<boolean>;patch:(key:Collection,entry:Entry,changes:Partial<Entry>)=>Promise<void>;navigate:(page:Page)=>void}){
  const [lookOpen,setLookOpen]=useState(false)
  const parentMode=data.settings.parentMode===true
  return <section className="wb-panel family-settings"><h2>Family</h2>
-  <label className="wb-check"><input type="checkbox" checked={parentMode} onChange={e=>void setting('parentMode',e.target.checked)}/>Parent mode: show the Kids tab</label>
-  <p className="theme-picker-description">Turn this on if you're a parent managing more than one kid on a shared device. It adds a Kids tab for tagging assignments, exams, classes and events with a kid — and a kid filter on your calendar — the same way subjects already work. Off by default, so it stays out of the way if you're not a parent.</p>
+  <label className="wb-check"><input type="checkbox" checked={parentMode} onChange={e=>void setting('parentMode',e.target.checked)}/>Parent mode: show the Family tab</label>
+  <p className="theme-picker-description">Turn this on if you're a parent managing more than one kid on a shared device. It adds a Family tab for tagging assignments, exams, classes and events with a kid — and a kid filter on your calendar — the same way subjects already work. Off by default, so it stays out of the way if you're not a parent.</p>
   {parentMode&&<>
   <div className="kid-appearance-toggles">
    <label className="wb-check"><input type="checkbox" checked={data.settings.familyTileBorders!==false} onChange={e=>void setting('familyTileBorders',e.target.checked)}/>Color-code event tiles by kid</label>
    <label className="wb-check"><input type="checkbox" checked={data.settings.familyTileAvatars!==false} onChange={e=>void setting('familyTileAvatars',e.target.checked)}/>Show each kid's emoji and name on their tiles</label>
+   <FamilyOnBar/>
    <label className="wb-check"><input type="checkbox" checked={data.settings.familyStudyTabs===true} onChange={e=>void setting('familyStudyTabs',e.target.checked)}/>Show the study pages (Subjects, K-Quiz, Exams) in the family plan</label>
   </div>
    <div className="wb-toolbar"><button type="button" onClick={()=>navigate('Kids')}>Manage kids</button><button type="button" onClick={()=>setLookOpen(true)}>🎨 Kids' appearance</button></div>
