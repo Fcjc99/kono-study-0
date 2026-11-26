@@ -55,10 +55,10 @@ export function WeatherSettings({data,setData,weatherState}:{data:AppData;setDat
    {data.settings.sanctuaryWeatherMode==='manual'&&<label className="manual-weather-row"><div><strong>Manual Sanctuary weather</strong><small>Debug controls can still temporarily override this selection.</small></div><select value={data.settings.sanctuaryWeather} onChange={e=>updateSetting('sanctuaryWeather',e.target.value as SanctuaryWeather)}><option value="clear">Clear</option><option value="cloudy">Cloudy</option><option value="rain">Rain</option><option value="wind">Breezy</option><option value="snow">Snow</option></select></label>}
   <small className="weather-attribution">Weather data by Open-Meteo. City and regional searches use the Open-Meteo geocoding service.</small></section>
 }
-/** Sounds and motion: part of how KONO looks and feels. */
+/** Motion: part of how KONO looks and feels (sounds are in Settings › Sound). */
 export function SoundMotionSettings({data,setData}:{data:AppData;setData:SetAppData}){
  const updateSetting=settingUpdater(setData)
- return <section className="card settings-list"><label><div><strong>Ambient sound</strong><small>Soft piano and sanctuary ambience</small></div><input type="checkbox" checked={data.settings.ambient} onChange={e=>updateSetting('ambient',e.target.checked)}/></label><label><div><strong>Motion preference</strong><small>Applies to the Sanctuary and interface</small></div><select value={data.settings.motionPreference??'system'} onChange={e=>updateSetting('motionPreference',e.target.value as SettingsData['motionPreference'])}><option value="system">Follow device</option><option value="reduced">Reduced motion</option><option value="full">Full animation</option></select></label></section>
+ return <section className="card settings-list"><label><div><strong>Motion preference</strong><small>Applies to the Sanctuary and interface</small></div><select value={data.settings.motionPreference??'system'} onChange={e=>updateSetting('motionPreference',e.target.value as SettingsData['motionPreference'])}><option value="system">Follow device</option><option value="reduced">Reduced motion</option><option value="full">Full animation</option></select></label></section>
 }
 /** Reminders while KONO is open, the due-soon summary, and browser notifications. */
 export function ReminderSettings({data,setData}:{data:AppData;setData:SetAppData}){

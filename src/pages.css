@@ -45,7 +45,7 @@
 @media (max-width:900px){
  .workbench .wb-music-bar:not(.is-playing){display:none!important}
 }
-@media (min-width:901px){.header-more-music{display:none!important}}
+@media (min-width:721px){.header-more-music{display:none!important}}
 
 /* Planner › Week: 1 day, 3 days or the whole week (PlannerCalendar). On a phone the whole week fits the
    screen (week-tiles.css); .is-wide is the older sideways-scrolling layout. */

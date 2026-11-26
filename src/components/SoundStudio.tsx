@@ -51,7 +51,7 @@ function CustomSound({slot,label}:{slot:'done'|'timer'|'start';label:string}){
 
 /** Settings › Sound: on or off, how loud, which sound pack, which moments make a sound, your own sounds, the
  * Focus soundscape, KONO's chatter and haptics. */
-export default function SoundStudio({on,setOn}:{on:boolean;setOn:(v:boolean)=>void}){
+export default function SoundStudio({on,setOn,ambient,setAmbient}:{on:boolean;setOn:(v:boolean)=>void;ambient:boolean;setAmbient:(v:boolean)=>void}){
  const [p,set]=useSoundPrefs()
  const [chatter,setChatter]=useLocalSetting(BABBLE_SETTING,'off')
  const [buzz,setBuzz]=useState(readHaptics)
@@ -95,7 +95,8 @@ export default function SoundStudio({on,setOn}:{on:boolean;setOn:(v:boolean)=>vo
   </section>
 
   <section className="wb-panel">
-   <h2>KONO and your phone</h2>
+   <h2>KONO, the island and your phone</h2>
+   <label className="sound-row"><span><b>Island sounds</b><small>Soft piano and sanctuary ambience on KONO’s island</small></span><span className="sound-switch is-small"><input type="checkbox" role="switch" checked={ambient} aria-label="Island sounds" onChange={e=>setAmbient(e.target.checked)}/><span aria-hidden="true"/></span></label>
    <label className="sound-row"><span><b>KONO’s chatter</b><small>Soft little blips when KONO says something to you</small></span><span className="sound-switch is-small"><input type="checkbox" role="switch" checked={chatter==='on'} aria-label="KONO’s chatter" onChange={e=>{setChatter(e.target.checked?'on':'off');if(e.target.checked)babble('Hi there, friend!')}}/><span aria-hidden="true"/></span></label>
    <label className="sound-row"><span><b>Haptics</b><small>A little tap you can feel in games and when you finish things</small></span><span className="sound-switch is-small"><input type="checkbox" role="switch" checked={buzz} aria-label="Haptics" onChange={e=>{saveHaptics(e.target.checked);setBuzz(e.target.checked);if(e.target.checked)haptic('success')}}/><span aria-hidden="true"/></span></label>
   </section>
