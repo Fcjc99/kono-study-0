@@ -82,3 +82,55 @@
 
 /* A settings page's panel inside its card: one card, not a box inside a box. */
 :root[data-experience] .workbench .settings-groups>.wb-panel>.wb-panel:not(#x):not(#y):not(#z){border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important;margin:0!important}
+
+/* Overhaul · the phone's tab bar floats: a rounded, frosted bar a little above the edge, the current tab in a soft
+   pill of its color. */
+@media(max-width:720px){
+ :root[data-experience='cozy'] .mobile-nav.is-tabbar:not(#a):not(#b){left:10px!important;right:10px!important;bottom:calc(8px + env(safe-area-inset-bottom))!important;width:auto!important;border-radius:26px!important;border:1px solid var(--wb-line)!important;background:color-mix(in srgb,var(--wb-surface,#fff) 86%,transparent)!important;-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);box-shadow:0 14px 34px -14px rgb(40 20 50/.45),0 2px 6px rgb(40 20 50/.08)!important;padding-bottom:6px!important;padding-top:6px!important}
+ :root[data-dark][data-experience='cozy'] .mobile-nav.is-tabbar:not(#a):not(#b){background:color-mix(in srgb,#221d27 88%,transparent)!important;border-color:rgb(255 255 255/.1)!important}
+}
+/* Dinners: the week as one row of small days that scrolls, not a grid of empty boxes. */
+.workbench .meal-days:not(#x){display:flex!important;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.workbench .meal-days>li:not(#x){flex:0 0 72px}
+.workbench .meal-days>li>button:not(#x):not(#y){min-height:44px!important;height:44px;border-radius:12px!important;font-size:.8rem!important;padding:0 6px!important}
+
+/* Overhaul · the sidebar: plain line icons (no tiles), the current tab a soft pill of its color with a bar at
+   its edge, a tighter list. */
+@media(min-width:721px){
+ :root[data-experience='cozy'] .cozy-navigation .sidebar .nav-button[data-tab]:not(#a):not(#b):not(#c):not(#d):not(#e){min-height:44px!important;padding:6px 12px!important;gap:12px!important;font-weight:650!important;position:relative}
+ :root[data-experience='cozy'] .cozy-navigation .sidebar .nav-button[data-tab] .nav-icon:not(#a):not(#b):not(#c):not(#d){width:24px!important;height:24px!important;background:none!important;box-shadow:none!important;border:0!important;color:color-mix(in srgb,var(--tab) 70%,var(--wb-ink))!important}
+ :root[data-experience='cozy'] .cozy-navigation .sidebar .nav-button.active[data-tab]:not(#a):not(#b):not(#c):not(#d):not(#e){font-weight:800!important}
+ :root[data-experience='cozy'] .cozy-navigation .sidebar .nav-button.active[data-tab]:not(#a):not(#b):not(#c):not(#d):not(#e)::before{content:""!important;display:block!important;position:absolute;left:0;top:10px;bottom:10px;width:4px;border-radius:4px;background:var(--tab)}
+}
+
+/* Overhaul · This week: today filled in the accent, a dot on days with something on. */
+.workbench .week-ahead-days>li:first-child>button:not(#x):not(#y){background:var(--wb-accent)!important;border-color:transparent!important;color:#fff!important;box-shadow:0 8px 18px -10px var(--wb-accent)!important}
+.workbench .week-ahead-days>li:first-child>button .wa-day:not(#x){color:#fff!important}
+.workbench .week-ahead-days>li>button:has(.wa-marks>*):not(#x)::after{content:"";position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--wb-accent)}
+.workbench .week-ahead-days>li>button:not(#x){position:relative}
+/* Focus: a calm night card with KONO reading, and a big round start. */
+:root .workbench .focus-launch:not(#x):not(#y):not(#z){display:flex!important;align-items:center;gap:14px;flex-wrap:wrap;color:#fff;border:0!important;background:radial-gradient(90% 120% at 0 0,#5b4a9e,transparent 60%),linear-gradient(135deg,#2c2452,#171433)!important;box-shadow:0 18px 40px -24px #1b1640!important}
+.workbench .focus-launch :is(h2,p):not(#x):not(#y){color:#fff!important}.workbench .focus-launch p:not(#x){opacity:.8}
+.focus-launch-kono{width:64px;height:64px;flex:none;border-radius:50%;background:rgb(255 255 255/.12);padding:4px}
+.workbench .focus-launch>div{flex:1 1 160px}
+.workbench .focus-launch>button.primary:not(#x):not(#y){background:#fff!important;color:#2c2452!important;border:0!important;box-shadow:none!important}
+/* Your day: Today and Tomorrow as small labels over their lists (the count a dot of the accent). */
+.workbench .today-card .today-card-day:not(#x):not(#y){font-size:.74rem!important;font-weight:800!important;letter-spacing:.12em;text-transform:uppercase;color:var(--wb-muted)!important;display:flex;align-items:center;gap:8px;margin:14px 0 6px!important}
+/* New look: every tab has its own color (the sidebar's), shown as a soft band behind the page's title and a
+ * wash at the top of the page; the title's icon sits on a solid tile of that color. Today keeps its hero. */
+.workbench[data-page=planner]{--tab:#7a5cc0}.workbench[data-page=kids]{--tab:#3f8f6b}.workbench[data-page=subjects]{--tab:#a8742a}.workbench:is([data-page=study],[data-page=notes],[data-page=k-quiz],[data-page=exams]){--tab:#4f78b8}.workbench[data-page=settings]{--tab:#8a5a78}.workbench[data-page=sanctuary]{--tab:#c2577f}.workbench[data-page=trash]{--tab:#7d7480}
+:root[data-experience='cozy'] .workbench:not([data-page=today]) #workspace-main{background:radial-gradient(120% 340px at 50% -60px,color-mix(in srgb,var(--tab) 13%,transparent),transparent 72%) no-repeat}
+:root[data-experience='cozy'] .workbench:not([data-page=today]):not([data-page=sanctuary]) #workspace-main .wb-header:not(#x):not(#y):not(#z){padding:18px 20px!important;margin:12px 0 18px!important;border-radius:26px!important;background:linear-gradient(135deg,color-mix(in srgb,var(--tab) 17%,var(--wb-surface,#fff)),color-mix(in srgb,var(--tab) 5%,var(--wb-surface,#fff)) 70%)!important;border:1px solid color-mix(in srgb,var(--tab) 20%,transparent)!important;box-shadow:0 10px 30px color-mix(in srgb,var(--tab) 12%,transparent)!important}
+:root[data-experience='cozy'] .workbench:not([data-page=today]) #workspace-main .wb-header .page-title-icon:not(#x):not(#y){width:50px;height:50px;border-radius:16px;background:linear-gradient(140deg,color-mix(in srgb,var(--tab) 80%,#fff),var(--tab))!important;color:#fff!important;box-shadow:0 8px 18px color-mix(in srgb,var(--tab) 35%,transparent)!important}
+:root[data-experience='cozy'] .workbench:not([data-page=today]) #workspace-main .wb-header .page-title-icon:not(#x) :is(svg,img){width:30px;height:30px}
+:root[data-experience='cozy'] .workbench:not([data-page=today]) #workspace-main .wb-header .wb-page-summary:not(#x){color:color-mix(in srgb,var(--tab) 55%,var(--wb-ink,#333))!important;font-weight:600}
+:root[data-dark=true] .workbench:not([data-page=today]):not([data-page=sanctuary]) #workspace-main .wb-header:not(#x):not(#y):not(#z){background:linear-gradient(135deg,color-mix(in srgb,var(--tab) 26%,#1d1a22),color-mix(in srgb,var(--tab) 8%,#1d1a22) 70%)!important}
+@media(max-width:720px){:root[data-experience='cozy'] .workbench:not([data-page=today]):not([data-page=sanctuary]) #workspace-main .wb-header:not(#x):not(#y):not(#z){padding:14px!important;border-radius:22px!important}:root[data-experience='cozy'] .workbench:not([data-page=today]) #workspace-main .wb-header .page-title-icon:not(#x):not(#y){width:42px;height:42px;border-radius:14px}}
+@media(min-width:721px){:root[data-experience='cozy'] .cozy-navigation .sidebar :is(.sidebar-music-slot>*,.profile-switcher,.sidebar-profile,.profile-dock):not(#a):not(#b){border-radius:18px!important;border:1px solid var(--wb-line,rgba(0,0,0,.08))!important;box-shadow:0 2px 8px rgba(40,25,50,.04)!important;background:color-mix(in srgb,var(--wb-ink,#333) 2.5%,var(--wb-surface,#fff))!important}
+:root[data-experience='cozy'] .cozy-navigation .sidebar .kono-radio-mini .radio-play:not(#a):not(#b){flex-basis:32px;width:32px;height:32px;background:var(--wb-accent)!important;color:#fff!important;border:0!important;box-shadow:0 4px 10px color-mix(in srgb,var(--wb-accent) 30%,transparent)!important}}
+/* ＋ Add: each kind in its own color (as on the Planner), and Type it as the quick way in. */
+.add-tiles .add-tile[data-kind]{--k:#7a5cc0}.add-tiles .add-tile[data-kind=exams]{--k:#c2477a}.add-tiles .add-tile[data-kind=calendarEvents]{--k:#3f7fb0}.add-tiles .add-tile[data-kind=lesson]{--k:#b5772a}.add-tiles .add-tile[data-kind=notes]{--k:#2f8f7a}
+:root .workbench .add-tiles .add-tile[data-kind]:not(#x):not(#y):not(#z){border-radius:18px!important;transition:transform .15s,box-shadow .15s,border-color .15s!important}
+:root .workbench .add-tiles .add-tile[data-kind]:not(#x):not(#y):not(#z):hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--k) 45%,transparent)!important;box-shadow:0 10px 22px -12px color-mix(in srgb,var(--k) 70%,transparent)!important}
+:root .workbench .add-tiles .add-tile[data-kind] .add-tile-icon:not(#x):not(#y){width:46px;height:46px;border-radius:15px;background:linear-gradient(150deg,color-mix(in srgb,var(--k) 70%,#fff),var(--k))!important;color:#fff!important;box-shadow:0 6px 14px -6px var(--k)}
+:root .quick-add-box textarea:not(#x):not(#y){border-radius:16px!important;background:color-mix(in srgb,var(--wb-accent) 4%,var(--wb-surface,#fff))!important;font-size:1.05rem!important;min-height:56px}

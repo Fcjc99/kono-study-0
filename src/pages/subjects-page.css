@@ -29,3 +29,42 @@
 .workbench .restored-subjects .subject-workspace:not(#x){border-top:6px solid var(--subject)!important}
 .workbench .restored-subjects .subject-workspace-title h2:not(#x){font-size:clamp(1.5rem,5vw,2rem)!important;margin:0 0 2px!important}
 .subject-facts .kicon,.restored-subjects .wb-toolbar .kicon{vertical-align:-2px}
+
+/* ── New look (Classes). The class cards: the class's color, how much of its work is open (the ring: done all the
+   way round), what needs you. On a phone they scroll sideways, so the class itself is on screen at once. */
+.workbench .class-cards .class-card:not(#x):not(#y){padding:14px 16px!important;min-height:118px!important;border-radius:22px!important;background:linear-gradient(150deg,color-mix(in srgb,var(--subject,#7a6672) 88%,#fff),var(--subject,#7a6672) 55%,color-mix(in srgb,var(--subject,#7a6672) 80%,#000))!important;transition:transform .18s cubic-bezier(.3,1.4,.5,1),box-shadow .18s!important}
+.workbench .class-cards .class-card:not(#x):not(#y):hover{transform:translateY(-3px)}
+.workbench .class-cards .class-card.active:not(#x):not(#y){outline:0!important;box-shadow:0 0 0 3px var(--wb-surface,#fff),0 0 0 6px var(--subject,#7a6672),0 16px 30px -14px color-mix(in srgb,var(--subject,#7a6672) 85%,#000)!important}
+.workbench .class-cards .class-card strong:not(#x){padding-right:44px;font-size:1.12rem}
+.workbench .class-cards .class-card>span:last-child:not(.class-card-ring){display:inline-flex;align-self:end;justify-self:start;margin-top:auto;padding:4px 10px!important;border-radius:99px;background:rgba(255,255,255,.22);backdrop-filter:blur(4px)}
+.class-card-ring{--p:100;position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#fff calc(var(--p)*1%),rgba(255,255,255,.28) 0);margin:0!important;padding:0!important}
+.class-card-ring::before{content:'';position:absolute;inset:4px;border-radius:50%;background:color-mix(in srgb,var(--subject,#7a6672) 82%,#000)}
+.class-card-ring b{position:relative;font-size:.85rem;font-weight:800;color:#fff}
+.workbench .class-cards .class-card.is-loose:not(#x):not(#y){background:var(--wb-surface,#fff)!important;color:var(--wb-ink)!important;border:1px solid var(--wb-line)!important}
+.workbench .class-cards .class-card.is-add:not(#x):not(#y){min-height:118px!important;background:transparent!important}
+@media(max-width:720px){
+ .workbench .restored-subjects .class-cards:not(#x):not(#y){display:flex!important;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 16px;gap:10px;margin:0 -16px 14px!important;padding:8px 16px 12px!important;scrollbar-width:none}
+ .workbench .class-cards:not(#x)::-webkit-scrollbar{display:none}
+ .workbench .class-cards .class-card:not(#x):not(#y){flex:0 0 min(64vw,230px)!important;scroll-snap-align:start}
+ .workbench .class-cards .class-card.is-add:not(#x):not(#y){flex:0 0 108px!important}
+}
+/* The class page: a header in the class's color; its facts in a row; the sections as a segmented control. */
+.workbench .restored-subjects .subject-workspace:not(#x):not(#y){border-top:0!important;padding-top:0!important;overflow:hidden;border-radius:26px!important;background:linear-gradient(180deg,color-mix(in srgb,var(--subject) 16%,var(--wb-surface,#fff)) 0,var(--wb-surface,#fff) 230px)!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--subject) 18%,transparent),0 14px 30px -20px color-mix(in srgb,var(--subject) 60%,#000)!important}
+.workbench .restored-subjects .subject-workspace-title:not(#x):not(#y){margin:0 0 14px!important;padding:20px 0 6px!important;background:none!important}
+.workbench .restored-subjects .subject-workspace-title h2:not(#x):not(#y){display:flex;align-items:center;gap:10px}
+.workbench .restored-subjects .subject-workspace-title h2:not(#x):not(#y)::before{content:'';flex:none;width:14px;height:14px;border-radius:5px;background:var(--subject)}
+.subject-facts{display:flex!important;flex-wrap:wrap;gap:6px!important;margin:10px 0 0!important}
+.workbench .subject-facts>span:not(#x){display:inline-flex;align-items:center;gap:5px;padding:5px 11px!important;border-radius:99px!important;background:var(--wb-surface,#fff)!important;border:1px solid color-mix(in srgb,var(--subject) 22%,transparent);font-size:.8rem!important;font-weight:700;color:var(--wb-ink)!important}
+.workbench .subject-facts .kicon{color:var(--subject)}
+.workbench .subject-section-tabs:not(#x):not(#y){display:flex!important;gap:4px!important;padding:4px!important;margin:0 0 14px!important;border-radius:16px!important;background:color-mix(in srgb,var(--wb-ink,#333) 5%,transparent)!important;border:0!important;width:100%!important;overflow-x:auto}
+.workbench .subject-section-tabs button:not(#x):not(#y){flex:1 0 auto!important;min-height:38px!important;margin:0!important;padding:0 12px!important;border-radius:12px!important;border:0!important;background:transparent!important;box-shadow:none!important;font-weight:700!important;font-size:.88rem!important;color:var(--wb-muted)!important}
+.workbench .subject-section-tabs button[aria-current=page]:not(#x):not(#y){background:var(--wb-surface,#fff)!important;color:var(--wb-ink)!important;box-shadow:0 2px 8px rgba(30,20,40,.08)!important}
+/* Assignment rows as soft cards, the class's color down the side of the late ones. */
+.workbench .restored-subjects .class-rows:not(#x){display:grid;gap:8px}
+.workbench .restored-subjects .class-rows li:not(#x){padding:10px 12px!important;border:1px solid var(--wb-line)!important;border-radius:16px;background:var(--wb-surface,#fff)}
+.workbench .restored-subjects .class-rows li:has(em):not(#x){box-shadow:inset 4px 0 0 #e0783a}
+.workbench .restored-subjects .subject-quick-add:not(#x){padding:12px 14px!important;border-radius:18px!important;background:color-mix(in srgb,var(--subject) 7%,var(--wb-surface,#fff))!important}
+:root[data-dark=true] .workbench .restored-subjects .class-rows li:not(#x){background:color-mix(in srgb,#fff 4%,transparent)}
+:root[data-dark=true] .workbench .subject-section-tabs button[aria-current=page]:not(#x):not(#y){background:color-mix(in srgb,#fff 12%,transparent)!important}
+:root .workbench .restored-subjects .subject-workspace:not(#a):not(#b):not(#c):not(#d){background:linear-gradient(var(--subject),var(--subject)) top/100% 5px no-repeat,linear-gradient(180deg,color-mix(in srgb,var(--subject) 15%,var(--wb-surface,#fff)) 0,var(--wb-surface,#fff) 240px)!important}
+:root[data-dark=true] .workbench .restored-subjects .subject-workspace:not(#a):not(#b):not(#c):not(#d){background:linear-gradient(var(--subject),var(--subject)) top/100% 5px no-repeat,linear-gradient(180deg,color-mix(in srgb,var(--subject) 22%,#1f1b24) 0,#1f1b24 240px)!important}

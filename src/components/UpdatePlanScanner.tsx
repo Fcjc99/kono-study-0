@@ -5,7 +5,7 @@ import { AiHelperStatus } from './AiHelper'
 import { useAiHelper } from '../hooks/useAiHelper'
 import { aiReady, needsAiMessage } from '../store/aiProvider'
 import TimeField from './TimeField'
-import './upload-drop.css'
+import DropZone from './DropZone'
 
 const kindLabels = { tasks: 'Assignment', exams: 'Exam / project', calendarEvents: 'Event' } as const
 const MAX_PHOTOS = 8
@@ -104,7 +104,7 @@ export default function UpdatePlanScanner({ profileId, subjects, kids, save, clo
   return <div className="update-plan-scanner">
     <p>Snap or choose photos of anything with dates on it: a planner page, a whiteboard, a syllabus, or a screenshot of a calendar. KONO adds what it finds to your plan, marked in red until you check it.</p>
     <AiHelperStatus profileId={profileId} onOpenSettings={onOpenAiSettings} />
-    <label className="upload-drop">{files.length ? '📸 ' + files.length + ' photo' + (files.length === 1 ? '' : 's') + ' chosen' : '📸 Choose photos'}<small>{files.length ? 'Tap to choose different photos' : 'Up to ' + MAX_PHOTOS + ' photos or screenshots'}</small><input type="file" aria-label={'Choose photos (up to ' + MAX_PHOTOS + ')'} accept="image/*" multiple disabled={busy} onChange={e => { setFiles(Array.from(e.target.files ?? []).slice(0, MAX_PHOTOS)); setError(''); e.target.value = '' }} /></label>
+    <DropZone accept="image/*" multiple pasteAnywhere icon="📸" busy={busy} inputLabel={'Choose photos (up to ' + MAX_PHOTOS + ')'} label={files.length ? files.length + ' photo' + (files.length === 1 ? '' : 's') + ' chosen · add more' : 'Drop photos or screenshots'} hint={'Drag them here, paste a screenshot, or tap to choose · up to ' + MAX_PHOTOS} onFiles={f => { setFiles(old => [...old, ...f].slice(0, MAX_PHOTOS)); setError('') }} />
     <details className="upload-notes"><summary>How it works</summary><p>Works with handwritten or printed pages: a to-do list, a whole week of a planner, a full syllabus (one photo per page). If a family calendar screenshot labels items by person, each item is tagged to that kid; a kid not on your Kids page yet is added with their own color.</p><p>The photos go straight from this browser to your AI helper’s provider; nothing is stored anywhere else.</p></details>
     {files.length > 0 && <div className="update-plan-photo-previews">
       {files.map((f, i) => <div className="update-plan-photo-preview" key={f.name + i}>

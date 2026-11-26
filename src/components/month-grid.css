@@ -137,3 +137,49 @@
 .workbench .cozy-calendar-shell .planner-more .today-card-menu button:not(#x):hover{background:color-mix(in srgb,var(--wb-accent) 10%,transparent)!important}
 .planner-filters>summary{width:max-content}
 .workbench .cozy-calendar-shell .planner-more .today-card-menu button:not(#x){font-size:.95rem!important}
+
+/* Drag and drop on the Planner: what's being dragged, where it can land, and the day dock. */
+.cozy-calendar-shell .wb-draggable,.cozy-calendar-shell .month-pill{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.cozy-calendar-shell .wb-draggable[draggable=true]{cursor:grab}
+.cozy-calendar-shell .is-lifted{opacity:.35;filter:saturate(.4)}
+.touch-drag-ghost{border-radius:16px;box-shadow:0 18px 40px rgba(30,20,40,.28),0 0 0 2px var(--wb-accent,#973862);background:var(--wb-surface,#fff);opacity:.96;transition:none;will-change:transform}
+:root.is-touch-dragging,:root.is-touch-dragging body{overscroll-behavior:none}
+:root.is-touch-dragging *{cursor:grabbing!important}
+.cozy-calendar-shell :is(.wb-agenda-day,.month-cell,.planner-day-board).drop-target{outline:2.5px dashed var(--wb-accent,#973862)!important;outline-offset:2px;background:color-mix(in srgb,var(--wb-accent,#973862) 9%,var(--wb-surface,#fff))!important;transition:background .12s}
+.drop-dock{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 92px);transform:translateX(-50%);z-index:2147482000;display:flex;gap:6px;padding:8px;border-radius:22px;background:color-mix(in srgb,var(--wb-surface,#fff) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 44px rgba(30,20,40,.22),0 0 0 1px var(--wb-line,rgba(0,0,0,.08));animation:dock-in .22s cubic-bezier(.3,1.3,.5,1);max-width:calc(100vw - 20px)}
+@media(min-width:721px){.drop-dock{bottom:24px}}
+.drop-dock-day{display:grid;place-items:center;align-content:center;gap:1px;width:52px;height:58px;border-radius:16px;background:color-mix(in srgb,var(--wb-ink,#333) 5%,transparent);transition:transform .14s,background .14s;flex:1 1 0;min-width:0}
+.drop-dock-day small{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--wb-muted,#777)}
+.drop-dock-day b{font-size:1.15rem;color:var(--wb-ink,#222)}
+.drop-dock-day.is-today small{color:var(--wb-accent,#973862)}
+.drop-dock-day.drop-target{background:var(--wb-accent,#973862);transform:translateY(-6px) scale(1.08)}
+.drop-dock-day.drop-target :is(small,b){color:#fff}
+@keyframes dock-in{from{opacity:0;transform:translate(-50%,24px)}}
+:root[data-dark=true] .drop-dock{background:rgba(30,26,36,.9)}
+@media(prefers-reduced-motion:reduce){.drop-dock{animation:none}.drop-dock-day{transition:none}}
+
+/* New look: the Agenda as a stack of day cards, each with a calendar leaf (today's filled in). */
+.workbench .wb-agenda-upcoming:not(#x){display:grid;gap:10px}
+.workbench .wb-agenda-upcoming>h4:not(#x){margin:4px 2px 0;font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--wb-muted,#777)}
+.workbench .wb-agenda-day-wrap:not(#x):not(#y){position:relative;padding:10px 12px!important;border-radius:20px!important;background:var(--wb-surface,#fff)!important;border:1px solid var(--wb-line,rgba(0,0,0,.08))!important;box-shadow:0 4px 14px rgba(40,25,50,.05)!important;transition:box-shadow .18s,transform .18s}
+.workbench .wb-agenda-day-wrap:not(#x):not(#y):hover{box-shadow:0 10px 26px rgba(40,25,50,.09)!important}
+.workbench .wb-agenda-day-wrap.is-today:not(#x):not(#y){border-color:color-mix(in srgb,var(--tab,#7a5cc0) 40%,transparent)!important;background:linear-gradient(135deg,color-mix(in srgb,var(--tab,#7a5cc0) 8%,var(--wb-surface,#fff)),var(--wb-surface,#fff) 60%)!important}
+.workbench .wb-agenda-day-wrap.is-free:not(#x):not(#y){background:color-mix(in srgb,var(--wb-surface,#fff) 60%,transparent)!important;box-shadow:none!important}
+.workbench .wb-agenda-day:not(#x):not(#y){border:0!important;padding:0!important;margin:0!important;background:none!important;box-shadow:none!important}
+.workbench .wb-agenda-day>summary:not(#x):not(#y)::before{display:none!important}
+.workbench .wb-agenda-day>summary:not(#x):not(#y){padding:0!important;min-height:50px}
+.workbench .wb-agenda-day[open]>summary:not(#x):not(#y){border-bottom:0!important;margin-bottom:8px!important;padding-bottom:0!important}
+.agenda-leaf{flex:none;display:grid;place-items:center;align-content:center;width:46px;height:50px;border-radius:14px;background:color-mix(in srgb,var(--tab,#7a5cc0) 11%,transparent);line-height:1.05}
+.agenda-leaf small{font-size:.62rem!important;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--tab,#7a5cc0)!important}
+.agenda-leaf b{font-size:1.25rem;font-weight:800;color:var(--wb-ink,#2a2230)}
+.is-today .agenda-leaf{background:linear-gradient(150deg,color-mix(in srgb,var(--tab,#7a5cc0) 75%,#fff),var(--tab,#7a5cc0));box-shadow:0 6px 14px color-mix(in srgb,var(--tab,#7a5cc0) 30%,transparent)}
+.is-today .agenda-leaf :is(small,b){color:#fff!important}
+.is-free .agenda-leaf{background:color-mix(in srgb,var(--wb-ink,#333) 5%,transparent)}
+.is-free .agenda-leaf small{color:var(--wb-muted,#777)!important}
+.workbench .wb-agenda-day-wrap>.wb-agenda-add:not(#x):not(#y){top:18px!important;right:12px!important}
+.workbench .wb-agenda-day[open]>:not(summary){margin-left:56px}
+@media(max-width:420px){.workbench .wb-agenda-day[open]>:not(summary){margin-left:0}}
+:root[data-dark=true] .workbench .wb-agenda-day-wrap:not(#x):not(#y){background:color-mix(in srgb,#fff 4%,transparent)!important}
+.workbench .wb-agenda-day-wrap.is-today .agenda-leaf:not(#x):not(#y){background:linear-gradient(150deg,color-mix(in srgb,var(--tab,#7a5cc0) 72%,#fff),var(--tab,#7a5cc0))!important}
+@media(max-width:600px){.workbench .wb-agenda-day>summary .wb-agenda-day-date:not(#x):not(#y){display:none!important}.workbench .wb-agenda-day-meta>.wb-agenda-count:not(#x){display:none!important}}
+.workbench .wb-agenda-day-wrap.has-add>.wb-agenda-day>summary:not(#x):not(#y){padding-right:44px!important}

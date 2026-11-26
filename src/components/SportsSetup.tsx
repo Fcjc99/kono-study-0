@@ -7,6 +7,7 @@ import {addDays} from '../store/studyScheduler'
 import type {PlannerRepository} from '../store/repository'
 import WeekdayPicker from './WeekdayPicker'
 import './sports-setup.css'
+import DropZone from './DropZone'
 import TimeField from './TimeField'
 
 /** suggestSchedule() keeps a trailing HOME/AWAY word in the title (see cleanTitle) rather than
@@ -93,7 +94,7 @@ function SportsGames({data,save,draftKey,sport,kidId}:{data:AppData;save:Planner
     <div className="season-record-score"><label>Us<input type="number" min={0} max={999} value={g.result?.ourScore??''} onChange={e=>setResult(g.id,{ourScore:Number(e.target.value),opponentScore:g.result?.opponentScore??0})}/></label><label>Opp<input type="number" min={0} max={999} value={g.result?.opponentScore??''} onChange={e=>setResult(g.id,{ourScore:g.result?.ourScore??0,opponentScore:Number(e.target.value)})}/></label>{outcome&&<span className={'match-outcome-chip is-'+outcome}>{outcome==='win'?'W':outcome==='loss'?'L':'T'}</span>}{g.result&&<button type="button" onClick={()=>setResult(g.id,undefined)}>Clear</button>}</div>
    </li>})}</ul>
  </section>}
- <fieldset disabled={busy}><label>Choose a photo or PDF (up to 20 MB)<input type="file" accept="application/pdf,.pdf,image/jpeg,image/png,image/webp" onChange={e=>{setFile(e.target.files?.[0]??null);setError('');e.target.value=''}}/></label>{file&&<p>{file.name}</p>}<button disabled={!file} onClick={()=>void read()}>Read selected file</button></fieldset>
+ <fieldset disabled={busy}><DropZone accept="application/pdf,.pdf,image/jpeg,image/png,image/webp" icon="⚽" inputLabel="Choose a photo or PDF (up to 20 MB)" label={file?file.name:'Drop a team schedule'} hint="A photo or PDF, up to 20 MB · drag, paste or tap" onFiles={([f])=>{setFile(f);setError('')}}/><button disabled={!file} onClick={()=>void read()}>Read selected file</button></fieldset>
  {reading&&<button onClick={()=>active.current?.abort()}>Cancel reading</button>}
  <fieldset disabled={busy}><div className="import-fields"><label>Season starts<input type="date" value={start} onInput={e=>{setStart(e.currentTarget.value);setReviewed(false)}}/></label><label>Season ends<input type="date" value={end} onInput={e=>{setEnd(e.currentTarget.value);setReviewed(false)}}/></label><label>Dates in this document<select value={order} onChange={e=>{setOrder(e.target.value as typeof order);setReviewed(false)}}><option value="mdy">Month / day / year</option><option value="dmy">Day / month / year</option></select></label></div>
  <label>Recognized text (editable)<textarea rows={8} maxLength={100000} value={text} onChange={e=>{setText(e.target.value);setReviewed(false)}} placeholder="Read a file or paste your games schedule here. Example: vs. Hanover — Tue 10/14 4:00pm"/></label><button disabled={!text.trim()} onClick={suggestions}>Find games</button><button onClick={()=>{setReviewed(false);setRows([...rows,{id:uid('import-row'),include:false,kind:'event',title:'',subject:'',date:'',weekdays:[],start:'',end:'',source:'Added manually'}])}} disabled={rows.length>=100}>＋ Add missing game</button>

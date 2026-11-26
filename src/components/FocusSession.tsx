@@ -5,6 +5,10 @@ import type { Note, Task } from '../store/model'
 import { lazyPanel } from '../lazyPanel'
 import ModalOverlay from './ModalOverlay'
 import './focus-mode.css'
+import {readSoundPrefs,sound,soundOn} from '../sound/prefs'
+
+const ScapeMixer=lazyPanel<{live?:boolean}>(()=>import('./SoundStudio').then(m=>({default:m.ScapeMixer})))
+const scape=(on:boolean)=>{const p=readSoundPrefs();if(on&&(!soundOn()||!p.scapeWithFocus||!Object.keys(p.scape).length))return;void import('../sound/engine').then(m=>on?m.setScape(p.scape,p.volume):m.stopScape()).catch(()=>undefined)}
 
 // Break-time games with KONO (opened after a session finishes): loaded only when opened.
 const BreakGames=lazyPanel(()=>import('./BreakGames'))
@@ -25,7 +29,7 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,onClose,
  const [remaining,setRemaining]=useState(duration),[until,setUntil]=useState<number|null>(null),[now,setNow]=useState(0)
  const [lockPreferred,setLockPreferred]=useDraftState(draftKey+':lock',false)
  const [locked,setLocked]=useState(false),[interruptions,setInterruptions]=useState(0)
- const [breakGames,setBreakGames]=useState<number|null>(null)
+ const [breakGames,setBreakGames]=useState<number|null>(null),[mixer,setMixer]=useState(false)
  const wakeLockRef=useRef<WakeLockSentinelLike|null>(null)
  const rootRef=useRef<HTMLDivElement>(null)
  // A request (Up next's ▶ Focus, a time-block reminder) hands a specific task off here. Adjusted directly
@@ -52,7 +56,9 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,onClose,
  useEffect(()=>{onFocusActiveChange?.(focusActive)},[focusActive,onFocusActiveChange])
  // The timer ran all the way down (not paused or reset): KONO brings a find (store/konoFinds). Once per run.
  const reportedRef=useRef<number|null>(null)
- useEffect(()=>{if(finished&&until!==null&&reportedRef.current!==until){reportedRef.current=until;onSessionComplete?.(Math.round(duration/60))}},[finished,until,duration,onSessionComplete])
+ useEffect(()=>{if(finished&&until!==null&&reportedRef.current!==until){reportedRef.current=until;scape(false);sound('timer');onSessionComplete?.(Math.round(duration/60))}},[finished,until,duration,onSessionComplete])
+ // The soundscape stops when Focus closes.
+ useEffect(()=>()=>scape(false),[])
  const releaseLock=()=>{
   setLocked(false)
   void wakeLockRef.current?.release().catch(()=>undefined)
@@ -73,9 +79,9 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,onClose,
  // Closing Focus unmounts this mid-session without the focusActive effect's own "now false": say so here, or
  // KONO would be left sitting at the cherry tree.
  useEffect(()=>()=>{onFocusActiveChange?.(false)},[onFocusActiveChange])
- const start=()=>{setBreakGames(null);const timestamp=Date.now();setNow(timestamp);setUntil(timestamp+remaining*1000);void engageLock()}
- const pause=()=>{setRemaining(Math.max(0,Math.ceil(((until??Date.now())-Date.now())/1000)));setUntil(null);releaseLock()}
- const reset=()=>{setBreakGames(null);setUntil(null);setRemaining(duration);releaseLock()}
+ const start=()=>{sound('start');scape(true);setBreakGames(null);const timestamp=Date.now();setNow(timestamp);setUntil(timestamp+remaining*1000);void engageLock()}
+ const pause=()=>{scape(false);setRemaining(Math.max(0,Math.ceil(((until??Date.now())-Date.now())/1000)));setUntil(null);releaseLock()}
+ const reset=()=>{scape(false);setBreakGames(null);setUntil(null);setRemaining(duration);releaseLock()}
  const setCustomDuration=(minutes:number,secs:number)=>{const total=Math.max(0,Math.min(180*60,Math.round(minutes)*60+Math.round(secs)));setDuration(total);setRemaining(total)}
  const mm=String(Math.floor(seconds/60)).padStart(2,'0'),ss=String(seconds%60).padStart(2,'0')
  const idle=until===null,running=until!==null&&!finished
@@ -91,7 +97,8 @@ export default function FocusSession({tasks,notes,onComplete,onSaveNote,onClose,
    {interruptions>0&&<p>You left this tab {interruptions} time{interruptions===1?'':'s'} during this session.</p>}
    <button type="button" className="fm-main" onClick={pause}>Pause &amp; exit focus lock</button>
   </div>:<>
-  <div className="fm-top"><button type="button" className="fm-close" aria-label="Close focus" onClick={onClose}>✕</button><span className="fm-eyebrow">Focus{subject?' · '+subject:''}</span><span className="fm-spacer"/></div>
+  <div className="fm-top"><button type="button" className="fm-close" aria-label="Close focus" onClick={onClose}>✕</button><span className="fm-eyebrow">Focus{subject?' · '+subject:''}</span><button type="button" className={'fm-sounds'+(mixer?' is-on':'')} aria-label="Soundscape" aria-expanded={mixer} onClick={()=>setMixer(v=>!v)}>🎧</button></div>
+  {mixer&&<div className="fm-mixer"><p><b>Soundscape</b> · mix a background to study to</p><ScapeMixer/></div>}
   <div className="fm-body">
    <h2>{focusTitle}</h2>
    {task&&idle&&open.length>1?<label className="fm-pick"><span>Change</span><select aria-label="Assignment" value={task.id} onChange={e=>{setStudyLabel('');setTaskId(e.target.value)}}>{open.map(t=><option key={t.id} value={t.id}>{t.title||'Untitled'}</option>)}</select></label>

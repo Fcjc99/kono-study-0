@@ -5534,6 +5534,61 @@ test('Round 50: several lines in ＋ Add at once; an event typed again takes las
  await mine.getByRole('checkbox',{name:'Sign permission slip'}).click()
  await waitFor(()=>cloud.users.alice.plan.data.familyTodos.find(t=>t.id==='t-slip').done,'Emma ticking her to-do never reached the account')
 })
+test('Settings › Sound: a sound pack, which moments play, the volume and the Focus soundscape stay set on this device; sound off greys it all',async({context,page})=>{
+ const cloud=fakeCloud();await signInAs(context,cloud,'alice');await page.goto(BASE);await heading(page,'Today')
+ await go(page,'Settings');await page.getByRole('button',{name:'Sound',exact:true}).click()
+ await page.getByRole('heading',{name:'Sound pack'}).waitFor()
+ await page.getByRole('radio',{name:/Bells/}).click()
+ await page.getByRole('switch',{name:'Tabs and buttons'}).check()
+ await page.getByRole('switch',{name:'Delete'}).uncheck()
+ await page.getByRole('slider',{name:'Volume'}).fill('40')
+ await page.getByRole('button',{name:'Rain'}).click()
+ const prefs=await page.evaluate(()=>JSON.parse(localStorage.getItem('kono-sound-prefs')))
+ assert.equal(prefs.pack,'bells');assert.equal(prefs.events.tap,true);assert.equal(prefs.events.remove,false);assert.equal(prefs.volume,.4);assert.ok(prefs.scape.rain>0)
+ await page.reload();await heading(page,'Settings');const back=page.getByRole('button',{name:/All settings/});if(await back.count())await back.first().click();await page.getByRole('button',{name:'Sound',exact:true}).click();await page.getByRole('heading',{name:'Sound pack'}).waitFor()
+ assert.equal(await page.getByRole('radio',{name:/Bells/}).getAttribute('aria-checked'),'true')
+ assert.ok(await page.getByRole('switch',{name:'Tabs and buttons'}).isChecked())
+ // Sound off is the synced setting: the switches can't be changed until it's back on.
+ await page.getByRole('switch',{name:'Sounds on'}).uncheck()
+ await page.getByText('All of KONO’s sounds are off.').waitFor()
+ assert.ok(await page.getByRole('switch',{name:'Finish a task'}).isDisabled())
+ await page.getByRole('switch',{name:'Sounds on'}).check()
+ assert.ok(!(await page.getByRole('switch',{name:'Finish a task'}).isDisabled()))
+ // Your own sound: an MP3 dropped in shows by name, with Play, Replace and Remove.
+ const zone=page.locator('.sound-custom').first().locator('input[type=file]')
+ await zone.setInputFiles({name:'ding.mp3',mimeType:'audio/mpeg',buffer:Buffer.alloc(2048)})
+ await page.getByText(/ding\.mp3/).waitFor()
+ assert.equal((await page.evaluate(()=>JSON.parse(localStorage.getItem('kono-sound-prefs')))).custom.done.name,'ding.mp3')
+ await page.locator('.sound-custom').first().getByRole('button',{name:'Remove'}).click()
+ await page.getByText(/ding\.mp3/).waitFor({state:'detached'})
+ // The wrong kind of file is turned away.
+ await zone.setInputFiles({name:'notes.txt',mimeType:'text/plain',buffer:Buffer.from('hi')})
+ await page.getByText('That kind of file won’t work here.').first().waitFor({state:'attached'})
+})
+
+test('Planner on a phone: hold an assignment, drag it with a finger onto a day in the day dock, and it moves there (with Undo)',async()=>{
+ const {context,page}=await freshPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true})
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ const cloud=fakeCloud();await signInAs(context,cloud,'alice');await page.goto(BASE);await heading(page,'Today')
+ await go(page,'Planner');await page.getByRole('button',{name:'Agenda'}).first().click()
+ await page.locator('summary',{hasText:'Friday'}).click()
+ const item=page.locator('.wb-draggable',{hasText:'Cell biology test'});await item.scrollIntoViewIfNeeded()
+ const b=await item.boundingBox(),cdp=await context.newCDPSession(page),pt=(x,y)=>[{x,y,id:1,radiusX:4,radiusY:4,force:1}]
+ const x0=b.x+b.width/2,y0=b.y+b.height/2
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:pt(x0,y0)})
+ // A quick move is a scroll, not a drag: only a hold lifts it (and brings up the day dock).
+ const dock=page.getByRole('group',{name:'Drop on a day'});await dock.waitFor()
+ assert.equal(await page.locator('.touch-drag-ghost').count(),1)
+ const sat=dock.locator('.drop-dock-day',{hasText:'Sat'}),d=await sat.boundingBox()
+ for(let i=1;i<=10;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:pt(x0+(d.x+d.width/2-x0)*i/10,y0+(d.y+d.height/2-y0)*i/10)});await page.waitForTimeout(25)}
+ await page.waitForFunction(()=>document.querySelector('.drop-dock-day.drop-target')?.textContent?.includes('3'))
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]})
+ await page.getByText(/Moved “Cell biology test” to/).waitFor()
+ await dock.waitFor({state:'detached'});assert.equal(await page.locator('.touch-drag-ghost').count(),0)
+ await page.locator('.wb-agenda-day',{hasText:'Saturday'}).getByText('Cell biology test').waitFor({state:'attached'})
+ await context.close()
+})
+
 async function main(){
  const server=await startServer()
  const onlyArg=process.argv[2]

@@ -83,3 +83,26 @@
 .home-grid.is-today .today-card .today-card-day{font-size:.95rem!important;margin:8px 0 4px!important}
 .home-grid.is-today .today-card .today-card-body{padding-top:4px!important;padding-bottom:4px!important}
 .today-summary .kicon{vertical-align:-3px}
+/* Overhaul: the hero (the day, KONO, the day in numbers) in the accent; Up next a white card under it. */
+:root .workbench .today-hero:not(#x):not(#y):not(#z){display:grid!important;gap:12px;padding:18px 18px 16px!important;border-radius:26px!important;border:0!important;color:#fff;background:radial-gradient(120% 90% at 100% 0,color-mix(in srgb,#fff 22%,transparent),transparent 55%),linear-gradient(140deg,color-mix(in srgb,var(--wb-accent) 92%,#fff),color-mix(in srgb,var(--wb-accent) 68%,#1b0f2e))!important;box-shadow:0 18px 40px -22px color-mix(in srgb,var(--wb-accent) 80%,#000)!important}
+.today-hero-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.today-hero-date{margin:0;display:grid;line-height:1.05}
+.today-hero-date small{font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.85}
+.today-hero-date strong{font-size:clamp(1.7rem,6vw,2.2rem);font-weight:850;letter-spacing:-.02em}
+.today-hero-ring{--p:0;flex:none;width:66px;height:66px;border-radius:50%;display:grid;place-items:center;align-content:center;background:radial-gradient(closest-side,color-mix(in srgb,var(--wb-accent) 75%,#1b0f2e) 76%,transparent 78%),conic-gradient(#fff calc(var(--p)*1%),rgb(255 255 255/.22) 0)}
+.today-hero-ring b{font-size:1.15rem;font-weight:850;line-height:1}.today-hero-ring b small{font-size:.7rem;opacity:.8}.today-hero-ring i{font-style:normal;font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;opacity:.8}
+.today-hero-kono{display:flex;align-items:center;gap:12px}
+.workbench .today-hero .today-kono-face:not(#x){flex:none;width:58px!important;height:58px!important;border-radius:50%!important;background:#fff!important;border:0!important;padding:3px!important;box-shadow:0 6px 16px -8px rgb(0 0 0/.45)!important}
+.today-hero-kono p{margin:0;font-size:.95rem;line-height:1.35}
+.today-hero-stats{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.today-hero-stats>li{padding:5px 11px;border-radius:99px;background:rgb(255 255 255/.16);border:1px solid rgb(255 255 255/.24);font-size:.82rem;font-weight:600}
+.today-hero-stats>li.is-late{background:rgb(255 210 180/.28)}.today-hero-stats>li.is-coins{padding:0;border:0;background:none;margin-left:auto}
+.workbench .today-hero .today-coins:not(#x){min-height:30px!important;padding:0 12px!important;border-radius:99px!important;background:#fff!important;color:#6b4a00!important;border:0!important;font-weight:800}
+.workbench .up-next:not(.is-clear):not(#x){background:var(--wb-surface)!important;color:var(--wb-ink)!important;border:1px solid var(--wb-line)!important;box-shadow:inset 5px 0 0 var(--wb-accent),0 10px 30px -20px rgb(60 30 45/.4)!important}
+.workbench .up-next.is-late:not(#x){box-shadow:inset 5px 0 0 #e0783a,0 10px 30px -20px rgb(60 30 45/.4)!important}
+.workbench .up-next:not(.is-clear) .up-next-tag:not(#x){background:color-mix(in srgb,var(--wb-accent) 12%,transparent)!important;color:var(--wb-accent)!important}
+.workbench .up-next.is-late .up-next-tag:not(#x){background:#fde7d8!important;color:#a14a12!important}
+.workbench .up-next:not(.is-clear) .up-next-focus:not(#x){background:var(--wb-accent)!important;color:#fff!important}
+.workbench .up-next:not(.is-clear) .up-next-done:not(#x){background:transparent!important;color:var(--wb-ink)!important;border:1px solid var(--wb-line)!important}
+.workbench .up-next .up-next-links button:not(#x):not(#y){border:0!important;text-decoration:underline;color:var(--wb-muted)!important}
+:root .workbench .today-hero:not(#x) :is(p,strong,small,b,i,li):not(.today-coins *):not(#y){color:#fff!important}

@@ -10,7 +10,7 @@ const INDEX:{label:string;tab:SettingsTab;find:string;words:string}[]=[
  {label:'Team colors',tab:'Look & feel',find:'team colors',words:'school team jersey colors sports'},
  {label:'Dark mode',tab:'Look & feel',find:'dark mode',words:'dark night light black'},
  {label:'Text size',tab:'Look & feel',find:'text size',words:'font bigger larger small read'},
- {label:'Sound & motion',tab:'Look & feel',find:'sound',words:'sound music audio motion animation reduce'},
+ {label:'Sound',tab:'Sound',find:'sound',words:'sound sounds volume pack chime music audio upload ringtone soundscape rain noise haptics vibrate chatter'},{label:'Motion',tab:'Look & feel',find:'motion',words:'motion animation reduce ambient'},
  {label:'Sanctuary weather',tab:'Look & feel',find:'sanctuary weather',words:'weather rain snow island location zip'},
  {label:'Reminders and notifications',tab:'Notifications',find:'notifications',words:'reminders alerts notify lock screen push phone due'},
  {label:'Kids',tab:'Family',find:'kids',words:'children family kid add rename names'},

@@ -1,0 +1,14 @@
+/* KonoEmpty: KONO and a line, where a list would be empty. */
+.kono-empty{display:flex;align-items:center;gap:14px;padding:16px;margin:6px 0;border-radius:20px;background:color-mix(in srgb,var(--tab,var(--wb-accent,#973862)) 6%,var(--wb-surface,#fff));border:1px dashed color-mix(in srgb,var(--tab,var(--wb-accent,#973862)) 22%,transparent)}
+.kono-empty-face{flex:none;width:76px;height:76px;object-fit:contain;image-rendering:pixelated;animation:ke-bob 3.2s ease-in-out infinite}
+.kono-empty-text{display:grid;gap:4px;min-width:0}
+.kono-empty .kono-empty-title{margin:0;font-weight:800;font-size:1rem;color:var(--wb-ink)}
+.kono-empty .kono-empty-note{margin:0;font-size:.86rem;color:var(--wb-muted);line-height:1.4}
+:root .workbench .kono-empty .kono-empty-action:not(#x):not(#y){justify-self:start;margin:6px 0 0!important;min-height:38px!important;padding:0 14px!important;border-radius:12px!important;background:var(--tab,var(--wb-accent))!important;color:#fff!important;border:0!important;font-weight:800!important;font-size:.88rem!important}
+.kono-empty.is-compact{padding:10px 12px;gap:10px;border-style:solid;border-color:transparent}
+.kono-empty.is-compact .kono-empty-face{width:48px;height:48px}
+.kono-empty.is-compact .kono-empty-title{font-size:.92rem;font-weight:700}
+.workbench[data-island=off] .kono-empty-face{display:none}
+:root[data-dark=true] .kono-empty{background:color-mix(in srgb,#fff 4%,transparent)}
+@keyframes ke-bob{50%{transform:translateY(-3px)}}
+@media(prefers-reduced-motion:reduce){.kono-empty-face{animation:none}}

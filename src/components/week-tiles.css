@@ -156,3 +156,5 @@
  :root .workbench .week-grid-scroll.is-fit .week-grid-hours:not(#x):not(#y) span{font-size:.62rem!important;line-height:1}
  :root .workbench .week-grid-scroll.is-fit .week-grid-hours:not(#x):not(#y) small{display:block;font-size:.5rem;opacity:.75}
 }
+/* New look: today's column softly tinted in the Planner's color. */
+.workbench .week-grid .week-grid-day.is-today:not(#x):not(#y){background:color-mix(in srgb,var(--tab,#7a5cc0) 6%,transparent)!important}
