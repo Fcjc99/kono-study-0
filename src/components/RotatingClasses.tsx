@@ -4,6 +4,7 @@ import {buildRotationWeek,classesFromRows,classesFromWeek,duxburyLunchWave,ownCl
 import {classTime} from '../store/classSchedule'
 import {useAiHelper} from '../hooks/useAiHelper'
 import {AiHelperSettings} from './AiHelper'
+import DropZone from './DropZone'
 import {reportError} from '../store/errorReporter'
 
 const blank=(n:number,wave:LunchWave=3):RotationClass[]=>Array.from({length:n},()=>({label:'',location:'',lunchWave:wave}))
@@ -97,7 +98,7 @@ export default function RotatingClasses({season,bells,change,onReview}:{season:S
   <div className="wb-record">
    <strong>Read them from your schedule</strong>
    <p className="wb-muted">A PDF or photo of your schedule. It goes to KONO’s AI to find your classes; it isn’t saved. Crop out anything personal first.</p>
-   <label className="schedule-upload">Upload my schedule<small>PDF, photo or screenshots (pick several, in order, if it took more than one)</small><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" disabled={busy} onChange={e=>{const picked=[...e.target.files??[]];e.target.value='';setFiles(picked);setTried(false);setMessage('');setError('');if(picked.length&&ai.ready)void read(picked)}}/></label>
+   <DropZone multiple accept=".pdf,.jpg,.jpeg,.png,.webp" icon="🗓️" busy={busy} pasteAnywhere inputLabel="Upload my schedule" label={files.length?files.length+' file'+(files.length===1?'':'s')+' chosen':'Upload my schedule'} hint="A PDF, photo or screenshots (several, in order, if it took more than one) · drag, paste or tap" onFiles={picked=>{setFiles(picked);setTried(false);setMessage('');setError('');if(picked.length&&ai.ready)void read(picked)}}/>
    {!ai.ready?<details><summary>Set up the AI helper to read your schedule</summary><AiHelperSettings profileId={season.profileId}/></details>:files.length>0&&!tried&&<button type="button" disabled={busy} onClick={()=>void read(files)}>Find my classes</button>}
    {message&&<p role="status">{message}</p>}
    {conflicts.length>0&&<ul className="period-problems" aria-label="Check these classes">{conflicts.map(c=><li key={c}>{c}</li>)}</ul>}

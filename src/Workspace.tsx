@@ -3,6 +3,7 @@ import {dailyScoreEvent,dailySeed,familyBoard,skinsOwned,type TeeterHub} from '.
 import {flushSync} from 'react-dom'
 import {enterFullscreen} from './store/fullscreen'
 import {toneVars} from './store/tones'
+import {sound,setSoundOn} from './sound/prefs'
 import {usePlannerRepository} from './store/repository'
 import {uid,localDate,eventCategory,peopleOf,type AppData,type FamilyTodo,type SettingsData,type Subtask,type CalendarEvent,type Kid,eventOnDate} from './store/model'
 import {nextKidColor,kidDueItems,kidTimeBlockItems,kidFamilyEventItems} from './store/kids'
@@ -254,6 +255,7 @@ export default function WorkspaceApp(){
 }
 function Workspace({store}:{store:Store}){
  const {data,repository}=store
+ setSoundOn(data.settings.sound)
  // Every change someone makes gets a visible "✓ Saved" (or the action's own message), even inside a
  // dialog: an edit, a kid's look, a setting, an upload that finishes. Background saves (KONO's daily
  // wish, a calendar refresh) stay quiet unless someone was using KONO in the last minute and a half.
@@ -737,6 +739,7 @@ function Workspace({store}:{store:Store}){
  // Changing page cross-fades with a little slide (the View Transitions API, where the browser has it and
  // motion is on); otherwise it just changes.
  const navigate=(next:Page)=>{
+  if(next!==page)sound('tap')
   const go=()=>{const url=new URL(location.href);url.searchParams.set('page',next.toLowerCase());history.pushState(null,'',url);flushSync(()=>{setPage(next);setMore(false);if(next!=='Planner')setAddOpen(false)});window.scrollTo({top:0})}
   const vt=(document as Document&{startViewTransition?:(f:()=>void)=>unknown}).startViewTransition
   if(vt&&next!==page&&document.documentElement.dataset.motion==='full')vt.call(document,go);else go()
@@ -790,7 +793,7 @@ function Workspace({store}:{store:Store}){
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();setSearch(v=>!v)}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[])
  // undo: a one-tap action (done, swipe, quick add, overdue) confirms in a bar at the bottom with Undo.
  // snackFor: a just-finished assignment, whose snack the toast offers to feed KONO right away.
- const run=async(action:()=>Promise<boolean>,success:string,undo=false,snackFor?:string)=>{try{ownConfirmation.current=undo;const ok=await action().finally(()=>{ownConfirmation.current=false;if(undo)quietUntil.current=Date.now()+4000});if(ok&&undo){setMessage('');const done=snackFor?data.tasks.find(t=>t.id===snackFor):undefined,snack=done?{taskId:done.id,treat:treatFor({...done,done:true})}:undefined;setUndoToast(t=>({text:success,at:(t?.at??0)+1,...(snack?{snack}:{})}))}else setMessage(ok?success:'Not saved yet. Check the save status; your working copy is preserved.')}catch(e){setMessage(e instanceof Error?e.message:'Could not finish. Your work is preserved.')}}
+ const run=async(action:()=>Promise<boolean>,success:string,undo=false,snackFor?:string)=>{try{ownConfirmation.current=undo;const ok=await action().finally(()=>{ownConfirmation.current=false;if(undo)quietUntil.current=Date.now()+4000});if(ok&&/^(Added|Saved|Created)\b/.test(success))sound('add');if(ok&&undo){setMessage('');const done=snackFor?data.tasks.find(t=>t.id===snackFor):undefined,snack=done?{taskId:done.id,treat:treatFor({...done,done:true})}:undefined;setUndoToast(t=>({text:success,at:(t?.at??0)+1,...(snack?{snack}:{})}))}else setMessage(ok?success:'Not saved yet. Check the save status; your working copy is preserved.')}catch(e){setMessage(e instanceof Error?e.message:'Could not finish. Your work is preserved.')}}
  const [todoEditing,setTodoEditing]=useState('')
  const [undoToast,setUndoToast]=useState<{text:string;at:number;snack?:{taskId:string;treat:Treat}}|null>(null)
  useEffect(()=>{if(!undoToast)return;const t=window.setTimeout(()=>setUndoToast(null),undoToast.snack?10000:7000);return()=>window.clearTimeout(t)},[undoToast])
@@ -1001,7 +1004,7 @@ function Workspace({store}:{store:Store}){
   })),'All items confirmed.')
  }
  // A move on the Planner (drag to a day, an hour, or a longer end) says what changed, with Undo.
- const moved=(key:Collection,entry:Entry,changes:Partial<Entry>,text:string)=>void run(()=>save(d=>({...d,[key]:records(d,key).map(r=>r.id===entry.id?{...r,...changes}:r)})),text,true)
+ const moved=(key:Collection,entry:Entry,changes:Partial<Entry>,text:string)=>{sound('move');void run(()=>save(d=>({...d,[key]:records(d,key).map(r=>r.id===entry.id?{...r,...changes}:r)})),text,true)}
  const reschedule=(key:Collection,entry:Entry,date:string)=>moved(key,entry,{['due' in entry?'due':'date']:date},'Moved “'+(titleOf(entry)||'it')+'” to '+dateLabel(date)+'.')
  // Planner › Week: an item dropped on an hour (see store/weekDrop for what that means for each kind).
  const planAt=(key:Collection,entry:Entry,day:string,time:string)=>{
@@ -1018,7 +1021,7 @@ function Workspace({store}:{store:Store}){
   if(key==='calendarEvents')moved(key,entry,{endTime:end},'Now ends at '+classTime(end)+'.')
   else if(key==='tasks'&&typeof entry.plannedTime==='string')moved(key,entry,{estimatedMinutes:Math.max(15,mins(end)-mins(entry.plannedTime))},'Now ends at '+classTime(end)+'.')
  }
- const toggle=(key:Collection,entry:Entry)=>{if(key==='tasks'){void run(async()=>{const saved=await save(d=>completeTask(d,entry.id));if(saved&&!entry.done){celebrateDone();if(data.settings.sound){vibrate(18);const audio=new Audio('/audio/completion.wav');audio.volume=.4;void audio.play().catch(()=>undefined)}if(entry.due===today&&!ownTasks.some(t=>t.id!==entry.id&&!t.done&&t.due===today)){
+ const toggle=(key:Collection,entry:Entry)=>{if(key==='tasks'){void run(async()=>{const saved=await save(d=>completeTask(d,entry.id));if(saved&&!entry.done){celebrateDone();const clears=entry.due===today&&!ownTasks.some(t=>t.id!==entry.id&&!t.done&&t.due===today);if(data.settings.sound){vibrate(18);sound(clears?'dayDone':'done')}if(clears){
    // completeTask credits completionDates[today] on a profile's very first completion of the day
    // (any task, not just ones due today) -- so "today had no credit yet" is exactly "this
    // completion is about to extend the streak," computed here instead of watched reactively so it
@@ -1030,7 +1033,7 @@ function Workspace({store}:{store:Store}){
    setCelebrateSignal(Date.now())
   }}return saved},entry.done?'Assignment reopened.':'Done: '+titleOf(entry),!entry.done,entry.done?undefined:entry.id);return}const field=key==='notes'?'completed':'done';void patch(key,entry,{[field]:!entry[field]})}
  // Deleting goes straight to Trash with an Undo bar (no "Are you sure?"): a slip is one tap to fix.
- const remove=(key:Collection,entry:Entry)=>void run(()=>save(d=>removeEntry(d,key,entry.id)),'Moved “'+titleOf(entry)+'” to Trash.',true)
+ const remove=(key:Collection,entry:Entry)=>{sound('remove');void run(()=>save(d=>removeEntry(d,key,entry.id)),'Moved “'+titleOf(entry)+'” to Trash.',true)}
  const inSeriesOf=(key:Collection,entry:Entry)=>entry.recurringId&&(key==='tasks'||key==='calendarEvents')?(records(data,key) as Entry[]).filter(r=>r.profileId===entry.profileId&&r.recurringId===entry.recurringId):[]
  const removeSeries=(key:Collection,entry:Entry)=>{const recurringId=String(entry.recurringId??''),count=inSeriesOf(key,entry).length;if(!recurringId)return;setConfirmation({text:'Move all '+count+' dates in this series to Trash? Each is trashed independently, so you can restore just one later if you change your mind.',action:()=>void run(()=>save(d=>({...d,[key]:(records(d,key) as Entry[]).filter(r=>!(r.profileId===entry.profileId&&r.recurringId===recurringId))})),'Series moved to Trash.')})}
  const duplicate=(key:Collection,entry:Entry)=>openEditor({key,entry:{...entry,id:uid(key),title:titleOf(entry)+' (copy)',name:key==='subjects'?titleOf(entry)+' (copy)':entry.name,done:false,completed:false,completedAt:undefined,studyPlanId:undefined,unitNumber:undefined}})

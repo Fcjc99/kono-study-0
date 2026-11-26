@@ -7,3 +7,7 @@
 }
 .editor-more>summary{padding:12px 0;font-weight:700;cursor:pointer}
 .editor-more[open]>summary{margin-bottom:4px}
+/* Assignment photos: drop pictures onto them. */
+.assignment-photos{border-radius:16px;transition:background .15s,box-shadow .15s}
+.assignment-photos.is-over{background:color-mix(in srgb,var(--wb-accent,#973862) 10%,transparent);box-shadow:0 0 0 2px var(--wb-accent,#973862)}
+.assignment-photos-tip{color:var(--wb-muted,#777);font-size:.78rem}

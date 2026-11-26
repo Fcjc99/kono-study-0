@@ -48,3 +48,7 @@
 .fm-lock-time{font-size:clamp(4rem,20vw,7rem);font-weight:200;font-variant-numeric:tabular-nums}
 .focus-mode .fm-lock .fm-main:not(#x){padding:14px 22px!important;border-radius:16px!important}
 @media(prefers-reduced-motion:reduce){.focus-mode{animation:none}}
+.focus-mode .fm-sounds:not(#x){width:40px!important;height:40px!important;border-radius:13px!important;display:grid!important;place-items:center!important;background:rgba(255,255,255,.1)!important;font-size:1.1rem!important}
+.focus-mode .fm-sounds.is-on:not(#x){background:#f0a1bf!important}
+.fm-mixer{margin:12px 0 0;padding:14px;border-radius:20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);animation:fm-in .2s ease}
+.fm-mixer>p{margin:0 0 10px;font-size:.85rem;opacity:.85}

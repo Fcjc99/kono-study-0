@@ -1,0 +1,90 @@
+/* Settings › Sound (SoundStudio) and the soundscape mixer (also in Focus). */
+.sound-studio{display:grid;gap:16px}
+.sound-studio h2{margin:0 0 4px}
+.sound-studio .wb-muted{margin:0 0 12px}
+.sound-studio.is-muted section:not(.sound-hero){opacity:.55}
+.sound-studio .sound-hero:not(#x):not(#y){background:linear-gradient(135deg,var(--wb-accent,#973862),color-mix(in srgb,var(--wb-accent,#973862) 55%,#2b1638))!important;color:#fff!important;border:0!important}
+.sound-hero :is(h2,p,b,span){color:#fff!important}
+.sound-hero p{margin:0;opacity:.85}
+.sound-hero-top{display:flex;align-items:center;gap:14px}
+.sound-hero-top>div{flex:1;min-width:0}
+.sound-hero-icon{display:grid;place-items:center;width:54px;height:54px;border-radius:18px;background:rgba(255,255,255,.18);font-size:1.6rem;flex:none}
+.sound-volume{display:flex;align-items:center;gap:12px;margin-top:16px;font-weight:700}
+.sound-volume b{min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
+.sound-studio input[type=range]:not(#x){flex:1;min-width:0;height:28px;margin:0;padding:0;border:0;background:transparent;box-shadow:none;accent-color:var(--wb-accent,#973862)}
+.sound-hero input[type=range]:not(#x){accent-color:#fff}
+/* A switch. */
+.sound-switch{position:relative;display:inline-block;width:52px;height:32px;flex:none}
+.sound-switch input{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;opacity:0!important;cursor:pointer;z-index:1}
+.sound-switch>span{position:absolute;inset:0;border-radius:99px;background:color-mix(in srgb,var(--wb-ink,#333) 22%,transparent);transition:background .2s}
+.sound-switch>span::after{content:'';position:absolute;left:3px;top:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform .22s cubic-bezier(.3,1.4,.5,1)}
+.sound-switch input:checked+span{background:var(--wb-accent,#973862)}
+.sound-hero .sound-switch input:checked+span{background:#fff}
+.sound-hero .sound-switch input:checked+span::after{background:var(--wb-accent,#973862)}
+.sound-switch input:checked+span::after{transform:translateX(20px)}
+.sound-switch input:focus-visible+span{outline:3px solid var(--wb-accent,#973862);outline-offset:2px}
+.sound-switch input:disabled+span{opacity:.45}
+.sound-hero .sound-switch>span{background:rgba(255,255,255,.3)}
+.sound-switch.is-small{width:46px;height:28px}
+.sound-switch.is-small>span::after{width:22px;height:22px}
+.sound-switch.is-small input:checked+span::after{transform:translateX(18px)}
+/* Packs. */
+.sound-packs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.sound-studio .sound-pack:not(#x):not(#y){display:grid!important;justify-items:start!important;gap:4px!important;min-height:0!important;padding:14px!important;border-radius:18px!important;border:2px solid var(--wb-line,rgba(0,0,0,.1))!important;background:var(--wb-surface,#fff)!important;box-shadow:none!important;text-align:left!important;color:var(--wb-ink,inherit)!important;transition:transform .15s,border-color .15s}
+.sound-studio .sound-pack:not(#x):not(#y):hover{transform:translateY(-2px)}
+.sound-studio .sound-pack[aria-checked=true]:not(#x):not(#y){border-color:var(--wb-accent,#973862)!important;background:color-mix(in srgb,var(--wb-accent,#973862) 8%,var(--wb-surface,#fff))!important}
+.sound-pack b{font-size:1rem}
+.sound-pack small{font-size:.78rem;color:var(--wb-muted,#777);font-weight:500}
+.sound-pack-wave{display:flex;align-items:flex-end;gap:3px;height:26px;margin-bottom:4px}
+.sound-pack-wave i{width:5px;border-radius:3px;background:var(--wb-accent,#973862);opacity:.75}
+.sound-pack-wave i:nth-child(1){height:40%}.sound-pack-wave i:nth-child(2){height:85%}.sound-pack-wave i:nth-child(3){height:60%}.sound-pack-wave i:nth-child(4){height:100%}.sound-pack-wave i:nth-child(5){height:45%}
+.sound-pack.is-soft .sound-pack-wave i{border-radius:99px;opacity:.5}
+.sound-pack.is-marimba .sound-pack-wave i{background:#c07a3a}
+.sound-pack.is-bells .sound-pack-wave i{background:#5a8fc8}
+.sound-pack.is-arcade .sound-pack-wave i{border-radius:0;background:#4d9a52}
+.sound-pack[aria-checked=true] .sound-pack-wave i{animation:sp-bounce .9s ease-in-out infinite alternate}
+.sound-pack-wave i:nth-child(2){animation-delay:.15s!important}.sound-pack-wave i:nth-child(3){animation-delay:.3s!important}.sound-pack-wave i:nth-child(4){animation-delay:.45s!important}.sound-pack-wave i:nth-child(5){animation-delay:.6s!important}
+@keyframes sp-bounce{to{transform:scaleY(.45)}}
+.sound-pack-wave i{transform-origin:bottom}
+/* Moments. */
+.sound-events{list-style:none;margin:0;padding:0;display:grid}
+.sound-events li,.sound-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--wb-line,rgba(0,0,0,.08))}
+.sound-events li:first-child{border-top:0}
+.sound-events li>span:not(.sound-switch),.sound-row>span:first-child{flex:1;min-width:0;display:grid;gap:2px}
+.sound-events small,.sound-row small{font-size:.8rem;color:var(--wb-muted,#777)}
+.sound-studio .sound-try:not(#x):not(#y){width:36px!important;height:36px!important;min-height:0!important;padding:0!important;border-radius:50%!important;display:grid!important;place-items:center!important;border:0!important;box-shadow:none!important;background:color-mix(in srgb,var(--wb-accent,#973862) 12%,transparent)!important;color:var(--wb-accent,#973862)!important;font-size:.8rem!important}
+/* Your own sounds. */
+.sound-custom{display:grid;gap:8px;padding:12px 0;border-top:1px solid var(--wb-line,rgba(0,0,0,.08))}
+.sound-custom:first-of-type{border-top:0}
+.sound-custom-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.sound-chip{padding:4px 10px;border-radius:99px;background:color-mix(in srgb,var(--wb-accent,#973862) 10%,transparent);font-size:.8rem;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sound-custom-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sound-custom .dropzone-target{min-height:96px}
+.sound-err{margin:0;color:#c0432c;font-weight:700;font-size:.85rem}
+.sound-studio .sound-remove:not(#x):not(#y){color:#b13c2a!important}
+/* The soundscape mixer. */
+.scape-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.scape-tile{--lv:0;display:grid;gap:6px;padding:12px;border-radius:18px;background:color-mix(in srgb,var(--wb-ink,#333) 5%,var(--wb-surface,#fff));border:2px solid transparent;transition:border-color .2s,background .2s}
+.scape-tile.is-on{border-color:var(--wb-accent,#973862);background:color-mix(in srgb,var(--wb-accent,#973862) calc(6% + var(--lv)*12%),var(--wb-surface,#fff))}
+.scape-tile button:not(#x):not(#y){display:flex!important;align-items:center!important;gap:8px!important;min-height:36px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;color:var(--wb-ink,inherit)!important;font-weight:800!important;text-align:left!important}
+.scape-tile button span{font-size:1.4rem}
+.scape-tile input[type=range]{width:100%}
+.scape-actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.sound-studio .scape-play:not(#x):not(#y),.focus-mode .scape-play:not(#x){min-height:44px!important;padding:0 20px!important;border-radius:99px!important;background:var(--wb-accent,#973862)!important;color:#fff!important;font-weight:800!important;border:0!important;display:inline-flex!important;align-items:center!important}
+/* In Focus (dark). */
+.focus-mode .scape-tile{background:rgba(255,255,255,.07)}
+.focus-mode .scape-tile.is-on{border-color:#f0a1bf;background:rgba(240,161,191,calc(.1 + var(--lv)*.2))}
+.focus-mode .scape-tile button:not(#x):not(#y){color:#fff!important}
+.focus-mode .scape-tile input[type=range]{accent-color:#f0a1bf}
+.focus-mode .scape-grid{grid-template-columns:repeat(3,1fr)}
+@media(max-width:420px){.focus-mode .scape-grid{grid-template-columns:repeat(2,1fr)}}
+@media(prefers-reduced-motion:reduce){.sound-pack-wave i{animation:none!important}}
+/* Beat the app-wide panel, label and input styles. */
+:root .sound-studio .sound-hero:not(#a):not(#b):not(#c){background:linear-gradient(135deg,var(--wb-accent,#973862),color-mix(in srgb,var(--wb-accent,#973862) 50%,#24123a))!important;color:#fff!important;border:0!important;box-shadow:0 18px 40px color-mix(in srgb,var(--wb-accent,#973862) 30%,transparent)!important}
+:root .sound-studio .sound-hero:not(#a):not(#b) :is(h2,p,b,span,label){color:#fff!important}
+:root .sound-studio .sound-hero h2:not(#a)::before{display:none!important}
+:root .sound-studio label.sound-row:not(#a):not(#b),:root .sound-studio label.sound-volume:not(#a):not(#b){display:flex!important;flex-direction:row!important;align-items:center!important;grid-template-columns:none!important}
+:root .sound-studio label.sound-volume:not(#a):not(#b){gap:12px!important;margin:18px 0 0!important}
+:root .sound-studio input[type=range]:not(#a):not(#b):not(#c),:root .focus-mode input[type=range]:not(#a):not(#b):not(#c){-webkit-appearance:auto!important;appearance:auto!important;width:auto;flex:1;min-width:0!important;min-height:0!important;height:26px!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important}
+:root .sound-studio .scape-tile input[type=range]:not(#a):not(#b):not(#c),:root .focus-mode .scape-tile input[type=range]:not(#a):not(#b):not(#c){width:100%!important}
+:root .sound-studio .sound-switch:not(#a) input:not(#b):not(#c){-webkit-appearance:none!important;appearance:none!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;opacity:0!important;background:none!important;box-shadow:none!important}

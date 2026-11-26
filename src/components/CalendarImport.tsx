@@ -4,6 +4,7 @@ import type {PlannerRepository} from '../store/repository'
 import {classTime} from '../store/classSchedule'
 import {applyIcsImport,linkSeen,parseIcs,type IcsImport} from '../store/icsImport'
 import CanvasConnect from './CanvasConnect'
+import DropZone from './DropZone'
 import {fetchCalendar,linkCalendar,linkedSnapshot,onLinkedChange,parseLinked,syncLinked,unlinkCalendar} from '../store/linkedCalendars'
 
 /** The team app a calendar link comes from, by its address (its calendar is then a team calendar). */
@@ -65,7 +66,7 @@ export default function CalendarImport({data,save}:{data:AppData;save:PlannerRep
   <p>Bring in the calendar you already use, your assignments from Canvas, Google Classroom or Schoology, or a team’s schedule from TeamSnap, GameChanger, SportsEngine and other team apps. Weekly repeats (classes, practice, shifts) become a weekly schedule, assignments go to your Planner, quizzes and exams to Exams, and everything else in the next 12 months to your Calendar. You choose what to add, and importing again only adds what’s new.</p>
   <CanvasConnect data={data} save={save}/>
   <fieldset disabled={busy} className="calendar-import-sources">
-   <label>Calendar file (.ics)<input type="file" accept=".ics,text/calendar" onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(f)void fromFile(f)}}/></label>
+   <DropZone accept=".ics,text/calendar" icon="📅" inputLabel="Calendar file (.ics)" label="Drop a calendar file (.ics)" hint="Exported from Google, Apple or Outlook Calendar · drag it here or tap" onFiles={([f])=>void fromFile(f)}/>
    <div className="calendar-import-link"><label>Or paste a calendar link<input type="url" inputMode="url" placeholder="https://… or webcal://… calendar link" value={link} onChange={e=>setLink(e.target.value)}/></label><button type="button" disabled={!link.trim()} onClick={()=>void fromLink()}>Get calendar</button></div>
    <p className="wb-muted">A calendar link is sent once to KONO’s server to fetch the calendar, and isn’t saved. Anyone with a private calendar link can see that calendar, so don’t share it elsewhere.</p>
   </fieldset>

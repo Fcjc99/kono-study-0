@@ -7,7 +7,7 @@ import {readPlannerPhoto,plannerPhotoToImportRows} from '../store/scheduleCalend
 import {addImportedClassesToSeason} from '../store/schoolImport'
 import {reportError} from '../store/errorReporter'
 import './schedule-import.css'
-import './upload-drop.css'
+import DropZone from './DropZone'
 import {AiHelperStatus} from './AiHelper'
 import {useAiHelper} from '../hooks/useAiHelper'
 import { aiReady, needsAiMessage } from '../store/aiProvider'
@@ -74,7 +74,7 @@ export default function ScheduleImport({data,save}:{data:AppData;save:PlannerRep
   finally{setBusy(false);setPhotoReading(false)}
  }
  return <section className="wb-panel schedule-import"><div className="wb-section-head"><div><h2>Import a schedule</h2><p>Choose a PDF. KONO finds the dates and classes, you check them, and they go on your Planner.</p></div></div>
- <fieldset disabled={busy}><label className="upload-drop">{file?'📄 '+file.name:'📄 Choose a PDF'}<small>{file?'Tap to choose a different PDF':'A syllabus, assignment list or class calendar, up to 20 MB'}</small><input type="file" aria-label="Choose PDF (up to 20 MB)" accept="application/pdf,.pdf" onChange={e=>{const f=e.target.files?.[0]??null;setFile(f);setError('');e.target.value='';if(f){setFirst(1);setLast(5);void read(f,1,5)}}}/></label>
+ <fieldset disabled={busy}><DropZone accept="application/pdf,.pdf" icon="📄" inputLabel="Choose PDF (up to 20 MB)" label={file?file.name:'Drop a PDF here'} hint={file?'Drop or choose a different PDF':'A syllabus, assignment list or class calendar, up to 20 MB · drag it here or tap to choose'} onFiles={([f])=>{setFile(f);setError('');setFirst(1);setLast(5);void read(f,1,5)}}/>
  <p className="wb-muted">The PDF stays on this device. Only the items you approve are saved to your plan.</p></fieldset>
  {reading&&<button onClick={()=>active.current?.abort()}>Cancel reading</button>}
  {status&&<p role="status" className="import-status">{status}</p>}{error&&<p role="alert">{error}</p>}{receipt&&<button disabled={busy} onClick={()=>void undo()}>Undo entire import</button>}
@@ -94,7 +94,7 @@ export default function ScheduleImport({data,save}:{data:AppData;save:PlannerRep
  <p>Handwriting is read by your AI helper. The photo goes straight from this browser to its provider; nothing is stored anywhere else.</p>
  <AiHelperStatus profileId={profile.id}/>
  <label>Week starting (Monday)<input type="date" value={mondayDate} onInput={e=>setMondayDate(e.currentTarget.value)}/></label>
- <label>Choose photo<input type="file" accept="image/*" onChange={e=>{setPhotoFile(e.target.files?.[0]??null);setError('');e.target.value=''}}/></label>{photoFile&&<p>{photoFile.name}</p>}
+ <DropZone accept="image/*" icon="📸" inputLabel="Choose photo" label={photoFile?photoFile.name:'Drop a photo of a planner page'} hint="Or paste a screenshot, or tap to choose" onFiles={([f])=>{setPhotoFile(f);setError('')}}/>
  <button disabled={!photoFile||photoReading} onClick={()=>void readPhoto()}>{photoReading?'Reading photo…':'Read photo'}</button>
  </fieldset></details>
  </section>
