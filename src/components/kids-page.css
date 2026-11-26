@@ -52,3 +52,10 @@
 @media(max-width:560px){.workbench .star-chart-head>label.wb-check:not(#x){grid-column:1;grid-row:auto;justify-self:start;margin-top:6px!important}}
 .kid-cards .kid-card-days dd>span:has(>.kicon):not(#x)::before{display:none}
 .kid-cards .kid-card-days dd>span:has(>.kicon):not(#x){padding-left:0!important}
+/* New look: on a phone, Today across the card (what matters now), Tomorrow and Later side by side under it; the
+ * card's buttons stay on the name's row. */
+@container (max-width:619px){.kid-cards .kid-card-days:not(#x):not(#y){grid-template-columns:repeat(2,minmax(0,1fr))}.kid-cards .kid-card-days>div:first-child:not(#x):not(#y){grid-column:1/-1}}
+.kid-cards .kid-card-head:not(#x):not(#y){display:flex!important;flex-wrap:wrap;align-items:center}
+.kid-cards .kid-card-head>.kid-card-open:not(#x){flex:1 1 auto;min-width:0}
+.kid-cards .kid-card-tools:not(#x):not(#y){display:flex;flex-wrap:wrap;gap:6px;margin-left:auto;justify-content:flex-end}
+.kid-cards .kid-card-days>div:not(#x):not(#y){box-shadow:0 1px 0 color-mix(in srgb,var(--kid-color) 18%,transparent)}
