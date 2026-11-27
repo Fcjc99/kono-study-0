@@ -35,3 +35,11 @@
 :root .qfa .quick-family-actions>button:not(.qfa-add):not(#a):not(#b):not(#c){min-height:52px!important;border-radius:16px!important}
 :root[data-dark=true] .qfa-preview-card{background:color-mix(in srgb,#fff 6%,transparent)}
 @media(prefers-reduced-motion:reduce){.qfa *{transition:none!important}}
+/* The preview as a refined tile: a wash of the color, a glowing bar, a glossy badge for the type. */
+.qfa-preview-card{position:relative;overflow:hidden;padding:14px 16px 14px 18px;border-radius:20px;background:linear-gradient(115deg,color-mix(in srgb,var(--qfa) 17%,var(--wb-surface,#fff)) 0,color-mix(in srgb,var(--qfa) 6%,var(--wb-surface,#fff)) 45%,var(--wb-surface,#fff) 80%);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 0 0 1px color-mix(in srgb,var(--qfa) 22%,transparent),0 16px 30px -18px var(--qfa),0 2px 6px -3px rgba(40,20,50,.08)}
+.qfa-preview-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,color-mix(in srgb,var(--qfa) 55%,#fff),var(--qfa));box-shadow:2px 0 12px -2px var(--qfa)}
+.qfa-preview-card>i{width:44px;height:44px;border-radius:14px;background:radial-gradient(120% 120% at 30% 20%,#fff 0,color-mix(in srgb,var(--qfa) 22%,#fff) 55%,color-mix(in srgb,var(--qfa) 40%,#fff) 100%);box-shadow:inset 0 1px 0 #fff,0 6px 14px -8px var(--qfa),0 0 0 1px color-mix(in srgb,var(--qfa) 22%,transparent)}
+.qfa-preview-card b{font-size:1.1rem;letter-spacing:-.012em}
+.qfa-preview-card small{font-variant-numeric:tabular-nums;color:color-mix(in srgb,var(--qfa) 55%,var(--wb-muted,#777))}
+.qfa-preview{background:linear-gradient(135deg,color-mix(in srgb,var(--qfa) 12%,var(--wb-surface,#fff)),color-mix(in srgb,var(--qfa) 3%,var(--wb-surface,#fff)));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--qfa) 12%,transparent)}
+:root[data-dark=true] .qfa-preview-card{background:linear-gradient(115deg,color-mix(in srgb,var(--qfa) 26%,#211c27),#211c27 75%)}

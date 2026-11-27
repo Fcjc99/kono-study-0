@@ -209,3 +209,6 @@
 :root .workbench .month-grid .month-cell:not(.is-other-month):not(#a):not(#b){background:color-mix(in srgb,var(--tab,#7a5cc0) calc(var(--busy,0)*14%),var(--wb-surface,#fff))}
 :root .workbench .month-grid .month-cell.is-today:not(#a):not(#b){box-shadow:inset 0 0 0 2px var(--tab,#7a5cc0)}
 :root[data-dark=true] .workbench .month-grid .month-cell:not(.is-other-month):not(#a):not(#b){background:color-mix(in srgb,var(--tab,#7a5cc0) calc(var(--busy,0)*22%),#1f1b24)}
+/* Month pills, refined: a gradient in the person's color, a hairline and a soft shadow. */
+:root .workbench .month-grid:not(.is-phone) .month-pill:not(.is-holiday):not(.is-day-off):not(#a):not(#b){border-left:0!important;border-radius:8px!important;background:linear-gradient(160deg,color-mix(in srgb,var(--t-bar,var(--pill)) 22%,#fff),color-mix(in srgb,var(--t-bar,var(--pill)) 10%,#fff))!important;box-shadow:inset 3px 0 0 var(--t-bar,var(--pill)),inset 0 1px 0 rgba(255,255,255,.8),0 0 0 1px color-mix(in srgb,var(--t-bar,var(--pill)) 20%,transparent),0 3px 8px -6px var(--t-bar,var(--pill))!important;font-weight:700}
+:root .workbench .month-grid.is-phone .month-pill:not(#a):not(#b){background:linear-gradient(90deg,var(--pill),color-mix(in srgb,var(--pill) 60%,#fff))!important;box-shadow:0 1px 3px -1px var(--pill)!important}
