@@ -287,3 +287,91 @@
 .family-hub .hub-title b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(42vw,520px)}
 .hub-tgrid-hours span{font-size:clamp(.75rem,calc(var(--hour,64px) * .26),.95rem)}
 @container (max-width:70px){.hub-tslot .hub-card small{font-size:.66rem!important;letter-spacing:-.01em}.hub-tslot>.hub-card:not(#x):not(#y){padding-left:12px!important;padding-right:4px!important}}
+
+/* ─── New look: the wall display ────────────────────────────────────────────────────────────────────────────
+   The light of the day behind everything (a peach morning, a clear afternoon, a rose dusk, an indigo night),
+   frosted-glass cards over it, a floating rail, and a big clock you can read from across the kitchen. */
+.family-hub[data-daypart]:not(#a):not(#b){--hub-accent:#c2477a;--glass:rgba(255,255,255,.74);--glass-line:rgba(255,255,255,.9);--ink:#2b2233;--soft:#6d6276;--line:rgba(60,40,70,.08);--card:var(--glass);font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;transition:background .8s ease}
+@media(orientation:landscape) and (min-width:761px){.family-hub[data-daypart]:not(#a):not(#b){grid-template-columns:104px 1fr}}
+.family-hub[data-daypart=morning]:not(#a):not(#b){--hub-accent:#e0783a;background:radial-gradient(70% 60% at 85% 0%,#ffd9b8 0,transparent 70%),linear-gradient(160deg,#fff4e6 0%,#ffe6ee 55%,#f1e9ff 100%)}
+.family-hub[data-daypart=afternoon]:not(#a):not(#b){--hub-accent:#4f78b8;background:radial-gradient(70% 60% at 85% 0%,#cfe6ff 0,transparent 70%),linear-gradient(160deg,#eef6ff 0%,#eff0ff 50%,#fcf0f7 100%)}
+.family-hub[data-daypart=dusk]:not(#a):not(#b){--hub-accent:#c2477a;background:radial-gradient(70% 60% at 85% 0%,#ffc9a8 0,transparent 70%),linear-gradient(160deg,#ffe8d9 0%,#f8dcee 45%,#dcd6f8 100%)}
+.family-hub[data-daypart=night]:not(#a):not(#b){--hub-accent:#b9a2ff;--glass:rgba(40,34,70,.62);--glass-line:rgba(255,255,255,.08);--ink:#f2eefa;--soft:#b8aecb;--line:rgba(255,255,255,.08);color:var(--ink);background:radial-gradient(60% 50% at 85% 0%,#4b3b86 0,transparent 70%),linear-gradient(160deg,#1b1934 0%,#25204a 50%,#33264f 100%)}
+/* The rail floats: a frosted column with round tabs. */
+.family-hub[data-daypart] .hub-rail:not(#a):not(#b){margin:14px 0 14px 14px;padding:12px 8px;border-radius:28px;background:var(--glass);border:1px solid var(--glass-line);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);box-shadow:0 18px 40px -24px rgba(40,20,60,.35)}
+.family-hub[data-daypart] .hub-rail button:not(#a):not(#b):not(#c){border-radius:20px!important;color:var(--soft)!important;font-weight:700!important;transition:background .2s,color .2s}
+.family-hub[data-daypart] .hub-rail button[aria-current=page]:not(#a):not(#b):not(#c){background:var(--hub-accent)!important;color:#fff!important;box-shadow:0 10px 22px -10px var(--hub-accent)!important}
+.family-hub[data-daypart] .hub-rail button span{filter:saturate(.9)}
+/* The top bar: no white band, just the family and their faces. */
+.family-hub[data-daypart] .hub-head:not(#a):not(#b){background:transparent;border:0;padding:16px 24px 6px}
+.family-hub[data-daypart] .hub-title b:not(#a){font-family:inherit;font-size:1.25rem;font-weight:800;letter-spacing:-.01em}
+.family-hub[data-daypart] .hub-people button:not(#a):not(#b):not(#c){width:54px;height:54px;background:var(--glass)!important;box-shadow:0 6px 14px -8px rgba(0,0,0,.35)!important}
+.family-hub[data-daypart] .hub-add:not(#a):not(#b):not(#c){background:var(--hub-accent)!important;box-shadow:0 12px 24px -12px var(--hub-accent)!important}
+.family-hub[data-daypart] .hub-main:has(.hub-hero) .hub-title>:is(.hub-clock,.hub-weather){display:none}
+/* The hero: the time, big. */
+.hub-hero{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:18px;margin:4px 24px 14px;padding:22px 26px;border-radius:32px;background:var(--glass);border:1px solid var(--glass-line);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);box-shadow:0 24px 50px -30px rgba(40,20,60,.4);position:relative;overflow:hidden}
+.hub-hero::after{content:'';position:absolute;right:-60px;top:-80px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--hub-accent) 28%,transparent),transparent 70%);pointer-events:none}
+.hub-hero-time{display:grid;gap:2px;min-width:0}
+.hub-hero-time small{font-size:1rem;font-weight:700;color:var(--soft)}
+.hub-hero-clock{font-size:clamp(3.2rem,7vw,5.6rem);font-weight:250;letter-spacing:-.04em;line-height:.95;font-variant-numeric:tabular-nums;color:var(--ink)}
+.hub-hero-date{font-size:1.25rem;font-weight:700;color:var(--ink)}
+.hub-hero-weather{display:grid;justify-items:center;gap:0;padding:10px 18px;border-radius:24px;background:color-mix(in srgb,var(--hub-accent) 10%,transparent)}
+.hub-hero-weather span{font-size:2.4rem;line-height:1}.hub-hero-weather b{font-size:1.8rem;font-weight:800}.hub-hero-weather small{font-weight:700;color:var(--soft)}
+.family-hub .hub-hero-next:not(#a):not(#b):not(#c){display:grid;gap:2px;min-width:220px;max-width:340px;padding:14px 20px!important;border-radius:24px!important;text-align:left;border:0!important;background:linear-gradient(135deg,color-mix(in srgb,var(--p) 85%,#fff),var(--p))!important;color:#fff!important;box-shadow:0 18px 34px -18px var(--p)!important}
+.hub-hero-next small{font-size:.8rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.9}
+.hub-hero-next b{font-size:1.45rem;font-weight:900;line-height:1.15}
+.hub-hero-next span{font-weight:700;opacity:.92}
+.hub-hero-kono{position:relative;z-index:1;animation:hub-bob 4s ease-in-out infinite}
+@keyframes hub-bob{50%{transform:translateY(-6px)}}
+/* Home: the days as glass cards sized to what's in them, today wider with a line at now; the panels beside. */
+.family-hub[data-daypart] .hub-home:not(#a):not(#b){padding:0 24px 20px;gap:18px}
+.family-hub[data-daypart] .hub-day:not(#a):not(#b){min-height:0;padding:14px;border-radius:26px;background:var(--glass);border:1px solid var(--glass-line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 16px 34px -26px rgba(40,20,60,.45)}
+.family-hub[data-daypart] .hub-day.is-today:not(#a):not(#b){box-shadow:0 0 0 2px var(--hub-accent),0 18px 40px -24px var(--hub-accent)}
+.family-hub[data-daypart] .hub-day>header:not(#a){border-bottom:0;padding:0 4px 8px}
+.family-hub[data-daypart] .hub-day>header b:not(#a){font-size:1.3rem}
+.family-hub[data-daypart] .hub-day.is-today>header b:not(#a){color:var(--hub-accent)}
+.family-hub[data-daypart] .hub-card:not(#a):not(#b):not(#c){border-radius:16px!important;min-height:60px!important;box-shadow:inset 5px 0 0 var(--p),0 4px 12px -8px rgba(0,0,0,.25)!important}
+.family-hub[data-daypart] .hub-card.is-now:not(#a):not(#b):not(#c){box-shadow:inset 5px 0 0 var(--p),0 0 0 2px var(--p),0 12px 26px -12px var(--p)!important}
+.family-hub[data-daypart] .hub-card.is-past:not(#a):not(#b):not(#c){opacity:.55}
+.hub-now-line{position:relative;display:flex;align-items:center;gap:8px;margin:4px 0;color:var(--hub-accent);font-size:.78rem;font-weight:800}
+.hub-now-line::before{content:'';width:10px;height:10px;border-radius:50%;background:var(--hub-accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--hub-accent) 25%,transparent);animation:hub-pulse 2.4s ease-in-out infinite}
+.hub-now-line::after{content:'';flex:1;height:2px;border-radius:2px;background:var(--hub-accent);opacity:.7}
+@keyframes hub-pulse{50%{box-shadow:0 0 0 8px color-mix(in srgb,var(--hub-accent) 0%,transparent)}}
+.family-hub .hub-free{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:14px;background:color-mix(in srgb,var(--ink) 4%,transparent);font-size:.95rem}
+.family-hub[data-daypart] .hub-panel:not(#a):not(#b){border-radius:26px;padding:16px 18px;background:var(--glass);border:1px solid var(--glass-line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 16px 34px -26px rgba(40,20,60,.45)}
+.family-hub[data-daypart] .hub-panel h3:not(#a){font-size:.82rem;letter-spacing:.08em;color:var(--soft)}
+.family-hub[data-daypart] .hub-panel-slot.is-empty .hub-panel:not(#a):not(#b){padding:12px 16px;background:color-mix(in srgb,var(--glass) 55%,transparent);box-shadow:none}
+.family-hub[data-daypart] .hub-panel-slot.is-empty .hub-panel h3:not(#a){margin-bottom:4px}
+.family-hub[data-daypart] .hub-panel-slot.is-empty .hub-empty:not(#a){font-size:.88rem;margin:0}
+.family-hub[data-daypart] .hub-dinner:not(#a):not(#b):not(#c){background:color-mix(in srgb,#f0a33a 14%,var(--glass))!important}
+.family-hub[data-daypart] .hub-calendar:not(#a){padding:6px 24px 20px}
+/* Night: glass goes dark, cards keep their person's color. */
+.family-hub[data-daypart=night] .hub-card:not(#a):not(#b):not(#c){--bg:var(--t-bg-d,color-mix(in srgb,var(--p) 28%,#26212c));--bar:var(--t-bar-d,var(--p));--fg:var(--t-fg-d,#f5eef8)}
+.family-hub[data-daypart=night] .hub-card :is(.hub-card-title,small):not(#a){color:var(--t-fg-d,#f5eef8)!important}
+.family-hub[data-daypart=night] .hub-todos i:not(#a){background:color-mix(in srgb,var(--p) 45%,#2a2448);color:#fff}
+.family-hub[data-daypart=night] .hub-rail button[aria-pressed=true]:not(#a):not(#b):not(#c){background:rgba(255,255,255,.12)!important;color:var(--ink)!important}
+.family-hub[data-daypart=night] .hub-dinner:not(#a):not(#b):not(#c){background:rgba(240,163,58,.14)!important;color:var(--ink)!important}
+.family-hub[data-daypart=night] .hub-todos button:not(#a):not(#b):not(#c){background:rgba(255,255,255,.06)!important;color:var(--ink)!important}
+/* Tablet upright: the hero on top, the days across, the panels as a grid under them; the whole page scrolls. */
+@media(orientation:portrait){
+ .family-hub[data-daypart] .hub-home:not(#a):not(#b){grid-template-columns:1fr;grid-template-rows:auto auto;overflow:auto;align-content:start}
+ .family-hub[data-daypart] .hub-days:not(#a):not(#b){overflow:visible}
+ .family-hub[data-daypart] .hub-panels:not(#a):not(#b){display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));overflow:visible;align-items:start}
+ .hub-hero{grid-template-columns:1fr auto;grid-template-areas:'time kono' 'next weather'}
+ .hub-hero-time{grid-area:time}.hub-hero-kono{grid-area:kono}.hub-hero-weather{grid-area:weather}.family-hub .hub-hero-next:not(#a):not(#b):not(#c){grid-area:next;max-width:none}
+}
+@media(max-width:720px){.family-hub[data-daypart]:not(#a):not(#b){grid-template-columns:1fr}.family-hub[data-daypart] .hub-rail:not(#a):not(#b){margin:0}.hub-hero{margin:4px 12px 12px;padding:16px}.hub-hero-kono{display:none}}
+/* Idle: the clock floats on the day's light. */
+.family-hub[data-daypart] .hub-ambient:not(#a):not(#b):not(#c){background:inherit!important;backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px)}
+.family-hub[data-daypart] .hub-ambient-clock:not(#a){font-weight:200;letter-spacing:-.04em}
+@media(prefers-reduced-motion:reduce){.hub-hero-kono,.hub-now-line::before{animation:none}}
+/* Home's days in a row: today a little wider; each as tall as what's in it. */
+.family-hub .hub-home .hub-days:not(#a):not(#b){display:flex;align-items:flex-start;gap:14px}
+.family-hub .hub-home .hub-days>.hub-day:not(#a):not(#b){flex:1 1 0;min-width:0}
+.family-hub .hub-home .hub-days>.hub-day.is-today:not(#a):not(#b){flex-grow:1.5}
+@media(max-width:600px){.family-hub .hub-home .hub-days:not(#a):not(#b){flex-direction:column;align-items:stretch}}
+/* Upright: the rail as a floating bar along the bottom. */
+@media(orientation:portrait),(max-width:760px){
+ .family-hub[data-daypart] .hub-rail:not(#a):not(#b){margin:0 14px 14px;padding:8px;border-radius:28px;flex-direction:row}
+ .family-hub[data-daypart] .hub-rail button:not(#a):not(#b):not(#c){min-height:60px!important}
+}
