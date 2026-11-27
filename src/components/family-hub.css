@@ -293,20 +293,20 @@
    frosted-glass cards over it, a floating rail, and a big clock you can read from across the kitchen. */
 .family-hub[data-daypart]:not(#a):not(#b){--hub-accent:#c2477a;--glass:rgba(255,255,255,.74);--glass-line:rgba(255,255,255,.9);--ink:#2b2233;--soft:#6d6276;--line:rgba(60,40,70,.08);--card:var(--glass);font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;transition:background .8s ease}
 @media(orientation:landscape) and (min-width:761px){.family-hub[data-daypart]:not(#a):not(#b){grid-template-columns:104px 1fr}}
-.family-hub[data-daypart=morning]:not(#a):not(#b){--hub-accent:#e0783a;background:radial-gradient(70% 60% at 85% 0%,#ffd9b8 0,transparent 70%),linear-gradient(160deg,#fff4e6 0%,#ffe6ee 55%,#f1e9ff 100%)}
-.family-hub[data-daypart=afternoon]:not(#a):not(#b){--hub-accent:#4f78b8;background:radial-gradient(70% 60% at 85% 0%,#cfe6ff 0,transparent 70%),linear-gradient(160deg,#eef6ff 0%,#eff0ff 50%,#fcf0f7 100%)}
-.family-hub[data-daypart=dusk]:not(#a):not(#b){--hub-accent:#c2477a;background:radial-gradient(70% 60% at 85% 0%,#ffc9a8 0,transparent 70%),linear-gradient(160deg,#ffe8d9 0%,#f8dcee 45%,#dcd6f8 100%)}
-.family-hub[data-daypart=night]:not(#a):not(#b){--hub-accent:#b9a2ff;--glass:rgba(40,34,70,.62);--glass-line:rgba(255,255,255,.08);--ink:#f2eefa;--soft:#b8aecb;--line:rgba(255,255,255,.08);color:var(--ink);background:radial-gradient(60% 50% at 85% 0%,#4b3b86 0,transparent 70%),linear-gradient(160deg,#1b1934 0%,#25204a 50%,#33264f 100%)}
+.family-hub[data-daypart=morning]:not(#a):not(#b){--hub-accent:#e0783a;--hub-solid:#b85a1f;--hub-on:#fff;background:radial-gradient(70% 60% at 85% 0%,#ffd9b8 0,transparent 70%),linear-gradient(160deg,#fff4e6 0%,#ffe6ee 55%,#f1e9ff 100%)}
+.family-hub[data-daypart=afternoon]:not(#a):not(#b){--hub-accent:#4f78b8;--hub-solid:#3f68a8;--hub-on:#fff;background:radial-gradient(70% 60% at 85% 0%,#cfe6ff 0,transparent 70%),linear-gradient(160deg,#eef6ff 0%,#eff0ff 50%,#fcf0f7 100%)}
+.family-hub[data-daypart=dusk]:not(#a):not(#b){--hub-accent:#c2477a;--hub-solid:#a8325f;--hub-on:#fff;background:radial-gradient(70% 60% at 85% 0%,#ffc9a8 0,transparent 70%),linear-gradient(160deg,#ffe8d9 0%,#f8dcee 45%,#dcd6f8 100%)}
+.family-hub[data-daypart=night]:not(#a):not(#b){--hub-accent:#b9a2ff;--hub-solid:#c9b6ff;--hub-on:#1b1934;--glass:rgba(40,34,70,.62);--glass-line:rgba(255,255,255,.08);--ink:#f2eefa;--soft:#b8aecb;--line:rgba(255,255,255,.08);color:var(--ink);background:radial-gradient(60% 50% at 85% 0%,#4b3b86 0,transparent 70%),linear-gradient(160deg,#1b1934 0%,#25204a 50%,#33264f 100%)}
 /* The rail floats: a frosted column with round tabs. */
 .family-hub[data-daypart] .hub-rail:not(#a):not(#b){margin:14px 0 14px 14px;padding:12px 8px;border-radius:28px;background:var(--glass);border:1px solid var(--glass-line);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);box-shadow:0 18px 40px -24px rgba(40,20,60,.35)}
 .family-hub[data-daypart] .hub-rail button:not(#a):not(#b):not(#c){border-radius:20px!important;color:var(--soft)!important;font-weight:700!important;transition:background .2s,color .2s}
-.family-hub[data-daypart] .hub-rail button[aria-current=page]:not(#a):not(#b):not(#c){background:var(--hub-accent)!important;color:#fff!important;box-shadow:0 10px 22px -10px var(--hub-accent)!important}
+.family-hub[data-daypart] .hub-rail button[aria-current=page]:not(#a):not(#b):not(#c){background:var(--hub-solid)!important;color:var(--hub-on)!important;box-shadow:0 10px 22px -10px var(--hub-accent)!important}
 .family-hub[data-daypart] .hub-rail button span{filter:saturate(.9)}
 /* The top bar: no white band, just the family and their faces. */
 .family-hub[data-daypart] .hub-head:not(#a):not(#b){background:transparent;border:0;padding:16px 24px 6px}
 .family-hub[data-daypart] .hub-title b:not(#a){font-family:inherit;font-size:1.25rem;font-weight:800;letter-spacing:-.01em}
 .family-hub[data-daypart] .hub-people button:not(#a):not(#b):not(#c){width:54px;height:54px;background:var(--glass)!important;box-shadow:0 6px 14px -8px rgba(0,0,0,.35)!important}
-.family-hub[data-daypart] .hub-add:not(#a):not(#b):not(#c){background:var(--hub-accent)!important;box-shadow:0 12px 24px -12px var(--hub-accent)!important}
+.family-hub[data-daypart] .hub-add:not(#a):not(#b):not(#c){background:var(--hub-solid)!important;color:var(--hub-on)!important;box-shadow:0 12px 24px -12px var(--hub-accent)!important}
 .family-hub[data-daypart] .hub-main:has(.hub-hero) .hub-title>:is(.hub-clock,.hub-weather){display:none}
 /* The hero: the time, big. */
 .hub-hero{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:18px;margin:4px 24px 14px;padding:22px 26px;border-radius:32px;background:var(--glass);border:1px solid var(--glass-line);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);box-shadow:0 24px 50px -30px rgba(40,20,60,.4);position:relative;overflow:hidden}
@@ -375,3 +375,6 @@
  .family-hub[data-daypart] .hub-rail:not(#a):not(#b){margin:0 14px 14px;padding:8px;border-radius:28px;flex-direction:row}
  .family-hub[data-daypart] .hub-rail button:not(#a):not(#b):not(#c){min-height:60px!important}
 }
+.family-hub[data-daypart] .hub-cal-bar [aria-pressed=true]:not(#a):not(#b):not(#c){background:var(--hub-solid)!important;color:var(--hub-on)!important}
+.family-hub[data-daypart] .hub-cal-bar>button:not(#a):not(#b):not(#c),.family-hub[data-daypart] .hub-cal-bar [role=group] button:not([aria-pressed=true]):not(#a):not(#b):not(#c){background:var(--glass)!important;border-color:var(--glass-line)!important}
+.family-hub[data-daypart] .hub-tgrid:not(#a){border-radius:26px;overflow:hidden;background:var(--glass);border:1px solid var(--glass-line)}
