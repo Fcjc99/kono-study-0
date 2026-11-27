@@ -1,0 +1,37 @@
+/* Adding an event to the Planner (QuickFamilyAdd): a live preview of the tile you're making, the title first,
+   the type as chips, quick times, and one big button that says where it's going. */
+.qfa>fieldset{display:grid;gap:16px;min-inline-size:0;margin:0;padding:0;border:0}
+.qfa-preview{--qfa:#7a5cc0;display:grid;gap:6px;padding:14px;border-radius:22px;background:linear-gradient(135deg,color-mix(in srgb,var(--qfa) 16%,var(--wb-surface,#fff)),color-mix(in srgb,var(--qfa) 5%,var(--wb-surface,#fff)));transition:background .3s}
+.qfa-preview-day{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--qfa) 70%,var(--wb-ink,#222))}
+.qfa-preview-card{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--wb-surface,#fff);box-shadow:inset 5px 0 0 var(--qfa),0 10px 24px -16px var(--qfa);transition:box-shadow .3s}
+.qfa-preview-card>i{display:grid;place-items:center;width:40px;height:40px;border-radius:13px;background:color-mix(in srgb,var(--qfa) 14%,transparent);font-style:normal;font-size:1.3rem;flex:none}
+.qfa-preview-card>span{display:grid;min-width:0}
+.qfa-preview-card b{font-size:1.05rem;font-weight:800;color:var(--wb-ink,#222);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qfa-preview-card small{font-size:.84rem;font-weight:600;color:var(--wb-muted,#777)}
+/* The title: big. */
+:root .qfa .qfa-title:not(#a):not(#b){display:grid;gap:6px;font-size:.72rem!important;font-weight:800!important;letter-spacing:.06em;text-transform:uppercase;color:var(--wb-muted)!important}
+:root .qfa .qfa-title input:not(#a):not(#b):not(#c){box-sizing:border-box;width:100%;min-height:56px!important;padding:10px 14px!important;border-radius:16px!important;font-size:1.25rem!important;font-weight:800!important;letter-spacing:0;text-transform:none;color:var(--wb-ink)!important;background:color-mix(in srgb,var(--wb-accent) 4%,var(--wb-surface,#fff))!important}
+:root .qfa .qfa-title input:not(#a):not(#b):not(#c):focus{border-color:var(--wb-accent)!important;box-shadow:0 0 0 4px color-mix(in srgb,var(--wb-accent) 16%,transparent)!important;outline:0}
+/* The type: chips with their color. */
+.qfa-kinds{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -2px;padding:2px}
+.qfa-kinds::-webkit-scrollbar{display:none}
+:root .qfa .qfa-kinds button:not(#a):not(#b):not(#c){flex:none;display:inline-flex;align-items:center;gap:6px;min-height:42px!important;margin:0!important;padding:0 14px!important;border-radius:99px!important;border:1.5px solid color-mix(in srgb,var(--k) 28%,transparent)!important;background:var(--wb-surface,#fff)!important;color:var(--wb-ink)!important;font-weight:700!important;box-shadow:none!important;transition:background .15s,color .15s,transform .15s}
+:root .qfa .qfa-kinds button[aria-checked=true]:not(#a):not(#b):not(#c){background:var(--k)!important;border-color:var(--k)!important;color:#fff!important;transform:translateY(-1px);box-shadow:0 8px 16px -10px var(--k)!important}
+/* Who: the existing chips, a little roomier. */
+:root .qfa .whose-pick:not(#a){margin:0}
+/* When: quick picks, the exact times, then how long. */
+.qfa-when{display:grid;gap:10px;padding:12px;border-radius:18px;background:color-mix(in srgb,var(--wb-ink,#333) 3.5%,transparent)}
+.qfa-picks{display:flex;flex-wrap:wrap;gap:6px}
+:root .qfa .qfa-picks button:not(#a):not(#b):not(#c){min-height:38px!important;margin:0!important;padding:0 13px!important;border-radius:12px!important;border:1px solid var(--wb-line)!important;background:var(--wb-surface,#fff)!important;color:var(--wb-ink)!important;font-weight:700!important;font-size:.88rem!important;box-shadow:none!important}
+:root .qfa .qfa-picks button[aria-pressed=true]:not(#a):not(#b):not(#c){background:var(--wb-accent)!important;border-color:var(--wb-accent)!important;color:#fff!important}
+:root .qfa .quick-family-times:not(#a){display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* Extras: driving and repeats, quieter. */
+.qfa-extras{display:grid;gap:12px}
+:root .qfa .qfa-extras>label:not(#a){font-size:.85rem}
+/* The button: wide, in the event's color, saying where it goes. */
+:root .qfa .quick-family-actions:not(#a):not(#b){position:sticky;bottom:-1px;display:flex;gap:8px;margin:0 -2px;padding:10px 2px 4px;background:linear-gradient(transparent,var(--wb-surface,#fff) 30%)}
+:root .qfa .qfa-add:not(#a):not(#b):not(#c){--qfa:var(--wb-accent);flex:1;min-height:52px!important;border-radius:16px!important;font-size:1.02rem!important;font-weight:800!important;background:var(--wb-accent)!important;border:0!important;color:#fff!important;box-shadow:0 12px 24px -14px var(--wb-accent)!important;transition:transform .15s,opacity .15s}
+:root .qfa .qfa-add:disabled:not(#a):not(#b):not(#c){opacity:.45;box-shadow:none!important}
+:root .qfa .quick-family-actions>button:not(.qfa-add):not(#a):not(#b):not(#c){min-height:52px!important;border-radius:16px!important}
+:root[data-dark=true] .qfa-preview-card{background:color-mix(in srgb,#fff 6%,transparent)}
+@media(prefers-reduced-motion:reduce){.qfa *{transition:none!important}}

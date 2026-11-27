@@ -39,3 +39,7 @@ dialog.entry-editor :is(fieldset,form)>label{min-width:0;max-width:100%}
 :root dialog.entry-editor>header h2:not(#x):not(#y){font-size:1rem!important;color:var(--wb-muted)!important;font-weight:700!important}
 :root dialog.entry-editor form>fieldset>label>:is(input:not([type=checkbox]):not([type=radio]),select,textarea):not(#x):not(#y):not(#z){box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important}
 :root dialog.entry-editor .wb-field-label:not(#x){display:block;margin-bottom:6px;font-size:.72rem!important;font-weight:800!important;letter-spacing:.06em;text-transform:uppercase;color:var(--wb-muted,#7a6670)!important}
+/* A new event: quick start times above the exact ones. */
+.event-start-picks{display:flex;flex-wrap:wrap;gap:6px}
+:root dialog.entry-editor .event-start-picks button:not(#a):not(#b):not(#c){min-height:38px!important;margin:0!important;padding:0 13px!important;border-radius:12px!important;border:1px solid var(--wb-line)!important;background:var(--wb-surface,#fff)!important;color:var(--wb-ink)!important;font-weight:700!important;font-size:.88rem!important;box-shadow:none!important}
+:root dialog.entry-editor .event-start-picks button[aria-pressed=true]:not(#a):not(#b):not(#c){background:var(--wb-accent)!important;border-color:var(--wb-accent)!important;color:#fff!important}
