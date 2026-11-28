@@ -49,6 +49,6 @@
  #workspace-main .sanctuary-stage .kono-bar .kono-mood-row:not(#x):not(#y):not(#z){display:flex!important;flex-wrap:wrap}
  #workspace-main .sanctuary-stage .kono-bar .kono-mood-face:not(#x):not(#y):not(#z){width:44px;height:44px;flex:none}
  #workspace-main .sanctuary-stage .kono-bar .kono-mood-row>p:not(#x):not(#y):not(#z){flex:1 1 calc(100% - 60px)!important}
- #workspace-main .sanctuary-stage .kono-bar .kono-care-meter:not(#x):not(#y):not(#z){flex:1.2 1 110px!important}
- #workspace-main .sanctuary-stage .kono-bar :is(.kono-care,.kono-bar-tools)>button:not(#x):not(#y):not(#z){flex:1 1 90px!important}
+ #workspace-main .sanctuary-stage .kono-bar .kono-care-meter:not(#x):not(#y):not(#z){flex:1.2 1 88px!important}
+ #workspace-main .sanctuary-stage .kono-bar :is(.kono-care,.kono-bar-tools)>button:not(#x):not(#y):not(#z){flex:1 1 64px!important;white-space:nowrap}
 }
