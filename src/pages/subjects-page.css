@@ -68,3 +68,13 @@
 :root[data-dark=true] .workbench .subject-section-tabs button[aria-current=page]:not(#x):not(#y){background:color-mix(in srgb,#fff 12%,transparent)!important}
 :root .workbench .restored-subjects .subject-workspace:not(#a):not(#b):not(#c):not(#d){background:linear-gradient(var(--subject),var(--subject)) top/100% 5px no-repeat,linear-gradient(180deg,color-mix(in srgb,var(--subject) 15%,var(--wb-surface,#fff)) 0,var(--wb-surface,#fff) 240px)!important}
 :root[data-dark=true] .workbench .restored-subjects .subject-workspace:not(#a):not(#b):not(#c):not(#d){background:linear-gradient(var(--subject),var(--subject)) top/100% 5px no-repeat,linear-gradient(180deg,color-mix(in srgb,var(--subject) 22%,#1f1b24) 0,#1f1b24 240px)!important}
+/* The class header as a hero in the class's color: white type, the facts as glass chips, Edit on glass. */
+:root .workbench .restored-subjects .subject-workspace-title:not(#a):not(#b):not(#c){position:relative;margin:14px 0 14px!important;padding:18px 18px 16px!important;border-radius:22px!important;color:#fff;background:radial-gradient(90% 140% at 100% 0%,rgba(255,255,255,.22),transparent 60%),linear-gradient(135deg,color-mix(in srgb,var(--subject) 88%,#fff),color-mix(in srgb,var(--subject) 78%,#22142e))!important;box-shadow:0 18px 34px -22px var(--subject)!important}
+:root .workbench .restored-subjects .subject-workspace-title:not(#a):not(#b):not(#c) :is(h2,p){color:#fff!important}
+:root .workbench .restored-subjects .subject-workspace-title h2:not(#a):not(#b):not(#c)::before{display:none}
+:root .workbench .restored-subjects .subject-workspace-title>div>p:not(.subject-facts){opacity:.9;font-weight:600}
+:root .workbench .restored-subjects .subject-facts>span:not(#a):not(#b){background:rgba(255,255,255,.18)!important;border:0!important;color:#fff!important;backdrop-filter:blur(4px)}
+:root .workbench .restored-subjects .subject-facts .kicon:not(#a){color:#fff}
+:root .workbench .restored-subjects .subject-workspace-title .wb-toolbar :is(button,summary):not(#a):not(#b):not(#c){background:rgba(255,255,255,.2)!important;border:0!important;color:#fff!important;box-shadow:none!important}
+:root .workbench .restored-subjects .subject-workspace-title .wb-toolbar button:first-child:not(#a):not(#b):not(#c){background:#fff!important;color:color-mix(in srgb,var(--subject) 75%,#222)!important}
+:root .workbench .restored-subjects .subject-workspace-title .card-more>div :is(button):not(#a):not(#b):not(#c){background:var(--wb-surface,#fff)!important;color:var(--wb-ink,#222)!important}

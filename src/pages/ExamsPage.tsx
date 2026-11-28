@@ -1,7 +1,9 @@
+import type {CSSProperties} from 'react'
 import type {Entry} from '../store/workspace'
 import type {Exam} from '../store/model'
 import type {PageContext} from './pageContext'
 import StudyTabs from './StudyTabs'
+import './exams-page.css'
 
 const DAY=86_400_000
 /** Exams: what's coming, soonest first, each with how many days are left, its subject and date, and what to
@@ -17,7 +19,8 @@ export default function ExamsPage({w}:{w:PageContext}){
  const setDone=(e:Exam,done:boolean)=>void run(()=>save(d=>({...d,exams:d.exams.map(x=>x.id===e.id?{...x,done}:x)})),done?'Marked “'+e.title+'” done.':'Reopened “'+e.title+'”.',true)
  const planReview=()=>{setPlanRequest(n=>n+1);navigate('Planner')}
  const row=(e:Exam,isPast=false)=>{const n=days(e.due),sub=subjectOf(e),date=new Date(e.due+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})
-  return <li key={e.id} className={'exam-row'+(isPast?' is-past':'')+(n===0&&!isPast?' is-today':'')}>
+  const p=isPast?100:Math.max(4,Math.round((14-Math.min(14,n))/14*100))
+  return <li key={e.id} className={'exam-row'+(isPast?' is-past':'')+(n===0&&!isPast?' is-today':'')+(!isPast&&n<=3?' is-soon':'')} style={{'--c':sub?.color||'#c2477a','--p':p} as CSSProperties}>
    <div className="exam-count" aria-hidden="true">{isPast?<b>✓</b>:<><b>{n}</b><span>{n===0?'today':n===1?'day':'days'}</span></>}</div>
    <div className="exam-copy"><h3>{e.title}</h3><p>{(sub?.name??'Unassigned')+' · '+date+(isPast?'':n===0?' · today':n===1?' · tomorrow':' · in '+n+' days')}</p>{e.notes&&<p className="exam-notes">{e.notes.replace(/<[^>]*>/g,' ').slice(0,140)}</p>}</div>
    <div className="exam-actions">

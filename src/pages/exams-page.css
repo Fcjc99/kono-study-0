@@ -1,0 +1,32 @@
+/* Study › Tests: each test a card in its subject's color, the days left in a ring that fills as it gets close;
+   the soonest one leads, bigger. */
+#workspace-main .exams-page .exam-list{display:grid;gap:10px}
+#workspace-main .exams-page .exam-row:not(#x){--c:#c2477a;position:relative;overflow:hidden;grid-template-columns:74px minmax(0,1fr) auto;padding:14px 16px 14px 18px;border:0;border-radius:20px;background:linear-gradient(110deg,color-mix(in srgb,var(--c) 11%,var(--wb-surface,#fff)),var(--wb-surface,#fff) 65%);box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 18%,transparent),0 14px 28px -22px var(--c)}
+#workspace-main .exams-page .exam-row:not(#x)::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 55%,#fff),var(--c))}
+#workspace-main .exams-page .exam-count:not(#x){width:68px;height:68px;padding:0;align-content:center;border-radius:50%;color:color-mix(in srgb,var(--c) 80%,#222);background:radial-gradient(closest-side,var(--wb-surface,#fff) 79%,transparent 81% 100%),conic-gradient(var(--c) calc(var(--p)*1%),color-mix(in srgb,var(--c) 16%,transparent) 0)}
+#workspace-main .exams-page .exam-count b{font-size:1.5rem;font-weight:850}
+#workspace-main .exams-page .exam-count span{font-size:.6rem}
+#workspace-main .exams-page .exam-copy h3{font-size:1.05rem;font-weight:800;letter-spacing:-.01em}
+#workspace-main .exams-page .exam-copy p{font-weight:600}
+#workspace-main .exams-page .exam-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+#workspace-main .exams-page .exam-actions button:not(#x):not(#y){min-height:38px!important;border-radius:12px!important;font-weight:750!important}
+#workspace-main .exams-page .exam-actions .primary:not(#x):not(#y){background:var(--c)!important;border-color:var(--c)!important;color:#fff!important;box-shadow:0 8px 16px -10px var(--c)!important}
+/* The soonest: a hero. */
+#workspace-main .exams-page .exam-list:first-of-type>.exam-row:first-child:not(.is-past):not(#x){grid-template-columns:96px minmax(0,1fr) auto;padding:18px 18px 18px 22px;color:#fff;background:radial-gradient(90% 140% at 100% 0%,rgba(255,255,255,.2),transparent 60%),linear-gradient(135deg,color-mix(in srgb,var(--c) 80%,#fff 0%),color-mix(in srgb,var(--c) 70%,#3a2050))}
+#workspace-main .exams-page .exam-list:first-of-type>.exam-row:first-child:not(.is-past):not(#x)::before{display:none}
+#workspace-main .exams-page .exam-list:first-of-type>.exam-row:first-child:not(.is-past) .exam-count:not(#x){width:88px;height:88px;color:#fff;background:radial-gradient(closest-side,color-mix(in srgb,var(--c) 75%,#3a2050) 79%,transparent 81% 100%),conic-gradient(#fff calc(var(--p)*1%),rgba(255,255,255,.25) 0)}
+#workspace-main .exams-page .exam-list:first-of-type>.exam-row:first-child:not(.is-past) .exam-count b{font-size:2rem}
+#workspace-main .exams-page .exam-list:first-of-type>.exam-row:first-child:not(.is-past) :is(h3,p){color:#fff!important}
+#workspace-main .exams-page .exam-list:first-of-type>.exam-row:first-child:not(.is-past) h3{font-size:1.3rem}
+#workspace-main .exams-page .exam-list:first-of-type>.exam-row:first-child:not(.is-past) .exam-actions button:not(#x):not(#y){background:rgba(255,255,255,.18)!important;border-color:transparent!important;color:#fff!important;box-shadow:none!important}
+#workspace-main .exams-page .exam-list:first-of-type>.exam-row:first-child:not(.is-past) .exam-actions .primary:not(#x):not(#y){background:#fff!important;color:color-mix(in srgb,var(--c) 80%,#222)!important}
+#workspace-main .exams-page .exam-row.is-past:not(#x){filter:saturate(.3);opacity:.85}
+@media(max-width:600px){
+ #workspace-main .exams-page .exam-row:not(#x){grid-template-columns:68px minmax(0,1fr)!important}
+ #workspace-main .exams-page .exam-list:first-of-type>.exam-row:first-child:not(.is-past):not(#x){grid-template-columns:88px minmax(0,1fr)!important}
+ #workspace-main .exams-page .exam-actions{grid-column:1/-1;justify-content:stretch}
+ #workspace-main .exams-page .exam-actions button:not(#x):not(#y){flex:1}
+}
+:root[data-dark=true] #workspace-main .exams-page .exam-count:not(#x){background:radial-gradient(closest-side,#211c27 79%,transparent 81% 100%),conic-gradient(var(--c) calc(var(--p)*1%),color-mix(in srgb,var(--c) 20%,transparent) 0)}
+#workspace-main .exams-page .exam-actions button:not(#x):not(#y){white-space:nowrap}
+@media(max-width:600px){#workspace-main .exams-page .exam-actions .primary:not(#x):not(#y){flex:1.6}}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import './kono-bar.css'
 import { WORLD_HEIGHT, WORLD_WIDTH } from '../game/sanctuary/config'
 import { isLiteDevice, markLiteDevice } from '../store/deviceTier'
 import { SANCTUARY_EVENTS } from '../game/sanctuary/runtime'
