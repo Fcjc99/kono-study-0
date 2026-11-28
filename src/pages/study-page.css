@@ -31,3 +31,30 @@
  .workbench .study-page:has(>.study-tests,>.study-sets):not(#x)>nav.study-tabs{grid-column:1/-1;justify-self:start}
 }
 .workbench .study-page>.wb-panel :is(.study-head>button,.study-pill,.study-test-actions button,button.primary):not(#x):not(#y){min-height:34px!important;height:34px;padding:0 14px!important;font-size:.88rem!important;border-radius:99px!important}
+
+/* ── New look: a hero for the next test, then the sections as cards in a grid, each with its color. */
+.workbench .study-page:not(#x){max-width:none}
+.study-hero{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:18px;padding:20px 22px;border-radius:28px;color:#fff;background:radial-gradient(80% 120% at 100% 0%,rgba(255,255,255,.16),transparent 60%),linear-gradient(135deg,#4f78b8,#6a4fb8 60%,#8a4fa8);box-shadow:0 22px 44px -26px #4f5fb8}
+.study-hero.is-clear{background:radial-gradient(80% 120% at 100% 0%,rgba(255,255,255,.2),transparent 60%),linear-gradient(135deg,#3f8f8a,#4f78b8)}
+.study-hero-ring{--p:0;width:96px;height:96px;border-radius:50%;display:grid;place-items:center;align-content:center;background:radial-gradient(closest-side,#5a5ab8 78%,transparent 80% 100%),conic-gradient(#fff calc(var(--p)*1%),rgba(255,255,255,.25) 0)}
+.study-hero-ring b{font-size:2rem;font-weight:850;line-height:1}
+.study-hero-ring small{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;opacity:.85}
+.study-hero-kono{image-rendering:pixelated;filter:drop-shadow(0 6px 10px rgba(0,0,0,.2))}
+.study-hero-copy{display:grid;gap:2px;min-width:0}
+.study-hero-copy small{font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.85}
+.study-hero-copy b{font-size:1.5rem;font-weight:850;letter-spacing:-.015em;line-height:1.15}
+.study-hero-copy span{opacity:.9;font-weight:600}
+:root .workbench .study-hero .study-hero-go:not(#a):not(#b):not(#c){min-height:48px!important;margin:0!important;padding:0 20px!important;border-radius:16px!important;border:0!important;background:#fff!important;color:#4a3f9a!important;font-weight:850!important;box-shadow:0 10px 22px -12px rgba(0,0,0,.5)!important;white-space:nowrap}
+.study-hero-stats{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;margin:0!important;padding:0;list-style:none}
+:root .workbench .study-hero-stats li:not(#a){display:inline-flex;align-items:baseline;gap:5px;padding:6px 12px!important;border:0!important;border-radius:99px;background:rgba(255,255,255,.16);font-size:.85rem;font-weight:650}
+.study-hero-stats b{font-size:1rem!important;font-weight:850}
+@media(max-width:600px){.study-hero{grid-template-columns:auto minmax(0,1fr);padding:16px}.study-hero-ring{width:76px;height:76px}.study-hero-ring b{font-size:1.6rem}:root .workbench .study-hero .study-hero-go:not(#a):not(#b):not(#c){grid-column:1/-1;width:100%}.study-hero-copy b{font-size:1.25rem}}
+/* The cards: each section in its color, the icon on a tile, a soft shadow. */
+:root .workbench .study-page>.wb-panel:not(#a):not(#b){border-radius:24px!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--sec,#4f78b8) 14%,transparent),0 14px 30px -22px color-mix(in srgb,var(--sec,#4f78b8) 60%,transparent)!important;background:linear-gradient(180deg,color-mix(in srgb,var(--sec,#4f78b8) 6%,var(--wb-surface,#fff)),var(--wb-surface,#fff) 120px)!important}
+.study-tests{--sec:#c2477a}.study-cards{--sec:#e0a03a}.study-sets{--sec:#7a5cc0}.study-notes{--sec:#3f7fb0}
+:root .workbench .study-page .study-count:not(#a){background:linear-gradient(150deg,color-mix(in srgb,var(--sec) 75%,#fff),var(--sec));color:#fff;box-shadow:0 8px 16px -10px var(--sec)}
+:root .workbench .study-page :is(.study-emoji,.study-set-icon):not(#a){background:linear-gradient(150deg,color-mix(in srgb,var(--sec) 75%,#fff),var(--sec));color:#fff;box-shadow:0 8px 16px -10px var(--sec)}
+:root .workbench .study-page .study-pill:not(#a):not(#b){background:var(--sec)!important;color:#fff!important}
+@media(min-width:1000px){.workbench .study-page:has(>.study-hero):not(#x):not(#y){display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}.workbench .study-page>:is(.study-tabs,.study-hero):not(#x){grid-column:1/-1}}
+:root[data-dark] .study-hero-ring{background:radial-gradient(closest-side,#3a3a7a 78%,transparent 80% 100%),conic-gradient(#fff calc(var(--p)*1%),rgba(255,255,255,.2) 0)}
+@media(max-width:600px){.study-hero-stats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px!important;padding:0 16px}:root .workbench .study-hero-stats li:not(#a){flex:none;font-size:.8rem}}

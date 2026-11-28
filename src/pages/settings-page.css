@@ -51,3 +51,17 @@
 .workbench .settings-rows:not(#x){border-radius:22px!important}
 .workbench .settings-rows button:not(#x):not(#y):hover{background:color-mix(in srgb,var(--wb-ink,#333) 4%,transparent)!important}
 .workbench .settings-me .settings-me-face:not(#x){width:52px;height:52px;font-size:1.3rem;background:linear-gradient(145deg,color-mix(in srgb,var(--wb-accent) 70%,#fff),var(--wb-accent));box-shadow:0 6px 16px color-mix(in srgb,var(--wb-accent) 30%,transparent)}
+
+/* Every on/off in Settings as a switch (still a checkbox underneath, so it reads and works the same). */
+:root .workbench .settings-groups :is(.settings-list>label,label.wb-check,label.app-badge-setting)>input[type=checkbox]:not([role=switch]):not(#a):not(#b):not(#c){-webkit-appearance:none;appearance:none;flex:none;position:relative;width:48px!important;height:28px!important;min-width:48px;min-height:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:99px!important;background:color-mix(in srgb,var(--wb-ink,#333) 20%,transparent)!important;box-shadow:none!important;cursor:pointer;transition:background .2s}
+:root .workbench .settings-groups :is(.settings-list>label,label.wb-check,label.app-badge-setting)>input[type=checkbox]:not([role=switch]):not(#a):not(#b):not(#c)::after{content:'';position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform .22s cubic-bezier(.3,1.4,.5,1)}
+:root .workbench .settings-groups :is(.settings-list>label,label.wb-check,label.app-badge-setting)>input[type=checkbox]:not([role=switch]):checked:not(#a):not(#b):not(#c){background:var(--wb-accent)!important}
+:root .workbench .settings-groups :is(.settings-list>label,label.wb-check,label.app-badge-setting)>input[type=checkbox]:not([role=switch]):checked:not(#a):not(#b):not(#c)::after{transform:translateX(20px)}
+:root .workbench .settings-groups :is(.settings-list>label,label.wb-check,label.app-badge-setting)>input[type=checkbox]:not([role=switch]):focus-visible:not(#a):not(#b):not(#c){outline:3px solid color-mix(in srgb,var(--wb-accent) 45%,transparent);outline-offset:2px}
+:root .workbench .settings-groups :is(.settings-list>label,label.wb-check,label.app-badge-setting)>input[type=checkbox]:not([role=switch]):disabled:not(#a):not(#b):not(#c){opacity:.45;cursor:default}
+/* Rows of settings: roomy, with a hairline between. */
+:root .workbench .settings-groups .settings-list>label:not(#a):not(#b){display:flex!important;align-items:center;justify-content:space-between;gap:16px;padding:14px 4px!important;border-bottom:1px solid var(--wb-line)!important;background:none!important}
+:root .workbench .settings-groups .settings-list>label:last-child:not(#a):not(#b){border-bottom:0!important}
+:root .workbench .settings-groups .settings-list>h3:not(#a){margin:6px 0 2px;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--wb-muted)}
+:root .workbench .settings-groups .wb-check:not(#a):not(#b){display:flex!important;align-items:center;gap:12px;padding:8px 0}
+:root[data-dark] .workbench .settings-groups :is(.settings-list>label,label.wb-check,label.app-badge-setting)>input[type=checkbox]:not([role=switch]):not(:checked):not(#a):not(#b):not(#c){background:rgba(255,255,255,.18)!important}
