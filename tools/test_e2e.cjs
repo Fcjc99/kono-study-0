@@ -51,6 +51,9 @@ const TITLE={Kids:'Family',Subjects:'Classes',Exams:'Tests',Sanctuary:'KONO'}
 const STUDY={Notes:'Notes','K-Quiz':'K-Quiz',Exams:'Tests'}
 async function heading(page,name){await page.waitForFunction(n=>{const t=document.querySelector('#workspace-main h1')?.textContent??'';return n==='Sanctuary'?t.startsWith('KONO')||t.startsWith('Today'):t.startsWith(n)},name==='Sanctuary'?name:TITLE[name]??name)}
 async function go(page,name){
+ // The page has to be up (its heading drawn, so the tab bar is too) before looking for a tab: straight after
+ // goto, an empty tab bar sent this to the More sheet, which never lists the tab-bar pages.
+ await mainHeading(page).waitFor()
  // Notes, K-Quiz and Exams (Tests) are under the Study tab: open Study, then its tab.
  if(STUDY[name]){
   const on=await page.locator('nav[aria-label="Study"]:visible').count()

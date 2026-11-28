@@ -1,0 +1,18 @@
+/* Search: each result with its kind's icon and color, the searched words marked, key hints in the footer. */
+:root .command-palette .command-results [role=option]:not(#a):not(#b){display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:9px 12px;border-radius:14px;cursor:pointer;transition:background .12s}
+:root .command-palette .command-results [role=option].active:not(#a):not(#b),:root .command-palette .command-results [role=option]:not(#a):not(#b):hover{background:color-mix(in srgb,var(--cmd) 10%,var(--wb-surface,#fff));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--cmd) 22%,transparent)}
+.command-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;color:#fff;background:linear-gradient(150deg,color-mix(in srgb,var(--cmd) 70%,#fff),var(--cmd));box-shadow:0 6px 12px -8px var(--cmd)}
+.command-copy{display:grid;min-width:0}
+:root .command-palette .command-copy strong:not(#a){font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root .command-palette .command-copy small:not(#a){font-size:.8rem;color:var(--wb-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.command-copy mark{background:color-mix(in srgb,var(--cmd) 22%,transparent);color:inherit;border-radius:4px;padding:0 1px}
+.command-done{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#2f8f5a;color:#fff;font-size:.7rem;font-weight:900}
+.command-results [role=option].is-done strong{text-decoration:line-through;opacity:.6}
+:root .command-palette .command-group-title:not(#a){padding:12px 12px 4px;font-size:.68rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--wb-muted)}
+.command-empty{display:flex;align-items:center;gap:12px;padding:18px 14px}
+.command-empty img{image-rendering:pixelated}
+.command-empty p{display:grid;margin:0}.command-empty small{color:var(--wb-muted)}
+:root .command-palette footer:not(#a){display:flex;align-items:center;gap:16px;font-size:.78rem;color:var(--wb-muted)}
+.command-palette kbd{display:inline-grid;place-items:center;min-width:22px;height:22px;margin-right:3px;padding:0 6px;border-radius:7px;background:var(--wb-surface,#fff);box-shadow:inset 0 -2px 0 var(--wb-line),0 0 0 1px var(--wb-line);font:700 .72rem/1 inherit;color:var(--wb-ink)}
+.command-count{margin-left:auto;font-weight:700}
+@media(max-width:700px){:root .command-palette footer:not(#a)>span:not(.command-count){display:none}:root .command-palette footer:not(#a):not(:has(.command-count)){display:none}}

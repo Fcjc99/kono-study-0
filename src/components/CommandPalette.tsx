@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useSpeechToText } from '../hooks/useSpeechToText'
 import Avatar from './Avatar'
+import Icon from './Icon'
+import './command-palette.css'
 /** One search result. Plan items carry their type (`group`), date, people and done state, so the quick
  * filters (This week, Late, a person) can narrow them; pages and settings have no date. */
 export type Command={label:string;hint:string;run:()=>void;group?:string;date?:string;kidIds?:string[];done?:boolean}
@@ -8,6 +10,14 @@ type Filter={id:string;label:string;test:(c:Command)=>boolean}
 
 const localToday=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 const plusDays=(day:string,n:number)=>{const d=new Date(day+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
+// Each kind of result with its icon and color (as on the Planner and in ＋ Add).
+const GROUP_LOOK:Record<string,[string,string]>={Assignments:['pin','#7a5cc0'],Exams:['tests','#c2477a'],Events:['planner','#3f7fb0'],'To-dos':['check','#2f8f5a'],Notes:['notes','#b5772a'],Subjects:['classes','#a8742a'],Kids:['family','#3f8f6b'],'Pages & settings':['settings','#6b7280']}
+/** `text` with the words searched for marked. */
+function marked(text:string,terms:string[]){
+ if(!terms.length)return text
+ const re=new RegExp('('+terms.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')','ig')
+ return text.split(re).map((part,i)=>i%2?<mark key={i}>{part}</mark>:part)
+}
 const GROUP_ORDER=['Assignments','Exams','Events','To-dos','Notes','Subjects','Kids','Pages & settings']
 
 export default function CommandPalette({commands,onClose,people=[]}:{commands:Command[];onClose:()=>void;people?:{id:string;name:string;emoji?:string;photo?:string;color?:string}[]}){
@@ -34,5 +44,5 @@ export default function CommandPalette({commands,onClose,people=[]}:{commands:Co
  return <dialog ref={dialog} className="command-palette command-dialog" aria-label="Search your work" onCancel={onClose}><div className="command-input"><svg className="command-input-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input ref={input} role="combobox" aria-label="Search assignments, notes, exams, and pages" aria-expanded="true" aria-controls={id} aria-autocomplete="list" aria-activedescendant={matches.length?`${id}-${index}`:undefined} value={query} onChange={e=>{setQuery(e.target.value);setActive(0)}} onKeyDown={e=>{if(e.nativeEvent.isComposing)return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();setActive((index+(e.key==='ArrowDown'?1:-1)+matches.length)%Math.max(1,matches.length))}if(e.key==='Enter'){e.preventDefault();run(matches[index])}}} placeholder="Search your study plan…"/>{voice.supported&&<button type="button" className={'voice-input-button'+(voice.listening?' is-listening':'')} aria-pressed={voice.listening} aria-label={voice.listening?'Stop voice search':'Search by voice'} onClick={voice.toggle}>🎙️</button>}<button type="button" onClick={onClose} aria-label="Close search">×</button></div>
   <div className="command-filters" role="group" aria-label="Show">{filters.map(f=><button type="button" key={f.id} aria-pressed={f.id===filter} onClick={()=>{setFilter(f.id);setActive(0)}}>{(()=>{const p=people.find(x=>'kid:'+x.id===f.id);return p?<Avatar who={p}/>:null})()}{f.label}</button>)}</div>
   {voice.error&&<p role="alert" className="voice-input-error">{voice.error}</p>}
-  <div id={id} role="listbox" className="command-results" aria-label="Matching actions">{groups.map(g=><div role="group" key={g.group} aria-label={g.group} className="command-group"><div className="command-group-title" aria-hidden="true">{g.group}</div>{g.items.map(c=>{n++;const i=n;return <div role="option" aria-selected={index===i} id={`${id}-${i}`} key={i} onMouseDown={e=>e.preventDefault()} onClick={()=>run(c)} className={index===i?'active':''}><strong>{c.label}</strong><small>{c.hint}</small>{(c.kidIds??[]).length>0&&<span className="command-people">{people.filter(p=>c.kidIds!.includes(p.id)).map(p=><Avatar key={p.id} who={p}/>)}</span>}</div>})}</div>)}{showAll&&!matches.length&&<p>No matching command.</p>}{!showAll&&<p className="command-hint">Type to search, or pick This week, Late or a name.</p>}</div><footer>↑↓ Navigate · Enter Open · Escape Close</footer></dialog>
+  <div id={id} role="listbox" className="command-results" aria-label="Matching actions">{groups.map(g=><div role="group" key={g.group} aria-label={g.group} className="command-group"><div className="command-group-title" aria-hidden="true">{g.group}</div>{g.items.map(c=>{n++;const i=n;return <div role="option" aria-selected={index===i} id={`${id}-${i}`} key={i} onMouseDown={e=>e.preventDefault()} onClick={()=>run(c)} className={(index===i?'active':'')+(c.done?' is-done':'')} style={{'--cmd':(GROUP_LOOK[g.group]??GROUP_LOOK['Pages & settings'])[1]} as React.CSSProperties}><span className="command-icon" aria-hidden="true"><Icon name={(GROUP_LOOK[g.group]??GROUP_LOOK['Pages & settings'])[0]} size={18}/></span><span className="command-copy"><strong>{marked(c.label,terms)}</strong><small>{c.hint}</small></span>{c.done&&<span className="command-done" aria-label="Done">✓</span>}{(c.kidIds??[]).length>0&&<span className="command-people">{people.filter(p=>c.kidIds!.includes(p.id)).map(p=><Avatar key={p.id} who={p}/>)}</span>}</div>})}</div>)}{showAll&&!matches.length&&<div className="command-empty"><img src="/garden/kono/question.webp" alt="" width={56} height={56}/><p><b>No matching command.</b><small>Try fewer words, or pick All above.</small></p></div>}{!showAll&&<p className="command-hint">Type to search, or pick This week, Late or a name.</p>}</div><footer><span><kbd>↑</kbd><kbd>↓</kbd> Move</span><span><kbd>Enter</kbd> Open</span><span><kbd>Esc</kbd> Close</span>{matches.length>0&&<span className="command-count">{matches.length} result{matches.length===1?'':'s'}</span>}</footer></dialog>
 }
