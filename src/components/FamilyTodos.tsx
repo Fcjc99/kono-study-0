@@ -4,6 +4,7 @@ import type {PlannerRepository} from '../store/repository'
 import {addDays} from '../store/studyScheduler'
 import {TODO_REPEATS,repeatFields,repeatLabel,todoDayLabel} from '../store/familyTodos'
 import Modal from './Modal'
+import './family-todos.css'
 import TodoEditor,{type TodoOps} from './TodoEditor'
 
 /** The family's to-do list (Home in the family plan): permission slips, poster board, groceries, cleaning.
@@ -29,11 +30,13 @@ export default function FamilyTodos({data,profileId,today,save,ops}:{data:AppDat
    <button type="button" className="family-todo-remove" aria-label={'Remove '+t.title} onClick={()=>ops.remove(t.id)}>×</button>
   </li>})}</ul>}
   <form className="family-todo-add" onSubmit={e=>{e.preventDefault();void add()}}>
-   <input aria-label="New family to-do" maxLength={300} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Groceries, clean house, sign permission slip…"/>
+   <span className="family-todo-line"><input aria-label="New family to-do" maxLength={300} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Groceries, clean house, sign permission slip…"/><button type="submit" disabled={!title.trim()}>Add</button></span>
+   {/* Who and when show once there's something to add. */}
+   {(title.trim()||forKid||day)&&<span className="family-todo-opts">
    {kids.length>0&&<select aria-label="For" value={forKid} onChange={e=>setForKid(e.target.value)}><option value="">Everyone</option>{kids.map(k=><option key={k.id} value={k.id}>{(k.emoji?k.emoji+' ':'')+k.name}</option>)}</select>}
    {otherDay?<input type="date" aria-label="When" min={today} value={day} onChange={e=>setDay(e.target.value)}/>:<select aria-label="When" value={day} onChange={e=>{if(e.target.value==='other'){setOtherDay(true);setDay(addDays(today,7))}else setDay(e.target.value)}}><option value="">Any day</option>{nextDays.map(d=><option key={d} value={d}>{todoDayLabel(d,today)}</option>)}<option value="other">Another day…</option></select>}
    {day&&<select aria-label="Repeat" className="family-todo-repeat" value={repeat} onChange={e=>setRepeat(e.target.value as TodoRepeat|'')}><option value="">Just once</option>{TODO_REPEATS.map(r=><option key={r.id} value={r.id}>{r.label}</option>)}</select>}
-   <button type="submit" disabled={!title.trim()}>Add</button>
+   </span>}
   </form>
   {(()=>{const t=todos.find(x=>x.id===editing);return t?<Modal title="Change to-do" close={()=>setEditing('')}><TodoEditor todo={t} kids={kids} onCancel={()=>setEditing('')} onDelete={()=>{ops.remove(t.id);setEditing('')}} onSave={changes=>{ops.update(t.id,changes);setEditing('')}}/></Modal>:null})()}
  </section>

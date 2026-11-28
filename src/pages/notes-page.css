@@ -68,3 +68,16 @@
 :root[data-dark] .workbench .wb-board .kono-sticky .kono-sticky-actions button:not(#a):not(#b):not(#c){background:rgb(0 0 0/.18)!important}
 :root[data-dark] .workbench .wb-board:not(.board-cork):not(.board-plain) .wb-board-canvas:not(#a):not(#b):not(#c){background:radial-gradient(circle,rgb(255 255 255/.1) 1px,transparent 1.6px) 0 0/18px 18px,#1f1b24!important}
 :root .workbench .wb-board .kono-sticky h3:not(#a):not(#b),:root .workbench .wb-board .kono-sticky h3 button:not(#a):not(#b){word-break:normal!important;overflow-wrap:break-word!important;hyphens:auto}
+/* Flashcards, folded: a row with an icon tile and a chevron, like a card you open. */
+:root .workbench .notes-cards:not(#a):not(#b){padding:0!important;overflow:hidden;border-radius:22px!important}
+:root .workbench .notes-cards>summary:not(#a):not(#b){display:flex!important;align-items:center;gap:12px;min-height:64px;padding:12px 16px!important;list-style:none;cursor:pointer;font-size:1rem}
+.notes-cards>summary::-webkit-details-marker{display:none}
+.notes-cards>summary::marker{content:''}
+.notes-cards>summary::after{content:'';margin-left:auto;width:9px;height:9px;border:solid var(--wb-muted,#888);border-width:0 2.5px 2.5px 0;transform:rotate(45deg);transition:transform .2s}
+.notes-cards[open]>summary::after{transform:rotate(-135deg)}
+.notes-cards-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;font-size:1.3rem;background:linear-gradient(150deg,#f7d58a,#e0a03a);box-shadow:0 8px 16px -10px #e0a03a;flex:none}
+.notes-cards-copy{display:grid;gap:1px}
+.notes-cards-copy b{font-size:1.05rem;font-weight:850}
+.notes-cards-copy small{font-size:.8rem;font-weight:650;color:var(--wb-muted,#777)}
+:root .workbench .notes-cards>:not(summary):not(#a){margin-left:16px!important;margin-right:16px!important}
+:root .workbench .notes-cards>:last-child:not(summary):not(#a){margin-bottom:16px!important}

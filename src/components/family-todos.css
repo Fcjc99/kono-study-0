@@ -1,0 +1,11 @@
+/* Family to-do's add row: one rounded field with Add inside it; who and when appear as pills once you type. */
+:root .workbench .family-todos .family-todo-add:not(#a):not(#b){display:grid!important;gap:8px;margin-top:6px}
+.family-todo-line{position:relative;display:flex;align-items:center}
+:root .workbench .family-todos .family-todo-line>input:not(#a):not(#b):not(#c){flex:1;min-width:0;min-height:50px!important;margin:0!important;padding:0 84px 0 16px!important;border-radius:16px!important;border:1px solid var(--wb-line,rgba(0,0,0,.1))!important;background:color-mix(in srgb,var(--wb-ink,#333) 3%,var(--wb-surface,#fff))!important;font-size:.95rem!important}
+:root .workbench .family-todos .family-todo-line>input:not(#a):not(#b):not(#c):focus{border-color:var(--wb-accent)!important;box-shadow:0 0 0 4px color-mix(in srgb,var(--wb-accent) 14%,transparent)!important;outline:0;background:var(--wb-surface,#fff)!important}
+:root .workbench .family-todos .family-todo-line>button:not(#a):not(#b):not(#c){position:absolute;right:6px;top:50%;transform:translateY(-50%);min-height:38px!important;margin:0!important;padding:0 16px!important;border-radius:12px!important;border:0!important;background:var(--wb-accent)!important;color:#fff!important;font-weight:800!important;box-shadow:0 8px 16px -10px var(--wb-accent)!important}
+:root .workbench .family-todos .family-todo-line>button:disabled:not(#a):not(#b):not(#c){opacity:.35;box-shadow:none!important}
+.family-todo-opts{display:flex;flex-wrap:wrap;gap:6px;animation:fto-in .2s ease-out}
+@keyframes fto-in{from{opacity:0;transform:translateY(-4px)}}
+:root .workbench .family-todos .family-todo-opts>:is(select,input):not(#a):not(#b):not(#c){flex:1 1 30%;min-width:0;min-height:38px!important;margin:0!important;padding:0 28px 0 12px!important;border-radius:99px!important;border:1px solid color-mix(in srgb,var(--wb-accent) 22%,transparent)!important;background-color:color-mix(in srgb,var(--wb-accent) 6%,var(--wb-surface,#fff))!important;font-weight:700!important;font-size:.85rem!important}
+@media(prefers-reduced-motion:reduce){.family-todo-opts{animation:none}}
