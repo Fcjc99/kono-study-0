@@ -4,6 +4,7 @@ import type {PlannerRepository} from '../store/repository'
 import {classTime} from '../store/classSchedule'
 import {useAiHelper} from '../hooks/useAiHelper'
 import {useLocalSetting} from '../hooks/useLocalSetting'
+import './week-planner.css'
 import {applyWeekPlan,clearUpcomingPlanned,defaultWeekPlanOptions,freeSlots,planWeekSimple,planWeekWithAi,unplanned,upcomingPlanned,weekWork,type WeekPlanOptions,type WeekSession,type WeekWork} from '../store/weekPlan'
 
 const dayLabel=(iso:string)=>new Date(iso+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})
@@ -74,23 +75,30 @@ export default function WeekPlanner({data,save}:{data:AppData;save:PlannerReposi
  const byRef=new Map(plan?.work.map(w=>[w.ref,w])??[])
  const days=plan?[...new Set(plan.sessions.map(s=>s.date))]:[]
  const left=plan?unplanned(plan.work,plan.sessions):[]
- const time=(label:string,value:string,set:(v:string)=>void)=><label>{label}<input type="time" step={900} value={value} onChange={e=>{if(/^\d{2}:\d{2}$/.test(e.target.value))set(e.target.value)}}/></label>
- return <div className="week-planner">
-  <p>KONO looks at what’s due in the next week and fits study sessions into the free time around your classes and events. You check the plan before anything is added.</p>
+ const time=(label:string,value:string,set:(v:string)=>void)=><label><span>{label}</span><input type="time" step={900} value={value} onChange={e=>{if(/^\d{2}:\d{2}$/.test(e.target.value))set(e.target.value)}}/></label>
+ const due=useMemo(()=>weekWork(data,today),[data,today])
+ const mins=(a:string,b:string)=>{const m=(t:string)=>Number(t.slice(0,2))*60+Number(t.slice(3,5));return Math.max(0,m(b)-m(a))}
+ const total=plan?plan.sessions.filter(s=>s.include).reduce((n,s)=>n+mins(s.start,s.end),0):0
+ return <div className={'week-planner'+(plan?' has-plan':'')}>
+  <div className="wp-intro">
+   <img src="/garden/kono/read.webp" alt="" width={56} height={56}/>
+   <div><b>{due.length?due.length+' thing'+(due.length===1?'':'s')+' due this week':'Nothing due this week'}</b><p>KONO fits study sessions into the free time around your classes and events. You check the plan before anything is added.</p></div>
+  </div>
+  {due.length>0&&<ul className="wp-due" aria-label="Due this week">{due.slice(0,6).map(w=><li key={w.ref} className={w.kind==='exam'?'is-exam':''}><i aria-hidden="true">{w.kind==='exam'?'🎯':'📝'}</i><span><b>{w.title}</b><small>{w.kind==='exam'?'Test':'Due'} {shortDay(w.due)}{w.subject?' · '+w.subject:''}</small></span></li>)}{due.length>6&&<li className="wp-due-more">+{due.length-6} more</li>}</ul>}
   <fieldset disabled={busy} className="week-planner-hours">
    <legend>When can you study?</legend>
-   <div>{time('School days from',options.weekday.from,v=>setOptions({...options,weekday:{...options.weekday,from:v}}))}{time('School days until',options.weekday.to,v=>setOptions({...options,weekday:{...options.weekday,to:v}}))}</div>
-   <div>{time('Weekends from',options.weekend.from,v=>setOptions({...options,weekend:{...options.weekend,from:v}}))}{time('Weekends until',options.weekend.to,v=>setOptions({...options,weekend:{...options.weekend,to:v}}))}</div>
-   <label>Most study time in a day<select value={options.maxPerDay} onChange={e=>setOptions({...options,maxPerDay:Number(e.target.value)})}>{limits.map(m=><option key={m} value={m}>{hours(m)}</option>)}</select></label>
+   <div className="wp-hours"><b>School days</b>{time('School days from',options.weekday.from,v=>setOptions({...options,weekday:{...options.weekday,from:v}}))}<i aria-hidden="true">→</i>{time('School days until',options.weekday.to,v=>setOptions({...options,weekday:{...options.weekday,to:v}}))}</div>
+   <div className="wp-hours"><b>Weekends</b>{time('Weekends from',options.weekend.from,v=>setOptions({...options,weekend:{...options.weekend,from:v}}))}<i aria-hidden="true">→</i>{time('Weekends until',options.weekend.to,v=>setOptions({...options,weekend:{...options.weekend,to:v}}))}</div>
+   <div className="wp-limit"><b id="wp-limit">Most in a day</b><div role="radiogroup" aria-labelledby="wp-limit">{limits.map(m=><button type="button" role="radio" key={m} aria-checked={options.maxPerDay===m} onClick={()=>setOptions({...options,maxPerDay:m})}>{hours(m)}</button>)}</div></div>
   </fieldset>
-  <div className="wb-toolbar"><button type="button" className="primary" disabled={busy} onClick={()=>void make()}>{busy&&!plan?'Planning…':'✨ Plan my week'}</button>{earlier>0&&<button type="button" disabled={busy} onClick={()=>void clear()}>Clear {earlier} planned session{earlier===1?'':'s'}</button>}</div>
-  {!ready&&<p className="wb-muted">Sign in with your email (or add your own AI key under Import &amp; export) for a plan made by KONO’s AI. Without it, KONO plans the soonest-due work first.</p>}
-  {status&&<p role="status">{status}</p>}{error&&<p role="alert">{error}</p>}
-  {receipt&&<button type="button" disabled={busy} onClick={()=>void undo()}>Undo this week plan</button>}
+  <div className="wb-toolbar wp-go"><button type="button" className="primary" disabled={busy} onClick={()=>void make()}>{busy&&!plan?'Planning…':'✨ Plan my week'}</button>{earlier>0&&<button type="button" disabled={busy} onClick={()=>void clear()}>Clear {earlier} planned session{earlier===1?'':'s'}</button>}</div>
+  {!ready&&<p className="wb-muted wp-note">Sign in with your email (or add your own AI key under Import &amp; export) for a plan made by KONO’s AI. Without it, KONO plans the soonest-due work first.</p>}
+  {status&&<p role="status" className="wp-status">{status}</p>}{error&&<p role="alert" className="wp-error">{error}</p>}
+  {receipt&&<button type="button" className="wp-undo" disabled={busy} onClick={()=>void undo()}>↶ Undo this week plan</button>}
   {plan&&<div className="week-planner-review">
-   {days.map(date=><section key={date}><h4>{dayLabel(date)}</h4><ul>{plan.sessions.filter(s=>s.date===date).map(s=>{const w=byRef.get(s.ref);return <li key={s.id}><label className="wb-check"><input type="checkbox" checked={s.include} onChange={e=>setPlan({...plan,sessions:plan.sessions.map(x=>x.id===s.id?{...x,include:e.target.checked}:x)})}/><span><strong>{classTime(s.start)}–{classTime(s.end)}</strong> · {s.title}{w&&<><br/><small className="wb-muted">For {w.title}{w.subject?' · '+w.subject:''} · {w.kind==='exam'?'exam':'due'} {shortDay(w.due)}</small></>}</span></label></li>})}</ul></section>)}
-   {left.length>0&&<p className="wb-muted">Didn’t fit this week: {left.map(x=>x.work.title+' (about '+x.left+' min more)').join(', ')}. Longer study hours or a higher daily limit would make room.</p>}
-   <button type="button" className="primary" disabled={busy||!chosen} onClick={()=>void add()}>{busy?'Adding…':'Add '+chosen+' session'+(chosen===1?'':'s')+' to my Calendar'}</button>
+   {days.map(date=>{const d=new Date(date+'T12:00:00');return <section key={date} className="wp-day"><h4 aria-label={dayLabel(date)}><span className="wp-day-badge" aria-hidden="true"><small>{d.toLocaleDateString(undefined,{weekday:'short'})}</small><b>{d.getDate()}</b></span><span aria-hidden="true">{dayLabel(date)}</span></h4><ul>{plan.sessions.filter(s=>s.date===date).map(s=>{const w=byRef.get(s.ref);return <li key={s.id} className={s.include?'':'is-off'}><label className="wb-check wp-session"><input type="checkbox" checked={s.include} onChange={e=>setPlan({...plan,sessions:plan.sessions.map(x=>x.id===s.id?{...x,include:e.target.checked}:x)})}/><span className="wp-time"><b>{classTime(s.start)}</b><small>{mins(s.start,s.end)} min</small></span><span className="wp-what"><b>{s.title}</b>{w&&<small>For {w.title}{w.subject?' · '+w.subject:''} · {w.kind==='exam'?'exam':'due'} {shortDay(w.due)}</small>}</span></label></li>})}</ul></section>})}
+   {left.length>0&&<p className="wb-muted wp-left">Didn’t fit this week: {left.map(x=>x.work.title+' (about '+x.left+' min more)').join(', ')}. Longer study hours or a higher daily limit would make room.</p>}
+   <div className="wp-add"><span><b>{chosen}</b> session{chosen===1?'':'s'} · {total<60?total+" min":Math.floor(total/60)+" h"+(total%60?" "+total%60+" min":"")}</span><button type="button" className="primary" disabled={busy||!chosen} onClick={()=>void add()}>{busy?'Adding…':'Add '+chosen+' session'+(chosen===1?'':'s')+' to my Calendar'}</button></div>
   </div>}
  </div>
 }
