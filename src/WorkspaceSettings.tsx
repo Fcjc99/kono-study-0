@@ -1,5 +1,6 @@
 import type {Remembered,Repeatable} from './store/eventMemory'
 import './components/family-page.css'
+import './components/quick-add-event.css'
 import RepeatSuggestions from './components/RepeatSuggestions'
 import {tooClose} from './store/tones'
 import {classTime} from './store/classSchedule'
@@ -22,7 +23,9 @@ import {haptic,readHaptics,saveHaptics} from './game/haptics'
 /* The Kids page, the family settings and Look & feel (experience, palettes, team colors). These load
  * the first time one of them is shown, so they stay out of KONO's startup download. */
 function ExperienceIcon({id}:{id:string}){return <span className="theme-picker-glyph" aria-hidden="true">{experienceOptions.find(o=>o.id===id)?.glyph??'✦'}</span>}
-const QUICK_KIND_OPTIONS=[['sports','Sports'],['lesson','Lesson'],['appointment','Appointment'],['work','Work'],['personal','Event']] as const
+const QUICK_KIND_OPTIONS=[['personal','Event','🗓️','#7a5cc0'],['appointment','Appointment','🩺','#3f7fb0'],['sports','Sports','⚽','#2f8f5a'],['lesson','Lesson','📖','#b5772a'],['work','Work','💼','#6b7280']] as const
+const toMin=(t:string)=>Number(t.slice(0,2))*60+Number(t.slice(3,5)),toClock=(m:number)=>{const x=Math.max(0,Math.min(23*60+59,m));return String(Math.floor(x/60)).padStart(2,'0')+':'+String(x%60).padStart(2,'0')}
+const START_PICKS=[['08:00','8 AM'],['12:00','Noon'],['15:30','3:30'],['17:00','5 PM'],['19:00','7 PM']] as const,LENGTHS=[30,60,90,120] as const
 // The fast path parent mode promises: kid, type, a short title and an optional time -- no subject
 // picker, notes, voice input or multi-date repeat. Saves straight to calendarEvents (see
 // quickAddFamilyEvent) rather than opening the full EntryEditor.
@@ -43,20 +46,37 @@ export function QuickFamilyAdd({kids,time:startAt,endAt,date,until:defaultUntil,
   setBusy(true);setError('')
   try{await onSave({title:title.trim(),kind,kidIds,time:time||undefined,endTime:endTime||undefined,driver:driver.trim()||undefined,repeatDays,until,...place})}catch(e){setError(e instanceof Error?e.message:'Could not save.')}finally{setBusy(false)}
  }
- return <form onSubmit={submit} className="quick-family-add"><fieldset disabled={busy}>
-  {!title.trim()&&date&&<RepeatSuggestions list={repeats} date={date} onPick={repeat}/>}
-  <fieldset className="whose-pick"><legend>Who’s it for?</legend><label><input type="checkbox" checked={!kidIds.length} onChange={()=>setKidIds([])}/> Me / whole family</label>{kids.map(k=><label key={k.id}><input type="checkbox" checked={kidIds.includes(k.id)} onChange={()=>setKidIds(ids=>ids.includes(k.id)?ids.filter(x=>x!==k.id):[...ids,k.id])}/> {(k.emoji?k.emoji+' ':'')+k.name}</label>)}</fieldset>
-  <label>Type<select value={kind} onChange={e=>setKind(e.target.value as CalendarEventKind)}>{QUICK_KIND_OPTIONS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
-  <label>What is it?<input required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Soccer practice, Dentist, Work shift…"/></label>
+ // How it'll look on the calendar, as you fill it in: in its person's color (or its type's), at its time.
+ const kindOpt=QUICK_KIND_OPTIONS.find(([v])=>v===kind)??QUICK_KIND_OPTIONS[0]
+ const who=kidIds.map(id=>kids.find(k=>k.id===id)).filter((k):k is Kid=>!!k)
+ const tint=who.length===1?who[0].color:kindOpt[3]
+ const dayText=date?new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}):''
+ const length=time&&endTime?toMin(endTime)-toMin(time):0
+ const setStart=(t:string)=>{setTime(t);if(t)setEndTime(toClock(toMin(t)+(length>0?length:60)))}
+ return <form onSubmit={submit} className="quick-family-add qfa"><fieldset disabled={busy}>
+  <div className="qfa-preview" style={{'--qfa':tint} as CSSProperties} aria-hidden="true">
+   <span className="qfa-preview-day">{dayText||'New event'}</span>
+   <div className="qfa-preview-card"><i>{kindOpt[2]}</i><span><b>{title.trim()||'What’s happening?'}</b><small>{time?classTime(time)+(endTime?' – '+classTime(endTime):''):'Any time'}{who.length?' · '+who.map(k=>k.name).join(' & '):''}{driver.trim()?' · 🚗 '+driver.trim():''}</small></span></div>
+  </div>
+  <label className="qfa-title">What is it?<input required autoFocus maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} placeholder="Soccer practice, Dentist, Work shift…" enterKeyHint="done"/></label>
   {memory&&<p className="event-memory" role="status"><span>Like last time? {[memory.time?classTime(memory.time)+(memory.endTime?'–'+classTime(memory.endTime):''):'',memory.kidIds.map(id=>kids.find(k=>k.id===id)?.name).filter(Boolean).join(' & '),memory.location?'📍 '+memory.location:'',memory.driver?'🚗 '+memory.driver:''].filter(Boolean).join(' · ')}</span><button type="button" onClick={useMemory}>Use it</button></p>}
-  <div className="quick-family-times"><label>Start time (optional)<TimeField value={time} onChange={setTime}/></label>
-  <label>End time (optional)<TimeField value={endTime} after={time||undefined} onChange={setEndTime}/></label></div>
-  <label>Who’s driving? (optional)<input list="quick-family-drivers" maxLength={60} value={driver} onChange={e=>setDriver(e.target.value)} placeholder="Mom, Dad, carpool…"/><datalist id="quick-family-drivers">{drivers.map(d=><option key={d} value={d}/>)}</datalist></label>
-  <fieldset className="repeat-days"><legend>Repeats every (optional)</legend>{WEEKDAY_LETTERS.map((name,d)=><label key={name} className={repeatDays.includes(d)?'is-on':''}><input type="checkbox" checked={repeatDays.includes(d)} onChange={()=>toggleDay(d)}/>{name}</label>)}
-   {repeatDays.length>0&&<label className="repeat-until">Until<input type="date" value={until} min={date} onChange={e=>setUntil(e.target.value)}/></label>}</fieldset>
+  {!title.trim()&&date&&<RepeatSuggestions list={repeats} date={date} onPick={repeat}/>}
+  <div className="qfa-kinds" role="radiogroup" aria-label="Type">{QUICK_KIND_OPTIONS.map(([value,label,icon,color])=><button type="button" role="radio" key={value} aria-checked={kind===value} style={{'--k':color} as CSSProperties} onClick={()=>setKind(value)}><span aria-hidden="true">{icon}</span>{label}</button>)}</div>
+  <fieldset className="whose-pick"><legend>Who’s it for?</legend><label><input type="checkbox" checked={!kidIds.length} onChange={()=>setKidIds([])}/> Me / whole family</label>{kids.map(k=><label key={k.id}><input type="checkbox" checked={kidIds.includes(k.id)} onChange={()=>setKidIds(ids=>ids.includes(k.id)?ids.filter(x=>x!==k.id):[...ids,k.id])}/> {(k.emoji?k.emoji+' ':'')+k.name}</label>)}</fieldset>
+  <section className="qfa-when" aria-label="When">
+   <div className="qfa-picks" role="group" aria-label="Start at">{START_PICKS.map(([t,label])=><button type="button" key={t} aria-pressed={time===t} onClick={()=>setStart(t)}>{label}</button>)}<button type="button" aria-pressed={!time} onClick={()=>{setTime('');setEndTime('')}}>Any time</button></div>
+   <div className="quick-family-times"><label>Start time (optional)<TimeField value={time} onChange={setStart}/></label>
+   <label>End time (optional)<TimeField value={endTime} after={time||undefined} onChange={setEndTime}/></label></div>
+   {time&&<div className="qfa-picks is-length" role="group" aria-label="How long">{LENGTHS.map(m=><button type="button" key={m} aria-pressed={length===m} onClick={()=>setEndTime(toClock(toMin(time)+m))}>{m<60?m+' min':m/60+' hr'}</button>)}</div>}
+  </section>
+  <div className="qfa-extras">
+   <label>Who’s driving? (optional)<input list="quick-family-drivers" maxLength={60} value={driver} onChange={e=>setDriver(e.target.value)} placeholder="Mom, Dad, carpool…"/><datalist id="quick-family-drivers">{drivers.map(d=><option key={d} value={d}/>)}</datalist></label>
+   <fieldset className="repeat-days"><legend>Repeats every (optional)</legend>{WEEKDAY_LETTERS.map((name,d)=><label key={name} className={repeatDays.includes(d)?'is-on':''}><input type="checkbox" checked={repeatDays.includes(d)} onChange={()=>toggleDay(d)}/>{name}</label>)}
+    {repeatDays.length>0&&<label className="repeat-until">Until<input type="date" value={until} min={date} onChange={e=>setUntil(e.target.value)}/></label>}</fieldset>
+  </div>
   {(()=>{const list=clashes&&title.trim()?clashes({title:title.trim(),kind,kidIds,time:time||undefined,endTime:endTime||undefined,driver:driver.trim()||undefined,repeatDays,until}):[];return list.length?<div className="clash-warning" role="status"><strong>⚠️ Heads up</strong><ul>{list.slice(0,3).map(c=><li key={c.date+c.text}>{c.text}</li>)}</ul>{list.length>3&&<small>And {list.length-3} more.</small>}</div>:null})()}
   {error&&<p role="alert">{error}</p>}
-  <div className="wb-toolbar quick-family-actions"><button className="primary" type="submit">{busy?'Adding…':'Add'}</button><button type="button" onClick={onCancel}>Cancel</button></div>
+  <div className="wb-toolbar quick-family-actions"><button className="primary qfa-add" type="submit" disabled={!title.trim()} style={{'--qfa':tint} as CSSProperties}>{busy?'Adding…':'Add'+(dayText?' to '+dayText:'')}{repeatDays.length?' · repeats':''}</button><button type="button" onClick={onCancel}>Cancel</button></div>
  </fieldset></form>
 }
 // A per-kid tag list for the one shared family calendar -- add each kid once here with a color and

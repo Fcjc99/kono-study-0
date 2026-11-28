@@ -183,3 +183,32 @@
 .workbench .wb-agenda-day-wrap.is-today .agenda-leaf:not(#x):not(#y){background:linear-gradient(150deg,color-mix(in srgb,var(--tab,#7a5cc0) 72%,#fff),var(--tab,#7a5cc0))!important}
 @media(max-width:600px){.workbench .wb-agenda-day>summary .wb-agenda-day-date:not(#x):not(#y){display:none!important}.workbench .wb-agenda-day-meta>.wb-agenda-count:not(#x){display:none!important}}
 .workbench .wb-agenda-day-wrap.has-add>.wb-agenda-day>summary:not(#x):not(#y){padding-right:44px!important}
+
+/* To plan: a shelf of homework and tests to drag onto the week. */
+.plan-tray{margin:4px 0 12px;padding:12px 14px;border-radius:22px;background:linear-gradient(135deg,color-mix(in srgb,var(--tab,#7a5cc0) 9%,var(--wb-surface,#fff)),var(--wb-surface,#fff));border:1px solid color-mix(in srgb,var(--tab,#7a5cc0) 18%,transparent)}
+.plan-tray>header{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+.plan-tray>header b{font-size:.95rem;font-weight:800;color:var(--wb-ink)}
+.plan-tray>header small{color:var(--wb-muted);font-size:.8rem}
+.plan-tray>ul{list-style:none;margin:0 -14px;padding:2px 14px 6px;display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:thin}
+.plan-tray li{flex:none;scroll-snap-align:start}
+:root .workbench .plan-tray .plan-chip:not(#a):not(#b):not(#c){--chip:#7a5cc0;display:flex;align-items:center;gap:8px;min-height:54px!important;max-width:240px;margin:0!important;padding:8px 10px 8px 12px!important;border-radius:16px!important;border:0!important;background:var(--wb-surface,#fff)!important;color:var(--wb-ink)!important;box-shadow:inset 4px 0 0 var(--chip),0 0 0 1px color-mix(in srgb,var(--chip) 22%,transparent),0 6px 14px -10px color-mix(in srgb,var(--chip) 70%,transparent)!important;text-align:left;cursor:grab;-webkit-touch-callout:none;user-select:none;transition:transform .15s,box-shadow .15s}
+:root .workbench .plan-tray .plan-chip:not(#a):not(#b):not(#c):hover{transform:translateY(-2px);box-shadow:inset 4px 0 0 var(--chip),0 0 0 1px color-mix(in srgb,var(--chip) 40%,transparent),0 12px 22px -12px color-mix(in srgb,var(--chip) 80%,transparent)!important}
+:root .workbench .plan-tray .plan-chip.is-late:not(#a):not(#b):not(#c){box-shadow:inset 4px 0 0 #e0783a,0 0 0 1px rgba(224,120,58,.35)!important}
+.plan-chip>i{font-style:normal;font-size:1.05rem}
+.plan-chip>span{display:grid;min-width:0}
+.plan-chip b{font-size:.9rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-chip small{font-size:.74rem;color:var(--wb-muted);font-weight:600}
+.plan-chip.is-late small{color:#c0582a}
+.plan-chip>em{font-style:normal;color:var(--wb-muted);opacity:.5;letter-spacing:-2px;font-size:.8rem}
+.plan-tray.is-dragging{border-style:dashed}
+/* Where a chip would land on the week. */
+.week-grid .week-item-ghost.is-incoming{--item-color:var(--tab,#7a5cc0);z-index:5;display:flex;align-items:flex-start;padding:4px 6px;font-size:.78rem;font-weight:800;color:var(--tab,#7a5cc0);background:color-mix(in srgb,var(--tab,#7a5cc0) 14%,transparent);animation:ghost-in .15s ease}
+@keyframes ghost-in{from{opacity:0;transform:scale(.96)}}
+:root[data-dark=true] .workbench .plan-tray .plan-chip:not(#a):not(#b):not(#c){background:color-mix(in srgb,#fff 6%,transparent)!important}
+/* Month: a busier day is a little deeper in the Planner's color. */
+:root .workbench .month-grid .month-cell:not(.is-other-month):not(#a):not(#b){background:color-mix(in srgb,var(--tab,#7a5cc0) calc(var(--busy,0)*14%),var(--wb-surface,#fff))}
+:root .workbench .month-grid .month-cell.is-today:not(#a):not(#b){box-shadow:inset 0 0 0 2px var(--tab,#7a5cc0)}
+:root[data-dark=true] .workbench .month-grid .month-cell:not(.is-other-month):not(#a):not(#b){background:color-mix(in srgb,var(--tab,#7a5cc0) calc(var(--busy,0)*22%),#1f1b24)}
+/* Month pills, refined: a gradient in the person's color, a hairline and a soft shadow. */
+:root .workbench .month-grid:not(.is-phone) .month-pill:not(.is-holiday):not(.is-day-off):not(#a):not(#b){border-left:0!important;border-radius:8px!important;background:linear-gradient(160deg,color-mix(in srgb,var(--t-bar,var(--pill)) 22%,#fff),color-mix(in srgb,var(--t-bar,var(--pill)) 10%,#fff))!important;box-shadow:inset 3px 0 0 var(--t-bar,var(--pill)),inset 0 1px 0 rgba(255,255,255,.8),0 0 0 1px color-mix(in srgb,var(--t-bar,var(--pill)) 20%,transparent),0 3px 8px -6px var(--t-bar,var(--pill))!important;font-weight:700}
+:root .workbench .month-grid.is-phone .month-pill:not(#a):not(#b){background:linear-gradient(90deg,var(--pill),color-mix(in srgb,var(--pill) 60%,#fff))!important;box-shadow:0 1px 3px -1px var(--pill)!important}

@@ -1,6 +1,7 @@
 import './week-tiles.css'
 import {toneVars} from '../store/tones'
-import {useEffect,useRef,useState,type CSSProperties,type PointerEvent as ReactPointerEvent} from 'react'
+import {PLAN_TYPE,PLAN_HOVER} from './weekSlot'
+import {useEffect,useRef,useState,type CSSProperties,type PointerEvent as ReactPointerEvent,type DragEvent as ReactDragEvent} from 'react'
 import {classTime} from '../store/classSchedule'
 import {vibrate} from '../game/haptics'
 
@@ -30,8 +31,10 @@ type Draw={day:string;pointer:number;x:number;y:number;anchor:number;from:number
  * moving it (or a right-click) opens a small menu: Edit, Move (then tap the new time) and Delete. A short
  * one (under 40 minutes) reads on one line and has no bottom grip, so a finger holding it always moves it
  * (its length is in the menu). */
-export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,onDrop,onStretch,onDelete,dayLabel}:{days:string[];items:WeekItem[];selected:string;onSelect:(day:string)=>void;onAddAt:(day:string,time:string,end?:string)=>void;onOpen?:(item:WeekItem)=>void;onDrop?:(drag:string,day:string,time?:string)=>void;onStretch?:(drag:string,end:string)=>void;onDelete?:(item:WeekItem)=>void;dayLabel:(day:string)=>string}){
+export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,onDrop,onStretch,onDelete,dayLabel,onExternalDrop}:{days:string[];items:WeekItem[];selected:string;onSelect:(day:string)=>void;onAddAt:(day:string,time:string,end?:string)=>void;onOpen?:(item:WeekItem)=>void;onDrop?:(drag:string,day:string,time?:string)=>void;onStretch?:(drag:string,end:string)=>void;onDelete?:(item:WeekItem)=>void;dayLabel:(day:string)=>string;onExternalDrop?:(payload:string,day:string,time:string)=>void}){
  const [drag,setDrag]=useState<Drag|null>(null)
+ // Something from outside the grid (the To plan tray) being dragged over a time: where it would land.
+ const [ext,setExt]=useState<{day:string;from:number;color?:string}|null>(null)
  const dragRef=useRef<Drag|null>(null),swallowClick=useRef(false)
  const columns=useRef(new Map<string,HTMLElement>()),allDayCells=useRef(new Map<string,HTMLElement>()),body=useRef<HTMLDivElement>(null)
  const update=(next:Drag|null)=>{dragRef.current=next;setDrag(next)}
@@ -44,6 +47,7 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
   const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){setMenu(null);setMoving(null)}}
   window.addEventListener('keydown',key);return ()=>window.removeEventListener('keydown',key)
  },[menu,moving])
+ useEffect(()=>{const on=(e:Event)=>{const d=(e as CustomEvent<{day:string;from:number}|null>).detail;setExt(d)};window.addEventListener(PLAN_HOVER,on);const end=()=>setExt(null);window.addEventListener('dragend',end);return()=>{window.removeEventListener(PLAN_HOVER,on);window.removeEventListener('dragend',end)}},[])
  const timed=items.filter(i=>i.start),allDay=items.filter(i=>!i.start)
  // A late-night event (ends before it starts) fills its evening to midnight; the next day shows the rest.
  const ends=timed.map(i=>i.end&&i.end!==i.start?(i.end>i.start!?minutes(i.end):24*60):minutes(i.start!)+60)
@@ -208,9 +212,10 @@ export default function WeekGrid({days,items,selected,onSelect,onAddAt,onOpen,on
   <div className="week-grid-row week-grid-allday"><span className="week-grid-gutter">All day</span>{days.map(day=><div key={day} ref={el=>{if(el)allDayCells.current.set(day,el);else allDayCells.current.delete(day)}} className={'week-grid-allday-cell'+(landing&&landing.day===day&&landing.from===undefined?' is-drop-target':'')+(moving?' is-pickable':'')} onClick={moving?.drag?e=>{if(e.target!==e.currentTarget)return;onDrop?.(moving.drag!,day);setMoving(null)}:undefined}>{allDay.filter(i=>i.day===day).map(i=><button type="button" key={i.id} className={itemClass(i)} style={{'--item-color':i.color,...toneVars(i.color)} as CSSProperties} aria-label={label(i)} onClick={open(i)} {...handlers(i)}>{i.important?'★ ':''}{i.title}{i.who&&<i className="week-item-who" aria-hidden="true">{i.who}</i>}</button>)}</div>)}</div>
   <div ref={body} className="week-grid-row week-grid-body" style={{'--hour':HOUR+'px'} as CSSProperties}>
    <div className="week-grid-gutter week-grid-hours">{hours.map(h=><span key={h}>{h%12||12}<small>{h<12||h===24?' am':' pm'}</small></span>)}</div>
-   {days.map(day=><div key={day} ref={el=>{if(el)columns.current.set(day,el);else columns.current.delete(day)}} className={'week-grid-day'+(day===selected?' is-selected':'')+(day===todayIso?' is-today':'')} style={{height:hours.length*HOUR}}>
+   {days.map(day=><div key={day} ref={el=>{if(el)columns.current.set(day,el);else columns.current.delete(day)}} className={'week-grid-day'+(day===selected?' is-selected':'')+(day===todayIso?' is-today':'')} style={{height:hours.length*HOUR}} data-week-col={day} data-first={first} data-last={last} {...(onExternalDrop?{onDragOver:(e:ReactDragEvent<HTMLDivElement>)=>{if(![...e.dataTransfer.types].includes(PLAN_TYPE))return;e.preventDefault();e.dataTransfer.dropEffect='copy';const from=Math.min(last*60-60,Math.max(first*60,snap(minuteAt(day,e.clientY)-30)));setExt(x=>x&&x.day===day&&x.from===from?x:{day,from})},onDragLeave:(e:ReactDragEvent<HTMLDivElement>)=>{if(!e.currentTarget.contains(e.relatedTarget as Node))setExt(x=>x?.day===day?null:x)},onDrop:(e:ReactDragEvent<HTMLDivElement>)=>{const payload=e.dataTransfer.getData(PLAN_TYPE);if(!payload)return;e.preventDefault();const from=Math.min(last*60-60,Math.max(first*60,snap(minuteAt(day,e.clientY)-30)));setExt(null);onExternalDrop(payload,day,clock(from))}}:{})}>
     {day===todayIso&&today.getHours()*60+today.getMinutes()>=first*60&&today.getHours()*60+today.getMinutes()<(first+hours.length)*60&&<div className="week-grid-now" aria-hidden="true" style={{top:(today.getHours()*60+today.getMinutes()-first*60)/60*HOUR}}><span>{classTime(clock(nowMin))}</span></div>}
     {hours.map(h=><button type="button" key={h} className={'week-grid-slot'+(moving?' is-pickable':'')} style={{top:(h-first)*HOUR}} aria-label={moving?'Move to '+classTime(clock(h*60))+' on '+dayLabel(day):'Add at '+classTime(clock(h*60))+' on '+dayLabel(day)} onClick={slotTap(day,h)} onPointerDown={drawBegin(day)} onPointerMove={drawMove} onPointerUp={drawEnd} onPointerCancel={drawEnd} onContextMenu={e=>{if(drawRef.current)e.preventDefault()}}><span aria-hidden="true">＋</span></button>)}
+    {ext&&ext.day===day&&<div className="week-item-ghost is-incoming" aria-hidden="true" style={{top:(ext.from-first*60)/60*HOUR,height:HOUR-2} as CSSProperties}>{classTime(clock(ext.from))}</div>}
     {draw?.active&&draw.day===day&&<div className="week-item-ghost is-drawing" aria-hidden="true" style={{top:(draw.from-first*60)/60*HOUR,height:Math.max(22,(draw.to-draw.from)/60*HOUR-2)} as CSSProperties}>＋ {classTime(clock(draw.from))}–{classTime(clock(Math.min(24*60-1,draw.to)))}</div>}
     {lanes(day).map(({item,from,to,lane,of})=><button type="button" key={item.id} className={itemClass(item,' week-item-timed'+(to-from<40?' is-short':'')+(to-from<25?' is-tiny':'')+(moving?.id===item.id?' is-picked':''))} style={{'--item-color':item.color,...toneVars(item.color),top:(from-first*60)/60*HOUR,height:Math.max(22,(to-from)/60*HOUR-2),left:`calc(${lane/of*100}% + 2px)`,width:`calc(${100/of}% - 4px)`} as CSSProperties} aria-label={label(item)} onClick={open(item)} {...handlers(item)}><span className="week-item-title">{item.important?'★ ':''}{item.title}</span><small>{timeSpan(item.start!,item.end)}</small>{item.who&&<i className="week-item-who" aria-hidden="true">{item.who}</i>}{item.stretch&&onStretch&&to-from>=40&&<span className="week-item-grip" aria-hidden="true" onPointerDown={begin(item,'stretch')}/>}</button>)}
     {landing&&landing.day===day&&landing.from!==undefined&&<div className="week-item-ghost" aria-hidden="true" style={{'--item-color':live!.item.color,...toneVars(live!.item.color),top:(landing.from-first*60)/60*HOUR,height:Math.max(22,(landing.to!-landing.from)/60*HOUR-2)} as CSSProperties}>{classTime(clock(landing.from))}–{classTime(clock(Math.min(24*60-1,landing.to!)))}</div>}

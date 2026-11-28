@@ -5,7 +5,8 @@ import {haptic} from '../game/haptics'
  * feel a tap, and it lifts off the page as a copy under your finger; slide it over a day (anything marked
  * `data-drop-day`) and that day lights up; near the top or bottom of the screen the page scrolls; let go to drop
  * it there. Moving before the hold ends is just a scroll; Escape or a second finger cancels. */
-export type HoldDrag={onStart:()=>void;onOver:(day:string)=>void;onDrop:(day:string)=>void;onEnd:()=>void}
+/** `hit` (optional) says what's under the finger instead of the nearest `data-drop-day` (the week grid's day and time). */
+export type HoldDrag={onStart:()=>void;onOver:(day:string)=>void;onDrop:(day:string)=>void;onEnd:()=>void;hit?:(x:number,y:number)=>string}
 const HOLD_MS=360,SLOP=10
 let active=false
 export const touchDragging=()=>active
@@ -37,7 +38,7 @@ export function holdDrag(e:ReactPointerEvent<HTMLElement>,h:HoldDrag){
  }
  function place(){if(ghost)ghost.style.transform=`translate(${x-dx}px,${y-dy-34}px) rotate(2deg) scale(1.04)`}
  function hit(){
-  const el=document.elementFromPoint(x,y)?.closest<HTMLElement>('[data-drop-day]'),day=el?.dataset.dropDay??''
+  const day=h.hit?h.hit(x,y):document.elementFromPoint(x,y)?.closest<HTMLElement>('[data-drop-day]')?.dataset.dropDay??''
   if(day!==over){over=day;h.onOver(day);if(day)haptic('tap')}
  }
  function scroll(){

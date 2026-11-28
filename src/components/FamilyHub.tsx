@@ -146,9 +146,9 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
    {daysOffOn(data,pid,date).map(d=><p key={d.id} className="hub-banner is-off">{dayOffIcon(d.reason)} {dayOffLabel(data,d)}</p>)}
    {specialOn(data,pid,date).filter(x=>!who||personFor(x.day.kidId).id===who.id).map(x=><p key={x.day.id} className="hub-banner" style={{'--p':personFor(x.day.kidId).color} as CSSProperties}>{x.icon} {x.label}</p>)}
    {allDay.map(i=>card(i,date,true))}
-   {timed.map(i=>card(i,date,false))}
+   {date===today&&!who?(()=>{const at=timed.findIndex(i=>(i.endTime??i.time)!>clock),line=<div key="now" className="hub-now-line" aria-hidden="true"><span>{classTime(clock)}</span></div>;return timed.length?[...timed.slice(0,at<0?timed.length:at).map(i=>card(i,date,false)),line,...timed.slice(at<0?timed.length:at).map(i=>card(i,date,false))]:null})():timed.map(i=>card(i,date,false))}
    {!who&&todosOn(data,pid,date).filter(t=>shown(t.forKidId)).length>0&&<ul className="hub-day-todos" aria-label={dayName(date)+'’s to-dos'}>{todosOn(data,pid,date).filter(t=>shown(t.forKidId)).map(t=>{const p=t.forKidId?personFor(t.forKidId):undefined;return <li key={t.id} style={{'--p':(p??me).color} as CSSProperties}><span aria-hidden="true">✔</span> {t.title}{p&&<small>{p.name}</small>}</li>})}</ul>}
-   {!items.length&&!daysOffOn(data,pid,date).length&&!todosOn(data,pid,date).length&&<p className="hub-empty">Nothing planned</p>}
+   {!items.length&&!daysOffOn(data,pid,date).length&&!todosOn(data,pid,date).length&&<p className="hub-empty hub-free"><span aria-hidden="true">🌿</span>Nothing planned</p>}
   </section>}
  const card=(i:DayItem,date:string,allDay:boolean)=>{const p=personFor(i.kidId),happening=!allDay&&date===today&&!!i.time&&i.time<=clock&&(i.endTime??i.time)>clock,past=date<today||(date===today&&!!(i.endTime??i.time)&&(i.endTime??i.time)!<clock&&i.kind!=='task')
   return <button type="button" key={i.kind+i.id+(i.kidId??'')} className={'hub-card'+(allDay?' is-allday':'')+(happening?' is-now':'')+(past||i.done?' is-past':'')+(i.off?' is-off':'')} style={{'--p':p.color,...toneVars(p.color)} as CSSProperties} onClick={()=>openItem(i)} aria-label={i.title+(i.until?', until '+classTime(i.until):i.time?', '+span(i.time,i.endTime):'')+', '+p.name}>
@@ -178,6 +178,8 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
   countdowns:<section className="hub-panel" aria-label="Counting down"><h3>Counting down</h3>{sleepsUntil(data,pid,today,90).length?<ul className="hub-sleeps">{sleepsUntil(data,pid,today,90).map(s=><li key={s.label}><span aria-hidden="true">{s.icon}</span><b>{s.sleeps}</b><small>{s.sleeps===1?'sleep':'sleeps'} until {s.label}</small></li>)}</ul>:<p className="hub-empty">Add birthdays and countdowns from the Planner.</p>}</section>,
  }
 
+ // A panel with nothing in it steps back (smaller, quieter), so the ones with something in them lead.
+ const empty:Record<Panel,boolean>={next:!next,routines:people.every(p=>!progressToday(data,pid,today,p.id==='me'?'':p.id).total),todos:!todosToday.length,dinner:false,countdowns:!sleepsUntil(data,pid,today,90).length}
  // Chores tab: the Kids view, for a chosen day
  const kidItems=(date:string):KidItem[]=>itemsFor(date).map(i=>({id:i.kind+':'+i.id+':'+(i.kidId??''),title:i.title,time:i.time,end:i.endTime,kind:i.kind==='exam'?'exam':i.kind==='task'?'assignment':i.kind==='class'?'lesson':undefined,people:i.kidId?[i.kidId]:[],done:i.done,open:locked||i.kind==='class'?undefined:()=>onOpen(i)}))
  const [newTodo,setNewTodo]=useState(''),[newGrocery,setNewGrocery]=useState('')
@@ -185,7 +187,8 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
 
  if(!started)return <div className="family-hub hub-start" role="dialog" aria-modal="true" aria-label="Wall mode"><button type="button" className="hub-start-button" onClick={start}><KonoSprite size={96} pose="/garden/kono/happy.webp" fallback={<img src="/garden/kono/happy.webp" alt="" width={96}/>}/><b>Tap to start wall mode</b><small>Keeps this screen on and goes full screen</small></button><button type="button" className="link-button" onClick={close}>Not now</button></div>
 
- return <div className={'family-hub'+(now.getHours()>=19||now.getHours()<6?' is-evening':'')} role="dialog" aria-modal="true" aria-label="Family hub" onPointerDown={touched} onKeyDown={touched}>
+ const hour=now.getHours(),daypart=hour>=5&&hour<12?'morning':hour<17&&hour>=12?'afternoon':hour>=17&&hour<21?'dusk':'night'
+ return <div data-daypart={daypart} className={'family-hub is-'+(locked?'locked':'open')+(hour>=19||hour<6?' is-evening':'')} role="dialog" aria-modal="true" aria-label="Family hub" onPointerDown={touched} onKeyDown={touched}>
   <nav className="hub-rail" aria-label="Wall mode">
    {TABS.map(([id,icon,label])=><button type="button" key={id} aria-current={tab===id?'page':undefined} onClick={()=>setTab(id)}><span aria-hidden="true">{icon}</span>{label}</button>)}
    <span className="hub-rail-gap"/>
@@ -201,9 +204,19 @@ export default function FamilyHub({data,save,me,familyName,weather,todoOps,refre
     <div className="hub-people" role="group" aria-label="Show whose">{people.map(p=><button type="button" key={p.id} aria-pressed={!hidden.has(p.id)} aria-label={(hidden.has(p.id)?'Show ':'Hide ')+p.name} style={{'--p':p.color,...toneVars(p.color)} as CSSProperties} onClick={()=>toggle(p.id)}><Avatar className="hub-face" who={p}/></button>)}</div>
     {!locked&&<button type="button" className="hub-add" onClick={()=>{touched();onAdd()}}>＋ Add</button>}
    </header>
+   {tab==='home'&&<section className="hub-hero" aria-label="Right now">
+    <div className="hub-hero-time">
+     <small>{hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'}, {familyName}</small>
+     <b className="hub-hero-clock">{now.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}</b>
+     <span className="hub-hero-date">{now.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</span>
+    </div>
+    {todayWeather&&<div className="hub-hero-weather"><span aria-hidden="true">{nowWeatherEmoji(todayWeather.weather,hour)}</span><b>{Math.round(todayWeather.highF)}°</b><small>Low {Math.round(todayWeather.lowF)}°</small></div>}
+    {next&&!panels.hidden.has('next')&&<button type="button" className="hub-hero-next" aria-label={'Up next: '+next.title} style={{'--p':nextWho!.color,...toneVars(nextWho!.color)} as CSSProperties} onClick={()=>openItem(next)}><small>{nextIn>0?'Next'+(nextIn<60?' · in '+nextIn+' min':''):'Happening now'}</small><b>{next.title}</b><span>{span(next.time,next.endTime)} · {nextWho!.name}</span></button>}
+    <div className="hub-hero-kono" aria-hidden="true">{(()=>{const pose=hour>=21||hour<6?'/garden/kono/sleep.webp':!next&&!todosToday.length?'/garden/kono/tea.webp':'/garden/kono/happy.webp';return <KonoSprite size={92} pose={pose} asleep={hour>=21||hour<6} fallback={<img src={pose} alt="" width={92}/>}/>})()}</div>
+   </section>}
    {tab==='home'&&<div className="hub-home">
     <div className="hub-days" style={{'--n':Math.min(days,4)} as CSSProperties}>{Array.from({length:Math.min(days,4)},(_,i)=>column(addDays(today,i)))}</div>
-    <aside className="hub-panels">{panels.order.filter(p=>!panels.hidden.has(p)).map(p=><div key={p}>{panel[p]}</div>)}</aside>
+    <aside className="hub-panels">{panels.order.filter(p=>!panels.hidden.has(p)&&p!=='next').map(p=><div key={p} className={'hub-panel-slot'+(empty[p]?' is-empty':'')}>{panel[p]}</div>)}</aside>
    </div>}
    {tab==='calendar'&&<div className="hub-calendar">
     <div className="hub-cal-bar"><button type="button" aria-label="Earlier" onClick={()=>setOffset(o=>o-(days||1))}>‹</button><button type="button" onClick={()=>setOffset(0)} disabled={!offset}>Today</button><button type="button" aria-label="Later" onClick={()=>setOffset(o=>o+(days||1))}>›</button>

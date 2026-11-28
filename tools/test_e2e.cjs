@@ -954,7 +954,7 @@ test('Planner: adding to a day offers last week’s events on that weekday, and 
  await page.getByRole('button',{name:/^Add at 12:00 PM on /}).first().click()
  const same=page.getByRole('group',{name:/Same as a past/})
  await same.getByRole('button',{name:/Soccer practice/}).click()
- await page.getByRole('dialog').getByRole('button',{name:'Add',exact:true}).click()
+ await page.getByRole('dialog').getByRole('button',{name:/^Add to /}).click()
  await waitFor(()=>cloud.users.alice.plan.data.calendarEvents.some(e=>e.date===iso(0)&&e.title==='Soccer practice'&&e.time==='16:00'&&e.endTime==='17:30'&&e.location==='Field 3'&&e.kidId==='kid-emma'),'last week’s soccer, same times, place and kid, lands today')
  await page.getByRole('button',{name:'Dentist',exact:true}).first().click()
  await page.getByRole('button',{name:'🗑 Delete'}).click()
@@ -3897,7 +3897,7 @@ test('Family extras: a family to-do list, a snack with a note for a kid’s KONO
  await page.getByRole('button',{name:/^Add at 4:00 PM on/}).click()
  const add=page.getByRole('dialog',{name:/^Add for/}),forWho=add.getByRole('group',{name:'Who’s it for?'})
  await forWho.getByRole('checkbox',{name:'🦄 Emma'}).uncheck();await forWho.getByRole('checkbox',{name:'Leo'}).check()
- await add.getByLabel('Type').selectOption('sports')
+ await add.getByRole('radiogroup',{name:'Type'}).getByRole('radio',{name:/Sports/}).click()
  await add.getByLabel('What is it?').fill('Soccer practice')
  await add.getByLabel('Who’s driving? (optional)').fill('Dad')
  const repeat=add.getByRole('group',{name:/Repeats every/})
@@ -5611,6 +5611,35 @@ test('Family on the tab bar is a choice: turned off, Family moves under More (an
  await bar.getByRole('button',{name:'Family',exact:true}).waitFor()
  await bar.getByRole('button',{name:'More',exact:true}).click()
  assert.equal(await page.getByRole('dialog',{name:'More'}).getByRole('button',{name:'Family',exact:true}).count(),0,'not in More while it’s on the bar')
+})
+
+test('Planner › Week: To plan holds homework with no time and coming tests; dragging one onto a time plans it (homework on its due day gets that time); keys move around and switch views',async({context,page})=>{
+ await page.clock.setFixedTime(new Date('2026-09-30T15:00:00'))
+ const cloud=fakeCloud(),plan=cloud.users.alice.plan.data,pid=plan.activeProfileId
+ plan.tasks.push({id:'tr1',profileId:pid,subjectId:'',title:'Lab report',due:'2026-10-02',done:false,notes:'',estimatedMinutes:45})
+ await signInAs(context,cloud,'alice')
+ await page.setViewportSize({width:1280,height:900});await page.goto(BASE);await heading(page,'Today')
+ await go(page,'Planner');await page.getByRole('button',{name:'Week',exact:true}).first().click()
+ const tray=page.getByRole('region',{name:'To plan'})
+ await tray.getByRole('button',{name:/^Lab report, due Fri/}).waitFor()
+ await tray.getByRole('button',{name:/^Study for Cell biology test/}).waitFor()
+ // Drag the homework onto Friday (its due day) at 4 PM: it gets that planned time and leaves the tray.
+ const chip=tray.getByRole('button',{name:/^Lab report/}),col=page.locator('[data-week-col="2026-10-02"]')
+ await col.scrollIntoViewIfNeeded()
+ const first=Number(await col.getAttribute('data-first')),box=await col.boundingBox(),cb=await chip.boundingBox()
+ const y=box.y+(16-first)*56+28
+ await page.mouse.move(cb.x+cb.width/2,cb.y+cb.height/2);await page.mouse.down()
+ for(let i=1;i<=12;i++){await page.mouse.move(cb.x+(box.x+box.width/2-cb.x)*i/12,cb.y+(y-cb.y)*i/12);await page.waitForTimeout(20)}
+ await page.mouse.up()
+ await waitFor(()=>cloud.users.alice.plan.data.tasks.find(t=>t.id==='tr1')?.plannedTime==='16:00','the homework is planned for 4 PM')
+ await tray.getByRole('button',{name:/^Lab report/}).waitFor({state:'detached'})
+ // Keys: → is the next week, T back to today, 4 the month (a busier day tinted), 1 the agenda.
+ await page.locator('body').click({position:{x:5,y:5}})
+ await page.keyboard.press('ArrowRight');await page.getByRole('heading',{name:/Oct 4\s*–\s*Oct 10/}).waitFor()
+ await page.keyboard.press('t');await page.getByRole('heading',{name:/Sep 27\s*–\s*Oct 3/}).waitFor()
+ await page.keyboard.press('4');await page.locator('.month-grid').waitFor()
+ assert.ok(Number(await page.locator('.month-cell').filter({has:page.getByRole('button',{name:/^Oct 2, 2026/})}).first().evaluate(e=>getComputedStyle(e).getPropertyValue('--busy')))>0,'a day with things on it is tinted')
+ await page.keyboard.press('1');await page.locator('.wb-agenda-upcoming').waitFor()
 })
 
 async function main(){

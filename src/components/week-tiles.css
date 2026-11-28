@@ -158,3 +158,10 @@
 }
 /* New look: today's column softly tinted in the Planner's color. */
 .workbench .week-grid .week-grid-day.is-today:not(#x):not(#y){background:color-mix(in srgb,var(--tab,#7a5cc0) 6%,transparent)!important}
+/* Refined blocks: a soft gradient in the person's color, a glowing bar down the side, a hairline, a lift. */
+:root .workbench .week-grid .week-item:not(.week-item-ghost):not(#a):not(#b){border-left:0!important;border-radius:10px!important;padding:3px 6px 3px 9px!important;background:linear-gradient(160deg,color-mix(in srgb,var(--t-bar,var(--item-color)) 20%,#fff),color-mix(in srgb,var(--t-bar,var(--item-color)) 9%,#fff))!important;color:var(--t-fg,#2a2230)!important;box-shadow:inset 3px 0 0 var(--t-bar,var(--item-color)),inset 0 1px 0 rgba(255,255,255,.85),0 0 0 1px color-mix(in srgb,var(--t-bar,var(--item-color)) 22%,transparent),0 6px 14px -10px var(--t-bar,var(--item-color))!important;font-weight:750;letter-spacing:-.005em}
+:root .workbench .week-grid .week-item-timed:not(#a):not(#b) small{font-weight:600;opacity:.7;font-variant-numeric:tabular-nums}
+:root .workbench .week-grid .week-item.is-now:not(#a):not(#b){box-shadow:inset 3px 0 0 var(--t-bar,var(--item-color)),0 0 0 2px var(--t-bar,var(--item-color)),0 10px 20px -10px var(--t-bar,var(--item-color))!important}
+:root .workbench .week-grid .week-item.is-past:not(#a):not(#b){opacity:.55;filter:saturate(.7)}
+@media(hover:hover){:root .workbench .week-grid .week-item-timed:not(#a):not(#b):hover{z-index:2;transform:translateY(-1px)}}
+:root[data-dark] .workbench .week-grid .week-item:not(.week-item-ghost):not(#a):not(#b){background:linear-gradient(160deg,color-mix(in srgb,var(--t-bar-d,var(--item-color)) 34%,#211c27),color-mix(in srgb,var(--t-bar-d,var(--item-color)) 18%,#211c27))!important;color:var(--t-fg-d,#f5eef8)!important;box-shadow:inset 3px 0 0 var(--t-bar-d,var(--item-color)),0 0 0 1px color-mix(in srgb,var(--t-bar-d,var(--item-color)) 30%,transparent)!important}

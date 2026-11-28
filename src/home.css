@@ -106,13 +106,6 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 .week-ahead-days .wa-shift{background:color-mix(in srgb,#6a8fc7 22%,transparent)}
 
 /* The "Done" toast offers the snack the work just earned (Workspace › run). */
-.undo-toast .undo-toast-snack{opacity:.85;font-weight:600}
-.undo-toast .undo-toast-shop{background:#ffe08a!important;color:#4a3207!important;border-color:transparent!important;font-weight:800;white-space:nowrap;text-transform:none!important}
-.undo-toast .undo-toast-shop span{flex:none;overflow:visible}
-.undo-toast .undo-toast-feed{background:#ffe7b8!important;color:#4a2a17!important;border-color:transparent!important;font-weight:800;white-space:nowrap}
-.undo-toast .undo-toast-feed span{flex:none;overflow:visible}
-.undo-toast .undo-toast-feed{text-transform:none!important}
-.undo-toast.has-snack>span{white-space:normal;overflow:visible}
 
 /* Home › Today at a rotation school (components/RotationToday): the day, the block now or next. */
 .rotation-today{display:grid;gap:8px;margin:8px 0}
@@ -285,5 +278,4 @@ html[data-motion=reduced] .kono-corner-meter .kono-corner-meter-label>span,html[
 @media(prefers-reduced-motion:reduce){.workbench .island-mode-tabs .wb-scene-world::after{animation:none}}
 /* On a phone, a Done message with two actions (Feed KONO and the coins' Shop) puts its words on their
    own line above the buttons, instead of squeezing them to a word a line. */
-@media (max-width:600px){.undo-toast:has(.undo-toast-shop){flex-wrap:wrap;row-gap:8px}.undo-toast:has(.undo-toast-shop)>span:first-child{flex:1 0 100%;white-space:normal}.undo-toast:has(.undo-toast-shop) button{flex:1 1 auto}}
 .workbench .wb-scene-toolbar .wb-scene-hide:not(#x){display:inline-flex!important;align-items:center;justify-content:center;width:38px!important;min-width:38px!important;min-height:36px!important;padding:0!important;border-radius:999px}
